@@ -1,0 +1,53 @@
+{
+  "auth": {
+    "tagline": "Dein Terminal zum Verse",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "signIn": "Anmelden",
+    "signUp": "Konto erstellen",
+    "needAccount": "Noch kein Konto?",
+    "haveAccount": "Schon registriert?",
+    "or": "oder",
+    "continueGoogle": "Mit Google fortfahren"
+  },
+  "nav": {
+    "news": "Verse News",
+    "p4k": "P4K Analyse",
+    "profile": "Profil",
+    "signOut": "Abmelden"
+  },
+  "news": {
+    "title": "Verse News",
+    "subtitle": "Live Comm-Link, Spectrum und Status — alle 15 Min. aktualisiert.",
+    "refresh": "Aktualisieren",
+    "loading": "Lade…",
+    "platformStatus": "Plattform-Status",
+    "empty": "Noch keine News — bitte aktualisieren.",
+    "errorTitle": "News konnten nicht geladen werden"
+  },
+  "p4k": {
+    "title": "P4K Analyse",
+    "subtitle": "Lade eine Star Citizen Data.p4k oder einen Auszug hoch — Channel + Version werden automatisch erkannt.",
+    "dropTitle": "P4K-Datei hier ablegen",
+    "dropHint": "Bis zu {{max}} MB. Dateinamen-Hinweise (live / ptu / eptu) werden automatisch erkannt.",
+    "choose": "Datei wählen",
+    "uploading": "Lade hoch…",
+    "historyTitle": "Deine Uploads",
+    "empty": "Noch keine Uploads.",
+    "col": {
+      "file": "Datei",
+      "channel": "Channel",
+      "version": "Version",
+      "size": "Größe",
+      "uploaded": "Hochgeladen",
+      "status": "Status"
+    }
+  },
+  "profile": {
+    "title": "Profil",
+    "email": "E-Mail",
+    "id": "User-ID",
+    "provider": "Provider",
+    "created": "Mitglied seit"
+  }
+}

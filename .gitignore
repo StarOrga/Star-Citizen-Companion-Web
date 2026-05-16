@@ -1,0 +1,60 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Angular build
+/dist/
+/tmp/
+/out-tsc/
+/bazel-out
+.angular/
+
+# Test artifacts
+/coverage/
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.local.json
+src/environments/environment.local.ts
+
+# Supabase local stack
+supabase/.temp/
+supabase/.branches/
+supabase/.env
+
+# Vercel
+.vercel/
+
+# Claude / AI artifacts kept in repo, but exclude session/cache:
+.claude/sessions/
+.claude/cache/
+.claude/scheduled_tasks.lock
+.claude/worktrees/
+AUTONOMOUS-RESUME.json
+AUTONOMOUS-REPORT.html
+
+# Logs
+*.log
+logs/

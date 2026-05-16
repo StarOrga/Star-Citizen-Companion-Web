@@ -1,0 +1,7 @@
+{
+  "tokensPerByte": 0.25,
+  "expensiveFiles": [],
+  "plan": "max_20",
+  "estimatedLimitTokens": 200000,
+  "confirmThresholdPct": 0.1
+}
