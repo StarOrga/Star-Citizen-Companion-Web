@@ -31,7 +31,12 @@
     "title": "P4K Bundle-Historie",
     "subtitle": "Vorverdaute Bundles vom Desktop-Tool. Upload läuft nur über das Tool, nicht über die Website.",
     "refresh": "Aktualisieren",
+    "expand": "Details anzeigen",
     "errorTitle": "Bundles konnten nicht geladen werden",
+    "toggle": {
+      "history": "Verlauf",
+      "disabled": "Deaktivierte zeigen"
+    },
     "empty": {
       "title": "Noch keine Bundles",
       "hint": "Sobald jemand mit dem Desktop-Tool einen Lauf hochlädt, erscheinen die Daten hier.",
@@ -46,11 +51,29 @@
     "col": {
       "channel": "Channel",
       "version": "Patch",
+      "build": "Build",
       "quality": "Quality",
       "entities": "Entities",
+      "diff": "Diff vs. vor",
       "tool": "Tool-Version",
       "uploader": "Uploader",
-      "when": "Hochgeladen"
+      "when": "Hochgeladen",
+      "actions": "Aktionen"
+    },
+    "actions": {
+      "disable": "Deaktivieren",
+      "reenable": "Reaktivieren"
+    },
+    "diff": {
+      "title": "Diff-Details (vs. vorheriger Build)",
+      "entity": "Entity-Typ",
+      "prev": "Vorher",
+      "new": "Neu",
+      "delta": "Δ"
+    },
+    "disabled": {
+      "title": "Deaktiviert",
+      "noReason": "kein Grund angegeben"
     }
   },
   "profile": {

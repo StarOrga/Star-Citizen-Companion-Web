@@ -3,14 +3,25 @@ import { SupabaseClientProvider } from '../core/supabase.client';
 
 export type ChannelTag = 'live' | 'ptu' | 'eptu' | 'tech-preview' | 'unknown';
 
+export interface BundleDiffSummary {
+  prev_id: string;
+  new_id: string;
+  count_diffs?: Record<string, { prev: number; new: number; delta: number }>;
+  summary?: { entities_added: number; entities_removed: number };
+}
+
 /** Row shape returned by the `list_p4k_bundles_for_collaborator` RPC. */
 export interface P4kBundleRow {
   id: string;
   channel: ChannelTag;
   patch_version: string;
+  build_number: string;
   schema_version: number;
   quality_score: number | null;
   entity_counts: Record<string, unknown> | null;
+  diff_summary: BundleDiffSummary | null;
+  disabled: boolean;
+  disabled_reason: string | null;
   tool_version: string | null;
   uploaded_by_id: string;
   uploaded_by_email: string;
@@ -25,17 +36,48 @@ export class P4kService {
   readonly bundles = signal<P4kBundleRow[]>([]);
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
+  readonly includeHistory = signal(false);
+  readonly includeDisabled = signal(false);
 
   async listBundles(): Promise<void> {
     this.busy.set(true);
     this.errorMsg.set(null);
-    const { data, error } = await this.sb.client.rpc('list_p4k_bundles_for_collaborator');
+    const { data, error } = await this.sb.client.rpc('list_p4k_bundles_for_collaborator', {
+      include_history: this.includeHistory(),
+      include_disabled: this.includeDisabled(),
+    });
     if (error) {
       this.errorMsg.set(error.message);
     } else {
-      this.bundles.set(((data ?? []) as P4kBundleRow[]));
+      this.bundles.set((data ?? []) as P4kBundleRow[]);
     }
     this.busy.set(false);
+  }
+
+  async setDisabled(bundleId: string, disabled: boolean, reason: string | null): Promise<void> {
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const { error } = await this.sb.client.rpc('set_bundle_disabled', {
+      bundle_id: bundleId,
+      new_disabled: disabled,
+      reason: reason,
+    });
+    if (error) {
+      this.errorMsg.set(error.message);
+    } else {
+      await this.listBundles();
+    }
+    this.busy.set(false);
+  }
+
+  toggleHistory(): void {
+    this.includeHistory.set(!this.includeHistory());
+    void this.listBundles();
+  }
+
+  toggleDisabled(): void {
+    this.includeDisabled.set(!this.includeDisabled());
+    void this.listBundles();
   }
 }
 
