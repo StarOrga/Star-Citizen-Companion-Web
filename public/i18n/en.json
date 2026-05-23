@@ -31,7 +31,12 @@
     "title": "P4K Bundle History",
     "subtitle": "Pre-digested bundles from the desktop tool. Uploads only happen via the tool, not from the website.",
     "refresh": "Refresh",
+    "expand": "Show details",
     "errorTitle": "Could not load bundles",
+    "toggle": {
+      "history": "History",
+      "disabled": "Show disabled"
+    },
     "empty": {
       "title": "No bundles yet",
       "hint": "Once someone runs the desktop tool and uploads, results show up here.",
@@ -46,11 +51,29 @@
     "col": {
       "channel": "Channel",
       "version": "Patch",
+      "build": "Build",
       "quality": "Quality",
       "entities": "Entities",
+      "diff": "Diff vs prev",
       "tool": "Tool ver",
       "uploader": "Uploader",
-      "when": "Uploaded"
+      "when": "Uploaded",
+      "actions": "Actions"
+    },
+    "actions": {
+      "disable": "Disable",
+      "reenable": "Re-enable"
+    },
+    "diff": {
+      "title": "Diff details (vs. previous build)",
+      "entity": "Entity type",
+      "prev": "Prev",
+      "new": "New",
+      "delta": "Δ"
+    },
+    "disabled": {
+      "title": "Disabled",
+      "noReason": "no reason given"
     }
   },
   "profile": {

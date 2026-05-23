@@ -17,6 +17,54 @@ interface AuthResult {
   error?: string;
 }
 
+type UpdateEvent =
+  | { type: 'checking' }
+  | { type: 'available'; version: string; releaseDate?: string; notes?: string | null }
+  | { type: 'not-available'; currentVersion: string }
+  | { type: 'progress'; pct: number; bytesPerSecond?: number; transferred?: number; total?: number }
+  | { type: 'downloaded'; version: string }
+  | { type: 'error'; message: string };
+
+interface ExtractRequest {
+  p4kPath: string;
+  outDir: string;
+  channel: 'LIVE' | 'PTU' | 'EPTU' | 'TECH-PREVIEW';
+  patchVersion: string;
+  buildNumber: string;
+  scope: { hdIcons: boolean; renderPngs: boolean; componentTree: boolean };
+  toolVersion: string;
+}
+interface ExtractResultPayload {
+  channel: string;
+  patch_version: string;
+  build_number: string;
+  schema_version: number;
+  quality_score: number;
+  entity_counts: Record<string, number>;
+  manifest_path: string;
+  output_dir: string;
+  tool_version: string;
+}
+interface ExtractFinal {
+  ok: boolean;
+  result?: ExtractResultPayload;
+  error?: string;
+}
+interface ExtractEvent {
+  jobId: string;
+  type: 'phase' | 'file' | 'count' | 'log' | 'warning' | 'done' | 'error';
+  phase?: string;
+  pct?: number;
+  fileName?: string;
+  bytesProcessed?: number;
+  bytesTotal?: number;
+  counter?: { key: string; value: number };
+  level?: 'info' | 'warn' | 'error';
+  message?: string;
+  result?: ExtractResultPayload;
+  error_type?: string;
+}
+
 export const api = {
   env: (): Promise<ToolEnv> => ipcRenderer.invoke('sc:env'),
   discover: (): Promise<DiscoveredChannel[]> => ipcRenderer.invoke('sc:discover'),
@@ -30,6 +78,29 @@ export const api = {
   authenticate: (): Promise<AuthResult> => ipcRenderer.invoke('sc:authenticate'),
   upload: (payload: UploadPayload): Promise<UploadResult> =>
     ipcRenderer.invoke('sc:upload', payload),
+  update: {
+    status: (): Promise<UpdateEvent> => ipcRenderer.invoke('sc:update:status'),
+    check: (): Promise<UpdateEvent> => ipcRenderer.invoke('sc:update:check'),
+    install: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('sc:update:install'),
+    onEvent: (cb: (ev: UpdateEvent) => void): (() => void) => {
+      const listener = (_e: unknown, payload: UpdateEvent): void => cb(payload);
+      ipcRenderer.on('sc:update:event', listener);
+      return () => ipcRenderer.removeListener('sc:update:event', listener);
+    },
+  },
+  extract: {
+    env: (): Promise<{ interpreter: string; cwd: string; source: 'env' | 'packaged' | 'dev-path' }> =>
+      ipcRenderer.invoke('sc:extract:env'),
+    start: (req: ExtractRequest): Promise<ExtractFinal> =>
+      ipcRenderer.invoke('sc:extract:start', req),
+    cancel: (jobId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('sc:extract:cancel', jobId),
+    onEvent: (cb: (ev: ExtractEvent) => void): (() => void) => {
+      const listener = (_e: unknown, payload: ExtractEvent): void => cb(payload);
+      ipcRenderer.on('sc:extract:event', listener);
+      return () => ipcRenderer.removeListener('sc:extract:event', listener);
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld('sc', api);

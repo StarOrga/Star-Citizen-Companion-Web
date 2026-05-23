@@ -17,11 +17,14 @@ type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'unauthoriz
  *  1. Validates the callback URL is a 127.0.0.1 loopback in the expected port range.
  *  2. Ensures the user is signed in (else routes to /login with redirect=this).
  *  3. Ensures the user is collaborator+ (else surfaces the rejection).
- *  4. Reads the Supabase session access_token and redirects to the loopback
- *     with `?state=<csrf>&token=<jwt>&email=<addr>`.
+ *  4. Reads the Supabase session access_token and POSTs it to the loopback as
+ *     `{state, token, email}` JSON body — NEVER as URL parameters. After the
+ *     POST acknowledges, navigates the browser tab to `<cb>?state=<csrf>&ack=1`
+ *     (no token in URL → no JWT in browser history). Hardening for Codex
+ *     review 2026-05-24 MED-6.
  *
  * The Electron OAuth handler in `desktop-tool/src/lib/oauth.ts` matches `state`,
- * captures `token`, closes the loopback server, and resolves with the session.
+ * captures `token` from the POST body, closes the loopback server, and resolves.
  */
 @Component({
   selector: 'sc-desktop-auth',
@@ -139,15 +142,44 @@ export class DesktopAuthComponent implements OnInit {
     }
 
     this.status.set('redirecting');
-    const url = new URL(this.cb);
-    url.searchParams.set('state', this.state);
-    url.searchParams.set('token', token);
     const email = this.auth.user()?.email;
-    if (email) url.searchParams.set('email', email);
 
+    // Step 1: POST the JWT directly to the loopback's /cb endpoint
+    // (cross-origin fetch, body=JSON). The loopback has CORS allow-origin
+    // set to our web origin. This is the real handoff — token is in the
+    // POST body, never in any URL.
+    try {
+      const res = await fetch(this.cb, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ state: this.state, token, email }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        this.status.set('error');
+        this.errorMsg.set(
+          `Loopback rejected token: ${(errBody as { error?: string }).error ?? res.status}`,
+        );
+        return;
+      }
+    } catch (e) {
+      this.status.set('error');
+      this.errorMsg.set(
+        `Loopback unreachable — ist das SC Companion Desktop-Tool noch offen? (${(e as Error).message})`,
+      );
+      return;
+    }
+
+    // Step 2: Navigate the browser tab to <cb>?state=<csrf>&ack=1 so the
+    // loopback can render its "you can close this window" success page in
+    // the same tab. No token in this URL — only the ack flag.
+    const ackUrl = new URL(this.cb);
+    ackUrl.searchParams.set('state', this.state);
+    ackUrl.searchParams.set('ack', '1');
     setTimeout(() => {
-      window.location.href = url.toString();
-    }, 600);
+      window.location.href = ackUrl.toString();
+    }, 200);
   }
 }
 

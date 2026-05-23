@@ -234,3 +234,46 @@ h3 { font-size: 0.9rem; }
 }
 .ok { color: var(--sc-success); }
 .warn { color: var(--sc-warning); }
+
+/* ------- auto-update banner ------- */
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: linear-gradient(90deg, rgba(0, 212, 255, 0.18), rgba(0, 212, 255, 0.04));
+  border-bottom: 1px solid var(--sc-accent);
+  color: var(--sc-fg);
+  font-size: 0.88rem;
+}
+.update-banner.hidden { display: none; }
+.update-banner button { margin-left: auto; padding: 4px 12px; font-size: 0.8rem; }
+.update-banner.update-banner-error {
+  background: rgba(248, 113, 113, 0.12);
+  border-bottom-color: var(--sc-danger);
+  color: var(--sc-danger);
+}
+
+/* ------- bundle-summary + diff table ------- */
+.bundle-meta {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+}
+.bundle-meta li { padding: 4px 8px; background: rgba(0, 212, 255, 0.06); border-radius: 4px; }
+.diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+  font-size: 0.85rem;
+}
+.diff-table th, .diff-table td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--sc-border);
+}
+.diff-table th { color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; }
+.diff-table td:not(:first-child) { text-align: right; font-family: var(--sc-font-display); }

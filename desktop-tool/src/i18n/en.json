@@ -25,6 +25,15 @@
   "upload": {
     "title": "Upload",
     "intro": "OAuth flow opens in your browser. After login, the token is handed back to the tool.",
-    "auth": "Sign in via browser"
+    "auth": "Sign in via browser",
+    "send": "Upload bundle",
+    "bundle": "Bundle summary"
+  },
+  "update": {
+    "available": "Update available: v{{version}} — downloading in background…",
+    "progress": "Downloading update: {{pct}}%",
+    "downloaded": "Update v{{version}} ready — please restart.",
+    "install": "Install now",
+    "error": "Update error: {{message}}"
   }
 }
