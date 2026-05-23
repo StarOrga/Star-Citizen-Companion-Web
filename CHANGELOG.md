@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2026-05-24
+
+### Fixed
+
+- **desktop-tool subpackage version bump**: `desktop-tool/package.json` was
+  left at `0.1.3-dev` through the v0.3.0 ship because
+  `mcp__plugin_devops_dotclaude-ship__ship_version_bump` only updates the
+  root-level `package.json`. Result: the v0.3.0/v0.3.1/v0.3.2-tagged
+  Windows binaries (those that built at all) would have reported
+  `0.1.3-dev` internally via `__SC_TOOL_VERSION__`, even though the
+  GitHub tag said otherwise. Bumped to 0.3.3 here so the next
+  `desktop-v0.3.3` build produces a binary that matches its tag.
+- **`.claude/skills/devops-ship/SKILL.md`**: added a fourth project rule
+  ("monorepo subpackage version bumps") requiring the operator to bump
+  ALL `package.json` files whose versions are baked into shipped
+  artefacts, not just the source-file the plugin tool detected.
+
 ## [0.3.0] - 2026-05-24
 
 ### Added — Phase 2 Domain Logic
