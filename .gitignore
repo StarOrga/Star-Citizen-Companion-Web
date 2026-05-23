@@ -62,6 +62,10 @@ logs/
 # Ship pipeline lock (per-process, never commit)
 .claude/.ship-in-progress
 
+# /devops-burn + /devops-concept local-only state
+.claude/token-config.json
+.claude/concept-active.json
+
 # Python sidecar (desktop-tool) — caches + embedded interpreter + real-P4K subsets
 desktop-tool/python/__pycache__/
 desktop-tool/python/**/__pycache__/
