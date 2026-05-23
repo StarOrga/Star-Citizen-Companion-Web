@@ -1,0 +1,13 @@
+[project]
+name = "sc-extract"
+version = "0.1.0"
+description = "SC Companion P4K extractor — Python sidecar."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[tool.pytest.ini_options]
+# Tells pytest to look for sc_extract in this folder, so `from sc_extract.…`
+# resolves whether tests are invoked from the repo root or from python/.
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-ra"

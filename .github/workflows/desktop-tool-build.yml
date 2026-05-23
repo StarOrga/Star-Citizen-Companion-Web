@@ -33,9 +33,33 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
+  python-sidecar-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop-tool/python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install pytest
+        # We intentionally avoid `pip install -r requirements.txt` here —
+        # scdatatools needs CryEngine deps that aren't relevant for the
+        # threshold/heuristic tests. The sidecar tests only need pytest;
+        # an integration test that exercises scdatatools belongs in a
+        # separate (slower) workflow against the real-subset fixture.
+        run: python -m pip install --upgrade pip pytest
+      - name: Regenerate synthetic fixture
+        # Recompute it in CI so the committed copy can't drift from the
+        # generator. Test will assert content matches.
+        run: python scripts/build-synthetic-fixture.py --out tests/fixtures/synthetic.p4k
+      - name: Run pytest
+        run: python -m pytest tests/ -v
+
   build-windows:
     if: startsWith(github.ref, 'refs/tags/desktop-v')
-    needs: typecheck-and-test
+    needs: [typecheck-and-test, python-sidecar-test]
     runs-on: windows-latest
     defaults:
       run:
