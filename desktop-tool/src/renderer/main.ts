@@ -18,6 +18,19 @@ interface ToolEnv {
 const $ = (sel: string): HTMLElement | null => document.querySelector(sel);
 
 type ViewName = 'discover' | 'configure' | 'run' | 'auth-upload';
+
+interface ExtractResultPayload {
+  channel: string;
+  patch_version: string;
+  build_number: string;
+  schema_version: number;
+  quality_score: number;
+  entity_counts: Record<string, number>;
+  manifest_path: string;
+  output_dir: string;
+  tool_version: string;
+}
+
 const state = {
   view: 'discover' as ViewName,
   channels: [] as Array<{
@@ -30,6 +43,8 @@ const state = {
     selected: boolean;
   }>,
   profile: 'standard' as 'minimal' | 'standard' | 'maximum' | 'auto',
+  lastResult: null as ExtractResultPayload | null,
+  authToken: null as string | null,
 };
 
 async function init(): Promise<void> {
@@ -295,9 +310,6 @@ function renderRun(): string {
       <button id="btn-back-configure" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
       <button id="btn-to-upload" class="btn btn-primary" disabled>${t('run.next', {}) || 'Upload anbieten'}</button>
     </div>
-    <p class="warn" style="margin-top: 12px;">
-      ⚠ Phase 1: Extraction-Engine ist Stub — siehe README. Echte P4K-Parser kommt mit Phase 2.
-    </p>
   `;
 }
 
@@ -310,56 +322,143 @@ function wireRun(): void {
     state.view = 'auth-upload';
     render();
   });
-  // Phase 1: fake-tick the UI so the user can see the layout.
-  void simulateRun();
+  void runRealExtract();
 }
 
-async function simulateRun(): Promise<void> {
+async function runRealExtract(): Promise<void> {
   const bar = $('#bar') as HTMLElement | null;
   const phase = $('#phase-label');
-  const log = $('#log');
+  const logEl = $('#log');
   const counters = $('#counters');
   const setBar = (pct: number) => {
     if (bar) bar.style.width = pct + '%';
   };
-  const appendLog = (msg: string) => {
-    if (!log) return;
-    log.textContent += msg + '\n';
-    log.scrollTop = log.scrollHeight;
+  const appendLog = (msg: string, level: 'info' | 'warn' | 'error' = 'info') => {
+    if (!logEl) return;
+    const prefix = level === 'error' ? '[err] ' : level === 'warn' ? '[warn] ' : '';
+    logEl.textContent += prefix + msg + '\n';
+    logEl.scrollTop = logEl.scrollHeight;
   };
-  const phases = ['discover', 'plan', 'extract', 'validate', 'bundle'];
-  for (let i = 0; i < phases.length; i++) {
-    if (phase) phase.textContent = phases[i] as string;
-    appendLog(`[phase] ${phases[i]}`);
-    for (let j = 0; j < 5; j++) {
-      setBar(Math.round(((i * 5 + j) / (phases.length * 5)) * 100));
-      appendLog(`  · tick ${j + 1}/5`);
-      await new Promise((r) => setTimeout(r, 80));
+  const countMap: Record<string, number> = {};
+  const paintCounters = (): void => {
+    if (!counters) return;
+    counters.innerHTML = Object.entries(countMap)
+      .map(
+        ([key, value]) =>
+          `<div class="counter"><div class="label">${key}</div><div class="value">${value.toLocaleString()}</div></div>`,
+      )
+      .join('');
+  };
+
+  const channel = state.channels.find((c) => c.selected);
+  if (!channel) {
+    appendLog('Kein Channel ausgewählt — zurück zur Discover-Seite.', 'error');
+    return;
+  }
+
+  // Per-tool extract-output dir — Electron's app.getPath('userData') would
+  // be cleaner; for now use a sibling of the install path.
+  const outDir = `${channel.installPath}/.sc-companion-extracts/${channel.channel}-${channel.version ?? 'unknown'}`;
+
+  appendLog(`extracting ${channel.dataP4kPath}`);
+  appendLog(`output → ${outDir}`);
+
+  const unsubscribe = window.sc.extract.onEvent((ev) => {
+    switch (ev.type) {
+      case 'phase':
+        if (phase) phase.textContent = ev.phase ?? '…';
+        if (typeof ev.pct === 'number') setBar(ev.pct);
+        appendLog(`[phase] ${ev.phase ?? 'unknown'}`);
+        return;
+      case 'file':
+        if (typeof ev.pct === 'number') setBar(ev.pct);
+        if (ev.fileName) appendLog(`  · ${ev.fileName}`);
+        return;
+      case 'count':
+        if (ev.counter) {
+          countMap[ev.counter.key] = ev.counter.value;
+          paintCounters();
+        }
+        return;
+      case 'log':
+        appendLog(ev.message ?? '', ev.level ?? 'info');
+        return;
+      case 'warning':
+        appendLog(ev.message ?? 'warning', 'warn');
+        return;
+      case 'done':
+        setBar(100);
+        return;
+      case 'error':
+        appendLog(ev.message ?? 'extraction error', 'error');
+        return;
     }
+  });
+
+  try {
+    const final = await window.sc.extract.start({
+      p4kPath: channel.dataP4kPath,
+      outDir,
+      channel: channel.channel as 'LIVE' | 'PTU' | 'EPTU' | 'TECH-PREVIEW',
+      patchVersion: channel.version ?? 'unknown',
+      buildNumber: '', // unknown from disk; server will treat empty as missing
+      scope: {
+        hdIcons: state.profile !== 'minimal',
+        renderPngs: state.profile === 'maximum',
+        componentTree: state.profile !== 'minimal',
+      },
+      toolVersion: (await window.sc.env()).toolVersion,
+    });
+
+    if (final.ok && final.result) {
+      state.lastResult = final.result;
+      appendLog(
+        `done — quality ${final.result.quality_score.toFixed(0)}/100, ` +
+          `${Object.values(final.result.entity_counts).reduce((a, b) => a + b, 0).toLocaleString()} entities`,
+      );
+      ($('#btn-to-upload') as HTMLButtonElement | null)?.removeAttribute('disabled');
+    } else {
+      appendLog(final.error ?? 'unknown extraction failure', 'error');
+    }
+  } finally {
+    unsubscribe();
   }
-  setBar(100);
-  if (counters) {
-    counters.innerHTML = `
-      <div class="counter"><div class="label">Ships</div><div class="value">60</div></div>
-      <div class="counter"><div class="label">Items</div><div class="value">0</div></div>
-      <div class="counter"><div class="label">Weapons</div><div class="value">0</div></div>
-      <div class="counter"><div class="label">Strings</div><div class="value">0</div></div>
-    `;
-  }
-  ($('#btn-to-upload') as HTMLButtonElement | null)?.removeAttribute('disabled');
 }
 
 // ============= View: Auth-Upload =============
 
 function renderAuthUpload(): string {
+  const result = state.lastResult;
+  const hasResult = result !== null;
+  const counts = hasResult
+    ? Object.entries(result!.entity_counts)
+        .map(([k, v]) => `<li><strong>${k}:</strong> ${v.toLocaleString()}</li>`)
+        .join('')
+    : '<li><em>no extraction yet</em></li>';
   return `
     <h1>${t('upload.title', {}) || 'Upload'}</h1>
     <div class="card">
       <p>${t('upload.intro', {}) || 'OAuth-Flow startet im Browser. Nach Login wird der Token an die App zurückgegeben.'}</p>
       <div class="btn-row">
-        <button id="btn-auth" class="btn btn-primary">${t('upload.auth', {}) || 'Im Browser anmelden'}</button>
+        <button id="btn-auth" class="btn btn-primary">${state.authToken ? (t('upload.send', {}) || 'Bundle hochladen') : (t('upload.auth', {}) || 'Im Browser anmelden')}</button>
       </div>
       <p id="auth-status" class="warn" style="margin-top: 10px;"></p>
+    </div>
+    <div class="card" style="margin-top: 12px;">
+      <h2>${t('upload.bundle', {}) || 'Bundle-Zusammenfassung'}</h2>
+      ${hasResult
+        ? `
+        <ul class="bundle-meta">
+          <li><strong>channel:</strong> ${result!.channel}</li>
+          <li><strong>patch:</strong> ${result!.patch_version}</li>
+          <li><strong>build:</strong> ${result!.build_number || '<em>n/a</em>'}</li>
+          <li><strong>quality:</strong> ${result!.quality_score.toFixed(0)}/100</li>
+        </ul>
+        <h3 style="margin-top: 10px;">Entity counts</h3>
+        <ul class="bundle-meta">${counts}</ul>
+      `
+        : '<p class="warn">No extraction result — go back and run the extractor first.</p>'}
+      <div id="upload-result" style="margin-top: 14px;"></div>
     </div>
     <div class="btn-row">
       <button id="btn-back-run" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
@@ -373,14 +472,81 @@ function wireAuthUpload(): void {
     render();
   });
   $('#btn-auth')?.addEventListener('click', async () => {
-    setAuthStatus('warte auf Browser-Login…', 'warn');
-    const r = await window.sc.authenticate();
-    if (!r.ok) {
-      setAuthStatus(`Fehler: ${r.error ?? 'unbekannt'}`, 'error');
+    if (!state.authToken) {
+      await doAuthenticate();
       return;
     }
-    setAuthStatus(`angemeldet als ${r.userEmail ?? 'unbekannt'} — Upload-Schritt Phase 2`, 'ok');
+    await doUpload();
   });
+}
+
+async function doAuthenticate(): Promise<void> {
+  setAuthStatus('warte auf Browser-Login…', 'warn');
+  const r = await window.sc.authenticate();
+  if (!r.ok || !r.accessToken) {
+    setAuthStatus(`Fehler: ${r.error ?? 'unbekannt'}`, 'error');
+    return;
+  }
+  state.authToken = r.accessToken;
+  setAuthStatus(`angemeldet als ${r.userEmail ?? 'unbekannt'} — klick Upload, um zu senden`, 'ok');
+  render();
+}
+
+async function doUpload(): Promise<void> {
+  if (!state.authToken || !state.lastResult) return;
+  const result = state.lastResult;
+  setAuthStatus('Upload läuft…', 'warn');
+  const ch = result.channel as 'LIVE' | 'PTU' | 'EPTU' | 'TECH-PREVIEW';
+  const r = await window.sc.upload({
+    accessToken: state.authToken,
+    channel: ch,
+    patchVersion: result.patch_version,
+    buildNumber: result.build_number,
+    schemaVersion: result.schema_version,
+    qualityScore: result.quality_score,
+    entityCounts: result.entity_counts,
+    manifest: {},
+    manifestPath: result.manifest_path,
+  });
+  if (!r.ok) {
+    setAuthStatus(`Upload-Fehler: ${r.error ?? 'unbekannt'}`, 'error');
+    return;
+  }
+  setAuthStatus(`Upload OK · bundle_id ${r.bundleId ?? '—'}`, 'ok');
+  paintDiffSummary(r.diffSummary);
+}
+
+function paintDiffSummary(diff: unknown): void {
+  const mount = $('#upload-result');
+  if (!mount) return;
+  if (!diff) {
+    mount.innerHTML = '<p class="ok">Erster Upload für diese Patch-Familie — kein Diff zur Anzeige.</p>';
+    return;
+  }
+  const d = diff as {
+    total_added?: number;
+    total_removed?: number;
+    total_changed?: number;
+    by_entity?: Record<string, { added: number; removed: number; changed: number }>;
+  };
+  const rows = d.by_entity
+    ? Object.entries(d.by_entity)
+        .map(
+          ([key, v]) =>
+            `<tr><td>${key}</td><td class="ok">+${v.added}</td><td class="error">-${v.removed}</td><td class="warn">~${v.changed}</td></tr>`,
+        )
+        .join('')
+    : '';
+  mount.innerHTML = `
+    <h3>Diff vs. previous bundle</h3>
+    <p>Σ <span class="ok">+${d.total_added ?? 0}</span>
+       / <span class="error">-${d.total_removed ?? 0}</span>
+       / <span class="warn">~${d.total_changed ?? 0}</span></p>
+    <table class="diff-table">
+      <thead><tr><th>entity</th><th>added</th><th>removed</th><th>changed</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
 }
 
 function setAuthStatus(msg: string, cls: 'ok' | 'warn' | 'error'): void {

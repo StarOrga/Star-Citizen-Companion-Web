@@ -25,7 +25,9 @@
   "upload": {
     "title": "Upload",
     "intro": "OAuth-Flow startet im Browser. Nach Login wird der Token an die App zurückgegeben.",
-    "auth": "Im Browser anmelden"
+    "auth": "Im Browser anmelden",
+    "send": "Bundle hochladen",
+    "bundle": "Bundle-Zusammenfassung"
   },
   "update": {
     "available": "Update verfügbar: v{{version}} — wird im Hintergrund geladen…",
