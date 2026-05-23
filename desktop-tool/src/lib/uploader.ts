@@ -34,13 +34,15 @@ export interface UploadPayload {
   data?: unknown;
 }
 
+/**
+ * Matches the shape returned by `public.diff_bundle(uuid, uuid)` (migration
+ * 00005) — keep aligned with `src/app/p4k/p4k.service.ts:BundleDiffSummary`.
+ */
 export interface DiffSummary {
-  prev_bundle_id?: string;
-  new_bundle_id?: string;
-  total_added?: number;
-  total_removed?: number;
-  total_changed?: number;
-  by_entity?: Record<string, { added: number; removed: number; changed: number }>;
+  prev_id?: string;
+  new_id?: string;
+  count_diffs?: Record<string, { prev: number; new: number; delta: number }>;
+  summary?: { entities_added: number; entities_removed: number };
 }
 
 export interface UploadResult {

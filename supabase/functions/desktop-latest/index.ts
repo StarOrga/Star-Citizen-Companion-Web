@@ -95,13 +95,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (releaseToken) {
     if (!serviceKey) return jsonResp({ error: 'service_misconfigured' }, 500);
     const adminClient = createClient(supabaseUrl, serviceKey);
+    // Token must match AND the release that issued it must still be active —
+    // otherwise rotated/revoked tokens would keep fetching update metadata
+    // forever (Codex review 2026-05-24, finding HIGH 1).
     const { data: tokenRow } = await adminClient
       .from('desktop_releases')
       .select('id')
       .eq('release_token', releaseToken)
+      .eq('is_current', true)
       .maybeSingle();
-    if (!tokenRow) return jsonResp({ error: 'invalid_release_token' }, 401);
-    // Token valid → fall through to release-lookup using service client.
+    if (!tokenRow) return jsonResp({ error: 'invalid_or_revoked_release_token' }, 401);
+    // Token valid AND active → fall through to release-lookup using service client.
     return await respondWithLatest(adminClient, req);
   }
 

@@ -74,11 +74,37 @@ jobs:
       - run: npm ci
       - name: Generate release token
         id: token
+        # The full UUID is the authentication secret — only the 8-char
+        # fingerprint may end up in logs or release notes (Codex review
+        # 2026-05-24, finding HIGH 2). The full token is masked from logs
+        # via ::add-mask:: AND only exposed to subsequent steps via
+        # GITHUB_ENV (env-var; never an output). The maintainer fetches
+        # the full token from the workflow's encrypted secrets section
+        # (or by re-running with `--print-token` locally).
         run: |
           $token = [guid]::NewGuid().ToString()
+          $fingerprint = $token.Substring(0, 8)
+          Write-Host "::add-mask::$token"
           "SC_RELEASE_TOKEN=$token" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "release_token=$token" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "release_token_fingerprint=$fingerprint" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
         shell: pwsh
+      - name: Persist full token as encrypted artefact
+        # The maintainer needs the full UUID to insert into
+        # desktop_releases. Write it to a file, upload as a workflow
+        # artefact with retention=7d. Repo collaborators with workflow
+        # access can download it via gh run download — NOT exposed on
+        # the public release page.
+        env:
+          SC_RELEASE_TOKEN: ${{ env.SC_RELEASE_TOKEN }}
+        run: |
+          "$env:SC_RELEASE_TOKEN" | Out-File -FilePath release-token.txt -Encoding utf8 -NoNewline
+        shell: pwsh
+      - name: Upload full token artefact (private to repo collaborators)
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-token
+          path: desktop-tool/release-token.txt
+          retention-days: 7
       - name: Build (electron-vite)
         env:
           SC_RELEASE_TOKEN: ${{ env.SC_RELEASE_TOKEN }}
@@ -106,4 +132,4 @@ jobs:
           body: |
             Automated build from tag ${{ github.ref_name }}.
 
-            **Release token fingerprint:** `${{ steps.token.outputs.release_token }}` (first 8 chars stored in the binary; full UUID needs to be registered in `desktop_releases` via the admin RPC).
+            **Release token fingerprint:** `${{ steps.token.outputs.release_token_fingerprint }}…` (first 8 chars stored in the binary; download the **release-token** workflow artefact to get the full UUID, then register it in `desktop_releases` via the admin RPC).

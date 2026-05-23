@@ -523,28 +523,35 @@ function paintDiffSummary(diff: unknown): void {
     mount.innerHTML = '<p class="ok">Erster Upload für diese Patch-Familie — kein Diff zur Anzeige.</p>';
     return;
   }
+  // Server shape (diff_bundle in migration 00005, ingest_bundle_atomic in
+  // 00006): { prev_id, new_id, count_diffs: { <entity>: {prev, new, delta} },
+  // summary: { entities_added, entities_removed } }
   const d = diff as {
-    total_added?: number;
-    total_removed?: number;
-    total_changed?: number;
-    by_entity?: Record<string, { added: number; removed: number; changed: number }>;
+    count_diffs?: Record<string, { prev: number; new: number; delta: number }>;
+    summary?: { entities_added: number; entities_removed: number };
   };
-  const rows = d.by_entity
-    ? Object.entries(d.by_entity)
+  const totalAdded = d.summary?.entities_added ?? 0;
+  const totalRemoved = d.summary?.entities_removed ?? 0;
+  const rows = d.count_diffs
+    ? Object.entries(d.count_diffs)
+        .filter(([, v]) => v.delta !== 0)
+        .sort(([, a], [, b]) => Math.abs(b.delta) - Math.abs(a.delta))
         .map(
-          ([key, v]) =>
-            `<tr><td>${key}</td><td class="ok">+${v.added}</td><td class="error">-${v.removed}</td><td class="warn">~${v.changed}</td></tr>`,
+          ([key, v]) => {
+            const deltaCls = v.delta > 0 ? 'ok' : v.delta < 0 ? 'error' : '';
+            const sign = v.delta > 0 ? '+' : '';
+            return `<tr><td>${key}</td><td>${v.prev}</td><td>${v.new}</td><td class="${deltaCls}">${sign}${v.delta}</td></tr>`;
+          },
         )
         .join('')
     : '';
   mount.innerHTML = `
     <h3>Diff vs. previous bundle</h3>
-    <p>Σ <span class="ok">+${d.total_added ?? 0}</span>
-       / <span class="error">-${d.total_removed ?? 0}</span>
-       / <span class="warn">~${d.total_changed ?? 0}</span></p>
+    <p>Σ <span class="ok">+${totalAdded.toLocaleString()}</span>
+       / <span class="error">−${totalRemoved.toLocaleString()}</span></p>
     <table class="diff-table">
-      <thead><tr><th>entity</th><th>added</th><th>removed</th><th>changed</th></tr></thead>
-      <tbody>${rows}</tbody>
+      <thead><tr><th>entity</th><th>prev</th><th>new</th><th>delta</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4"><em>no entity changes</em></td></tr>'}</tbody>
     </table>
   `;
 }

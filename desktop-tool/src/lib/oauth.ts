@@ -1,10 +1,21 @@
 /**
- * Loopback-OAuth — concept § 6 / B2.
+ * Loopback-OAuth — concept § 6 / B2 + Codex-2026-05-24 MED-6 hardening.
  *
- * 1. Start an ephemeral HTTP server on 127.0.0.1:<random-port>.
- * 2. Open the user's default browser at `${apiBase}/desktop/auth?cb=<loopback>&state=<csrf>`.
- * 3. Web app authenticates the user (Supabase), then redirects back to `<loopback>?state=...&token=...`.
- * 4. Loopback handler validates `state`, captures `token`, closes server, resolves.
+ * Flow (the JWT NEVER appears in any URL → never in browser history):
+ *  1. Start an ephemeral HTTPS-equivalent (HTTP-on-loopback) server on
+ *     127.0.0.1:<port>. The server exposes:
+ *       - POST /cb  (JSON body: {state, token, email}) — the real handoff.
+ *                    CORS headers allow the web-app origin to fetch() it.
+ *       - GET  /cb  — fallback browser-redirect endpoint. Renders a success
+ *                    page only (carries `state` + an `ack` flag, NEVER a token).
+ *  2. Open the user's default browser at
+ *     `${apiBase}/desktop/auth?cb=<loopback>&state=<csrf>`.
+ *  3. Web app authenticates, then does a cross-origin fetch() POST to
+ *     `<loopback>/cb` with `{state, token, email}` in the JSON body.
+ *  4. Once the loopback acknowledges (200), the web app navigates the
+ *     browser tab to `<loopback>/cb?state=<csrf>&ack=1` — a clean URL with
+ *     NO token. The browser history sees only the ack URL.
+ *  5. Loopback validates state, resolves with the captured token.
  *
  * Token is held in memory only. Re-auth on next tool launch.
  */
@@ -23,15 +34,31 @@ export interface AuthResult {
 const PORT_MIN = 46800;
 const PORT_MAX = 46899;
 const TIMEOUT_MS = 5 * 60 * 1000;
+// Body cap defends against malicious clients spamming the loopback — a real
+// Supabase JWT + email is well under 8 KB.
+const MAX_BODY_BYTES = 16 * 1024;
 
 export async function runOAuthFlow(apiBase: string): Promise<AuthResult> {
   const port = await pickPort();
   if (port === null) return { ok: false, error: 'no free loopback port in 46800-46899' };
 
   const state = randomBytes(16).toString('hex');
+  // Capture the web app's origin so the loopback can echo it back as the
+  // Access-Control-Allow-Origin header (browsers reject "*" + credentials,
+  // and we don't accept credentials anyway, but echoing the actual origin
+  // is the standard hardening over a wildcard).
+  const webOrigin = (() => {
+    try {
+      return new URL(apiBase).origin;
+    } catch {
+      return '*';
+    }
+  })();
 
   return new Promise<AuthResult>((resolve) => {
     let resolved = false;
+    let captured: { token: string; email?: string } | null = null;
+
     const finish = (r: AuthResult): void => {
       if (resolved) return;
       resolved = true;
@@ -40,32 +67,115 @@ export async function runOAuthFlow(apiBase: string): Promise<AuthResult> {
       resolve(r);
     };
 
+    const corsHeaders = (): Record<string, string> => ({
+      'access-control-allow-origin': webOrigin,
+      'access-control-allow-methods': 'POST, GET, OPTIONS',
+      'access-control-allow-headers': 'content-type',
+      // Loopback responses are uncacheable — never let a browser cache the
+      // POST result accidentally.
+      'cache-control': 'no-store',
+    });
+
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
       if (url.pathname !== '/cb') {
-        res.writeHead(404, { 'content-type': 'text/plain' });
+        res.writeHead(404, { 'content-type': 'text/plain', ...corsHeaders() });
         res.end('not found');
         return;
       }
-      const gotState = url.searchParams.get('state');
-      const token = url.searchParams.get('token');
-      const email = url.searchParams.get('email');
-      const error = url.searchParams.get('error');
-      if (gotState !== state) {
-        res.writeHead(400, { 'content-type': 'text/html' });
-        res.end(renderPage('SC Companion · Fehler', 'CSRF-Mismatch — versuch es erneut.', false));
-        finish({ ok: false, error: 'state mismatch' });
+
+      // CORS preflight
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204, corsHeaders());
+        res.end();
         return;
       }
-      if (error || !token) {
-        res.writeHead(400, { 'content-type': 'text/html' });
-        res.end(renderPage('SC Companion · Fehler', error ?? 'kein Token erhalten', false));
-        finish({ ok: false, error: error ?? 'no token' });
+
+      // POST = real handoff (JSON body, no URL params)
+      if (req.method === 'POST') {
+        const chunks: Buffer[] = [];
+        let total = 0;
+        req.on('data', (c: Buffer) => {
+          total += c.length;
+          if (total > MAX_BODY_BYTES) {
+            req.destroy();
+            return;
+          }
+          chunks.push(c);
+        });
+        req.on('end', () => {
+          if (total > MAX_BODY_BYTES) {
+            res.writeHead(413, { 'content-type': 'text/plain', ...corsHeaders() });
+            res.end('body too large');
+            return;
+          }
+          let body: { state?: string; token?: string; email?: string; error?: string };
+          try {
+            body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+          } catch {
+            res.writeHead(400, { 'content-type': 'text/plain', ...corsHeaders() });
+            res.end('invalid json');
+            return;
+          }
+          if (body.state !== state) {
+            res.writeHead(400, { 'content-type': 'application/json', ...corsHeaders() });
+            res.end(JSON.stringify({ ok: false, error: 'state_mismatch' }));
+            finish({ ok: false, error: 'state mismatch' });
+            return;
+          }
+          if (body.error || !body.token) {
+            res.writeHead(400, { 'content-type': 'application/json', ...corsHeaders() });
+            res.end(JSON.stringify({ ok: false, error: body.error ?? 'no_token' }));
+            finish({ ok: false, error: body.error ?? 'no token' });
+            return;
+          }
+          captured = { token: body.token, email: body.email };
+          res.writeHead(200, { 'content-type': 'application/json', ...corsHeaders() });
+          res.end(JSON.stringify({ ok: true }));
+          // Don't finish yet — wait for the GET /cb?ack=1 from the browser so
+          // we can render the success page in the user's tab. The web app
+          // navigates there immediately after the fetch resolves.
+        });
+        req.on('error', () => {
+          res.writeHead(400, { 'content-type': 'text/plain', ...corsHeaders() });
+          res.end('request error');
+        });
         return;
       }
-      res.writeHead(200, { 'content-type': 'text/html' });
-      res.end(renderPage('SC Companion · Verbunden', 'Du kannst dieses Fenster schließen.', true));
-      finish({ ok: true, accessToken: token, userEmail: email ?? undefined });
+
+      // GET = browser navigation after the POST succeeded — renders the
+      // "you can close this window" page. No token in this URL.
+      if (req.method === 'GET') {
+        const gotState = url.searchParams.get('state');
+        const ack = url.searchParams.get('ack');
+        const browserError = url.searchParams.get('error');
+
+        if (gotState !== state) {
+          res.writeHead(400, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
+          res.end(renderPage('SC Companion · Fehler', 'CSRF-Mismatch — versuch es erneut.', false));
+          finish({ ok: false, error: 'state mismatch' });
+          return;
+        }
+        if (browserError) {
+          res.writeHead(400, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
+          res.end(renderPage('SC Companion · Fehler', browserError, false));
+          finish({ ok: false, error: browserError });
+          return;
+        }
+        if (ack === '1' && captured) {
+          res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
+          res.end(renderPage('SC Companion · Verbunden', 'Du kannst dieses Fenster schließen.', true));
+          finish({ ok: true, accessToken: captured.token, userEmail: captured.email });
+          return;
+        }
+        // Browser hit GET /cb before the POST completed, or with a stale ack.
+        res.writeHead(202, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
+        res.end(renderPage('SC Companion · Warte…', 'Token wird übertragen — gleich fertig.', true));
+        return;
+      }
+
+      res.writeHead(405, { 'content-type': 'text/plain', ...corsHeaders() });
+      res.end('method not allowed');
     });
 
     const timer = setTimeout(() => finish({ ok: false, error: 'timeout' }), TIMEOUT_MS);

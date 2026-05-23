@@ -110,66 +110,55 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ error: 'invalid_body', message: 'patch_version required' }, 400);
   }
 
-  // === Find previous active bundle of same channel/patch family for diff ===
-  const { data: prev } = await adminClient
-    .from('p4k_bundles')
-    .select('id')
-    .eq('channel', channel)
-    .eq('patch_version', patch)
-    .eq('disabled', false)
-    .neq('build_number', build) // not the same build
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const prevId = (prev as { id: string } | null)?.id ?? null;
+  // === Atomic ingest via RPC ===
+  // ingest_bundle_atomic does prev_id lookup + insert + diff under a
+  // per-(channel, patch) advisory lock so concurrent uploads of different
+  // builds in the same patch family can't both diff against the same
+  // predecessor (Codex review 2026-05-24, MED 5). UNIQUE on
+  // (channel, patch, build) means second uploader gets HTTP 409 — by
+  // design now: first upload wins, the other side's operator coordinates
+  // with the admin if they really want to override (MED 4).
+  const { data: rpcRows, error: rpcErr } = await adminClient.rpc(
+    'ingest_bundle_atomic',
+    {
+      p_uploader: user.id,
+      p_channel: channel,
+      p_patch_version: patch,
+      p_build_number: build,
+      p_schema_version: body.schema_version ?? 1,
+      p_quality_score: body.quality_score ?? null,
+      p_entity_counts: body.entity_counts ?? {},
+      p_manifest: body.manifest ?? {},
+      p_tool_version: body.tool_version ?? null,
+    },
+  );
 
-  // === Insert bundle ===
-  const { data: inserted, error: insertErr } = await adminClient
-    .from('p4k_bundles')
-    .insert({
-      uploaded_by: user.id,
-      channel,
-      patch_version: patch,
-      build_number: build,
-      schema_version: body.schema_version ?? 1,
-      quality_score: body.quality_score ?? null,
-      entity_counts: body.entity_counts ?? {},
-      manifest: body.manifest ?? {},
-      data_url: null, // future: signed URL after large-blob upload to storage
-      tool_version: body.tool_version ?? null,
-    })
-    .select('id')
-    .single();
-
-  if (insertErr) {
-    if (insertErr.code === '23505') {
-      return json({ error: 'duplicate', message: 'Bundle for this channel/patch/build/user already exists' }, 409);
+  if (rpcErr) {
+    // Postgres unique_violation = 23505. Postgrest wraps it differently
+    // depending on the client version, so match on substring too.
+    if (rpcErr.code === '23505' || /duplicate key/i.test(rpcErr.message ?? '')) {
+      return json(
+        {
+          error: 'duplicate',
+          message:
+            'A bundle for this channel/patch/build was already uploaded. Ask an admin to disable it first if you need to replace.',
+        },
+        409,
+      );
     }
-    return json({ error: 'insert_failed', message: insertErr.message }, 500);
+    return json({ error: 'ingest_failed', message: rpcErr.message }, 500);
   }
 
-  const newId = (inserted as { id: string }).id;
-
-  // === Compute diff vs. previous bundle ===
-  let diffSummary: unknown = null;
-  if (prevId) {
-    const { data: diff } = await adminClient.rpc('diff_bundle', {
-      prev_id: prevId,
-      new_id: newId,
-    });
-    diffSummary = diff;
-    if (diff) {
-      await adminClient
-        .from('p4k_bundles')
-        .update({ diff_summary: diff })
-        .eq('id', newId);
-    }
-  }
+  const row = (Array.isArray(rpcRows) ? rpcRows[0] : rpcRows) as {
+    bundle_id?: string;
+    prev_bundle_id?: string | null;
+    diff_summary?: unknown;
+  } | null;
 
   return json({
     ok: true,
-    bundle_id: newId,
-    prev_bundle_id: prevId,
-    diff_summary: diffSummary,
+    bundle_id: row?.bundle_id,
+    prev_bundle_id: row?.prev_bundle_id ?? null,
+    diff_summary: row?.diff_summary ?? null,
   });
 });
