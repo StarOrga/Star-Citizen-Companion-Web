@@ -6,6 +6,12 @@ import { PROFILES, DEFAULT_PROFILE, estimateForSize } from '../lib/performance.j
 import { runOAuthFlow } from '../lib/oauth.js';
 import { uploadBundle, type UploadPayload } from '../lib/uploader.js';
 import { RELEASE_TOKEN, TOOL_VERSION, API_BASE } from '../lib/release-token.js';
+import {
+  initAutoUpdater,
+  checkForUpdatesManually,
+  installUpdateNow,
+  getLastUpdateEvent,
+} from './updater.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -88,6 +94,15 @@ ipcMain.handle('sc:upload', async (_e, payload: UploadPayload) =>
   uploadBundle(API_BASE, payload),
 );
 
+// ============= Auto-Update IPC =============
+
+ipcMain.handle('sc:update:status', () => getLastUpdateEvent());
+ipcMain.handle('sc:update:check', async () => checkForUpdatesManually());
+ipcMain.handle('sc:update:install', () => {
+  installUpdateNow();
+  return { ok: true };
+});
+
 // ============= App lifecycle =============
 
 // Single-instance lock: a second double-click on the .exe focuses the
@@ -111,6 +126,7 @@ app.whenReady().then(() => {
   app.setAppUserModelId('com.sc-companion.desktop-tool');
   Menu.setApplicationMenu(null); // Belt-and-suspenders alongside per-window setMenu(null)
   createWindow();
+  initAutoUpdater(); // Schedules an update check 4 s after launch (skipped in dev builds).
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

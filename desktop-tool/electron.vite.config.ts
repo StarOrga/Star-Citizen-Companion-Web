@@ -9,7 +9,19 @@ export default defineConfig({
         entry: resolve(__dirname, 'src/main/index.ts'),
       },
       rollupOptions: {
-        external: ['electron', 'yauzl', 'node:fs', 'node:path', 'node:http', 'node:crypto', 'node:os'],
+        external: [
+          'electron',
+          'electron-updater',
+          'electron-log',
+          'yauzl',
+          'node:fs',
+          'node:path',
+          'node:http',
+          'node:crypto',
+          'node:os',
+          'node:child_process',
+          'node:readline',
+        ],
       },
     },
     define: {

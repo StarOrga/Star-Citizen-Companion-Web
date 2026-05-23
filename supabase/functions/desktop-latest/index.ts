@@ -5,15 +5,23 @@
 //
 // Replaces the originally-planned Vercel Edge-Function (concept Iter 3 § I).
 // Supabase Edge avoids the interactive Vercel-setup blocker — same security
-// properties (JWT-verified user, service-side GH access, no GH-token leak
-// into the Tool binary).
+// properties (release-token-bound access, no GH-token leak into the Tool).
 //
-// Input:  GET (with Authorization: Bearer <jwt>)
-//         Accept: application/yaml → electron-updater-format
-//         Accept: application/json → human-readable
+// Auth: EITHER release-token (Tool, pre-login) OR JWT+role (Web UI, logged in)
+//   - `X-SC-Release-Token: <token>` → validated against `desktop_releases.release_token`
+//     (any active release token grants read of the latest release metadata)
+//   - `Authorization: Bearer <jwt>` → user role must be admin/collaborator
+//   Token check first; JWT only if no token header was sent.
+//
+// Deploy with --no-verify-jwt because release-token requests have no JWT.
+//
+// Input:  GET
+//         Accept: application/yaml → electron-updater-format (default for Tool)
+//         Accept: application/json → human-readable (default for UI)
 // Output: 200 (yaml or json based on Accept)
 //         401 unauthorized
-//         403 forbidden — not collaborator+
+//         403 forbidden — not collaborator+ (JWT path only)
+//         404 no_release
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
@@ -76,15 +84,32 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'GET') return jsonResp({ error: 'method_not_allowed' }, 405);
 
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader) return jsonResp({ error: 'unauthorized' }, 401);
-
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+  const releaseToken = req.headers.get('x-sc-release-token');
+  const authHeader = req.headers.get('authorization');
+
+  // --- Auth path 1: release-token (Tool, pre-login) ---
+  if (releaseToken) {
+    if (!serviceKey) return jsonResp({ error: 'service_misconfigured' }, 500);
+    const adminClient = createClient(supabaseUrl, serviceKey);
+    const { data: tokenRow } = await adminClient
+      .from('desktop_releases')
+      .select('id')
+      .eq('release_token', releaseToken)
+      .maybeSingle();
+    if (!tokenRow) return jsonResp({ error: 'invalid_release_token' }, 401);
+    // Token valid → fall through to release-lookup using service client.
+    return await respondWithLatest(adminClient, req);
+  }
+
+  // --- Auth path 2: JWT + role (Web UI) ---
+  if (!authHeader) return jsonResp({ error: 'unauthorized' }, 401);
   const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
   });
-
   const {
     data: { user },
     error: authErr,
@@ -100,8 +125,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return jsonResp({ error: 'forbidden' }, 403);
   }
 
-  // Latest is_current release
-  const { data, error } = await userClient
+  return await respondWithLatest(userClient, req);
+});
+
+async function respondWithLatest(
+  client: ReturnType<typeof createClient>,
+  req: Request,
+): Promise<Response> {
+  const { data, error } = await client
     .from('desktop_releases')
     .select('id, version, platforms, notes, created_at')
     .eq('is_current', true)
@@ -129,4 +160,4 @@ Deno.serve(async (req: Request): Promise<Response> => {
     releaseDate: release.created_at,
     platforms: release.platforms,
   });
-});
+}

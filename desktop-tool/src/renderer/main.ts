@@ -46,7 +46,59 @@ async function init(): Promise<void> {
     });
   }
 
+  // Auto-update banner — subscribe + paint last known status (no-op on dev).
+  window.sc.update.onEvent(paintUpdateBanner);
+  void window.sc.update.status().then(paintUpdateBanner);
+
   render();
+}
+
+type UpdateEvent =
+  | { type: 'checking' }
+  | { type: 'available'; version: string; releaseDate?: string; notes?: string | null }
+  | { type: 'not-available'; currentVersion: string }
+  | { type: 'progress'; pct: number; bytesPerSecond?: number; transferred?: number; total?: number }
+  | { type: 'downloaded'; version: string }
+  | { type: 'error'; message: string };
+
+function paintUpdateBanner(ev: UpdateEvent): void {
+  const banner = $('#update-banner');
+  const text = $('#update-banner-text');
+  const action = $('#update-banner-action') as HTMLButtonElement | null;
+  if (!banner || !text || !action) return;
+  banner.classList.remove('update-banner-error');
+  action.style.display = 'none';
+  action.onclick = null;
+
+  switch (ev.type) {
+    case 'checking':
+    case 'not-available':
+      banner.classList.add('hidden');
+      return;
+    case 'available':
+      text.textContent =
+        (t('update.available', { version: ev.version }) || `Update verfügbar: v${ev.version} — wird im Hintergrund geladen…`);
+      banner.classList.remove('hidden');
+      return;
+    case 'progress':
+      text.textContent =
+        (t('update.progress', { pct: String(ev.pct) }) || `Update wird geladen: ${ev.pct}%`);
+      banner.classList.remove('hidden');
+      return;
+    case 'downloaded':
+      text.textContent =
+        (t('update.downloaded', { version: ev.version }) || `Update v${ev.version} bereit — bitte App neu starten.`);
+      action.textContent = t('update.install', {}) || 'Jetzt installieren';
+      action.style.display = 'inline-flex';
+      action.onclick = () => void window.sc.update.install();
+      banner.classList.remove('hidden');
+      return;
+    case 'error':
+      text.textContent = (t('update.error', { message: ev.message }) || `Update-Fehler: ${ev.message}`);
+      banner.classList.remove('hidden');
+      banner.classList.add('update-banner-error');
+      return;
+  }
 }
 
 function paintEnv(env: ToolEnv): void {
