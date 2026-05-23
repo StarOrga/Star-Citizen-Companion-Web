@@ -1,0 +1,30 @@
+{
+  "common": {
+    "back": "Back",
+    "next": "Next",
+    "cancel": "Cancel",
+    "ok": "OK"
+  },
+  "discover": {
+    "title": "Find Star Citizen installs",
+    "subtitle": "Cascade runs automatically: RSI launcher → filesystem scan → optional manual pick.",
+    "scan": "Start scan",
+    "manual": "Pick folder manually",
+    "found": "Detected channels",
+    "next": "Next → Configure"
+  },
+  "configure": {
+    "title": "Pick a profile",
+    "subtitle": "Switchable live — change it mid-run.",
+    "start": "Start extraction"
+  },
+  "run": {
+    "title": "Extracting",
+    "next": "Continue to upload"
+  },
+  "upload": {
+    "title": "Upload",
+    "intro": "OAuth flow opens in your browser. After login, the token is handed back to the tool.",
+    "auth": "Sign in via browser"
+  }
+}

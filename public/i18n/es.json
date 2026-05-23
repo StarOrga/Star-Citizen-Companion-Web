@@ -1,0 +1,121 @@
+{
+  "auth": {
+    "tagline": "Tu terminal hacia el verse",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "signIn": "Iniciar sesión",
+    "signUp": "Crear cuenta",
+    "needAccount": "¿No tienes cuenta?",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "or": "o",
+    "continueGoogle": "Continuar con Google"
+  },
+  "nav": {
+    "news": "Verse News",
+    "p4k": "Historial de bundles",
+    "profile": "Perfil",
+    "admin": "Admin",
+    "desktop": "Herramienta de escritorio",
+    "signOut": "Cerrar sesión"
+  },
+  "news": {
+    "title": "Verse News",
+    "subtitle": "Comm-Link, Spectrum y estado en vivo — actualizado cada 15 min.",
+    "refresh": "Actualizar",
+    "loading": "Cargando…",
+    "platformStatus": "Estado de la plataforma",
+    "empty": "Aún no hay noticias — actualiza para obtener el último feed.",
+    "errorTitle": "No se pudieron cargar las noticias"
+  },
+  "p4k": {
+    "title": "Historial de bundles P4K",
+    "subtitle": "Bundles pre-procesados desde la herramienta de escritorio. Los uploads en bruto pasan solo por la herramienta, no por el sitio.",
+    "refresh": "Actualizar",
+    "errorTitle": "No se pudieron cargar los bundles",
+    "empty": {
+      "title": "Aún no hay bundles",
+      "hint": "En cuanto alguien suba algo desde la herramienta de escritorio, aparecerá aquí.",
+      "goDesktop": "Ir a la herramienta de escritorio"
+    },
+    "kpi": {
+      "total": "Total bundles",
+      "channels": "Channels",
+      "avgQuality": "Puntaje calidad medio",
+      "entitiesTotal": "Total entidades"
+    },
+    "col": {
+      "channel": "Channel",
+      "version": "Patch",
+      "quality": "Calidad",
+      "entities": "Entidades",
+      "tool": "Ver. herr.",
+      "uploader": "Subido por",
+      "when": "Subido"
+    }
+  },
+  "profile": {
+    "title": "Perfil",
+    "email": "Correo electrónico",
+    "id": "ID de usuario",
+    "provider": "Proveedor",
+    "created": "Miembro desde",
+    "role": "Rol",
+    "roles": {
+      "admin": "Admin",
+      "collaborator": "Colaborador",
+      "viewer": "Lector"
+    }
+  },
+  "admin": {
+    "title": "Admin · Gestión de usuarios",
+    "subtitle": "Solo los admins pueden cambiar roles. El último admin no puede ser degradado — promueve antes a otro admin.",
+    "refresh": "Actualizar",
+    "lastAdmin": "Último admin",
+    "lastAdminTip": "Promueve primero a otro admin antes de cambiar este rol — si no, el sistema se quedaría sin admin.",
+    "invite": {
+      "title": "Invitar usuario",
+      "subtitle": "Envía un correo magic-link de Supabase. El rol se asigna al aceptar.",
+      "emailPlaceholder": "persona@example.com",
+      "send": "Enviar invitación",
+      "sending": "Enviando…"
+    },
+    "col": {
+      "user": "Usuario",
+      "email": "Correo",
+      "role": "Rol",
+      "joined": "Se unió",
+      "lastSeen": "Última conexión",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "promoteCollab": "→ Colaborador",
+      "promoteAdmin": "→ Admin",
+      "demoteViewer": "→ Lector",
+      "delete": "Eliminar",
+      "leaveSelf": "Salir"
+    },
+    "errorTitle": "Acción fallida",
+    "loading": "Cargando usuarios…"
+  },
+  "desktop": {
+    "title": "Herramienta de escritorio",
+    "subtitle": "Descarga el scanner companion para tu instalación local de Star Citizen. Solo admin + colaborador.",
+    "currentVersion": "Versión actual",
+    "released": "Publicado",
+    "notes": "Notas de versión",
+    "downloadFor": "Descargar para {{platform}}",
+    "noRelease": "Aún no hay versión publicada.",
+    "noReleaseHint": "En cuanto el primer build de CI esté listo, aparecerá aquí.",
+    "size": "Tamaño",
+    "hash": "SHA-256"
+  },
+  "desktopAuth": {
+    "title": "Autorizar herramienta de escritorio",
+    "authorizing": "Comprobando tu sesión…",
+    "loginRequired": "Inicia sesión primero — te traemos de vuelta aquí automáticamente.",
+    "redirecting": "Autorizado. Enviando token a la app…",
+    "redirectingHint": "Puedes cerrar esta ventana en un momento.",
+    "unauthorized": "Tu cuenta no puede usar la herramienta de escritorio.",
+    "unauthorizedHint": "Necesitas el rol de colaborador o admin. Pídelo a un admin."
+  }
+}

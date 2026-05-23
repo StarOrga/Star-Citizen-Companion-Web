@@ -12,8 +12,10 @@
   },
   "nav": {
     "news": "Verse News",
-    "p4k": "P4K Analyzer",
+    "p4k": "Bundle History",
     "profile": "Profile",
+    "admin": "Admin",
+    "desktop": "Desktop Tool",
     "signOut": "Sign out"
   },
   "news": {
@@ -26,21 +28,29 @@
     "errorTitle": "Could not load news"
   },
   "p4k": {
-    "title": "P4K Analyzer",
-    "subtitle": "Drop a Star Citizen Data.p4k or extracted slice — channel + version are detected automatically.",
-    "dropTitle": "Drop a P4K file here",
-    "dropHint": "Up to {{max}} MB. Filename hints (live / ptu / eptu) are picked up automatically.",
-    "choose": "Choose file",
-    "uploading": "Uploading…",
-    "historyTitle": "Your uploads",
-    "empty": "No uploads yet.",
+    "title": "P4K Bundle History",
+    "subtitle": "Pre-digested bundles from the desktop tool. Uploads only happen via the tool, not from the website.",
+    "refresh": "Refresh",
+    "errorTitle": "Could not load bundles",
+    "empty": {
+      "title": "No bundles yet",
+      "hint": "Once someone runs the desktop tool and uploads, results show up here.",
+      "goDesktop": "Open the desktop tool page"
+    },
+    "kpi": {
+      "total": "Total bundles",
+      "channels": "Channels",
+      "avgQuality": "Avg quality score",
+      "entitiesTotal": "Total entities"
+    },
     "col": {
-      "file": "File",
       "channel": "Channel",
-      "version": "Version",
-      "size": "Size",
-      "uploaded": "Uploaded",
-      "status": "Status"
+      "version": "Patch",
+      "quality": "Quality",
+      "entities": "Entities",
+      "tool": "Tool ver",
+      "uploader": "Uploader",
+      "when": "Uploaded"
     }
   },
   "profile": {
@@ -48,6 +58,64 @@
     "email": "Email",
     "id": "User ID",
     "provider": "Provider",
-    "created": "Member since"
+    "created": "Member since",
+    "role": "Role",
+    "roles": {
+      "admin": "Admin",
+      "collaborator": "Collaborator",
+      "viewer": "Viewer"
+    }
+  },
+  "admin": {
+    "title": "Admin · User Management",
+    "subtitle": "Only admins can change roles. The last admin cannot be demoted — promote another admin first.",
+    "refresh": "Refresh",
+    "lastAdmin": "Last admin",
+    "lastAdminTip": "Promote another admin first before changing this role — otherwise the system would be left without any admin.",
+    "invite": {
+      "title": "Invite user",
+      "subtitle": "Sends a Supabase magic-link email. Role is assigned the moment they accept.",
+      "emailPlaceholder": "person@example.com",
+      "send": "Send invite",
+      "sending": "Sending…"
+    },
+    "col": {
+      "user": "User",
+      "email": "Email",
+      "role": "Role",
+      "joined": "Joined",
+      "lastSeen": "Last seen",
+      "actions": "Actions"
+    },
+    "actions": {
+      "promoteCollab": "→ Collaborator",
+      "promoteAdmin": "→ Admin",
+      "demoteViewer": "→ Viewer",
+      "delete": "Delete",
+      "leaveSelf": "Leave"
+    },
+    "errorTitle": "Action failed",
+    "loading": "Loading users…"
+  },
+  "desktop": {
+    "title": "Desktop Tool",
+    "subtitle": "Download the companion scanner for your local Star Citizen install. Admin + collaborator only.",
+    "currentVersion": "Current version",
+    "released": "Released",
+    "notes": "Release notes",
+    "downloadFor": "Download for {{platform}}",
+    "noRelease": "No published release yet.",
+    "noReleaseHint": "Once the first CI build lands, it'll show up here.",
+    "size": "Size",
+    "hash": "SHA-256"
+  },
+  "desktopAuth": {
+    "title": "Authorize desktop tool",
+    "authorizing": "Checking your session…",
+    "loginRequired": "Sign in first — we'll bounce you back here automatically.",
+    "redirecting": "Authorized. Sending token to the app…",
+    "redirectingHint": "You can close this window in a moment.",
+    "unauthorized": "Your account can't use the desktop tool.",
+    "unauthorizedHint": "You need collaborator or admin role. Ask an admin."
   }
 }

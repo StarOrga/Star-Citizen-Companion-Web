@@ -1,0 +1,30 @@
+{
+  "common": {
+    "back": "Retour",
+    "next": "Suivant",
+    "cancel": "Annuler",
+    "ok": "OK"
+  },
+  "discover": {
+    "title": "Trouver les installations Star Citizen",
+    "subtitle": "Cascade automatique : RSI Launcher → scan du système → choix manuel.",
+    "scan": "Lancer le scan",
+    "manual": "Choisir le dossier",
+    "found": "Channels détectés",
+    "next": "Suivant → Configuration"
+  },
+  "configure": {
+    "title": "Choisir un profil",
+    "subtitle": "Modifiable à la volée pendant l'extraction.",
+    "start": "Démarrer l'extraction"
+  },
+  "run": {
+    "title": "Extraction en cours",
+    "next": "Continuer vers l'upload"
+  },
+  "upload": {
+    "title": "Upload",
+    "intro": "Le flux OAuth s'ouvre dans le navigateur. Après connexion, le jeton revient à l'application.",
+    "auth": "Se connecter via le navigateur"
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "auth": {
+    "tagline": "Seu terminal para o verse",
+    "email": "E-mail",
+    "password": "Senha",
+    "signIn": "Entrar",
+    "signUp": "Criar conta",
+    "needAccount": "Ainda não tem conta?",
+    "haveAccount": "Já tem conta?",
+    "or": "ou",
+    "continueGoogle": "Continuar com Google"
+  },
+  "nav": {
+    "news": "Verse News",
+    "p4k": "Histórico de bundles",
+    "profile": "Perfil",
+    "admin": "Admin",
+    "desktop": "Ferramenta desktop",
+    "signOut": "Sair"
+  },
+  "news": {
+    "title": "Verse News",
+    "subtitle": "Comm-Link, Spectrum e status em tempo real — atualizado a cada 15 min.",
+    "refresh": "Atualizar",
+    "loading": "Carregando…",
+    "platformStatus": "Status da plataforma",
+    "empty": "Sem notícias ainda — atualize para obter o feed mais recente.",
+    "errorTitle": "Não foi possível carregar as notícias"
+  },
+  "p4k": {
+    "title": "Histórico de bundles P4K",
+    "subtitle": "Bundles pré-processados da ferramenta desktop. Uploads brutos passam apenas pela ferramenta, não pelo site.",
+    "refresh": "Atualizar",
+    "errorTitle": "Não foi possível carregar os bundles",
+    "empty": {
+      "title": "Ainda sem bundles",
+      "hint": "Assim que alguém fizer upload pela ferramenta desktop, aparecerá aqui.",
+      "goDesktop": "Ir para a ferramenta desktop"
+    },
+    "kpi": {
+      "total": "Total de bundles",
+      "channels": "Channels",
+      "avgQuality": "Score médio de qualidade",
+      "entitiesTotal": "Total de entidades"
+    },
+    "col": {
+      "channel": "Channel",
+      "version": "Patch",
+      "quality": "Qualidade",
+      "entities": "Entidades",
+      "tool": "Ver. ferr.",
+      "uploader": "Enviado por",
+      "when": "Enviado"
+    }
+  },
+  "profile": {
+    "title": "Perfil",
+    "email": "E-mail",
+    "id": "ID do usuário",
+    "provider": "Provedor",
+    "created": "Membro desde",
+    "role": "Papel",
+    "roles": {
+      "admin": "Admin",
+      "collaborator": "Colaborador",
+      "viewer": "Espectador"
+    }
+  },
+  "admin": {
+    "title": "Admin · Gerenciamento de usuários",
+    "subtitle": "Apenas admins podem alterar papéis. O último admin não pode ser rebaixado — promova outro admin primeiro.",
+    "refresh": "Atualizar",
+    "lastAdmin": "Último admin",
+    "lastAdminTip": "Promova outro admin antes de alterar este papel — caso contrário, o sistema ficaria sem admin.",
+    "invite": {
+      "title": "Convidar usuário",
+      "subtitle": "Envia um e-mail magic-link do Supabase. O papel é atribuído no momento em que aceitar.",
+      "emailPlaceholder": "pessoa@example.com",
+      "send": "Enviar convite",
+      "sending": "Enviando…"
+    },
+    "col": {
+      "user": "Usuário",
+      "email": "E-mail",
+      "role": "Papel",
+      "joined": "Entrou em",
+      "lastSeen": "Última conexão",
+      "actions": "Ações"
+    },
+    "actions": {
+      "promoteCollab": "→ Colaborador",
+      "promoteAdmin": "→ Admin",
+      "demoteViewer": "→ Espectador",
+      "delete": "Excluir",
+      "leaveSelf": "Sair"
+    },
+    "errorTitle": "Ação falhou",
+    "loading": "Carregando usuários…"
+  },
+  "desktop": {
+    "title": "Ferramenta desktop",
+    "subtitle": "Baixe o scanner companion para sua instalação local de Star Citizen. Apenas admin + colaborador.",
+    "currentVersion": "Versão atual",
+    "released": "Publicado",
+    "notes": "Notas da versão",
+    "downloadFor": "Baixar para {{platform}}",
+    "noRelease": "Ainda nenhuma versão publicada.",
+    "noReleaseHint": "Assim que o primeiro build de CI passar, aparecerá aqui.",
+    "size": "Tamanho",
+    "hash": "SHA-256"
+  },
+  "desktopAuth": {
+    "title": "Autorizar ferramenta desktop",
+    "authorizing": "Verificando sua sessão…",
+    "loginRequired": "Faça login primeiro — voltaremos para cá automaticamente.",
+    "redirecting": "Autorizado. Enviando token para a app…",
+    "redirectingHint": "Você pode fechar esta janela em um momento.",
+    "unauthorized": "Sua conta não pode usar a ferramenta desktop.",
+    "unauthorizedHint": "Você precisa do papel colaborador ou admin. Peça a um admin."
+  }
+}

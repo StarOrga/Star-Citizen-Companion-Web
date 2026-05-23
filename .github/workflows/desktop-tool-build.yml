@@ -1,0 +1,85 @@
+name: desktop-tool
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop-tool/**'
+      - '.github/workflows/desktop-tool-build.yml'
+    tags:
+      - 'desktop-v*'
+  pull_request:
+    paths:
+      - 'desktop-tool/**'
+      - '.github/workflows/desktop-tool-build.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  typecheck-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop-tool
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.10.0'
+          cache: 'npm'
+          cache-dependency-path: desktop-tool/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  build-windows:
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    needs: typecheck-and-test
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop-tool
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.10.0'
+          cache: 'npm'
+          cache-dependency-path: desktop-tool/package-lock.json
+      - run: npm ci
+      - name: Generate release token
+        id: token
+        run: |
+          $token = [guid]::NewGuid().ToString()
+          "SC_RELEASE_TOKEN=$token" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "release_token=$token" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        shell: pwsh
+      - name: Build (electron-vite)
+        env:
+          SC_RELEASE_TOKEN: ${{ env.SC_RELEASE_TOKEN }}
+          SC_API_BASE: https://sc-companion.vercel.app
+        run: npm run build
+      - name: Package (electron-builder)
+        env:
+          SC_RELEASE_TOKEN: ${{ env.SC_RELEASE_TOKEN }}
+        run: npm run package:win
+      - name: Upload artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sc-companion-win-x64
+          path: |
+            desktop-tool/release-builds/*.exe
+            desktop-tool/release-builds/*.blockmap
+            desktop-tool/release-builds/latest*.yml
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop-tool/release-builds/*.exe
+            desktop-tool/release-builds/*.blockmap
+          fail_on_unmatched_files: false
+          body: |
+            Automated build from tag ${{ github.ref_name }}.
+
+            **Release token fingerprint:** `${{ steps.token.outputs.release_token }}` (first 8 chars stored in the binary; full UUID needs to be registered in `desktop_releases` via the admin RPC).
