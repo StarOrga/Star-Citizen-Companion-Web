@@ -1,6 +1,6 @@
 {
   "name": "sc-companion",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
@@ -20,7 +20,12 @@
     "db:diff": "supabase db diff",
     "db:migration:new": "supabase migration new",
     "functions:serve": "supabase functions serve",
-    "functions:deploy": "supabase functions deploy"
+    "functions:deploy": "supabase functions deploy",
+    "tool:dev": "npm --prefix desktop-tool run dev",
+    "tool:build": "npm --prefix desktop-tool run build",
+    "tool:test": "npm --prefix desktop-tool run test",
+    "tool:typecheck": "npm --prefix desktop-tool run typecheck",
+    "tool:package": "npm --prefix desktop-tool run package:win"
   },
   "dependencies": {
     "@angular/animations": "^21.0.0",

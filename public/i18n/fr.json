@@ -1,0 +1,121 @@
+{
+  "auth": {
+    "tagline": "Votre terminal vers le verse",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "signIn": "Se connecter",
+    "signUp": "Créer un compte",
+    "needAccount": "Pas encore de compte ?",
+    "haveAccount": "Déjà inscrit ?",
+    "or": "ou",
+    "continueGoogle": "Continuer avec Google"
+  },
+  "nav": {
+    "news": "Verse News",
+    "p4k": "Historique des bundles",
+    "profile": "Profil",
+    "admin": "Admin",
+    "desktop": "Outil bureau",
+    "signOut": "Déconnexion"
+  },
+  "news": {
+    "title": "Verse News",
+    "subtitle": "Comm-Link, Spectrum et statut en direct — rafraîchi toutes les 15 min.",
+    "refresh": "Actualiser",
+    "loading": "Chargement…",
+    "platformStatus": "État de la plateforme",
+    "empty": "Aucune actualité — actualisez pour obtenir le dernier flux.",
+    "errorTitle": "Impossible de charger les actualités"
+  },
+  "p4k": {
+    "title": "Historique des bundles P4K",
+    "subtitle": "Bundles pré-traités depuis l'outil bureau. Les uploads bruts passent uniquement par l'outil, pas par le site.",
+    "refresh": "Actualiser",
+    "errorTitle": "Impossible de charger les bundles",
+    "empty": {
+      "title": "Pas encore de bundles",
+      "hint": "Dès qu'un upload de l'outil bureau arrive, il apparaîtra ici.",
+      "goDesktop": "Ouvrir la page de l'outil bureau"
+    },
+    "kpi": {
+      "total": "Bundles totaux",
+      "channels": "Channels",
+      "avgQuality": "Score qualité moyen",
+      "entitiesTotal": "Entités totales"
+    },
+    "col": {
+      "channel": "Channel",
+      "version": "Patch",
+      "quality": "Qualité",
+      "entities": "Entités",
+      "tool": "Ver. outil",
+      "uploader": "Uploadeur",
+      "when": "Uploadé"
+    }
+  },
+  "profile": {
+    "title": "Profil",
+    "email": "E-mail",
+    "id": "ID utilisateur",
+    "provider": "Fournisseur",
+    "created": "Membre depuis",
+    "role": "Rôle",
+    "roles": {
+      "admin": "Admin",
+      "collaborator": "Collaborateur",
+      "viewer": "Lecteur"
+    }
+  },
+  "admin": {
+    "title": "Admin · Gestion des utilisateurs",
+    "subtitle": "Seuls les admins peuvent changer les rôles. Le dernier admin ne peut pas être rétrogradé — promouvez d'abord un autre admin.",
+    "refresh": "Actualiser",
+    "lastAdmin": "Dernier admin",
+    "lastAdminTip": "Promouvoir d'abord un autre admin avant de modifier ce rôle — sinon le système n'aurait plus aucun admin.",
+    "invite": {
+      "title": "Inviter un utilisateur",
+      "subtitle": "Envoie un e-mail magic-link Supabase. Le rôle est attribué dès qu'il accepte.",
+      "emailPlaceholder": "personne@example.com",
+      "send": "Envoyer l'invitation",
+      "sending": "Envoi…"
+    },
+    "col": {
+      "user": "Utilisateur",
+      "email": "E-mail",
+      "role": "Rôle",
+      "joined": "Inscrit le",
+      "lastSeen": "Dernière connexion",
+      "actions": "Actions"
+    },
+    "actions": {
+      "promoteCollab": "→ Collaborateur",
+      "promoteAdmin": "→ Admin",
+      "demoteViewer": "→ Lecteur",
+      "delete": "Supprimer",
+      "leaveSelf": "Quitter"
+    },
+    "errorTitle": "Action échouée",
+    "loading": "Chargement des utilisateurs…"
+  },
+  "desktop": {
+    "title": "Outil bureau",
+    "subtitle": "Téléchargez le scanner companion pour votre installation Star Citizen locale. Admin + collaborateur uniquement.",
+    "currentVersion": "Version actuelle",
+    "released": "Publié",
+    "notes": "Notes de version",
+    "downloadFor": "Télécharger pour {{platform}}",
+    "noRelease": "Aucune version publiée pour l'instant.",
+    "noReleaseHint": "Dès que le premier build CI sera passé, il apparaîtra ici.",
+    "size": "Taille",
+    "hash": "SHA-256"
+  },
+  "desktopAuth": {
+    "title": "Autoriser l'outil bureau",
+    "authorizing": "Vérification de votre session…",
+    "loginRequired": "Connectez-vous d'abord — nous vous renvoyons ici automatiquement.",
+    "redirecting": "Autorisé. Envoi du jeton à l'application…",
+    "redirectingHint": "Vous pouvez fermer cette fenêtre dans un instant.",
+    "unauthorized": "Votre compte ne peut pas utiliser l'outil bureau.",
+    "unauthorizedHint": "Il vous faut le rôle collaborateur ou admin. Demandez à un admin."
+  }
+}

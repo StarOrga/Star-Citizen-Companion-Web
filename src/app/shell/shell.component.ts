@@ -2,6 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
+import { RoleService } from '../auth/role.service';
+
+type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
 
 @Component({
   selector: 'sc-shell',
@@ -10,20 +13,32 @@ import { AuthService } from '../auth/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="topbar">
-      <div class="brand">
-        <span class="logo">SC</span>
+      <a class="brand" routerLink="/news" aria-label="SC Companion">
+        <img class="logo" src="icons/verse-compass-favicon.svg" alt="" width="32" height="32" />
         <span class="title">Companion</span>
         <span class="sc-pill tech">alpha</span>
-      </div>
+      </a>
 
       <nav class="nav">
         <a routerLink="/news" routerLinkActive="active">{{ 'nav.news' | translate }}</a>
-        <a routerLink="/p4k" routerLinkActive="active">{{ 'nav.p4k' | translate }}</a>
+        @if (roles.isCollaborator()) {
+          <a routerLink="/p4k" routerLinkActive="active">{{ 'nav.p4k' | translate }}</a>
+          <a routerLink="/desktop" routerLinkActive="active">{{ 'nav.desktop' | translate }}</a>
+        }
+        @if (roles.isAdmin()) {
+          <a routerLink="/admin" routerLinkActive="active" class="admin-link">
+            {{ 'nav.admin' | translate }}
+          </a>
+        }
         <a routerLink="/profile" routerLinkActive="active">{{ 'nav.profile' | translate }}</a>
       </nav>
 
       <div class="actions">
-        <button class="sc-btn lang" (click)="toggleLang()">{{ langLabel() }}</button>
+        <select class="sc-select lang" [value]="currentLang()" (change)="setLang(asLangValue($event))" aria-label="Sprache">
+          @for (l of locales; track l) {
+            <option [value]="l">{{ l.toUpperCase() }}</option>
+          }
+        </select>
         <button class="sc-btn" (click)="auth.signOut()">{{ 'nav.signOut' | translate }}</button>
       </div>
     </header>
@@ -50,20 +65,15 @@ import { AuthService } from '../auth/auth.service';
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
-      min-width: 220px;
+      gap: 10px;
+      min-width: 200px;
+      text-decoration: none;
+      color: inherit;
     }
     .brand .logo {
-      width: 36px;
-      height: 36px;
-      display: grid;
-      place-items: center;
-      font-family: var(--sc-font-display);
-      font-weight: 900;
-      background: linear-gradient(135deg, var(--sc-accent), var(--sc-accent-hot));
-      color: var(--sc-bg-0);
-      border-radius: 6px;
-      font-size: 0.85rem;
+      width: 32px;
+      height: 32px;
+      filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
     }
     .brand .title {
       font-family: var(--sc-font-display);
@@ -75,6 +85,7 @@ import { AuthService } from '../auth/auth.service';
       display: flex;
       gap: 4px;
       flex: 1;
+      flex-wrap: wrap;
     }
     .nav a {
       padding: 8px 16px;
@@ -93,12 +104,33 @@ import { AuthService } from '../auth/auth.service';
         box-shadow: inset 0 -2px 0 var(--sc-accent);
       }
     }
+    .nav a.admin-link {
+      color: var(--sc-accent-hot);
+      &:hover { color: var(--sc-accent-hot); background: rgba(255, 87, 34, 0.1); }
+      &.active { color: var(--sc-accent-hot); box-shadow: inset 0 -2px 0 var(--sc-accent-hot); }
+    }
     .actions {
       display: flex;
       gap: 8px;
       align-items: center;
     }
-    .lang { min-width: 60px; padding: 6px 10px; font-size: 0.75rem; }
+    .sc-select.lang {
+      background: var(--sc-bg-1);
+      color: var(--sc-fg-0);
+      border: 1px solid var(--sc-border);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-family: var(--sc-font-display);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      min-width: 60px;
+    }
+    .sc-select.lang:focus {
+      outline: none;
+      border-color: var(--sc-accent);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
+    }
     .content {
       padding: 32px 28px;
       max-width: 1280px;
@@ -115,12 +147,18 @@ import { AuthService } from '../auth/auth.service';
 })
 export class ShellComponent {
   readonly auth = inject(AuthService);
+  readonly roles = inject(RoleService);
   private readonly translate = inject(TranslateService);
-  readonly langLabel = computed(() => (this.translate.getCurrentLang() ?? 'en').toUpperCase());
 
-  toggleLang() {
-    const next = this.translate.getCurrentLang() === 'en' ? 'de' : 'en';
+  readonly locales: readonly LangId[] = ['de', 'en', 'fr', 'es', 'pt', 'ru', 'zh'];
+  readonly currentLang = computed(() => (this.translate.getCurrentLang() ?? 'en') as LangId);
+
+  setLang(next: LangId) {
     this.translate.use(next);
     if (typeof localStorage !== 'undefined') localStorage.setItem('sc.lang', next);
+  }
+
+  asLangValue(e: Event): LangId {
+    return (e.target as HTMLSelectElement).value as LangId;
   }
 }

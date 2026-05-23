@@ -58,3 +58,6 @@ AUTONOMOUS-REPORT.html
 # Logs
 *.log
 logs/
+
+# Ship pipeline lock (per-process, never commit)
+.claude/.ship-in-progress

@@ -12,8 +12,10 @@
   },
   "nav": {
     "news": "Verse News",
-    "p4k": "P4K Analyse",
+    "p4k": "Bundle-Historie",
     "profile": "Profil",
+    "admin": "Admin",
+    "desktop": "Desktop-Tool",
     "signOut": "Abmelden"
   },
   "news": {
@@ -26,21 +28,29 @@
     "errorTitle": "News konnten nicht geladen werden"
   },
   "p4k": {
-    "title": "P4K Analyse",
-    "subtitle": "Lade eine Star Citizen Data.p4k oder einen Auszug hoch — Channel + Version werden automatisch erkannt.",
-    "dropTitle": "P4K-Datei hier ablegen",
-    "dropHint": "Bis zu {{max}} MB. Dateinamen-Hinweise (live / ptu / eptu) werden automatisch erkannt.",
-    "choose": "Datei wählen",
-    "uploading": "Lade hoch…",
-    "historyTitle": "Deine Uploads",
-    "empty": "Noch keine Uploads.",
+    "title": "P4K Bundle-Historie",
+    "subtitle": "Vorverdaute Bundles vom Desktop-Tool. Upload läuft nur über das Tool, nicht über die Website.",
+    "refresh": "Aktualisieren",
+    "errorTitle": "Bundles konnten nicht geladen werden",
+    "empty": {
+      "title": "Noch keine Bundles",
+      "hint": "Sobald jemand mit dem Desktop-Tool einen Lauf hochlädt, erscheinen die Daten hier.",
+      "goDesktop": "Zum Desktop-Tool"
+    },
+    "kpi": {
+      "total": "Bundles gesamt",
+      "channels": "Channels",
+      "avgQuality": "Ø Quality-Score",
+      "entitiesTotal": "Entities gesamt"
+    },
     "col": {
-      "file": "Datei",
       "channel": "Channel",
-      "version": "Version",
-      "size": "Größe",
-      "uploaded": "Hochgeladen",
-      "status": "Status"
+      "version": "Patch",
+      "quality": "Quality",
+      "entities": "Entities",
+      "tool": "Tool-Version",
+      "uploader": "Uploader",
+      "when": "Hochgeladen"
     }
   },
   "profile": {
@@ -48,6 +58,64 @@
     "email": "E-Mail",
     "id": "User-ID",
     "provider": "Provider",
-    "created": "Mitglied seit"
+    "created": "Mitglied seit",
+    "role": "Rolle",
+    "roles": {
+      "admin": "Admin",
+      "collaborator": "Collaborator",
+      "viewer": "Viewer"
+    }
+  },
+  "admin": {
+    "title": "Admin · User-Management",
+    "subtitle": "Nur Admins können Rollen ändern. Letzter Admin kann nicht demoted werden — promote vorher einen weiteren Admin.",
+    "refresh": "Aktualisieren",
+    "lastAdmin": "Letzter Admin",
+    "lastAdminTip": "Erst einen weiteren Admin promoten, bevor diese Rolle geändert werden kann — sonst hätte das System keinen Admin mehr.",
+    "invite": {
+      "title": "User einladen",
+      "subtitle": "Schickt eine Supabase-Magic-Link-Mail. Rolle wird beim Annehmen direkt zugewiesen.",
+      "emailPlaceholder": "person@example.com",
+      "send": "Einladung senden",
+      "sending": "Sende…"
+    },
+    "col": {
+      "user": "User",
+      "email": "E-Mail",
+      "role": "Rolle",
+      "joined": "Beigetreten",
+      "lastSeen": "Zuletzt aktiv",
+      "actions": "Aktionen"
+    },
+    "actions": {
+      "promoteCollab": "→ Collaborator",
+      "promoteAdmin": "→ Admin",
+      "demoteViewer": "→ Viewer",
+      "delete": "Löschen",
+      "leaveSelf": "Verlassen"
+    },
+    "errorTitle": "Aktion fehlgeschlagen",
+    "loading": "Lade User…"
+  },
+  "desktop": {
+    "title": "Desktop-Tool",
+    "subtitle": "Lade den Companion-Scanner für deinen lokalen Star-Citizen-Install. Nur Admin + Collaborator.",
+    "currentVersion": "Aktuelle Version",
+    "released": "Veröffentlicht",
+    "notes": "Release-Notes",
+    "downloadFor": "Download für {{platform}}",
+    "noRelease": "Noch kein veröffentlichter Release.",
+    "noReleaseHint": "Sobald der erste Build im CI durchgelaufen ist, erscheint er hier.",
+    "size": "Größe",
+    "hash": "SHA-256"
+  },
+  "desktopAuth": {
+    "title": "Desktop-Tool autorisieren",
+    "authorizing": "Prüfe deine Session…",
+    "loginRequired": "Bitte erst einloggen, dann gehts automatisch zurück zur App.",
+    "redirecting": "Autorisiert. Schicke Token zur App…",
+    "redirectingHint": "Dieses Fenster kann gleich geschlossen werden.",
+    "unauthorized": "Dein Account darf das Desktop-Tool nicht nutzen.",
+    "unauthorizedHint": "Du brauchst Collaborator- oder Admin-Rolle. Frag einen Admin."
   }
 }

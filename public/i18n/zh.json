@@ -1,0 +1,121 @@
+{
+  "auth": {
+    "tagline": "你的星际终端",
+    "email": "电子邮件",
+    "password": "密码",
+    "signIn": "登录",
+    "signUp": "创建账户",
+    "needAccount": "还没有账户？",
+    "haveAccount": "已有账户？",
+    "or": "或",
+    "continueGoogle": "使用 Google 继续"
+  },
+  "nav": {
+    "news": "Verse 新闻",
+    "p4k": "Bundle 历史",
+    "profile": "个人资料",
+    "admin": "管理",
+    "desktop": "桌面工具",
+    "signOut": "退出登录"
+  },
+  "news": {
+    "title": "Verse 新闻",
+    "subtitle": "实时 Comm-Link、Spectrum 与状态 — 每 15 分钟刷新一次。",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "platformStatus": "平台状态",
+    "empty": "暂无新闻 — 刷新以获取最新内容。",
+    "errorTitle": "无法加载新闻"
+  },
+  "p4k": {
+    "title": "P4K Bundle 历史",
+    "subtitle": "来自桌面工具的预处理 bundle。原始上传仅通过工具完成，不经过网站。",
+    "refresh": "刷新",
+    "errorTitle": "无法加载 bundle",
+    "empty": {
+      "title": "暂无 bundle",
+      "hint": "只要有人通过桌面工具上传，数据就会出现在这里。",
+      "goDesktop": "前往桌面工具页面"
+    },
+    "kpi": {
+      "total": "Bundle 总数",
+      "channels": "频道",
+      "avgQuality": "平均质量分",
+      "entitiesTotal": "实体总数"
+    },
+    "col": {
+      "channel": "频道",
+      "version": "补丁",
+      "quality": "质量",
+      "entities": "实体",
+      "tool": "工具版本",
+      "uploader": "上传者",
+      "when": "上传时间"
+    }
+  },
+  "profile": {
+    "title": "个人资料",
+    "email": "电子邮件",
+    "id": "用户 ID",
+    "provider": "提供商",
+    "created": "注册于",
+    "role": "角色",
+    "roles": {
+      "admin": "管理员",
+      "collaborator": "协作者",
+      "viewer": "查看者"
+    }
+  },
+  "admin": {
+    "title": "管理 · 用户管理",
+    "subtitle": "只有管理员能修改角色。最后一个管理员不能被降级 — 请先提升另一个用户为管理员。",
+    "refresh": "刷新",
+    "lastAdmin": "最后的管理员",
+    "lastAdminTip": "在更改此角色前先提升另一个用户为管理员 — 否则系统将没有任何管理员。",
+    "invite": {
+      "title": "邀请用户",
+      "subtitle": "发送 Supabase magic-link 邮件。用户接受时即分配角色。",
+      "emailPlaceholder": "person@example.com",
+      "send": "发送邀请",
+      "sending": "发送中…"
+    },
+    "col": {
+      "user": "用户",
+      "email": "电子邮件",
+      "role": "角色",
+      "joined": "加入时间",
+      "lastSeen": "最近登录",
+      "actions": "操作"
+    },
+    "actions": {
+      "promoteCollab": "→ 协作者",
+      "promoteAdmin": "→ 管理员",
+      "demoteViewer": "→ 查看者",
+      "delete": "删除",
+      "leaveSelf": "离开"
+    },
+    "errorTitle": "操作失败",
+    "loading": "加载用户中…"
+  },
+  "desktop": {
+    "title": "桌面工具",
+    "subtitle": "下载本地 Star Citizen 安装的 companion 扫描器。仅限管理员与协作者。",
+    "currentVersion": "当前版本",
+    "released": "发布于",
+    "notes": "发布说明",
+    "downloadFor": "为 {{platform}} 下载",
+    "noRelease": "暂无已发布版本。",
+    "noReleaseHint": "首次 CI 构建完成后，将在此显示。",
+    "size": "大小",
+    "hash": "SHA-256"
+  },
+  "desktopAuth": {
+    "title": "授权桌面工具",
+    "authorizing": "正在验证你的会话…",
+    "loginRequired": "请先登录 — 我们会自动把你带回此处。",
+    "redirecting": "已授权。正在将令牌发送到应用…",
+    "redirectingHint": "你可以在片刻后关闭此窗口。",
+    "unauthorized": "你的账户无法使用桌面工具。",
+    "unauthorizedHint": "需要协作者或管理员角色。请联系管理员。"
+  }
+}

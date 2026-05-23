@@ -26,3 +26,4 @@ Angular 21 PWA · Supabase · Vercel (`sc-companion.vercel.app` — pending firs
 - `.claude/deep-knowledge/supabase.md` — schema, RLS, migrations, edge functions
 - `.claude/deep-knowledge/verse-news-sources.md` — RSI news APIs, Comm-Link Wiki API, RSS fallbacks
 - `.claude/deep-knowledge/p4k-format.md` — CryEngine PAK / ZIP heuristics, what we currently parse
+- `.claude/deep-knowledge/local-dev.md` — dev-server IPv4-only bind (localhost ≠ 127.0.0.1), Docker, worktrees

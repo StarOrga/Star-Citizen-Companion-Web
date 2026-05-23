@@ -46,11 +46,14 @@ export class AuthService {
     });
   }
 
-  async signInWithGoogle() {
+  async signInWithGoogle(returnPath = '/news') {
+    // returnPath must be a same-origin absolute path; the caller is
+    // responsible for sanitizing it (see LoginComponent.safeRedirectTarget).
     return this.sb.client.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/news` : undefined,
+        redirectTo:
+          typeof window !== 'undefined' ? `${window.location.origin}${returnPath}` : undefined,
       },
     });
   }

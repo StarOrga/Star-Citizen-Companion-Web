@@ -1,0 +1,30 @@
+{
+  "common": {
+    "back": "Zurück",
+    "next": "Weiter",
+    "cancel": "Abbrechen",
+    "ok": "OK"
+  },
+  "discover": {
+    "title": "Star-Citizen-Installations finden",
+    "subtitle": "Cascade läuft automatisch: RSI-Launcher → Filesystem-Scan → optional manuell.",
+    "scan": "Scan starten",
+    "manual": "Ordner manuell wählen",
+    "found": "Gefundene Channels",
+    "next": "Weiter → Konfiguration"
+  },
+  "configure": {
+    "title": "Profil wählen",
+    "subtitle": "Live umschaltbar — du kannst während des Laufs wechseln.",
+    "start": "Extraktion starten"
+  },
+  "run": {
+    "title": "Extraktion läuft",
+    "next": "Upload anbieten"
+  },
+  "upload": {
+    "title": "Upload",
+    "intro": "OAuth-Flow startet im Browser. Nach Login wird der Token an die App zurückgegeben.",
+    "auth": "Im Browser anmelden"
+  }
+}

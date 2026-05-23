@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './auth/auth.guard';
 import { publicOnlyGuard } from './auth/public-only.guard';
+import { roleGuard } from './auth/role.guard';
 
 export const routes: Routes = [
   {
@@ -24,7 +25,29 @@ export const routes: Routes = [
       },
       {
         path: 'p4k',
-        loadComponent: () => import('./p4k/p4k-upload.component').then((m) => m.P4kUploadComponent),
+        canActivate: [roleGuard('admin', 'collaborator')],
+        loadComponent: () => import('./p4k/p4k-history.component').then((m) => m.P4kHistoryComponent),
+      },
+      {
+        path: 'desktop',
+        canActivate: [roleGuard('admin', 'collaborator')],
+        loadComponent: () =>
+          import('./desktop/desktop-download.component').then((m) => m.DesktopDownloadComponent),
+      },
+      {
+        // OAuth-callback endpoint for the Electron loopback flow.
+        // Auth-guarded but role-gated INSIDE the component (so unauthenticated
+        // users land on /login with a redirect back here, instead of bouncing
+        // silently to /news).
+        path: 'desktop/auth',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./desktop/desktop-auth.component').then((m) => m.DesktopAuthComponent),
+      },
+      {
+        path: 'admin',
+        canActivate: [roleGuard('admin')],
+        loadComponent: () => import('./admin/admin.component').then((m) => m.AdminComponent),
       },
       {
         path: 'profile',

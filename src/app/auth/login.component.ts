@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from './auth.service';
 
@@ -125,6 +125,7 @@ export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly mode = signal<'signin' | 'signup'>('signin');
   readonly busy = signal(false);
@@ -140,6 +141,18 @@ export class LoginComponent {
     this.errorMsg.set(null);
   }
 
+  /**
+   * Read the `?redirect=…` query param the auth guard set when bouncing
+   * an unauthenticated user. Only same-origin absolute paths are honored
+   * (must start with `/`); anything else falls back to `/news` to prevent
+   * open-redirect attacks via crafted login links.
+   */
+  private safeRedirectTarget(): string {
+    const raw = this.route.snapshot.queryParamMap.get('redirect');
+    if (raw && raw.startsWith('/') && !raw.startsWith('//')) return raw;
+    return '/news';
+  }
+
   async onSubmit() {
     if (this.form.invalid) return;
     this.busy.set(true);
@@ -153,7 +166,9 @@ export class LoginComponent {
       if (error) {
         this.errorMsg.set(error.message);
       } else {
-        await this.router.navigate(['/news']);
+        // navigateByUrl handles path + query string in one call
+        // (router.navigate(['/path?q=1']) treats the whole thing as a single segment).
+        await this.router.navigateByUrl(this.safeRedirectTarget());
       }
     } catch (err) {
       this.errorMsg.set((err as Error).message);
@@ -165,7 +180,7 @@ export class LoginComponent {
   async signInWithGoogle() {
     this.busy.set(true);
     this.errorMsg.set(null);
-    const { error } = await this.auth.signInWithGoogle();
+    const { error } = await this.auth.signInWithGoogle(this.safeRedirectTarget());
     if (error) {
       this.errorMsg.set(error.message);
       this.busy.set(false);

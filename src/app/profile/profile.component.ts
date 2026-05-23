@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
+import { RoleService } from '../auth/role.service';
 
 @Component({
   selector: 'sc-profile',
@@ -15,6 +16,14 @@ import { AuthService } from '../auth/auth.service';
           <div class="row">
             <span class="label">{{ 'profile.email' | translate }}</span>
             <span class="value">{{ user.email }}</span>
+          </div>
+          <div class="row">
+            <span class="label">{{ 'profile.role' | translate }}</span>
+            <span class="value">
+              <span class="role-pill" [class]="roles.role() ?? 'viewer'">
+                {{ ('profile.roles.' + (roles.role() ?? 'viewer')) | translate }}
+              </span>
+            </span>
           </div>
           <div class="row">
             <span class="label">{{ 'profile.id' | translate }}</span>
@@ -51,8 +60,23 @@ import { AuthService } from '../auth/auth.service';
     }
     .value { color: var(--sc-fg-0); }
     .mono { font-family: monospace; font-size: 0.85rem; }
+    .role-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: var(--sc-bg-2);
+      color: var(--sc-fg-2);
+      &.admin { background: rgba(0, 212, 255, 0.18); color: var(--sc-accent); }
+      &.collaborator { background: rgba(74, 222, 128, 0.18); color: var(--sc-success); }
+      &.viewer { background: rgba(122, 134, 156, 0.18); color: var(--sc-fg-2); }
+    }
   `],
 })
 export class ProfileComponent {
   readonly auth = inject(AuthService);
+  readonly roles = inject(RoleService);
 }
