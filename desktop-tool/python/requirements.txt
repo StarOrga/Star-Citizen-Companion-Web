@@ -1,0 +1,10 @@
+# SC Companion · Desktop Tool · Python sidecar
+# Pinned for reproducible builds. See concept Iter 2 § A1.
+#
+# scdatatools versions: pin to a known-good release.
+# Upstream: github.com/StarCitizenTools/scdatatools
+
+scdatatools==1.0.0
+Pillow==10.4.0      # DDS → PNG conversion
+imageio==2.36.0     # imageio[ffmpeg] for some texture formats
+# Note: scdatatools pulls in: pycryptodome, lxml, click, etc. — see its setup.py
