@@ -4,6 +4,100 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-05-24
+
+### Added — Phase 2 Domain Logic
+
+- **Python sidecar (`desktop-tool/python/sc_extract/`)** — scdatatools wrapper
+  scaffold + Pure-Counter validator (5 entity thresholds: ships 180/150/100,
+  weapons 250/200/150, components 600/500/350, items 1500/1200/800,
+  strings 50000/40000/25000) + minimal per-entity heuristic. JSON-line
+  streaming protocol so the Electron main process can show real-time
+  progress. Real scdatatools API wiring is TODO-scaffolded; the stub
+  fallback emits the same event sequence so the IPC contract is
+  end-to-end testable without a real Data.p4k.
+- **Embedded Python bootstrap** — `scripts/fetch-embedded-python.js`
+  downloads python-build-standalone (cpython 3.13.0, x86_64-windows-msvc),
+  pip-installs the sidecar requirements, copies `sc_extract/` next to the
+  interpreter. electron-builder bundles the whole `resources/python/` tree
+  into the packaged app.
+- **`sc:extract` IPC** — `src/main/python-bridge.ts` spawns the embedded
+  Python with the configured arg vector and line-parses JSON events into
+  per-job webContents.send broadcasts. Preload exposes
+  `window.sc.extract.{env, start, cancel, onEvent}`. Renderer Run view
+  uses it directly (Phase-1 fake-tick loop retired).
+- **electron-updater** — `src/main/updater.ts` configures the "generic"
+  provider against `$API_BASE/functions/v1/desktop-latest`, auth via
+  `X-SC-Release-Token` header. autoDownload + autoInstallOnAppQuit;
+  renderer banner paints checking / available / progress / downloaded /
+  error from the live event stream.
+- **`ingest-bundle` Edge Function uploader integration** — `uploader.ts`
+  now POSTs `buildNumber`, reads `manifest.json` from disk (so large
+  manifests don't round-trip through IPC), surfaces the server-computed
+  `diff_summary` (vs. the previous bundle of the same channel/patch
+  family) in the renderer as a per-entity prev/new/delta table.
+- **Bundle-history UI** (web) — `p4k-history.component` adds Build
+  column, mini-diff (+N / −M) summary, expandable per-bundle drill-down
+  showing the full diff table per entity. Admin disable/re-enable with
+  reason prompt; history-toggle + disabled-toggle (admin-only).
+- **Supabase migration 00005** — `build_number` + `disabled` +
+  `disabled_reason` + `disabled_by` + `disabled_at` + `diff_summary`
+  columns on `p4k_bundles`, `set_bundle_disabled` RPC,
+  `diff_bundle(prev_id, new_id)` SQL function, rewrite of
+  `list_p4k_bundles_for_collaborator` with default-latest + history-mode.
+- **3 new Edge Functions** — `check-bundle` (existence + uploader email
+  pre-upload check), `ingest-bundle` (JWT + release-token gate, atomic
+  insert + diff), `desktop-latest` (electron-updater YAML metadata,
+  release-token OR JWT auth).
+- **CI synthetic P4K fixture** — `scripts/build-synthetic-fixture.py`
+  generates a 4 KB MIT-clean fixture (5 fake ships + 10 fake items).
+  New `python-sidecar-test` job on ubuntu-latest regenerates + pytests.
+  `build-windows` depends on both `typecheck-and-test` and the new
+  python job — a broken validator now blocks the binary publish.
+
+### Fixed — Pre-ship security hardening (Codex review)
+
+- **desktop-latest revoked-token bypass** (HIGH) — release-token lookup
+  now also requires `is_current = true`, restoring rotation semantics.
+- **GH-Action token leak in release notes** (HIGH) — full UUID is masked
+  from logs via `::add-mask::` and uploaded as a separate `release-token`
+  workflow artefact (retention 7d, collaborator-only via `gh run download`).
+  Release notes show the 8-char fingerprint, not the secret.
+- **history RPC admin-only flag bypass** (MED-HIGH, migration 00006) —
+  `list_p4k_bundles_for_collaborator(include_disabled)` now AND-s with
+  `public.is_admin()`. Non-admin collaborators see only non-disabled
+  rows regardless of the flag they pass.
+- **UNIQUE constraint too loose** (MED, migration 00006) — drops the
+  per-uploader uniqueness, tightens to `(channel, patch, build)`.
+  First upload wins; second attempt gets HTTP 409. Admin disable
+  required to replace.
+- **diff baseline race on concurrent uploads** (MED, migration 00006) —
+  new SQL function `ingest_bundle_atomic()` does prev_id lookup +
+  INSERT + diff under a single advisory lock keyed by
+  `hash(channel || patch_version)`. ingest-bundle Edge Function calls
+  the RPC instead of the previous three-step JS flow.
+- **OAuth JWT in URL → browser-history leak** (MED) — loopback `/cb`
+  refactored: GET is ack-only (no token), POST receives JSON
+  `{state, token, email}` body. Web component fetches the POST
+  cross-origin (loopback echoes `Access-Control-Allow-Origin =
+  apiBase origin`), then navigates the browser to the clean ack URL
+  only after the POST succeeds. JWT never lands in browser history.
+- **diff_summary shape mismatch** (Codex residual) — desktop uploader
+  + renderer aligned to the server's
+  `{count_diffs, summary: {entities_added, entities_removed}}` shape.
+
+### Fixed — concept HTML generation
+
+- **Issues-erstellen button silently broken** — concept HTML for
+  `2026-05-23-p4k-phase-2-domain-logic.html` was generated without the
+  `submitCreateIssues` function and the click handler. Fixed by patching
+  the rendered HTML with a self-contained handler that builds a
+  copy-paste `/devops-new-issue` prompt inline (the concept-bridge
+  server is no longer running after autonomous completion). Persisted
+  as a project-level skill extension at
+  `.claude/skills/devops-concept/SKILL.md` + reported upstream as
+  [Jerry0022/dotclaude#165](https://github.com/Jerry0022/dotclaude/issues/165).
+
 ## [0.2.0] - 2026-05-23
 
 ### Added — Phase 1 Polish
