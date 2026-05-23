@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],
       "port": 4200
+    },
+    {
+      "name": "docs",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "4280", "--directory", "docs"],
+      "port": 4280
     }
   ]
 }

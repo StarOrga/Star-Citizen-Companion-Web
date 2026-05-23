@@ -1958,7 +1958,12 @@ score = (len(EXPECTED_SHIP_FIELDS) - len(warnings)) / len(EXPECTED_SHIP_FIELDS) 
         <p class="final-report-hint">Die Implementierung ist abgeschlossen. Sieh dir den Bericht links an.</p>
         <div id="panel-create-issues" hidden>
           <button id="create-issues-btn" class="submit-btn" disabled>Issues erstellen</button>
-          <p class="hint">Erstellt GitHub-Issues für die ausgewählten Punkte via devops-new-issue.</p>
+          <p class="hint">Rendert die markierten Punkte als copy-paste Prompt für eine Claude-Session (<code>/devops-new-issue</code>). Bridge-Server muss nicht laufen.</p>
+          <div id="create-issues-output" hidden style="margin-top:12px;">
+            <pre id="create-issues-prompt" style="background:rgba(0,0,0,0.18); border:1px solid var(--border-color, #30363d); padding:10px; border-radius:6px; white-space:pre-wrap; font-size:0.78rem; max-height:280px; overflow:auto;"></pre>
+            <button id="create-issues-copy-btn" class="submit-btn" type="button" style="margin-top:8px;">In Zwischenablage kopieren</button>
+            <p id="create-issues-copy-feedback" class="hint" hidden>Kopiert.</p>
+          </div>
         </div>
       </div>
     </aside>
@@ -2150,17 +2155,102 @@ score = (len(EXPECTED_SHIP_FIELDS) - len(warnings)) / len(EXPECTED_SHIP_FIELDS) 
 
     function updateCreateIssuesPanel() {
       const wrap = document.getElementById('panel-create-issues');
-      if (!wrap) return;
-      const active = document.querySelector('section[data-iteration][data-active]');
-      const openQs = active && active.querySelector('[data-open-questions]');
-      const items = openQs ? openQs.querySelectorAll('input[type="checkbox"]:not([data-created])') : [];
-      wrap.hidden = items.length === 0;
       const btn = document.getElementById('create-issues-btn');
-      if (btn) {
-        const checked = openQs ? openQs.querySelectorAll('input[type="checkbox"]:checked:not([data-created])') : [];
-        btn.disabled = checked.length === 0;
-      }
+      if (!wrap || !btn) return;
+      const active = document.querySelector('section[data-iteration][data-active]');
+      const isFinal = !!(active && active.hasAttribute('data-final-report'));
+      const openQs = isFinal ? active.querySelector('[data-open-questions]') : null;
+      const pendingBoxes = openQs
+        ? openQs.querySelectorAll('input[type="checkbox"]:not(:disabled):not([data-created])')
+        : [];
+      wrap.hidden = !(isFinal && pendingBoxes.length > 0);
+      if (wrap.hidden) return;
+      btn.disabled = !Array.from(pendingBoxes).some(el => el.checked);
     }
+
+    // -------- Issues erstellen: copy-paste workflow --------
+    // Sammelt die markierten Open-Questions, baut einen self-contained
+    // Prompt-Block für /devops-new-issue und rendert ihn inline. Der
+    // Concept-Bridge-Server muss dafür NICHT laufen — der User pasted den
+    // Block manuell in eine Claude-Code-Session.
+    function submitCreateIssues() {
+      const active = document.querySelector('section[data-iteration][data-active]');
+      if (!active || !active.hasAttribute('data-final-report')) return;
+      const openQs = active.querySelector('[data-open-questions]');
+      if (!openQs) return;
+
+      const items = Array.from(
+        openQs.querySelectorAll('input[type="checkbox"]:not(:disabled):not([data-created])')
+      )
+        .filter(el => el.checked)
+        .map(el => {
+          const card = el.closest('.option-card') || el.closest('label');
+          const headEl = card ? card.querySelector('h3') : null;
+          const keyEl = card ? card.querySelector('.opt-key') : null;
+          const bodyEl = card ? card.querySelector('p') : null;
+          return {
+            key: keyEl ? keyEl.textContent.trim() : '',
+            title: headEl ? headEl.textContent.trim() : (el.dataset.issueTitle || ''),
+            body: bodyEl ? bodyEl.textContent.trim() : '',
+            type: el.dataset.issueType || 'chore'
+          };
+        })
+        .filter(it => it.title);
+
+      if (!items.length) return;
+
+      const concept = location.pathname.split('/').pop().replace('.html', '');
+      const lines = [
+        '/devops-new-issue Erstelle ' + items.length + ' GitHub-Issue(s) im aktuellen Repo basierend auf den unten gelisteten Open-Questions aus Concept ' + concept + '. Pro Issue: [CHORE] + key + title. Body enthält body-Text + Quelle (Concept-Datei).',
+        ''
+      ];
+      items.forEach(it => {
+        lines.push('### ' + (it.key ? it.key + ' — ' : '') + it.title);
+        if (it.body) lines.push(it.body);
+        lines.push('Type: ' + it.type);
+        lines.push('');
+      });
+      const prompt = lines.join('\n').trim();
+
+      const out = document.getElementById('create-issues-output');
+      const pre = document.getElementById('create-issues-prompt');
+      const btn = document.getElementById('create-issues-btn');
+      if (pre) pre.textContent = prompt;
+      if (out) out.hidden = false;
+      if (btn) btn.disabled = true;
+    }
+
+    document.getElementById('create-issues-btn')
+      ?.addEventListener('click', submitCreateIssues);
+
+    document.getElementById('create-issues-copy-btn')
+      ?.addEventListener('click', async () => {
+        const pre = document.getElementById('create-issues-prompt');
+        const fb = document.getElementById('create-issues-copy-feedback');
+        if (!pre) return;
+        try {
+          await navigator.clipboard.writeText(pre.textContent || '');
+          if (fb) {
+            fb.hidden = false;
+            setTimeout(() => { fb.hidden = true; }, 2500);
+          }
+        } catch (e) {
+          // Fallback: select the text so the user can Ctrl+C manually
+          const range = document.createRange();
+          range.selectNodeContents(pre);
+          const sel = window.getSelection();
+          if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+        }
+      });
+
+    // Re-gate panel whenever a checkbox in the open-questions block toggles
+    // (the generic 'change' listener fires for saveState; we just hook the same channel).
+    document.addEventListener('change', e => {
+      if (e.target && e.target.matches('section[data-open-questions] input[type="checkbox"]')) {
+        updateCreateIssuesPanel();
+      }
+    });
+    document.addEventListener('DOMContentLoaded', updateCreateIssuesPanel);
 
     document.querySelectorAll('.iteration-tab').forEach(tab => {
       tab.addEventListener('click', () => showIteration(tab.dataset.iteration));
