@@ -12,6 +12,13 @@ import {
   installUpdateNow,
   getLastUpdateEvent,
 } from './updater.js';
+import {
+  startExtraction,
+  resolvePythonPaths,
+  type ExtractRequest,
+  type ExtractFinal,
+  type PythonExtractEvent,
+} from './python-bridge.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -100,6 +107,41 @@ ipcMain.handle('sc:update:status', () => getLastUpdateEvent());
 ipcMain.handle('sc:update:check', async () => checkForUpdatesManually());
 ipcMain.handle('sc:update:install', () => {
   installUpdateNow();
+  return { ok: true };
+});
+
+// ============= Extract IPC =============
+
+interface ActiveJob {
+  cancel: () => void;
+}
+const activeJobs = new Map<string, ActiveJob>();
+
+ipcMain.handle('sc:extract:env', () => {
+  const paths = resolvePythonPaths();
+  return { interpreter: paths.interpreter, cwd: paths.cwd, source: paths.source };
+});
+
+ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<ExtractFinal> => {
+  const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const handle = startExtraction(req, (ev: PythonExtractEvent) => {
+    event.sender.send('sc:extract:event', { jobId, ...ev });
+  });
+  activeJobs.set(jobId, { cancel: handle.cancel });
+  try {
+    const final = await handle.promise;
+    activeJobs.delete(jobId);
+    return final;
+  } catch (err) {
+    activeJobs.delete(jobId);
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+});
+
+ipcMain.handle('sc:extract:cancel', (_e, jobId: string) => {
+  const job = activeJobs.get(jobId);
+  if (!job) return { ok: false, error: 'unknown_job' };
+  job.cancel();
   return { ok: true };
 });
 

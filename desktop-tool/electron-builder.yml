@@ -11,6 +11,18 @@ files:
   - out/**/*
   - package.json
 
+extraResources:
+  # Embedded Python interpreter + sc_extract package (Phase 2 § A1 + § B1).
+  # Produced by `node scripts/fetch-embedded-python.js` — must run before
+  # `electron-builder`. The packaged app spawns
+  # `<resourcesPath>/python/python.exe -m sc_extract.extract …`.
+  - from: resources/python
+    to: python
+    filter:
+      - '**/*'
+      - '!**/__pycache__/**'
+      - '!**/*.pyc'
+
 win:
   target:
     - target: nsis

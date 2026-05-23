@@ -13,8 +13,9 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "icon": "node scripts/build-icon.js",
-    "package:win": "npm run icon && electron-vite build && electron-builder --win --x64 --config electron-builder.yml",
-    "package:dir": "npm run icon && electron-vite build && electron-builder --dir --config electron-builder.yml"
+    "python:fetch": "node scripts/fetch-embedded-python.js",
+    "package:win": "npm run icon && npm run python:fetch && electron-vite build && electron-builder --win --x64 --config electron-builder.yml",
+    "package:dir": "npm run icon && npm run python:fetch && electron-vite build && electron-builder --dir --config electron-builder.yml"
   },
   "dependencies": {
     "electron-log": "^5.4.4",
