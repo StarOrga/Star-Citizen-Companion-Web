@@ -53,3 +53,26 @@ Plugin defaults still apply; only the rules below override or add.
    history rely on monotonic tags. The first failed tag stays as
    permanent record that "v0.3.0 binary never shipped, v0.3.1 was the
    actual first delivery".
+
+4. **Monorepo subpackage version bumps: do them yourself.**
+   `mcp__plugin_devops_dotclaude-ship__ship_version_bump` only updates the
+   ROOT `package.json` (the one it auto-detects via `projectType: "npm"`).
+   This repo has at least two version-baked-into-artefact `package.json`
+   files: root (web app) AND `desktop-tool/package.json` (electron-vite
+   bakes `process.env.npm_package_version` into `__SC_TOOL_VERSION__`,
+   which ends up in the Tool's update banner, OAuth headers, and the
+   web's Desktop-Download page after admin-registration).
+
+   **Required after `ship_version_bump` succeeds (root only):**
+   - `grep -n '"version"' desktop-tool/package.json desktop-tool/package-lock.json`
+     to confirm the subpackage version
+   - If it doesn't match the new root version, bump it manually +
+     run `npm install --package-lock-only` inside the subpackage to
+     refresh the lockfile
+   - Commit alongside the version-bump commit, never in a separate PR
+
+   *Why this rule exists:* v0.3.0 / v0.3.1 / v0.3.2 all ended up with
+   binaries reporting `0.1.3-dev` internally because the bump was missed.
+   User had to surface this by checking the live page. Symptom: shipped
+   tag number ≠ binary version constant ≠ DB-registered version. Three
+   places to keep in sync, and the plugin tool only knows about one.
