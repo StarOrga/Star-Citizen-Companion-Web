@@ -32,7 +32,12 @@ import { pipeline } from 'node:stream/promises';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
-const PYTHON_VERSION = '3.13.0';
+// Pinned to 3.11 because scdatatools 1.0.0 declares `numpy~=1.21.5`
+// (range `>=1.21.5, <1.22`) and numpy 1.21.x has no Python ≥ 3.12 wheels —
+// CI build under Python 3.13 fails with "Could not find a version that
+// satisfies the requirement numpy~=1.21.5". Bump in lockstep with
+// scdatatools' minimum-supported Python once we move to scdatatools 2.x.
+const PYTHON_VERSION = '3.11.10';
 // Bump this whenever python-build-standalone publishes a new release for
 // the chosen Python version. See https://github.com/astral-sh/python-build-standalone/releases.
 const PBS_RELEASE = '20241016';
