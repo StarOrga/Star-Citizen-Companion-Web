@@ -1,0 +1,2462 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark" data-page-version="2026-05-23T20:45:00" data-template="decision">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Concept — P4K Phase 2 · Domain-Logik</title>
+  <style>
+    :root {
+      --bg-color: #050810;
+      --bg-1: #0a0e1a;
+      --panel-bg: #11182b;
+      --bg-subtle: #1a2540;
+      --text-color: #e8eef9;
+      --text-secondary: #b8c3d9;
+      --text-muted: #7a869c;
+      --accent-color: #00d4ff;
+      --accent-hot: #ff5722;
+      --success-color: #4ade80;
+      --warning-color: #fbbf24;
+      --danger-color: #f87171;
+      --border-color: rgba(0, 212, 255, 0.18);
+      --border-strong: rgba(0, 212, 255, 0.35);
+      --glow: 0 0 24px rgba(0, 212, 255, 0.15);
+      --font-display: 'Orbitron', 'Segoe UI', sans-serif;
+      --font-body: 'Inter', 'Segoe UI', sans-serif;
+    }
+    [data-theme="light"] {
+      --bg-color: #f3f6fc;
+      --bg-1: #ffffff;
+      --panel-bg: #ffffff;
+      --bg-subtle: #e6ecf6;
+      --text-color: #0a1530;
+      --text-secondary: #324166;
+      --text-muted: #6b7a96;
+      --accent-color: #006e9a;
+      --accent-hot: #c04a18;
+      --success-color: #1a7f37;
+      --warning-color: #9a6700;
+      --danger-color: #cf222e;
+      --border-color: rgba(0, 110, 154, 0.25);
+      --border-strong: rgba(0, 110, 154, 0.5);
+      --glow: 0 0 24px rgba(0, 110, 154, 0.1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      background: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.55;
+      font-size: 15px;
+      min-height: 100vh;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at top, color-mix(in srgb, var(--accent-color) 8%, transparent), transparent 50%),
+        radial-gradient(ellipse at bottom, color-mix(in srgb, var(--accent-hot) 4%, transparent), transparent 50%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: 0.04em; margin: 0 0 0.55em; }
+
+    .concept-layout { display: flex; min-height: 100vh; }
+    .concept-content { flex: 1; padding: 2rem 2.5rem; max-width: calc(100vw - 360px); overflow-x: hidden; }
+    .concept-decision-panel {
+      width: 340px; min-width: 280px; max-width: 360px;
+      position: sticky; top: 0; height: 100vh;
+      overflow-y: auto; padding: 1.25rem 1.1rem;
+      border-left: 1px solid var(--border-color);
+      background: linear-gradient(180deg, var(--panel-bg), var(--bg-1));
+    }
+    @media (max-width: 900px) {
+      .concept-layout { flex-direction: column; }
+      .concept-content { max-width: 100%; padding: 1rem; }
+      .concept-decision-panel {
+        width: 100%; max-width: none; height: auto;
+        position: sticky; bottom: 0; top: auto;
+        border-left: none; border-top: 1px solid var(--border-color);
+        max-height: 55vh;
+      }
+    }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.75rem; padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    header h1 {
+      margin: 0; font-size: 1.75rem; letter-spacing: 0.02em;
+      background: linear-gradient(90deg, var(--accent-color), var(--accent-hot));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .subtitle { margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.92rem; }
+    #theme-toggle {
+      background: var(--bg-subtle); border: 1px solid var(--border-color); color: var(--text-color);
+      width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 1.05rem;
+    }
+
+    .iteration-intro {
+      background: linear-gradient(180deg, var(--bg-subtle), transparent);
+      border-left: 3px solid var(--accent-color);
+      padding: 1rem 1.25rem; border-radius: 0 10px 10px 0;
+      margin-bottom: 1.75rem;
+    }
+    .iteration-intro h2 { margin: 0 0 0.4rem; font-size: 1.05rem; color: var(--accent-color); }
+    .iteration-intro p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; }
+
+    section[data-nav-label] {
+      background: linear-gradient(180deg, var(--panel-bg), var(--bg-1));
+      border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 1.5rem 1.75rem;
+      margin-bottom: 1.5rem; scroll-margin-top: 1rem;
+    }
+    section h2 { margin: 0 0 0.4rem; font-size: 1.18rem; letter-spacing: 0.03em; }
+    section h2 .section-prefix { color: var(--accent-color); margin-right: 0.5rem; }
+    section .section-lead { margin: 0 0 1.25rem; color: var(--text-secondary); font-size: 0.92rem; }
+
+    .option-card {
+      border: 1px solid var(--border-color); border-radius: 10px;
+      padding: 1rem 1.15rem; margin-bottom: 0.85rem;
+      background: var(--bg-1);
+    }
+    .option-card-head {
+      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+      margin-bottom: 0.45rem;
+    }
+    .option-card-head h3 { margin: 0; font-size: 1rem; letter-spacing: 0.02em; }
+    .option-card-head .opt-key {
+      font-family: var(--font-display); font-size: 0.75rem;
+      color: var(--bg-color); background: var(--accent-color);
+      padding: 2px 8px; border-radius: 4px; letter-spacing: 0.08em;
+    }
+    .option-card .meta {
+      display: flex; gap: 0.6rem; flex-wrap: wrap;
+      font-size: 0.78rem; color: var(--text-muted); margin: 0.25rem 0 0.5rem;
+    }
+    .option-card p { margin: 0.35rem 0 0.5rem; font-size: 0.92rem; color: var(--text-secondary); }
+    .option-card .pros-cons {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;
+      margin: 0.55rem 0;
+    }
+    .pros-cons ul { margin: 0; padding: 0; list-style: none; font-size: 0.85rem; }
+    .pros-cons li { padding: 2px 0 2px 1.25rem; position: relative; color: var(--text-secondary); }
+    .pros-cons li.pro::before { content: "+"; position: absolute; left: 4px; top: 1px; color: var(--success-color); font-weight: 700; }
+    .pros-cons li.con::before { content: "−"; position: absolute; left: 4px; top: 1px; color: var(--danger-color); font-weight: 700; }
+    @media (max-width: 700px) {
+      .option-card .pros-cons { grid-template-columns: 1fr; }
+    }
+
+    .recommend-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.72rem; padding: 2px 8px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--accent-color) 18%, transparent);
+      color: var(--accent-color);
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .recommend-badge::before { content: "★"; }
+
+    .pill {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 0.74rem; font-weight: 600;
+      background: var(--bg-subtle); color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .pill.success { background: color-mix(in srgb, var(--success-color) 18%, transparent); color: var(--success-color); }
+    .pill.warning { background: color-mix(in srgb, var(--warning-color) 18%, transparent); color: var(--warning-color); }
+    .pill.danger  { background: color-mix(in srgb, var(--danger-color) 18%, transparent); color: var(--danger-color); }
+    .pill.accent  { background: color-mix(in srgb, var(--accent-color) 18%, transparent); color: var(--accent-color); }
+
+    .field-row { display: grid; grid-template-columns: 1fr; gap: 0.5rem; margin-top: 0.75rem; }
+    .field-row label { font-size: 0.82rem; color: var(--text-muted); font-weight: 500; }
+    .field-row textarea {
+      width: 100%; padding: 0.55rem 0.75rem; border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-color); color: var(--text-color);
+      font-family: inherit; font-size: 0.9rem; resize: vertical;
+      min-height: 80px;
+    }
+    .field-row textarea:focus {
+      outline: none; border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color) 25%, transparent);
+    }
+
+    .eval-group {
+      display: flex; gap: 0;
+      border: 1px solid var(--border-color); border-radius: 8px;
+      overflow: hidden; margin-top: 0.75rem;
+    }
+    .eval-option {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 0.6rem 0.5rem; cursor: pointer; text-align: center;
+      position: relative; border-right: 1px solid var(--border-color);
+      transition: background 0.2s;
+    }
+    .eval-option:last-child { border-right: none; }
+    .eval-option:hover { background: color-mix(in srgb, var(--accent-color) 10%, transparent); }
+    .eval-option input { display: none; }
+    .eval-option:has(input:checked) .eval-label { font-weight: 700; }
+    .eval-label { font-size: 0.84rem; transition: font-weight 0.15s; }
+    .eval-option:has(input:checked)::after {
+      content: '✓'; position: absolute; top: 3px; right: 5px;
+      font-size: 0.65rem; font-weight: 700;
+      width: 16px; height: 16px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; color: white;
+    }
+    .eval-option:has(input[value="include"]:checked) {
+      background: color-mix(in srgb, var(--accent-color) 15%, transparent);
+      box-shadow: inset 0 0 0 2px var(--accent-color);
+    }
+    .eval-option:has(input[value="include"]:checked)::after { background: var(--accent-color); }
+    .eval-option:has(input[value="discard"]:checked) {
+      background: color-mix(in srgb, var(--danger-color) 15%, transparent);
+      box-shadow: inset 0 0 0 2px var(--danger-color);
+    }
+    .eval-option:has(input[value="discard"]:checked)::after { background: var(--danger-color); }
+
+    .challenge-box {
+      border-left: 3px solid var(--warning-color);
+      background: color-mix(in srgb, var(--warning-color) 8%, transparent);
+      padding: 0.7rem 1rem; margin: 0.75rem 0;
+      border-radius: 0 6px 6px 0; font-size: 0.88rem;
+    }
+    .challenge-box strong { color: var(--warning-color); }
+
+    .matrix {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.88rem; margin: 0.5rem 0 1rem;
+    }
+    .matrix th, .matrix td {
+      padding: 0.55rem 0.7rem;
+      border-bottom: 1px solid var(--border-color);
+      text-align: left; vertical-align: top;
+    }
+    .matrix th {
+      background: var(--bg-subtle);
+      font-weight: 600; font-size: 0.78rem;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .matrix td.center { text-align: center; }
+
+    code, pre {
+      font-family: 'Fira Code', 'Consolas', monospace;
+      background: var(--bg-color); border: 1px solid var(--border-color);
+      padding: 1px 6px; border-radius: 4px; font-size: 0.85em;
+    }
+    pre { padding: 0.75rem 1rem; overflow-x: auto; }
+
+    /* Decision panel */
+    .iteration-tabs {
+      display: flex; flex-direction: column; gap: 4px;
+      margin-bottom: 1rem; padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .iteration-tab {
+      flex: 0 0 auto; text-align: left;
+      padding: 6px 10px; border: 1px solid var(--border-color);
+      border-radius: 6px; background: transparent;
+      color: var(--text-muted); font-size: 0.85rem;
+      cursor: pointer; font-family: inherit;
+    }
+    .iteration-tab:hover {
+      background: color-mix(in srgb, var(--accent-color) 10%, transparent);
+      color: var(--text-color);
+    }
+    .iteration-tab[aria-selected="true"] {
+      background: color-mix(in srgb, var(--accent-color) 15%, transparent);
+      color: var(--text-color); border-color: var(--accent-color); font-weight: 600;
+    }
+    .iteration-tab[aria-selected="true"]::before { content: "● "; color: var(--accent-color); }
+    section[data-iteration]:not([data-active]) input,
+    section[data-iteration]:not([data-active]) textarea {
+      pointer-events: none; filter: grayscale(0.4);
+    }
+
+    .concept-decision-panel h3 { margin: 0 0 0.65rem; font-size: 0.95rem; letter-spacing: 0.04em; }
+
+    .section-nav {
+      display: flex; flex-direction: column; gap: 2px;
+      margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1rem; max-height: 38vh; overflow-y: auto;
+    }
+    .section-nav-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.4rem 0.6rem; border-radius: 6px;
+      text-decoration: none; color: var(--text-color);
+      font-size: 0.83rem; cursor: pointer;
+    }
+    .section-nav-item:hover { background: color-mix(in srgb, var(--accent-color) 10%, transparent); }
+    .section-nav-label { flex: 1; min-width: 0; }
+    .section-nav-state {
+      font-size: 0.72rem; color: var(--accent-color); white-space: nowrap; margin-left: 0.5rem;
+    }
+    .section-nav-state.state-discard { color: var(--danger-color); }
+    .section-nav-item.is-active {
+      background: color-mix(in srgb, var(--accent-color) 18%, transparent); font-weight: 600;
+    }
+
+    #panel-ready { position: relative; }
+    .submit-btn, .implement-btn {
+      width: 100%; padding: 0.75rem 1rem;
+      border-radius: 8px; font-weight: 600; font-size: 0.92rem;
+      cursor: pointer; margin-top: 0.5rem; font-family: inherit;
+    }
+    .submit-btn {
+      border: none; background: var(--accent-color); color: var(--bg-color);
+      letter-spacing: 0.04em;
+    }
+    .submit-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent-color) 80%, white); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .submit-gap { height: 2rem; }
+    .implement-btn {
+      background: transparent; color: var(--warning-color);
+      border: 1px solid var(--warning-color);
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .implement-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--warning-color) 15%, transparent); }
+    .implement-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .hint { margin: 0.3rem 0 0; font-size: 0.78rem; color: var(--text-muted); }
+    .hint-warn { color: var(--warning-color); }
+    .hint-cache { color: var(--warning-color); font-weight: 500; }
+
+    .panel-warning {
+      position: absolute; inset: 0; z-index: 5; pointer-events: auto;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 0.6rem; text-align: center; padding: 1.25rem;
+      border-radius: 10px; border: 1px solid var(--warning-color);
+      background: color-mix(in srgb, var(--panel-bg) 92%, transparent);
+      backdrop-filter: blur(2px);
+    }
+    .panel-warning--connecting { border-color: var(--accent-color); }
+    .panel-warning--connecting strong { color: var(--accent-color); }
+    .panel-warning--connecting .warning-icon { color: var(--accent-color); }
+    .warning-icon { font-size: 2rem; color: var(--warning-color); line-height: 1; }
+    .panel-warning strong { color: var(--warning-color); font-size: 0.95rem; }
+    .warning-message { font-size: 0.82rem; color: var(--text-muted); margin: 0; max-width: 260px; }
+    .panel-warning__ack-btn {
+      margin-top: 0.4rem; padding: 0.4rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--warning-color);
+      background: color-mix(in srgb, var(--warning-color) 15%, transparent);
+      color: var(--warning-color);
+      font-weight: 600; font-size: 0.85rem;
+      cursor: pointer; font-family: inherit;
+    }
+    .panel-warning--connecting .panel-warning__ack-btn {
+      border-color: var(--accent-color);
+      background: color-mix(in srgb, var(--accent-color) 15%, transparent);
+      color: var(--accent-color);
+    }
+
+    #panel-submitted .submitted-indicator,
+    #panel-final-report .final-report-indicator {
+      display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;
+    }
+    .check-icon {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--success-color); color: var(--bg-color);
+      display: inline-flex; align-items: center; justify-content: center; font-weight: 700;
+    }
+    .status-steps { list-style: none; padding: 0; margin: 0.5rem 0; }
+    .status-steps li {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.35rem 0; font-size: 0.88rem; color: var(--text-muted);
+    }
+    .status-steps li[data-state="done"] { color: var(--success-color); }
+    .status-steps li[data-state="active"] { color: var(--accent-color); font-weight: 600; }
+    .step-icon { width: 20px; text-align: center; }
+    .submitted-hint, .final-report-hint {
+      font-size: 0.82rem; color: var(--text-muted); margin-top: 0.6rem;
+    }
+    .waiting-animation { display: flex; gap: 4px; margin-top: 0.5rem; }
+    .waiting-animation .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent-color);
+      animation: dot-pulse 1.2s infinite ease-in-out;
+    }
+    .waiting-animation .dot:nth-child(2) { animation-delay: 0.2s; }
+    .waiting-animation .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-pulse {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="concept-layout">
+    <div class="concept-content">
+      <header>
+        <div>
+          <h1>P4K Phase 2 · Domain-Logik</h1>
+          <p class="subtitle">Echter P4K-Parser, Render-Pipeline, Validator, Diff, Auto-Update, Test-Fixture, Code-Signing</p>
+        </div>
+        <button id="theme-toggle" aria-label="Theme umschalten">🌓</button>
+      </header>
+
+      <main>
+        <section data-iteration="1" hidden>
+          <div class="iteration-intro">
+            <h2>Iteration 1 · Architektur-Entscheidungen</h2>
+            <p>Phase 1 hat Foundation + Stubs geliefert. Phase 2 ist Domain-Logik. Sieben Entscheidungen, davon zwei „big-fork" (Parser, Renderer), der Rest folgt deren Kontext. Mein Vorschlag pro Sektion ist mit <span class="recommend-badge">Empfehlung</span> markiert. Default: Miteinbeziehen — Verwerfen für Optionen, die du raus haben willst. Kommentarfelder pro Sektion.</p>
+          </div>
+
+          <!-- ============ INTRO / CONTEXT ============ -->
+          <section id="phase1-recap" data-nav-label="Phase 1 Recap">
+            <h2><span class="section-prefix">§ 0</span>Was Phase 1 abgedeckt hat (Recap)</h2>
+            <p class="section-lead">Read-only Kontext — keine Auswertung. Was steht bereits, was ist Stub, was muss Phase 2 nachliefern.</p>
+
+            <table class="matrix">
+              <thead><tr><th>Komponente</th><th>Status</th><th>Phase-2-Aufgabe</th></tr></thead>
+              <tbody>
+                <tr><td>3-Stufen-Discovery</td><td><span class="pill success">Real</span></td><td>— bleibt</td></tr>
+                <tr><td>4 Performance-Profile + ETA</td><td><span class="pill success">Real</span></td><td>ETA-Werte mit echten Benchmark-Daten kalibrieren</td></tr>
+                <tr><td>OAuth Loopback + Release-Token</td><td><span class="pill success">Real, getestet</span></td><td>— bleibt</td></tr>
+                <tr><td>Renderer-UI (4-View State Machine)</td><td><span class="pill success">Real</span></td><td>Live-Counter mit echten Daten füttern</td></tr>
+                <tr><td>i18n (7 Locales bundled)</td><td><span class="pill success">Real</span></td><td>— bleibt</td></tr>
+                <tr><td><strong>P4K-Extractor</strong></td><td><span class="pill warning">Stub</span></td><td><strong>§ 1 + § 2 — die Hauptaufgabe</strong></td></tr>
+                <tr><td><strong>Render-PNG-Generator</strong></td><td><span class="pill danger">Nicht da</span></td><td><strong>§ 3</strong></td></tr>
+                <tr><td><strong>Schema-Score-Validator</strong></td><td><span class="pill warning">Heuristik-Stub</span></td><td><strong>§ 4</strong></td></tr>
+                <tr><td><strong>Server-Diff (Last-Known-Good)</strong></td><td><span class="pill danger">Nicht da</span></td><td><strong>§ 5</strong></td></tr>
+                <tr><td><strong>Auto-Update</strong></td><td><span class="pill danger">Nicht da</span></td><td><strong>§ 6</strong></td></tr>
+                <tr><td>Ingest-Bundle Edge-Function</td><td><span class="pill danger">Nicht da</span></td><td>Phase 2 Sub-Item — wird in § 5 mit erschlagen</td></tr>
+                <tr><td><strong>Synthetic Test-Fixture</strong></td><td><span class="pill danger">Nicht da</span></td><td><strong>§ 7</strong></td></tr>
+                <tr><td><strong>Code-Signing</strong></td><td><span class="pill warning">Self-signed dev-builds</span></td><td><strong>§ 8</strong></td></tr>
+              </tbody>
+            </table>
+
+            <p style="font-size:0.88rem; color:var(--text-muted);">Eingegrenzter Phase-1-Scope per Iter-2-Entscheidung: <strong>HD-Icons (A1) + Render-PNGs (A2) + Component-Tree (A4)</strong>. Kein 3D-Mesh-Web-Viewer, kein Audio-Manifest. Das prägt die Parser- und Render-Architektur weiter unten.</p>
+          </section>
+
+          <!-- ============ § 1 — P4K PARSER ARCHITEKTUR ============ -->
+          <section id="parser" data-nav-label="§ 1 · P4K-Parser">
+            <h2><span class="section-prefix">§ 1</span>P4K-Parser-Architektur</h2>
+            <p class="section-lead">P4K ist ein ZIP-Archiv mit speziellem ZSTD-Encoding (CIG hat seit ~3.18 von zlib auf custom-ZSTD migriert). Vier Wege.</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A</span>
+                <h3>Pure Node — yauzl-stream + ZSTD-decoder</h3>
+              </div>
+              <div class="meta">
+                <span class="pill">Bundle ~+1 MB</span>
+                <span class="pill">Async streams</span>
+                <span class="pill">No native deps</span>
+              </div>
+              <p>yauzl liest ZIP-Central-Directory, streamt Entries. Für custom ZSTD CIG-Variant: <code>@mongodb-js/zstd</code> oder native <code>zstd-napi</code>. Pro-Schiff/Item-XML wird im Stream gelesen, XML-Parser (fast-xml-parser) übersetzt nach JSON.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Reine Node, keine native Builds in CI</li><li class="pro">Cross-platform (Win/Mac/Linux dev)</li><li class="pro">Easy debugging</li></ul>
+                <ul><li class="con">Node-Streams sind ~3-5× langsamer als nativ für 80 GB+ ZIPs</li><li class="con">ZSTD-Decode in JS = CPU-Bound, Single-Thread (außer worker_threads)</li><li class="con">CGF/CGA-Decode: müsste auch in TS oder JS (langsam)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">B</span>
+                <h3>Node yauzl + Rust-Sidecar für Heavy-Lifting</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <div class="meta">
+                <span class="pill">Sidecar ~5 MB</span>
+                <span class="pill">napi-rs</span>
+                <span class="pill">Parallel-friendly</span>
+              </div>
+              <p>Node-Layer macht UI/IPC/Orchestration. Rust-Sidecar (via <code>napi-rs</code>) liest P4K + dekompimiert ZSTD + parsed CGF/CGA. JS bekommt JSON-Records via Channel.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Performance wo's drauf ankommt (Disk-IO + Decompress), Komfort wo nicht (UI)</li><li class="pro">Rust-Crates für CryEngine-Parser existieren (<code>cry-formats</code>)</li><li class="pro">Multi-Threading via rayon trivial</li><li class="pro">Sidecar ist statisch gelinkt → 1 .node-Datei pro Platform</li></ul>
+                <ul><li class="con">napi-rs braucht Rust-Toolchain im CI (npm publish prebuilt binaries)</li><li class="con">2 Sprachen im Code</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C</span>
+                <h3>Full Rust-Sidecar via Tauri-Sidecar-Pattern</h3>
+              </div>
+              <div class="meta">
+                <span class="pill">Standalone Binary</span>
+                <span class="pill">IPC via stdio/socket</span>
+              </div>
+              <p>Komplette Extraction-Pipeline als externes Rust-Binary. Electron spawnt es als Child-Process, kommuniziert via JSON-RPC über stdio.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Maximaler Performance-Gewinn</li><li class="pro">Rust-Code unabhängig testbar (auch CLI-tauglich)</li></ul>
+                <ul><li class="con">IPC-Boilerplate (vs. napi-rs direkter)</li><li class="con">Child-Process Lifecycle-Management</li><li class="con">Doppelte Binaries: Electron + Rust → größerer Release</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">D</span>
+                <h3>WebAssembly — Rust → WASM in Renderer-Worker</h3>
+              </div>
+              <div class="meta">
+                <span class="pill">In-Browser</span>
+                <span class="pill warning">Memory-Bottleneck</span>
+              </div>
+              <p>Rust kompiliert zu WASM, läuft im Renderer-Worker. JS-Side liest File-Handle.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Singular Build-Pipeline, kein Native</li></ul>
+                <ul><li class="con">WASM hat 4 GB Memory-Cap — bei 80 GB P4K = Streaming-Only-Workflow, komplex</li><li class="con">File-System-Access in Renderer = Sandbox-Bruch oder File-Picker-Friction</li><li class="con">Schlechtere Perf als native</li></ul>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="parser-comment">Tweaks / Library-Präferenzen</label>
+              <textarea disabled id="parser-comment" data-comment="parser" placeholder="z.B.: napi-rs Version festnageln, bestimmtes ZSTD-Lib, Rust-Crate-Wahl …">Also erstmal kannst du ruhig von py gebruach machen, das nutzen wir ja im restlichen projekt auch an manchen stellen. Außerdem musst du nciht 80gb in den ram machen, es gihbt doch p4k explizite für star citizen file extraktoren github public projects die das auch auf einem normalen rechner hinbekommen. DU kannst ja nacheinander bestimmte pfade auslesen und dann die daten aufbereiten und ablegen und dann weiter machen mit den nächsten Themen / Pfaden etc. Sodass am Ende die Zwischenstände aufbereitet und uploadfähig auf der festplatte liegen und nicht im ram... aber wie auch immer check das nochma,l...</textarea>
+            </div>
+
+            <div class="eval-group" data-decision="parser-a" data-label="§1 · Pure Node">
+              <label class="eval-option"><input disabled type="radio" name="eval-parser-a" value="discard" checked><span class="eval-label">Verwerfen · Node</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-parser-a" value="include"><span class="eval-label">Miteinbeziehen · Node</span></label>
+            </div>
+            <div class="eval-group" data-decision="parser-b" data-label="§1 · Node+Rust-Sidecar napi-rs">
+              <label class="eval-option"><input disabled type="radio" name="eval-parser-b" value="discard" checked><span class="eval-label">Verwerfen · napi</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-parser-b" value="include"><span class="eval-label">Miteinbeziehen · napi</span></label>
+            </div>
+            <div class="eval-group" data-decision="parser-c" data-label="§1 · Full Rust-Sidecar stdio">
+              <label class="eval-option"><input disabled type="radio" name="eval-parser-c" value="discard" checked><span class="eval-label">Verwerfen · stdio</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-parser-c" value="include"><span class="eval-label">Miteinbeziehen · stdio</span></label>
+            </div>
+            <div class="eval-group" data-decision="parser-d" data-label="§1 · WASM">
+              <label class="eval-option"><input disabled type="radio" name="eval-parser-d" value="discard" checked><span class="eval-label">Verwerfen · WASM</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-parser-d" value="include"><span class="eval-label">Miteinbeziehen · WASM</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § 2 — CGF/CGA Parser-Strategie ============ -->
+          <section id="cryformat" data-nav-label="§ 2 · CGF/CGA Parser">
+            <h2><span class="section-prefix">§ 2</span>CryEngine-Format-Parser (CGF/CGA/CHR)</h2>
+            <p class="section-lead">Da wir keinen 3D-Web-Viewer bauen, brauchen wir aus CGF/CGA <em>nicht die volle Geometrie</em> — nur Metadaten (Bounding-Box, Mount-Points, Hardpoint-Hierarchie, Material-Refs). Das macht den Parser deutlich kleiner.</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A</span>
+                <h3>Existierender Port: <code>cgf-converter</code> (C#, MIT)</h3>
+              </div>
+              <p>Open-Source C#-Tool von Markemp, GitHub-Sterne 200+, wird gepflegt. Port nach Rust oder TS.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Battle-tested für SC + andere CryEngine-Games</li><li class="pro">Vollständige Format-Doku darin</li></ul>
+                <ul><li class="con">C# → Rust/TS-Port ist Mehrwoche-Arbeit</li><li class="con">Pulls more than we need (full mesh extraction)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">B</span>
+                <h3>Rust-Crate <code>cry-formats</code> direkt</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>Existierende Rust-Crate (~v0.4), parsed CGF/CGA-Header + Chunks. Wir nutzen nur die Chunks, die wir brauchen (BoundingBox, NodeHierarchy, MtlNameChunk, IncludedObjects). Skip-Patterns für volle Meshes.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Reused, minimal eigener Code</li><li class="pro">Passt zu § 1 B (napi-Sidecar) — Rust-zu-Rust</li><li class="pro">Streaming-friendly für große Files</li></ul>
+                <ul><li class="con">Crate ist klein/jung — evtl. müssen wir contributen</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C</span>
+                <h3>Custom-Minimal-Parser (von 0 aufgesetzt)</h3>
+              </div>
+              <p>Wir lesen das CGF-Format direkt nach Spec: Chunk-Header parsen, nur die 4-5 Chunks lesen die uns interessieren, alles andere skippen.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Kein Dependency-Risk</li><li class="pro">Exact size: parsed nur was wir brauchen</li></ul>
+                <ul><li class="con">Volle Pflege bei CIG-Format-Änderungen liegt bei uns</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">D</span>
+                <h3>Skip — CGF/CGA gar nicht parsen, nur XML-Definitionen</h3>
+              </div>
+              <p>Phase-1-Scope hat 3D-Mesh raus. Vielleicht reichen die <code>*.xml</code>-Manifests wirklich aus: Schiffe sind in <code>Data/Objects/Spaceships/<ship>/<ship>.xml</code> definiert, inkl. Hardpoint-Tree. Component-Tree extrahieren wir aus XML, nicht aus CGF.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Massiv weniger Code + keine CGF-Format-Drift-Maintenance</li><li class="pro">Render-PNGs (§ 3) brauchen Mesh — wenn die woanders herkommen, brauchen wir CGF nicht</li></ul>
+                <ul><li class="con">Falls XML unvollständig ist (Mount-Geometrie nur in CGF), fehlen Daten</li></ul>
+              </div>
+              <div class="challenge-box"><strong>Wichtig:</strong> wenn D gewählt wird, hängt § 3 (Render-PNG) davon ab — entweder gar keine Renders (statisch von SC-Wiki), oder eine andere Mesh-Quelle.</div>
+            </div>
+
+            <div class="field-row">
+              <label for="cryformat-comment">Mesh-Felder die du explizit brauchst</label>
+              <textarea disabled id="cryformat-comment" data-comment="cryformat" placeholder="z.B.: Bounding-Box ja, Mount-Hierarchie ja, Materialnamen nein, …">Dass was du für am besten hältst in dem möglichst bestehenden stack, wenn möglich ohne wesentliche abstriche. </textarea>
+            </div>
+
+            <div class="eval-group" data-decision="cryformat-a" data-label="§2 · cgf-converter port">
+              <label class="eval-option"><input disabled type="radio" name="eval-cryformat-a" value="discard"><span class="eval-label">Verwerfen · Port</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-cryformat-a" value="include" checked><span class="eval-label">Miteinbeziehen · Port</span></label>
+            </div>
+            <div class="eval-group" data-decision="cryformat-b" data-label="§2 · cry-formats crate">
+              <label class="eval-option"><input disabled type="radio" name="eval-cryformat-b" value="discard"><span class="eval-label">Verwerfen · cry-formats</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-cryformat-b" value="include" checked><span class="eval-label">Miteinbeziehen · cry-formats</span></label>
+            </div>
+            <div class="eval-group" data-decision="cryformat-c" data-label="§2 · Custom">
+              <label class="eval-option"><input disabled type="radio" name="eval-cryformat-c" value="discard"><span class="eval-label">Verwerfen · Custom</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-cryformat-c" value="include" checked><span class="eval-label">Miteinbeziehen · Custom</span></label>
+            </div>
+            <div class="eval-group" data-decision="cryformat-d" data-label="§2 · Skip">
+              <label class="eval-option"><input disabled type="radio" name="eval-cryformat-d" value="discard"><span class="eval-label">Verwerfen · Skip</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-cryformat-d" value="include" checked><span class="eval-label">Miteinbeziehen · Skip</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § 3 — RENDER-PNG ARCHITEKTUR ============ -->
+          <section id="render" data-nav-label="§ 3 · Render-Pipeline">
+            <h2><span class="section-prefix">§ 3</span>Render-PNG-Pipeline (A2 aus Phase 1)</h2>
+            <p class="section-lead">Pro Schiff sollen 3-6 standardisierte Views (Front/Side/Top/Iso) als PNG entstehen — für Web-App. <strong>Mesh darf nicht persistiert werden</strong>, nur das PNG-Ergebnis. Wo läuft der Renderer?</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A</span>
+                <h3>Lokal · Headless Three.js in Electron-Hidden-Window</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>Electron spawnt ein verstecktes BrowserWindow (`show: false`, OffscreenRender). Three.js lädt das Mesh (vom Parser geliefert), positioniert Kamera, ruft `renderer.render()`, liest Canvas als PNG-Buffer, übergibt an Main → wird ins Bundle gelegt → Mesh wird verworfen.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Kein Server-Roundtrip — Mesh bleibt auf dem User-Rechner</li><li class="pro">three.js ist Battle-Tested, GLTF/OBJ-Loader vorhanden</li><li class="pro">GPU-beschleunigt (über Chromium's WebGL/ANGLE)</li><li class="pro">Pro Schiff ~200ms-2s, 60 Schiffe = ~2-5 min auf normaler GPU</li></ul>
+                <ul><li class="con">Headless-Rendering in Electron hat manchmal GPU-Treiber-Issues auf älteren Maschinen</li><li class="con">Mesh muss CGF → glTF konvertiert werden (oder direkt buffer-geometry-fed)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">B</span>
+                <h3>Lokal · Rust-native Renderer (wgpu in Sidecar)</h3>
+              </div>
+              <p>Sidecar nutzt <code>wgpu</code> (Vulkan/Metal/DX12-Abstraktion). Mesh → Renderpipeline → PNG. Komplett ohne Browser.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Sehr schnell (native GPU access)</li><li class="pro">Lean — kein 50 MB Chromium-Hidden-Window</li></ul>
+                <ul><li class="con">wgpu+Mesh-Loader-Setup ist Code-aufwendig</li><li class="con">Material/Shading-Treue niedriger als three.js (rohe Geometrie)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C</span>
+                <h3>Server · Edge-Function spawnt Headless-Chrome</h3>
+              </div>
+              <p>App lädt Mesh-Blob temporär zu Supabase-Storage. Edge-Function spawnt headless-chromium mit three.js-Script, rendert, speichert PNGs in Bucket. Storage-Mesh wird nach 1h auto-gelöscht (TTL-Policy).</p>
+              <div class="pros-cons">
+                <ul><li class="pro">User-Maschine unbelastet</li><li class="pro">Renderer-Code zentral wartbar (kein Client-Update nötig)</li></ul>
+                <ul><li class="con">Mesh-Upload (zeitweise) bedeutet Mesh verlässt den User-PC → Vertrauensbruch falls Lizenz-Bedenken</li><li class="con">Edge-Function-Timeout 150-400s, GPU-Access nicht garantiert</li><li class="con">Vercel/Supabase-Edge hat kein Chromium pre-installed → custom Container nötig</li><li class="con">Kosten: pro Render-Bundle X-Sekunden Compute</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">D</span>
+                <h3>Hybrid · Render lokal, but Render-Engine als WASM-Modul vom Server</h3>
+              </div>
+              <p>Wie A, aber die Render-Logic kommt als WASM-Modul vom Server (lazy-loaded). So sind Verbesserungen am Renderer ohne App-Update verteilbar.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Renderer-Updates ohne App-Release</li><li class="pro">Mesh bleibt lokal</li></ul>
+                <ul><li class="con">Komplexer Update-Mechanismus für ein selten-aktualisiertes Subsystem</li></ul>
+              </div>
+            </div>
+
+            <div class="challenge-box">
+              <strong>Hängt von § 2 ab:</strong> wenn § 2 D („Skip CGF") gewinnt, brauchen wir gar kein Mesh → kein Renderer. Render-PNGs müssten dann aus anderen Quellen (offizielle SC-Marketing-Bilder, starcitizen.tools, etc.). Falls dem so ist, bitte das gesamte § 3 verwerfen.
+            </div>
+
+            <div class="field-row">
+              <label for="render-comment">Anforderungen / Render-Settings</label>
+              <textarea disabled id="render-comment" data-comment="render" placeholder="z.B.: 4 Views statt 6, 512px-Auflösung, weißer Hintergrund …"></textarea>
+            </div>
+
+            <div class="eval-group" data-decision="render-a" data-label="§3 · Local Three.js">
+              <label class="eval-option"><input disabled type="radio" name="eval-render-a" value="discard"><span class="eval-label">Verwerfen · Three.js</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-render-a" value="include" checked><span class="eval-label">Miteinbeziehen · Three.js</span></label>
+            </div>
+            <div class="eval-group" data-decision="render-b" data-label="§3 · Local wgpu">
+              <label class="eval-option"><input disabled type="radio" name="eval-render-b" value="discard" checked><span class="eval-label">Verwerfen · wgpu</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-render-b" value="include"><span class="eval-label">Miteinbeziehen · wgpu</span></label>
+            </div>
+            <div class="eval-group" data-decision="render-c" data-label="§3 · Server Headless-Chrome">
+              <label class="eval-option"><input disabled type="radio" name="eval-render-c" value="discard" checked><span class="eval-label">Verwerfen · Server</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-render-c" value="include"><span class="eval-label">Miteinbeziehen · Server</span></label>
+            </div>
+            <div class="eval-group" data-decision="render-d" data-label="§3 · WASM-Renderer">
+              <label class="eval-option"><input disabled type="radio" name="eval-render-d" value="discard" checked><span class="eval-label">Verwerfen · WASM</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-render-d" value="include"><span class="eval-label">Miteinbeziehen · WASM</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § 4 — SCHEMA SCORE VALIDATOR ============ -->
+          <section id="validator" data-nav-label="§ 4 · Validator">
+            <h2><span class="section-prefix">§ 4</span>Schema-Score-Validator</h2>
+            <p class="section-lead">Pro Entity-Typ (Ship, Weapon, Component, Item) ein Schema. Coverage-% pro Entity → Aggregat-Score 0-100. Wo lebt die Schema-Definition?</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A</span>
+                <h3>JSON-Schema + AJV</h3>
+              </div>
+              <p>Klassisches JSON-Schema (Draft 2020-12). AJV im Desktop-Tool + im Web (gleiche Schemas). Schemas leben in `desktop-tool/src/schemas/*.json`.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Industriestandard, viele Tools</li><li class="pro">Schemas sind JSON → kein Build-Step</li></ul>
+                <ul><li class="con">Keine TypeScript-Type-Inference ohne Extra-Generator</li><li class="con">JSON-Schema-Syntax ist verbos</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">B</span>
+                <h3>Zod-Schemas (TypeScript-First)</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>Schemas als TS-Code (`z.object({...})`). Type-Inference automatisch. Validation + Parsing in einem.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">End-to-end typesafe — Web-App ↔ Desktop-Tool ↔ Edge-Functions teilen Types</li><li class="pro">Schemas + TS-Types + Validator in einer Quelle</li><li class="pro">Coverage-Metrik einfach (Failed-Field-Set aus ZodError)</li></ul>
+                <ul><li class="con">Schema-Code muss in shared Monorepo-Package (z.B. `shared/schemas/`)</li><li class="con">Edge-Functions (Deno) brauchen Zod-Version die Deno-kompatibel ist (es gibt eine)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C</span>
+                <h3>TypeBox (JSON-Schema mit TS-Types)</h3>
+              </div>
+              <p>Best-of-both: Schemas in TS-Code, Output ist JSON-Schema, TS-Types werden inferiert. Validation läuft mit AJV.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Echte JSON-Schemas exportierbar (für externe Tools)</li><li class="pro">TS-Types wie Zod</li></ul>
+                <ul><li class="con">2 Validatoren (TypeBox-Build + AJV-Runtime)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">D</span>
+                <h3>Custom DSL für SC-spezifische Felder</h3>
+              </div>
+              <p>Eigene Schema-Sprache (z.B. YAML) mit SC-spezifischen Constraints wie „Mount-Size muss 1-12 sein". Validator parsed das.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Domain-spezifisch beschreibbar</li></ul>
+                <ul><li class="con">Yet-another-DSL, niemand sonst kennt das</li><li class="con">Müssen wir selbst maintainen</li></ul>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="validator-comment">Weitere Validatoren-Anforderungen</label>
+              <textarea disabled id="validator-comment" data-comment="validator" placeholder="z.B.: muss Edge-Function-kompatibel (Deno), Coverage-Metrik mit Field-Names, …">es geht eher darum ob das ergebnis plausibel ist statt jedes attribut exakt zu validieren, schemen können sich auch von rsi ändern, in dem fall will ich eher ein warning wenn etwas nicht mehr gefunden wird und ein bewusstes auslassen dann bzw. nullable / 0 etc. </textarea>
+            </div>
+
+            <div class="eval-group" data-decision="validator-a" data-label="§4 · JSON-Schema+AJV">
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-a" value="discard"><span class="eval-label">Verwerfen · AJV</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-a" value="include" checked><span class="eval-label">Miteinbeziehen · AJV</span></label>
+            </div>
+            <div class="eval-group" data-decision="validator-b" data-label="§4 · Zod">
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-b" value="discard"><span class="eval-label">Verwerfen · Zod</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-b" value="include" checked><span class="eval-label">Miteinbeziehen · Zod</span></label>
+            </div>
+            <div class="eval-group" data-decision="validator-c" data-label="§4 · TypeBox">
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-c" value="discard"><span class="eval-label">Verwerfen · TypeBox</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-c" value="include" checked><span class="eval-label">Miteinbeziehen · TypeBox</span></label>
+            </div>
+            <div class="eval-group" data-decision="validator-d" data-label="§4 · Custom DSL">
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-d" value="discard"><span class="eval-label">Verwerfen · DSL</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-d" value="include" checked><span class="eval-label">Miteinbeziehen · DSL</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § 5 — SERVER DIFF ============ -->
+          <section id="diff" data-nav-label="§ 5 · Server-Diff">
+            <h2><span class="section-prefix">§ 5</span>Server-Diff gegen Last-Known-Good</h2>
+            <p class="section-lead">Beim Bundle-Upload soll der Server gegen den letzten validen Bundle derselben Channel-Familie diff'en — „98% der Entities da, 12 neue, 2 verschwundene". Wo + wie?</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A</span>
+                <h3>Edge-Function nach Upload (sync)</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>Neue Edge-Function `ingest-bundle`: validiert Release-Token + Auth, ruft `diff_bundle(new_id, prev_id)` Postgres-RPC, speichert Diff-Result als Spalte auf `p4k_bundles`. Response ans Tool: Score + Diff-Summary.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">User sieht Diff sofort im Desktop-Tool</li><li class="pro">Atomic: validate + ingest + diff in einer Transaction</li></ul>
+                <ul><li class="con">Edge-Function-Timeout limitiert (150s Free, 400s Pro) — für sehr große Diffs evtl. Problem</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">B</span>
+                <h3>Pure Postgres-Function (jsonb-Diff)</h3>
+              </div>
+              <p>`diff_bundle(new_id, prev_id)` als pure Postgres-Function. Edge-Function ruft sie auf, oder direkt vom Tool über RPC. Logik in SQL.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">DB-nahe, kein Edge-Function-Cold-Start</li><li class="pro">RLS-konform out of the box</li></ul>
+                <ul><li class="con">SQL ist nicht ideal für komplexe Diff-Logik (Set-Operations gehen, aber Sub-Field-Diffs werden hairy)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C</span>
+                <h3>Async via Postgres-Trigger + Pg-Queue</h3>
+              </div>
+              <p>Insert auf `p4k_bundles` triggert pg_cron-Job, der diff'ed im Hintergrund. Web-App polled `diff_status` für UI-Update.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Kein Timeout-Risk</li><li class="pro">Tool muss nicht warten</li></ul>
+                <ul><li class="con">User sieht Diff erst nach Polling-Delay</li><li class="con">pg_cron-Setup zusätzlicher Infra</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">D</span>
+                <h3>Lokal im Desktop-Tool vor Upload</h3>
+              </div>
+              <p>Tool ruft die Web-App per RPC nach dem letzten Bundle derselben Channel-Familie, downloaded dessen JSON-Manifest, diff'ed lokal, schickt das Diff-Result mit beim Upload.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Server-Compute = 0</li><li class="pro">User sieht Diff schon vor Upload-Klick</li></ul>
+                <ul><li class="con">Tool muss vorigen Bundle downloaden (kann groß sein)</li><li class="con">Tool-Logic doppelt: Diff-Code muss exakt zu Server-Schema passen</li></ul>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="diff-comment">Diff-Granularität / UI-Wünsche</label>
+              <textarea disabled id="diff-comment" data-comment="diff" placeholder="z.B.: nur Top-Level-Counts, oder pro Schiff/Item Drill-Down? Field-Level oder Entity-Level?">Wenn es der gleiche Patch ist und die gleiche star citizen build nummer ist, dann sollte das lokale tool eine warning mit abfrage hinterlassen ob man das wirklich hochladen will wenn es abweicht vom server. In allen anderen Fällen ist das gewünscht das es diff gibt und wir brauchen dazu nix außer auf der website die historie (auch für viewer bei gleichen patch und sc build nummer immer nur das letzte auswählbar). Dort kann der admin dann ggf. bestimmte historische uploads "deaktivieren", sprich die werden gar nirgendwo mehr berücksichtigt bzw. viewer in der anderen ansicht ggf. historisch durchgehen. </textarea>
+            </div>
+
+            <div class="eval-group" data-decision="diff-a" data-label="§5 · Edge-Function sync">
+              <label class="eval-option"><input disabled type="radio" name="eval-diff-a" value="discard"><span class="eval-label">Verwerfen · Edge-sync</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-diff-a" value="include" checked><span class="eval-label">Miteinbeziehen · Edge-sync</span></label>
+            </div>
+            <div class="eval-group" data-decision="diff-b" data-label="§5 · pg-function">
+              <label class="eval-option"><input disabled type="radio" name="eval-diff-b" value="discard"><span class="eval-label">Verwerfen · pg-function</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-diff-b" value="include" checked><span class="eval-label">Miteinbeziehen · pg-function</span></label>
+            </div>
+            <div class="eval-group" data-decision="diff-c" data-label="§5 · async pg-cron">
+              <label class="eval-option"><input disabled type="radio" name="eval-diff-c" value="discard"><span class="eval-label">Verwerfen · async</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-diff-c" value="include" checked><span class="eval-label">Miteinbeziehen · async</span></label>
+            </div>
+            <div class="eval-group" data-decision="diff-d" data-label="§5 · client-side">
+              <label class="eval-option"><input disabled type="radio" name="eval-diff-d" value="discard"><span class="eval-label">Verwerfen · client</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-diff-d" value="include" checked><span class="eval-label">Miteinbeziehen · client</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § 6 — AUTO UPDATE ============ -->
+          <section id="autoupdate" data-nav-label="§ 6 · Auto-Update">
+            <h2><span class="section-prefix">§ 6</span>Auto-Update-Flow</h2>
+            <p class="section-lead">Phase 1: User muss manuell von /desktop downloaden. Phase 2 macht das automatisch.</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A</span>
+                <h3>electron-updater + GitHub Releases (Default)</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>App pingt beim Start die GitHub-API für die neueste Release. Wenn neuer, lädt sie Delta-Update (über die `latest.yml`-Metadata + blockmap). Toast: „Update verfügbar — installieren?". Bei Restart wird's installiert.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Standard-Pfad für Electron-Apps, viel Doku</li><li class="pro">Delta-Updates via blockmap (nur Diff geladen)</li><li class="pro">Nutzt unsere bestehenden GitHub-Releases-Artifacts</li></ul>
+                <ul><li class="con">Private Repo + GH-Releases: jeder User braucht GH-Token im Tool (oder Edge-Function als Proxy)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">B</span>
+                <h3>Eigener Update-Endpoint (Edge-Function)</h3>
+              </div>
+              <p>Edge-Function `desktop-latest-release` returned aktuelles Release-Metadaten (Version, URL, SHA). Tool checked das + downloaded selbst. Keine GH-Token-Dependency.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">User braucht keinen GH-Token</li><li class="pro">Server kann Release-Token-Validation direkt</li></ul>
+                <ul><li class="con">Wir müssen Delta-Update selber implementieren (vs. electron-updater-out-of-the-box)</li><li class="con">Edge-Function-Caching nötig für viele User</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C</span>
+                <h3>Hybrid: A + B (Edge-Func als GH-Proxy)</h3>
+                <span class="recommend-badge">Empfehlung (Ergänzung)</span>
+              </div>
+              <p>electron-updater spricht NICHT direkt mit GH, sondern mit unserer Edge-Function. Die ruft GH mit dem service-Token + filtert Release-Metadata für User. So bleibt der GH-Token server-side.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">electron-updater out-of-box + private-Repo-safe</li><li class="pro">Edge-Function kann Force-Update steuern (siehe Concept Iter 2 § 10 B)</li></ul>
+                <ul><li class="con">Edge-Function-Endpoint muss `latest.yml` + Asset-URLs mit signierten Redirects ausliefern</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">D</span>
+                <h3>Background-Auto-Install (kein Prompt)</h3>
+              </div>
+              <p>App installiert Updates silent, kein User-Prompt. Wirkt wie Magie aber kann irritieren.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Maximaler convenience</li></ul>
+                <ul><li class="con">Breaking-Changes überfallen den User</li><li class="con">User-Trust kann sinken</li></ul>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="autoupdate-comment">Update-Cadence / Force-Update-Bedingungen</label>
+              <textarea disabled id="autoupdate-comment" data-comment="autoupdate" placeholder="z.B.: täglich check / nur bei breaking, Force-Update wenn P4K-Schema-Version inkompatibel, …"></textarea>
+            </div>
+
+            <div class="eval-group" data-decision="autoupdate-a" data-label="§6 · GH-Releases direkt">
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-a" value="discard"><span class="eval-label">Verwerfen · GH-direkt</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-a" value="include" checked><span class="eval-label">Miteinbeziehen · GH-direkt</span></label>
+            </div>
+            <div class="eval-group" data-decision="autoupdate-b" data-label="§6 · Eigener Endpoint">
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-b" value="discard" checked><span class="eval-label">Verwerfen · Eigen</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-b" value="include"><span class="eval-label">Miteinbeziehen · Eigen</span></label>
+            </div>
+            <div class="eval-group" data-decision="autoupdate-c" data-label="§6 · Hybrid Proxy">
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-c" value="discard" checked><span class="eval-label">Verwerfen · Hybrid</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-c" value="include"><span class="eval-label">Miteinbeziehen · Hybrid</span></label>
+            </div>
+            <div class="eval-group" data-decision="autoupdate-d" data-label="§6 · Silent">
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-d" value="discard"><span class="eval-label">Verwerfen · Silent</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-d" value="include" checked><span class="eval-label">Miteinbeziehen · Silent</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § 7 — TEST FIXTURE ============ -->
+          <section id="fixture" data-nav-label="§ 7 · Test-Fixture">
+            <h2><span class="section-prefix">§ 7</span>Synthetic Test-Fixture</h2>
+            <p class="section-lead">Damit CI E2E-Extractor-Tests laufen kann, brauchen wir eine kleine fake-P4K mit MIT-licenced Test-Daten. Wie?</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A</span>
+                <h3>Generator-Script: <code>desktop-tool/test/fixtures/build-fake-p4k.ts</code></h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>Node-Script generiert ZIP-Datei mit:
+                <br>– 5 fake-Schiffe als XML (eigene Namen: TEST_Falcon, TEST_Sparrow, …)
+                <br>– 10 fake-Items
+                <br>– 5 fake-Weapons
+                <br>– 1 fake-Icon-PNG pro Schiff (procedural)
+                <br>– keine CGF/CGA (Phase 1 Scope hat 3D raus)
+              </p>
+              <p>Output: ~5-10 MB ZIP, committed to repo (test/fixtures/synthetic.p4k.zip). CI nutzt es ohne weiter Setup.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">100% MIT-clean, kein CIG-Material</li><li class="pro">Deterministic — Tests immer reproduzierbar</li><li class="pro">Erweitert testbar (mehr Schiffe, edge-cases)</li></ul>
+                <ul><li class="con">Script-Code = Zusatz-Wartung wenn Schema sich ändert</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">B</span>
+                <h3>Echte SC-P4K minimal subsetted</h3>
+              </div>
+              <p>Aus deiner echten Data.p4k 1% extrahieren, in eine kleine ZIP packen. Realistische Daten.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">100% realistisches Format</li></ul>
+                <ul><li class="con">Lizenz-Problem: das ist CIG-IP, kein public-repo</li><li class="con">Müsste private im git-LFS bleiben → CI braucht Secrets</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C</span>
+                <h3>JSON-Fixtures (kein ZIP)</h3>
+              </div>
+              <p>Tests umgehen die ZIP-Layer, testen nur den Parser von raw bytes ab. JSON-Fixtures sind das erwartete Output.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Schneller, einfacher</li></ul>
+                <ul><li class="con">Tests den ZIP/ZSTD-Layer nicht</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">D</span>
+                <h3>Drei Fixtures: small/medium/large für Perf-Tests</h3>
+                <span class="recommend-badge">Empfehlung (Ergänzung)</span>
+              </div>
+              <p>Drei Varianten von Script A:
+                <br>– <strong>small</strong> (~1 MB, 5 Schiffe) — für E2E-Smoke
+                <br>– <strong>medium</strong> (~50 MB, 50 Schiffe + Items) — für Performance-Profil-Tests
+                <br>– <strong>large</strong> (~500 MB, 500 Schiffe + ZSTD-compressed) — für Stress-Tests (CI optional)
+              </p>
+              <div class="pros-cons">
+                <ul><li class="pro">Echte Performance-Metriken im CI sammelbar</li></ul>
+                <ul><li class="con">Large variant ist groß für git → S3/Storage-Hosting evtl.</li></ul>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="fixture-comment">Test-Szenarien</label>
+              <textarea disabled id="fixture-comment" data-comment="fixture" placeholder="z.B.: Schema-Drift-Test mit kaputten Feldern, korrupte ZIP-Header, …">A Generiere das dann gern, nutze dafür doch ein paar echte daten (in geringen maß) aus der data p4k die ich auf dem pc habe.
+</textarea>
+            </div>
+
+            <div class="eval-group" data-decision="fixture-a" data-label="§7 · Generator Script">
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-a" value="discard" checked><span class="eval-label">Verwerfen · Generator</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-a" value="include"><span class="eval-label">Miteinbeziehen · Generator</span></label>
+            </div>
+            <div class="eval-group" data-decision="fixture-b" data-label="§7 · Echte SC subsetted">
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-b" value="discard"><span class="eval-label">Verwerfen · Real</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-b" value="include" checked><span class="eval-label">Miteinbeziehen · Real</span></label>
+            </div>
+            <div class="eval-group" data-decision="fixture-c" data-label="§7 · JSON only">
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-c" value="discard" checked><span class="eval-label">Verwerfen · JSON</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-c" value="include"><span class="eval-label">Miteinbeziehen · JSON</span></label>
+            </div>
+            <div class="eval-group" data-decision="fixture-d" data-label="§7 · 3 Stufen">
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-d" value="discard" checked><span class="eval-label">Verwerfen · 3 Stufen</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-d" value="include"><span class="eval-label">Miteinbeziehen · 3 Stufen</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § 8 — CODE SIGNING ============ -->
+          <section id="signing" data-nav-label="§ 8 · Code-Signing">
+            <h2><span class="section-prefix">§ 8</span>Code-Signing-Strategie</h2>
+            <p class="section-lead">Heute: Unsigned (SmartScreen-Warning beim ersten Run). Was nehmen wir?</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A</span>
+                <h3>Self-Signed Certificate</h3>
+              </div>
+              <p>Eigenes Zertifikat, mit OpenSSL erstellt. Signiert die Binary. Kostenlos, aber SmartScreen warnt trotzdem („Unbekannter Herausgeber").</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Kostenlos, sofort einsetzbar</li><li class="pro">Besser als gar nichts (Binary-Integrity)</li></ul>
+                <ul><li class="con">SmartScreen-Warning bleibt</li><li class="con">User muss „Mehr Infos" + „Trotzdem ausführen" klicken</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">B</span>
+                <h3>EV Code-Signing Certificate ($300/yr)</h3>
+              </div>
+              <p>Sectigo/Comodo/etc. — full SmartScreen-Reputation ab Tag 1. Keine User-Warnings.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Zero-friction install</li><li class="pro">Public-distributiontauglich</li></ul>
+                <ul><li class="con">$300/year</li><li class="con">Cert ist auf Hardware-Token (HSM/USB) — CI-Signing braucht spezielle Setups</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C</span>
+                <h3>Azure Trusted Signing (~$10/Monat)</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>Neuere Azure-Service: Microsoft-managed Cert + Signing-API. EV-äquivalente Reputation, aber CI-friendly (kein USB-Token). Wurde 2024 GA.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">EV-Level Reputation, signtool kompatibel</li><li class="pro">CI-friendly über REST-API, kein HSM</li><li class="pro">~10× günstiger als klassisches EV</li></ul>
+                <ul><li class="con">Azure-Account + Subscription nötig</li><li class="con">Cert ist nicht „dein eigener" — wenn Microsoft den Service abschaltet, weg</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">D</span>
+                <h3>Defer — bleibt unsigned bis Public-Beta</h3>
+              </div>
+              <p>Für 2-10 Collaborators reicht SmartScreen-Bypass. Investition erst wenn Public-Distribution.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">$0</li></ul>
+                <ul><li class="con">User-Friction bleibt</li></ul>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="signing-comment">Wann signed werden soll</label>
+              <textarea disabled id="signing-comment" data-comment="signing" placeholder="z.B.: erst ab v1.0.0, oder schon Phase 2 development, …"></textarea>
+            </div>
+
+            <div class="eval-group" data-decision="signing-a" data-label="§8 · Self-Signed">
+              <label class="eval-option"><input disabled type="radio" name="eval-signing-a" value="discard"><span class="eval-label">Verwerfen · Self</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-signing-a" value="include" checked><span class="eval-label">Miteinbeziehen · Self</span></label>
+            </div>
+            <div class="eval-group" data-decision="signing-b" data-label="§8 · EV-Cert">
+              <label class="eval-option"><input disabled type="radio" name="eval-signing-b" value="discard" checked><span class="eval-label">Verwerfen · EV</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-signing-b" value="include"><span class="eval-label">Miteinbeziehen · EV</span></label>
+            </div>
+            <div class="eval-group" data-decision="signing-c" data-label="§8 · Azure Trusted">
+              <label class="eval-option"><input disabled type="radio" name="eval-signing-c" value="discard" checked><span class="eval-label">Verwerfen · Azure</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-signing-c" value="include"><span class="eval-label">Miteinbeziehen · Azure</span></label>
+            </div>
+            <div class="eval-group" data-decision="signing-d" data-label="§8 · Defer">
+              <label class="eval-option"><input disabled type="radio" name="eval-signing-d" value="discard"><span class="eval-label">Verwerfen · Defer</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-signing-d" value="include" checked><span class="eval-label">Miteinbeziehen · Defer</span></label>
+            </div>
+          </section>
+
+          <!-- ============ OPEN QUESTIONS ============ -->
+          <section id="open" data-nav-label="§ 9 · Offene Punkte">
+            <h2><span class="section-prefix">§ 9</span>Offene Punkte (FYI, kein Vote)</h2>
+            <p class="section-lead">Diese laufen mit, brauchen aber jetzt keine Entscheidung. Wenn dir was wichtig wird, in den Sektionen oben kommentieren.</p>
+
+            <ol style="font-size:0.92rem;color:var(--text-secondary);line-height:1.8;">
+              <li><strong>Conflict-Handling Duplicate-Patch:</strong> heute UNIQUE-Constraint (channel, patch_version, uploaded_by). Wenn 2 Collaborators denselben Patch hochladen, gewinnt Higher-Quality-Score? Beide behalten + UI zeigt beide? Heute: zweiter Insert reject.</li>
+              <li><strong>Cache-Persistenz:</strong> Tool extrahiert in <code>%LOCALAPPDATA%\sc-companion\extracts\</code>. Nach Upload löschen oder behalten („Re-Upload" möglich)? Settings-Toggle.</li>
+              <li><strong>Lizenz des Desktop-Tools:</strong> Monorepo. Web ist proprietary. Tool kann MIT/AGPL/proprietary sein. Default-Vorschlag: proprietary-internal bis Public-Beta.</li>
+              <li><strong>Telemetrie opt-in:</strong> Sentry/Glitchtip Error-Reporting? Friction beim 1. Run vs. nützlich für Debug. Standardvorschlag: aus.</li>
+              <li><strong>Vercel-Deploy:</strong> Web-App ist noch nicht auf <code>sc-companion.vercel.app</code> deployed. Sobald das passiert, muss Desktop-Tool-Build mit <code>SC_API_BASE=https://sc-companion.vercel.app</code> gebaut werden (CI bekommt env-var). Bis dahin: localhost-only.</li>
+              <li><strong>Vercel + Supabase OAuth redirect_urls:</strong> aktuell nur <code>localhost:4200/news</code> + <code>sc-companion.vercel.app/news</code> in <code>supabase/config.toml</code>. Google-OAuth aus <code>/desktop/auth</code> heraus würde aktuell fail'en. Anpassen wenn Public-Beta naht.</li>
+              <li><strong>P4K-Format-Versionierung:</strong> wenn CIG ZSTD-Schema-Version ändert, müssen wir das in der Tool-Version festhalten. Schema-Hash-Compat-Check beim Upload-Endpoint.</li>
+            </ol>
+          </section>
+        </section>
+
+        <section data-iteration="2" hidden>
+          <div class="iteration-intro">
+            <h2>Iteration 2 · Python-Pivot + DataCore-Realität</h2>
+            <p>Deine Iter-1-Submission hat die Architektur deutlich gedreht — alle 4 Parser-Optionen verworfen + Python-Wunsch + Streaming-Vorgabe + Hinweis auf existierende Tools (<code>scdatatools</code>!). Plus mehrere Klarstellungen (Validator-Plausibility, Diff-Spec, Auto-Update-Challenge). Iter 2 macht aus dem Wirrwarr eine konkrete Architektur und stellt 7 neue gezielte Fragen.</p>
+          </div>
+
+          <!-- ============ § A — Python-Parser-Architektur ============ -->
+          <section id="py-parser" data-nav-label="A · Python-Parser">
+            <h2><span class="section-prefix">A</span>Python-Parser-Architektur (Reset)</h2>
+            <p class="section-lead">Du sagtest: „nutze Python wie im restlichen Projekt, kein 80 GB RAM, Pfad-für-Pfad streamen, es gibt GitHub-Projekte die SC-P4K auf normalen Rechnern extrahieren". Die richtige Library dafür ist klar:</p>
+
+            <div class="challenge-box">
+              <strong>Big Insight aus deiner Recherche-Empfehlung:</strong> Stats für Schiffe/Waffen leben NICHT in den XML-Files (die sind nur Metadata-Wrapper), sondern in einer einzigen binären Datei: <code>Data/Game.dcb</code> — der CIG <strong>DataCore</strong>. Die Tools wie <code>scdatatools</code> parsen genau das. Phase 1 hat das missverstanden — wir hätten gar nicht durch tausende XMLs streamen müssen, sondern 1× durch die DataCore.
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A1</span>
+                <h3>scdatatools (Python, MIT)</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <div class="meta">
+                <span class="pill success">Aktiv gepflegt</span>
+                <span class="pill">pip-installable</span>
+                <span class="pill">Streaming-fähig</span>
+              </div>
+              <p><a href="https://github.com/StarCitizenTools/scdatatools" target="_blank" rel="noopener">github.com/StarCitizenTools/scdatatools</a> — Pure-Python-Library, parsed P4K-Container + DataCore.dcb + Localization + Subsumption. Wird seit ~5 Jahren von der starcitizen.tools-Wiki-Community gepflegt. Streamt durch P4K, lädt nicht das ganze Archiv in RAM.</p>
+              <pre>pip install scdatatools
+from scdatatools.p4k import P4KFile
+p4k = P4KFile('Data.p4k')
+for entry in p4k.namelist():
+    if entry == 'Data/Game.dcb':
+        with p4k.open(entry) as fp:
+            datacore = DataCore.from_file(fp)
+            # iterate entities, write JSON chunks to disk</pre>
+              <div class="pros-cons">
+                <ul><li class="pro">Existiert, getestet, MIT-Lizenz</li><li class="pro">Versteht DataCore (.dcb) — wo die Stats wirklich sind</li><li class="pro">Streaming-API: kein RAM-Spike</li><li class="pro">Python passt zur Restprojekt-Toolchain</li><li class="pro">Übersetzt SC-Localization-Strings direkt mit</li></ul>
+                <ul><li class="con">Python-Runtime im Desktop-Tool ist +20-30 MB (Embedded Python)</li><li class="con">Pinned-Version-Risiko (CIG-Format-Drift muss von scdatatools upstream gefixt werden)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A2</span>
+                <h3>Custom Python-Parser von 0</h3>
+              </div>
+              <p>Eigener P4K + DataCore-Parser in Python. Mehr Code, volle Kontrolle, keine externe Abhängigkeit.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Kein Dependency-Risk</li></ul>
+                <ul><li class="con">Format-Reverse-Engineering = Wochen-Aufwand vs. 1 Tag mit scdatatools</li><li class="con">CIG-Format-Drift komplett unser Problem</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A3</span>
+                <h3>unp4k-Subprocess (C#-Tool als Sidecar)</h3>
+              </div>
+              <p><a href="https://github.com/dolkensp/unp4k" target="_blank" rel="noopener">unp4k</a> ist die populärste P4K-Extraktion (C#). Wir könnten es als Sidecar bundeln (.NET-Binary) und per stdio steuern.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Stabilste Tool-Family für SC P4K</li></ul>
+                <ul><li class="con">.NET-Runtime-Dependency (+150 MB bundled, oder System-.NET)</li><li class="con">Kein DataCore-Parsing in unp4k selbst</li><li class="con">3 Sprachen im Stack (TS + Python + C#)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">A4</span>
+                <h3>Hybrid — scdatatools für P4K+DataCore + minimal Custom für SC-spezifische Glue</h3>
+                <span class="recommend-badge">Empfehlung (Standard)</span>
+              </div>
+              <p>scdatatools als Library, drumherum dein eigener kleiner Python-Wrapper der die Streaming-Strategie steuert: „iteriere alle Ship-Entities aus DataCore, schreibe JSON-Chunk auf Disk pro Schiff, dann nächste Entity-Klasse". Wrapper ist ~200 Zeilen Python.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Beste Balance: Library für Heavy-Lifting + Wrapper für SC-Companion-spezifische Logik</li><li class="pro">Streaming + Chunking explizit ins Disk (matched dein „kein 80 GB im RAM"-Wunsch)</li></ul>
+                <ul><li class="con">Etwas mehr Code als A1 pure</li></ul>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="py-parser-comment">Konkretisierung: scdatatools-Version pinnen, Wrapper-Layout</label>
+              <textarea disabled id="py-parser-comment" data-comment="py-parser" placeholder="z.B. Version pinnen, Chunks pro Ship/Weapon/Item separat ablegen, …"></textarea>
+            </div>
+
+            <div class="eval-group" data-decision="py-parser-a1" data-label="§A · scdatatools pur">
+              <label class="eval-option"><input disabled type="radio" name="eval-py-parser-a1" value="discard"><span class="eval-label">Verwerfen · pur</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-py-parser-a1" value="include" checked><span class="eval-label">Miteinbeziehen · pur</span></label>
+            </div>
+            <div class="eval-group" data-decision="py-parser-a2" data-label="§A · Custom Python">
+              <label class="eval-option"><input disabled type="radio" name="eval-py-parser-a2" value="discard" checked><span class="eval-label">Verwerfen · Custom</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-py-parser-a2" value="include"><span class="eval-label">Miteinbeziehen · Custom</span></label>
+            </div>
+            <div class="eval-group" data-decision="py-parser-a3" data-label="§A · unp4k C#">
+              <label class="eval-option"><input disabled type="radio" name="eval-py-parser-a3" value="discard" checked><span class="eval-label">Verwerfen · unp4k</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-py-parser-a3" value="include"><span class="eval-label">Miteinbeziehen · unp4k</span></label>
+            </div>
+            <div class="eval-group" data-decision="py-parser-a4" data-label="§A · scdatatools + Wrapper">
+              <label class="eval-option"><input disabled type="radio" name="eval-py-parser-a4" value="discard" checked><span class="eval-label">Verwerfen · Hybrid</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-py-parser-a4" value="include"><span class="eval-label">Miteinbeziehen · Hybrid</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § B — Python-Embedding-Strategie ============ -->
+          <section id="py-embedding" data-nav-label="B · Python-Embedding">
+            <h2><span class="section-prefix">B</span>Wie kommt Python in den Desktop-Tool-Release?</h2>
+            <p class="section-lead">Electron muss eine Python-Runtime aufrufen können. Drei Wege:</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">B1</span>
+                <h3>Embedded Python (python-build-standalone)</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>Wir bundlen Python-3.12 (~25 MB statisch) ins Release-Verzeichnis. Electron spawnt es als Subprocess für jede Extract-Run. Tool-Total-Size: ~110 MB statt 80 MB.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Kein User-Setup-Schritt — Tool „funktioniert einfach"</li><li class="pro">Version-Pin gewährleistet (nie System-Python-Mismatch)</li><li class="pro">scdatatools-Dependencies vor-installiert im Release-Build</li></ul>
+                <ul><li class="con">~+30 MB Release-Size</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">B2</span>
+                <h3>System-Python (User installiert + pip install)</h3>
+              </div>
+              <p>User muss Python 3.10+ + scdatatools selbst installieren. Tool ruft `python` aus PATH.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Kleines Release (~80 MB)</li></ul>
+                <ul><li class="con">Erst-Setup-Friction</li><li class="con">Python-Version-Drift potenziell brechend</li><li class="con">Collaborator-Onboarding wird komplexer</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">B3</span>
+                <h3>PyInstaller-Bundle des Python-Wrappers</h3>
+              </div>
+              <p>Wir packen unser Python-Wrapper-Script + scdatatools mit PyInstaller in ein einzelnes .exe (~50 MB). Electron ruft das .exe statt python.exe. Cleaner als Embedded Python, single binary.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Keine separate Python-Installation visibel</li><li class="pro">CI-Build-Pipeline: PyInstaller läuft in GitHub-Action vor electron-builder</li></ul>
+                <ul><li class="con">PyInstaller-Bundles sind manchmal von Anti-Virus geflagged (false positives)</li><li class="con">Build-Pipeline doppelt (Python + Electron)</li></ul>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="py-embedding-comment">Bundle-Größe-Limit / Preference</label>
+              <textarea disabled id="py-embedding-comment" data-comment="py-embedding" placeholder="z.B.: 200 MB ist OK / muss unter 100 MB bleiben"></textarea>
+            </div>
+
+            <div class="eval-group" data-decision="py-embedding-b1" data-label="§B · Embedded Python">
+              <label class="eval-option"><input disabled type="radio" name="eval-py-embedding-b1" value="discard"><span class="eval-label">Verwerfen · Embedded</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-py-embedding-b1" value="include" checked><span class="eval-label">Miteinbeziehen · Embedded</span></label>
+            </div>
+            <div class="eval-group" data-decision="py-embedding-b2" data-label="§B · System Python">
+              <label class="eval-option"><input disabled type="radio" name="eval-py-embedding-b2" value="discard" checked><span class="eval-label">Verwerfen · System</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-py-embedding-b2" value="include"><span class="eval-label">Miteinbeziehen · System</span></label>
+            </div>
+            <div class="eval-group" data-decision="py-embedding-b3" data-label="§B · PyInstaller">
+              <label class="eval-option"><input disabled type="radio" name="eval-py-embedding-b3" value="discard" checked><span class="eval-label">Verwerfen · PyInstaller</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-py-embedding-b3" value="include"><span class="eval-label">Miteinbeziehen · PyInstaller</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § C — Render-PNG: kein 3D-Renderer mehr nötig ============ -->
+          <section id="render-revised" data-nav-label="C · Render-PNG (vereinfacht)">
+            <h2><span class="section-prefix">C</span>Render-PNGs — neue Realität</h2>
+            <p class="section-lead">Phase-1-Annahme war: wir bauen einen Three.js-Renderer der Schiffe rendert. Aber: <strong>CIG packt selbst „Holo-Viewer"-DDS-Renders pro Schiff in die P4K</strong> (zu sehen im Hangar-/Loadout-Screen). Damit fällt der ganze 3D-Renderer-Stack weg.</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C1</span>
+                <h3>DDS → PNG direkt aus P4K</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>scdatatools extrahiert die <code>Data/Textures/UI/Spaceships/*.dds</code> Files. Konvertierung DDS→PNG mit <code>imageio</code> oder <code>Pillow</code>-Plugin (~2-3 Zeilen Python). Output: ~3-5 PNGs pro Schiff in ~100 ms.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Zero Render-Compute — wir kopieren nur</li><li class="pro">Optisch identisch zum Spiel (sind die echten Hangar-Renders)</li><li class="pro">Three.js / wgpu kann komplett gestrichen werden</li></ul>
+                <ul><li class="con">Falls CIG für ein Schiff die DDS nicht gepackt hat → fallback nötig (siehe C2/C3)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C2</span>
+                <h3>Fallback: Three.js-Renderer für Schiffe ohne DDS</h3>
+              </div>
+              <p>Wenn ein Schiff keine pre-rendered DDS hat, lädt three.js das CGF + rendert. Hybrid-Pfad.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">100% Schiff-Coverage</li></ul>
+                <ul><li class="con">Wieder voller 3D-Renderer-Stack im Tool, nur für seltene Fälle</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C3</span>
+                <h3>Fallback: externe Quelle (starcitizen.tools API)</h3>
+              </div>
+              <p>Schiffe ohne DDS bekommen Render-URL vom Wiki. Tool speichert nur die URL, Web zeigt sie direkt.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Kein eigener Renderer-Code</li><li class="pro">Wiki-Renders sind oft hochwertiger als In-Game-Renders</li></ul>
+                <ul><li class="con">Externe Dependency — Wiki-API kann downgehen</li><li class="con">Lizenz-Frage je Wiki-Image klären</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">C4</span>
+                <h3>Kein Fallback — Schiffe ohne DDS = kein Bild in der Web-App</h3>
+              </div>
+              <p>Bildlos. Web-App zeigt einen Platzhalter.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Maximal simpel</li></ul>
+                <ul><li class="con">UX hat Lücken</li></ul>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="render-revised-comment">DDS-Pfad-Hinweise oder Fallback-Präferenz</label>
+              <textarea disabled id="render-revised-comment" data-comment="render-revised" placeholder="z.B.: kein 3D-Renderer auch als Fallback / Wiki erst nach Genehmigung / …"></textarea>
+            </div>
+
+            <div class="eval-group" data-decision="render-revised-c1" data-label="§C · DDS-Direkt">
+              <label class="eval-option"><input disabled type="radio" name="eval-render-revised-c1" value="discard"><span class="eval-label">Verwerfen · DDS</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-render-revised-c1" value="include" checked><span class="eval-label">Miteinbeziehen · DDS</span></label>
+            </div>
+            <div class="eval-group" data-decision="render-revised-c2" data-label="§C · Three.js-Fallback">
+              <label class="eval-option"><input disabled type="radio" name="eval-render-revised-c2" value="discard" checked><span class="eval-label">Verwerfen · 3D-Fallback</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-render-revised-c2" value="include"><span class="eval-label">Miteinbeziehen · 3D-Fallback</span></label>
+            </div>
+            <div class="eval-group" data-decision="render-revised-c3" data-label="§C · Wiki-Fallback">
+              <label class="eval-option"><input disabled type="radio" name="eval-render-revised-c3" value="discard" checked><span class="eval-label">Verwerfen · Wiki</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-render-revised-c3" value="include"><span class="eval-label">Miteinbeziehen · Wiki</span></label>
+            </div>
+            <div class="eval-group" data-decision="render-revised-c4" data-label="§C · Kein Fallback">
+              <label class="eval-option"><input disabled type="radio" name="eval-render-revised-c4" value="discard"><span class="eval-label">Verwerfen · Kein FB</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-render-revised-c4" value="include" checked><span class="eval-label">Miteinbeziehen · Kein FB</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § D — Plausibility-Validator ============ -->
+          <section id="validator-plausibility" data-nav-label="D · Validator (Plausibility)">
+            <h2><span class="section-prefix">D</span>Plausibility-Validator (Klarstellung)</h2>
+            <p class="section-lead">Deine Klarstellung: „nicht jedes Attribut exakt validieren, sondern Plausibilität — Warning wenn Feld nicht gefunden, dann nullable / 0, RSI ändert Schemen". Das ist eine andere Architektur als die 4 Iter-1-Optionen.</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">D1</span>
+                <h3>Soft-Schema mit „expected fields"</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>Pro Entity-Typ (Ship/Weapon/Component/Item) eine Liste von <strong>erwarteten Feldern</strong> mit Typ-Hint. Validator iteriert: jedes erwartete Feld → fehlt? Warning loggen + Feld auf null/0/default setzen. Score = (gefundene Felder ÷ erwartete Felder × 100). Keine Fehler, nur Warnings.</p>
+              <pre>EXPECTED_SHIP_FIELDS = [
+  ('mass', 'number', None),
+  ('hp_main_hull', 'number', None),
+  ('max_speed', 'number', 0),
+  ('weapon_hardpoints', 'array', []),
+  # ...
+]
+for field, type_hint, default in EXPECTED_SHIP_FIELDS:
+    if field not in ship_data:
+        warnings.append(f'missing field: {field}')
+        ship_data[field] = default
+score = (len(EXPECTED_SHIP_FIELDS) - len(warnings)) / len(EXPECTED_SHIP_FIELDS) * 100</pre>
+              <div class="pros-cons">
+                <ul><li class="pro">Tolerant gegenüber CIG-Schema-Drift</li><li class="pro">Score-Metrik fällt einfach raus</li><li class="pro">Warnings landen im Upload-Bundle → Admin sieht in Web-UI</li><li class="pro">Kein Zod/AJV/TypeBox nötig — pures Python</li></ul>
+                <ul><li class="con">Field-Liste muss gepflegt werden (aber nur 1× pro Entity-Typ)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">D2</span>
+                <h3>Pure Counter-Heuristik (kein Schema)</h3>
+              </div>
+              <p>Validator zählt nur: „N Ships gefunden, M Weapons, P Items". Score = Counts vs. Schwellwerte aus letzten Patches.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Minimaler Code</li></ul>
+                <ul><li class="con">Findet keine semantischen Schäden (Schiff X hat keine Stats mehr)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">D3</span>
+                <h3>D1 + Counter-Schwellen (kombiniert)</h3>
+                <span class="recommend-badge">Empfehlung (Ergänzung)</span>
+              </div>
+              <p>D1 für Feld-Coverage + Counter-Check als zweite Dimension. Score = min(field_coverage, count_score).</p>
+            </div>
+
+            <div class="field-row">
+              <label for="validator-plausibility-comment">Spezifische Felder die wir tracken müssen</label>
+              <textarea disabled id="validator-plausibility-comment" data-comment="validator-plausibility" placeholder="z.B.: mass, hp_main, hp_per_part, weapon_size, mining_capacity, …"></textarea>
+            </div>
+
+            <div class="eval-group" data-decision="validator-plausibility-d1" data-label="§D · Soft-Schema">
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-plausibility-d1" value="discard" checked><span class="eval-label">Verwerfen · Soft-Schema</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-plausibility-d1" value="include"><span class="eval-label">Miteinbeziehen · Soft-Schema</span></label>
+            </div>
+            <div class="eval-group" data-decision="validator-plausibility-d2" data-label="§D · Pure Counter">
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-plausibility-d2" value="discard"><span class="eval-label">Verwerfen · Counter</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-plausibility-d2" value="include" checked><span class="eval-label">Miteinbeziehen · Counter</span></label>
+            </div>
+            <div class="eval-group" data-decision="validator-plausibility-d3" data-label="§D · Kombi">
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-plausibility-d3" value="discard" checked><span class="eval-label">Verwerfen · Kombi</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-validator-plausibility-d3" value="include"><span class="eval-label">Miteinbeziehen · Kombi</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § E — Diff + History + Disable ============ -->
+          <section id="diff-spec" data-nav-label="E · Diff + History + Disable">
+            <h2><span class="section-prefix">E</span>Diff-Spec, History-Sichtbarkeit, Admin-Disable (Klarstellung)</h2>
+            <p class="section-lead">Deine Anforderungen waren detailliert. Hier die konkrete Umsetzung — Bestätigung oder Tweaks:</p>
+
+            <table class="matrix">
+              <thead><tr><th>Anforderung</th><th>Umsetzung</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Pre-Upload-Warning bei „gleicher Patch + gleiche Build-Nummer schon hochgeladen"</td>
+                  <td>Tool fragt vor Upload: <code>GET /functions/v1/check-bundle?channel=X&amp;patch=Y&amp;build=Z</code>. Server returns <code>{ exists: true/false, latest_id, latest_quality_score }</code>. Wenn exists → Modal im Tool: „Bereits hochgeladen von &lt;user&gt; mit Quality &lt;score&gt;. Trotzdem hochladen?" [Cancel / Trotzdem]</td>
+                </tr>
+                <tr>
+                  <td>Build-Nummer als separates Feld</td>
+                  <td>Migration: <code>alter table p4k_bundles add column build_number text not null default ''</code>. UNIQUE-Constraint wird zu <code>(channel, patch_version, build_number, uploaded_by)</code>. Tool extrahiert die Build-Nummer aus <code>build_manifest.id</code> der Channel-Folder.</td>
+                </tr>
+                <tr>
+                  <td>Diff vs. Last-Known-Good (bei verschiedenen Patches)</td>
+                  <td>Edge-Func <code>ingest-bundle</code>: nach Insert ruft <code>diff_bundle(new_id, prev_id)</code> Postgres-Function. Result wird als <code>diff_summary jsonb</code>-Spalte gespeichert. UI in Web-App zeigt's auf Bundle-Detail-Page.</td>
+                </tr>
+                <tr>
+                  <td>Viewer sieht nur das neueste je (Channel + Patch + Build)</td>
+                  <td>Default-Query im Bundle-History-RPC: <code>select distinct on (channel, patch_version, build_number) * order by channel, patch_version, build_number, created_at desc</code>. Mit <code>?history=true</code>-Param: alle anzeigen.</td>
+                </tr>
+                <tr>
+                  <td>Admin kann Bundle „deaktivieren"</td>
+                  <td>Neue Spalte <code>p4k_bundles.disabled boolean default false</code> + RPC <code>set_bundle_disabled(id, val)</code> (admin-only). Default-Query filtert <code>disabled = false</code>. „Verlauf"-Toggle zeigt auch disabled, mit Pille.</td>
+                </tr>
+                <tr>
+                  <td>Viewer kann historisch durchgehen</td>
+                  <td>UI-Toggle „Verlauf" auf /p4k-Page. Mit Toggle: alle Bundles je Channel/Patch/Build sichtbar, Drill-Down auf Bundle-Detail mit Diff-Summary.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="field-row">
+              <label for="diff-spec-comment">Klärungen / Tweaks</label>
+              <textarea disabled id="diff-spec-comment" data-comment="diff-spec" placeholder="z.B.: was bei mehreren Builds desselben Patches? Reine Disable oder auch komplettes Delete für Admin?">Es sollte auch immer angezeigt werden was zum patch/build kombi davor das diff ist, anschaulich dargestellt für den viewer bzw. expandable angezeigt mit mini Zusammenfassung. </textarea>
+            </div>
+
+            <div class="eval-group" data-decision="diff-spec" data-label="§E · Spec-Bestätigung">
+              <label class="eval-option"><input disabled type="radio" name="eval-diff-spec" value="discard"><span class="eval-label">Verwerfen · anders</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-diff-spec" value="include" checked><span class="eval-label">Miteinbeziehen · so</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § F — Auto-Update Challenge ============ -->
+          <section id="autoupdate-challenge" data-nav-label="F · Auto-Update Challenge">
+            <h2><span class="section-prefix">F</span>Auto-Update — Challenge zur Kombination GH-direkt + Silent</h2>
+            <p class="section-lead">Du hast „GH-direkt" und „Silent" gewählt. Beide sind als Einzelfall okay, die <strong>Kombination</strong> ist riskant. Ich challenge:</p>
+
+            <div class="challenge-box">
+              <strong>Risiko 1 — GH-Token im Binary:</strong> private Repo + GH-Releases bedeutet entweder (a) wir embedden einen GH-Token in jede Tool-Binary (jeder User kann ihn extrahieren = potenzielle Repo-Read-Permission) oder (b) wir machen den Release-Bucket public (verliert die „Nur Collaborator kann Tool downloaden"-Eigenschaft aus Phase 1 § 8).<br>
+              <strong>Risiko 2 — Silent:</strong> Auto-Install ohne User-Wissen kann genau dann passieren wenn der User gerade einen Extract laufen hat → Tool beendet sich mitten im Lauf, Datenverlust.
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">F1</span>
+                <h3>So lassen — GH-direkt + Silent (deine Wahl)</h3>
+              </div>
+              <p>Wir embedden einen Read-Only-GH-Fine-Grained-Token (nur Releases-Read-Permission) in die Tool-Binary. Silent-Install passiert nur beim nächsten App-Restart, nie mitten im Lauf (electron-updater-Default).</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Maximal automatisch — User merkt's quasi nicht</li><li class="pro">Read-Only-Token-Scope minimiert Risk</li></ul>
+                <ul><li class="con">Token-Leak macht Repo-Read-Pivot möglich (private Repos enthalten u.U. Secrets in old commits)</li><li class="con">User bemerkt Update gar nicht → kann sich „warum macht Tool anders X jetzt" wundern</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">F2</span>
+                <h3>Hybrid Proxy zurück + Silent</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>Edge-Function als Proxy (keine Token im Binary), Silent-Install bleibt. Edge-Func returnt nur die Release-Asset-URLs (signiert, 1h TTL). User braucht nichts zu tun.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Beste Sicherheit (kein Token im Client) + automatisch</li><li class="pro">Edge-Func kann zusätzlich Force-Update bei kritischem Format-Drift erzwingen</li><li class="pro">Telemetrie über Edge-Func möglich (welche Tool-Versionen sind im Umlauf)</li></ul>
+                <ul><li class="con">Edge-Func-Endpoint muss gebaut werden (~50 Zeilen)</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">F3</span>
+                <h3>GH-direkt + Toast-Prompt statt Silent</h3>
+              </div>
+              <p>Wie deine Wahl, aber statt Auto-Install zeigt Tool einen Toast: „Update verfügbar — jetzt installieren? [Ja, jetzt / Beim nächsten Start]". User-Trust hoch, fast so convenient wie Silent.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">User-Trust durch Sichtbarkeit</li><li class="pro">Verhindert Mid-Extract-Updates</li></ul>
+                <ul><li class="con">User muss 1× klicken</li></ul>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="autoupdate-challenge-comment">Trade-off-Wahl</label>
+              <textarea disabled id="autoupdate-challenge-comment" data-comment="autoupdate-challenge" placeholder="z.B.: F2 ist OK auch wenn etwas mehr Aufwand / F1 reicht für alpha-Phase / …"></textarea>
+            </div>
+
+            <div class="eval-group" data-decision="autoupdate-f1" data-label="§F · So lassen">
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-f1" value="discard" checked><span class="eval-label">Verwerfen · F1</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-f1" value="include"><span class="eval-label">Miteinbeziehen · F1</span></label>
+            </div>
+            <div class="eval-group" data-decision="autoupdate-f2" data-label="§F · Hybrid-Proxy zurück">
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-f2" value="discard"><span class="eval-label">Verwerfen · F2</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-f2" value="include" checked><span class="eval-label">Miteinbeziehen · F2</span></label>
+            </div>
+            <div class="eval-group" data-decision="autoupdate-f3" data-label="§F · Toast statt Silent">
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-f3" value="discard" checked><span class="eval-label">Verwerfen · F3</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-autoupdate-f3" value="include"><span class="eval-label">Miteinbeziehen · F3</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § G — Fixture-Konkretisierung ============ -->
+          <section id="fixture-concrete" data-nav-label="G · Fixture (Mix)">
+            <h2><span class="section-prefix">G</span>Fixture — Mixed Signal aus deinem Comment</h2>
+            <p class="section-lead">Du hast B (echtes Subset) gewählt + im Kommentar A (Generator) erwähnt + „nutze echte Daten aus meiner Data.p4k". Das interpretiere ich als „Generator, der aus deiner echten P4K einen kleinen Subset zieht". Konkretisierung:</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">G1</span>
+                <h3>Lokaler Subset-Generator + checked-in synthetisches Mini-Fixture</h3>
+                <span class="recommend-badge">Empfehlung</span>
+              </div>
+              <p>Zwei Layer:<br>
+                <strong>Lokal:</strong> <code>desktop-tool/python/scripts/build-subset-fixture.py</code> nimmt deine Data.p4k + ein YAML-Whitelist (welche Entities zu kopieren), schreibt <code>test/fixtures/real-subset.p4k.zip</code> raus. <strong>Nicht im Repo</strong> (Lizenz!). Du läufst das einmal lokal, Subset bleibt für deine Dev-Tests.<br>
+                <strong>Repo / CI:</strong> <code>build-synthetic-fixture.py</code> generiert eine 100% MIT-Mini-P4K (5 fake-Schiffe + 10 Items, alles eigene Namen). Wird in CI für Smoke-Tests genutzt. Committed.
+              </p>
+              <div class="pros-cons">
+                <ul><li class="pro">Realistische lokale Tests + saubere CI</li><li class="pro">Kein CIG-Material im Repo</li><li class="pro">Subset-YAML versionierbar (welche Entities wir testen)</li></ul>
+                <ul><li class="con">2 Scripts statt 1</li></ul>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">G2</span>
+                <h3>Nur Subset-Generator (kein synthetisches Fixture)</h3>
+              </div>
+              <p>Kein synthetisches Backup. CI hat dann keine echten E2E-Tests, nur Unit-Tests.</p>
+              <div class="pros-cons">
+                <ul><li class="pro">Weniger Code</li></ul>
+                <ul><li class="con">CI kann den End-to-End-Extract-Pfad nicht testen</li></ul>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="fixture-concrete-comment">Welche Entities ins Subset</label>
+              <textarea disabled id="fixture-concrete-comment" data-comment="fixture-concrete" placeholder="z.B.: 3 Schiffe (Aurora, Cutlass, Carrack), 5 Weapons, 10 Items, DataCore + Localization Subset, …">mein repo ist doch private oder nicht, dann ist das ok, bzw. mach das repo private wenn es das nicht ist! Check wie das dann trotzdem mit dem update funktionieren kann oder ob das repo dedn instlaler auf vercel deployed und dann doch die applikation es von vercel herunterlädt statt github direkt!"</textarea>
+            </div>
+
+            <div class="eval-group" data-decision="fixture-g1" data-label="§G · 2-Layer Mix">
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-g1" value="discard"><span class="eval-label">Verwerfen · 2-Layer</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-g1" value="include" checked><span class="eval-label">Miteinbeziehen · 2-Layer</span></label>
+            </div>
+            <div class="eval-group" data-decision="fixture-g2" data-label="§G · Nur Subset">
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-g2" value="discard" checked><span class="eval-label">Verwerfen · Subset only</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-fixture-g2" value="include"><span class="eval-label">Miteinbeziehen · Subset only</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § H — Bestätigungen ohne neue Optionen ============ -->
+          <section id="confirms" data-nav-label="H · Bestätigungen">
+            <h2><span class="section-prefix">H</span>Bestätigungen aus Iter 1 (kein Re-Vote nötig)</h2>
+            <p class="section-lead">Diese Iter-1-Wahlen sind klar, ich verfolge sie unverändert weiter — read-only.</p>
+
+            <table class="matrix">
+              <thead><tr><th>Sektion</th><th>Übernommen</th></tr></thead>
+              <tbody>
+                <tr><td><strong>§ 2 CGF/CGA</strong></td><td>D (Skip CGF) wird de facto durchgesetzt, weil DataCore-Only + DDS-Renders die CGF überflüssig machen — kein Mesh-Parser nötig</td></tr>
+                <tr><td><strong>§ 4 Validator-Lib-Wahl</strong></td><td>obsolet — wir nutzen kein Zod/AJV/TypeBox/DSL, sondern pures Python (siehe § D oben)</td></tr>
+                <tr><td><strong>§ 5 Diff-Mechanismus</strong></td><td>A (Edge-Function sync) bleibt — siehe § E oben für die konkrete Spec</td></tr>
+                <tr><td><strong>§ 8 Code-Signing</strong></td><td>Self-Signed + Defer — kein EV/Azure für Phase 2</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </section>
+
+        <section data-iteration="3" hidden>
+          <div class="iteration-intro">
+            <h2>Iteration 3 · Finale Klärungen vor Implement</h2>
+            <p>Architektur ist klar (scdatatools/Embedded-Python/DDS-Direkt/Pure-Counter/Edge-Sync-Diff/Hybrid-Proxy/2-Layer-Fixture). Drei letzte Punkte zum Festnageln: Distribution-Flow (dein Vercel-Proxy-Vorschlag), Plausibility-Schwellen, Phase-2-Implement-Plan. Wenn alles passt, klick „Mit Feedback implementieren" und ich starte.</p>
+          </div>
+
+          <!-- ============ § I — Distribution-Flow (Vercel-Proxy) ============ -->
+          <section id="distribution-flow" data-nav-label="I · Distribution-Flow">
+            <h2><span class="section-prefix">I</span>Distribution-Flow: Vercel als GH-Proxy</h2>
+            <p class="section-lead">Dein Comment: „mein repo ist doch private, check wie das mit dem update funktionieren kann oder ob das repo den Installer auf Vercel deployed und dann doch die Applikation es von vercel herunterlädt statt github direkt!". Genau das ist F2 Hybrid-Proxy — hier konkret visualisiert:</p>
+
+            <pre style="font-size: 0.78rem; line-height: 1.45; padding: 14px; overflow-x: auto;">
+┌──────────────────────────┐                   ┌──────────────────────┐
+│  Desktop-Tool (Electron) │                   │  GitHub (private)    │
+│  electron-updater asks:  │                   │  Releases as today,  │
+│  "is there a new build?" │                   │  binary + blockmap   │
+└────────────┬─────────────┘                   │  on tag desktop-vX   │
+             │                                 └──────────┬───────────┘
+             │ GET /api/desktop/latest                    │
+             │ Authorization: Bearer &lt;user-jwt&gt;           │
+             ▼                                            │
+┌──────────────────────────┐                              │
+│  Vercel Edge-Function    │                              │
+│  /api/desktop/latest     │                              │
+│  ─ verify user-jwt       │                              │
+│  ─ check role >= collab  │                              │
+│  ─ fetch latest GH-tag   │ ─── gh service-token ──────► │
+│    metadata via GH-API   │ ◄── tag+asset URLs ──────────│
+│  ─ generate signed URL   │                              │
+│    for asset (TTL 1h)    │                              │
+│  ─ return YAML:          │                              │
+│    { version, url, sha } │                              │
+└────────────┬─────────────┘                              │
+             │                                            │
+             │ signed asset-URL                           │
+             ▼                                            │
+┌──────────────────────────┐                              │
+│  Desktop-Tool            │                              │
+│  electron-updater        │                              │
+│  downloads .exe          │ ─── signed URL request ────► │
+│  (Δ-Update via blockmap) │ ◄── binary chunks ───────────│
+│  ─ verify SHA-256        │                              │
+│  ─ install on restart    │                              │
+└──────────────────────────┘                              │
+            </pre>
+
+            <table class="matrix">
+              <thead><tr><th>Was wo lebt</th><th>Wo</th></tr></thead>
+              <tbody>
+                <tr><td>Source-Code des Tools</td><td>Private GH-Repo (status quo)</td></tr>
+                <tr><td>Built Binary (.exe + blockmap)</td><td>Private GH-Release (status quo)</td></tr>
+                <tr><td>Asset-Download-URL für User</td><td>Generiert von Vercel-Edge-Func, signed, 1h TTL</td></tr>
+                <tr><td>GH-Token zum Asset-Fetch</td><td>Nur server-side (Vercel-Env-Var), nie im Tool-Binary</td></tr>
+                <tr><td>JWT-Validation (User-Auth + Rolle)</td><td>Edge-Func via Supabase-Auth-Library</td></tr>
+                <tr><td>electron-updater Konfig</td><td><code>provider: "generic"</code>, <code>url: "https://sc-companion.vercel.app/api/desktop/"</code></td></tr>
+              </tbody>
+            </table>
+
+            <div class="challenge-box">
+              <strong>Vorbedingung:</strong> Auto-Update funktioniert erst nach Vercel-Deploy. Bis dahin bleibt der manuelle „/desktop"-Download (Phase 1) der einzige Weg. Vercel-Deploy ist auf der Phase-2-Implement-Liste ganz oben.
+            </div>
+
+            <div class="field-row">
+              <label for="distribution-flow-comment">Anpassungen / Tweaks am Flow</label>
+              <textarea disabled id="distribution-flow-comment" data-comment="distribution-flow" placeholder="z.B.: Release-Token-Check zusätzlich in der Edge-Func? Multiple-Channel-Support (stable/beta)?"></textarea>
+            </div>
+
+            <div class="eval-group" data-decision="distribution-flow" data-label="§I · Vercel-Proxy-Flow">
+              <label class="eval-option"><input disabled type="radio" name="eval-distribution-flow" value="discard"><span class="eval-label">Verwerfen · anders</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-distribution-flow" value="include" checked><span class="eval-label">Miteinbeziehen · so</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § II — Counter-Schwellen für Plausibility ============ -->
+          <section id="counter-thresholds" data-nav-label="II · Counter-Schwellen">
+            <h2><span class="section-prefix">II</span>Pure-Counter-Validator — die Schwellen</h2>
+            <p class="section-lead">Du hast D2 (Pure Counter) gewählt — der Validator zählt N Ships, M Weapons, P Items und scoret. Damit das aussagekräftig ist, brauchen wir <strong>Schwellen pro Entity-Typ</strong> (was ist „plausibel"?). Hier ein Vorschlag basierend auf den aktuellen SC-3.24-Daten:</p>
+
+            <table class="matrix">
+              <thead><tr><th>Entity-Typ</th><th>Erwartet (aktuell)</th><th>Warning unter</th><th>Red unter</th></tr></thead>
+              <tbody>
+                <tr><td>Ships (alle Varianten)</td><td>~180</td><td>150</td><td>100</td></tr>
+                <tr><td>Weapons</td><td>~250</td><td>200</td><td>150</td></tr>
+                <tr><td>Ship-Components (Cooler, PowerPlant, Shield, …)</td><td>~600</td><td>500</td><td>350</td></tr>
+                <tr><td>Items (Misc inkl. Commodities)</td><td>~1500</td><td>1200</td><td>800</td></tr>
+                <tr><td>Localization-Strings (DE+EN)</td><td>~50.000</td><td>40.000</td><td>25.000</td></tr>
+              </tbody>
+            </table>
+
+            <p style="font-size:0.9rem;color:var(--text-secondary);">Score-Formel: <code>min(green_threshold) / count × 100</code>, clamped 0-100. Drei Counter unter Warning → Bundle bekommt „yellow"-Pille. Einer unter Red → „red". UI zeigt Counter-Liste mit Status pro Entity-Typ.</p>
+
+            <div class="challenge-box">
+              <strong>Limitation des Pure-Counter:</strong> wenn CIG 100 neue Schiffe addiert (Total 280) aber die alten Schiff-Stats korrupted sind, sehen wir nur „mehr Schiffe → grün", nicht die Stat-Korruption. Soll ich zusätzlich einen <strong>Heuristik-Check pro Entity</strong> einbauen (z.B. „dieses Schiff hat mass=null oder hp=0 → Warning")? Das wäre eine kleine Hinzufügung zum Pure-Counter ohne ein Schema-System aufzuziehen.
+            </div>
+
+            <div class="field-row">
+              <label for="counter-thresholds-comment">Schwellen anpassen / weitere Counter hinzufügen / per-entity Heuristik?</label>
+              <textarea disabled id="counter-thresholds-comment" data-comment="counter-thresholds" placeholder="z.B.: Schwellen zu hoch, ja per-entity Heuristik bitte, Mining-Lasers extra zählen, …">ja gern, aber die heuristik auch nur für ein paar wenige sub daten</textarea>
+            </div>
+
+            <div class="eval-group" data-decision="counter-thresholds" data-label="§II · Schwellen+Heuristik">
+              <label class="eval-option"><input disabled type="radio" name="eval-counter-thresholds" value="discard"><span class="eval-label">Verwerfen · anders</span></label>
+              <label class="eval-option"><input disabled type="radio" name="eval-counter-thresholds" value="include" checked><span class="eval-label">Miteinbeziehen · so</span></label>
+            </div>
+          </section>
+
+          <!-- ============ § III — Phase 2 Implement-Tranchen ============ -->
+          <section id="implement-plan" data-nav-label="III · Implement-Plan">
+            <h2><span class="section-prefix">III</span>Phase-2 Implement-Plan (Reihenfolge)</h2>
+            <p class="section-lead">Phase 2 ist groß — ich schlage 5 Tranchen vor, jede shippable für sich. Markiere die du in Phase 2 willst, der Rest geht in Phase 3.</p>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">T1</span>
+                <h3>Tranche 1 — Vercel-Deploy + Auto-Update-Endpoint</h3>
+                <span class="recommend-badge">Pflicht</span>
+              </div>
+              <p>Voraussetzung für alles andere. Vercel-Projekt setup, Web-App deployen, <code>/api/desktop/latest</code> Edge-Function bauen, electron-updater integrieren. <strong>Dauer ~ 1 Session.</strong></p>
+              <div class="eval-group" data-decision="t1" data-label="§T1 · Vercel + Auto-Update">
+                <label class="eval-option"><input disabled type="radio" name="eval-t1" value="discard"><span class="eval-label">Verwerfen · T1</span></label>
+                <label class="eval-option"><input disabled type="radio" name="eval-t1" value="include" checked><span class="eval-label">Miteinbeziehen · T1</span></label>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">T2</span>
+                <h3>Tranche 2 — Python-Sidecar mit scdatatools, Streaming-Extract</h3>
+                <span class="recommend-badge">Pflicht</span>
+              </div>
+              <p>Embedded-Python in Desktop-Tool, scdatatools pinned. Streaming-Extract aller Entities aus DataCore + DDS-Direkt für Schiff-Bilder. Pure-Counter-Validator. Output: JSON-Chunks auf Disk + Bundle-Manifest. <strong>Dauer ~ 2 Sessions.</strong></p>
+              <div class="eval-group" data-decision="t2" data-label="§T2 · scdatatools Extract">
+                <label class="eval-option"><input disabled type="radio" name="eval-t2" value="discard"><span class="eval-label">Verwerfen · T2</span></label>
+                <label class="eval-option"><input disabled type="radio" name="eval-t2" value="include" checked><span class="eval-label">Miteinbeziehen · T2</span></label>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">T3</span>
+                <h3>Tranche 3 — Upload-Flow + Schema-Migration (build_number, disabled, diff_summary)</h3>
+                <span class="recommend-badge">Pflicht</span>
+              </div>
+              <p>Migration 00005: <code>build_number</code> + <code>disabled</code> + <code>diff_summary</code> Spalten + neuer UNIQUE-Constraint. Edge-Func <code>ingest-bundle</code> + <code>check-bundle</code> + <code>diff_bundle()</code> pg-Function. Tool sendet Bundle, sieht Diff in Response. Web-UI zeigt Diff expandable. <strong>Dauer ~ 1-2 Sessions.</strong></p>
+              <div class="eval-group" data-decision="t3" data-label="§T3 · Upload + Schema + Diff">
+                <label class="eval-option"><input disabled type="radio" name="eval-t3" value="discard"><span class="eval-label">Verwerfen · T3</span></label>
+                <label class="eval-option"><input disabled type="radio" name="eval-t3" value="include" checked><span class="eval-label">Miteinbeziehen · T3</span></label>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">T4</span>
+                <h3>Tranche 4 — Test-Fixtures + CI E2E</h3>
+              </div>
+              <p>2-Layer Fixture: Local-Subset-Generator + Synthetic-CI-Fixture. CI baut Python-Layer + läuft Extract-Smoke-Test. <strong>Dauer ~ 1 Session.</strong></p>
+              <div class="eval-group" data-decision="t4" data-label="§T4 · Fixtures + CI">
+                <label class="eval-option"><input disabled type="radio" name="eval-t4" value="discard"><span class="eval-label">Verwerfen · T4</span></label>
+                <label class="eval-option"><input disabled type="radio" name="eval-t4" value="include" checked><span class="eval-label">Miteinbeziehen · T4</span></label>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head">
+                <span class="opt-key">T5</span>
+                <h3>Tranche 5 — Web-UI: Bundle-History mit Diff-Drill-Down, Admin-Disable-Toggle</h3>
+              </div>
+              <p>P4K-History-Page-Upgrade: Diff-Summary expandable, Admin-Disable-Button pro Row, „Verlauf"-Toggle für Default-vs-all. <strong>Dauer ~ 1 Session.</strong></p>
+              <div class="eval-group" data-decision="t5" data-label="§T5 · Web-UI Diff+Disable">
+                <label class="eval-option"><input disabled type="radio" name="eval-t5" value="discard"><span class="eval-label">Verwerfen · T5</span></label>
+                <label class="eval-option"><input disabled type="radio" name="eval-t5" value="include" checked><span class="eval-label">Miteinbeziehen · T5</span></label>
+              </div>
+            </div>
+
+            <p style="font-size:0.88rem;color:var(--text-muted);margin-top:1rem;">
+              <strong>Geschätzt:</strong> Phase 2 komplett (T1-T5) = ~6-8 Sessions à 1-2h.
+              <strong>Empfehlung:</strong> alle 5 Tranchen jetzt aktiv lassen, beim „Implement"-Klick fängt Claude mit T1 an und ich melde mich nach jeder fertig-gestellten Tranche für deine Review.
+            </p>
+
+            <div class="field-row">
+              <label for="implement-plan-comment">Reihenfolge ändern / Tranchen splitten / Priorities</label>
+              <textarea disabled id="implement-plan-comment" data-comment="implement-plan" placeholder="z.B.: T4 erst nach T2 erleben, T5 in Phase 3 verschieben, T1+T2 parallel via Sub-Branches, …">implementier emit devops autonomous!</textarea>
+            </div>
+          </section>
+
+          <p style="font-size:0.92rem; color:var(--text-secondary); margin-top: 1.5rem;">
+            <strong>Ready to ship?</strong> Wenn alles oben passt, klick „Mit Feedback implementieren". Ich starte mit T1 (Vercel-Deploy + Auto-Update-Endpoint) und arbeite die Tranchen sequenziell durch. Sub-Branch pro Tranche, jede gemerged einzeln. Falls du noch etwas ändern willst, „Zur nächsten Iteration" und ich mach Iter 4 — aber inhaltlich sollte das jetzt durch sein.
+          </p>
+        </section>
+
+        <section data-iteration="4" data-final-report data-active>
+          <div class="iteration-intro">
+            <h2>Abschlussbericht · Phase 2 dispatched</h2>
+            <p>Phase 2 ist ans <strong>/devops-autonomous</strong>-Skill übergeben — User geht AFK, Claude arbeitet die 5 Tranchen unbeaufsichtigt durch, Sub-Branch pro Tranche, jede einzeln gemerged. Diese Concept-Session ist damit geschlossen — Architektur-Entscheidungen festgenagelt, Implementation läuft separat.</p>
+          </div>
+
+          <section id="architecture-summary" data-nav-label="Architektur-Zusammenfassung">
+            <h2><span class="section-prefix">§</span>Architektur-Zusammenfassung (final)</h2>
+            <p class="section-lead">Die Auswahl aller 3 Iterationen kondensiert. Diese Tabelle ist die Bauanleitung für Phase 2.</p>
+
+            <table class="matrix">
+              <thead><tr><th>Bereich</th><th>Entscheidung</th><th>Iter</th></tr></thead>
+              <tbody>
+                <tr><td>P4K-Parser</td><td><strong>scdatatools (Python, MIT)</strong> pur, kein Wrapper</td><td>Iter 2 · § A1</td></tr>
+                <tr><td>Python-Runtime</td><td><strong>Embedded Python</strong> im Tool-Bundle (~25 MB)</td><td>Iter 2 · § B1</td></tr>
+                <tr><td>CGF/CGA</td><td><strong>Skip</strong> — DataCore + DDS reichen</td><td>Iter 1 § 2D + Iter 2 § H</td></tr>
+                <tr><td>Render-PNG</td><td><strong>DDS-Direkt</strong> aus P4K (CIG's eigene Hangar-Renders), kein Fallback</td><td>Iter 2 · § C1+C4</td></tr>
+                <tr><td>Validator</td><td><strong>Pure Counter</strong> mit Schwellen + minimaler per-Entity-Heuristik (User-Comment: „nur ein paar wenige Sub-Daten")</td><td>Iter 2 § D2 + Iter 3 § II</td></tr>
+                <tr><td>Diff</td><td><strong>Edge-Function sync</strong> bei Upload, Result als `diff_summary jsonb` auf Bundle-Row, Mini-Summary expandable im Web-UI</td><td>Iter 1 § 5A + Iter 2 § E + Iter 3 § E-Comment</td></tr>
+                <tr><td>Build-Number-Schema</td><td>Neue Spalte `build_number text`, neuer UNIQUE-Constraint `(channel, patch_version, build_number, uploaded_by)`, `disabled boolean default false`</td><td>Iter 2 § E</td></tr>
+                <tr><td>Auto-Update</td><td><strong>Hybrid Proxy</strong> via Vercel Edge-Function → GH Releases mit service-Token + signed URLs (kein GH-Token im Tool-Binary)</td><td>Iter 2 § F2 + Iter 3 § I</td></tr>
+                <tr><td>Distribution-Flow</td><td>Tool ↔ Vercel Edge `/api/desktop/latest` ↔ GitHub-Private-Releases. electron-updater mit provider=generic, JWT-Verify in Edge-Func, signed Asset-URLs (1h TTL)</td><td>Iter 3 § I</td></tr>
+                <tr><td>Test-Fixtures</td><td>2-Layer: lokaler Subset-Generator aus User's echter Data.p4k (nicht-committed) + synthetische Mini-Fixture für CI (committed, MIT-clean)</td><td>Iter 2 § G1</td></tr>
+                <tr><td>Code-Signing</td><td>Self-Signed + Defer — kein EV/Azure für Phase 2</td><td>Iter 1 § 8 (unchanged)</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section id="tranchen-plan" data-nav-label="Tranchen-Plan">
+            <h2><span class="section-prefix">§</span>Phase-2-Tranchen (alle in Autonomous-Queue)</h2>
+
+            <table class="matrix">
+              <thead><tr><th>#</th><th>Tranche</th><th>Status</th><th>Sub-Branch</th></tr></thead>
+              <tbody>
+                <tr><td>T1</td><td><strong>Vercel-Deploy + Auto-Update-Endpoint</strong><br><span style="color:var(--text-muted);font-size:0.85rem">Vercel-Projekt-Setup, Web-App deploy, /api/desktop/latest Edge-Func, electron-updater integration</span></td><td><span class="pill warning">queued</span></td><td><code>feat/phase-2/t1-vercel-autoupdate</code></td></tr>
+                <tr><td>T2</td><td><strong>Python-Sidecar + scdatatools-Extract</strong><br><span style="color:var(--text-muted);font-size:0.85rem">Embedded-Python im Tool, scdatatools pinned, Streaming-Extract (DataCore + DDS), Pure-Counter-Validator</span></td><td><span class="pill warning">queued</span></td><td><code>feat/phase-2/t2-python-extract</code></td></tr>
+                <tr><td>T3</td><td><strong>Upload-Flow + Schema-Migration 00005</strong><br><span style="color:var(--text-muted);font-size:0.85rem">build_number + disabled + diff_summary Spalten, ingest-bundle + check-bundle Edge-Funcs, diff_bundle pg-function</span></td><td><span class="pill warning">queued</span></td><td><code>feat/phase-2/t3-upload-diff</code></td></tr>
+                <tr><td>T4</td><td><strong>Test-Fixtures + CI E2E</strong><br><span style="color:var(--text-muted);font-size:0.85rem">2-Layer Fixture (Subset-Generator + Synthetic-CI), CI Python-Layer-Build, Smoke-Test</span></td><td><span class="pill warning">queued</span></td><td><code>feat/phase-2/t4-fixtures-ci</code></td></tr>
+                <tr><td>T5</td><td><strong>Web-UI: Bundle-History mit Diff-Drill-Down + Admin-Disable-Toggle</strong></td><td><span class="pill warning">queued</span></td><td><code>feat/phase-2/t5-web-diff-disable</code></td></tr>
+              </tbody>
+            </table>
+
+            <p style="font-size:0.92rem; color:var(--text-secondary);">Geschätzte Gesamtdauer: 6-8h aktive Implementation-Zeit, autonomous wahrscheinlich über Nacht. Sub-Branch-Strategie: jede Tranche eigener Branch, gemerged einzeln in main (per /devops-ship intermediate-merge falls Sub-Sub-Branches nötig). Bei Blocker: Autonomous pausiert und meldet sich bei dir.</p>
+          </section>
+
+          <section id="open-questions" data-nav-label="Offene Punkte" data-open-questions>
+            <h2><span class="section-prefix">§</span>Wenig Offen — wenn überhaupt</h2>
+            <p class="section-lead">Die meiste Architektur ist entschieden. Die paar Items, die noch offen sind, könnten als Issues getrackt werden — alle per Default angehakt, du nimmst raus was du nicht willst.</p>
+
+            <div class="option-card">
+              <div class="option-card-head"><span class="opt-key">Q1</span><h3>Vercel-Account/Projekt-Setup-Doku</h3></div>
+              <p>Wenn der Auto-Update auf Vercel deployed wird, brauchen wir Vercel-Account-Setup-Doku für Reproduzierbarkeit (env-vars, GH-Service-Token-Generierung, Region etc.).</p>
+              <label><input type="checkbox" checked> als Issue tracken</label>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head"><span class="opt-key">Q2</span><h3>scdatatools-Version-Pin-Policy</h3></div>
+              <p>Wann re-pinnen? Quarterly? Manuell bei CIG-Format-Drift? Auto-Bump bei jedem Release? Sollte als Maintenance-Policy dokumentiert werden.</p>
+              <label><input type="checkbox" checked> als Issue tracken</label>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head"><span class="opt-key">Q3</span><h3>P4K-Schema-Version-Compat-Check</h3></div>
+              <p>Wenn CIG ein neues P4K-Schema-Format macht (z.B. neue ZSTD-Variant), könnten alte Tool-Versionen kaputt-uploaden. Brauchen wir einen Format-Version-Header beim Upload?</p>
+              <label><input type="checkbox" checked> als Issue tracken</label>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head"><span class="opt-key">Q4</span><h3>Phase 3 — Telemetrie + Code-Signing-Upgrade</h3></div>
+              <p>Sentry-Integration und Azure-Trusted-Signing bleiben für Phase 3 (Polish + Public-Beta-Prep).</p>
+              <label><input type="checkbox"> als Issue tracken</label>
+            </div>
+
+            <div class="option-card">
+              <div class="option-card-head"><span class="opt-key">Q5</span><h3>Bundle-Disable-Reason-Field</h3></div>
+              <p>Admin disabled ein Bundle — soll die DB einen Grund-Text speichern? `disabled_reason text` Spalte? Hilfreich für Audit-Trail.</p>
+              <label><input type="checkbox" checked> als Issue tracken</label>
+            </div>
+          </section>
+
+          <section id="hand-off" data-nav-label="Hand-Off">
+            <h2><span class="section-prefix">§</span>Hand-Off an /devops-autonomous</h2>
+            <p class="section-lead">Was Autonomous-Mode jetzt bekommt + macht:</p>
+
+            <ol style="font-size:0.92rem; color:var(--text-secondary); line-height:1.8;">
+              <li><strong>Briefing:</strong> Diese Concept-HTML + Architektur-Tabelle oben als Spec-of-Truth.</li>
+              <li><strong>Reihenfolge:</strong> T1 → T2 → T3 → T4 → T5, sequenziell. Bei Blocker → pause + AskUserQuestion.</li>
+              <li><strong>Pro Tranche:</strong> Sub-Branch erstellen, implementieren, tests durchlaufen, `/devops-ship` intermediate-merge in `feat/phase-2`-Parent-Branch, dann nächste Tranche.</li>
+              <li><strong>Nach allen Tranchen:</strong> `feat/phase-2` → `main` per `/devops-ship` final-merge, Tag `v0.3.0`.</li>
+              <li><strong>Auto-Shutdown:</strong> User hat das nicht explizit gewollt, also: nach Abschluss kein PC-Shutdown, einfach Completion-Card und warten.</li>
+              <li><strong>Sicherheits-Stops:</strong> Bei Migration-Push (Cloud-DB-Change), bei `npm run db:push`, bei Production-OAuth-Provider-Änderungen → User-Confirm via AskUserQuestion (sonst silent).</li>
+            </ol>
+
+            <div class="challenge-box">
+              <strong>Erwartung:</strong> Wenn du morgen früh zurück bist, sollten T1-T5 fertig sein, PR #3-7 (oder ein einziger Big-PR aus den intermediate-Merges) auf main gemerged, Tag v0.3.0 gesetzt, ein Vercel-Deploy live, und das Desktop-Tool kann gegen die echte Data.p4k laufen. Falls nicht — irgendein Blocker — siehst du im Chat eine pausierte AskUserQuestion mit dem konkreten Problem.
+            </div>
+          </section>
+        </section>
+
+
+
+      </main>
+    </div>
+
+    <aside class="concept-decision-panel">
+      <nav class="iteration-tabs" role="tablist" aria-label="Iterationen">
+        <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false">Iteration 1</button>
+        <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false">Iteration 2</button>
+        <button class="iteration-tab" role="tab" data-iteration="3" aria-selected="false">Iteration 3</button>
+        <button class="iteration-tab" role="tab" data-iteration="4" aria-selected="true" data-final-report>Abschlussbericht ✓</button>
+      </nav>
+
+      <h3>Entscheidungen</h3>
+
+      <nav class="section-nav" id="section-nav" aria-label="Abschnitte"></nav>
+
+      <div id="panel-ready">
+        <div id="decision-summary"></div>
+
+        <div id="connection-connecting" class="panel-warning panel-warning--connecting" style="display: flex;">
+          <span class="warning-icon" aria-hidden="true">⋯</span>
+          <strong>Claude verbindet sich</strong>
+          <p class="warning-message">Einen Moment — die Verbindung wird aufgebaut.</p>
+          <button type="button" class="panel-warning__ack-btn" data-ack="connecting">Verstanden</button>
+        </div>
+        <div id="connection-warning" class="panel-warning" style="display: none;">
+          <span class="warning-icon" aria-hidden="true">⚠</span>
+          <strong>Claude ist nicht verbunden</strong>
+          <p class="warning-message">Du kannst trotzdem absenden — der Klick wird gespeichert und gesendet, sobald Claude wieder da ist.</p>
+          <button type="button" class="panel-warning__ack-btn" data-ack="warning">Verstanden</button>
+        </div>
+
+        <button id="submit-iterate-btn" class="primary submit-btn">Zur nächsten Iteration</button>
+        <p class="hint">Deine Auswahl geht an Claude für die nächste Iteration. Es wird kein Code geschrieben.</p>
+        <p class="hint hint-cache" data-cache-hint="iterate" hidden>
+          <span aria-hidden="true">⚠</span> gecached — wird beim Verbinden gesendet
+        </p>
+        <div class="submit-gap" aria-hidden="true"></div>
+        <button id="submit-implement-btn" class="implement-btn">
+          <span class="warn-icon" aria-hidden="true">⚠</span>
+          Mit Feedback implementieren
+        </button>
+        <p class="hint hint-warn">Claude setzt die Auswahl jetzt in echte Änderungen um.</p>
+        <p class="hint hint-cache" data-cache-hint="implement" hidden>
+          <span aria-hidden="true">⚠</span> gecached — wird beim Verbinden gesendet
+        </p>
+      </div>
+
+      <div id="panel-submitted" style="display: none;">
+        <div class="submitted-indicator">
+          <span class="check-icon">✓</span>
+          <strong>Entscheidungen übermittelt</strong>
+        </div>
+        <ol class="status-steps" id="status-steps" aria-live="polite">
+          <li data-step="submitted" data-state="done">
+            <span class="step-icon" aria-hidden="true">✓</span>
+            <span class="step-label">Übermittelt</span>
+          </li>
+          <li data-step="received" data-state="active">
+            <span class="step-icon" aria-hidden="true">⏳</span>
+            <span class="step-label">Claude verarbeitet</span>
+          </li>
+          <li data-step="implemented" data-state="pending" hidden>
+            <span class="step-icon" aria-hidden="true">○</span>
+            <span class="step-label">Implementierung abgeschlossen</span>
+          </li>
+        </ol>
+        <p class="submitted-hint">Claude verarbeitet deine Auswahl. Wechsle zum <strong>Claude Chat</strong> um den Fortschritt zu sehen.</p>
+        <div class="waiting-animation"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      </div>
+
+      <div id="panel-final-report" style="display: none;">
+        <div class="final-report-indicator">
+          <span class="check-icon">✓</span>
+          <strong>Implementierung abgeschlossen</strong>
+        </div>
+        <p class="final-report-hint">Die Implementierung ist abgeschlossen. Sieh dir den Bericht links an.</p>
+        <div id="panel-create-issues" hidden>
+          <button id="create-issues-btn" class="submit-btn" disabled>Issues erstellen</button>
+          <p class="hint">Erstellt GitHub-Issues für die ausgewählten Punkte via devops-new-issue.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script type="application/json" id="concept-decisions">
+    {"submitted": false, "decisions": [], "comments": []}
+  </script>
+
+  <script>
+    // ============= State Persistence =============
+    const STORAGE_KEY = 'concept-state-' + location.pathname.split('/').pop().replace('.html', '');
+    const STATE_TTL_MS = 24 * 60 * 60 * 1000;
+
+    function saveState() {
+      const state = {
+        _savedAt: Date.now(),
+        _pageVersion: document.documentElement.dataset.pageVersion || ''
+      };
+      document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(el => {
+        if (el.name || el.id) state['input:' + (el.name || el.id) + ':' + el.value] = el.checked;
+      });
+      document.querySelectorAll('textarea, input[type="text"], input[type="number"]').forEach(el => {
+        if (el.id || el.dataset.comment) state['text:' + (el.id || el.dataset.comment)] = el.value;
+      });
+      state['theme'] = document.documentElement.getAttribute('data-theme');
+      if (typeof _userInteracted !== 'undefined' && _userInteracted) {
+        state['_userInteracted'] = true;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function restoreState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const state = JSON.parse(raw);
+        if (state._savedAt && (Date.now() - state._savedAt) > STATE_TTL_MS) {
+          localStorage.removeItem(STORAGE_KEY); return;
+        }
+        const currentVersion = document.documentElement.dataset.pageVersion || '';
+        if (state._pageVersion && state._pageVersion !== currentVersion) {
+          localStorage.removeItem(STORAGE_KEY); return;
+        }
+        if (state.theme) document.documentElement.setAttribute('data-theme', state.theme);
+        if (state._userInteracted && typeof _userInteracted !== 'undefined') {
+          _userInteracted = true;
+        }
+        Object.entries(state).forEach(([key, value]) => {
+          if (key.startsWith('_')) return;
+          const [type, ...rest] = key.split(':');
+          if (type === 'input') {
+            const [name, val] = [rest.slice(0, -1).join(':'), rest[rest.length - 1]];
+            const el = document.querySelector('input[name="'+name+'"][value="'+val+'"], input[id="'+name+'"][value="'+val+'"]');
+            if (el) el.checked = value;
+          } else if (type === 'text') {
+            const id = rest.join(':');
+            const el = document.querySelector('[data-comment="'+id+'"]') || document.getElementById(id);
+            if (el) el.value = value;
+          }
+        });
+      } catch (e) { /* corrupt */ }
+    }
+
+    // ============= Theme Toggle =============
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+      saveState();
+    });
+
+    // ============= User Interaction Tracking =============
+    let _userInteracted = false;
+    function _markUserInteracted(e) { if (e && e.isTrusted) _userInteracted = true; }
+    document.addEventListener('change', _markUserInteracted, true);
+    document.addEventListener('input', _markUserInteracted, true);
+    document.addEventListener('iteration:changed', () => { _userInteracted = false; });
+
+    // ============= Section Navigation =============
+    function buildSectionNav() {
+      const nav = document.getElementById('section-nav');
+      if (!nav) return;
+      const activeIteration = document.querySelector('section[data-iteration]:not([hidden])');
+      if (!activeIteration) return;
+      const sections = activeIteration.querySelectorAll('section[id][data-nav-label]');
+      nav.innerHTML = '';
+      sections.forEach(sec => {
+        const id = sec.id;
+        const label = sec.dataset.navLabel;
+        const hasEval = !!sec.querySelector('input[name^="eval-"]');
+        const link = document.createElement('a');
+        link.href = '#' + id;
+        link.className = 'section-nav-item';
+        link.dataset.sectionId = id;
+        if (hasEval) link.setAttribute('data-variant', '');
+        const labelEl = document.createElement('span');
+        labelEl.className = 'section-nav-label';
+        labelEl.textContent = label;
+        link.appendChild(labelEl);
+        if (hasEval) {
+          const stateEl = document.createElement('span');
+          stateEl.className = 'section-nav-state';
+          link.appendChild(stateEl);
+        }
+        nav.appendChild(link);
+      });
+      updateSectionNavState();
+    }
+
+    function updateSectionNavState() {
+      const labels = { include: '✓', discard: '✗' };
+      document.querySelectorAll('.section-nav-item[data-variant]').forEach(link => {
+        const id = link.dataset.sectionId;
+        const radios = document.querySelectorAll('input[name^="eval-' + id + '"]:checked');
+        if (!radios.length) return;
+        const discarded = Array.from(radios).filter(r => r.value === 'discard').length;
+        const included = radios.length - discarded;
+        const stateEl = link.querySelector('.section-nav-state');
+        if (stateEl) {
+          if (radios.length === 1) {
+            const val = radios[0].value;
+            stateEl.textContent = labels[val] || val;
+            stateEl.className = 'section-nav-state state-' + val;
+          } else {
+            stateEl.textContent = included + '/' + radios.length;
+            stateEl.className = 'section-nav-state' + (discarded === radios.length ? ' state-discard' : '');
+          }
+        }
+      });
+    }
+
+    document.addEventListener('click', e => {
+      const link = e.target.closest && e.target.closest('.section-nav-item');
+      if (!link) return;
+      e.preventDefault();
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    function installScrollSpy() {
+      const items = document.querySelectorAll('.section-nav-item');
+      if (!items.length) return;
+      const byId = new Map();
+      items.forEach(i => byId.set(i.dataset.sectionId, i));
+      const io = new IntersectionObserver(entries => {
+        entries.forEach(en => {
+          const item = byId.get(en.target.id);
+          if (!item) return;
+          if (en.isIntersecting) {
+            items.forEach(i => i.classList.remove('is-active'));
+            item.classList.add('is-active');
+          }
+        });
+      }, { rootMargin: '-30% 0px -60% 0px', threshold: 0 });
+      byId.forEach((_, id) => {
+        const sec = document.getElementById(id);
+        if (sec) io.observe(sec);
+      });
+    }
+
+    // ============= Iteration Tabs =============
+    function showIteration(n) {
+      document.querySelectorAll('section[data-iteration]').forEach(sec => {
+        const match = String(sec.dataset.iteration) === String(n);
+        sec.hidden = !match;
+      });
+      document.querySelectorAll('.iteration-tab').forEach(tab => {
+        const match = String(tab.dataset.iteration) === String(n);
+        tab.setAttribute('aria-selected', match ? 'true' : 'false');
+      });
+      const activeSec = document.querySelector('section[data-iteration][data-active]');
+      const isLive = activeSec && String(activeSec.dataset.iteration) === String(n);
+      const isFinal = activeSec && activeSec.hasAttribute('data-final-report')
+                      && String(activeSec.dataset.iteration) === String(n);
+      const panelReady = document.getElementById('panel-ready');
+      const panelSubmitted = document.getElementById('panel-submitted');
+      const panelFinal = document.getElementById('panel-final-report');
+      if (panelReady) panelReady.style.display = (isLive && !isFinal) ? 'block' : 'none';
+      if (panelFinal) panelFinal.style.display = isFinal ? 'block' : 'none';
+      if (panelSubmitted) {
+        const submitted = document.body.classList.contains('concept-submitted');
+        panelSubmitted.style.display = (isLive && submitted && !isFinal) ? 'block' : 'none';
+      }
+      updateCreateIssuesPanel();
+      buildSectionNav();
+      document.dispatchEvent(new CustomEvent('iteration:changed'));
+    }
+
+    function updateCreateIssuesPanel() {
+      const wrap = document.getElementById('panel-create-issues');
+      if (!wrap) return;
+      const active = document.querySelector('section[data-iteration][data-active]');
+      const openQs = active && active.querySelector('[data-open-questions]');
+      const items = openQs ? openQs.querySelectorAll('input[type="checkbox"]:not([data-created])') : [];
+      wrap.hidden = items.length === 0;
+      const btn = document.getElementById('create-issues-btn');
+      if (btn) {
+        const checked = openQs ? openQs.querySelectorAll('input[type="checkbox"]:checked:not([data-created])') : [];
+        btn.disabled = checked.length === 0;
+      }
+    }
+
+    document.querySelectorAll('.iteration-tab').forEach(tab => {
+      tab.addEventListener('click', () => showIteration(tab.dataset.iteration));
+    });
+
+    // ============= Collect Decisions =============
+    function collectAllFormFields(scope) {
+      const fields = {};
+      scope.querySelectorAll('input, select, textarea').forEach(el => {
+        const key = el.dataset.field
+                 || el.dataset.rename
+                 || el.dataset.comment
+                 || el.name
+                 || el.id;
+        if (!key) return;
+        if (el.type === 'checkbox') {
+          fields[key] = el.checked;
+        } else if (el.type === 'radio') {
+          if (el.checked) fields[el.name] = el.value;
+        } else {
+          fields[key] = el.value;
+        }
+      });
+      return fields;
+    }
+
+    function collectDecisionDecisions() {
+      const decisions = [];
+      const comments = [];
+      document.querySelectorAll('[data-decision]').forEach(el => {
+        const id = el.dataset.decision;
+        const label = el.dataset.label || '';
+        const checked = el.querySelector('input[type="radio"]:checked');
+        decisions.push({ id, label, state: checked ? checked.value : 'include' });
+      });
+      document.querySelectorAll('[data-comment]').forEach(el => {
+        if (el.value && el.value.trim()) {
+          comments.push({ id: el.dataset.comment, text: el.value.trim() });
+        }
+      });
+      return { submitted: true, template: 'decision', decisions, comments };
+    }
+
+    function collectDecisions(action) {
+      action = action || 'iterate';
+      const active = document.querySelector('section[data-iteration][data-active]')
+                  || document.body;
+      const allFields = collectAllFormFields(active);
+      const payload = collectDecisionDecisions();
+      payload.action = action;
+      payload.allFields = allFields;
+      return payload;
+    }
+
+    // ============= Submit Handler =============
+    let _submittedAt = 0;
+    let _submittedReloadCounter = null;
+    let _submitInFlight = false;
+    let _submittedAction = null;
+
+    function _stepEl(name) { return document.querySelector('#status-steps li[data-step="' + name + '"]'); }
+    function _setStep(name, state, icon) {
+      const li = _stepEl(name);
+      if (!li) return;
+      li.dataset.state = state;
+      const iconEl = li.querySelector('.step-icon');
+      if (iconEl && icon) iconEl.textContent = icon;
+    }
+    function resetStatusSteps(action) {
+      _setStep('submitted', 'done', '✓');
+      _setStep('received', 'active', '⏳');
+      const impl = _stepEl('implemented');
+      if (impl) {
+        impl.hidden = (action !== 'implement');
+        impl.dataset.state = 'pending';
+        const iconEl = impl.querySelector('.step-icon');
+        if (iconEl) iconEl.textContent = '○';
+      }
+    }
+    function updateStatusSteps(data) {
+      if (!_submittedAt) return;
+      if (data && data._picked_up_at) {
+        const recv = _stepEl('received');
+        if (recv && recv.dataset.state !== 'done') {
+          _setStep('received', 'done', '✓');
+          if (_submittedAction === 'implement') {
+            const impl = _stepEl('implemented');
+            if (impl && !impl.hidden && impl.dataset.state === 'pending') {
+              _setStep('implemented', 'active', '⏳');
+            }
+          }
+        }
+      }
+      if (data && data._phase === 'implemented' && _submittedAction === 'implement') {
+        const recv = _stepEl('received');
+        if (recv && recv.dataset.state !== 'done') _setStep('received', 'done', '✓');
+        const impl = _stepEl('implemented');
+        if (impl && !impl.hidden && impl.dataset.state !== 'done') _setStep('implemented', 'done', '✓');
+      }
+    }
+
+    async function submitWithAction(action) {
+      if (_submitInFlight || _submittedAt) return;
+      if (!_userInteracted) {
+        const msg = (action === 'implement')
+          ? 'Du hast nichts geändert. Trotzdem mit Feedback implementieren? Claude schreibt dann Code.'
+          : 'Du hast nichts geändert. Trotzdem "Zur nächsten Iteration" absenden?';
+        if (!window.confirm(msg)) return;
+      }
+      _submitInFlight = true;
+      const data = collectDecisions(action);
+      const container = document.getElementById('concept-decisions');
+      container.textContent = JSON.stringify(data);
+      document.body.classList.add('concept-submitted');
+      _submittedAt = Date.now();
+      _submittedReloadCounter = _bootReloadCounter;
+      _submittedAction = action;
+      resetStatusSteps(action);
+      document.getElementById('panel-ready').style.display = 'none';
+      document.getElementById('panel-submitted').style.display = 'block';
+      try {
+        await fetch('/decisions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } catch (e) {
+        localStorage.setItem(STORAGE_KEY + '-pending', JSON.stringify(data));
+      }
+      saveState();
+      _submitInFlight = false;
+    }
+
+    function wireSubmit(btnId, action) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.addEventListener('click', () => submitWithAction(action));
+    }
+    wireSubmit('submit-iterate-btn', 'iterate');
+    wireSubmit('submit-implement-btn', 'implement');
+
+    async function retryPendingSubmission() {
+      const pendingKey = STORAGE_KEY + '-pending';
+      const pending = localStorage.getItem(pendingKey);
+      if (!pending) return;
+      try {
+        const res = await fetch('/decisions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: pending
+        });
+        if (res.ok) localStorage.removeItem(pendingKey);
+      } catch (e) { /* still offline */ }
+    }
+
+    function restorePanelToReady() {
+      document.getElementById('panel-submitted').style.display = 'none';
+      document.getElementById('panel-ready').style.display = 'block';
+      ['submit-iterate-btn', 'submit-implement-btn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = false;
+      });
+      document.body.classList.remove('concept-submitted');
+      _submittedAt = 0;
+      _submittedReloadCounter = null;
+      _submitInFlight = false;
+      _submittedAction = null;
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    // ============= Heartbeat =============
+    const HEARTBEAT_STALE_MS = 90000;
+    const HEARTBEAT_GRACE_MS = 30000;
+    const _pageLoadedAt = Date.now();
+    let _lastHeartbeatTs = 0;
+    const _overlayAck = { connecting: false, warning: false };
+
+    async function pollHeartbeat() {
+      try {
+        const res = await fetch('/heartbeat', { cache: 'no-store' });
+        const data = await res.json();
+        _lastHeartbeatTs = data.claude_ts || data.ts || 0;
+      } catch (e) { /* server unreachable */ }
+    }
+
+    function _setCacheHints(visible) {
+      document.querySelectorAll('[data-cache-hint]').forEach(el => { el.hidden = !visible; });
+    }
+
+    function checkClaudeConnection() {
+      const isConnected = _lastHeartbeatTs && (Date.now() - _lastHeartbeatTs) < HEARTBEAT_STALE_MS;
+      const inGrace = Date.now() - _pageLoadedAt < HEARTBEAT_GRACE_MS;
+      const connecting = document.getElementById('connection-connecting');
+      const warning = document.getElementById('connection-warning');
+      const btns = ['submit-iterate-btn', 'submit-implement-btn']
+        .map(id => document.getElementById(id)).filter(Boolean);
+      const panelSubmitted = document.getElementById('panel-submitted');
+
+      if (isConnected) {
+        _overlayAck.connecting = false;
+        _overlayAck.warning = false;
+      }
+      if (panelSubmitted && panelSubmitted.style.display !== 'none') return;
+
+      if (isConnected) {
+        if (connecting) connecting.style.display = 'none';
+        if (warning) warning.style.display = 'none';
+        _setCacheHints(false);
+        btns.forEach(b => b.disabled = false);
+        retryPendingSubmission();
+      } else if (inGrace) {
+        if (connecting) connecting.style.display = _overlayAck.connecting ? 'none' : 'flex';
+        if (warning) warning.style.display = 'none';
+        _setCacheHints(_overlayAck.connecting);
+        btns.forEach(b => b.disabled = !_overlayAck.connecting);
+      } else {
+        if (connecting) connecting.style.display = 'none';
+        if (warning) warning.style.display = _overlayAck.warning ? 'none' : 'flex';
+        _setCacheHints(_overlayAck.warning);
+        btns.forEach(b => b.disabled = !_overlayAck.warning);
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest && e.target.closest('.panel-warning__ack-btn');
+      if (!btn) return;
+      const which = btn.dataset.ack;
+      if (which === 'connecting' || which === 'warning') {
+        _overlayAck[which] = true;
+        checkClaudeConnection();
+      }
+    });
+
+    // ============= Reload Polling =============
+    const PROCESSED_SAFETY_MS = 5 * 60 * 1000;
+    let _bootReloadCounter = null;
+
+    async function pollReload() {
+      try {
+        const res = await fetch('/reload', { cache: 'no-store' });
+        if (!res.ok) return;
+        const { counter } = await res.json();
+        if (_bootReloadCounter === null) { _bootReloadCounter = counter; return; }
+        if (counter > _bootReloadCounter) {
+          location.reload();
+        }
+      } catch (e) { /* bridge offline */ }
+    }
+
+    async function pollProcessedState() {
+      if (!_submittedAt) return;
+      try {
+        const res = await fetch('/decisions', { cache: 'no-store' });
+        const data = await res.json();
+        updateStatusSteps(data);
+        const processedIso = data && data._processed_at;
+        if (!processedIso) return;
+        const processedMs = Date.parse(processedIso);
+        if (!Number.isFinite(processedMs) || processedMs <= _submittedAt) return;
+
+        let reloadAdvanced = false;
+        try {
+          const r2 = await fetch('/reload', { cache: 'no-store' });
+          if (r2.ok) {
+            const { counter } = await r2.json();
+            reloadAdvanced = (_submittedReloadCounter !== null) &&
+                             (counter > _submittedReloadCounter);
+          }
+        } catch (_) { /* fallback safety timer */ }
+        const longStale = (Date.now() - _submittedAt) > PROCESSED_SAFETY_MS;
+        if (reloadAdvanced || longStale) {
+          restorePanelToReady();
+        }
+      } catch (e) { /* retry next tick */ }
+    }
+
+    setInterval(async () => {
+      await pollHeartbeat();
+      checkClaudeConnection();
+      await pollProcessedState();
+    }, 5000);
+
+    setInterval(pollReload, 3000);
+
+    // ============= Init =============
+    document.addEventListener('change', () => { saveState(); updateSectionNavState(); });
+    document.addEventListener('input', saveState);
+    document.addEventListener('DOMContentLoaded', () => {
+      restoreState();
+      const active = document.querySelector('section[data-iteration][data-active]');
+      if (active) showIteration(active.dataset.iteration);
+      buildSectionNav();
+      installScrollSpy();
+      pollReload();
+      pollHeartbeat().then(checkClaudeConnection);
+    });
+  </script>
+</body>
+</html>
