@@ -38,12 +38,40 @@ surface flips between deployed / pending / broken.
 ## Desktop tool — Windows binary
 
 - **Status:** per-tag, see latest `desktop-tool-build` workflow run on
-  the `desktop-v*` tags. `v0.3.0` failed (Python compat), `v0.3.1` also
-  failed (3.11 still too new for numpy), `v0.3.2+` should succeed once
-  the 3.10 hotfix lands. Check `gh run list --workflow=desktop-tool-build.yml`
+  the `desktop-v*` tags. Check `gh run list --workflow=desktop-tool-build.yml`
   before assuming a tag corresponds to a usable installer.
 - **Release token:** generated per-build, uploaded as a separate
   `release-token` workflow artefact (retention 7d) — fetch with
   `gh run download <run-id> -n release-token`, then register the UUID
   in `desktop_releases` via the admin RPC so the Tool can authenticate
   against `desktop-latest` and `ingest-bundle`.
+
+### Asset hosting — two-repo topology (since 2026-05-24, issue #7)
+
+The desktop tool's auto-update download URL must be publicly fetchable
+(electron-updater has no GitHub credentials). This repo is private, so
+a public mirror exists:
+
+| Repo | Purpose |
+|---|---|
+| `Jerry0022/Star-Citizen-Companion-Website` (PRIVATE — this one) | Source code, releases include token-artefact + maintainer changelog |
+| `Jerry0022/sc-companion-binaries` (PUBLIC) | Release mirror — `.exe` + `.blockmap` + `latest.yml`, end-user download URL |
+
+When tagging `desktop-v*`, GH-Actions publishes the same assets to
+**both** repos. The Edge Function `desktop-latest` returns YAML pointing
+at the **public mirror's** URLs (set via `desktop_releases.platforms[*].url`
+when admin registers a release).
+
+**PAT setup:** the workflow needs `secrets.BINARIES_RELEASE_TOKEN` —
+a fine-grained Personal Access Token scoped to `Contents: Read and
+write` on `Jerry0022/sc-companion-binaries` only (no other repo, no
+other scope). One-time setup at
+https://github.com/settings/personal-access-tokens; store in source
+repo Actions secrets.
+
+**Admin-registration URL pattern** (printed in each build's log under
+"PUBLIC ASSET URLS"):
+
+```
+https://github.com/Jerry0022/sc-companion-binaries/releases/download/desktop-v<X.Y.Z>/sc-companion-setup-<X.Y.Z>-x64.exe
+```

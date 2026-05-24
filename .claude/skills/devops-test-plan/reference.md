@@ -40,34 +40,31 @@ URLs. `gh` injects the auth token from `gh auth login`. If raw `curl` MUST be
 used (e.g. in a script that has its own GH_TOKEN), include
 `Authorization: Bearer ${GH_TOKEN}` explicitly.
 
-## Auto-update bug
+## Auto-update download probe
 
-The `desktop-latest` Edge Function returns a `latest.yml` whose `url:` and
-`path:` point at the GitHub Release asset URL (e.g.
-`https://github.com/Jerry0022/Star-Citizen-Companion-Website/releases/download/desktop-v0.3.3/sc-companion-setup-0.3.3-x64.exe`).
+Since 2026-05-24 (issue [#7](https://github.com/Jerry0022/Star-Citizen-Companion-Website/issues/7)
+resolution), binaries are mirrored to the **public** repo
+[`Jerry0022/sc-companion-binaries`](https://github.com/Jerry0022/sc-companion-binaries).
+The `desktop-latest` Edge Function returns YAML pointing at that public mirror's
+URLs, so `electron-updater` can fetch without GitHub auth.
 
-For end-users who aren't members of the (private) repo, that URL returns 404
-when fetched without GH auth. electron-updater has no GH credentials baked in,
-so **auto-update will fail at the download step** even though the update-check
-succeeds (the Edge Function itself is reachable via the bundled release-token).
+After every `desktop-v*` release, probe the asset URL UNAUTHENTICATED to
+verify end-users can actually download:
 
-Open tracking issue: [#7](https://github.com/Jerry0022/Star-Citizen-Companion-Website/issues/7) (Auto-update download fails for end-users).
+```bash
+TAG=desktop-v$(gh release list --limit 1 --json tagName --jq '.[0].tagName' | sed 's/desktop-v//')
+VERSION=$(echo "$TAG" | sed 's/^desktop-v//')
+curl -sIL "https://github.com/Jerry0022/sc-companion-binaries/releases/download/$TAG/sc-companion-setup-$VERSION-x64.exe" \
+  | grep -E "^HTTP|^Content-Length" | head -4
+```
 
-**Three viable fixes** (pick one before recommending the auto-updater to
-real end-users):
+**Expected:** `HTTP/1.1 302 Found` then `HTTP/1.1 200 OK` with
+`Content-Length: ~132000000` (~126 MB installer).
 
-1. **Make the repo public** — simplest. Loses the private-repo benefit
-   (the WIP web app + non-shipping branches become world-readable).
-2. **Mirror binaries to Supabase Storage** on a public bucket — the
-   `desktop-latest` Edge Function rewrites the `url:` from
-   `github.com/.../releases/download/...` to
-   `supabase.co/storage/v1/object/public/...`. The asset upload step
-   would happen in the GH-Actions workflow after `electron-builder`.
-3. **Add a Supabase Edge proxy** that takes a release-token, fetches
-   the GH asset using a service-stored `GITHUB_TOKEN`, streams the
-   bytes back. Slowest (proxy is on Supabase egress), but no public
-   exposure of the binary.
-
-Until one of these lands, the auto-update flow is a known-broken surface —
-include "auto-update download" in test reports as **❌ blocked by
-private-repo asset access**, not "✓ should work".
+If 404: either the mirror release wasn't published (check
+`gh release list --repo Jerry0022/sc-companion-binaries` — the tag MUST
+match the source repo's `desktop-v*` tag), or the
+`secrets.BINARIES_RELEASE_TOKEN` PAT in the source repo's Actions
+secrets is missing/expired. See
+`.claude/deep-knowledge/deployment-status.md` § Asset hosting for the
+PAT-setup playbook.

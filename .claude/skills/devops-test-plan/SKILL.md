@@ -26,10 +26,10 @@ Plugin defaults still apply; only the rules below override or add.
    If a probe must use raw curl, explicitly note in the report: "404 here
    means private+unauthenticated, not missing".
 
-3. **Auto-update download URL needs to be publicly accessible.**
-   After every `desktop-v*` release, probe the asset URL UNAUTHENTICATED
-   (`curl -sIL <gh_asset_url>`) and flag if 404. Today the `desktop-latest`
-   Edge Function returns a private GH Release asset URL — electron-updater
-   has no GH credentials so end-user auto-update will fail. Known bug, see
-   [reference.md § Auto-update bug](./reference.md#auto-update-bug). Track
-   as a GitHub issue (one open at a time, link from reference.md).
+3. **Auto-update download URL is the public mirror — probe it unauth.**
+   Since issue #7's resolution, binaries are mirrored to public repo
+   `Jerry0022/sc-companion-binaries`. After every `desktop-v*` release,
+   `curl -sIL <mirror_asset_url>` UNAUTHENTICATED — expect 302→200 with
+   Content-Length ~126 MB. 404 means the PAT `BINARIES_RELEASE_TOKEN` is
+   missing/expired OR the mirror release wasn't created. See
+   [reference.md § Auto-update download probe](./reference.md#auto-update-download-probe).
