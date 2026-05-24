@@ -4,6 +4,43 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-05-24
+
+### Added — Verse-Live-Hub redesign
+
+- **Compact status chip in news header** — replaces the misleading "Plattform-Status".
+  Click expands a service drill-down (live components from the RSI Statuspage).
+  Localised labels: "Spielbar / Eingeschränkt / Teilausfall / Offline / Wartung".
+- **Time-bucketed news stream** — items grouped into Heute / Diese Woche / Älter
+  inside a shared "stream" container that visually connects sticky channel-filter
+  chips with the buckets. "Älter" collapsible.
+- **Featured-card treatment** for the newest item in Today (2× height, 21:9 cover,
+  Orbitron headline).
+- **Silent auto-refresh + "X neue Posts ↑" pill** every 5 min, visibility-aware
+  (pauses when tab hidden). Refresh button removed.
+- **Channel filter chips** (Comm-Link / Spectrum / YouTube / Patch-Notes) —
+  multi-select, localStorage-persisted, with per-channel counts.
+- **Polish** — skeleton loading, hover-glow + scale, inline channel SVG icons,
+  relative time ("vor 3 Std"), per-card source footer with host attribution.
+
+### Changed — Edge function `fetch-verse-news`
+
+- Real status via Statuspage HTML scrape (fixes hardcoded `'operational'` bug).
+- YouTube videos via channel RSS feed (`RSI_YOUTUBE_CHANNEL_ID` env override).
+- Spectrum threads via `__INITIAL_STATE__` scrape (best-effort, graceful empty).
+- Patch-Notes classified as its own channel (series === "Patch Notes").
+- All URLs normalised to canonical `robertsspaceindustries.com` host (E1/E2).
+
+### Removed
+
+- `news.refresh` and `news.platformStatus` i18n keys (replaced by silent
+  refresh + named status chip).
+
+### Subpackage sync
+
+- `desktop-tool/package.json` 0.3.6 → 0.4.0 to keep root + subpackage aligned
+  per the project rule. No desktop-side functional changes in this release.
+
 ## [0.3.3] - 2026-05-24
 
 ### Fixed
