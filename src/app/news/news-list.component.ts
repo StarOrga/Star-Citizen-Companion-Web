@@ -54,15 +54,15 @@ const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
       }
 
       <div class="stream">
-        <div class="filter-bar" role="tablist" aria-label="Channel filter">
-          <button class="chip all" type="button" role="tab"
+        <div class="filter-bar" role="group" aria-label="Channel filter">
+          <button class="chip all" type="button"
                   [class.active]="!hasFilter()"
-                  [attr.aria-selected]="!hasFilter()"
+                  [attr.aria-pressed]="!hasFilter()"
                   (click)="clearFilter()">{{ 'news.channels.all' | translate }}</button>
           @for (ch of channels; track ch) {
-            <button class="chip" type="button" role="tab"
+            <button class="chip" type="button"
                     [class.active]="isActive(ch)"
-                    [attr.aria-selected]="isActive(ch)"
+                    [attr.aria-pressed]="isActive(ch)"
                     [attr.data-channel]="ch"
                     (click)="toggleChannel(ch)">
               <span class="ch-icon" [innerHTML]="iconFor(ch)"></span>

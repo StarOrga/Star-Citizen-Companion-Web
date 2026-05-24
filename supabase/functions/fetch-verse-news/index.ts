@@ -51,9 +51,24 @@ function cleanXml(s: string): string {
   return s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
 }
 
+const RSI_HOST_ALLOWLIST = new Set([
+  'robertsspaceindustries.com',
+  'www.robertsspaceindustries.com',
+  'status.robertsspaceindustries.com',
+]);
+
 function normalizeRsiUrl(raw: string | undefined, fallbackPath = ''): string {
   if (!raw) return RSI_BASE + fallbackPath;
-  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    try {
+      const u = new URL(raw);
+      if (RSI_HOST_ALLOWLIST.has(u.hostname)) return raw;
+      // Upstream gave a non-RSI host — preserve the path under canonical RSI.
+      return RSI_BASE + (u.pathname || fallbackPath) + u.search + u.hash;
+    } catch {
+      return RSI_BASE + fallbackPath;
+    }
+  }
   return RSI_BASE + (raw.startsWith('/') ? raw : '/' + raw);
 }
 
@@ -145,7 +160,8 @@ async function fetchSpectrum(): Promise<VerseNewsItem[]> {
     if (!stateMatch) return [];
     try {
       const state = JSON.parse(stateMatch[1]);
-      const threads = findSpectrumThreads(state);
+      const seen = new Set<string>();
+      const threads = findSpectrumThreads(state, [], seen);
       return threads.slice(0, 12);
     } catch {
       return [];
@@ -157,10 +173,11 @@ async function fetchSpectrum(): Promise<VerseNewsItem[]> {
 }
 
 // Recursively look for objects shaped like Spectrum threads: { id, subject/title, slug, created_at }.
-function findSpectrumThreads(node: unknown, out: VerseNewsItem[] = []): VerseNewsItem[] {
+// `seen` dedupes by thread id — __INITIAL_STATE__ typically references the same entity in multiple subtrees.
+function findSpectrumThreads(node: unknown, out: VerseNewsItem[], seen: Set<string>): VerseNewsItem[] {
   if (!node || typeof node !== 'object') return out;
   if (Array.isArray(node)) {
-    for (const child of node) findSpectrumThreads(child, out);
+    for (const child of node) findSpectrumThreads(child, out, seen);
     return out;
   }
   const obj = node as Record<string, unknown>;
@@ -169,17 +186,21 @@ function findSpectrumThreads(node: unknown, out: VerseNewsItem[] = []): VerseNew
   const id = obj['id'] ?? obj['_id'];
   const created = typeof obj['created_at'] === 'string' ? obj['created_at'] : typeof obj['time_created'] === 'string' ? obj['time_created'] : null;
   if (subject && slug && id && created) {
-    out.push({
-      id: 'spec-' + String(id),
-      title: subject,
-      url: `${RSI_BASE}/spectrum/community/SC/forum/1/thread/${slug}`,
-      publishedAt: created,
-      channel: 'spectrum',
-      source: 'spectrum',
-      category: 'Spectrum',
-    });
+    const key = String(id);
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push({
+        id: 'spec-' + key,
+        title: subject,
+        url: `${RSI_BASE}/spectrum/community/SC/forum/1/thread/${slug}`,
+        publishedAt: created,
+        channel: 'spectrum',
+        source: 'spectrum',
+        category: 'Spectrum',
+      });
+    }
   }
-  for (const v of Object.values(obj)) findSpectrumThreads(v, out);
+  for (const v of Object.values(obj)) findSpectrumThreads(v, out, seen);
   return out;
 }
 

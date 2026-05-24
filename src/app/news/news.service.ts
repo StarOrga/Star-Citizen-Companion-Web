@@ -79,17 +79,21 @@ export class NewsService {
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private visibilityListener: (() => void) | null = null;
+  private refreshSeq = 0;
 
   async refresh(silent = false): Promise<void> {
+    const seq = ++this.refreshSeq;
     if (!silent) this.loading.set(true);
     this.error.set(null);
     try {
       const data = await firstValueFrom(this.http.get<VerseFeed>(this.endpoint));
+      if (seq !== this.refreshSeq) return;
       this.feed.set(data);
     } catch (err) {
+      if (seq !== this.refreshSeq) return;
       this.error.set((err as Error).message ?? 'Unknown error');
     } finally {
-      this.loading.set(false);
+      if (seq === this.refreshSeq) this.loading.set(false);
     }
   }
 
