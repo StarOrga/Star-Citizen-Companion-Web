@@ -5,19 +5,18 @@ surface flips between deployed / pending / broken.
 
 ## Vercel (web app)
 
-- **URL:** `https://sc-companion.vercel.app`
-- **Status:** ❌ NOT DEPLOYED (404). The Vercel project has not been
-  connected to the GitHub repo yet — "pending first deploy" per the root
-  `CLAUDE.md`. Pushing to `main` does NOT trigger any deploy today.
-- **Implication for tasks:** any work that touches Angular components,
-  templates, or `public/` is verifiable only locally (`npm start`) or
-  through the desktop tool's renderer-side webview. Do NOT add
-  "after-deployment verification on sc-companion.vercel.app" to test
-  plans — there's nothing to verify against until someone runs the
-  interactive Vercel-link setup once.
-- **Unblocks:** run `vercel link` from the repo root → connect the
-  GitHub repo → first `vercel --prod` deploy → after that, GitHub-Vercel
-  integration auto-deploys main pushes.
+- **Vercel project:** `star-citizen-companion-website`
+- **Canonical URL:** `https://scc.vercel.app` (short alias, primary)
+- **Auto-assigned URL:** `https://star-citizen-companion-website.vercel.app` (alias too — keep both for any deep links already shared)
+- **Status:** ✅ LIVE — auto-deployed from `main` via GitHub integration.
+- **Implication for tasks:** every push to `main` triggers a Vercel
+  build. Use `curl -sI https://scc.vercel.app` as the probe (200 OK
+  expected). For verifying a specific path (e.g. `/desktop`, `/p4k`),
+  probe directly: `curl -sI https://scc.vercel.app/desktop`.
+- **History note:** earlier sessions assumed the URL was
+  `sc-companion.vercel.app` (which 404s — that hostname is unassigned).
+  All code refs were rebranded to `scc.vercel.app` on 2026-05-24 once
+  the actual project URL was clarified.
 
 ## Supabase Edge Functions
 

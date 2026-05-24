@@ -1,6 +1,6 @@
 {
   "name": "@sc-companion/desktop-tool",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "Star Citizen P4K Companion — local extraction & upload tool.",
   "private": true,
   "main": "out/main/index.js",

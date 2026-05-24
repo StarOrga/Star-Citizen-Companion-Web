@@ -19,9 +19,17 @@ port = 54323
 [auth]
 enabled = true
 site_url = "http://localhost:4200"
+# Both web URLs + loopback range for the desktop tool OAuth callback (46800-46899).
+# config.toml only affects the LOCAL supabase stack; production redirect_urls must
+# be edited via the Supabase dashboard (Auth → URL Configuration) and stay in
+# sync with this list. See .claude/deep-knowledge/deployment-status.md § Vercel.
 additional_redirect_urls = [
   "http://localhost:4200/news",
-  "https://sc-companion.vercel.app/news"
+  "http://localhost:4200/desktop/auth",
+  "https://scc.vercel.app/news",
+  "https://scc.vercel.app/desktop/auth",
+  "https://star-citizen-companion-website.vercel.app/news",
+  "https://star-citizen-companion-website.vercel.app/desktop/auth"
 ]
 jwt_expiry = 3600
 enable_signup = true

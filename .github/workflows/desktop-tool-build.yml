@@ -77,10 +77,9 @@ jobs:
       # Supabase Edge Functions live here — desktop-latest + ingest-bundle
       # + check-bundle. Direct API calls, no web layer.
       SC_API_BASE: https://hcnqhvzlavdycidqyaai.supabase.co
-      # Web app (OAuth callback page). Today only available on the user's
-      # localhost ng serve (Vercel not deployed yet — see deployment-status.md).
-      # When Vercel goes live, swap to https://sc-companion.vercel.app.
-      SC_WEB_BASE: http://127.0.0.1:4200
+      # Web app (OAuth callback page /desktop/auth). Vercel project is
+      # `star-citizen-companion-website`, primary alias `scc.vercel.app`.
+      SC_WEB_BASE: https://scc.vercel.app
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
