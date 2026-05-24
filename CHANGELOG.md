@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-05-24
+
+### Fixed — portable download button on /desktop
+
+- **Root cause:** [desktop-download.component.ts](src/app/desktop/desktop-download.component.ts) typed
+  `PlatformAsset.sha256` as a required string and rendered
+  `entry.value.sha256.slice(0, 12)` inline. The commit that moved
+  electron-updater verification to SHA-512 (`fix(release): real SHA-512`,
+  [#10](https://github.com/Jerry0022/Star-Citizen-Companion-Website/pull/10))
+  also switched the release-build workflow to write only `sha512` into
+  `desktop_releases.platforms[*]`, leaving `sha256 = null` on every row
+  registered from v0.4.0 onward. `null.slice()` then threw inside
+  Angular's `@for` for each platform asset — visible symptom on
+  `/desktop`: portable button missing / hash chip broken.
+- **Fix:** treat both `sha512` and `sha256` as optional, add a
+  null-safe `hashFingerprint()` helper preferring sha512, and render
+  the hash chip conditionally.
+
 ## [desktop-0.4.3] - 2026-05-24
 
 ### Fixed — desktop auto-updater (401 unauthorized loop)

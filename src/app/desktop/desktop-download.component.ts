@@ -6,7 +6,8 @@ import { SupabaseClientProvider } from '../core/supabase.client';
 interface PlatformAsset {
   url: string;
   size_bytes: number;
-  sha256: string;
+  sha512?: string | null;
+  sha256?: string | null;
 }
 
 interface ReleaseInfo {
@@ -56,8 +57,10 @@ interface ReleaseInfo {
               <a class="sc-btn sc-btn-primary platform" [href]="entry.value.url" download>
                 <span class="plat-label">{{ 'desktop.downloadFor' | translate:{ platform: entry.key } }}</span>
                 <span class="plat-meta">
-                  {{ entry.value.size_bytes / 1024 / 1024 | number:'1.0-1' }} MB ·
-                  <span class="hash">{{ entry.value.sha256.slice(0, 12) }}…</span>
+                  {{ entry.value.size_bytes / 1024 / 1024 | number:'1.0-1' }} MB
+                  @if (hashFingerprint(entry.value); as h) {
+                    · <span class="hash">{{ h }}…</span>
+                  }
                 </span>
               </a>
             }
@@ -163,5 +166,10 @@ export class DesktopDownloadComponent implements OnInit {
 
   platformEntries(r: ReleaseInfo): Array<{ key: string; value: PlatformAsset }> {
     return Object.entries(r.platforms ?? {}).map(([key, value]) => ({ key, value }));
+  }
+
+  hashFingerprint(p: PlatformAsset): string | null {
+    const h = p.sha512 ?? p.sha256 ?? '';
+    return h ? h.slice(0, 12) : null;
   }
 }
