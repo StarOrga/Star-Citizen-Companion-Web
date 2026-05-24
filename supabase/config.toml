@@ -50,6 +50,13 @@ verify_jwt = true
 [functions.process-p4k]
 verify_jwt = true
 
+[functions.desktop-latest]
+# JWT verification OFF — the function does its own auth (release-token from the
+# Tool, OR JWT+role for Web UI). With JWT verification ON, the release-token
+# branch can never reach the function (the platform gate rejects it). Don't
+# revert this without also reworking the auth logic in the function body.
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 policy = "oneshot"
