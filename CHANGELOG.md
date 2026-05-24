@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [desktop-0.4.3] - 2026-05-24
+
+### Fixed — desktop auto-updater (401 unauthorized loop)
+
+- **Root cause:** electron-updater 6.8.3 silently drops the `requestHeaders`
+  field when passed inside `setFeedURL({...})` — it only honors them when
+  loaded from `app-update.yml` via the internal `updateConfigPath` setter
+  (AppUpdater.js L218-224). The Tool was therefore sending no
+  `X-SC-Release-Token` header, so the `desktop-latest` Edge Function fell
+  through to its JWT auth branch and returned HTTP 401 on every check.
+- **Fix:** assign `autoUpdater.requestHeaders` directly before
+  `setFeedURL()`. Inline comment now warns the next reader.
+- **Impact:** v0.4.2-and-earlier users cannot auto-update *to* this fix
+  (the bug is in the updater itself) — manual install of the v0.4.3
+  installer is required. All later releases will auto-update normally.
+
 ## [0.4.0] - 2026-05-24
 
 ### Added — Verse-Live-Hub redesign

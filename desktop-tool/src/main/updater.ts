@@ -60,15 +60,21 @@ export function initAutoUpdater(): void {
   autoUpdater.logger = log;
   log.transports.file.level = 'info';
 
+  // requestHeaders MUST be set on the autoUpdater instance directly.
+  // electron-updater's setFeedURL() silently drops the `requestHeaders` field
+  // from its options object — that branch only runs when options come from
+  // app-update.yml via the updateConfigPath setter (AppUpdater.js L218-224).
+  // Without this line the X-SC-Release-Token header never reaches the server,
+  // and the Edge Function returns 401 unauthorized.
+  autoUpdater.requestHeaders = {
+    'X-SC-Release-Token': RELEASE_TOKEN,
+    'X-SC-Tool-Version': TOOL_VERSION,
+    Accept: 'application/yaml',
+  };
+
   autoUpdater.setFeedURL({
     provider: 'generic',
     url: FEED_URL,
-    // Tool-Auth via release-token — bypasses the function's JWT branch.
-    requestHeaders: {
-      'X-SC-Release-Token': RELEASE_TOKEN,
-      'X-SC-Tool-Version': TOOL_VERSION,
-      Accept: 'application/yaml',
-    },
     useMultipleRangeRequest: false,
   });
 
