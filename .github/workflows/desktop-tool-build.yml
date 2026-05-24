@@ -173,20 +173,62 @@ jobs:
 
             Source code: [Star-Citizen-Companion-Website](https://github.com/Jerry0022/Star-Citizen-Companion-Website) (private).
 
-      - name: Print public asset URLs (for desktop_releases.platforms registration)
-        # Surfaces the public URLs in the action log so the admin doesn't
-        # have to construct them by hand. Copy/paste into the admin RPC
-        # call alongside the release-token from the workflow artefact.
+      - name: Print public asset URLs + SHA-512 + sizes (for desktop_releases.platforms registration)
+        # Surfaces every field the admin needs into the action log so the
+        # `desktop_releases` INSERT can be copy-pasted without local
+        # downloads or hash computations. SHA-512 is mandatory —
+        # electron-updater's YAML parser hardcodes the `sha512:` key and
+        # fails install-time verification on size or hash mismatch.
+        # The desktop-tool/package.json version is the canonical "binary
+        # internal" version (electron-vite bakes it into __SC_TOOL_VERSION__).
+        # Tag and binary-version can drift on CI-retries — the admin
+        # registers with version = binary version, NOT the tag.
         shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
-          $version = $tag -replace '^desktop-v', ''
+          # Read the binary version from the build output filename — that's
+          # the truth (matches __SC_TOOL_VERSION__ inside the binary), not
+          # the tag (which can be a CI-retry cookie on the same source).
+          $setupFile = Get-ChildItem release-builds/sc-companion-setup-*-x64.exe | Select-Object -First 1
+          $portableFile = Get-ChildItem release-builds/sc-companion-portable-*-x64.exe | Select-Object -First 1
+          $binVersion = ($setupFile.Name -replace '^sc-companion-setup-', '') -replace '-x64\.exe$', ''
+
+          $setupSha = (Get-FileHash -Algorithm SHA512 $setupFile.FullName).Hash.ToLower()
+          $portableSha = (Get-FileHash -Algorithm SHA512 $portableFile.FullName).Hash.ToLower()
+          $setupSize = $setupFile.Length
+          $portableSize = $portableFile.Length
+
+          $setupUrl = "https://github.com/Jerry0022/sc-companion-binaries/releases/download/$tag/$($setupFile.Name)"
+          $portableUrl = "https://github.com/Jerry0022/sc-companion-binaries/releases/download/$tag/$($portableFile.Name)"
+
           Write-Host ""
           Write-Host "================================================================"
-          Write-Host "PUBLIC ASSET URLS for desktop_releases.platforms:"
+          Write-Host "PASTE INTO ADMIN INSERT for desktop_releases (Supabase SQL editor):"
           Write-Host "================================================================"
-          Write-Host "  win-x64-setup    https://github.com/Jerry0022/sc-companion-binaries/releases/download/$tag/sc-companion-setup-$version-x64.exe"
-          Write-Host "  win-x64-portable https://github.com/Jerry0022/sc-companion-binaries/releases/download/$tag/sc-companion-portable-$version-x64.exe"
-          Write-Host "  win-x64-yml      https://github.com/Jerry0022/sc-companion-binaries/releases/download/$tag/latest.yml"
+          Write-Host ""
+          Write-Host "INSERT INTO public.desktop_releases (version, is_current, release_token, platforms, notes)"
+          Write-Host "VALUES ("
+          Write-Host "  '$binVersion',"
+          Write-Host "  true,"
+          Write-Host "  '<UUID-from-release-token-artefact>',"
+          Write-Host "  jsonb_build_object("
+          Write-Host "    'win-x64-setup', jsonb_build_object("
+          Write-Host "      'url', '$setupUrl',"
+          Write-Host "      'kind', 'nsis',"
+          Write-Host "      'sha512', '$setupSha',"
+          Write-Host "      'size_bytes', $setupSize"
+          Write-Host "    ),"
+          Write-Host "    'win-x64-portable', jsonb_build_object("
+          Write-Host "      'url', '$portableUrl',"
+          Write-Host "      'kind', 'portable',"
+          Write-Host "      'sha512', '$portableSha',"
+          Write-Host "      'size_bytes', $portableSize"
+          Write-Host "    )"
+          Write-Host "  ),"
+          Write-Host "  'TODO: release notes here'"
+          Write-Host ");"
+          Write-Host ""
+          Write-Host "Remember to set the prior is_current row to false first:"
+          Write-Host "  UPDATE public.desktop_releases SET is_current = false WHERE is_current = true;"
           Write-Host "================================================================"
           Write-Host ""

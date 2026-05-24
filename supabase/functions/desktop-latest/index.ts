@@ -34,7 +34,16 @@ const CORS = {
 interface ReleaseRow {
   id: string;
   version: string;
-  platforms: Record<string, { url: string; size_bytes: number; sha256: string; kind?: string }>;
+  platforms: Record<
+    string,
+    {
+      url: string;
+      size_bytes: number;
+      sha512?: string;
+      sha256?: string;
+      kind?: string;
+    }
+  >;
   notes: string | null;
   created_at: string;
 }
@@ -52,30 +61,40 @@ function jsonResp(body: unknown, status = 200, extraHeaders: Record<string, stri
  *   version: 0.2.0
  *   files:
  *     - url: sc-companion-setup-0.2.0-x64.exe
- *       sha512: <base64>
+ *       sha512: <hex>
  *       size: 81875966
  *   path: sc-companion-setup-0.2.0-x64.exe
- *   sha512: <base64>
+ *   sha512: <hex>
  *   releaseDate: '2026-05-23T20:00:00.000Z'
  *
- * We return our own metadata in that shape so electron-updater can consume
- * it directly. (sha512 vs sha256: electron-updater accepts both with the
- * right config; we expose sha256 here, the Tool's config sets `algo: 'sha256'`.)
+ * The `sha512` key is HARDCODED in electron-updater's YAML parser. The
+ * value MUST be a real SHA-512 — admin populates
+ * `desktop_releases.platforms[*].sha512`. Older rows (pre-2026-05-24)
+ * only had `sha256` and were missing real SHA-512; we fall back to sha256
+ * for backward compat but log a warning so the admin re-uploads. New
+ * rows produced by the admin RPC always have sha512.
  */
 function toLatestYaml(release: ReleaseRow): string {
   const winSetup = release.platforms['win-x64-setup'] ?? release.platforms['win-x64'];
   if (!winSetup) {
     return `version: ${release.version}\nfiles: []\nreleaseDate: '${release.created_at}'\n`;
   }
+  const hash = winSetup.sha512 ?? winSetup.sha256 ?? '';
+  if (!winSetup.sha512 && winSetup.sha256) {
+    console.warn(
+      `[desktop-latest] release ${release.id} has only sha256, no sha512 — ` +
+        `electron-updater verification WILL fail. Re-register with a real sha512sum.`,
+    );
+  }
   const fileName = winSetup.url.split('/').pop() ?? 'unknown.exe';
   return [
     `version: ${release.version}`,
     'files:',
     `  - url: ${winSetup.url}`,
-    `    sha512: ${winSetup.sha256}`,
+    `    sha512: ${hash}`,
     `    size: ${winSetup.size_bytes}`,
     `path: ${fileName}`,
-    `sha512: ${winSetup.sha256}`,
+    `sha512: ${hash}`,
     `releaseDate: '${release.created_at}'`,
   ].join('\n') + '\n';
 }
