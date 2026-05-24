@@ -20,12 +20,55 @@
   },
   "news": {
     "title": "Verse News",
-    "subtitle": "Live Comm-Link, Spectrum und Status — alle 15 Min. aktualisiert.",
-    "refresh": "Aktualisieren",
+    "subtitle": "Live Comm-Link, Spectrum, YouTube & Patches — automatisch alle 5 Min.",
     "loading": "Lade…",
-    "platformStatus": "Plattform-Status",
-    "empty": "Noch keine News — bitte aktualisieren.",
-    "errorTitle": "News konnten nicht geladen werden"
+    "newPosts": "{{count}} neue Posts ↑",
+    "newPost": "1 neuer Post ↑",
+    "empty": "Noch keine News.",
+    "emptyFiltered": "Keine News für diese Auswahl.",
+    "errorTitle": "News konnten nicht geladen werden",
+    "lastUpdated": "Aktualisiert {{rel}}",
+    "status": {
+      "title": "Star Citizen Live",
+      "operational": "Spielbar",
+      "degraded": "Eingeschränkt",
+      "partial_outage": "Teilausfall",
+      "major_outage": "Offline",
+      "maintenance": "Wartung",
+      "unknown": "Status unbekannt",
+      "services": "Services",
+      "noComponents": "Keine Service-Details verfügbar.",
+      "checkExternal": "RSI Status-Seite ↗"
+    },
+    "buckets": {
+      "today": "Heute",
+      "week": "Diese Woche",
+      "older": "Älter",
+      "showMore": "{{count}} ältere anzeigen",
+      "hideMore": "Verbergen",
+      "count": "{{count}} Posts"
+    },
+    "channels": {
+      "all": "Alle",
+      "comm-link": "Comm-Link",
+      "spectrum": "Spectrum",
+      "youtube": "YouTube",
+      "patch": "Patch-Notes"
+    },
+    "filter": {
+      "label": "Filter",
+      "clear": "Alle zeigen"
+    },
+    "via": "via {{source}}",
+    "openExternal": "Öffnet {{host}}",
+    "relative": {
+      "now": "gerade eben",
+      "minutes": "vor {{n}} Min",
+      "hours": "vor {{n}} Std",
+      "yesterday": "gestern",
+      "days": "vor {{n}} Tagen",
+      "weeks": "vor {{n}} Wochen"
+    }
   },
   "p4k": {
     "title": "P4K Bundle-Historie",
