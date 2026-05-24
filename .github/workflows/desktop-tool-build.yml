@@ -126,14 +126,67 @@ jobs:
             desktop-tool/release-builds/*.exe
             desktop-tool/release-builds/*.blockmap
             desktop-tool/release-builds/latest*.yml
-      - name: Publish to GitHub Release
+      - name: Publish to PRIVATE source-repo release (for maintainers + token artefact handoff)
         uses: softprops/action-gh-release@v2
         with:
           files: |
             desktop-tool/release-builds/*.exe
             desktop-tool/release-builds/*.blockmap
+            desktop-tool/release-builds/latest*.yml
           fail_on_unmatched_files: false
           body: |
             Automated build from tag ${{ github.ref_name }}.
 
-            **Release token fingerprint:** `${{ steps.token.outputs.release_token_fingerprint }}…` (first 8 chars stored in the binary; download the **release-token** workflow artefact to get the full UUID, then register it in `desktop_releases` via the admin RPC).
+            **Public download (end-users):** see the matching release in
+            [Jerry0022/sc-companion-binaries](https://github.com/Jerry0022/sc-companion-binaries/releases/tag/${{ github.ref_name }})
+            — that's the URL `electron-updater` and the `desktop_releases`
+            row should point at.
+
+            **Release token fingerprint:** `${{ steps.token.outputs.release_token_fingerprint }}…` (first 8 chars stored in the binary; download the **release-token** workflow artefact to get the full UUID, then register it in `desktop_releases` via the admin RPC alongside the public URLs above).
+
+      - name: Publish to PUBLIC binaries-mirror release (end-user download)
+        # End-users with the installed Tool can't authenticate to GitHub, so
+        # the auto-update download URL must be publicly accessible. We
+        # publish a mirror release in the public `sc-companion-binaries`
+        # repo via a fine-grained PAT (scope: Contents R/W on that repo
+        # only) stored as `BINARIES_RELEASE_TOKEN`. See
+        # https://github.com/Jerry0022/Star-Citizen-Companion-Website/issues/7
+        # for the full rationale.
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: Jerry0022/sc-companion-binaries
+          token: ${{ secrets.BINARIES_RELEASE_TOKEN }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: |
+            desktop-tool/release-builds/*.exe
+            desktop-tool/release-builds/*.blockmap
+            desktop-tool/release-builds/latest*.yml
+          fail_on_unmatched_files: false
+          body: |
+            Automated mirror of [source release](https://github.com/Jerry0022/Star-Citizen-Companion-Website/releases/tag/${{ github.ref_name }}).
+
+            Binaries are signed by the build, not by a code-signing cert
+            (Phase-2 limitation — Windows SmartScreen will warn on first
+            run). SHA-256 sums for verification live in the matching
+            `desktop_releases.platforms` row.
+
+            Source code: [Star-Citizen-Companion-Website](https://github.com/Jerry0022/Star-Citizen-Companion-Website) (private).
+
+      - name: Print public asset URLs (for desktop_releases.platforms registration)
+        # Surfaces the public URLs in the action log so the admin doesn't
+        # have to construct them by hand. Copy/paste into the admin RPC
+        # call alongside the release-token from the workflow artefact.
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^desktop-v', ''
+          Write-Host ""
+          Write-Host "================================================================"
+          Write-Host "PUBLIC ASSET URLS for desktop_releases.platforms:"
+          Write-Host "================================================================"
+          Write-Host "  win-x64-setup    https://github.com/Jerry0022/sc-companion-binaries/releases/download/$tag/sc-companion-setup-$version-x64.exe"
+          Write-Host "  win-x64-portable https://github.com/Jerry0022/sc-companion-binaries/releases/download/$tag/sc-companion-portable-$version-x64.exe"
+          Write-Host "  win-x64-yml      https://github.com/Jerry0022/sc-companion-binaries/releases/download/$tag/latest.yml"
+          Write-Host "================================================================"
+          Write-Host ""
