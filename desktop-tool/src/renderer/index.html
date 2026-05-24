@@ -4,20 +4,26 @@
     <meta charset="utf-8" />
     <meta http-equiv="Content-Security-Policy"
           content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://sc-companion.vercel.app https://star-citizen-companion-website.vercel.app https://*.supabase.co" />
-    <title>SC Companion</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%23050810'/%3E%3Ccircle cx='50' cy='50' r='42' fill='none' stroke='%2300d4ff' stroke-width='6'/%3E%3Cpolygon points='50,28 64,58 50,50 36,58' fill='%2300d4ff'/%3E%3Cpolygon points='50,72 36,42 50,50 64,42' fill='%2300d4ff' opacity='0.55'/%3E%3C/svg%3E" />
+    <title>Star Citizen Companion</title>
+    <!-- Inline SCC monogram favicon — kept in URL form so the file:// renderer
+         doesn't need a separate asset path. Matches public/icons/scc-favicon.svg
+         in the web app. -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23050810'/%3E%3Ccircle cx='50' cy='50' r='44' fill='none' stroke='%2300d4ff' stroke-width='3' opacity='0.35'/%3E%3Ctext x='50' y='63' font-family='Orbitron%2C%20Segoe%20UI%2C%20sans-serif' font-size='34' font-weight='700' text-anchor='middle' fill='%2300d4ff' letter-spacing='1.5'%3ESCC%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
         <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
-          <circle cx="50" cy="50" r="42" fill="none" stroke="#00d4ff" stroke-width="6"/>
-          <polygon points="50,28 64,58 50,50 36,58" fill="#00d4ff"/>
-          <polygon points="50,72 36,42 50,50 64,42" fill="#00d4ff" opacity="0.55"/>
+          <rect width="100" height="100" rx="16" fill="#050810"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#00d4ff" stroke-width="3" opacity="0.35"/>
+          <text x="50" y="63"
+                font-family="Orbitron, 'Segoe UI', sans-serif"
+                font-size="34" font-weight="700"
+                text-anchor="middle" fill="#00d4ff" letter-spacing="1.5">SCC</text>
         </svg>
         <div class="brand-text">
-          <strong>SC COMPANION</strong>
+          <strong>Star Citizen Companion</strong>
           <span class="sub" id="version-tag">v—</span>
         </div>
       </div>
