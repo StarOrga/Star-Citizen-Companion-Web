@@ -6,6 +6,7 @@ import type { UploadPayload, UploadResult } from '../lib/uploader.js';
 interface ToolEnv {
   toolVersion: string;
   apiBase: string;
+  webBase: string;
   releaseTokenFingerprint: string;
   platform: string;
 }

@@ -5,7 +5,7 @@ import { discoverAll, discoverManual } from '../lib/discovery.js';
 import { PROFILES, DEFAULT_PROFILE, estimateForSize } from '../lib/performance.js';
 import { runOAuthFlow } from '../lib/oauth.js';
 import { uploadBundle, type UploadPayload } from '../lib/uploader.js';
-import { RELEASE_TOKEN, TOOL_VERSION, API_BASE } from '../lib/release-token.js';
+import { RELEASE_TOKEN, TOOL_VERSION, API_BASE, WEB_BASE } from '../lib/release-token.js';
 import {
   initAutoUpdater,
   checkForUpdatesManually,
@@ -65,6 +65,7 @@ function createWindow(): void {
 ipcMain.handle('sc:env', () => ({
   toolVersion: TOOL_VERSION,
   apiBase: API_BASE,
+  webBase: WEB_BASE,
   releaseTokenFingerprint: RELEASE_TOKEN.slice(0, 8) + '…',
   platform: process.platform,
 }));
@@ -95,7 +96,7 @@ ipcMain.handle('sc:estimate', (_e, profileId: keyof typeof PROFILES, sizeBytes: 
   estimateForSize(profileId, sizeBytes),
 );
 
-ipcMain.handle('sc:authenticate', async () => runOAuthFlow(API_BASE));
+ipcMain.handle('sc:authenticate', async () => runOAuthFlow(WEB_BASE));
 
 ipcMain.handle('sc:upload', async (_e, payload: UploadPayload) =>
   uploadBundle(API_BASE, payload),
