@@ -6,17 +6,20 @@ surface flips between deployed / pending / broken.
 ## Vercel (web app)
 
 - **Vercel project:** `star-citizen-companion-website`
-- **Canonical URL:** `https://scc.vercel.app` (short alias, primary)
+- **Canonical URL:** `https://sc-companion.vercel.app` (short alias, primary)
 - **Auto-assigned URL:** `https://star-citizen-companion-website.vercel.app` (alias too — keep both for any deep links already shared)
 - **Status:** ✅ LIVE — auto-deployed from `main` via GitHub integration.
 - **Implication for tasks:** every push to `main` triggers a Vercel
-  build. Use `curl -sI https://scc.vercel.app` as the probe (200 OK
+  build. Use `curl -sI https://sc-companion.vercel.app` as the probe (200 OK
   expected). For verifying a specific path (e.g. `/desktop`, `/p4k`),
-  probe directly: `curl -sI https://scc.vercel.app/desktop`.
-- **History note:** earlier sessions assumed the URL was
-  `sc-companion.vercel.app` (which 404s — that hostname is unassigned).
-  All code refs were rebranded to `scc.vercel.app` on 2026-05-24 once
-  the actual project URL was clarified.
+  probe directly: `curl -sI https://sc-companion.vercel.app/desktop`.
+- **History note:** during the 2026-05-24 rebrand we briefly tried
+  `scc.vercel.app` (shorter, cleaner) — but that hostname was already
+  taken on Vercel by someone else. Fell back to `sc-companion.vercel.app`
+  which is the original assumption from earlier sessions; the apparent
+  404 in earlier probes was because the alias hadn't been added yet,
+  not because the hostname was unassigned. Don't re-attempt `scc` until
+  the existing owner releases it.
 
 ## Supabase Edge Functions
 

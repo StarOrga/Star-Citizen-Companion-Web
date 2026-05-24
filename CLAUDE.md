@@ -1,6 +1,6 @@
 # SC Companion
 
-Angular 21 PWA · Supabase · Vercel (`scc.vercel.app`, alias of `star-citizen-companion-website.vercel.app`)
+Angular 21 PWA · Supabase · Vercel (`sc-companion.vercel.app`, alias of `star-citizen-companion-website.vercel.app`)
 
 ## Commands
 

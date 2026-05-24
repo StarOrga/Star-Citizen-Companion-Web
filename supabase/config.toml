@@ -26,8 +26,8 @@ site_url = "http://localhost:4200"
 additional_redirect_urls = [
   "http://localhost:4200/news",
   "http://localhost:4200/desktop/auth",
-  "https://scc.vercel.app/news",
-  "https://scc.vercel.app/desktop/auth",
+  "https://sc-companion.vercel.app/news",
+  "https://sc-companion.vercel.app/desktop/auth",
   "https://star-citizen-companion-website.vercel.app/news",
   "https://star-citizen-companion-website.vercel.app/desktop/auth"
 ]
