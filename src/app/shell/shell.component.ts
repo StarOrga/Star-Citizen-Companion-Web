@@ -13,9 +13,9 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="topbar">
-      <a class="brand" routerLink="/news" aria-label="SC Companion">
-        <img class="logo" src="icons/verse-compass-favicon.svg" alt="" width="32" height="32" />
-        <span class="title">Companion</span>
+      <a class="brand" routerLink="/news" aria-label="Star Citizen Companion (SCC)">
+        <img class="logo" src="icons/scc-favicon.svg" alt="" width="32" height="32" />
+        <span class="title">Star Citizen Companion</span>
         <span class="sc-pill tech">alpha</span>
       </a>
 

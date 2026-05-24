@@ -33,7 +33,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#050810',
-    title: 'SC Companion',
+    title: 'Star Citizen Companion',
     icon: join(__dirname, '../../build/icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
