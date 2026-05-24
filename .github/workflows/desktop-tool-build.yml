@@ -68,6 +68,19 @@ jobs:
     defaults:
       run:
         working-directory: desktop-tool
+    # Set at JOB level so every npm/electron-vite call (including the one
+    # inside `package:win` chain) inherits them. Previously only the
+    # `Build (electron-vite)` step had SC_API_BASE → the second electron-vite
+    # invocation inside `package:win` fell back to localhost:4200, baking
+    # the wrong URL into the packaged binary.
+    env:
+      # Supabase Edge Functions live here — desktop-latest + ingest-bundle
+      # + check-bundle. Direct API calls, no web layer.
+      SC_API_BASE: https://hcnqhvzlavdycidqyaai.supabase.co
+      # Web app (OAuth callback page). Today only available on the user's
+      # localhost ng serve (Vercel not deployed yet — see deployment-status.md).
+      # When Vercel goes live, swap to https://sc-companion.vercel.app.
+      SC_WEB_BASE: http://127.0.0.1:4200
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -110,13 +123,8 @@ jobs:
           path: desktop-tool/release-token.txt
           retention-days: 7
       - name: Build (electron-vite)
-        env:
-          SC_RELEASE_TOKEN: ${{ env.SC_RELEASE_TOKEN }}
-          SC_API_BASE: https://sc-companion.vercel.app
         run: npm run build
       - name: Package (electron-builder)
-        env:
-          SC_RELEASE_TOKEN: ${{ env.SC_RELEASE_TOKEN }}
         run: npm run package:win
       - name: Upload artefacts
         uses: actions/upload-artifact@v4

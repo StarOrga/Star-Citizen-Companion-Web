@@ -38,7 +38,13 @@ const TIMEOUT_MS = 5 * 60 * 1000;
 // Supabase JWT + email is well under 8 KB.
 const MAX_BODY_BYTES = 16 * 1024;
 
-export async function runOAuthFlow(apiBase: string): Promise<AuthResult> {
+/**
+ * Open the user's browser at the WEB app's /desktop/auth page (NOT the
+ * Supabase API — that has no UI). The web app authenticates the user and
+ * POSTs the resulting JWT back to the loopback. Pass `webBase` from
+ * `WEB_BASE` constant in `release-token.ts`.
+ */
+export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
   const port = await pickPort();
   if (port === null) return { ok: false, error: 'no free loopback port in 46800-46899' };
 
@@ -49,7 +55,7 @@ export async function runOAuthFlow(apiBase: string): Promise<AuthResult> {
   // is the standard hardening over a wildcard).
   const webOrigin = (() => {
     try {
-      return new URL(apiBase).origin;
+      return new URL(webBase).origin;
     } catch {
       return '*';
     }
@@ -182,7 +188,7 @@ export async function runOAuthFlow(apiBase: string): Promise<AuthResult> {
 
     server.listen(port, '127.0.0.1', () => {
       const loopback = `http://127.0.0.1:${port}/cb`;
-      const authUrl = `${apiBase}/desktop/auth?cb=${encodeURIComponent(loopback)}&state=${state}`;
+      const authUrl = `${webBase}/desktop/auth?cb=${encodeURIComponent(loopback)}&state=${state}`;
       void shell.openExternal(authUrl);
     });
 

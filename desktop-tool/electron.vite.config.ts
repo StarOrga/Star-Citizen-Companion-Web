@@ -26,9 +26,23 @@ export default defineConfig({
     },
     define: {
       __SC_RELEASE_TOKEN__: JSON.stringify(process.env['SC_RELEASE_TOKEN'] ?? 'dev-token-unsigned'),
-      // Default points at the local Angular dev server. CI publishes builds
-      // with SC_API_BASE explicitly set to the deployed Vercel URL.
-      __SC_API_BASE__: JSON.stringify(process.env['SC_API_BASE'] ?? 'http://localhost:4200'),
+      // API_BASE = Supabase project URL (where Edge Functions live —
+      // desktop-latest, ingest-bundle, check-bundle). The Tool talks to
+      // these directly, NOT through the web app. Dev fallback assumes a
+      // local supabase stack on port 54321; real dev usually overrides
+      // with SC_API_BASE=https://hcnqhvzlavdycidqyaai.supabase.co.
+      __SC_API_BASE__: JSON.stringify(
+        process.env['SC_API_BASE'] ?? 'http://127.0.0.1:54321',
+      ),
+      // WEB_BASE = Angular app URL (where the OAuth callback page
+      // /desktop/auth is served). Different concern: this is the URL the
+      // user's browser navigates to during the loopback OAuth flow. Dev
+      // = local ng serve on 4200; prod = Vercel deployment URL once
+      // it's set up. CI must set BOTH env vars; falling back to the
+      // default in a packaged build is always wrong.
+      __SC_WEB_BASE__: JSON.stringify(
+        process.env['SC_WEB_BASE'] ?? 'http://127.0.0.1:4200',
+      ),
       __SC_TOOL_VERSION__: JSON.stringify(process.env['npm_package_version'] ?? '0.1.0-dev'),
     },
   },
