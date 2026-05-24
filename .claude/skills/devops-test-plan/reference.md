@@ -8,7 +8,7 @@ stays at 1–3 lines per rule.
 Run all 5 surfaces in **one** Bash call so output stays compact:
 
 ```bash
-echo "=== Vercel ===" && curl -sI https://scc.vercel.app | grep -E "^HTTP|^Content-Type|^Location" | head -3
+echo "=== Vercel ===" && curl -sI https://sc-companion.vercel.app | grep -E "^HTTP|^Content-Type|^Location" | head -3
 echo "=== GH Release page (auth via gh) ===" && gh release view desktop-v$(gh release list --limit 1 --json tagName --jq '.[0].tagName' | sed 's/desktop-v//') --json name,assets --jq '{name, asset_count: (.assets | length)}'
 echo "=== Edge Fn desktop-latest ===" && curl -s -w "\nHTTP %{http_code}\n" https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/desktop-latest
 echo "=== Edge Fn ingest-bundle ===" && curl -s -X POST -w "\nHTTP %{http_code}\n" https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/ingest-bundle
