@@ -8,7 +8,7 @@ stays at 1–3 lines per rule.
 Run all 5 surfaces in **one** Bash call so output stays compact:
 
 ```bash
-echo "=== Vercel ===" && curl -sI https://sc-companion.vercel.app | grep -E "^HTTP|^Content-Type|^Location" | head -3
+echo "=== Vercel ===" && curl -sI https://scc.vercel.app | grep -E "^HTTP|^Content-Type|^Location" | head -3
 echo "=== GH Release page (auth via gh) ===" && gh release view desktop-v$(gh release list --limit 1 --json tagName --jq '.[0].tagName' | sed 's/desktop-v//') --json name,assets --jq '{name, asset_count: (.assets | length)}'
 echo "=== Edge Fn desktop-latest ===" && curl -s -w "\nHTTP %{http_code}\n" https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/desktop-latest
 echo "=== Edge Fn ingest-bundle ===" && curl -s -X POST -w "\nHTTP %{http_code}\n" https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/ingest-bundle
@@ -19,7 +19,7 @@ echo "=== Edge Fn check-bundle ===" && curl -s -w "\nHTTP %{http_code}\n" "https
 
 | Surface | OK | Means |
 |---|---|---|
-| Vercel | `HTTP/1.1 404` | "pending first deploy" per `deployment-status.md`. If anything else → update that file. |
+| Vercel | `HTTP/1.1 200` | Live, auto-deployed from main. 404/5xx → deploy broken — check Vercel dashboard. |
 | GH Release | JSON with `asset_count >= 1` | Tagged release exists, assets uploaded by `desktop-tool-build` workflow |
 | Edge Fns | `{"error":"unauthorized"}` + `HTTP 401` | Function reachable, auth gating works as designed. 200 would mean gating is BROKEN; 5xx would mean function is down. |
 
