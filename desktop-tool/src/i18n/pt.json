@@ -24,7 +24,13 @@
   },
   "upload": {
     "title": "Upload",
-    "intro": "O fluxo OAuth abre no navegador. Após o login, o token volta para a aplicação.",
-    "auth": "Entrar pelo navegador"
+    "intro": "Ao iniciar o upload, o navegador abre para login. Após o login bem-sucedido, o bundle é enviado automaticamente.",
+    "start": "Iniciar upload",
+    "signingIn": "Entrando pelo navegador…",
+    "signedIn": "Conectado como {{email}} — enviando bundle…",
+    "signInFailed": "Falha no login",
+    "uploading": "Enviando…",
+    "uploadOk": "Upload OK",
+    "uploadFailed": "Falha no upload"
   }
 }

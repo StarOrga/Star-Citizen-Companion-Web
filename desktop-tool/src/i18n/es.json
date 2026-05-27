@@ -24,7 +24,13 @@
   },
   "upload": {
     "title": "Subida",
-    "intro": "El flujo OAuth se abre en el navegador. Tras iniciar sesión, el token vuelve a la app.",
-    "auth": "Iniciar sesión en el navegador"
+    "intro": "Al iniciar la subida se abre el navegador para iniciar sesión. Tras un inicio de sesión correcto, el bundle se sube automáticamente.",
+    "start": "Iniciar subida",
+    "signingIn": "Iniciando sesión en el navegador…",
+    "signedIn": "Sesión iniciada como {{email}} — subiendo bundle…",
+    "signInFailed": "Inicio de sesión fallido",
+    "uploading": "Subiendo…",
+    "uploadOk": "Subida OK",
+    "uploadFailed": "Error de subida"
   }
 }

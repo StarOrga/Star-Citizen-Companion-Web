@@ -24,7 +24,13 @@
   },
   "upload": {
     "title": "上传",
-    "intro": "OAuth 流程将在浏览器中打开。登录后令牌将返回到应用。",
-    "auth": "通过浏览器登录"
+    "intro": "开始上传时会打开浏览器进行登录。登录成功后将自动上传 bundle。",
+    "start": "开始上传",
+    "signingIn": "正在通过浏览器登录…",
+    "signedIn": "已登录为 {{email}} — 正在上传 bundle…",
+    "signInFailed": "登录失败",
+    "uploading": "上传中…",
+    "uploadOk": "上传成功",
+    "uploadFailed": "上传失败"
   }
 }

@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [desktop-0.4.4] - 2026-05-27
+
+### Changed — desktop upload UX (one-click auth + upload)
+
+- **Single "Upload starten" button** replaces the previous two-step
+  flow (separate "Im Browser anmelden" → "Bundle hochladen"). Clicking
+  starts the browser OAuth flow and, on success, uploads the bundle
+  automatically — no second click needed.
+- **Loopback server lifetime cut to seconds.** The previous flow left
+  the loopback OAuth server idle between the two clicks, so users who
+  paused (or hit the 5-min server timeout) saw "Loopback unreachable —
+  Failed to fetch" when the web fetch eventually fired. With one
+  combined action, the server is only up while the browser tab is
+  actively transferring the token.
+- **i18n** — new status keys (`upload.start`, `upload.signingIn`,
+  `upload.signedIn`, `upload.signInFailed`, `upload.uploading`,
+  `upload.uploadOk`, `upload.uploadFailed`) across all 7 locales (de,
+  en, es, fr, pt, ru, zh); old `upload.auth` / `upload.send` removed.
+
 ## [0.4.1] - 2026-05-24
 
 ### Fixed — portable download button on /desktop

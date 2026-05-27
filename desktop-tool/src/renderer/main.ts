@@ -438,9 +438,9 @@ function renderAuthUpload(): string {
   return `
     <h1>${t('upload.title', {}) || 'Upload'}</h1>
     <div class="card">
-      <p>${t('upload.intro', {}) || 'OAuth-Flow startet im Browser. Nach Login wird der Token an die App zurückgegeben.'}</p>
+      <p>${t('upload.intro', {}) || 'Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.'}</p>
       <div class="btn-row">
-        <button id="btn-auth" class="btn btn-primary">${state.authToken ? (t('upload.send', {}) || 'Bundle hochladen') : (t('upload.auth', {}) || 'Im Browser anmelden')}</button>
+        <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start', {}) || 'Upload starten'}</button>
       </div>
       <p id="auth-status" class="warn" style="margin-top: 10px;"></p>
     </div>
@@ -471,31 +471,45 @@ function wireAuthUpload(): void {
     state.view = 'run';
     render();
   });
-  $('#btn-auth')?.addEventListener('click', async () => {
+  $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
+}
+
+// One-shot flow: trigger browser login if needed, then immediately upload.
+// Keeps the loopback OAuth server open only for the few seconds between
+// "open browser" and "fetch back the token" — no idle window where the
+// user could close the tool and break the handoff.
+async function doStartUpload(): Promise<void> {
+  if (!state.lastResult) return;
+  const btn = $('#btn-start-upload') as HTMLButtonElement | null;
+  if (btn) btn.disabled = true;
+  try {
     if (!state.authToken) {
-      await doAuthenticate();
-      return;
+      setAuthStatus(t('upload.signingIn', {}) || 'Im Browser anmelden…', 'warn');
+      const r = await window.sc.authenticate();
+      if (!r.ok || !r.accessToken) {
+        setAuthStatus(
+          `${t('upload.signInFailed', {}) || 'Anmeldung fehlgeschlagen'}: ${r.error ?? 'unbekannt'}`,
+          'error',
+        );
+        return;
+      }
+      state.authToken = r.accessToken;
+      setAuthStatus(
+        t('upload.signedIn', { email: r.userEmail ?? 'unbekannt' }) ||
+          `Angemeldet als ${r.userEmail ?? 'unbekannt'} — lade Bundle hoch…`,
+        'warn',
+      );
     }
-    await doUpload();
-  });
-}
-
-async function doAuthenticate(): Promise<void> {
-  setAuthStatus('warte auf Browser-Login…', 'warn');
-  const r = await window.sc.authenticate();
-  if (!r.ok || !r.accessToken) {
-    setAuthStatus(`Fehler: ${r.error ?? 'unbekannt'}`, 'error');
-    return;
+    await doUploadAfterAuth();
+  } finally {
+    if (btn) btn.disabled = false;
   }
-  state.authToken = r.accessToken;
-  setAuthStatus(`angemeldet als ${r.userEmail ?? 'unbekannt'} — klick Upload, um zu senden`, 'ok');
-  render();
 }
 
-async function doUpload(): Promise<void> {
+async function doUploadAfterAuth(): Promise<void> {
   if (!state.authToken || !state.lastResult) return;
   const result = state.lastResult;
-  setAuthStatus('Upload läuft…', 'warn');
+  setAuthStatus(t('upload.uploading', {}) || 'Upload läuft…', 'warn');
   const ch = result.channel as 'LIVE' | 'PTU' | 'EPTU' | 'TECH-PREVIEW';
   const r = await window.sc.upload({
     accessToken: state.authToken,
@@ -509,10 +523,16 @@ async function doUpload(): Promise<void> {
     manifestPath: result.manifest_path,
   });
   if (!r.ok) {
-    setAuthStatus(`Upload-Fehler: ${r.error ?? 'unbekannt'}`, 'error');
+    setAuthStatus(
+      `${t('upload.uploadFailed', {}) || 'Upload-Fehler'}: ${r.error ?? 'unbekannt'}`,
+      'error',
+    );
     return;
   }
-  setAuthStatus(`Upload OK · bundle_id ${r.bundleId ?? '—'}`, 'ok');
+  setAuthStatus(
+    `${t('upload.uploadOk', {}) || 'Upload OK'} · bundle_id ${r.bundleId ?? '—'}`,
+    'ok',
+  );
   paintDiffSummary(r.diffSummary);
 }
 
