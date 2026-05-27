@@ -24,7 +24,13 @@
   },
   "upload": {
     "title": "Upload",
-    "intro": "Le flux OAuth s'ouvre dans le navigateur. Après connexion, le jeton revient à l'application.",
-    "auth": "Se connecter via le navigateur"
+    "intro": "Le démarrage de l'upload ouvre le navigateur pour se connecter. Après une connexion réussie, le bundle est envoyé automatiquement.",
+    "start": "Démarrer l'upload",
+    "signingIn": "Connexion dans le navigateur…",
+    "signedIn": "Connecté en tant que {{email}} — envoi du bundle…",
+    "signInFailed": "Échec de la connexion",
+    "uploading": "Envoi en cours…",
+    "uploadOk": "Upload OK",
+    "uploadFailed": "Échec de l'upload"
   }
 }

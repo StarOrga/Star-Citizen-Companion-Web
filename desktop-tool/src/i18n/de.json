@@ -24,10 +24,15 @@
   },
   "upload": {
     "title": "Upload",
-    "intro": "OAuth-Flow startet im Browser. Nach Login wird der Token an die App zurückgegeben.",
-    "auth": "Im Browser anmelden",
-    "send": "Bundle hochladen",
-    "bundle": "Bundle-Zusammenfassung"
+    "intro": "Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.",
+    "start": "Upload starten",
+    "bundle": "Bundle-Zusammenfassung",
+    "signingIn": "Im Browser anmelden…",
+    "signedIn": "Angemeldet als {{email}} — lade Bundle hoch…",
+    "signInFailed": "Anmeldung fehlgeschlagen",
+    "uploading": "Upload läuft…",
+    "uploadOk": "Upload OK",
+    "uploadFailed": "Upload-Fehler"
   },
   "update": {
     "available": "Update verfügbar: v{{version}} — wird im Hintergrund geladen…",

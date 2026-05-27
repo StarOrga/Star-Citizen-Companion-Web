@@ -24,10 +24,15 @@
   },
   "upload": {
     "title": "Upload",
-    "intro": "OAuth flow opens in your browser. After login, the token is handed back to the tool.",
-    "auth": "Sign in via browser",
-    "send": "Upload bundle",
-    "bundle": "Bundle summary"
+    "intro": "Starting the upload opens your browser for sign-in. After a successful login, the bundle is uploaded automatically.",
+    "start": "Start upload",
+    "bundle": "Bundle summary",
+    "signingIn": "Signing in via browser…",
+    "signedIn": "Signed in as {{email}} — uploading bundle…",
+    "signInFailed": "Sign-in failed",
+    "uploading": "Uploading…",
+    "uploadOk": "Upload OK",
+    "uploadFailed": "Upload failed"
   },
   "update": {
     "available": "Update available: v{{version}} — downloading in background…",
