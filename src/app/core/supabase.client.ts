@@ -14,6 +14,12 @@ export class SupabaseClientProvider {
         autoRefreshToken: true,
         storageKey: 'sc.auth',
         flowType: 'pkce',
+        // Disable Navigator-Lock — the iframe-style dev preview (and any
+        // duplicate-tab scenario on the same origin) triggers
+        // `NavigatorLockAcquireTimeoutError: lock:sc.auth` because two
+        // Supabase clients fight over the same lock. PKCE with single-flight
+        // token rotation makes the lock redundant here.
+        lock: (_name, _acquireTimeout, fn) => fn(),
       },
     });
   }
