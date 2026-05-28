@@ -4,6 +4,43 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-05-28
+
+### Fixed — Desktop-Tool sign-in no longer dies at "Failed to fetch" / "not valid"
+
+Coordinated fix paired with **desktop-0.4.5** below. The web-side changes:
+
+- **Google-OAuth redirect URL is now query-string-free.** Supabase's URL
+  allowlist matches the full redirect URL — entries without explicit `?**`
+  wildcards rejected `/desktop/auth?cb=…&state=…` as "Invalid redirect URL"
+  on the Google callback. [src/app/auth/login.component.ts](src/app/auth/login.component.ts)
+  now stashes any query string in `sessionStorage` and passes a path-only
+  `redirectTo`; [src/app/desktop/desktop-auth.component.ts](src/app/desktop/desktop-auth.component.ts)
+  reads cb/state back from the stash on landing.
+- **Diagnostic error message** now points users at the version requirement:
+  a "Failed to fetch" renders "Bitte das Desktop-Tool auf v0.4.5+
+  aktualisieren — ältere Versionen werden von Chrome's Private-Network-
+  Access blockiert".
+- **`supabase/config.toml` now lists `?**` wildcard variants** for
+  `/desktop/auth` as belt-and-suspenders. Production dashboard
+  (Auth → URL Configuration) needs the same allowlist entries added by hand.
+
+## [desktop-0.4.5] - 2026-05-28
+
+### Fixed — Loopback unreachable on Chrome (Private Network Access)
+
+- **Loopback now ships `Access-Control-Allow-Private-Network: true`.**
+  Chrome blocks cross-origin fetches from a public (HTTPS) origin to a
+  private network (127.0.0.1) unless the preflight response carries that
+  header. [desktop-tool/src/lib/oauth.ts](desktop-tool/src/lib/oauth.ts)
+  now sends it. Without this header the upload flow died at "Loopback
+  unreachable — ist das Desktop-Tool noch offen?" right after a successful
+  sign-in.
+- **End-user note:** older Desktop-Tool versions (≤ 0.4.4) still bake the
+  pre-PNA loopback into the binary. Affected users must update to v0.4.5+
+  via the in-app auto-updater (or re-download from the website) — the
+  web-side `0.4.2` fix alone cannot rescue them.
+
 ## [desktop-0.4.4] - 2026-05-27
 
 ### Changed — desktop upload UX (one-click auth + upload)

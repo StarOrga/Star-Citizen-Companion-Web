@@ -106,6 +106,24 @@ export class DesktopAuthComponent implements OnInit {
     this.cb = q.get('cb') ?? '';
     this.state = q.get('state') ?? '';
 
+    // Fallback for the Google-OAuth round-trip: login.component stashes the
+    // query string before kicking off the provider redirect because
+    // Supabase's allowlist rejects query strings on the callback URL.
+    if (!this.cb || !this.state) {
+      try {
+        const stash = sessionStorage.getItem('sc.oauth-redirect-qs');
+        if (stash) {
+          const parsed = JSON.parse(stash) as { path?: string; qs?: string };
+          if (parsed.path === '/desktop/auth' && parsed.qs) {
+            const params = new URLSearchParams(parsed.qs);
+            this.cb = this.cb || params.get('cb') || '';
+            this.state = this.state || params.get('state') || '';
+          }
+        }
+      } catch { /* ignore — stash optional */ }
+    }
+    try { sessionStorage.removeItem('sc.oauth-redirect-qs'); } catch { /* ignore */ }
+
     if (!this.cb || !this.state) {
       this.status.set('error');
       this.errorMsg.set('Missing `cb` or `state` query parameter.');
@@ -165,8 +183,17 @@ export class DesktopAuthComponent implements OnInit {
       }
     } catch (e) {
       this.status.set('error');
+      // "Failed to fetch" without further detail is almost always Chrome
+      // blocking the cross-origin POST to 127.0.0.1 because the loopback's
+      // CORS preflight is missing `Access-Control-Allow-Private-Network`.
+      // The loopback shipped that header from Desktop-Tool v0.4.5 onward —
+      // older tool versions need to be updated.
+      const msg = (e as Error).message;
+      const looksLikePna = /failed to fetch/i.test(msg);
       this.errorMsg.set(
-        `Loopback unreachable — ist das SC Companion Desktop-Tool noch offen? (${(e as Error).message})`,
+        looksLikePna
+          ? `Loopback unreachable (${msg}). Bitte das SC Companion Desktop-Tool auf v0.4.5+ aktualisieren — ältere Versionen werden von Chrome's Private-Network-Access blockiert.`
+          : `Loopback unreachable — ist das SC Companion Desktop-Tool noch offen? (${msg})`,
       );
       return;
     }

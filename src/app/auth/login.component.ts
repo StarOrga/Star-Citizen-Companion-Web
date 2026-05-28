@@ -180,7 +180,23 @@ export class LoginComponent {
   async signInWithGoogle() {
     this.busy.set(true);
     this.errorMsg.set(null);
-    const { error } = await this.auth.signInWithGoogle(this.safeRedirectTarget());
+    let target = this.safeRedirectTarget();
+    // Supabase's URL allowlist matches the full redirect URL — entries
+    // configured without explicit wildcards reject query strings on the
+    // OAuth callback ("Invalid redirect URL"). Stash any query string,
+    // pass the bare path to the provider, and let the destination route
+    // (currently only /desktop/auth) restore cb/state from sessionStorage.
+    const qIdx = target.indexOf('?');
+    if (qIdx !== -1) {
+      try {
+        sessionStorage.setItem('sc.oauth-redirect-qs', JSON.stringify({
+          path: target.slice(0, qIdx),
+          qs: target.slice(qIdx + 1),
+        }));
+      } catch { /* private mode / disabled storage — fall back to URL */ }
+      target = target.slice(0, qIdx);
+    }
+    const { error } = await this.auth.signInWithGoogle(target);
     if (error) {
       this.errorMsg.set(error.message);
       this.busy.set(false);
