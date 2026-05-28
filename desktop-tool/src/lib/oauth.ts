@@ -77,6 +77,13 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
       'access-control-allow-origin': webOrigin,
       'access-control-allow-methods': 'POST, GET, OPTIONS',
       'access-control-allow-headers': 'content-type',
+      // Chrome's Private Network Access (PNA) blocks fetches from a
+      // public (HTTPS) origin to a private network (127.0.0.1) unless the
+      // preflight response carries this header. Without it, the browser
+      // surfaces a generic "Failed to fetch" — the upload flow then dies
+      // at "Loopback unreachable". See
+      // https://wicg.github.io/private-network-access/
+      'access-control-allow-private-network': 'true',
       // Loopback responses are uncacheable — never let a browser cache the
       // POST result accidentally.
       'cache-control': 'no-store',

@@ -23,13 +23,21 @@ site_url = "http://localhost:4200"
 # config.toml only affects the LOCAL supabase stack; production redirect_urls must
 # be edited via the Supabase dashboard (Auth → URL Configuration) and stay in
 # sync with this list. See .claude/deep-knowledge/deployment-status.md § Vercel.
+# The `?**` wildcard variants tolerate query strings on the OAuth callback —
+# without them Supabase rejects /desktop/auth?cb=...&state=... as "Invalid
+# redirect URL" (https://supabase.com/docs/guides/auth/redirect-urls).
+# Belt-and-suspenders: login.component also stashes cb+state in sessionStorage
+# so the round-trip survives even if the dashboard list lags behind this file.
 additional_redirect_urls = [
   "http://localhost:4200/news",
   "http://localhost:4200/desktop/auth",
+  "http://localhost:4200/desktop/auth?**",
   "https://sc-companion.vercel.app/news",
   "https://sc-companion.vercel.app/desktop/auth",
+  "https://sc-companion.vercel.app/desktop/auth?**",
   "https://star-citizen-companion-website.vercel.app/news",
-  "https://star-citizen-companion-website.vercel.app/desktop/auth"
+  "https://star-citizen-companion-website.vercel.app/desktop/auth",
+  "https://star-citizen-companion-website.vercel.app/desktop/auth?**"
 ]
 jwt_expiry = 3600
 enable_signup = true
