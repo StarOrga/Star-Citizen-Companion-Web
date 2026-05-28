@@ -20,6 +20,16 @@ export class AppComponent implements OnInit {
     const browser = (this.translate.getBrowserLang() ?? 'en').slice(0, 2);
     const initial = stored ?? (browser === 'de' ? 'de' : 'en');
     this.translate.use(initial);
+
+    // Sync <html lang> with the active translation so SEO + screenreaders
+    // see the right language. ngx-translate does not touch this attribute.
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = initial;
+      this.translate.onLangChange.subscribe((e) => {
+        document.documentElement.lang = e.lang;
+      });
+    }
+
     this.auth.init();
   }
 }
