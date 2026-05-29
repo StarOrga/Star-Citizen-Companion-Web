@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-05-29
+
+### Fixed — Verse News: comm-link cards link to the real article and show thumbnails
+
+Every Verse-News comm-link card linked to the `/comm-link` index page instead of
+the article, and no card had a thumbnail. The `fetch-verse-news` edge function
+read fields the star-citizen.wiki API does not return: the permalink is `rsi_url`
+(not `url`), there is no `slug`, so each URL fell back to the index; thumbnails
+only arrive with `?include=images` and live under `images[].rsi_url` (there is no
+top-level `image_url`). Summaries are now derived from `translations` (no
+`summary` field exists). Verified end-to-end against a local Supabase stack.
+
+- [supabase/functions/fetch-verse-news/index.ts](supabase/functions/fetch-verse-news/index.ts):
+  use `rsi_url`, add `?include=images` + `firstImageUrl()`, `summarizeTranslations()`.
+- [.claude/deep-knowledge/verse-news-sources.md](.claude/deep-knowledge/verse-news-sources.md):
+  corrected field names + the `include=images` requirement.
+- [.claude/deep-knowledge/local-dev.md](.claude/deep-knowledge/local-dev.md):
+  reproducible recipe for testing auth-gated pages on a local stack.
+
 ## [desktop-0.4.7] - 2026-05-29
 
 ### Added — Extraction log: copy button + per-line color coding
