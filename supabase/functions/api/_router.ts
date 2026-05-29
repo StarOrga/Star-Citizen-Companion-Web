@@ -126,6 +126,12 @@ export class Router {
       let pathname = url.pathname;
       if (pathname.startsWith('/api/')) pathname = pathname.slice(4);
       else if (pathname === '/api') pathname = '/';
+      // Persist the stripped pathname back into url so downstream
+      // middleware (auth, rate-limit) and handlers see consistent values
+      // — e.g. authMiddleware uses ctx.url.pathname to detect token-mgmt.
+      if (pathname !== url.pathname) {
+        try { url.pathname = pathname; } catch { /* runtime disallows mutation; downstream must cope */ }
+      }
       const matched = this.match(req.method, pathname);
       const base = init(req, url);
       const ctx: Context = {
