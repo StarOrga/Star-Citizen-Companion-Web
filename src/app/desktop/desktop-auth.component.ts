@@ -160,54 +160,39 @@ export class DesktopAuthComponent implements OnInit {
     }
 
     this.status.set('redirecting');
-    const email = this.auth.user()?.email;
+    const email = this.auth.user()?.email ?? '';
 
-    // Step 1: POST the JWT directly to the loopback's /cb endpoint
-    // (cross-origin fetch, body=JSON). The loopback has CORS allow-origin
-    // set to our web origin. This is the real handoff — token is in the
-    // POST body, never in any URL.
-    try {
-      const res = await fetch(this.cb, {
-        method: 'POST',
-        mode: 'cors',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ state: this.state, token, email }),
-      });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        this.status.set('error');
-        this.errorMsg.set(
-          `Loopback rejected token: ${(errBody as { error?: string }).error ?? res.status}`,
-        );
-        return;
-      }
-    } catch (e) {
-      this.status.set('error');
-      // A bare "Failed to fetch" here means the browser refused the
-      // cross-origin POST to the 127.0.0.1 loopback. Two known causes:
-      //   1. The web app's CSP `connect-src` must list `http://127.0.0.1:*`
-      //      (see vercel.json) — otherwise the browser blocks the request
-      //      before it leaves the page (console: "Refused to connect …
-      //      violates the document's Content Security Policy").
-      //   2. The loopback server isn't listening — the Desktop-Tool was
-      //      closed or its OAuth window already timed out.
-      const msg = (e as Error).message;
-      this.errorMsg.set(
-        `Loopback nicht erreichbar (${msg}). Ist das SC Companion Desktop-Tool noch offen? ` +
-          `Falls ja, bitte erneut versuchen.`,
-      );
-      return;
-    }
-
-    // Step 2: Navigate the browser tab to <cb>?state=<csrf>&ack=1 so the
-    // loopback can render its "you can close this window" success page in
-    // the same tab. No token in this URL — only the ack flag.
-    const ackUrl = new URL(this.cb);
-    ackUrl.searchParams.set('state', this.state);
-    ackUrl.searchParams.set('ack', '1');
-    setTimeout(() => {
-      window.location.href = ackUrl.toString();
-    }, 200);
+    // Hand the JWT to the loopback via a TOP-LEVEL form-POST navigation —
+    // NOT a background fetch(). Chrome's Private/Local Network Access blocks
+    // subresource requests (fetch/XHR) from a public HTTPS origin to a
+    // private address (127.0.0.1), even when the loopback answers the CORS
+    // preflight with `Access-Control-Allow-Private-Network: true`. The
+    // earlier fetch() approach (Desktop-Tool ≤ 0.4.5) died silently as
+    // "Failed to fetch" on modern Chrome for exactly this reason.
+    //
+    // A top-level navigation is exempt from PNA/LNA, so a form-POST gets
+    // through. The token rides in the request BODY (not the URL), so it
+    // never lands in browser history. The loopback renders its
+    // "you can close this window" page directly from the POST response.
+    // Requires Desktop-Tool v0.4.6+ (older loopbacks only parse a JSON
+    // fetch body); CSP `form-action` must also list the loopback (see
+    // vercel.json).
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = this.cb;
+    form.acceptCharset = 'utf-8';
+    const addField = (name: string, value: string): void => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    };
+    addField('state', this.state);
+    addField('token', token);
+    addField('email', email);
+    document.body.appendChild(form);
+    form.submit();
   }
 }
 

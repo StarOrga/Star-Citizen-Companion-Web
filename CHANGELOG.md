@@ -4,6 +4,43 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-05-29
+
+### Fixed — Desktop-Tool sign-in: token hand-off now survives Chrome Local Network Access
+
+The CSP fix in 0.4.3 unblocked the `connect-src` preflight, but the JWT hand-off
+still failed: Chrome's Private/Local Network Access blocks a **background
+`fetch()`** from the public HTTPS origin to the `127.0.0.1` loopback — the
+preflight reaches the loopback, but Chrome then suppresses the actual POST, even
+with `Access-Control-Allow-Private-Network: true`. Confirmed with a mock
+loopback: `OPTIONS /cb` arrived, the POST never followed.
+
+The fix swaps the background fetch for a **top-level form-POST navigation**,
+which is exempt from PNA/LNA (this is how Google's own loopback OAuth works).
+The token rides in the request body, so it still never lands in the URL or
+browser history. Paired with **desktop-0.4.6** below.
+
+- [src/app/desktop/desktop-auth.component.ts](src/app/desktop/desktop-auth.component.ts):
+  submit a hidden `<form method="POST">` to the loopback instead of `fetch()`;
+  the loopback renders its success page straight into the navigated tab.
+- **`vercel.json` `form-action`** now lists `http://127.0.0.1:*` (otherwise the
+  CSP blocks the form submit, just as `connect-src` blocked the fetch).
+
+Requires Desktop-Tool **v0.4.6+** (older loopbacks only parse a JSON fetch body).
+
+## [desktop-0.4.6] - 2026-05-29
+
+### Fixed — Loopback accepts the top-level form-POST hand-off
+
+- [desktop-tool/src/lib/oauth.ts](desktop-tool/src/lib/oauth.ts): the `POST /cb`
+  handler now parses `application/x-www-form-urlencoded` (the top-level
+  navigation from the web app) in addition to JSON, validates `state`, and
+  renders the "you can close this window" page directly from the POST response.
+  The obsolete `GET /cb?ack=1` round-trip is gone.
+- **Why:** the previous fetch()+ack design (≤ 0.4.5) is blocked by Chrome's
+  Local Network Access on modern Chrome — see web 0.5.1 above. Any browser now
+  works once both sides are updated.
+
 ## [0.5.0] - 2026-05-29
 
 ### Added — Public REST API + Admin Token Management
