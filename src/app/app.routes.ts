@@ -50,6 +50,12 @@ export const routes: Routes = [
         loadComponent: () => import('./admin/admin.component').then((m) => m.AdminComponent),
       },
       {
+        path: 'admin/api-tokens',
+        canActivate: [roleGuard('admin')],
+        loadComponent: () =>
+          import('./admin/api-tokens/api-tokens.component').then((m) => m.ApiTokensComponent),
+      },
+      {
         path: 'profile',
         loadComponent: () => import('./profile/profile.component').then((m) => m.ProfileComponent),
       },

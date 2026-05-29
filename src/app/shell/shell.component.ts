@@ -26,8 +26,15 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
           <a routerLink="/desktop" routerLinkActive="active">{{ 'nav.desktop' | translate }}</a>
         }
         @if (roles.isAdmin()) {
-          <a routerLink="/admin" routerLinkActive="active" class="admin-link">
+          <a
+            routerLink="/admin"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="admin-link">
             {{ 'nav.admin' | translate }}
+          </a>
+          <a routerLink="/admin/api-tokens" routerLinkActive="active" class="admin-link">
+            {{ 'admin.tokens.navLink' | translate }}
           </a>
         }
         <a routerLink="/profile" routerLinkActive="active">{{ 'nav.profile' | translate }}</a>
