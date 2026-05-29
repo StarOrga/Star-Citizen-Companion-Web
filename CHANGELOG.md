@@ -4,6 +4,36 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [desktop-0.4.9] - 2026-05-29
+
+### Fixed — Upload "ingest_failed", slow portable startup, unclean window close
+
+> Note: the `desktop-v0.4.8` tag never produced a binary — its
+> `electron-builder.yml` carried a duplicated `unpackDirName` key, so the
+> Windows `electron-builder` packaging step failed with a YAML parse error
+> (typecheck/tests were green; only packaging parses the YAML).
+> `desktop-v0.4.9` is the first actual delivery of these fixes.
+
+- **Upload `ingest_failed`** (server-side, already live): `ingest_bundle_atomic`
+  rejected the edge function's service-role call via its `is_collaborator()`
+  defense-in-depth guard — under the service-role key `auth.uid()` is NULL, so
+  the role resolved to `viewer` and the guard always raised `forbidden`
+  (confirmed via Postgres logs). The guard now lets the service-role caller
+  through while still blocking direct authenticated RPC calls.
+  (migration `00007_fix_ingest_rpc_service_role`)
+- **Slow portable startup**: the `portable` build re-extracted the whole bundle
+  (incl. the embedded ~100-200 MB Python) into a random `%TEMP%` dir on every
+  launch. A fixed `portable.unpackDirName` makes it extract once and reuse.
+- **Window not closing cleanly**: pressing X could leave the process in Task
+  Manager. In-flight extraction children are now killed on quit (Windows
+  tree-kill via `taskkill /T`) and the loopback OAuth server force-closes
+  keep-alive sockets.
+
+### Changed — Friendly upload errors + faster Python spawn
+
+Upload errors now show localized (DE/EN) user-facing messages with the technical
+detail, instead of a raw server code. The Python sidecar spawns with `-E -s -B`.
+
 ## [0.5.2] - 2026-05-29
 
 ### Fixed — Verse News: comm-link cards link to the real article and show thumbnails

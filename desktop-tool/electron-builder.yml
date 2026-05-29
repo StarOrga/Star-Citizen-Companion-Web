@@ -48,20 +48,6 @@ portable:
   # stub extracts once to %TEMP%\scc-portable and reuses it on later launches
   # (it re-extracts automatically when the bundled version changes).
   unpackDirName: scc-portable
-  # Persistent unpack dir. WITHOUT this, electron-builder's portable stub uses
-  # a per-launch random %TEMP% folder, so the entire bundle — Electron runtime +
-  # asar + the embedded ~100-200 MB Python interpreter (extraResources) —
-  # re-extracts on EVERY start ("dauert ewig zu öffnen"). With a fixed name the
-  # stub extracts once to %TEMP%\scc-portable and reuses it on later launches
-  # (it re-extracts automatically when the bundled version changes).
-  unpackDirName: scc-portable
-  # Persistent unpack dir. WITHOUT this, electron-builder's portable stub uses
-  # a per-launch random %TEMP% folder, so the entire bundle — Electron runtime +
-  # asar + the embedded ~100-200 MB Python interpreter (extraResources) —
-  # re-extracts on EVERY start ("dauert ewig zu öffnen"). With a fixed name the
-  # stub extracts once to %TEMP%\scc-portable and reuses it on later launches
-  # (it re-extracts automatically when the bundled version changes).
-  unpackDirName: scc-portable
 
 # Code-signing intentionally omitted for Phase 1 — add `certificateFile` + env
 # CSC_LINK / CSC_KEY_PASSWORD once an EV-cert (or self-signed cert) is wired up.
