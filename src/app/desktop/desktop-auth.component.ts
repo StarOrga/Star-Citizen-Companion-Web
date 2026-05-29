@@ -183,17 +183,18 @@ export class DesktopAuthComponent implements OnInit {
       }
     } catch (e) {
       this.status.set('error');
-      // "Failed to fetch" without further detail is almost always Chrome
-      // blocking the cross-origin POST to 127.0.0.1 because the loopback's
-      // CORS preflight is missing `Access-Control-Allow-Private-Network`.
-      // The loopback shipped that header from Desktop-Tool v0.4.5 onward —
-      // older tool versions need to be updated.
+      // A bare "Failed to fetch" here means the browser refused the
+      // cross-origin POST to the 127.0.0.1 loopback. Two known causes:
+      //   1. The web app's CSP `connect-src` must list `http://127.0.0.1:*`
+      //      (see vercel.json) — otherwise the browser blocks the request
+      //      before it leaves the page (console: "Refused to connect …
+      //      violates the document's Content Security Policy").
+      //   2. The loopback server isn't listening — the Desktop-Tool was
+      //      closed or its OAuth window already timed out.
       const msg = (e as Error).message;
-      const looksLikePna = /failed to fetch/i.test(msg);
       this.errorMsg.set(
-        looksLikePna
-          ? `Loopback unreachable (${msg}). Bitte das SC Companion Desktop-Tool auf v0.4.5+ aktualisieren — ältere Versionen werden von Chrome's Private-Network-Access blockiert.`
-          : `Loopback unreachable — ist das SC Companion Desktop-Tool noch offen? (${msg})`,
+        `Loopback nicht erreichbar (${msg}). Ist das SC Companion Desktop-Tool noch offen? ` +
+          `Falls ja, bitte erneut versuchen.`,
       );
       return;
     }
