@@ -119,7 +119,14 @@ export class Router {
   handler(init: (req: Request, url: URL) => Omit<Context, 'req' | 'url' | 'params' | 'endpoint' | 'requiredScope' | 'responseHeaders' | 'token'>): (req: Request) => Promise<Response> {
     return async (req: Request): Promise<Response> => {
       const url = new URL(req.url);
-      const matched = this.match(req.method, url.pathname);
+      // Supabase Edge Functions are invoked at /functions/v1/api/<path>,
+      // so the request URL inside the function has pathname starting with
+      // "/api/...". Strip that function-name prefix before matching, so
+      // routes can stay declared as /openapi.json, /v1/news, etc.
+      let pathname = url.pathname;
+      if (pathname.startsWith('/api/')) pathname = pathname.slice(4);
+      else if (pathname === '/api') pathname = '/';
+      const matched = this.match(req.method, pathname);
       const base = init(req, url);
       const ctx: Context = {
         req,
