@@ -114,6 +114,9 @@ export function startExtraction(
   log.info(`[python-bridge] launching sc_extract via ${source} interpreter=${interpreter} cwd=${cwd}`);
 
   const args = [
+    '-E', // ignore PYTHON* env vars — no env-driven sys.path manipulation at startup
+    '-s', // skip the user site-packages dir — fewer path stats (embedded Lib/site-packages still loads)
+    '-B', // don't write .pyc — avoids disk writes into the (possibly TEMP-extracted) tree
     '-u', // unbuffered stdio — events must arrive in real time
     '-m', 'sc_extract.extract',
     '--p4k', req.p4kPath,
@@ -195,9 +198,32 @@ export function startExtraction(
     promise,
     cancel: () => {
       cancelled = true;
-      if (!child.killed) child.kill();
+      killProcessTree(child);
     },
   };
+}
+
+/** Kill the interpreter AND any grandchildren it spawned. On Windows
+ *  child.kill() (SIGTERM → TerminateProcess) only ends python.exe itself, so a
+ *  hung/long extraction can leave processes behind in Task Manager when the app
+ *  closes. `taskkill /T` tears down the whole tree; we detach + unref the killer
+ *  so it still completes even when the app is mid-quit. */
+function killProcessTree(child: ChildProcessWithoutNullStreams): void {
+  if (child.killed || child.pid == null) return;
+  if (process.platform === 'win32') {
+    try {
+      const killer = spawn('taskkill', ['/pid', String(child.pid), '/t', '/f'], {
+        windowsHide: true,
+        detached: true,
+        stdio: 'ignore',
+      });
+      killer.unref();
+    } catch {
+      child.kill();
+    }
+  } else {
+    child.kill('SIGTERM');
+  }
 }
 
 function scopeToString(scope: ExtractRequest['scope']): string {

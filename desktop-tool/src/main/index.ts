@@ -182,6 +182,25 @@ app.whenReady().then(() => {
   });
 });
 
+// Kill any in-flight Python extraction so it can't linger as an orphaned
+// process in Task Manager after the app window is closed.
+function cancelAllJobs(): void {
+  for (const job of activeJobs.values()) {
+    try {
+      job.cancel();
+    } catch {
+      /* best-effort teardown */
+    }
+  }
+  activeJobs.clear();
+}
+
+app.on('before-quit', cancelAllJobs);
+
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  // Single-window utility: closing the window means quitting on every platform
+  // (no macOS dock-resident behavior — pressing X should make the process gone,
+  // not background it). Tear down extraction children first so nothing lingers.
+  cancelAllJobs();
+  app.quit();
 });
