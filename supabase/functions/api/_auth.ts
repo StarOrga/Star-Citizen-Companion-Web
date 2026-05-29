@@ -58,6 +58,9 @@ export const authMiddleware: Middleware = async (ctx: Context, next) => {
 
   const plaintext = authHeader.replace(BEARER_PREFIX, '').trim();
   if (!plaintext || !plaintext.startsWith('scc_')) {
+    // For /v1/tokens, the Bearer header carries the Supabase session JWT
+    // (eyJ…), NOT an API token. The handler verifies it via getUser().
+    if (isTokenMgmt) return next();
     return json(
       { error: { code: 'unauthorized', message: 'Malformed API token.' } },
       401,
