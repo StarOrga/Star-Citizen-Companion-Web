@@ -4,6 +4,31 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-05-29
+
+### Fixed — Desktop-Tool sign-in: the *real* "Failed to fetch" cause was our own CSP
+
+The 0.4.2 / desktop-0.4.5 work misdiagnosed the blocker as Chrome's
+Private-Network-Access and an outdated tool binary. It was neither — verified
+live: Supabase project healthy, redirect allowlist correct, the Google-OAuth
+leg works, and a mock loopback **with** the PNA header was *still* blocked.
+
+The actual blocker is the web app's own Content-Security-Policy. `connect-src`
+never listed the `127.0.0.1` loopback, so the browser refused the JWT POST from
+`/desktop/auth` before it left the page:
+
+> Refused to connect to 'http://127.0.0.1:46800/cb' because it violates the
+> document's Content Security Policy.
+
+- **`vercel.json` `connect-src` now includes `http://127.0.0.1:*`** — matches
+  `isLoopback`, which only accepts 127.0.0.1 in port range 46800–46899.
+- **Error message corrected** in [src/app/desktop/desktop-auth.component.ts](src/app/desktop/desktop-auth.component.ts):
+  the misleading "update to v0.4.5+ (Chrome PNA)" advice is replaced with an
+  accurate "loopback unreachable — CSP or tool closed" hint. Any
+  Desktop-Tool version works once the deployed CSP allows the loopback.
+
+Takes effect after the Vercel deploy serves the new header.
+
 ## [0.4.2] - 2026-05-28
 
 ### Fixed — Desktop-Tool sign-in no longer dies at "Failed to fetch" / "not valid"
