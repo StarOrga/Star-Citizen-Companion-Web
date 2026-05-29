@@ -20,7 +20,11 @@
   },
   "run": {
     "title": "Extraktion läuft",
-    "next": "Upload anbieten"
+    "next": "Upload anbieten",
+    "logTitle": "Protokoll",
+    "copyLog": "Kopieren",
+    "copied": "Kopiert ✓",
+    "copyFailed": "Fehlgeschlagen"
   },
   "upload": {
     "title": "Upload",

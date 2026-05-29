@@ -195,6 +195,34 @@ h3 { font-size: 0.9rem; }
   transition: width 0.2s ease;
 }
 
+.log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 10px 0 4px;
+}
+.log-title {
+  font-family: var(--sc-font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sc-fg-2);
+}
+.btn-copy { padding: 3px 12px; font-size: 0.66rem; }
+.btn-copy.copied {
+  background: var(--sc-success);
+  border-color: var(--sc-success);
+  color: var(--sc-bg-0);
+}
+.btn-copy.copied:hover { background: var(--sc-success); color: var(--sc-bg-0); }
+.btn-copy.copy-failed {
+  background: var(--sc-danger);
+  border-color: var(--sc-danger);
+  color: var(--sc-bg-0);
+}
+.btn-copy.copy-failed:hover { background: var(--sc-danger); color: var(--sc-bg-0); }
+
 .log-stream {
   background: #000;
   border: 1px solid var(--sc-border);
@@ -207,6 +235,10 @@ h3 { font-size: 0.9rem; }
   color: var(--sc-fg-1);
   white-space: pre-wrap;
 }
+.log-line { white-space: pre-wrap; }
+.log-line.log-success { color: var(--sc-success); }
+.log-line.log-warn { color: var(--sc-warning); }
+.log-line.log-error { color: var(--sc-danger); }
 
 .counters {
   display: grid;

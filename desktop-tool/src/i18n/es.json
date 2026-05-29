@@ -20,7 +20,11 @@
   },
   "run": {
     "title": "Extrayendo",
-    "next": "Continuar a la subida"
+    "next": "Continuar a la subida",
+    "logTitle": "Registro",
+    "copyLog": "Copiar",
+    "copied": "Copiado ✓",
+    "copyFailed": "Error"
   },
   "upload": {
     "title": "Subida",

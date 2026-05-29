@@ -4,6 +4,28 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [desktop-0.4.7] - 2026-05-29
+
+### Added — Extraction log: copy button + per-line color coding
+
+The Run view's extraction log was a plain monochrome text blob with no way to
+grab it for a bug report. Each line is now rendered as its own element, colored
+by level — green for the success/"done" summary, yellow for warnings, red for
+errors — and a **Copy** button hands the full transcript to the clipboard,
+flashing green on success / red on failure.
+
+Clipboard access is routed through the main process (Electron's `clipboard`
+module via a new `sc:clipboard:write` IPC handler), because the sandboxed
+`file://` renderer can't reach `navigator.clipboard` reliably.
+
+- [desktop-tool/src/renderer/main.ts](desktop-tool/src/renderer/main.ts):
+  colored `<div>` log lines, plain-text mirror buffer, `copyLog()` with
+  green/red button feedback.
+- [desktop-tool/src/main/index.ts](desktop-tool/src/main/index.ts) +
+  [src/preload/index.ts](desktop-tool/src/preload/index.ts): `sc:clipboard:write`
+  bridge over `clipboard.writeText`.
+- New i18n keys `run.logTitle / copyLog / copied / copyFailed` in all 7 locales.
+
 ## [0.5.1] - 2026-05-29
 
 ### Fixed — Desktop-Tool sign-in: token hand-off now survives Chrome Local Network Access

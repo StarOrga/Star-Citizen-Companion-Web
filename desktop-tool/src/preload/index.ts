@@ -79,6 +79,10 @@ export const api = {
   authenticate: (): Promise<AuthResult> => ipcRenderer.invoke('sc:authenticate'),
   upload: (payload: UploadPayload): Promise<UploadResult> =>
     ipcRenderer.invoke('sc:upload', payload),
+  clipboard: {
+    writeText: (text: string): Promise<{ ok: boolean }> =>
+      ipcRenderer.invoke('sc:clipboard:write', text),
+  },
   update: {
     status: (): Promise<UpdateEvent> => ipcRenderer.invoke('sc:update:status'),
     check: (): Promise<UpdateEvent> => ipcRenderer.invoke('sc:update:check'),

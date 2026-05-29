@@ -18,6 +18,11 @@ interface ToolEnv {
 const $ = (sel: string): HTMLElement | null => document.querySelector(sel);
 
 type ViewName = 'discover' | 'configure' | 'run' | 'auth-upload';
+type LogLevel = 'info' | 'success' | 'warn' | 'error';
+
+// Plain-text mirror of the run-view log stream, so the "copy" button can hand
+// the whole transcript to the clipboard regardless of per-line DOM coloring.
+let extractLogText = '';
 
 interface ExtractResultPayload {
   channel: string;
@@ -304,6 +309,10 @@ function renderRun(): string {
       <h2 id="phase-label">…</h2>
       <div class="progress-bar"><span id="bar" style="width:0%"></span></div>
       <div class="counters" id="counters"></div>
+      <div class="log-header">
+        <span class="log-title">${t('run.logTitle', {}) || 'Protokoll'}</span>
+        <button id="btn-copy-log" type="button" class="btn btn-copy">${t('run.copyLog', {}) || 'Kopieren'}</button>
+      </div>
       <div class="log-stream" id="log"></div>
     </div>
     <div class="btn-row">
@@ -322,7 +331,28 @@ function wireRun(): void {
     state.view = 'auth-upload';
     render();
   });
+  $('#btn-copy-log')?.addEventListener('click', () => void copyLog());
   void runRealExtract();
+}
+
+async function copyLog(): Promise<void> {
+  const btn = $('#btn-copy-log') as HTMLButtonElement | null;
+  if (!btn) return;
+  const reset = (): void => {
+    btn.classList.remove('copied', 'copy-failed');
+    btn.textContent = t('run.copyLog', {}) || 'Kopieren';
+  };
+  try {
+    await window.sc.clipboard.writeText(extractLogText);
+    btn.classList.remove('copy-failed');
+    btn.classList.add('copied');
+    btn.textContent = t('run.copied', {}) || 'Kopiert ✓';
+  } catch {
+    btn.classList.remove('copied');
+    btn.classList.add('copy-failed');
+    btn.textContent = t('run.copyFailed', {}) || 'Fehlgeschlagen';
+  }
+  setTimeout(reset, 1600);
 }
 
 async function runRealExtract(): Promise<void> {
@@ -333,10 +363,15 @@ async function runRealExtract(): Promise<void> {
   const setBar = (pct: number) => {
     if (bar) bar.style.width = pct + '%';
   };
-  const appendLog = (msg: string, level: 'info' | 'warn' | 'error' = 'info') => {
-    if (!logEl) return;
+  const appendLog = (msg: string, level: LogLevel = 'info') => {
     const prefix = level === 'error' ? '[err] ' : level === 'warn' ? '[warn] ' : '';
-    logEl.textContent += prefix + msg + '\n';
+    const text = prefix + msg;
+    extractLogText += text + '\n';
+    if (!logEl) return;
+    const line = document.createElement('div');
+    line.className = 'log-line log-' + level;
+    line.textContent = text;
+    logEl.appendChild(line);
     logEl.scrollTop = logEl.scrollHeight;
   };
   const countMap: Record<string, number> = {};
@@ -349,6 +384,8 @@ async function runRealExtract(): Promise<void> {
       )
       .join('');
   };
+
+  extractLogText = '';
 
   const channel = state.channels.find((c) => c.selected);
   if (!channel) {
@@ -415,6 +452,7 @@ async function runRealExtract(): Promise<void> {
       appendLog(
         `done — quality ${final.result.quality_score.toFixed(0)}/100, ` +
           `${Object.values(final.result.entity_counts).reduce((a, b) => a + b, 0).toLocaleString()} entities`,
+        'success',
       );
       ($('#btn-to-upload') as HTMLButtonElement | null)?.removeAttribute('disabled');
     } else {
