@@ -70,6 +70,11 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
     const finish = (r: AuthResult): void => {
       if (resolved) return;
       resolved = true;
+      // Browsers keep the loopback TCP connection alive (HTTP keep-alive) after
+      // the handoff page loads. server.close() alone waits on those idle
+      // sockets, leaving an open handle that can keep the process from exiting
+      // cleanly — force them shut so the app closes properly.
+      server.closeAllConnections?.();
       server.close();
       clearTimeout(timer);
       resolve(r);

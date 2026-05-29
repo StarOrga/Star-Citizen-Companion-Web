@@ -544,6 +544,56 @@ async function doStartUpload(): Promise<void> {
   }
 }
 
+// Server-side error codes the ingest-bundle edge function can return. Anything
+// NOT in this set is a transport-layer message (network down, timeout, …).
+const KNOWN_UPLOAD_ERRORS = new Set([
+  'unauthorized', 'forbidden', 'missing_release_token', 'unknown_release_token',
+  'release_token_revoked', 'duplicate', 'ingest_failed', 'invalid_body',
+  'invalid_json', 'server_misconfigured', 'method_not_allowed',
+]);
+
+// Turn a raw upload failure (server error code + optional server `message`, or
+// a network/timeout message) into a sentence a non-technical operator can act
+// on, while still surfacing the technical detail for support.
+function friendlyUploadError(r: { error?: string; details?: unknown }): string {
+  const code = r.error ?? 'unknown';
+  const serverMsg =
+    r.details && typeof r.details === 'object'
+      ? (r.details as { message?: unknown }).message
+      : undefined;
+
+  let friendly: string;
+  switch (code) {
+    case 'unauthorized':
+      friendly = t('upload.err.unauthorized'); break;
+    case 'forbidden':
+      friendly = t('upload.err.forbidden'); break;
+    case 'missing_release_token':
+    case 'unknown_release_token':
+    case 'release_token_revoked':
+      friendly = t('upload.err.releaseToken'); break;
+    case 'duplicate':
+      friendly = t('upload.err.duplicate'); break;
+    case 'ingest_failed':
+      friendly = t('upload.err.ingestFailed'); break;
+    case 'invalid_body':
+    case 'invalid_json':
+      friendly = t('upload.err.invalidBody'); break;
+    case 'server_misconfigured':
+      friendly = t('upload.err.serverMisconfigured'); break;
+    default:
+      // Unknown code === a raw fetch/timeout message from the transport layer.
+      friendly = KNOWN_UPLOAD_ERRORS.has(code) ? t('upload.err.generic') : t('upload.err.network');
+  }
+
+  const detail =
+    (typeof serverMsg === 'string' && serverMsg) ||
+    (KNOWN_UPLOAD_ERRORS.has(code) ? code : r.error);
+  return detail && detail !== friendly
+    ? t('upload.err.withDetail', { friendly, detail })
+    : friendly;
+}
+
 async function doUploadAfterAuth(): Promise<void> {
   if (!state.authToken || !state.lastResult) return;
   const result = state.lastResult;
@@ -561,10 +611,7 @@ async function doUploadAfterAuth(): Promise<void> {
     manifestPath: result.manifest_path,
   });
   if (!r.ok) {
-    setAuthStatus(
-      `${t('upload.uploadFailed', {}) || 'Upload-Fehler'}: ${r.error ?? 'unbekannt'}`,
-      'error',
-    );
+    setAuthStatus(friendlyUploadError(r), 'error');
     return;
   }
   setAuthStatus(
