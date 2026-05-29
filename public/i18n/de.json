@@ -161,7 +161,57 @@
       "leaveSelf": "Verlassen"
     },
     "errorTitle": "Aktion fehlgeschlagen",
-    "loading": "Lade User…"
+    "loading": "Lade User…",
+    "tokens": {
+      "navLink": "API-Tokens",
+      "title": "Admin · API-Tokens",
+      "subtitle": "Bearer-Tokens für die öffentliche /v1-API ausstellen. Tokens werden EINMALIG im Klartext angezeigt — sicher im Passwort-Manager ablegen.",
+      "refresh": "Aktualisieren",
+      "newToken": "Neuen Token erstellen",
+      "errorTitle": "Tokens konnten nicht geladen werden",
+      "empty": "Noch keine aktiven Tokens. Auf \"Neuen Token erstellen\" klicken, um einen anzulegen.",
+      "col": {
+        "name": "Name",
+        "prefix": "Prefix",
+        "scopes": "Scopes",
+        "lastUsed": "Zuletzt verwendet",
+        "created": "Erstellt",
+        "actions": "Aktionen"
+      },
+      "neverUsed": "nie",
+      "revoke": "Widerrufen",
+      "revoking": "Widerrufe…",
+      "revokeConfirm": "Token \"{{name}}\" wirklich widerrufen? Nicht rückgängig machbar. Jeder Client mit diesem Token bekommt sofort 401.",
+      "revokeSuccess": "Token widerrufen.",
+      "revokeError": "Widerruf fehlgeschlagen",
+      "dialog": {
+        "title": "API-Token erstellen",
+        "subtitle": "Namen + ein oder mehrere Scopes wählen. Der Klartext-Token wird EINMALIG angezeigt — vor dem Schließen sichern.",
+        "nameLabel": "Name",
+        "namePlaceholder": "z.B. Discord-Bot, persönliches CLI",
+        "scopesLabel": "Scopes",
+        "create": "Token erstellen",
+        "creating": "Erstelle…",
+        "cancel": "Abbrechen",
+        "errorTitle": "Token konnte nicht erstellt werden"
+      },
+      "scopeDescriptions": {
+        "news:read": "Liest /v1/news",
+        "patch:read": "Liest /v1/patch",
+        "ships:read": "Liest /v1/ships",
+        "components:read": "Liest /v1/components",
+        "*:read": "Kürzel: alle Read-Endpoints",
+        "admin:tokens": "Token-Verwaltung (Admin-Rolle bleibt erforderlich)"
+      },
+      "reveal": {
+        "title": "Dein neuer Token",
+        "warning": "Du siehst ihn nie wieder. Jetzt kopieren und im Secret-Manager ablegen.",
+        "copy": "Kopieren",
+        "copied": "Kopiert",
+        "ack": "Ich hab's gesichert",
+        "tokenLabel": "Klartext-Token"
+      }
+    }
   },
   "desktop": {
     "title": "Desktop-Tool",

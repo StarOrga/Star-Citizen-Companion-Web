@@ -65,6 +65,13 @@ verify_jwt = true
 # revert this without also reworking the auth logic in the function body.
 verify_jwt = false
 
+[functions.api]
+# JWT verification OFF — the /v1 API uses our own Bearer tokens (`scc_live_*`)
+# OR session JWT (validated inside the tokens-mgmt handlers). /openapi.json
+# and /docs are intentionally public. Platform-level JWT gate would reject
+# every Bearer-token request before our middleware sees it.
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 policy = "oneshot"

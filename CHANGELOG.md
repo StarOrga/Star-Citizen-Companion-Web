@@ -4,6 +4,46 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-05-29
+
+### Added — Public REST API + Admin Token Management
+
+Erste öffentliche API unter `/v1/...` mit Bearer-Token-Auth, Postgres sliding-window
+Rate-Limiting (60 req/min default), und Resource-Level Scopes
+(`news:read`, `patch:read`, `ships:read`, `components:read`, `*:read`, `admin:tokens`).
+
+**Admin-UI** unter `/admin/api-tokens` (lazy + `roleGuard('admin')`):
+- Token-CRUD mit `scc_live_<32 char>` Prefix + SHA-256-Hash, plaintext-Token
+  einmalig nach Erstellung sichtbar
+- Tabelle mit Name / Prefix / Scopes / last_used / Created / Revoke
+- ngx-translate i18n für DE + EN
+
+**Edge Function** `supabase/functions/api/` mit internem Router:
+- `_router.ts` zero-dep chainable mit `:param`-Matching
+- `_auth.ts` Bearer + sha256-Hash-Lookup + scope-check + last_used_at-touch
+- `_rate-limit.ts` Postgres sliding-window (`api_request_log` table)
+- `_cors.ts` Origin-Allowlist für POST/DELETE
+
+**Endpoints** (alle mit `X-RateLimit-*` + `X-Cache` + `X-Patch-Version` Headern):
+- `GET /v1/news` aus `news_cache` (90d-Fenster, optionaler `?source=` Filter)
+- `GET /v1/patch` aus `patch_versions` (live/ptu/eptu)
+- `GET /v1/ships?patch=`, `GET /v1/components?patch=` — STUBS (Data-Ingestion follow-up)
+- `POST/GET/DELETE /v1/tokens` (session-JWT + admin)
+- `GET /openapi.json` (public, OpenAPI 3.1 Spec mit Bearer-Scheme + Scope-Defs)
+- `GET /docs` (public, Scalar-UI + Embed-Snippet zur Integration in andere Tools)
+
+**Migrations** (`20260529_public_api_tokens.sql`):
+- `api_tokens` (mit RLS "admins manage own tokens")
+- `api_request_log` (sliding-window storage)
+- `patch_versions`, `news_cache`
+- `public.is_admin(uuid)` Overload
+
+**Known limits / Follow-ups** (siehe Concept-Page Open-Questions F1–F6):
+- Ship + Component Daten-Ingestion noch nicht implementiert (Stubs)
+- `news_cache` braucht `pg_cron` Refresh-Job
+- `patch_versions` braucht Comm-Link Polling
+- Migration nur als File — `npm run db:push` nach Review nötig
+
 ## [0.4.3] - 2026-05-29
 
 ### Fixed — Desktop-Tool sign-in: the *real* "Failed to fetch" cause was our own CSP

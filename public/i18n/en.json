@@ -161,7 +161,57 @@
       "leaveSelf": "Leave"
     },
     "errorTitle": "Action failed",
-    "loading": "Loading users…"
+    "loading": "Loading users…",
+    "tokens": {
+      "navLink": "API Tokens",
+      "title": "Admin · API Tokens",
+      "subtitle": "Issue bearer tokens for the public /v1 API. Tokens are shown ONCE in plaintext — store them in your secrets manager.",
+      "refresh": "Refresh",
+      "newToken": "New token",
+      "errorTitle": "Could not load tokens",
+      "empty": "No active tokens yet. Click \"New token\" to create one.",
+      "col": {
+        "name": "Name",
+        "prefix": "Prefix",
+        "scopes": "Scopes",
+        "lastUsed": "Last used",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "neverUsed": "never",
+      "revoke": "Revoke",
+      "revoking": "Revoking…",
+      "revokeConfirm": "Revoke token \"{{name}}\"? This cannot be undone. Any client using it will get 401 immediately.",
+      "revokeSuccess": "Token revoked.",
+      "revokeError": "Revoke failed",
+      "dialog": {
+        "title": "Create API token",
+        "subtitle": "Pick a friendly name + one or more scopes. The plaintext token is shown ONCE — save it before closing.",
+        "nameLabel": "Name",
+        "namePlaceholder": "e.g. Discord Bot, Personal CLI",
+        "scopesLabel": "Scopes",
+        "create": "Create token",
+        "creating": "Creating…",
+        "cancel": "Cancel",
+        "errorTitle": "Could not create token"
+      },
+      "scopeDescriptions": {
+        "news:read": "Read /v1/news",
+        "patch:read": "Read /v1/patch",
+        "ships:read": "Read /v1/ships",
+        "components:read": "Read /v1/components",
+        "*:read": "Shortcut: all read endpoints",
+        "admin:tokens": "Manage tokens (admin role still required)"
+      },
+      "reveal": {
+        "title": "Your new token",
+        "warning": "You will never see it again. Copy it now and store it in a secret manager.",
+        "copy": "Copy",
+        "copied": "Copied",
+        "ack": "I have saved it",
+        "tokenLabel": "Plaintext token"
+      }
+    }
   },
   "desktop": {
     "title": "Desktop Tool",
