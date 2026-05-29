@@ -144,18 +144,28 @@ export class Router {
         ...base,
       };
 
-      if (!matched) {
+      // A CORS preflight (OPTIONS) never matches a GET/POST/DELETE route, so
+      // `matched` is null here. We must NOT 404 it — the browser needs a 2xx
+      // with CORS headers or it blocks the real cross-origin request. Let it
+      // fall through to the middleware chain; corsMiddleware answers OPTIONS
+      // with a 204. Any other method without a route is a genuine 404.
+      if (!matched && req.method !== 'OPTIONS') {
         return json({ error: { code: 'not_found', message: 'Route not found' } }, 404, ctx.responseHeaders);
       }
 
       // Build the middleware chain. Public routes skip the global mw entirely
       // (so /openapi.json and /docs don't trigger Bearer-auth lookups).
-      const mwChain: Middleware[] = matched.options.public ? [] : this.middlewares;
+      const mwChain: Middleware[] = matched?.options.public ? [] : this.middlewares;
       let i = -1;
       const dispatch = async (): Promise<Response> => {
         i++;
         if (i < mwChain.length) {
           return mwChain[i](ctx, dispatch);
+        }
+        if (!matched) {
+          // OPTIONS preflight that no middleware short-circuited — return a
+          // bare 204 carrying whatever CORS headers were set on ctx.
+          return new Response(null, { status: 204, headers: ctx.responseHeaders });
         }
         return matched.handler(ctx);
       };
