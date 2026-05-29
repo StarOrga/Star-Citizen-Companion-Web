@@ -20,7 +20,11 @@
   },
   "run": {
     "title": "Extraction en cours",
-    "next": "Continuer vers l'upload"
+    "next": "Continuer vers l'upload",
+    "logTitle": "Journal",
+    "copyLog": "Copier",
+    "copied": "Copié ✓",
+    "copyFailed": "Échec"
   },
   "upload": {
     "title": "Upload",

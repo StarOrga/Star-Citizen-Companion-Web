@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain, dialog, shell } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain, dialog, shell, clipboard } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { discoverAll, discoverManual } from '../lib/discovery.js';
@@ -101,6 +101,13 @@ ipcMain.handle('sc:authenticate', async () => runOAuthFlow(WEB_BASE));
 ipcMain.handle('sc:upload', async (_e, payload: UploadPayload) =>
   uploadBundle(API_BASE, payload),
 );
+
+// Sandboxed renderers can't reach the `clipboard` module, and navigator.clipboard
+// is unreliable over file:// — route copy requests through the main process.
+ipcMain.handle('sc:clipboard:write', (_e, text: string) => {
+  clipboard.writeText(typeof text === 'string' ? text : String(text));
+  return { ok: true };
+});
 
 // ============= Auto-Update IPC =============
 

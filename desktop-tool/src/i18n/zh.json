@@ -20,7 +20,11 @@
   },
   "run": {
     "title": "正在提取",
-    "next": "继续上传"
+    "next": "继续上传",
+    "logTitle": "日志",
+    "copyLog": "复制",
+    "copied": "已复制 ✓",
+    "copyFailed": "失败"
   },
   "upload": {
     "title": "上传",
