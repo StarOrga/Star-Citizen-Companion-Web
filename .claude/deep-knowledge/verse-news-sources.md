@@ -10,7 +10,9 @@ The Verse News feed proxies multiple sources through the `fetch-verse-news` edge
 - Pros: structured data (title, slug, summary, image, channel, published_at), translated.
 - Cons: third-party — outage means we serve stale or empty. Mitigated by SW data-cache (15 min freshness).
 
-Fields used: `cig_id` (or `id`/`slug` fallback), `title`, `url`, `created_at`, `series`, `summary`, `image_url`.
+Fields used: `id`, `title`, `rsi_url` (the canonical RSI permalink — **not** `url`), `created_at`, `series`, `translations` (newline-joined body text, used to derive the summary).
+
+**Thumbnails require `?include=images`.** Without that query param the API returns only an `images_count` integer and omits the `images` array — that is why early versions showed no thumbnails. With it, the first image's `rsi_url` is the RSI-CDN thumbnail. There is no top-level `image_url` field, and there is no `summary` field.
 
 ## Secondary: RSI status RSS
 

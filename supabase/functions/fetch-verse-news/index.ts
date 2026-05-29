@@ -38,7 +38,9 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 };
 
-const COMM_LINK_API = 'https://api.star-citizen.wiki/api/v2/comm-links?limit=40';
+// `include=images` is REQUIRED — without it the API omits the images array entirely
+// (only an `images_count` integer is returned), leaving every card without a thumbnail.
+const COMM_LINK_API = 'https://api.star-citizen.wiki/api/v2/comm-links?limit=40&include=images';
 const STATUS_PAGE_URL = 'https://status.robertsspaceindustries.com/';
 const SPECTRUM_FORUM_URL = 'https://robertsspaceindustries.com/spectrum/community/SC';
 // RSI YouTube channel. Default is the RSI handle; override via env if needed.
@@ -73,6 +75,11 @@ function normalizeRsiUrl(raw: string | undefined, fallbackPath = ''): string {
 }
 
 // --------------------- Comm-Link + Patch-Notes ---------------------
+// star-citizen.wiki/api/v2 entry shape (relevant fields only):
+//   id: number, title: string (often the generic series name),
+//   rsi_url: string (canonical comm-link permalink), series/channel/category: string,
+//   images: [{ rsi_url: string }] (only when ?include=images),
+//   translations: { en_EN?: string, de_DE?: string, ... } — newline-joined body text.
 async function fetchCommLinks(): Promise<VerseNewsItem[]> {
   try {
     const res = await fetch(COMM_LINK_API, { headers: { 'Accept': 'application/json' } });
@@ -82,18 +89,18 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
     return items.map((entry) => {
       const series = String(entry['series'] ?? entry['channel'] ?? '').trim();
       const channel = classifyCommLinkChannel(series);
-      const slug = typeof entry['slug'] === 'string' ? (entry['slug'] as string) : '';
-      const rawUrl = typeof entry['url'] === 'string' ? (entry['url'] as string) : '';
-      const fallbackPath = slug ? `/comm-link/${slug}` : '/comm-link';
+      // The wiki API field is `rsi_url` (the RSI permalink), NOT `url`. Falling back to a
+      // path here is what made every link land on the /comm-link index page.
+      const rawUrl = typeof entry['rsi_url'] === 'string' ? (entry['rsi_url'] as string) : '';
       return {
-        id: String(entry['cig_id'] ?? entry['id'] ?? slug ?? crypto.randomUUID()),
+        id: String(entry['cig_id'] ?? entry['id'] ?? crypto.randomUUID()),
         title: String(entry['title'] ?? 'Untitled'),
-        url: normalizeRsiUrl(rawUrl, fallbackPath),
+        url: normalizeRsiUrl(rawUrl, '/comm-link'),
         publishedAt: String(entry['created_at'] ?? entry['published_at'] ?? new Date().toISOString()),
         channel,
-        summary: typeof entry['summary'] === 'string' ? entry['summary'] : undefined,
-        thumbnail: typeof entry['image_url'] === 'string' ? entry['image_url'] : undefined,
-        category: series || undefined,
+        summary: summarizeTranslations(entry['translations'], series),
+        thumbnail: firstImageUrl(entry['images']),
+        category: series && series !== 'None' ? series : undefined,
         source: channel === 'patch' ? 'patch-notes' : 'comm-link',
       } satisfies VerseNewsItem;
     });
@@ -101,6 +108,29 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
     console.error('fetchCommLinks failed:', err);
     return [];
   }
+}
+
+// Pull the RSI CDN url of the first image from the `images` include (absent without it).
+function firstImageUrl(images: unknown): string | undefined {
+  if (!Array.isArray(images)) return undefined;
+  for (const img of images) {
+    const url = img && typeof img === 'object' ? (img as Record<string, unknown>)['rsi_url'] : null;
+    if (typeof url === 'string' && url) return url;
+  }
+  return undefined;
+}
+
+// Translations are newline-joined body text (the API has no dedicated summary field).
+// Prefer EN, then DE, then any locale. Drop the leading line that just echoes the series
+// header so the summary doesn't start by repeating the card's category.
+function summarizeTranslations(translations: unknown, series: string): string | undefined {
+  if (!translations || typeof translations !== 'object') return undefined;
+  const t = translations as Record<string, unknown>;
+  const raw = [t['en_EN'], t['de_DE'], ...Object.values(t)].find((v) => typeof v === 'string' && v.trim());
+  if (typeof raw !== 'string') return undefined;
+  const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (lines.length && series && lines[0].toLowerCase() === series.toLowerCase()) lines.shift();
+  return lines.join(' ').slice(0, 280) || undefined;
 }
 
 function classifyCommLinkChannel(series: string): Channel {
