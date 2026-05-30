@@ -15,7 +15,7 @@ import { TranslateModule } from '@ngx-translate/core';
     <footer class="site-footer">
       <div class="inner">
         <div class="badge">
-          <img src="icons/made-by-community.svg"
+          <img src="icons/made-by-community.png"
                [alt]="'footer.badgeAlt' | translate"
                width="64" height="64" />
           <span class="badge-label">{{ 'footer.madeByCommunity' | translate }}</span>
