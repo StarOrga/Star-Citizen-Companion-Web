@@ -15,7 +15,7 @@
     "p4k": "Historique des bundles",
     "profile": "Profil",
     "admin": "Admin",
-    "desktop": "Outil bureau",
+    "desktop": "Data Uploader",
     "signOut": "Déconnexion"
   },
   "news": {
@@ -29,13 +29,13 @@
   },
   "p4k": {
     "title": "Historique des bundles P4K",
-    "subtitle": "Bundles pré-traités depuis l'outil bureau. Les uploads bruts passent uniquement par l'outil, pas par le site.",
+    "subtitle": "Bundles pré-traités depuis le Data Uploader. Les uploads bruts passent uniquement par l'outil, pas par le site.",
     "refresh": "Actualiser",
     "errorTitle": "Impossible de charger les bundles",
     "empty": {
       "title": "Pas encore de bundles",
-      "hint": "Dès qu'un upload de l'outil bureau arrive, il apparaîtra ici.",
-      "goDesktop": "Ouvrir la page de l'outil bureau"
+      "hint": "Dès qu'un upload du Data Uploader arrive, il apparaîtra ici.",
+      "goDesktop": "Ouvrir la page du Data Uploader"
     },
     "kpi": {
       "total": "Bundles totaux",
@@ -98,8 +98,8 @@
     "loading": "Chargement des utilisateurs…"
   },
   "desktop": {
-    "title": "Outil bureau",
-    "subtitle": "Téléchargez le scanner companion pour votre installation Star Citizen locale. Admin + collaborateur uniquement.",
+    "title": "Data Uploader",
+    "subtitle": "Téléchargez le Data Uploader pour votre installation Star Citizen locale. Admin + collaborateur uniquement.",
     "currentVersion": "Version actuelle",
     "released": "Publié",
     "notes": "Notes de version",
@@ -110,12 +110,12 @@
     "hash": "SHA-256"
   },
   "desktopAuth": {
-    "title": "Autoriser l'outil bureau",
+    "title": "Autoriser le Data Uploader",
     "authorizing": "Vérification de votre session…",
     "loginRequired": "Connectez-vous d'abord — nous vous renvoyons ici automatiquement.",
     "redirecting": "Autorisé. Envoi du jeton à l'application…",
     "redirectingHint": "Vous pouvez fermer cette fenêtre dans un instant.",
-    "unauthorized": "Votre compte ne peut pas utiliser l'outil bureau.",
+    "unauthorized": "Votre compte ne peut pas utiliser le Data Uploader.",
     "unauthorizedHint": "Il vous faut le rôle collaborateur ou admin. Demandez à un admin."
   }
 }

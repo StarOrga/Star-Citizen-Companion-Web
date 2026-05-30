@@ -1,7 +1,7 @@
 [project]
 name = "sc-extract"
 version = "0.1.0"
-description = "SC Companion P4K extractor — Python sidecar."
+description = "Star Citizen Companion - Data Uploader P4K extractor — Python sidecar."
 requires-python = ">=3.11"
 license = { text = "MIT" }
 

@@ -1,6 +1,6 @@
 """Tests for the plausibility validator thresholds.
 
-Run via: python -m pytest desktop-tool/python/tests/
+Run via: python -m pytest data-uploader/python/tests/
 """
 
 import pytest

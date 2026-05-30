@@ -15,7 +15,7 @@
     "p4k": "Histórico de bundles",
     "profile": "Perfil",
     "admin": "Admin",
-    "desktop": "Ferramenta desktop",
+    "desktop": "Data Uploader",
     "signOut": "Sair"
   },
   "news": {
@@ -29,13 +29,13 @@
   },
   "p4k": {
     "title": "Histórico de bundles P4K",
-    "subtitle": "Bundles pré-processados da ferramenta desktop. Uploads brutos passam apenas pela ferramenta, não pelo site.",
+    "subtitle": "Bundles pré-processados do Data Uploader. Uploads brutos passam apenas pela ferramenta, não pelo site.",
     "refresh": "Atualizar",
     "errorTitle": "Não foi possível carregar os bundles",
     "empty": {
       "title": "Ainda sem bundles",
-      "hint": "Assim que alguém fizer upload pela ferramenta desktop, aparecerá aqui.",
-      "goDesktop": "Ir para a ferramenta desktop"
+      "hint": "Assim que alguém fizer upload pelo Data Uploader, aparecerá aqui.",
+      "goDesktop": "Ir para o Data Uploader"
     },
     "kpi": {
       "total": "Total de bundles",
@@ -98,8 +98,8 @@
     "loading": "Carregando usuários…"
   },
   "desktop": {
-    "title": "Ferramenta desktop",
-    "subtitle": "Baixe o scanner companion para sua instalação local de Star Citizen. Apenas admin + colaborador.",
+    "title": "Data Uploader",
+    "subtitle": "Baixe o Data Uploader para sua instalação local de Star Citizen. Apenas admin + colaborador.",
     "currentVersion": "Versão atual",
     "released": "Publicado",
     "notes": "Notas da versão",
@@ -110,12 +110,12 @@
     "hash": "SHA-256"
   },
   "desktopAuth": {
-    "title": "Autorizar ferramenta desktop",
+    "title": "Autorizar Data Uploader",
     "authorizing": "Verificando sua sessão…",
     "loginRequired": "Faça login primeiro — voltaremos para cá automaticamente.",
     "redirecting": "Autorizado. Enviando token para a app…",
     "redirectingHint": "Você pode fechar esta janela em um momento.",
-    "unauthorized": "Sua conta não pode usar a ferramenta desktop.",
+    "unauthorized": "Sua conta não pode usar o Data Uploader.",
     "unauthorizedHint": "Você precisa do papel colaborador ou admin. Peça a um admin."
   }
 }

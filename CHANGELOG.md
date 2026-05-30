@@ -4,6 +4,32 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-05-30
+
+### Changed — Desktop tool renamed to "Star Citizen Companion - Data Uploader"
+
+The downloadable desktop tool was named `sc-companion`, colliding with the main
+app's name. It is now branded **Star Citizen Companion - Data Uploader** to make
+its role (local P4K extraction & upload) unambiguous and distinct from the web app.
+
+- **Source dir** `desktop-tool/` → `data-uploader/`; workflow
+  `desktop-tool-build.yml` → `data-uploader-build.yml`.
+- **Artefacts** `sc-companion-setup/-portable-*` → `data-uploader-setup/-portable-*`;
+  electron-builder `productName`, `appId` (`com.sc-companion.data-uploader`),
+  shortcut, window title, OAuth window titles, `unpackDirName` updated.
+- **Release tag prefix** for the binaries project: `desktop-v*` →
+  `data-uploader-v*` (workflow trigger, filename parsing, ship/test-plan docs).
+- **User-facing web labels** in all 7 locales (`Desktop Tool` → `Data Uploader`):
+  nav entry, download page, auth page, bundle-history references.
+- **Web project reference** updated to its new name: auto-domain
+  `star-citizen-companion-website.vercel.app` → `star-citizen-companion-web.vercel.app`
+  and GitHub repo `Star-Citizen-Companion-Website` → `Star-Citizen-Companion-Web`
+  in CSP, docs and release links. The primary alias `sc-companion.vercel.app`
+  and the main app's name ("Star Citizen Companion") are unchanged.
+
+> Unchanged (compiled into shipped binaries / backend infra): the `/desktop/auth`
+> OAuth route, the `desktop_releases` table, and the `desktop-latest` edge function.
+
 ## [0.7.0] - 2026-05-30
 
 ### Added — P4K bundle delete + per-channel summary card

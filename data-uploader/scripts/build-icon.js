@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generate `desktop-tool/build/icon.ico` from `public/icons/verse-compass.svg`.
+ * Generate `data-uploader/build/icon.ico` from `public/icons/verse-compass.svg`.
  * electron-builder picks this up for the Windows taskbar / exe icon.
  *
  * Pipeline: resvg-js renders the SVG at multiple resolutions → png-to-ico packs

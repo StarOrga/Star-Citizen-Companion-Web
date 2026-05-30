@@ -10,7 +10,7 @@
  *     python.exe
  *     python313.dll
  *     Lib/site-packages/<scdatatools, Pillow, imageio, …>
- *     sc_extract/                ← copied from desktop-tool/python/sc_extract
+ *     sc_extract/                ← copied from data-uploader/python/sc_extract
  *
  * The main process spawns:
  *   resources/python/python.exe -m sc_extract.extract --p4k <…> --out <…>
@@ -39,7 +39,7 @@ const ROOT = resolve(__dirname, '..');
 // error). 3.10 is the latest Python that pip-installs scdatatools 1.0.0
 // cleanly. To lift this, bump scdatatools to 2.x (which supports modern
 // numpy) before bumping Python. Full rationale:
-// `.claude/deep-knowledge/desktop-tool-python.md`.
+// `.claude/deep-knowledge/data-uploader-python.md`.
 const PYTHON_VERSION = '3.10.15';
 // Bump this whenever python-build-standalone publishes a new release for
 // the chosen Python version. See https://github.com/astral-sh/python-build-standalone/releases.

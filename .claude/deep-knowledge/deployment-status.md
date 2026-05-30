@@ -5,9 +5,9 @@ surface flips between deployed / pending / broken.
 
 ## Vercel (web app)
 
-- **Vercel project:** `star-citizen-companion-website`
+- **Vercel project:** `star-citizen-companion-web`
 - **Canonical URL:** `https://sc-companion.vercel.app` (short alias, primary)
-- **Auto-assigned URL:** `https://star-citizen-companion-website.vercel.app` (alias too — keep both for any deep links already shared)
+- **Auto-assigned URL:** `https://star-citizen-companion-web.vercel.app` (alias too — keep both for any deep links already shared)
 - **Status:** ✅ LIVE — auto-deployed from `main` via GitHub integration.
 - **Implication for tasks:** every push to `main` triggers a Vercel
   build. Use `curl -sI https://sc-companion.vercel.app` as the probe (200 OK
@@ -37,10 +37,10 @@ surface flips between deployed / pending / broken.
   timestamp-version rows from earlier sessions; `supabase migration
   repair --status reverted/applied` reconciles them).
 
-## Desktop tool — Windows binary
+## Data Uploader — Windows binary
 
-- **Status:** per-tag, see latest `desktop-tool-build` workflow run on
-  the `desktop-v*` tags. Check `gh run list --workflow=desktop-tool-build.yml`
+- **Status:** per-tag, see latest `data-uploader-build` workflow run on
+  the `data-uploader-v*` tags. Check `gh run list --workflow=data-uploader-build.yml`
   before assuming a tag corresponds to a usable installer.
 - **Release token:** generated per-build, uploaded as a separate
   `release-token` workflow artefact (retention 7d) — fetch with
@@ -50,16 +50,16 @@ surface flips between deployed / pending / broken.
 
 ### Asset hosting — two-repo topology (since 2026-05-24, issue #7)
 
-The desktop tool's auto-update download URL must be publicly fetchable
+The Data Uploader's auto-update download URL must be publicly fetchable
 (electron-updater has no GitHub credentials). This repo is private, so
 a public mirror exists:
 
 | Repo | Purpose |
 |---|---|
-| `Jerry0022/Star-Citizen-Companion-Website` (PRIVATE — this one) | Source code, releases include token-artefact + maintainer changelog |
+| `Jerry0022/Star-Citizen-Companion-Web` (PRIVATE — this one) | Source code, releases include token-artefact + maintainer changelog |
 | `StarOrga/Star-Citizen-Companion-Binaries` (PUBLIC) | Release mirror — `.exe` + `.blockmap` + `latest.yml`, end-user download URL |
 
-When tagging `desktop-v*`, GH-Actions publishes the same assets to
+When tagging `data-uploader-v*`, GH-Actions publishes the same assets to
 **both** repos. The Edge Function `desktop-latest` returns YAML pointing
 at the **public mirror's** URLs (set via `desktop_releases.platforms[*].url`
 when admin registers a release).
@@ -79,5 +79,5 @@ repo Actions secrets.
 "PUBLIC ASSET URLS"):
 
 ```
-https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/desktop-v<X.Y.Z>/sc-companion-setup-<X.Y.Z>-x64.exe
+https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/data-uploader-v<X.Y.Z>/data-uploader-setup-<X.Y.Z>-x64.exe
 ```

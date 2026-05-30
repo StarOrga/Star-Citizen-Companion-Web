@@ -1,7 +1,8 @@
-# SC Companion · Desktop Tool
+# Star Citizen Companion - Data Uploader
 
 Lokaler P4K-Scanner mit Live-Progress, Quality-Score und gegenseitig-verifiziertem
-Upload zur Web-App.
+Upload zur Web-App. Eigenständiges Desktop-Tool, getrennt von der Haupt-App
+(„SC Companion").
 
 ## Status
 
@@ -79,7 +80,7 @@ Beide müssen passen — sonst kein Upload.
 - Die `desktop_releases`-Row mit `release_token` wird per Admin-RPC bei jedem
   Release angelegt — der Token landet als env-var im Build.
 
-Siehe `.github/workflows/desktop-tool-build.yml`.
+Siehe `.github/workflows/data-uploader-build.yml`.
 
 ## Testing
 

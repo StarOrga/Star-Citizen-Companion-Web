@@ -13,7 +13,7 @@ Plugin defaults still apply; only the rules below override or add.
 
 1. **Never declare a ship "successful" before downstream builds turn green.**
    The ship pipeline only confirms PR merge + GitHub release/tag create. In
-   this repo, the `desktop-tool-build.yml` workflow runs MINUTES later via
+   this repo, the `data-uploader-build.yml` workflow runs MINUTES later via
    tag-push and is the actual gate for a usable artefact. Same applies to
    the Vercel deploy and any future GH-Actions chain.
 
@@ -48,7 +48,7 @@ Plugin defaults still apply; only the rules below override or add.
 
 3. **Tag-only retries: bump the tag, don't re-push the same one.**
    When the binary build fails and we need to retry after a fix, push a
-   new patch tag (`desktop-v0.3.1`, then `.0.3.2`, …) — never delete +
+   new patch tag (`data-uploader-v0.3.1`, then `.0.3.2`, …) — never delete +
    re-push the same tag. The GH-Action artefacts retention + release
    history rely on monotonic tags. The first failed tag stays as
    permanent record that "v0.3.0 binary never shipped, v0.3.1 was the
@@ -58,13 +58,13 @@ Plugin defaults still apply; only the rules below override or add.
    `mcp__plugin_devops_dotclaude-ship__ship_version_bump` only updates the
    ROOT `package.json` (the one it auto-detects via `projectType: "npm"`).
    This repo has at least two version-baked-into-artefact `package.json`
-   files: root (web app) AND `desktop-tool/package.json` (electron-vite
+   files: root (web app) AND `data-uploader/package.json` (electron-vite
    bakes `process.env.npm_package_version` into `__SC_TOOL_VERSION__`,
    which ends up in the Tool's update banner, OAuth headers, and the
-   web's Desktop-Download page after admin-registration).
+   web's Data Uploader download page after admin-registration).
 
    **Required after `ship_version_bump` succeeds (root only):**
-   - `grep -n '"version"' desktop-tool/package.json desktop-tool/package-lock.json`
+   - `grep -n '"version"' data-uploader/package.json data-uploader/package-lock.json`
      to confirm the subpackage version
    - If it doesn't match the new root version, bump it manually +
      run `npm install --package-lock-only` inside the subpackage to

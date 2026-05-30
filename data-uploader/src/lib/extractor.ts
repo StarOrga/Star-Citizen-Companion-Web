@@ -221,7 +221,7 @@ export async function extract(
     },
     manifest: {
       _placeholder: true,
-      note: 'phase-1 demo — real extraction in phase 2 (see desktop-tool/src/lib/extractor.ts)',
+      note: 'phase-1 demo — real extraction in phase 2 (see data-uploader/src/lib/extractor.ts)',
       ships,
       items,
     },

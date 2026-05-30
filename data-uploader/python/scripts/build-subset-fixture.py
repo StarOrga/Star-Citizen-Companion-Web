@@ -1,15 +1,15 @@
 """Build a tiny subset of a REAL Data.p4k for local dev tests.
 
 NEVER COMMIT THE OUTPUT — it contains CIG copyrighted content. The repo's
-.gitignore excludes desktop-tool/python/tests/fixtures/real-subset.*.
+.gitignore excludes data-uploader/python/tests/fixtures/real-subset.*.
 
 Phase 2 § F2 — Layer 2 fixture. Use this when you need to verify the real
 scdatatools wiring works, not just the validator/scoring layer.
 
 Usage:
-    python desktop-tool/python/scripts/build-subset-fixture.py \\
+    python data-uploader/python/scripts/build-subset-fixture.py \\
         --p4k 'C:\\Program Files\\Roberts Space Industries\\StarCitizen\\LIVE\\Data.p4k' \\
-        --out desktop-tool/python/tests/fixtures/real-subset.p4k \\
+        --out data-uploader/python/tests/fixtures/real-subset.p4k \\
         --include 'Data/Objects/Spaceships/AEGS_*' \\
         --include 'Data/Game.dcb' \\
         --max-files 30 \\
@@ -31,7 +31,7 @@ def main() -> int:
     parser.add_argument(
         "--out",
         type=Path,
-        default=Path("desktop-tool/python/tests/fixtures/real-subset.p4k"),
+        default=Path("data-uploader/python/tests/fixtures/real-subset.p4k"),
     )
     parser.add_argument(
         "--include",

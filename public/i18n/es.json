@@ -15,7 +15,7 @@
     "p4k": "Historial de bundles",
     "profile": "Perfil",
     "admin": "Admin",
-    "desktop": "Herramienta de escritorio",
+    "desktop": "Data Uploader",
     "signOut": "Cerrar sesión"
   },
   "news": {
@@ -29,13 +29,13 @@
   },
   "p4k": {
     "title": "Historial de bundles P4K",
-    "subtitle": "Bundles pre-procesados desde la herramienta de escritorio. Los uploads en bruto pasan solo por la herramienta, no por el sitio.",
+    "subtitle": "Bundles pre-procesados desde el Data Uploader. Los uploads en bruto pasan solo por la herramienta, no por el sitio.",
     "refresh": "Actualizar",
     "errorTitle": "No se pudieron cargar los bundles",
     "empty": {
       "title": "Aún no hay bundles",
-      "hint": "En cuanto alguien suba algo desde la herramienta de escritorio, aparecerá aquí.",
-      "goDesktop": "Ir a la herramienta de escritorio"
+      "hint": "En cuanto alguien suba algo desde el Data Uploader, aparecerá aquí.",
+      "goDesktop": "Ir al Data Uploader"
     },
     "kpi": {
       "total": "Total bundles",
@@ -98,8 +98,8 @@
     "loading": "Cargando usuarios…"
   },
   "desktop": {
-    "title": "Herramienta de escritorio",
-    "subtitle": "Descarga el scanner companion para tu instalación local de Star Citizen. Solo admin + colaborador.",
+    "title": "Data Uploader",
+    "subtitle": "Descarga el Data Uploader para tu instalación local de Star Citizen. Solo admin + colaborador.",
     "currentVersion": "Versión actual",
     "released": "Publicado",
     "notes": "Notas de versión",
@@ -110,12 +110,12 @@
     "hash": "SHA-256"
   },
   "desktopAuth": {
-    "title": "Autorizar herramienta de escritorio",
+    "title": "Autorizar Data Uploader",
     "authorizing": "Comprobando tu sesión…",
     "loginRequired": "Inicia sesión primero — te traemos de vuelta aquí automáticamente.",
     "redirecting": "Autorizado. Enviando token a la app…",
     "redirectingHint": "Puedes cerrar esta ventana en un momento.",
-    "unauthorized": "Tu cuenta no puede usar la herramienta de escritorio.",
+    "unauthorized": "Tu cuenta no puede usar el Data Uploader.",
     "unauthorizedHint": "Necesitas el rol de colaborador o admin. Pídelo a un admin."
   }
 }

@@ -33,7 +33,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#050810',
-    title: 'Star Citizen Companion',
+    title: 'Star Citizen Companion - Data Uploader',
     icon: join(__dirname, '../../build/icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
@@ -173,7 +173,7 @@ app.on('second-instance', () => {
 });
 
 app.whenReady().then(() => {
-  app.setAppUserModelId('com.sc-companion.desktop-tool');
+  app.setAppUserModelId('com.sc-companion.data-uploader');
   Menu.setApplicationMenu(null); // Belt-and-suspenders alongside per-window setMenu(null)
   createWindow();
   initAutoUpdater(); // Schedules an update check 4 s after launch (skipped in dev builds).

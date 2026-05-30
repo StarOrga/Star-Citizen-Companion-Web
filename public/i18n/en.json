@@ -16,7 +16,7 @@
     "p4k": "Bundle History",
     "profile": "Profile",
     "admin": "Admin",
-    "desktop": "Desktop Tool",
+    "desktop": "Data Uploader",
     "signOut": "Sign out"
   },
   "codex": {
@@ -205,7 +205,7 @@
   },
   "p4k": {
     "title": "P4K Bundle History",
-    "subtitle": "Pre-digested bundles from the desktop tool. Uploads only happen via the tool, not from the website.",
+    "subtitle": "Pre-digested bundles from the Data Uploader. Uploads only happen via the tool, not from the website.",
     "refresh": "Refresh",
     "expand": "Show details",
     "errorTitle": "Could not load bundles",
@@ -215,8 +215,8 @@
     },
     "empty": {
       "title": "No bundles yet",
-      "hint": "Once someone runs the desktop tool and uploads, results show up here.",
-      "goDesktop": "Open the desktop tool page"
+      "hint": "Once someone runs the Data Uploader and uploads, results show up here.",
+      "goDesktop": "Open the Data Uploader page"
     },
     "kpi": {
       "total": "Total bundles",
@@ -350,8 +350,8 @@
     }
   },
   "desktop": {
-    "title": "Desktop Tool",
-    "subtitle": "Download the companion scanner for your local Star Citizen install. Admin + collaborator only.",
+    "title": "Data Uploader",
+    "subtitle": "Download the Data Uploader for your local Star Citizen install. Admin + collaborator only.",
     "currentVersion": "Current version",
     "released": "Released",
     "notes": "Release notes",
@@ -362,12 +362,12 @@
     "hash": "SHA-256"
   },
   "desktopAuth": {
-    "title": "Authorize desktop tool",
+    "title": "Authorize Data Uploader",
     "authorizing": "Checking your session…",
     "loginRequired": "Sign in first — we'll bounce you back here automatically.",
     "redirecting": "Authorized. Sending token to the app…",
     "redirectingHint": "You can close this window in a moment.",
-    "unauthorized": "Your account can't use the desktop tool.",
+    "unauthorized": "Your account can't use the Data Uploader.",
     "unauthorizedHint": "You need collaborator or admin role. Ask an admin."
   }
 }

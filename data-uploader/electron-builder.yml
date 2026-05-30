@@ -1,6 +1,6 @@
-appId: com.sc-companion.desktop-tool
-productName: SC Companion
-copyright: SC Companion contributors
+appId: com.sc-companion.data-uploader
+productName: Star Citizen Companion - Data Uploader
+copyright: Star Citizen Companion contributors
 asar: true
 
 directories:
@@ -36,18 +36,18 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
-  shortcutName: SC Companion
-  artifactName: sc-companion-setup-${version}-${arch}.${ext}
+  shortcutName: SC Data Uploader
+  artifactName: data-uploader-setup-${version}-${arch}.${ext}
 
 portable:
-  artifactName: sc-companion-portable-${version}-${arch}.${ext}
+  artifactName: data-uploader-portable-${version}-${arch}.${ext}
   # Persistent unpack dir. WITHOUT this, electron-builder's portable stub uses
   # a per-launch random %TEMP% folder, so the entire bundle — Electron runtime +
   # asar + the embedded ~100-200 MB Python interpreter (extraResources) —
   # re-extracts on EVERY start ("dauert ewig zu öffnen"). With a fixed name the
-  # stub extracts once to %TEMP%\scc-portable and reuses it on later launches
-  # (it re-extracts automatically when the bundled version changes).
-  unpackDirName: scc-portable
+  # stub extracts once to %TEMP%\data-uploader-portable and reuses it on later
+  # launches (it re-extracts automatically when the bundled version changes).
+  unpackDirName: data-uploader-portable
 
 # Code-signing intentionally omitted for Phase 1 — add `certificateFile` + env
 # CSC_LINK / CSC_KEY_PASSWORD once an EV-cert (or self-signed cert) is wired up.
