@@ -222,7 +222,9 @@
       "total": "Bundles gesamt",
       "channels": "Channels",
       "avgQuality": "Ø Quality-Score",
-      "entitiesTotal": "Entities gesamt"
+      "entitiesTotal": "Entities gesamt",
+      "quality": "Quality-Score",
+      "latestPerChannel": "Aktuellster Patch je Channel"
     },
     "col": {
       "channel": "Channel",
@@ -238,7 +240,8 @@
     },
     "actions": {
       "disable": "Deaktivieren",
-      "reenable": "Reaktivieren"
+      "reenable": "Reaktivieren",
+      "delete": "Löschen"
     },
     "diff": {
       "title": "Diff-Details (vs. vorheriger Build)",

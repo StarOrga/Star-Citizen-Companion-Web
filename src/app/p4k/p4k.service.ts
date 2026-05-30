@@ -70,6 +70,20 @@ export class P4kService {
     this.busy.set(false);
   }
 
+  async deleteBundle(bundleId: string): Promise<void> {
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const { error } = await this.sb.client.rpc('delete_p4k_bundle', {
+      bundle_id: bundleId,
+    });
+    if (error) {
+      this.errorMsg.set(error.message);
+    } else {
+      await this.listBundles();
+    }
+    this.busy.set(false);
+  }
+
   toggleHistory(): void {
     this.includeHistory.set(!this.includeHistory());
     void this.listBundles();
