@@ -1,10 +1,26 @@
 # SC Companion · Desktop Tool · Python sidecar
-# Pinned for reproducible builds. See concept Iter 2 § A1.
+# Pinned for reproducible builds.
 #
-# scdatatools versions: pin to a known-good release.
-# Upstream: github.com/StarCitizenTools/scdatatools
+# We use scdatatools ONLY as a P4K reader (zip central-directory + AES + zstd).
+# The live SC 4.x DataCore is DataForge v8, which scdatatools 1.0.4's forge
+# parser cannot read (the v8 record grew from 32 to 36 bytes, desyncing every
+# later section). We therefore parse Data/Game2.dcb with our own pure-Python
+# reader (sc_extract/dataforge.py) and rely on scdatatools only for opening the
+# archive. Opening the live P4K additionally requires the runtime patch in
+# sc_extract/p4k_compat.py (imported before constructing P4KFile).
 
-scdatatools==1.0.0
-Pillow==10.4.0      # DDS → PNG conversion
-imageio==2.36.0     # imageio[ffmpeg] for some texture formats
-# Note: scdatatools pulls in: pycryptodome, lxml, click, etc. — see its setup.py
+scdatatools==1.0.4
+
+# scdatatools imports these at module load even on the leaf p4k/forge path, so
+# they must be installed for `from scdatatools.p4k import P4KFile` to succeed:
+python-nubia
+pyquaternion
+pycryptodome      # Crypto.Cipher.AES — transparent P4K entry decryption
+xxhash
+sentry-sdk
+rsa
+cryptography
+zstandard         # P4K entries are zstd-compressed
+lz4
+Pillow            # DDS → PNG icon conversion (icons currently deferred)
+numpy

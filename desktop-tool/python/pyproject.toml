@@ -10,4 +10,10 @@ license = { text = "MIT" }
 # resolves whether tests are invoked from the repo root or from python/.
 pythonpath = ["."]
 testpaths = ["tests"]
+# The suite is fully offline and needs no third-party pytest plugins. On dev
+# machines that GLOBALLY install pytest-asyncio + pytest-socket, the two conflict
+# on Windows (asyncio's ProactorEventLoop self-pipe socket gets blocked), breaking
+# even pure-unit tests. If you hit SocketBlockedError, run with plugin autoload
+# off:  PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest
+# CI has no such global plugins, so `python -m pytest` works there unmodified.
 addopts = "-ra"

@@ -1,0 +1,481 @@
+"""Real DataCore extraction: generic exhaustive dump + typed projections.
+
+Consumes a parsed :class:`sc_extract.dataforge.DataForge` (our pure-Python v8
+reader) plus localization tables, and writes:
+
+  * ``records/<Type>/*.json`` — EVERY record of EVERY type, fully resolved via
+    ``record_to_dict``. This is the "alle Werte von allen Spielelementen"
+    guarantee: nothing is dropped, unknown types included.
+  * ``ships/``, ``weapons/``, ``components/``, ``ammunition/``,
+    ``manufacturers/`` — typed projections matching the domain model
+    (docs/concepts/codex-research.md §5), streamed one JSON file per entity.
+
+Classification is driven by the live data: ships by the
+``libs/foundry/records/entities/spaceships/`` filename prefix, items by their
+``SAttachableComponentParams.AttachDef.Type`` (vocabulary discovered from the
+live datacore — see datacore_schema.json), with an ``Other`` catch-all so
+nothing is silently dropped.
+"""
+
+from __future__ import annotations
+
+import json
+from collections import Counter
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
+from .dataforge import DataForge, Record
+from .localization import Localizer
+
+# AttachDef.Type -> our ComponentKind (research §5). Vocabulary verified live.
+_COMPONENT_KIND = {
+    "PowerPlant": "PowerPlant",
+    "Shield": "Shield",
+    "Cooler": "Cooler",
+    "QuantumDrive": "QuantumDrive",
+    "MainThruster": "Thruster",
+    "ManneuverThruster": "Thruster",
+    "FuelTank": "FuelTank",
+    "QuantumFuelTank": "FuelTank",
+    "FuelIntake": "FuelIntake",
+    "CargoGrid": "CargoGrid",
+}
+
+# AttachDef.Type values that denote weapons (ship + FPS).
+_SHIP_WEAPON_TYPES = {"WeaponGun", "Turret", "MissileLauncher", "WeaponDefensive"}
+_FPS_WEAPON_TYPES = {"WeaponPersonal"}
+
+_SHIP_PREFIX = "libs/foundry/records/entities/spaceships/"
+
+
+def _norm_path(p: Optional[str]) -> str:
+    return (p or "").replace("\\", "/").lower()
+
+
+def _strip_type_prefix(name: str) -> str:
+    """Records carry the struct-type prefix, e.g. 'EntityClassDefinition.AEGS_Gladius'."""
+    return name.split(".", 1)[1] if "." in name else name
+
+
+def _safe_filename(name: str) -> str:
+    keep = "".join(c if (c.isalnum() or c in "._-") else "_" for c in name)
+    return keep[:180] or "unnamed"
+
+
+def _components_of(resolved: Dict[str, Any]) -> List[Dict[str, Any]]:
+    comps = resolved.get("_RecordValue_", {}).get("Components")
+    return [c for c in comps if isinstance(c, dict)] if isinstance(comps, list) else []
+
+
+def _find_component(comps: List[Dict[str, Any]], type_name: str) -> Optional[Dict[str, Any]]:
+    for c in comps:
+        if c.get("_Type_") == type_name:
+            return c
+    return None
+
+
+def _attach_def(comps: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    sac = _find_component(comps, "SAttachableComponentParams")
+    if sac and isinstance(sac.get("AttachDef"), dict):
+        return sac["AttachDef"]
+    return None
+
+
+class CodexExtractor:
+    """Drives the generic dump + typed projections over a DataForge instance."""
+
+    def __init__(self, df: DataForge, localizer: Localizer, out_dir: Path,
+                 source: Dict[str, str], on_count: Callable[[str, int], None] = lambda k, v: None,
+                 on_log: Callable[[str, str], None] = lambda lvl, m: None) -> None:
+        self.df = df
+        self.loc = localizer
+        self.out = out_dir
+        self.source = source
+        self.on_count = on_count
+        self.on_log = on_log
+        self.counts: Dict[str, int] = {}
+        # guid -> manufacturer code, built lazily
+        self._manu_cache: Dict[str, Dict[str, Any]] = {}
+
+    # ── public entry ─────────────────────────────────────────────────────────
+    def run(self) -> Dict[str, int]:
+        self.extract_manufacturers()
+        self.extract_ammunition()
+        self.extract_entities()       # ships / weapons / components / items
+        self.dump_all_records()       # exhaustive generic guarantee
+        return self.counts
+
+    # ── localized text helper ─────────────────────────────────────────────────
+    def _localized(self, key: Optional[str]) -> Optional[Dict[str, str]]:
+        if not key or key in ("@LOC_EMPTY", "@LOC_PLACEHOLDER", ""):
+            return {"de": "", "en": "", "key": key or ""}
+        return self.loc.localized_text(key)
+
+    # ── manufacturers ─────────────────────────────────────────────────────────
+    def extract_manufacturers(self) -> None:
+        d = self.out / "manufacturers"
+        d.mkdir(parents=True, exist_ok=True)
+        n = 0
+        for r in self.df.records_by_type_name("SCItemManufacturer"):
+            resolved = self.df.record_to_dict(r, max_depth=8)
+            rv = resolved.get("_RecordValue_", {})
+            code = rv.get("Code") or _strip_type_prefix(r.name)
+            obj = {
+                "className": _strip_type_prefix(r.name),
+                "guid": r.guid,
+                "code": code,
+                "name": self._localized(rv.get("Localization", {}).get("Name")
+                                        if isinstance(rv.get("Localization"), dict) else None),
+                "description": self._localized(rv.get("Localization", {}).get("Description")
+                                               if isinstance(rv.get("Localization"), dict) else None),
+                "source": self.source,
+            }
+            self._manu_cache[r.guid] = obj
+            (d / f"{_safe_filename(obj['className'])}.json").write_text(
+                json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+            n += 1
+        self._bump("manufacturers", n)
+
+    def _manufacturer_ref(self, attach_def: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if not attach_def:
+            return None
+        m = attach_def.get("Manufacturer")
+        if isinstance(m, dict):
+            gid = m.get("_RecordId_")
+            if gid and gid in self._manu_cache:
+                mc = self._manu_cache[gid]
+                return {"code": mc["code"], "name": mc["name"], "className": mc["className"]}
+        return None
+
+    # ── ammunition ─────────────────────────────────────────────────────────────
+    def extract_ammunition(self) -> None:
+        d = self.out / "ammunition"
+        d.mkdir(parents=True, exist_ok=True)
+        n = 0
+        for r in self.df.records_by_type_name("AmmoParams"):
+            resolved = self.df.record_to_dict(r, max_depth=12)
+            rv = resolved.get("_RecordValue_", {})
+            obj = {
+                "className": _strip_type_prefix(r.name),
+                "guid": r.guid,
+                "speed": rv.get("speed"),
+                "lifetime": rv.get("lifetime"),
+                "size": rv.get("size"),
+                "impactDamage": _damage_set(_dig(rv, "damage")),
+                "raw": rv,  # keep everything (ammo schema is small + valuable)
+                "source": self.source,
+            }
+            (d / f"{_safe_filename(obj['className'])}.json").write_text(
+                json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+            n += 1
+        self._bump("ammunition", n)
+
+    # ── entities (ships / weapons / components / items) ────────────────────────
+    def extract_entities(self) -> None:
+        ships_d = self.out / "ships"; ships_d.mkdir(parents=True, exist_ok=True)
+        wpn_d = self.out / "weapons"; wpn_d.mkdir(parents=True, exist_ok=True)
+        comp_d = self.out / "components"; comp_d.mkdir(parents=True, exist_ok=True)
+        item_d = self.out / "items"; item_d.mkdir(parents=True, exist_ok=True)
+
+        n_ship = n_wpn = n_comp = n_item = 0
+        ents = self.df.records_by_type_name("EntityClassDefinition")
+        total = len(ents)
+        for i, r in enumerate(ents):
+            fn = _norm_path(r.filename)
+            is_ship = fn.startswith(_SHIP_PREFIX)
+            resolved = self.df.record_to_dict(r, max_depth=20)
+            comps = _components_of(resolved)
+            attach = _attach_def(comps)
+            atype = attach.get("Type") if attach else None
+
+            if is_ship:
+                obj = self._project_ship(r, resolved, comps, attach)
+                ships_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
+                    json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+                n_ship += 1
+            elif atype in _SHIP_WEAPON_TYPES or atype in _FPS_WEAPON_TYPES or \
+                    _find_component(comps, "SCItemWeaponComponentParams"):
+                obj = self._project_weapon(r, resolved, comps, attach, atype)
+                wpn_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
+                    json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+                n_wpn += 1
+            elif atype in _COMPONENT_KIND:
+                obj = self._project_component(r, resolved, comps, attach, atype)
+                comp_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
+                    json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+                n_comp += 1
+            elif attach is not None:
+                # any other attachable item — keep as generic item projection
+                obj = self._project_item(r, resolved, comps, attach, atype)
+                item_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
+                    json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+                n_item += 1
+            # entities with no AttachDef (rooms, AI templates, etc.) are still
+            # captured by dump_all_records().
+
+            if i % 2000 == 0:
+                self.on_log("info", f"entities {i}/{total}")
+                self.on_count("ships", n_ship)
+                self.on_count("weapons", n_wpn)
+                self.on_count("components", n_comp)
+
+        self._bump("ships", n_ship)
+        self._bump("weapons", n_wpn)
+        self._bump("components", n_comp)
+        self._bump("items", n_item)
+
+    # ── typed projections ──────────────────────────────────────────────────────
+    def _base_entity(self, r: Record, comps, attach) -> Dict[str, Any]:
+        loc = attach.get("Localization") if attach else None
+        name_key = loc.get("Name") if isinstance(loc, dict) else None
+        desc_key = loc.get("Description") if isinstance(loc, dict) else None
+        return {
+            "className": _strip_type_prefix(r.name),
+            "guid": r.guid,
+            "type": r.type,
+            "recordTag": r.tag,
+            "name": self._localized(name_key),
+            "description": self._localized(desc_key),
+            "manufacturer": self._manufacturer_ref(attach),
+            "tags": _tags(attach),
+            "iconPath": None,  # DDS path deferred per scope; left null
+            "source": self.source,
+        }
+
+    def _project_ship(self, r, resolved, comps, attach) -> Dict[str, Any]:
+        base = self._base_entity(r, comps, attach)
+        vcp = _find_component(comps, "VehicleComponentParams") or {}
+        base.update({
+            "entityKind": "ship",
+            "role": vcp.get("vehicleRole"),
+            "crew": {"size": vcp.get("crewSize")},
+            "vehicleName": self._localized(vcp.get("vehicleName")),
+            # flight stats live in the referenced vehicleDefinition (separate
+            # record); left nullable here per research Q1 (unconfirmed key names).
+            "flight": {
+                "scmSpeed": None, "maxSpeed": None, "boostSpeed": None,
+                "pitch": None, "yaw": None, "roll": None,
+            },
+            "itemPorts": self._item_ports(comps),
+            "defaultLoadout": self._default_loadout(comps),
+        })
+        return base
+
+    def _project_weapon(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
+        base = self._base_entity(r, comps, attach)
+        wcp = _find_component(comps, "SCItemWeaponComponentParams") or {}
+        base.update({
+            "entityKind": "weapon",
+            "weaponClass": "FPS" if atype in _FPS_WEAPON_TYPES else "Ship",
+            "subType": attach.get("SubType") if attach else None,
+            "size": _to_int(attach.get("Size")) if attach else None,
+            "grade": _grade(attach.get("Grade")) if attach else None,
+            "weaponParams": _scalars(wcp),
+            "itemPorts": self._item_ports(comps),
+        })
+        return base
+
+    def _project_component(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
+        base = self._base_entity(r, comps, attach)
+        kind = _COMPONENT_KIND.get(atype, "Other")
+        base.update({
+            "entityKind": "component",
+            "kind": kind,
+            "attachType": atype,
+            "subType": attach.get("SubType") if attach else None,
+            "size": _to_int(attach.get("Size")) if attach else None,
+            "grade": _grade(attach.get("Grade")) if attach else None,
+            "stats": self._component_stats(comps, kind),
+            "itemPorts": self._item_ports(comps),
+        })
+        return base
+
+    def _project_item(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
+        base = self._base_entity(r, comps, attach)
+        base.update({
+            "entityKind": "item",
+            "attachType": atype,
+            "subType": attach.get("SubType") if attach else None,
+            "size": _to_int(attach.get("Size")) if attach else None,
+            "grade": _grade(attach.get("Grade")) if attach else None,
+        })
+        return base
+
+    # Component params structs are not the same vocabulary as AttachDef.Type;
+    # discovered live (e.g. SCItemShieldGeneratorParams, SCItemQuantumDriveParams,
+    # EntityComponentPowerConnection, SCItemPurchasableParams ...). Rather than
+    # hardcode a brittle per-kind list, we capture the scalars of EVERY
+    # non-structural "*Params" component so no stat is dropped — the typed
+    # consumer picks the struct it needs by name. (The generic dump still holds
+    # the fully-nested version.)
+    _SKIP_COMPONENT_STATS = {
+        "SAttachableComponentParams", "SGeometryResourceParams",
+        "SEntityComponentDefaultLoadoutParams", "SItemPortContainerComponentParams",
+        "SEntityAudioControllerParams", "SAudioProxyParams",
+    }
+
+    def _component_stats(self, comps, kind) -> Dict[str, Any]:
+        """Flat scalars of every params-bearing component, keyed by struct name.
+
+        Keeps all numeric/text stats (the "all values" guarantee in typed form);
+        structural/audio/geometry components are skipped (pure noise for stats).
+        """
+        stats: Dict[str, Any] = {}
+        for c in comps:
+            t = c.get("_Type_")
+            if not t or t in self._SKIP_COMPONENT_STATS:
+                continue
+            flat = _scalars(c)
+            if flat:  # only components that actually carry scalar values
+                stats[t] = flat
+        return stats
+
+    def _item_ports(self, comps) -> List[Dict[str, Any]]:
+        ipc = _find_component(comps, "SItemPortContainerComponentParams")
+        if not ipc:
+            return []
+        ports = ipc.get("Ports")
+        if not isinstance(ports, list):
+            return []
+        out = []
+        for p in ports:
+            if not isinstance(p, dict):
+                continue
+            out.append({
+                "portName": p.get("Name") or p.get("name"),
+                "minSize": _to_int(p.get("MinSize")),
+                "maxSize": _to_int(p.get("MaxSize")),
+                "types": _port_types(p),
+                "flags": _as_list(p.get("Flags")),
+            })
+        return out
+
+    def _default_loadout(self, comps) -> List[Dict[str, Any]]:
+        dl = _find_component(comps, "SEntityComponentDefaultLoadoutParams")
+        if not dl:
+            return []
+        loadout = dl.get("loadout")
+        entries = loadout.get("entries") if isinstance(loadout, dict) else None
+        if not isinstance(entries, list):
+            return []
+        out = []
+        for e in entries:
+            if not isinstance(e, dict):
+                continue
+            out.append({
+                "itemPortName": e.get("itemPortName"),
+                "entityClassName": e.get("entityClassName") or None,
+            })
+        return out
+
+    # ── exhaustive generic dump ─────────────────────────────────────────────────
+    def dump_all_records(self) -> None:
+        base = self.out / "records"
+        base.mkdir(parents=True, exist_ok=True)
+        per_type = Counter()
+        total = 0
+        n_types = len(self.df.record_types)
+        for ti, t in enumerate(sorted(self.df.record_types)):
+            tdir = base / _safe_filename(t)
+            tdir.mkdir(exist_ok=True)
+            recs = self.df.records_by_type_name(t)
+            for r in recs:
+                try:
+                    resolved = self.df.record_to_dict(r, max_depth=24)
+                except Exception as exc:  # noqa: BLE001 — never let one record abort the dump
+                    resolved = {"_error_": str(exc), "_RecordId_": r.guid,
+                                "_RecordName_": r.name}
+                    self.on_log("warn", f"record_to_dict failed for {r.name}: {exc}")
+                fname = _safe_filename(f"{_strip_type_prefix(r.name)}__{r.guid[:8]}")
+                tdir.joinpath(f"{fname}.json").write_text(
+                    json.dumps(resolved, ensure_ascii=False), encoding="utf-8")
+                per_type[t] += 1
+                total += 1
+            if ti % 50 == 0:
+                self.on_log("info", f"generic dump {ti}/{n_types} types, {total} records")
+        self._bump("records_total", total)
+        # write an index of per-type counts
+        (base / "_index.json").write_text(
+            json.dumps({"per_type": dict(per_type.most_common()),
+                        "total": total, "n_types": n_types},
+                       ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _bump(self, key: str, n: int) -> None:
+        self.counts[key] = n
+        self.on_count(key, n)
+
+
+# ── value helpers ─────────────────────────────────────────────────────────────
+def _scalars(d: Dict[str, Any]) -> Dict[str, Any]:
+    """Flat scalar fields of a resolved struct (drops nested for typed view)."""
+    return {k: v for k, v in d.items()
+            if k != "_Type_" and not isinstance(v, (dict, list))}
+
+
+def _dig(d: Any, *keys) -> Any:
+    for k in keys:
+        if isinstance(d, dict):
+            d = d.get(k)
+        else:
+            return None
+    return d
+
+
+def _damage_set(d: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(d, dict):
+        return None
+    keys = ("DamagePhysical", "DamageEnergy", "DamageDistortion",
+            "DamageThermal", "DamageBiochemical", "DamageStun")
+    if any(k in d for k in keys):
+        return {
+            "physical": d.get("DamagePhysical"),
+            "energy": d.get("DamageEnergy"),
+            "distortion": d.get("DamageDistortion"),
+            "thermal": d.get("DamageThermal"),
+            "biochemical": d.get("DamageBiochemical"),
+            "stun": d.get("DamageStun"),
+        }
+    return None
+
+
+def _to_int(v: Any) -> Optional[int]:
+    try:
+        return int(v) if v is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _grade(v: Any) -> Optional[str]:
+    i = _to_int(v)
+    if i is None:
+        return None
+    return {1: "A", 2: "B", 3: "C", 4: "D"}.get(i, str(i))
+
+
+def _tags(attach: Optional[Dict[str, Any]]) -> List[str]:
+    if not attach:
+        return []
+    tags = attach.get("Tags")
+    if isinstance(tags, list):
+        return [str(t) for t in tags if not isinstance(t, (dict, list))]
+    return []
+
+
+def _port_types(p: Dict[str, Any]) -> List[str]:
+    types = p.get("Types") or p.get("types")
+    out = []
+    if isinstance(types, list):
+        for t in types:
+            if isinstance(t, dict):
+                v = t.get("Type") or t.get("type")
+                if v:
+                    out.append(str(v))
+            elif t is not None:
+                out.append(str(t))
+    return out
+
+
+def _as_list(v: Any) -> List[str]:
+    if isinstance(v, list):
+        return [str(x) for x in v if not isinstance(x, (dict, list))]
+    return []
