@@ -57,7 +57,7 @@ a public mirror exists:
 | Repo | Purpose |
 |---|---|
 | `Jerry0022/Star-Citizen-Companion-Website` (PRIVATE — this one) | Source code, releases include token-artefact + maintainer changelog |
-| `Jerry0022/sc-companion-binaries` (PUBLIC) | Release mirror — `.exe` + `.blockmap` + `latest.yml`, end-user download URL |
+| `StarOrga/Star-Citizen-Companion-Binaries` (PUBLIC) | Release mirror — `.exe` + `.blockmap` + `latest.yml`, end-user download URL |
 
 When tagging `desktop-v*`, GH-Actions publishes the same assets to
 **both** repos. The Edge Function `desktop-latest` returns YAML pointing
@@ -65,15 +65,19 @@ at the **public mirror's** URLs (set via `desktop_releases.platforms[*].url`
 when admin registers a release).
 
 **PAT setup:** the workflow needs `secrets.BINARIES_RELEASE_TOKEN` —
-a fine-grained Personal Access Token scoped to `Contents: Read and
-write` on `Jerry0022/sc-companion-binaries` only (no other repo, no
-other scope). One-time setup at
-https://github.com/settings/personal-access-tokens; store in source
+a fine-grained Personal Access Token whose **resource owner is the
+`StarOrga` organization** (the repo moved there 2026-05-30), scoped to
+`Contents: Read and write` on `StarOrga/Star-Citizen-Companion-Binaries`
+only (no other repo, no other scope). A user-owned token cannot reach an
+org repo — after the move the old `Jerry0022`-owned token stops working
+and must be replaced. One-time setup at
+https://github.com/settings/personal-access-tokens (the org must allow
+fine-grained PATs, or an admin must approve the request); store in source
 repo Actions secrets.
 
 **Admin-registration URL pattern** (printed in each build's log under
 "PUBLIC ASSET URLS"):
 
 ```
-https://github.com/Jerry0022/sc-companion-binaries/releases/download/desktop-v<X.Y.Z>/sc-companion-setup-<X.Y.Z>-x64.exe
+https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/desktop-v<X.Y.Z>/sc-companion-setup-<X.Y.Z>-x64.exe
 ```
