@@ -24,6 +24,18 @@ export const routes: Routes = [
         loadComponent: () => import('./news/news-list.component').then((m) => m.NewsListComponent),
       },
       {
+        // Codex — viewer-accessible catalog. authGuard ONLY (no roleGuard):
+        // every authenticated user, incl. role `viewer`, may browse it.
+        path: 'codex',
+        loadComponent: () =>
+          import('./codex/codex-list.component').then((m) => m.CodexListComponent),
+      },
+      {
+        path: 'codex/:kind/:className',
+        loadComponent: () =>
+          import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),
+      },
+      {
         path: 'p4k',
         canActivate: [roleGuard('admin', 'collaborator')],
         loadComponent: () => import('./p4k/p4k-history.component').then((m) => m.P4kHistoryComponent),
