@@ -222,7 +222,9 @@
       "total": "Total bundles",
       "channels": "Channels",
       "avgQuality": "Avg quality score",
-      "entitiesTotal": "Total entities"
+      "entitiesTotal": "Total entities",
+      "quality": "Quality score",
+      "latestPerChannel": "Latest patch per channel"
     },
     "col": {
       "channel": "Channel",
@@ -238,7 +240,8 @@
     },
     "actions": {
       "disable": "Disable",
-      "reenable": "Re-enable"
+      "reenable": "Re-enable",
+      "delete": "Delete"
     },
     "diff": {
       "title": "Diff details (vs. previous build)",

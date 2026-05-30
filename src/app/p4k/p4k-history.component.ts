@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
-import { BundleDiffSummary, P4kBundleRow, P4kService } from './p4k.service';
+import { BundleDiffSummary, ChannelTag, P4kBundleRow, P4kService } from './p4k.service';
 import { RoleService } from '../auth/role.service';
 
 @Component({
@@ -34,28 +34,42 @@ import { RoleService } from '../auth/role.service';
         </div>
       </header>
 
-      <div class="sc-card kpi-row">
-        <div class="kpi">
-          <span class="kpi-label">{{ 'p4k.kpi.total' | translate }}</span>
-          <span class="kpi-value">{{ bundles().length }}</span>
+      <div class="sc-card summary">
+        <div class="summary-general">
+          <div class="kpi">
+            <span class="kpi-label">{{ 'p4k.kpi.total' | translate }}</span>
+            <span class="kpi-value">{{ bundles().length }}</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">{{ 'p4k.kpi.channels' | translate }}</span>
+            <span class="kpi-value">{{ uniqueChannels() }}</span>
+          </div>
         </div>
-        <div class="kpi">
-          <span class="kpi-label">{{ 'p4k.kpi.channels' | translate }}</span>
-          <span class="kpi-value">{{ uniqueChannels() }}</span>
-        </div>
-        <div class="kpi">
-          <span class="kpi-label">{{ 'p4k.kpi.avgQuality' | translate }}</span>
-          <span class="kpi-value"
-                [class.q-green]="avgQuality() >= 80"
-                [class.q-yellow]="avgQuality() >= 50 && avgQuality() < 80"
-                [class.q-red]="avgQuality() < 50">
-            {{ avgQuality() | number:'1.0-0' }}
-          </span>
-        </div>
-        <div class="kpi">
-          <span class="kpi-label">{{ 'p4k.kpi.entitiesTotal' | translate }}</span>
-          <span class="kpi-value">{{ totalEntities() | number }}</span>
-        </div>
+
+        @if (channelSummaries().length > 0) {
+          <div class="summary-channels">
+            <span class="summary-channels-label">{{ 'p4k.kpi.latestPerChannel' | translate }}</span>
+            @for (c of channelSummaries(); track c.channel) {
+              <div class="summary-row">
+                <span class="ch-pill" [class]="c.channel">{{ c.channel.toUpperCase() }}</span>
+                <span class="sum-patch mono">{{ c.patch_version }}</span>
+                <div class="sum-metric">
+                  <span class="kpi-label">{{ 'p4k.kpi.quality' | translate }}</span>
+                  <span class="sum-quality"
+                        [class.q-green]="(c.quality_score ?? 0) >= 80"
+                        [class.q-yellow]="(c.quality_score ?? 0) >= 50 && (c.quality_score ?? 0) < 80"
+                        [class.q-red]="(c.quality_score ?? 0) < 50">
+                    {{ c.quality_score !== null ? (c.quality_score | number:'1.0-0') : '—' }}
+                  </span>
+                </div>
+                <div class="sum-metric">
+                  <span class="kpi-label">{{ 'p4k.col.entities' | translate }}</span>
+                  <span class="sum-entities">{{ c.entities | number }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
       </div>
 
       @if (svc.errorMsg(); as err) {
@@ -156,6 +170,9 @@ import { RoleService } from '../auth/role.service';
                         {{ 'p4k.actions.disable' | translate }}
                       </button>
                     }
+                    <button class="sc-btn micro danger" (click)="remove(b)" [disabled]="svc.busy()">
+                      {{ 'p4k.actions.delete' | translate }}
+                    </button>
                   </td>
                 }
               </tr>
@@ -222,11 +239,46 @@ import { RoleService } from '../auth/role.service';
       color: var(--sc-danger);
       border-radius: 4px;
     }
-    .kpi-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 18px;
+    .summary { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+    .summary-general {
+      display: flex;
+      gap: 32px;
       padding: 16px 22px;
+      border-bottom: 1px solid var(--sc-border);
+    }
+    .summary-channels { display: flex; flex-direction: column; }
+    .summary-channels-label {
+      font-family: var(--sc-font-display);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sc-fg-2);
+      padding: 12px 22px 4px;
+    }
+    .summary-row {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 10px 22px;
+      border-top: 1px solid var(--sc-border);
+    }
+    .summary-row:first-of-type { border-top: none; }
+    .sum-patch { font-size: 1.1rem; color: var(--sc-fg-0); min-width: 64px; }
+    .sum-metric { display: flex; flex-direction: column; gap: 2px; }
+    .sum-quality {
+      font-family: var(--sc-font-display);
+      font-size: 1.25rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--sc-fg-0);
+    }
+    .sum-quality.q-green { color: var(--sc-success); }
+    .sum-quality.q-yellow { color: var(--sc-warning); }
+    .sum-quality.q-red { color: var(--sc-danger); }
+    .sum-entities {
+      font-family: var(--sc-font-display);
+      font-size: 1.25rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--sc-fg-1);
     }
     .kpi { display: flex; flex-direction: column; gap: 4px; }
     .kpi-label {
@@ -405,14 +457,14 @@ export class P4kHistoryComponent implements OnInit {
 
   readonly bundles = computed(() => this.svc.bundles());
   readonly uniqueChannels = computed(() => new Set(this.bundles().map((b) => b.channel)).size);
-  readonly totalEntities = computed(() =>
-    this.bundles().reduce((sum, b) => sum + sumCounts(b.entity_counts), 0),
-  );
-  readonly avgQuality = computed(() => {
-    const scored = this.bundles().filter((b) => b.quality_score !== null);
-    if (scored.length === 0) return 0;
-    return scored.reduce((s, b) => s + (b.quality_score ?? 0), 0) / scored.length;
-  });
+
+  /**
+   * One row per channel, each pointing at that channel's patch-latest bundle
+   * (highest patch_version by semantic compare, NOT upload date — builds within
+   * the same patch tiebreak by created_at). Ordered: `live` first, then the rest
+   * by patch_version descending.
+   */
+  readonly channelSummaries = computed<ChannelSummary[]>(() => summarizeChannels(this.bundles()));
 
   ngOnInit() {
     this.refresh();
@@ -447,6 +499,16 @@ export class P4kHistoryComponent implements OnInit {
     await this.svc.setDisabled(b.id, false, null);
   }
 
+  async remove(b: P4kBundleRow): Promise<void> {
+    if (
+      !window.confirm(
+        `Bundle "${b.channel.toUpperCase()} ${b.patch_version} ${b.build_number}" endgültig löschen?\n\nDies kann nicht rückgängig gemacht werden.`,
+      )
+    )
+      return;
+    await this.svc.deleteBundle(b.id);
+  }
+
   entityKeys(b: P4kBundleRow): Array<{ key: string; icon: string; value: number }> {
     const icons: Record<string, string> = {
       ships: '🛸',
@@ -474,6 +536,57 @@ export class P4kHistoryComponent implements OnInit {
       .map(([key, v]) => ({ key, prev: v.prev, new: v.new, delta: v.delta }))
       .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
   }
+}
+
+export interface ChannelSummary {
+  channel: ChannelTag;
+  patch_version: string;
+  quality_score: number | null;
+  entities: number;
+}
+
+/**
+ * Reduce a bundle list to one summary row per channel, each pointing at that
+ * channel's patch-latest bundle (highest patch_version, NOT newest upload).
+ * Ordered: `live` first, then remaining channels by patch_version descending.
+ */
+export function summarizeChannels(bundles: readonly P4kBundleRow[]): ChannelSummary[] {
+  const latest = new Map<ChannelTag, P4kBundleRow>();
+  for (const b of bundles) {
+    const cur = latest.get(b.channel);
+    if (!cur || comparePatch(b, cur) > 0) latest.set(b.channel, b);
+  }
+  return Array.from(latest.values())
+    .map((b) => ({
+      channel: b.channel,
+      patch_version: b.patch_version,
+      quality_score: b.quality_score,
+      entities: sumCounts(b.entity_counts),
+    }))
+    .sort((a, b) => {
+      if ((a.channel === 'live') !== (b.channel === 'live')) {
+        return a.channel === 'live' ? -1 : 1;
+      }
+      return compareVersion(b.patch_version, a.patch_version);
+    });
+}
+
+/** Compare two patch strings like "4.8.0" segment-by-segment; ignores suffixes. */
+export function compareVersion(a: string, b: string): number {
+  const pa = a.split(/\D+/).filter(Boolean).map(Number);
+  const pb = b.split(/\D+/).filter(Boolean).map(Number);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+/** Pick the more-current bundle within a channel: higher patch wins, newer build breaks ties. */
+function comparePatch(a: P4kBundleRow, b: P4kBundleRow): number {
+  const v = compareVersion(a.patch_version, b.patch_version);
+  return v !== 0 ? v : a.created_at.localeCompare(b.created_at);
 }
 
 function sumCounts(counts: Record<string, unknown> | null): number {

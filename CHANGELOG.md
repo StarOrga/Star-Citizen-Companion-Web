@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-05-30
+
+### Added — P4K bundle delete + per-channel summary card
+
+- **Delete bundles**: admins can now permanently delete a bundle, not just
+  deactivate it. New admin-only `delete_p4k_bundle(uuid)` RPC
+  (migration `20260530_p4k_bundle_delete`); a "Delete" action sits next to
+  Deactivate / Re-enable with a confirm dialog. Deactivation remains the normal
+  "hide from listings" flow — delete is for mistaken / garbage uploads.
+- **Per-channel summary card**: the top card is split into general info
+  (total bundles, channel count) and one row per channel. Each row points at
+  that channel's patch-latest bundle — quality score and entities reference the
+  highest patch version (semantic compare, **not** upload date), with the patch
+  version shown in every row. Rows are ordered `live` first, then by patch
+  version descending.
+
 ## [0.6.0] - 2026-05-30
 
 ### Added — Codex: browse every ship, weapon & component (viewer-accessible)
