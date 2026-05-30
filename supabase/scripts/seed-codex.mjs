@@ -97,8 +97,11 @@ function localizedName(name) {
   if (!name || typeof name !== 'object') return null;
   const en = (name.en || '').trim();
   const de = (name.de || '').trim();
-  const joined = [en, de].filter(Boolean).join(' ').trim();
-  return joined || null;
+  // Single clean display name (used by the list view + trigram search).
+  // Prefer EN, fall back to DE. Do NOT concatenate en+de — SC names are
+  // usually identical across languages, which produced doubled strings
+  // like "Avenger Stalker Avenger Stalker".
+  return en || de || null;
 }
 
 // AI/template variant heuristic (docs/concepts/codex-extraction-output.md §5).

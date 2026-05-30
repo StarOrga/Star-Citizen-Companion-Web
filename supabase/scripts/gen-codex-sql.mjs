@@ -60,8 +60,9 @@ async function readDir(sub, lim = 0) {
 }
 const locName = (n) => {
   if (!n || typeof n !== 'object') return null;
-  const j = [n.en, n.de].map((x) => (x || '').trim()).filter(Boolean).join(' ').trim();
-  return j || null;
+  // Single clean display name — prefer EN, fall back to DE. Never concatenate
+  // en+de (SC names are usually identical → doubled strings).
+  return (n.en || '').trim() || (n.de || '').trim() || null;
 };
 const VARIANT = /(_PU_AI_|_AI_|_Template$|^MASTER_|_Unmanned_|_Renegade$)/i;
 const mc = (e) => (e.manufacturer && typeof e.manufacturer === 'object' ? e.manufacturer.code ?? null : null);
