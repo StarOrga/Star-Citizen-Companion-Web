@@ -205,3 +205,121 @@ as `"_PointsTo_:ptr:N"` strings with the target under `_Pointers_`.
   promote the few fields the UI sorts/filters on once they stabilize in beta.
 - `ingest-bundle` edge function currently stores only manifest + counts
   (research Q7) — Wave 2 must add per-entity upsert for these tables.
+
+---
+
+## 6. Wave-2 → Wave-3 read contract
+
+> **Status:** DELIVERED. Migration `00008_codex_catalog.sql` (+ `00009_codex_seed_tokens.sql`)
+> applied to cloud `hcnqhvzlavdycidqyaai`. A current LIVE build is seeded.
+
+### 6.1 Tables (schema `public`)
+
+| Table | Holds | Promoted columns (typed, indexed) | JSONB |
+|---|---|---|---|
+| `codex_builds` | one catalog version per `(channel, patch_version, build_number)`; `is_current` (≤1 per channel) scopes the default UI | `channel, patch_version, build_number, is_current, quality_score, entity_counts` | `manifest` |
+| `codex_manufacturers` | `SCItemManufacturer` projections | `class_name, manufacturer_code, name_localized` | `payload` (full Manufacturer JSON) |
+| `codex_ships` | ship/vehicle entities | `class_name, manufacturer_code, role, crew_size, is_variant, name_localized` | `payload` (full Ship JSON: flight/itemPorts/defaultLoadout) |
+| `codex_weapons` | ship + FPS weapons | `class_name, weapon_class, sub_type, size, grade, manufacturer_code, is_variant, name_localized` | `payload` (weaponParams/itemPorts) |
+| `codex_components` | PowerPlant/Shield/Cooler/QuantumDrive/Thruster/FuelTank/FuelIntake/CargoGrid/Other | `class_name, kind, attach_type, sub_type, size, grade, manufacturer_code, is_variant, name_localized` | `payload` (`stats` heterogeneous, keyed by struct name) |
+| `codex_items` | every other attachable item | `class_name, attach_type, sub_type, size, grade, manufacturer_code, is_variant, name_localized` | `payload` |
+| `codex_ammunition` | `AmmoParams` projections | `class_name, speed, lifetime, size` | `payload` (incl. `raw` AmmoParams + `impactDamage`) |
+| `codex_item_ports` | hardpoints; parent = `(build_id, parent_class_name, parent_kind)` | `parent_class_name, parent_kind, port_name, min_size, max_size, types[], flags[], port_index` | — |
+| `codex_entity_strings` | localized text (global.ini shape) | `entity_class_name, entity_kind, lang, field, value, loc_key` | — |
+
+Natural key on every entity table: `(channel, patch_version, build_number, class_name)`.
+Every entity also carries `build_id` (FK → `codex_builds.id`) — the compact join column.
+`is_variant` flags AI/template duplicates (`MASTER_*`, `*_Template`, `*_PU_AI_*`,
+`*_AI_*`, `*_Unmanned_*`, `*_Renegade`). A "buyable" view should filter `is_variant = false`.
+
+### 6.2 RLS guarantees
+
+- **Read:** any **authenticated** user (role `viewer` and up). No collaborator/admin
+  needed — matches the `/news` authGuard-only model. Just gate the route with `authGuard`.
+- **Write:** **service-role only** (no INSERT/UPDATE/DELETE policy for `authenticated`).
+  Clients can never mutate the catalog; writes go through `ingest-catalog` / the seed script.
+- `codex_seed_tokens` is service-role-only (RLS on, no policy) — never queried from the client.
+- Verified via `get_advisors(security)`: no policy/exposure findings on any `codex_*` table.
+
+### 6.3 supabase-js read queries (Wave 3)
+
+Generated row types: `src/app/core/database.types.ts`. Domain read models:
+`src/app/codex/codex.types.ts`. Use the cloud client (`SupabaseClientProvider`).
+
+**Resolve the current build id (call once, cache):**
+```ts
+const { data: build } = await sb.client
+  .from('codex_builds')
+  .select('id, channel, patch_version, build_number, entity_counts')
+  .eq('channel', 'LIVE').eq('is_current', true)
+  .single();
+const buildId = build!.id;
+```
+
+**List by kind (paged, filtered, buyable-only):**
+```ts
+const { data, count } = await sb.client
+  .from('codex_ships')
+  .select('class_name, name_localized, manufacturer_code, role, crew_size, payload', { count: 'exact' })
+  .eq('build_id', buildId)
+  .eq('is_variant', false)              // buyable view
+  // .eq('manufacturer_code', 'AEG')     // optional facet
+  .order('name_localized', { ascending: true })
+  .range(0, 49);
+// weapons facets: .eq('weapon_class','Ship').eq('size',3).eq('grade','A')
+// components facets: .eq('kind','Shield').eq('size',2)
+```
+
+**Fuzzy search over BOTH localized names AND classNames (server-side, trigram):**
+```ts
+const q = 'gladius';
+const { data } = await sb.client
+  .from('codex_ships')
+  .select('class_name, name_localized, manufacturer_code')
+  .eq('build_id', buildId)
+  .or(`name_localized.ilike.%${q}%,class_name.ilike.%${q}%`)  // GIN pg_trgm backs both
+  .limit(25);
+```
+`ilike '%...%'` is index-accelerated by the per-table `*_name_trgm` / `*_class_trgm`
+GIN trigram indexes. Run the same query per entity table for a global search, or
+search `codex_entity_strings` (`value ilike`) for description hits.
+
+**Detail by className (entity + ports + strings):**
+```ts
+const cn = 'AEGS_Gladius';
+const [{ data: ship }, { data: ports }, { data: strings }] = await Promise.all([
+  sb.client.from('codex_ships').select('*').eq('build_id', buildId).eq('class_name', cn).single(),
+  sb.client.from('codex_item_ports').select('*').eq('build_id', buildId).eq('parent_class_name', cn).order('port_index'),
+  sb.client.from('codex_entity_strings').select('lang, field, value, loc_key').eq('build_id', buildId).eq('entity_class_name', cn),
+]);
+// ship.payload has the full Ship JSON (flight/defaultLoadout/itemPorts);
+// `defaultLoadout[].entityClassName` joins back to weapons/components/items by class_name.
+```
+
+### 6.4 What is seeded in cloud RIGHT NOW
+
+Build `LIVE / 4.x / live-proof` (`is_current = true`). **Representative subset**
+(not the full extraction — payloads are large; see note below). Real row counts:
+
+| Table | Rows |
+|---|---|
+| `codex_manufacturers` | 1124 (ALL) |
+| `codex_ships` | 920 (ALL; 577 flagged `is_variant`) |
+| `codex_ammunition` | 235 (ALL) |
+| `codex_weapons` | 400 (of 1326) |
+| `codex_components` | 400 (of 2145) |
+| `codex_items` | 400 (of 21033) |
+| `codex_entity_strings` | 11748 |
+| `codex_item_ports` | 12553 |
+
+**To seed the FULL catalog** (all weapons/components/items): run the extractor
+(`desktop-tool/python`, `python -m sc_extract.extract ...`) to an `out_dir`, then
+either
+- `supabase/scripts/seed-codex.mjs --out <out_dir>` with `SUPABASE_URL` +
+  `SUPABASE_SERVICE_ROLE_KEY` (direct), or
+- `... --via-function` with `SUPABASE_ANON_KEY` + `SUPABASE_SEED_TOKEN` (the
+  machine never needs the service-role key; the `ingest-catalog` edge function
+  writes server-side). Drop the per-kind caps to ingest everything.
+
+The cloud DB was seeded via `ingest-catalog` (seed-token path), so no service-role
+key ever touched the seeding host. The seed token used was revoked after the run.
