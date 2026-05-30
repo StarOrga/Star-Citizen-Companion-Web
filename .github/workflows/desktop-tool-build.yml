@@ -145,7 +145,7 @@ jobs:
             Automated build from tag ${{ github.ref_name }}.
 
             **Public download (end-users):** see the matching release in
-            [Jerry0022/sc-companion-binaries](https://github.com/Jerry0022/sc-companion-binaries/releases/tag/${{ github.ref_name }})
+            [StarOrga/Star-Citizen-Companion-Binaries](https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/tag/${{ github.ref_name }})
             — that's the URL `electron-updater` and the `desktop_releases`
             row should point at.
 
@@ -154,14 +154,14 @@ jobs:
       - name: Publish to PUBLIC binaries-mirror release (end-user download)
         # End-users with the installed Tool can't authenticate to GitHub, so
         # the auto-update download URL must be publicly accessible. We
-        # publish a mirror release in the public `sc-companion-binaries`
+        # publish a mirror release in the public `Star-Citizen-Companion-Binaries`
         # repo via a fine-grained PAT (scope: Contents R/W on that repo
         # only) stored as `BINARIES_RELEASE_TOKEN`. See
         # https://github.com/Jerry0022/Star-Citizen-Companion-Website/issues/7
         # for the full rationale.
         uses: softprops/action-gh-release@v2
         with:
-          repository: Jerry0022/sc-companion-binaries
+          repository: StarOrga/Star-Citizen-Companion-Binaries
           token: ${{ secrets.BINARIES_RELEASE_TOKEN }}
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
@@ -205,8 +205,8 @@ jobs:
           $setupSize = $setupFile.Length
           $portableSize = $portableFile.Length
 
-          $setupUrl = "https://github.com/Jerry0022/sc-companion-binaries/releases/download/$tag/$($setupFile.Name)"
-          $portableUrl = "https://github.com/Jerry0022/sc-companion-binaries/releases/download/$tag/$($portableFile.Name)"
+          $setupUrl = "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/$tag/$($setupFile.Name)"
+          $portableUrl = "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/$tag/$($portableFile.Name)"
 
           Write-Host ""
           Write-Host "================================================================"

@@ -28,7 +28,7 @@ Plugin defaults still apply; only the rules below override or add.
 
 3. **Auto-update download URL is the public mirror — probe it unauth.**
    Since issue #7's resolution, binaries are mirrored to public repo
-   `Jerry0022/sc-companion-binaries`. After every `desktop-v*` release,
+   `StarOrga/Star-Citizen-Companion-Binaries`. After every `desktop-v*` release,
    `curl -sIL <mirror_asset_url>` UNAUTHENTICATED — expect 302→200 with
    Content-Length ~126 MB. 404 means the PAT `BINARIES_RELEASE_TOKEN` is
    missing/expired OR the mirror release wasn't created. See

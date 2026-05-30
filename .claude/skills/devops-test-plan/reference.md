@@ -44,7 +44,7 @@ used (e.g. in a script that has its own GH_TOKEN), include
 
 Since 2026-05-24 (issue [#7](https://github.com/Jerry0022/Star-Citizen-Companion-Website/issues/7)
 resolution), binaries are mirrored to the **public** repo
-[`Jerry0022/sc-companion-binaries`](https://github.com/Jerry0022/sc-companion-binaries).
+[`StarOrga/Star-Citizen-Companion-Binaries`](https://github.com/StarOrga/Star-Citizen-Companion-Binaries).
 The `desktop-latest` Edge Function returns YAML pointing at that public mirror's
 URLs, so `electron-updater` can fetch without GitHub auth.
 
@@ -54,7 +54,7 @@ verify end-users can actually download:
 ```bash
 TAG=desktop-v$(gh release list --limit 1 --json tagName --jq '.[0].tagName' | sed 's/desktop-v//')
 VERSION=$(echo "$TAG" | sed 's/^desktop-v//')
-curl -sIL "https://github.com/Jerry0022/sc-companion-binaries/releases/download/$TAG/sc-companion-setup-$VERSION-x64.exe" \
+curl -sIL "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/$TAG/sc-companion-setup-$VERSION-x64.exe" \
   | grep -E "^HTTP|^Content-Length" | head -4
 ```
 
@@ -62,7 +62,7 @@ curl -sIL "https://github.com/Jerry0022/sc-companion-binaries/releases/download/
 `Content-Length: ~132000000` (~126 MB installer).
 
 If 404: either the mirror release wasn't published (check
-`gh release list --repo Jerry0022/sc-companion-binaries` — the tag MUST
+`gh release list --repo StarOrga/Star-Citizen-Companion-Binaries` — the tag MUST
 match the source repo's `desktop-v*` tag), or the
 `secrets.BINARIES_RELEASE_TOKEN` PAT in the source repo's Actions
 secrets is missing/expired. See
