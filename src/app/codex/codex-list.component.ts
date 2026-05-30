@@ -155,6 +155,10 @@ const COMPONENT_KINDS = [
           }
         </div>
 
+        @if (isPartialKind()) {
+          <p class="partial-note">{{ 'codex.empty.partial' | translate }}</p>
+        }
+
         @if (loading() && rows().length === 0) {
           <div class="grid">
             @for (s of skeletons; track s) { <div class="card skel"></div> }
@@ -261,6 +265,7 @@ const COMPONENT_KINDS = [
     .result-head { display: flex; align-items: baseline; gap: 12px; }
     .count { font-family: var(--sc-font-display); font-size: 0.82rem; letter-spacing: 0.06em; color: var(--sc-accent); text-transform: uppercase; }
     .showing { font-size: 0.74rem; color: var(--sc-fg-2); }
+    .partial-note { margin: 0; font-size: 0.74rem; color: var(--sc-warning); padding: 6px 10px; border-radius: 6px; background: color-mix(in srgb, var(--sc-warning) 10%, transparent); border: 1px solid color-mix(in srgb, var(--sc-warning) 28%, transparent); }
 
     .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
     .card {
@@ -375,6 +380,17 @@ export class CodexListComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     await this.svc.loadCurrentBuild();
   }
+
+  // True when the current build only seeded a subset of this kind (seeded <
+  // full extractor count) — surfaces an honest "representative subset" note.
+  readonly isPartialKind = computed(() => {
+    const counts = this.svc.build()?.entityCounts;
+    if (!counts?.seeded) return false;
+    const plural = this.kind() === 'ammunition' ? 'ammunition' : `${this.kind()}s`;
+    const seeded = counts.seeded[plural];
+    const full = counts[plural];
+    return typeof seeded === 'number' && typeof full === 'number' && seeded < full;
+  });
 
   kindCount(k: CodexKind): number | null {
     const counts = this.svc.build()?.entityCounts;
