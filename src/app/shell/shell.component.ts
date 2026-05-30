@@ -3,13 +3,14 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
+import { FooterComponent } from './footer.component';
 
 type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="topbar">
@@ -54,9 +55,11 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
     <main class="content">
       <router-outlet />
     </main>
+
+    <sc-footer />
   `,
   styles: [`
-    :host { display: block; min-height: 100vh; }
+    :host { display: flex; flex-direction: column; min-height: 100vh; }
     .topbar {
       display: flex;
       align-items: center;
@@ -140,6 +143,8 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
     }
     .content {
+      flex: 1;
+      width: 100%;
       padding: 32px 28px;
       max-width: 1280px;
       margin: 0 auto;

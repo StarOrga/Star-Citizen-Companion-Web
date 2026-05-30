@@ -3,67 +3,91 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from './auth.service';
+import { FooterComponent } from '../shell/footer.component';
 
 @Component({
   selector: 'sc-login',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslateModule],
+  imports: [ReactiveFormsModule, TranslateModule, FooterComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="login-page">
-      <div class="sc-card login-card">
-        <h1>SC Companion</h1>
-        <p class="tag">{{ 'auth.tagline' | translate }}</p>
+    <div class="login-shell">
+      <main class="login-page">
+        <div class="sc-card login-card">
+          <h1>SC Companion</h1>
+          <p class="tag">{{ 'auth.tagline' | translate }}</p>
 
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
-          <label>
-            {{ 'auth.email' | translate }}
-            <input type="email" class="sc-input" formControlName="email" autocomplete="email" />
-          </label>
-
-          <label>
-            {{ 'auth.password' | translate }}
-            <input type="password" class="sc-input" formControlName="password" autocomplete="current-password" />
-          </label>
-
-          @if (errorMsg()) {
-            <div class="err">{{ errorMsg() }}</div>
+          @if (denied()) {
+            <div class="notice denied">{{ 'auth.deniedInvite' | translate }}</div>
           }
 
-          <div class="actions">
-            <button type="submit" class="sc-btn sc-btn-primary" [disabled]="busy() || form.invalid">
-              @if (mode() === 'signin') {
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+            <label>
+              {{ 'auth.email' | translate }}
+              <input type="email" class="sc-input" formControlName="email" autocomplete="email" />
+            </label>
+
+            <label>
+              {{ 'auth.password' | translate }}
+              <input type="password" class="sc-input" formControlName="password" autocomplete="current-password" />
+            </label>
+
+            @if (errorMsg()) {
+              <div class="err">{{ errorMsg() }}</div>
+            }
+
+            <div class="actions">
+              <button type="submit" class="sc-btn sc-btn-primary" [disabled]="busy() || form.invalid">
                 {{ 'auth.signIn' | translate }}
-              } @else {
-                {{ 'auth.signUp' | translate }}
-              }
-            </button>
-            <button type="button" class="sc-btn" (click)="toggleMode()" [disabled]="busy()">
-              @if (mode() === 'signin') {
-                {{ 'auth.needAccount' | translate }}
-              } @else {
-                {{ 'auth.haveAccount' | translate }}
-              }
-            </button>
-          </div>
-        </form>
+              </button>
+            </div>
+          </form>
 
-        <div class="sep"><span>{{ 'auth.or' | translate }}</span></div>
+          <div class="sep"><span>{{ 'auth.or' | translate }}</span></div>
 
-        <button type="button" class="sc-btn google" (click)="signInWithGoogle()" [disabled]="busy()">
-          {{ 'auth.continueGoogle' | translate }}
-        </button>
-      </div>
-    </main>
+          <button type="button" class="sc-btn google" (click)="signInWithGoogle()" [disabled]="busy()">
+            {{ 'auth.continueGoogle' | translate }}
+          </button>
+
+          <p class="invite-only">{{ 'auth.inviteOnly' | translate }}</p>
+        </div>
+      </main>
+
+      <sc-footer />
+    </div>
   `,
   styles: [`
-    .login-page {
+    .login-shell {
+      display: flex;
+      flex-direction: column;
       min-height: 100vh;
+    }
+    .login-page {
+      flex: 1;
       display: grid;
       place-items: center;
       padding: 24px;
     }
     .login-card { width: 100%; max-width: 420px; }
+    .notice {
+      margin-bottom: 18px;
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+    .notice.denied {
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid var(--sc-warning);
+      color: var(--sc-warning);
+    }
+    .invite-only {
+      margin: 20px 0 0;
+      text-align: center;
+      color: var(--sc-fg-2);
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
     h1 {
       text-align: center;
       font-size: 2rem;
@@ -127,19 +151,15 @@ export class LoginComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  readonly mode = signal<'signin' | 'signup'>('signin');
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
+  /** Set when the approvedGuard bounced an un-invited account back here. */
+  readonly denied = signal(this.route.snapshot.queryParamMap.get('denied') === 'invite');
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
   });
-
-  toggleMode() {
-    this.mode.update((m) => (m === 'signin' ? 'signup' : 'signin'));
-    this.errorMsg.set(null);
-  }
 
   /**
    * Read the `?redirect=…` query param the auth guard set when bouncing
@@ -159,10 +179,7 @@ export class LoginComponent {
     this.errorMsg.set(null);
     const { email, password } = this.form.getRawValue();
     try {
-      const fn = this.mode() === 'signin'
-        ? this.auth.signInWithPassword(email, password)
-        : this.auth.signUp(email, password);
-      const { error } = await fn;
+      const { error } = await this.auth.signInWithPassword(email, password);
       if (error) {
         this.errorMsg.set(error.message);
       } else {

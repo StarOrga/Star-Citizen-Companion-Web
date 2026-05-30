@@ -8,7 +8,9 @@
     "needAccount": "Need an account?",
     "haveAccount": "Have an account?",
     "or": "or",
-    "continueGoogle": "Continue with Google"
+    "continueGoogle": "Continue with Google",
+    "inviteOnly": "Access is invite-only. Ask an admin to invite you.",
+    "deniedInvite": "This account hasn't been invited yet. The site is invite-only — ask an admin to send you an invitation."
   },
   "nav": {
     "news": "Verse News",
@@ -369,5 +371,11 @@
     "redirectingHint": "You can close this window in a moment.",
     "unauthorized": "Your account can't use the Data Uploader.",
     "unauthorizedHint": "You need collaborator or admin role. Ask an admin."
+  },
+  "footer": {
+    "madeByCommunity": "Made by the Community",
+    "badgeAlt": "Star Citizen — Made by the Community fan site badge",
+    "disclaimer": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content not authored by this site's host or its users is the property of its respective owner.",
+    "trademarks": "Star Citizen, Roberts Space Industries and Cloud Imperium are trademarks of Cloud Imperium Rights LLC."
   }
 }

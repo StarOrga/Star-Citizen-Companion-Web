@@ -4,6 +4,31 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-05-30
+
+### Added — Invite-only access + site-wide footer
+
+The app is now invite-only: only accounts an admin invited (or the bootstrap
+admin) can get past the login page.
+
+- **`profiles.is_approved`** column. `handle_new_user` sets it `true` only when
+  the account was created via admin invite (`auth.users.invited_at` is stamped
+  by `inviteUserByEmail`) or is the bootstrap admin. Self-registrations
+  (open sign-up / first-time Google) land `false`. Existing roster backfilled
+  to `true` (alpha — trusted set, no lock-outs).
+- **`approvedGuard`** on the shell route: an un-approved session is signed out
+  and bounced to `/login?denied=invite` with an explanatory notice.
+- **Login** drops the self-signup toggle (sign-in + Google only), shows an
+  invite-only hint and the denied notice. `AuthService.signUp` removed.
+- **`invite-user`** edge function re-asserts `is_approved: true` on the invited
+  profile (redeployed).
+- **Site-wide footer** (`FooterComponent`) on both the login page and the
+  authenticated shell: "Made by the Community" fan badge + the trademark
+  disclaimer required for a Star Citizen fan site. New keys in all 7 locales.
+
+> Full server-side hardening still requires disabling "Allow new users to sign
+> up" in Supabase Auth settings (not toggleable via MCP).
+
 ## [0.7.1] - 2026-05-30
 
 ### Changed — Desktop tool renamed to "Star Citizen Companion - Data Uploader"

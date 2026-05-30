@@ -10,9 +10,12 @@ export class RoleService {
   private readonly auth = inject(AuthService);
 
   private readonly _role = signal<Role | null>(null);
+  private readonly _approved = signal(false);
   private readonly _loaded = signal(false);
 
   readonly role = this._role.asReadonly();
+  /** True only when the account was invited by an admin (or is the bootstrap admin). */
+  readonly approved = this._approved.asReadonly();
   readonly loaded = this._loaded.asReadonly();
   readonly isAdmin = computed(() => this._role() === 'admin');
   readonly isCollaborator = computed(() =>
@@ -24,6 +27,7 @@ export class RoleService {
       const user = this.auth.user();
       if (!user) {
         this._role.set(null);
+        this._approved.set(false);
         this._loaded.set(false);
         return;
       }
@@ -35,18 +39,22 @@ export class RoleService {
     const user = this.auth.user();
     if (!user) {
       this._role.set(null);
+      this._approved.set(false);
       this._loaded.set(false);
       return;
     }
     const { data, error } = await this.sb.client
       .from('profiles')
-      .select('role')
+      .select('role, is_approved')
       .eq('id', user.id)
       .maybeSingle();
     if (error) {
+      // Fail closed on approval (deny), but keep a sane role default.
       this._role.set('viewer');
+      this._approved.set(false);
     } else {
       this._role.set(((data?.['role'] as Role) ?? 'viewer'));
+      this._approved.set(data?.['is_approved'] === true);
     }
     this._loaded.set(true);
   }

@@ -820,6 +820,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          is_approved: boolean
           preferred_channel: string | null
           role: string
           rsi_handle: string | null
@@ -829,6 +830,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          is_approved?: boolean
           preferred_channel?: string | null
           role?: string
           rsi_handle?: string | null
@@ -838,6 +840,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          is_approved?: boolean
           preferred_channel?: string | null
           role?: string
           rsi_handle?: string | null

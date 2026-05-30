@@ -8,7 +8,9 @@
     "needAccount": "还没有账户？",
     "haveAccount": "已有账户？",
     "or": "或",
-    "continueGoogle": "使用 Google 继续"
+    "continueGoogle": "使用 Google 继续",
+    "inviteOnly": "仅限受邀访问。请向管理员索取邀请。",
+    "deniedInvite": "该账户尚未被邀请。本站仅限受邀访问——请联系管理员邀请你。"
   },
   "nav": {
     "news": "Verse 新闻",
@@ -117,5 +119,11 @@
     "redirectingHint": "你可以在片刻后关闭此窗口。",
     "unauthorized": "你的账户无法使用 Data Uploader。",
     "unauthorizedHint": "需要协作者或管理员角色。请联系管理员。"
+  },
+  "footer": {
+    "madeByCommunity": "由社区制作",
+    "badgeAlt": "Star Citizen —「由社区制作」粉丝网站徽章",
+    "disclaimer": "这是一个非官方的 Star Citizen 粉丝网站，与 Cloud Imperium 公司集团无关。本站非由站点托管者或其用户创作的所有内容，均归各自所有者所有。",
+    "trademarks": "Star Citizen、Roberts Space Industries 和 Cloud Imperium 是 Cloud Imperium Rights LLC 的商标。"
   }
 }
