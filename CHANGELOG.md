@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-05-31
+
+### Fixed — Bundle ingest "forbidden" for collaborators
+
+- **`ingest-bundle`** now calls the `ingest_bundle_atomic` RPC via `userClient`
+  instead of `adminClient`. The RPC is `security definer` and re-checks
+  `is_collaborator()` as defense-in-depth, which reads `auth.uid()`. Service-role
+  calls carry no JWT context, so `auth.uid()` was `NULL`, the role coalesced to
+  `viewer`, and the RPC raised `forbidden` for legitimate collaborators. RLS is
+  already bypassed by `security definer`, so `userClient` is the correct caller
+  for the INSERT side. (Recovered from an abandoned worktree during repo-health.)
+
 ## [0.9.0] - 2026-05-31
 
 ### Added — Codex: full catalog, slot compatibility, previews, dimensions & localization

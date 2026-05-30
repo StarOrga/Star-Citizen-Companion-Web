@@ -118,7 +118,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // (channel, patch, build) means second uploader gets HTTP 409 — by
   // design now: first upload wins, the other side's operator coordinates
   // with the admin if they really want to override (MED 4).
-  const { data: rpcRows, error: rpcErr } = await adminClient.rpc(
+  //
+  // MUST call via userClient (not adminClient): the RPC is security-definer
+  // and re-checks `is_collaborator()` as defense-in-depth, which reads
+  // `auth.uid()`. Service-role calls have no JWT context → auth.uid() is
+  // NULL → role coalesces to 'viewer' → RPC raises "forbidden". RLS is
+  // already bypassed by `security definer`, so userClient is safe for
+  // the INSERT side.
+  const { data: rpcRows, error: rpcErr } = await userClient.rpc(
     'ingest_bundle_atomic',
     {
       p_uploader: user.id,
