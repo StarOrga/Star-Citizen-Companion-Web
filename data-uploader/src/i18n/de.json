@@ -36,7 +36,8 @@
     "signInFailed": "Anmeldung fehlgeschlagen",
     "uploading": "Upload läuft…",
     "uploadOk": "Upload OK",
-    "uploadFailed": "Upload-Fehler"
+    "uploadFailed": "Upload-Fehler",
+    "cleaned": "Extrahierte Dateien aufgeräumt (Upload bestätigt)"
   },
   "update": {
     "available": "Update verfügbar: v{{version}} — wird im Hintergrund geladen…",

@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { environment } from '../../environments/environment';
 import {
   CODEX_ENTITY_TABLES,
   CodexAmmunitionRow,
@@ -79,6 +80,25 @@ export interface CodexDetail {
   payload: unknown;
   ports: CodexItemPort[];
   strings: CodexEntityString[];
+}
+
+// One item that fits a given hardpoint (returned by the codex_compatible_items
+// RPC). `kind` is always a mountable kind (weapon/component/item).
+export interface CompatibleItem {
+  kind: CodexKind;
+  classNameSlug: string;
+  nameLocalized: string | null;
+  manufacturerCode: string | null;
+  size: number | null;
+  subType: string | null;
+  grade: string | null;
+}
+
+// The accepted-types + size-range shape the compatibility RPC needs.
+export interface PortQuery {
+  types: string[];
+  minSize: number | null;
+  maxSize: number | null;
 }
 
 const PAGE_SIZE = 60;
@@ -262,6 +282,70 @@ export class CodexService {
     return null;
   }
 
+  /**
+   * Resolve which buyable weapons/components/items fit a hardpoint, via the
+   * codex_compatible_items RPC (matches the port's accepted `types` + size
+   * range against each item's attach_type + size). Empty `types` ⇒ no result.
+   */
+  async getCompatibleItems(port: PortQuery): Promise<CompatibleItem[]> {
+    const build = await this.loadCurrentBuild();
+    if (!build || !port.types?.length) return [];
+    const { data, error } = await this.sb.client.rpc('codex_compatible_items', {
+      p_build_id: build.id,
+      p_types: port.types,
+      p_min: port.minSize,
+      p_max: port.maxSize,
+    });
+    if (error) throw error;
+    return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+      kind: r['kind'] as CodexKind,
+      classNameSlug: r['class_name'] as string,
+      nameLocalized: (r['name_localized'] as string | null) ?? null,
+      manufacturerCode: (r['manufacturer_code'] as string | null) ?? null,
+      size: (r['size'] as number | null) ?? null,
+      subType: (r['sub_type'] as string | null) ?? null,
+      grade: (r['grade'] as string | null) ?? null,
+    }));
+  }
+
+  /**
+   * Resolve raw global.ini @-keys (roles, port labels, …) to their localized
+   * value in the current build, from codex_locale_strings. The leading `@` is
+   * stripped to match the table's key form. Returns a key→value map keyed by
+   * the ORIGINAL input string.
+   */
+  async resolveLocaleKeys(keys: string[], lang: Lang): Promise<Map<string, string>> {
+    const out = new Map<string, string>();
+    const build = await this.loadCurrentBuild();
+    const wanted = keys.filter((k) => k && k.startsWith('@'));
+    if (!build || wanted.length === 0) return out;
+    const norm = new Map(wanted.map((k) => [k.slice(1), k])); // stripped -> original
+    const { data, error } = await this.sb.client
+      .from('codex_locale_strings')
+      .select('key, value')
+      .eq('build_id', build.id)
+      .eq('lang', lang)
+      .in('key', [...norm.keys()]);
+    if (error) return out; // localization is a nice-to-have — never block the view
+    for (const r of (data ?? []) as { key: string; value: string }[]) {
+      const original = norm.get(r.key);
+      if (original) out.set(original, r.value);
+    }
+    return out;
+  }
+
+  /**
+   * Public URL of a preview image (WebP) in the codex-previews storage bucket,
+   * for the current build. `previewImage` is the bare filename from the entity
+   * payload; returns null when the entity has no art.
+   */
+  previewUrl(previewImage: string | null | undefined): string | null {
+    const build = this.build();
+    if (!previewImage || !build) return null;
+    return `${environment.supabase.url}/storage/v1/object/public/codex-previews/` +
+      `${encodeURIComponent(build.buildNumber)}/${encodeURIComponent(previewImage)}`;
+  }
+
   // ── compare tray ───────────────────────────────────────────────────────────
   static compareKey(kind: CodexKind, className: string): string {
     return `${kind}:${className}`;
@@ -362,8 +446,14 @@ export function pickLocalized(
   fallback = '',
 ): string {
   if (!text) return fallback;
-  const primary = lang === 'de' ? text.de : text.en;
-  return (primary || text.en || text.de || fallback).trim();
+  // Drop unresolved global.ini keys ('@...') so a missing translation falls
+  // back to the other language or the caller's fallback, never a raw key.
+  const clean = (v: string | undefined): string => {
+    const s = (v ?? '').trim();
+    return s && !s.startsWith('@') ? s : '';
+  };
+  const primary = lang === 'de' ? clean(text.de) : clean(text.en);
+  return primary || clean(text.en) || clean(text.de) || fallback;
 }
 
 // Re-export row aliases so consuming components can type narrowly if needed.

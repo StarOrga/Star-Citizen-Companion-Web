@@ -35,6 +35,7 @@
     "signInFailed": "Échec de la connexion",
     "uploading": "Envoi en cours…",
     "uploadOk": "Upload OK",
-    "uploadFailed": "Échec de l'upload"
+    "uploadFailed": "Échec de l'upload",
+    "cleaned": "Extracted files cleaned up (upload confirmed)"
   }
 }

@@ -3,20 +3,19 @@
 // seed-codex.mjs — bulk-load an extractor out_dir into the codex_* cloud tables.
 //
 // Reads the typed JSON folders the extractor writes (ships/, weapons/,
-// components/, items/, ammunition/, manufacturers/ — shape documented in
-// docs/concepts/codex-extraction-output.md), maps them onto the 00008 schema,
-// and upserts everything under a single codex_builds row via the SERVICE-ROLE
-// key (RLS bypass — writes are service-role only). On success it flips the
-// build to is_current for its channel.
+// components/, items/, ammunition/, manufacturers/, localization/ — shape
+// documented in docs/concepts/codex-extraction-output.md), maps them onto the
+// 00008 + 20260530 schema, and upserts everything under a single codex_builds
+// row. On success it flips the build to is_current for its channel.
 //
 // TWO TRANSPORTS
 //   (A) Direct service-role (default): writes straight to the DB, RLS bypassed.
 //       SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required.
 //   (B) Edge-function (--via-function): POSTs batches to the deployed
 //       `ingest-catalog` function, which holds the service-role secret
-//       server-side. The LOCAL machine then needs only the public anon key +
-//       a seed token (SUPABASE_ANON_KEY + SUPABASE_SEED_TOKEN) — never the
-//       service-role key. This is how the cloud DB was seeded in Wave 2.
+//       server-side. The LOCAL machine then needs only the public anon key + a
+//       seed token (SUPABASE_ANON_KEY + SUPABASE_SEED_TOKEN) — never the
+//       service-role key.
 //
 // USAGE
 //   # (A) direct
@@ -28,13 +27,12 @@
 //     node supabase/scripts/seed-codex.mjs --via-function --out <out_dir> ...
 //
 //   --out             extractor output dir (default: %LOCALAPPDATA%/sc-companion/extracts/LIVE-full)
-//   --limit-per-kind  cap rows per entity kind (representative subset; ships +
+//   --limit-per-kind  cap rows per entity kind (0/unset = FULL; ships +
 //                     manufacturers are always loaded in full regardless)
+//   --no-locale       skip the (large) localization table load
 //   --no-current      do not flip is_current on completion
 //
-// Secrets are read from env and NEVER written to disk or logged. To run the
-// FULL extraction first, see desktop-tool/python (extract.py) and point --out
-// at its output.
+// Secrets are read from env and NEVER written to disk or logged.
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js';
@@ -58,11 +56,13 @@ const DEFAULT_OUT = join(
 const OUT_DIR = arg('out', DEFAULT_OUT);
 const LIMIT = Number(arg('limit-per-kind', 0)) || 0; // 0 = no limit
 const SET_CURRENT = arg('no-current') !== true;
+const LOAD_LOCALE = arg('no-locale') !== true;
+const VIA = arg('via-function') === true;
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SUPABASE_URL || !SERVICE_KEY) {
-  console.error('ERROR: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars are required.');
+
+if (!SUPABASE_URL) {
+  console.error('ERROR: SUPABASE_URL env var is required.');
   process.exit(1);
 }
 if (!existsSync(OUT_DIR)) {
@@ -70,11 +70,171 @@ if (!existsSync(OUT_DIR)) {
   process.exit(1);
 }
 
-const sb = createClient(SUPABASE_URL, SERVICE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+// ---- transport --------------------------------------------------------------
+// Either a direct service-role supabase client OR an edge-function POSTer.
+let sb = null;
+let postFn = null;
+if (VIA) {
+  const ANON = process.env.SUPABASE_ANON_KEY;
+  const SEED_TOKEN = process.env.SUPABASE_SEED_TOKEN;
+  if (!ANON || !SEED_TOKEN) {
+    console.error('ERROR: --via-function needs SUPABASE_ANON_KEY and SUPABASE_SEED_TOKEN.');
+    process.exit(1);
+  }
+  const ENDPOINT = `${SUPABASE_URL}/functions/v1/ingest-catalog`;
+  postFn = async (op, extra) => {
+    const res = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        apikey: ANON,
+        'x-sc-seed-token': SEED_TOKEN,
+      },
+      body: JSON.stringify({ op, ...extra }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(`${op} failed: HTTP ${res.status} ${j.error ?? ''} ${j.message ?? ''}`.trim());
+    }
+    return j;
+  };
+} else {
+  const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!SERVICE_KEY) {
+    console.error('ERROR: direct mode needs SUPABASE_SERVICE_ROLE_KEY (or pass --via-function).');
+    process.exit(1);
+  }
+  sb = createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
-const CHUNK = 500; // rows per upsert request (respect body limits)
+const CHUNK = 500;        // entity/string rows per request
+const LOCALE_CHUNK = 1000; // locale rows per request (small rows)
+const NAT_CONFLICT = 'channel,patch_version,build_number,class_name';
+
+// ---- write primitives (branch on transport) ---------------------------------
+async function initBuild(buildPayload) {
+  if (VIA) {
+    const j = await postFn('init', { build: buildPayload });
+    return j.build_id;
+  }
+  const { data, error } = await sb
+    .from('codex_builds')
+    .upsert(buildPayload, { onConflict: 'channel,patch_version,build_number' })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+async function sendEntity(table, rows) {
+  let done = 0;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK);
+    if (VIA) await postFn('upsert', { table, rows: slice });
+    else {
+      const { error } = await sb.from(table).upsert(slice, { onConflict: NAT_CONFLICT });
+      if (error) throw error;
+    }
+    done += slice.length;
+    process.stdout.write(`\r  ${table}: ${done}/${rows.length}`);
+  }
+  if (rows.length) process.stdout.write('\n');
+  return done;
+}
+
+async function sendStrings(rows) {
+  let done = 0;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK);
+    if (VIA) await postFn('strings', { rows: slice });
+    else {
+      const { error } = await sb
+        .from('codex_entity_strings')
+        .upsert(slice, { onConflict: 'build_id,entity_class_name,lang,field' });
+      if (error) throw error;
+    }
+    done += slice.length;
+    process.stdout.write(`\r  codex_entity_strings: ${done}/${rows.length}`);
+  }
+  if (rows.length) process.stdout.write('\n');
+  return done;
+}
+
+async function sendLocale(rows) {
+  let done = 0;
+  for (let i = 0; i < rows.length; i += LOCALE_CHUNK) {
+    const slice = rows.slice(i, i + LOCALE_CHUNK);
+    if (VIA) await postFn('locale_strings', { rows: slice });
+    else {
+      const { error } = await sb
+        .from('codex_locale_strings')
+        .upsert(slice, { onConflict: 'build_id,lang,key' });
+      if (error) throw error;
+    }
+    done += slice.length;
+    process.stdout.write(`\r  codex_locale_strings: ${done}/${rows.length}`);
+  }
+  if (rows.length) process.stdout.write('\n');
+  return done;
+}
+
+async function sendPorts(buildId, rows) {
+  if (VIA) await postFn('clear_ports', { build_id: buildId });
+  else await sb.from('codex_item_ports').delete().eq('build_id', buildId);
+  let done = 0;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK);
+    if (VIA) await postFn('ports', { build_id: buildId, rows: slice });
+    else {
+      const { error } = await sb.from('codex_item_ports').insert(slice);
+      if (error) throw error;
+    }
+    done += slice.length;
+    process.stdout.write(`\r  codex_item_ports: ${done}/${rows.length}`);
+  }
+  if (rows.length) process.stdout.write('\n');
+  return done;
+}
+
+async function sendPreviews(buildNumber) {
+  const dir = join(OUT_DIR, 'previews');
+  if (!existsSync(dir)) return 0;
+  const files = (await readdir(dir)).filter((f) => f.endsWith('.webp'));
+  let done = 0;
+  for (const name of files) {
+    const bytes = await readFile(join(dir, name));
+    if (VIA) {
+      await postFn('preview', {
+        build_number: buildNumber,
+        name,
+        content_base64: bytes.toString('base64'),
+      });
+    } else {
+      const { error } = await sb.storage
+        .from('codex-previews')
+        .upload(`${buildNumber}/${name}`, bytes, { contentType: 'image/webp', upsert: true });
+      if (error) throw error;
+    }
+    done += 1;
+    process.stdout.write(`\r  codex-previews: ${done}/${files.length}`);
+  }
+  if (files.length) process.stdout.write('\n');
+  return done;
+}
+
+async function finalize(buildId, entityCounts) {
+  if (VIA) {
+    await postFn('finalize', { build_id: buildId, entity_counts: entityCounts });
+    return;
+  }
+  await sb.from('codex_builds').update({ entity_counts: entityCounts }).eq('id', buildId);
+  if (SET_CURRENT) {
+    const { error } = await sb.rpc('set_current_codex_build', { p_build_id: buildId });
+    if (error) console.warn(`set_current_codex_build failed (non-fatal): ${error.message}`);
+  }
+}
 
 // ---- helpers ----------------------------------------------------------------
 async function readJsonDir(sub, limit = 0) {
@@ -95,41 +255,31 @@ async function readJsonDir(sub, limit = 0) {
 
 function localizedName(name) {
   if (!name || typeof name !== 'object') return null;
-  const en = (name.en || '').trim();
-  const de = (name.de || '').trim();
-  // Single clean display name (used by the list view + trigram search).
-  // Prefer EN, fall back to DE. Do NOT concatenate en+de — SC names are
-  // usually identical across languages, which produced doubled strings
-  // like "Avenger Stalker Avenger Stalker".
+  // Drop unresolved keys (value still '@...') so the UI falls back to the
+  // className rather than showing a raw global.ini key.
+  const clean = (v) => {
+    const s = (v || '').trim();
+    return s && !s.startsWith('@') ? s : '';
+  };
+  const en = clean(name.en);
+  const de = clean(name.de);
+  // Prefer EN, fall back to DE. Do NOT concatenate (SC names are usually
+  // identical across languages → doubled strings otherwise).
   return en || de || null;
 }
 
-// AI/template variant heuristic (docs/concepts/codex-extraction-output.md §5).
 const VARIANT_RE = /(_PU_AI_|_AI_|_Template$|^MASTER_|_Unmanned_|_Renegade$)/i;
 const isVariant = (cn) => VARIANT_RE.test(cn || '');
 
 const manuCode = (e) =>
   e.manufacturer && typeof e.manufacturer === 'object' ? e.manufacturer.code ?? null : null;
 
-async function upsertChunks(table, rows, onConflict) {
-  let done = 0;
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    const slice = rows.slice(i, i + CHUNK);
-    const { error } = await sb.from(table).upsert(slice, { onConflict });
-    if (error) {
-      console.error(`  upsert ${table} [${i}..${i + slice.length}] failed: ${error.message}`);
-      throw error;
-    }
-    done += slice.length;
-    process.stdout.write(`\r  ${table}: ${done}/${rows.length}`);
-  }
-  if (rows.length) process.stdout.write('\n');
-  return done;
-}
-
 // ---- main -------------------------------------------------------------------
 async function main() {
-  console.log(`seed-codex: out=${OUT_DIR}  limit-per-kind=${LIMIT || 'none'}`);
+  console.log(
+    `seed-codex: out=${OUT_DIR}  transport=${VIA ? 'edge-function' : 'service-role'}  ` +
+      `limit-per-kind=${LIMIT || 'none'}  locale=${LOAD_LOCALE}`,
+  );
 
   const manifest = JSON.parse(await readFile(join(OUT_DIR, 'manifest.json'), 'utf-8'));
   const channel = manifest.channel ?? 'LIVE';
@@ -138,32 +288,22 @@ async function main() {
   const nat = { channel, patch_version: patch, build_number: build };
 
   // 1. build row -------------------------------------------------------------
-  const { data: buildRow, error: buildErr } = await sb
-    .from('codex_builds')
-    .upsert(
-      {
-        ...nat,
-        schema_version: manifest.schema_version ?? 1,
-        quality_score: manifest.quality_score ?? null,
-        tool_version: manifest.tool_version ?? null,
-        entity_counts: manifest.entity_counts ?? {},
-        manifest,
-        extracted_at: new Date().toISOString(),
-      },
-      { onConflict: 'channel,patch_version,build_number' },
-    )
-    .select('id')
-    .single();
-  if (buildErr) throw buildErr;
-  const buildId = buildRow.id;
+  const buildId = await initBuild({
+    ...nat,
+    schema_version: manifest.schema_version ?? 1,
+    quality_score: manifest.quality_score ?? null,
+    tool_version: manifest.tool_version ?? null,
+    entity_counts: manifest.entity_counts ?? {},
+    manifest,
+    extracted_at: new Date().toISOString(),
+  });
   console.log(`build row: ${buildId} (${channel} ${patch} ${build})`);
 
   const tagged = (extra) => ({ build_id: buildId, ...nat, ...extra });
-  const strings = []; // collected across all entity kinds
+  const strings = [];
   const ports = [];
 
   function collectStrings(entityClassName, entityKind, fields) {
-    // fields: array of { field, loc } where loc = {de,en,key}
     for (const { field, loc } of fields) {
       if (!loc || typeof loc !== 'object') continue;
       for (const lang of ['en', 'de']) {
@@ -221,9 +361,7 @@ async function main() {
         { field: 'description', loc: m.description },
       ]);
     }
-    counts.manufacturers = await upsertChunks(
-      'codex_manufacturers', rows, 'channel,patch_version,build_number,class_name',
-    );
+    counts.manufacturers = await sendEntity('codex_manufacturers', rows);
   }
 
   // 3. ships (always full) ---------------------------------------------------
@@ -250,9 +388,7 @@ async function main() {
       ]);
       collectPorts(s.className, 'ship', s.itemPorts);
     }
-    counts.ships = await upsertChunks(
-      'codex_ships', rows, 'channel,patch_version,build_number,class_name',
-    );
+    counts.ships = await sendEntity('codex_ships', rows);
   }
 
   // 4. weapons ---------------------------------------------------------------
@@ -264,6 +400,7 @@ async function main() {
         guid: w.guid ?? null,
         entity_kind: 'weapon',
         weapon_class: w.weaponClass ?? null,
+        attach_type: w.attachType ?? null,
         sub_type: w.subType ?? null,
         size: w.size ?? null,
         grade: w.grade ?? null,
@@ -280,9 +417,7 @@ async function main() {
       ]);
       collectPorts(w.className, 'weapon', w.itemPorts);
     }
-    counts.weapons = await upsertChunks(
-      'codex_weapons', rows, 'channel,patch_version,build_number,class_name',
-    );
+    counts.weapons = await sendEntity('codex_weapons', rows);
   }
 
   // 5. components ------------------------------------------------------------
@@ -311,9 +446,7 @@ async function main() {
       ]);
       collectPorts(c.className, 'component', c.itemPorts);
     }
-    counts.components = await upsertChunks(
-      'codex_components', rows, 'channel,patch_version,build_number,class_name',
-    );
+    counts.components = await sendEntity('codex_components', rows);
   }
 
   // 6. items -----------------------------------------------------------------
@@ -340,9 +473,7 @@ async function main() {
         { field: 'description', loc: it.description },
       ]);
     }
-    counts.items = await upsertChunks(
-      'codex_items', rows, 'channel,patch_version,build_number,class_name',
-    );
+    counts.items = await sendEntity('codex_items', rows);
   }
 
   // 7. ammunition ------------------------------------------------------------
@@ -359,46 +490,40 @@ async function main() {
         payload: a,
       }),
     );
-    counts.ammunition = await upsertChunks(
-      'codex_ammunition', rows, 'channel,patch_version,build_number,class_name',
-    );
+    counts.ammunition = await sendEntity('codex_ammunition', rows);
   }
 
-  // 8. strings + ports (deduped) --------------------------------------------
-  // Dedupe strings on (entity_class_name, lang, field) — matches the table's
-  // natural key; later collision wins (entities are distinct so collisions are
-  // rare but cheap to guard).
+  // 8. entity strings + ports (deduped) -------------------------------------
   {
     const seen = new Map();
     for (const s of strings) seen.set(`${s.entity_class_name}|${s.lang}|${s.field}`, s);
-    const deduped = [...seen.values()];
-    counts.entity_strings = await upsertChunks(
-      'codex_entity_strings', deduped, 'build_id,entity_class_name,lang,field',
-    );
+    counts.entity_strings = await sendStrings([...seen.values()]);
   }
-  {
-    // ports have no natural unique key; clear this build's ports then insert.
-    await sb.from('codex_item_ports').delete().eq('build_id', buildId);
-    let done = 0;
-    for (let i = 0; i < ports.length; i += CHUNK) {
-      const slice = ports.slice(i, i + CHUNK);
-      const { error } = await sb.from('codex_item_ports').insert(slice);
-      if (error) throw error;
-      done += slice.length;
-      process.stdout.write(`\r  codex_item_ports: ${done}/${ports.length}`);
+  counts.item_ports = await sendPorts(buildId, ports);
+
+  // 9. full localization tables ----------------------------------------------
+  if (LOAD_LOCALE) {
+    const localeRows = [];
+    const dir = join(OUT_DIR, 'localization');
+    if (existsSync(dir)) {
+      for (const f of (await readdir(dir)).filter((n) => n.endsWith('.json'))) {
+        const lang = f.replace(/\.json$/, '');
+        const table = JSON.parse(await readFile(join(dir, f), 'utf-8'));
+        for (const [key, value] of Object.entries(table)) {
+          if (value == null) continue;
+          localeRows.push({ build_id: buildId, lang, key, value: String(value) });
+        }
+      }
     }
-    if (ports.length) process.stdout.write('\n');
-    counts.item_ports = done;
+    counts.locale_strings = await sendLocale(localeRows);
   }
 
-  // 9. update build entity_counts + set current ------------------------------
-  await sb.from('codex_builds').update({ entity_counts: { ...manifest.entity_counts, seeded: counts } }).eq('id', buildId);
+  // 9b. preview images (deduped WebP) → public storage bucket ----------------
+  counts.previews = await sendPreviews(build);
 
-  if (SET_CURRENT) {
-    const { error } = await sb.rpc('set_current_codex_build', { p_build_id: buildId });
-    if (error) console.warn(`set_current_codex_build failed (non-fatal): ${error.message}`);
-    else console.log(`build ${buildId} set current for channel ${channel}`);
-  }
+  // 10. finalize -------------------------------------------------------------
+  await finalize(buildId, { ...manifest.entity_counts, seeded: counts });
+  if (SET_CURRENT) console.log(`build ${buildId} set current for channel ${channel}`);
 
   console.log('\nDONE. Seeded row counts:');
   console.table(counts);

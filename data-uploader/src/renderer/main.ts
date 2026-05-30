@@ -619,6 +619,24 @@ async function doUploadAfterAuth(): Promise<void> {
     'ok',
   );
   paintDiffSummary(r.diffSummary);
+
+  // Upload confirmed — reclaim the run's extracted files so they don't fill
+  // the disk. Best-effort: the main process guards + swallows failures.
+  const outDir = state.lastResult?.output_dir;
+  if (outDir) {
+    const cleaned = await window.sc.cleanup.extractDir(outDir, {
+      bundleId: r.bundleId,
+      channel: result.channel,
+      version: result.patch_version,
+    });
+    if (cleaned.ok) {
+      setAuthStatus(
+        `${t('upload.uploadOk', {}) || 'Upload OK'} · bundle_id ${r.bundleId ?? '—'} · ` +
+          (t('upload.cleaned', {}) || 'Extrahierte Dateien aufgeräumt (Upload bestätigt)'),
+        'ok',
+      );
+    }
+  }
 }
 
 function paintDiffSummary(diff: unknown): void {

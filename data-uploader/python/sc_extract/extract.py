@@ -48,6 +48,7 @@ class ExtractConfig:
     scope_hd_icons: bool = True
     scope_render_pngs: bool = True
     scope_component_tree: bool = True
+    dump_generic: bool = True
     tool_version: str = "0.0.0-dev"
 
 
@@ -225,6 +226,9 @@ def _real_extract(cfg: ExtractConfig) -> ExtractResult:
         df, localizer, cfg.out_dir, source,
         on_count=events.count,
         on_log=events.log,
+        dump_generic=cfg.dump_generic,
+        p4k=p4k,
+        extract_assets=True,
     )
     counts = extractor.run()
 
@@ -311,6 +315,11 @@ def main() -> int:
         help="Comma-separated: hd_icons,render_pngs,component_tree",
     )
     parser.add_argument("--tool-version", default="0.0.0-dev")
+    parser.add_argument(
+        "--skip-generic",
+        action="store_true",
+        help="Skip the exhaustive generic record dump (faster; keeps existing records/ on disk)",
+    )
     args = parser.parse_args()
 
     scope = set(args.scope.split(","))
@@ -323,6 +332,7 @@ def main() -> int:
         scope_hd_icons="hd_icons" in scope,
         scope_render_pngs="render_pngs" in scope,
         scope_component_tree="component_tree" in scope,
+        dump_generic=not args.skip_generic,
         tool_version=args.tool_version,
     )
 

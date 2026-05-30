@@ -35,6 +35,7 @@
     "signInFailed": "登录失败",
     "uploading": "上传中…",
     "uploadOk": "上传成功",
-    "uploadFailed": "上传失败"
+    "uploadFailed": "上传失败",
+    "cleaned": "Extracted files cleaned up (upload confirmed)"
   }
 }

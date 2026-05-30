@@ -172,6 +172,9 @@ const COMPONENT_KINDS = [
           <div class="grid">
             @for (r of rows(); track r.classNameSlug) {
               <a class="card" [routerLink]="['/codex', kind(), r.classNameSlug]">
+                @if (thumb(r); as src) {
+                  <div class="thumb"><img [src]="src" [alt]="r.nameLocalized || r.classNameSlug" loading="lazy" /></div>
+                }
                 <div class="card-top">
                   <h3 class="name">{{ r.nameLocalized || r.classNameSlug }}</h3>
                   <button type="button" class="pin"
@@ -184,7 +187,7 @@ const COMPONENT_KINDS = [
                 <code class="cls">{{ r.classNameSlug }}</code>
                 <div class="badges">
                   @if (r.manufacturerCode) { <span class="badge mfr">{{ r.manufacturerCode }}</span> }
-                  @if (r.componentKind) { <span class="badge">{{ r.componentKind }}</span> }
+                  @if (r.componentKind) { <span class="badge">{{ ('codex.componentKind.' + r.componentKind) | translate }}</span> }
                   @if (r.weaponClass) { <span class="badge">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
                   @if (r.subType) { <span class="badge subtle">{{ r.subType }}</span> }
                   @if (r.size != null) { <span class="badge">{{ 'codex.card.size' | translate: { size: r.size } }}</span> }
@@ -276,6 +279,9 @@ const COMPONENT_KINDS = [
       transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s;
     }
     .card:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 28%, transparent); }
+    .card .thumb { height: 96px; margin: -4px 0 2px; display: flex; align-items: center; justify-content: center;
+      border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
+    .card .thumb img { max-height: 88px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card .name { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.25; }
     .card .cls { font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); word-break: break-all; }
@@ -312,6 +318,12 @@ export class CodexListComponent implements OnInit {
 
   readonly kinds = CODEX_KINDS;
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
+
+  /** Preview-image URL for a list row, or null when the entity has no art. */
+  thumb(r: CodexListRow): string | null {
+    const p = r.payload as { previewImage?: string | null } | undefined;
+    return this.svc.previewUrl(p?.previewImage);
+  }
 
   readonly kind = signal<CodexKind>('ship');
   readonly searchInput = signal('');

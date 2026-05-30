@@ -1,6 +1,6 @@
 # SC Companion
 
-**Version: 0.8.0**
+**Version: 0.9.0**
 
 > Star Citizen companion — Verse News, P4K analyzer, and more.
 > Built with Angular 21 PWA · Supabase (Auth + Postgres + Storage + Edge Functions) · Vercel.

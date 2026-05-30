@@ -93,6 +93,13 @@ export const api = {
       return () => ipcRenderer.removeListener('sc:update:event', listener);
     },
   },
+  cleanup: {
+    extractDir: (
+      outDir: string,
+      info: { bundleId?: string; channel?: string; version?: string },
+    ): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('sc:cleanup:extractDir', outDir, info),
+  },
   extract: {
     env: (): Promise<{ interpreter: string; cwd: string; source: 'env' | 'packaged' | 'dev-path' }> =>
       ipcRenderer.invoke('sc:extract:env'),

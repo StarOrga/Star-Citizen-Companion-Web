@@ -36,7 +36,8 @@
     "signInFailed": "Sign-in failed",
     "uploading": "Uploading…",
     "uploadOk": "Upload OK",
-    "uploadFailed": "Upload failed"
+    "uploadFailed": "Upload failed",
+    "cleaned": "Extracted files cleaned up (upload confirmed)"
   },
   "update": {
     "available": "Update available: v{{version}} — downloading in background…",

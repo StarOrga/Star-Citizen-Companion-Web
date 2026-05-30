@@ -428,6 +428,35 @@ export type Database = {
           },
         ]
       }
+      codex_locale_strings: {
+        Row: {
+          build_id: string
+          key: string
+          lang: string
+          value: string
+        }
+        Insert: {
+          build_id: string
+          key: string
+          lang: string
+          value: string
+        }
+        Update: {
+          build_id?: string
+          key?: string
+          lang?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "codex_locale_strings_build_id_fkey"
+            columns: ["build_id"]
+            isOneToOne: false
+            referencedRelation: "codex_builds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       codex_manufacturers: {
         Row: {
           build_id: string
@@ -566,6 +595,7 @@ export type Database = {
       }
       codex_weapons: {
         Row: {
+          attach_type: string | null
           build_id: string
           build_number: string
           channel: string
@@ -585,6 +615,7 @@ export type Database = {
           weapon_class: string | null
         }
         Insert: {
+          attach_type?: string | null
           build_id: string
           build_number?: string
           channel: string
@@ -604,6 +635,7 @@ export type Database = {
           weapon_class?: string | null
         }
         Update: {
+          attach_type?: string | null
           build_id?: string
           build_number?: string
           channel?: string
@@ -862,7 +894,25 @@ export type Database = {
       }
     }
     Functions: {
+      codex_compatible_items: {
+        Args: {
+          p_build_id: string
+          p_max?: number
+          p_min?: number
+          p_types: string[]
+        }
+        Returns: {
+          class_name: string
+          grade: string
+          kind: string
+          manufacturer_code: string
+          name_localized: string
+          size: number
+          sub_type: string
+        }[]
+      }
       current_user_role: { Args: never; Returns: string }
+      delete_p4k_bundle: { Args: { bundle_id: string }; Returns: undefined }
       diff_bundle: { Args: { new_id: string; prev_id: string }; Returns: Json }
       ingest_bundle_atomic: {
         Args: {

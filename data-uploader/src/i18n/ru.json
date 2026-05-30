@@ -35,6 +35,7 @@
     "signInFailed": "Ошибка входа",
     "uploading": "Загрузка…",
     "uploadOk": "Загрузка ОК",
-    "uploadFailed": "Ошибка загрузки"
+    "uploadFailed": "Ошибка загрузки",
+    "cleaned": "Extracted files cleaned up (upload confirmed)"
   }
 }
