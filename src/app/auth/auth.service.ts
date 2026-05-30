@@ -36,16 +36,6 @@ export class AuthService {
     return this.sb.client.auth.signInWithPassword({ email, password });
   }
 
-  async signUp(email: string, password: string) {
-    return this.sb.client.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/news` : undefined,
-      },
-    });
-  }
-
   async signInWithGoogle(returnPath = '/news') {
     // returnPath must be a same-origin absolute path; the caller is
     // responsible for sanitizing it (see LoginComponent.safeRedirectTarget).
@@ -58,8 +48,8 @@ export class AuthService {
     });
   }
 
-  async signOut() {
+  async signOut(navigate = true) {
     await this.sb.client.auth.signOut();
-    await this.router.navigate(['/login']);
+    if (navigate) await this.router.navigate(['/login']);
   }
 }

@@ -106,10 +106,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const newUserId = inviteData.user.id;
 
   // The handle_new_user trigger has already inserted a profile row
-  // with role=viewer (or admin if jeremy.treder@gmail.com). Set our target.
+  // (is_approved=true because inviteUserByEmail stamps invited_at). Set our
+  // target role and re-assert approval explicitly so an invited user is never
+  // gated out by the client `approvedGuard`, regardless of trigger timing.
   const { error: updErr } = await adminClient
     .from('profiles')
-    .update({ role })
+    .update({ role, is_approved: true })
     .eq('id', newUserId);
   if (updErr) {
     return json({ error: 'invited but role-assign failed: ' + updErr.message }, 500);

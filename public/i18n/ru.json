@@ -8,7 +8,9 @@
     "needAccount": "Ещё нет аккаунта?",
     "haveAccount": "Уже зарегистрированы?",
     "or": "или",
-    "continueGoogle": "Продолжить с Google"
+    "continueGoogle": "Продолжить с Google",
+    "inviteOnly": "Доступ только по приглашению. Попросите приглашение у админа.",
+    "deniedInvite": "Этот аккаунт ещё не приглашён. Сайт доступен только по приглашению — попросите админа пригласить вас."
   },
   "nav": {
     "news": "Verse News",
@@ -117,5 +119,11 @@
     "redirectingHint": "Это окно можно закрыть через несколько секунд.",
     "unauthorized": "Ваш аккаунт не может использовать Data Uploader.",
     "unauthorizedHint": "Нужна роль соавтора или админа. Попросите админа."
+  },
+  "footer": {
+    "madeByCommunity": "Made by the Community",
+    "badgeAlt": "Star Citizen — значок фан-сайта Made by the Community",
+    "disclaimer": "Это неофициальный фан-сайт Star Citizen, не связанный с группой компаний Cloud Imperium. Весь контент, не созданный владельцем этого сайта или его пользователями, является собственностью соответствующих правообладателей.",
+    "trademarks": "Star Citizen, Roberts Space Industries и Cloud Imperium являются товарными знаками Cloud Imperium Rights LLC."
   }
 }

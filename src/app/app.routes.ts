@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { approvedGuard } from './auth/approved.guard';
 import { authGuard } from './auth/auth.guard';
 import { publicOnlyGuard } from './auth/public-only.guard';
 import { roleGuard } from './auth/role.guard';
@@ -17,7 +18,7 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./shell/shell.component').then((m) => m.ShellComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, approvedGuard],
     children: [
       {
         path: 'news',

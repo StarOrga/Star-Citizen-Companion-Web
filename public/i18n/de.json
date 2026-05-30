@@ -8,7 +8,9 @@
     "needAccount": "Noch kein Konto?",
     "haveAccount": "Schon registriert?",
     "or": "oder",
-    "continueGoogle": "Mit Google fortfahren"
+    "continueGoogle": "Mit Google fortfahren",
+    "inviteOnly": "Zugang nur auf Einladung. Bitte einen Admin um eine Einladung.",
+    "deniedInvite": "Dieser Account wurde noch nicht eingeladen. Die Seite ist nur auf Einladung zugänglich — bitte einen Admin um eine Einladung."
   },
   "nav": {
     "news": "Verse News",
@@ -369,5 +371,11 @@
     "redirectingHint": "Dieses Fenster kann gleich geschlossen werden.",
     "unauthorized": "Dein Account darf den Data Uploader nicht nutzen.",
     "unauthorizedHint": "Du brauchst Collaborator- oder Admin-Rolle. Frag einen Admin."
+  },
+  "footer": {
+    "madeByCommunity": "Made by the Community",
+    "badgeAlt": "Star Citizen — Made by the Community Fan-Site-Badge",
+    "disclaimer": "Dies ist eine inoffizielle Star-Citizen-Fan-Site, nicht verbunden mit der Cloud-Imperium-Unternehmensgruppe. Alle Inhalte, die nicht vom Betreiber dieser Seite oder ihren Nutzern erstellt wurden, sind Eigentum der jeweiligen Rechteinhaber.",
+    "trademarks": "Star Citizen, Roberts Space Industries und Cloud Imperium sind Marken von Cloud Imperium Rights LLC."
   }
 }
