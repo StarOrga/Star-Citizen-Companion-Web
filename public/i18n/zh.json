@@ -15,7 +15,7 @@
     "p4k": "Bundle 历史",
     "profile": "个人资料",
     "admin": "管理",
-    "desktop": "桌面工具",
+    "desktop": "Data Uploader",
     "signOut": "退出登录"
   },
   "news": {
@@ -29,13 +29,13 @@
   },
   "p4k": {
     "title": "P4K Bundle 历史",
-    "subtitle": "来自桌面工具的预处理 bundle。原始上传仅通过工具完成，不经过网站。",
+    "subtitle": "来自 Data Uploader 的预处理 bundle。原始上传仅通过工具完成，不经过网站。",
     "refresh": "刷新",
     "errorTitle": "无法加载 bundle",
     "empty": {
       "title": "暂无 bundle",
-      "hint": "只要有人通过桌面工具上传，数据就会出现在这里。",
-      "goDesktop": "前往桌面工具页面"
+      "hint": "只要有人通过 Data Uploader 上传，数据就会出现在这里。",
+      "goDesktop": "前往 Data Uploader 页面"
     },
     "kpi": {
       "total": "Bundle 总数",
@@ -98,8 +98,8 @@
     "loading": "加载用户中…"
   },
   "desktop": {
-    "title": "桌面工具",
-    "subtitle": "下载本地 Star Citizen 安装的 companion 扫描器。仅限管理员与协作者。",
+    "title": "Data Uploader",
+    "subtitle": "下载本地 Star Citizen 安装的 Data Uploader。仅限管理员与协作者。",
     "currentVersion": "当前版本",
     "released": "发布于",
     "notes": "发布说明",
@@ -110,12 +110,12 @@
     "hash": "SHA-256"
   },
   "desktopAuth": {
-    "title": "授权桌面工具",
+    "title": "授权 Data Uploader",
     "authorizing": "正在验证你的会话…",
     "loginRequired": "请先登录 — 我们会自动把你带回此处。",
     "redirecting": "已授权。正在将令牌发送到应用…",
     "redirectingHint": "你可以在片刻后关闭此窗口。",
-    "unauthorized": "你的账户无法使用桌面工具。",
+    "unauthorized": "你的账户无法使用 Data Uploader。",
     "unauthorizedHint": "需要协作者或管理员角色。请联系管理员。"
   }
 }

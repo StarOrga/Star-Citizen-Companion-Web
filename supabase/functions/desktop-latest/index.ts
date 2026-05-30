@@ -60,10 +60,10 @@ function jsonResp(body: unknown, status = 200, extraHeaders: Record<string, stri
  *
  *   version: 0.2.0
  *   files:
- *     - url: sc-companion-setup-0.2.0-x64.exe
+ *     - url: data-uploader-setup-0.2.0-x64.exe
  *       sha512: <hex>
  *       size: 81875966
- *   path: sc-companion-setup-0.2.0-x64.exe
+ *   path: data-uploader-setup-0.2.0-x64.exe
  *   sha512: <hex>
  *   releaseDate: '2026-05-23T20:00:00.000Z'
  *

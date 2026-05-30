@@ -16,7 +16,7 @@
     "p4k": "Bundle-Historie",
     "profile": "Profil",
     "admin": "Admin",
-    "desktop": "Desktop-Tool",
+    "desktop": "Data Uploader",
     "signOut": "Abmelden"
   },
   "codex": {
@@ -205,7 +205,7 @@
   },
   "p4k": {
     "title": "P4K Bundle-Historie",
-    "subtitle": "Vorverdaute Bundles vom Desktop-Tool. Upload läuft nur über das Tool, nicht über die Website.",
+    "subtitle": "Vorverdaute Bundles vom Data Uploader. Upload läuft nur über das Tool, nicht über die Website.",
     "refresh": "Aktualisieren",
     "expand": "Details anzeigen",
     "errorTitle": "Bundles konnten nicht geladen werden",
@@ -215,8 +215,8 @@
     },
     "empty": {
       "title": "Noch keine Bundles",
-      "hint": "Sobald jemand mit dem Desktop-Tool einen Lauf hochlädt, erscheinen die Daten hier.",
-      "goDesktop": "Zum Desktop-Tool"
+      "hint": "Sobald jemand mit dem Data Uploader einen Lauf hochlädt, erscheinen die Daten hier.",
+      "goDesktop": "Zum Data Uploader"
     },
     "kpi": {
       "total": "Bundles gesamt",
@@ -350,8 +350,8 @@
     }
   },
   "desktop": {
-    "title": "Desktop-Tool",
-    "subtitle": "Lade den Companion-Scanner für deinen lokalen Star-Citizen-Install. Nur Admin + Collaborator.",
+    "title": "Data Uploader",
+    "subtitle": "Lade den Data Uploader für deinen lokalen Star-Citizen-Install. Nur Admin + Collaborator.",
     "currentVersion": "Aktuelle Version",
     "released": "Veröffentlicht",
     "notes": "Release-Notes",
@@ -362,12 +362,12 @@
     "hash": "SHA-256"
   },
   "desktopAuth": {
-    "title": "Desktop-Tool autorisieren",
+    "title": "Data Uploader autorisieren",
     "authorizing": "Prüfe deine Session…",
     "loginRequired": "Bitte erst einloggen, dann gehts automatisch zurück zur App.",
     "redirecting": "Autorisiert. Schicke Token zur App…",
     "redirectingHint": "Dieses Fenster kann gleich geschlossen werden.",
-    "unauthorized": "Dein Account darf das Desktop-Tool nicht nutzen.",
+    "unauthorized": "Dein Account darf den Data Uploader nicht nutzen.",
     "unauthorizedHint": "Du brauchst Collaborator- oder Admin-Rolle. Frag einen Admin."
   }
 }

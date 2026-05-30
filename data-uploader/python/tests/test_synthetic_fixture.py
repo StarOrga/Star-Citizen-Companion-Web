@@ -20,7 +20,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "synthetic.p4k"
 def fixture_path() -> Path:
     assert FIXTURE.exists(), (
         f"missing fixture at {FIXTURE} — "
-        "run `python desktop-tool/python/scripts/build-synthetic-fixture.py`"
+        "run `python data-uploader/python/scripts/build-synthetic-fixture.py`"
     )
     return FIXTURE
 

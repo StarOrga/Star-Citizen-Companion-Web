@@ -1,10 +1,10 @@
-# Desktop-Tool Python Sidecar
+# Data Uploader Python Sidecar
 
-The desktop tool ships an embedded Python interpreter
-(`desktop-tool/resources/python/python.exe`) downloaded by
+The Data Uploader ships an embedded Python interpreter
+(`data-uploader/resources/python/python.exe`) downloaded by
 `scripts/fetch-embedded-python.js` from
 [astral-sh/python-build-standalone](https://github.com/astral-sh/python-build-standalone).
-The sidecar source is in `desktop-tool/python/sc_extract/`.
+The sidecar source is in `data-uploader/python/sc_extract/`.
 
 ## Python version is constrained by scdatatools, not by us
 
@@ -40,11 +40,11 @@ to a working venv.
 
 ## CI
 
-`.github/workflows/desktop-tool-build.yml` has two jobs:
+`.github/workflows/data-uploader-build.yml` has two jobs:
 
 - `python-sidecar-test` (ubuntu, Python 3.10) — runs pytest against the
   synthetic fixture, no scdatatools install (pip only installs pytest).
-- `build-windows` (windows, triggered by `desktop-v*` tag) — runs
+- `build-windows` (windows, triggered by `data-uploader-v*` tag) — runs
   `fetch-embedded-python.js` against PBS Windows 3.10.x + full
   requirements.txt including scdatatools.
 

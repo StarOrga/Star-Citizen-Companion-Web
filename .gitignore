@@ -67,10 +67,10 @@ logs/
 .claude/token-config.json
 .claude/concept-active.json
 
-# Python sidecar (desktop-tool) — caches + embedded interpreter + real-P4K subsets
-desktop-tool/python/__pycache__/
-desktop-tool/python/**/__pycache__/
-desktop-tool/python/.pytest_cache/
-desktop-tool/python/tests/fixtures/real-subset.*
-desktop-tool/resources/python/
-desktop-tool/.cache/python-downloads/
+# Python sidecar (data-uploader) — caches + embedded interpreter + real-P4K subsets
+data-uploader/python/__pycache__/
+data-uploader/python/**/__pycache__/
+data-uploader/python/.pytest_cache/
+data-uploader/python/tests/fixtures/real-subset.*
+data-uploader/resources/python/
+data-uploader/.cache/python-downloads/

@@ -9,10 +9,10 @@
  *
  * Locating the sidecar source (sc_extract package):
  *   - Packaged: process.resourcesPath/python              (next to the interpreter)
- *   - Dev: <repo>/desktop-tool/python                    (editable, not installed)
+ *   - Dev: <repo>/data-uploader/python                   (editable, not installed)
  *
  * The subprocess emits JSON-lines (one object per line) on stdout per the
- * contract in desktop-tool/python/sc_extract/events.py.
+ * contract in data-uploader/python/sc_extract/events.py.
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -95,7 +95,7 @@ export function resolvePythonPaths(): PythonPaths {
     log.warn('[python-bridge] packaged python not found at', exe, '— falling back to PATH');
   }
 
-  // Dev: source lives at <repo>/desktop-tool/python relative to out/main/.
+  // Dev: source lives at <repo>/data-uploader/python relative to out/main/.
   const devSource = resolve(__dirname, '../../python');
   const candidate = process.platform === 'win32' ? 'python' : 'python3';
   return { interpreter: candidate, cwd: devSource, source: 'dev-path' };

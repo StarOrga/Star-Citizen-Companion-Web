@@ -13,7 +13,7 @@
     devops-test-plan/  (2)
 .github/  (1) — GitHub workflows & config
   workflows/  (1)
-desktop-tool/  (58)
+data-uploader/  (58)
   python/  (22)
     sc_extract/  (9)
     scripts/  (4) — Build / utility scripts

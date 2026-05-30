@@ -1,6 +1,6 @@
 # SC Companion
 
-**Version: 0.7.0**
+**Version: 0.7.1**
 
 > Star Citizen companion — Verse News, P4K analyzer, and more.
 > Built with Angular 21 PWA · Supabase (Auth + Postgres + Storage + Edge Functions) · Vercel.
@@ -43,7 +43,7 @@ npx supabase functions serve fetch-verse-news --no-verify-jwt
 
 ### Vercel
 
-- **Production:** <https://sc-companion.vercel.app> (alias of `star-citizen-companion-website.vercel.app`) — auto-deployed from `main`.
+- **Production:** <https://sc-companion.vercel.app> (alias of `star-citizen-companion-web.vercel.app`) — auto-deployed from `main`.
 - `vercel.json` configures SPA rewrites, security headers, and a CSP that allows Supabase + Google OAuth.
 - The build output is `dist/sc-companion/browser`.
 - **Initial connect (one-time):** open https://vercel.com/new, import `StarOrga/Star-Citizen-Companion-Web`, accept the defaults. Subsequent pushes to `main` deploy automatically.

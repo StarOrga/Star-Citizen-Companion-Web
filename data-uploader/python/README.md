@@ -1,6 +1,6 @@
-# SC Companion · Python Sidecar
+# Star Citizen Companion - Data Uploader · Python Sidecar
 
-This is the Python-side extractor for the Desktop Tool. The Electron main
+This is the Python-side extractor for the Data Uploader. The Electron main
 process spawns this as a subprocess and reads its stdout (JSON-lines) for
 progress events.
 
@@ -37,7 +37,7 @@ progress events.
 ## Setup (Dev)
 
 ```bash
-# from desktop-tool/python/
+# from data-uploader/python/
 pip install -r requirements.txt
 python -m sc_extract.extract --help
 
@@ -81,10 +81,10 @@ Python emits one JSON line per progress event:
 
 ## Embedded Python Setup
 
-For packaged releases, `desktop-tool/scripts/fetch-embedded-python.js` downloads
+For packaged releases, `data-uploader/scripts/fetch-embedded-python.js` downloads
 the [python-build-standalone](https://github.com/indygreg/python-build-standalone)
 release for Windows-x64 + installs the pinned requirements. The result lands
-in `desktop-tool/python/_runtime/` which electron-builder bundles into the
+in `data-uploader/python/_runtime/` which electron-builder bundles into the
 release.
 
 For dev (`npm run dev`), the sidecar uses the system Python as fallback.

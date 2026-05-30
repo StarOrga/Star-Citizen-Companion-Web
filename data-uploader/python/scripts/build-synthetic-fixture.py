@@ -16,8 +16,8 @@ The schema mirrors what we expect real SC content to look like, but the field
 values are entirely fabricated. No CIG assets included.
 
 Usage:
-    python desktop-tool/python/scripts/build-synthetic-fixture.py \\
-        --out desktop-tool/python/tests/fixtures/synthetic.p4k
+    python data-uploader/python/scripts/build-synthetic-fixture.py \\
+        --out data-uploader/python/tests/fixtures/synthetic.p4k
 
 The fixture is committed via the test directory so CI has it offline.
 """
@@ -114,7 +114,7 @@ def main() -> int:
     parser.add_argument(
         "--out",
         type=Path,
-        default=Path("desktop-tool/python/tests/fixtures/synthetic.p4k"),
+        default=Path("data-uploader/python/tests/fixtures/synthetic.p4k"),
     )
     args = parser.parse_args()
     build(args.out)
