@@ -5,9 +5,12 @@
 > Star Citizen companion — Verse News, P4K analyzer, and more.
 > Built with Angular 21 PWA · Supabase (Auth + Postgres + Storage + Edge Functions) · Vercel.
 
+[![Live](https://img.shields.io/badge/live-sc--companion.vercel.app-00d4ff)](https://sc-companion.vercel.app)
 [![Stack](https://img.shields.io/badge/stack-Angular%2021%20%C2%B7%20Supabase%20%C2%B7%20Vercel-00d4ff)](#)
 [![Phase](https://img.shields.io/badge/phase-alpha-fbbf24)](#)
 [![License](https://img.shields.io/badge/license-MIT-4ade80)](LICENSE)
+
+**Production:** <https://sc-companion.vercel.app>
 
 A fan-made Star Citizen companion: log in, follow the Verse News (Comm-Link + Spectrum + RSI status) 1:1, drop a `Data.p4k` to extract metadata automatically (with channel detection: live / ptu / eptu / tech-preview). Long-term goal: do everything erkul.games does, plus more.
 
@@ -40,9 +43,10 @@ npx supabase functions serve fetch-verse-news --no-verify-jwt
 
 ### Vercel
 
+- **Production:** <https://sc-companion.vercel.app> (alias of `star-citizen-companion-website.vercel.app`) — auto-deployed from `main`.
 - `vercel.json` configures SPA rewrites, security headers, and a CSP that allows Supabase + Google OAuth.
 - The build output is `dist/sc-companion/browser`.
-- **Initial connect (one-time):** open https://vercel.com/new, import `Jerry0022/Star-Citizen-Companion-Website`, accept the defaults. Subsequent pushes to `main` deploy automatically.
+- **Initial connect (one-time):** open https://vercel.com/new, import `StarOrga/Star-Citizen-Companion-Web`, accept the defaults. Subsequent pushes to `main` deploy automatically.
 
 ## Architecture
 
