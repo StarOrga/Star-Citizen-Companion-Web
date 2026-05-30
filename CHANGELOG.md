@@ -4,6 +4,42 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-05-31
+
+### Added — Codex: full catalog, slot compatibility, previews, dimensions & localization
+
+- **Full catalog (no caps)**: every extracted entity is now seeded — 920 ships,
+  1326 weapons, 2145 components, 21033 items, 16437 hardpoints (previously
+  capped at 400 per kind). Build `live-preview`.
+- **Slot compatibility**: hardpoint rows in the detail view are expandable and
+  resolve which buyable weapons/components/items fit (accepted `types[]` + size
+  range matched against each item's `attach_type` + size), via the new
+  `codex_compatible_items(build_id, types[], min, max)` RPC. Weapons now carry
+  `attach_type` (AttachDef.Type) so they can be matched.
+- **Preview images**: per-chassis ship silhouettes + FPS-weapon icons are
+  converted DDS→WebP during extraction (Pillow) and uploaded — deduped, used
+  files only — to the public `codex-previews` storage bucket. Shown as
+  thumbnails in the list and a large preview in the detail view.
+- **Ship dimensions**: real L/W/H (metres) parsed from the `.cga` mesh bounding
+  box (913/920 ships), shown as an overlay on the preview.
+- **Full localization**: the complete `global.ini` (≈112k strings, en+de) is
+  stored in `codex_locale_strings`; ship role, component kind and weapon class
+  are localized, and unresolved `@`-keys now fall back to the class name instead
+  of being shown raw.
+
+### Added — Data Uploader: extract-folder cleanup
+
+- Extracted files are deleted after a successful upload, and leftover folders
+  from previous failed runs are detected and cleaned on app start (with a
+  path-safety guard confined to `.sc-companion-extracts`).
+
+### Migrations / infra
+
+- `20260530_codex_slots_locale` — `codex_weapons.attach_type`,
+  `codex_locale_strings` table, `codex_compatible_items` RPC.
+- `ingest-catalog` edge function: `locale_strings` + `preview` ops.
+- New public storage bucket `codex-previews`.
+
 ## [0.8.0] - 2026-05-30
 
 ### Added — Invite-only access + site-wide footer

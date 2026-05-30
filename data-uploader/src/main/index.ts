@@ -19,6 +19,12 @@ import {
   type ExtractFinal,
   type PythonExtractEvent,
 } from './python-bridge.js';
+import {
+  cleanupAfterUpload,
+  scanAndCleanupDiscovered,
+  type UploadMarkerInfo,
+  type CleanupResult,
+} from './cleanup.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -146,6 +152,14 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
   }
 });
 
+// ============= Cleanup IPC =============
+
+ipcMain.handle(
+  'sc:cleanup:extractDir',
+  async (_e, outDir: string, info: UploadMarkerInfo): Promise<CleanupResult> =>
+    cleanupAfterUpload(outDir, info ?? {}),
+);
+
 ipcMain.handle('sc:extract:cancel', (_e, jobId: string) => {
   const job = activeJobs.get(jobId);
   if (!job) return { ok: false, error: 'unknown_job' };
@@ -177,6 +191,9 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(null); // Belt-and-suspenders alongside per-window setMenu(null)
   createWindow();
   initAutoUpdater(); // Schedules an update check 4 s after launch (skipped in dev builds).
+  // Fire-and-forget: reclaim leftover extract dirs from prior failed/uploaded
+  // runs. Non-blocking so it never delays window paint; errors are swallowed.
+  void scanAndCleanupDiscovered();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

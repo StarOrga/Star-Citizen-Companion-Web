@@ -35,6 +35,7 @@
     "signInFailed": "Inicio de sesión fallido",
     "uploading": "Subiendo…",
     "uploadOk": "Subida OK",
-    "uploadFailed": "Error de subida"
+    "uploadFailed": "Error de subida",
+    "cleaned": "Extracted files cleaned up (upload confirmed)"
   }
 }

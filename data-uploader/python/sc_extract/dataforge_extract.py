@@ -86,24 +86,63 @@ class CodexExtractor:
 
     def __init__(self, df: DataForge, localizer: Localizer, out_dir: Path,
                  source: Dict[str, str], on_count: Callable[[str, int], None] = lambda k, v: None,
-                 on_log: Callable[[str, str], None] = lambda lvl, m: None) -> None:
+                 on_log: Callable[[str, str], None] = lambda lvl, m: None,
+                 dump_generic: bool = True, p4k=None, extract_assets: bool = True) -> None:
         self.df = df
         self.loc = localizer
         self.out = out_dir
         self.source = source
         self.on_count = on_count
         self.on_log = on_log
+        self.dump_generic = dump_generic
+        self.p4k = p4k
         self.counts: Dict[str, int] = {}
+        # Preview-image + dimension extraction needs the open P4K. Lazily built.
+        self._assets = None
+        if extract_assets and p4k is not None:
+            try:
+                from .images import AssetExtractor
+                self._assets = AssetExtractor(p4k, out_dir / "previews", on_log=on_log)
+            except Exception as exc:  # noqa: BLE001
+                on_log("warn", f"asset extractor unavailable: {exc}")
+        self._dim_cache: Dict[str, Optional[Dict[str, Any]]] = {}
         # guid -> manufacturer code, built lazily
         self._manu_cache: Dict[str, Dict[str, Any]] = {}
 
     # ── public entry ─────────────────────────────────────────────────────────
     def run(self) -> Dict[str, int]:
+        self.dump_localization()      # full global.ini tables (en/de)
         self.extract_manufacturers()
         self.extract_ammunition()
         self.extract_entities()       # ships / weapons / components / items
-        self.dump_all_records()       # exhaustive generic guarantee
+        if self._assets:
+            self.on_log("info", f"preview images: {self._assets.converted} converted, "
+                                f"{self._assets.misses} missing")
+            self._bump("previews", self._assets.converted)
+        if self.dump_generic:
+            self.dump_all_records()   # exhaustive generic guarantee
+        else:
+            self.on_log("info", "skipping generic record dump (--skip-generic)")
         return self.counts
+
+    # ── full localization tables ──────────────────────────────────────────────
+    def dump_localization(self) -> None:
+        """Write the complete global.ini tables (key→value) per language.
+
+        The typed projections only carry the handful of name/description keys an
+        entity references; this dumps the ENTIRE table so the catalog can resolve
+        any @-key (roles, port labels, loadout item names, …) — the full
+        "übersetzungen anzeigen" guarantee. One JSON file per short lang code.
+        """
+        d = self.out / "localization"
+        d.mkdir(parents=True, exist_ok=True)
+        total = 0
+        for lang, table in self.loc._tables.items():
+            (d / f"{lang}.json").write_text(
+                json.dumps(table, ensure_ascii=False), encoding="utf-8")
+            total += len(table)
+            self.on_log("info", f"localization '{lang}': {len(table)} strings")
+        self._bump("strings", total)
 
     # ── localized text helper ─────────────────────────────────────────────────
     def _localized(self, key: Optional[str]) -> Optional[Dict[str, str]]:
@@ -224,8 +263,62 @@ class CodexExtractor:
         self._bump("components", n_comp)
         self._bump("items", n_item)
 
+    # ── asset helpers (preview image + dimensions) ─────────────────────────────
+    def _display_icon(self, resolved: Dict[str, Any]) -> Optional[str]:
+        """The entity's displayIcon path from StaticEntityClassData (if any)."""
+        secd = resolved.get("_RecordValue_", {}).get("StaticEntityClassData")
+        if not isinstance(secd, list):
+            return None
+        for entry in secd:
+            if isinstance(entry, dict):
+                icon = entry.get("displayIcon")
+                if isinstance(icon, str) and icon:
+                    return icon
+        return None
+
+    def _preview_image(self, resolved: Dict[str, Any]) -> Optional[str]:
+        """Convert the entity's displayIcon DDS to a deduped WebP; return its name."""
+        if not self._assets:
+            return None
+        return self._assets.resolve(self._display_icon(resolved))
+
+    def _dimensions(self, comps) -> Optional[Dict[str, Any]]:
+        """Real-world L/W/H (metres) from the ship's .cga geometry bounding box."""
+        if self.p4k is None:
+            return None
+        from .geometry import bbox_from_cga_bytes, normalize_geometry_path
+        # The mesh path lives on a component (e.g. SGeometryResourceParams) whose
+        # `Geometry` field is an SGeometryNodeParams: comp.Geometry.Geometry.Geometry.path.
+        # Scan for the first component that yields a .cga/.cgf path.
+        path = None
+        for c in comps:
+            g = c.get("Geometry")
+            if isinstance(g, dict):
+                p = _dig(g, "Geometry", "Geometry", "path")
+                if isinstance(p, str) and p.lower().endswith((".cga", ".cgf")):
+                    path = p
+                    break
+        key = normalize_geometry_path(path)
+        if not key:
+            return None
+        if key in self._dim_cache:
+            return self._dim_cache[key]
+        dims = None
+        try:
+            # case-insensitive lookup
+            if not hasattr(self, "_p4k_lower"):
+                self._p4k_lower = {n.lower(): n for n in self.p4k.namelist()}
+            entry = self._p4k_lower.get(key.lower())
+            if entry:
+                with self.p4k.open(self.p4k.getinfo(entry)) as f:
+                    dims = bbox_from_cga_bytes(f.read())
+        except Exception as exc:  # noqa: BLE001 — best-effort
+            self.on_log("warn", f"dimensions failed for {key}: {exc}")
+        self._dim_cache[key] = dims
+        return dims
+
     # ── typed projections ──────────────────────────────────────────────────────
-    def _base_entity(self, r: Record, comps, attach) -> Dict[str, Any]:
+    def _base_entity(self, r: Record, resolved, comps, attach) -> Dict[str, Any]:
         loc = attach.get("Localization") if attach else None
         name_key = loc.get("Name") if isinstance(loc, dict) else None
         desc_key = loc.get("Description") if isinstance(loc, dict) else None
@@ -238,18 +331,21 @@ class CodexExtractor:
             "description": self._localized(desc_key),
             "manufacturer": self._manufacturer_ref(attach),
             "tags": _tags(attach),
-            "iconPath": None,  # DDS path deferred per scope; left null
+            "iconPath": None,  # raw DDS path deferred; previewImage is the usable art
+            "previewImage": self._preview_image(resolved),  # WebP filename or null
             "source": self.source,
         }
 
     def _project_ship(self, r, resolved, comps, attach) -> Dict[str, Any]:
-        base = self._base_entity(r, comps, attach)
+        base = self._base_entity(r, resolved, comps, attach)
         vcp = _find_component(comps, "VehicleComponentParams") or {}
         base.update({
             "entityKind": "ship",
             "role": vcp.get("vehicleRole"),
             "crew": {"size": vcp.get("crewSize")},
             "vehicleName": self._localized(vcp.get("vehicleName")),
+            # real-world bounding-box dimensions (metres) parsed from the .cga mesh
+            "dimensions": self._dimensions(comps),
             # flight stats live in the referenced vehicleDefinition (separate
             # record); left nullable here per research Q1 (unconfirmed key names).
             "flight": {
@@ -262,11 +358,15 @@ class CodexExtractor:
         return base
 
     def _project_weapon(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
-        base = self._base_entity(r, comps, attach)
+        base = self._base_entity(r, resolved, comps, attach)
         wcp = _find_component(comps, "SCItemWeaponComponentParams") or {}
         base.update({
             "entityKind": "weapon",
             "weaponClass": "FPS" if atype in _FPS_WEAPON_TYPES else "Ship",
+            # AttachDef.Type (e.g. WeaponGun/Turret/MissileLauncher) — the key
+            # that matches a hardpoint's accepted port `types`. Promoted so the
+            # slot-compatibility resolver can match weapons to ports.
+            "attachType": atype,
             "subType": attach.get("SubType") if attach else None,
             "size": _to_int(attach.get("Size")) if attach else None,
             "grade": _grade(attach.get("Grade")) if attach else None,
@@ -276,7 +376,7 @@ class CodexExtractor:
         return base
 
     def _project_component(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
-        base = self._base_entity(r, comps, attach)
+        base = self._base_entity(r, resolved, comps, attach)
         kind = _COMPONENT_KIND.get(atype, "Other")
         base.update({
             "entityKind": "component",
@@ -291,7 +391,7 @@ class CodexExtractor:
         return base
 
     def _project_item(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
-        base = self._base_entity(r, comps, attach)
+        base = self._base_entity(r, resolved, comps, attach)
         base.update({
             "entityKind": "item",
             "attachType": atype,

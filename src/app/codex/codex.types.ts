@@ -75,8 +75,18 @@ export interface BaseEntityPayload {
   manufacturer: ManufacturerRef | null;
   tags: string[];
   iconPath: null;
+  previewImage: string | null; // WebP filename in the codex-previews bucket
   source: ExtractSource;
   entityKind: EntityKind;
+}
+
+// Real-world bounding-box dimensions (metres) parsed from the .cga mesh.
+export interface Dimensions {
+  length: number;
+  width: number;
+  height: number;
+  min: number[];
+  max: number[];
 }
 
 export interface ShipPayload extends BaseEntityPayload {
@@ -84,6 +94,7 @@ export interface ShipPayload extends BaseEntityPayload {
   role: string | null; // localization key
   crew: { size: number | null };
   vehicleName: LocalizedText;
+  dimensions: Dimensions | null; // L/W/H in metres from the .cga bounding box
   // NOTE: flight stats are ALL null in Wave 1 (research Q1 — live entity does
   // not carry SCM/pitch/yaw; lives in vehicleDefinition, not yet resolved).
   flight: {
@@ -97,6 +108,7 @@ export interface ShipPayload extends BaseEntityPayload {
 export interface WeaponPayload extends BaseEntityPayload {
   entityKind: 'weapon';
   weaponClass: WeaponClass;
+  attachType: string | null; // AttachDef.Type — matches hardpoint port `types`
   subType: string | null;
   size: number | null;
   grade: string | null;

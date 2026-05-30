@@ -10,6 +10,8 @@
 //   POST { op: "upsert",   build_id, table, rows: [...] }      -> { upserted }
 //   POST { op: "ports",    build_id, rows: [...] }             -> { inserted }
 //   POST { op: "strings",  build_id, rows: [...] }             -> { upserted }
+//   POST { op: "locale_strings", build_id, rows: [...] }       -> { upserted }
+//   POST { op: "preview", build_number, name, content_base64 } -> { path }
 //   POST { op: "finalize", build_id, entity_counts? }          -> { ok, current }
 //
 // Each `upsert` carries one batch (recommend <= 500 rows) for ONE table; the
@@ -164,6 +166,33 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const { error } = await admin.from('codex_item_ports').insert(rows);
       if (error) throw error;
       return json({ ok: true, inserted: rows.length });
+    }
+
+    if (op === 'locale_strings') {
+      const rows = body.rows as unknown[];
+      if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
+      const { error } = await admin
+        .from('codex_locale_strings')
+        .upsert(rows, { onConflict: 'build_id,lang,key' });
+      if (error) throw error;
+      return json({ ok: true, upserted: rows.length });
+    }
+
+    if (op === 'preview') {
+      // Upload a single preview image (base64) to the public codex-previews
+      // bucket at <build_number>/<name>. Only the deduped, actually-used files
+      // are sent by the seeder, so the bucket holds just the final art.
+      const build = String(body.build_number ?? '').trim();
+      const name = String(body.name ?? '').trim();
+      const b64 = String(body.content_base64 ?? '');
+      if (!build || !name || !b64) return json({ error: 'invalid_body', message: 'build_number+name+content_base64 required' }, 400);
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const path = `${build}/${name}`;
+      const { error } = await admin.storage
+        .from('codex-previews')
+        .upload(path, bytes, { contentType: 'image/webp', upsert: true });
+      if (error) throw error;
+      return json({ ok: true, path });
     }
 
     if (op === 'clear_ports') {

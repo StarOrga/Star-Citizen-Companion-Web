@@ -35,6 +35,7 @@
     "signInFailed": "Falha no login",
     "uploading": "Enviando…",
     "uploadOk": "Upload OK",
-    "uploadFailed": "Falha no upload"
+    "uploadFailed": "Falha no upload",
+    "cleaned": "Extracted files cleaned up (upload confirmed)"
   }
 }
