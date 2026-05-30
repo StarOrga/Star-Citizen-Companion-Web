@@ -4,6 +4,40 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-05-30
+
+### Added — Codex: browse every ship, weapon & component (viewer-accessible)
+
+A new **Codex** tab (reachable by every signed-in user from role `viewer` up,
+like News) lists all Star Citizen ships, weapons, components, items, ammunition
+and manufacturers — searchable (fuzzy, over localized names **and** classNames),
+filterable by manufacturer/size/grade/kind, with a detail view (properties,
+hardpoints/item-ports, stock loadout), a side-by-side **compare tray**, stable
+deep-links (`/codex/:kind/:className`) and a data-provenance badge. Fully DE/EN
+localized.
+
+The data is extracted from the **real game files** — not a third-party API:
+
+- **Real P4K extraction**: a self-contained pure-Python **DataForge v8** reader
+  (`desktop-tool/python/sc_extract/`) — scdatatools 1.0.4 cannot parse the live
+  `Data/Game2.dcb` (v8, record stride grew 32→36 B) and cannot even open the
+  SC 4.x `Data.p4k` (ZIP64 extra-field `ln=18`). Both are now handled. The
+  extractor does an exhaustive per-type record dump ("alle Werte von allen
+  Spielelementen", ~115k records) plus typed projections. Verified against the
+  live 147 GB `LIVE/Data.p4k`: 920 ships, 1326 weapons, 2145 components, 21033
+  items, 1124 manufacturers, 235 ammunition.
+- **Catalog data layer**: new `codex_*` tables (migrations `00008`/`00009`) with
+  **viewer-read RLS** (any authenticated user reads; writes service-role only),
+  `pg_trgm` fuzzy search over names + classNames, the `ingest-catalog` edge
+  function, and seed tooling. A current LIVE build is seeded in the cloud
+  project (all ships/manufacturers/ammo + a representative subset of
+  weapons/components/items; full re-seed documented).
+
+> Note: the cloud catalog is currently a representative subset for the capped
+> kinds (weapons/components/items: 400 each). Run the documented full seed for
+> 100 % coverage. The desktop extractor changes ship in a future `desktop-v*`
+> binary — this release delivers the web Codex tab + data layer.
+
 ## [desktop-0.4.9] - 2026-05-29
 
 ### Fixed — Upload "ingest_failed", slow portable startup, unclean window close
