@@ -24,6 +24,9 @@ create table public.codex_seed_tokens (
 
 alter table public.codex_seed_tokens enable row level security;
 -- No policies on purpose: service-role-only access from the edge function.
+-- Also revoke default table grants so authenticated/anon have NO access at all
+-- (defense-in-depth beyond the empty RLS policy set).
+revoke all on public.codex_seed_tokens from authenticated, anon;
 
 comment on table public.codex_seed_tokens is
   'Opaque seed tokens for the ingest-catalog seed path. Service-role read only; no client access.';

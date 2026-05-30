@@ -361,5 +361,10 @@ begin
     -- No INSERT/UPDATE/DELETE policies for anon/authenticated ⇒ writes are
     -- denied to clients. The service_role bypasses RLS, so the ingest edge
     -- function / seed script (service-role key) can write. Mirrors p4k_uploads.
+    --
+    -- Defense-in-depth: Supabase grants table-level DML to `authenticated`/`anon`
+    -- by default; RLS already blocks the writes (no write policy), but revoke
+    -- the grants too so the privilege model is clean and not RLS-only.
+    execute format('revoke insert, update, delete, truncate on public.%I from authenticated, anon;', t);
   end loop;
 end $$;
