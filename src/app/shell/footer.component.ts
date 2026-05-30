@@ -17,7 +17,7 @@ import { TranslateModule } from '@ngx-translate/core';
         <div class="badge">
           <img src="icons/made-by-community.png"
                [alt]="'footer.badgeAlt' | translate"
-               width="64" height="64" />
+               width="44" height="44" />
           <span class="badge-label">{{ 'footer.madeByCommunity' | translate }}</span>
         </div>
 
@@ -33,7 +33,7 @@ import { TranslateModule } from '@ngx-translate/core';
     .site-footer {
       border-top: 1px solid var(--sc-border);
       background: linear-gradient(0deg, var(--sc-bg-2), transparent);
-      padding: 24px 28px;
+      padding: 12px 28px;
       margin-top: auto;
     }
     .inner {
@@ -73,7 +73,7 @@ import { TranslateModule } from '@ngx-translate/core';
     .meta .disclaimer {
       color: var(--sc-fg-2);
       font-size: 0.78rem;
-      line-height: 1.5;
+      line-height: 1.4;
       margin: 0 0 4px;
       max-width: 70ch;
     }
@@ -86,7 +86,7 @@ import { TranslateModule } from '@ngx-translate/core';
       max-width: 70ch;
     }
     @media (max-width: 640px) {
-      .site-footer { padding: 20px 16px; }
+      .site-footer { padding: 12px 16px; }
       .inner { gap: 16px; }
     }
   `],
