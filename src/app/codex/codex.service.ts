@@ -1,0 +1,377 @@
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { SupabaseClientProvider } from '../core/supabase.client';
+import {
+  CODEX_ENTITY_TABLES,
+  CodexAmmunitionRow,
+  CodexBuild,
+  CodexComponentRow,
+  CodexEntityString,
+  CodexItemPort,
+  CodexItemRow,
+  CodexManufacturerRow,
+  CodexShipRow,
+  CodexWeaponRow,
+  Lang,
+  LocalizedText,
+} from './codex.types';
+
+// The entity kinds the Codex catalog browses. `manufacturer` and `ammunition`
+// are first-class kinds in the UI even though the EntityKind union (in
+// codex.types) only covers ship/weapon/component/item.
+export type CodexKind =
+  | 'ship'
+  | 'weapon'
+  | 'component'
+  | 'item'
+  | 'ammunition'
+  | 'manufacturer';
+
+export const CODEX_KINDS: readonly CodexKind[] = [
+  'ship',
+  'weapon',
+  'component',
+  'item',
+  'ammunition',
+  'manufacturer',
+] as const;
+
+// One generic list row — the columns common enough to render a browse card.
+// `payload` carries the heterogeneous per-kind JSON (typed in codex.types).
+export interface CodexListRow {
+  classNameSlug: string;
+  nameLocalized: string | null;
+  manufacturerCode: string | null;
+  // promoted facet columns (present depending on kind)
+  size: number | null;
+  grade: string | null;
+  role: string | null;
+  crewSize: number | null;
+  weaponClass: string | null;
+  componentKind: string | null;
+  subType: string | null;
+  speed: number | null;
+  isVariant: boolean;
+  payload: unknown;
+}
+
+export interface CodexListResult {
+  rows: CodexListRow[];
+  count: number;
+}
+
+export interface CodexListFilters {
+  search?: string;
+  manufacturer?: string;
+  size?: number;
+  grade?: string;
+  componentKind?: string;
+  weaponClass?: string;
+  // include AI/template variants (default: buyable-only)
+  includeVariants?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export interface CodexDetail {
+  classNameSlug: string;
+  kind: CodexKind;
+  row: Record<string, unknown>;
+  payload: unknown;
+  ports: CodexItemPort[];
+  strings: CodexEntityString[];
+}
+
+const PAGE_SIZE = 60;
+const SEARCH_LIMIT = 60;
+
+// Columns selected per kind for the list view. Keep payload last.
+const LIST_SELECT: Record<CodexKind, string> = {
+  ship: 'class_name, name_localized, manufacturer_code, role, crew_size, is_variant, payload',
+  weapon:
+    'class_name, name_localized, manufacturer_code, weapon_class, sub_type, size, grade, is_variant, payload',
+  component:
+    'class_name, name_localized, manufacturer_code, kind, attach_type, sub_type, size, grade, is_variant, payload',
+  item: 'class_name, name_localized, manufacturer_code, attach_type, sub_type, size, grade, is_variant, payload',
+  ammunition: 'class_name, name_localized, speed, lifetime, size, payload',
+  manufacturer: 'class_name, name_localized, manufacturer_code, payload',
+};
+
+@Injectable({ providedIn: 'root' })
+export class CodexService {
+  private readonly sb = inject(SupabaseClientProvider);
+
+  readonly build = signal<CodexBuild | null>(null);
+  readonly buildLoading = signal(false);
+  readonly buildError = signal<string | null>(null);
+
+  // Compare tray: pinned `${kind}:${className}` keys (max 4).
+  private readonly _compare = signal<string[]>([]);
+  readonly compareKeys = this._compare.asReadonly();
+  readonly compareCount = computed(() => this._compare().length);
+  static readonly COMPARE_MAX = 4;
+
+  private buildPromise: Promise<CodexBuild | null> | null = null;
+
+  /** Loads (and caches) the current LIVE build. Idempotent across callers. */
+  async loadCurrentBuild(): Promise<CodexBuild | null> {
+    if (this.build()) return this.build();
+    if (this.buildPromise) return this.buildPromise;
+    this.buildPromise = this.fetchCurrentBuild();
+    return this.buildPromise;
+  }
+
+  private async fetchCurrentBuild(): Promise<CodexBuild | null> {
+    this.buildLoading.set(true);
+    this.buildError.set(null);
+    try {
+      const { data, error } = await this.sb.client
+        .from('codex_builds')
+        .select(
+          'id, channel, patch_version, build_number, schema_version, quality_score, tool_version, entity_counts, is_current, extracted_at',
+        )
+        .eq('channel', 'LIVE')
+        .eq('is_current', true)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        this.build.set(null);
+        return null;
+      }
+      const mapped = mapBuild(data);
+      this.build.set(mapped);
+      return mapped;
+    } catch (err) {
+      this.buildError.set((err as Error).message ?? 'Unknown error');
+      return null;
+    } finally {
+      this.buildLoading.set(false);
+    }
+  }
+
+  /**
+   * Server-side filtered + paged list for one kind in the current build.
+   * Fuzzy search runs over BOTH name_localized AND class_name (per the read
+   * contract — trigram-backed `.or(ilike)`), so power users can search
+   * `AEGS_*` classNames directly.
+   */
+  async listByKind(kind: CodexKind, filters: CodexListFilters = {}): Promise<CodexListResult> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return { rows: [], count: 0 };
+
+    const table = CODEX_ENTITY_TABLES[kind];
+    const limit = filters.limit ?? PAGE_SIZE;
+    const offset = filters.offset ?? 0;
+
+    let query = this.sb.client
+      .from(table)
+      .select(LIST_SELECT[kind], { count: 'exact' })
+      .eq('build_id', build.id);
+
+    // Buyable-only by default. ammunition/manufacturer tables have no
+    // is_variant column — skip the filter for them.
+    if (kind !== 'ammunition' && kind !== 'manufacturer' && !filters.includeVariants) {
+      query = query.eq('is_variant', false);
+    }
+
+    if (filters.manufacturer) query = query.eq('manufacturer_code', filters.manufacturer);
+    if (filters.size != null) query = query.eq('size', filters.size);
+    if (filters.grade) query = query.eq('grade', filters.grade);
+    if (filters.componentKind && kind === 'component')
+      query = query.eq('kind', filters.componentKind);
+    if (filters.weaponClass && kind === 'weapon')
+      query = query.eq('weapon_class', filters.weaponClass);
+
+    const q = filters.search?.trim();
+    if (q) {
+      const safe = escapeIlike(q);
+      // manufacturer/ammunition still have name_localized + class_name.
+      query = query.or(`name_localized.ilike.%${safe}%,class_name.ilike.%${safe}%`);
+    }
+
+    query = query
+      .order('name_localized', { ascending: true, nullsFirst: false })
+      .order('class_name', { ascending: true })
+      .range(offset, offset + limit - 1);
+
+    const { data, count, error } = await query;
+    if (error) throw error;
+
+    const rows = ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
+    return { rows, count: count ?? rows.length };
+  }
+
+  /** Entity row + its hardpoints + its localized strings, for the detail view. */
+  async getDetail(kind: CodexKind, classNameSlug: string): Promise<CodexDetail | null> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return null;
+
+    const table = CODEX_ENTITY_TABLES[kind];
+    const [rowRes, portsRes, stringsRes] = await Promise.all([
+      this.sb.client
+        .from(table)
+        .select('*')
+        .eq('build_id', build.id)
+        .eq('class_name', classNameSlug)
+        .maybeSingle(),
+      this.sb.client
+        .from('codex_item_ports')
+        .select('*')
+        .eq('build_id', build.id)
+        .eq('parent_class_name', classNameSlug)
+        .order('port_index', { ascending: true }),
+      this.sb.client
+        .from('codex_entity_strings')
+        .select('entity_class_name, entity_kind, lang, field, value, loc_key')
+        .eq('build_id', build.id)
+        .eq('entity_class_name', classNameSlug),
+    ]);
+
+    if (rowRes.error) throw rowRes.error;
+    if (!rowRes.data) return null;
+
+    const row = rowRes.data as Record<string, unknown>;
+    return {
+      classNameSlug,
+      kind,
+      row,
+      payload: row['payload'],
+      ports: ((portsRes.data ?? []) as unknown[]).map((p) => mapPort(p as Record<string, unknown>)),
+      strings: ((stringsRes.data ?? []) as unknown[]).map((s) =>
+        mapString(s as Record<string, unknown>),
+      ),
+    };
+  }
+
+  /**
+   * Resolve a default-loadout `entityClassName` to its kind, so the detail
+   * view can deep-link. Looks the className up across weapon/component/item
+   * tables (cheap: indexed exact match, head-only). Returns null if unknown.
+   */
+  async resolveKind(className: string): Promise<CodexKind | null> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return null;
+    const candidates: CodexKind[] = ['weapon', 'component', 'item', 'ship', 'ammunition'];
+    for (const kind of candidates) {
+      const { count, error } = await this.sb.client
+        .from(CODEX_ENTITY_TABLES[kind])
+        .select('class_name', { count: 'exact', head: true })
+        .eq('build_id', build.id)
+        .eq('class_name', className);
+      if (!error && (count ?? 0) > 0) return kind;
+    }
+    return null;
+  }
+
+  // ── compare tray ───────────────────────────────────────────────────────────
+  static compareKey(kind: CodexKind, className: string): string {
+    return `${kind}:${className}`;
+  }
+
+  isPinned(kind: CodexKind, className: string): boolean {
+    return this._compare().includes(CodexService.compareKey(kind, className));
+  }
+
+  togglePin(kind: CodexKind, className: string): void {
+    const key = CodexService.compareKey(kind, className);
+    const cur = this._compare();
+    if (cur.includes(key)) {
+      this._compare.set(cur.filter((k) => k !== key));
+    } else if (cur.length < CodexService.COMPARE_MAX) {
+      this._compare.set([...cur, key]);
+    }
+  }
+
+  unpin(key: string): void {
+    this._compare.set(this._compare().filter((k) => k !== key));
+  }
+
+  clearCompare(): void {
+    this._compare.set([]);
+  }
+}
+
+// ── pure mappers / helpers ────────────────────────────────────────────────────
+
+function mapBuild(r: Record<string, unknown>): CodexBuild {
+  const counts = (r['entity_counts'] ?? {}) as CodexBuild['entityCounts'];
+  return {
+    id: r['id'] as string,
+    channel: r['channel'] as string,
+    patchVersion: r['patch_version'] as string,
+    buildNumber: r['build_number'] as string,
+    schemaVersion: (r['schema_version'] as number) ?? 0,
+    qualityScore: (r['quality_score'] as number | null) ?? null,
+    toolVersion: (r['tool_version'] as string | null) ?? null,
+    entityCounts: counts,
+    isCurrent: (r['is_current'] as boolean) ?? false,
+    extractedAt: (r['extracted_at'] as string | null) ?? null,
+  };
+}
+
+function mapListRow(kind: CodexKind, r: Record<string, unknown>): CodexListRow {
+  return {
+    classNameSlug: r['class_name'] as string,
+    nameLocalized: (r['name_localized'] as string | null) ?? null,
+    manufacturerCode: (r['manufacturer_code'] as string | null) ?? null,
+    size: (r['size'] as number | null) ?? null,
+    grade: (r['grade'] as string | null) ?? null,
+    role: (r['role'] as string | null) ?? null,
+    crewSize: (r['crew_size'] as number | null) ?? null,
+    weaponClass: (r['weapon_class'] as string | null) ?? null,
+    componentKind: (r['kind'] as string | null) ?? null,
+    subType: (r['sub_type'] as string | null) ?? null,
+    speed: (r['speed'] as number | null) ?? null,
+    isVariant: (r['is_variant'] as boolean) ?? false,
+    payload: r['payload'],
+  };
+}
+
+function mapPort(p: Record<string, unknown>): CodexItemPort {
+  return {
+    parentClassName: p['parent_class_name'] as string,
+    parentKind: p['parent_kind'] as string,
+    portName: (p['port_name'] as string | null) ?? null,
+    minSize: (p['min_size'] as number | null) ?? null,
+    maxSize: (p['max_size'] as number | null) ?? null,
+    types: (p['types'] as string[] | null) ?? [],
+    flags: (p['flags'] as string[] | null) ?? [],
+    portIndex: (p['port_index'] as number) ?? 0,
+  };
+}
+
+function mapString(s: Record<string, unknown>): CodexEntityString {
+  return {
+    entityClassName: (s['entity_class_name'] as string) ?? '',
+    entityKind: (s['entity_kind'] as string) ?? '',
+    lang: (s['lang'] as Lang) ?? 'en',
+    field: (s['field'] as string) ?? '',
+    value: (s['value'] as string | null) ?? null,
+    locKey: (s['loc_key'] as string | null) ?? null,
+  };
+}
+
+/** PostgREST `or=ilike` is comma/paren-delimited — neutralise those chars. */
+function escapeIlike(input: string): string {
+  return input.replace(/[%,()]/g, ' ').trim();
+}
+
+/** Pick the active-language string out of a LocalizedText, with fallbacks. */
+export function pickLocalized(
+  text: LocalizedText | null | undefined,
+  lang: Lang,
+  fallback = '',
+): string {
+  if (!text) return fallback;
+  const primary = lang === 'de' ? text.de : text.en;
+  return (primary || text.en || text.de || fallback).trim();
+}
+
+// Re-export row aliases so consuming components can type narrowly if needed.
+export type {
+  CodexShipRow,
+  CodexWeaponRow,
+  CodexComponentRow,
+  CodexItemRow,
+  CodexAmmunitionRow,
+  CodexManufacturerRow,
+};
