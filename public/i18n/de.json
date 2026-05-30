@@ -12,11 +12,144 @@
   },
   "nav": {
     "news": "Verse News",
+    "codex": "Codex",
     "p4k": "Bundle-Historie",
     "profile": "Profil",
     "admin": "Admin",
     "desktop": "Desktop-Tool",
     "signOut": "Abmelden"
+  },
+  "codex": {
+    "title": "Codex",
+    "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
+    "search": {
+      "placeholder": "Name oder Klasse suchen (z. B. Gladius, AEGS_*)…",
+      "label": "Codex durchsuchen",
+      "clear": "Suche löschen"
+    },
+    "kinds": {
+      "ship": "Schiffe",
+      "weapon": "Waffen",
+      "component": "Komponenten",
+      "item": "Items",
+      "ammunition": "Munition",
+      "manufacturer": "Hersteller"
+    },
+    "kindSingular": {
+      "ship": "Schiff",
+      "weapon": "Waffe",
+      "component": "Komponente",
+      "item": "Item",
+      "ammunition": "Munition",
+      "manufacturer": "Hersteller"
+    },
+    "filters": {
+      "title": "Filter",
+      "manufacturer": "Hersteller",
+      "size": "Größe",
+      "grade": "Grade",
+      "componentKind": "Komponententyp",
+      "weaponClass": "Waffenklasse",
+      "all": "Alle",
+      "includeVariants": "KI-/Template-Varianten anzeigen",
+      "reset": "Filter zurücksetzen",
+      "anySize": "Beliebige Größe",
+      "anyGrade": "Beliebiger Grade"
+    },
+    "weaponClass": {
+      "Ship": "Schiff",
+      "FPS": "FPS"
+    },
+    "results": {
+      "count": "{{count}} Ergebnisse",
+      "countOne": "1 Ergebnis",
+      "showingOf": "{{shown}} von {{total}} angezeigt",
+      "loadMore": "Mehr laden",
+      "loading": "Lädt…"
+    },
+    "card": {
+      "size": "S{{size}}",
+      "grade": "Grade {{grade}}",
+      "crew": "Crew {{count}}",
+      "variant": "Variante"
+    },
+    "empty": {
+      "title": "Noch nichts hier",
+      "filtered": "Keine Einträge passen zu Suche oder Filtern.",
+      "kind": "Keine {{kind}} in diesem Build.",
+      "noBuild": "Es ist noch kein Katalog-Build veröffentlicht.",
+      "partial": "Dieser Build enthält für diese Kategorie eine repräsentative Teilmenge — die Zähler spiegeln das Geladene wider."
+    },
+    "error": {
+      "title": "Codex konnte nicht geladen werden",
+      "retry": "Erneut versuchen"
+    },
+    "provenance": {
+      "label": "Quelle",
+      "build": "{{channel}} · {{patch}} · Build {{build}}",
+      "quality": "Qualität {{score}}%",
+      "tooltip": "Aus diesem Spiel-Build extrahiert — unsere Herkunfts-Garantie."
+    },
+    "detail": {
+      "back": "Zurück zum Codex",
+      "className": "Klassenname",
+      "guid": "GUID",
+      "manufacturer": "Hersteller",
+      "description": "Beschreibung",
+      "noDescription": "Keine Beschreibung in diesem Build.",
+      "properties": "Eigenschaften",
+      "role": "Rolle",
+      "crew": "Crew",
+      "size": "Größe",
+      "grade": "Grade",
+      "subType": "Untertyp",
+      "attachType": "Anbau-Typ",
+      "weaponClass": "Waffenklasse",
+      "componentKind": "Komponententyp",
+      "tags": "Tags",
+      "speed": "Geschwindigkeit",
+      "lifetime": "Lebensdauer",
+      "range": "Reichweite",
+      "weaponParams": "Waffenparameter",
+      "stats": "Komponenten-Werte",
+      "damage": "Einschlagsschaden",
+      "raw": "Rohparameter",
+      "hardpoints": "Hardpoints",
+      "hardpointsCount": "{{count}} Hardpoints",
+      "port": "Port",
+      "sizeRange": "Größe {{min}}–{{max}}",
+      "types": "Akzeptiert",
+      "flags": "Flags",
+      "noHardpoints": "Keine Hardpoints in diesem Build.",
+      "loadout": "Standard-Loadout",
+      "loadoutEmpty": "Leer (ab Werk)",
+      "noLoadout": "Kein Standard-Loadout hinterlegt.",
+      "notFound": "Eintrag im aktuellen Build nicht gefunden.",
+      "showRaw": "Rohdaten anzeigen",
+      "hideRaw": "Rohdaten ausblenden",
+      "naValue": "k. A."
+    },
+    "damage": {
+      "physical": "Physisch",
+      "energy": "Energie",
+      "distortion": "Distortion",
+      "thermal": "Thermisch",
+      "biochemical": "Biochemisch",
+      "stun": "Betäubung"
+    },
+    "compare": {
+      "pin": "Vergleichen",
+      "pinned": "Angepinnt",
+      "tray": "Vergleich ({{count}})",
+      "title": "Vergleich",
+      "open": "Vergleich öffnen",
+      "clear": "Leeren",
+      "remove": "Entfernen",
+      "empty": "2–4 Einträge anpinnen, um sie nebeneinander zu vergleichen.",
+      "full": "Du kannst bis zu {{max}} Einträge vergleichen.",
+      "property": "Eigenschaft",
+      "close": "Schließen"
+    }
   },
   "news": {
     "title": "Verse News",

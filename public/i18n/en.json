@@ -12,11 +12,144 @@
   },
   "nav": {
     "news": "Verse News",
+    "codex": "Codex",
     "p4k": "Bundle History",
     "profile": "Profile",
     "admin": "Admin",
     "desktop": "Desktop Tool",
     "signOut": "Sign out"
+  },
+  "codex": {
+    "title": "Codex",
+    "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
+    "search": {
+      "placeholder": "Search name or class (e.g. Gladius, AEGS_*)…",
+      "label": "Search the codex",
+      "clear": "Clear search"
+    },
+    "kinds": {
+      "ship": "Ships",
+      "weapon": "Weapons",
+      "component": "Components",
+      "item": "Items",
+      "ammunition": "Ammunition",
+      "manufacturer": "Manufacturers"
+    },
+    "kindSingular": {
+      "ship": "Ship",
+      "weapon": "Weapon",
+      "component": "Component",
+      "item": "Item",
+      "ammunition": "Ammunition",
+      "manufacturer": "Manufacturer"
+    },
+    "filters": {
+      "title": "Filters",
+      "manufacturer": "Manufacturer",
+      "size": "Size",
+      "grade": "Grade",
+      "componentKind": "Component type",
+      "weaponClass": "Weapon class",
+      "all": "All",
+      "includeVariants": "Show AI / template variants",
+      "reset": "Reset filters",
+      "anySize": "Any size",
+      "anyGrade": "Any grade"
+    },
+    "weaponClass": {
+      "Ship": "Ship",
+      "FPS": "FPS"
+    },
+    "results": {
+      "count": "{{count}} results",
+      "countOne": "1 result",
+      "showingOf": "Showing {{shown}} of {{total}}",
+      "loadMore": "Load more",
+      "loading": "Loading…"
+    },
+    "card": {
+      "size": "S{{size}}",
+      "grade": "Grade {{grade}}",
+      "crew": "Crew {{count}}",
+      "variant": "Variant"
+    },
+    "empty": {
+      "title": "Nothing here yet",
+      "filtered": "No entries match your search or filters.",
+      "kind": "No {{kind}} in this build.",
+      "noBuild": "No catalog build is published yet.",
+      "partial": "This build holds a representative subset for this category — counts shown reflect what is loaded."
+    },
+    "error": {
+      "title": "Could not load the codex",
+      "retry": "Retry"
+    },
+    "provenance": {
+      "label": "Source",
+      "build": "{{channel}} · {{patch}} · build {{build}}",
+      "quality": "Quality {{score}}%",
+      "tooltip": "Datamined from this game build — our provenance guarantee."
+    },
+    "detail": {
+      "back": "Back to codex",
+      "className": "Class name",
+      "guid": "GUID",
+      "manufacturer": "Manufacturer",
+      "description": "Description",
+      "noDescription": "No description in this build.",
+      "properties": "Properties",
+      "role": "Role",
+      "crew": "Crew",
+      "size": "Size",
+      "grade": "Grade",
+      "subType": "Sub-type",
+      "attachType": "Attach type",
+      "weaponClass": "Weapon class",
+      "componentKind": "Component type",
+      "tags": "Tags",
+      "speed": "Speed",
+      "lifetime": "Lifetime",
+      "range": "Range",
+      "weaponParams": "Weapon parameters",
+      "stats": "Component stats",
+      "damage": "Impact damage",
+      "raw": "Raw parameters",
+      "hardpoints": "Hardpoints",
+      "hardpointsCount": "{{count}} hardpoints",
+      "port": "Port",
+      "sizeRange": "Size {{min}}–{{max}}",
+      "types": "Accepts",
+      "flags": "Flags",
+      "noHardpoints": "No hardpoints in this build.",
+      "loadout": "Default loadout",
+      "loadoutEmpty": "Empty (stock)",
+      "noLoadout": "No default loadout recorded.",
+      "notFound": "Entry not found in the current build.",
+      "showRaw": "Show raw data",
+      "hideRaw": "Hide raw data",
+      "naValue": "n/a"
+    },
+    "damage": {
+      "physical": "Physical",
+      "energy": "Energy",
+      "distortion": "Distortion",
+      "thermal": "Thermal",
+      "biochemical": "Biochemical",
+      "stun": "Stun"
+    },
+    "compare": {
+      "pin": "Compare",
+      "pinned": "Pinned",
+      "tray": "Compare ({{count}})",
+      "title": "Comparison",
+      "open": "Open comparison",
+      "clear": "Clear",
+      "remove": "Remove",
+      "empty": "Pin 2–4 entries to compare them side by side.",
+      "full": "You can compare up to {{max}} entries.",
+      "property": "Property",
+      "close": "Close"
+    }
   },
   "news": {
     "title": "Verse News",

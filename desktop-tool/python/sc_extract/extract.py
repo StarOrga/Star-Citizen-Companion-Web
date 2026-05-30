@@ -101,9 +101,11 @@ def run_extract(cfg: ExtractConfig) -> ExtractResult:
         f"scope: icons={cfg.scope_hd_icons} renders={cfg.scope_render_pngs} components={cfg.scope_component_tree}",
     )
 
-    if scdatatools_available:
+    if scdatatools_available and cfg.p4k_path.exists():
         result = _real_extract(cfg)
     else:
+        if not cfg.p4k_path.exists():
+            events.log("warn", f"P4K not found at {cfg.p4k_path} — running scaffold-stub mode")
         result = _stub_extract(cfg)
 
     # ====== Validate ======
@@ -155,16 +157,97 @@ def run_extract(cfg: ExtractConfig) -> ExtractResult:
     return result
 
 
-def _real_extract(cfg: ExtractConfig) -> ExtractResult:
-    """Real extraction path — uses scdatatools when available.
+def _find_dcb_entry(p4k) -> str:
+    """Locate the DataCore entry in the P4K (Game2.dcb in SC 4.x, Game.dcb older)."""
+    for name in p4k.namelist():
+        if name.lower().endswith(".dcb"):
+            return name
+    raise RuntimeError("no .dcb entry found in P4K")
 
-    Phase 2 stub: emit the SAME event sequence as _stub_extract but reading
-    from real DataCore. Wire up against scdatatools API in a follow-up session
-    with the user (the API surface needs trial-and-error against real Data.p4k).
-    """
-    events.log("info", "real extraction path — TODO wire up scdatatools API")
-    # Until wired up, fall through to stub so the contract is verifiable.
-    return _stub_extract(cfg)
+
+def _load_localizer(p4k):
+    """Extract + parse english/german global.ini into a Localizer."""
+    from .localization import LANG_FOLDERS, Localizer, parse_global_ini
+
+    names = p4k.namelist()
+    lower = {n.lower(): n for n in names}
+    tables = {}
+    for short, folders in LANG_FOLDERS.items():
+        for folder in folders:
+            key = f"data/localization/{folder}/global.ini"
+            if key in lower:
+                try:
+                    info = p4k.getinfo(lower[key])
+                    with p4k.open(info) as f:
+                        tables[short] = parse_global_ini(f.read())
+                    events.log("info", f"localization '{short}' <- {lower[key]} "
+                                       f"({len(tables[short])} keys)")
+                except Exception as exc:  # noqa: BLE001
+                    events.log("warn", f"failed to read localization {folder}: {exc}")
+                break
+    return Localizer(tables)
+
+
+def _real_extract(cfg: ExtractConfig) -> ExtractResult:
+    """Real extraction path: open P4K (compat-patched) → parse DataForge v8 →
+    generic dump + typed projections + localization."""
+    from .dataforge import DataForge
+    from .dataforge_extract import CodexExtractor
+    from .p4k_compat import apply_p4k_compat
+
+    apply_p4k_compat()
+    from scdatatools.p4k import P4KFile  # type: ignore[import-not-found]
+
+    events.phase("discover", pct=6)
+    events.log("info", "opening P4K (compat-patched for SC 4.x)")
+    p4k = P4KFile(str(cfg.p4k_path))
+    events.log("info", f"P4K opened: {len(p4k.namelist())} entries")
+
+    dcb_entry = _find_dcb_entry(p4k)
+    events.log("info", f"datacore entry: {dcb_entry}")
+
+    localizer = _load_localizer(p4k)
+
+    events.phase("extract", pct=10)
+    events.log("info", "reading + decompressing DataCore (this is the slow part)")
+    info = p4k.getinfo(dcb_entry)
+    with p4k.open(info) as f:
+        raw = f.read()
+    events.log("info", f"datacore {len(raw):,} bytes decompressed")
+
+    df = DataForge(raw)
+    events.log("info", f"DataForge v{df.version}: {len(df.records):,} records, "
+                       f"{len(df.record_types)} types")
+
+    source = {"channel": cfg.channel, "patch": cfg.patch_version,
+              "build": cfg.build_number}
+    extractor = CodexExtractor(
+        df, localizer, cfg.out_dir, source,
+        on_count=events.count,
+        on_log=events.log,
+    )
+    counts = extractor.run()
+
+    # Map internal counts to the contract's counter keys (keep extras too).
+    entity_counts = {
+        "ships": counts.get("ships", 0),
+        "weapons": counts.get("weapons", 0),
+        "components": counts.get("components", 0),
+        "items": counts.get("items", 0),
+        "manufacturers": counts.get("manufacturers", 0),
+        "ammunition": counts.get("ammunition", 0),
+        "records_total": counts.get("records_total", 0),
+        "strings": sum(len(t) for t in localizer._tables.values()),
+    }
+    for k, v in entity_counts.items():
+        events.count(k, v)
+
+    return ExtractResult(
+        channel=cfg.channel,
+        patch_version=cfg.patch_version,
+        build_number=cfg.build_number,
+        entity_counts=entity_counts,
+    )
 
 
 def _stub_extract(cfg: ExtractConfig) -> ExtractResult:

@@ -21,6 +21,7 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
 
       <nav class="nav">
         <a routerLink="/news" routerLinkActive="active">{{ 'nav.news' | translate }}</a>
+        <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
         @if (roles.isCollaborator()) {
           <a routerLink="/p4k" routerLinkActive="active">{{ 'nav.p4k' | translate }}</a>
           <a routerLink="/desktop" routerLinkActive="active">{{ 'nav.desktop' | translate }}</a>
