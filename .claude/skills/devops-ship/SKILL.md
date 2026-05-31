@@ -11,27 +11,20 @@ Plugin defaults still apply; only the rules below override or add.
 
 ## Project rules
 
-1. **Never declare a ship "successful" before downstream builds turn green.**
-   The ship pipeline only confirms PR merge + GitHub release/tag create. In
-   this repo, the `data-uploader-build.yml` workflow runs MINUTES later via
-   tag-push and is the actual gate for a usable artefact. Same applies to
-   the Vercel deploy and any future GH-Actions chain.
+1. **Watch this repo's downstream deploy surfaces — they land after the merge.**
+   `ship_release` only confirms PR merge + GitHub release/tag. The real
+   artefacts arrive MINUTES later: the `data-uploader-build.yml` workflow
+   (tag-push) gates a usable binary, and the Vercel web deploy runs on
+   main-push. After `ship_release` succeeds with a tag that triggers external
+   work, run `gh run watch <run-id> --exit-status` in the background before
+   calling `render_completion_card`.
 
-   **Required after `ship_release` succeeds with a tag that triggers
-   external work:**
-   - Run `gh run watch <run-id> --exit-status` in the background BEFORE
-     calling `render_completion_card`.
-   - **Variant choice — do NOT confuse "ship done" with "downstream verified":**
-     once `ship_release` reports `merged` + `tag` + `release`, the ship
-     **has happened** — render `ship-successful`. `ready` is the PRE-ship
-     variant (its CTA is "SHIP oder ÄNDERN?") and is ONLY for work that is
-     genuinely not merged yet; using it after a merge is self-contradictory
-     and reads as "nothing shipped". An unverified downstream auto-deploy
-     (Vercel web on main-push, a tag-triggered build) does NOT downgrade the
-     variant — it is flagged as an explicit `userFinalTest` item instead,
-     e.g. "Build run #N läuft — `gh run view N`" or "Vercel-Deploy live
-     verifizieren". The headline reflects what the pipeline did (merge/tag/
-     release); userFinalTest reflects what still needs human confirmation.
+   The completion-card **variant** choice (merged ⇒ `ship-successful`;
+   unverified downstream ⇒ a `userFinalTest` item, never a downgrade to the
+   pre-ship `ready` variant) is owned by the **plugin base skill** — see
+   `plugins/devops/skills/devops-ship/SKILL.md` Step 6. Do NOT re-encode it
+   here; this project file only enumerates the project-specific surfaces
+   (rule 2) to flag.
 
    *Why this rule exists:* in the 2026-05-24 Phase-2 ship, I rendered
    `ship-successful` immediately after `ship_release` returned ok. The
