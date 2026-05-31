@@ -60,8 +60,9 @@ AUTONOMOUS-REPORT.html
 *.log
 logs/
 
-# Ship pipeline lock (per-process, never commit)
+# Ship pipeline runtime state (per-process, never commit)
 .claude/.ship-in-progress
+.claude/.ship-watcher/
 
 # /devops-burn + /devops-concept local-only state
 .claude/token-config.json
