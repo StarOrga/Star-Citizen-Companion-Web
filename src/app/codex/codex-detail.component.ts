@@ -683,11 +683,17 @@ export class CodexDetailComponent implements OnInit {
     return max > 0 ? Math.max(4, Math.round((row.value / max) * 100)) : 0;
   }
 
-  /** Ship equipment summary (weapon/shield/… counts) for the hero. */
+  /**
+   * Ship equipment summary (weapon/shield/… counts) for the hero. Derived from
+   * the INSTALLED default-loadout, not codex_item_ports — a ship's item_ports
+   * are structural only (fuel/ATC/relay/lifesupport) and carry no weapon/shield
+   * hardpoints, so the loadout is the only source that reflects real equipment.
+   */
   readonly portSummary = computed<PortSummaryEntry[]>(() => {
     const d = this.detail();
     if (!d || d.kind !== 'ship') return [];
-    return summarizePorts(d.ports);
+    const installed = this.loadoutAll().filter((l) => l.className);
+    return summarizePorts(installed.map((l) => ({ types: [], portName: l.port })));
   });
 
   /** Hardpoints grouped into functional categories, in display order. */
