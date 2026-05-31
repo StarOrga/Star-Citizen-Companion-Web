@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -93,6 +93,7 @@ export class DesktopAuthComponent implements OnInit {
   private readonly roles = inject(RoleService);
   private readonly route = inject(ActivatedRoute);
   private readonly sb = inject(SupabaseClientProvider);
+  private readonly translate = inject(TranslateService);
 
   readonly status = signal<AuthStatus>('authorizing');
   readonly errorMsg = signal<string | null>(null);
@@ -126,12 +127,12 @@ export class DesktopAuthComponent implements OnInit {
 
     if (!this.cb || !this.state) {
       this.status.set('error');
-      this.errorMsg.set('Missing `cb` or `state` query parameter.');
+      this.errorMsg.set(this.translate.instant('desktopAuth.errorMissingParams'));
       return;
     }
     if (!isLoopback(this.cb)) {
       this.status.set('error');
-      this.errorMsg.set('Callback URL is not a 127.0.0.1 loopback in the expected port range.');
+      this.errorMsg.set(this.translate.instant('desktopAuth.errorBadCallback'));
       return;
     }
 
@@ -155,7 +156,7 @@ export class DesktopAuthComponent implements OnInit {
     const token = data.session?.access_token;
     if (error || !token) {
       this.status.set('error');
-      this.errorMsg.set(error?.message ?? 'No access token in session.');
+      this.errorMsg.set(error?.message ?? this.translate.instant('desktopAuth.errorNoToken'));
       return;
     }
 

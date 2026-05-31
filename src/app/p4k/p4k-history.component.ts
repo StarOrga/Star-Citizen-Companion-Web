@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BundleDiffSummary, ChannelTag, P4kBundleRow, P4kService } from './p4k.service';
 import { RoleService } from '../auth/role.service';
 
@@ -78,7 +78,11 @@ import { RoleService } from '../auth/role.service';
         </div>
       }
 
-      @if (bundles().length === 0 && !svc.busy()) {
+      @if (bundles().length === 0 && svc.busy()) {
+        <div class="sc-card empty">
+          <p>{{ 'p4k.loading' | translate }}</p>
+        </div>
+      } @else if (bundles().length === 0 && !svc.busy()) {
         <div class="sc-card empty">
           <h2>{{ 'p4k.empty.title' | translate }}</h2>
           <p>{{ 'p4k.empty.hint' | translate }}</p>
@@ -390,6 +394,12 @@ import { RoleService } from '../auth/role.service';
       cursor: pointer;
       font-size: 0.9rem;
       padding: 2px 6px;
+      border-radius: 4px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .expand-btn:hover {
+      background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
+      color: var(--sc-accent);
     }
     .expand-row {
       background: rgba(0, 212, 255, 0.03);
@@ -452,6 +462,7 @@ import { RoleService } from '../auth/role.service';
 export class P4kHistoryComponent implements OnInit {
   readonly svc = inject(P4kService);
   readonly roles = inject(RoleService);
+  private readonly translate = inject(TranslateService);
 
   private readonly _expanded = signal<Set<string>>(new Set());
 
@@ -486,26 +497,21 @@ export class P4kHistoryComponent implements OnInit {
   }
 
   async disable(b: P4kBundleRow): Promise<void> {
-    const reason = window.prompt(
-      `Bundle "${b.channel.toUpperCase()} ${b.patch_version} ${b.build_number}" deaktivieren.\n\nGrund (optional):`,
-      '',
-    );
+    const name = `${b.channel.toUpperCase()} ${b.patch_version} ${b.build_number}`;
+    const reason = window.prompt(this.translate.instant('p4k.prompts.disable', { name }), '');
     if (reason === null) return; // cancelled
     await this.svc.setDisabled(b.id, true, reason.trim() || null);
   }
 
   async reenable(b: P4kBundleRow): Promise<void> {
-    if (!window.confirm(`Bundle "${b.channel.toUpperCase()} ${b.patch_version}" wieder aktivieren?`)) return;
+    const name = `${b.channel.toUpperCase()} ${b.patch_version}`;
+    if (!window.confirm(this.translate.instant('p4k.prompts.reenable', { name }))) return;
     await this.svc.setDisabled(b.id, false, null);
   }
 
   async remove(b: P4kBundleRow): Promise<void> {
-    if (
-      !window.confirm(
-        `Bundle "${b.channel.toUpperCase()} ${b.patch_version} ${b.build_number}" endgültig löschen?\n\nDies kann nicht rückgängig gemacht werden.`,
-      )
-    )
-      return;
+    const name = `${b.channel.toUpperCase()} ${b.patch_version} ${b.build_number}`;
+    if (!window.confirm(this.translate.instant('p4k.prompts.delete', { name }))) return;
     await this.svc.deleteBundle(b.id);
   }
 

@@ -58,7 +58,9 @@ interface FlashMessage {
         </div>
       }
 
-      @if (tokens().length === 0 && !busy() && !loadError()) {
+      @if (busy() && tokens().length === 0 && !loadError()) {
+        <div class="sc-card empty">{{ 'admin.tokens.loading' | translate }}</div>
+      } @else if (tokens().length === 0 && !busy() && !loadError()) {
         <div class="sc-card empty">{{ 'admin.tokens.empty' | translate }}</div>
       } @else if (tokens().length > 0) {
         <table class="sc-card table">
@@ -291,7 +293,7 @@ interface FlashMessage {
       z-index: 51;
       max-height: 90vh;
       overflow-y: auto;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(0, 212, 255, 0.25);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), var(--sc-glow);
     }
     .dialog h2 {
       margin: 0 0 0.4em;

@@ -19,11 +19,14 @@
     "profile": "Profil",
     "admin": "Admin",
     "desktop": "Data Uploader",
-    "signOut": "Abmelden"
+    "signOut": "Abmelden",
+    "brandAria": "Star Citizen Companion (SCC)",
+    "langAria": "Sprache"
   },
   "codex": {
     "title": "Codex",
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
+    "categoriesAria": "Codex-Kategorien",
     "search": {
       "placeholder": "Name oder Klasse suchen (z. B. Gladius, AEGS_*)…",
       "label": "Codex durchsuchen",
@@ -211,7 +214,8 @@
     },
     "filter": {
       "label": "Filter",
-      "clear": "Alle zeigen"
+      "clear": "Alle zeigen",
+      "groupAria": "Kanalfilter"
     },
     "via": "via {{source}}",
     "openExternal": "Öffnet {{host}}",
@@ -229,6 +233,7 @@
     "subtitle": "Vorverdaute Bundles vom Data Uploader. Upload läuft nur über das Tool, nicht über die Website.",
     "refresh": "Aktualisieren",
     "expand": "Details anzeigen",
+    "loading": "Lade Bundles…",
     "errorTitle": "Bundles konnten nicht geladen werden",
     "toggle": {
       "history": "Verlauf",
@@ -274,6 +279,11 @@
     "disabled": {
       "title": "Deaktiviert",
       "noReason": "kein Grund angegeben"
+    },
+    "prompts": {
+      "disable": "Bundle \"{{name}}\" deaktivieren.\n\nGrund (optional):",
+      "reenable": "Bundle \"{{name}}\" wieder aktivieren?",
+      "delete": "Bundle \"{{name}}\" endgültig löschen?\n\nDies kann nicht rückgängig gemacht werden."
     }
   },
   "profile": {
@@ -300,7 +310,9 @@
       "subtitle": "Schickt eine Supabase-Magic-Link-Mail. Rolle wird beim Annehmen direkt zugewiesen.",
       "emailPlaceholder": "person@example.com",
       "send": "Einladung senden",
-      "sending": "Sende…"
+      "sending": "Sende…",
+      "success": "{{email}} → {{role}} eingeladen.",
+      "unknownError": "Unbekannter Fehler"
     },
     "col": {
       "user": "User",
@@ -319,12 +331,18 @@
     },
     "errorTitle": "Aktion fehlgeschlagen",
     "loading": "Lade User…",
+    "delete": {
+      "confirmSelf": "Dein Account ({{email}}) wird endgültig gelöscht. Auch deine Uploads + Bundles verschwinden. Du wirst danach ausgeloggt. Sicher?",
+      "confirmOther": "{{email}} wirklich endgültig löschen? Auch deren Uploads + Bundles verschwinden. Nicht rückgängig machbar.",
+      "failed": "Löschen fehlgeschlagen"
+    },
     "tokens": {
       "navLink": "API-Tokens",
       "title": "Admin · API-Tokens",
       "subtitle": "Bearer-Tokens für die öffentliche /v1-API ausstellen. Tokens werden EINMALIG im Klartext angezeigt — sicher im Passwort-Manager ablegen.",
       "refresh": "Aktualisieren",
       "newToken": "Neuen Token erstellen",
+      "loading": "Lade Tokens…",
       "errorTitle": "Tokens konnten nicht geladen werden",
       "empty": "Noch keine aktiven Tokens. Auf \"Neuen Token erstellen\" klicken, um einen anzulegen.",
       "col": {
@@ -373,6 +391,7 @@
   "desktop": {
     "title": "Data Uploader",
     "subtitle": "Lade den Data Uploader für deinen lokalen Star-Citizen-Install. Nur Admin + Collaborator.",
+    "loading": "Lade Release…",
     "currentVersion": "Aktuelle Version",
     "released": "Veröffentlicht",
     "notes": "Release-Notes",
@@ -389,7 +408,10 @@
     "redirecting": "Autorisiert. Schicke Token zur App…",
     "redirectingHint": "Dieses Fenster kann gleich geschlossen werden.",
     "unauthorized": "Dein Account darf den Data Uploader nicht nutzen.",
-    "unauthorizedHint": "Du brauchst Collaborator- oder Admin-Rolle. Frag einen Admin."
+    "unauthorizedHint": "Du brauchst Collaborator- oder Admin-Rolle. Frag einen Admin.",
+    "errorMissingParams": "Callback- oder State-Parameter fehlt.",
+    "errorBadCallback": "Callback-URL ist kein 127.0.0.1-Loopback im erwarteten Portbereich.",
+    "errorNoToken": "Kein Access-Token in der Session."
   },
   "footer": {
     "madeByCommunity": "Made by the Community",

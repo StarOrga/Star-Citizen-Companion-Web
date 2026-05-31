@@ -74,6 +74,7 @@ body {
   font: inherit;
   font-size: 0.78rem;
 }
+.topbar select:focus { outline: none; border-color: var(--sc-accent); }
 
 main {
   overflow-y: auto;
@@ -128,6 +129,8 @@ h3 { font-size: 0.9rem; }
 .btn-primary { background: var(--sc-accent); color: var(--sc-bg-0); }
 .btn-primary:hover:not(:disabled) { background: #4ce5ff; }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn:focus-visible, select:focus-visible, input:focus-visible, .profile-pill:focus-visible, .channel-row input:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
 .channel-list { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
 .channel-row {
@@ -275,7 +278,7 @@ h3 { font-size: 0.9rem; }
   padding: 8px 16px;
   background: linear-gradient(90deg, rgba(0, 212, 255, 0.18), rgba(0, 212, 255, 0.04));
   border-bottom: 1px solid var(--sc-accent);
-  color: var(--sc-fg);
+  color: var(--sc-fg-1);
   font-size: 0.88rem;
 }
 .update-banner.hidden { display: none; }
@@ -309,3 +312,11 @@ h3 { font-size: 0.9rem; }
 }
 .diff-table th { color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; }
 .diff-table td:not(:first-child) { text-align: right; font-family: var(--sc-font-display); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
