@@ -14,6 +14,7 @@ export interface VerseNewsItem {
   channel: NewsChannel;
   summary?: string;
   thumbnail?: string;
+  images?: string[];
   category?: string;
   source: 'comm-link' | 'patch-notes' | 'spectrum' | 'youtube' | 'status';
 }
