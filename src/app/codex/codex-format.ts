@@ -85,11 +85,31 @@ export function humanizeKey(raw: string): string {
 // Floats at/above this are FLT_MAX-style sentinels ("unset" / "infinite").
 const SENTINEL = 1e12;
 
-/** Format a numeric stat: group thousands, ≤2 decimals, FLT_MAX → ∞. */
+/**
+ * Format a numeric stat: comma-grouped thousands, up to 2 decimals (trailing
+ * zeros trimmed), FLT_MAX → ∞.
+ *
+ * Deliberately locale-INDEPENDENT (manual grouping, no `toLocaleString`). The
+ * SC catalog is rendered English-only, and `Number.prototype.toLocaleString`
+ * proved unreliable in practice — depending on locale-data load order / host
+ * Intl it could emit German separators ("1.196") even when called with
+ * `'en-US'`. Manual formatting guarantees a single, stable presentation
+ * everywhere regardless of the host environment.
+ */
 export function formatNumber(v: number): string {
   if (!Number.isFinite(v) || Math.abs(v) >= SENTINEL) return '∞';
-  const r = Math.round(v * 100) / 100;
-  return r.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  const rounded = Math.round(v * 100) / 100;
+  const neg = rounded < 0;
+  const abs = Math.abs(rounded);
+  const intPart = Math.trunc(abs);
+  const frac = Math.round((abs - intPart) * 100); // 0..99
+  const grouped = String(intPart).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  let out = grouped;
+  if (frac > 0) {
+    const fracStr = (frac % 10 === 0 ? String(frac / 10) : String(frac).padStart(2, '0'));
+    out = `${grouped}.${fracStr}`;
+  }
+  return neg ? `-${out}` : out;
 }
 
 const PATH_LIKE = /[\\/]|\.(xml|mtl|svg|dds|cga|json)$/i;

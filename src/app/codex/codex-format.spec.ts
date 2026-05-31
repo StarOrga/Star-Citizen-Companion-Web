@@ -64,6 +64,20 @@ describe('codex-format', () => {
       expect(formatNumber(2244)).toBe('2,244');
       expect(formatNumber(5.829999)).toBe('5.83');
     });
+    it('uses comma thousands + period decimal regardless of host locale', () => {
+      // Regression: toLocaleString could emit German "1.196" — manual format
+      // must always produce the English presentation.
+      expect(formatNumber(1196.31005859375)).toBe('1,196.31');
+      expect(formatNumber(1113.800048828125)).toBe('1,113.8');
+      expect(formatNumber(1650)).toBe('1,650');
+      expect(formatNumber(1000000)).toBe('1,000,000');
+    });
+    it('trims trailing-zero decimals and handles negatives', () => {
+      expect(formatNumber(5.5)).toBe('5.5');
+      expect(formatNumber(5.0)).toBe('5');
+      expect(formatNumber(-1234.5)).toBe('-1,234.5');
+      expect(formatNumber(0)).toBe('0');
+    });
     it('renders FLT_MAX sentinels as ∞', () => {
       expect(formatNumber(3.4028e38)).toBe('∞');
     });
