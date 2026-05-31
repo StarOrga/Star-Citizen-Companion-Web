@@ -55,7 +55,7 @@ const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
       }
 
       <div class="stream">
-        <div class="filter-bar" role="group" aria-label="Channel filter">
+        <div class="filter-bar" role="group" [attr.aria-label]="'news.filter.groupAria' | translate">
           <button class="chip all" type="button"
                   [class.active]="!hasFilter()"
                   [attr.aria-pressed]="!hasFilter()"

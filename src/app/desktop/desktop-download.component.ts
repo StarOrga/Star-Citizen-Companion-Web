@@ -66,7 +66,11 @@ interface ReleaseInfo {
             }
           </div>
         </div>
-      } @else if (!busy()) {
+      } @else if (busy()) {
+        <div class="sc-card empty">
+          <p>{{ 'desktop.loading' | translate }}</p>
+        </div>
+      } @else {
         <div class="sc-card empty">
           <h2>{{ 'desktop.noRelease' | translate }}</h2>
           <p>{{ 'desktop.noReleaseHint' | translate }}</p>

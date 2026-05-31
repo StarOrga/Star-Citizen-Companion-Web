@@ -183,9 +183,13 @@ interface LoadoutView {
                 @for (port of detail()!.ports; track port.portIndex) {
                   <tr
                     class="port-row"
+                    [attr.tabindex]="port.types.length > 0 ? 0 : null"
+                    [attr.role]="port.types.length > 0 ? 'button' : null"
                     [class.expandable]="port.types.length > 0"
                     [class.open]="expandedPort() === port.portIndex"
                     (click)="togglePort(port)"
+                    (keydown.enter)="togglePort(port)"
+                    (keydown.space)="$event.preventDefault(); togglePort(port)"
                   >
                     <td class="caret">{{ port.types.length ? (expandedPort() === port.portIndex ? '▾' : '▸') : '' }}</td>
                     <td>{{ port.portName || '—' }}</td>
