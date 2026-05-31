@@ -24,6 +24,7 @@ import {
   CodexKind,
   CodexService,
   CompatibleItem,
+  ResolvedEntity,
   pickLocalized,
 } from './codex.service';
 import {
@@ -66,6 +67,10 @@ interface LoadoutItem {
   port: string;
   className: string | null;
   kind: CodexKind | null;
+  name: string | null; // friendly name (falls back to className)
+  size: number | null;
+  grade: string | null;
+  manufacturerCode: string | null;
 }
 interface LoadoutGroup {
   category: HardpointCategory;
@@ -155,7 +160,7 @@ interface LoadoutGroup {
             <h2>{{ 'codex.detail.keyStats' | translate }}</h2>
             <div class="stat-grid">
               @for (s of componentStats(); track s.key) {
-                <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}</span></div>
+                <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
               }
             </div>
           </section>
@@ -167,7 +172,7 @@ interface LoadoutGroup {
             <h2>{{ 'codex.detail.weaponParams' | translate }}</h2>
             <div class="stat-grid">
               @for (s of weaponParams(); track s.key) {
-                <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}</span></div>
+                <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
               }
             </div>
           </section>
@@ -251,10 +256,19 @@ interface LoadoutGroup {
                   @for (l of g.items; track l.port) {
                     <li class="ld" [class.empty]="!l.className">
                       <span class="ld-port">{{ humanizePort(l.port) }}</span>
-                      @if (l.className && l.kind) {
-                        <a class="ld-link" [routerLink]="['/codex', l.kind, l.className]">{{ l.className }}</a>
-                      } @else if (l.className) {
-                        <code class="ld-cls">{{ l.className }}</code>
+                      @if (l.className) {
+                        <span class="ld-item">
+                          @if (l.kind) {
+                            <a class="ld-link" [routerLink]="['/codex', l.kind, l.className]">{{ l.name }}</a>
+                          } @else {
+                            <span class="ld-name">{{ l.name }}</span>
+                          }
+                          <span class="ld-chips">
+                            @if (l.size != null) { <span class="chip">S{{ l.size }}</span> }
+                            @if (l.grade) { <span class="chip">{{ l.grade }}</span> }
+                            @if (l.manufacturerCode) { <span class="chip">{{ l.manufacturerCode }}</span> }
+                          </span>
+                        </span>
                       } @else {
                         <span class="ld-empty">{{ 'codex.detail.loadoutEmpty' | translate }}</span>
                       }
@@ -323,6 +337,7 @@ interface LoadoutGroup {
     .stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
     .s-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
     .s-value { font-size: 1.05rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
+    .s-unit { font-size: 0.7rem; color: var(--sc-fg-2); font-family: system-ui, sans-serif; }
 
     /* Damage bars */
     .dmg-list { display: flex; flex-direction: column; gap: 8px; }
@@ -372,10 +387,12 @@ interface LoadoutGroup {
 
     .ld { display: flex; justify-content: space-between; gap: 12px; padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-1); align-items: center; }
     .ld.empty { background: transparent; border: 1px dashed var(--sc-border); }
-    .ld-port { color: var(--sc-fg-2); font-size: 0.76rem; overflow-wrap: anywhere; }
-    .ld-link { color: var(--sc-accent); text-decoration: none; font-size: 0.8rem; overflow-wrap: anywhere; text-align: right; }
+    .ld-port { color: var(--sc-fg-2); font-size: 0.76rem; overflow-wrap: anywhere; flex: 1 1 auto; }
+    .ld-item { display: inline-flex; align-items: center; gap: 8px; flex: 0 1 auto; justify-content: flex-end; flex-wrap: wrap; }
+    .ld-link { color: var(--sc-accent); text-decoration: none; font-size: 0.82rem; overflow-wrap: anywhere; text-align: right; }
     .ld-link:hover { text-decoration: underline; }
-    .ld-cls { color: var(--sc-fg-1); font-size: 0.76rem; overflow-wrap: anywhere; }
+    .ld-name { color: var(--sc-fg-1); font-size: 0.82rem; overflow-wrap: anywhere; text-align: right; }
+    .ld-chips { display: inline-flex; gap: 4px; flex-shrink: 0; }
     .ld-empty { color: var(--sc-fg-2); font-size: 0.76rem; font-style: italic; }
     .ghost-toggle { margin-left: auto; padding: 3px 10px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border);
       color: var(--sc-fg-2); font-family: inherit; font-size: 0.68rem; text-transform: none; letter-spacing: 0; cursor: pointer; }
@@ -417,13 +434,15 @@ export class CodexDetailComponent implements OnInit {
   // Resolved localized values for raw @-keys (ship role, …).
   private readonly localeMap = signal<Map<string, string>>(new Map());
 
-  // Resolved deep-link kinds for default-loadout entries.
-  private readonly loadoutKinds = signal<Map<string, CodexKind | null>>(new Map());
+  // Resolved deep-link target + display fields for default-loadout entries.
+  private readonly loadoutEntities = signal<Map<string, ResolvedEntity>>(new Map());
 
-  private get lang(): Lang {
-    const l = this.t.getCurrentLang() ?? 'en';
-    return l === 'de' ? 'de' : 'en';
-  }
+  // Star Citizen ships no real translations — its "localized" data is mostly an
+  // English copy, so mixed DE/EN values look broken. We render datamined SC
+  // CONTENT (names, descriptions, manufacturer, role) in English always; only
+  // our own UI chrome follows the user's language. Making the SC data itself
+  // multilingual is tracked as a separate issue.
+  private readonly dataLang: Lang = 'en';
 
   async ngOnInit(): Promise<void> {
     const kind = this.route.snapshot.paramMap.get('kind') as CodexKind | null;
@@ -446,7 +465,7 @@ export class CodexDetailComponent implements OnInit {
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
-      if (d) await Promise.all([this.resolveLoadoutKinds(d), this.resolveLocale(d)]);
+      if (d) await Promise.all([this.resolveLoadoutEntities(d), this.resolveLocale(d)]);
     } catch (err) {
       this.error.set((err as Error).message ?? 'Unknown error');
     } finally {
@@ -460,7 +479,7 @@ export class CodexDetailComponent implements OnInit {
     const role = d.row['role'];
     if (typeof role === 'string' && role.startsWith('@')) keys.push(role);
     if (keys.length === 0) return;
-    this.localeMap.set(await this.svc.resolveLocaleKeys(keys, this.lang));
+    this.localeMap.set(await this.svc.resolveLocaleKeys(keys, this.dataLang));
   }
 
   // ── hardpoint slot compatibility ────────────────────────────────────────────
@@ -499,20 +518,13 @@ export class CodexDetailComponent implements OnInit {
     this.compatMap.set(m);
   }
 
-  private async resolveLoadoutKinds(d: CodexDetail): Promise<void> {
+  private async resolveLoadoutEntities(d: CodexDetail): Promise<void> {
     if (d.kind !== 'ship') return;
-    const payload = d.payload as ShipPayload | undefined;
-    const entries = payload?.defaultLoadout ?? [];
-    const classNames = Array.from(
-      new Set(entries.map((e) => e.entityClassName).filter((c): c is string => !!c)),
-    );
-    const map = new Map<string, CodexKind | null>();
-    await Promise.all(
-      classNames.map(async (cn) => {
-        map.set(cn, await this.svc.resolveKind(cn));
-      }),
-    );
-    this.loadoutKinds.set(map);
+    const entries = (d.payload as ShipPayload | undefined)?.defaultLoadout ?? [];
+    const classNames = entries
+      .map((e) => e.entityClassName)
+      .filter((c): c is string => !!c);
+    this.loadoutEntities.set(await this.svc.resolveEntities(classNames));
   }
 
   // ── derived views ──────────────────────────────────────────────────────────
@@ -520,7 +532,7 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     if (!d) return '';
     const p = d.payload as { name?: { de: string; en: string; key: string } } | undefined;
-    const name = p?.name ? pickLocalized(p.name, this.lang) : '';
+    const name = p?.name ? pickLocalized(p.name, this.dataLang) : '';
     // name_localized may itself be an unresolved @-key — drop it if so.
     return name || cleanLocaleValue(d.row['name_localized'] as string) || d.classNameSlug;
   });
@@ -529,7 +541,7 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     if (!d) return '';
     const p = d.payload as { manufacturer?: { name?: { de: string; en: string; key: string }; code?: string } } | undefined;
-    const fromPayload = p?.manufacturer?.name ? pickLocalized(p.manufacturer.name, this.lang) : '';
+    const fromPayload = p?.manufacturer?.name ? pickLocalized(p.manufacturer.name, this.dataLang) : '';
     return fromPayload || (d.row['manufacturer_code'] as string) || '';
   });
 
@@ -537,7 +549,7 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     if (!d) return '';
     const p = d.payload as { description?: { de: string; en: string; key: string } } | undefined;
-    return unescapeText(p?.description ? pickLocalized(p.description, this.lang) : '');
+    return unescapeText(p?.description ? pickLocalized(p.description, this.dataLang) : '');
   });
 
   readonly provenance = computed(() => {
@@ -668,12 +680,19 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     if (!d || d.kind !== 'ship') return [];
     const entries: LoadoutEntry[] = (d.payload as ShipPayload | undefined)?.defaultLoadout ?? [];
-    const kinds = this.loadoutKinds();
-    return entries.map((e) => ({
-      port: e.itemPortName || '—',
-      className: e.entityClassName,
-      kind: e.entityClassName ? (kinds.get(e.entityClassName) ?? null) : null,
-    }));
+    const resolved = this.loadoutEntities();
+    return entries.map((e) => {
+      const r = e.entityClassName ? resolved.get(e.entityClassName) : undefined;
+      return {
+        port: e.itemPortName || '—',
+        className: e.entityClassName,
+        kind: r?.kind ?? null,
+        name: cleanLocaleValue(r?.nameLocalized) || e.entityClassName,
+        size: r?.size ?? null,
+        grade: r?.grade ?? null,
+        manufacturerCode: r?.manufacturerCode ?? null,
+      };
+    });
   });
 
   readonly installedCount = computed(() => this.loadoutAll().filter((l) => l.className).length);

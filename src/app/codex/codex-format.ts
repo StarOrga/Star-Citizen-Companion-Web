@@ -126,6 +126,31 @@ export function formatValue(v: string | number): string {
 export interface StatRow {
   key: string;
   value: string;
+  unit?: string;
+}
+
+// Conservative unit lookup, keyed by the lower-cased raw field name (after a
+// trailing `Params` strip). Only fields whose unit is unambiguous are mapped —
+// a wrong unit is worse than none, so anything uncertain stays unitless.
+const UNIT_MAP: Record<string, string> = {
+  health: 'HP',
+  maxshieldhealth: 'HP',
+  maxshieldregen: 'HP/s',
+  scmspeed: 'm/s',
+  maxspeed: 'm/s',
+  boostspeed: 'm/s',
+  muzzlevelocity: 'm/s',
+  projectilespeed: 'm/s',
+  speed: 'm/s',
+  firerate: 'rpm',
+  roundsperminute: 'rpm',
+  rpm: 'rpm',
+  lifetime: 's',
+};
+
+/** Unit string for a known engine field leaf name, or undefined. */
+export function unitForField(raw: string): string | undefined {
+  return UNIT_MAP[raw.toLowerCase().replace(/params$/, '')];
 }
 
 // Struct names inside component `stats` that carry genuinely useful, kind-
@@ -159,7 +184,7 @@ export function curateComponentStats(
     for (const [k, v] of Object.entries(struct)) {
       if (FIELD_BLACKLIST.has(k)) continue;
       if (!isMeaningfulValue(v)) continue;
-      rows.push({ key: humanizeKey(k), value: formatValue(v) });
+      rows.push({ key: humanizeKey(k), value: formatValue(v), unit: unitForField(k) });
     }
   };
 
@@ -168,7 +193,7 @@ export function curateComponentStats(
   }
   // Always surface durability + distortion capacity when present.
   const health = stats[HEALTH_STRUCT]?.['Health'];
-  if (isMeaningfulValue(health)) rows.push({ key: 'Health', value: formatValue(health) });
+  if (isMeaningfulValue(health)) rows.push({ key: 'Health', value: formatValue(health), unit: 'HP' });
   const distMax = stats[DISTORTION_STRUCT]?.['Maximum'];
   if (isMeaningfulValue(distMax))
     rows.push({ key: 'Distortion capacity', value: formatValue(distMax) });
@@ -186,7 +211,7 @@ export function meaningfulRows(
   const rows: StatRow[] = [];
   for (const [k, v] of Object.entries(obj)) {
     if (!isMeaningfulValue(v)) continue;
-    rows.push({ key: humanizeKey(k), value: formatValue(v) });
+    rows.push({ key: humanizeKey(k), value: formatValue(v), unit: unitForField(k) });
   }
   return rows;
 }

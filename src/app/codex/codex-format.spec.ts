@@ -8,6 +8,7 @@ import {
   isMeaningfulValue,
   meaningfulRows,
   unescapeText,
+  unitForField,
 } from './codex-format';
 
 describe('codex-format', () => {
@@ -81,7 +82,22 @@ describe('codex-format', () => {
     });
   });
 
+  describe('unitForField', () => {
+    it('maps unambiguous fields to units, leaves the rest undefined', () => {
+      expect(unitForField('MaxShieldHealth')).toBe('HP');
+      expect(unitForField('scmSpeed')).toBe('m/s');
+      expect(unitForField('fireRate')).toBe('rpm');
+      expect(unitForField('DecayRatio')).toBeUndefined();
+    });
+  });
+
   describe('curateComponentStats', () => {
+    it('attaches units to known fields', () => {
+      const rows = curateComponentStats({
+        SCItemShieldGeneratorParams: { MaxShieldHealth: 2244 },
+      });
+      expect(rows.find((r) => r.key === 'Max Shield Health')?.unit).toBe('HP');
+    });
     it('keeps SCItem*Params + Health, drops engine noise', () => {
       const stats = {
         SCItemShieldGeneratorParams: { MaxShieldHealth: 2244, MaxShieldRegen: 494 },

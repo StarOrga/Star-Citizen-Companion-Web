@@ -16,7 +16,9 @@ import {
   CodexListFilters,
   CodexListRow,
   CodexService,
+  pickLocalized,
 } from './codex.service';
+import { cleanLocaleValue } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 
 const PAGE_SIZE = 60;
@@ -176,7 +178,7 @@ const COMPONENT_KINDS = [
                   <div class="thumb"><img [src]="src" [alt]="r.nameLocalized || r.classNameSlug" loading="lazy" /></div>
                 }
                 <div class="card-top">
-                  <h3 class="name">{{ r.nameLocalized || r.classNameSlug }}</h3>
+                  <h3 class="name">{{ cardName(r) }}</h3>
                   <button type="button" class="pin"
                           [class.pinned]="isPinned(r.classNameSlug)"
                           (click)="togglePin($event, r.classNameSlug)"
@@ -323,6 +325,16 @@ export class CodexListComponent implements OnInit {
   thumb(r: CodexListRow): string | null {
     const p = r.payload as { previewImage?: string | null } | undefined;
     return this.svc.previewUrl(p?.previewImage);
+  }
+
+  /**
+   * Card title — English SC name (SC has no real translations; see detail view).
+   * Falls back to the denormalized name, then the raw class name.
+   */
+  cardName(r: CodexListRow): string {
+    const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
+    const en = p?.name ? pickLocalized(p.name, 'en') : '';
+    return en || cleanLocaleValue(r.nameLocalized) || r.classNameSlug;
   }
 
   readonly kind = signal<CodexKind>('ship');
