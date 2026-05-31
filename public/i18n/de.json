@@ -151,7 +151,8 @@
       "naValue": "k. A.",
       "keyStats": "Kernwerte",
       "showEmptyPorts": "{{count}} leere Ports anzeigen",
-      "hideEmptyPorts": "Leere Ports ausblenden"
+      "hideEmptyPorts": "Leere Ports ausblenden",
+      "equipment": "Ausrüstung"
     },
     "damage": {
       "physical": "Physisch",

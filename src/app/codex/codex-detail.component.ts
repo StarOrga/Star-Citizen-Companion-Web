@@ -32,6 +32,7 @@ import {
   HARDPOINT_CATEGORY_ORDER,
   HardpointCategory,
   StatRow,
+  PortSummaryEntry,
   ammoDamage,
   categorizePort,
   cleanLocaleValue,
@@ -39,6 +40,7 @@ import {
   formatNumber,
   humanizePortType,
   meaningfulRows,
+  summarizePorts,
   unescapeText,
 } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
@@ -112,6 +114,17 @@ interface LoadoutGroup {
                   <li class="fact" [class.accent]="f.accent">
                     <span class="f-label">{{ f.label }}</span>
                     <span class="f-value">{{ f.value }}</span>
+                  </li>
+                }
+              </ul>
+            }
+
+            @if (portSummary().length > 0) {
+              <ul class="loadout-summary" [attr.aria-label]="'codex.detail.equipment' | translate">
+                @for (s of portSummary(); track s.category) {
+                  <li class="ls-item" [attr.data-cat]="s.category">
+                    <span class="ls-count">{{ s.count }}</span>
+                    <span class="ls-cat">{{ ('codex.portCategory.' + s.category) | translate }}</span>
                   </li>
                 }
               </ul>
@@ -318,6 +331,15 @@ interface LoadoutGroup {
     .f-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .f-value { font-size: 0.9rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
     .fact.accent .f-value { color: var(--sc-accent); }
+
+    .loadout-summary { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+    .ls-item { display: inline-flex; align-items: baseline; gap: 5px; padding: 5px 11px; border-radius: 999px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
+    .ls-count { font-family: var(--sc-font-display); font-size: 0.95rem; color: var(--sc-fg-0); }
+    .ls-cat { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
+    .ls-item[data-cat="weapons"] { border-color: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 45%, transparent); }
+    .ls-item[data-cat="weapons"] .ls-count { color: var(--sc-accent-hot, #ff7a45); }
+    .ls-item[data-cat="missiles"] { border-color: color-mix(in srgb, #ff5252 45%, transparent); }
+    .ls-item[data-cat="defense"] { border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
 
     .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: auto; padding-top: 12px; flex-wrap: wrap; }
     .pin { padding: 8px 16px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
@@ -660,6 +682,13 @@ export class CodexDetailComponent implements OnInit {
     const max = this.maxDamage();
     return max > 0 ? Math.max(4, Math.round((row.value / max) * 100)) : 0;
   }
+
+  /** Ship equipment summary (weapon/shield/… counts) for the hero. */
+  readonly portSummary = computed<PortSummaryEntry[]>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return [];
+    return summarizePorts(d.ports);
+  });
 
   /** Hardpoints grouped into functional categories, in display order. */
   readonly hardpointGroups = computed<PortGroup[]>(() => {

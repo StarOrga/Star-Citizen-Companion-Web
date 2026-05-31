@@ -7,6 +7,7 @@ import {
   humanizeKey,
   isMeaningfulValue,
   meaningfulRows,
+  summarizePorts,
   unescapeText,
   unitForField,
 } from './codex-format';
@@ -136,6 +137,28 @@ describe('codex-format', () => {
     it('prefers promoted impactDamage', () => {
       const dmg = ammoDamage({ impactDamage: { physical: 50, energy: null } });
       expect(dmg).toEqual([{ channel: 'physical', value: 50 }]);
+    });
+  });
+
+  describe('summarizePorts', () => {
+    it('counts role-defining categories, omits systems/other noise', () => {
+      const ports = [
+        { types: ['WeaponGun'], portName: 'hp_w1' },
+        { types: ['WeaponGun'], portName: 'hp_w2' },
+        { types: ['Missile'], portName: 'hp_m1' },
+        { types: ['Shield'], portName: 'hp_s1' },
+        { types: ['Seat'], portName: 'hp_seat' },
+        { types: [], portName: 'hardpoint_door' },
+      ];
+      const sum = summarizePorts(ports);
+      expect(sum).toEqual([
+        { category: 'weapons', count: 2 },
+        { category: 'missiles', count: 1 },
+        { category: 'defense', count: 1 },
+      ]);
+    });
+    it('returns empty for a ship with only structural ports', () => {
+      expect(summarizePorts([{ types: ['Seat'], portName: 'x' }])).toEqual([]);
     });
   });
 

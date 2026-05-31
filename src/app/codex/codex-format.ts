@@ -325,3 +325,37 @@ export function categorizePort(types: string[], portName: string | null): Hardpo
 export function humanizePortType(t: string): string {
   return humanizeKey(t);
 }
+
+// ── ship equipment summary ────────────────────────────────────────────────────
+
+export interface PortSummaryEntry {
+  category: HardpointCategory;
+  count: number;
+}
+
+// Categories worth summarising at a glance on a ship (the combat/role-defining
+// ones). `systems`/`other` are structural noise (seats, doors, lights) — they
+// inflate the count without telling you anything about the hull, so we omit
+// them from the headline summary (the full grouped list still shows everything).
+const SUMMARY_CATEGORIES: HardpointCategory[] = [
+  'weapons', 'missiles', 'defense', 'power', 'propulsion', 'avionics', 'cargo',
+];
+
+/**
+ * Count a ship's hardpoints per functional category, for an at-a-glance
+ * equipment summary. Input is the full port list (from codex_item_ports).
+ * Returns only the role-defining categories that are present, in display order.
+ */
+export function summarizePorts(
+  ports: { types: string[]; portName: string | null }[],
+): PortSummaryEntry[] {
+  const counts = new Map<HardpointCategory, number>();
+  for (const p of ports) {
+    const cat = categorizePort(p.types, p.portName);
+    counts.set(cat, (counts.get(cat) ?? 0) + 1);
+  }
+  return SUMMARY_CATEGORIES.filter((c) => counts.has(c)).map((c) => ({
+    category: c,
+    count: counts.get(c)!,
+  }));
+}
