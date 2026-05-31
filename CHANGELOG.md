@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-05-31
+
+### Added — Verse News: multi-image thumbnails with auto-fade slideshow
+
+- **`fetch-verse-news`** now emits every comm-link image as `images[]`
+  (deduped, capped at 10); `thumbnail` stays = `images[0]` for backward
+  compatibility. (Edge function deployed.)
+- **New `<sc-news-thumb>` component** picks the card image by measuring each
+  image's aspect ratio client-side:
+  - a landscape first image → static hero (unchanged common case);
+  - a portrait/square first image with more images available → an
+    auto-advancing crossfade slideshow through the landscape images,
+    looping (≈5 s dwell, position dots);
+  - broken images drop out of rotation automatically;
+  - respects `prefers-reduced-motion`.
+- **Fixes blank/garbled thumbnails** for articles whose lead asset is a tall
+  poster (e.g. *DefenseCon 2956 | Farewell*, whose `images[0]` is a
+  3840×7389 schedule poster) — the usable landscape art further down the
+  list is now surfaced instead.
+
 ## [0.9.2] - 2026-05-31
 
 ### Changed — Compact footer
