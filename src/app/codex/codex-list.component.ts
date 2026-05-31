@@ -18,7 +18,7 @@ import {
   CodexService,
   pickLocalized,
 } from './codex.service';
-import { cleanLocaleValue } from './codex-format';
+import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 
 const PAGE_SIZE = 60;
@@ -334,7 +334,7 @@ export class CodexListComponent implements OnInit {
   cardName(r: CodexListRow): string {
     const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
     const en = p?.name ? pickLocalized(p.name, 'en') : '';
-    return en || cleanLocaleValue(r.nameLocalized) || r.classNameSlug;
+    return en || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
   }
 
   readonly kind = signal<CodexKind>('ship');

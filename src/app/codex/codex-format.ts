@@ -33,6 +33,31 @@ export function cleanLocaleValue(
   return s;
 }
 
+// Suffixes carried by raw class names that add no value to a display title.
+const CLASSNAME_SUFFIX = /(_SCItem|_PU|_AI|_NT)+$/i;
+
+/**
+ * Turn a raw entity class name into a readable title, for entities that ship no
+ * localized name (much SC ammunition, some un-catalogued loadout items). Keeps
+ * the manufacturer/size tokens but un-snake-cases and spaces them, so
+ * `AMRS_LaserCannon_S3_AMMO` → `AMRS Laser Cannon S3 AMMO` instead of leaking
+ * the raw slug as the heading. Generic — no per-entity rules.
+ */
+export function humanizeClassName(className: string | null | undefined): string {
+  const raw = (className ?? '').trim();
+  if (!raw) return '';
+  return raw
+    .replace(CLASSNAME_SUFFIX, '')
+    .split('_')
+    .filter(Boolean)
+    // split camelCase words ("LaserCannon" → "Laser Cannon") but keep size/grade
+    // tokens like "S3"/"S01" intact (no letter↔digit split).
+    .map((tok) => tok.replace(/([a-z])([A-Z])/g, '$1 $2'))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim() || raw;
+}
+
 export function unescapeText(s: string | null | undefined): string {
   if (!s) return '';
   return s

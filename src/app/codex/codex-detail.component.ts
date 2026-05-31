@@ -37,6 +37,7 @@ import {
   categorizePort,
   cleanLocaleValue,
   curateComponentStats,
+  humanizeClassName,
   formatNumber,
   humanizePortType,
   meaningfulRows,
@@ -556,7 +557,7 @@ export class CodexDetailComponent implements OnInit {
     const p = d.payload as { name?: { de: string; en: string; key: string } } | undefined;
     const name = p?.name ? pickLocalized(p.name, this.dataLang) : '';
     // name_localized may itself be an unresolved @-key — drop it if so.
-    return name || cleanLocaleValue(d.row['name_localized'] as string) || d.classNameSlug;
+    return name || cleanLocaleValue(d.row['name_localized'] as string) || humanizeClassName(d.classNameSlug);
   });
 
   readonly manufacturerName = computed(() => {

@@ -6,6 +6,7 @@ import {
   collectCompareAttributes,
   curateComponentStats,
   formatNumber,
+  humanizeClassName,
   humanizeKey,
   isMeaningfulValue,
   meaningfulRows,
@@ -40,6 +41,19 @@ describe('codex-format', () => {
     it('keeps real values and honours the fallback', () => {
       expect(cleanLocaleValue('Mirage Shield')).toBe('Mirage Shield');
       expect(cleanLocaleValue('@x', 'Fallback')).toBe('Fallback');
+    });
+  });
+
+  describe('humanizeClassName', () => {
+    it('un-snake-cases and spaces a raw class name', () => {
+      expect(humanizeClassName('AMRS_LaserCannon_S3_AMMO')).toBe('AMRS Laser Cannon S3 AMMO');
+    });
+    it('strips engine suffixes', () => {
+      expect(humanizeClassName('SHLD_ASAS_S01_Mirage_SCItem')).toBe('SHLD ASAS S01 Mirage');
+    });
+    it('returns empty for nullish', () => {
+      expect(humanizeClassName(null)).toBe('');
+      expect(humanizeClassName('')).toBe('');
     });
   });
 

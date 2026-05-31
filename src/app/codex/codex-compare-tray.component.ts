@@ -15,6 +15,7 @@ import {
   buildCompareTable,
   cleanLocaleValue,
   collectCompareAttributes,
+  humanizeClassName,
 } from './codex-format';
 
 interface PinnedRef {
@@ -203,7 +204,7 @@ export class CodexCompareTrayComponent {
   private entityName(d: CodexDetail): string {
     const p = d.payload as { name?: { de: string; en: string; key: string } } | undefined;
     const en = p?.name ? pickLocalized(p.name, 'en') : '';
-    return en || cleanLocaleValue(d.row['name_localized'] as string) || d.classNameSlug;
+    return en || cleanLocaleValue(d.row['name_localized'] as string) || humanizeClassName(d.classNameSlug);
   }
 
   chipName(r: PinnedRef): string {
