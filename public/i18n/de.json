@@ -173,7 +173,8 @@
       "empty": "2–4 Einträge anpinnen, um sie nebeneinander zu vergleichen.",
       "full": "Du kannst bis zu {{max}} Einträge vergleichen.",
       "property": "Eigenschaft",
-      "close": "Schließen"
+      "close": "Schließen",
+      "noCommon": "Keine vergleichbaren Werte für diese Auswahl."
     },
     "portCategory": {
       "weapons": "Waffen",

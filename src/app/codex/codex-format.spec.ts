@@ -1,7 +1,9 @@
 import {
   ammoDamage,
+  buildCompareTable,
   categorizePort,
   cleanLocaleValue,
+  collectCompareAttributes,
   curateComponentStats,
   formatNumber,
   humanizeKey,
@@ -159,6 +161,44 @@ describe('codex-format', () => {
     });
     it('returns empty for a ship with only structural ports', () => {
       expect(summarizePorts([{ types: ['Seat'], portName: 'x' }])).toEqual([]);
+    });
+  });
+
+  describe('collectCompareAttributes', () => {
+    it('collects common + kind-specific attrs for a ship', () => {
+      const attrs = collectCompareAttributes({
+        kind: 'ship',
+        payload: { manufacturer: { name: { en: 'Aegis Dynamics' } }, dimensions: { length: 20, width: 18, height: 5 } },
+        row: { crew_size: 1, manufacturer_code: 'AEGS' },
+        ports: [{ types: ['WeaponGun'], portName: 'w1' }, { types: ['Shield'], portName: 's1' }],
+      });
+      const byId = Object.fromEntries(attrs.map((a) => [a.id, a.value]));
+      expect(byId['manufacturer']).toBe('Aegis Dynamics');
+      expect(byId['crew']).toBe('1');
+      expect(byId['hp_weapons']).toBe('1');
+      expect(byId['hp_defense']).toBe('1');
+    });
+    it('uses manufacturer code when payload name is absent', () => {
+      const attrs = collectCompareAttributes({ kind: 'weapon', payload: {}, row: { manufacturer_code: 'BEHR' }, ports: [] });
+      expect(attrs.find((a) => a.id === 'manufacturer')?.value).toBe('BEHR');
+    });
+  });
+
+  describe('buildCompareTable', () => {
+    it('unions attribute ids across columns, fills gaps with null', () => {
+      const cols = [
+        { key: 'a', name: 'A', kind: 'weapon', className: 'A' },
+        { key: 'b', name: 'B', kind: 'weapon', className: 'B' },
+      ];
+      const rows = buildCompareTable(cols, [
+        [{ id: 'size', labelKey: 'k.size', value: 'S3' }, { id: 'grade', labelKey: 'k.grade', value: 'A' }],
+        [{ id: 'size', labelKey: 'k.size', value: 'S5' }],
+      ]);
+      const size = rows.find((r) => r.id === 'size');
+      const grade = rows.find((r) => r.id === 'grade');
+      expect(size?.values).toEqual(['S3', 'S5']);
+      expect(grade?.values).toEqual(['A', null]); // B has no grade
+      expect(rows.map((r) => r.id)).toEqual(['size', 'grade']); // first-seen order
     });
   });
 

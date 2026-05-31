@@ -173,7 +173,8 @@
       "empty": "Pin 2–4 entries to compare them side by side.",
       "full": "You can compare up to {{max}} entries.",
       "property": "Property",
-      "close": "Close"
+      "close": "Close",
+      "noCommon": "No comparable values for this mix of entries."
     },
     "portCategory": {
       "weapons": "Weapons",

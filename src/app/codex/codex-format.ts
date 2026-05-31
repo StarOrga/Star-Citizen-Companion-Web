@@ -326,6 +326,125 @@ export function humanizePortType(t: string): string {
   return humanizeKey(t);
 }
 
+// ── compare table ─────────────────────────────────────────────────────────────
+
+// One comparable attribute of an entity. `id` is the stable union/order key;
+// `labelKey` is an i18n key (resolved by the component) or `label` is a literal
+// (already-humanized) stat name. Exactly one of labelKey/label is set.
+export interface CompareAttr {
+  id: string;
+  labelKey?: string;
+  label?: string;
+  value: string;
+}
+
+// Minimal entity shape the compare collector needs (subset of CodexDetail).
+export interface CompareEntityInput {
+  kind: string;
+  payload: unknown;
+  row: Record<string, unknown>;
+  ports: { types: string[]; portName: string | null }[];
+}
+
+/**
+ * Collect an entity's comparable attributes for the side-by-side table, in a
+ * stable display order. Generic per entity TYPE — reuses the same curation as
+ * the detail view (curated component stats, filtered weapon params, ammo damage,
+ * port summary) so the comparison matches what the detail page shows.
+ */
+export function collectCompareAttributes(e: CompareEntityInput): CompareAttr[] {
+  const out: CompareAttr[] = [];
+  const row = e.row;
+  const add = (id: string, labelKey: string, value: unknown) => {
+    if (value == null || value === '') return;
+    out.push({ id, labelKey, value: String(value) });
+  };
+
+  // Common identity attributes (same id across kinds → they align in the table).
+  const mfr =
+    (e.payload as { manufacturer?: { name?: { en?: string } } } | undefined)?.manufacturer?.name
+      ?.en || cleanLocaleValue(row['manufacturer_code'] as string);
+  add('manufacturer', 'codex.detail.manufacturer', mfr);
+  if (row['size'] != null) add('size', 'codex.detail.size', 'S' + row['size']);
+  add('grade', 'codex.detail.grade', row['grade']);
+
+  if (e.kind === 'ship') {
+    add('crew', 'codex.detail.crew', row['crew_size']);
+    const dim = (e.payload as { dimensions?: { length: number; width: number; height: number } } | undefined)
+      ?.dimensions;
+    if (dim && (dim.length || dim.width || dim.height)) {
+      add('dimensions', 'codex.detail.dimensions',
+        `${formatNumber(dim.length)} × ${formatNumber(dim.width)} × ${formatNumber(dim.height)} m`);
+    }
+    for (const s of summarizePorts(e.ports)) {
+      out.push({ id: 'hp_' + s.category, labelKey: 'codex.portCategory.' + s.category, value: String(s.count) });
+    }
+  } else if (e.kind === 'weapon') {
+    const wc = row['weapon_class'];
+    if (typeof wc === 'string') out.push({ id: 'weaponClass', labelKey: 'codex.detail.weaponClass', value: wc });
+    for (const r of meaningfulRows((e.payload as { weaponParams?: Record<string, unknown> } | undefined)?.weaponParams)) {
+      out.push({ id: 'wp_' + r.key, label: r.key, value: r.unit ? `${r.value} ${r.unit}` : r.value });
+    }
+  } else if (e.kind === 'component') {
+    const ck = row['kind'];
+    if (typeof ck === 'string') out.push({ id: 'componentKind', labelKey: 'codex.detail.componentKind', value: ck });
+    for (const r of curateComponentStats(
+      (e.payload as { stats?: Record<string, Record<string, unknown>> } | undefined)?.stats)) {
+      out.push({ id: 'cs_' + r.key, label: r.key, value: r.unit ? `${r.value} ${r.unit}` : r.value });
+    }
+  } else if (e.kind === 'ammunition') {
+    const speed = row['speed'];
+    if (typeof speed === 'number' && speed > 0) add('speed', 'codex.detail.speed', formatNumber(speed) + ' m/s');
+    for (const d of ammoDamage(e.payload)) {
+      out.push({ id: 'dmg_' + d.channel, labelKey: 'codex.damage.' + d.channel, value: formatNumber(d.value) });
+    }
+  }
+  return out;
+}
+
+export interface CompareColumn {
+  key: string;
+  name: string;
+  kind: string;
+  className: string;
+}
+export interface CompareTableRow {
+  id: string;
+  labelKey?: string;
+  label?: string;
+  values: (string | null)[]; // one cell per column, null = N/A
+}
+
+/**
+ * Build a unified compare table from per-entity attribute lists. Rows are the
+ * ordered union of attribute ids (first-seen order across columns); each cell
+ * is the entity's value for that id, or null when it has none.
+ */
+export function buildCompareTable(
+  columns: CompareColumn[],
+  perEntity: CompareAttr[][],
+): CompareTableRow[] {
+  const order: string[] = [];
+  const meta = new Map<string, { labelKey?: string; label?: string }>();
+  for (const attrs of perEntity) {
+    for (const a of attrs) {
+      if (!meta.has(a.id)) {
+        meta.set(a.id, { labelKey: a.labelKey, label: a.label });
+        order.push(a.id);
+      }
+    }
+  }
+  return order.map((id) => {
+    const m = meta.get(id)!;
+    return {
+      id,
+      labelKey: m.labelKey,
+      label: m.label,
+      values: perEntity.map((attrs) => attrs.find((a) => a.id === id)?.value ?? null),
+    };
+  });
+}
+
 // ── ship equipment summary ────────────────────────────────────────────────────
 
 export interface PortSummaryEntry {
