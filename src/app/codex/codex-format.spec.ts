@@ -1,6 +1,7 @@
 import {
   ammoDamage,
   categorizePort,
+  cleanLocaleValue,
   curateComponentStats,
   formatNumber,
   humanizeKey,
@@ -22,6 +23,19 @@ describe('codex-format', () => {
     it('returns empty for nullish', () => {
       expect(unescapeText(null)).toBe('');
       expect(unescapeText(undefined)).toBe('');
+    });
+  });
+
+  describe('cleanLocaleValue', () => {
+    it('drops unresolved @-keys and placeholders', () => {
+      expect(cleanLocaleValue('@item_Name_SHLD_ASAS')).toBe('');
+      expect(cleanLocaleValue('@LOC_EMPTY')).toBe('');
+      expect(cleanLocaleValue('')).toBe('');
+      expect(cleanLocaleValue(null)).toBe('');
+    });
+    it('keeps real values and honours the fallback', () => {
+      expect(cleanLocaleValue('Mirage Shield')).toBe('Mirage Shield');
+      expect(cleanLocaleValue('@x', 'Fallback')).toBe('Fallback');
     });
   });
 

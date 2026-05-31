@@ -33,6 +33,7 @@ import {
   StatRow,
   ammoDamage,
   categorizePort,
+  cleanLocaleValue,
   curateComponentStats,
   formatNumber,
   humanizePortType,
@@ -520,7 +521,8 @@ export class CodexDetailComponent implements OnInit {
     if (!d) return '';
     const p = d.payload as { name?: { de: string; en: string; key: string } } | undefined;
     const name = p?.name ? pickLocalized(p.name, this.lang) : '';
-    return name || (d.row['name_localized'] as string) || d.classNameSlug;
+    // name_localized may itself be an unresolved @-key — drop it if so.
+    return name || cleanLocaleValue(d.row['name_localized'] as string) || d.classNameSlug;
   });
 
   readonly manufacturerName = computed(() => {
@@ -571,7 +573,10 @@ export class CodexDetailComponent implements OnInit {
 
     if (d.kind === 'ship') {
       const role = row['role'];
-      const roleVal = typeof role === 'string' ? (this.localeMap().get(role) ?? (role.startsWith('@') ? '' : role)) : '';
+      const roleVal =
+        typeof role === 'string'
+          ? cleanLocaleValue(this.localeMap().get(role) ?? role)
+          : '';
       add('codex.detail.role', roleVal);
       add('codex.detail.crew', row['crew_size']);
       const dim = this.dimensions();

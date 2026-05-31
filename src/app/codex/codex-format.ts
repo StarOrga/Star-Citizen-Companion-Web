@@ -16,6 +16,23 @@
  * `"Manufacturer: MISC\\nFocus: …"` — i.e. a backslash followed by `n`, which
  * `white-space: pre-wrap` renders verbatim. This turns them into real breaks.
  */
+/**
+ * A display string that is safe to show: drops unresolved global.ini keys
+ * (`@item_Name_…`, `@vehicle_class_…`) and engine placeholders, returning the
+ * fallback instead. Used for name/role values that may carry a raw key when the
+ * extractor could not resolve a translation.
+ */
+export function cleanLocaleValue(
+  v: string | null | undefined,
+  fallback = '',
+): string {
+  const s = (v ?? '').trim();
+  if (!s || s.startsWith('@') || s === '@LOC_EMPTY' || s === '@LOC_PLACEHOLDER') {
+    return fallback;
+  }
+  return s;
+}
+
 export function unescapeText(s: string | null | undefined): string {
   if (!s) return '';
   return s
