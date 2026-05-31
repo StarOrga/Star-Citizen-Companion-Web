@@ -21,13 +21,17 @@ Plugin defaults still apply; only the rules below override or add.
    external work:**
    - Run `gh run watch <run-id> --exit-status` in the background BEFORE
      calling `render_completion_card`.
-   - If the watch hasn't finished by the time the card is rendered,
-     downgrade variant to `ready` (NOT `ship-successful`) and include an
-     explicit `userFinalTest` item: "Build run #N läuft — verifizieren mit
-     `gh run view N`".
-   - The `ship-successful` variant is ONLY appropriate when the full chain
-     (PR merged + tag + downstream builds + release-assets uploaded) is
-     verified.
+   - **Variant choice — do NOT confuse "ship done" with "downstream verified":**
+     once `ship_release` reports `merged` + `tag` + `release`, the ship
+     **has happened** — render `ship-successful`. `ready` is the PRE-ship
+     variant (its CTA is "SHIP oder ÄNDERN?") and is ONLY for work that is
+     genuinely not merged yet; using it after a merge is self-contradictory
+     and reads as "nothing shipped". An unverified downstream auto-deploy
+     (Vercel web on main-push, a tag-triggered build) does NOT downgrade the
+     variant — it is flagged as an explicit `userFinalTest` item instead,
+     e.g. "Build run #N läuft — `gh run view N`" or "Vercel-Deploy live
+     verifizieren". The headline reflects what the pipeline did (merge/tag/
+     release); userFinalTest reflects what still needs human confirmation.
 
    *Why this rule exists:* in the 2026-05-24 Phase-2 ship, I rendered
    `ship-successful` immediately after `ship_release` returned ok. The
