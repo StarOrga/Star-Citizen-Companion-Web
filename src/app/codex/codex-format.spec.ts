@@ -9,6 +9,7 @@ import {
   humanizeClassName,
   humanizeKey,
   isMeaningfulValue,
+  isNoiseKey,
   meaningfulRows,
   summarizePorts,
   unescapeText,
@@ -145,12 +146,31 @@ describe('codex-format', () => {
     });
   });
 
+  describe('isNoiseKey', () => {
+    it('flags engine/presentation field names', () => {
+      expect(isNoiseKey('geometryTags')).toBe(true);
+      expect(isNoiseKey('displayThumbnail')).toBe(true);
+      expect(isNoiseKey('UIIconType')).toBe(true);
+      expect(isNoiseKey('audioParams')).toBe(true);
+    });
+    it('keeps real stat names', () => {
+      expect(isNoiseKey('muzzleVelocity')).toBe(false);
+      expect(isNoiseKey('MaxShieldHealth')).toBe(false);
+      expect(isNoiseKey('fireRate')).toBe(false);
+    });
+  });
+
   describe('meaningfulRows', () => {
-    it('filters config noise from a flat record', () => {
-      const rows = meaningfulRows({ fireOnAim: false, geometryTags: 'White01', supplementaryFireTime: 0 });
-      // booleans dropped, 0 kept (it is a finite number) — only string + numeric survive
-      expect(rows.map((r) => r.key)).toContain('Geometry Tags');
-      expect(rows.find((r) => r.key === 'Fire On Aim')).toBeUndefined();
+    it('filters config + engine-metadata noise from a flat record', () => {
+      const rows = meaningfulRows({
+        fireOnAim: false, // boolean → dropped
+        geometryTags: 'White01', // noise key → dropped
+        muzzleVelocity: 1450, // real stat → kept
+      });
+      const labels = rows.map((r) => r.key);
+      expect(labels).toContain('Muzzle Velocity');
+      expect(labels).not.toContain('Geometry Tags');
+      expect(labels).not.toContain('Fire On Aim');
     });
   });
 

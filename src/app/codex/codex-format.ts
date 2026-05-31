@@ -214,6 +214,32 @@ const FIELD_BLACKLIST = new Set([
   'ElectricalChargeDamageResistance',
 ]);
 
+// Word tokens that mark a field as presentation/engine metadata rather than a
+// user-facing stat — dropped regardless of value. Matched per camelCase /
+// underscore word so "geometryTags", "displayThumbnail", "UIIconType" all hit
+// while real stats ("muzzleVelocity", "MaxShieldHealth") pass through.
+const NOISE_WORDS = new Set([
+  'geometry', 'audio', 'visual', 'animation', 'anim', 'particle', 'material',
+  'mesh', 'texture', 'icon', 'sound', 'tag', 'tags', 'record', 'helper',
+  'namespace', 'template', 'thumbnail', 'tooltip', 'binding', 'display', 'ui',
+]);
+
+/** Lower-cased word tokens of an engine identifier (camelCase + underscores). */
+function keyWords(key: string): string[] {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+/** Whether a field name is engine/presentation metadata rather than a stat. */
+export function isNoiseKey(key: string): boolean {
+  return keyWords(key).some((w) => NOISE_WORDS.has(w));
+}
+
 /**
  * Curate a component's heterogeneous `stats` map down to the rows that matter,
  * generically: the kind-specific `SCItem<Kind>Params` struct, plus Health and
@@ -227,7 +253,7 @@ export function curateComponentStats(
   const pushStruct = (struct: Record<string, unknown> | undefined) => {
     if (!struct) return;
     for (const [k, v] of Object.entries(struct)) {
-      if (FIELD_BLACKLIST.has(k)) continue;
+      if (FIELD_BLACKLIST.has(k) || isNoiseKey(k)) continue;
       if (!isMeaningfulValue(v)) continue;
       rows.push({ key: humanizeKey(k), value: formatValue(v), unit: unitForField(k) });
     }
@@ -255,6 +281,7 @@ export function meaningfulRows(
   if (!obj) return [];
   const rows: StatRow[] = [];
   for (const [k, v] of Object.entries(obj)) {
+    if (isNoiseKey(k)) continue;
     if (!isMeaningfulValue(v)) continue;
     rows.push({ key: humanizeKey(k), value: formatValue(v), unit: unitForField(k) });
   }
