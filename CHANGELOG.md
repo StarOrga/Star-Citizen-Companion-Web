@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.2] - 2026-06-01
+
+### Changed — Verse News: faster thumbnails, no more black tiles
+
+- **Tile-sized images.** News thumbnails previously loaded the multi-MB RSI
+  `/source/` image into small cards. A new `rsiVariant()` helper rewrites
+  `media.robertsspaceindustries.com` source URLs to the aspect-preserving
+  `post` (≤500w) / `cover` (≤1140w) CDN variants, served via responsive
+  `srcset` + per-tile `sizes` — the featured card stays crisp at `cover`,
+  regular cards drop to `post`. Signed `/i/` proxy URLs and any non-matching
+  URL pass through untouched, so the change is safe across both RSI media hosts.
+- **Hero loads first.** The above-the-fold first image now loads `eager` with
+  `fetchpriority="high"`; remaining slideshow layers stay lazy.
+- **No black tile while loading.** An animated skeleton shimmer fills the card
+  until the active image decodes (respects `prefers-reduced-motion`), replacing
+  the bare black background.
+- **Preconnect** to `media.robertsspaceindustries.com` and
+  `robertsspaceindustries.com` so the image handshake starts earlier.
+
 ## [0.10.1] - 2026-05-31
 
 ### Changed — UI polish & hardening pass (accessibility, i18n, loading states)
