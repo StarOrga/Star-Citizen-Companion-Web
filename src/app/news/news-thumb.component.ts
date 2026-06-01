@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, input, linkedSignal, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, input, linkedSignal } from '@angular/core';
 import { NewsChannel } from './news.service';
 
 // A landscape image (ratio ≥ this) is a usable banner / "clear title image".
@@ -9,6 +9,30 @@ const MIN_LANDSCAPE_RATIO = 1.2;
 const SLIDE_DWELL_MS = 5000;
 // Hard cap so a 45-image comm-link doesn't spin through everything.
 const MAX_IMAGES = 8;
+
+// `sizes` hints for the responsive srcset. The browser uses these (before layout)
+// to pick the smallest variant that still covers the rendered tile, so we keep them
+// close to the real CSS widths (featured tiles are ~1.6fr of a 3-col grid, regular
+// tiles are auto-fill minmax(280px)). Featured tops out at `cover` (1140w), regular
+// stays on `post` (500w) on typical viewports.
+const SIZES_FEATURED = '(max-width: 800px) 100vw, 60vw';
+const SIZES_REGULAR = '(max-width: 800px) 100vw, 320px';
+
+/**
+ * Swap the variant segment of an RSI **media** CDN url to a tile-sized one.
+ *
+ * Only `https://media.robertsspaceindustries.com/<id>/<variant>.<ext>` urls are
+ * rewritable: the last path segment before the extension is the variant, and the
+ * variants `post` (≤500w) / `cover` (≤1140w) preserve aspect ratio. The original
+ * extension MUST be kept (a PNG source 404s as `.jpg`).
+ *
+ * Any other url — notably the signed `https://robertsspaceindustries.com/i/<sha1>/…`
+ * proxy (already tile-sized, returns 400 if rewritten) — is returned unchanged.
+ */
+export function rsiVariant(url: string, target: 'post' | 'cover'): string {
+  const m = /^(https:\/\/media\.robertsspaceindustries\.com\/[^/]+\/)[^/.]+(\.[a-zA-Z0-9]+)$/.exec(url);
+  return m ? `${m[1]}${target}${m[2]}` : url;
+}
 
 /**
  * Thumbnail for a news card.
@@ -32,9 +56,15 @@ const MAX_IMAGES = 8;
     @if (mode() === 'empty') {
       <div class="empty"></div>
     } @else {
+      @if (!loaded()) {
+        <div class="skel" aria-hidden="true"></div>
+      }
       @for (url of display(); track url; let i = $index) {
         <img class="layer" [class.show]="i === active()"
-             [src]="url" alt="" loading="lazy" decoding="async"
+             [srcset]="srcsetFor(url)" [src]="defaultSrcFor(url)" [sizes]="sizes()"
+             alt="" decoding="async"
+             [attr.loading]="i === 0 ? 'eager' : 'lazy'"
+             [attr.fetchpriority]="i === 0 ? 'high' : null"
              (load)="onLoad(url, $event)" (error)="onError(url)" />
       }
     }
@@ -61,6 +91,18 @@ const MAX_IMAGES = 8;
     :host(.featured) { aspect-ratio: 21 / 9; }
 
     .empty { position: absolute; inset: 0; background: linear-gradient(135deg, var(--sc-bg-2), var(--sc-bg-0)); }
+
+    /* Shimmer placeholder shown until the active image has loaded — never a black tile. */
+    .skel {
+      position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%);
+      background-size: 200% 100%;
+      animation: thumb-skel 1.4s ease-in-out infinite;
+    }
+    @keyframes thumb-skel {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
 
     .layer {
       position: absolute; inset: 0;
@@ -102,6 +144,7 @@ const MAX_IMAGES = 8;
 
     @media (prefers-reduced-motion: reduce) {
       .layer { transition: opacity 0.2s ease; }
+      .skel { animation: none; background-position: 0 0; }
     }
   `],
 })
@@ -126,6 +169,25 @@ export class NewsThumbComponent implements OnDestroy {
   readonly index = linkedSignal<readonly string[], number>({
     source: () => this.images(),
     computation: () => 0,
+  });
+
+  // Urls whose image has decoded at least once. Resets when the image set changes,
+  // so a fresh card shows the shimmer again instead of a stale "loaded" state.
+  private readonly decoded = linkedSignal<readonly string[], Set<string>>({
+    source: () => this.images(),
+    computation: () => new Set<string>(),
+  });
+
+  // `sizes` attribute steering the responsive srcset toward the right variant.
+  readonly sizes = computed(() => (this.featured() ? SIZES_FEATURED : SIZES_REGULAR));
+
+  // Shimmer is hidden once the currently active layer has decoded. While probing
+  // (first ratio unknown) we keep showing it so no black/unstyled tile flashes.
+  readonly loaded = computed(() => {
+    const shown = this.display();
+    if (!shown.length) return false;
+    const url = shown[this.active()];
+    return url ? this.decoded().has(url) : false;
   });
 
   /** Candidate images: input order, deduped, errored ones removed, capped. */
@@ -182,7 +244,23 @@ export class NewsThumbComponent implements OnDestroy {
     });
   }
 
+  /** Responsive sources: tile-sized `post` (500w) and crisp `cover` (1140w). */
+  srcsetFor(url: string): string {
+    return `${rsiVariant(url, 'post')} 500w, ${rsiVariant(url, 'cover')} 1140w`;
+  }
+
+  /** Fallback `src` for browsers ignoring srcset — never the multi-MB original. */
+  defaultSrcFor(url: string): string {
+    return rsiVariant(url, this.featured() ? 'cover' : 'post');
+  }
+
   onLoad(url: string, ev: Event): void {
+    this.decoded.update((s) => {
+      if (s.has(url)) return s;
+      const next = new Set(s);
+      next.add(url);
+      return next;
+    });
     const img = ev.target as HTMLImageElement;
     if (!img.naturalWidth || !img.naturalHeight) return;
     const ratio = img.naturalWidth / img.naturalHeight;
