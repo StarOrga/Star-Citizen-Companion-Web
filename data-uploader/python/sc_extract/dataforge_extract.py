@@ -194,13 +194,19 @@ class CodexExtractor:
         for r in self.df.records_by_type_name("AmmoParams"):
             resolved = self.df.record_to_dict(r, max_depth=12)
             rv = resolved.get("_RecordValue_", {})
+            # damage block is nested under projectile params, not a flat `damage`
+            # key — locate it generically by its channel field names.
+            dmg = _damage_set(_dig(rv, "damage")) or _damage_set_anycase(
+                _find_first_dict_with(
+                    rv, ("DamagePhysical", "DamageEnergy", "DamageDistortion",
+                         "DamageThermal", "DamageBiochemical", "DamageStun")))
             obj = {
                 "className": _strip_type_prefix(r.name),
                 "guid": r.guid,
                 "speed": rv.get("speed"),
                 "lifetime": rv.get("lifetime"),
                 "size": rv.get("size"),
-                "impactDamage": _damage_set(_dig(rv, "damage")),
+                "impactDamage": dmg,
                 "raw": rv,  # keep everything (ammo schema is small + valuable)
                 "source": self.source,
             }
@@ -289,7 +295,9 @@ class CodexExtractor:
         from .geometry import bbox_from_cga_bytes, normalize_geometry_path
         # The mesh path lives on a component (e.g. SGeometryResourceParams) whose
         # `Geometry` field is an SGeometryNodeParams: comp.Geometry.Geometry.Geometry.path.
-        # Scan for the first component that yields a .cga/.cgf path.
+        # First try that documented nesting; then fall back to a generic deep
+        # search for ANY .cga/.cgf path string (the nesting depth has varied
+        # across patches). No per-ship special-casing — same scan for every hull.
         path = None
         for c in comps:
             g = c.get("Geometry")
@@ -297,6 +305,13 @@ class CodexExtractor:
                 p = _dig(g, "Geometry", "Geometry", "path")
                 if isinstance(p, str) and p.lower().endswith((".cga", ".cgf")):
                     path = p
+                    break
+        if path is None:
+            # generic fallback: first .cga/.cgf path anywhere on a component
+            for c in comps:
+                cand = _find_geometry_path(c)
+                if cand:
+                    path = cand
                     break
         key = normalize_geometry_path(path)
         if not key:
@@ -318,10 +333,41 @@ class CodexExtractor:
         return dims
 
     # ── typed projections ──────────────────────────────────────────────────────
+    # Leaf field names that carry a localization @-key for name/description.
+    # AttachDef.Localization.{Name,Description} is the primary source; some
+    # entity types (notably ships via VehicleComponentParams, and a few items)
+    # carry the key under a differently-named field. We fall back to a generic
+    # deep search so descriptions are populated for every entity type that has
+    # one, with NO per-ship special-casing.
+    # TODO(phase2-verify): confirm the fallback leaf names against a real P4K.
+    _NAME_KEY_FIELDS = ("Name", "name", "localizedName", "displayName",
+                        "vehicleName")
+    _DESC_KEY_FIELDS = ("Description", "description", "localizedDescription",
+                        "displayDescription")
+
+    def _loc_key_from(self, *sources, fields: tuple) -> Optional[str]:
+        """First field value that looks like a localization key (a non-empty
+        string), searched in order across the given source dicts."""
+        for src in sources:
+            if not isinstance(src, dict):
+                continue
+            val = _find_first_key(src, fields)
+            if isinstance(val, str) and val and val not in (
+                    "@LOC_EMPTY", "@LOC_PLACEHOLDER"):
+                return val
+        return None
+
     def _base_entity(self, r: Record, resolved, comps, attach) -> Dict[str, Any]:
         loc = attach.get("Localization") if attach else None
         name_key = loc.get("Name") if isinstance(loc, dict) else None
         desc_key = loc.get("Description") if isinstance(loc, dict) else None
+        # Generic fallback: many entity types don't carry the loc key under
+        # AttachDef.Localization. Search the AttachDef, then the whole record.
+        rv = resolved.get("_RecordValue_", {})
+        if not name_key:
+            name_key = self._loc_key_from(attach, rv, fields=self._NAME_KEY_FIELDS)
+        if not desc_key:
+            desc_key = self._loc_key_from(attach, rv, fields=self._DESC_KEY_FIELDS)
         return {
             "className": _strip_type_prefix(r.name),
             "guid": r.guid,
@@ -346,16 +392,54 @@ class CodexExtractor:
             "vehicleName": self._localized(vcp.get("vehicleName")),
             # real-world bounding-box dimensions (metres) parsed from the .cga mesh
             "dimensions": self._dimensions(comps),
-            # flight stats live in the referenced vehicleDefinition (separate
-            # record); left nullable here per research Q1 (unconfirmed key names).
-            "flight": {
-                "scmSpeed": None, "maxSpeed": None, "boostSpeed": None,
-                "pitch": None, "yaw": None, "roll": None,
-            },
+            # flight stats: resolved generically from the IFCS / vehicle
+            # flight-controller struct wherever it sits in the resolved graph.
+            "flight": self._flight_stats(resolved, comps),
             "itemPorts": self._item_ports(comps),
             "defaultLoadout": self._default_loadout(comps),
         })
         return base
+
+    # ── flight stats (generic) ──────────────────────────────────────────────────
+    # Leaf field names on the IFCS / SCItemFlightControllerParams / vehicle
+    # flight structs. The carrying struct differs by ship type and is often a
+    # strong-pointer'd sub-component (IFCSParams=234, SCItemFlightControllerParams
+    # =234 in the live schema), so we search by LEAF name across the whole
+    # resolved graph, not by a fixed container. No per-ship special-casing — the
+    # same candidate list runs for every vehicle.
+    #
+    # TODO(phase2-verify): confirm these leaf names against a real Data.p4k. SC
+    # IFCS has renamed these across patches; the candidate lists cover the names
+    # seen in StarBreaker/scdatatools dumps and erkul's data model. Any field
+    # whose source key is absent stays None (documented-null, never guessed).
+    _FLIGHT_FIELDS = {
+        "scmSpeed": ("scmSpeed", "ScmSpeed", "maxSpeedSCM", "MaxSCMSpeed",
+                     "scmCruiseSpeed"),
+        "maxSpeed": ("maxSpeed", "MaxSpeed", "afterburnSpeed", "boostSpeedForward",
+                     "maxSpeedNAV"),
+        "boostSpeed": ("boostSpeed", "BoostSpeed", "boostSpeedForward",
+                       "afterburnSpeedForward"),
+        "pitch": ("maxAngularVelocityX", "pitchRate", "maxPitchRate",
+                  "angularVelocityPitch"),
+        "yaw": ("maxAngularVelocityZ", "yawRate", "maxYawRate",
+                "angularVelocityYaw"),
+        "roll": ("maxAngularVelocityY", "rollRate", "maxRollRate",
+                 "angularVelocityRoll"),
+    }
+
+    def _flight_stats(self, resolved: Dict[str, Any], comps) -> Dict[str, Any]:
+        """Best-effort flight characteristics, generic over all ship types.
+
+        Returns the contract's flight block; any field whose source key is not
+        present resolves to ``None``. Searches the full resolved record graph —
+        the IFCS struct is frequently nested under a strong-pointer'd
+        flight-controller component, not at the entity top level.
+        """
+        rv = resolved.get("_RecordValue_", {})
+        return {
+            out_key: _to_float(_find_first_key(rv, candidates))
+            for out_key, candidates in self._FLIGHT_FIELDS.items()
+        }
 
     def _project_weapon(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
         base = self._base_entity(r, resolved, comps, attach)
@@ -370,10 +454,47 @@ class CodexExtractor:
             "subType": attach.get("SubType") if attach else None,
             "size": _to_int(attach.get("Size")) if attach else None,
             "grade": _grade(attach.get("Grade")) if attach else None,
-            "weaponParams": _scalars(wcp),
+            "weaponParams": self._weapon_params(wcp, resolved),
             "itemPorts": self._item_ports(comps),
         })
         return base
+
+    def _weapon_params(self, wcp: Dict[str, Any],
+                       resolved: Dict[str, Any]) -> Dict[str, Any]:
+        """Top-level scalars of SCItemWeaponComponentParams PLUS the key combat
+        scalars that live nested under fireActions / projectile / ammo params.
+
+        The top-level struct rarely carries fire rate / projectile speed / per
+        shot damage directly — those sit on the active fire action and the
+        referenced ``AmmoParams``. We surface a small, STABLE derived set
+        (generic, identical logic for every weapon) so the UI has fire rate +
+        damage without parsing the nested action graph; the raw nested values
+        remain in the generic dump.
+        """
+        params = _scalars(wcp)
+        rv = resolved.get("_RecordValue_", {})
+        # derived combat scalars — leaf names searched generically.
+        # TODO(phase2-verify): confirm leaf names against a real P4K (SC has
+        # renamed these; candidate lists cover StarBreaker/erkul observed names).
+        derived = {
+            "fireRate": _to_float(_find_first_key(
+                rv, ("fireRate", "FireRate", "roundsPerMinute", "rpm"))),
+            "projectileSpeed": _to_float(_find_first_key(
+                rv, ("muzzleVelocity", "projectileSpeed"))),
+            "projectilesPerShot": _to_float(_find_first_key(
+                rv, ("pelletCount", "projectilesPerShot", "ammoCost"))),
+            "heatPerShot": _to_float(_find_first_key(
+                rv, ("heatPerShot", "weaponHeatPerShot"))),
+        }
+        # per-shot damage (6-channel) from the nested projectile/ammo damage block
+        dmg = _damage_set_anycase(_find_first_dict_with(
+            rv, ("DamagePhysical", "DamageEnergy", "DamageDistortion")))
+        if dmg is not None:
+            params["impactDamage"] = dmg
+        for k, v in derived.items():
+            if v is not None and k not in params:
+                params[k] = v
+        return params
 
     def _project_component(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
         base = self._base_entity(r, resolved, comps, attach)
@@ -415,10 +536,15 @@ class CodexExtractor:
     }
 
     def _component_stats(self, comps, kind) -> Dict[str, Any]:
-        """Flat scalars of every params-bearing component, keyed by struct name.
+        """Stats of every params-bearing component, keyed by struct name.
 
-        Keeps all numeric/text stats (the "all values" guarantee in typed form);
-        structural/audio/geometry components are skipped (pure noise for stats).
+        Captures the component's own top-level scalars AND scalars one level
+        down inside nested sub-structs (flattened as ``Sub.field``). Many live
+        component params nest their numbers one struct deep (e.g. a Shield's
+        regen/health under a face/stage sub-struct, a QuantumDrive's params under
+        an inner struct), so a top-level-only scan returned empty maps. We stop
+        at depth 2 to avoid pulling in the entire nested graph (that lives in the
+        generic dump). Structural/audio/geometry components are skipped.
         """
         stats: Dict[str, Any] = {}
         for c in comps:
@@ -426,6 +552,13 @@ class CodexExtractor:
             if not t or t in self._SKIP_COMPONENT_STATS:
                 continue
             flat = _scalars(c)
+            # pull scalars from immediate child structs too (one level deep)
+            for k, v in c.items():
+                if not isinstance(k, str) or k.startswith("_"):
+                    continue
+                if isinstance(v, dict):
+                    for sk, sv in _scalars(v).items():
+                        flat.setdefault(f"{k}.{sk}", sv)
             if flat:  # only components that actually carry scalar values
                 stats[t] = flat
         return stats
@@ -579,3 +712,118 @@ def _as_list(v: Any) -> List[str]:
     if isinstance(v, list):
         return [str(x) for x in v if not isinstance(x, (dict, list))]
     return []
+
+
+# ── generic deep helpers (no per-ship special-casing) ──────────────────────────
+def _to_float(v: Any) -> Optional[float]:
+    """Coerce to float, tolerating numeric strings; None on failure."""
+    if isinstance(v, bool):  # bool is an int subclass — exclude
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        try:
+            return float(v.strip())
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _find_first_key(node: Any, names: tuple, _depth: int = 0,
+                    _max_depth: int = 24) -> Any:
+    """Depth-first search for the first scalar value under any of ``names``.
+
+    Generic over the whole resolved object graph. Used to locate fields whose
+    *container struct* name varies between entity types but whose *leaf field*
+    name is stable (e.g. ``scmSpeed`` may sit on different IFCS structs across
+    ship classes). Case-insensitive on keys. Skips DataForge metadata keys.
+    """
+    if _depth > _max_depth:
+        return None
+    lowered = {n.lower() for n in names}
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if isinstance(k, str) and k.lower() in lowered and not isinstance(v, (dict, list)):
+                return v
+        for k, v in node.items():
+            if isinstance(k, str) and k.startswith("_") and k.endswith("_"):
+                continue  # _Type_, _RecordId_, … — never a stat
+            found = _find_first_key(v, names, _depth + 1, _max_depth)
+            if found is not None:
+                return found
+    elif isinstance(node, list):
+        for item in node:
+            found = _find_first_key(item, names, _depth + 1, _max_depth)
+            if found is not None:
+                return found
+    return None
+
+
+def _find_first_dict_with(node: Any, required_keys: tuple, _depth: int = 0,
+                          _max_depth: int = 24) -> Optional[Dict[str, Any]]:
+    """DFS for the first dict that contains ANY of ``required_keys`` directly.
+
+    Returns the containing dict so callers can read several sibling fields off
+    one struct (e.g. the damage block carrying all six damage channels).
+    """
+    if _depth > _max_depth:
+        return None
+    lowered = {k.lower() for k in required_keys}
+    if isinstance(node, dict):
+        if any(isinstance(k, str) and k.lower() in lowered for k in node.keys()):
+            return node
+        for k, v in node.items():
+            if isinstance(k, str) and k.startswith("_") and k.endswith("_"):
+                continue
+            found = _find_first_dict_with(v, required_keys, _depth + 1, _max_depth)
+            if found is not None:
+                return found
+    elif isinstance(node, list):
+        for item in node:
+            found = _find_first_dict_with(item, required_keys, _depth + 1, _max_depth)
+            if found is not None:
+                return found
+    return None
+
+
+def _find_geometry_path(node: Any, _depth: int = 0, _max_depth: int = 12) -> Optional[str]:
+    """DFS for the first ``.cga``/``.cgf`` mesh path string anywhere in ``node``."""
+    if _depth > _max_depth:
+        return None
+    if isinstance(node, str):
+        return node if node.lower().endswith((".cga", ".cgf")) else None
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if isinstance(k, str) and k.startswith("_") and k.endswith("_"):
+                continue
+            found = _find_geometry_path(v, _depth + 1, _max_depth)
+            if found:
+                return found
+    elif isinstance(node, list):
+        for item in node:
+            found = _find_geometry_path(item, _depth + 1, _max_depth)
+            if found:
+                return found
+    return None
+
+
+def _damage_set_anycase(d: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Build a 6-channel DamageSet from a struct using case-insensitive keys.
+
+    The live ``DamageInfo`` struct uses keys like ``DamagePhysical`` but casing
+    has varied across patches; match case-insensitively and on the bare channel
+    name (``Physical``) as a fallback.
+    """
+    if not isinstance(d, dict):
+        return None
+    ci = {k.lower(): v for k, v in d.items() if isinstance(k, str)}
+
+    def pick(channel: str) -> Any:
+        return ci.get(f"damage{channel}") or ci.get(channel)
+
+    channels = ("physical", "energy", "distortion", "thermal",
+                "biochemical", "stun")
+    out = {c: pick(c) for c in channels}
+    if any(v is not None for v in out.values()):
+        return out
+    return None

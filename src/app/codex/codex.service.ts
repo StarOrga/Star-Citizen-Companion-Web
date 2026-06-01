@@ -82,6 +82,16 @@ export interface CodexDetail {
   strings: CodexEntityString[];
 }
 
+// A class name resolved to its kind + display fields (for loadout rendering).
+export interface ResolvedEntity {
+  kind: CodexKind;
+  className: string;
+  nameLocalized: string | null;
+  manufacturerCode: string | null;
+  size: number | null;
+  grade: string | null;
+}
+
 // One item that fits a given hardpoint (returned by the codex_compatible_items
 // RPC). `kind` is always a mountable kind (weapon/component/item).
 export interface CompatibleItem {
@@ -280,6 +290,52 @@ export class CodexService {
       if (!error && (count ?? 0) > 0) return kind;
     }
     return null;
+  }
+
+  /**
+   * Batch-resolve a set of class names to their kind + display fields, for the
+   * default-loadout view. One query per entity table (`.in(class_name, …)`)
+   * instead of N×5 head-count probes — first table that owns a class name wins.
+   * Names that resolve to none are simply absent from the map.
+   */
+  async resolveEntities(classNames: string[]): Promise<Map<string, ResolvedEntity>> {
+    const out = new Map<string, ResolvedEntity>();
+    const build = await this.loadCurrentBuild();
+    const names = Array.from(new Set(classNames.filter(Boolean)));
+    if (!build || names.length === 0) return out;
+
+    // Column set per table — only columns that exist on each table.
+    const selects: Partial<Record<CodexKind, string>> = {
+      weapon: 'class_name, name_localized, manufacturer_code, size, grade',
+      component: 'class_name, name_localized, manufacturer_code, size, grade',
+      item: 'class_name, name_localized, manufacturer_code, size, grade',
+      ship: 'class_name, name_localized, manufacturer_code',
+      ammunition: 'class_name, name_localized, size',
+    };
+
+    await Promise.all(
+      (Object.keys(selects) as CodexKind[]).map(async (kind) => {
+        const { data, error } = await this.sb.client
+          .from(CODEX_ENTITY_TABLES[kind])
+          .select(selects[kind]!)
+          .eq('build_id', build.id)
+          .in('class_name', names);
+        if (error || !data) return;
+        for (const r of data as unknown as Record<string, unknown>[]) {
+          const cn = r['class_name'] as string;
+          if (out.has(cn)) continue; // first owner wins
+          out.set(cn, {
+            kind,
+            className: cn,
+            nameLocalized: (r['name_localized'] as string | null) ?? null,
+            manufacturerCode: (r['manufacturer_code'] as string | null) ?? null,
+            size: (r['size'] as number | null) ?? null,
+            grade: (r['grade'] as string | null) ?? null,
+          });
+        }
+      }),
+    );
+    return out;
   }
 
   /**

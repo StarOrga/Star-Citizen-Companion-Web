@@ -151,7 +151,11 @@
       "notFound": "Entry not found in the current build.",
       "showRaw": "Show raw data",
       "hideRaw": "Hide raw data",
-      "naValue": "n/a"
+      "naValue": "n/a",
+      "keyStats": "Key stats",
+      "showEmptyPorts": "Show {{count}} empty ports",
+      "hideEmptyPorts": "Hide empty ports",
+      "equipment": "Equipment"
     },
     "damage": {
       "physical": "Physical",
@@ -172,7 +176,19 @@
       "empty": "Pin 2–4 entries to compare them side by side.",
       "full": "You can compare up to {{max}} entries.",
       "property": "Property",
-      "close": "Close"
+      "close": "Close",
+      "noCommon": "No comparable values for this mix of entries."
+    },
+    "portCategory": {
+      "weapons": "Weapons",
+      "missiles": "Missiles & Bombs",
+      "defense": "Defense",
+      "power": "Power",
+      "propulsion": "Propulsion & Fuel",
+      "avionics": "Avionics & Sensors",
+      "cargo": "Cargo",
+      "systems": "Systems",
+      "other": "Other"
     }
   },
   "news": {

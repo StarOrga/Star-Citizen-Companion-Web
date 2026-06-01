@@ -151,7 +151,11 @@
       "notFound": "Eintrag im aktuellen Build nicht gefunden.",
       "showRaw": "Rohdaten anzeigen",
       "hideRaw": "Rohdaten ausblenden",
-      "naValue": "k. A."
+      "naValue": "k. A.",
+      "keyStats": "Kernwerte",
+      "showEmptyPorts": "{{count}} leere Ports anzeigen",
+      "hideEmptyPorts": "Leere Ports ausblenden",
+      "equipment": "Ausrüstung"
     },
     "damage": {
       "physical": "Physisch",
@@ -172,7 +176,19 @@
       "empty": "2–4 Einträge anpinnen, um sie nebeneinander zu vergleichen.",
       "full": "Du kannst bis zu {{max}} Einträge vergleichen.",
       "property": "Eigenschaft",
-      "close": "Schließen"
+      "close": "Schließen",
+      "noCommon": "Keine vergleichbaren Werte für diese Auswahl."
+    },
+    "portCategory": {
+      "weapons": "Waffen",
+      "missiles": "Raketen & Bomben",
+      "defense": "Verteidigung",
+      "power": "Energie",
+      "propulsion": "Antrieb & Treibstoff",
+      "avionics": "Avionik & Sensoren",
+      "cargo": "Fracht",
+      "systems": "Systeme",
+      "other": "Sonstige"
     }
   },
   "news": {
