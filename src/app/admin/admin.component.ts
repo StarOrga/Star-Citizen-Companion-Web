@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { Role, RoleService } from '../auth/role.service';
 import { AuthService } from '../auth/auth.service';
@@ -69,7 +69,9 @@ interface AdminUserRow {
         </div>
       }
 
-      @if (users().length === 0 && !busy()) {
+      @if (busy() && users().length === 0) {
+        <div class="sc-card empty">{{ 'admin.loading' | translate }}</div>
+      } @else if (users().length === 0 && !busy()) {
         <div class="sc-card empty">—</div>
       } @else {
         <table class="sc-card table">
@@ -233,6 +235,11 @@ interface AdminUserRow {
       border-color: var(--sc-accent);
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
     }
+    .invite-form input[type=email]:disabled,
+    .invite-form select:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
     .invite-msg {
       padding: 8px 12px;
       border-radius: 4px;
@@ -257,6 +264,7 @@ export class AdminComponent implements OnInit {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly roles = inject(RoleService);
   private readonly auth = inject(AuthService);
+  private readonly translate = inject(TranslateService);
 
   readonly users = signal<AdminUserRow[]>([]);
   readonly busy = signal(false);
@@ -293,12 +301,12 @@ export class AdminComponent implements OnInit {
     if (error || payload.error) {
       this.inviteMsg.set({
         kind: 'error',
-        text: payload.message ?? payload.error ?? error?.message ?? 'unknown error',
+        text: payload.message ?? payload.error ?? error?.message ?? this.translate.instant('admin.invite.unknownError'),
       });
     } else {
       this.inviteMsg.set({
         kind: 'success',
-        text: `${email} → ${role} eingeladen.`,
+        text: this.translate.instant('admin.invite.success', { email, role }),
       });
       this.inviteEmail.set('');
       await this.refresh();
@@ -343,8 +351,8 @@ export class AdminComponent implements OnInit {
   async deleteUser(u: AdminUserRow) {
     const isSelf = u.id === this.selfId();
     const msg = isSelf
-      ? `Dein Account (${u.email}) wird endgültig gelöscht. Auch deine Uploads + Bundles verschwinden. Du wirst danach ausgeloggt. Sicher?`
-      : `${u.email} wirklich endgültig löschen? Auch deren Uploads + Bundles verschwinden. Nicht rückgängig machbar.`;
+      ? this.translate.instant('admin.delete.confirmSelf', { email: u.email })
+      : this.translate.instant('admin.delete.confirmOther', { email: u.email });
     if (!window.confirm(msg)) return;
     this.busy.set(true);
     this.errorMsg.set(null);
@@ -353,7 +361,7 @@ export class AdminComponent implements OnInit {
     });
     const payload = (data ?? {}) as { ok?: boolean; error?: string; message?: string; deletedSelf?: boolean };
     if (error || payload.error) {
-      this.errorMsg.set(payload.message ?? payload.error ?? error?.message ?? 'delete failed');
+      this.errorMsg.set(payload.message ?? payload.error ?? error?.message ?? this.translate.instant('admin.delete.failed'));
       this.busy.set(false);
       return;
     }

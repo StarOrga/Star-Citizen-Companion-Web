@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { NewsService, NewsChannel } from './news.service';
+import { NewsService, NewsChannel, VerseNewsItem } from './news.service';
+import { NewsThumbComponent } from './news-thumb.component';
 
 const CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
 const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
@@ -8,7 +9,7 @@ const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
 @Component({
   selector: 'sc-news-list',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, NewsThumbComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="news-page">
@@ -54,7 +55,7 @@ const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
       }
 
       <div class="stream">
-        <div class="filter-bar" role="group" aria-label="Channel filter">
+        <div class="filter-bar" role="group" [attr.aria-label]="'news.filter.groupAria' | translate">
           <button class="chip all" type="button"
                   [class.active]="!hasFilter()"
                   [attr.aria-pressed]="!hasFilter()"
@@ -99,21 +100,12 @@ const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
                      [attr.data-channel]="item.channel"
                      [href]="item.url" target="_blank" rel="noopener noreferrer"
                      [attr.title]="('news.openExternal' | translate:{ host: hostOf(item.url) })">
-                    @if (item.thumbnail) {
-                      <div class="thumb" [style.background-image]="thumbBg(item.thumbnail)">
-                        <span class="ch-pill" [class]="'ch-' + item.channel">
-                          <span class="ch-icon" [innerHTML]="iconFor(item.channel)"></span>
-                          {{ ('news.channels.' + item.channel) | translate }}
-                        </span>
-                      </div>
-                    } @else {
-                      <div class="thumb thumb-empty">
-                        <span class="ch-pill" [class]="'ch-' + item.channel">
-                          <span class="ch-icon" [innerHTML]="iconFor(item.channel)"></span>
-                          {{ ('news.channels.' + item.channel) | translate }}
-                        </span>
-                      </div>
-                    }
+                    <sc-news-thumb
+                      [images]="imagesOf(item)"
+                      [channel]="item.channel"
+                      [channelLabel]="('news.channels.' + item.channel) | translate"
+                      [channelIcon]="iconFor(item.channel)"
+                      [featured]="i === 0" />
                     <div class="body">
                       <h3>{{ item.title }}</h3>
                       @if (item.summary && (i === 0 || !item.thumbnail)) {
@@ -141,21 +133,11 @@ const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
                   <a class="card" [class.has-thumb]="!!item.thumbnail"
                      [attr.data-channel]="item.channel"
                      [href]="item.url" target="_blank" rel="noopener noreferrer">
-                    @if (item.thumbnail) {
-                      <div class="thumb" [style.background-image]="thumbBg(item.thumbnail)">
-                        <span class="ch-pill" [class]="'ch-' + item.channel">
-                          <span class="ch-icon" [innerHTML]="iconFor(item.channel)"></span>
-                          {{ ('news.channels.' + item.channel) | translate }}
-                        </span>
-                      </div>
-                    } @else {
-                      <div class="thumb thumb-empty">
-                        <span class="ch-pill" [class]="'ch-' + item.channel">
-                          <span class="ch-icon" [innerHTML]="iconFor(item.channel)"></span>
-                          {{ ('news.channels.' + item.channel) | translate }}
-                        </span>
-                      </div>
-                    }
+                    <sc-news-thumb
+                      [images]="imagesOf(item)"
+                      [channel]="item.channel"
+                      [channelLabel]="('news.channels.' + item.channel) | translate"
+                      [channelIcon]="iconFor(item.channel)" />
                     <div class="body">
                       <h3>{{ item.title }}</h3>
                       <div class="foot">
@@ -184,21 +166,11 @@ const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
                     <a class="card" [class.has-thumb]="!!item.thumbnail"
                        [attr.data-channel]="item.channel"
                        [href]="item.url" target="_blank" rel="noopener noreferrer">
-                      @if (item.thumbnail) {
-                        <div class="thumb" [style.background-image]="thumbBg(item.thumbnail)">
-                          <span class="ch-pill" [class]="'ch-' + item.channel">
-                            <span class="ch-icon" [innerHTML]="iconFor(item.channel)"></span>
-                            {{ ('news.channels.' + item.channel) | translate }}
-                          </span>
-                        </div>
-                      } @else {
-                        <div class="thumb thumb-empty">
-                          <span class="ch-pill" [class]="'ch-' + item.channel">
-                            <span class="ch-icon" [innerHTML]="iconFor(item.channel)"></span>
-                            {{ ('news.channels.' + item.channel) | translate }}
-                          </span>
-                        </div>
-                      }
+                      <sc-news-thumb
+                        [images]="imagesOf(item)"
+                        [channel]="item.channel"
+                        [channelLabel]="('news.channels.' + item.channel) | translate"
+                        [channelIcon]="iconFor(item.channel)" />
                       <div class="body">
                         <h3>{{ item.title }}</h3>
                         <div class="foot">
@@ -379,33 +351,7 @@ const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
                   0 0 18px color-mix(in srgb, var(--sc-accent) 35%, transparent);
     }
-    .card:hover .thumb { transform: scale(1.04); }
-    .card .thumb {
-      position: relative;
-      width: 100%; aspect-ratio: 16 / 9;
-      background-color: var(--sc-bg-0);
-      background-size: cover; background-position: center;
-      transition: transform 0.4s ease;
-    }
-    .card .thumb-empty {
-      background: linear-gradient(135deg, var(--sc-bg-2), var(--sc-bg-0));
-    }
-    .card .ch-pill {
-      position: absolute; top: 8px; left: 8px;
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 3px 8px; border-radius: 999px;
-      font-size: 0.66rem; font-weight: 700; letter-spacing: 0.08em;
-      text-transform: uppercase;
-      background: color-mix(in srgb, var(--sc-bg-0) 70%, transparent);
-      backdrop-filter: blur(6px);
-      border: 1px solid var(--sc-border);
-    }
-    .card .ch-pill .ch-icon { width: 12px; height: 12px; display: inline-flex; }
-    .card .ch-pill .ch-icon svg { width: 100%; height: 100%; }
-    .card[data-channel="comm-link"] .ch-pill { color: var(--sc-accent); border-color: var(--sc-accent); }
-    .card[data-channel="spectrum"] .ch-pill { color: var(--sc-accent-hot); border-color: var(--sc-accent-hot); }
-    .card[data-channel="youtube"] .ch-pill { color: var(--sc-danger); border-color: var(--sc-danger); }
-    .card[data-channel="patch"] .ch-pill { color: var(--sc-warning); border-color: var(--sc-warning); }
+    /* Thumbnail (image / slideshow / placeholder) lives in <sc-news-thumb>. */
 
     .card .body { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; flex: 1; }
     .card .body h3 {
@@ -427,7 +373,6 @@ const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
     .card .body .foot time { color: var(--sc-fg-2); }
 
     .card.featured { min-height: 380px; }
-    .card.featured .thumb { aspect-ratio: 21 / 9; }
     .card.featured .body h3 { font-size: 1.25rem; font-family: var(--sc-font-display); letter-spacing: 0.02em; -webkit-line-clamp: 3; }
     .card.featured .body p { -webkit-line-clamp: 4; }
 
@@ -472,7 +417,11 @@ export class NewsListComponent implements OnInit, OnDestroy {
     this.svc.refresh(true);
   }
 
-  thumbBg(url: string): string { return `url("${url.replace(/"/g, '%22')}")`; }
+  /** Candidate images for a card — prefers the full list, falls back to the single thumbnail. */
+  imagesOf(item: VerseNewsItem): string[] {
+    if (item.images?.length) return item.images;
+    return item.thumbnail ? [item.thumbnail] : [];
+  }
 
   hostOf(url: string): string {
     try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }

@@ -19,11 +19,14 @@
     "profile": "Profile",
     "admin": "Admin",
     "desktop": "Data Uploader",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "brandAria": "Star Citizen Companion (SCC)",
+    "langAria": "Language"
   },
   "codex": {
     "title": "Codex",
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
+    "categoriesAria": "Codex categories",
     "search": {
       "placeholder": "Search name or class (e.g. Gladius, AEGS_*)…",
       "label": "Search the codex",
@@ -227,7 +230,8 @@
     },
     "filter": {
       "label": "Filter",
-      "clear": "Show all"
+      "clear": "Show all",
+      "groupAria": "Channel filter"
     },
     "via": "via {{source}}",
     "openExternal": "Opens {{host}}",
@@ -245,6 +249,7 @@
     "subtitle": "Pre-digested bundles from the Data Uploader. Uploads only happen via the tool, not from the website.",
     "refresh": "Refresh",
     "expand": "Show details",
+    "loading": "Loading bundles…",
     "errorTitle": "Could not load bundles",
     "toggle": {
       "history": "History",
@@ -290,6 +295,11 @@
     "disabled": {
       "title": "Disabled",
       "noReason": "no reason given"
+    },
+    "prompts": {
+      "disable": "Disable bundle \"{{name}}\".\n\nReason (optional):",
+      "reenable": "Re-enable bundle \"{{name}}\"?",
+      "delete": "Permanently delete bundle \"{{name}}\"?\n\nThis cannot be undone."
     }
   },
   "profile": {
@@ -316,7 +326,9 @@
       "subtitle": "Sends a Supabase magic-link email. Role is assigned the moment they accept.",
       "emailPlaceholder": "person@example.com",
       "send": "Send invite",
-      "sending": "Sending…"
+      "sending": "Sending…",
+      "success": "{{email}} → {{role}} invited.",
+      "unknownError": "Unknown error"
     },
     "col": {
       "user": "User",
@@ -335,12 +347,18 @@
     },
     "errorTitle": "Action failed",
     "loading": "Loading users…",
+    "delete": {
+      "confirmSelf": "Your account ({{email}}) will be permanently deleted. Your uploads + bundles go too. You'll be signed out afterwards. Sure?",
+      "confirmOther": "Permanently delete {{email}}? Their uploads + bundles go too. This cannot be undone.",
+      "failed": "Delete failed"
+    },
     "tokens": {
       "navLink": "API Tokens",
       "title": "Admin · API Tokens",
       "subtitle": "Issue bearer tokens for the public /v1 API. Tokens are shown ONCE in plaintext — store them in your secrets manager.",
       "refresh": "Refresh",
       "newToken": "New token",
+      "loading": "Loading tokens…",
       "errorTitle": "Could not load tokens",
       "empty": "No active tokens yet. Click \"New token\" to create one.",
       "col": {
@@ -389,6 +407,7 @@
   "desktop": {
     "title": "Data Uploader",
     "subtitle": "Download the Data Uploader for your local Star Citizen install. Admin + collaborator only.",
+    "loading": "Loading release…",
     "currentVersion": "Current version",
     "released": "Released",
     "notes": "Release notes",
@@ -405,7 +424,10 @@
     "redirecting": "Authorized. Sending token to the app…",
     "redirectingHint": "You can close this window in a moment.",
     "unauthorized": "Your account can't use the Data Uploader.",
-    "unauthorizedHint": "You need collaborator or admin role. Ask an admin."
+    "unauthorizedHint": "You need collaborator or admin role. Ask an admin.",
+    "errorMissingParams": "Missing callback or state parameter.",
+    "errorBadCallback": "Callback URL is not a 127.0.0.1 loopback in the expected port range.",
+    "errorNoToken": "No access token in session."
   },
   "footer": {
     "madeByCommunity": "Made by the Community",

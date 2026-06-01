@@ -14,6 +14,9 @@ interface VerseNewsItem {
   channel: Channel;
   summary?: string;
   thumbnail?: string;
+  // All candidate image URLs (first = thumbnail). The client picks a usable title
+  // image by aspect ratio and falls back to a slideshow when there is no clear one.
+  images?: string[];
   category?: string;
   source: 'comm-link' | 'patch-notes' | 'spectrum' | 'youtube' | 'status';
 }
@@ -100,6 +103,7 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
         channel,
         summary: summarizeTranslations(entry['translations'], series),
         thumbnail: firstImageUrl(entry['images']),
+        images: allImageUrls(entry['images']),
         category: series && series !== 'None' ? series : undefined,
         source: channel === 'patch' ? 'patch-notes' : 'comm-link',
       } satisfies VerseNewsItem;
@@ -112,12 +116,27 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
 
 // Pull the RSI CDN url of the first image from the `images` include (absent without it).
 function firstImageUrl(images: unknown): string | undefined {
+  return allImageUrls(images)?.[0];
+}
+
+// All distinct image urls from the `images` include, in API order, capped.
+// The first comm-link image is usually the hero, but not always (e.g. event
+// schedules lead with a tall portrait poster) — so we surface them all and let
+// the client decide which to show / rotate.
+const MAX_IMAGE_URLS = 10;
+function allImageUrls(images: unknown): string[] | undefined {
   if (!Array.isArray(images)) return undefined;
+  const seen = new Set<string>();
+  const out: string[] = [];
   for (const img of images) {
     const url = img && typeof img === 'object' ? (img as Record<string, unknown>)['rsi_url'] : null;
-    if (typeof url === 'string' && url) return url;
+    if (typeof url === 'string' && url && !seen.has(url)) {
+      seen.add(url);
+      out.push(url);
+      if (out.length >= MAX_IMAGE_URLS) break;
+    }
   }
-  return undefined;
+  return out.length ? out : undefined;
 }
 
 // Translations are newline-joined body text (the API has no dedicated summary field).
@@ -162,6 +181,7 @@ async function fetchYouTube(): Promise<VerseNewsItem[]> {
         channel: 'youtube',
         summary: desc ? cleanXml(desc).slice(0, 280) : undefined,
         thumbnail: thumb,
+        images: thumb ? [thumb] : undefined,
         category: 'Video',
         source: 'youtube',
       } satisfies VerseNewsItem;

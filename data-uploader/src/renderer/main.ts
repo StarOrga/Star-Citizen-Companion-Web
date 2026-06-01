@@ -284,7 +284,7 @@ async function renderProfiles(): Promise<void> {
       const desc = (p.description as Record<string, string>)[lang] ?? p.description.en;
       const active = p.id === state.profile ? 'active' : '';
       return `
-        <div class="profile-pill ${active}" data-profile="${p.id}">
+        <div class="profile-pill ${active}" data-profile="${p.id}" tabindex="0" role="button">
           <span class="name">${label}</span>
           <span class="desc">${desc}</span>
           <span class="eta">~ ${eta.formatted}</span>
@@ -293,9 +293,17 @@ async function renderProfiles(): Promise<void> {
   );
   mount.innerHTML = entries.join('');
   mount.querySelectorAll('.profile-pill').forEach((el) => {
-    el.addEventListener('click', () => {
+    const select = (): void => {
       state.profile = (el as HTMLElement).dataset['profile'] as typeof state.profile;
       void renderProfiles();
+    };
+    el.addEventListener('click', select);
+    el.addEventListener('keydown', (e) => {
+      const ke = e as KeyboardEvent;
+      if (ke.key === 'Enter' || ke.key === ' ') {
+        if (ke.key === ' ') ke.preventDefault();
+        select();
+      }
     });
   });
 }

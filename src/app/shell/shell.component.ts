@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
@@ -14,7 +14,7 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="topbar">
-      <a class="brand" routerLink="/news" aria-label="Star Citizen Companion (SCC)">
+      <a class="brand" routerLink="/news" [attr.aria-label]="'nav.brandAria' | translate">
         <img class="logo" src="icons/scc-favicon.svg" alt="" width="32" height="32" />
         <span class="title">Star Citizen Companion</span>
         <span class="sc-pill tech">alpha</span>
@@ -43,12 +43,12 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
       </nav>
 
       <div class="actions">
-        <select class="sc-select lang" [value]="currentLang()" (change)="setLang(asLangValue($event))" aria-label="Sprache">
+        <select class="sc-select lang" [value]="currentLang()" (change)="setLang(asLangValue($event))" [attr.aria-label]="'nav.langAria' | translate">
           @for (l of locales; track l) {
             <option [value]="l">{{ l.toUpperCase() }}</option>
           }
         </select>
-        <button class="sc-btn" (click)="auth.signOut()">{{ 'nav.signOut' | translate }}</button>
+        <button class="sc-btn" [disabled]="signingOut()" (click)="doSignOut()">{{ 'nav.signOut' | translate }}</button>
       </div>
     </header>
 
@@ -165,6 +165,17 @@ export class ShellComponent {
 
   readonly locales: readonly LangId[] = ['de', 'en', 'fr', 'es', 'pt', 'ru', 'zh'];
   readonly currentLang = computed(() => (this.translate.getCurrentLang() ?? 'en') as LangId);
+  readonly signingOut = signal(false);
+
+  async doSignOut() {
+    if (this.signingOut()) return;
+    this.signingOut.set(true);
+    try {
+      await this.auth.signOut();
+    } finally {
+      this.signingOut.set(false);
+    }
+  }
 
   setLang(next: LangId) {
     this.translate.use(next);

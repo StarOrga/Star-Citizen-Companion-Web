@@ -4,6 +4,55 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2026-05-31
+
+### Changed — UI polish & hardening pass (accessibility, i18n, loading states)
+
+- **Accessibility**: a global `:focus-visible` ring (accent outline) now covers
+  every interactive element for keyboard users, and a global
+  `prefers-reduced-motion` reset neutralises all looping animations (skeleton
+  shimmers, pulses, the news slideshow). Codex hardpoint rows and the
+  data-uploader profile pill are now keyboard-operable (Enter/Space).
+- **Localization**: hardcoded German `confirm`/`prompt` dialogs (admin user
+  delete, p4k bundle disable/re-enable/delete), invite/delete toasts and several
+  untranslated `aria-label`s now go through ngx-translate (de + en keys added).
+- **Loading states**: admin, API-tokens, P4K history and desktop-download render
+  a localized loading hint instead of a blank area on first load; the sign-out
+  button is guarded against double-click during the async sign-out.
+
+### Fixed
+
+- Replaced the non-existent `var(--sc-fg)` token (data-uploader update banner)
+  with `var(--sc-fg-1)`; mapped a hand-written accent glow shadow in API-tokens
+  to the `--sc-glow` token.
+
+## [0.10.0] - 2026-05-31
+
+### Added — Verse News: multi-image thumbnails with auto-fade slideshow
+
+- **`fetch-verse-news`** now emits every comm-link image as `images[]`
+  (deduped, capped at 10); `thumbnail` stays = `images[0]` for backward
+  compatibility. (Edge function deployed.)
+- **New `<sc-news-thumb>` component** picks the card image by measuring each
+  image's aspect ratio client-side:
+  - a landscape first image → static hero (unchanged common case);
+  - a portrait/square first image with more images available → an
+    auto-advancing crossfade slideshow through the landscape images,
+    looping (≈5 s dwell, position dots);
+  - broken images drop out of rotation automatically;
+  - respects `prefers-reduced-motion`.
+- **Fixes blank/garbled thumbnails** for articles whose lead asset is a tall
+  poster (e.g. *DefenseCon 2956 | Farewell*, whose `images[0]` is a
+  3840×7389 schedule poster) — the usable landscape art further down the
+  list is now surfaced instead.
+
+## [0.9.2] - 2026-05-31
+
+### Changed — Compact footer
+
+- Footer height reduced from ~180px to 136px: badge 64→44px, vertical padding
+  24→12px, disclaimer line-height 1.5→1.4. User feedback: footer was too tall.
+
 ## [0.9.1] - 2026-05-31
 
 ### Fixed — Bundle ingest "forbidden" for collaborators

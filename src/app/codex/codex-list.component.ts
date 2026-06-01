@@ -56,7 +56,7 @@ const COMPONENT_KINDS = [
       </header>
 
       <!-- Kind switcher -->
-      <div class="kind-bar" role="tablist" aria-label="Codex categories">
+      <div class="kind-bar" role="tablist" [attr.aria-label]="'codex.categoriesAria' | translate">
         @for (k of kinds; track k) {
           <button class="kind" type="button" role="tab"
                   [class.active]="kind() === k"
