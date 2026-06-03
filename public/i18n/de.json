@@ -196,7 +196,11 @@
       "mode3d": "3D-Modell",
       "modePaint": "Paint-Render",
       "no3d": "Kein 3D-Modell verfügbar",
-      "verified": "verifiziert"
+      "verified": "verifiziert",
+      "loading": "Skin lädt…",
+      "loadError": "3D-Modell konnte nicht geladen werden",
+      "loadCatalogError": "Lackierungen konnten nicht geladen werden.",
+      "retry": "Erneut versuchen"
     }
   },
   "news": {

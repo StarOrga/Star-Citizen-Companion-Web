@@ -30,12 +30,23 @@ export class ShipSkinsService {
   /** Public URL for a ship-skins object path (glb model or webp icon). */
   assetUrl(path: string | null | undefined): string | null {
     if (!path) return null;
-    return BUCKET_PUBLIC + path.replace(/^\/+/, '');
+    // Encode each segment so spaces / '#' / '?' / non-ASCII don't break the URL
+    // (segments are slugged at ingest, but be defensive against future data).
+    const encoded = path
+      .replace(/^\/+/, '')
+      .split('/')
+      .map((seg) => encodeURIComponent(seg))
+      .join('/');
+    return BUCKET_PUBLIC + encoded;
   }
 
-  /** Skins for a ship, ordered by sort. Empty array if none / on error. */
-  async listSkins(shipId: string): Promise<ShipSkin[]> {
-    if (!shipId) return [];
+  /**
+   * Skins for a ship, ordered by sort. Returns a discriminated result so the UI
+   * can tell a genuinely skin-less ship (`error:false, skins:[]`) apart from a
+   * transient query/RLS failure (`error:true`) and offer a retry.
+   */
+  async listSkins(shipId: string): Promise<{ skins: ShipSkin[]; error: boolean }> {
+    if (!shipId) return { skins: [], error: false };
     const { data, error } = await this.supabase.client
       .from('ship_skins')
       .select(
@@ -43,8 +54,8 @@ export class ShipSkinsService {
       )
       .eq('ship_id', shipId)
       .order('sort', { ascending: true });
-    if (error || !data) return [];
-    return data.map((r) => ({
+    if (error) return { skins: [], error: true };
+    const skins = (data ?? []).map((r) => ({
       shipId: r.ship_id,
       skinId: r.skin_id,
       name: r.name,
@@ -56,5 +67,6 @@ export class ShipSkinsService {
       modelBytes: r.model_bytes,
       sort: r.sort ?? 100,
     }));
+    return { skins, error: false };
   }
 }

@@ -61,30 +61,37 @@ def main() -> int:
         print("ERROR: set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY", file=sys.stderr)
         return 2
 
-    ship_id = args.export.name
+    from .hull3d import safe_id
+
+    ship_id = safe_id(args.export.name, "ship_id")  # dir name -> storage path
     catalog = json.loads((args.export / "skins.json").read_text(encoding="utf-8"))
     rows = []
     for s in catalog["skins"]:
+        skin_id = safe_id(str(s["id"]), "skin_id")  # never let it traverse the bucket
         model_path = icon_path = None
-        if s.get("model"):
-            f = args.export / s["model"]
-            if f.exists():
-                model_path = _upload_object(base, key, args.bucket,
-                                            f"{ship_id}/{s['skin_id'] if 'skin_id' in s else s['id']}.glb", f)
-        if s.get("icon"):
-            f = args.export / s["icon"]
-            if f.exists():
-                icon_path = _upload_object(base, key, args.bucket,
-                                           f"{ship_id}/{s['id']}.webp", f)
+        try:
+            if s.get("model"):
+                f = args.export / s["model"]
+                if f.exists():
+                    model_path = _upload_object(base, key, args.bucket,
+                                                f"{ship_id}/{skin_id}.glb", f)
+            if s.get("icon"):
+                f = args.export / s["icon"]
+                if f.exists():
+                    icon_path = _upload_object(base, key, args.bucket,
+                                               f"{ship_id}/{skin_id}.webp", f)
+        except Exception as exc:  # noqa: BLE001 — one failed object must not abort the run
+            print(f"  ! {skin_id}: upload failed ({type(exc).__name__}: {exc}) — skipping asset",
+                  file=sys.stderr)
         rows.append({
-            "ship_id": ship_id, "skin_id": s["id"], "name": s["name"],
+            "ship_id": ship_id, "skin_id": skin_id, "name": s["name"],
             "description": s.get("description", ""), "source": s.get("source", "store"),
             "name_verified": bool(s.get("name_verified")),
             "model_path": model_path, "icon_path": icon_path,
             "model_bytes": int((s.get("model_mb") or 0) * 1e6) or None,
-            "sort": 10 if s["id"] == "standard" else 100,
+            "sort": 10 if skin_id == "standard" else 100,
         })
-        print(f"  {s['id']:20} model={'y' if model_path else '-'} icon={'y' if icon_path else '-'}")
+        print(f"  {skin_id:20} model={'y' if model_path else '-'} icon={'y' if icon_path else '-'}")
 
     # upsert rows (on_conflict=ship_id,skin_id)
     url = f"{base}/rest/v1/ship_skins?on_conflict=ship_id,skin_id"

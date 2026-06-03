@@ -196,7 +196,11 @@
       "mode3d": "3D model",
       "modePaint": "Paint render",
       "no3d": "No 3D model available",
-      "verified": "verified"
+      "verified": "verified",
+      "loading": "Loading skin…",
+      "loadError": "3D model failed to load",
+      "loadCatalogError": "Could not load liveries.",
+      "retry": "Retry"
     }
   },
   "news": {

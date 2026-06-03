@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import shutil
 import subprocess
 import time
@@ -27,6 +28,18 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 LogFn = Callable[[str, str], None]
+
+# Identifiers that flow into filenames, storage object paths, and (on Windows)
+# a shell=True command line MUST be restricted to a safe charset — no path
+# separators, no '..', no cmd.exe metacharacters (& ^ | % < > " etc.).
+_SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
+def safe_id(value: str, kind: str) -> str:
+    """Validate an id used in paths/commands; raise on anything unsafe."""
+    if not value or not _SAFE_ID.match(value):
+        raise ValueError(f"unsafe {kind} {value!r} — must match [A-Za-z0-9_-]+")
+    return value
 
 
 def _noop(level: str, msg: str) -> None:  # default logger
@@ -135,14 +148,19 @@ class Hull3DExporter:
     # ---- build tools -------------------------------------------------------
     def _cgf_to_glb(self, cga_disk: Path, objectdir: Path, mtl_rel: Optional[str],
                     out_glb: Path) -> None:
+        produced = cga_disk.with_suffix(".glb")
+        produced.unlink(missing_ok=True)  # never mistake a stale glb for success
         cmd = [str(self.cfg.cgf_converter), cga_disk.name, "-glb", "-embedtextures",
                "-objectdir", str(objectdir), "-loglevel", "Error"]
         if mtl_rel:
             cmd += ["-mtl", mtl_rel]
-        subprocess.run(cmd, cwd=str(cga_disk.parent), capture_output=True, timeout=600)
-        produced = cga_disk.with_suffix(".glb")
+        r = subprocess.run(cmd, cwd=str(cga_disk.parent), capture_output=True, timeout=600)
+        # cgf-converter's exit code is unreliable (non-zero on success in some
+        # paths), so the freshly-produced output file is the success signal —
+        # robust now that any stale glb was unlinked above. rc is logged only.
         if not produced.exists() or produced.stat().st_size < 4096:
-            raise RuntimeError(f"cgf-converter produced no usable glb for {cga_disk.name}")
+            raise RuntimeError(
+                f"cgf-converter produced no usable glb for {cga_disk.name} (rc={r.returncode})")
         produced.replace(out_glb)
 
     def _optimize(self, in_glb: Path, out_glb: Path) -> None:
@@ -168,34 +186,48 @@ class Hull3DExporter:
     def export_ship(self, spec: ShipSpec) -> dict:
         """Export one ship: a web glb per skin + a skin catalog. Returns the catalog."""
         t0 = time.time()
+        safe_id(spec.ship_id, "ship_id")  # flows into filenames + storage paths + cmdline
         ship_out = self.cfg.out_dir / spec.ship_id
         (ship_out / "models").mkdir(parents=True, exist_ok=True)
         (ship_out / "icons").mkdir(parents=True, exist_ok=True)
 
         catalog: List[dict] = []
-        for paint in spec.paints:
-            try:
-                entry = self._export_skin(spec, paint, ship_out)
-                catalog.append(entry)
-                self.log("info", f"skin '{paint.id}' -> {entry.get('model')}")
-            except Exception as exc:  # noqa: BLE001 — one bad skin must not kill the run
-                self.log("warn", f"skin '{paint.id}' failed: {type(exc).__name__}: {exc}")
-                catalog.append({"id": paint.id, "name": paint.name, "model": None,
-                                "error": str(exc)})
+        try:
+            for paint in spec.paints:
+                try:
+                    entry = self._export_skin(spec, paint, ship_out)
+                    catalog.append(entry)
+                    self.log("info", f"skin '{paint.id}' -> {entry.get('model')}")
+                except Exception as exc:  # noqa: BLE001 — one bad skin must not kill the run
+                    self.log("warn", f"skin '{paint.id}' failed: {type(exc).__name__}: {exc}")
+                    catalog.append({"id": paint.id, "name": paint.name, "model": None,
+                                    "error": str(exc)})
+        finally:
+            # always clean scratch, even on an unexpected escape — per-skin mirrors
+            # each hold the full mirrored Data subtree + DDS (can be GBs).
+            if not self.cfg.keep_work:
+                shutil.rmtree(self.cfg.work_dir, ignore_errors=True)
 
         cat_path = ship_out / "skins.json"
         cat_path.write_text(json.dumps({"ship": spec.ship_id, "skins": catalog},
                                        indent=2, ensure_ascii=False), encoding="utf-8")
         self.log("info", f"{spec.ship_id}: {sum(1 for c in catalog if c.get('model'))}/"
                          f"{len(catalog)} skins in {time.time()-t0:.0f}s")
-        if not self.cfg.keep_work:
-            shutil.rmtree(self.cfg.work_dir, ignore_errors=True)
         return {"ship": spec.ship_id, "skins": catalog, "catalog_path": str(cat_path)}
 
     def _export_skin(self, spec: ShipSpec, paint: Paint, ship_out: Path) -> dict:
+        safe_id(paint.id, "skin_id")  # flows into filenames + storage paths + cmdline
         mirror = self.cfg.work_dir / paint.id
         if mirror.exists():
             shutil.rmtree(mirror, ignore_errors=True)
+        try:
+            return self._export_skin_inner(spec, paint, ship_out, mirror)
+        finally:
+            if not self.cfg.keep_work:
+                shutil.rmtree(mirror, ignore_errors=True)  # free this skin's GBs now
+
+    def _export_skin_inner(self, spec: ShipSpec, paint: Paint, ship_out: Path,
+                           mirror: Path) -> dict:
         # 1. mesh + mesh-data + paint material into mirrored tree
         cga_disk = self._mirror_save(spec.hull_cga, mirror)
         cgam = spec.hull_cga[:-4] + ".cgam"

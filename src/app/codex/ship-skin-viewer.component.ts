@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   signal,
@@ -54,17 +55,32 @@ type ViewMode = '3d' | 'paint';
               </button>
             </div>
 
-            @if (mode() === '3d' && modelUrl()) {
-              <model-viewer
-                [attr.src]="modelUrl()"
-                camera-controls
-                auto-rotate
-                shadow-intensity="1"
-                exposure="1.0"
-                environment-image="neutral"
-                camera-orbit="35deg 75deg 105%"
-                interaction-prompt="none"
-              ></model-viewer>
+            @if (mode() === '3d' && modelUrl() && !modelError()) {
+              <!-- keyed by skinId: Angular destroys + recreates the element on
+                   skin change, so a previous skin's late (load)/(error) event
+                   can never mutate the new skin's loading/error state. -->
+              @for (sid of [current()?.skinId]; track sid) {
+                <model-viewer
+                  [attr.src]="modelUrl()"
+                  camera-controls
+                  auto-rotate
+                  shadow-intensity="1"
+                  exposure="1.0"
+                  environment-image="neutral"
+                  camera-orbit="35deg 75deg 105%"
+                  interaction-prompt="none"
+                  (load)="onModelLoad()"
+                  (error)="onModelError()"
+                ></model-viewer>
+              }
+              @if (modelLoading()) {
+                <div class="overlay" role="status">
+                  <span class="spinner" aria-hidden="true"></span>
+                  {{ 'codex.skins.loading' | translate }}
+                </div>
+              }
+            } @else if (mode() === '3d' && modelError()) {
+              <div class="empty error">{{ 'codex.skins.loadError' | translate }}</div>
             } @else if (iconUrl()) {
               <img class="paint-render" [src]="iconUrl()" [alt]="current()?.name || ''" />
             } @else {
@@ -87,12 +103,16 @@ type ViewMode = '3d' | 'paint';
             }
           </div>
 
-          <ul class="list">
+          <ul class="list" role="listbox" [attr.aria-label]="'codex.skins.title' | translate">
             @for (s of skins(); track s.skinId) {
               <li
+                role="option"
+                tabindex="0"
+                [attr.aria-selected]="s.skinId === current()?.skinId"
                 [class.on]="s.skinId === current()?.skinId"
                 [class.no3d]="!s.modelPath"
                 (click)="select(s)"
+                (keydown)="onKey($event, s)"
               >
                 @if (iconFor(s); as ic) {
                   <img [src]="ic" [alt]="s.name" loading="lazy" />
@@ -111,6 +131,16 @@ type ViewMode = '3d' | 'paint';
               </li>
             }
           </ul>
+        </div>
+      </section>
+    } @else if (catalogError()) {
+      <section class="skins">
+        <header class="skins-head">
+          <h3>{{ 'codex.skins.title' | translate }}</h3>
+        </header>
+        <div class="catalog-error">
+          <span>{{ 'codex.skins.loadCatalogError' | translate }}</span>
+          <button type="button" (click)="retry()">{{ 'codex.skins.retry' | translate }}</button>
         </div>
       </section>
     }
@@ -170,6 +200,61 @@ type ViewMode = '3d' | 'paint';
         place-items: center;
         min-height: 320px;
         color: var(--muted, #8a92a0);
+        text-align: center;
+        padding: 1rem;
+      }
+      .empty.error {
+        color: #e88;
+      }
+      .catalog-error {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        padding: 0.9rem 1rem;
+        color: var(--muted, #8a92a0);
+        font-size: 0.85rem;
+      }
+      .catalog-error button {
+        background: var(--panel, #1c2330);
+        color: #cdd;
+        border: 1px solid var(--border, #23262d);
+        border-radius: 7px;
+        padding: 0.3rem 0.8rem;
+        cursor: pointer;
+        font: inherit;
+      }
+      .catalog-error button:hover {
+        border-color: var(--accent, #f0c420);
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        gap: 0.6rem;
+        grid-auto-flow: row;
+        color: var(--muted, #8a92a0);
+        background: #0c0d10aa;
+        pointer-events: none;
+      }
+      .spinner {
+        width: 26px;
+        height: 26px;
+        border: 3px solid #ffffff22;
+        border-top-color: var(--accent, #f0c420);
+        border-radius: 50%;
+        animation: sc-spin 0.8s linear infinite;
+      }
+      @keyframes sc-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .spinner {
+          animation: none;
+        }
       }
       .modes {
         position: absolute;
@@ -242,6 +327,13 @@ type ViewMode = '3d' | 'paint';
         border-color: var(--accent, #f0c420);
         box-shadow: inset 0 0 0 1px var(--accent, #f0c420);
       }
+      .list li:hover {
+        border-color: #3a4150;
+      }
+      .list li:focus-visible {
+        outline: 2px solid var(--accent, #f0c420);
+        outline-offset: 1px;
+      }
       .list li.no3d {
         opacity: 0.7;
       }
@@ -287,23 +379,48 @@ export class ShipSkinViewerComponent {
   readonly skins = signal<ShipSkin[]>([]);
   readonly current = signal<ShipSkin | null>(null);
   readonly mode = signal<ViewMode>('3d');
+  readonly loading = signal(false); // loading the skin catalog for a ship
+  readonly catalogError = signal(false); // the skin catalog query failed (vs. empty)
+  readonly modelLoading = signal(false); // the current skin's glb is downloading
+  readonly modelError = signal(false); // the current skin's glb failed to load
 
   readonly modelUrl = computed(() => this.service.assetUrl(this.current()?.modelPath));
   readonly iconUrl = computed(() => this.service.assetUrl(this.current()?.iconPath));
 
+  // Monotonic request token: guards against a slow listSkins() for a previous
+  // ship resolving after the user has already navigated to another ship.
+  private reqSeq = 0;
+
   constructor() {
-    // load whenever the shipId input resolves/changes
-    let last = '';
-    queueMicrotask(async () => {
-      const id = this.shipId();
-      if (!id || id === last) return;
-      last = id;
-      const skins = await this.service.listSkins(id);
-      this.skins.set(skins);
-      const first = skins.find((s) => s.modelPath) ?? skins[0] ?? null;
-      this.current.set(first);
-      this.mode.set(first?.modelPath ? '3d' : 'paint');
+    // React to shipId changes (router navigation between ships reuses this
+    // component, so the input value changes without a new constructor call).
+    effect(() => this.load(this.shipId()));
+  }
+
+  private load(id: string): void {
+    const seq = ++this.reqSeq;
+    this.skins.set([]);
+    this.current.set(null);
+    this.modelError.set(false);
+    this.catalogError.set(false);
+    if (!id) {
+      this.loading.set(false);
+      return;
+    }
+    this.loading.set(true);
+    void this.service.listSkins(id).then((res) => {
+      if (seq !== this.reqSeq) return; // stale response — a newer ship won
+      this.loading.set(false);
+      this.catalogError.set(res.error);
+      this.skins.set(res.skins);
+      const first = res.skins.find((s) => s.modelPath) ?? res.skins[0] ?? null;
+      this.applySelection(first);
     });
+  }
+
+  /** Re-fetch the skin catalog after a transient load failure. */
+  retry(): void {
+    this.load(this.shipId());
   }
 
   iconFor(s: ShipSkin): string | null {
@@ -311,12 +428,38 @@ export class ShipSkinViewerComponent {
   }
 
   select(s: ShipSkin): void {
-    this.current.set(s);
-    this.mode.set(s.modelPath ? '3d' : 'paint');
+    if (s.skinId === this.current()?.skinId) return;
+    this.applySelection(s);
+  }
+
+  /** Keyboard activation for the skin list items (a11y). */
+  onKey(event: KeyboardEvent, s: ShipSkin): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.select(s);
+    }
   }
 
   setMode(m: ViewMode): void {
     if (m === '3d' && !this.current()?.modelPath) return;
     this.mode.set(m);
+  }
+
+  // model-viewer lifecycle → drives the loading/error overlays.
+  onModelLoad(): void {
+    this.modelLoading.set(false);
+    this.modelError.set(false);
+  }
+  onModelError(): void {
+    this.modelLoading.set(false);
+    this.modelError.set(true);
+  }
+
+  private applySelection(s: ShipSkin | null): void {
+    this.current.set(s);
+    this.modelError.set(false);
+    const has3d = !!s?.modelPath;
+    this.mode.set(has3d ? '3d' : 'paint');
+    this.modelLoading.set(has3d);
   }
 }

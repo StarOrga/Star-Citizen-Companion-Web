@@ -20,13 +20,16 @@ values (
 )
 on conflict (id) do nothing;
 
--- public read of ship-skins objects (anon + authenticated)
+-- public read of ship-skins objects (anon + authenticated).
+-- Idempotent: Postgres has no `create policy if not exists`, so drop first —
+-- this migration must survive a re-run (db:push retries / db:reset).
+drop policy if exists "ship_skins_public_read" on storage.objects;
 create policy "ship_skins_public_read" on storage.objects
   for select to anon, authenticated
   using (bucket_id = 'ship-skins');
 
 -- ---- catalog table ------------------------------------------------------
-create table public.ship_skins (
+create table if not exists public.ship_skins (
   id            uuid primary key default gen_random_uuid(),
   ship_id       text not null,              -- e.g. 'DRAK_Cutlass_Black' (codex_ships.class_name)
   skin_id       text not null,              -- slug, e.g. 'pirate'
@@ -42,7 +45,7 @@ create table public.ship_skins (
   constraint ship_skins_natkey unique (ship_id, skin_id)
 );
 
-create index ship_skins_ship_idx on public.ship_skins (ship_id, sort);
+create index if not exists ship_skins_ship_idx on public.ship_skins (ship_id, sort);
 
 comment on table public.ship_skins is
   '3D paint liveries per ship. Assets in the public ship-skins bucket. '
@@ -51,6 +54,7 @@ comment on table public.ship_skins is
 -- ---- RLS: viewer-readable, service-role-writable (mirrors codex_*) -------
 alter table public.ship_skins enable row level security;
 
+drop policy if exists "ship_skins_authenticated_read" on public.ship_skins;
 create policy "ship_skins_authenticated_read" on public.ship_skins
   for select to authenticated using (true);
 
