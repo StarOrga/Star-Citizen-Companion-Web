@@ -189,6 +189,14 @@
       "cargo": "Cargo",
       "systems": "Systems",
       "other": "Other"
+    },
+    "skins": {
+      "title": "Liveries",
+      "source": "From Data.p4k · real hull + real textures",
+      "mode3d": "3D model",
+      "modePaint": "Paint render",
+      "no3d": "No 3D model available",
+      "verified": "verified"
     }
   },
   "news": {

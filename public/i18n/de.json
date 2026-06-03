@@ -189,6 +189,14 @@
       "cargo": "Fracht",
       "systems": "Systeme",
       "other": "Sonstige"
+    },
+    "skins": {
+      "title": "Lackierungen",
+      "source": "Aus Data.p4k · echtes Hull + echte Texturen",
+      "mode3d": "3D-Modell",
+      "modePaint": "Paint-Render",
+      "no3d": "Kein 3D-Modell verfügbar",
+      "verified": "verifiziert"
     }
   },
   "news": {
