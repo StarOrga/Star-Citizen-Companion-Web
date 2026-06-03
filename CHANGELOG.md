@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-06-04
+
+### Added — Ship liveries: 3D skin selector from Data.p4k
+
+- **Per-ship 3D livery selector** on the codex ship detail page. Selecting a
+  paint loads that skin's web-ready textured glTF (real hull mesh + real
+  textures, ~3 MB, lazy-loaded `<model-viewer>` — stays out of the initial
+  bundle). Skins without a 3D model fall back to the official CIG store-icon.
+  Loading / error / empty states, a catalog-retry affordance, and full keyboard
+  a11y (listbox/option, focus ring, reduced-motion).
+- **Data pipeline (`data-uploader` Python `sc_extract`).** `hull3d` turns a
+  ship's CryEngine `.cga` + paint `.mtl` + textures into web glbs via
+  cgf-converter v2.0.0 + gltf-transform; `ship_discovery` / `ship_export`
+  generalise it to any ship; `upload_skins` ingests to Supabase. 100% from the
+  P4K, no external data sources. Input ids are validated against path-traversal
+  / shell-injection before they reach storage paths or the converter.
+- **Schema.** New public `ship-skins` storage bucket + `ship_skins` table
+  (viewer-read, service-role-write; idempotent migration).
+
 ## [0.10.2] - 2026-06-01
 
 ### Changed — Verse News: faster thumbnails, no more black tiles

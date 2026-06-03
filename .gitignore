@@ -75,3 +75,13 @@ data-uploader/python/.pytest_cache/
 data-uploader/python/tests/fixtures/real-subset.*
 data-uploader/resources/python/
 data-uploader/.cache/python-downloads/
+
+# 3D hull/skin export — large build artifacts + fetched external build tools
+# (data is 100% P4K; these are generated outputs / downloaded binaries, never commit)
+data-uploader/python/demo_out/
+data-uploader/python/tools/*.exe
+data-uploader/python/tools/*.pdb
+data-uploader/python/spike_*.py
+data-uploader/python/fs[0-9]*.py
+data-uploader/python/real_cutlass_*.py
+data-uploader/python/demo_visual_extract.py

@@ -45,6 +45,7 @@ import {
   unescapeText,
 } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
+import { ShipSkinViewerComponent } from './ship-skin-viewer.component';
 
 // Lazy-loaded compatible-items state per hardpoint (keyed by port_index).
 interface PortCompat {
@@ -83,7 +84,7 @@ interface LoadoutGroup {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent],
+  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, ShipSkinViewerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -292,6 +293,11 @@ interface LoadoutGroup {
               </div>
             }
           </section>
+        }
+
+        <!-- ── Ship liveries — 3D skin selector (P4K assets) ─────── -->
+        @if (shipClassName(); as cls) {
+          <sc-ship-skin-viewer [shipId]="cls" />
         }
 
         <!-- ── Raw payload (power users) ─────────────────────────── -->
@@ -585,6 +591,15 @@ export class CodexDetailComponent implements OnInit {
   readonly previewUrl = computed(() => {
     const p = this.detail()?.payload as BaseEntityPayload | undefined;
     return this.svc.previewUrl(p?.previewImage);
+  });
+
+  // Original class_name (e.g. 'DRAK_Cutlass_Black') for the skin selector —
+  // matches public.ship_skins.ship_id. Empty string for non-ships (hides it).
+  readonly shipClassName = computed(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return '';
+    const raw = d.row?.['class_name'];
+    return typeof raw === 'string' && raw ? raw : d.classNameSlug;
   });
 
   private readonly dimensions = computed<Dimensions | null>(() => {
