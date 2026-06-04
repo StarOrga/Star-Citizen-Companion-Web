@@ -3,6 +3,7 @@
 // JWT verification is on — only authenticated users can hit it.
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 
 type Channel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 
@@ -320,6 +321,148 @@ async function fetchStatus(): Promise<VerseStatus | null> {
   }
 }
 
+// --------------------- Server-side image cache ---------------------
+// RSI's signed `/i/<sha1>/…` proxy urls expire and cross-origin hotlinking of the
+// CDN is referer/rate limited, so client-rendered cards kept losing their images.
+// We download each image once into the public `news-images` bucket and hand the
+// client our own durable url instead. Two variants are stored per source so the
+// client's responsive srcset (post≤500w / cover≤1140w) keeps working.
+
+const IMG_BUCKET = 'news-images';
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const PUBLIC_BASE = `${SUPABASE_URL}/storage/v1/object/public/${IMG_BUCKET}`;
+// Cap synchronous downloads per request so a cold cache can't blow the function
+// timeout; the cache warms over a few request cycles, raw urls serve meanwhile.
+const MAX_CACHE_PER_REQUEST = 16;
+const IMG_FETCH_TIMEOUT_MS = 8000;
+
+// Swap the variant segment of an RSI **media** CDN url (mirrors the client's
+// rsiVariant). Other urls (signed proxy, ytimg, …) have no variant → unchanged.
+function mediaVariant(url: string, target: 'post' | 'cover'): string {
+  const m = /^(https:\/\/media\.robertsspaceindustries\.com\/[^/]+\/)[^/.]+(\.[a-zA-Z0-9]+)$/.exec(url);
+  return m ? `${m[1]}${target}${m[2]}` : url;
+}
+
+// Variant-stripped identity + file extension for a source image. Post/cover of
+// the same media image share a base (so they cache under one folder); everything
+// else keys on the query-stripped url.
+function imageIdentity(url: string): { base: string; ext: string } {
+  const m = /^(https:\/\/media\.robertsspaceindustries\.com\/[^/]+\/)[^/.]+(\.[a-zA-Z0-9]+)$/.exec(url);
+  if (m) return { base: m[1], ext: m[2].slice(1).toLowerCase() };
+  const noQuery = url.split('?')[0];
+  const ext = (/\.([a-zA-Z0-9]{2,4})$/.exec(noQuery)?.[1] ?? 'jpg').toLowerCase();
+  return { base: noQuery, ext };
+}
+
+async function sha1Hex(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function fetchImage(url: string, ext: string): Promise<{ bytes: Uint8Array; ct: string } | null> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), IMG_FETCH_TIMEOUT_MS);
+  try {
+    // A valid Referer is what unlocks RSI's CDN for non-browser clients.
+    const res = await fetch(url, {
+      headers: { 'Referer': RSI_BASE + '/', 'User-Agent': 'sc-companion/1.0 (+news-image-cache)' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return null;
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (!bytes.length) return null;
+    const ct = res.headers.get('content-type') ?? `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+    return { bytes, ct };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+// Download + store both variants of one source image. Returns true on success.
+async function cacheOne(admin: SupabaseClient, hash: string, ext: string, sample: string): Promise<boolean> {
+  const postSrc = mediaVariant(sample, 'post');
+  const coverSrc = mediaVariant(sample, 'cover');
+  let post = await fetchImage(postSrc, ext);
+  // Non-media urls have one variant; reuse it for both keys.
+  let cover = postSrc === coverSrc ? post : await fetchImage(coverSrc, ext);
+  post = post ?? cover;
+  cover = cover ?? post;
+  if (!post || !cover) return false;
+
+  const up = (variant: 'post' | 'cover', d: { bytes: Uint8Array; ct: string }) =>
+    admin.storage.from(IMG_BUCKET).upload(`${hash}/${variant}.${ext}`, d.bytes, {
+      contentType: d.ct,
+      upsert: true,
+      cacheControl: '31536000',
+    });
+  const [r1, r2] = await Promise.all([up('post', post), up('cover', cover)]);
+  return !r1.error && !r2.error;
+}
+
+// Rewrite every item's image urls to our cached cover url where available.
+// Misses (over the per-request cap or failed download) keep their raw RSI url so
+// the card still has a chance to render and gets cached next cycle.
+async function cacheImages(items: VerseNewsItem[]): Promise<void> {
+  if (!SUPABASE_URL || !SERVICE_KEY) return; // misconfigured → leave raw urls untouched
+
+  // Unique source identities across all items.
+  const byBase = new Map<string, { ext: string; sample: string }>();
+  for (const it of items) {
+    for (const url of it.images ?? []) {
+      const { base, ext } = imageIdentity(url);
+      if (!byBase.has(base)) byBase.set(base, { ext, sample: url });
+    }
+  }
+  if (!byBase.size) return;
+
+  const entries = await Promise.all(
+    [...byBase.entries()].map(async ([base, v]) => ({ base, ...v, hash: await sha1Hex(base) })),
+  );
+  const entByBase = new Map(entries.map((e) => [e.base, e]));
+
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+
+  // Batch "already cached?" check.
+  const cached = new Set<string>();
+  const { data, error } = await admin
+    .from('verse_image_cache')
+    .select('source_key')
+    .in('source_key', entries.map((e) => e.hash));
+  if (error) {
+    console.error('verse_image_cache lookup failed:', error.message);
+    return; // index unreachable → leave raw urls, don't risk partial rewrites
+  }
+  for (const r of data ?? []) cached.add(r.source_key as string);
+
+  // Download misses, bounded.
+  const misses = entries.filter((e) => !cached.has(e.hash)).slice(0, MAX_CACHE_PER_REQUEST);
+  const freshlyCached: { source_key: string; ext: string }[] = [];
+  await Promise.allSettled(
+    misses.map(async (e) => {
+      if (await cacheOne(admin, e.hash, e.ext, e.sample)) {
+        cached.add(e.hash);
+        freshlyCached.push({ source_key: e.hash, ext: e.ext });
+      }
+    }),
+  );
+  if (freshlyCached.length) {
+    await admin.from('verse_image_cache').upsert(freshlyCached, { onConflict: 'source_key' });
+  }
+
+  // Rewrite to cached cover urls; thumbnail tracks images[0].
+  for (const it of items) {
+    if (!it.images) continue;
+    it.images = it.images.map((url) => {
+      const ent = entByBase.get(imageIdentity(url).base);
+      return ent && cached.has(ent.hash) ? `${PUBLIC_BASE}/${ent.hash}/cover.${ent.ext}` : url;
+    });
+    it.thumbnail = it.images[0] ?? it.thumbnail;
+  }
+}
+
 // --------------------- Server ---------------------
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
@@ -333,6 +476,9 @@ Deno.serve(async (req: Request) => {
 
   const news = [...commLinks, ...youtube, ...spectrum]
     .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+
+  // Replace upstream RSI image urls with our durable cached copies (best-effort).
+  await cacheImages(news);
 
   const payload = {
     status,

@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-06-04
+
+### Fixed — Verse News: thumbnails no longer vanish (server-side image cache)
+
+- **News images are now cached server-side** instead of hot-linked from RSI's
+  CDN. `fetch-verse-news` downloads each Comm-Link / YouTube thumbnail once
+  (service-role, with an RSI `Referer`), stores aspect-preserving `post`/`cover`
+  variants in the new public `news-images` bucket, and returns our own durable
+  public URLs. Fixes cards that fell back to the empty gradient placeholder when
+  RSI's signed `/i/<sha1>/…` proxy URLs expired or cross-origin hotlinking was
+  referer/rate-limited.
+- **Bounded & resilient.** A `verse_image_cache` index avoids re-downloading;
+  work is capped at ≤16 new images per request and any miss/failure gracefully
+  falls back to the raw RSI URL (cached next cycle). No-op when the bucket/index
+  is absent, so deploy order is safe.
+- **Responsive srcset preserved.** `rsiVariant()` now also rewrites the cached
+  `…/<hash>/{post,cover}.<ext>` URLs, so the existing 500w/1140w `srcset` keeps
+  working on the cached copies.
+- **Schema.** New public `news-images` storage bucket + `verse_image_cache`
+  table (service-role-write; RLS-on; idempotent migration).
+
 ## [0.11.0] - 2026-06-04
 
 ### Added — Ship liveries: 3D skin selector from Data.p4k
