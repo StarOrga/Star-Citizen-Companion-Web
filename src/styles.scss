@@ -1,23 +1,29 @@
 /* Global styles — SC Companion */
 @use '@angular/material' as mat;
 
+/* StarOrga shared design system — single source of truth for tokens, fonts and
+   base visuals. The local --sc-* tokens below are now thin aliases onto StarUI
+   tokens, so every component (which references var(--sc-*)) adopts the StarOrga
+   visual language with no per-component change and no duplicated values. */
+@import '@starorga/star-ui/lib/design-tokens.css';
+
 :root {
-  --sc-bg-0: #050810;
-  --sc-bg-1: #0a0e1a;
-  --sc-bg-2: #11182b;
-  --sc-bg-3: #1a2540;
-  --sc-fg-0: #e8eef9;
-  --sc-fg-1: #b8c3d9;
-  --sc-fg-2: #7a869c;
-  --sc-accent: #00d4ff;
-  --sc-accent-hot: #ff5722;
-  --sc-success: #4ade80;
-  --sc-warning: #fbbf24;
-  --sc-danger: #f87171;
-  --sc-border: rgba(0, 212, 255, 0.18);
-  --sc-glow: 0 0 24px rgba(0, 212, 255, 0.25);
-  --sc-font-display: 'Orbitron', 'Segoe UI', sans-serif;
-  --sc-font-body: 'Inter', 'Segoe UI', sans-serif;
+  --sc-bg-0: var(--surface-canvas);
+  --sc-bg-1: var(--surface-panel);
+  --sc-bg-2: var(--surface-canvas-alt);
+  --sc-bg-3: var(--surface-panel-strong);
+  --sc-fg-0: var(--text-primary);
+  --sc-fg-1: var(--text-secondary);
+  --sc-fg-2: var(--text-tertiary);
+  --sc-accent: var(--accent-primary);
+  --sc-accent-hot: var(--accent-gold);
+  --sc-success: var(--status-success);
+  --sc-warning: var(--accent-warning);
+  --sc-danger: var(--accent-danger-light);
+  --sc-border: var(--border-subtle);
+  --sc-glow: var(--shadow-glow);
+  --sc-font-display: var(--font-heading-category);
+  --sc-font-body: var(--font-body-text);
 }
 
 * {
