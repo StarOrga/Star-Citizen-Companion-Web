@@ -132,6 +132,136 @@ export type Database = {
           },
         ]
       }
+      codex_blueprint_ingredients: {
+        Row: {
+          blueprint_class_name: string
+          build_id: string
+          build_number: string
+          channel: string
+          created_at: string
+          id: string
+          ingredient_class_name: string | null
+          ingredient_guid: string | null
+          ingredient_index: number
+          min_quality: number | null
+          patch_version: string
+          quantity: number | null
+          role: string | null
+        }
+        Insert: {
+          blueprint_class_name: string
+          build_id: string
+          build_number?: string
+          channel: string
+          created_at?: string
+          id?: string
+          ingredient_class_name?: string | null
+          ingredient_guid?: string | null
+          ingredient_index?: number
+          min_quality?: number | null
+          patch_version: string
+          quantity?: number | null
+          role?: string | null
+        }
+        Update: {
+          blueprint_class_name?: string
+          build_id?: string
+          build_number?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          ingredient_class_name?: string | null
+          ingredient_guid?: string | null
+          ingredient_index?: number
+          min_quality?: number | null
+          patch_version?: string
+          quantity?: number | null
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "codex_blueprint_ingredients_build_id_fkey"
+            columns: ["build_id"]
+            isOneToOne: false
+            referencedRelation: "codex_builds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      codex_blueprints: {
+        Row: {
+          build_id: string
+          build_number: string
+          category: string | null
+          channel: string
+          class_name: string
+          craft_time_seconds: number | null
+          created_at: string
+          dismantle_efficiency: number | null
+          dismantle_time_seconds: number | null
+          entity_kind: string
+          guid: string | null
+          id: string
+          is_default: boolean | null
+          is_variant: boolean
+          name_localized: string | null
+          output_class_name: string | null
+          patch_version: string
+          payload: Json
+          tier: number | null
+        }
+        Insert: {
+          build_id: string
+          build_number?: string
+          category?: string | null
+          channel: string
+          class_name: string
+          craft_time_seconds?: number | null
+          created_at?: string
+          dismantle_efficiency?: number | null
+          dismantle_time_seconds?: number | null
+          entity_kind?: string
+          guid?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_variant?: boolean
+          name_localized?: string | null
+          output_class_name?: string | null
+          patch_version: string
+          payload: Json
+          tier?: number | null
+        }
+        Update: {
+          build_id?: string
+          build_number?: string
+          category?: string | null
+          channel?: string
+          class_name?: string
+          craft_time_seconds?: number | null
+          created_at?: string
+          dismantle_efficiency?: number | null
+          dismantle_time_seconds?: number | null
+          entity_kind?: string
+          guid?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_variant?: boolean
+          name_localized?: string | null
+          output_class_name?: string | null
+          patch_version?: string
+          payload?: Json
+          tier?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "codex_blueprints_build_id_fkey"
+            columns: ["build_id"]
+            isOneToOne: false
+            referencedRelation: "codex_builds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       codex_builds: {
         Row: {
           build_number: string

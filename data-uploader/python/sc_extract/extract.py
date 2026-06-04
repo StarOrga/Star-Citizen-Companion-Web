@@ -240,6 +240,7 @@ def _real_extract(cfg: ExtractConfig) -> ExtractResult:
         "items": counts.get("items", 0),
         "manufacturers": counts.get("manufacturers", 0),
         "ammunition": counts.get("ammunition", 0),
+        "blueprints": counts.get("blueprints", 0),
         "records_total": counts.get("records_total", 0),
         "strings": sum(len(t) for t in localizer._tables.values()),
     }
