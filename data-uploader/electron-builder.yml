@@ -3,6 +3,16 @@ productName: Star Citizen Companion - Data Uploader
 copyright: Star Citizen Companion contributors
 asar: true
 
+# `sharp` (pulled in by @gltf-transform/cli for WebP texture compression) ships a
+# native .node addon + libvips DLLs. Native binaries cannot be dlopen'd from
+# inside an asar archive, so they MUST be unpacked. electron-builder auto-detects
+# most *.node files, but sharp's @img/* sidecar layout needs to be spelled out —
+# without this the packaged optimizer fails at runtime with "Could not load the
+# sharp module". (draco/meshoptimizer are wasm → fine inside asar.)
+asarUnpack:
+  - '**/node_modules/sharp/**'
+  - '**/node_modules/@img/**'
+
 directories:
   buildResources: build
   output: release-builds

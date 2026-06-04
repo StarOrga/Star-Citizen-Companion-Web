@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-06-04
+
+### Added — Ship skins: build & upload from the desktop uploader (was CLI-only)
+
+- **3D ship-skin export is now a GUI flow** in the `data-uploader` (v0.5.0).
+  A new "3D-Skins" view lets you pick ships, build a web-ready glb per livery
+  from `Data.p4k`, and upload — no command line. Live progress streams from the
+  Python pipeline; the official store-icon + Localization name ride along.
+- **No secret in the binary.** New `ingest-skins` edge function authenticates
+  exactly like `ingest-bundle` (user JWT + release-token + admin/collaborator)
+  and hands the tool short-lived **signed upload URLs** — assets PUT straight
+  into the public `ship-skins` bucket, never through the function — then
+  commits the `ship_skins` rows server-side (paths re-derived from validated
+  ids, so no path traversal). The service role lives only in the function.
+- **Node-free optimizer.** The glTF optimizer (`@gltf-transform/cli`, bundled)
+  now runs through Electron's own Node, so the packaged app needs no global
+  `npx`/Node. `sharp`'s native binary is `asarUnpack`ed for runtime loading.
+- **First Cutlass Black skins are live** (7 liveries) — uploaded via this
+  pipeline and visible on the codex ship detail page for signed-in users.
+
 ## [0.12.0] - 2026-06-04
 
 ### Fixed — Verse News: thumbnails no longer vanish (server-side image cache)
