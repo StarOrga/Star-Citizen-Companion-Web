@@ -15,6 +15,8 @@ Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, org
 |---|---|
 | `00001_init_schema.sql` | `profiles` (auto-created on signup), `p4k_uploads`, enum types, RLS policies, `handle_new_user` trigger |
 | `00002_storage_bucket_p4k.sql` | Storage bucket `p4k-uploads` + per-user-folder RLS |
+| … | (additive migrations 00003–20260603: roles/releases/bundles, codex catalog, public API tokens, invite-only access, ship skins, …) |
+| `20260604_news_image_cache.sql` | Public bucket `news-images` (post+cover variants) + `verse_image_cache` index for server-side caching of RSI news thumbnails |
 
 ### RLS summary
 
@@ -26,7 +28,7 @@ Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, org
 
 | Function | Purpose | `verify_jwt` |
 |---|---|---|
-| `fetch-verse-news` | Proxies `api.star-citizen.wiki` Comm-Link + RSI status RSS into a single `VerseFeed` JSON. | `true` |
+| `fetch-verse-news` | Proxies `api.star-citizen.wiki` Comm-Link + RSI status RSS into a single `VerseFeed` JSON. Also **server-side caches** each news image into the public `news-images` bucket (service-role download w/ RSI `Referer`, post+cover variants, `verse_image_cache` index, ≤16 new downloads/request) and rewrites the urls — fixes broken hotlinked RSI CDN thumbnails. | `true` |
 | `process-p4k` | Analyzes a P4K upload's first 64KB, writes back via service-role. | `true` |
 
 Both functions deployed via Supabase MCP (`mcp__10628b5d-*__deploy_edge_function`).
