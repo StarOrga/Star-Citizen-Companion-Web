@@ -24,6 +24,8 @@ export type CodexItemRow = Tables<'codex_items'>;
 export type CodexAmmunitionRow = Tables<'codex_ammunition'>;
 export type CodexItemPortRow = Tables<'codex_item_ports'>;
 export type CodexEntityStringRow = Tables<'codex_entity_strings'>;
+export type CodexBlueprintRow = Tables<'codex_blueprints'>;
+export type CodexBlueprintIngredientRow = Tables<'codex_blueprint_ingredients'>;
 
 // ── Shared shapes (from the extraction contract) ─────────────────────────────
 export interface LocalizedText {
@@ -57,7 +59,7 @@ export interface LoadoutEntry {
   entityClassName: string | null; // null = port stock-empty
 }
 
-export type EntityKind = 'ship' | 'weapon' | 'component' | 'item';
+export type EntityKind = 'ship' | 'weapon' | 'component' | 'item' | 'blueprint';
 export type WeaponClass = 'Ship' | 'FPS';
 export type ComponentKind =
   | 'PowerPlant' | 'Shield' | 'Cooler' | 'QuantumDrive' | 'Thruster'
@@ -162,6 +164,60 @@ export interface ManufacturerPayload {
   source: ExtractSource;
 }
 
+// ── Blueprint payload shapes (§6 of the spec; standalone — no BaseEntityPayload) ─
+// ingredientKind / outputKind are the flattened per-item shapes inside BlueprintPayload.
+export interface BlueprintIngredientPayload {
+  className: string | null;
+  guid: string | null;
+  name: LocalizedText | null; // null in v1 — resolve via joined entity
+  quantity: number | null;
+  minQuality: number | null;
+  role: string | null;
+  raw: Record<string, unknown>;
+}
+
+export interface BlueprintOutputPayload {
+  className: string | null;
+  guid: string | null;
+  name: LocalizedText | null; // null in v1
+  quantity: number | null;
+  raw: Record<string, unknown>;
+}
+
+export interface BlueprintQualityRefs {
+  distribution: string | null; // className of the quality-distribution record
+  quantization: string | null; // className of the quality-quantization record
+}
+
+/** Full per-blueprint JSON written by the extractor (§6 BlueprintPayload). */
+export interface BlueprintPayload {
+  // Note: BlueprintPayload does NOT extend BaseEntityPayload (no manufacturer,
+  // no itemPorts, no previewImage). entityKind is always 'blueprint'.
+  className: string;
+  guid: string | null;
+  type: string;
+  recordTag: string | null;
+  name: LocalizedText;
+  description: LocalizedText;
+  entityKind: 'blueprint';
+  category: string | null;
+  categoryLabel: LocalizedText | null;
+  tier: number | null;
+  craftTimeSeconds: number | null;
+  dismantleTimeSeconds: number | null;
+  dismantleEfficiency: number | null;
+  ingredients: BlueprintIngredientPayload[];
+  outputs: BlueprintOutputPayload[];
+  qualityRefs: BlueprintQualityRefs;
+  gameplayProperties: string[]; // classNames of gameplay-property records
+  poolClassName: string | null;
+  isDefault: boolean | null;
+  missionSource: null; // always null in v1 (R5 — not yet resolved)
+  tags: string[];
+  raw: Record<string, unknown>;
+  source: ExtractSource;
+}
+
 // ── Ergonomic camelCase read models (promoted columns + typed payload) ───────
 export interface CodexBuild {
   id: string;
@@ -244,6 +300,33 @@ export interface CodexManufacturer {
   payload: ManufacturerPayload;
 }
 
+/** Ergonomic read model for a codex_blueprints row. */
+export interface CodexBlueprint {
+  classNameSlug: string;            // class_name (permalink key)
+  guid: string | null;
+  category: string | null;
+  tier: number | null;
+  craftTimeSeconds: number | null;
+  dismantleTimeSeconds: number | null;
+  dismantleEfficiency: number | null;
+  outputClassName: string | null;   // primary craft product (outputs[0].className)
+  isDefault: boolean | null;
+  isVariant: boolean;
+  nameLocalized: string | null;
+  payload: BlueprintPayload;
+}
+
+/** Ergonomic read model for a codex_blueprint_ingredients row. */
+export interface CodexBlueprintIngredient {
+  blueprintClassName: string;
+  ingredientClassName: string | null; // null = dangling GUID in this build
+  ingredientGuid: string | null;
+  quantity: number | null;
+  minQuality: number | null;
+  role: string | null;
+  ingredientIndex: number;
+}
+
 export interface CodexItemPort {
   parentClassName: string;
   parentKind: string;
@@ -280,6 +363,7 @@ export const CODEX_ENTITY_TABLES = {
   item: 'codex_items',
   ammunition: 'codex_ammunition',
   manufacturer: 'codex_manufacturers',
+  blueprint: 'codex_blueprints',
 } as const;
 export type CodexEntityTable =
   (typeof CODEX_ENTITY_TABLES)[keyof typeof CODEX_ENTITY_TABLES];
