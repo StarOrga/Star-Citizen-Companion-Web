@@ -143,6 +143,8 @@
       "hardpointsHint": "Klicke auf einen Hardpoint, um zu sehen, was hineinpasst.",
       "compatLoading": "Kompatible Items werden geladen…",
       "compatNone": "Keine passenden Items in diesem Build.",
+      "usedInBlueprints": "Verwendet in Blueprints",
+      "usedInBlueprintsHint": "Crafting-Rezepte, die diesen Gegenstand als Zutat benötigen.",
       "compatCount": "{{count}} kompatible Items",
       "noHardpoints": "Keine Hardpoints in diesem Build.",
       "loadout": "Standard-Loadout",

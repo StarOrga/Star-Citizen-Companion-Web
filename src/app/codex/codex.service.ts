@@ -158,7 +158,7 @@ const LIST_SELECT: Record<CodexKind, string> = {
   item: 'class_name, name_localized, manufacturer_code, attach_type, sub_type, size, grade, is_variant, payload',
   ammunition: 'class_name, name_localized, speed, lifetime, size, payload',
   manufacturer: 'class_name, name_localized, manufacturer_code, payload',
-  blueprint: 'class_name, name_localized, category, tier, craft_time_sec, dismantle_time_sec, payload',
+  blueprint: 'class_name, name_localized, category, tier, craft_time_seconds, dismantle_time_seconds, payload',
 };
 
 @Injectable({ providedIn: 'root' })
@@ -481,7 +481,7 @@ export class CodexService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query = (this.sb.client as any)
       .from('codex_blueprints')
-      .select('class_name, name_localized, category, tier, craft_time_sec, dismantle_time_sec, payload', { count: 'exact' })
+      .select('class_name, name_localized, category, tier, craft_time_seconds, dismantle_time_seconds, payload', { count: 'exact' })
       .eq('build_id', build.id);
 
     if (filters.category) {
@@ -573,7 +573,7 @@ export class CodexService {
 
     const { data, error } = await sb
       .from('codex_blueprints')
-      .select('class_name, name_localized, tier, craft_time_sec')
+      .select('class_name, name_localized, tier, craft_time_seconds')
       .eq('build_id', build.id)
       .in('class_name', blueprintClassNames)
       .order('name_localized', { ascending: true, nullsFirst: false });
@@ -584,7 +584,7 @@ export class CodexService {
       classNameSlug: r['class_name'] as string,
       nameLocalized: (r['name_localized'] as string | null) ?? null,
       tier: (r['tier'] as number | null) ?? null,
-      craftTimeSec: (r['craft_time_sec'] as number | null) ?? null,
+      craftTimeSec: (r['craft_time_seconds'] as number | null) ?? null,
     }));
   }
 }
@@ -625,7 +625,7 @@ function mapListRow(kind: CodexKind, r: Record<string, unknown>): CodexListRow {
     // Blueprint-specific promoted columns (null for other kinds)
     blueprintCategory: kind === 'blueprint' ? ((r['category'] as string | null) ?? null) : null,
     blueprintTier: kind === 'blueprint' ? ((r['tier'] as number | null) ?? null) : null,
-    craftTimeSec: kind === 'blueprint' ? ((r['craft_time_sec'] as number | null) ?? null) : null,
+    craftTimeSec: kind === 'blueprint' ? ((r['craft_time_seconds'] as number | null) ?? null) : null,
   };
 }
 

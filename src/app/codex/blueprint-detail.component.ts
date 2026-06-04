@@ -275,12 +275,12 @@ export class BlueprintDetailComponent implements OnInit {
     if (tier != null) {
       facts.push({ label: t('blueprint.detail.tier'), value: String(tier), accent: true });
     }
-    const craftSec = d.row['craft_time_sec'] as number | null;
+    const craftSec = d.row['craft_time_seconds'] as number | null;
     const craftFormatted = formatCraftTime(craftSec);
     if (craftFormatted) {
       facts.push({ label: t('blueprint.detail.craftTime'), value: craftFormatted, accent: true });
     }
-    const dismantleSec = d.row['dismantle_time_sec'] as number | null;
+    const dismantleSec = d.row['dismantle_time_seconds'] as number | null;
     const dismantleFormatted = formatCraftTime(dismantleSec);
     if (dismantleFormatted) {
       facts.push({ label: t('blueprint.detail.dismantleTime'), value: dismantleFormatted });
