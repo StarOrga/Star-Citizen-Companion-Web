@@ -32,6 +32,18 @@ export const routes: Routes = [
           import('./codex/codex-list.component').then((m) => m.CodexListComponent),
       },
       {
+        // Blueprint routes — must come BEFORE codex/:kind/:className so the
+        // static "blueprint" segment is not consumed by the :kind wildcard.
+        path: 'codex/blueprint',
+        loadComponent: () =>
+          import('./codex/blueprint-list.component').then((m) => m.BlueprintListComponent),
+      },
+      {
+        path: 'codex/blueprint/:className',
+        loadComponent: () =>
+          import('./codex/blueprint-detail.component').then((m) => m.BlueprintDetailComponent),
+      },
+      {
         path: 'codex/:kind/:className',
         loadComponent: () =>
           import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),

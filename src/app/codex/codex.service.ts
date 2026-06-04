@@ -3,8 +3,10 @@ import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 import {
   CODEX_ENTITY_TABLES,
+  BlueprintIngredientPayload,
   CodexAmmunitionRow,
   CodexBuild,
+  CodexBlueprintIngredient,
   CodexComponentRow,
   CodexEntityString,
   CodexItemPort,
@@ -25,7 +27,8 @@ export type CodexKind =
   | 'component'
   | 'item'
   | 'ammunition'
-  | 'manufacturer';
+  | 'manufacturer'
+  | 'blueprint';
 
 export const CODEX_KINDS: readonly CodexKind[] = [
   'ship',
@@ -34,6 +37,7 @@ export const CODEX_KINDS: readonly CodexKind[] = [
   'item',
   'ammunition',
   'manufacturer',
+  'blueprint',
 ] as const;
 
 // One generic list row — the columns common enough to render a browse card.
@@ -53,6 +57,10 @@ export interface CodexListRow {
   speed: number | null;
   isVariant: boolean;
   payload: unknown;
+  // blueprint-specific (null for all other kinds)
+  blueprintCategory: string | null;
+  blueprintTier: number | null;
+  craftTimeSec: number | null;
 }
 
 export interface CodexListResult {
@@ -71,6 +79,32 @@ export interface CodexListFilters {
   includeVariants?: boolean;
   limit?: number;
   offset?: number;
+}
+
+export interface BlueprintListFilters {
+  search?: string;
+  category?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface BlueprintListResult {
+  rows: CodexListRow[];
+  count: number;
+}
+
+export interface BlueprintDetail {
+  classNameSlug: string;
+  row: Record<string, unknown>;
+  ingredients: CodexBlueprintIngredient[];
+}
+
+/** Shape returned by blueprintsUsingIngredient — slim list rows. */
+export interface BlueprintRef {
+  classNameSlug: string;
+  nameLocalized: string | null;
+  tier: number | null;
+  craftTimeSec: number | null;
 }
 
 export interface CodexDetail {
@@ -124,6 +158,7 @@ const LIST_SELECT: Record<CodexKind, string> = {
   item: 'class_name, name_localized, manufacturer_code, attach_type, sub_type, size, grade, is_variant, payload',
   ammunition: 'class_name, name_localized, speed, lifetime, size, payload',
   manufacturer: 'class_name, name_localized, manufacturer_code, payload',
+  blueprint: 'class_name, name_localized, category, tier, craft_time_sec, dismantle_time_sec, payload',
 };
 
 @Injectable({ providedIn: 'root' })
@@ -197,9 +232,9 @@ export class CodexService {
       .select(LIST_SELECT[kind], { count: 'exact' })
       .eq('build_id', build.id);
 
-    // Buyable-only by default. ammunition/manufacturer tables have no
+    // Buyable-only by default. ammunition/manufacturer/blueprint tables have no
     // is_variant column — skip the filter for them.
-    if (kind !== 'ammunition' && kind !== 'manufacturer' && !filters.includeVariants) {
+    if (kind !== 'ammunition' && kind !== 'manufacturer' && kind !== 'blueprint' && !filters.includeVariants) {
       query = query.eq('is_variant', false);
     }
 
@@ -428,6 +463,130 @@ export class CodexService {
   clearCompare(): void {
     this._compare.set([]);
   }
+
+  // ── Blueprint-specific queries ─────────────────────────────────────────────
+
+  /**
+   * Paged list of blueprints in the current build.
+   * Fuzzy search runs over BOTH name_localized AND class_name (ilike, same
+   * pattern as listByKind). Optional category facet.
+   */
+  async listBlueprints(filters: BlueprintListFilters = {}): Promise<BlueprintListResult> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return { rows: [], count: 0 };
+
+    const limit = filters.limit ?? PAGE_SIZE;
+    const offset = filters.offset ?? 0;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query = (this.sb.client as any)
+      .from('codex_blueprints')
+      .select('class_name, name_localized, category, tier, craft_time_sec, dismantle_time_sec, payload', { count: 'exact' })
+      .eq('build_id', build.id);
+
+    if (filters.category) {
+      query = query.eq('category', filters.category);
+    }
+
+    const q = filters.search?.trim();
+    if (q) {
+      const safe = escapeIlike(q);
+      query = query.or(`name_localized.ilike.%${safe}%,class_name.ilike.%${safe}%`);
+    }
+
+    query = query
+      .order('name_localized', { ascending: true, nullsFirst: false })
+      .order('class_name', { ascending: true })
+      .range(offset, offset + limit - 1);
+
+    const { data, count, error } = await query;
+    if (error) throw error;
+
+    const rows = ((data ?? []) as unknown[]).map((r) =>
+      mapListRow('blueprint', r as Record<string, unknown>),
+    );
+    return { rows, count: count ?? rows.length };
+  }
+
+  /**
+   * Detail for a single blueprint: row + ordered ingredients.
+   * Ingredients are ordered by ingredient_index ascending (the extractor
+   * preserves recipe order).
+   */
+  async getBlueprint(className: string): Promise<BlueprintDetail | null> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return null;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = this.sb.client as any;
+
+    const [rowRes, ingredientsRes] = await Promise.all([
+      sb
+        .from('codex_blueprints')
+        .select('*')
+        .eq('build_id', build.id)
+        .eq('class_name', className)
+        .maybeSingle(),
+      sb
+        .from('codex_blueprint_ingredients')
+        .select('*')
+        .eq('build_id', build.id)
+        .eq('blueprint_class_name', className)
+        .order('ingredient_index', { ascending: true }),
+    ]);
+
+    if (rowRes.error) throw rowRes.error;
+    if (!rowRes.data) return null;
+
+    const row = rowRes.data as Record<string, unknown>;
+    const ingredients = ((ingredientsRes.data ?? []) as unknown[]).map((i) =>
+      mapIngredient(i as Record<string, unknown>),
+    );
+
+    return { classNameSlug: className, row, ingredients };
+  }
+
+  /**
+   * Reverse query: which blueprints use a given resource/item as an ingredient?
+   * Used to surface a "used in N blueprints" panel on item detail pages.
+   * Returns slim blueprint refs, ordered by name.
+   */
+  async blueprintsUsingIngredient(ingredientClassName: string): Promise<BlueprintRef[]> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = this.sb.client as any;
+
+    // Get blueprint class names that use this ingredient
+    const { data: ingRows, error: ingErr } = await sb
+      .from('codex_blueprint_ingredients')
+      .select('blueprint_class_name')
+      .eq('build_id', build.id)
+      .eq('ingredient_class_name', ingredientClassName);
+
+    if (ingErr || !ingRows?.length) return [];
+
+    const blueprintClassNames = Array.from(
+      new Set((ingRows as { blueprint_class_name: string }[]).map((r) => r.blueprint_class_name)),
+    );
+
+    const { data, error } = await sb
+      .from('codex_blueprints')
+      .select('class_name, name_localized, tier, craft_time_sec')
+      .eq('build_id', build.id)
+      .in('class_name', blueprintClassNames)
+      .order('name_localized', { ascending: true, nullsFirst: false });
+
+    if (error) return [];
+
+    return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+      classNameSlug: r['class_name'] as string,
+      nameLocalized: (r['name_localized'] as string | null) ?? null,
+      tier: (r['tier'] as number | null) ?? null,
+      craftTimeSec: (r['craft_time_sec'] as number | null) ?? null,
+    }));
+  }
 }
 
 // ── pure mappers / helpers ────────────────────────────────────────────────────
@@ -463,6 +622,10 @@ function mapListRow(kind: CodexKind, r: Record<string, unknown>): CodexListRow {
     speed: (r['speed'] as number | null) ?? null,
     isVariant: (r['is_variant'] as boolean) ?? false,
     payload: r['payload'],
+    // Blueprint-specific promoted columns (null for other kinds)
+    blueprintCategory: kind === 'blueprint' ? ((r['category'] as string | null) ?? null) : null,
+    blueprintTier: kind === 'blueprint' ? ((r['tier'] as number | null) ?? null) : null,
+    craftTimeSec: kind === 'blueprint' ? ((r['craft_time_sec'] as number | null) ?? null) : null,
   };
 }
 
@@ -493,6 +656,19 @@ function mapString(s: Record<string, unknown>): CodexEntityString {
 /** PostgREST `or=ilike` is comma/paren-delimited — neutralise those chars. */
 function escapeIlike(input: string): string {
   return input.replace(/[%,()]/g, ' ').trim();
+}
+
+function mapIngredient(i: Record<string, unknown>): CodexBlueprintIngredient {
+  return {
+    blueprintClassName: (i['blueprint_class_name'] as string) ?? '',
+    ingredientIndex: (i['ingredient_index'] as number) ?? 0,
+    ingredientClassName: (i['ingredient_class_name'] as string | null) ?? null,
+    quantity: (i['quantity'] as number) ?? 1,
+    minQuality: (i['min_quality'] as number | null) ?? null,
+    role: (i['role'] as string) ?? 'primary',
+    nameLocalized: (i['name_localized'] as string | null) ?? null,
+    entityKind: (i['entity_kind'] as string | null) ?? null,
+  };
 }
 
 /** Pick the active-language string out of a LocalizedText, with fallbacks. */

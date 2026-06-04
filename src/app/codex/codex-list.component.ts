@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import {
   CODEX_KINDS,
@@ -317,6 +317,7 @@ const COMPONENT_KINDS = [
 })
 export class CodexListComponent implements OnInit {
   readonly svc = inject(CodexService);
+  private readonly router = inject(Router);
 
   readonly kinds = CODEX_KINDS;
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
@@ -372,7 +373,7 @@ export class CodexListComponent implements OnInit {
   readonly weaponClassOptions = computed(() => uniqSorted(this.rows().map((r) => r.weaponClass)));
 
   readonly supportsVariants = computed(
-    () => this.kind() !== 'ammunition' && this.kind() !== 'manufacturer',
+    () => this.kind() !== 'ammunition' && this.kind() !== 'manufacturer' && this.kind() !== 'blueprint',
   );
 
   readonly hasActiveFilters = computed(
@@ -429,6 +430,12 @@ export class CodexListComponent implements OnInit {
 
   setKind(k: CodexKind): void {
     if (k === this.kind()) return;
+    // Blueprint has its own dedicated list route — navigate away instead of
+    // trying to run the generic listByKind query (different table/columns).
+    if (k === 'blueprint') {
+      void this.router.navigate(['/codex/blueprint']);
+      return;
+    }
     // reset facets that don't apply across kinds
     this.manufacturer.set('');
     this.size.set('');

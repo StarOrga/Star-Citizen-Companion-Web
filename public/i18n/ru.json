@@ -125,5 +125,35 @@
     "badgeAlt": "Star Citizen — значок фан-сайта Made by the Community",
     "disclaimer": "Это неофициальный фан-сайт Star Citizen, не связанный с группой компаний Cloud Imperium. Весь контент, не созданный владельцем этого сайта или его пользователями, является собственностью соответствующих правообладателей.",
     "trademarks": "Star Citizen, Roberts Space Industries и Cloud Imperium являются товарными знаками Cloud Imperium Rights LLC."
+  },
+  "codex": {
+    "kinds": { "blueprint": "Чертежи" },
+    "kindSingular": { "blueprint": "Чертёж" }
+  },
+  "blueprint": {
+    "title": "Crafting Blueprints",
+    "subtitle": "Datamined crafting recipes — ingredients, outputs, and craft times from the live build.",
+    "empty": "No blueprints in this build yet.",
+    "search": { "label": "Search blueprints", "placeholder": "Search name or class…" },
+    "filters": { "category": "Category" },
+    "category": {
+      "ship_components": "Ship Components", "fps_weapons": "FPS Weapons",
+      "ship_weapons": "Ship Weapons", "consumables": "Consumables",
+      "armor": "Armor", "clothing": "Clothing", "food": "Food",
+      "medicine": "Medicine", "other": "Other"
+    },
+    "card": { "tier": "Tier {{tier}}" },
+    "role": { "primary": "Primary", "secondary": "Secondary", "catalyst": "Catalyst" },
+    "detail": {
+      "back": "Back to blueprints", "tier": "Tier",
+      "craftTime": "Craft time", "dismantleTime": "Dismantle time",
+      "outputQty": "Output qty", "ingredients": "Ingredients",
+      "noIngredients": "No ingredients recorded.", "unresolved": "Unresolved ingredient",
+      "minQuality": "Min quality", "output": "Output",
+      "qualitySummary": "Quality summary",
+      "qualityNote": "Static base-quality values — interactive quality simulation coming in a future update.",
+      "primary": "Primary", "usedIn": "Used in blueprints",
+      "usedInCount": "Used in {{count}} blueprint(s)"
+    }
   }
 }

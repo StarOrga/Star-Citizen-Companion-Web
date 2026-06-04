@@ -517,6 +517,33 @@ export function buildCompareTable(
   });
 }
 
+// ── blueprint craft-time formatting ──────────────────────────────────────────
+
+/**
+ * Format a craft/dismantle duration in seconds to a human-readable string.
+ * Examples: 0 → "0 s", 45 → "45 s", 90 → "1 m 30 s", 3600 → "1 h", 3661 → "1 h 1 m 1 s".
+ * Nullish or negative input → null (caller shows "n/a").
+ */
+export function formatCraftTime(seconds: number | null | undefined): string | null {
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return null;
+  const s = Math.round(seconds);
+  if (s === 0) return '0 s';
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const parts: string[] = [];
+  if (h > 0) parts.push(`${h} h`);
+  if (m > 0) parts.push(`${m} m`);
+  if (sec > 0) parts.push(`${sec} s`);
+  return parts.join(' ');
+}
+
+/** Format a quality fraction (0–1) as a percentage string. Returns "n/a" for null. */
+export function formatQuality(q: number | null | undefined): string {
+  if (q == null || !Number.isFinite(q)) return 'n/a';
+  return `${Math.round(q * 100)} %`;
+}
+
 // ── ship equipment summary ────────────────────────────────────────────────────
 
 export interface PortSummaryEntry {
