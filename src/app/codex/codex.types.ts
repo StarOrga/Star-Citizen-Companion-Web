@@ -57,7 +57,7 @@ export interface LoadoutEntry {
   entityClassName: string | null; // null = port stock-empty
 }
 
-export type EntityKind = 'ship' | 'weapon' | 'component' | 'item';
+export type EntityKind = 'ship' | 'weapon' | 'component' | 'item' | 'blueprint';
 export type WeaponClass = 'Ship' | 'FPS';
 export type ComponentKind =
   | 'PowerPlant' | 'Shield' | 'Cooler' | 'QuantumDrive' | 'Thruster'
@@ -272,6 +272,97 @@ export interface CodexEntityDetail<TPayload> {
   strings: CodexEntityString[];
 }
 
+// ── Blueprint types ───────────────────────────────────────────────────────────
+// Added by Wave-2 frontend (blueprints). Wave-1 DB migration applies
+// codex_blueprints + codex_blueprint_ingredients tables; database.types.ts
+// regeneration is a Wave-1 follow-up (types not yet generated from cloud).
+
+export type BlueprintCategory =
+  | 'ship_components'
+  | 'fps_weapons'
+  | 'ship_weapons'
+  | 'consumables'
+  | 'armor'
+  | 'clothing'
+  | 'food'
+  | 'medicine'
+  | 'other';
+
+/** Ingredient role within a blueprint recipe. */
+export type IngredientRole = 'primary' | 'secondary' | 'catalyst';
+
+/** Quality summary entry (STATIC — interactive sliders are deferred to v2). */
+export interface QualityStatSummary {
+  stat: string;           // e.g. "durability", "fireRate"
+  primary: boolean;       // true = headline stat, false = secondary
+  baseValue: number | null;
+  unit?: string;
+}
+
+/**
+ * Full blueprint payload as stored in codex_blueprints.payload.
+ * Matches the extractor contract in docs/concepts/codex-blueprints-research.md §6.
+ */
+export interface BlueprintPayload {
+  className: string;
+  guid: string | null;
+  name: LocalizedText;
+  description: LocalizedText;
+  category: BlueprintCategory | string;
+  tier: number | null;            // crafting tier (1–5)
+  craftTimeSec: number | null;    // seconds to craft at base quality
+  dismantleTimeSec: number | null;
+  outputClassName: string | null; // primary output entity className
+  outputQuantity: number | null;
+  qualityStats: QualityStatSummary[];
+  source: ExtractSource;
+}
+
+/** One ingredient row from codex_blueprint_ingredients. */
+export interface BlueprintIngredientPayload {
+  blueprintClassName: string;
+  ingredientIndex: number;
+  ingredientClassName: string | null; // null = unresolved / engine-internal
+  quantity: number;
+  minQuality: number | null;          // 0–1 float
+  role: IngredientRole | string;
+  // Resolved display fields (denormalized from codex_items/codex_components at ingest)
+  nameLocalized: string | null;
+  entityKind: string | null;          // 'item' | 'component' | 'weapon' | null
+}
+
+/** Output row (mirrors the ingredient shape for the outputs side). */
+export interface BlueprintOutputPayload {
+  blueprintClassName: string;
+  outputClassName: string | null;
+  quantity: number;
+  nameLocalized: string | null;
+  entityKind: string | null;
+}
+
+/** Ergonomic camelCase model for a blueprint row. */
+export interface CodexBlueprint {
+  classNameSlug: string;
+  nameLocalized: string | null;
+  category: string | null;
+  tier: number | null;
+  craftTimeSec: number | null;
+  dismantleTimeSec: number | null;
+  payload: BlueprintPayload;
+}
+
+/** Ergonomic model for one blueprint ingredient row. */
+export interface CodexBlueprintIngredient {
+  blueprintClassName: string;
+  ingredientIndex: number;
+  ingredientClassName: string | null;
+  quantity: number;
+  minQuality: number | null;
+  role: string;
+  nameLocalized: string | null;
+  entityKind: string | null;
+}
+
 // The table names exposed for SELECT (RLS: any authenticated user can read).
 export const CODEX_ENTITY_TABLES = {
   ship: 'codex_ships',
@@ -280,6 +371,7 @@ export const CODEX_ENTITY_TABLES = {
   item: 'codex_items',
   ammunition: 'codex_ammunition',
   manufacturer: 'codex_manufacturers',
+  blueprint: 'codex_blueprints',
 } as const;
 export type CodexEntityTable =
   (typeof CODEX_ENTITY_TABLES)[keyof typeof CODEX_ENTITY_TABLES];

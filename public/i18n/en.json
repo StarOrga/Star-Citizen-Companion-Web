@@ -143,6 +143,8 @@
       "hardpointsHint": "Click a hardpoint to see which items fit it.",
       "compatLoading": "Loading compatible items…",
       "compatNone": "No matching items in this build.",
+      "usedInBlueprints": "Used in blueprints",
+      "usedInBlueprintsHint": "Crafting recipes that require this item as an ingredient.",
       "compatCount": "{{count}} compatible items",
       "noHardpoints": "No hardpoints in this build.",
       "loadout": "Default loadout",
@@ -201,6 +203,60 @@
       "loadError": "3D model failed to load",
       "loadCatalogError": "Could not load liveries.",
       "retry": "Retry"
+    },
+    "kinds": {
+      "blueprint": "Blueprints"
+    },
+    "kindSingular": {
+      "blueprint": "Blueprint"
+    }
+  },
+  "blueprint": {
+    "title": "Crafting Blueprints",
+    "subtitle": "Datamined crafting recipes — ingredients, outputs, and craft times from the live build.",
+    "empty": "No blueprints in this build yet. Run the data uploader to seed the catalog.",
+    "search": {
+      "label": "Search blueprints",
+      "placeholder": "Search name or class…"
+    },
+    "filters": {
+      "category": "Category"
+    },
+    "category": {
+      "ship_components": "Ship Components",
+      "fps_weapons": "FPS Weapons",
+      "ship_weapons": "Ship Weapons",
+      "consumables": "Consumables",
+      "armor": "Armor",
+      "clothing": "Clothing",
+      "food": "Food",
+      "medicine": "Medicine",
+      "other": "Other"
+    },
+    "card": {
+      "tier": "Tier {{tier}}"
+    },
+    "role": {
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "catalyst": "Catalyst"
+    },
+    "detail": {
+      "back": "Back to blueprints",
+      "tier": "Tier",
+      "craftTime": "Craft time",
+      "dismantleTime": "Dismantle time",
+      "outputQty": "Output qty",
+      "ingredients": "Ingredients",
+      "noIngredients": "No ingredients recorded.",
+      "unresolved": "Unresolved ingredient",
+      "minQuality": "Min quality",
+      "output": "Output",
+      "qualitySummary": "Quality summary",
+      "qualityNote": "Static base-quality values — interactive quality simulation coming in a future update.",
+      "primary": "Primary",
+      "usedIn": "Used in blueprints",
+      "usedInCount": "Used in {{count}} blueprint(s)"
     }
   },
   "news": {

@@ -5,7 +5,9 @@ import {
   cleanLocaleValue,
   collectCompareAttributes,
   curateComponentStats,
+  formatCraftTime,
   formatNumber,
+  formatQuality,
   humanizeClassName,
   humanizeKey,
   isMeaningfulValue,
@@ -247,6 +249,47 @@ describe('codex-format', () => {
       expect(size?.values).toEqual(['S3', 'S5']);
       expect(grade?.values).toEqual(['A', null]); // B has no grade
       expect(rows.map((r) => r.id)).toEqual(['size', 'grade']); // first-seen order
+    });
+  });
+
+  describe('formatCraftTime', () => {
+    it('returns null for nullish / negative input', () => {
+      expect(formatCraftTime(null)).toBeNull();
+      expect(formatCraftTime(undefined)).toBeNull();
+      expect(formatCraftTime(-1)).toBeNull();
+    });
+    it('formats zero seconds', () => {
+      expect(formatCraftTime(0)).toBe('0 s');
+    });
+    it('formats seconds only', () => {
+      expect(formatCraftTime(45)).toBe('45 s');
+    });
+    it('formats minutes + seconds', () => {
+      expect(formatCraftTime(90)).toBe('1 m 30 s');
+    });
+    it('formats whole minutes (no seconds part)', () => {
+      expect(formatCraftTime(120)).toBe('2 m');
+    });
+    it('formats hours only', () => {
+      expect(formatCraftTime(3600)).toBe('1 h');
+    });
+    it('formats hours + minutes + seconds', () => {
+      expect(formatCraftTime(3661)).toBe('1 h 1 m 1 s');
+    });
+    it('rounds fractional seconds', () => {
+      expect(formatCraftTime(45.6)).toBe('46 s');
+    });
+  });
+
+  describe('formatQuality', () => {
+    it('converts 0–1 fraction to percent string', () => {
+      expect(formatQuality(0.5)).toBe('50 %');
+      expect(formatQuality(1)).toBe('100 %');
+      expect(formatQuality(0)).toBe('0 %');
+    });
+    it('returns n/a for nullish', () => {
+      expect(formatQuality(null)).toBe('n/a');
+      expect(formatQuality(undefined)).toBe('n/a');
     });
   });
 

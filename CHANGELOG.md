@@ -4,6 +4,32 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-06-04
+
+### Added — Codex: crafting blueprints, extracted from Data.p4k
+
+- **New codex entity type — crafting blueprints.** `CraftingBlueprintRecord`
+  (1561 in the live DataCore) is projected by the desktop extractor
+  (`sc_extract`) into typed `blueprints/<className>.json`: ingredients (with
+  className joins, quantity, min-quality, role), outputs, category, craft &
+  dismantle time (normalized from `TimeValue_Partitioned`), quality refs, and
+  tags — name-agnostic candidate-field resolution with graceful nulls (raw
+  DataForge field names are confirmed against the live build at extraction).
+- **DB layer.** New `codex_blueprints` + `codex_blueprint_ingredients` tables
+  (migration `00010`) with the standard codex RLS (authenticated read,
+  service-role write). The ingredients child table is indexed both forward
+  (blueprint → ingredients) and reverse (ingredient → blueprints).
+- **Browse + detail UI.** `/codex/blueprint` list (category facet, fuzzy
+  search, craft-time sort) and `/codex/blueprint/:className` detail
+  (ingredients deep-link to their codex pages; static quality summary). de/en.
+- **"Used in blueprints" reverse panel** on item / component / weapon detail
+  pages — the "what can I craft with this?" lookup.
+- **Full-catalog seeding.** The seeder + `ingest-catalog` now write blueprints,
+  and the per-kind 400-row caps are lifted so the whole catalog goes online.
+
+> Activation: the `codex_blueprints` tables ship **empty** — run the extractor
+> against a live `Data.p4k`, then seed, to populate them.
+
 ## [0.13.0] - 2026-06-04
 
 ### Added — Ship skins: build & upload from the desktop uploader (was CLI-only)

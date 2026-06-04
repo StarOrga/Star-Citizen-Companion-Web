@@ -27,6 +27,59 @@ from typing import Any, Callable, Dict, List, Optional
 from .dataforge import DataForge, Record
 from .localization import Localizer
 
+# ── Blueprint candidate-field lists (R1/R2: UNCONFIRMED — see extract_blueprints) ──────────
+# RISK HIGH: these leaf-field names are hypotheses derived from SC crafting data
+# discovered via scunpacked JSON dumps and community wiki schema notes. They have
+# NOT been confirmed against a live Data/Game2.dcb. The first matching key wins;
+# if none match, the field resolves to null (never crashes).
+#
+# Blueprint ingredient array container: DataForge struct name UNKNOWN (R2).
+# Candidate top-level field names on CraftingBlueprintRecord that hold the
+# ingredient list.
+_BP_INGREDIENTS_FIELDS = ("ingredients", "resources", "entries", "inputs",
+                          "craftingIngredients", "items")
+
+# Output item ref field names (the thing you craft):
+_BP_OUTPUT_FIELDS = ("outputItem", "output", "result", "craftingResult",
+                     "item", "resultItem")
+
+# Quantity scalar names (on ingredient entries):
+_BP_QTY_FIELDS = ("quantity", "count", "amount", "qty", "requiredCount")
+
+# Min-quality threshold scalar (on ingredient entries):
+_BP_MINQUALITY_FIELDS = ("minQuality", "minimumQuality", "quality",
+                         "requiredQuality", "qualityThreshold")
+
+# Output quantity scalar names:
+_BP_OUTPUT_QTY_FIELDS = ("quantity", "count", "amount", "outputCount")
+
+# Blueprint category ref field names:
+_BP_CATEGORY_FIELDS = ("category", "craftingCategory", "type", "blueprintCategory")
+
+# Blueprint display name / description localization key fields.
+# These override the generic entity loc-key fields when they appear on
+# CraftingBlueprintRecord (which is NOT an EntityClassDefinition and thus
+# does NOT carry AttachDef.Localization).
+_BP_NAME_FIELDS = ("name", "Name", "localizedName", "displayName",
+                   "blueprintName", "craftingName")
+_BP_DESC_FIELDS = ("description", "Description", "localizedDescription",
+                   "displayDescription", "blueprintDescription")
+
+# processSpecificData: VERIFIED struct name for dismantle process is
+# "GenericCraftingProcess_Dismantle". The fabrication process struct name is
+# UNCONFIRMED (R2). We scan ANY struct under processSpecificData for a
+# TimeValue_Partitioned so we are name-agnostic.
+_BP_PROCESS_FIELDS = ("processSpecificData", "processData", "process",
+                      "craftingProcess", "fabrication", "dismantling")
+
+# Time normalization: VERIFIED from TimeValue_Partitioned struct (@days, @hours,
+# @minutes, @seconds). The @ prefix is the DataForge attribute prefix in
+# unp4k JSON. Both "@days" and "days" are tried (reader may strip @).
+_TIME_DAYS_FIELDS = ("@days", "days", "Days")
+_TIME_HOURS_FIELDS = ("@hours", "hours", "Hours")
+_TIME_MINS_FIELDS = ("@minutes", "minutes", "Minutes")
+_TIME_SECS_FIELDS = ("@seconds", "seconds", "Seconds")
+
 # AttachDef.Type -> our ComponentKind (research §5). Vocabulary verified live.
 _COMPONENT_KIND = {
     "PowerPlant": "PowerPlant",
@@ -114,6 +167,7 @@ class CodexExtractor:
         self.dump_localization()      # full global.ini tables (en/de)
         self.extract_manufacturers()
         self.extract_ammunition()
+        self.extract_blueprints()     # crafting blueprints (CraftingBlueprintRecord)
         self.extract_entities()       # ships / weapons / components / items
         if self._assets:
             self.on_log("info", f"preview images: {self._assets.converted} converted, "
@@ -214,6 +268,290 @@ class CodexExtractor:
                 json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
             n += 1
         self._bump("ammunition", n)
+
+    # ── blueprints ─────────────────────────────────────────────────────────────
+    def extract_blueprints(self) -> None:
+        """Project CraftingBlueprintRecord entries to BlueprintPayload JSON.
+
+        Field names used here are UNCONFIRMED hypotheses (R1/R2 — see module-level
+        _BP_* constants). Every field falls back to null if no candidate matches.
+        We never crash on unexpected structure; all GUID stubs with no matching
+        record are kept with className=null and emitted as a warn-count.
+
+        Output shape (§6 BlueprintPayload): className, guid, type, recordTag, name,
+          description, entityKind, category, categoryLabel, tier, craftTimeSeconds,
+          dismantleTimeSeconds, dismantleEfficiency, ingredients, outputs,
+          qualityRefs, gameplayProperties, poolClassName, isDefault,
+          missionSource (always null, R5), tags, raw, source.
+
+        Ingredients shape (flattened; DB child table is Wave-1b's job):
+          [{ className, guid, name, quantity, minQuality, role, raw }, ...]
+        """
+        d = self.out / "blueprints"
+        d.mkdir(parents=True, exist_ok=True)
+
+        # GUID -> className resolution cache for ingredient/output/category refs.
+        # Built lazily from the full record list so we can resolve cross-refs.
+        ref_cache: Dict[str, Optional[str]] = {}
+
+        def _resolve_guid(guid: Optional[str]) -> Optional[str]:
+            """Map a GUID string to a record className; None if unresolvable."""
+            if not guid:
+                return None
+            if guid in ref_cache:
+                return ref_cache[guid]
+            rec = self.df.record_by_id(guid)
+            className = _strip_type_prefix(rec.name) if rec else None
+            ref_cache[guid] = className
+            return className
+
+        def _pick(d: Any, fields: tuple) -> Any:
+            """Return first non-None value for any candidate field name in d."""
+            if not isinstance(d, dict):
+                return None
+            for f in fields:
+                v = d.get(f)
+                if v is not None:
+                    return v
+            return None
+
+        def _ref_stub(node: Any) -> Dict[str, Any]:
+            """Extract {className, guid} from a DataForge GUID stub dict.
+
+            A GUID stub looks like:
+              {"_RecordId_": "...", "_RecordName_": "...", "_RecordPath_": "..."}
+            or a resolved Record dict. Returns {className, guid}.
+            """
+            if not isinstance(node, dict):
+                return {"className": None, "guid": None}
+            guid = node.get("_RecordId_")
+            # _RecordName_ is the full "Type.ClassName" form
+            raw_name = node.get("_RecordName_")
+            if raw_name:
+                className = _strip_type_prefix(raw_name)
+            else:
+                className = _resolve_guid(guid)
+            return {"className": className, "guid": guid}
+
+        def _normalize_time(node: Any) -> Optional[float]:
+            """Normalize a TimeValue_Partitioned struct to total seconds.
+
+            VERIFIED: struct has @days, @hours, @minutes, @seconds.
+            Scans generically; tries both @ and bare field names.
+            Returns None if the struct is absent or has no recognizable fields.
+            """
+            if not isinstance(node, dict):
+                return None
+            # Search recursively for a dict that carries any of the time fields
+            tv = _find_first_dict_with(
+                node, ("@days", "days", "@hours", "hours", "@minutes",
+                        "minutes", "@seconds", "seconds"),
+                _max_depth=8)
+            if tv is None:
+                return None
+            d_val = _to_float(_pick(tv, _TIME_DAYS_FIELDS)) or 0.0
+            h_val = _to_float(_pick(tv, _TIME_HOURS_FIELDS)) or 0.0
+            m_val = _to_float(_pick(tv, _TIME_MINS_FIELDS)) or 0.0
+            s_val = _to_float(_pick(tv, _TIME_SECS_FIELDS)) or 0.0
+            total = d_val * 86400 + h_val * 3600 + m_val * 60 + s_val
+            return total if total > 0 else None
+
+        def _craft_time(rv: Dict[str, Any]) -> Optional[float]:
+            """Scan processSpecificData for ANY TimeValue_Partitioned struct.
+
+            R2: fabrication process struct name unknown. We try all candidate
+            field names for the process container and return the first valid time.
+            craftTime and dismantleTime are emitted separately by the caller.
+            """
+            for pf in _BP_PROCESS_FIELDS:
+                proc = rv.get(pf)
+                if proc is None:
+                    continue
+                if isinstance(proc, list):
+                    for item in proc:
+                        t = _normalize_time(item)
+                        if t is not None:
+                            return t
+                else:
+                    t = _normalize_time(proc)
+                    if t is not None:
+                        return t
+            # Also try a flat TimeValue_Partitioned directly on the record
+            return _normalize_time(rv)
+
+        def _project_ingredients(rv: Dict[str, Any],
+                                  dangling_warn: list) -> List[Dict[str, Any]]:
+            """Resolve ingredient list from any candidate field.
+
+            Keeps dangling GUIDs (unresolvable) as {className: null, guid: <raw>}.
+            Appends to dangling_warn so the caller can emit a single count log.
+            """
+            raw_list = None
+            for f in _BP_INGREDIENTS_FIELDS:
+                v = rv.get(f)
+                if isinstance(v, list) and v:
+                    raw_list = v
+                    break
+            if not raw_list:
+                return []
+            out = []
+            for entry in raw_list:
+                if not isinstance(entry, dict):
+                    continue
+                # The ingredient item ref may be a GUID stub or a nested ref field
+                item_node = (entry.get("item") or entry.get("itemRef")
+                             or entry.get("entity") or entry.get("entityRef")
+                             or entry)
+                ref = _ref_stub(item_node)
+                if ref["className"] is None and ref["guid"]:
+                    dangling_warn.append(ref["guid"])
+                qty = _to_float(_pick(entry, _BP_QTY_FIELDS))
+                min_q = _to_float(_pick(entry, _BP_MINQUALITY_FIELDS))
+                role = _pick(entry, ("role", "ingredientRole", "resourceRole", "slot"))
+                out.append({
+                    "className": ref["className"],
+                    "guid": ref["guid"],
+                    "name": None,  # best-effort; resolve via the joined entity (v1)
+                    "quantity": qty,
+                    "minQuality": min_q,
+                    "role": role if isinstance(role, str) else None,
+                    "raw": entry,
+                })
+            return out
+
+        n = 0
+        total_dangling = 0
+        # Ignore Legacy* record types (they are covered by the generic dump)
+        for r in self.df.records_by_type_name("CraftingBlueprintRecord"):
+            resolved = self.df.record_to_dict(r, max_depth=16)
+            rv = resolved.get("_RecordValue_", {})
+
+            # name / description localization keys
+            name_key = (_pick(rv, _BP_NAME_FIELDS)
+                        or _pick(rv.get("Localization") if isinstance(
+                            rv.get("Localization"), dict) else {}, _BP_NAME_FIELDS))
+            desc_key = (_pick(rv, _BP_DESC_FIELDS)
+                        or _pick(rv.get("Localization") if isinstance(
+                            rv.get("Localization"), dict) else {}, _BP_DESC_FIELDS))
+
+            # category ref → className string + localized label (§6)
+            cat_node = _pick(rv, _BP_CATEGORY_FIELDS)
+            category = None
+            category_label = None
+            if isinstance(cat_node, dict):
+                category = _ref_stub(cat_node)["className"]
+                cat_name_key = _pick(cat_node, _BP_NAME_FIELDS)
+                category_label = (self._localized(cat_name_key)
+                                  if isinstance(cat_name_key, str) else None)
+            elif isinstance(cat_node, str):
+                category = cat_node
+
+            # output item ref(s) → outputs[] array (§6)
+            out_node = _pick(rv, _BP_OUTPUT_FIELDS)
+            output_qty = _to_float(_pick(rv, _BP_OUTPUT_QTY_FIELDS))
+            outputs: List[Dict[str, Any]] = []
+            for on in (out_node if isinstance(out_node, list) else [out_node]):
+                if not isinstance(on, dict):
+                    continue
+                oref = _ref_stub(on)
+                outputs.append({
+                    "className": oref["className"],
+                    "guid": oref["guid"],
+                    "name": None,  # best-effort; resolve via the joined entity (v1)
+                    "quantity": output_qty,
+                    "raw": on,
+                })
+            if not outputs and output_qty is not None:
+                outputs.append({"className": None, "guid": None,
+                                "name": None, "quantity": output_qty, "raw": {}})
+
+            # craft / dismantle times + dismantle efficiency: scan processes generically.
+            # Fabrication struct name UNCONFIRMED (R2); GenericCraftingProcess_Dismantle
+            # is the only VERIFIED one. Dismantle identified by "_Type_" containing
+            # "dismantle"; everything else treated as fabrication.
+            craft_time: Optional[float] = None
+            dismantle_time: Optional[float] = None
+            dismantle_eff: Optional[float] = None
+            proc_data = rv.get("processSpecificData") or rv.get("processData") or []
+            for proc in (proc_data if isinstance(proc_data, list) else [proc_data]):
+                if not isinstance(proc, dict):
+                    continue
+                t = _normalize_time(proc)
+                stype = (proc.get("_Type_") or "").lower()
+                if "dismantle" in stype:
+                    if dismantle_time is None:
+                        dismantle_time = t
+                    if dismantle_eff is None:
+                        dismantle_eff = _to_float(_pick(proc, ("@efficiency", "efficiency")))
+                elif craft_time is None and t is not None:
+                    craft_time = t
+            # Fallback: any TimeValue_Partitioned anywhere on the record
+            if craft_time is None and dismantle_time is None:
+                craft_time = _craft_time(rv)
+
+            # ingredients (flattened; DB child table is Wave-1b's job)
+            dangling: list = []
+            ingredients = _project_ingredients(rv, dangling)
+            total_dangling += len(dangling)
+
+            # quality refs (v1: store className refs only; simulator deferred — R3)
+            quality_refs = {
+                "distribution": _ref_stub(_pick(rv, ("qualityDistribution",
+                    "craftingQualityDistribution", "distribution")) or {})["className"],
+                "quantization": _ref_stub(_pick(rv, ("qualityQuantization",
+                    "craftingQualityQuantization", "quantization")) or {})["className"],
+            }
+            gp_node = _pick(rv, ("gameplayProperties", "craftingGameplayProperties",
+                                 "properties", "gameplayPropertyDefs"))
+            gameplay_properties = [
+                _ref_stub(g)["className"]
+                for g in (gp_node if isinstance(gp_node, list) else [])
+                if isinstance(g, dict) and _ref_stub(g)["className"]
+            ]
+            pool_node = _pick(rv, ("pool", "blueprintPool", "poolRecord", "rewardPool"))
+            pool_class = (_ref_stub(pool_node)["className"] if isinstance(pool_node, dict)
+                          else pool_node if isinstance(pool_node, str) else None)
+            default_node = _pick(rv, ("isAvailableByDefault", "availableByDefault",
+                                      "isDefault", "@isAvailableByDefault"))
+            is_default = bool(default_node) if isinstance(default_node, bool) else None
+            tier_val = _to_float(_pick(rv, ("tier", "Tier", "blueprintTier", "craftingTier")))
+            tags_node = _pick(rv, ("tags", "Tags"))
+            tags = ([t for t in tags_node if isinstance(t, str)]
+                    if isinstance(tags_node, list) else [])
+
+            obj = {
+                "className": _strip_type_prefix(r.name),
+                "guid": r.guid,
+                "type": r.type,
+                "recordTag": r.tag,
+                "name": self._localized(name_key if isinstance(name_key, str) else None),
+                "description": self._localized(desc_key if isinstance(desc_key, str) else None),
+                "entityKind": "blueprint",
+                "category": category,
+                "categoryLabel": category_label,
+                "tier": int(tier_val) if tier_val is not None else None,
+                "craftTimeSeconds": craft_time,
+                "dismantleTimeSeconds": dismantle_time,
+                "dismantleEfficiency": dismantle_eff,
+                "ingredients": ingredients,
+                "outputs": outputs,
+                "qualityRefs": quality_refs,
+                "gameplayProperties": gameplay_properties,
+                "poolClassName": pool_class,
+                "isDefault": is_default,
+                "missionSource": None,  # R5: always null in v1
+                "tags": tags,
+                "raw": rv,
+                "source": self.source,
+            }
+            (d / f"{_safe_filename(obj['className'])}.json").write_text(
+                json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+            n += 1
+
+        if total_dangling:
+            self.on_log("warn", f"blueprints: {total_dangling} ingredient GUID(s) "
+                                "unresolvable (kept with className=null)")
+        self._bump("blueprints", n)
 
     # ── entities (ships / weapons / components / items) ────────────────────────
     def extract_entities(self) -> None:
