@@ -19,19 +19,24 @@ const SIZES_FEATURED = '(max-width: 800px) 100vw, 60vw';
 const SIZES_REGULAR = '(max-width: 800px) 100vw, 320px';
 
 /**
- * Swap the variant segment of an RSI **media** CDN url to a tile-sized one.
+ * Swap the variant segment of an image url to a tile-sized one.
  *
- * Only `https://media.robertsspaceindustries.com/<id>/<variant>.<ext>` urls are
- * rewritable: the last path segment before the extension is the variant, and the
- * variants `post` (≤500w) / `cover` (≤1140w) preserve aspect ratio. The original
- * extension MUST be kept (a PNG source 404s as `.jpg`).
+ * Two url shapes are rewritable, both ending in `<dir>/<variant>.<ext>`:
+ *  - RSI media CDN `https://media.robertsspaceindustries.com/<id>/<variant>.<ext>`
+ *    — variants `post` (≤500w) / `cover` (≤1140w) preserve aspect ratio.
+ *  - Our own `news-images` cache `…/<hash>/{post,cover}.<ext>`, where the edge
+ *    function stored both variants under the same folder.
+ * The original extension MUST be kept (a PNG source 404s as `.jpg`).
  *
  * Any other url — notably the signed `https://robertsspaceindustries.com/i/<sha1>/…`
  * proxy (already tile-sized, returns 400 if rewritten) — is returned unchanged.
  */
 export function rsiVariant(url: string, target: 'post' | 'cover'): string {
-  const m = /^(https:\/\/media\.robertsspaceindustries\.com\/[^/]+\/)[^/.]+(\.[a-zA-Z0-9]+)$/.exec(url);
-  return m ? `${m[1]}${target}${m[2]}` : url;
+  const media = /^(https:\/\/media\.robertsspaceindustries\.com\/[^/]+\/)[^/.]+(\.[a-zA-Z0-9]+)$/.exec(url);
+  if (media) return `${media[1]}${target}${media[2]}`;
+  const cached = /^(https?:\/\/.+\/)(?:post|cover)(\.[a-zA-Z0-9]+)$/.exec(url);
+  if (cached) return `${cached[1]}${target}${cached[2]}`;
+  return url;
 }
 
 /**
