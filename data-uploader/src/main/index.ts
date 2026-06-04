@@ -25,6 +25,13 @@ import {
   type UploadMarkerInfo,
   type CleanupResult,
 } from './cleanup.js';
+import {
+  startSkinExport,
+  ensureConverter,
+  type SkinExportRequest,
+  type SkinExportFinal,
+} from './skin-bridge.js';
+import { uploadSkins, type SkinUploadResult } from './skin-ingest.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -151,6 +158,52 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 });
+
+// ============= Ship-skin IPC =============
+
+// Ensure the cgf-converter build tool is present (downloads on first use,
+// streaming progress to the renderer). Returns its on-disk path.
+ipcMain.handle('sc:skin:ensureTools', async (event) => {
+  try {
+    const path = await ensureConverter((pct) =>
+      event.sender.send('sc:skin:toolProgress', { pct }),
+    );
+    return { ok: true, path };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+});
+
+ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<SkinExportFinal> => {
+  const jobId = `skin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const handle = startSkinExport(req, (ev) => {
+    event.sender.send('sc:skin:event', { jobId, ...ev });
+  });
+  activeJobs.set(jobId, { cancel: handle.cancel });
+  try {
+    const final = await handle.promise;
+    activeJobs.delete(jobId);
+    return final;
+  } catch (err) {
+    activeJobs.delete(jobId);
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+});
+
+ipcMain.handle('sc:skin:cancel', (_e, jobId: string) => {
+  const job = activeJobs.get(jobId);
+  if (!job) return { ok: false, error: 'unknown_job' };
+  job.cancel();
+  return { ok: true };
+});
+
+ipcMain.handle(
+  'sc:skin:upload',
+  async (event, accessToken: string, ships: { shipId: string; dir: string }[]): Promise<SkinUploadResult[]> =>
+    uploadSkins(accessToken, ships, (message, level) =>
+      event.sender.send('sc:skin:event', { jobId: 'upload', type: 'log', message, level: level ?? 'info' }),
+    ),
+);
 
 // ============= Cleanup IPC =============
 

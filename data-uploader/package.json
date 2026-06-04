@@ -1,6 +1,6 @@
 {
   "name": "@sc-companion/data-uploader",
-  "version": "0.4.9",
+  "version": "0.5.0",
   "description": "Star Citizen Companion - Data Uploader — P4K local extraction & upload tool.",
   "private": true,
   "main": "out/main/index.js",
@@ -18,6 +18,7 @@
     "package:dir": "npm run icon && npm run python:fetch && electron-vite build && electron-builder --dir --config electron-builder.yml"
   },
   "dependencies": {
+    "@gltf-transform/cli": "^4.0.0",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.3",
     "yauzl": "^3.1.3"
