@@ -1,18 +1,22 @@
 // supabase/functions/ingest-catalog
 // ---------------------------------------------------------------
 // Batched ingest of the extracted Codex catalog (ships / weapons /
-// components / items / ammunition / manufacturers + item-ports + localized
-// strings) into the codex_* tables. The extractor emits ~25k typed entities +
-// ~115k generic records; that is far more than one edge-function body can hold,
-// so this function is BATCHED and STATEFUL around a codex_builds row:
+// components / items / ammunition / manufacturers / blueprints + item-ports +
+// blueprint ingredients + localized strings) into the codex_* tables. The
+// extractor emits ~25k typed entities + ~115k generic records; that is far more
+// than one edge-function body can hold, so this function is BATCHED and STATEFUL
+// around a codex_builds row:
 //
-//   POST { op: "init",     build: {...} }                      -> { build_id }
-//   POST { op: "upsert",   build_id, table, rows: [...] }      -> { upserted }
-//   POST { op: "ports",    build_id, rows: [...] }             -> { inserted }
-//   POST { op: "strings",  build_id, rows: [...] }             -> { upserted }
-//   POST { op: "locale_strings", build_id, rows: [...] }       -> { upserted }
-//   POST { op: "preview", build_number, name, content_base64 } -> { path }
-//   POST { op: "finalize", build_id, entity_counts? }          -> { ok, current }
+//   POST { op: "init",             build: {...} }                      -> { build_id }
+//   POST { op: "upsert",           build_id, table, rows: [...] }      -> { upserted }
+//   POST { op: "ports",            build_id, rows: [...] }             -> { inserted }
+//   POST { op: "clear_ports",      build_id }                          -> { ok }
+//   POST { op: "ingredients",      build_id, rows: [...] }             -> { inserted }
+//   POST { op: "clear_ingredients",build_id }                          -> { ok }
+//   POST { op: "strings",          build_id, rows: [...] }             -> { upserted }
+//   POST { op: "locale_strings",   build_id, rows: [...] }             -> { upserted }
+//   POST { op: "preview",          build_number, name, content_base64 } -> { path }
+//   POST { op: "finalize",         build_id, entity_counts? }          -> { ok, current }
 //
 // Each `upsert` carries one batch (recommend <= 500 rows) for ONE table; the
 // caller loops over kinds and chunks. Writes use the service-role key (RLS is
@@ -46,6 +50,7 @@ function json(body: unknown, status = 200): Response {
 const CATALOG_TABLES = new Set([
   'codex_manufacturers', 'codex_ships', 'codex_weapons',
   'codex_components', 'codex_items', 'codex_ammunition',
+  'codex_blueprints',
 ]);
 const NAT_CONFLICT = 'channel,patch_version,build_number,class_name';
 
@@ -199,6 +204,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const buildId = String(body.build_id ?? '');
       if (!buildId) return json({ error: 'invalid_body' }, 400);
       const { error } = await admin.from('codex_item_ports').delete().eq('build_id', buildId);
+      if (error) throw error;
+      return json({ ok: true });
+    }
+
+    if (op === 'ingredients') {
+      const rows = body.rows as unknown[];
+      if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
+      const { error } = await admin.from('codex_blueprint_ingredients').insert(rows);
+      if (error) throw error;
+      return json({ ok: true, inserted: rows.length });
+    }
+
+    if (op === 'clear_ingredients') {
+      const buildId = String(body.build_id ?? '');
+      if (!buildId) return json({ error: 'invalid_body' }, 400);
+      const { error } = await admin.from('codex_blueprint_ingredients').delete().eq('build_id', buildId);
       if (error) throw error;
       return json({ ok: true });
     }

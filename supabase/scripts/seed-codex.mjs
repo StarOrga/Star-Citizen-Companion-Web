@@ -3,10 +3,10 @@
 // seed-codex.mjs — bulk-load an extractor out_dir into the codex_* cloud tables.
 //
 // Reads the typed JSON folders the extractor writes (ships/, weapons/,
-// components/, items/, ammunition/, manufacturers/, localization/ — shape
-// documented in docs/concepts/codex-extraction-output.md), maps them onto the
-// 00008 + 20260530 schema, and upserts everything under a single codex_builds
-// row. On success it flips the build to is_current for its channel.
+// components/, items/, ammunition/, manufacturers/, blueprints/, localization/ —
+// shape documented in docs/concepts/codex-extraction-output.md), maps them onto
+// the 00008 + 00010 + 20260530 schema, and upserts everything under a single
+// codex_builds row. On success it flips the build to is_current for its channel.
 //
 // TWO TRANSPORTS
 //   (A) Direct service-role (default): writes straight to the DB, RLS bypassed.
@@ -20,15 +20,16 @@
 // USAGE
 //   # (A) direct
 //   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<key> \
-//     node supabase/scripts/seed-codex.mjs --out <out_dir> [--limit-per-kind N] [--no-current]
+//     node supabase/scripts/seed-codex.mjs --out <out_dir> [--limit N] [--no-current]
 //   # (B) via edge function (keyless on this machine)
 //   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_ANON_KEY=<anon> \
 //   SUPABASE_SEED_TOKEN=<token> \
 //     node supabase/scripts/seed-codex.mjs --via-function --out <out_dir> ...
 //
 //   --out             extractor output dir (default: %LOCALAPPDATA%/sc-companion/extracts/LIVE-full)
-//   --limit-per-kind  cap rows per entity kind (0/unset = FULL; ships +
-//                     manufacturers are always loaded in full regardless)
+//   --limit           cap rows per entity kind (0/unset = FULL catalog; ships +
+//                     manufacturers are always loaded in full regardless). Alias:
+//                     --limit-per-kind (accepted for backwards compat).
 //   --no-locale       skip the (large) localization table load
 //   --no-current      do not flip is_current on completion
 //
@@ -54,7 +55,8 @@ const DEFAULT_OUT = join(
   'sc-companion', 'extracts', 'LIVE-full',
 );
 const OUT_DIR = arg('out', DEFAULT_OUT);
-const LIMIT = Number(arg('limit-per-kind', 0)) || 0; // 0 = no limit
+// --limit (canonical) OR --limit-per-kind (legacy alias), default = 0 = no cap.
+const LIMIT = Number(arg('limit', arg('limit-per-kind', 0))) || 0; // 0 = no limit
 const SET_CURRENT = arg('no-current') !== true;
 const LOAD_LOCALE = arg('no-locale') !== true;
 const VIA = arg('via-function') === true;
@@ -193,6 +195,25 @@ async function sendPorts(buildId, rows) {
     }
     done += slice.length;
     process.stdout.write(`\r  codex_item_ports: ${done}/${rows.length}`);
+  }
+  if (rows.length) process.stdout.write('\n');
+  return done;
+}
+
+async function sendIngredients(buildId, rows) {
+  // Clear then re-insert (same pattern as codex_item_ports / clear_ports).
+  if (VIA) await postFn('clear_ingredients', { build_id: buildId });
+  else await sb.from('codex_blueprint_ingredients').delete().eq('build_id', buildId);
+  let done = 0;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK);
+    if (VIA) await postFn('ingredients', { build_id: buildId, rows: slice });
+    else {
+      const { error } = await sb.from('codex_blueprint_ingredients').insert(slice);
+      if (error) throw error;
+    }
+    done += slice.length;
+    process.stdout.write(`\r  codex_blueprint_ingredients: ${done}/${rows.length}`);
   }
   if (rows.length) process.stdout.write('\n');
   return done;
@@ -491,6 +512,63 @@ async function main() {
       }),
     );
     counts.ammunition = await sendEntity('codex_ammunition', rows);
+  }
+
+  // 7b. blueprints + ingredients + blueprint strings -------------------------
+  {
+    const ingredientRows = [];
+    const list = await readJsonDir('blueprints', LIMIT);
+    const rows = list.map((bp) => {
+      // Primary output className = outputs[0].className (null if no output resolved)
+      const outputClassName =
+        Array.isArray(bp.outputs) && bp.outputs.length > 0
+          ? (bp.outputs[0].className ?? null)
+          : null;
+      return tagged({
+        class_name: bp.className,
+        guid: bp.guid ?? null,
+        entity_kind: 'blueprint',
+        category: bp.category ?? null,
+        tier: bp.tier ?? null,
+        craft_time_seconds: bp.craftTimeSeconds ?? null,
+        dismantle_time_seconds: bp.dismantleTimeSeconds ?? null,
+        dismantle_efficiency: bp.dismantleEfficiency ?? null,
+        output_class_name: outputClassName,
+        is_default: bp.isDefault ?? null,
+        is_variant: false,
+        name_localized: localizedName(bp.name),
+        payload: bp,
+      });
+    });
+
+    // Collect ingredient rows from all blueprints
+    for (const bp of list) {
+      if (!Array.isArray(bp.ingredients)) continue;
+      bp.ingredients.forEach((ing, idx) => {
+        ingredientRows.push(
+          tagged({
+            blueprint_class_name: bp.className,
+            ingredient_class_name: ing.className ?? null,
+            ingredient_guid: ing.guid ?? null,
+            quantity: ing.quantity ?? null,
+            min_quality: ing.minQuality ?? null,
+            role: ing.role ?? null,
+            ingredient_index: idx,
+          }),
+        );
+      });
+    }
+
+    // Collect entity strings for blueprints (name + description, en + de)
+    for (const bp of list) {
+      collectStrings(bp.className, 'blueprint', [
+        { field: 'name', loc: bp.name },
+        { field: 'description', loc: bp.description },
+      ]);
+    }
+
+    counts.blueprints = await sendEntity('codex_blueprints', rows);
+    counts.blueprint_ingredients = await sendIngredients(buildId, ingredientRows);
   }
 
   // 8. entity strings + ports (deduped) -------------------------------------

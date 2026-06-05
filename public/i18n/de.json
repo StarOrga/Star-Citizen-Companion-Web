@@ -143,6 +143,8 @@
       "hardpointsHint": "Klicke auf einen Hardpoint, um zu sehen, was hineinpasst.",
       "compatLoading": "Kompatible Items werden geladen…",
       "compatNone": "Keine passenden Items in diesem Build.",
+      "usedInBlueprints": "Verwendet in Blueprints",
+      "usedInBlueprintsHint": "Crafting-Rezepte, die diesen Gegenstand als Zutat benötigen.",
       "compatCount": "{{count}} kompatible Items",
       "noHardpoints": "Keine Hardpoints in diesem Build.",
       "loadout": "Standard-Loadout",
@@ -201,6 +203,60 @@
       "loadError": "3D-Modell konnte nicht geladen werden",
       "loadCatalogError": "Lackierungen konnten nicht geladen werden.",
       "retry": "Erneut versuchen"
+    },
+    "kinds": {
+      "blueprint": "Baupläne"
+    },
+    "kindSingular": {
+      "blueprint": "Bauplan"
+    }
+  },
+  "blueprint": {
+    "title": "Herstellungs-Baupläne",
+    "subtitle": "Datamined Crafting-Rezepte — Zutaten, Ausgaben und Herstellungszeiten aus dem Live-Build.",
+    "empty": "Noch keine Baupläne in diesem Build. Führe den Data Uploader aus, um den Katalog zu befüllen.",
+    "search": {
+      "label": "Baupläne suchen",
+      "placeholder": "Name oder Klasse suchen…"
+    },
+    "filters": {
+      "category": "Kategorie"
+    },
+    "category": {
+      "ship_components": "Schiffskomponenten",
+      "fps_weapons": "FPS-Waffen",
+      "ship_weapons": "Schiffswaffen",
+      "consumables": "Verbrauchsgüter",
+      "armor": "Rüstung",
+      "clothing": "Kleidung",
+      "food": "Nahrung",
+      "medicine": "Medizin",
+      "other": "Sonstiges"
+    },
+    "card": {
+      "tier": "Tier {{tier}}"
+    },
+    "role": {
+      "primary": "Primär",
+      "secondary": "Sekundär",
+      "catalyst": "Katalysator"
+    },
+    "detail": {
+      "back": "Zurück zu Bauplänen",
+      "tier": "Tier",
+      "craftTime": "Herstellungszeit",
+      "dismantleTime": "Zerlegezeit",
+      "outputQty": "Ausgabemenge",
+      "ingredients": "Zutaten",
+      "noIngredients": "Keine Zutaten erfasst.",
+      "unresolved": "Unaufgelöste Zutat",
+      "minQuality": "Min. Qualität",
+      "output": "Ausgabe",
+      "qualitySummary": "Qualitätszusammenfassung",
+      "qualityNote": "Statische Basisqualitätswerte — interaktive Qualitätssimulation folgt in einem späteren Update.",
+      "primary": "Primär",
+      "usedIn": "In Bauplänen verwendet",
+      "usedInCount": "In {{count}} Bauplan/Bauplänen verwendet"
     }
   },
   "news": {

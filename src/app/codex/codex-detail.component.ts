@@ -20,6 +20,7 @@ import {
   WeaponPayload,
 } from './codex.types';
 import {
+  BlueprintRef,
   CodexDetail,
   CodexKind,
   CodexService,
@@ -38,6 +39,7 @@ import {
   cleanLocaleValue,
   curateComponentStats,
   humanizeClassName,
+  formatCraftTime,
   formatNumber,
   humanizePortType,
   meaningfulRows,
@@ -295,6 +297,27 @@ interface LoadoutGroup {
           </section>
         }
 
+        <!-- ── Used in crafting blueprints (reverse ingredient lookup) ─ -->
+        @if (usedInBlueprints().length > 0) {
+          <section class="sc-card block">
+            <h2>{{ 'codex.detail.usedInBlueprints' | translate }} <span class="ct">{{ usedInBlueprints().length }}</span></h2>
+            <p class="hint">{{ 'codex.detail.usedInBlueprintsHint' | translate }}</p>
+            <ul class="compat-list">
+              @for (b of usedInBlueprints(); track b.classNameSlug) {
+                <li>
+                  <a class="compat-link" [routerLink]="['/codex', 'blueprint', b.classNameSlug]">
+                    {{ b.nameLocalized || humanizeName(b.classNameSlug) }}
+                  </a>
+                  <span class="compat-meta">
+                    @if (b.tier != null) { <span class="chip">T{{ b.tier }}</span> }
+                    @if (b.craftTimeSec != null) { <span class="chip">{{ fmtCraft(b.craftTimeSec) }}</span> }
+                  </span>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
         <!-- ── Ship liveries — 3D skin selector (P4K assets) ─────── -->
         @if (shipClassName(); as cls) {
           <sc-ship-skin-viewer [shipId]="cls" />
@@ -456,6 +479,9 @@ export class CodexDetailComponent implements OnInit {
   readonly showRaw = signal(false);
   readonly showEmptyLoadout = signal(false);
 
+  // Reverse ingredient lookup: crafting blueprints that consume this entity.
+  readonly usedInBlueprints = signal<BlueprintRef[]>([]);
+
   // Hardpoint slot-compatibility: which port is expanded + its lazy item list.
   readonly expandedPort = signal<number | null>(null);
   private readonly compatMap = signal<Map<number, PortCompat>>(new Map());
@@ -491,10 +517,15 @@ export class CodexDetailComponent implements OnInit {
     this.compatMap.set(new Map());
     this.localeMap.set(new Map());
     this.showEmptyLoadout.set(false);
+    this.usedInBlueprints.set([]);
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
-      if (d) await Promise.all([this.resolveLoadoutEntities(d), this.resolveLocale(d)]);
+      if (d) {
+        await Promise.all([this.resolveLoadoutEntities(d), this.resolveLocale(d)]);
+        // Ships are not crafting ingredients; skip the reverse lookup for them.
+        if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug);
+      }
     } catch (err) {
       this.error.set((err as Error).message ?? 'Unknown error');
     } finally {
@@ -554,6 +585,15 @@ export class CodexDetailComponent implements OnInit {
       .map((e) => e.entityClassName)
       .filter((c): c is string => !!c);
     this.loadoutEntities.set(await this.svc.resolveEntities(classNames));
+  }
+
+  /** Reverse lookup: crafting blueprints that consume this entity as an ingredient. */
+  private async loadUsedInBlueprints(className: string): Promise<void> {
+    try {
+      this.usedInBlueprints.set(await this.svc.blueprintsUsingIngredient(className));
+    } catch {
+      this.usedInBlueprints.set([]);
+    }
   }
 
   // ── derived views ──────────────────────────────────────────────────────────
@@ -779,6 +819,12 @@ export class CodexDetailComponent implements OnInit {
   }
   fmt(n: number): string {
     return formatNumber(n);
+  }
+  humanizeName(cls: string): string {
+    return humanizeClassName(cls);
+  }
+  fmtCraft(sec: number | null): string {
+    return formatCraftTime(sec) ?? '';
   }
 
   isPinned(): boolean {

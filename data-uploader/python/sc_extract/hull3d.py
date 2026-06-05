@@ -164,23 +164,38 @@ class Hull3DExporter:
         produced.replace(out_glb)
 
     def _optimize(self, in_glb: Path, out_glb: Path) -> None:
+        import json as _json
+        import os
         import sys
-        npx = shutil.which("npx") or "npx"
-        cmd = [npx, "--yes", "@gltf-transform/cli@latest", "optimize",
-               str(in_glb.resolve()), str(out_glb.resolve()),
-               "--texture-compress", "webp", "--texture-size", str(self.cfg.texture_size),
-               "--simplify", "true", "--simplify-error", str(self.cfg.simplify_error),
-               "--compress", "draco"]
-        # Windows npx is a .CMD shim → must go through the shell with proper quoting.
-        if sys.platform == "win32":
-            r = subprocess.run(subprocess.list2cmdline(cmd), shell=True,
-                               capture_output=True, encoding="utf-8",
-                               errors="replace", timeout=900)
+        flags = ["optimize", str(in_glb.resolve()), str(out_glb.resolve()),
+                 "--texture-compress", "webp", "--texture-size", str(self.cfg.texture_size),
+                 "--simplify", "true", "--simplify-error", str(self.cfg.simplify_error),
+                 "--compress", "draco"]
+        host_argv = os.environ.get("SC_GLTF_TRANSFORM_ARGV")
+        if host_argv:
+            # Host (Electron) provides the runtime: a JSON argv prefix that runs
+            # the bundled @gltf-transform/cli through its OWN Node, so the
+            # packaged app needs no global npx/Node. ELECTRON_RUN_AS_NODE makes
+            # the Electron binary behave as a plain Node interpreter.
+            prefix = _json.loads(host_argv)
+            env = {**os.environ, "ELECTRON_RUN_AS_NODE": "1"}
+            r = subprocess.run([*prefix, *flags], capture_output=True,
+                               encoding="utf-8", errors="replace", timeout=900, env=env)
         else:
-            r = subprocess.run(cmd, capture_output=True, encoding="utf-8",
-                               errors="replace", timeout=900)
+            # Dev fallback: pull the CLI on demand via npx (Node required).
+            npx = shutil.which("npx") or "npx"
+            cmd = [npx, "--yes", "@gltf-transform/cli@latest", *flags]
+            # Windows npx is a .CMD shim → must go through the shell with quoting.
+            if sys.platform == "win32":
+                r = subprocess.run(subprocess.list2cmdline(cmd), shell=True,
+                                   capture_output=True, encoding="utf-8",
+                                   errors="replace", timeout=900)
+            else:
+                r = subprocess.run(cmd, capture_output=True, encoding="utf-8",
+                                   errors="replace", timeout=900)
         if not out_glb.exists():
-            raise RuntimeError(f"gltf-transform failed (rc={r.returncode}): {r.stderr[-400:]}")
+            raise RuntimeError(
+                f"gltf-transform failed (rc={r.returncode}): {(r.stderr or '')[-400:]}")
 
     # ---- public API --------------------------------------------------------
     def export_ship(self, spec: ShipSpec) -> dict:

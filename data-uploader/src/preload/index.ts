@@ -66,6 +66,41 @@ interface ExtractEvent {
   error_type?: string;
 }
 
+interface SkinExportRequest {
+  p4kPath: string;
+  outDir: string;
+  ships: string[];
+  textureSize?: number;
+  limitSkins?: number;
+}
+interface SkinEntry {
+  skin_id: string;
+  name: string;
+  description: string;
+  source: string;
+  name_verified: boolean;
+  has_model: boolean;
+  has_icon: boolean;
+  model_bytes: number | null;
+}
+interface SkinShipResult {
+  ship_id: string;
+  export_dir: string;
+  skins: SkinEntry[];
+}
+interface SkinExportFinal {
+  ok: boolean;
+  ships?: SkinShipResult[];
+  error?: string;
+}
+interface SkinUploadResult {
+  ok: boolean;
+  ship_id: string;
+  uploaded?: number;
+  committed?: number;
+  error?: string;
+}
+
 export const api = {
   env: (): Promise<ToolEnv> => ipcRenderer.invoke('sc:env'),
   discover: (): Promise<DiscoveredChannel[]> => ipcRenderer.invoke('sc:discover'),
@@ -111,6 +146,26 @@ export const api = {
       const listener = (_e: unknown, payload: ExtractEvent): void => cb(payload);
       ipcRenderer.on('sc:extract:event', listener);
       return () => ipcRenderer.removeListener('sc:extract:event', listener);
+    },
+  },
+  skin: {
+    ensureTools: (): Promise<{ ok: boolean; path?: string; error?: string }> =>
+      ipcRenderer.invoke('sc:skin:ensureTools'),
+    onToolProgress: (cb: (pct: number) => void): (() => void) => {
+      const listener = (_e: unknown, payload: { pct: number }): void => cb(payload.pct);
+      ipcRenderer.on('sc:skin:toolProgress', listener);
+      return () => ipcRenderer.removeListener('sc:skin:toolProgress', listener);
+    },
+    start: (req: SkinExportRequest): Promise<SkinExportFinal> =>
+      ipcRenderer.invoke('sc:skin:start', req),
+    cancel: (jobId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('sc:skin:cancel', jobId),
+    upload: (accessToken: string, ships: { shipId: string; dir: string }[]): Promise<SkinUploadResult[]> =>
+      ipcRenderer.invoke('sc:skin:upload', accessToken, ships),
+    onEvent: (cb: (ev: ExtractEvent) => void): (() => void) => {
+      const listener = (_e: unknown, payload: ExtractEvent): void => cb(payload);
+      ipcRenderer.on('sc:skin:event', listener);
+      return () => ipcRenderer.removeListener('sc:skin:event', listener);
     },
   },
 };
