@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-06-05
+
+### Added — PWA: prompt to reload when a new version is ready
+
+- **Service-worker update prompt.** A new `SwUpdateService` listens for ngsw
+  `VERSION_READY` and polls every 30 min, so a freshly deployed build is
+  detected even in long-open tabs. A localized banner ("Neue Version
+  verfügbar" / "Neu laden" / "Später") appears above all routes; "Neu laden"
+  calls `activateUpdate()` and hard-reloads into the new version.
+- **Why.** Without an explicit `SwUpdate` flow, ngsw downloads a new deploy in
+  the background but never activates it while a tab stays open — returning
+  users kept seeing a stale shell (missing Codex nav link, deep-link bounces
+  to `/news` from chunk-hash mismatches). The prompt closes that gap.
+- **i18n.** `update.*` keys added in all 7 languages (de, en, es, fr, pt, ru, zh).
+
 ## [0.14.0] - 2026-06-04
 
 ### Added — Codex: crafting blueprints, extracted from Data.p4k
