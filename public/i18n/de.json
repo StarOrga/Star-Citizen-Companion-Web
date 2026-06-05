@@ -1,4 +1,9 @@
 {
+  "update": {
+    "available": "Neue Version verfügbar",
+    "reload": "Neu laden",
+    "dismiss": "Später"
+  },
   "auth": {
     "tagline": "Dein Terminal zum Verse",
     "email": "E-Mail",

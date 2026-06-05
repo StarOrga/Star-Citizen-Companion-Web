@@ -1,4 +1,9 @@
 {
+  "update": {
+    "available": "Hay una nueva versión disponible",
+    "reload": "Recargar",
+    "dismiss": "Más tarde"
+  },
   "auth": {
     "tagline": "Tu terminal hacia el verse",
     "email": "Correo electrónico",

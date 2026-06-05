@@ -1,19 +1,78 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { TranslateService } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from './auth/auth.service';
+import { SwUpdateService } from './core/sw-update.service';
 
 @Component({
   selector: 'sc-root',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<router-outlet />`,
-  styles: [`:host { display: block; min-height: 100vh; }`],
+  template: `
+    <router-outlet />
+
+    @if (swUpdate.updateReady()) {
+      <div class="sw-update" role="status" aria-live="polite">
+        <span class="sw-update__msg">{{ 'update.available' | translate }}</span>
+        <button type="button" class="sc-btn sc-btn-primary" (click)="swUpdate.applyUpdate()">
+          {{ 'update.reload' | translate }}
+        </button>
+        <button type="button" class="sw-update__dismiss" (click)="swUpdate.dismiss()">
+          {{ 'update.dismiss' | translate }}
+        </button>
+      </div>
+    }
+  `,
+  styles: [
+    `
+      :host {
+        display: block;
+        min-height: 100vh;
+      }
+
+      .sw-update {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        transform: translateX(-50%);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        max-width: calc(100vw - 32px);
+        padding: 12px 16px;
+        background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
+        border: 1px solid var(--sc-accent);
+        border-radius: 8px;
+        box-shadow: var(--sc-glow);
+      }
+
+      .sw-update__msg {
+        font-family: var(--sc-font-display);
+        font-size: 0.85rem;
+        letter-spacing: 0.04em;
+        color: var(--sc-fg-0);
+      }
+
+      .sw-update__dismiss {
+        background: transparent;
+        border: 0;
+        color: var(--sc-fg-2);
+        font-size: 0.8rem;
+      }
+
+      .sw-update__dismiss:hover {
+        color: var(--sc-fg-0);
+        text-decoration: underline;
+      }
+    `,
+  ],
 })
 export class AppComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly auth = inject(AuthService);
+  readonly swUpdate = inject(SwUpdateService);
 
   ngOnInit(): void {
     const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('sc.lang') : null;
@@ -31,5 +90,6 @@ export class AppComponent implements OnInit {
     }
 
     this.auth.init();
+    this.swUpdate.init();
   }
 }
