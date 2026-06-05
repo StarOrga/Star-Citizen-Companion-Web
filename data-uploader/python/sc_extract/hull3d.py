@@ -10,10 +10,14 @@ Pipeline (per ship, per skin):
 External *build tools* (NOT data sources — data is 100% P4K):
   * cgf-converter v2.0.0+  (Markemp/Cryengine-Converter) — parses SC 4.x Ivo
     geometry that scdatatools 1.0.4 cannot. Fetched once via tools/fetch_tools.py.
-  * @gltf-transform/cli    — run through `npx`, no install needed.
+  * @gltf-transform/cli    — BUNDLED with the desktop app. The packaged build
+    runs it through Electron's own Node (ELECTRON_RUN_AS_NODE), so end users need
+    no global Node/npx. `npx @gltf-transform/cli@latest` is only the dev fallback
+    when the bundled CLI is not resolvable.
 
-This is the "Cutlass pilot" wiring: ship geometry/paint locations are passed in
-explicitly (see ShipSpec). Generalising to auto-discover every ship is a follow-up.
+Ship geometry/paint locations come from `ship_discovery.py`, which pattern-matches
+the P4K layout to build a `ShipSpec` for ANY ship. `cutlass_pilot.py` remains the
+explicit hand-wired reference (the original Cutlass Black pilot).
 """
 from __future__ import annotations
 
