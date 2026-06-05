@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@gltf-transform/cli": "^4.0.0",
-    "@starorga/star-ui": "github:StarOrga/StarUI#v0.1.0",
+    "@starorga/star-ui": "github:StarOrga/StarUI#v0.1.1",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.3",
     "yauzl": "^3.1.3"
