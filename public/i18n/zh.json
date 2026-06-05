@@ -1,4 +1,9 @@
 {
+  "update": {
+    "available": "有新版本可用",
+    "reload": "重新加载",
+    "dismiss": "稍后"
+  },
   "auth": {
     "tagline": "你的星际终端",
     "email": "电子邮件",
