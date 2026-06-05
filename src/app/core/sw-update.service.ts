@@ -25,18 +25,26 @@ export class SwUpdateService {
   /** Poll interval for long-open tabs (desktop PWA stays open for hours). */
   private static readonly POLL_MS = 30 * 60 * 1000;
 
+  /** Guards against double-wiring (subscription + timer) if init() re-runs. */
+  private initialized = false;
+  /** Guards against concurrent activate-and-reload from double clicks. */
+  private applying = false;
+
   /**
    * Subscribe to version events and start polling. No-op when the service
-   * worker is disabled (dev mode or unsupported browser).
+   * worker is disabled (dev mode or unsupported browser) or already wired.
    */
   init(): void {
-    if (!this.swUpdate.isEnabled) {
+    if (this.initialized || !this.swUpdate.isEnabled) {
       return;
     }
+    this.initialized = true;
 
     this.swUpdate.versionUpdates
       .pipe(filter((event): event is VersionReadyEvent => event.type === 'VERSION_READY'))
-      .subscribe(() => this.updateReady.set(true));
+      // versionUpdates can emit outside the Angular zone; re-enter so the
+      // signal write reliably schedules CD for the OnPush banner.
+      .subscribe(() => this.zone.run(() => this.updateReady.set(true)));
 
     // A long-open tab would otherwise only check on reload. Poll outside the
     // Angular zone so the timer never keeps the zone unstable (which would
@@ -54,7 +62,17 @@ export class SwUpdateService {
 
   /** Activate the downloaded version and hard-reload into it. */
   async applyUpdate(): Promise<void> {
-    await this.swUpdate.activateUpdate();
-    this.document.location.reload();
+    if (this.applying) {
+      return;
+    }
+    this.applying = true;
+    try {
+      await this.swUpdate.activateUpdate();
+      this.document.location.reload();
+    } catch {
+      // Activation failed (e.g. the new worker vanished) — allow a retry on
+      // the next prompt instead of leaving the button silently inert.
+      this.applying = false;
+    }
   }
 }
