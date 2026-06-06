@@ -45,5 +45,32 @@
     "downloaded": "Update v{{version}} bereit — bitte App neu starten.",
     "install": "Jetzt installieren",
     "error": "Update-Fehler: {{message}}"
+  },
+  "session": {
+    "title": "Web-Verbindung",
+    "offline": "Nicht verbunden",
+    "checking": "Prüfe…",
+    "connected": "Verbunden",
+    "expired": "Sitzung abgelaufen",
+    "connect": "Mit Web verbinden",
+    "reconnect": "Neu verbinden",
+    "signOut": "Abmelden",
+    "connectHint": "Einmal anmelden — bleibt danach automatisch verbunden.",
+    "expiredHint": "Deine gespeicherte Sitzung ist abgelaufen — bitte neu verbinden.",
+    "connectFailed": "Anmeldung fehlgeschlagen",
+    "noPersist": "Hinweis: Kein OS-Schlüsselspeicher — Sitzung gilt nur bis zum Schließen."
+  },
+  "sync": {
+    "syncing": "Synchronisiere Server-Stand…",
+    "serverState": "Server-Stand",
+    "lastSynced": "aktualisiert {{when}}",
+    "refresh": "Aktualisieren",
+    "empty": "Noch keine Bundles auf dem Server.",
+    "idle": "Bereit zu synchronisieren.",
+    "failed": "Sync fehlgeschlagen.",
+    "justNow": "gerade eben",
+    "minutesAgo": "vor {{n}} Min",
+    "hoursAgo": "vor {{n}} Std",
+    "daysAgo": "vor {{n}} Tg"
   }
 }

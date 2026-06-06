@@ -12,6 +12,7 @@ declare const __SC_RELEASE_TOKEN__: string;
 declare const __SC_API_BASE__: string;
 declare const __SC_WEB_BASE__: string;
 declare const __SC_TOOL_VERSION__: string;
+declare const __SC_SUPABASE_ANON_KEY__: string;
 
 export const RELEASE_TOKEN: string = __SC_RELEASE_TOKEN__;
 /**
@@ -19,6 +20,13 @@ export const RELEASE_TOKEN: string = __SC_RELEASE_TOKEN__;
  * ingest-bundle, check-bundle). All API-style calls go here.
  */
 export const API_BASE: string = __SC_API_BASE__;
+/**
+ * Supabase publishable (anon) key — sent as the `apikey` header for the REST/RPC
+ * sync (`list_p4k_bundles_for_collaborator`) and the GoTrue token refresh.
+ * Publishable keys are safe in clients (RLS still enforces access), so a
+ * hardcoded fallback is fine; CI may override via `SC_SUPABASE_ANON_KEY`.
+ */
+export const SUPABASE_ANON_KEY: string = __SC_SUPABASE_ANON_KEY__;
 /**
  * Angular web-app URL where the OAuth callback page (/desktop/auth) is
  * served. Used by oauth.ts when opening the user's browser. Different

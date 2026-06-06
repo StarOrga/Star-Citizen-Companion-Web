@@ -48,8 +48,11 @@ body::before {
 }
 
 body {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
+  /* Flex column (not grid) so any number of always-/sometimes-visible bars
+     above #app — update banner, connection tile — stack naturally while #app
+     stays the single flexible scroll region. */
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
@@ -80,6 +83,8 @@ body {
 .topbar select:focus { outline: none; border-color: var(--sc-accent); }
 
 main {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 24px 28px;
 }
@@ -315,6 +320,76 @@ h3 { font-size: 0.9rem; }
 }
 .diff-table th { color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; }
 .diff-table td:not(:first-child) { text-align: right; font-family: var(--sc-font-display); }
+
+/* ------- web-connection tile ------- */
+.conn-tile { padding: 12px 28px 0; }
+.conn-card {
+  background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
+  border: 1px solid var(--sc-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.conn-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.conn-title {
+  font-family: var(--sc-font-display);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sc-fg-2);
+}
+.conn-pill {
+  font-family: var(--sc-font-display);
+  font-size: 0.64rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.conn-pill.online { background: rgba(var(--status-success-rgb), 0.18); color: var(--sc-success); }
+.conn-pill.offline { background: var(--sc-bg-3); color: var(--sc-fg-2); }
+.conn-pill.pending { background: rgba(var(--accent-primary-rgb), 0.14); color: var(--sc-accent); }
+.conn-pill.warn { background: rgba(var(--accent-warning-rgb), 0.18); color: var(--sc-warning); }
+.conn-id { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.conn-email { font-size: 0.85rem; color: var(--sc-fg-0); }
+.conn-hint { font-size: 0.8rem; color: var(--sc-fg-2); }
+.conn-link {
+  background: none; border: none; cursor: pointer;
+  color: var(--sc-accent); font: inherit; font-size: 0.76rem; padding: 0;
+  text-decoration: underline; -webkit-app-region: no-drag;
+}
+.conn-link:hover { color: var(--accent-strong); }
+.btn-sm { padding: 5px 12px; font-size: 0.7rem; }
+.conn-sync { display: flex; flex-direction: column; gap: 6px; }
+.conn-sync-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.78rem; color: var(--sc-fg-1); }
+.conn-meta { color: var(--sc-fg-2); font-size: 0.74rem; }
+.conn-pct { font-family: var(--sc-font-display); color: var(--sc-accent); font-variant-numeric: tabular-nums; }
+.conn-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.conn-chip {
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--sc-bg-1);
+  border: 1px solid var(--sc-border);
+  color: var(--sc-fg-1);
+  font-variant-numeric: tabular-nums;
+}
+.conn-chip strong { color: var(--sc-accent); font-family: var(--sc-font-display); letter-spacing: 0.04em; margin-right: 2px; }
+.conn-chip.ptu strong { color: var(--sc-success); }
+.conn-chip.eptu strong { color: var(--sc-warning); }
+.conn-chip.tech-preview strong { color: var(--sc-accent-hot); }
+.conn-empty { color: var(--sc-fg-2); font-size: 0.78rem; }
+.conn-persist-note { font-size: 0.72rem; color: var(--sc-warning); }
+.conn-error {
+  font-size: 0.78rem;
+  color: var(--sc-danger);
+  background: rgba(var(--accent-danger-light-rgb), 0.1);
+  border: 1px solid var(--sc-danger);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -71,6 +71,7 @@ async function init(): Promise<void> {
     select.addEventListener('change', async () => {
       await setLocale(select.value as LocaleId);
       render();
+      paintConnection();
     });
   }
 
@@ -78,7 +79,281 @@ async function init(): Promise<void> {
   window.sc.update.onEvent(paintUpdateBanner);
   void window.sc.update.status().then(paintUpdateBanner);
 
+  // Web-connection tile — auto-connect (persisted session) + auto-sync.
+  void initConnectionTile();
+
   render();
+}
+
+// ============= Web-connection tile (persistent across all views) =============
+
+interface ConnChannelState {
+  channel: string;
+  patchVersion: string;
+  buildNumber: string;
+  qualityScore: number | null;
+  entityTotal: number;
+  bundleId: string;
+  createdAt: string;
+}
+interface ConnSnapshot { syncedAt: number; channels: ConnChannelState[]; bundleCount: number }
+interface ConnSyncProgress { phase: string; pct: number; message?: string; channel?: string }
+interface ConnStatus {
+  connected: boolean;
+  email: string | null;
+  expiresAt: number | null;
+  canPersist: boolean;
+  needsReconnect: boolean;
+}
+
+const conn = {
+  status: null as ConnStatus | null,
+  snapshot: null as ConnSnapshot | null,
+  syncing: false,
+  syncPct: 0,
+  syncPhase: '',
+  error: null as string | null,
+  resolved: false,
+};
+
+async function initConnectionTile(): Promise<void> {
+  // 1. Instant paint from the remembered snapshot — no network ("Fortschritt gemerkt").
+  try {
+    conn.snapshot = (await window.sc.sync.cached()) as ConnSnapshot | null;
+  } catch {
+    /* cache optional */
+  }
+  paintConnection();
+
+  // 2. Live sync-progress subscription — parts build up on the tile.
+  window.sc.sync.onEvent((ev: ConnSyncProgress) => {
+    conn.syncing = ev.phase !== 'done' && ev.phase !== 'error';
+    conn.syncPct = ev.pct;
+    conn.syncPhase = ev.phase;
+    if (ev.phase === 'error') conn.error = ev.message ?? 'sync_failed';
+    paintConnection();
+  });
+
+  // 3. Resolve session + auto-connect/sync without user interaction.
+  await refreshConnection();
+}
+
+async function refreshConnection(): Promise<void> {
+  try {
+    conn.status = (await window.sc.session.status()) as ConnStatus;
+  } catch {
+    conn.status = { connected: false, email: null, expiresAt: null, canPersist: true, needsReconnect: false };
+  }
+  conn.resolved = true;
+  paintConnection();
+  if (conn.status?.connected) {
+    // Mirror the token into the upload/skin flows so they skip the re-login.
+    try {
+      const tok = await window.sc.session.token();
+      if (tok.token) state.authToken = tok.token;
+    } catch {
+      /* ignore */
+    }
+    void autoSync();
+  }
+}
+
+async function autoSync(): Promise<void> {
+  if (conn.syncing) return;
+  conn.syncing = true;
+  conn.error = null;
+  paintConnection();
+  try {
+    const r = await window.sc.sync.start();
+    if (r.ok && r.snapshot) conn.snapshot = r.snapshot as ConnSnapshot;
+    else if (!r.ok) conn.error = r.error ?? 'sync_failed';
+  } catch (e) {
+    conn.error = (e as Error).message;
+  } finally {
+    conn.syncing = false;
+    paintConnection();
+  }
+}
+
+async function connectNow(): Promise<void> {
+  conn.error = null;
+  setConnBusy(true);
+  try {
+    const r = await window.sc.authenticate();
+    if (r.ok && r.accessToken) {
+      state.authToken = r.accessToken;
+      await refreshConnection();
+    } else {
+      conn.error = r.error ?? (t('session.connectFailed', {}) || 'Anmeldung fehlgeschlagen');
+      paintConnection();
+    }
+  } finally {
+    setConnBusy(false);
+  }
+}
+
+async function signOutNow(): Promise<void> {
+  try {
+    await window.sc.session.signOut();
+  } catch {
+    /* ignore */
+  }
+  state.authToken = null;
+  conn.status = {
+    connected: false,
+    email: null,
+    expiresAt: null,
+    canPersist: conn.status?.canPersist ?? true,
+    needsReconnect: false,
+  };
+  paintConnection();
+}
+
+// Prefer the persisted/refreshed session token (no re-login); fall back to an
+// interactive browser login only when there is no usable session.
+async function ensureUploadToken(): Promise<string | null> {
+  try {
+    const tok = await window.sc.session.token();
+    if (tok.token) {
+      state.authToken = tok.token;
+      return tok.token;
+    }
+  } catch {
+    /* fall through to interactive login */
+  }
+  const r = await window.sc.authenticate();
+  if (r.ok && r.accessToken) {
+    state.authToken = r.accessToken;
+    void refreshConnection();
+    return r.accessToken;
+  }
+  return null;
+}
+
+function setConnBusy(busy: boolean): void {
+  const btn = $('#conn-connect') as HTMLButtonElement | null;
+  if (btn) btn.disabled = busy;
+}
+
+function relTime(unixSeconds: number): string {
+  const deltaSec = Math.max(0, Math.floor(Date.now() / 1000) - unixSeconds);
+  if (deltaSec < 60) return t('sync.justNow', {}) || 'gerade eben';
+  const mins = Math.floor(deltaSec / 60);
+  if (mins < 60) return t('sync.minutesAgo', { n: String(mins) }) || `vor ${mins} Min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return t('sync.hoursAgo', { n: String(hours) }) || `vor ${hours} Std`;
+  const days = Math.floor(hours / 24);
+  return t('sync.daysAgo', { n: String(days) }) || `vor ${days} Tg`;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"]/g, (c) =>
+    c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&quot;',
+  );
+}
+
+function connErrorText(code: string): string {
+  if (code === 'reconnect') return t('session.expiredHint', {}) || 'Sitzung abgelaufen — bitte neu verbinden.';
+  if (code === 'not_connected') return t('session.offline', {}) || 'Nicht verbunden.';
+  if (code === 'sync_failed') return t('sync.failed', {}) || 'Sync fehlgeschlagen.';
+  return code;
+}
+
+function paintConnection(): void {
+  const mount = $('#connection-tile');
+  if (!mount) return;
+  const s = conn.status;
+  const snap = conn.snapshot;
+
+  let pillCls = 'offline';
+  let pillText = t('session.offline', {}) || 'Nicht verbunden';
+  if (!conn.resolved) {
+    pillCls = 'pending';
+    pillText = t('session.checking', {}) || 'Prüfe…';
+  } else if (s?.connected) {
+    pillCls = 'online';
+    pillText = t('session.connected', {}) || 'Verbunden';
+  } else if (s?.needsReconnect) {
+    pillCls = 'warn';
+    pillText = t('session.expired', {}) || 'Sitzung abgelaufen';
+  }
+
+  let identity = '';
+  if (s?.connected) {
+    identity = `
+      <div class="conn-id">
+        <span class="conn-email">${escapeHtml(s.email ?? '')}</span>
+        <button id="conn-signout" type="button" class="conn-link">${t('session.signOut', {}) || 'Abmelden'}</button>
+      </div>`;
+  } else if (conn.resolved) {
+    const label = s?.needsReconnect
+      ? t('session.reconnect', {}) || 'Neu verbinden'
+      : t('session.connect', {}) || 'Mit Web verbinden';
+    const hint = s?.needsReconnect
+      ? t('session.expiredHint', {}) || 'Deine gespeicherte Sitzung ist abgelaufen.'
+      : t('session.connectHint', {}) || 'Einmal anmelden — bleibt danach automatisch verbunden.';
+    identity = `
+      <div class="conn-id">
+        <span class="conn-hint">${hint}</span>
+        <button id="conn-connect" type="button" class="btn btn-primary btn-sm">${label}</button>
+      </div>`;
+  }
+
+  let syncRow = '';
+  if (conn.syncing) {
+    syncRow = `
+      <div class="conn-sync">
+        <div class="conn-sync-head">
+          <span>${t('sync.syncing', {}) || 'Synchronisiere Server-Stand…'}</span>
+          <span class="conn-pct">${conn.syncPct}%</span>
+        </div>
+        <div class="progress-bar"><span style="width:${conn.syncPct}%"></span></div>
+      </div>`;
+  } else if (snap) {
+    const chips = snap.channels
+      .map(
+        (c) =>
+          `<span class="conn-chip ${escapeHtml(c.channel)}"><strong>${escapeHtml(c.channel.toUpperCase())}</strong> v${escapeHtml(c.patchVersion)} · ${c.entityTotal.toLocaleString()}</span>`,
+      )
+      .join('');
+    const refresh = s?.connected
+      ? ` · <button id="conn-sync" type="button" class="conn-link">${t('sync.refresh', {}) || 'Aktualisieren'}</button>`
+      : '';
+    syncRow = `
+      <div class="conn-sync">
+        <div class="conn-sync-head">
+          <span>${t('sync.serverState', {}) || 'Server-Stand'}</span>
+          <span class="conn-meta">${t('sync.lastSynced', { when: relTime(snap.syncedAt) }) || `aktualisiert ${relTime(snap.syncedAt)}`}${refresh}</span>
+        </div>
+        <div class="conn-chips">${chips || `<span class="conn-empty">${t('sync.empty', {}) || 'Noch keine Bundles auf dem Server.'}</span>`}</div>
+      </div>`;
+  } else if (s?.connected) {
+    syncRow = `<div class="conn-sync"><span class="conn-meta">${t('sync.idle', {}) || 'Bereit zu synchronisieren.'}</span></div>`;
+  }
+
+  const persistNote =
+    s && !s.canPersist
+      ? `<div class="conn-persist-note">${t('session.noPersist', {}) || 'Hinweis: Kein OS-Schlüsselspeicher — Sitzung gilt nur bis zum Schließen.'}</div>`
+      : '';
+
+  const errorRow = conn.error ? `<div class="conn-error">${escapeHtml(connErrorText(conn.error))}</div>` : '';
+
+  mount.innerHTML = `
+    <div class="conn-card">
+      <div class="conn-top">
+        <span class="conn-title">${t('session.title', {}) || 'Web-Verbindung'}</span>
+        <span class="conn-pill ${pillCls}">${pillText}</span>
+      </div>
+      ${identity}
+      ${syncRow}
+      ${persistNote}
+      ${errorRow}
+    </div>
+  `;
+
+  $('#conn-connect')?.addEventListener('click', () => void connectNow());
+  $('#conn-signout')?.addEventListener('click', () => void signOutNow());
+  $('#conn-sync')?.addEventListener('click', () => void autoSync());
 }
 
 type UpdateEvent =
@@ -549,20 +824,11 @@ async function doStartUpload(): Promise<void> {
   try {
     if (!state.authToken) {
       setAuthStatus(t('upload.signingIn', {}) || 'Im Browser anmelden…', 'warn');
-      const r = await window.sc.authenticate();
-      if (!r.ok || !r.accessToken) {
-        setAuthStatus(
-          `${t('upload.signInFailed', {}) || 'Anmeldung fehlgeschlagen'}: ${r.error ?? 'unbekannt'}`,
-          'error',
-        );
+      const token = await ensureUploadToken();
+      if (!token) {
+        setAuthStatus(t('upload.signInFailed', {}) || 'Anmeldung fehlgeschlagen', 'error');
         return;
       }
-      state.authToken = r.accessToken;
-      setAuthStatus(
-        t('upload.signedIn', { email: r.userEmail ?? 'unbekannt' }) ||
-          `Angemeldet als ${r.userEmail ?? 'unbekannt'} — lade Bundle hoch…`,
-        'warn',
-      );
     }
     await doUploadAfterAuth();
   } finally {
@@ -833,15 +1099,14 @@ async function runSkinFlow(): Promise<void> {
     state.skinResult = final.ships;
     setBar(100);
 
-    // 3. auth (reuse a prior session if present) + upload
+    // 3. auth (reuse the persisted session if present) + upload
     if (!state.authToken) {
       setSkinStatus(t('upload.signingIn', {}) || 'Im Browser anmelden…', 'warn');
-      const r = await window.sc.authenticate();
-      if (!r.ok || !r.accessToken) {
-        setSkinStatus(`${t('upload.signInFailed', {}) || 'Anmeldung fehlgeschlagen'}: ${r.error ?? '—'}`, 'error');
+      const token = await ensureUploadToken();
+      if (!token) {
+        setSkinStatus(t('upload.signInFailed', {}) || 'Anmeldung fehlgeschlagen', 'error');
         return;
       }
-      state.authToken = r.accessToken;
     }
     setSkinStatus(t('skins.uploading', {}) || 'Upload läuft…', 'warn');
     const results = await window.sc.skin.upload(
