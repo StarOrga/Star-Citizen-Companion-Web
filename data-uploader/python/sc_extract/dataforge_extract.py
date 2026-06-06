@@ -138,7 +138,12 @@ _NONCATALOG_RE = re.compile(
 def _is_catalog_entity(class_name: str) -> bool:
     """True for real, player-facing entities; False for dev/test scaffolding and
     NPC/derelict/world variants. Shared by every typed catalog."""
-    return _NONCATALOG_RE.search(class_name) is None
+    # SC class names are underscore-delimited, but normalise camelCase plus -, .
+    # and spaces to '_' first so a variant marker can't hide behind a different
+    # separator (e.g. 'Foo-Test', 'ShipBoardedVariant').
+    norm = re.sub(r"(?<=[a-z])(?=[A-Z])", "_", class_name)
+    norm = re.sub(r"[^0-9A-Za-z]+", "_", norm)
+    return _NONCATALOG_RE.search(norm) is None
 
 
 def _safe_filename(name: str) -> str:
@@ -992,6 +997,7 @@ class CodexExtractor:
         base.mkdir(parents=True, exist_ok=True)
         per_type = Counter()
         total = 0
+        n_fail = 0
         n_types = len(self.df.record_types)
         for ti, t in enumerate(sorted(self.df.record_types)):
             tdir = base / _safe_filename(t)
@@ -1015,12 +1021,20 @@ class CodexExtractor:
                     tdir.joinpath(fname).write_text(
                         json.dumps(resolved, ensure_ascii=False), encoding="utf-8")
                 except OSError as exc:  # noqa: BLE001 — skip, never abort the dump
+                    n_fail += 1
                     self.on_log("warn", f"write failed for {fname}: {exc}")
                     continue
                 per_type[t] += 1
                 total += 1
             if ti % 50 == 0:
                 self.on_log("info", f"generic dump {ti}/{n_types} types, {total} records")
+        if n_fail:
+            # Surface systemic write failures (disk full, permission, locked dir)
+            # rather than hiding them behind per-record warns — a large count here
+            # means the dump is materially incomplete even though it did not abort.
+            lvl = "error" if n_fail > 50 else "warn"
+            self.on_log(lvl, f"generic dump: {n_fail} record(s) unwritable "
+                             f"(skipped — long path / locked / disk)")
         self._bump("records_total", total)
         # write an index of per-type counts
         (base / "_index.json").write_text(
