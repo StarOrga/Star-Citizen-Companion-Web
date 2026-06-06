@@ -20,6 +20,7 @@ nothing is silently dropped.
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -110,22 +111,34 @@ def _strip_type_prefix(name: str) -> str:
     return name.split(".", 1)[1] if "." in name else name
 
 
-# className markers that denote an NPC / template / derelict / unmanned variant —
-# never a purchasable, player-flyable hull. A ship counts as flyable iff its
-# class name carries NONE of these. Drops the ~740 AI/derelict variants and keeps
-# the ~180 real hulls (matches thresholds.expected). The raw records are still
-# captured by dump_all_records(); only the typed `ships/` catalog is filtered.
-_NON_FLYABLE_MARKERS = (
-    "_ai_", "_pu_ai", "_template", "_shipboarded", "_boarded", "_derelict",
-    "derelict_", "_unmanned", "_stunt", "_lowfuel", "_lootable", "_wreck",
-    "_hijacked", "_dummy", "_modifiers", "_simpod", "_nocargo", "_halfcargo",
+# Tokens that mark a record as dev/test scaffolding (every catalog) or an NPC /
+# derelict / world variant (mostly ships, some weapons/items). A record belongs
+# in a player-facing catalog only if its class name contains NONE of these as a
+# whole, underscore-delimited token. Token boundaries matter: a naive substring
+# match would wrongly drop "ContestedZone" (contains "test") or "Temperature"
+# ("temp"). Raw records are always kept by dump_all_records(); only the typed
+# catalogs (ships/weapons/components/items/ammunition/blueprints) are filtered.
+# This is the single source of truth — tune the token lists here.
+_JUNK_TOKENS = (
+    "template", "temp", "tmp", "test", "debug", "dummy", "placeholder",
+    "deprecated", "dev", "proto", "prototype", "obsolete", "unused", "wip",
+    "stub", "sample", "example", "broken",
+)
+_NPC_TOKENS = (
+    "ai", "derelict", "unmanned", "shipboarded", "boarded", "lootable",
+    "wreck", "hijacked", "stunt", "lowfuel", "nocargo", "halfcargo",
+    "modifiers", "simpod",
+)
+_NONCATALOG_RE = re.compile(
+    r"(?:^|_)(?:" + "|".join(_JUNK_TOKENS + _NPC_TOKENS) + r")(?:_|$)",
+    re.IGNORECASE,
 )
 
 
-def _is_flyable(class_name: str) -> bool:
-    """True for purchasable/player-flyable hulls, False for NPC/derelict variants."""
-    pad = f"_{class_name.lower()}_"
-    return not any(m in pad for m in _NON_FLYABLE_MARKERS)
+def _is_catalog_entity(class_name: str) -> bool:
+    """True for real, player-facing entities; False for dev/test scaffolding and
+    NPC/derelict/world variants. Shared by every typed catalog."""
+    return _NONCATALOG_RE.search(class_name) is None
 
 
 def _safe_filename(name: str) -> str:
@@ -228,6 +241,8 @@ class CodexExtractor:
         d.mkdir(parents=True, exist_ok=True)
         n = 0
         for r in self.df.records_by_type_name("SCItemManufacturer"):
+            if not _is_catalog_entity(_strip_type_prefix(r.name)):
+                continue
             resolved = self.df.record_to_dict(r, max_depth=8)
             rv = resolved.get("_RecordValue_", {})
             code = rv.get("Code") or _strip_type_prefix(r.name)
@@ -264,6 +279,8 @@ class CodexExtractor:
         d.mkdir(parents=True, exist_ok=True)
         n = 0
         for r in self.df.records_by_type_name("AmmoParams"):
+            if not _is_catalog_entity(_strip_type_prefix(r.name)):
+                continue
             resolved = self.df.record_to_dict(r, max_depth=12)
             rv = resolved.get("_RecordValue_", {})
             # damage block is nested under projectile params, not a flat `damage`
@@ -441,6 +458,8 @@ class CodexExtractor:
         total_dangling = 0
         # Ignore Legacy* record types (they are covered by the generic dump)
         for r in self.df.records_by_type_name("CraftingBlueprintRecord"):
+            if not _is_catalog_entity(_strip_type_prefix(r.name)):
+                continue
             resolved = self.df.record_to_dict(r, max_depth=16)
             rv = resolved.get("_RecordValue_", {})
 
@@ -578,10 +597,17 @@ class CodexExtractor:
         comp_d = self.out / "components"; comp_d.mkdir(parents=True, exist_ok=True)
         item_d = self.out / "items"; item_d.mkdir(parents=True, exist_ok=True)
 
-        n_ship = n_wpn = n_comp = n_item = n_skip_ship = 0
+        n_ship = n_wpn = n_comp = n_item = n_skip = 0
         ents = self.df.records_by_type_name("EntityClassDefinition")
         total = len(ents)
         for i, r in enumerate(ents):
+            # Filter dev/test scaffolding + NPC/derelict/world variants out of the
+            # typed catalogs (ships/weapons/components/items) up front — same rule
+            # for every entity type. Cheap name check before the costly resolve;
+            # the raw record is still captured by dump_all_records().
+            if not _is_catalog_entity(_strip_type_prefix(r.name)):
+                n_skip += 1
+                continue
             fn = _norm_path(r.filename)
             is_ship = fn.startswith(_SHIP_PREFIX)
             resolved = self.df.record_to_dict(r, max_depth=20)
@@ -590,11 +616,6 @@ class CodexExtractor:
             atype = attach.get("Type") if attach else None
 
             if is_ship:
-                if not _is_flyable(_strip_type_prefix(r.name)):
-                    # NPC / derelict / template variant — kept as a raw record by
-                    # dump_all_records(), but excluded from the flyable catalog.
-                    n_skip_ship += 1
-                    continue
                 obj = self._project_ship(r, resolved, comps, attach)
                 ships_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -625,7 +646,9 @@ class CodexExtractor:
                 self.on_count("weapons", n_wpn)
                 self.on_count("components", n_comp)
 
-        self.on_log("info", f"ships: {n_ship} flyable, {n_skip_ship} NPC/variant skipped")
+        self.on_log("info", f"catalog: {n_ship} ships · {n_wpn} weapons · "
+                            f"{n_comp} components · {n_item} items "
+                            f"({n_skip} dev/NPC variants skipped)")
         self._bump("ships", n_ship)
         self._bump("weapons", n_wpn)
         self._bump("components", n_comp)
