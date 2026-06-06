@@ -4,6 +4,29 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-06-06
+
+### Added — Data Uploader: persistent login + auto-sync connection tile
+
+- **One-time login.** The desktop tool now persists the Supabase session
+  (access + refresh token) encrypted at rest via Electron `safeStorage` (DPAPI on
+  Windows). It auto-connects on launch and silently refreshes the access token, so
+  the operator signs in once instead of on every launch. When no OS keyring is
+  available it falls back to in-memory (re-auth per launch) — tokens are never
+  written in plaintext.
+- **Connection tile.** A persistent tile shows the session state and syncs the
+  server bundle catalog (RPC `list_p4k_bundles_for_collaborator`) per channel —
+  the channels build up as they arrive, only the latest snapshot is cached, and
+  progress is remembered across launches. Uploads and skin exports reuse the
+  persisted session (no re-login).
+- **Web handoff.** `/desktop/auth` additionally posts `refresh_token` +
+  `expires_at` in the form-POST body (never in the URL); older tool builds simply
+  ignore the extra fields.
+
+> The Data Uploader **binary** is not re-released in this version — the tool
+> version bump + `data-uploader-v*` build are a separate follow-up (deploy order:
+> web first, then tool).
+
 ## [0.15.2] - 2026-06-06
 
 ### Changed — Design system: StarUI v0.1.1 tokens (web + data-uploader)
