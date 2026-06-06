@@ -157,7 +157,7 @@ jobs:
         # publish a mirror release in the public `Star-Citizen-Companion-Binaries`
         # repo via a fine-grained PAT (scope: Contents R/W on that repo
         # only) stored as `BINARIES_RELEASE_TOKEN`. See
-        # https://github.com/Jerry0022/Star-Citizen-Companion-Web/issues/7
+        # https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/7
         # for the full rationale.
         uses: softprops/action-gh-release@v2
         with:
@@ -171,14 +171,14 @@ jobs:
             data-uploader/release-builds/latest*.yml
           fail_on_unmatched_files: false
           body: |
-            Automated mirror of [source release](https://github.com/Jerry0022/Star-Citizen-Companion-Web/releases/tag/${{ github.ref_name }}).
+            Automated mirror of [source release](https://github.com/StarOrga/Star-Citizen-Companion-Web/releases/tag/${{ github.ref_name }}).
 
             Binaries are signed by the build, not by a code-signing cert
             (Phase-2 limitation — Windows SmartScreen will warn on first
             run). SHA-256 sums for verification live in the matching
             `desktop_releases.platforms` row.
 
-            Source code: [Star-Citizen-Companion-Web](https://github.com/Jerry0022/Star-Citizen-Companion-Web) (private).
+            Source code: [Star-Citizen-Companion-Web](https://github.com/StarOrga/Star-Citizen-Companion-Web) (private).
 
       - name: Print public asset URLs + SHA-512 + sizes (for desktop_releases.platforms registration)
         # Surfaces every field the admin needs into the action log so the
