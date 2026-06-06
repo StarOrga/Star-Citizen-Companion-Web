@@ -34,7 +34,9 @@ self-contained .NET binary → fetched, never committed.
 
 ```bash
 python tools/fetch_tools.py          # downloads cgf-converter-2.exe to ./tools/
-# gltf-transform is pulled on demand via `npx` (Node required)
+# @gltf-transform/cli is BUNDLED with the desktop app and run via Electron's own
+# Node (ELECTRON_RUN_AS_NODE) — no global Node/npx needed at runtime. Plain
+# `npx @gltf-transform/cli` is only the dev fallback when running outside the app.
 ```
 
 ## Run (Cutlass pilot)
@@ -56,9 +58,12 @@ out/DRAK_Cutlass_Black/
 
 ## Status
 
-- **Pilot**: Cutlass Black, skin locations wired explicitly in `cutlass_pilot.py`.
-- **Next**: generalise discovery (auto-find each ship's hull `.cga` + paint `.mtl`
-  + icons via the DataCore) so it runs for every ship in the P4K.
+- **Generalised**: `ship_discovery.py` pattern-matches the P4K layout to build a
+  `ShipSpec` for **any** ship (hull `.cga` + paint `.mtl` + icons). Run it via
+  `python -m sc_extract.ship_export --ship <id:MFR:Ship:SeriesToken>` (or the
+  events-emitting `skin_export_app`, which the desktop "3D-Skins" view spawns).
+- **Reference pilot**: `cutlass_pilot.py` keeps the original Cutlass Black wiring
+  with skin locations hand-checked — useful as a known-good baseline.
 
 ## Cost / knobs
 
