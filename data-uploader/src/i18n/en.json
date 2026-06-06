@@ -45,5 +45,32 @@
     "downloaded": "Update v{{version}} ready — please restart.",
     "install": "Install now",
     "error": "Update error: {{message}}"
+  },
+  "session": {
+    "title": "Web connection",
+    "offline": "Not connected",
+    "checking": "Checking…",
+    "connected": "Connected",
+    "expired": "Session expired",
+    "connect": "Connect to web",
+    "reconnect": "Reconnect",
+    "signOut": "Sign out",
+    "connectHint": "Sign in once — stays connected automatically afterwards.",
+    "expiredHint": "Your saved session has expired — please reconnect.",
+    "connectFailed": "Sign-in failed",
+    "noPersist": "Note: no OS keychain — session lasts only until you close the app."
+  },
+  "sync": {
+    "syncing": "Syncing server state…",
+    "serverState": "Server state",
+    "lastSynced": "updated {{when}}",
+    "refresh": "Refresh",
+    "empty": "No bundles on the server yet.",
+    "idle": "Ready to sync.",
+    "failed": "Sync failed.",
+    "justNow": "just now",
+    "minutesAgo": "{{n}} min ago",
+    "hoursAgo": "{{n}} h ago",
+    "daysAgo": "{{n}} d ago"
   }
 }

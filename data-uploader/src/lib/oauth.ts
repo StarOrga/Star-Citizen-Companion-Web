@@ -20,7 +20,10 @@
  *     window" page straight into the navigated tab, and resolves with the
  *     token. (A JSON body is still accepted for backward compatibility.)
  *
- * Token is held in memory only. Re-auth on next tool launch.
+ * The web app additionally posts the `refresh_token` + `expires_at` (web build
+ * ≥ the one that ships this change). The caller persists them encrypted via
+ * `SessionStore` so the operator signs in ONCE; older web builds simply omit
+ * them and the tool re-auths when the access token expires.
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -30,6 +33,10 @@ import { shell } from 'electron';
 export interface AuthResult {
   ok: boolean;
   accessToken?: string;
+  /** Supabase refresh token — present when the web build supports it. */
+  refreshToken?: string;
+  /** Unix seconds the access token expires (Supabase `expires_at`). */
+  expiresAt?: number;
   userEmail?: string;
   error?: string;
 }
@@ -138,7 +145,14 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
           }
           const raw = Buffer.concat(chunks).toString('utf-8');
           const contentType = (req.headers['content-type'] ?? '').toLowerCase();
-          let body: { state?: string; token?: string; email?: string; error?: string };
+          let body: {
+            state?: string;
+            token?: string;
+            email?: string;
+            error?: string;
+            refresh_token?: string;
+            expires_at?: string | number;
+          };
           if (contentType.includes('application/json')) {
             try {
               body = JSON.parse(raw);
@@ -155,6 +169,8 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
               token: params.get('token') ?? undefined,
               email: params.get('email') ?? undefined,
               error: params.get('error') ?? undefined,
+              refresh_token: params.get('refresh_token') ?? undefined,
+              expires_at: params.get('expires_at') ?? undefined,
             };
           }
           if (body.state !== state) {
@@ -173,7 +189,17 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
           // into the navigated tab and resolve. No separate ack round-trip.
           res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
           res.end(renderPage('SC Data Uploader · Verbunden', 'Du kannst dieses Fenster schließen.', true));
-          finish({ ok: true, accessToken: body.token, userEmail: body.email });
+          const expiresAt =
+            body.expires_at !== undefined && body.expires_at !== ''
+              ? Number(body.expires_at)
+              : undefined;
+          finish({
+            ok: true,
+            accessToken: body.token,
+            refreshToken: body.refresh_token,
+            expiresAt: Number.isFinite(expiresAt) ? expiresAt : undefined,
+            userEmail: body.email,
+          });
         });
         req.on('error', () => {
           res.writeHead(400, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });

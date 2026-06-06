@@ -44,6 +44,10 @@
       <button id="update-banner-action" type="button" class="btn btn-primary"></button>
     </div>
 
+    <!-- Web-connection tile: persistent across views, painted by renderer/main.ts.
+         Shows session state (one-time login that persists) + server-catalog sync. -->
+    <section id="connection-tile" class="conn-tile" aria-live="polite"></section>
+
     <main id="app">
       <!-- view content rendered by renderer/main.ts -->
     </main>

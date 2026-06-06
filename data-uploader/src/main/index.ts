@@ -32,6 +32,14 @@ import {
   type SkinExportFinal,
 } from './skin-bridge.js';
 import { uploadSkins, type SkinUploadResult } from './skin-ingest.js';
+import {
+  persistAuthResult,
+  ensureAccessToken,
+  getSessionStatus,
+  clearSession,
+  getCachedSnapshot,
+  runSync,
+} from './session.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -109,7 +117,39 @@ ipcMain.handle('sc:estimate', (_e, profileId: keyof typeof PROFILES, sizeBytes: 
   estimateForSize(profileId, sizeBytes),
 );
 
-ipcMain.handle('sc:authenticate', async () => runOAuthFlow(WEB_BASE));
+ipcMain.handle('sc:authenticate', async () => {
+  const result = await runOAuthFlow(WEB_BASE);
+  // Persist the session (encrypted) so the operator signs in ONCE. Best-effort:
+  // a keyring-less OS falls back to in-memory (re-auth next launch).
+  if (result.ok) {
+    try {
+      persistAuthResult(result);
+    } catch {
+      /* persistence is best-effort; never block the auth result on it */
+    }
+  }
+  return result;
+});
+
+// ============= Session / Sync IPC =============
+
+ipcMain.handle('sc:session:status', async () => getSessionStatus());
+
+ipcMain.handle('sc:session:token', async () => {
+  const r = await ensureAccessToken();
+  return { token: r.token, email: r.email, reconnect: r.reconnect };
+});
+
+ipcMain.handle('sc:session:signOut', () => {
+  clearSession();
+  return { ok: true };
+});
+
+ipcMain.handle('sc:sync:cached', () => getCachedSnapshot());
+
+ipcMain.handle('sc:sync:start', async (event) =>
+  runSync((p) => event.sender.send('sc:sync:event', p)),
+);
 
 ipcMain.handle('sc:upload', async (_e, payload: UploadPayload) =>
   uploadBundle(API_BASE, payload),

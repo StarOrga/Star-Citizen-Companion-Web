@@ -14,7 +14,52 @@ interface ToolEnv {
 interface AuthResult {
   ok: boolean;
   accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: number;
   userEmail?: string;
+  error?: string;
+}
+
+interface SessionStatus {
+  connected: boolean;
+  email: string | null;
+  expiresAt: number | null;
+  canPersist: boolean;
+  needsReconnect: boolean;
+}
+
+interface TokenResult {
+  token: string | null;
+  email: string | null;
+  reconnect: boolean;
+}
+
+interface ChannelState {
+  channel: string;
+  patchVersion: string;
+  buildNumber: string;
+  qualityScore: number | null;
+  entityTotal: number;
+  bundleId: string;
+  createdAt: string;
+}
+
+interface CatalogSnapshot {
+  syncedAt: number;
+  channels: ChannelState[];
+  bundleCount: number;
+}
+
+interface SyncProgress {
+  phase: 'connecting' | 'fetching' | 'processing' | 'saving' | 'done' | 'error';
+  pct: number;
+  message?: string;
+  channel?: string;
+}
+
+interface SyncResult {
+  ok: boolean;
+  snapshot?: CatalogSnapshot;
   error?: string;
 }
 
@@ -114,6 +159,20 @@ export const api = {
   authenticate: (): Promise<AuthResult> => ipcRenderer.invoke('sc:authenticate'),
   upload: (payload: UploadPayload): Promise<UploadResult> =>
     ipcRenderer.invoke('sc:upload', payload),
+  session: {
+    status: (): Promise<SessionStatus> => ipcRenderer.invoke('sc:session:status'),
+    token: (): Promise<TokenResult> => ipcRenderer.invoke('sc:session:token'),
+    signOut: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('sc:session:signOut'),
+  },
+  sync: {
+    cached: (): Promise<CatalogSnapshot | null> => ipcRenderer.invoke('sc:sync:cached'),
+    start: (): Promise<SyncResult> => ipcRenderer.invoke('sc:sync:start'),
+    onEvent: (cb: (ev: SyncProgress) => void): (() => void) => {
+      const listener = (_e: unknown, payload: SyncProgress): void => cb(payload);
+      ipcRenderer.on('sc:sync:event', listener);
+      return () => ipcRenderer.removeListener('sc:sync:event', listener);
+    },
+  },
   clipboard: {
     writeText: (text: string): Promise<{ ok: boolean }> =>
       ipcRenderer.invoke('sc:clipboard:write', text),

@@ -44,6 +44,13 @@ export default defineConfig({
         process.env['SC_WEB_BASE'] ?? 'http://127.0.0.1:4200',
       ),
       __SC_TOOL_VERSION__: JSON.stringify(process.env['npm_package_version'] ?? '0.1.0-dev'),
+      // Supabase publishable (anon) key — apikey header for the REST/RPC sync
+      // and the GoTrue token refresh. Publishable keys are client-safe (RLS
+      // enforces access); the fallback is the prod key so no CI change is
+      // required. Override via SC_SUPABASE_ANON_KEY for other projects/stacks.
+      __SC_SUPABASE_ANON_KEY__: JSON.stringify(
+        process.env['SC_SUPABASE_ANON_KEY'] ?? 'sb_publishable_ZWbS9qWheOQB0s77mlWLvw_wEcmTVDQ',
+      ),
     },
   },
   preload: {
