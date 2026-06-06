@@ -66,9 +66,30 @@ class ExtractResult:
     tool_version: str = ""
 
 
+def _clean_stale_output(out_dir: Path, *, include_records: bool) -> None:
+    """Wipe per-run projection dirs so counts/diffs reflect ONLY this run.
+
+    Without this the typed dirs (ships/, weapons/, …) accumulate across runs and
+    patches, so a partial/aborted run leaves a misleading mix on disk. Asset
+    caches (icons/, previews/) are content-deduped and kept. `records/` is kept
+    when --skip-generic is set (that mode deliberately reuses the prior dump).
+    """
+    import shutil
+
+    subs = ["ships", "weapons", "components", "items", "manufacturers",
+            "ammunition", "blueprints", "localization"]
+    if include_records:
+        subs.append("records")
+    for sub in subs:
+        d = out_dir / sub
+        if d.exists():
+            shutil.rmtree(d, ignore_errors=True)
+
+
 def run_extract(cfg: ExtractConfig) -> ExtractResult:
     """Streaming extractor — see module docstring."""
     cfg.out_dir.mkdir(parents=True, exist_ok=True)
+    _clean_stale_output(cfg.out_dir, include_records=cfg.dump_generic)
     icons_dir = cfg.out_dir / "icons"
     if cfg.scope_hd_icons or cfg.scope_render_pngs:
         icons_dir.mkdir(exist_ok=True)

@@ -110,6 +110,24 @@ def _strip_type_prefix(name: str) -> str:
     return name.split(".", 1)[1] if "." in name else name
 
 
+# className markers that denote an NPC / template / derelict / unmanned variant —
+# never a purchasable, player-flyable hull. A ship counts as flyable iff its
+# class name carries NONE of these. Drops the ~740 AI/derelict variants and keeps
+# the ~180 real hulls (matches thresholds.expected). The raw records are still
+# captured by dump_all_records(); only the typed `ships/` catalog is filtered.
+_NON_FLYABLE_MARKERS = (
+    "_ai_", "_pu_ai", "_template", "_shipboarded", "_boarded", "_derelict",
+    "derelict_", "_unmanned", "_stunt", "_lowfuel", "_lootable", "_wreck",
+    "_hijacked", "_dummy", "_modifiers", "_simpod", "_nocargo", "_halfcargo",
+)
+
+
+def _is_flyable(class_name: str) -> bool:
+    """True for purchasable/player-flyable hulls, False for NPC/derelict variants."""
+    pad = f"_{class_name.lower()}_"
+    return not any(m in pad for m in _NON_FLYABLE_MARKERS)
+
+
 def _safe_filename(name: str) -> str:
     keep = "".join(c if (c.isalnum() or c in "._-") else "_" for c in name)
     return keep[:180] or "unnamed"
@@ -560,7 +578,7 @@ class CodexExtractor:
         comp_d = self.out / "components"; comp_d.mkdir(parents=True, exist_ok=True)
         item_d = self.out / "items"; item_d.mkdir(parents=True, exist_ok=True)
 
-        n_ship = n_wpn = n_comp = n_item = 0
+        n_ship = n_wpn = n_comp = n_item = n_skip_ship = 0
         ents = self.df.records_by_type_name("EntityClassDefinition")
         total = len(ents)
         for i, r in enumerate(ents):
@@ -572,6 +590,11 @@ class CodexExtractor:
             atype = attach.get("Type") if attach else None
 
             if is_ship:
+                if not _is_flyable(_strip_type_prefix(r.name)):
+                    # NPC / derelict / template variant — kept as a raw record by
+                    # dump_all_records(), but excluded from the flyable catalog.
+                    n_skip_ship += 1
+                    continue
                 obj = self._project_ship(r, resolved, comps, attach)
                 ships_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -602,6 +625,7 @@ class CodexExtractor:
                 self.on_count("weapons", n_wpn)
                 self.on_count("components", n_comp)
 
+        self.on_log("info", f"ships: {n_ship} flyable, {n_skip_ship} NPC/variant skipped")
         self._bump("ships", n_ship)
         self._bump("weapons", n_wpn)
         self._bump("components", n_comp)
@@ -957,9 +981,19 @@ class CodexExtractor:
                     resolved = {"_error_": str(exc), "_RecordId_": r.guid,
                                 "_RecordName_": r.name}
                     self.on_log("warn", f"record_to_dict failed for {r.name}: {exc}")
-                fname = _safe_filename(f"{_strip_type_prefix(r.name)}__{r.guid[:8]}")
-                tdir.joinpath(f"{fname}.json").write_text(
-                    json.dumps(resolved, ensure_ascii=False), encoding="utf-8")
+                # Keep the GUID suffix (guarantees uniqueness) but cap the name
+                # so the full path can't exceed Windows MAX_PATH (260) and abort
+                # the whole dump. The write itself is guarded too: a single
+                # unwritable record (long path, locked file) must never kill the
+                # exhaustive dump — that previously aborted the entire run.
+                stem = _safe_filename(_strip_type_prefix(r.name))[:96]
+                fname = f"{stem}__{r.guid[:8]}.json"
+                try:
+                    tdir.joinpath(fname).write_text(
+                        json.dumps(resolved, ensure_ascii=False), encoding="utf-8")
+                except OSError as exc:  # noqa: BLE001 — skip, never abort the dump
+                    self.on_log("warn", f"write failed for {fname}: {exc}")
+                    continue
                 per_type[t] += 1
                 total += 1
             if ti % 50 == 0:
