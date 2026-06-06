@@ -216,23 +216,30 @@ async function fetchSpectrum(): Promise<VerseNewsItem[]> {
     if (!res.ok) throw new Error(`spectrum HTTP ${res.status}`);
     const json = await res.json();
     const threads: Record<string, unknown>[] = Array.isArray(json?.data?.threads) ? json.data.threads : [];
-    return threads.slice(0, 12).map((t) => {
+    const out: VerseNewsItem[] = [];
+    for (const t of threads) {
+      const id = t['id'];
+      const subject = t['subject'];
+      const slug = t['slug'];
       // time_created is a Unix timestamp in **seconds**.
       const created = Number(t['time_created']);
-      const publishedAt = Number.isFinite(created)
-        ? new Date(created * 1000).toISOString()
-        : new Date().toISOString();
-      const slug = String(t['slug'] ?? '');
-      return {
-        id: 'spec-' + String(t['id'] ?? crypto.randomUUID()),
-        title: String(t['subject'] ?? 'Thread'),
+      // Skip malformed entries instead of fabricating ids/dates/urls — a synthetic
+      // id (crypto.randomUUID) would change every fetch and falsely trip the
+      // client's "new posts" counter; a missing slug yields a dead thread link.
+      if (!id || typeof subject !== 'string' || !subject.trim() ||
+          typeof slug !== 'string' || !slug || !Number.isFinite(created)) continue;
+      out.push({
+        id: 'spec-' + String(id),
+        title: subject,
         url: `${RSI_BASE}/spectrum/community/SC/forum/${SPECTRUM_CHANNEL_ID}/thread/${slug}`,
-        publishedAt,
+        publishedAt: new Date(created * 1000).toISOString(),
         channel: 'spectrum',
         source: 'spectrum',
         category: 'Spectrum',
-      } satisfies VerseNewsItem;
-    });
+      });
+      if (out.length >= 12) break;
+    }
+    return out;
   } catch (err) {
     console.error('fetchSpectrum failed:', err);
     return [];
