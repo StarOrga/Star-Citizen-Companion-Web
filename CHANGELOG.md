@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2026-06-06
+
+### Fixed — News: YouTube & Spectrum feeds restored
+
+- **YouTube feed.** The hardcoded channel ID was stale and returned HTTP 404,
+  so the YouTube filter always showed 0. Switched to the live "Star Citizen"
+  channel (`UCTeLqJq1mXUX5WWoNXLmOIA`).
+- **Spectrum feed.** The HTML scrape relied on a `__INITIAL_STATE__` blob RSI
+  no longer inlines (page returned 200 with zero threads), so the Spectrum
+  filter always showed 0. Replaced with the forum's internal JSON API
+  (`/api/spectrum/forum/channel/threads`, no auth token) reading the SC
+  Announcements channel; malformed entries are skipped rather than backfilled
+  with synthetic ids/dates.
+- **Note.** The channel filters themselves were never broken — they correctly
+  reflected the empty upstream feeds.
+
 ## [0.15.0] - 2026-06-05
 
 ### Added — PWA: prompt to reload when a new version is ready
