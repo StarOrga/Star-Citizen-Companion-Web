@@ -20,6 +20,7 @@ nothing is silently dropped.
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -108,6 +109,41 @@ def _norm_path(p: Optional[str]) -> str:
 def _strip_type_prefix(name: str) -> str:
     """Records carry the struct-type prefix, e.g. 'EntityClassDefinition.AEGS_Gladius'."""
     return name.split(".", 1)[1] if "." in name else name
+
+
+# Tokens that mark a record as dev/test scaffolding (every catalog) or an NPC /
+# derelict / world variant (mostly ships, some weapons/items). A record belongs
+# in a player-facing catalog only if its class name contains NONE of these as a
+# whole, underscore-delimited token. Token boundaries matter: a naive substring
+# match would wrongly drop "ContestedZone" (contains "test") or "Temperature"
+# ("temp"). Raw records are always kept by dump_all_records(); only the typed
+# catalogs (ships/weapons/components/items/ammunition/blueprints) are filtered.
+# This is the single source of truth — tune the token lists here.
+_JUNK_TOKENS = (
+    "template", "temp", "tmp", "test", "debug", "dummy", "placeholder",
+    "deprecated", "dev", "proto", "prototype", "obsolete", "unused", "wip",
+    "stub", "sample", "example", "broken",
+)
+_NPC_TOKENS = (
+    "ai", "derelict", "unmanned", "shipboarded", "boarded", "lootable",
+    "wreck", "hijacked", "stunt", "lowfuel", "nocargo", "halfcargo",
+    "modifiers", "simpod",
+)
+_NONCATALOG_RE = re.compile(
+    r"(?:^|_)(?:" + "|".join(_JUNK_TOKENS + _NPC_TOKENS) + r")(?:_|$)",
+    re.IGNORECASE,
+)
+
+
+def _is_catalog_entity(class_name: str) -> bool:
+    """True for real, player-facing entities; False for dev/test scaffolding and
+    NPC/derelict/world variants. Shared by every typed catalog."""
+    # SC class names are underscore-delimited, but normalise camelCase plus -, .
+    # and spaces to '_' first so a variant marker can't hide behind a different
+    # separator (e.g. 'Foo-Test', 'ShipBoardedVariant').
+    norm = re.sub(r"(?<=[a-z])(?=[A-Z])", "_", class_name)
+    norm = re.sub(r"[^0-9A-Za-z]+", "_", norm)
+    return _NONCATALOG_RE.search(norm) is None
 
 
 def _safe_filename(name: str) -> str:
@@ -210,6 +246,8 @@ class CodexExtractor:
         d.mkdir(parents=True, exist_ok=True)
         n = 0
         for r in self.df.records_by_type_name("SCItemManufacturer"):
+            if not _is_catalog_entity(_strip_type_prefix(r.name)):
+                continue
             resolved = self.df.record_to_dict(r, max_depth=8)
             rv = resolved.get("_RecordValue_", {})
             code = rv.get("Code") or _strip_type_prefix(r.name)
@@ -246,6 +284,8 @@ class CodexExtractor:
         d.mkdir(parents=True, exist_ok=True)
         n = 0
         for r in self.df.records_by_type_name("AmmoParams"):
+            if not _is_catalog_entity(_strip_type_prefix(r.name)):
+                continue
             resolved = self.df.record_to_dict(r, max_depth=12)
             rv = resolved.get("_RecordValue_", {})
             # damage block is nested under projectile params, not a flat `damage`
@@ -423,6 +463,8 @@ class CodexExtractor:
         total_dangling = 0
         # Ignore Legacy* record types (they are covered by the generic dump)
         for r in self.df.records_by_type_name("CraftingBlueprintRecord"):
+            if not _is_catalog_entity(_strip_type_prefix(r.name)):
+                continue
             resolved = self.df.record_to_dict(r, max_depth=16)
             rv = resolved.get("_RecordValue_", {})
 
@@ -560,10 +602,17 @@ class CodexExtractor:
         comp_d = self.out / "components"; comp_d.mkdir(parents=True, exist_ok=True)
         item_d = self.out / "items"; item_d.mkdir(parents=True, exist_ok=True)
 
-        n_ship = n_wpn = n_comp = n_item = 0
+        n_ship = n_wpn = n_comp = n_item = n_skip = 0
         ents = self.df.records_by_type_name("EntityClassDefinition")
         total = len(ents)
         for i, r in enumerate(ents):
+            # Filter dev/test scaffolding + NPC/derelict/world variants out of the
+            # typed catalogs (ships/weapons/components/items) up front — same rule
+            # for every entity type. Cheap name check before the costly resolve;
+            # the raw record is still captured by dump_all_records().
+            if not _is_catalog_entity(_strip_type_prefix(r.name)):
+                n_skip += 1
+                continue
             fn = _norm_path(r.filename)
             is_ship = fn.startswith(_SHIP_PREFIX)
             resolved = self.df.record_to_dict(r, max_depth=20)
@@ -602,6 +651,9 @@ class CodexExtractor:
                 self.on_count("weapons", n_wpn)
                 self.on_count("components", n_comp)
 
+        self.on_log("info", f"catalog: {n_ship} ships · {n_wpn} weapons · "
+                            f"{n_comp} components · {n_item} items "
+                            f"({n_skip} dev/NPC variants skipped)")
         self._bump("ships", n_ship)
         self._bump("weapons", n_wpn)
         self._bump("components", n_comp)
@@ -945,6 +997,7 @@ class CodexExtractor:
         base.mkdir(parents=True, exist_ok=True)
         per_type = Counter()
         total = 0
+        n_fail = 0
         n_types = len(self.df.record_types)
         for ti, t in enumerate(sorted(self.df.record_types)):
             tdir = base / _safe_filename(t)
@@ -957,13 +1010,31 @@ class CodexExtractor:
                     resolved = {"_error_": str(exc), "_RecordId_": r.guid,
                                 "_RecordName_": r.name}
                     self.on_log("warn", f"record_to_dict failed for {r.name}: {exc}")
-                fname = _safe_filename(f"{_strip_type_prefix(r.name)}__{r.guid[:8]}")
-                tdir.joinpath(f"{fname}.json").write_text(
-                    json.dumps(resolved, ensure_ascii=False), encoding="utf-8")
+                # Keep the GUID suffix (guarantees uniqueness) but cap the name
+                # so the full path can't exceed Windows MAX_PATH (260) and abort
+                # the whole dump. The write itself is guarded too: a single
+                # unwritable record (long path, locked file) must never kill the
+                # exhaustive dump — that previously aborted the entire run.
+                stem = _safe_filename(_strip_type_prefix(r.name))[:96]
+                fname = f"{stem}__{r.guid[:8]}.json"
+                try:
+                    tdir.joinpath(fname).write_text(
+                        json.dumps(resolved, ensure_ascii=False), encoding="utf-8")
+                except OSError as exc:  # noqa: BLE001 — skip, never abort the dump
+                    n_fail += 1
+                    self.on_log("warn", f"write failed for {fname}: {exc}")
+                    continue
                 per_type[t] += 1
                 total += 1
             if ti % 50 == 0:
                 self.on_log("info", f"generic dump {ti}/{n_types} types, {total} records")
+        if n_fail:
+            # Surface systemic write failures (disk full, permission, locked dir)
+            # rather than hiding them behind per-record warns — a large count here
+            # means the dump is materially incomplete even though it did not abort.
+            lvl = "error" if n_fail > 50 else "warn"
+            self.on_log(lvl, f"generic dump: {n_fail} record(s) unwritable "
+                             f"(skipped — long path / locked / disk)")
         self._bump("records_total", total)
         # write an index of per-type counts
         (base / "_index.json").write_text(

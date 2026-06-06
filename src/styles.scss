@@ -15,7 +15,7 @@
   --sc-fg-1: var(--text-secondary);
   --sc-fg-2: var(--text-tertiary);
   --sc-accent: var(--accent-primary);
-  --sc-accent-hot: var(--accent-gold);
+  --sc-accent-hot: var(--accent-hot);
   --sc-success: var(--status-success);
   --sc-warning: var(--accent-warning);
   --sc-danger: var(--accent-danger-light);
@@ -48,8 +48,8 @@ body::before {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse at top, rgba(0, 212, 255, 0.08), transparent 50%),
-    radial-gradient(ellipse at bottom, rgba(255, 87, 34, 0.05), transparent 50%);
+    radial-gradient(ellipse at top, rgba(var(--accent-primary-rgb), 0.08), transparent 50%),
+    radial-gradient(ellipse at bottom, rgba(var(--accent-hot-rgb), 0.05), transparent 50%);
   pointer-events: none;
   z-index: -1;
 }
@@ -130,7 +130,7 @@ button {
     background: var(--sc-accent);
     color: var(--sc-bg-0);
     &:hover:not(:disabled) {
-      background: #4ce5ff;
+      background: var(--accent-strong);
     }
   }
 }
@@ -160,8 +160,8 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.08em;
 
-  &.live { background: rgba(74, 222, 128, 0.15); color: var(--sc-success); border: 1px solid var(--sc-success); }
-  &.ptu  { background: rgba(251, 191, 36, 0.15); color: var(--sc-warning); border: 1px solid var(--sc-warning); }
-  &.eptu { background: rgba(255, 87, 34, 0.15); color: var(--sc-accent-hot); border: 1px solid var(--sc-accent-hot); }
-  &.tech { background: rgba(0, 212, 255, 0.15); color: var(--sc-accent); border: 1px solid var(--sc-accent); }
+  &.live { background: rgba(var(--status-success-rgb), 0.15); color: var(--sc-success); border: 1px solid var(--sc-success); }
+  &.ptu  { background: rgba(var(--accent-warning-rgb), 0.15); color: var(--sc-warning); border: 1px solid var(--sc-warning); }
+  &.eptu { background: rgba(var(--accent-hot-rgb), 0.15); color: var(--sc-accent-hot); border: 1px solid var(--sc-accent-hot); }
+  &.tech { background: rgba(var(--accent-primary-rgb), 0.15); color: var(--sc-accent); border: 1px solid var(--sc-accent); }
 }

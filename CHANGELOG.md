@@ -4,6 +4,33 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.2] - 2026-06-06
+
+### Changed — Design system: StarUI v0.1.1 tokens (web + data-uploader)
+
+- **Token migration.** The remaining hardcoded `#00d4ff` / `#ff5722` color
+  literals in the web app and the Data Uploader were replaced with StarUI
+  token channels (`--accent-primary-rgb`, `--accent-hot`, `--status-success-rgb`,
+  …). Colors now resolve to the canonical StarUI palette (softer teal, official
+  orange) instead of un-migrated pre-StarUI values. Bumped `@starorga/star-ui`
+  to `v0.1.1`.
+
+### Fixed — Data Uploader: extractor no longer aborts mid-run
+
+- **MAX_PATH crash.** The exhaustive record dump wrote each JSON outside the
+  per-record guard, so a DialogueContext record whose path exceeded Windows'
+  260-char limit aborted the entire run (no manifest, nothing uploaded). The
+  write is now guarded and over-long names are capped; systemic write failures
+  are counted and surfaced.
+- **Catalog noise.** A shared token-based filter (`_is_catalog_entity`) now
+  excludes dev/test scaffolding and NPC/derelict/world variants from every
+  typed catalog (ships, weapons, components, items, ammunition, blueprints) —
+  e.g. ships 920→306, items 21033→19771. Raw records are still captured by the
+  generic dump.
+- **Stale output.** The per-run projection dirs are wiped at extraction start
+  so counts/diffs reflect only the current patch (`--skip-generic` and asset
+  caches are preserved).
+
 ## [0.15.1] - 2026-06-06
 
 ### Fixed — News: YouTube & Spectrum feeds restored

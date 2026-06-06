@@ -55,7 +55,9 @@ def _make_df(blueprint_rv: Dict[str, Any],
     df = MagicMock()
 
     bp_record = _make_record(
-        "CraftingBlueprintRecord.BP_TestItem_01",
+        # Realistic, non-scaffolding className: _is_catalog_entity drops names
+        # carrying dev/test tokens (a "TestItem" blueprint would be filtered out).
+        "CraftingBlueprintRecord.BP_Iron_Plate_01",
         "CraftingBlueprintRecord",
         BLUEPRINT_GUID,
     )
@@ -205,7 +207,7 @@ def test_blueprint_className(extractor: CodexExtractor, tmp_path: Path) -> None:
     extractor.extract_blueprints()
     bp = json.loads(list((tmp_path / "blueprints").glob("*.json"))[0].read_text())
     # _strip_type_prefix strips "CraftingBlueprintRecord." prefix
-    assert bp["className"] == "BP_TestItem_01"
+    assert bp["className"] == "BP_Iron_Plate_01"
 
 
 def test_blueprint_guid(extractor: CodexExtractor, tmp_path: Path) -> None:
