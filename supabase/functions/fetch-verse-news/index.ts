@@ -46,9 +46,8 @@ const CORS_HEADERS = {
 // (only an `images_count` integer is returned), leaving every card without a thumbnail.
 const COMM_LINK_API = 'https://api.star-citizen.wiki/api/v2/comm-links?limit=40&include=images';
 const STATUS_PAGE_URL = 'https://status.robertsspaceindustries.com/';
-const SPECTRUM_FORUM_URL = 'https://robertsspaceindustries.com/spectrum/community/SC';
-// RSI YouTube channel. Default is the RSI handle; override via env if needed.
-const RSI_YT_CHANNEL_ID = Deno.env.get('RSI_YOUTUBE_CHANNEL_ID') ?? 'UCxNxIrNRGz0RmkFkjC25HKw';
+// RSI YouTube channel ("Star Citizen", @RobertsSpaceInd). Override via env if needed.
+const RSI_YT_CHANNEL_ID = Deno.env.get('RSI_YOUTUBE_CHANNEL_ID') ?? 'UCTeLqJq1mXUX5WWoNXLmOIA';
 const YT_FEED_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${RSI_YT_CHANNEL_ID}`;
 
 const RSI_BASE = 'https://robertsspaceindustries.com';
@@ -193,66 +192,58 @@ async function fetchYouTube(): Promise<VerseNewsItem[]> {
   }
 }
 
-// --------------------- Spectrum (HTML scrape, best-effort) ---------------------
+// --------------------- Spectrum (internal JSON API) ---------------------
+// Spectrum is a client-rendered SPA; the old __INITIAL_STATE__ HTML scrape broke
+// when RSI stopped inlining that blob (page still 200s, just no threads). The
+// forum's own JSON endpoint works without an auth token — only the X-Tavern-Id
+// header is required. channel_id 1 = the SC "Announcements" forum (official CIG
+// posts: patch updates, launcher notes), which is what belongs in a news feed.
+const SPECTRUM_API = 'https://robertsspaceindustries.com/api/spectrum/forum/channel/threads';
+const SPECTRUM_CHANNEL_ID = 1;
+
 async function fetchSpectrum(): Promise<VerseNewsItem[]> {
   try {
-    const res = await fetch(SPECTRUM_FORUM_URL, {
+    const res = await fetch(SPECTRUM_API, {
+      method: 'POST',
       headers: {
-        'Accept': 'text/html',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Tavern-Id': String(SPECTRUM_CHANNEL_ID),
         'User-Agent': 'SC-Companion/0.3 (+https://sc-companion.vercel.app)',
       },
+      body: JSON.stringify({ channel_id: SPECTRUM_CHANNEL_ID, page: 1, sort: 'newest' }),
     });
     if (!res.ok) throw new Error(`spectrum HTTP ${res.status}`);
-    const html = await res.text();
-    // Spectrum's SPA renders threads client-side, but the initial state dump
-    // contains thread previews in a __INITIAL_STATE__ JSON blob. Best-effort
-    // parse — if the structure shifts, return empty (no crash).
-    const stateMatch = html.match(/__INITIAL_STATE__\s*=\s*(\{[\s\S]*?\});\s*<\/script>/);
-    if (!stateMatch) return [];
-    try {
-      const state = JSON.parse(stateMatch[1]);
-      const seen = new Set<string>();
-      const threads = findSpectrumThreads(state, [], seen);
-      return threads.slice(0, 12);
-    } catch {
-      return [];
-    }
-  } catch (err) {
-    console.error('fetchSpectrum failed:', err);
-    return [];
-  }
-}
-
-// Recursively look for objects shaped like Spectrum threads: { id, subject/title, slug, created_at }.
-// `seen` dedupes by thread id — __INITIAL_STATE__ typically references the same entity in multiple subtrees.
-function findSpectrumThreads(node: unknown, out: VerseNewsItem[], seen: Set<string>): VerseNewsItem[] {
-  if (!node || typeof node !== 'object') return out;
-  if (Array.isArray(node)) {
-    for (const child of node) findSpectrumThreads(child, out, seen);
-    return out;
-  }
-  const obj = node as Record<string, unknown>;
-  const subject = typeof obj['subject'] === 'string' ? obj['subject'] : typeof obj['title'] === 'string' ? obj['title'] : null;
-  const slug = typeof obj['slug'] === 'string' ? obj['slug'] : null;
-  const id = obj['id'] ?? obj['_id'];
-  const created = typeof obj['created_at'] === 'string' ? obj['created_at'] : typeof obj['time_created'] === 'string' ? obj['time_created'] : null;
-  if (subject && slug && id && created) {
-    const key = String(id);
-    if (!seen.has(key)) {
-      seen.add(key);
+    const json = await res.json();
+    const threads: Record<string, unknown>[] = Array.isArray(json?.data?.threads) ? json.data.threads : [];
+    const out: VerseNewsItem[] = [];
+    for (const t of threads) {
+      const id = t['id'];
+      const subject = t['subject'];
+      const slug = t['slug'];
+      // time_created is a Unix timestamp in **seconds**.
+      const created = Number(t['time_created']);
+      // Skip malformed entries instead of fabricating ids/dates/urls — a synthetic
+      // id (crypto.randomUUID) would change every fetch and falsely trip the
+      // client's "new posts" counter; a missing slug yields a dead thread link.
+      if (!id || typeof subject !== 'string' || !subject.trim() ||
+          typeof slug !== 'string' || !slug || !Number.isFinite(created)) continue;
       out.push({
-        id: 'spec-' + key,
+        id: 'spec-' + String(id),
         title: subject,
-        url: `${RSI_BASE}/spectrum/community/SC/forum/1/thread/${slug}`,
-        publishedAt: created,
+        url: `${RSI_BASE}/spectrum/community/SC/forum/${SPECTRUM_CHANNEL_ID}/thread/${slug}`,
+        publishedAt: new Date(created * 1000).toISOString(),
         channel: 'spectrum',
         source: 'spectrum',
         category: 'Spectrum',
       });
+      if (out.length >= 12) break;
     }
+    return out;
+  } catch (err) {
+    console.error('fetchSpectrum failed:', err);
+    return [];
   }
-  for (const v of Object.values(obj)) findSpectrumThreads(v, out, seen);
-  return out;
 }
 
 // --------------------- Status (HTML scrape) ---------------------
