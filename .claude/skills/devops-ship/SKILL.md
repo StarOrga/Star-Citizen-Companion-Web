@@ -73,3 +73,13 @@ Plugin defaults still apply; only the rules below override or add.
    User had to surface this by checking the live page. Symptom: shipped
    tag number ≠ binary version constant ≠ DB-registered version. Three
    places to keep in sync, and the plugin tool only knows about one.
+
+5. **Data-uploader binary release — full checklist in deep-knowledge.**
+   A `data-uploader-v*` tag, a **full** public mirror release (NOT a
+   prerelease — else `/releases/latest` + the download page skip it), AND a
+   `desktop_releases` row (`is_current` + matching `release_token`) are ALL
+   required before a version is visible to users. The `BINARIES_RELEASE_TOKEN`
+   PAT must be ≤ 366 days (StarOrga org policy). When the CI mirror step fails,
+   mirror the built assets via admin `gh` (no PAT). Always verify live in Edge
+   (`/desktop` + GitHub `/releases/latest`) before declaring done. Full
+   rationale + commands: `.claude/deep-knowledge/data-uploader-release.md`.
