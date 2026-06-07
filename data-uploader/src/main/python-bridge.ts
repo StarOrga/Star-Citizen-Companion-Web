@@ -118,6 +118,11 @@ export function startExtraction(
     '-s', // skip the user site-packages dir — fewer path stats (embedded Lib/site-packages still loads)
     '-B', // don't write .pyc — avoids disk writes into the (possibly TEMP-extracted) tree
     '-u', // unbuffered stdio — events must arrive in real time
+    '-X', 'utf8', // FORCE UTF-8 stdio. `-E` strips PYTHONUTF8/PYTHONIOENCODING, so without
+    //              this the child's piped stdout is the legacy code page (cp1252 on German
+    //              Windows) and any non-ASCII event line (ship/loc names, "→", paths) raises
+    //              UnicodeEncodeError → run dies / 'done' line dropped. `-X` is a CLI flag, NOT
+    //              suppressed by `-E`. Belt-and-suspenders with events.py's stdout.reconfigure.
     '-m', 'sc_extract.extract',
     '--p4k', req.p4kPath,
     '--out', req.outDir,
@@ -132,7 +137,9 @@ export function startExtraction(
   try {
     child = spawn(interpreter, args, {
       cwd,
-      env: { ...process.env, PYTHONUNBUFFERED: '1' },
+      // No PYTHONUNBUFFERED here: it's inert under `-E` (all PYTHON* env vars are
+      // ignored). Real-time output relies on `-u` + the explicit flush in events.py.
+      env: process.env,
       windowsHide: true,
     });
   } catch (err) {
@@ -146,6 +153,8 @@ export function startExtraction(
   let finalResult: NonNullable<PythonExtractEvent['result']> | undefined;
   let lastError: string | undefined;
   let cancelled = false;
+  let parseFailures = 0;
+  const stderrTail: string[] = []; // last few stderr lines, surfaced if the run dies opaquely
 
   const rl = createInterface({ input: child.stdout });
   rl.on('line', (line) => {
@@ -155,7 +164,12 @@ export function startExtraction(
     try {
       ev = JSON.parse(trimmed) as PythonExtractEvent;
     } catch (err) {
+      // A corrupted / non-UTF-8 stdout line (e.g. a pre-fix cp1252 mangle) must
+      // not vanish silently — a dropped 'done' line would otherwise look like a
+      // clean exit with no result. Count it and leave a visible renderer trace.
+      parseFailures += 1;
       log.warn('[python-bridge] non-JSON line on stdout:', trimmed.slice(0, 200));
+      onEvent({ type: 'log', level: 'warn', message: `[py.stdout!] non-JSON line dropped: ${trimmed.slice(0, 160)}` });
       return;
     }
     if (!ev || typeof ev.type !== 'string') return;
@@ -165,12 +179,18 @@ export function startExtraction(
   });
 
   child.stderr.on('data', (chunk: Buffer) => {
-    // scdatatools / pip can be chatty on stderr — surface as info-level logs
-    // so the user sees them in the renderer without flagging them as errors.
+    // scdatatools / pip are chatty on stderr, but a real Traceback / import /
+    // encoding error must NOT masquerade as a benign warning. Classify the
+    // load-bearing failure signatures as 'error' and keep a tail the exit
+    // handler can surface when the run dies without a structured error event.
     const text = chunk.toString('utf-8').trim();
     if (!text) return;
+    const FATAL = /Traceback|Error:|Exception|ModuleNotFoundError|ImportError|UnicodeEncodeError|SyntaxError/;
     for (const line of text.split('\n')) {
-      onEvent({ type: 'log', level: 'warn', message: `[py.stderr] ${line}` });
+      const level: NonNullable<PythonExtractEvent['level']> = FATAL.test(line) ? 'error' : 'info';
+      stderrTail.push(line);
+      if (stderrTail.length > 12) stderrTail.shift();
+      onEvent({ type: 'log', level, message: `[py.stderr] ${line}` });
     }
   });
 
@@ -188,8 +208,22 @@ export function startExtraction(
         resolveP({ ok: true, result: finalResult });
         return;
       }
-      const msg =
-        lastError ?? (signal ? `killed by signal ${signal}` : `python exited with code ${code}`);
+      const tail = stderrTail.length ? ` — stderr: ${stderrTail.join(' / ')}` : '';
+      let msg: string;
+      if (lastError) {
+        msg = lastError;
+      } else if (signal) {
+        msg = `killed by signal ${signal}`;
+      } else if (code === 0 && !finalResult) {
+        // Exited cleanly but never emitted a parseable 'done'. Almost always a
+        // stdout encoding / JSON-parse drop (see parseFailures), NOT a real
+        // success — say so instead of the self-contradictory "exited with code 0".
+        msg = `python exited 0 but emitted no 'done' event${
+          parseFailures ? ` (${parseFailures} stdout line(s) failed to parse — likely an encoding/JSON drop)` : ''
+        }${tail}`;
+      } else {
+        msg = `python exited with code ${code}${tail}`;
+      }
       resolveP({ ok: false, error: msg });
     });
   });

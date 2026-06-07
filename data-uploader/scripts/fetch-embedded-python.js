@@ -8,7 +8,7 @@
  * Output layout (Windows, x64):
  *   resources/python/
  *     python.exe
- *     python313.dll
+ *     python310.dll
  *     Lib/site-packages/<scdatatools, Pillow, imageio, …>
  *     sc_extract/                ← copied from data-uploader/python/sc_extract
  *
@@ -32,14 +32,19 @@ import { pipeline } from 'node:stream/promises';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
-// Pinned to 3.10 because scdatatools 1.0.0 declares `numpy~=1.21.5`
-// (range `>=1.21.5, <1.22`). Every numpy 1.21.x wheel declares
-// `Requires-Python: >=3.7, <3.11` — STRICT upper bound, so 3.11+ also
-// fails (originally tried 3.13 → fail; then 3.11.10 → fail with the same
-// error). 3.10 is the latest Python that pip-installs scdatatools 1.0.0
-// cleanly. To lift this, bump scdatatools to 2.x (which supports modern
-// numpy) before bumping Python. Full rationale:
-// `.claude/deep-knowledge/data-uploader-python.md`.
+// Pinned to 3.10 because scdatatools 1.0.4 (the version requirements.txt pins)
+// STILL declares `numpy~=1.21.5` (range `>=1.21.5, <1.22`) in its metadata —
+// this did NOT change from 1.0.0. Every numpy 1.21.x wheel declares
+// `Requires-Python: >=3.7, <3.11` — STRICT upper bound, so a clean
+// `pip install -r requirements.txt` on 3.11+ fails (tried 3.13 → fail; then
+// 3.11.10 → fail, same error). 3.10 is the latest Python that resolves the full
+// requirements cleanly.
+// CAUTION: scdatatools 1.0.4 *imports* fine on 3.12 IF numpy 2.x is force-
+// installed OVER the metadata conflict (e.g. a dev box that upgraded numpy
+// later) — but that is NOT a clean `pip install -r requirements.txt`, so do not
+// bump the embedded Python on that basis. To lift this, bump scdatatools to a
+// 2.x that allows modern numpy (or add an explicit numpy pin) BEFORE bumping
+// Python. Full rationale: `.claude/deep-knowledge/data-uploader-python.md`.
 const PYTHON_VERSION = '3.10.15';
 // Bump this whenever python-build-standalone publishes a new release for
 // the chosen Python version. See https://github.com/astral-sh/python-build-standalone/releases.
