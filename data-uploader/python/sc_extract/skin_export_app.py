@@ -36,13 +36,9 @@ def main() -> int:
     ap.add_argument("--limit-skins", type=int, default=None)
     args = ap.parse_args()
 
-    # The host launches us with `-E` (PYTHON* env ignored), so PYTHONIOENCODING
-    # can't fix Windows' cp1252 stdout — force UTF-8 here so the JSON-line
-    # events (ship names, em-dashes, …) reach the Electron bridge intact.
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
-    except Exception:  # noqa: BLE001 — best-effort; non-Windows stdout is already utf-8
-        pass
+    # UTF-8 stdout is forced centrally in events.py (imported above) for every
+    # sidecar entrypoint — the host launches us with `-E`, so PYTHONIOENCODING
+    # can't fix Windows' cp1252 stdout; see events.py for the full rationale.
 
     def on_log(level: str, msg: str) -> None:
         log(level if level in ("info", "warn", "error") else "info", msg)

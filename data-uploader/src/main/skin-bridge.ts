@@ -124,6 +124,9 @@ export function startSkinExport(
 
   const args = [
     '-E', '-s', '-B', '-u',
+    '-X', 'utf8', // force UTF-8 stdio — `-E` strips PYTHONUTF8/PYTHONIOENCODING, so without this
+    //              the child's piped stdout is cp1252 on Windows and non-ASCII event lines crash
+    //              / mangle (see python-bridge.ts + events.py for the full rationale).
     '-m', 'sc_extract.skin_export_app',
     '--p4k', req.p4kPath,
     '--out', req.outDir,
@@ -137,7 +140,9 @@ export function startSkinExport(
   try {
     child = spawn(interpreter, args, {
       cwd,
-      env: { ...process.env, PYTHONUNBUFFERED: '1', ...optimizerEnv() },
+      // PYTHONUNBUFFERED dropped — inert under `-E`. SC_GLTF_TRANSFORM_ARGV (not a
+      // PYTHON* var) is still honored. Real-time output relies on `-u` + flush.
+      env: { ...process.env, ...optimizerEnv() },
       windowsHide: true,
     });
   } catch (err) {

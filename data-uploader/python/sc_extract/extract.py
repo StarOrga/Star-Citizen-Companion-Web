@@ -5,7 +5,7 @@ Phase 2 § A1 (scdatatools), § B1 (Embedded Python), § C1 (DDS-direct),
 
 Architecture:
 1. Open P4K with scdatatools.p4k.P4KFile (streaming, no full RAM load)
-2. Extract Data/Game.dcb (DataCore) → enumerate ships/weapons/items/components
+2. Extract Data/Game2.dcb (SC 4.x; Game.dcb on older builds) → enumerate ships/weapons/items/components
 3. For each entity class: write JSON chunk to disk, emit progress events
 4. Extract Data/Textures/UI/Spaceships/*.dds → convert to PNG (DDS-direct, no 3D-render)
 5. Run plausibility validator (Pure Counter + minimal per-entity heuristic)
