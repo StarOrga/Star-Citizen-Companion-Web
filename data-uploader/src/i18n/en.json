@@ -37,7 +37,19 @@
     "uploading": "Uploading…",
     "uploadOk": "Upload OK",
     "uploadFailed": "Upload failed",
-    "cleaned": "Extracted files cleaned up (upload confirmed)"
+    "cleaned": "Extracted files cleaned up (upload confirmed)",
+    "err": {
+      "unauthorized": "Not signed in or your session is invalid — please reconnect.",
+      "forbidden": "You don't have permission to upload — your account is missing the uploader role.",
+      "releaseToken": "Release token is missing, unknown, or revoked — please update the app.",
+      "duplicate": "This bundle was already uploaded (same version and build).",
+      "ingestFailed": "The server couldn't process the bundle — please try again later.",
+      "invalidBody": "Invalid bundle data — please re-run the extraction.",
+      "serverMisconfigured": "The server is misconfigured — please contact the operator.",
+      "generic": "Upload failed — please try again.",
+      "network": "Network error — couldn't reach the server. Check your connection and retry.",
+      "withDetail": "{{friendly}} ({{detail}})"
+    }
   },
   "update": {
     "available": "Update available: v{{version}} — downloading in background…",
@@ -72,5 +84,20 @@
     "minutesAgo": "{{n}} min ago",
     "hoursAgo": "{{n}} h ago",
     "daysAgo": "{{n}} d ago"
+  },
+  "skins": {
+    "open": "Extract 3D skins",
+    "title": "Extract & upload 3D skins",
+    "intro": "Builds a web-ready glb per livery for each ship (100% from Data.p4k) and uploads it to the app. cgf-converter is downloaded on first use (~117 MB). ~2–3 min per skin.",
+    "noChannel": "No channel found — scan on the Discover page first.",
+    "shipsLabel": "Ships (comma-separated, e.g. DRAK_Cutlass_Black)",
+    "run": "Build & upload",
+    "tools": "Ensuring build tools…",
+    "toolsFailed": "Tool download failed",
+    "buildFailed": "Build failed",
+    "uploading": "Uploading…",
+    "done": "Done — skins are live in the app.",
+    "partial": "ships uploaded (see log for the rest)",
+    "needInput": "Channel + at least one ship required."
   }
 }

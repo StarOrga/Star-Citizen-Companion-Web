@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 /**
- * Generate `data-uploader/build/icon.ico` from `public/icons/verse-compass.svg`.
- * electron-builder picks this up for the Windows taskbar / exe icon.
+ * Generate the data-uploader app icons from the SINGLE brand source
+ * `public/icons/scc-favicon.svg` — the same SCC monogram the web app shows in
+ * its header/favicon. One logo for web + tool; no separate uploader artwork.
+ *
+ * Emits:
+ *   - `build/icon.ico` — electron-builder's Windows taskbar / exe icon.
+ *   - `build/icon.png` — the runtime BrowserWindow icon (main/index.ts).
  *
  * Pipeline: resvg-js renders the SVG at multiple resolutions → png-to-ico packs
  * them into a single multi-resolution .ico. Sizes follow Windows conventions
  * (16, 24, 32, 48, 64, 128, 256) so Explorer + Taskbar + Start menu all
- * pick the crispest match.
+ * pick the crispest match. resvg loads system fonts, so the monogram's
+ * `Orbitron, 'Segoe UI', sans-serif` falls back to Segoe UI on the build host.
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -17,9 +23,10 @@ import pngToIco from 'png-to-ico';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
-const SVG_PATH = resolve(ROOT, '../public/icons/verse-compass.svg');
+const SVG_PATH = resolve(ROOT, '../public/icons/scc-favicon.svg');
 const OUT_DIR = resolve(ROOT, 'build');
 const OUT_ICO = resolve(OUT_DIR, 'icon.ico');
+const OUT_PNG = resolve(OUT_DIR, 'icon.png');
 
 const SIZES = [16, 24, 32, 48, 64, 128, 256];
 
@@ -41,6 +48,10 @@ async function main() {
   const ico = await pngToIco(pngs);
   writeFileSync(OUT_ICO, ico);
   console.log(`wrote ${OUT_ICO} (${ico.length} bytes, sizes: ${SIZES.join(', ')})`);
+
+  // 256px PNG for the BrowserWindow runtime icon (titlebar / alt-tab).
+  writeFileSync(OUT_PNG, pngs[pngs.length - 1]);
+  console.log(`wrote ${OUT_PNG} (${pngs[pngs.length - 1].length} bytes, 256px)`);
 }
 
 main().catch((err) => {
