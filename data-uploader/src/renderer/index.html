@@ -5,10 +5,8 @@
     <meta http-equiv="Content-Security-Policy"
           content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://sc-companion.vercel.app https://star-citizen-companion-web.vercel.app https://*.supabase.co" />
     <title>Star Citizen Companion - Data Uploader</title>
-    <!-- Inline SCC monogram favicon — kept in URL form so the file:// renderer
-         doesn't need a separate asset path. Matches public/icons/scc-favicon.svg
-         in the web app. -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23050810'/%3E%3Ccircle cx='50' cy='50' r='44' fill='none' stroke='%2300d4ff' stroke-width='3' opacity='0.35'/%3E%3Ctext x='50' y='63' font-family='Orbitron%2C%20Segoe%20UI%2C%20sans-serif' font-size='34' font-weight='700' text-anchor='middle' fill='%2300d4ff' letter-spacing='1.5'%3ESCC%3C/text%3E%3C/svg%3E" />
+    <!-- Favicon is derived at runtime from the single header logo (renderer/main.ts
+         applyBranding) so the SCC monogram lives in exactly one place. -->
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>

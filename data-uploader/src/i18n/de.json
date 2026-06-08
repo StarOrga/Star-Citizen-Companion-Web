@@ -37,7 +37,19 @@
     "uploading": "Upload läuft…",
     "uploadOk": "Upload OK",
     "uploadFailed": "Upload-Fehler",
-    "cleaned": "Extrahierte Dateien aufgeräumt (Upload bestätigt)"
+    "cleaned": "Extrahierte Dateien aufgeräumt (Upload bestätigt)",
+    "err": {
+      "unauthorized": "Nicht angemeldet oder Sitzung ungültig — bitte neu verbinden.",
+      "forbidden": "Keine Berechtigung zum Hochladen — deinem Konto fehlt die Upload-Rolle.",
+      "releaseToken": "Release-Token fehlt, ist unbekannt oder wurde widerrufen — bitte die App aktualisieren.",
+      "duplicate": "Dieses Bundle wurde bereits hochgeladen (gleiche Version und Build).",
+      "ingestFailed": "Der Server konnte das Bundle nicht verarbeiten — bitte später erneut versuchen.",
+      "invalidBody": "Ungültige Bundle-Daten — bitte die Extraktion erneut ausführen.",
+      "serverMisconfigured": "Der Server ist nicht korrekt konfiguriert — bitte den Betreiber informieren.",
+      "generic": "Upload fehlgeschlagen — bitte erneut versuchen.",
+      "network": "Netzwerkfehler — Server nicht erreichbar. Verbindung prüfen und erneut versuchen.",
+      "withDetail": "{{friendly}} ({{detail}})"
+    }
   },
   "update": {
     "available": "Update verfügbar: v{{version}} — wird im Hintergrund geladen…",
@@ -72,5 +84,20 @@
     "minutesAgo": "vor {{n}} Min",
     "hoursAgo": "vor {{n}} Std",
     "daysAgo": "vor {{n}} Tg"
+  },
+  "skins": {
+    "open": "3D-Skins extrahieren",
+    "title": "3D-Skins extrahieren & hochladen",
+    "intro": "Baut pro Schiff ein web-fähiges glb je Lackierung (100 % aus der Data.p4k) und lädt es in die App. cgf-converter wird beim ersten Mal geladen (~117 MB). Pro Skin ~2–3 Min.",
+    "noChannel": "Kein Channel gefunden — erst auf der Discover-Seite scannen.",
+    "shipsLabel": "Schiffe (Komma-getrennt, z. B. DRAK_Cutlass_Black)",
+    "run": "Bauen & Hochladen",
+    "tools": "Build-Tools werden sichergestellt…",
+    "toolsFailed": "Tool-Download fehlgeschlagen",
+    "buildFailed": "Build fehlgeschlagen",
+    "uploading": "Upload läuft…",
+    "done": "Fertig — Skins sind live in der App.",
+    "partial": "Schiffe hochgeladen (Rest siehe Log)",
+    "needInput": "Channel + mindestens ein Schiff nötig."
   }
 }

@@ -42,6 +42,32 @@ interface ExtractResultPayload {
   tool_version: string;
 }
 
+// Logical display order for entity counters (run view + upload summary).
+// Reference data first (strings, manufacturers), then the ship → component →
+// weapon → ammunition → blueprint chain, with the records_total meta count last.
+// Keys not listed fall to the end alphabetically, so a future extractor counter
+// still shows up (just unsorted) instead of silently vanishing.
+const COUNTER_ORDER = [
+  'strings',
+  'manufacturers',
+  'ships',
+  'vehicles',
+  'components',
+  'items',
+  'weapons',
+  'ammunition',
+  'blueprints',
+  'records_total',
+] as const;
+
+function orderedCounts(counts: Record<string, number>): [string, number][] {
+  const rank = (k: string): number => {
+    const i = (COUNTER_ORDER as readonly string[]).indexOf(k);
+    return i === -1 ? COUNTER_ORDER.length : i;
+  };
+  return Object.entries(counts).sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b));
+}
+
 const state = {
   view: 'discover' as ViewName,
   channels: [] as Array<{
@@ -62,6 +88,7 @@ const state = {
 
 async function init(): Promise<void> {
   await loadI18n();
+  applyBranding();
   const env = await window.sc.env();
   paintEnv(env);
 
@@ -404,6 +431,25 @@ function paintUpdateBanner(ev: UpdateEvent): void {
   }
 }
 
+// Derive the favicon from the single inline header logo so the SCC monogram is
+// defined in exactly one place (index.html). Electron windows have no tab strip,
+// so this is mostly cosmetic — but it guarantees favicon and header logo can
+// never drift apart, and keeps the renderer free of a second logo copy.
+function applyBranding(): void {
+  const logo = document.querySelector('svg.logo');
+  if (!logo) return;
+  const svg = new XMLSerializer().serializeToString(logo);
+  const href = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+  let link = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'icon';
+    document.head.appendChild(link);
+  }
+  link.type = 'image/svg+xml';
+  link.href = href;
+}
+
 function paintEnv(env: ToolEnv): void {
   const vtag = $('#version-tag');
   if (vtag) vtag.textContent = `v${env.toolVersion}`;
@@ -678,7 +724,7 @@ async function runRealExtract(): Promise<void> {
   const countMap: Record<string, number> = {};
   const paintCounters = (): void => {
     if (!counters) return;
-    counters.innerHTML = Object.entries(countMap)
+    counters.innerHTML = orderedCounts(countMap)
       .map(
         ([key, value]) =>
           `<div class="counter"><div class="label">${key}</div><div class="value">${value.toLocaleString()}</div></div>`,
@@ -770,7 +816,7 @@ function renderAuthUpload(): string {
   const result = state.lastResult;
   const hasResult = result !== null;
   const counts = hasResult
-    ? Object.entries(result!.entity_counts)
+    ? orderedCounts(result!.entity_counts)
         .map(([k, v]) => `<li><strong>${k}:</strong> ${v.toLocaleString()}</li>`)
         .join('')
     : '<li><em>no extraction yet</em></li>';
