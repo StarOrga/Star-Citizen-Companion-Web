@@ -26,7 +26,8 @@
     "desktop": "Data Uploader",
     "signOut": "Abmelden",
     "brandAria": "Star Citizen Companion (SCC)",
-    "langAria": "Sprache"
+    "langAria": "Sprache",
+    "hangar": "Hangar"
   },
   "codex": {
     "title": "Codex",
@@ -38,20 +39,16 @@
       "clear": "Suche löschen"
     },
     "kinds": {
-      "ship": "Schiffe",
-      "weapon": "Waffen",
-      "component": "Komponenten",
-      "item": "Items",
-      "ammunition": "Munition",
-      "manufacturer": "Hersteller"
+      "blueprint": "Baupläne"
     },
     "kindSingular": {
       "ship": "Schiff",
       "weapon": "Waffe",
       "component": "Komponente",
-      "item": "Item",
+      "item": "Gegenstand",
       "ammunition": "Munition",
-      "manufacturer": "Hersteller"
+      "manufacturer": "Hersteller",
+      "blueprint": "Bauplan"
     },
     "filters": {
       "title": "Filter",
@@ -208,12 +205,6 @@
       "loadError": "3D-Modell konnte nicht geladen werden",
       "loadCatalogError": "Lackierungen konnten nicht geladen werden.",
       "retry": "Erneut versuchen"
-    },
-    "kinds": {
-      "blueprint": "Baupläne"
-    },
-    "kindSingular": {
-      "blueprint": "Bauplan"
     }
   },
   "blueprint": {
@@ -507,5 +498,101 @@
     "badgeAlt": "Star Citizen — Made by the Community Fan-Site-Badge",
     "disclaimer": "Dies ist eine inoffizielle Star-Citizen-Fan-Site, nicht verbunden mit der Cloud-Imperium-Unternehmensgruppe. Alle Inhalte, die nicht vom Betreiber dieser Seite oder ihren Nutzern erstellt wurden, sind Eigentum der jeweiligen Rechteinhaber.",
     "trademarks": "Star Citizen, Roberts Space Industries und Cloud Imperium sind Marken von Cloud Imperium Rights LLC."
+  },
+  "hangar": {
+    "title": "Mein Hangar",
+    "subtitle": "Deine persönliche Flotte: Schiffskonfigurationen, Komponenten-Loadouts und Rollen-Ausrüstungen — auf Basis der Live-Spieldaten im Codex.",
+    "counts": {
+      "owned": "Im Besitz",
+      "wishlist": "Wunschliste"
+    },
+    "status": {
+      "owned": "Im Besitz",
+      "wishlist": "Wunschliste"
+    },
+    "add": {
+      "title": "Schiff hinzufügen",
+      "placeholder": "Katalog nach Name oder Klasse durchsuchen…",
+      "noResults": "Keine Schiffe gefunden.",
+      "already": "Im Hangar",
+      "owned": "Besitz",
+      "wishlist": "Wunschliste"
+    },
+    "fleet": {
+      "title": "Flotte",
+      "emptyTitle": "Dein Hangar ist leer",
+      "emptyHint": "Suche oben nach deinem ersten Schiff — oder stöbere im Codex und füge Schiffe von dort hinzu."
+    },
+    "roles": {
+      "fps": "FPS",
+      "mining": "Bergbau",
+      "salvage": "Bergung",
+      "medical": "Medizin",
+      "engineering": "Technik",
+      "combat": "Kampf",
+      "cargo": "Fracht",
+      "exploration": "Erkundung",
+      "racing": "Rennen",
+      "multipurpose": "Allzweck"
+    },
+    "roleLoadouts": {
+      "title": "Rollen-Loadouts",
+      "namePlaceholder": "Loadout-Name…",
+      "create": "Erstellen",
+      "empty": "Noch keine Rollen-Loadouts — erstelle oben ein FPS-, Bergbau- oder Bergungs-Set.",
+      "itemCount": "{{count}} Gegenstände ausgerüstet",
+      "slotsTitle": "Slots",
+      "addSlotPlaceholder": "Eigenen Slot hinzufügen…",
+      "addSlot": "Slot hinzufügen"
+    },
+    "detail": {
+      "back": "Zurück zum Hangar",
+      "notFound": "Dieser Hangar-Eintrag existiert nicht.",
+      "loading": "Lädt…",
+      "save": "Speichern",
+      "rename": "Umbenennen",
+      "pinLabel": "Pin",
+      "moveToWishlist": "Auf Wunschliste",
+      "moveToOwned": "Als Besitz markieren",
+      "openCodex": "Codex-Eintrag",
+      "remove": "Entfernen",
+      "notes": "Notizen",
+      "notesPlaceholder": "Notizen zu diesem Schiff…"
+    },
+    "configs": {
+      "title": "Konfigurationen",
+      "namePlaceholder": "z. B. PvP-Fit…",
+      "create": "Erstellen",
+      "empty": "Noch keine Konfigurationen — vergib einen Namen und wähle eine Rolle, um das Loadout anzupassen.",
+      "activate": "Aktiv setzen",
+      "saveLoadout": "Loadout speichern",
+      "discard": "Verwerfen",
+      "delete": "Löschen"
+    },
+    "stats": {
+      "title": "Loadout-Statistiken",
+      "weapons": "Waffen",
+      "shieldHp": "Schild-Pool",
+      "quantumRange": "Quantum-Reichweite",
+      "assigned": "Gegenstände",
+      "ofPorts": "von {{count}} Ports",
+      "note": "Berechnet aus den extrahierten Komponentendaten dieses Katalog-Builds; Werte nicht geseedeter Items fehlen — Angaben sind Näherungen."
+    },
+    "loadout": {
+      "title": "Hardpoints & Loadout",
+      "noPorts": "Für dieses Schiff sind keine Hardpoint-Daten verfügbar.",
+      "empty": "leer",
+      "change": "Ändern",
+      "reset": "Stock",
+      "clear": "Leeren",
+      "createConfigFirst": "Erstelle oben eine Konfiguration, um das Loadout zu bearbeiten."
+    },
+    "picker": {
+      "searchPlaceholder": "Nach Name oder Klasse filtern…",
+      "close": "Schließen",
+      "loading": "Lädt…",
+      "empty": "Nichts gefunden.",
+      "emptyPort": "Keine kompatiblen Items in diesem Katalog-Build gefunden (Teilmenge geseedet)."
+    }
   }
 }

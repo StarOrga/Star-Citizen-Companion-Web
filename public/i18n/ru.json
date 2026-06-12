@@ -23,7 +23,8 @@
     "profile": "Профиль",
     "admin": "Админ",
     "desktop": "Data Uploader",
-    "signOut": "Выйти"
+    "signOut": "Выйти",
+    "hangar": "Ангар"
   },
   "news": {
     "title": "Verse News",
@@ -132,33 +133,161 @@
     "trademarks": "Star Citizen, Roberts Space Industries и Cloud Imperium являются товарными знаками Cloud Imperium Rights LLC."
   },
   "codex": {
-    "kinds": { "blueprint": "Чертежи" },
-    "kindSingular": { "blueprint": "Чертёж" }
+    "kinds": {
+      "blueprint": "Чертежи"
+    },
+    "kindSingular": {
+      "ship": "Корабль",
+      "weapon": "Оружие",
+      "component": "Компонент",
+      "item": "Предмет",
+      "ammunition": "Боеприпасы",
+      "manufacturer": "Производитель",
+      "blueprint": "Чертёж"
+    }
   },
   "blueprint": {
     "title": "Crafting Blueprints",
     "subtitle": "Datamined crafting recipes — ingredients, outputs, and craft times from the live build.",
     "empty": "No blueprints in this build yet.",
-    "search": { "label": "Search blueprints", "placeholder": "Search name or class…" },
-    "filters": { "category": "Category" },
-    "category": {
-      "ship_components": "Ship Components", "fps_weapons": "FPS Weapons",
-      "ship_weapons": "Ship Weapons", "consumables": "Consumables",
-      "armor": "Armor", "clothing": "Clothing", "food": "Food",
-      "medicine": "Medicine", "other": "Other"
+    "search": {
+      "label": "Search blueprints",
+      "placeholder": "Search name or class…"
     },
-    "card": { "tier": "Tier {{tier}}" },
-    "role": { "primary": "Primary", "secondary": "Secondary", "catalyst": "Catalyst" },
+    "filters": {
+      "category": "Category"
+    },
+    "category": {
+      "ship_components": "Ship Components",
+      "fps_weapons": "FPS Weapons",
+      "ship_weapons": "Ship Weapons",
+      "consumables": "Consumables",
+      "armor": "Armor",
+      "clothing": "Clothing",
+      "food": "Food",
+      "medicine": "Medicine",
+      "other": "Other"
+    },
+    "card": {
+      "tier": "Tier {{tier}}"
+    },
+    "role": {
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "catalyst": "Catalyst"
+    },
     "detail": {
-      "back": "Back to blueprints", "tier": "Tier",
-      "craftTime": "Craft time", "dismantleTime": "Dismantle time",
-      "outputQty": "Output qty", "ingredients": "Ingredients",
-      "noIngredients": "No ingredients recorded.", "unresolved": "Unresolved ingredient",
-      "minQuality": "Min quality", "output": "Output",
+      "back": "Back to blueprints",
+      "tier": "Tier",
+      "craftTime": "Craft time",
+      "dismantleTime": "Dismantle time",
+      "outputQty": "Output qty",
+      "ingredients": "Ingredients",
+      "noIngredients": "No ingredients recorded.",
+      "unresolved": "Unresolved ingredient",
+      "minQuality": "Min quality",
+      "output": "Output",
       "qualitySummary": "Quality summary",
       "qualityNote": "Static base-quality values — interactive quality simulation coming in a future update.",
-      "primary": "Primary", "usedIn": "Used in blueprints",
+      "primary": "Primary",
+      "usedIn": "Used in blueprints",
       "usedInCount": "Used in {{count}} blueprint(s)"
+    }
+  },
+  "hangar": {
+    "title": "Мой ангар",
+    "subtitle": "Ваш личный флот: конфигурации кораблей, комплекты компонентов и ролевые наборы — на основе живых игровых данных Кодекса.",
+    "counts": {
+      "owned": "В собственности",
+      "wishlist": "Список желаний"
+    },
+    "status": {
+      "owned": "В собственности",
+      "wishlist": "Желаемое"
+    },
+    "add": {
+      "title": "Добавить корабль",
+      "placeholder": "Поиск по каталогу по имени или классу…",
+      "noResults": "Корабли не найдены.",
+      "already": "В ангаре",
+      "owned": "Владею",
+      "wishlist": "Хочу"
+    },
+    "fleet": {
+      "title": "Флот",
+      "emptyTitle": "Ваш ангар пуст",
+      "emptyHint": "Найдите выше свой первый корабль — или откройте Кодекс и добавьте оттуда."
+    },
+    "roles": {
+      "fps": "FPS",
+      "mining": "Добыча",
+      "salvage": "Утилизация",
+      "medical": "Медицина",
+      "engineering": "Инженерия",
+      "combat": "Бой",
+      "cargo": "Груз",
+      "exploration": "Исследование",
+      "racing": "Гонки",
+      "multipurpose": "Универсальный"
+    },
+    "roleLoadouts": {
+      "title": "Ролевые наборы",
+      "namePlaceholder": "Название набора…",
+      "create": "Создать",
+      "empty": "Ролевых наборов пока нет — создайте выше набор для FPS, добычи или утилизации.",
+      "itemCount": "Экипировано предметов: {{count}}",
+      "slotsTitle": "Слоты",
+      "addSlotPlaceholder": "Добавить свой слот…",
+      "addSlot": "Добавить"
+    },
+    "detail": {
+      "back": "Назад в ангар",
+      "notFound": "Такой записи в ангаре нет.",
+      "loading": "Загрузка…",
+      "save": "Сохранить",
+      "rename": "Переименовать",
+      "pinLabel": "Закрепить",
+      "moveToWishlist": "В список желаний",
+      "moveToOwned": "Отметить как собственный",
+      "openCodex": "Запись в Кодексе",
+      "remove": "Удалить",
+      "notes": "Заметки",
+      "notesPlaceholder": "Заметки об этом корабле…"
+    },
+    "configs": {
+      "title": "Конфигурации",
+      "namePlaceholder": "напр. PvP-фит…",
+      "create": "Создать",
+      "empty": "Конфигураций нет — задайте имя и роль, чтобы настроить комплект.",
+      "activate": "Сделать активной",
+      "saveLoadout": "Сохранить комплект",
+      "discard": "Отменить",
+      "delete": "Удалить"
+    },
+    "stats": {
+      "title": "Статистика комплекта",
+      "weapons": "Оружие",
+      "shieldHp": "Щиты",
+      "quantumRange": "Квантовая дальность",
+      "assigned": "Предметы",
+      "ofPorts": "из {{count}} портов",
+      "note": "Рассчитано по извлечённым данным компонентов этого билда; значения неимпортированных предметов отсутствуют — цифры приблизительны."
+    },
+    "loadout": {
+      "title": "Точки подвеса и комплект",
+      "noPorts": "Нет данных о точках подвеса для этого корабля.",
+      "empty": "пусто",
+      "change": "Изменить",
+      "reset": "Сток",
+      "clear": "Очистить",
+      "createConfigFirst": "Создайте конфигурацию выше, чтобы редактировать комплект."
+    },
+    "picker": {
+      "searchPlaceholder": "Фильтр по имени или классу…",
+      "close": "Закрыть",
+      "loading": "Загрузка…",
+      "empty": "Ничего не найдено.",
+      "emptyPort": "Совместимых предметов в этом билде не найдено (импортировано подмножество)."
     }
   }
 }

@@ -1,0 +1,367 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
+import { CodexListRow, CodexService, pickLocalized } from '../codex/codex.service';
+import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
+import { HangarService } from './hangar.service';
+import {
+  HangarShip,
+  ROLE_LOADOUT_ROLES,
+  RoleLoadoutRole,
+} from './hangar.types';
+
+const SEARCH_DEBOUNCE_MS = 250;
+
+/**
+ * "My Hangar" dashboard: pinned top-3 flagship strip, the ship collection
+ * (owned + wishlist), inline add-ship search over the codex catalog, and the
+ * role-loadout (FPS/mining/salvage/…) section.
+ */
+@Component({
+  selector: 'sc-hangar-dashboard',
+  standalone: true,
+  imports: [FormsModule, RouterLink, TranslateModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <section class="page">
+      <header class="head">
+        <div class="title-block">
+          <h1>{{ 'hangar.title' | translate }}</h1>
+          <p class="hint">{{ 'hangar.subtitle' | translate }}</p>
+        </div>
+        <div class="counts">
+          <div class="count-chip">
+            <strong>{{ hangar.ownedCount() }}</strong>
+            <span>{{ 'hangar.counts.owned' | translate }}</span>
+          </div>
+          <div class="count-chip">
+            <strong>{{ hangar.wishlistCount() }}</strong>
+            <span>{{ 'hangar.counts.wishlist' | translate }}</span>
+          </div>
+        </div>
+      </header>
+
+      @if (hangar.error(); as err) {
+        <div class="sc-card err">{{ err }}</div>
+      }
+
+      <!-- Top 3 pinned -->
+      @if (hangar.pinnedShips().length > 0) {
+        <div class="pinned-strip">
+          @for (s of hangar.pinnedShips(); track s.id) {
+            <a class="hero sc-card" [routerLink]="['/hangar/ship', s.id]">
+              <span class="rank">#{{ s.pinnedRank }}</span>
+              @if (thumb(s); as src) {
+                <div class="hero-thumb"><img [src]="src" [alt]="displayName(s)" loading="lazy" /></div>
+              }
+              <h3>{{ s.customName || displayName(s) }}</h3>
+              @if (s.customName) { <span class="hero-sub">{{ displayName(s) }}</span> }
+              <div class="badges">
+                @if (cardFor(s)?.manufacturerCode; as mfr) { <span class="badge mfr">{{ mfr }}</span> }
+                @if (cardFor(s)?.crewSize != null) {
+                  <span class="badge">{{ 'codex.card.crew' | translate: { count: cardFor(s)?.crewSize } }}</span>
+                }
+              </div>
+            </a>
+          }
+        </div>
+      }
+
+      <!-- Add ship -->
+      <div class="sc-card add-ship">
+        <h2>{{ 'hangar.add.title' | translate }}</h2>
+        <div class="search-row">
+          <input class="search" type="search" [ngModel]="searchInput()"
+                 (ngModelChange)="onSearchInput($event)"
+                 [attr.placeholder]="'hangar.add.placeholder' | translate"
+                 [attr.aria-label]="'hangar.add.placeholder' | translate" />
+        </div>
+        @if (searching()) {
+          <p class="state">{{ 'hangar.picker.loading' | translate }}</p>
+        } @else if (searchInput() && searchResults().length === 0) {
+          <p class="state">{{ 'hangar.add.noResults' | translate }}</p>
+        } @else if (searchResults().length > 0) {
+          <ul class="results">
+            @for (r of searchResults(); track r.classNameSlug) {
+              <li class="result-row">
+                <span class="r-name">{{ shipName(r) }}</span>
+                <span class="r-meta">
+                  @if (r.manufacturerCode) { <span class="badge mfr">{{ r.manufacturerCode }}</span> }
+                  @if (r.crewSize != null) { <span class="badge">{{ 'codex.card.crew' | translate: { count: r.crewSize } }}</span> }
+                </span>
+                @if (inHangar(r.classNameSlug)) {
+                  <span class="already">{{ 'hangar.add.already' | translate }}</span>
+                } @else {
+                  <button class="sc-btn tiny" type="button" (click)="add(r, 'owned')">{{ 'hangar.add.owned' | translate }}</button>
+                  <button class="sc-btn tiny ghost" type="button" (click)="add(r, 'wishlist')">{{ 'hangar.add.wishlist' | translate }}</button>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <!-- Fleet grid -->
+      <div class="fleet">
+        <h2>{{ 'hangar.fleet.title' | translate }}</h2>
+        @if (hangar.loading() && hangar.ships().length === 0) {
+          <div class="grid">
+            @for (s of skeletons; track s) { <div class="card skel"></div> }
+          </div>
+        } @else if (hangar.ships().length === 0) {
+          <div class="sc-card empty">
+            <strong>{{ 'hangar.fleet.emptyTitle' | translate }}</strong>
+            <p>{{ 'hangar.fleet.emptyHint' | translate }}</p>
+          </div>
+        } @else {
+          <div class="grid">
+            @for (s of hangar.ships(); track s.id) {
+              <a class="card" [routerLink]="['/hangar/ship', s.id]">
+                @if (thumb(s); as src) {
+                  <div class="thumb"><img [src]="src" [alt]="displayName(s)" loading="lazy" /></div>
+                }
+                <div class="card-top">
+                  <h3 class="name">{{ s.customName || displayName(s) }}</h3>
+                  @if (s.pinnedRank) { <span class="rank-sm">#{{ s.pinnedRank }}</span> }
+                </div>
+                @if (s.customName) { <code class="cls">{{ displayName(s) }}</code> }
+                <div class="badges">
+                  <span class="badge" [class.wishlist]="s.status === 'wishlist'">
+                    {{ ('hangar.status.' + s.status) | translate }}
+                  </span>
+                  @if (cardFor(s)?.manufacturerCode; as mfr) { <span class="badge mfr">{{ mfr }}</span> }
+                  @if (cardFor(s)?.crewSize != null) {
+                    <span class="badge">{{ 'codex.card.crew' | translate: { count: cardFor(s)?.crewSize } }}</span>
+                  }
+                </div>
+              </a>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Role loadouts -->
+      <div class="loadouts">
+        <div class="loadouts-head">
+          <h2>{{ 'hangar.roleLoadouts.title' | translate }}</h2>
+          <div class="new-loadout">
+            <select class="sc-select" [ngModel]="newLoadoutRole()" (ngModelChange)="newLoadoutRole.set($event)">
+              @for (r of loadoutRoles; track r) {
+                <option [value]="r">{{ ('hangar.roles.' + r) | translate }}</option>
+              }
+            </select>
+            <input class="ld-name" type="text" [ngModel]="newLoadoutName()" (ngModelChange)="newLoadoutName.set($event)"
+                   [attr.placeholder]="'hangar.roleLoadouts.namePlaceholder' | translate" />
+            <button class="sc-btn small" type="button" [disabled]="!newLoadoutName().trim()" (click)="createLoadout()">
+              {{ 'hangar.roleLoadouts.create' | translate }}
+            </button>
+          </div>
+        </div>
+        @if (hangar.roleLoadouts().length === 0) {
+          <p class="hint">{{ 'hangar.roleLoadouts.empty' | translate }}</p>
+        } @else {
+          <div class="grid">
+            @for (l of hangar.roleLoadouts(); track l.id) {
+              <a class="card loadout-card" [routerLink]="['/hangar/loadout', l.id]">
+                <div class="card-top">
+                  <h3 class="name">{{ l.name }}</h3>
+                  <span class="badge role-{{ l.role }}">{{ ('hangar.roles.' + l.role) | translate }}</span>
+                </div>
+                <p class="ld-summary">
+                  {{ 'hangar.roleLoadouts.itemCount' | translate: { count: filledCount(l.items) } }}
+                </p>
+              </a>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  `,
+  styles: [`
+    :host { display: block; }
+    .page { display: flex; flex-direction: column; gap: 20px; }
+    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+    .title-block h1 { margin: 0; }
+    .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 60ch; }
+    .counts { display: flex; gap: 8px; }
+    .count-chip { display: flex; flex-direction: column; align-items: center; padding: 8px 16px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
+    .count-chip strong { font-family: var(--sc-font-display); font-size: 1.2rem; color: var(--sc-accent); }
+    .count-chip span { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+
+    .pinned-strip { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .hero { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 16px; text-decoration: none; color: inherit; border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent); transition: transform 0.16s, box-shadow 0.16s; }
+    .hero:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 18px color-mix(in srgb, var(--sc-accent) 30%, transparent); }
+    .hero .rank { position: absolute; top: 10px; right: 12px; font-family: var(--sc-font-display); color: var(--sc-accent); font-size: 1rem; }
+    .hero-thumb { height: 110px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
+    .hero-thumb img { max-height: 100px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+    .hero h3 { margin: 0; font-size: 1.05rem; }
+    .hero-sub { font-size: 0.74rem; color: var(--sc-fg-2); }
+
+    .sc-card h2, .fleet h2, .loadouts h2 { margin: 0 0 10px; font-size: 1rem; }
+    .add-ship { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
+    .search-row { display: flex; }
+    .search { flex: 1; padding: 9px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.9rem; }
+    .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
+    .state { margin: 0; color: var(--sc-fg-2); font-size: 0.82rem; }
+    .results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; }
+    .result-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
+    .r-name { flex: 1; font-size: 0.86rem; }
+    .r-meta { display: flex; gap: 4px; }
+    .already { font-size: 0.7rem; color: var(--sc-fg-2); font-style: italic; }
+
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+    .card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 8px; border: 1px solid var(--sc-border); background: var(--sc-bg-1); color: inherit; text-decoration: none; transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s; }
+    .card:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 28%, transparent); }
+    .card .thumb { height: 90px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
+    .card .thumb img { max-height: 82px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .card .name { margin: 0; font-size: 0.98rem; font-weight: 600; line-height: 1.25; }
+    .rank-sm { font-family: var(--sc-font-display); color: var(--sc-accent); font-size: 0.82rem; }
+    .cls { font-size: 0.7rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
+    .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
+    .badge { font-size: 0.64rem; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
+    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
+    .badge.wishlist { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); }
+    .badge[class*='role-'] { text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .card.skel { min-height: 140px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
+    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .loadouts-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .loadouts-head h2 { margin: 0; }
+    .new-loadout { display: flex; gap: 8px; flex-wrap: wrap; }
+    .ld-name { padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.84rem; }
+    .ld-name:focus { outline: none; border-color: var(--sc-accent); }
+    .sc-select { background: var(--sc-bg-1); color: var(--sc-fg-0); border: 1px solid var(--sc-border); border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 0.82rem; cursor: pointer; }
+    .loadout-card .ld-summary { margin: 0; font-size: 0.78rem; color: var(--sc-fg-2); }
+
+    .sc-btn { padding: 8px 14px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
+    .sc-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
+    .sc-btn:disabled { opacity: 0.5; cursor: default; }
+    .sc-btn.small { padding: 7px 12px; font-size: 0.7rem; }
+    .sc-btn.tiny { padding: 4px 9px; font-size: 0.64rem; }
+    .sc-btn.ghost { border-color: var(--sc-border); color: var(--sc-fg-1); }
+    .sc-btn.ghost:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+
+    .empty { text-align: center; padding: 36px 20px; color: var(--sc-fg-1); }
+    .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
+    .err { color: var(--sc-danger); padding: 14px 16px; }
+    .hint { color: var(--sc-fg-2); font-size: 0.84rem; margin: 0; }
+
+    @media (max-width: 720px) {
+      .head { flex-direction: column; }
+    }
+  `],
+})
+export class HangarDashboardComponent implements OnInit {
+  readonly hangar = inject(HangarService);
+  private readonly codex = inject(CodexService);
+
+  readonly loadoutRoles = ROLE_LOADOUT_ROLES;
+  readonly skeletons = Array.from({ length: 4 }, (_, i) => i);
+
+  readonly searchInput = signal('');
+  readonly searching = signal(false);
+  readonly searchResults = signal<CodexListRow[]>([]);
+  readonly newLoadoutName = signal('');
+  readonly newLoadoutRole = signal<RoleLoadoutRole>('fps');
+
+  /** codex card data per ship class name (preview/manufacturer/crew). */
+  private readonly cards = signal<Map<string, CodexListRow>>(new Map());
+
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private searchSeq = 0;
+
+  readonly hangarClassNames = computed(
+    () => new Set(this.hangar.ships().map((s) => s.shipClassName)),
+  );
+
+  async ngOnInit(): Promise<void> {
+    await Promise.all([this.hangar.loadAll(), this.codex.loadCurrentBuild()]);
+    await this.refreshCards();
+  }
+
+  cardFor(s: HangarShip): CodexListRow | null {
+    return this.cards().get(s.shipClassName) ?? null;
+  }
+
+  displayName(s: HangarShip): string {
+    const card = this.cardFor(s);
+    if (card) return this.shipName(card);
+    return humanizeClassName(s.shipClassName);
+  }
+
+  shipName(r: CodexListRow): string {
+    const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
+    const en = p?.name ? pickLocalized(p.name, 'en') : '';
+    return en || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
+  }
+
+  thumb(s: HangarShip): string | null {
+    const card = this.cardFor(s);
+    const p = card?.payload as { previewImage?: string | null } | undefined;
+    return this.codex.previewUrl(p?.previewImage);
+  }
+
+  inHangar(classNameSlug: string): boolean {
+    return this.hangarClassNames().has(classNameSlug);
+  }
+
+  onSearchInput(value: string): void {
+    this.searchInput.set(value);
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    if (!value.trim()) {
+      this.searchResults.set([]);
+      return;
+    }
+    this.searchTimer = setTimeout(() => void this.runSearch(value.trim()), SEARCH_DEBOUNCE_MS);
+  }
+
+  async add(r: CodexListRow, status: 'owned' | 'wishlist'): Promise<void> {
+    const ship = await this.hangar.addShip(r.classNameSlug, status);
+    if (ship) {
+      const cards = new Map(this.cards());
+      cards.set(r.classNameSlug, r);
+      this.cards.set(cards);
+    }
+  }
+
+  async createLoadout(): Promise<void> {
+    const name = this.newLoadoutName().trim();
+    if (!name) return;
+    const created = await this.hangar.createRoleLoadout(name, this.newLoadoutRole());
+    if (created) this.newLoadoutName.set('');
+  }
+
+  filledCount(items: { className: string | null }[]): number {
+    return items.filter((i) => i.className).length;
+  }
+
+  private async runSearch(term: string): Promise<void> {
+    const seq = ++this.searchSeq;
+    this.searching.set(true);
+    try {
+      const res = await this.codex.listByKind('ship', { search: term, limit: 8 });
+      if (seq !== this.searchSeq) return;
+      this.searchResults.set(res.rows);
+    } catch {
+      if (seq === this.searchSeq) this.searchResults.set([]);
+    } finally {
+      if (seq === this.searchSeq) this.searching.set(false);
+    }
+  }
+
+  private async refreshCards(): Promise<void> {
+    const names = this.hangar.ships().map((s) => s.shipClassName);
+    if (names.length === 0) return;
+    this.cards.set(await this.codex.getShipsByClassNames(names));
+  }
+}
