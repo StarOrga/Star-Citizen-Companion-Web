@@ -4,6 +4,38 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added — Web Hangar: the Codex becomes a personal hub
+
+- **My Hangar (`/hangar`).** First user-owned data layer on top of the read-only
+  codex catalog: add ships (owned/wishlist), pet names, notes, top-3 flagship
+  pins with hero cards, and per-ship 3D skin viewer reuse. Three new RLS
+  self-only tables (`hangar_ships`, `hangar_ship_configs`,
+  `hangar_role_loadouts`, migration `20260613000000_hangar`).
+- **Ship configurator.** Named, role-tagged loadout configs per hangar ship
+  (one active each): hardpoints grouped by category, per-port component swap
+  via the `codex_compatible_items` resolver, stock/override merge, and
+  aggregate loadout stats (shield pool, quantum figures, weapons by size)
+  computed from the extracted component data.
+- **Role loadouts.** Ship-independent FPS / mining / salvage / medical /
+  engineering equipment sets with suggested role slots and free custom slots.
+- **Global quick search (Ctrl+K / `/`).** Fuzzy lookup across ships, weapons
+  and components with inline stat chips; ships add straight to the hangar;
+  codex ship pages gained an add-to-hangar action.
+- **i18n.** Full `hangar.*` + `quickSearch.*` sections and completed
+  `codex.kindSingular.*` in all 7 locales.
+
+### Added — Data Uploader 0.7.0: dynamic language discovery
+
+- **All P4K languages.** `Data/Localization/<x>/global.ini` folders are now
+  discovered at runtime instead of a hardcoded en/de map — the live archive
+  yields 11 languages (en, de, es, es-419, fr, it, ja, ko, pt-BR, zh-Hans,
+  zh-Hant), each dumped as `localization/<code>.json` and ingested into
+  `codex_locale_strings` by the existing seed path. English stays the
+  canonical original; the `{de, en, key}` entity payload contract is
+  unchanged. The bundle manifest now carries a `languages` list.
+
 ## [0.16.0] - 2026-06-06
 
 ### Added — Data Uploader: persistent login + auto-sync connection tile
