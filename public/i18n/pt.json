@@ -289,5 +289,13 @@
       "empty": "Nada encontrado.",
       "emptyPort": "Nenhum item compatível neste build (subconjunto importado)."
     }
+  },
+  "quickSearch": {
+    "open": "Pesquisar",
+    "placeholder": "Pesquisar naves, armas, componentes…",
+    "searching": "Pesquisando…",
+    "noResults": "Sem resultados.",
+    "hint": "Digite para pesquisar — Enter abre o primeiro resultado. Ctrl+K abre a pesquisa em qualquer lugar.",
+    "addToHangar": "→ Hangar"
   }
 }

@@ -4,13 +4,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { FooterComponent } from './footer.component';
+import { QuickSearchComponent } from './quick-search.component';
 
 type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="topbar">
@@ -44,6 +45,7 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
       </nav>
 
       <div class="actions">
+        <sc-quick-search />
         <select class="sc-select lang" [value]="currentLang()" (change)="setLang(asLangValue($event))" [attr.aria-label]="'nav.langAria' | translate">
           @for (l of locales; track l) {
             <option [value]="l">{{ l.toUpperCase() }}</option>

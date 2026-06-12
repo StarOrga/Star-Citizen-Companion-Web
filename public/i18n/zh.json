@@ -289,5 +289,13 @@
       "empty": "未找到。",
       "emptyPort": "此目录构建中没有兼容物品（仅导入了子集）。"
     }
+  },
+  "quickSearch": {
+    "open": "搜索",
+    "placeholder": "搜索飞船、武器、组件…",
+    "searching": "搜索中…",
+    "noResults": "无结果。",
+    "hint": "输入即可搜索——回车打开第一个结果。任意页面按 Ctrl+K 打开搜索。",
+    "addToHangar": "→ 机库"
   }
 }

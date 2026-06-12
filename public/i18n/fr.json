@@ -289,5 +289,13 @@
       "empty": "Rien trouvé.",
       "emptyPort": "Aucun objet compatible dans ce build (sous-ensemble importé)."
     }
+  },
+  "quickSearch": {
+    "open": "Recherche",
+    "placeholder": "Rechercher vaisseaux, armes, composants…",
+    "searching": "Recherche…",
+    "noResults": "Aucun résultat.",
+    "hint": "Tapez pour chercher — Entrée ouvre le premier résultat. Ctrl+K ouvre la recherche partout.",
+    "addToHangar": "→ Hangar"
   }
 }

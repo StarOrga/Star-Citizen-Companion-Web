@@ -594,5 +594,13 @@
       "empty": "Nichts gefunden.",
       "emptyPort": "Keine kompatiblen Items in diesem Katalog-Build gefunden (Teilmenge geseedet)."
     }
+  },
+  "quickSearch": {
+    "open": "Suche",
+    "placeholder": "Schiffe, Waffen, Komponenten durchsuchen…",
+    "searching": "Suche…",
+    "noResults": "Keine Treffer.",
+    "hint": "Tippe um zu suchen — Enter öffnet den ersten Treffer. Strg+K öffnet die Suche überall.",
+    "addToHangar": "→ Hangar"
   }
 }

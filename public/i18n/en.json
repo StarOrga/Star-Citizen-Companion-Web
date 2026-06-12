@@ -594,5 +594,13 @@
       "empty": "Nothing found.",
       "emptyPort": "No compatible items found in this catalog build (subset seeded)."
     }
+  },
+  "quickSearch": {
+    "open": "Search",
+    "placeholder": "Search ships, weapons, components…",
+    "searching": "Searching…",
+    "noResults": "No matches.",
+    "hint": "Type to search — Enter opens the first match. Ctrl+K opens this search anywhere.",
+    "addToHangar": "→ Hangar"
   }
 }
