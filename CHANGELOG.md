@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.1] - 2026-06-13
+
+### Fixed
+
+- **Data uploader: "Invalid JWT" upload failure.** The `ingest-bundle` edge
+  function had no `[functions.ingest-bundle]` block in `config.toml`, so
+  `verify_jwt` defaulted to `true` and the platform gateway rejected the desktop
+  uploader's user-session token as `Invalid JWT` before the function ran — the
+  Tool surfaced this as a misleading "Netzwerkfehler". The gateway verifies
+  against the legacy JWT secret, but live session tokens are signed with the
+  project's asymmetric signing keys (static anon-key calls like `fetch-verse-news`
+  still pass). Added `verify_jwt = false` to match the sibling `desktop-latest` /
+  `api` functions; the function already self-authenticates via `getUser` +
+  admin/collaborator role gate + release-token, so no security is lost. Live
+  function redeployed to v6.
+
 ## [0.17.0] - 2026-06-13
 
 ### Added — Web Hangar: the Codex becomes a personal hub
