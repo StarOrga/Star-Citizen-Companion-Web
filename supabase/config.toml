@@ -58,6 +58,18 @@ verify_jwt = true
 [functions.process-p4k]
 verify_jwt = true
 
+[functions.ingest-bundle]
+# JWT verification OFF — the function does its own auth (getUser + admin/
+# collaborator role gate + release-token, see index.ts). With JWT verification
+# ON, the platform gate rejects the desktop tool's user-session token as
+# "Invalid JWT" *before* the function runs: the gateway verifies against the
+# legacy JWT secret, but live session tokens are signed with the project's
+# asymmetric signing keys, so the gateway can't validate them (static anon-key
+# calls like fetch-verse-news still pass). getUser() validates against the Auth
+# server's current keys, so disabling the gate loses no security. Don't revert
+# without reworking the auth logic in the function body.
+verify_jwt = false
+
 [functions.desktop-latest]
 # JWT verification OFF — the function does its own auth (release-token from the
 # Tool, OR JWT+role for Web UI). With JWT verification ON, the release-token
