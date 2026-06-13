@@ -75,6 +75,14 @@ Plugin defaults still apply; only the rules below override or add.
    places to keep in sync, and the plugin tool only knows about one.
 
 5. **Data-uploader binary release — full checklist in deep-knowledge.**
+   **A web `/devops-ship` bumps `data-uploader/package.json` as SOURCE ONLY — it
+   never builds or publishes a binary.** Merging to `main` runs only the
+   typecheck/test job; the build is gated on the `data-uploader-v*` tag. So if a
+   ship touched `data-uploader/**`, the completion card MUST flag the uploader
+   binary as *unreleased* (`/desktop` keeps serving the old version) UNLESS you
+   also push a `data-uploader-v*` tag and finish the checklist below — a source
+   bump alone is invisible to users.
+
    A `data-uploader-v*` tag, a **full** public mirror release (NOT a
    prerelease — else `/releases/latest` + the download page skip it), AND a
    `desktop_releases` row (`is_current` + matching `release_token`) are ALL
@@ -83,3 +91,9 @@ Plugin defaults still apply; only the rules below override or add.
    mirror the built assets via admin `gh` (no PAT). Always verify live in Edge
    (`/desktop` + GitHub `/releases/latest`) before declaring done. Full
    rationale + commands: `.claude/deep-knowledge/data-uploader-release.md`.
+
+   *Why this rule exists:* in the 2026-06-13 web-hangar ship I bumped the
+   uploader to 0.7.0 and rendered `ship-successful` — but no binary was built,
+   so `/desktop` still served 0.6.1. The user had to surface it
+   ("ich sehe keine neue uploader version auf der live website"). Source bump ≠
+   release.
