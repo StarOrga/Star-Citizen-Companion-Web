@@ -28,6 +28,7 @@ import {
   ResolvedEntity,
   pickLocalized,
 } from './codex.service';
+import { HangarService } from '../hangar/hangar.service';
 import {
   DamageRow,
   HARDPOINT_CATEGORY_ORDER,
@@ -138,6 +139,15 @@ interface LoadoutGroup {
               <button type="button" class="pin" [class.pinned]="isPinned()" (click)="togglePin()">
                 {{ isPinned() ? '★' : '☆' }} {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
               </button>
+              @if (kind() === 'ship') {
+                @if (inHangar()) {
+                  <span class="in-hangar">{{ 'hangar.add.already' | translate }}</span>
+                } @else {
+                  <button type="button" class="pin add-hangar" (click)="addToHangar()">
+                    {{ 'quickSearch.addToHangar' | translate }}
+                  </button>
+                }
+              }
               @if (provenance(); as p) {
                 <span class="prov" [attr.title]="'codex.provenance.tooltip' | translate">
                   {{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}
@@ -375,6 +385,8 @@ interface LoadoutGroup {
     .pin { padding: 8px 16px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
       font-family: var(--sc-font-display); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
     .pin:hover, .pin.pinned { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .add-hangar { color: var(--sc-accent); }
+    .in-hangar { font-size: 0.74rem; color: var(--sc-fg-2); font-style: italic; }
     .prov { font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
 
     /* Generic block */
@@ -472,8 +484,15 @@ export class CodexDetailComponent implements OnInit {
   private readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   private readonly t = inject(TranslateService);
+  private readonly hangar = inject(HangarService);
 
   readonly detail = signal<CodexDetail | null>(null);
+  readonly kind = computed(() => this.detail()?.kind ?? null);
+  /** Ship pages only: whether this ship is already in the user's hangar. */
+  readonly inHangar = computed(() => {
+    const d = this.detail();
+    return !!d && this.hangar.ships().some((s) => s.shipClassName === d.classNameSlug);
+  });
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly showRaw = signal(false);
@@ -525,6 +544,8 @@ export class CodexDetailComponent implements OnInit {
         await Promise.all([this.resolveLoadoutEntities(d), this.resolveLocale(d)]);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
         if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug);
+        // Ship pages: hangar membership backs the add-to-hangar action.
+        if (kind === 'ship' && this.hangar.ships().length === 0) void this.hangar.loadAll();
       }
     } catch (err) {
       this.error.set((err as Error).message ?? 'Unknown error');
@@ -834,6 +855,10 @@ export class CodexDetailComponent implements OnInit {
   togglePin(): void {
     const d = this.detail();
     if (d) this.svc.togglePin(d.kind, d.classNameSlug);
+  }
+  async addToHangar(): Promise<void> {
+    const d = this.detail();
+    if (d?.kind === 'ship') await this.hangar.addShip(d.classNameSlug, 'owned');
   }
   toggleRaw(): void {
     this.showRaw.update((v) => !v);

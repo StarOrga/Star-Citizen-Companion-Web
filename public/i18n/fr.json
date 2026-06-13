@@ -23,7 +23,8 @@
     "profile": "Profil",
     "admin": "Admin",
     "desktop": "Data Uploader",
-    "signOut": "Déconnexion"
+    "signOut": "Déconnexion",
+    "hangar": "Hangar"
   },
   "news": {
     "title": "Verse News",
@@ -132,33 +133,169 @@
     "trademarks": "Star Citizen, Roberts Space Industries et Cloud Imperium sont des marques de Cloud Imperium Rights LLC."
   },
   "codex": {
-    "kinds": { "blueprint": "Blueprints" },
-    "kindSingular": { "blueprint": "Blueprint" }
+    "kinds": {
+      "blueprint": "Blueprints"
+    },
+    "kindSingular": {
+      "ship": "Vaisseau",
+      "weapon": "Arme",
+      "component": "Composant",
+      "item": "Objet",
+      "ammunition": "Munitions",
+      "manufacturer": "Fabricant",
+      "blueprint": "Blueprint"
+    }
   },
   "blueprint": {
     "title": "Crafting Blueprints",
     "subtitle": "Datamined crafting recipes — ingredients, outputs, and craft times from the live build.",
     "empty": "No blueprints in this build yet.",
-    "search": { "label": "Search blueprints", "placeholder": "Search name or class…" },
-    "filters": { "category": "Category" },
-    "category": {
-      "ship_components": "Ship Components", "fps_weapons": "FPS Weapons",
-      "ship_weapons": "Ship Weapons", "consumables": "Consumables",
-      "armor": "Armor", "clothing": "Clothing", "food": "Food",
-      "medicine": "Medicine", "other": "Other"
+    "search": {
+      "label": "Search blueprints",
+      "placeholder": "Search name or class…"
     },
-    "card": { "tier": "Tier {{tier}}" },
-    "role": { "primary": "Primary", "secondary": "Secondary", "catalyst": "Catalyst" },
+    "filters": {
+      "category": "Category"
+    },
+    "category": {
+      "ship_components": "Ship Components",
+      "fps_weapons": "FPS Weapons",
+      "ship_weapons": "Ship Weapons",
+      "consumables": "Consumables",
+      "armor": "Armor",
+      "clothing": "Clothing",
+      "food": "Food",
+      "medicine": "Medicine",
+      "other": "Other"
+    },
+    "card": {
+      "tier": "Tier {{tier}}"
+    },
+    "role": {
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "catalyst": "Catalyst"
+    },
     "detail": {
-      "back": "Back to blueprints", "tier": "Tier",
-      "craftTime": "Craft time", "dismantleTime": "Dismantle time",
-      "outputQty": "Output qty", "ingredients": "Ingredients",
-      "noIngredients": "No ingredients recorded.", "unresolved": "Unresolved ingredient",
-      "minQuality": "Min quality", "output": "Output",
+      "back": "Back to blueprints",
+      "tier": "Tier",
+      "craftTime": "Craft time",
+      "dismantleTime": "Dismantle time",
+      "outputQty": "Output qty",
+      "ingredients": "Ingredients",
+      "noIngredients": "No ingredients recorded.",
+      "unresolved": "Unresolved ingredient",
+      "minQuality": "Min quality",
+      "output": "Output",
       "qualitySummary": "Quality summary",
       "qualityNote": "Static base-quality values — interactive quality simulation coming in a future update.",
-      "primary": "Primary", "usedIn": "Used in blueprints",
+      "primary": "Primary",
+      "usedIn": "Used in blueprints",
       "usedInCount": "Used in {{count}} blueprint(s)"
     }
+  },
+  "hangar": {
+    "title": "Mon Hangar",
+    "subtitle": "Votre flotte personnelle : configurations de vaisseaux, loadouts de composants et kits de rôle — basés sur les données live du Codex.",
+    "counts": {
+      "owned": "Possédés",
+      "wishlist": "Liste de souhaits"
+    },
+    "status": {
+      "owned": "Possédé",
+      "wishlist": "Souhaité"
+    },
+    "add": {
+      "title": "Ajouter un vaisseau",
+      "placeholder": "Rechercher dans le catalogue par nom ou classe…",
+      "noResults": "Aucun vaisseau trouvé.",
+      "already": "Dans le hangar",
+      "owned": "Possédé",
+      "wishlist": "Souhait"
+    },
+    "fleet": {
+      "title": "Flotte",
+      "emptyTitle": "Votre hangar est vide",
+      "emptyHint": "Cherchez ci-dessus votre premier vaisseau — ou parcourez le Codex et ajoutez-les de là."
+    },
+    "roles": {
+      "fps": "FPS",
+      "mining": "Minage",
+      "salvage": "Récupération",
+      "medical": "Médical",
+      "engineering": "Ingénierie",
+      "combat": "Combat",
+      "cargo": "Fret",
+      "exploration": "Exploration",
+      "racing": "Course",
+      "multipurpose": "Polyvalent"
+    },
+    "roleLoadouts": {
+      "title": "Loadouts de rôle",
+      "namePlaceholder": "Nom du loadout…",
+      "create": "Créer",
+      "empty": "Aucun loadout de rôle — créez un kit FPS, minage ou récupération ci-dessus.",
+      "itemCount": "{{count}} objets équipés",
+      "slotsTitle": "Emplacements",
+      "addSlotPlaceholder": "Ajouter un emplacement…",
+      "addSlot": "Ajouter"
+    },
+    "detail": {
+      "back": "Retour au hangar",
+      "notFound": "Cette entrée de hangar n'existe pas.",
+      "loading": "Chargement…",
+      "save": "Enregistrer",
+      "rename": "Renommer",
+      "pinLabel": "Épingler",
+      "moveToWishlist": "Vers la liste de souhaits",
+      "moveToOwned": "Marquer comme possédé",
+      "openCodex": "Entrée Codex",
+      "remove": "Retirer",
+      "notes": "Notes",
+      "notesPlaceholder": "Notes sur ce vaisseau…"
+    },
+    "configs": {
+      "title": "Configurations",
+      "namePlaceholder": "p. ex. fit PvP…",
+      "create": "Créer",
+      "empty": "Aucune configuration — nommez-en une et choisissez un rôle pour personnaliser le loadout.",
+      "activate": "Activer",
+      "saveLoadout": "Enregistrer le loadout",
+      "discard": "Annuler",
+      "delete": "Supprimer"
+    },
+    "stats": {
+      "title": "Statistiques du loadout",
+      "weapons": "Armes",
+      "shieldHp": "Boucliers",
+      "quantumRange": "Portée quantum",
+      "assigned": "Objets",
+      "ofPorts": "sur {{count}} ports",
+      "note": "Calculé à partir des données de composants extraites de ce build ; les valeurs des objets non importés manquent — chiffres approximatifs."
+    },
+    "loadout": {
+      "title": "Points d’emport & loadout",
+      "noPorts": "Aucune donnée de hardpoint pour ce vaisseau.",
+      "empty": "vide",
+      "change": "Modifier",
+      "reset": "Stock",
+      "clear": "Vider",
+      "createConfigFirst": "Créez une configuration ci-dessus pour modifier le loadout."
+    },
+    "picker": {
+      "searchPlaceholder": "Filtrer par nom ou classe…",
+      "close": "Fermer",
+      "loading": "Chargement…",
+      "empty": "Rien trouvé.",
+      "emptyPort": "Aucun objet compatible dans ce build (sous-ensemble importé)."
+    }
+  },
+  "quickSearch": {
+    "open": "Recherche",
+    "placeholder": "Rechercher vaisseaux, armes, composants…",
+    "searching": "Recherche…",
+    "noResults": "Aucun résultat.",
+    "hint": "Tapez pour chercher — Entrée ouvre le premier résultat. Ctrl+K ouvre la recherche partout.",
+    "addToHangar": "→ Hangar"
   }
 }

@@ -824,6 +824,119 @@ export type Database = {
         }
         Relationships: []
       }
+      hangar_role_loadouts: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          name: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items?: Json
+          name: string
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          name?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hangar_ship_configs: {
+        Row: {
+          created_at: string
+          hangar_ship_id: string
+          id: string
+          is_active: boolean
+          loadout: Json
+          name: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hangar_ship_id: string
+          id?: string
+          is_active?: boolean
+          loadout?: Json
+          name: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hangar_ship_id?: string
+          id?: string
+          is_active?: boolean
+          loadout?: Json
+          name?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hangar_ship_configs_hangar_ship_id_fkey"
+            columns: ["hangar_ship_id"]
+            isOneToOne: false
+            referencedRelation: "hangar_ships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hangar_ships: {
+        Row: {
+          created_at: string
+          custom_name: string | null
+          id: string
+          notes: string | null
+          pinned_rank: number | null
+          selected_skin_id: string | null
+          ship_class_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_name?: string | null
+          id?: string
+          notes?: string | null
+          pinned_rank?: number | null
+          selected_skin_id?: string | null
+          ship_class_name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_name?: string | null
+          id?: string
+          notes?: string | null
+          pinned_rank?: number | null
+          selected_skin_id?: string | null
+          ship_class_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       news_cache: {
         Row: {
           external_id: string
@@ -1007,6 +1120,69 @@ export type Database = {
           role?: string
           rsi_handle?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      ship_skins: {
+        Row: {
+          created_at: string
+          description: string
+          icon_path: string | null
+          id: string
+          model_bytes: number | null
+          model_path: string | null
+          name: string
+          name_verified: boolean
+          ship_id: string
+          skin_id: string
+          sort: number
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          icon_path?: string | null
+          id?: string
+          model_bytes?: number | null
+          model_path?: string | null
+          name: string
+          name_verified?: boolean
+          ship_id: string
+          skin_id: string
+          sort?: number
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          icon_path?: string | null
+          id?: string
+          model_bytes?: number | null
+          model_path?: string | null
+          name?: string
+          name_verified?: boolean
+          ship_id?: string
+          skin_id?: string
+          sort?: number
+          source?: string
+        }
+        Relationships: []
+      }
+      verse_image_cache: {
+        Row: {
+          cached_at: string
+          ext: string
+          source_key: string
+        }
+        Insert: {
+          cached_at?: string
+          ext: string
+          source_key: string
+        }
+        Update: {
+          cached_at?: string
+          ext?: string
+          source_key?: string
         }
         Relationships: []
       }

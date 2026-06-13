@@ -23,7 +23,8 @@
     "profile": "个人资料",
     "admin": "管理",
     "desktop": "Data Uploader",
-    "signOut": "退出登录"
+    "signOut": "退出登录",
+    "hangar": "机库"
   },
   "news": {
     "title": "Verse 新闻",
@@ -132,33 +133,169 @@
     "trademarks": "Star Citizen、Roberts Space Industries 和 Cloud Imperium 是 Cloud Imperium Rights LLC 的商标。"
   },
   "codex": {
-    "kinds": { "blueprint": "蓝图" },
-    "kindSingular": { "blueprint": "蓝图" }
+    "kinds": {
+      "blueprint": "蓝图"
+    },
+    "kindSingular": {
+      "ship": "飞船",
+      "weapon": "武器",
+      "component": "组件",
+      "item": "物品",
+      "ammunition": "弹药",
+      "manufacturer": "制造商",
+      "blueprint": "蓝图"
+    }
   },
   "blueprint": {
     "title": "Crafting Blueprints",
     "subtitle": "Datamined crafting recipes — ingredients, outputs, and craft times from the live build.",
     "empty": "No blueprints in this build yet.",
-    "search": { "label": "Search blueprints", "placeholder": "Search name or class…" },
-    "filters": { "category": "Category" },
-    "category": {
-      "ship_components": "Ship Components", "fps_weapons": "FPS Weapons",
-      "ship_weapons": "Ship Weapons", "consumables": "Consumables",
-      "armor": "Armor", "clothing": "Clothing", "food": "Food",
-      "medicine": "Medicine", "other": "Other"
+    "search": {
+      "label": "Search blueprints",
+      "placeholder": "Search name or class…"
     },
-    "card": { "tier": "Tier {{tier}}" },
-    "role": { "primary": "Primary", "secondary": "Secondary", "catalyst": "Catalyst" },
+    "filters": {
+      "category": "Category"
+    },
+    "category": {
+      "ship_components": "Ship Components",
+      "fps_weapons": "FPS Weapons",
+      "ship_weapons": "Ship Weapons",
+      "consumables": "Consumables",
+      "armor": "Armor",
+      "clothing": "Clothing",
+      "food": "Food",
+      "medicine": "Medicine",
+      "other": "Other"
+    },
+    "card": {
+      "tier": "Tier {{tier}}"
+    },
+    "role": {
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "catalyst": "Catalyst"
+    },
     "detail": {
-      "back": "Back to blueprints", "tier": "Tier",
-      "craftTime": "Craft time", "dismantleTime": "Dismantle time",
-      "outputQty": "Output qty", "ingredients": "Ingredients",
-      "noIngredients": "No ingredients recorded.", "unresolved": "Unresolved ingredient",
-      "minQuality": "Min quality", "output": "Output",
+      "back": "Back to blueprints",
+      "tier": "Tier",
+      "craftTime": "Craft time",
+      "dismantleTime": "Dismantle time",
+      "outputQty": "Output qty",
+      "ingredients": "Ingredients",
+      "noIngredients": "No ingredients recorded.",
+      "unresolved": "Unresolved ingredient",
+      "minQuality": "Min quality",
+      "output": "Output",
       "qualitySummary": "Quality summary",
       "qualityNote": "Static base-quality values — interactive quality simulation coming in a future update.",
-      "primary": "Primary", "usedIn": "Used in blueprints",
+      "primary": "Primary",
+      "usedIn": "Used in blueprints",
       "usedInCount": "Used in {{count}} blueprint(s)"
     }
+  },
+  "hangar": {
+    "title": "我的机库",
+    "subtitle": "你的个人舰队：飞船配置、组件配装和职业套装——基于法典中的实时游戏数据。",
+    "counts": {
+      "owned": "已拥有",
+      "wishlist": "愿望清单"
+    },
+    "status": {
+      "owned": "已拥有",
+      "wishlist": "愿望"
+    },
+    "add": {
+      "title": "添加飞船",
+      "placeholder": "按名称或类别搜索目录…",
+      "noResults": "未找到飞船。",
+      "already": "已在机库",
+      "owned": "拥有",
+      "wishlist": "愿望"
+    },
+    "fleet": {
+      "title": "舰队",
+      "emptyTitle": "你的机库是空的",
+      "emptyHint": "在上方搜索你的第一艘飞船——或浏览法典并从那里添加。"
+    },
+    "roles": {
+      "fps": "FPS",
+      "mining": "采矿",
+      "salvage": "打捞",
+      "medical": "医疗",
+      "engineering": "工程",
+      "combat": "战斗",
+      "cargo": "货运",
+      "exploration": "探索",
+      "racing": "竞速",
+      "multipurpose": "多用途"
+    },
+    "roleLoadouts": {
+      "title": "职业配装",
+      "namePlaceholder": "配装名称…",
+      "create": "创建",
+      "empty": "还没有职业配装——在上方创建 FPS、采矿或打捞套装。",
+      "itemCount": "已装备 {{count}} 件物品",
+      "slotsTitle": "槽位",
+      "addSlotPlaceholder": "添加自定义槽位…",
+      "addSlot": "添加"
+    },
+    "detail": {
+      "back": "返回机库",
+      "notFound": "该机库条目不存在。",
+      "loading": "加载中…",
+      "save": "保存",
+      "rename": "重命名",
+      "pinLabel": "置顶",
+      "moveToWishlist": "移到愿望清单",
+      "moveToOwned": "标记为已拥有",
+      "openCodex": "法典条目",
+      "remove": "移除",
+      "notes": "备注",
+      "notesPlaceholder": "关于这艘飞船的备注…"
+    },
+    "configs": {
+      "title": "配置方案",
+      "namePlaceholder": "例如 PvP 配置…",
+      "create": "创建",
+      "empty": "还没有配置——命名并选择职责即可开始自定义配装。",
+      "activate": "设为当前",
+      "saveLoadout": "保存配装",
+      "discard": "放弃",
+      "delete": "删除"
+    },
+    "stats": {
+      "title": "配装统计",
+      "weapons": "武器",
+      "shieldHp": "护盾总量",
+      "quantumRange": "量子航程",
+      "assigned": "物品",
+      "ofPorts": "共 {{count}} 个接口",
+      "note": "基于本目录构建提取的组件数据计算；未导入物品的数值缺失——数字为近似值。"
+    },
+    "loadout": {
+      "title": "挂点与配装",
+      "noPorts": "该飞船没有挂点数据。",
+      "empty": "空",
+      "change": "更换",
+      "reset": "原装",
+      "clear": "清空",
+      "createConfigFirst": "请先在上方创建一个配置方案，然后编辑配装。"
+    },
+    "picker": {
+      "searchPlaceholder": "按名称或类别筛选…",
+      "close": "关闭",
+      "loading": "加载中…",
+      "empty": "未找到。",
+      "emptyPort": "此目录构建中没有兼容物品（仅导入了子集）。"
+    }
+  },
+  "quickSearch": {
+    "open": "搜索",
+    "placeholder": "搜索飞船、武器、组件…",
+    "searching": "搜索中…",
+    "noResults": "无结果。",
+    "hint": "输入即可搜索——回车打开第一个结果。任意页面按 Ctrl+K 打开搜索。",
+    "addToHangar": "→ 机库"
   }
 }

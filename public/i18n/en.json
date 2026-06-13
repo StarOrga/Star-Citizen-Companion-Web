@@ -26,7 +26,8 @@
     "desktop": "Data Uploader",
     "signOut": "Sign out",
     "brandAria": "Star Citizen Companion (SCC)",
-    "langAria": "Language"
+    "langAria": "Language",
+    "hangar": "Hangar"
   },
   "codex": {
     "title": "Codex",
@@ -38,12 +39,7 @@
       "clear": "Clear search"
     },
     "kinds": {
-      "ship": "Ships",
-      "weapon": "Weapons",
-      "component": "Components",
-      "item": "Items",
-      "ammunition": "Ammunition",
-      "manufacturer": "Manufacturers"
+      "blueprint": "Blueprints"
     },
     "kindSingular": {
       "ship": "Ship",
@@ -51,7 +47,8 @@
       "component": "Component",
       "item": "Item",
       "ammunition": "Ammunition",
-      "manufacturer": "Manufacturer"
+      "manufacturer": "Manufacturer",
+      "blueprint": "Blueprint"
     },
     "filters": {
       "title": "Filters",
@@ -208,12 +205,6 @@
       "loadError": "3D model failed to load",
       "loadCatalogError": "Could not load liveries.",
       "retry": "Retry"
-    },
-    "kinds": {
-      "blueprint": "Blueprints"
-    },
-    "kindSingular": {
-      "blueprint": "Blueprint"
     }
   },
   "blueprint": {
@@ -507,5 +498,109 @@
     "badgeAlt": "Star Citizen — Made by the Community fan site badge",
     "disclaimer": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content not authored by this site's host or its users is the property of its respective owner.",
     "trademarks": "Star Citizen, Roberts Space Industries and Cloud Imperium are trademarks of Cloud Imperium Rights LLC."
+  },
+  "hangar": {
+    "title": "My Hangar",
+    "subtitle": "Your personal fleet: ship configurations, component loadouts and role kits — built on the live game data in the Codex.",
+    "counts": {
+      "owned": "Owned",
+      "wishlist": "Wishlist"
+    },
+    "status": {
+      "owned": "Owned",
+      "wishlist": "Wishlist"
+    },
+    "add": {
+      "title": "Add ship",
+      "placeholder": "Search the catalog by name or class…",
+      "noResults": "No ships found.",
+      "already": "In hangar",
+      "owned": "Owned",
+      "wishlist": "Wishlist"
+    },
+    "fleet": {
+      "title": "Fleet",
+      "emptyTitle": "Your hangar is empty",
+      "emptyHint": "Search above to add your first ship — or browse the Codex and add ships from there."
+    },
+    "roles": {
+      "fps": "FPS",
+      "mining": "Mining",
+      "salvage": "Salvage",
+      "medical": "Medical",
+      "engineering": "Engineering",
+      "combat": "Combat",
+      "cargo": "Cargo",
+      "exploration": "Exploration",
+      "racing": "Racing",
+      "multipurpose": "Multipurpose"
+    },
+    "roleLoadouts": {
+      "title": "Role loadouts",
+      "namePlaceholder": "Loadout name…",
+      "create": "Create",
+      "empty": "No role loadouts yet — create an FPS, mining or salvage kit above.",
+      "itemCount": "{{count}} items equipped",
+      "slotsTitle": "Slots",
+      "addSlotPlaceholder": "Add custom slot…",
+      "addSlot": "Add slot"
+    },
+    "detail": {
+      "back": "Back to hangar",
+      "notFound": "This hangar entry does not exist.",
+      "loading": "Loading…",
+      "save": "Save",
+      "rename": "Rename",
+      "pinLabel": "Pin",
+      "moveToWishlist": "Move to wishlist",
+      "moveToOwned": "Mark as owned",
+      "openCodex": "Codex entry",
+      "remove": "Remove",
+      "notes": "Notes",
+      "notesPlaceholder": "Notes about this ship…"
+    },
+    "configs": {
+      "title": "Configurations",
+      "namePlaceholder": "e.g. PvP fit…",
+      "create": "Create",
+      "empty": "No configurations yet — name one and pick a role to start customizing the loadout.",
+      "activate": "Set active",
+      "saveLoadout": "Save loadout",
+      "discard": "Discard",
+      "delete": "Delete"
+    },
+    "stats": {
+      "title": "Loadout stats",
+      "weapons": "Weapons",
+      "shieldHp": "Shield pool",
+      "quantumRange": "Quantum range",
+      "assigned": "Items",
+      "ofPorts": "of {{count}} ports",
+      "note": "Computed from the extracted component data of this catalog build; values for unseeded items are missing — figures are approximations."
+    },
+    "loadout": {
+      "title": "Hardpoints & loadout",
+      "noPorts": "No hardpoint data available for this ship.",
+      "empty": "empty",
+      "change": "Change",
+      "reset": "Stock",
+      "clear": "Clear",
+      "createConfigFirst": "Create a configuration above to start editing the loadout."
+    },
+    "picker": {
+      "searchPlaceholder": "Filter by name or class…",
+      "close": "Close",
+      "loading": "Loading…",
+      "empty": "Nothing found.",
+      "emptyPort": "No compatible items found in this catalog build (subset seeded)."
+    }
+  },
+  "quickSearch": {
+    "open": "Search",
+    "placeholder": "Search ships, weapons, components…",
+    "searching": "Searching…",
+    "noResults": "No matches.",
+    "hint": "Type to search — Enter opens the first match. Ctrl+K opens this search anywhere.",
+    "addToHangar": "→ Hangar"
   }
 }

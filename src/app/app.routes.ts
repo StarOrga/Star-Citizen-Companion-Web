@@ -49,6 +49,23 @@ export const routes: Routes = [
           import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),
       },
       {
+        // Personal web hangar — like /codex viewer-accessible (authGuard via
+        // parent); all data is RLS self-only.
+        path: 'hangar',
+        loadComponent: () =>
+          import('./hangar/hangar-dashboard.component').then((m) => m.HangarDashboardComponent),
+      },
+      {
+        path: 'hangar/ship/:id',
+        loadComponent: () =>
+          import('./hangar/hangar-ship-detail.component').then((m) => m.HangarShipDetailComponent),
+      },
+      {
+        path: 'hangar/loadout/:id',
+        loadComponent: () =>
+          import('./hangar/role-loadout-editor.component').then((m) => m.RoleLoadoutEditorComponent),
+      },
+      {
         path: 'p4k',
         canActivate: [roleGuard('admin', 'collaborator')],
         loadComponent: () => import('./p4k/p4k-history.component').then((m) => m.P4kHistoryComponent),

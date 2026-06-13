@@ -64,6 +64,8 @@ class ExtractResult:
     manifest_path: str = ""
     output_dir: str = ""
     tool_version: str = ""
+    # short codes of every language table discovered in the P4K (en first)
+    languages: List[str] = field(default_factory=list)
 
 
 def _clean_stale_output(out_dir: Path, *, include_records: bool) -> None:
@@ -149,6 +151,7 @@ def run_extract(cfg: ExtractConfig) -> ExtractResult:
         "schema_version": result.schema_version,
         "quality_score": result.quality_score,
         "entity_counts": result.entity_counts,
+        "languages": result.languages,
         "warnings": result.warnings,
         "tool_version": cfg.tool_version,
         "scope": {
@@ -171,6 +174,7 @@ def run_extract(cfg: ExtractConfig) -> ExtractResult:
             "schema_version": result.schema_version,
             "quality_score": result.quality_score,
             "entity_counts": result.entity_counts,
+            "languages": result.languages,
             "manifest_path": result.manifest_path,
             "output_dir": result.output_dir,
             "tool_version": result.tool_version,
@@ -188,25 +192,30 @@ def _find_dcb_entry(p4k) -> str:
 
 
 def _load_localizer(p4k):
-    """Extract + parse english/german global.ini into a Localizer."""
-    from .localization import LANG_FOLDERS, Localizer, parse_global_ini
+    """Discover + parse EVERY language's global.ini into a Localizer.
+
+    Languages are discovered from the archive (Data/Localization/<x>/global.ini)
+    instead of a hardcoded en/de map — new game languages flow through
+    automatically. English (the canonical original) is always loaded first;
+    the {de, en, key} payload contract is unchanged, additional languages are
+    dumped by dump_localization() and land in codex_locale_strings.
+    """
+    from .localization import Localizer, discover_language_folders, parse_global_ini
 
     names = p4k.namelist()
-    lower = {n.lower(): n for n in names}
+    folders = discover_language_folders(names)
+    if not folders:
+        events.log("warn", "no Data/Localization/*/global.ini entries found in P4K")
     tables = {}
-    for short, folders in LANG_FOLDERS.items():
-        for folder in folders:
-            key = f"data/localization/{folder}/global.ini"
-            if key in lower:
-                try:
-                    info = p4k.getinfo(lower[key])
-                    with p4k.open(info) as f:
-                        tables[short] = parse_global_ini(f.read())
-                    events.log("info", f"localization '{short}' <- {lower[key]} "
-                                       f"({len(tables[short])} keys)")
-                except Exception as exc:  # noqa: BLE001
-                    events.log("warn", f"failed to read localization {folder}: {exc}")
-                break
+    for short, entry in folders.items():
+        try:
+            info = p4k.getinfo(entry)
+            with p4k.open(info) as f:
+                tables[short] = parse_global_ini(f.read())
+            events.log("info", f"localization '{short}' <- {entry} "
+                               f"({len(tables[short])} keys)")
+        except Exception as exc:  # noqa: BLE001
+            events.log("warn", f"failed to read localization {entry}: {exc}")
     return Localizer(tables)
 
 
@@ -273,6 +282,7 @@ def _real_extract(cfg: ExtractConfig) -> ExtractResult:
         patch_version=cfg.patch_version,
         build_number=cfg.build_number,
         entity_counts=entity_counts,
+        languages=localizer.languages,
     )
 
 
@@ -321,6 +331,7 @@ def _stub_extract(cfg: ExtractConfig) -> ExtractResult:
             "components": 612,
             "strings": 52_341,
         },
+        languages=["en", "de"],
     )
 
 

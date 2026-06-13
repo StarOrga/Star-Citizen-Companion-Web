@@ -374,6 +374,58 @@ export class CodexService {
   }
 
   /**
+   * Batch-fetch full payloads for a set of class names across the mountable
+   * entity tables (weapon/component/item) — the hangar's loadout-stats input.
+   * First table that owns a class name wins (mirrors resolveEntities).
+   */
+  async getEntityPayloads(
+    classNames: string[],
+  ): Promise<Map<string, { kind: CodexKind; payload: unknown }>> {
+    const out = new Map<string, { kind: CodexKind; payload: unknown }>();
+    const build = await this.loadCurrentBuild();
+    const names = Array.from(new Set(classNames.filter(Boolean)));
+    if (!build || names.length === 0) return out;
+
+    await Promise.all(
+      (['weapon', 'component', 'item'] as CodexKind[]).map(async (kind) => {
+        const { data, error } = await this.sb.client
+          .from(CODEX_ENTITY_TABLES[kind])
+          .select('class_name, payload')
+          .eq('build_id', build.id)
+          .in('class_name', names);
+        if (error || !data) return;
+        for (const r of data as unknown as Record<string, unknown>[]) {
+          const cn = r['class_name'] as string;
+          if (!out.has(cn)) out.set(cn, { kind, payload: r['payload'] });
+        }
+      }),
+    );
+    return out;
+  }
+
+  /**
+   * Hangar dashboard cards: codex ship rows (promoted columns + payload) for
+   * a set of class names in the current build. Map keyed by class_name.
+   */
+  async getShipsByClassNames(classNames: string[]): Promise<Map<string, CodexListRow>> {
+    const out = new Map<string, CodexListRow>();
+    const build = await this.loadCurrentBuild();
+    const names = Array.from(new Set(classNames.filter(Boolean)));
+    if (!build || names.length === 0) return out;
+    const { data, error } = await this.sb.client
+      .from('codex_ships')
+      .select(LIST_SELECT.ship)
+      .eq('build_id', build.id)
+      .in('class_name', names);
+    if (error || !data) return out;
+    for (const r of (data ?? []) as unknown[]) {
+      const row = mapListRow('ship', r as Record<string, unknown>);
+      out.set(row.classNameSlug, row);
+    }
+    return out;
+  }
+
+  /**
    * Resolve which buyable weapons/components/items fit a hardpoint, via the
    * codex_compatible_items RPC (matches the port's accepted `types` + size
    * range against each item's attach_type + size). Empty `types` ⇒ no result.
