@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.1] - 2026-06-14
+
+### Fixed
+
+- **Bundle supersede was still blocked by a surviving unique constraint.** The
+  0.18.0 migration keyed supersede on `(channel, patch, build, uploaded_by)` and
+  dropped the wrong (already-replaced) constraint, leaving 00006's non-partial
+  `p4k_bundles_channel_patch_build_key` UNIQUE (channel, patch_version,
+  build_number) in place. The supersede insert therefore collided (23505) — a
+  higher-version re-upload still returned 409 instead of replacing. Re-keyed
+  supersede, the partial-unique-on-active index, and per-build retention to
+  `(channel, patch_version, build_number)` (the app's real identity — `check-bundle`
+  and `list_p4k_bundles_for_collaborator` both key the same way) and dropped the
+  blocking constraint. Verified end-to-end on the cloud DB. Migration
+  `20260614010000_fix_bundle_supersede_keying`.
+
 ## [0.18.0] - 2026-06-14
 
 ### Added
