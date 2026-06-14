@@ -86,7 +86,7 @@ import { RoleService } from '../auth/role.service';
         <div class="sc-card empty">
           <h2>{{ 'p4k.empty.title' | translate }}</h2>
           <p>{{ 'p4k.empty.hint' | translate }}</p>
-          <a routerLink="/desktop" class="sc-btn sc-btn-primary" style="margin-top: 12px;">
+          <a routerLink="/uploader" class="sc-btn sc-btn-primary" style="margin-top: 12px;">
             {{ 'p4k.empty.goDesktop' | translate }}
           </a>
         </div>

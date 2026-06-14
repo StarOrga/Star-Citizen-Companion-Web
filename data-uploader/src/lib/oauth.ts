@@ -5,7 +5,7 @@
  *  1. Start an ephemeral HTTP-on-loopback server on 127.0.0.1:<port>
  *     exposing POST /cb — the real handoff.
  *  2. Open the user's default browser at
- *     `${webBase}/desktop/auth?cb=<loopback>&state=<csrf>`.
+ *     `${webBase}/uploader/auth?cb=<loopback>&state=<csrf>`.
  *  3. The web app authenticates, then submits a TOP-LEVEL form-POST
  *     navigation to `<loopback>/cb` with `{state, token, email}` in the
  *     request body (application/x-www-form-urlencoded).
@@ -49,7 +49,7 @@ const TIMEOUT_MS = 5 * 60 * 1000;
 const MAX_BODY_BYTES = 16 * 1024;
 
 /**
- * Open the user's browser at the WEB app's /desktop/auth page (NOT the
+ * Open the user's browser at the WEB app's /uploader/auth page (NOT the
  * Supabase API — that has no UI). The web app authenticates the user and
  * POSTs the resulting JWT back to the loopback. Pass `webBase` from
  * `WEB_BASE` constant in `release-token.ts`.
@@ -118,7 +118,7 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
         return;
       }
 
-      // POST = the real handoff. The web app at /desktop/auth submits a
+      // POST = the real handoff. The web app at /uploader/auth submits a
       // TOP-LEVEL form-POST navigation (application/x-www-form-urlencoded),
       // NOT a background fetch(): Chrome's Private/Local Network Access
       // blocks subresource requests from the public HTTPS origin to this
@@ -231,7 +231,7 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
 
     server.listen(port, '127.0.0.1', () => {
       const loopback = `http://127.0.0.1:${port}/cb`;
-      const authUrl = `${webBase}/desktop/auth?cb=${encodeURIComponent(loopback)}&state=${state}`;
+      const authUrl = `${webBase}/uploader/auth?cb=${encodeURIComponent(loopback)}&state=${state}`;
       void shell.openExternal(authUrl);
     });
 

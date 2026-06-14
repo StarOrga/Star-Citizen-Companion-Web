@@ -28,7 +28,7 @@ export const API_BASE: string = __SC_API_BASE__;
  */
 export const SUPABASE_ANON_KEY: string = __SC_SUPABASE_ANON_KEY__;
 /**
- * Angular web-app URL where the OAuth callback page (/desktop/auth) is
+ * Angular web-app URL where the OAuth callback page (/uploader/auth) is
  * served. Used by oauth.ts when opening the user's browser. Different
  * domain than API_BASE because the web is on Vercel and the API is on
  * Supabase.

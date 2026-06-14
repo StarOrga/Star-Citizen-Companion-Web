@@ -65,7 +65,7 @@ src/
 ## Security-Modell (Iter 2 · § B2)
 
 1. **Loopback-OAuth**: App startet HTTP-Server auf 127.0.0.1:46821,
-   öffnet Browser bei `<api-base>/desktop/auth?cb=<loopback>`, User loggt sich
+   öffnet Browser bei `<api-base>/uploader/auth?cb=<loopback>`, User loggt sich
    ein, Browser redirected mit signiertem Token.
 2. **Release-Token-Header**: Beim Upload sendet die App
    `X-SC-Release-Token: <build-injected-uuid>`. Server prüft gegen
