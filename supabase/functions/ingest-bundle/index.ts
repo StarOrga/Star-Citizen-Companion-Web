@@ -8,11 +8,11 @@
 //                quality_score, entity_counts, manifest, data?, tool_version }
 //         Headers: Authorization: Bearer <jwt>
 //                  X-SC-Release-Token: <uuid>
-// Output: 200 { ok: true, bundle_id, diff_summary }
+// Output: 200 { ok: true, bundle_id, prev_bundle_id, superseded_id, diff_summary }
 //         400 { error: 'invalid_body' | 'invalid_release_token' }
 //         401 { error: 'unauthorized' }
 //         403 { error: 'forbidden' | 'unknown_release_token' }
-//         409 { error: 'duplicate', existing_id }
+//         409 { error: 'duplicate' }
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
@@ -121,12 +121,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // RPC also enforces retention (max 3 tool-versions per build, 20 bundles
   // total) — see migration 20260614000000_bundle_supersede_retention.
   //
-  // MUST call via userClient (not adminClient): the RPC is security-definer
-  // and re-checks `is_collaborator()` as defense-in-depth, which reads
-  // `auth.uid()`. Service-role calls have no JWT context → auth.uid() is
-  // NULL → role coalesces to 'viewer' → RPC raises "forbidden". RLS is
-  // already bypassed by `security definer`, so userClient is safe for
-  // the INSERT side.
+  // Called via userClient: the RPC is security-definer and re-checks
+  // is_collaborator() (auth.uid()) as defense-in-depth; the user JWT satisfies
+  // that. (A service_role bypass also exists in the RPC for completeness.)
   const { data: rpcRows, error: rpcErr } = await userClient.rpc(
     'ingest_bundle_atomic',
     {
@@ -143,8 +140,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
   );
 
   if (rpcErr) {
-    // Postgres unique_violation = 23505. Postgrest wraps it differently
-    // depending on the client version, so match on substring too.
+    // Postgres unique_violation = 23505 (raw race) or the RPC's explicit
+    // 'duplicate: …' raise on an equal/lower tool_version.
     if (rpcErr.code === '23505' || /duplicate/i.test(rpcErr.message ?? '')) {
       return json(
         {
