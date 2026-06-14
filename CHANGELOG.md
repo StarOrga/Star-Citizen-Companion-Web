@@ -4,6 +4,40 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-06-14
+
+### Added
+
+- **Bundle supersede on higher uploader version.** A re-upload of the same
+  channel/patch/build by the same operator is no longer a hard duplicate: a
+  strictly-higher semver uploader `tool_version` now SUPERSEDES the active
+  bundle (the old row is retired to history with reason `superseded by tool X`
+  and stays visible under the history toggle for admin rollback). Equal/lower
+  versions still return HTTP 409. Implemented in `ingest_bundle_atomic`; the old
+  UNIQUE constraint is replaced by a partial-unique-on-active index so
+  superseded history can coexist (migration
+  `20260614000000_bundle_supersede_retention`).
+- **Bundle retention caps.** The ingest RPC now keeps at most the newest 3
+  tool-versions per build and at most 20 bundles globally, pruning
+  disabled/superseded rows first, then the oldest. A gray retention hint under
+  the P4K bundle-history table explains the policy.
+
+### Changed
+
+- **Web route `/desktop` → `/uploader`.** The Data Uploader page and the Electron
+  OAuth loopback callback moved to `/uploader` + `/uploader/auth` (the uploader
+  binary is unreleased, so a clean rename was safe). A legacy `/desktop` →
+  `/uploader` redirect preserves bookmarks. The local Supabase redirect-url
+  allowlist was updated; the **production** dashboard still needs `/uploader/auth`
+  added manually (Auth → URL Configuration).
+
+### Deploy
+
+- Migration `20260614000000` and `ingest-bundle` edge function v7 are already
+  applied/deployed to the cloud project (`hcnqhvzlavdycidqyaai`).
+- Data-uploader **source** changed (OAuth callback URL, i18n) but **no binary was
+  built** — the uploader stays unreleased until a `data-uploader-v*` tag ships.
+
 ## [0.17.1] - 2026-06-13
 
 ### Fixed
