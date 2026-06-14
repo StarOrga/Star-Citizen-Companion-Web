@@ -27,7 +27,7 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
         <a routerLink="/hangar" routerLinkActive="active">{{ 'nav.hangar' | translate }}</a>
         @if (roles.isCollaborator()) {
           <a routerLink="/p4k" routerLinkActive="active">{{ 'nav.p4k' | translate }}</a>
-          <a routerLink="/desktop" routerLinkActive="active">{{ 'nav.desktop' | translate }}</a>
+          <a routerLink="/uploader" routerLinkActive="active">{{ 'nav.desktop' | translate }}</a>
         }
         @if (roles.isAdmin()) {
           <a

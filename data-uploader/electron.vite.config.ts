@@ -35,7 +35,7 @@ export default defineConfig({
         process.env['SC_API_BASE'] ?? 'http://127.0.0.1:54321',
       ),
       // WEB_BASE = Angular app URL (where the OAuth callback page
-      // /desktop/auth is served). Different concern: this is the URL the
+      // /uploader/auth is served). Different concern: this is the URL the
       // user's browser navigates to during the loopback OAuth flow. Dev
       // = local ng serve on 4200; prod = Vercel deployment URL once
       // it's set up. CI must set BOTH env vars; falling back to the

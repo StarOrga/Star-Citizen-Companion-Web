@@ -71,7 +71,7 @@ export const routes: Routes = [
         loadComponent: () => import('./p4k/p4k-history.component').then((m) => m.P4kHistoryComponent),
       },
       {
-        path: 'desktop',
+        path: 'uploader',
         canActivate: [roleGuard('admin', 'collaborator')],
         loadComponent: () =>
           import('./desktop/desktop-download.component').then((m) => m.DesktopDownloadComponent),
@@ -81,11 +81,16 @@ export const routes: Routes = [
         // Auth-guarded but role-gated INSIDE the component (so unauthenticated
         // users land on /login with a redirect back here, instead of bouncing
         // silently to /news).
-        path: 'desktop/auth',
+        path: 'uploader/auth',
         canActivate: [authGuard],
         loadComponent: () =>
           import('./desktop/desktop-auth.component').then((m) => m.DesktopAuthComponent),
       },
+      // Legacy redirect: the page lived at /desktop before the rename to
+      // /uploader. Keep bookmarks/muscle-memory working. (The OAuth callback
+      // /desktop/auth had no released uploader binary pointing at it, so it is
+      // renamed cleanly without a legacy alias.)
+      { path: 'desktop', pathMatch: 'full', redirectTo: 'uploader' },
       {
         path: 'admin',
         canActivate: [roleGuard('admin')],

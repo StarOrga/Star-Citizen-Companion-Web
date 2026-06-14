@@ -315,6 +315,7 @@
     "expand": "Details anzeigen",
     "loading": "Lade Bundles…",
     "errorTitle": "Bundles konnten nicht geladen werden",
+    "retentionHint": "Aufbewahrung: je Build die letzten 3 Uploader-Versionen, max. 20 Bundles insgesamt — ältere werden automatisch entfernt.",
     "toggle": {
       "history": "Verlauf",
       "disabled": "Deaktivierte zeigen"

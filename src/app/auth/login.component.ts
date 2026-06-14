@@ -202,7 +202,7 @@ export class LoginComponent {
     // configured without explicit wildcards reject query strings on the
     // OAuth callback ("Invalid redirect URL"). Stash any query string,
     // pass the bare path to the provider, and let the destination route
-    // (currently only /desktop/auth) restore cb/state from sessionStorage.
+    // (currently only /uploader/auth) restore cb/state from sessionStorage.
     const qIdx = target.indexOf('?');
     if (qIdx !== -1) {
       try {

@@ -42,7 +42,7 @@
       "unauthorized": "Nicht angemeldet oder Sitzung ungültig — bitte neu verbinden.",
       "forbidden": "Keine Berechtigung zum Hochladen — deinem Konto fehlt die Upload-Rolle.",
       "releaseToken": "Release-Token fehlt, ist unbekannt oder wurde widerrufen — bitte die App aktualisieren.",
-      "duplicate": "Dieses Bundle wurde bereits hochgeladen (gleiche Version und Build).",
+      "duplicate": "Es existiert bereits ein Bundle mit gleicher oder neuerer Uploader-Version für diese Version und Build. Mit höherer Uploader-Version erneut hochladen, um es zu ersetzen.",
       "ingestFailed": "Der Server konnte das Bundle nicht verarbeiten — bitte später erneut versuchen.",
       "invalidBody": "Ungültige Bundle-Daten — bitte die Extraktion erneut ausführen.",
       "serverMisconfigured": "Der Server ist nicht korrekt konfiguriert — bitte den Betreiber informieren.",
