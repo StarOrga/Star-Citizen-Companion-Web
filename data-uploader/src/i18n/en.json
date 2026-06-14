@@ -42,7 +42,7 @@
       "unauthorized": "Not signed in or your session is invalid — please reconnect.",
       "forbidden": "You don't have permission to upload — your account is missing the uploader role.",
       "releaseToken": "Release token is missing, unknown, or revoked — please update the app.",
-      "duplicate": "This bundle was already uploaded (same version and build).",
+      "duplicate": "A bundle with an equal or newer uploader version already exists for this version and build. Re-upload with a higher uploader version to replace it.",
       "ingestFailed": "The server couldn't process the bundle — please try again later.",
       "invalidBody": "Invalid bundle data — please re-run the extraction.",
       "serverMisconfigured": "The server is misconfigured — please contact the operator.",

@@ -220,6 +220,7 @@ import { RoleService } from '../auth/role.service';
             }
           </tbody>
         </table>
+        <p class="retention-hint">{{ 'p4k.retentionHint' | translate }}</p>
       }
     </section>
   `,
@@ -304,6 +305,12 @@ import { RoleService } from '../auth/role.service';
 
     .empty { text-align: center; padding: 40px 24px; color: var(--sc-fg-2); }
     .empty h2 { margin: 0 0 8px; }
+
+    .retention-hint {
+      margin: 6px 2px 0;
+      font-size: 0.74rem;
+      color: var(--sc-fg-2);
+    }
 
     .table { width: 100%; padding: 0; border-collapse: collapse; overflow: hidden; }
     .table th, .table td {
