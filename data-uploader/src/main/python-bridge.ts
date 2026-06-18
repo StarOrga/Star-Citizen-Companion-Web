@@ -43,9 +43,16 @@ export interface ExtractRequest {
  *  Kept in lockstep with the existing ExtractorEvent in lib/extractor.ts so
  *  the renderer doesn't need a second adapter. */
 export interface PythonExtractEvent {
-  type: 'phase' | 'file' | 'count' | 'log' | 'warning' | 'done' | 'error';
+  type: 'phase' | 'progress' | 'file' | 'count' | 'log' | 'warning' | 'done' | 'error';
   phase?: 'discover' | 'plan' | 'extract' | 'validate' | 'bundle';
   pct?: number;
+  // 'progress' event — live position within a phase ("how many of how many").
+  // `total` is absent for unquantifiable phases (open P4K / decompress); the
+  // renderer then shows a running count + indeterminate bar.
+  stage?: string;
+  current?: number;
+  total?: number;
+  detail?: string;
   fileName?: string;
   bytesProcessed?: number;
   bytesTotal?: number;

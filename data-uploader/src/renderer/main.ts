@@ -68,8 +68,29 @@ function orderedCounts(counts: Record<string, number>): [string, number][] {
   return Object.entries(counts).sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b));
 }
 
+// `t()` returns the key itself when a string is missing — so for the dynamic
+// extractor keys (phase / stage / counter names that the Python side invents)
+// fall back to the bare key instead of leaking "run.counter.foo" into the UI.
+function tOr(key: string, fallback: string, params: Record<string, string | number> = {}): string {
+  const v = t(key, params);
+  return v === key ? fallback : v;
+}
+const phaseLabel = (p: string): string => tOr(`run.phase.${p}`, p);
+const stageLabel = (s: string): string => tOr(`run.stage.${s}`, s);
+const counterLabel = (k: string): string => tOr(`run.counter.${k}`, k);
+
+function fmtElapsed(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, '0')}`;
+}
+
 const state = {
   view: 'discover' as ViewName,
+  // Auto-scan runs once on app start; returning to the Discover view keeps the
+  // prior results (and any manually-added folders) instead of re-scanning.
+  scanning: false,
+  scanned: false,
   channels: [] as Array<{
     channel: string;
     installPath: string;
@@ -495,10 +516,6 @@ function renderDiscover(): string {
   return `
     <h1>${t('discover.title', {}) || 'Star-Citizen-Installations finden'}</h1>
     <p>${t('discover.subtitle', {}) || 'Cascade läuft automatisch: RSI-Launcher → Filesystem-Scan → optional manuell.'}</p>
-    <div class="btn-row">
-      <button id="btn-discover" class="btn btn-primary">${t('discover.scan', {}) || 'Scan starten'}</button>
-      <button id="btn-manual" class="btn">${t('discover.manual', {}) || 'Ordner manuell wählen'}</button>
-    </div>
     <div id="channels-mount"></div>
     <div class="btn-row" id="discover-next" style="display:none; margin-top: 18px;">
       <button id="btn-to-configure" class="btn btn-primary">${t('discover.next', {}) || 'Weiter → Konfiguration'}</button>
@@ -508,27 +525,6 @@ function renderDiscover(): string {
 }
 
 function wireDiscover(): void {
-  $('#btn-discover')?.addEventListener('click', async () => {
-    setStatus('discovering…');
-    const found = await window.sc.discover();
-    state.channels = found.map((c) => ({ ...c, selected: true }));
-    paintChannels();
-    setStatus(`found ${found.length} channel(s)`);
-  });
-
-  $('#btn-manual')?.addEventListener('click', async () => {
-    const folder = await window.sc.pickFolder();
-    if (!folder) return;
-    const ch = await window.sc.discoverManual(folder);
-    if (!ch) {
-      setStatus('no Data.p4k in selected folder');
-      return;
-    }
-    if (state.channels.some((c) => c.dataP4kPath === ch.dataP4kPath)) return;
-    state.channels.push({ ...ch, selected: true });
-    paintChannels();
-  });
-
   $('#btn-to-configure')?.addEventListener('click', () => {
     state.view = 'configure';
     render();
@@ -538,18 +534,69 @@ function wireDiscover(): void {
     state.view = 'skins';
     render();
   });
+
+  // No "start scan" button: the scan kicks off automatically the first time the
+  // Discover view mounts (i.e. on app start). Coming back to this view keeps the
+  // earlier results — including any folders the operator added by hand.
+  if (!state.scanned && !state.scanning) {
+    void autoScan();
+  } else {
+    paintChannels();
+  }
+}
+
+async function autoScan(): Promise<void> {
+  state.scanning = true;
+  paintChannels(); // shows the loading animation in the lower part
+  setStatus('discovering…');
+  try {
+    const found = await window.sc.discover();
+    state.channels = found.map((c) => ({ ...c, selected: true }));
+    setStatus(`found ${found.length} channel(s)`);
+  } catch {
+    setStatus('scan failed');
+  } finally {
+    state.scanning = false;
+    state.scanned = true;
+    paintChannels();
+  }
+}
+
+// Big "add a folder" button under the version list — lets the operator pull in
+// installs the auto-scan missed (custom drive, moved library, PTU on another disk).
+async function addManualFolder(): Promise<void> {
+  const folder = await window.sc.pickFolder();
+  if (!folder) return;
+  const ch = await window.sc.discoverManual(folder);
+  if (!ch) {
+    setStatus('no Data.p4k in selected folder');
+    return;
+  }
+  if (state.channels.some((c) => c.dataP4kPath === ch.dataP4kPath)) return;
+  state.channels.push({ ...ch, selected: true });
+  paintChannels();
 }
 
 function paintChannels(): void {
   const mount = $('#channels-mount');
   const nextRow = $('#discover-next');
   if (!mount) return;
-  if (state.channels.length === 0) {
-    mount.innerHTML = '';
+
+  // While the auto-scan runs, show a small spinner in the lower part instead of
+  // an empty page — no buttons, no "next" row yet.
+  if (state.scanning) {
+    mount.innerHTML = `
+      <div class="scan-loading">
+        <span class="spinner" aria-hidden="true"></span>
+        <span>${t('discover.scanning', {}) || 'Suche nach Installationen…'}</span>
+      </div>`;
     if (nextRow) nextRow.style.display = 'none';
     return;
   }
-  mount.innerHTML = `
+
+  const hasChannels = state.channels.length > 0;
+  const list = hasChannels
+    ? `
     <div class="card">
       <h2>${t('discover.found', {}) || 'Gefundene Channels'}</h2>
       <div class="channel-list">
@@ -569,8 +616,15 @@ function paintChannels(): void {
           )
           .join('')}
       </div>
-    </div>
+    </div>`
+    : `<p class="discover-empty">${t('discover.none', {}) || 'Keine Installation automatisch gefunden — füge unten einen Ordner manuell hinzu.'}</p>`;
+
+  // Big "add folder" button always sits below the versions, to pull in more by hand.
+  mount.innerHTML = `
+    ${list}
+    <button id="btn-manual" type="button" class="btn btn-add-folder">＋ ${t('discover.addManual', {}) || 'Ordner manuell hinzufügen'}</button>
   `;
+
   mount.querySelectorAll('input[type=checkbox]').forEach((el) => {
     el.addEventListener('change', (e) => {
       const idx = Number((e.target as HTMLInputElement).dataset['idx']);
@@ -579,7 +633,9 @@ function paintChannels(): void {
       if (ch) ch.selected = (e.target as HTMLInputElement).checked;
     });
   });
-  if (nextRow) nextRow.style.display = 'flex';
+  $('#btn-manual')?.addEventListener('click', () => void addManualFolder());
+
+  if (nextRow) nextRow.style.display = hasChannels ? 'flex' : 'none';
 }
 
 // ============= View: Configure =============
@@ -653,8 +709,12 @@ function renderRun(): string {
   return `
     <h1>${t('run.title', {}) || 'Extraktion läuft'}</h1>
     <div class="card">
-      <h2 id="phase-label">…</h2>
-      <div class="progress-bar"><span id="bar" style="width:0%"></span></div>
+      <div class="run-head">
+        <h2 id="phase-label">…</h2>
+        <span id="run-elapsed" class="run-elapsed"></span>
+      </div>
+      <div class="progress-bar" id="progress-bar"><span id="bar" style="width:0%"></span></div>
+      <div id="progress-detail" class="progress-detail"></div>
       <div class="counters" id="counters"></div>
       <div class="log-header">
         <span class="log-title">${t('run.logTitle', {}) || 'Protokoll'}</span>
@@ -727,10 +787,48 @@ async function runRealExtract(): Promise<void> {
     counters.innerHTML = orderedCounts(countMap)
       .map(
         ([key, value]) =>
-          `<div class="counter"><div class="label">${key}</div><div class="value">${value.toLocaleString()}</div></div>`,
+          `<div class="counter"><div class="label">${escapeHtml(counterLabel(key))}</div><div class="value">${value.toLocaleString()}</div></div>`,
       )
       .join('');
   };
+
+  // Live "where am I" line under the bar. Shows current/total when the goal is
+  // known, a running count when it isn't, and a bare label for opaque phases —
+  // and flips the bar to an indeterminate pulse while there's nothing to count.
+  const progressDetail = $('#progress-detail');
+  const progressBar = $('#progress-bar');
+  const setProgressDetail = (ev: {
+    stage?: string;
+    current?: number;
+    total?: number;
+    pct?: number;
+    detail?: string;
+  }): void => {
+    const label = stageLabel(ev.stage ?? '');
+    let txt: string;
+    if (typeof ev.total === 'number' && ev.total > 0 && typeof ev.current === 'number') {
+      const pct = typeof ev.pct === 'number' ? ev.pct : Math.floor((ev.current / ev.total) * 100);
+      txt = `${label} — ${ev.current.toLocaleString()} / ${ev.total.toLocaleString()} (${pct} %)`;
+    } else if (typeof ev.current === 'number') {
+      txt = `${label} — ${ev.current.toLocaleString()}`;
+    } else {
+      txt = `${label} …`;
+    }
+    if (ev.detail) txt += `  ·  ${ev.detail}`;
+    if (progressDetail) progressDetail.textContent = txt;
+    const indeterminate = typeof ev.total !== 'number' && typeof ev.current !== 'number';
+    progressBar?.classList.toggle('indeterminate', indeterminate);
+  };
+
+  // Elapsed clock — the main reassurance during the long opaque steps (opening
+  // the ~157 GB archive, decompressing the DataCore) where no count ticks.
+  const startedAt = Date.now();
+  const elapsedEl = $('#run-elapsed');
+  const tickElapsed = (): void => {
+    if (elapsedEl) elapsedEl.textContent = fmtElapsed(Date.now() - startedAt);
+  };
+  tickElapsed();
+  const elapsedTimer = window.setInterval(tickElapsed, 1000);
 
   extractLogText = '';
 
@@ -749,10 +847,16 @@ async function runRealExtract(): Promise<void> {
 
   const unsubscribe = window.sc.extract.onEvent((ev) => {
     switch (ev.type) {
-      case 'phase':
-        if (phase) phase.textContent = ev.phase ?? '…';
+      case 'phase': {
+        const label = phaseLabel(ev.phase ?? 'unknown');
+        if (phase) phase.textContent = label;
         if (typeof ev.pct === 'number') setBar(ev.pct);
-        appendLog(`[phase] ${ev.phase ?? 'unknown'}`);
+        appendLog(`▶ ${label}`);
+        return;
+      }
+      case 'progress':
+        if (typeof ev.pct === 'number') setBar(ev.pct);
+        setProgressDetail(ev);
         return;
       case 'file':
         if (typeof ev.pct === 'number') setBar(ev.pct);
@@ -772,8 +876,12 @@ async function runRealExtract(): Promise<void> {
         return;
       case 'done':
         setBar(100);
+        progressBar?.classList.remove('indeterminate');
+        if (phase) phase.textContent = phaseLabel('done');
+        if (progressDetail) progressDetail.textContent = '';
         return;
       case 'error':
+        progressBar?.classList.remove('indeterminate');
         appendLog(ev.message ?? 'extraction error', 'error');
         return;
     }
@@ -796,9 +904,20 @@ async function runRealExtract(): Promise<void> {
 
     if (final.ok && final.result) {
       state.lastResult = final.result;
+      const totalEntities = Object.values(final.result.entity_counts)
+        .reduce((a, b) => a + b, 0)
+        .toLocaleString();
+      const elapsed = fmtElapsed(Date.now() - startedAt);
       appendLog(
-        `done — quality ${final.result.quality_score.toFixed(0)}/100, ` +
-          `${Object.values(final.result.entity_counts).reduce((a, b) => a + b, 0).toLocaleString()} entities`,
+        tOr(
+          'run.doneSummary',
+          `done — quality ${final.result.quality_score.toFixed(0)}/100, ${totalEntities} entities in ${elapsed}`,
+          {
+            score: final.result.quality_score.toFixed(0),
+            entities: totalEntities,
+            time: elapsed,
+          },
+        ),
         'success',
       );
       ($('#btn-to-upload') as HTMLButtonElement | null)?.removeAttribute('disabled');
@@ -807,6 +926,9 @@ async function runRealExtract(): Promise<void> {
     }
   } finally {
     unsubscribe();
+    window.clearInterval(elapsedTimer);
+    tickElapsed();
+    progressBar?.classList.remove('indeterminate');
   }
 }
 

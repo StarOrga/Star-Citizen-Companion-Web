@@ -230,9 +230,13 @@ def _real_extract(cfg: ExtractConfig) -> ExtractResult:
     from scdatatools.p4k import P4KFile  # type: ignore[import-not-found]
 
     events.phase("discover", pct=6)
+    # Opening a ~157 GB archive takes ~30–40 s and gives no intermediate count —
+    # emit an indeterminate progress (no total) so the UI shows "opening …" with
+    # a pulsing bar instead of looking frozen.
+    events.progress("open", pct=6, detail=cfg.p4k_path.name)
     events.log("info", "opening P4K (compat-patched for SC 4.x)")
     p4k = P4KFile(str(cfg.p4k_path))
-    events.log("info", f"P4K opened: {len(p4k.namelist())} entries")
+    events.log("info", f"P4K opened: {len(p4k.namelist()):,} entries")
 
     dcb_entry = _find_dcb_entry(p4k)
     events.log("info", f"datacore entry: {dcb_entry}")
@@ -240,6 +244,8 @@ def _real_extract(cfg: ExtractConfig) -> ExtractResult:
     localizer = _load_localizer(p4k)
 
     events.phase("extract", pct=10)
+    # Decompressing + parsing the DataCore is also unquantifiable up front.
+    events.progress("datacore", pct=10)
     events.log("info", "reading + decompressing DataCore (this is the slow part)")
     info = p4k.getinfo(dcb_entry)
     with p4k.open(info) as f:
@@ -256,6 +262,7 @@ def _real_extract(cfg: ExtractConfig) -> ExtractResult:
         df, localizer, cfg.out_dir, source,
         on_count=events.count,
         on_log=events.log,
+        on_progress=events.progress,
         dump_generic=cfg.dump_generic,
         p4k=p4k,
         extract_assets=True,
@@ -303,6 +310,7 @@ def _stub_extract(cfg: ExtractConfig) -> ExtractResult:
     ships_dir = cfg.out_dir / "ships"
     ships_dir.mkdir(exist_ok=True)
     ships_extracted = 0
+    n_ships = len(sample_ships)
     for ship_name in sample_ships:
         ship_data = {"name": ship_name, "mass": random.randint(5000, 80000), "hp_main_hull": random.randint(1000, 50000)}
         heuristic_warnings = heuristic_check_entity("ship", ship_data)
@@ -314,6 +322,8 @@ def _stub_extract(cfg: ExtractConfig) -> ExtractResult:
         events.log("info", f"extracted ship: {ship_name}")
         ships_extracted += 1
         events.count("ships", ships_extracted)
+        events.progress("entities", current=ships_extracted, total=n_ships,
+                        pct=10 + int(ships_extracted / n_ships * 70))
 
     events.count("weapons", 247)
     events.count("items", 1493)
