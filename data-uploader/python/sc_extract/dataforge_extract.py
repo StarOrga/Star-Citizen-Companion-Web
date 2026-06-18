@@ -101,6 +101,20 @@ _FPS_WEAPON_TYPES = {"WeaponPersonal"}
 
 _SHIP_PREFIX = "libs/foundry/records/entities/spaceships/"
 
+# Overall progress-bar sub-ranges (percent) for the two long phases, so the bar
+# advances smoothly instead of freezing at the phase's start value. The host
+# (extract.py) owns 0–10 (discover/open/decompress) and 85–100 (validate/
+# bundle); everything the extractor itself does lives in 10–85.
+_PCT_ENTITIES = (15, 55)   # typed catalog projection (ships/weapons/…)
+_PCT_RECORDS = (55, 84)    # exhaustive generic dump
+
+
+def _mapped_pct(current: int, total: int, lo: int, hi: int) -> int:
+    """Map a ``current/total`` fraction into the overall-bar sub-range [lo, hi]."""
+    if total <= 0:
+        return lo
+    return min(hi, lo + int((current / total) * (hi - lo)))
+
 
 def _norm_path(p: Optional[str]) -> str:
     return (p or "").replace("\\", "/").lower()
@@ -176,6 +190,7 @@ class CodexExtractor:
     def __init__(self, df: DataForge, localizer: Localizer, out_dir: Path,
                  source: Dict[str, str], on_count: Callable[[str, int], None] = lambda k, v: None,
                  on_log: Callable[[str, str], None] = lambda lvl, m: None,
+                 on_progress: Callable[..., None] = lambda *a, **k: None,
                  dump_generic: bool = True, p4k=None, extract_assets: bool = True) -> None:
         self.df = df
         self.loc = localizer
@@ -183,6 +198,7 @@ class CodexExtractor:
         self.source = source
         self.on_count = on_count
         self.on_log = on_log
+        self.on_progress = on_progress
         self.dump_generic = dump_generic
         self.p4k = p4k
         self.counts: Dict[str, int] = {}
@@ -200,7 +216,9 @@ class CodexExtractor:
 
     # ── public entry ─────────────────────────────────────────────────────────
     def run(self) -> Dict[str, int]:
+        self.on_progress("localization", pct=10)
         self.dump_localization()      # full global.ini tables (en/de)
+        self.on_progress("reference", pct=13)
         self.extract_manufacturers()
         self.extract_ammunition()
         self.extract_blueprints()     # crafting blueprints (CraftingBlueprintRecord)
@@ -646,11 +664,17 @@ class CodexExtractor:
             # captured by dump_all_records().
 
             if i % 2000 == 0:
-                self.on_log("info", f"entities {i}/{total}")
+                # Live counters (the grid) + a smooth "scanned i of total" line.
+                # The per-2000 'entities i/total' log line is dropped — the
+                # progress event now carries that, so the transcript stays clean.
                 self.on_count("ships", n_ship)
                 self.on_count("weapons", n_wpn)
                 self.on_count("components", n_comp)
+                self.on_count("items", n_item)
+                self.on_progress("entities", current=i, total=total,
+                                 pct=_mapped_pct(i, total, *_PCT_ENTITIES))
 
+        self.on_progress("entities", current=total, total=total, pct=_PCT_ENTITIES[1])
         self.on_log("info", f"catalog: {n_ship} ships · {n_wpn} weapons · "
                             f"{n_comp} components · {n_item} items "
                             f"({n_skip} dev/NPC variants skipped)")
@@ -999,6 +1023,9 @@ class CodexExtractor:
         total = 0
         n_fail = 0
         n_types = len(self.df.record_types)
+        # Denominator for the progress line: every record of every type is
+        # written here, so the full record count IS the goal (known up front).
+        total_records = len(self.df.records)
         for ti, t in enumerate(sorted(self.df.record_types)):
             tdir = base / _safe_filename(t)
             tdir.mkdir(exist_ok=True)
@@ -1026,8 +1053,15 @@ class CodexExtractor:
                     continue
                 per_type[t] += 1
                 total += 1
-            if ti % 50 == 0:
-                self.on_log("info", f"generic dump {ti}/{n_types} types, {total} records")
+            if ti % 25 == 0:
+                # Tick the live records counter + advance the bar against the
+                # known total record count; `detail` names the type in flight.
+                self.on_count("records_total", total)
+                self.on_progress("records", current=total, total=total_records,
+                                 pct=_mapped_pct(total, total_records, *_PCT_RECORDS),
+                                 detail=_strip_type_prefix(t))
+        self.on_progress("records", current=total, total=total_records, pct=_PCT_RECORDS[1])
+        self.on_log("info", f"generic dump: {total:,} records across {n_types} types")
         if n_fail:
             # Surface systemic write failures (disk full, permission, locked dir)
             # rather than hiding them behind per-record warns — a large count here

@@ -98,9 +98,14 @@ interface ExtractFinal {
 }
 interface ExtractEvent {
   jobId: string;
-  type: 'phase' | 'file' | 'count' | 'log' | 'warning' | 'done' | 'error';
+  type: 'phase' | 'progress' | 'file' | 'count' | 'log' | 'warning' | 'done' | 'error';
   phase?: string;
   pct?: number;
+  // 'progress' event fields (see python-bridge.ts PythonExtractEvent).
+  stage?: string;
+  current?: number;
+  total?: number;
+  detail?: string;
   fileName?: string;
   bytesProcessed?: number;
   bytesTotal?: number;

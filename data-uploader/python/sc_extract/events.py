@@ -25,7 +25,7 @@ for _std in ("stdout", "stderr"):
     except Exception:  # noqa: BLE001 — best-effort; pytest-captured / non-reconfigurable streams no-op
         pass
 
-EventType = Literal["phase", "file", "count", "log", "warning", "done", "error"]
+EventType = Literal["phase", "progress", "file", "count", "log", "warning", "done", "error"]
 LogLevel = Literal["info", "warn", "error"]
 Phase = Literal["discover", "plan", "extract", "validate", "bundle"]
 
@@ -60,6 +60,34 @@ def phase(name: Phase, pct: Optional[int] = None) -> None:
 
 def log(level: LogLevel, message: str) -> None:
     emit_event("log", level=level, message=message)
+
+
+def progress(
+    stage: str,
+    current: Optional[int] = None,
+    total: Optional[int] = None,
+    pct: Optional[int] = None,
+    detail: Optional[str] = None,
+) -> None:
+    """Live position WITHIN a phase — drives the run view's "where am I" line.
+
+    ``current``/``total`` answer "how many of how many". ``total`` is omitted
+    when the goal isn't known up front (opening the P4K, decompressing the
+    DataCore): the UI then shows just a running count with an indeterminate bar
+    instead of a fake percentage. ``pct`` is the OVERALL bar position (0–100),
+    so a long phase can advance the bar smoothly across its own sub-range.
+    ``detail`` is a short free-text hint (e.g. the record type being dumped).
+    """
+    payload: Dict[str, Any] = {"stage": stage}
+    if current is not None:
+        payload["current"] = current
+    if total is not None:
+        payload["total"] = total
+    if pct is not None:
+        payload["pct"] = pct
+    if detail:
+        payload["detail"] = detail
+    emit_event("progress", **payload)
 
 
 def file_progress(

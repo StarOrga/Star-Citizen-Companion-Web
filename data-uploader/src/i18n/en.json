@@ -7,9 +7,12 @@
   },
   "discover": {
     "title": "Find Star Citizen installs",
-    "subtitle": "Cascade runs automatically: RSI launcher → filesystem scan → optional manual pick.",
+    "subtitle": "Runs automatically on launch: RSI launcher → filesystem scan. Add more folders by hand below.",
     "scan": "Start scan",
+    "scanning": "Searching for installs…",
     "manual": "Pick folder manually",
+    "addManual": "Add folder manually",
+    "none": "No install found automatically — add a folder by hand below.",
     "found": "Detected channels",
     "next": "Next → Configure"
   },
@@ -24,7 +27,38 @@
     "logTitle": "Log",
     "copyLog": "Copy",
     "copied": "Copied ✓",
-    "copyFailed": "Failed"
+    "copyFailed": "Failed",
+    "doneSummary": "Done — quality {{score}}/100 · {{entities}} entities in {{time}}",
+    "phase": {
+      "discover": "Analyzing installation",
+      "plan": "Planning run",
+      "extract": "Extracting game data",
+      "validate": "Validating result",
+      "bundle": "Packaging bundle",
+      "done": "Done"
+    },
+    "stage": {
+      "open": "Opening Data.p4k",
+      "datacore": "Decompressing DataCore",
+      "localization": "Reading translations",
+      "reference": "Reference data",
+      "entities": "Cataloguing entities",
+      "records": "Saving all records",
+      "assets": "Preview images"
+    },
+    "counter": {
+      "strings": "Strings",
+      "manufacturers": "Manufacturers",
+      "ships": "Ships",
+      "vehicles": "Vehicles",
+      "components": "Components",
+      "items": "Items",
+      "weapons": "Weapons",
+      "ammunition": "Ammunition",
+      "blueprints": "Blueprints",
+      "records_total": "Records total",
+      "previews": "Previews"
+    }
   },
   "upload": {
     "title": "Upload",

@@ -7,9 +7,12 @@
   },
   "discover": {
     "title": "Star-Citizen-Installations finden",
-    "subtitle": "Cascade läuft automatisch: RSI-Launcher → Filesystem-Scan → optional manuell.",
+    "subtitle": "Läuft automatisch beim Start: RSI-Launcher → Filesystem-Scan. Weitere Ordner kannst du unten manuell hinzufügen.",
     "scan": "Scan starten",
+    "scanning": "Suche nach Installationen…",
     "manual": "Ordner manuell wählen",
+    "addManual": "Ordner manuell hinzufügen",
+    "none": "Keine Installation automatisch gefunden — füge unten einen Ordner manuell hinzu.",
     "found": "Gefundene Channels",
     "next": "Weiter → Konfiguration"
   },
@@ -24,7 +27,38 @@
     "logTitle": "Protokoll",
     "copyLog": "Kopieren",
     "copied": "Kopiert ✓",
-    "copyFailed": "Fehlgeschlagen"
+    "copyFailed": "Fehlgeschlagen",
+    "doneSummary": "Fertig — Qualität {{score}}/100 · {{entities}} Entitäten in {{time}}",
+    "phase": {
+      "discover": "Installation analysieren",
+      "plan": "Lauf planen",
+      "extract": "Spieldaten extrahieren",
+      "validate": "Ergebnis prüfen",
+      "bundle": "Bundle schnüren",
+      "done": "Fertig"
+    },
+    "stage": {
+      "open": "Data.p4k öffnen",
+      "datacore": "DataCore dekomprimieren",
+      "localization": "Übersetzungen lesen",
+      "reference": "Referenzdaten",
+      "entities": "Entitäten katalogisieren",
+      "records": "Alle Datensätze sichern",
+      "assets": "Vorschaubilder"
+    },
+    "counter": {
+      "strings": "Texte",
+      "manufacturers": "Hersteller",
+      "ships": "Schiffe",
+      "vehicles": "Fahrzeuge",
+      "components": "Komponenten",
+      "items": "Gegenstände",
+      "weapons": "Waffen",
+      "ammunition": "Munition",
+      "blueprints": "Baupläne",
+      "records_total": "Datensätze gesamt",
+      "previews": "Vorschaubilder"
+    }
   },
   "upload": {
     "title": "Upload",
