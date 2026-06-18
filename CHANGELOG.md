@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.3] - 2026-06-18
+
+### Fixed
+
+- **Verse-News cards from some Comm-Links had no thumbnail.** The
+  `star-citizen.wiki` API returns `images: []` / `images_count: 0` for certain
+  Comm-Links — the "Roadmap Roundup" Transmission series being the recurring
+  offender — even with `?include=images`. Because the thumbnail was sourced
+  solely from that array, those cards rendered image-less. `fetch-verse-news`
+  now falls back to scraping the `og:image` (then `twitter:image`) meta tag from
+  the RSI permalink for any entry without images; the resulting media-CDN url
+  flows through the existing variant-swap + cache pipeline unchanged. Hardened:
+  only `robertsspaceindustries.com` hosts accepted (page is untrusted), 6 s
+  timeout, bounded to 10 entries per request.
+
 ## [0.18.2] - 2026-06-18
 
 ### Fixed
