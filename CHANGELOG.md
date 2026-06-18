@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.2] - 2026-06-18
+
+### Fixed
+
+- **Uploader login opened only the start page, never signed in.** Uploader
+  binaries built before the `/desktop`→`/uploader` rename (0.18.0) — the shipped
+  v0.4.x–v0.6.1 — open `/desktop/auth?cb=…&state=…`. The `pathMatch: 'full'`
+  `/desktop` redirect does NOT cover that sub-path, so the URL fell through to
+  the `**` wildcard and silently landed on `/news`. The 0.18.0 changelog assumed
+  "the uploader binary is unreleased, so a clean rename was safe" — that was
+  wrong (v0.4.3 ships and points exactly there). Restored a `/desktop/auth`
+  alias that renders the same `DesktopAuthComponent`, so pre-rename binaries keep
+  working without a reinstall. (Binaries ≤ v0.4.5 also predate the form-POST /
+  Private-Network handoff fix and still need a reinstall of the current build.)
+
 ## [0.18.1] - 2026-06-14
 
 ### Fixed
