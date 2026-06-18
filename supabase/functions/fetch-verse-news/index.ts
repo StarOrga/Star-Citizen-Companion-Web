@@ -88,8 +88,8 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
     const res = await fetch(COMM_LINK_API, { headers: { 'Accept': 'application/json' } });
     if (!res.ok) throw new Error(`comm-link HTTP ${res.status}`);
     const json = await res.json();
-    const items: Record<string, unknown>[] = Array.isArray(json?.data) ? json.data : [];
-    return items.map((entry) => {
+    const entries: Record<string, unknown>[] = Array.isArray(json?.data) ? json.data : [];
+    const items = entries.map((entry) => {
       const series = String(entry['series'] ?? entry['channel'] ?? '').trim();
       const channel = classifyCommLinkChannel(series);
       // The wiki API field is `rsi_url` (the RSI permalink), NOT `url`. Falling back to a
@@ -108,9 +108,65 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
         source: channel === 'patch' ? 'patch-notes' : 'comm-link',
       } satisfies VerseNewsItem;
     });
+    await backfillMissingImages(items);
+    return items;
   } catch (err) {
     console.error('fetchCommLinks failed:', err);
     return [];
+  }
+}
+
+// Some comm-links come back from the wiki API with an empty `images` array even
+// though the RSI page has a hero image — the "Roadmap Roundup" series is the
+// recurring offender (every entry: images_count 0). For those, scrape the
+// permalink's og:image so the card still gets a thumbnail. The og:image is a
+// media-CDN url, so the existing variant/cache pipeline handles it unchanged.
+const OG_FETCH_TIMEOUT_MS = 6000;
+const MAX_OG_FALLBACK = 10;
+
+async function backfillMissingImages(items: VerseNewsItem[]): Promise<void> {
+  const missing = items
+    .filter((it) => !it.images?.length && it.url.startsWith(RSI_BASE))
+    .slice(0, MAX_OG_FALLBACK);
+  if (!missing.length) return;
+  await Promise.allSettled(missing.map(async (it) => {
+    const og = await fetchOgImage(it.url);
+    if (og) {
+      it.images = [og];
+      it.thumbnail = og;
+    }
+  }));
+}
+
+// Extract <meta property="og:image"> (or twitter:image) from an RSI permalink.
+// Only RSI-hosted urls are accepted — the page is untrusted content, so we never
+// surface an arbitrary external image url from it.
+async function fetchOgImage(pageUrl: string): Promise<string | undefined> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), OG_FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(pageUrl, {
+      headers: { 'Accept': 'text/html', 'User-Agent': 'SC-Companion/0.3 (+news-og-fallback)' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return undefined;
+    const html = await res.text();
+    const raw =
+      html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/i)?.[1] ??
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i)?.[1];
+    if (!raw) return undefined;
+    try {
+      const u = new URL(raw);
+      const host = u.hostname;
+      if (host !== 'robertsspaceindustries.com' && !host.endsWith('.robertsspaceindustries.com')) return undefined;
+    } catch {
+      return undefined;
+    }
+    return raw;
+  } catch {
+    return undefined;
+  } finally {
+    clearTimeout(t);
   }
 }
 
