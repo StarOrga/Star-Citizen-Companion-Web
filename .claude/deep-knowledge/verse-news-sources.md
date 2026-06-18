@@ -14,6 +14,8 @@ Fields used: `id`, `title`, `rsi_url` (the canonical RSI permalink — **not** `
 
 **Thumbnails require `?include=images`.** Without that query param the API returns only an `images_count` integer and omits the `images` array — that is why early versions showed no thumbnails. With it, the first image's `rsi_url` is the RSI-CDN thumbnail. There is no top-level `image_url` field, and there is no `summary` field.
 
+**Some entries return `images: []` even with `include=images`.** The "Roadmap Roundup" Transmission series is the recurring offender — the wiki scraper never captures its hero image (`images_count: 0` for every entry). For any comm-link that comes back without images, `fetch-verse-news` falls back to scraping the `og:image` (then `twitter:image`) meta tag from the RSI permalink (`backfillMissingImages` / `fetchOgImage`). That og:image is a `media.robertsspaceindustries.com/<id>/heap_thumb.png` url, so the existing variant-swap + cache pipeline turns it into the durable `post`/`cover` copies unchanged. Only RSI-hosted og urls are accepted (the page is untrusted); fallback is bounded to `MAX_OG_FALLBACK` entries per request.
+
 ## Secondary: RSI status RSS
 
 - Endpoint: `https://status.robertsspaceindustries.com/index.xml`
