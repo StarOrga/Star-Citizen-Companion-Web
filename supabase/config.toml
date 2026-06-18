@@ -84,6 +84,12 @@ verify_jwt = false
 # every Bearer-token request before our middleware sees it.
 verify_jwt = false
 
+[functions.ingest-telemetry]
+# JWT verification OFF — the desktop app is an unauthenticated machine client.
+# The function does its own HMAC auth (X-SCC-Signature over timestamp+rawBody
+# with the TELEMETRY_HMAC_KEY secret) + replay window + per-IP rate limit.
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 policy = "oneshot"
