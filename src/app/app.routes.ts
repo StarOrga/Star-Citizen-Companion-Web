@@ -120,6 +120,12 @@ export const routes: Routes = [
           import('./admin/api-tokens/api-tokens.component').then((m) => m.ApiTokensComponent),
       },
       {
+        path: 'admin/telemetry',
+        canActivate: [roleGuard('admin')],
+        loadComponent: () =>
+          import('./admin/telemetry-stats.component').then((m) => m.TelemetryStatsComponent),
+      },
+      {
         path: 'profile',
         loadComponent: () => import('./profile/profile.component').then((m) => m.ProfileComponent),
       },

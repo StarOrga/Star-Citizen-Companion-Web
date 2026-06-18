@@ -24,7 +24,8 @@
     "admin": "管理",
     "desktop": "Data Uploader",
     "signOut": "退出登录",
-    "hangar": "机库"
+    "hangar": "机库",
+    "telemetry": "Telemetry"
   },
   "news": {
     "title": "Verse 新闻",
@@ -297,5 +298,36 @@
     "noResults": "无结果。",
     "hint": "输入即可搜索——回车打开第一个结果。任意页面按 Ctrl+K 打开搜索。",
     "addToHangar": "→ 机库"
+  },
+  "telemetry": {
+    "title": "Telemetry & Crash Stats",
+    "subtitle": "Anonymous crash reports and opt-in usage from the desktop app.",
+    "refresh": "Refresh",
+    "loading": "Loading telemetry…",
+    "empty": "No data in this window.",
+    "errorTitle": "Error",
+    "generatedAt": "Generated",
+    "window": {
+      "7": "Last 7 days",
+      "30": "Last 30 days",
+      "90": "Last 90 days"
+    },
+    "totals": {
+      "crashes": "Crashes",
+      "usage": "Usage events",
+      "installs": "Installs",
+      "sessions": "Sessions"
+    },
+    "byVersion": "Crashes by version",
+    "crashesByType": "Crashes by type",
+    "crashesByRole": "By process",
+    "recent": "Recent crashes",
+    "col": {
+      "at": "When",
+      "version": "Version",
+      "role": "Process",
+      "name": "Error",
+      "message": "Message"
+    }
   }
 }

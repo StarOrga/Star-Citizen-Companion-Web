@@ -27,7 +27,8 @@
     "signOut": "Abmelden",
     "brandAria": "Star Citizen Companion (SCC)",
     "langAria": "Sprache",
-    "hangar": "Hangar"
+    "hangar": "Hangar",
+    "telemetry": "Telemetrie"
   },
   "codex": {
     "title": "Codex",
@@ -603,5 +604,36 @@
     "noResults": "Keine Treffer.",
     "hint": "Tippe um zu suchen — Enter öffnet den ersten Treffer. Strg+K öffnet die Suche überall.",
     "addToHangar": "→ Hangar"
+  },
+  "telemetry": {
+    "title": "Telemetrie & Crash-Statistik",
+    "subtitle": "Anonyme Crash-Reports und Opt-in-Nutzung aus der Desktop-App.",
+    "refresh": "Aktualisieren",
+    "loading": "Telemetrie wird geladen…",
+    "empty": "Keine Daten in diesem Zeitraum.",
+    "errorTitle": "Fehler",
+    "generatedAt": "Erzeugt",
+    "window": {
+      "7": "Letzte 7 Tage",
+      "30": "Letzte 30 Tage",
+      "90": "Letzte 90 Tage"
+    },
+    "totals": {
+      "crashes": "Abstürze",
+      "usage": "Nutzungs-Events",
+      "installs": "Installationen",
+      "sessions": "Sitzungen"
+    },
+    "byVersion": "Abstürze nach Version",
+    "crashesByType": "Abstürze nach Typ",
+    "crashesByRole": "Nach Prozess",
+    "recent": "Letzte Abstürze",
+    "col": {
+      "at": "Wann",
+      "version": "Version",
+      "role": "Prozess",
+      "name": "Fehler",
+      "message": "Nachricht"
+    }
   }
 }

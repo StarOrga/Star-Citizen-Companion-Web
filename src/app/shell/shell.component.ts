@@ -40,6 +40,9 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
           <a routerLink="/admin/api-tokens" routerLinkActive="active" class="admin-link">
             {{ 'admin.tokens.navLink' | translate }}
           </a>
+          <a routerLink="/admin/telemetry" routerLinkActive="active" class="admin-link">
+            {{ 'nav.telemetry' | translate }}
+          </a>
         }
         <a routerLink="/profile" routerLinkActive="active">{{ 'nav.profile' | translate }}</a>
       </nav>

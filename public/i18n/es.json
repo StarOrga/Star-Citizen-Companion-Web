@@ -24,7 +24,8 @@
     "admin": "Admin",
     "desktop": "Data Uploader",
     "signOut": "Cerrar sesión",
-    "hangar": "Hangar"
+    "hangar": "Hangar",
+    "telemetry": "Telemetry"
   },
   "news": {
     "title": "Verse News",
@@ -297,5 +298,36 @@
     "noResults": "Sin resultados.",
     "hint": "Escribe para buscar — Enter abre el primer resultado. Ctrl+K abre la búsqueda en cualquier sitio.",
     "addToHangar": "→ Hangar"
+  },
+  "telemetry": {
+    "title": "Telemetry & Crash Stats",
+    "subtitle": "Anonymous crash reports and opt-in usage from the desktop app.",
+    "refresh": "Refresh",
+    "loading": "Loading telemetry…",
+    "empty": "No data in this window.",
+    "errorTitle": "Error",
+    "generatedAt": "Generated",
+    "window": {
+      "7": "Last 7 days",
+      "30": "Last 30 days",
+      "90": "Last 90 days"
+    },
+    "totals": {
+      "crashes": "Crashes",
+      "usage": "Usage events",
+      "installs": "Installs",
+      "sessions": "Sessions"
+    },
+    "byVersion": "Crashes by version",
+    "crashesByType": "Crashes by type",
+    "crashesByRole": "By process",
+    "recent": "Recent crashes",
+    "col": {
+      "at": "When",
+      "version": "Version",
+      "role": "Process",
+      "name": "Error",
+      "message": "Message"
+    }
   }
 }
