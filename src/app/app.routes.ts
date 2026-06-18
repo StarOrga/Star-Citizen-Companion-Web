@@ -86,10 +86,27 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./desktop/desktop-auth.component').then((m) => m.DesktopAuthComponent),
       },
+      {
+        // Legacy OAuth-callback alias. Uploader binaries built BEFORE the
+        // /desktop→/uploader rename (#73) — e.g. the shipped v0.4.x–v0.6.x —
+        // open `/desktop/auth?cb=…&state=…`. The `pathMatch: 'full'` /desktop
+        // redirect below does NOT cover this sub-path, so without this entry
+        // the URL falls through to the '**' wildcard and silently lands on
+        // /news — observed as "connecting the uploader only opens the start
+        // page, not signed in". Render the SAME component so those binaries
+        // keep working without a reinstall.
+        //
+        // NOTE: binaries ≤ v0.4.5 also predate the form-POST / Private-Network
+        // handoff fix (their loopback only `JSON.parse`s a fetch() body), so
+        // they still fail at the token handoff even WITH this route — those
+        // genuinely need a reinstall of the current build.
+        path: 'desktop/auth',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./desktop/desktop-auth.component').then((m) => m.DesktopAuthComponent),
+      },
       // Legacy redirect: the page lived at /desktop before the rename to
-      // /uploader. Keep bookmarks/muscle-memory working. (The OAuth callback
-      // /desktop/auth had no released uploader binary pointing at it, so it is
-      // renamed cleanly without a legacy alias.)
+      // /uploader. Keep bookmarks/muscle-memory working.
       { path: 'desktop', pathMatch: 'full', redirectTo: 'uploader' },
       {
         path: 'admin',
