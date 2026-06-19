@@ -131,5 +131,16 @@ export const routes: Routes = [
       },
     ],
   },
+  {
+    // Read-auth handoff for the SCC Electron app — open to ANY signed-in user,
+    // no approvedGuard (a self-registered viewer must not be signed out here).
+    // authGuard alone: unauthenticated visitors land on /login with redirect
+    // back here; the loopback callback path is /scc/callback (POST).
+    // Placed as a top-level sibling to /login, OUTSIDE the approvedGuard shell.
+    path: 'desktop/connect',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./desktop/desktop-read-auth.component').then((m) => m.DesktopReadAuthComponent),
+  },
   { path: '**', redirectTo: 'news' },
 ];
