@@ -483,6 +483,16 @@
     "size": "Größe",
     "hash": "SHA-256"
   },
+  "desktopConnect": {
+    "title": "Star Citizen Companion verbinden",
+    "authorizing": "Prüfe deine Session…",
+    "loginRequired": "Bitte erst einloggen, dann gehts automatisch zurück zur App.",
+    "redirecting": "Autorisiert. Schicke Token zur App…",
+    "redirectingHint": "Dieses Fenster kann gleich geschlossen werden.",
+    "errorMissingParams": "Callback- oder State-Parameter fehlt.",
+    "errorBadCallback": "Callback-URL ist kein 127.0.0.1-Loopback im erwarteten Portbereich.",
+    "errorNoToken": "Kein Access-Token in der Session."
+  },
   "desktopAuth": {
     "title": "Data Uploader autorisieren",
     "authorizing": "Prüfe deine Session…",
