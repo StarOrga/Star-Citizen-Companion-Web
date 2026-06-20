@@ -6,6 +6,16 @@ import { NewsThumbComponent } from './news-thumb.component';
 const CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
 const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
 
+// Channel-branded placeholder shown when an item carries no usable image — notably
+// Spectrum threads (the list API gives no main-post image) and the occasional
+// image-less Comm-Link the og:image backfill couldn't recover. Beats a flat
+// gradient and keeps the grid visually consistent. Paths resolve via <base href="/">.
+const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
+  'comm-link': 'img/news-default-comm-link.svg',
+  'patch': 'img/news-default-comm-link.svg',
+  'spectrum': 'img/news-default-spectrum.svg',
+};
+
 @Component({
   selector: 'sc-news-list',
   standalone: true,
@@ -417,10 +427,15 @@ export class NewsListComponent implements OnInit, OnDestroy {
     this.svc.refresh(true);
   }
 
-  /** Candidate images for a card — prefers the full list, falls back to the single thumbnail. */
+  /**
+   * Candidate images for a card — prefers the full list, falls back to the single
+   * thumbnail, then to a channel-branded default so no card renders blank.
+   */
   imagesOf(item: VerseNewsItem): string[] {
     if (item.images?.length) return item.images;
-    return item.thumbnail ? [item.thumbnail] : [];
+    if (item.thumbnail) return [item.thumbnail];
+    const fallback = DEFAULT_IMAGE[item.channel];
+    return fallback ? [fallback] : [];
   }
 
   hostOf(url: string): string {

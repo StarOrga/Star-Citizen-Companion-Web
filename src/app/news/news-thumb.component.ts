@@ -1,5 +1,28 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, input, linkedSignal } from '@angular/core';
+import {
+  ChangeDetectionStrategy, Component, Directive, ElementRef, OnDestroy,
+  afterNextRender, computed, effect, inject, input, linkedSignal, output,
+} from '@angular/core';
 import { NewsChannel } from './news.service';
+
+/**
+ * Emits the `<img>` element once it is decoded — including the cache-hit case the
+ * native `load` event misses. When Angular reuses an already-cached image (e.g. on
+ * a silent feed refresh, or when re-entering the news route), the resource can be
+ * `complete` before any listener is attached, so `(load)` never fires. We re-check
+ * `complete` after the first render to recover that signal; without it those tiles
+ * would stay stuck under the shimmer forever.
+ */
+@Directive({ selector: 'img[scImgReady]', standalone: true })
+export class ImgReadyDirective {
+  private readonly el = inject<ElementRef<HTMLImageElement>>(ElementRef);
+  readonly ready = output<HTMLImageElement>();
+  constructor() {
+    afterNextRender(() => {
+      const img = this.el.nativeElement;
+      if (img.complete && img.naturalWidth > 0) this.ready.emit(img);
+    });
+  }
+}
 
 // A landscape image (ratio ≥ this) is a usable banner / "clear title image".
 // Portrait posters (e.g. the DefenseCon schedule, 3840×7389 → 0.52) fall below it
@@ -55,22 +78,25 @@ export function rsiVariant(url: string, target: 'post' | 'cover'): string {
 @Component({
   selector: 'sc-news-thumb',
   standalone: true,
+  imports: [ImgReadyDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.featured]': 'featured()' },
   template: `
     @if (mode() === 'empty') {
       <div class="empty"></div>
     } @else {
-      @if (!loaded()) {
-        <div class="skel" aria-hidden="true"></div>
-      }
+      <!-- Shimmer sits BEHIND the image layers and fades out once the active layer
+           has decoded — so even if the decode signal is ever missed, a painted
+           image is never hidden behind the placeholder. -->
+      <div class="skel" aria-hidden="true" [class.hide]="loaded()"></div>
       @for (url of display(); track url; let i = $index) {
-        <img class="layer" [class.show]="i === active()"
+        <img class="layer" [class.show]="i === active() && isDecoded(url)"
              [srcset]="srcsetFor(url)" [src]="defaultSrcFor(url)" [sizes]="sizes()"
              alt="" decoding="async"
              [attr.loading]="i === 0 ? 'eager' : 'lazy'"
              [attr.fetchpriority]="i === 0 ? 'high' : null"
-             (load)="onLoad(url, $event)" (error)="onError(url)" />
+             scImgReady (ready)="onReady(url, $event)"
+             (load)="onReady(url, $any($event.target))" (error)="onError(url)" />
       }
     }
 
@@ -97,27 +123,31 @@ export function rsiVariant(url: string, target: 'post' | 'cover'): string {
 
     .empty { position: absolute; inset: 0; background: linear-gradient(135deg, var(--sc-bg-2), var(--sc-bg-0)); }
 
-    /* Shimmer placeholder shown until the active image has loaded — never a black tile. */
+    /* Shimmer placeholder behind the image layers — never a black tile. Fades out
+       once the active image has decoded (kept mounted so the fade can play). */
     .skel {
-      position: absolute; inset: 0; z-index: 1;
+      position: absolute; inset: 0; z-index: 0;
       background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%);
       background-size: 200% 100%;
       animation: thumb-skel 1.4s ease-in-out infinite;
+      opacity: 1; transition: opacity 0.45s ease; pointer-events: none;
     }
+    .skel.hide { opacity: 0; animation: none; }
     @keyframes thumb-skel {
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
 
     .layer {
-      position: absolute; inset: 0;
+      position: absolute; inset: 0; z-index: 1;
       width: 100%; height: 100%;
       object-fit: cover; object-position: center;
-      opacity: 0;
-      transition: opacity 0.8s ease, transform 0.4s ease;
+      opacity: 0; filter: blur(8px);
+      transition: opacity 0.6s ease, filter 0.6s ease, transform 0.4s ease;
     }
-    .layer.show { opacity: 1; }
-    :host-context(.card:hover) .layer { transform: scale(1.04); }
+    /* Blur-up reveal: the layer fades in and sharpens the moment it decodes. */
+    .layer.show { opacity: 1; filter: blur(0); }
+    :host-context(.card:hover) .layer.show { transform: scale(1.04); }
 
     .ch-pill {
       position: absolute; top: 8px; left: 8px; z-index: 2;
@@ -148,7 +178,8 @@ export function rsiVariant(url: string, target: 'post' | 'cover'): string {
     .dot.on { background: var(--sc-accent); transform: scale(1.25); }
 
     @media (prefers-reduced-motion: reduce) {
-      .layer { transition: opacity 0.2s ease; }
+      .layer { transition: opacity 0.2s ease; filter: none; }
+      .layer.show { filter: none; }
       .skel { animation: none; background-position: 0 0; }
     }
   `],
@@ -160,26 +191,34 @@ export class NewsThumbComponent implements OnDestroy {
   readonly channelIcon = input('');
   readonly featured = input(false);
 
+  // Stable identity of the image set, keyed by url CONTENT (not array identity).
+  // A silent feed refresh hands us a brand-new array with the SAME urls; keying the
+  // per-image state below off the array reference would wipe `decoded`/`ratios` on
+  // every poll while the reused <img> elements never re-fire `load` — leaving tiles
+  // stuck under the shimmer. Joining the urls makes the reset fire only on a real
+  // content change.
+  private readonly imagesKey = computed(() => this.images().join('\n'));
+
   // Measured natural aspect ratios, keyed by url. Resets when the image set changes.
-  private readonly ratios = linkedSignal<readonly string[], Record<string, number>>({
-    source: () => this.images(),
+  private readonly ratios = linkedSignal<string, Record<string, number>>({
+    source: this.imagesKey,
     computation: () => ({}),
   });
   // Images that failed to load. Resets when the image set changes.
-  private readonly errored = linkedSignal<readonly string[], Set<string>>({
-    source: () => this.images(),
+  private readonly errored = linkedSignal<string, Set<string>>({
+    source: this.imagesKey,
     computation: () => new Set<string>(),
   });
   // Active slide index. Resets to 0 when the image set changes.
-  readonly index = linkedSignal<readonly string[], number>({
-    source: () => this.images(),
+  readonly index = linkedSignal<string, number>({
+    source: this.imagesKey,
     computation: () => 0,
   });
 
   // Urls whose image has decoded at least once. Resets when the image set changes,
   // so a fresh card shows the shimmer again instead of a stale "loaded" state.
-  private readonly decoded = linkedSignal<readonly string[], Set<string>>({
-    source: () => this.images(),
+  private readonly decoded = linkedSignal<string, Set<string>>({
+    source: this.imagesKey,
     computation: () => new Set<string>(),
   });
 
@@ -259,14 +298,19 @@ export class NewsThumbComponent implements OnDestroy {
     return rsiVariant(url, this.featured() ? 'cover' : 'post');
   }
 
-  onLoad(url: string, ev: Event): void {
+  /** Whether this url has decoded at least once — gates its blur-up reveal. */
+  isDecoded(url: string): boolean {
+    return this.decoded().has(url);
+  }
+
+  /** Fired by both the native `load` event and the cache-hit recovery directive. */
+  onReady(url: string, img: HTMLImageElement): void {
     this.decoded.update((s) => {
       if (s.has(url)) return s;
       const next = new Set(s);
       next.add(url);
       return next;
     });
-    const img = ev.target as HTMLImageElement;
     if (!img.naturalWidth || !img.naturalHeight) return;
     const ratio = img.naturalWidth / img.naturalHeight;
     this.ratios.update((m) => (m[url] === ratio ? m : { ...m, [url]: ratio }));

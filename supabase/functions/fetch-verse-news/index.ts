@@ -138,9 +138,11 @@ async function backfillMissingImages(items: VerseNewsItem[]): Promise<void> {
   }));
 }
 
-// Extract <meta property="og:image"> (or twitter:image) from an RSI permalink.
-// Only RSI-hosted urls are accepted — the page is untrusted content, so we never
-// surface an arbitrary external image url from it.
+// Extract a social-share image (og:image / twitter:image / link rel=image_src)
+// from an RSI permalink. Comm-link transmission pages are client-rendered, so the
+// hero never appears in the static body — this <head> meta is the only image we can
+// scrape server-side. Only RSI-hosted urls are accepted: the page is untrusted
+// content, so we never surface an arbitrary external image url from it.
 async function fetchOgImage(pageUrl: string): Promise<string | undefined> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), OG_FETCH_TIMEOUT_MS);
@@ -151,22 +153,42 @@ async function fetchOgImage(pageUrl: string): Promise<string | undefined> {
     });
     if (!res.ok) return undefined;
     const html = await res.text();
+    // property/name and content can appear in either order; og:image may also be
+    // exposed as og:image:secure_url / og:image:url, or a <link rel="image_src">.
+    const PROP = 'og:image(?::secure_url|:url)?|twitter:image(?::src)?';
     const raw =
-      html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/i)?.[1] ??
-      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i)?.[1];
-    if (!raw) return undefined;
-    try {
-      const u = new URL(raw);
-      const host = u.hostname;
-      if (host !== 'robertsspaceindustries.com' && !host.endsWith('.robertsspaceindustries.com')) return undefined;
-    } catch {
-      return undefined;
-    }
-    return raw;
+      html.match(new RegExp(`<meta[^>]+(?:property|name)=["'](?:${PROP})["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1] ??
+      html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:${PROP})["']`, 'i'))?.[1] ??
+      html.match(/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i)?.[1];
+    const resolved = resolveRsiImageUrl(raw, pageUrl);
+    return resolved;
   } catch {
     return undefined;
   } finally {
     clearTimeout(t);
+  }
+}
+
+// Decode the handful of HTML entities RSI emits inside attribute values (media urls
+// carry query strings, so `&amp;` is common), resolve protocol-relative/relative
+// forms against the page, and reject anything not hosted on RSI.
+function resolveRsiImageUrl(raw: string | undefined, pageUrl: string): string | undefined {
+  if (!raw) return undefined;
+  let v = raw
+    .replace(/&amp;/g, '&').replace(/&#0*38;/g, '&')
+    .replace(/&#x2[Ff];/g, '/').replace(/&#0*47;/g, '/')
+    .replace(/&quot;/g, '"').replace(/&#0*34;/g, '"')
+    .trim();
+  if (v.startsWith('//')) v = 'https:' + v;
+  try {
+    const u = new URL(v, pageUrl);           // base resolves any relative path
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return undefined;
+    const host = u.hostname;
+    if (host !== 'robertsspaceindustries.com' && !host.endsWith('.robertsspaceindustries.com')) return undefined;
+    u.protocol = 'https:';
+    return u.toString();
+  } catch {
+    return undefined;
   }
 }
 
