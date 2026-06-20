@@ -338,8 +338,12 @@ async function fetchSpectrum(): Promise<VerseNewsItem[]> {
       // Skip malformed entries instead of fabricating ids/dates/urls — a synthetic
       // id (crypto.randomUUID) would change every fetch and falsely trip the
       // client's "new posts" counter; a missing slug yields a dead thread link.
+      // The timestamp upper bound (year 2100) keeps a finite-but-absurd value from
+      // throwing RangeError in `new Date(...).toISOString()` below — which, inside
+      // the function-level try, would collapse the ENTIRE Spectrum feed to [].
       if (!id || typeof subject !== 'string' || !subject.trim() ||
-          typeof slug !== 'string' || !slug || !Number.isFinite(created)) continue;
+          typeof slug !== 'string' || !slug ||
+          !Number.isFinite(created) || created <= 0 || created > 4102444800) continue;
       const image = spectrumImageUrl(t['media_preview']);
       out.push({
         id: 'spec-' + String(id),
