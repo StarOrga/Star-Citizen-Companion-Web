@@ -279,6 +279,40 @@ async function fetchYouTube(): Promise<VerseNewsItem[]> {
 const SPECTRUM_API = 'https://robertsspaceindustries.com/api/spectrum/forum/channel/threads';
 const SPECTRUM_CHANNEL_ID = 1;
 
+// Each thread row already carries RSI's own preview of its first post's media as
+// `media_preview: { type, thumbnail: { url } }` — so we get the hero image WITHOUT
+// a per-thread content fetch (no extra request, no timeout budget to blow). Two url
+// shapes appear, both upgraded to a card-worthy variant before host-allowlisting:
+//   1. theverse uploads  …/<id>/tavern_upload_mini.<ext>  → swap to `_large`
+//      (mini is ~2–20 KB / unusably small; large is ~70 KB–1.3 MB, source can be 5 MB+).
+//   2. imager proxy  …/imager/<sig>/<WxH>/https://media…/<id>/source.jpg  → unwrap to
+//      the inner media-CDN url so the existing post/cover variant pipeline sizes it.
+// Threads with no media_preview keep no image → the client renders the spectrum default.
+function spectrumImageUrl(mediaPreview: unknown): string | undefined {
+  if (!mediaPreview || typeof mediaPreview !== 'object') return undefined;
+  const thumb = (mediaPreview as Record<string, unknown>)['thumbnail'];
+  const raw = thumb && typeof thumb === 'object' ? (thumb as Record<string, unknown>)['url'] : undefined;
+  if (typeof raw !== 'string' || !raw) return undefined;
+  const upgraded = upgradeTheverseVariant(unwrapImagerUrl(raw));
+  return resolveRsiImageUrl(upgraded, RSI_BASE);
+}
+
+// `…/imager/<sig>/<WxH>/<innerAbsoluteUrl>` → the inner absolute url. The outer
+// host prefix sits BEFORE `/imager/`, so the first http(s):// inside that segment
+// is the wrapped original.
+function unwrapImagerUrl(url: string): string {
+  const i = url.indexOf('/imager/');
+  if (i === -1) return url;
+  const inner = url.slice(i).match(/https?:\/\/.+$/i);
+  return inner ? inner[0] : url;
+}
+
+// theverse `tavern_upload_mini.<ext>` → `tavern_upload_large.<ext>` (universal,
+// card-sized). No-op for any other url shape.
+function upgradeTheverseVariant(url: string): string {
+  return url.replace(/\/tavern_upload_mini(\.[a-zA-Z0-9]+)(\?|$)/, '/tavern_upload_large$1$2');
+}
+
 async function fetchSpectrum(): Promise<VerseNewsItem[]> {
   try {
     const res = await fetch(SPECTRUM_API, {
@@ -306,6 +340,7 @@ async function fetchSpectrum(): Promise<VerseNewsItem[]> {
       // client's "new posts" counter; a missing slug yields a dead thread link.
       if (!id || typeof subject !== 'string' || !subject.trim() ||
           typeof slug !== 'string' || !slug || !Number.isFinite(created)) continue;
+      const image = spectrumImageUrl(t['media_preview']);
       out.push({
         id: 'spec-' + String(id),
         title: subject,
@@ -314,6 +349,8 @@ async function fetchSpectrum(): Promise<VerseNewsItem[]> {
         channel: 'spectrum',
         source: 'spectrum',
         category: 'Spectrum',
+        // First-post hero from media_preview; absent → client spectrum default.
+        ...(image ? { thumbnail: image, images: [image] } : {}),
       });
       if (out.length >= 12) break;
     }
