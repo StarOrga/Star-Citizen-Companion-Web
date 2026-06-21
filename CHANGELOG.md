@@ -4,6 +4,44 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-06-21
+
+### Added
+
+- **Real Spectrum thumbnails.** Spectrum cards previously had no image at all.
+  `fetch-verse-news` now reads each thread's inline `media_preview.thumbnail.url`
+  (RSI's own preview of the first post's media) — no per-thread content fetch, so
+  zero extra requests. Small `tavern_upload_mini` previews are upgraded to the
+  card-sized `tavern_upload_large` variant, and `/imager/` proxy urls are
+  unwrapped to their inner media-CDN source so the post/cover variant pipeline can
+  size them. Host-allowlisted to `robertsspaceindustries.com` (untrusted content).
+  Threads without a preview fall through to the new channel default below.
+- **Channel-branded default thumbnails.** Cards with no usable image (every
+  image-less Spectrum thread, the occasional og-less Comm-Link) now render a
+  branded SVG placeholder instead of a flat gradient.
+
+### Fixed
+
+- **Thumbnails vanished after switching tabs / on silent refresh.** The per-image
+  decode/ratio state was keyed off the `images` array *identity*; every poll handed
+  a new array with the same urls, wiping that state while the reused `<img>`
+  elements never re-fired `load` — leaving tiles stuck under the shimmer. State is
+  now keyed by url *content*, the skeleton sits behind the image (a painted image
+  is never hidden), and a cache-hit recovery path covers images that complete
+  before the `load` listener attaches.
+- **og:image backfill made more robust** — decodes HTML entities, resolves
+  protocol-relative/relative urls, and also accepts `og:image:secure_url`/`:url`,
+  `twitter:image:src`, and `<link rel="image_src">`.
+- **A single absurd Spectrum `time_created` could blank the whole feed** — a
+  finite-but-out-of-range timestamp threw `RangeError` in `toISOString()`, caught
+  at the function level and dropping *all* Spectrum items; such rows are now skipped
+  individually.
+
+### Changed
+
+- **News thumbnails fade in with a blur-up reveal** instead of popping in
+  (respects `prefers-reduced-motion`).
+
 ## [0.18.3] - 2026-06-18
 
 ### Fixed
