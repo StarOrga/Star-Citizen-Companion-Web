@@ -366,16 +366,31 @@ async function fetchSpectrum(): Promise<VerseNewsItem[]> {
 }
 
 // --------------------- Status (HTML scrape) ---------------------
-const STATUS_LABEL_MAP: Record<string, StatusLevel> = {
-  'operational': 'operational',
-  'degraded performance': 'degraded',
-  'degraded': 'degraded',
-  'partial outage': 'partial_outage',
-  'partial': 'partial_outage',
-  'major outage': 'major_outage',
-  'major': 'major_outage',
-  'under maintenance': 'maintenance',
-  'maintenance': 'maintenance',
+// RSI's status site is a STATIC S3/CloudFront export of the Atlassian Statuspage
+// template, NOT a live Statuspage instance — its `/api/v2/*.json` endpoints 403
+// (S3 AccessDenied), so we scrape the rendered HTML. Current markup (verified 2026-06):
+//   <body class="status-homepage status-ok">                              ← overall
+//   <div class="component"> Persistent Universe </a>
+//     <span class="component-status" data-status="operational">…</span>   ← per component
+// The previous selectors (data-component-status / component-inner-container / page-status)
+// no longer exist in the export — that stale scrape is what made the chip read "unbekannt".
+
+// Per-component `data-status` (Statuspage enum) → our StatusLevel.
+const COMPONENT_STATUS_MAP: Record<string, StatusLevel> = {
+  operational: 'operational',
+  degraded_performance: 'degraded',
+  partial_outage: 'partial_outage',
+  major_outage: 'major_outage',
+  under_maintenance: 'maintenance',
+};
+// Overall body class `status-homepage status-<x>` → our StatusLevel.
+const OVERALL_STATUS_MAP: Record<string, StatusLevel> = {
+  ok: 'operational',
+  none: 'operational',
+  minor: 'degraded',
+  major: 'partial_outage',
+  critical: 'major_outage',
+  maintenance: 'maintenance',
 };
 
 const STATUS_PRIORITY: Record<StatusLevel, number> = {
@@ -387,11 +402,6 @@ const STATUS_PRIORITY: Record<StatusLevel, number> = {
   unknown: -1,
 };
 
-function parseStatusLevel(raw: string): StatusLevel {
-  const k = raw.toLowerCase().trim();
-  return STATUS_LABEL_MAP[k] ?? 'unknown';
-}
-
 async function fetchStatus(): Promise<VerseStatus | null> {
   try {
     const res = await fetch(STATUS_PAGE_URL, {
@@ -399,25 +409,23 @@ async function fetchStatus(): Promise<VerseStatus | null> {
     });
     if (!res.ok) throw new Error(`status HTTP ${res.status}`);
     const html = await res.text();
-    // Statuspage components: <div class="component-inner-container ..." data-component-status="operational">
-    //   <span class="name">Persistent Universe</span>
-    //   <span class="component-status">Operational</span>
-    // </div>
-    const containerRe = /<div[^>]*class="[^"]*component-inner-container[^"]*"[^>]*data-component-status="([a-z_]+)"[\s\S]*?<span[^>]*class="name"[^>]*>([\s\S]*?)<\/span>/gi;
+    // Each component: <div class="component"> NAME </a> … <span class="component-status" data-status="X">
+    const compRe = /<div class="component"\s*>([\s\S]*?)<\/a>[\s\S]*?<span class="component-status"\s+data-status="([a-z_]+)"/gi;
     const components: VerseStatusComponent[] = [];
     let m: RegExpExecArray | null;
-    while ((m = containerRe.exec(html)) !== null) {
-      const status = parseStatusLevel(m[1]);
-      const name = cleanXml(m[2].replace(/<[^>]+>/g, '')).trim();
+    while ((m = compRe.exec(html)) !== null) {
+      const name = cleanXml(m[1].replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
+      const status = COMPONENT_STATUS_MAP[m[2].toLowerCase()] ?? 'unknown';
       if (name && status !== 'unknown') components.push({ name, status });
     }
-    // Overall from page-status data attribute, fallback = worst component.
-    const overallMatch = html.match(/class="page-status[^"]*status-([a-z_]+)"/i) || html.match(/data-page-status="([a-z_]+)"/i);
-    let overall: StatusLevel = overallMatch ? parseStatusLevel(overallMatch[1]) : 'unknown';
+    // Overall from the body class `status-homepage status-<x>`; fall back to the worst component.
+    const overallMatch = html.match(/status-homepage\s+status-([a-z-]+)/i);
+    let overall: StatusLevel = overallMatch ? (OVERALL_STATUS_MAP[overallMatch[1].toLowerCase()] ?? 'unknown') : 'unknown';
     if (overall === 'unknown' && components.length) {
-      overall = components.reduce<StatusLevel>((acc, c) => {
-        return STATUS_PRIORITY[c.status] > STATUS_PRIORITY[acc] ? c.status : acc;
-      }, 'operational');
+      overall = components.reduce<StatusLevel>(
+        (acc, c) => (STATUS_PRIORITY[c.status] > STATUS_PRIORITY[acc] ? c.status : acc),
+        'operational',
+      );
     }
     return {
       overall,
