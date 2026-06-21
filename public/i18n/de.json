@@ -36,6 +36,12 @@
     "categoriesAria": "Codex-Kategorien",
     "soon": "Kommt bald — noch keine Daten extrahiert.",
     "soonShort": "bald",
+    "status": {
+      "extracted": "Extrahiert",
+      "tool": "Extraktor",
+      "coverage": "Abdeckung",
+      "qualityHint": "Qualitätswert ist vorläufig, bis er echt berechnet wird."
+    },
     "search": {
       "placeholder": "Name oder Klasse suchen (z. B. Gladius, AEGS_*)…",
       "label": "Codex durchsuchen",

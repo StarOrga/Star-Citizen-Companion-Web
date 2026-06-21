@@ -22,6 +22,7 @@ import {
 import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { HangarService } from '../hangar/hangar.service';
 
 const PAGE_SIZE = 60;
@@ -38,7 +39,7 @@ const COMPONENT_KINDS = [
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent],
+  imports: [FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -47,15 +48,7 @@ const COMPONENT_KINDS = [
           <h1>{{ 'codex.title' | translate }}</h1>
           <p class="hint">{{ 'codex.subtitle' | translate }}</p>
         </div>
-        @if (svc.build(); as b) {
-          <div class="provenance" [attr.title]="'codex.provenance.tooltip' | translate">
-            <span class="prov-label">{{ 'codex.provenance.label' | translate }}</span>
-            <strong>{{ 'codex.provenance.build' | translate: { channel: b.channel, patch: b.patchVersion, build: b.buildNumber } }}</strong>
-            @if (b.qualityScore != null) {
-              <span class="prov-q">{{ 'codex.provenance.quality' | translate: { score: b.qualityScore } }}</span>
-            }
-          </div>
-        }
+        <sc-codex-status-banner />
       </header>
 
       <!-- Kind switcher -->
@@ -247,15 +240,6 @@ const COMPONENT_KINDS = [
     .title-block h1 { margin: 0; }
     .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 60ch; }
 
-    .provenance {
-      display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
-      padding: 8px 14px; border-radius: 8px;
-      background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-    }
-    .provenance .prov-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sc-fg-2); }
-    .provenance strong { font-family: var(--sc-font-display); font-size: 0.82rem; letter-spacing: 0.04em; color: var(--sc-accent); }
-    .provenance .prov-q { font-size: 0.68rem; color: var(--sc-fg-2); }
-
     .kind-bar { display: flex; flex-wrap: wrap; gap: 6px; }
     .kind {
       display: inline-flex; align-items: center; gap: 8px;
@@ -344,7 +328,6 @@ const COMPONENT_KINDS = [
 
     @media (max-width: 720px) {
       .head { flex-direction: column; }
-      .provenance { align-items: flex-start; }
     }
   `],
 })
