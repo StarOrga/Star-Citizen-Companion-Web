@@ -34,6 +34,8 @@
     "title": "Codex",
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
     "categoriesAria": "Codex-Kategorien",
+    "soon": "Kommt bald — noch keine Daten extrahiert.",
+    "soonShort": "bald",
     "search": {
       "placeholder": "Name oder Klasse suchen (z. B. Gladius, AEGS_*)…",
       "label": "Codex durchsuchen",

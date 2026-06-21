@@ -8,8 +8,8 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { RouterLink } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   CODEX_KINDS,
   CodexKind,
@@ -17,9 +17,11 @@ import {
   CodexListRow,
   CodexService,
   pickLocalized,
+  toLang,
 } from './codex.service';
 import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
+import { CodexCategoryIconComponent } from './codex-category-icon.component';
 
 const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -35,7 +37,7 @@ const COMPONENT_KINDS = [
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent],
+  imports: [FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -60,10 +62,15 @@ const COMPONENT_KINDS = [
         @for (k of kinds; track k) {
           <button class="kind" type="button" role="tab"
                   [class.active]="kind() === k"
+                  [class.soon]="isComingSoon(k)"
+                  [disabled]="isComingSoon(k)"
                   [attr.aria-selected]="kind() === k"
+                  [attr.title]="isComingSoon(k) ? ('codex.soon' | translate) : null"
                   (click)="setKind(k)">
             <span>{{ ('codex.kinds.' + k) | translate }}</span>
-            @if (kindCount(k); as ct) {
+            @if (isComingSoon(k)) {
+              <span class="kind-ct soon-tag">{{ 'codex.soonShort' | translate }}</span>
+            } @else if (kindCount(k); as ct) {
               <span class="kind-ct">{{ ct }}</span>
             }
           </button>
@@ -174,9 +181,13 @@ const COMPONENT_KINDS = [
           <div class="grid">
             @for (r of rows(); track r.classNameSlug) {
               <a class="card" [routerLink]="['/codex', kind(), r.classNameSlug]">
-                @if (thumb(r); as src) {
-                  <div class="thumb"><img [src]="src" [alt]="r.nameLocalized || r.classNameSlug" loading="lazy" /></div>
-                }
+                <div class="thumb" [class.icon-only]="!thumb(r)">
+                  @if (thumb(r); as src) {
+                    <img [src]="src" [alt]="cardName(r)" loading="lazy" (error)="onThumbError(r)" />
+                  } @else {
+                    <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" />
+                  }
+                </div>
                 <div class="card-top">
                   <h3 class="name">{{ cardName(r) }}</h3>
                   <button type="button" class="pin"
@@ -245,6 +256,9 @@ const COMPONENT_KINDS = [
     .kind.active { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .kind-ct { font-size: 0.68rem; padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
     .kind.active .kind-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-bg-0); }
+    .kind.soon { opacity: 0.5; cursor: not-allowed; }
+    .kind.soon:hover { color: var(--sc-fg-1); border-color: var(--sc-border); }
+    .kind-ct.soon-tag { background: color-mix(in srgb, var(--sc-warning, #f0c419) 22%, transparent); color: var(--sc-warning, #f0c419); text-transform: uppercase; letter-spacing: 0.04em; }
 
     .controls { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; }
     .search-row { position: relative; display: flex; }
@@ -284,6 +298,8 @@ const COMPONENT_KINDS = [
     .card .thumb { height: 96px; margin: -4px 0 2px; display: flex; align-items: center; justify-content: center;
       border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
     .card .thumb img { max-height: 88px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+    .card .thumb sc-codex-icon { width: 100%; height: 100%; }
+    .card:hover .thumb sc-codex-icon { transform: scale(1.05); transition: transform 0.16s; }
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card .name { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.25; }
     .card .cls { font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); word-break: break-all; }
@@ -317,25 +333,46 @@ const COMPONENT_KINDS = [
 })
 export class CodexListComponent implements OnInit {
   readonly svc = inject(CodexService);
-  private readonly router = inject(Router);
+  private readonly t = inject(TranslateService);
 
   readonly kinds = CODEX_KINDS;
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
 
-  /** Preview-image URL for a list row, or null when the entity has no art. */
+  /** Kinds whose catalog isn't ingested yet — shown but disabled. (UC-13) */
+  isComingSoon(k: CodexKind): boolean {
+    return k === 'blueprint';
+  }
+
+  // Slugs whose preview image failed to load — fall back to the category icon
+  // instead of a broken-image glyph. (UC-01)
+  private readonly brokenThumbs = signal<ReadonlySet<string>>(new Set<string>());
+
+  /** Preview-image URL for a list row, or null when art is absent or broken. */
   thumb(r: CodexListRow): string | null {
+    if (this.brokenThumbs().has(r.classNameSlug)) return null;
     const p = r.payload as { previewImage?: string | null } | undefined;
     return this.svc.previewUrl(p?.previewImage);
   }
 
+  onThumbError(r: CodexListRow): void {
+    const next = new Set(this.brokenThumbs());
+    next.add(r.classNameSlug);
+    this.brokenThumbs.set(next);
+  }
+
+  /** Sub-category that refines the fallback icon (componentKind/weaponClass/subType). */
+  iconSub(r: CodexListRow): string | null {
+    return r.componentKind || r.weaponClass || r.subType || null;
+  }
+
   /**
-   * Card title — English SC name (SC has no real translations; see detail view).
-   * Falls back to the denormalized name, then the raw class name.
+   * Card title in the app language with EN fallback (UC-08), then the
+   * denormalized name, then the raw class name.
    */
   cardName(r: CodexListRow): string {
     const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
-    const en = p?.name ? pickLocalized(p.name, 'en') : '';
-    return en || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
+    const localized = p?.name ? pickLocalized(p.name, toLang(this.t.currentLang)) : '';
+    return localized || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
   }
 
   readonly kind = signal<CodexKind>('ship');
@@ -430,12 +467,9 @@ export class CodexListComponent implements OnInit {
 
   setKind(k: CodexKind): void {
     if (k === this.kind()) return;
-    // Blueprint has its own dedicated list route — navigate away instead of
-    // trying to run the generic listByKind query (different table/columns).
-    if (k === 'blueprint') {
-      void this.router.navigate(['/codex/blueprint']);
-      return;
-    }
+    // Blueprint catalog is empty (0 rows) until crafting data is ingested — the
+    // kind is shown disabled, so ignore any stray activation. (UC-13)
+    if (this.isComingSoon(k)) return;
     // reset facets that don't apply across kinds
     this.manufacturer.set('');
     this.size.set('');

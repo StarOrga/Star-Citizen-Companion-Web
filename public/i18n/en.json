@@ -34,6 +34,8 @@
     "title": "Codex",
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
     "categoriesAria": "Codex categories",
+    "soon": "Coming soon — no data extracted yet.",
+    "soonShort": "soon",
     "search": {
       "placeholder": "Search name or class (e.g. Gladius, AEGS_*)…",
       "label": "Search the codex",

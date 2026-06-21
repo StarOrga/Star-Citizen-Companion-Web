@@ -740,6 +740,16 @@ export function pickLocalized(
   return primary || clean(text.en) || clean(text.de) || fallback;
 }
 
+/**
+ * Map an ngx-translate language code ('de', 'en', 'de-DE', …) to a codex data
+ * Lang. SC content exists in both DE and EN (DE is ~97.6% genuinely translated,
+ * not an English copy), so catalog content is rendered in the app language with
+ * EN as the guaranteed fallback — see pickLocalized's fallback chain. (UC-08)
+ */
+export function toLang(lang: string | null | undefined): Lang {
+  return (lang ?? '').toLowerCase().startsWith('de') ? 'de' : 'en';
+}
+
 // Re-export row aliases so consuming components can type narrowly if needed.
 export type {
   CodexShipRow,
