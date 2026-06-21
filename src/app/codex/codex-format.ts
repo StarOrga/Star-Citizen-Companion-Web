@@ -485,6 +485,9 @@ export interface CompareTableRow {
   labelKey?: string;
   label?: string;
   values: (string | null)[]; // one cell per column, null = N/A
+  // UC-05: per-cell rank when the row is numerically comparable across ≥2
+  // columns — 'best' = highest value, 'worst' = lowest. null = not ranked.
+  highlight: ('best' | 'worst' | null)[];
 }
 
 /**
@@ -508,13 +511,37 @@ export function buildCompareTable(
   }
   return order.map((id) => {
     const m = meta.get(id)!;
-    return {
-      id,
-      labelKey: m.labelKey,
-      label: m.label,
-      values: perEntity.map((attrs) => attrs.find((a) => a.id === id)?.value ?? null),
-    };
+    const values = perEntity.map((attrs) => attrs.find((a) => a.id === id)?.value ?? null);
+    return { id, labelKey: m.labelKey, label: m.label, values, highlight: rankRow(values) };
   });
+}
+
+/**
+ * Parse a single comparable number out of a formatted cell, or null. Rejects
+ * multi-number strings (e.g. dimensions "12 × 8 × 4 m") and ∞ sentinels so they
+ * are never ranked; accepts a leading size prefix ("S3" → 3) and unit suffix
+ * ("1,196 m/s" → 1196).
+ */
+function compareNumber(v: string): number | null {
+  const nums = v.match(/\d[\d,]*\.?\d*/g);
+  if (!nums || nums.length !== 1) return null;
+  const n = parseFloat(nums[0].replace(/,/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Mark the highest cell 'best' and the lowest 'worst' when a row has ≥2
+ * numerically comparable values (higher = better, the common stat heuristic).
+ * Rows that aren't uniformly numeric stay unranked.
+ */
+function rankRow(values: (string | null)[]): ('best' | 'worst' | null)[] {
+  const nums = values.map((v) => (v == null ? null : compareNumber(v)));
+  const valid = nums.filter((n): n is number => n != null);
+  if (valid.length < 2) return values.map(() => null);
+  const max = Math.max(...valid);
+  const min = Math.min(...valid);
+  if (max === min) return values.map(() => null);
+  return nums.map((n) => (n == null ? null : n === max ? 'best' : n === min ? 'worst' : null));
 }
 
 // ── blueprint craft-time formatting ──────────────────────────────────────────

@@ -209,12 +209,17 @@ const COMPONENT_KINDS = [
                   @if (r.componentKind) { <span class="badge">{{ ('codex.componentKind.' + r.componentKind) | translate }}</span> }
                   @if (r.weaponClass) { <span class="badge">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
                   @if (r.subType) { <span class="badge subtle">{{ r.subType }}</span> }
-                  @if (r.size != null) { <span class="badge">{{ 'codex.card.size' | translate: { size: r.size } }}</span> }
-                  @if (r.grade) { <span class="badge">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
+                  @if (r.grade) { <span class="badge grade" [attr.data-grade]="r.grade">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
                   @if (r.crewSize != null) { <span class="badge">{{ 'codex.card.crew' | translate: { count: r.crewSize } }}</span> }
                   @if (r.speed != null) { <span class="badge subtle">{{ r.speed }} m/s</span> }
                   @if (r.isVariant) { <span class="badge variant">{{ 'codex.card.variant' | translate }}</span> }
                 </div>
+                @if (r.size != null) {
+                  <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
+                    <span class="size-track"><span class="size-fill" [style.width.%]="sizePct(r.size)"></span></span>
+                    <span class="size-tag">S{{ r.size }}</span>
+                  </div>
+                }
               </a>
             }
           </div>
@@ -312,6 +317,14 @@ const COMPONENT_KINDS = [
     .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.variant { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: var(--sc-fg-1); }
+    .badge.grade[data-grade="A"] { background: color-mix(in srgb, #5fd698 18%, transparent); border-color: color-mix(in srgb, #5fd698 42%, transparent); color: #8fe5b5; }
+    .badge.grade[data-grade="B"] { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); color: var(--sc-fg-0); }
+    .badge.grade[data-grade="C"] { background: color-mix(in srgb, #f0c419 16%, transparent); border-color: color-mix(in srgb, #f0c419 40%, transparent); color: #f0d060; }
+    .badge.grade[data-grade="D"] { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
+    .size-bar { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .size-track { flex: 1; height: 5px; border-radius: 999px; background: var(--sc-bg-2); overflow: hidden; }
+    .size-fill { display: block; height: 100%; border-radius: 999px; background: var(--sc-accent); }
+    .size-tag { font-size: 0.64rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); flex: 0 0 auto; }
 
     .card.skel { min-height: 116px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
     @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -537,6 +550,11 @@ export class CodexListComponent implements OnInit {
     ev.preventDefault();
     ev.stopPropagation();
     void this.hangar.addShip(className, 'owned');
+  }
+
+  /** UC-10: size S1–S12 as a 0–100% bar width for at-a-glance scanning. */
+  sizePct(size: number): number {
+    return Math.min(100, Math.max(8, Math.round((size / 12) * 100)));
   }
 
   private buildFilters(): CodexListFilters {
