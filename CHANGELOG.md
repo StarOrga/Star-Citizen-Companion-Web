@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.1] - 2026-06-21
+
+### Fixed
+
+- **RSI service status always read "unbekannt".** The scrape targeted
+  `data-component-status` / `component-inner-container` / `page-status` selectors
+  that no longer exist. RSI's status site is a static S3/CloudFront export (its
+  `/api/v2/*.json` endpoints 403), and its current markup is
+  `<div class="component"> NAME </a> <span class="component-status" data-status="X">`
+  with overall state on `<body class="status-homepage status-ok">`. `fetchStatus`
+  now reads those selectors and the `data-status` enum, so the chip reports the
+  real overall + per-component status (verified live: operational across Platform,
+  Persistent Universe, Arena Commander).
+
 ## [0.19.0] - 2026-06-21
 
 ### Added
