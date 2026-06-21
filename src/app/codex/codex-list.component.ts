@@ -22,6 +22,7 @@ import {
 import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { HangarService } from '../hangar/hangar.service';
 
 const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -190,12 +191,24 @@ const COMPONENT_KINDS = [
                 </div>
                 <div class="card-top">
                   <h3 class="name">{{ cardName(r) }}</h3>
-                  <button type="button" class="pin"
-                          [class.pinned]="isPinned(r.classNameSlug)"
-                          (click)="togglePin($event, r.classNameSlug)"
-                          [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate">
-                    {{ isPinned(r.classNameSlug) ? '★' : '☆' }}
-                  </button>
+                  <div class="card-actions">
+                    @if (kind() === 'ship') {
+                      @if (inHangarSet().has(r.classNameSlug)) {
+                        <span class="hangar-chip" [attr.title]="'codex.card.inHangar' | translate">✓</span>
+                      } @else {
+                        <button type="button" class="hangar-add"
+                                (click)="addShipToHangar($event, r.classNameSlug)"
+                                [attr.aria-label]="'quickSearch.addToHangar' | translate"
+                                [attr.title]="'quickSearch.addToHangar' | translate">+</button>
+                      }
+                    }
+                    <button type="button" class="pin"
+                            [class.pinned]="isPinned(r.classNameSlug)"
+                            (click)="togglePin($event, r.classNameSlug)"
+                            [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate">
+                      {{ isPinned(r.classNameSlug) ? '★' : '☆' }}
+                    </button>
+                  </div>
                 </div>
                 <code class="cls">{{ r.classNameSlug }}</code>
                 <div class="badges">
@@ -303,9 +316,13 @@ const COMPONENT_KINDS = [
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card .name { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.25; }
     .card .cls { font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); word-break: break-all; }
+    .card-actions { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
     .pin { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.1rem; line-height: 1; cursor: pointer; padding: 0; flex: 0 0 auto; }
     .pin:hover { color: var(--sc-accent); }
     .pin.pinned { color: var(--sc-accent); }
+    .hangar-chip { font-size: 0.82rem; line-height: 1; color: var(--sc-success, #5fd698); }
+    .hangar-add { border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-2); font-size: 1rem; line-height: 1; width: 22px; height: 22px; border-radius: 6px; cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    .hangar-add:hover { color: var(--sc-success, #5fd698); border-color: var(--sc-success, #5fd698); }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: 0.66rem; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
@@ -334,9 +351,14 @@ const COMPONENT_KINDS = [
 export class CodexListComponent implements OnInit {
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
+  private readonly hangar = inject(HangarService);
 
   readonly kinds = CODEX_KINDS;
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
+
+  // UC-02: class names already in the hangar — a pure read-overlay over the
+  // hangar.ships() signal (no DB change), so ship cards can mark ownership.
+  readonly inHangarSet = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
 
   /** Kinds whose catalog isn't ingested yet — shown but disabled. (UC-13) */
   isComingSoon(k: CodexKind): boolean {
@@ -441,6 +463,8 @@ export class CodexListComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.svc.loadCurrentBuild();
+    // UC-02: hangar membership backs the in-hangar badge on ship cards.
+    if (this.hangar.ships().length === 0) void this.hangar.loadAll();
   }
 
   // True when the current build only seeded a subset of this kind (seeded <
@@ -523,6 +547,13 @@ export class CodexListComponent implements OnInit {
     ev.preventDefault();
     ev.stopPropagation();
     this.svc.togglePin(this.kind(), className);
+  }
+
+  /** UC-02: add a ship to the hangar inline, without leaving the list. */
+  addShipToHangar(ev: Event, className: string): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    void this.hangar.addShip(className, 'owned');
   }
 
   private buildFilters(): CodexListFilters {

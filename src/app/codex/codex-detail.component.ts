@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   AmmunitionPayload,
@@ -146,7 +146,9 @@ interface LoadoutGroup {
               </button>
               @if (kind() === 'ship') {
                 @if (inHangar()) {
-                  <span class="in-hangar">{{ 'hangar.add.already' | translate }}</span>
+                  <button type="button" class="pin add-hangar" (click)="configureLoadout()">
+                    {{ 'codex.detail.configureLoadout' | translate }}
+                  </button>
                 } @else {
                   <button type="button" class="pin add-hangar" (click)="addToHangar()">
                     {{ 'quickSearch.addToHangar' | translate }}
@@ -488,6 +490,7 @@ interface LoadoutGroup {
 export class CodexDetailComponent implements OnInit {
   private readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
 
@@ -883,7 +886,17 @@ export class CodexDetailComponent implements OnInit {
   }
   async addToHangar(): Promise<void> {
     const d = this.detail();
-    if (d?.kind === 'ship') await this.hangar.addShip(d.classNameSlug, 'owned');
+    if (d?.kind !== 'ship') return;
+    const ship = await this.hangar.addShip(d.classNameSlug, 'owned');
+    // UC-07: jump straight into the configurator instead of leaving a dead row.
+    if (ship) await this.router.navigate(['/hangar/ship', ship.id]);
+  }
+
+  /** UC-07: open the hangar configurator for a ship already in the hangar. */
+  configureLoadout(): void {
+    const d = this.detail();
+    const ship = d ? this.hangar.shipByClassName(d.classNameSlug) : null;
+    void this.router.navigate(ship ? ['/hangar/ship', ship.id] : ['/hangar']);
   }
   toggleRaw(): void {
     this.showRaw.update((v) => !v);
