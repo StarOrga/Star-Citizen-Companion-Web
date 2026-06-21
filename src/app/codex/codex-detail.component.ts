@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   AmmunitionPayload,
@@ -27,6 +27,7 @@ import {
   CompatibleItem,
   ResolvedEntity,
   pickLocalized,
+  toLang,
 } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import {
@@ -49,6 +50,8 @@ import {
 } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { ShipSkinViewerComponent } from './ship-skin-viewer.component';
+import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 // Lazy-loaded compatible-items state per hardpoint (keyed by port_index).
 interface PortCompat {
@@ -87,7 +90,7 @@ interface LoadoutGroup {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, ShipSkinViewerComponent],
+  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -101,12 +104,14 @@ interface LoadoutGroup {
         <div class="sc-card empty">{{ 'codex.detail.notFound' | translate }}</div>
       } @else {
         <!-- ── Hero ──────────────────────────────────────────────── -->
-        <header class="hero sc-card" [class.no-art]="!previewUrl()">
-          @if (previewUrl(); as src) {
-            <figure class="hero-art">
-              <img [src]="src" [alt]="displayName()" loading="eager" />
-            </figure>
-          }
+        <header class="hero sc-card">
+          <figure class="hero-art" [class.icon-only]="!previewUrl()">
+            @if (previewUrl(); as src) {
+              <img [src]="src" [alt]="displayName()" loading="eager" (error)="onArtError()" />
+            } @else {
+              <sc-codex-icon class="hero-icon" [kind]="detail()!.kind" [sub]="heroSub()" />
+            }
+          </figure>
           <div class="hero-body">
             <span class="kind-tag">{{ ('codex.kindSingular.' + detail()!.kind) | translate }}</span>
             <h1>{{ displayName() }}</h1>
@@ -141,7 +146,9 @@ interface LoadoutGroup {
               </button>
               @if (kind() === 'ship') {
                 @if (inHangar()) {
-                  <span class="in-hangar">{{ 'hangar.add.already' | translate }}</span>
+                  <button type="button" class="pin add-hangar" (click)="configureLoadout()">
+                    {{ 'codex.detail.configureLoadout' | translate }}
+                  </button>
                 } @else {
                   <button type="button" class="pin add-hangar" (click)="addToHangar()">
                     {{ 'quickSearch.addToHangar' | translate }}
@@ -352,13 +359,13 @@ interface LoadoutGroup {
     .back:hover { text-decoration: underline; }
 
     /* Hero */
-    .hero { display: grid; grid-template-columns: minmax(220px, 360px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
-    .hero.no-art { grid-template-columns: 1fr; }
+    .hero { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
     .hero-art { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 240px;
       background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--sc-accent) 12%, var(--sc-bg-1)), var(--sc-bg-0)); }
+    .hero-art.icon-only { background: radial-gradient(circle at 50% 40%, var(--sc-bg-2), var(--sc-bg-0)); }
     .hero-art img { max-width: 100%; max-height: 320px; object-fit: contain; filter: drop-shadow(0 6px 24px rgba(0,0,0,0.55)); }
+    .hero-art .hero-icon { width: 100%; height: 100%; min-height: 200px; }
     .hero-body { padding: 22px 24px 22px 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-    .hero.no-art .hero-body { padding: 22px 24px; }
     .kind-tag { align-self: flex-start; font-size: 0.64rem; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.1em;
       background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, transparent); color: var(--sc-accent); }
     .hero-body h1 { margin: 2px 0 0; font-size: 1.7rem; line-height: 1.15; overflow-wrap: anywhere; }
@@ -483,6 +490,7 @@ interface LoadoutGroup {
 export class CodexDetailComponent implements OnInit {
   private readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
 
@@ -511,12 +519,17 @@ export class CodexDetailComponent implements OnInit {
   // Resolved deep-link target + display fields for default-loadout entries.
   private readonly loadoutEntities = signal<Map<string, ResolvedEntity>>(new Map());
 
-  // Star Citizen ships no real translations — its "localized" data is mostly an
-  // English copy, so mixed DE/EN values look broken. We render datamined SC
-  // CONTENT (names, descriptions, manufacturer, role) in English always; only
-  // our own UI chrome follows the user's language. Making the SC data itself
-  // multilingual is tracked as a separate issue.
-  private readonly dataLang: Lang = 'en';
+  // Star Citizen content exists in both DE and EN (DE is ~97.6% genuinely
+  // translated, not an English copy). We render datamined CONTENT (names,
+  // descriptions, manufacturer, role) in the app language with EN as the
+  // guaranteed fallback, reacting to language switches. (UC-08)
+  private readonly lang = signal<Lang>(toLang(this.t.currentLang || this.t.getDefaultLang()));
+
+  constructor() {
+    this.t.onLangChange
+      .pipe(takeUntilDestroyed())
+      .subscribe((e) => this.lang.set(toLang(e.lang)));
+  }
 
   async ngOnInit(): Promise<void> {
     const kind = this.route.snapshot.paramMap.get('kind') as CodexKind | null;
@@ -537,6 +550,7 @@ export class CodexDetailComponent implements OnInit {
     this.localeMap.set(new Map());
     this.showEmptyLoadout.set(false);
     this.usedInBlueprints.set([]);
+    this.artBroken.set(false);
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
@@ -560,7 +574,7 @@ export class CodexDetailComponent implements OnInit {
     const role = d.row['role'];
     if (typeof role === 'string' && role.startsWith('@')) keys.push(role);
     if (keys.length === 0) return;
-    this.localeMap.set(await this.svc.resolveLocaleKeys(keys, this.dataLang));
+    this.localeMap.set(await this.svc.resolveLocaleKeys(keys, this.lang()));
   }
 
   // ── hardpoint slot compatibility ────────────────────────────────────────────
@@ -622,7 +636,7 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     if (!d) return '';
     const p = d.payload as { name?: { de: string; en: string; key: string } } | undefined;
-    const name = p?.name ? pickLocalized(p.name, this.dataLang) : '';
+    const name = p?.name ? pickLocalized(p.name, this.lang()) : '';
     // name_localized may itself be an unresolved @-key — drop it if so.
     return name || cleanLocaleValue(d.row['name_localized'] as string) || humanizeClassName(d.classNameSlug);
   });
@@ -631,7 +645,7 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     if (!d) return '';
     const p = d.payload as { manufacturer?: { name?: { de: string; en: string; key: string }; code?: string } } | undefined;
-    const fromPayload = p?.manufacturer?.name ? pickLocalized(p.manufacturer.name, this.dataLang) : '';
+    const fromPayload = p?.manufacturer?.name ? pickLocalized(p.manufacturer.name, this.lang()) : '';
     return fromPayload || (d.row['manufacturer_code'] as string) || '';
   });
 
@@ -639,7 +653,7 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     if (!d) return '';
     const p = d.payload as { description?: { de: string; en: string; key: string } } | undefined;
-    return unescapeText(p?.description ? pickLocalized(p.description, this.dataLang) : '');
+    return unescapeText(p?.description ? pickLocalized(p.description, this.lang()) : '');
   });
 
   readonly provenance = computed(() => {
@@ -649,10 +663,24 @@ export class CodexDetailComponent implements OnInit {
     return p?.source ?? null;
   });
 
+  // Set when the hero artwork fails to load → fall back to the category icon.
+  readonly artBroken = signal(false);
+  onArtError(): void {
+    this.artBroken.set(true);
+  }
+
   readonly previewUrl = computed(() => {
+    if (this.artBroken()) return null;
     const p = this.detail()?.payload as BaseEntityPayload | undefined;
     return this.svc.previewUrl(p?.previewImage);
   });
+
+  /** Sub-category that refines the hero fallback icon (componentKind/weaponClass/subType). */
+  heroSub(): string | null {
+    const row = this.detail()?.row;
+    if (!row) return null;
+    return (row['kind'] as string) || (row['weapon_class'] as string) || (row['sub_type'] as string) || null;
+  }
 
   // Original class_name (e.g. 'DRAK_Cutlass_Black') for the skin selector —
   // matches public.ship_skins.ship_id. Empty string for non-ships (hides it).
@@ -858,7 +886,17 @@ export class CodexDetailComponent implements OnInit {
   }
   async addToHangar(): Promise<void> {
     const d = this.detail();
-    if (d?.kind === 'ship') await this.hangar.addShip(d.classNameSlug, 'owned');
+    if (d?.kind !== 'ship') return;
+    const ship = await this.hangar.addShip(d.classNameSlug, 'owned');
+    // UC-07: jump straight into the configurator instead of leaving a dead row.
+    if (ship) await this.router.navigate(['/hangar/ship', ship.id]);
+  }
+
+  /** UC-07: open the hangar configurator for a ship already in the hangar. */
+  configureLoadout(): void {
+    const d = this.detail();
+    const ship = d ? this.hangar.shipByClassName(d.classNameSlug) : null;
+    void this.router.navigate(ship ? ['/hangar/ship', ship.id] : ['/hangar']);
   }
   toggleRaw(): void {
     this.showRaw.update((v) => !v);

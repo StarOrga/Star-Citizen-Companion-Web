@@ -8,8 +8,8 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { RouterLink } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   CODEX_KINDS,
   CodexKind,
@@ -17,9 +17,13 @@ import {
   CodexListRow,
   CodexService,
   pickLocalized,
+  toLang,
 } from './codex.service';
 import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
+import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { CodexStatusBannerComponent } from './codex-status-banner.component';
+import { HangarService } from '../hangar/hangar.service';
 
 const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -35,7 +39,7 @@ const COMPONENT_KINDS = [
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent],
+  imports: [FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -44,15 +48,7 @@ const COMPONENT_KINDS = [
           <h1>{{ 'codex.title' | translate }}</h1>
           <p class="hint">{{ 'codex.subtitle' | translate }}</p>
         </div>
-        @if (svc.build(); as b) {
-          <div class="provenance" [attr.title]="'codex.provenance.tooltip' | translate">
-            <span class="prov-label">{{ 'codex.provenance.label' | translate }}</span>
-            <strong>{{ 'codex.provenance.build' | translate: { channel: b.channel, patch: b.patchVersion, build: b.buildNumber } }}</strong>
-            @if (b.qualityScore != null) {
-              <span class="prov-q">{{ 'codex.provenance.quality' | translate: { score: b.qualityScore } }}</span>
-            }
-          </div>
-        }
+        <sc-codex-status-banner />
       </header>
 
       <!-- Kind switcher -->
@@ -60,10 +56,15 @@ const COMPONENT_KINDS = [
         @for (k of kinds; track k) {
           <button class="kind" type="button" role="tab"
                   [class.active]="kind() === k"
+                  [class.soon]="isComingSoon(k)"
+                  [disabled]="isComingSoon(k)"
                   [attr.aria-selected]="kind() === k"
+                  [attr.title]="isComingSoon(k) ? ('codex.soon' | translate) : null"
                   (click)="setKind(k)">
             <span>{{ ('codex.kinds.' + k) | translate }}</span>
-            @if (kindCount(k); as ct) {
+            @if (isComingSoon(k)) {
+              <span class="kind-ct soon-tag">{{ 'codex.soonShort' | translate }}</span>
+            } @else if (kindCount(k); as ct) {
               <span class="kind-ct">{{ ct }}</span>
             }
           </button>
@@ -174,17 +175,33 @@ const COMPONENT_KINDS = [
           <div class="grid">
             @for (r of rows(); track r.classNameSlug) {
               <a class="card" [routerLink]="['/codex', kind(), r.classNameSlug]">
-                @if (thumb(r); as src) {
-                  <div class="thumb"><img [src]="src" [alt]="r.nameLocalized || r.classNameSlug" loading="lazy" /></div>
-                }
+                <div class="thumb" [class.icon-only]="!thumb(r)">
+                  @if (thumb(r); as src) {
+                    <img [src]="src" [alt]="cardName(r)" loading="lazy" (error)="onThumbError(r)" />
+                  } @else {
+                    <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" />
+                  }
+                </div>
                 <div class="card-top">
                   <h3 class="name">{{ cardName(r) }}</h3>
-                  <button type="button" class="pin"
-                          [class.pinned]="isPinned(r.classNameSlug)"
-                          (click)="togglePin($event, r.classNameSlug)"
-                          [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate">
-                    {{ isPinned(r.classNameSlug) ? '★' : '☆' }}
-                  </button>
+                  <div class="card-actions">
+                    @if (kind() === 'ship') {
+                      @if (inHangarSet().has(r.classNameSlug)) {
+                        <span class="hangar-chip" [attr.title]="'codex.card.inHangar' | translate">✓</span>
+                      } @else {
+                        <button type="button" class="hangar-add"
+                                (click)="addShipToHangar($event, r.classNameSlug)"
+                                [attr.aria-label]="'quickSearch.addToHangar' | translate"
+                                [attr.title]="'quickSearch.addToHangar' | translate">+</button>
+                      }
+                    }
+                    <button type="button" class="pin"
+                            [class.pinned]="isPinned(r.classNameSlug)"
+                            (click)="togglePin($event, r.classNameSlug)"
+                            [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate">
+                      {{ isPinned(r.classNameSlug) ? '★' : '☆' }}
+                    </button>
+                  </div>
                 </div>
                 <code class="cls">{{ r.classNameSlug }}</code>
                 <div class="badges">
@@ -192,12 +209,17 @@ const COMPONENT_KINDS = [
                   @if (r.componentKind) { <span class="badge">{{ ('codex.componentKind.' + r.componentKind) | translate }}</span> }
                   @if (r.weaponClass) { <span class="badge">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
                   @if (r.subType) { <span class="badge subtle">{{ r.subType }}</span> }
-                  @if (r.size != null) { <span class="badge">{{ 'codex.card.size' | translate: { size: r.size } }}</span> }
-                  @if (r.grade) { <span class="badge">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
+                  @if (r.grade) { <span class="badge grade" [attr.data-grade]="r.grade">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
                   @if (r.crewSize != null) { <span class="badge">{{ 'codex.card.crew' | translate: { count: r.crewSize } }}</span> }
                   @if (r.speed != null) { <span class="badge subtle">{{ r.speed }} m/s</span> }
                   @if (r.isVariant) { <span class="badge variant">{{ 'codex.card.variant' | translate }}</span> }
                 </div>
+                @if (r.size != null) {
+                  <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
+                    <span class="size-track"><span class="size-fill" [style.width.%]="sizePct(r.size)"></span></span>
+                    <span class="size-tag">S{{ r.size }}</span>
+                  </div>
+                }
               </a>
             }
           </div>
@@ -223,15 +245,6 @@ const COMPONENT_KINDS = [
     .title-block h1 { margin: 0; }
     .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 60ch; }
 
-    .provenance {
-      display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
-      padding: 8px 14px; border-radius: 8px;
-      background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-    }
-    .provenance .prov-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sc-fg-2); }
-    .provenance strong { font-family: var(--sc-font-display); font-size: 0.82rem; letter-spacing: 0.04em; color: var(--sc-accent); }
-    .provenance .prov-q { font-size: 0.68rem; color: var(--sc-fg-2); }
-
     .kind-bar { display: flex; flex-wrap: wrap; gap: 6px; }
     .kind {
       display: inline-flex; align-items: center; gap: 8px;
@@ -245,6 +258,9 @@ const COMPONENT_KINDS = [
     .kind.active { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .kind-ct { font-size: 0.68rem; padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
     .kind.active .kind-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-bg-0); }
+    .kind.soon { opacity: 0.5; cursor: not-allowed; }
+    .kind.soon:hover { color: var(--sc-fg-1); border-color: var(--sc-border); }
+    .kind-ct.soon-tag { background: color-mix(in srgb, var(--sc-warning, #f0c419) 22%, transparent); color: var(--sc-warning, #f0c419); text-transform: uppercase; letter-spacing: 0.04em; }
 
     .controls { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; }
     .search-row { position: relative; display: flex; }
@@ -284,17 +300,31 @@ const COMPONENT_KINDS = [
     .card .thumb { height: 96px; margin: -4px 0 2px; display: flex; align-items: center; justify-content: center;
       border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
     .card .thumb img { max-height: 88px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+    .card .thumb sc-codex-icon { width: 100%; height: 100%; }
+    .card:hover .thumb sc-codex-icon { transform: scale(1.05); transition: transform 0.16s; }
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card .name { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.25; }
     .card .cls { font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); word-break: break-all; }
+    .card-actions { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
     .pin { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.1rem; line-height: 1; cursor: pointer; padding: 0; flex: 0 0 auto; }
     .pin:hover { color: var(--sc-accent); }
     .pin.pinned { color: var(--sc-accent); }
+    .hangar-chip { font-size: 0.82rem; line-height: 1; color: var(--sc-success, #5fd698); }
+    .hangar-add { border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-2); font-size: 1rem; line-height: 1; width: 22px; height: 22px; border-radius: 6px; cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    .hangar-add:hover { color: var(--sc-success, #5fd698); border-color: var(--sc-success, #5fd698); }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: 0.66rem; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.variant { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: var(--sc-fg-1); }
+    .badge.grade[data-grade="A"] { background: color-mix(in srgb, #5fd698 18%, transparent); border-color: color-mix(in srgb, #5fd698 42%, transparent); color: #8fe5b5; }
+    .badge.grade[data-grade="B"] { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); color: var(--sc-fg-0); }
+    .badge.grade[data-grade="C"] { background: color-mix(in srgb, #f0c419 16%, transparent); border-color: color-mix(in srgb, #f0c419 40%, transparent); color: #f0d060; }
+    .badge.grade[data-grade="D"] { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
+    .size-bar { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .size-track { flex: 1; height: 5px; border-radius: 999px; background: var(--sc-bg-2); overflow: hidden; }
+    .size-fill { display: block; height: 100%; border-radius: 999px; background: var(--sc-accent); }
+    .size-tag { font-size: 0.64rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); flex: 0 0 auto; }
 
     .card.skel { min-height: 116px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
     @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -311,31 +341,56 @@ const COMPONENT_KINDS = [
 
     @media (max-width: 720px) {
       .head { flex-direction: column; }
-      .provenance { align-items: flex-start; }
     }
   `],
 })
 export class CodexListComponent implements OnInit {
   readonly svc = inject(CodexService);
-  private readonly router = inject(Router);
+  private readonly t = inject(TranslateService);
+  private readonly hangar = inject(HangarService);
 
   readonly kinds = CODEX_KINDS;
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
 
-  /** Preview-image URL for a list row, or null when the entity has no art. */
+  // UC-02: class names already in the hangar — a pure read-overlay over the
+  // hangar.ships() signal (no DB change), so ship cards can mark ownership.
+  readonly inHangarSet = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
+
+  /** Kinds whose catalog isn't ingested yet — shown but disabled. (UC-13) */
+  isComingSoon(k: CodexKind): boolean {
+    return k === 'blueprint';
+  }
+
+  // Slugs whose preview image failed to load — fall back to the category icon
+  // instead of a broken-image glyph. (UC-01)
+  private readonly brokenThumbs = signal<ReadonlySet<string>>(new Set<string>());
+
+  /** Preview-image URL for a list row, or null when art is absent or broken. */
   thumb(r: CodexListRow): string | null {
+    if (this.brokenThumbs().has(r.classNameSlug)) return null;
     const p = r.payload as { previewImage?: string | null } | undefined;
     return this.svc.previewUrl(p?.previewImage);
   }
 
+  onThumbError(r: CodexListRow): void {
+    const next = new Set(this.brokenThumbs());
+    next.add(r.classNameSlug);
+    this.brokenThumbs.set(next);
+  }
+
+  /** Sub-category that refines the fallback icon (componentKind/weaponClass/subType). */
+  iconSub(r: CodexListRow): string | null {
+    return r.componentKind || r.weaponClass || r.subType || null;
+  }
+
   /**
-   * Card title — English SC name (SC has no real translations; see detail view).
-   * Falls back to the denormalized name, then the raw class name.
+   * Card title in the app language with EN fallback (UC-08), then the
+   * denormalized name, then the raw class name.
    */
   cardName(r: CodexListRow): string {
     const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
-    const en = p?.name ? pickLocalized(p.name, 'en') : '';
-    return en || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
+    const localized = p?.name ? pickLocalized(p.name, toLang(this.t.currentLang)) : '';
+    return localized || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
   }
 
   readonly kind = signal<CodexKind>('ship');
@@ -404,6 +459,8 @@ export class CodexListComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.svc.loadCurrentBuild();
+    // UC-02: hangar membership backs the in-hangar badge on ship cards.
+    if (this.hangar.ships().length === 0) void this.hangar.loadAll();
   }
 
   // True when the current build only seeded a subset of this kind (seeded <
@@ -430,12 +487,9 @@ export class CodexListComponent implements OnInit {
 
   setKind(k: CodexKind): void {
     if (k === this.kind()) return;
-    // Blueprint has its own dedicated list route — navigate away instead of
-    // trying to run the generic listByKind query (different table/columns).
-    if (k === 'blueprint') {
-      void this.router.navigate(['/codex/blueprint']);
-      return;
-    }
+    // Blueprint catalog is empty (0 rows) until crafting data is ingested — the
+    // kind is shown disabled, so ignore any stray activation. (UC-13)
+    if (this.isComingSoon(k)) return;
     // reset facets that don't apply across kinds
     this.manufacturer.set('');
     this.size.set('');
@@ -489,6 +543,18 @@ export class CodexListComponent implements OnInit {
     ev.preventDefault();
     ev.stopPropagation();
     this.svc.togglePin(this.kind(), className);
+  }
+
+  /** UC-02: add a ship to the hangar inline, without leaving the list. */
+  addShipToHangar(ev: Event, className: string): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    void this.hangar.addShip(className, 'owned');
+  }
+
+  /** UC-10: size S1–S12 as a 0–100% bar width for at-a-glance scanning. */
+  sizePct(size: number): number {
+    return Math.min(100, Math.max(8, Math.round((size / 12) * 100)));
   }
 
   private buildFilters(): CodexListFilters {

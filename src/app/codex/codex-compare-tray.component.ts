@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { CodexDetail, CodexKind, CodexService, pickLocalized } from './codex.service';
+import { CodexDetail, CodexKind, CodexService, pickLocalized, toLang } from './codex.service';
 import {
   CompareColumn,
   CompareTableRow,
@@ -80,7 +80,9 @@ interface PinnedRef {
                     <tr>
                       <td class="rowhead">{{ row.labelKey ? (row.labelKey | translate) : row.label }}</td>
                       @for (v of row.values; track $index) {
-                        <td [class.na]="v === null">{{ v === null ? '—' : v }}</td>
+                        <td [class.na]="v === null"
+                            [class.best]="row.highlight[$index] === 'best'"
+                            [class.worst]="row.highlight[$index] === 'worst'">{{ v === null ? '—' : v }}</td>
                       }
                     </tr>
                   }
@@ -137,6 +139,8 @@ interface PinnedRef {
     .col-link:hover { text-decoration: underline; }
     .col-kind { display: block; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
     .cmp td.na { color: var(--sc-fg-2); }
+    .cmp td.best { color: #8fe5b5; font-weight: 500; background: color-mix(in srgb, #5fd698 13%, transparent); }
+    .cmp td.worst { color: var(--sc-fg-2); }
   `],
 })
 export class CodexCompareTrayComponent {
@@ -200,11 +204,11 @@ export class CodexCompareTrayComponent {
     return buildCompareTable(this.columns(), perEntity);
   });
 
-  /** English SC name (SC has no real translations — see detail view). */
+  /** Entity name in the app language with EN fallback (UC-08). */
   private entityName(d: CodexDetail): string {
     const p = d.payload as { name?: { de: string; en: string; key: string } } | undefined;
-    const en = p?.name ? pickLocalized(p.name, 'en') : '';
-    return en || cleanLocaleValue(d.row['name_localized'] as string) || humanizeClassName(d.classNameSlug);
+    const localized = p?.name ? pickLocalized(p.name, toLang(this.t.currentLang)) : '';
+    return localized || cleanLocaleValue(d.row['name_localized'] as string) || humanizeClassName(d.classNameSlug);
   }
 
   chipName(r: PinnedRef): string {

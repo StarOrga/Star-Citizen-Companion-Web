@@ -4,6 +4,34 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2026-06-21
+
+### Added
+
+- **Codex category fallback icons (UC-01).** Every catalog entity now has a guaranteed
+  visual anchor — a stroke category glyph (ship / weapon / component-by-kind / item /
+  ammo / manufacturer) coloured per category — wherever datamined artwork is missing
+  (~94% of entities; components & ammunition have none). List cards and the detail hero
+  fall back to the icon, with broken-image recovery for dead storage links.
+- **Catalog content in the app language (UC-08).** Names, descriptions, manufacturer and
+  role render in DE/EN following the app language with English as the guaranteed fallback,
+  instead of always English. The compare tray follows the same rule.
+- **Bidirectional hangar integration (UC-02, UC-07).** Ship list cards show an "in your
+  hangar" badge or an inline add button (no navigation); add-to-hangar on the detail page
+  now deep-links straight into the configurator, and owned ships get a "configure loadout"
+  shortcut.
+- **Viewer-visible data provenance banner (UC-12).** An expandable status banner surfaces
+  the catalog build, patch, extraction date and per-kind coverage to any signed-in viewer.
+- **Visual stat encoding (UC-10).** List cards show a size S1–S12 bar and colour-coded
+  grade (A–D) for at-a-glance scanning.
+- **Compare best/worst highlighting (UC-05).** The compare tray highlights the highest
+  (best) and lowest (worst) value in every numerically comparable stat row.
+
+### Changed
+
+- The empty Blueprint catalog kind is shown disabled with a "coming soon" hint instead of
+  leading into an empty list (UC-13).
+
 ## [0.19.1] - 2026-06-21
 
 ### Fixed
