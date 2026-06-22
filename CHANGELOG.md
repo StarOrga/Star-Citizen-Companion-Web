@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.1] - 2026-06-22
+
+### Fixed
+
+- **Production build / Vercel deploy broke after #84.** The blueprint-catalog PR was
+  branched from a pre-#58 base and re-added blueprint interfaces (`BlueprintPayload`,
+  `BlueprintIngredientPayload`, `BlueprintOutputPayload`, `CodexBlueprint`,
+  `CodexBlueprintIngredient`) that #58/#83 already shipped — with mismatched
+  nullability. TypeScript interface declaration-merging then failed
+  (`TS2717`/`TS2741`), breaking `ng build --configuration production`. Restored
+  `codex.types.ts` to the #83 state; removed the duplicate declarations and the
+  unused #84-only additions (`CodexBlueprintRow`, `CodexBlueprintIngredientRow`,
+  `BlueprintQualityRefs`).
+
 ## [0.20.0] - 2026-06-21
 
 ### Added
