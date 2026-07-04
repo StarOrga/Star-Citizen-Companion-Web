@@ -4,6 +4,29 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2026-07-05
+
+### Changed
+
+- **Codex reimagined as "The Bridge" (rethink).** The `/codex` front door is no longer a
+  filter-list. It opens as a Bridge: an always-present scanner search, one focal hero
+  (your pinned flagship → first hangar ship → featured ship), and horizontal lanes
+  (Your Hangar · Fresh this patch · Popular to compare · Explore by role). The full
+  facet grid survives verbatim as an opt-in Index mode at `/codex/index`. Compare tray,
+  add-to-hangar, provenance banner and the auth gate are unchanged. 2D-only,
+  reduced-motion-safe.
+
+### Added
+
+- **Pin-a-flagship.** Designate one hangar ship as your flagship (★) from the Bridge hero
+  or the hangar cards; it drives the Bridge hero and eyebrow ("Dein Flaggschiff").
+  Persisted per user in `localStorage` (promotion to a DB column tracked as a follow-up).
+
+### Fixed
+
+- **Index-mode kind tabs rendered raw i18n keys** (`codex.kinds.ship`) — added the missing
+  DE/EN plural labels for ship/weapon/component/item/ammunition/manufacturer.
+
 ## [0.20.1] - 2026-06-22
 
 ### Fixed
