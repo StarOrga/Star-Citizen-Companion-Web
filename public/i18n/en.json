@@ -33,6 +33,37 @@
   "codex": {
     "title": "Codex",
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
+    "bridge": {
+      "scannerPlaceholder": "Scan the codex — type a ship name or class (e.g. Gladius, AEGS_*)…",
+      "scannerResults": "Scanner · \"{{term}}\"",
+      "indexMode": "Index mode",
+      "backToBridge": "Back to the Bridge",
+      "addCompare": "Compare",
+      "hero": {
+        "featured": "Featured ship",
+        "fromHangar": "From your hangar",
+        "flagship": "Your flagship",
+        "open": "Open",
+        "freshness": "{{patch}} LIVE · build {{build}}"
+      },
+      "flagship": {
+        "set": "★ Set as flagship",
+        "pinned": "★ Flagship"
+      },
+      "lanes": {
+        "hangar": "Your Hangar",
+        "hangarSub": "Ships you own",
+        "fresh": "Fresh this patch",
+        "freshSub": "Ships in the current live build",
+        "popular": "Popular to compare",
+        "popularSub": "Community favourites, side by side",
+        "role": "Explore by manufacturer",
+        "roleSub": "Ships grouped by their maker"
+      }
+    },
+    "index": {
+      "title": "Codex — Index mode"
+    },
     "categoriesAria": "Codex categories",
     "soon": "Coming soon — no data extracted yet.",
     "soonShort": "soon",
@@ -48,6 +79,12 @@
       "clear": "Clear search"
     },
     "kinds": {
+      "ship": "Ships",
+      "weapon": "Weapons",
+      "component": "Components",
+      "item": "Items",
+      "ammunition": "Ammunition",
+      "manufacturer": "Manufacturers",
       "blueprint": "Blueprints"
     },
     "kindSingular": {
@@ -527,6 +564,11 @@
     "counts": {
       "owned": "Owned",
       "wishlist": "Wishlist"
+    },
+    "flagship": {
+      "set": "★ Set as flagship",
+      "pinned": "★ Flagship",
+      "badge": "Your flagship"
     },
     "status": {
       "owned": "Owned",

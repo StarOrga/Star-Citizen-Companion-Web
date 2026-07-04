@@ -33,6 +33,37 @@
   "codex": {
     "title": "Codex",
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
+    "bridge": {
+      "scannerPlaceholder": "Codex scannen — Schiffsname oder Klasse eingeben (z. B. Gladius, AEGS_*)…",
+      "scannerResults": "Scanner · \"{{term}}\"",
+      "indexMode": "Index-Modus",
+      "backToBridge": "Zurück zur Brücke",
+      "addCompare": "Vergleich",
+      "hero": {
+        "featured": "Vorgestelltes Schiff",
+        "fromHangar": "Aus deinem Hangar",
+        "flagship": "Dein Flaggschiff",
+        "open": "Öffnen",
+        "freshness": "{{patch}} LIVE · Build {{build}}"
+      },
+      "flagship": {
+        "set": "★ Als Flaggschiff",
+        "pinned": "★ Flaggschiff"
+      },
+      "lanes": {
+        "hangar": "Dein Hangar",
+        "hangarSub": "Schiffe in deinem Besitz",
+        "fresh": "Frisch in diesem Patch",
+        "freshSub": "Schiffe im aktuellen Live-Build",
+        "popular": "Beliebt zum Vergleichen",
+        "popularSub": "Community-Favoriten im Direktvergleich",
+        "role": "Nach Hersteller entdecken",
+        "roleSub": "Schiffe nach ihrem Hersteller gruppiert"
+      }
+    },
+    "index": {
+      "title": "Codex — Index-Modus"
+    },
     "categoriesAria": "Codex-Kategorien",
     "soon": "Kommt bald — noch keine Daten extrahiert.",
     "soonShort": "bald",
@@ -48,6 +79,12 @@
       "clear": "Suche löschen"
     },
     "kinds": {
+      "ship": "Schiffe",
+      "weapon": "Waffen",
+      "component": "Komponenten",
+      "item": "Gegenstände",
+      "ammunition": "Munition",
+      "manufacturer": "Hersteller",
       "blueprint": "Baupläne"
     },
     "kindSingular": {
@@ -527,6 +564,11 @@
     "counts": {
       "owned": "Im Besitz",
       "wishlist": "Wunschliste"
+    },
+    "flagship": {
+      "set": "★ Als Flaggschiff",
+      "pinned": "★ Flaggschiff",
+      "badge": "Dein Flaggschiff"
     },
     "status": {
       "owned": "Im Besitz",

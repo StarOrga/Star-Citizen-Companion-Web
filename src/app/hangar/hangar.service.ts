@@ -33,6 +33,19 @@ export class HangarService {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  // Flagship = the user's single pinned "standard ship" (a ship class name),
+  // driving the Codex Bridge hero. Persisted per-user in localStorage.
+  //
+  // TODO(flagship-persistence): promote this to a server-side column (e.g. a
+  // jsonb `preferences` on `profiles`, or a `hangar_ships.is_flagship` flag)
+  // once a schema migration is scheduled — that also unlocks cross-device sync.
+  // Until then localStorage keeps Slice 2 frontend-only (no DB migration).
+  readonly flagshipClassName = signal<string | null>(null);
+
+  constructor() {
+    this.flagshipClassName.set(this.readFlagship());
+  }
+
   readonly pinnedShips = computed(() =>
     this.ships()
       .filter((s) => s.pinnedRank !== null)
@@ -69,6 +82,9 @@ export class HangarService {
       this.roleLoadouts.set(
         ((loadoutsRes.data ?? []) as HangarRoleLoadoutRow[]).map(mapHangarRoleLoadout),
       );
+      // Re-hydrate the flagship now the user id is guaranteed available (the
+      // constructor may have run before auth resolved). localStorage-keyed.
+      this.flagshipClassName.set(this.readFlagship());
     } catch (err) {
       this.error.set((err as Error).message ?? 'Unknown error');
     } finally {
@@ -185,13 +201,68 @@ export class HangarService {
   }
 
   async removeShip(id: string): Promise<boolean> {
+    const removed = this.shipById(id);
     const { error } = await this.sb.client.from('hangar_ships').delete().eq('id', id);
     if (error) {
       this.error.set(error.message);
       return false;
     }
     this.ships.set(this.ships().filter((s) => s.id !== id));
+    // Clear the flagship if the removed ship was it — never point at a gone ship.
+    if (removed && this.flagshipClassName() === removed.shipClassName) {
+      this.setFlagship(null);
+    }
     return true;
+  }
+
+  // ── flagship (pinned standard ship) ──────────────────────────────────────────
+
+  /** Is this ship class the user's current flagship? */
+  isFlagship(shipClassName: string): boolean {
+    return this.flagshipClassName() === shipClassName;
+  }
+
+  /**
+   * Designate exactly ONE ship class as the flagship (or clear with null).
+   * Pinning a new flagship un-pins the previous — the signal holds a single
+   * value, so writing it is inherently exclusive. Persisted per-user in
+   * localStorage; survives reload (see the flagshipClassName field's TODO).
+   */
+  setFlagship(shipClassName: string | null): void {
+    this.flagshipClassName.set(shipClassName);
+    this.writeFlagship(shipClassName);
+  }
+
+  /** Toggle: pin if not the flagship, clear if it already is (single flagship). */
+  toggleFlagship(shipClassName: string): void {
+    this.setFlagship(this.isFlagship(shipClassName) ? null : shipClassName);
+  }
+
+  private flagshipKey(): string | null {
+    const uid = this.userId;
+    return uid ? `sc.hangar.flagship.${uid}` : null;
+  }
+
+  private readFlagship(): string | null {
+    const key = this.flagshipKey();
+    if (!key || typeof localStorage === 'undefined') return null;
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  private writeFlagship(shipClassName: string | null): void {
+    const key = this.flagshipKey();
+    if (!key || typeof localStorage === 'undefined') return;
+    try {
+      if (shipClassName) localStorage.setItem(key, shipClassName);
+      else localStorage.removeItem(key);
+    } catch {
+      // localStorage may be unavailable (private mode, quota) — degrade to
+      // in-memory only; the signal still drives the current session.
+    }
   }
 
   private replaceShip(ship: HangarShip): void {
