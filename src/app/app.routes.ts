@@ -25,9 +25,21 @@ export const routes: Routes = [
         loadComponent: () => import('./news/news-list.component').then((m) => m.NewsListComponent),
       },
       {
-        // Codex — viewer-accessible catalog. authGuard ONLY (no roleGuard):
-        // every authenticated user, incl. role `viewer`, may browse it.
+        // Codex landing = "The Bridge" (Slice 1). Scanner + focal hero + lanes.
+        // authGuard ONLY (no roleGuard): every authenticated user, incl. role
+        // `viewer`, may browse it. The full facet filter-list survives verbatim
+        // as the opt-in Index mode at /codex/index below.
         path: 'codex',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./codex/codex-bridge.component').then((m) => m.CodexBridgeComponent),
+      },
+      {
+        // Index mode — the power-user escape hatch. The original filter-list
+        // (kind tabs + all facets + result grid + load-more + compare tray),
+        // reachable one click from the Bridge. Static segment placed BEFORE
+        // codex/:kind/:className so it is never consumed by the :kind wildcard.
+        path: 'codex/index',
         loadComponent: () =>
           import('./codex/codex-list.component').then((m) => m.CodexListComponent),
       },

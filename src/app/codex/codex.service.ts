@@ -265,6 +265,19 @@ export class CodexService {
     return { rows, count: count ?? rows.length };
   }
 
+  /**
+   * Bridge landing data (Slice-1 "The Bridge"): a single query for the ship
+   * lane content. Returns up to `limit` buyable ships of the current build,
+   * ordered by name — reused as both the "Fresh this patch" lane source and the
+   * featured-hero fallback. No schema change: this is `listByKind('ship')` with
+   * a ship-focused default, surfaced as a named read helper so the Bridge
+   * component stays declarative.
+   */
+  async listBridgeShips(limit = 24): Promise<CodexListRow[]> {
+    const res = await this.listByKind('ship', { limit, offset: 0 });
+    return res.rows;
+  }
+
   /** Entity row + its hardpoints + its localized strings, for the detail view. */
   async getDetail(kind: CodexKind, classNameSlug: string): Promise<CodexDetail | null> {
     const build = await this.loadCurrentBuild();

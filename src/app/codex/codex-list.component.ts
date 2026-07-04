@@ -45,7 +45,8 @@ const COMPONENT_KINDS = [
     <section class="codex-page">
       <header class="head">
         <div class="title-block">
-          <h1>{{ 'codex.title' | translate }}</h1>
+          <a class="to-bridge" routerLink="/codex">← {{ 'codex.bridge.backToBridge' | translate }}</a>
+          <h1>{{ 'codex.index.title' | translate }}</h1>
           <p class="hint">{{ 'codex.subtitle' | translate }}</p>
         </div>
         <sc-codex-status-banner />
@@ -242,6 +243,8 @@ const COMPONENT_KINDS = [
     .codex-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
 
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+    .to-bridge { display: inline-block; margin-bottom: 8px; font-size: 0.78rem; letter-spacing: 0.04em; color: var(--sc-accent); text-decoration: none; }
+    .to-bridge:hover { text-decoration: underline; }
     .title-block h1 { margin: 0; }
     .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 60ch; }
 
