@@ -79,6 +79,12 @@
       "clear": "Suche löschen"
     },
     "kinds": {
+      "ship": "Schiffe",
+      "weapon": "Waffen",
+      "component": "Komponenten",
+      "item": "Gegenstände",
+      "ammunition": "Munition",
+      "manufacturer": "Hersteller",
       "blueprint": "Baupläne"
     },
     "kindSingular": {

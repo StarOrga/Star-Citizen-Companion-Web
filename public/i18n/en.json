@@ -79,6 +79,12 @@
       "clear": "Clear search"
     },
     "kinds": {
+      "ship": "Ships",
+      "weapon": "Weapons",
+      "component": "Components",
+      "item": "Items",
+      "ammunition": "Ammunition",
+      "manufacturer": "Manufacturers",
       "blueprint": "Blueprints"
     },
     "kindSingular": {
