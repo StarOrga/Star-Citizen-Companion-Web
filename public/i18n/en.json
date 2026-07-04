@@ -42,8 +42,13 @@
       "hero": {
         "featured": "Featured ship",
         "fromHangar": "From your hangar",
+        "flagship": "Your flagship",
         "open": "Open",
         "freshness": "{{patch}} LIVE · build {{build}}"
+      },
+      "flagship": {
+        "set": "★ Set as flagship",
+        "pinned": "★ Flagship"
       },
       "lanes": {
         "hangar": "Your Hangar",
@@ -553,6 +558,11 @@
     "counts": {
       "owned": "Owned",
       "wishlist": "Wishlist"
+    },
+    "flagship": {
+      "set": "★ Set as flagship",
+      "pinned": "★ Flagship",
+      "badge": "Your flagship"
     },
     "status": {
       "owned": "Owned",

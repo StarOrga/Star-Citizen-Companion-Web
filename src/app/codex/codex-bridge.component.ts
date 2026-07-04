@@ -132,7 +132,9 @@ interface Lane {
               }
             </div>
             <div class="hero-body">
-              @if (heroFromHangar()) {
+              @if (heroFromFlagship()) {
+                <span class="hero-eyebrow flagship">★ {{ 'codex.bridge.hero.flagship' | translate }}</span>
+              } @else if (heroFromHangar()) {
                 <span class="hero-eyebrow hangar">{{ 'codex.bridge.hero.fromHangar' | translate }}</span>
               } @else {
                 <span class="hero-eyebrow">{{ 'codex.bridge.hero.featured' | translate }}</span>
@@ -163,6 +165,13 @@ interface Lane {
                         (click)="togglePin(h.classNameSlug)">
                   {{ (isPinned(h.classNameSlug) ? 'codex.compare.pinned' : 'codex.bridge.addCompare') | translate }}
                 </button>
+                @if (inHangarSet().has(h.classNameSlug)) {
+                  <button type="button" class="btn flag" [class.is-flagship]="isFlagship(h.classNameSlug)"
+                          (click)="toggleFlagship(h.classNameSlug)"
+                          [attr.aria-pressed]="isFlagship(h.classNameSlug)">
+                    {{ (isFlagship(h.classNameSlug) ? 'codex.bridge.flagship.pinned' : 'codex.bridge.flagship.set') | translate }}
+                  </button>
+                }
               </div>
             </div>
           </article>
@@ -210,6 +219,13 @@ interface Lane {
           <div class="lane-actions">
             @if (inHangarSet().has(r.classNameSlug)) {
               <span class="in-hangar" [attr.title]="'codex.card.inHangar' | translate">✓</span>
+              <button type="button" class="chip-btn flag" [class.is-flagship]="isFlagship(r.classNameSlug)"
+                      (click)="onToggleFlagship($event, r.classNameSlug)"
+                      [attr.aria-pressed]="isFlagship(r.classNameSlug)"
+                      [attr.aria-label]="(isFlagship(r.classNameSlug) ? 'codex.bridge.flagship.pinned' : 'codex.bridge.flagship.set') | translate"
+                      [attr.title]="(isFlagship(r.classNameSlug) ? 'codex.bridge.flagship.pinned' : 'codex.bridge.flagship.set') | translate">
+                {{ isFlagship(r.classNameSlug) ? '★' : '⚑' }}
+              </button>
             } @else {
               <button type="button" class="chip-btn" (click)="addToHangar($event, r.classNameSlug)"
                       [attr.aria-label]="'quickSearch.addToHangar' | translate"
@@ -269,6 +285,7 @@ interface Lane {
     .hero-body { display: flex; flex-direction: column; gap: 8px; padding: 28px 30px; justify-content: center; }
     .hero-eyebrow { font-family: var(--sc-font-display); font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); }
     .hero-eyebrow.hangar { color: var(--sc-accent); }
+    .hero-eyebrow.flagship { color: var(--sc-warning, #ffc14d); }
     .hero-name { margin: 0; font-size: clamp(1.6rem, 3vw, 2.4rem); line-height: 1.1; }
     .hero-mfr { margin: 0; color: var(--sc-fg-1); font-family: var(--sc-font-display); letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.8rem; }
     .hero-stats { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; margin: 10px 0 4px; }
@@ -287,6 +304,9 @@ interface Lane {
     .btn.ghost { background: transparent; border-color: var(--sc-accent); color: var(--sc-accent); }
     .btn.ghost:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .btn.ghost.pinned { background: color-mix(in srgb, var(--sc-accent) 20%, transparent); }
+    .btn.flag { background: transparent; border-color: var(--sc-warning, #ffc14d); color: var(--sc-warning, #ffc14d); }
+    .btn.flag:hover { background: color-mix(in srgb, var(--sc-warning, #ffc14d) 14%, transparent); }
+    .btn.flag.is-flagship { background: color-mix(in srgb, var(--sc-warning, #ffc14d) 22%, transparent); }
 
     /* Lanes */
     .lane { display: flex; flex-direction: column; gap: 12px; }
@@ -324,6 +344,8 @@ interface Lane {
     .chip-btn:hover { color: var(--sc-success, #5fd698); border-color: var(--sc-success, #5fd698); }
     .chip-btn.compare:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
     .chip-btn.compare.pinned { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .chip-btn.flag:hover { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d); }
+    .chip-btn.flag.is-flagship { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d); }
     .in-hangar { font-size: 0.92rem; color: var(--sc-success, #5fd698); line-height: 1; padding: 0 4px; }
 
     /* Skeletons */
@@ -382,9 +404,24 @@ export class CodexBridgeComponent implements OnInit {
   // Class names already in the hangar — read-overlay over hangar.ships().
   readonly inHangarSet = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
 
-  /** Hero = first hangar ship (resolved to a catalog row), else featured. */
-  readonly heroFromHangar = computed(() => this.hangarRows().length > 0);
+  /**
+   * Hero = the user's pinned flagship (if set AND resolvable in the current
+   * build) → else first hangar ship → else featured/first catalog ship. Every
+   * source is a real, resolved catalog row (the resolve happens after
+   * loadCurrentBuild()), so the hero is never blank/broken.
+   */
+  readonly flagshipRow = computed<CodexListRow | null>(() => {
+    const cn = this.hangar.flagshipClassName();
+    if (!cn) return null;
+    return this.hangarRows().find((r) => r.classNameSlug === cn) ?? null;
+  });
+  readonly heroFromFlagship = computed(() => this.flagshipRow() !== null);
+  readonly heroFromHangar = computed(
+    () => this.heroFromFlagship() || this.hangarRows().length > 0,
+  );
   readonly hero = computed<CodexListRow | null>(() => {
+    const flagship = this.flagshipRow();
+    if (flagship) return flagship;
     const fromHangar = this.hangarRows()[0];
     if (fromHangar) return fromHangar;
     return this.catalog()[0] ?? null;
@@ -613,5 +650,22 @@ export class CodexBridgeComponent implements OnInit {
     ev.preventDefault();
     ev.stopPropagation();
     void this.hangar.addShip(className, 'owned').then(() => void this.resolveHangarRows());
+  }
+
+  // ── flagship (pinned standard ship) ──────────────────────────────────────────
+  isFlagship(className: string): boolean {
+    return this.hangar.isFlagship(className);
+  }
+
+  /** Hero-button variant (no event to swallow). */
+  toggleFlagship(className: string): void {
+    this.hangar.toggleFlagship(className);
+  }
+
+  /** Lane-card variant — sits inside an anchor, so swallow the click. */
+  onToggleFlagship(ev: Event, className: string): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.hangar.toggleFlagship(className);
   }
 }

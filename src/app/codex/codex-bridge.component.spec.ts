@@ -47,6 +47,7 @@ describe('CodexBridgeComponent', () => {
     catalog: CodexListRow[];
     hangar: HangarShip[];
     byClassName?: Map<string, CodexListRow>;
+    flagship?: string | null;
   }) {
     const compareKeys = signal<string[]>([]);
     const byClassName = opts.byClassName ?? new Map<string, CodexListRow>();
@@ -73,10 +74,18 @@ describe('CodexBridgeComponent', () => {
     };
 
     const hangarSignal = signal<HangarShip[]>(opts.hangar);
+    const flagshipSignal = signal<string | null>(opts.flagship ?? null);
     const hangar: Partial<HangarService> = {
       ships: hangarSignal as never,
+      flagshipClassName: flagshipSignal as never,
       loadAll: jasmine.createSpy('loadAll').and.resolveTo(undefined),
       addShip: jasmine.createSpy('addShip').and.resolveTo(null),
+      isFlagship: (cn: string) => flagshipSignal() === cn,
+      toggleFlagship: jasmine
+        .createSpy('toggleFlagship')
+        .and.callFake((cn: string) =>
+          flagshipSignal.set(flagshipSignal() === cn ? null : cn),
+        ),
     };
 
     await TestBed.configureTestingModule({
@@ -138,5 +147,53 @@ describe('CodexBridgeComponent', () => {
       labelKey: 'codex.detail.crew',
       value: '2',
     });
+  });
+
+  it('promotes the pinned flagship to the hero over the first hangar ship', async () => {
+    const gladius = shipRow({ classNameSlug: 'AEGS_Gladius' });
+    const arrow = shipRow({ classNameSlug: 'ANVL_Arrow' });
+    const fixture = await setup({
+      catalog: [],
+      // hangar order would make Gladius the default hero; the flagship overrides.
+      hangar: [hangarShip('AEGS_Gladius'), hangarShip('ANVL_Arrow')],
+      byClassName: new Map([
+        ['AEGS_Gladius', gladius],
+        ['ANVL_Arrow', arrow],
+      ]),
+      flagship: 'ANVL_Arrow',
+    });
+    const cmp = fixture.componentInstance;
+    expect(cmp.heroFromFlagship()).toBeTrue();
+    expect(cmp.hero()?.classNameSlug).toBe('ANVL_Arrow');
+    expect(fixture.nativeElement.querySelector('.hero-eyebrow.flagship')).not.toBeNull();
+  });
+
+  it('falls back to the first hangar ship when the flagship is unresolvable in this build', async () => {
+    const gladius = shipRow({ classNameSlug: 'AEGS_Gladius' });
+    const fixture = await setup({
+      catalog: [],
+      hangar: [hangarShip('AEGS_Gladius')],
+      byClassName: new Map([['AEGS_Gladius', gladius]]),
+      // flagship points at a ship not present in the current build catalog.
+      flagship: 'ORIG_890Jump',
+    });
+    const cmp = fixture.componentInstance;
+    expect(cmp.heroFromFlagship()).toBeFalse();
+    expect(cmp.hero()?.classNameSlug).toBe('AEGS_Gladius');
+  });
+
+  it('toggles the flagship from the hero and reacts in the hero eyebrow', async () => {
+    const gladius = shipRow({ classNameSlug: 'AEGS_Gladius' });
+    const fixture = await setup({
+      catalog: [],
+      hangar: [hangarShip('AEGS_Gladius')],
+      byClassName: new Map([['AEGS_Gladius', gladius]]),
+    });
+    const cmp = fixture.componentInstance;
+    expect(cmp.isFlagship('AEGS_Gladius')).toBeFalse();
+    cmp.toggleFlagship('AEGS_Gladius');
+    fixture.detectChanges();
+    expect(cmp.isFlagship('AEGS_Gladius')).toBeTrue();
+    expect(cmp.heroFromFlagship()).toBeTrue();
   });
 });

@@ -130,7 +130,10 @@ const SEARCH_DEBOUNCE_MS = 250;
                 }
                 <div class="card-top">
                   <h3 class="name">{{ s.customName || displayName(s) }}</h3>
-                  @if (s.pinnedRank) { <span class="rank-sm">#{{ s.pinnedRank }}</span> }
+                  <div class="card-top-right">
+                    @if (isFlagship(s)) { <span class="flag-badge" [attr.title]="'hangar.flagship.badge' | translate">★</span> }
+                    @if (s.pinnedRank) { <span class="rank-sm">#{{ s.pinnedRank }}</span> }
+                  </div>
                 </div>
                 @if (s.customName) { <code class="cls">{{ displayName(s) }}</code> }
                 <div class="badges">
@@ -142,6 +145,11 @@ const SEARCH_DEBOUNCE_MS = 250;
                     <span class="badge">{{ 'codex.card.crew' | translate: { count: cardFor(s)?.crewSize } }}</span>
                   }
                 </div>
+                <button type="button" class="flag-toggle" [class.is-flagship]="isFlagship(s)"
+                        (click)="toggleFlagship($event, s)"
+                        [attr.aria-pressed]="isFlagship(s)">
+                  {{ (isFlagship(s) ? 'hangar.flagship.pinned' : 'hangar.flagship.set') | translate }}
+                </button>
               </a>
             }
           </div>
@@ -225,6 +233,15 @@ const SEARCH_DEBOUNCE_MS = 250;
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card .name { margin: 0; font-size: 0.98rem; font-weight: 600; line-height: 1.25; }
     .rank-sm { font-family: var(--sc-font-display); color: var(--sc-accent); font-size: 0.82rem; }
+    .card-top-right { display: flex; align-items: center; gap: 6px; }
+    .flag-badge { color: var(--sc-warning, #ffc14d); font-size: 0.92rem; line-height: 1; }
+    .flag-toggle { margin-top: 4px; padding: 5px 10px; border-radius: 6px; background: transparent;
+      border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: var(--sc-font-display);
+      font-size: 0.62rem; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; align-self: flex-start;
+      transition: color 0.16s, border-color 0.16s, background 0.16s; }
+    .flag-toggle:hover { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d); }
+    .flag-toggle.is-flagship { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d);
+      background: color-mix(in srgb, var(--sc-warning, #ffc14d) 16%, transparent); }
     .cls { font-size: 0.7rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: 0.64rem; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
@@ -343,6 +360,17 @@ export class HangarDashboardComponent implements OnInit {
 
   filledCount(items: { className: string | null }[]): number {
     return items.filter((i) => i.className).length;
+  }
+
+  isFlagship(s: HangarShip): boolean {
+    return this.hangar.isFlagship(s.shipClassName);
+  }
+
+  /** Toggle the flagship from a fleet card (swallow the anchor navigation). */
+  toggleFlagship(ev: Event, s: HangarShip): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.hangar.toggleFlagship(s.shipClassName);
   }
 
   private async runSearch(term: string): Promise<void> {
