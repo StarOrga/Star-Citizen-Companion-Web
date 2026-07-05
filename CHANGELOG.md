@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.1] - 2026-07-05
+
+### Security
+
+- **npm audit cleared for the web app (25 → 0).** Angular 21.2.13 → 21.2.17 via
+  `ng update` (fixes the published Angular advisories: DoS via `formatDate`/`digitsInfo`,
+  `HttpTransferCache` information leak & weak cache-key hashing, hydration DOM
+  clobbering, template/attribute namespace sanitization bypass) plus patched
+  transitive tooling (undici, vite, ws, piscina, esbuild; `@babel/core` override).
+- **data-uploader dev tooling hardened (20 → 1).** vitest 2 → 4 (critical advisory),
+  electron-vite 2 → 5, vite 5 → 7, electron-builder 25 → 26; esbuild override.
+  Remaining: the Electron 33 → 43 major is deliberately deferred to a dedicated
+  desktop release pass (runtime of the shipped binary, needs embedded-Python
+  compat testing).
+- **GitHub security features enabled** (repo settings, no code): Dependabot alerts +
+  automated security updates, secret scanning + push protection, CodeQL default setup.
+
 ## [0.22.0] - 2026-07-05
 
 ### Added
