@@ -1,6 +1,6 @@
 {
   "name": "@sc-companion/data-uploader",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Star Citizen Companion - Data Uploader — P4K local extraction & upload tool.",
   "private": true,
   "main": "out/main/index.js",
@@ -28,7 +28,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^22.0.0",
     "@types/yauzl": "^2.10.3",
-    "electron": "^33.0.0",
+    "electron": "^43.0.0",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "png-to-ico": "^3.0.1",
