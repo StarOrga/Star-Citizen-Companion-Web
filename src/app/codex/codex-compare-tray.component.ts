@@ -15,7 +15,9 @@ import {
   buildCompareTable,
   cleanLocaleValue,
   collectCompareAttributes,
+  groupCompareRows,
   humanizeClassName,
+  rowHasDifferences,
 } from './codex-format';
 
 interface PinnedRef {
@@ -58,11 +60,23 @@ interface PinnedRef {
           <button type="button" class="clear" (click)="clear()">{{ 'codex.compare.clear' | translate }}</button>
         </div>
 
+        @if (rejectedKind(); as rk) {
+          <p class="reject" role="status">
+            {{ 'codex.compare.mixedKind' | translate: { kind: ('codex.kindSingular.' + rk) | translate } }}
+          </p>
+        }
+
         @if (open() && refs().length >= 2) {
           <div class="panel">
             @if (loading()) {
               <p class="muted">{{ 'codex.results.loading' | translate }}</p>
             } @else {
+              <div class="panel-tools">
+                <button type="button" class="diff-toggle" [class.on]="diffOnly()" (click)="toggleDiffOnly()"
+                        [attr.aria-pressed]="diffOnly()">
+                  {{ (diffOnly() ? 'codex.compare.showAll' : 'codex.compare.diffOnly') | translate }}
+                </button>
+              </div>
               <table class="cmp">
                 <thead>
                   <tr>
@@ -76,19 +90,31 @@ interface PinnedRef {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of tableRows(); track row.id) {
-                    <tr>
-                      <td class="rowhead">{{ row.labelKey ? (row.labelKey | translate) : row.label }}</td>
-                      @for (v of row.values; track $index) {
-                        <td [class.na]="v === null"
-                            [class.best]="row.highlight[$index] === 'best'"
-                            [class.worst]="row.highlight[$index] === 'worst'">{{ v === null ? '—' : v }}</td>
-                      }
+                  @for (g of groupedRows(); track g.group) {
+                    <tr class="grp">
+                      <td [attr.colspan]="columns().length + 1">{{ ('codex.statGroup.' + g.group) | translate }}</td>
                     </tr>
+                    @for (row of g.rows; track row.id) {
+                      <tr>
+                        <td class="rowhead">{{ row.labelKey ? (row.labelKey | translate) : row.label }}</td>
+                        @for (v of row.values; track $index) {
+                          <td [class.na]="v === null"
+                              [class.best]="row.highlight[$index] === 'best'"
+                              [class.worst]="row.highlight[$index] === 'worst'">
+                            <span class="cell-val">{{ v === null ? '—' : v }}</span>
+                            @if (row.barPct[$index] !== null) {
+                              <span class="delta-bar" aria-hidden="true"><span class="delta-fill" [style.width.%]="row.barPct[$index]"></span></span>
+                            }
+                          </td>
+                        }
+                      </tr>
+                    }
                   }
                 </tbody>
               </table>
               @if (tableRows().length === 0) {
+                <p class="muted">{{ 'codex.compare.noCommon' | translate }}</p>
+              } @else if (diffOnly() && groupedRows().length === 0) {
                 <p class="muted">{{ 'codex.compare.noCommon' | translate }}</p>
               }
             }
@@ -141,6 +167,19 @@ interface PinnedRef {
     .cmp td.na { color: var(--sc-fg-2); }
     .cmp td.best { color: #8fe5b5; font-weight: 500; background: color-mix(in srgb, #5fd698 13%, transparent); }
     .cmp td.worst { color: var(--sc-fg-2); }
+    .cmp tr.grp td { padding-top: 12px; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--sc-accent); border-bottom: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
+    .cell-val { display: block; }
+    .delta-bar { display: block; margin-top: 3px; height: 3px; border-radius: 999px; background: var(--sc-bg-1);
+      overflow: hidden; min-width: 56px; }
+    .delta-fill { display: block; height: 100%; border-radius: 999px;
+      background: color-mix(in srgb, var(--sc-accent) 65%, transparent); }
+    td.best .delta-fill { background: #5fd698; }
+    .panel-tools { display: flex; justify-content: flex-end; margin: 0 0 8px; }
+    .diff-toggle { padding: 4px 12px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border);
+      color: var(--sc-fg-2); font-family: inherit; font-size: 0.72rem; cursor: pointer; }
+    .diff-toggle:hover, .diff-toggle.on { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .reject { margin: 0; padding: 6px 14px 10px; font-size: 0.74rem; color: var(--sc-warning, #ffc14d); }
   `],
 })
 export class CodexCompareTrayComponent {
@@ -149,7 +188,11 @@ export class CodexCompareTrayComponent {
 
   readonly open = signal(false);
   readonly loading = signal(false);
+  readonly diffOnly = signal(false);
   private readonly details = signal<CodexDetail[]>([]);
+
+  /** Like-for-like guard feedback from the service (kind already in the tray). */
+  readonly rejectedKind = this.svc.compareRejectedKind;
 
   readonly refs = computed<PinnedRef[]>(() =>
     this.svc.compareKeys().map((key) => {
@@ -204,6 +247,12 @@ export class CodexCompareTrayComponent {
     return buildCompareTable(this.columns(), perEntity);
   });
 
+  /** Rows bucketed by purpose (same buckets as the detail view), diff-filtered. */
+  readonly groupedRows = computed(() => {
+    const rows = this.diffOnly() ? this.tableRows().filter(rowHasDifferences) : this.tableRows();
+    return groupCompareRows(rows);
+  });
+
   /** Entity name in the app language with EN fallback (UC-08). */
   private entityName(d: CodexDetail): string {
     const p = d.payload as { name?: { de: string; en: string; key: string } } | undefined;
@@ -218,6 +267,9 @@ export class CodexCompareTrayComponent {
 
   toggle(): void {
     this.open.update((v) => !v);
+  }
+  toggleDiffOnly(): void {
+    this.diffOnly.update((v) => !v);
   }
   remove(key: string): void {
     this.svc.unpin(key);

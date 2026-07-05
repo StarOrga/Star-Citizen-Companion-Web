@@ -207,7 +207,21 @@
       "keyStats": "Key stats",
       "showEmptyPorts": "Show {{count}} empty ports",
       "hideEmptyPorts": "Hide empty ports",
-      "equipment": "Equipment"
+      "equipment": "Equipment",
+      "fullSpec": "Full spec sheet",
+      "showFullSpec": "Show full spec sheet",
+      "hideFullSpec": "Hide full spec sheet",
+      "layoutHint": "Stock loadout as labelled slots — open a slot to inspect the installed item."
+    },
+    "statGroup": {
+      "identity": "Identity",
+      "offense": "Offense",
+      "defense": "Defense & Durability",
+      "mobility": "Mobility",
+      "powerThermal": "Power & Thermal",
+      "capacity": "Capacity & Range",
+      "handling": "Handling",
+      "general": "General"
     },
     "damage": {
       "physical": "Physical",
@@ -229,7 +243,10 @@
       "full": "You can compare up to {{max}} entries.",
       "property": "Property",
       "close": "Close",
-      "noCommon": "No comparable values for this mix of entries."
+      "noCommon": "No comparable values for this mix of entries.",
+      "diffOnly": "Differences only",
+      "showAll": "All rows",
+      "mixedKind": "Like-for-like only: the tray already holds {{kind}} entries. Clear it to compare something else."
     },
     "portCategory": {
       "weapons": "Weapons",

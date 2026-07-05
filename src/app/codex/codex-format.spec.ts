@@ -2,17 +2,22 @@ import {
   ammoDamage,
   buildCompareTable,
   categorizePort,
+  classifyStatPurpose,
   cleanLocaleValue,
   collectCompareAttributes,
   curateComponentStats,
+  flattenSpec,
   formatCraftTime,
   formatNumber,
   formatQuality,
+  groupCompareRows,
+  groupStatRows,
   humanizeClassName,
   humanizeKey,
   isMeaningfulValue,
   isNoiseKey,
   meaningfulRows,
+  rowHasDifferences,
   summarizePorts,
   unescapeText,
   unitForField,
@@ -305,6 +310,122 @@ describe('codex-format', () => {
     });
     it('defaults to other', () => {
       expect(categorizePort([], 'hardpoint_mystery')).toBe('other');
+    });
+  });
+
+  describe('classifyStatPurpose', () => {
+    it('classifies by label keywords in priority order', () => {
+      expect(classifyStatPurpose('Max Shield Health')).toBe('defense');
+      expect(classifyStatPurpose('Muzzle Velocity')).toBe('offense'); // muzzle wins over m/s
+      expect(classifyStatPurpose('Damage Energy')).toBe('offense'); // damage wins over powerThermal
+      expect(classifyStatPurpose('SCM Speed')).toBe('mobility');
+      expect(classifyStatPurpose('Power Draw')).toBe('powerThermal');
+      expect(classifyStatPurpose('Cargo Capacity')).toBe('capacity');
+      expect(classifyStatPurpose('Spread Min')).toBe('handling');
+    });
+    it('lets the rpm unit override keywords, falls back to unit then general', () => {
+      expect(classifyStatPurpose('Rounds Per Minute', 'rpm')).toBe('offense'); // rpm beats 'rounds'
+      expect(classifyStatPurpose('Max Rounds')).toBe('capacity'); // ammo count without rpm
+      expect(classifyStatPurpose('Grade')).toBe('general');
+    });
+  });
+
+  describe('groupStatRows', () => {
+    it('buckets rows by purpose in display order, omitting empty buckets', () => {
+      const groups = groupStatRows([
+        { key: 'Cargo Capacity', value: '96' },
+        { key: 'Max Shield Health', value: '2,244', unit: 'HP' },
+        { key: 'Damage Energy', value: '273' },
+      ]);
+      expect(groups.map((g) => g.purpose)).toEqual(['offense', 'defense', 'capacity']);
+      expect(groups[1].rows[0].key).toBe('Max Shield Health');
+    });
+    it('returns a single general bucket for unclassifiable rows', () => {
+      const groups = groupStatRows([{ key: 'Grade', value: 'A' }]);
+      expect(groups).toEqual([{ purpose: 'general', rows: [{ key: 'Grade', value: 'A' }] }]);
+    });
+  });
+
+  describe('buildCompareTable groups + delta bars', () => {
+    const cols = [
+      { key: 'a', name: 'A', kind: 'component', className: 'A' },
+      { key: 'b', name: 'B', kind: 'component', className: 'B' },
+    ];
+    it('carries the first-seen group onto the row', () => {
+      const rows = buildCompareTable(cols, [
+        [{ id: 'cs_Max Shield Health', label: 'Max Shield Health', value: '2,244 HP', group: 'defense' }],
+        [{ id: 'cs_Max Shield Health', label: 'Max Shield Health', value: '1,800 HP', group: 'defense' }],
+      ]);
+      expect(rows[0].group).toBe('defense');
+    });
+    it('emits barPct as % of the row max for ranked rows', () => {
+      const rows = buildCompareTable(cols, [
+        [{ id: 'x', label: 'X', value: '100' }],
+        [{ id: 'x', label: 'X', value: '50' }],
+      ]);
+      expect(rows[0].barPct).toEqual([100, 50]);
+      expect(rows[0].highlight).toEqual(['best', 'worst']);
+    });
+    it('leaves unrankable rows without bars', () => {
+      const rows = buildCompareTable(cols, [
+        [{ id: 'g', label: 'Grade', value: 'A' }],
+        [{ id: 'g', label: 'Grade', value: 'B' }],
+      ]);
+      expect(rows[0].barPct).toEqual([null, null]);
+    });
+  });
+
+  describe('groupCompareRows', () => {
+    const row = (id: string, group: string | undefined, values: (string | null)[]) => ({
+      id, label: id, group, values,
+      highlight: values.map(() => null),
+      barPct: values.map(() => null),
+    });
+    it('orders identity first, then purpose buckets; unknown → general', () => {
+      const grouped = groupCompareRows([
+        row('dmg', 'offense', ['1', '2']),
+        row('mfr', 'identity', ['AEGS', 'BEHR']),
+        row('misc', undefined, ['x', 'y']),
+      ]);
+      expect(grouped.map((g) => g.group)).toEqual(['identity', 'offense', 'general']);
+    });
+  });
+
+  describe('rowHasDifferences', () => {
+    const mk = (values: (string | null)[]) => ({
+      id: 'x', label: 'X', values,
+      highlight: values.map(() => null), barPct: values.map(() => null),
+    });
+    it('detects differing and missing values', () => {
+      expect(rowHasDifferences(mk(['1', '2']))).toBe(true);
+      expect(rowHasDifferences(mk(['1', null]))).toBe(true);
+      expect(rowHasDifferences(mk(['1', '1']))).toBe(false);
+    });
+  });
+
+  describe('flattenSpec', () => {
+    it('sections top-level scalars and nested structs, skipping rendered keys', () => {
+      const sections = flattenSpec({
+        className: 'AEGS_Gladius', // skipped (rendered elsewhere)
+        name: { de: 'x', en: 'x', key: 'k' }, // skipped
+        role: 'Fighter',
+        crew: { size: 1 },
+        stats: { SCItemShieldGeneratorParams: { MaxShieldHealth: 2244 } },
+      });
+      const titles = sections.map((s) => s.title);
+      expect(titles[0]).toBe(''); // top-level scalars first
+      expect(sections[0].rows).toContain(jasmine.objectContaining({ key: 'Role', value: 'Fighter' }));
+      expect(titles).toContain('Crew');
+      expect(titles).toContain('Stats');
+      const stats = sections.find((s) => s.title === 'Stats')!;
+      expect(stats.rows).toContain(
+        jasmine.objectContaining({ key: 'Max Shield Health', value: '2,244', unit: 'HP' }),
+      );
+    });
+    it('returns empty for non-object payloads', () => {
+      expect(flattenSpec(null)).toEqual([]);
+      expect(flattenSpec('x')).toEqual([]);
+      expect(flattenSpec([1, 2])).toEqual([]);
     });
   });
 });
