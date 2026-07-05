@@ -4,6 +4,39 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0] - 2026-07-05
+
+### Added
+
+- **Object view: decision stats grouped by purpose (P1 Slice 3).** Component and weapon
+  detail pages no longer render a flat stat dump — rows are bucketed into Offense /
+  Defense & Durability / Mobility / Power & Thermal / Capacity & Range / Handling /
+  General (keyword + unit heuristics, DE/EN section labels).
+- **Read-only hardpoint layout (loadout ladder Rung 1).** Ship detail renders the stock
+  loadout as labelled slot clusters docked around the ship silhouette (no positional
+  port data exists — an honest schematic). Every filled slot deep-links to the
+  installed item; reduced-motion-safe scanline, mobile collapses to one column.
+- **Full spec sheet (Manifest).** A collapsed, readable full-spec table (every
+  meaningful payload value, sectioned by struct, with provenance line) next to the raw
+  JSON toggle.
+- **Compare surface deepened.** Rows grouped by the same purpose buckets (identity
+  first), per-cell delta bars, a "differences only" toggle, like-for-like enforcement
+  (mixed-kind pins are refused with an explanatory hint) and FIFO bumping when a 5th
+  entry is pinned.
+- **Swap-preview dock (loadout ladder Rung 2 — The Bay begins).** Every filled loadout
+  slot gets a ⇄ affordance: lists what else fits (compatibility RPC on the installed
+  item's attach type + size) and previews the stat delta a swap would cause — nothing
+  is persisted.
+- **Bay-scene ship hero.** The ship identity render sits in a dim hangar frame with rim
+  glow and a gentle drift (≤3 px, `prefers-reduced-motion` safe).
+
+### Changed
+
+- **Flagship persistence promoted localStorage → DB.** New `profiles.flagship_ship_class`
+  column (additive migration); the profile is now the source of truth (cross-device),
+  localStorage remains the offline cache. A pre-column local pin is promoted to the DB
+  exactly once per device. Cloud `db:push` required before the next deploy.
+
 ## [0.21.0] - 2026-07-05
 
 ### Changed
