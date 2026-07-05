@@ -175,6 +175,12 @@ export class CodexService {
   readonly compareCount = computed(() => this._compare().length);
   static readonly COMPARE_MAX = 4;
 
+  // Like-for-like guard feedback: set when a pin was refused because the tray
+  // already holds a different kind (ship vs quantum-drive columns would be
+  // meaningless). Cleared on the next successful pin / clear. Transient UI hint.
+  private readonly _compareRejected = signal<CodexKind | null>(null);
+  readonly compareRejectedKind = this._compareRejected.asReadonly();
+
   private buildPromise: Promise<CodexBuild | null> | null = null;
 
   /** Loads (and caches) the current LIVE build. Idempotent across callers. */
@@ -516,9 +522,19 @@ export class CodexService {
     const cur = this._compare();
     if (cur.includes(key)) {
       this._compare.set(cur.filter((k) => k !== key));
-    } else if (cur.length < CodexService.COMPARE_MAX) {
-      this._compare.set([...cur, key]);
+      return;
     }
+    // Like-for-like only: mixed kinds produce meaningless columns — refuse
+    // and surface the tray's current kind so the UI can explain.
+    const trayKind = cur.length > 0 ? (cur[0].slice(0, cur[0].indexOf(':')) as CodexKind) : null;
+    if (trayKind && trayKind !== kind) {
+      this._compareRejected.set(trayKind);
+      return;
+    }
+    this._compareRejected.set(null);
+    // Adding a 5th bumps the oldest pin (FIFO) instead of silently refusing.
+    const next = cur.length >= CodexService.COMPARE_MAX ? cur.slice(1) : cur;
+    this._compare.set([...next, key]);
   }
 
   unpin(key: string): void {
@@ -527,6 +543,7 @@ export class CodexService {
 
   clearCompare(): void {
     this._compare.set([]);
+    this._compareRejected.set(null);
   }
 
   // ── Blueprint-specific queries ─────────────────────────────────────────────

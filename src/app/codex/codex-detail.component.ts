@@ -34,12 +34,16 @@ import {
   DamageRow,
   HARDPOINT_CATEGORY_ORDER,
   HardpointCategory,
+  SpecSection,
+  StatGroup,
   StatRow,
   PortSummaryEntry,
   ammoDamage,
   categorizePort,
   cleanLocaleValue,
   curateComponentStats,
+  flattenSpec,
+  groupStatRows,
   humanizeClassName,
   formatCraftTime,
   formatNumber,
@@ -49,6 +53,8 @@ import {
   unescapeText,
 } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
+import { CodexHardpointLayoutComponent, LayoutGroup, LayoutSlot } from './codex-hardpoint-layout.component';
+import { CodexSwapDockComponent } from './codex-swap-dock.component';
 import { ShipSkinViewerComponent } from './ship-skin-viewer.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -90,7 +96,7 @@ interface LoadoutGroup {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
+  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexSwapDockComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -103,8 +109,8 @@ interface LoadoutGroup {
       } @else if (!detail()) {
         <div class="sc-card empty">{{ 'codex.detail.notFound' | translate }}</div>
       } @else {
-        <!-- ── Hero ──────────────────────────────────────────────── -->
-        <header class="hero sc-card">
+        <!-- ── Hero (ships get the dim Bay scene — P2 frame, same content) ── -->
+        <header class="hero sc-card" [class.bay]="kind() === 'ship'">
           <figure class="hero-art" [class.icon-only]="!previewUrl()">
             @if (previewUrl(); as src) {
               <img [src]="src" [alt]="displayName()" loading="eager" (error)="onArtError()" />
@@ -188,27 +194,37 @@ interface LoadoutGroup {
           </section>
         }
 
-        <!-- ── Component key stats ───────────────────────────────── -->
-        @if (componentStats().length > 0) {
+        <!-- ── Component key stats, grouped by purpose ───────────── -->
+        @if (componentStatGroups().length > 0) {
           <section class="sc-card block">
             <h2>{{ 'codex.detail.keyStats' | translate }}</h2>
-            <div class="stat-grid">
-              @for (s of componentStats(); track s.key) {
-                <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+            @for (g of componentStatGroups(); track g.purpose) {
+              @if (showStatGroupHeaders(componentStatGroups())) {
+                <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
               }
-            </div>
+              <div class="stat-grid">
+                @for (s of g.rows; track s.key) {
+                  <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+                }
+              </div>
+            }
           </section>
         }
 
-        <!-- ── Weapon parameters (filtered) ──────────────────────── -->
-        @if (weaponParams().length > 0) {
+        <!-- ── Weapon parameters, grouped by purpose ─────────────── -->
+        @if (weaponParamGroups().length > 0) {
           <section class="sc-card block">
             <h2>{{ 'codex.detail.weaponParams' | translate }}</h2>
-            <div class="stat-grid">
-              @for (s of weaponParams(); track s.key) {
-                <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+            @for (g of weaponParamGroups(); track g.purpose) {
+              @if (showStatGroupHeaders(weaponParamGroups())) {
+                <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
               }
-            </div>
+              <div class="stat-grid">
+                @for (s of g.rows; track s.key) {
+                  <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+                }
+              </div>
+            }
           </section>
         }
 
@@ -271,7 +287,7 @@ interface LoadoutGroup {
           </section>
         }
 
-        <!-- ── Default loadout, grouped ──────────────────────────── -->
+        <!-- ── Default loadout as read-only hardpoint layout (Rung 1) ─ -->
         @if (loadoutGroups().length > 0) {
           <section class="sc-card block">
             <h2>
@@ -283,33 +299,14 @@ interface LoadoutGroup {
                 </button>
               }
             </h2>
-            @for (g of loadoutGroups(); track g.category) {
-              <div class="hp-group">
-                <h3 class="hp-cat">{{ ('codex.portCategory.' + g.category) | translate }}<span class="hp-ct">{{ g.items.length }}</span></h3>
-                <ul class="ld-list">
-                  @for (l of g.items; track l.port) {
-                    <li class="ld" [class.empty]="!l.className">
-                      <span class="ld-port">{{ humanizePort(l.port) }}</span>
-                      @if (l.className) {
-                        <span class="ld-item">
-                          @if (l.kind) {
-                            <a class="ld-link" [routerLink]="['/codex', l.kind, l.className]">{{ l.name }}</a>
-                          } @else {
-                            <span class="ld-name">{{ l.name }}</span>
-                          }
-                          <span class="ld-chips">
-                            @if (l.size != null) { <span class="chip">S{{ l.size }}</span> }
-                            @if (l.grade) { <span class="chip">{{ l.grade }}</span> }
-                            @if (l.manufacturerCode) { <span class="chip">{{ l.manufacturerCode }}</span> }
-                          </span>
-                        </span>
-                      } @else {
-                        <span class="ld-empty">{{ 'codex.detail.loadoutEmpty' | translate }}</span>
-                      }
-                    </li>
-                  }
-                </ul>
-              </div>
+            <p class="hint">{{ 'codex.detail.layoutHint' | translate }}</p>
+            <sc-codex-hardpoint-layout
+              [groups]="layoutGroups()"
+              [artUrl]="previewUrl()"
+              [alt]="displayName()"
+              (swapRequested)="openSwapDock($event)" />
+            @if (swapSlot()) {
+              <sc-codex-swap-dock class="swap-host" [slot]="swapSlot()" (closed)="swapSlot.set(null)" />
             }
           </section>
         }
@@ -340,11 +337,38 @@ interface LoadoutGroup {
           <sc-ship-skin-viewer [shipId]="cls" />
         }
 
-        <!-- ── Raw payload (power users) ─────────────────────────── -->
+        <!-- ── Full spec sheet (Manifest, collapsed) + raw payload ── -->
         <section class="sc-card block raw-block">
-          <button type="button" class="raw-toggle" (click)="toggleRaw()">
-            {{ (showRaw() ? 'codex.detail.hideRaw' : 'codex.detail.showRaw') | translate }}
-          </button>
+          <div class="spec-toggles">
+            @if (specSections().length > 0) {
+              <button type="button" class="raw-toggle" (click)="toggleSpec()">
+                {{ (showSpec() ? 'codex.detail.hideFullSpec' : 'codex.detail.showFullSpec') | translate }}
+              </button>
+            }
+            <button type="button" class="raw-toggle" (click)="toggleRaw()">
+              {{ (showRaw() ? 'codex.detail.hideRaw' : 'codex.detail.showRaw') | translate }}
+            </button>
+          </div>
+          @if (showSpec()) {
+            <div class="spec">
+              @for (sec of specSections(); track sec.title) {
+                @if (sec.title) { <h3 class="sg-head">{{ sec.title }}</h3> }
+                <table class="spec-table">
+                  <tbody>
+                    @for (r of sec.rows; track r.key) {
+                      <tr>
+                        <td class="sp-key">{{ r.key }}</td>
+                        <td class="sp-val">{{ r.value }}@if (r.unit) {<span class="s-unit"> {{ r.unit }}</span>}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+              @if (provenance(); as p) {
+                <p class="spec-prov">{{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}</p>
+              }
+            </div>
+          }
           @if (showRaw()) { <pre class="raw">{{ rawJson() }}</pre> }
         </section>
       }
@@ -364,6 +388,19 @@ interface LoadoutGroup {
       background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--sc-accent) 12%, var(--sc-bg-1)), var(--sc-bg-0)); }
     .hero-art.icon-only { background: radial-gradient(circle at 50% 40%, var(--sc-bg-2), var(--sc-bg-0)); }
     .hero-art img { max-width: 100%; max-height: 320px; object-fit: contain; filter: drop-shadow(0 6px 24px rgba(0,0,0,0.55)); }
+    /* Bay scene (ships): dim hangar light + rim glow around the hull. The
+       frame gets atmospheric — every number stays on the calm right side. */
+    .hero.bay .hero-art {
+      background:
+        radial-gradient(ellipse at 50% 62%, color-mix(in srgb, var(--sc-accent) 17%, #05080d), #04060a 78%);
+      border-right: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent); }
+    .hero.bay .hero-art img {
+      filter: drop-shadow(0 12px 34px rgba(0,0,0,0.72))
+              drop-shadow(0 0 22px color-mix(in srgb, var(--sc-accent) 28%, transparent)); }
+    @media (prefers-reduced-motion: no-preference) {
+      .hero.bay .hero-art img { animation: bay-drift 6s ease-in-out infinite alternate; }
+      @keyframes bay-drift { from { transform: translateY(-3px); } to { transform: translateY(3px); } }
+    }
     .hero-art .hero-icon { width: 100%; height: 100%; min-height: 200px; }
     .hero-body { padding: 22px 24px 22px 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     .kind-tag { align-self: flex-start; font-size: 0.64rem; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.1em;
@@ -403,8 +440,15 @@ interface LoadoutGroup {
     .block h2 .ct { font-size: 0.7rem; color: var(--sc-fg-2); }
     .desc { margin: 0; color: var(--sc-fg-1); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 
-    /* Stat grid (components / weapons) */
+    /* Stat grid (components / weapons), grouped by purpose */
+    .sg-head { margin: 14px 0 8px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--sc-fg-1); display: flex; align-items: center; gap: 8px; }
+    .sg-head::after { content: ''; flex: 1; height: 1px; background: var(--sc-border); }
+    .sg-head:first-of-type { margin-top: 0; }
+    .sg-head[data-purpose="offense"] { color: var(--sc-accent-hot, #ff7a45); }
+    .sg-head[data-purpose="defense"] { color: var(--sc-accent); }
     .stat-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    .stat-grid + .sg-head { margin-top: 14px; }
     .stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
     .s-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
     .s-value { font-size: 1.05rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
@@ -456,24 +500,23 @@ interface LoadoutGroup {
     .compat-link:hover { text-decoration: underline; }
     .compat-meta { display: inline-flex; gap: 4px; flex-shrink: 0; }
 
-    .ld { display: flex; justify-content: space-between; gap: 12px; padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-1); align-items: center; }
-    .ld.empty { background: transparent; border: 1px dashed var(--sc-border); }
-    .ld-port { color: var(--sc-fg-2); font-size: 0.76rem; overflow-wrap: anywhere; flex: 1 1 auto; }
-    .ld-item { display: inline-flex; align-items: center; gap: 8px; flex: 0 1 auto; justify-content: flex-end; flex-wrap: wrap; }
-    .ld-link { color: var(--sc-accent); text-decoration: none; font-size: 0.82rem; overflow-wrap: anywhere; text-align: right; }
-    .ld-link:hover { text-decoration: underline; }
-    .ld-name { color: var(--sc-fg-1); font-size: 0.82rem; overflow-wrap: anywhere; text-align: right; }
-    .ld-chips { display: inline-flex; gap: 4px; flex-shrink: 0; }
-    .ld-empty { color: var(--sc-fg-2); font-size: 0.76rem; font-style: italic; }
     .ghost-toggle { margin-left: auto; padding: 3px 10px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border);
       color: var(--sc-fg-2); font-family: inherit; font-size: 0.68rem; text-transform: none; letter-spacing: 0; cursor: pointer; }
     .ghost-toggle:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
     .raw-block { padding-top: 14px; }
+    .spec-toggles { display: flex; gap: 8px; flex-wrap: wrap; }
     .raw-toggle { padding: 7px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: inherit; font-size: 0.76rem; cursor: pointer; }
     .raw-toggle:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .spec { margin-top: 12px; }
+    .spec-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 4px; }
+    .spec-table td { padding: 5px 10px; border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
+    .sp-key { color: var(--sc-fg-2); width: 45%; overflow-wrap: anywhere; }
+    .sp-val { color: var(--sc-fg-0); font-family: var(--sc-font-display); overflow-wrap: anywhere; }
+    .spec-prov { margin: 10px 0 0; font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
     .raw { margin: 12px 0 0; padding: 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-size: 0.74rem; overflow: auto; max-height: 460px; }
 
+    .swap-host { display: block; margin-top: 12px; }
     .skel-card { height: 260px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
     @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     .err { color: var(--sc-danger); padding: 16px; }
@@ -551,6 +594,7 @@ export class CodexDetailComponent implements OnInit {
     this.showEmptyLoadout.set(false);
     this.usedInBlueprints.set([]);
     this.artBroken.set(false);
+    this.swapSlot.set(null);
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
@@ -772,6 +816,47 @@ export class CodexDetailComponent implements OnInit {
     if (!d || d.kind !== 'weapon') return [];
     return meaningfulRows((d.payload as WeaponPayload | undefined)?.weaponParams);
   });
+
+  // Decision stats grouped by what the thing is FOR (Slice 3) — not a flat dump.
+  readonly componentStatGroups = computed<StatGroup[]>(() => groupStatRows(this.componentStats()));
+  readonly weaponParamGroups = computed<StatGroup[]>(() => groupStatRows(this.weaponParams()));
+
+  /** Group headers only help once the stats span ≥2 buckets. */
+  showStatGroupHeaders(groups: StatGroup[]): boolean {
+    return groups.length > 1 || (groups.length === 1 && groups[0].purpose !== 'general');
+  }
+
+  // Full spec sheet (Manifest graft): every meaningful payload value, readable.
+  readonly showSpec = signal(false);
+  readonly specSections = computed<SpecSection[]>(() => {
+    const d = this.detail();
+    return d ? flattenSpec(d.payload) : [];
+  });
+  toggleSpec(): void {
+    this.showSpec.update((v) => !v);
+  }
+
+  // Swap-preview dock (Rung 2): the filled slot currently being explored.
+  readonly swapSlot = signal<LayoutSlot | null>(null);
+  openSwapDock(slot: LayoutSlot): void {
+    this.swapSlot.set(this.swapSlot()?.port === slot.port ? null : slot);
+  }
+
+  /** Loadout groups mapped to the hardpoint-layout input shape (Rung 1). */
+  readonly layoutGroups = computed<LayoutGroup[]>(() =>
+    this.loadoutGroups().map((g) => ({
+      category: g.category,
+      slots: g.items.map((l) => ({
+        port: this.humanizePort(l.port),
+        className: l.className,
+        kind: l.kind,
+        name: l.name,
+        size: l.size,
+        grade: l.grade,
+        manufacturerCode: l.manufacturerCode,
+      })),
+    })),
+  );
 
   readonly damage = computed<DamageRow[]>(() => {
     const d = this.detail();

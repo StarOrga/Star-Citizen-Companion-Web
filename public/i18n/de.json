@@ -207,7 +207,32 @@
       "keyStats": "Kernwerte",
       "showEmptyPorts": "{{count}} leere Ports anzeigen",
       "hideEmptyPorts": "Leere Ports ausblenden",
-      "equipment": "Ausrüstung"
+      "equipment": "Ausrüstung",
+      "fullSpec": "Volles Datenblatt",
+      "showFullSpec": "Volles Datenblatt anzeigen",
+      "hideFullSpec": "Volles Datenblatt ausblenden",
+      "layoutHint": "Stock-Loadout als beschriftete Slots — Slot öffnen zeigt das verbaute Item."
+    },
+    "swap": {
+      "title": "Was passt hier?",
+      "installed": "Verbaut",
+      "previewHint": "Nur Vorschau — nichts wird gespeichert.",
+      "loading": "Kompatible Items werden gesucht…",
+      "none": "Keine kompatiblen Alternativen in diesem Build.",
+      "delta": "Änderung ggü. verbaut",
+      "noDelta": "Keine vergleichbaren Wert-Änderungen.",
+      "openDetail": "Detail öffnen",
+      "close": "Schließen"
+    },
+    "statGroup": {
+      "identity": "Identität",
+      "offense": "Offensive",
+      "defense": "Verteidigung & Haltbarkeit",
+      "mobility": "Mobilität",
+      "powerThermal": "Energie & Wärme",
+      "capacity": "Kapazität & Reichweite",
+      "handling": "Handhabung",
+      "general": "Allgemein"
     },
     "damage": {
       "physical": "Physisch",
@@ -229,7 +254,10 @@
       "full": "Du kannst bis zu {{max}} Einträge vergleichen.",
       "property": "Eigenschaft",
       "close": "Schließen",
-      "noCommon": "Keine vergleichbaren Werte für diese Auswahl."
+      "noCommon": "Keine vergleichbaren Werte für diese Auswahl.",
+      "diffOnly": "Nur Unterschiede",
+      "showAll": "Alle Zeilen",
+      "mixedKind": "Nur Gleiches mit Gleichem: im Tray liegen bereits {{kind}}-Einträge. Leeren, um etwas anderes zu vergleichen."
     },
     "portCategory": {
       "weapons": "Waffen",

@@ -34,12 +34,10 @@ export class HangarService {
   readonly error = signal<string | null>(null);
 
   // Flagship = the user's single pinned "standard ship" (a ship class name),
-  // driving the Codex Bridge hero. Persisted per-user in localStorage.
-  //
-  // TODO(flagship-persistence): promote this to a server-side column (e.g. a
-  // jsonb `preferences` on `profiles`, or a `hangar_ships.is_flagship` flag)
-  // once a schema migration is scheduled — that also unlocks cross-device sync.
-  // Until then localStorage keeps Slice 2 frontend-only (no DB migration).
+  // driving the Codex Bridge hero. Source of truth is
+  // profiles.flagship_ship_class (migration 20260705140500 — cross-device);
+  // localStorage stays as the offline cache and as the one-time migration
+  // source for pins made before the column existed.
   readonly flagshipClassName = signal<string | null>(null);
 
   constructor() {
@@ -82,9 +80,9 @@ export class HangarService {
       this.roleLoadouts.set(
         ((loadoutsRes.data ?? []) as HangarRoleLoadoutRow[]).map(mapHangarRoleLoadout),
       );
-      // Re-hydrate the flagship now the user id is guaranteed available (the
-      // constructor may have run before auth resolved). localStorage-keyed.
-      this.flagshipClassName.set(this.readFlagship());
+      // Sync the flagship now the user id is guaranteed available (the
+      // constructor may have run before auth resolved). DB-first, see below.
+      await this.syncFlagship();
     } catch (err) {
       this.error.set((err as Error).message ?? 'Unknown error');
     } finally {
@@ -225,12 +223,14 @@ export class HangarService {
   /**
    * Designate exactly ONE ship class as the flagship (or clear with null).
    * Pinning a new flagship un-pins the previous — the signal holds a single
-   * value, so writing it is inherently exclusive. Persisted per-user in
-   * localStorage; survives reload (see the flagshipClassName field's TODO).
+   * value, so writing it is inherently exclusive. Written through to
+   * profiles.flagship_ship_class (cross-device) and mirrored to localStorage
+   * (offline cache); the signal drives the UI synchronously either way.
    */
   setFlagship(shipClassName: string | null): void {
     this.flagshipClassName.set(shipClassName);
     this.writeFlagship(shipClassName);
+    void this.persistFlagshipRemote(shipClassName);
   }
 
   /** Toggle: pin if not the flagship, clear if it already is (single flagship). */
@@ -238,9 +238,92 @@ export class HangarService {
     this.setFlagship(this.isFlagship(shipClassName) ? null : shipClassName);
   }
 
+  /**
+   * Hydrate the flagship: the profile column is the source of truth. A
+   * device-local pin from before the column existed is promoted to the DB
+   * exactly once (per-device marker) — afterwards a remote NULL means
+   * "cleared" and wins over any stale local cache.
+   */
+  private async syncFlagship(): Promise<void> {
+    const userId = this.userId;
+    if (!userId) {
+      this.flagshipClassName.set(this.readFlagship());
+      return;
+    }
+    try {
+      // profiles.flagship_ship_class postdates the generated database.types —
+      // untyped access, same pattern as the blueprint queries in CodexService.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = this.sb.client as any;
+      const { data, error } = await sb
+        .from('profiles')
+        .select('flagship_ship_class')
+        .eq('id', userId)
+        .maybeSingle();
+      if (error) throw error;
+      const remote = (data?.['flagship_ship_class'] as string | null) ?? null;
+      const local = this.readFlagship();
+      if (!remote && local && !this.flagshipMigrated()) {
+        // One-time promotion of the pre-column local pin.
+        this.flagshipClassName.set(local);
+        void this.persistFlagshipRemote(local);
+      } else {
+        this.flagshipClassName.set(remote);
+        this.writeFlagship(remote);
+      }
+      this.markFlagshipMigrated();
+    } catch {
+      // Offline / stubbed client — the local cache still drives this session.
+      this.flagshipClassName.set(this.readFlagship());
+    }
+  }
+
+  /** Write-through to profiles.flagship_ship_class. Failures degrade to local-only. */
+  private async persistFlagshipRemote(shipClassName: string | null): Promise<void> {
+    const userId = this.userId;
+    if (!userId) return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = this.sb.client as any;
+      const { error } = await sb
+        .from('profiles')
+        .update({ flagship_ship_class: shipClassName })
+        .eq('id', userId);
+      if (error) this.error.set(error.message);
+    } catch {
+      // Offline / stubbed client — localStorage keeps the pin; the next
+      // syncFlagship() with a live client reconciles.
+    }
+  }
+
   private flagshipKey(): string | null {
     const uid = this.userId;
     return uid ? `sc.hangar.flagship.${uid}` : null;
+  }
+
+  private migratedKey(): string | null {
+    const uid = this.userId;
+    return uid ? `sc.hangar.flagship.migrated.${uid}` : null;
+  }
+
+  private flagshipMigrated(): boolean {
+    const key = this.migratedKey();
+    if (!key || typeof localStorage === 'undefined') return false;
+    try {
+      return localStorage.getItem(key) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  private markFlagshipMigrated(): void {
+    const key = this.migratedKey();
+    if (!key || typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(key, '1');
+    } catch {
+      // best-effort marker — a re-promotion attempt is harmless (idempotent write)
+    }
   }
 
   private readFlagship(): string | null {
