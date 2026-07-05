@@ -5,6 +5,7 @@ import {
   classifyStatPurpose,
   cleanLocaleValue,
   collectCompareAttributes,
+  computeStatDeltas,
   curateComponentStats,
   flattenSpec,
   formatCraftTime,
@@ -400,6 +401,45 @@ describe('codex-format', () => {
       expect(rowHasDifferences(mk(['1', '2']))).toBe(true);
       expect(rowHasDifferences(mk(['1', null]))).toBe(true);
       expect(rowHasDifferences(mk(['1', '1']))).toBe(false);
+    });
+  });
+
+  describe('computeStatDeltas', () => {
+    it('joins by label, computes % change, sorts by impact', () => {
+      const deltas = computeStatDeltas(
+        [
+          { key: 'Max Shield Health', value: '2,000', unit: 'HP' },
+          { key: 'Max Shield Regen', value: '400', unit: 'HP/s' },
+          { key: 'Grade', value: 'B' },
+        ],
+        [
+          { key: 'Max Shield Health', value: '2,400', unit: 'HP' },
+          { key: 'Max Shield Regen', value: '380', unit: 'HP/s' },
+          { key: 'Grade', value: 'A' },
+        ],
+      );
+      expect(deltas[0]).toEqual(
+        jasmine.objectContaining({ key: 'Max Shield Health', pct: 20 }),
+      );
+      expect(deltas[1]).toEqual(
+        jasmine.objectContaining({ key: 'Max Shield Regen', pct: -5 }),
+      );
+      // Non-numeric change is kept (pct null) but sorted last.
+      expect(deltas[2]).toEqual(
+        jasmine.objectContaining({ key: 'Grade', from: 'B', to: 'A', pct: null }),
+      );
+    });
+    it('skips identical values and stats only one side has', () => {
+      const deltas = computeStatDeltas(
+        [{ key: 'Health', value: '170' }, { key: 'Only Installed', value: '5' }],
+        [{ key: 'Health', value: '170' }, { key: 'Only Candidate', value: '9' }],
+      );
+      expect(deltas).toEqual([]);
+    });
+    it('caps the list at the limit', () => {
+      const installed = Array.from({ length: 10 }, (_, i) => ({ key: `S${i}`, value: '10' }));
+      const candidate = Array.from({ length: 10 }, (_, i) => ({ key: `S${i}`, value: String(20 + i) }));
+      expect(computeStatDeltas(installed, candidate, 4).length).toBe(4);
     });
   });
 

@@ -213,6 +213,17 @@
       "hideFullSpec": "Volles Datenblatt ausblenden",
       "layoutHint": "Stock-Loadout als beschriftete Slots — Slot öffnen zeigt das verbaute Item."
     },
+    "swap": {
+      "title": "Was passt hier?",
+      "installed": "Verbaut",
+      "previewHint": "Nur Vorschau — nichts wird gespeichert.",
+      "loading": "Kompatible Items werden gesucht…",
+      "none": "Keine kompatiblen Alternativen in diesem Build.",
+      "delta": "Änderung ggü. verbaut",
+      "noDelta": "Keine vergleichbaren Wert-Änderungen.",
+      "openDetail": "Detail öffnen",
+      "close": "Schließen"
+    },
     "statGroup": {
       "identity": "Identität",
       "offense": "Offensive",

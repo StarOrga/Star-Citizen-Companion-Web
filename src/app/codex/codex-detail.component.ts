@@ -53,7 +53,8 @@ import {
   unescapeText,
 } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
-import { CodexHardpointLayoutComponent, LayoutGroup } from './codex-hardpoint-layout.component';
+import { CodexHardpointLayoutComponent, LayoutGroup, LayoutSlot } from './codex-hardpoint-layout.component';
+import { CodexSwapDockComponent } from './codex-swap-dock.component';
 import { ShipSkinViewerComponent } from './ship-skin-viewer.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -95,7 +96,7 @@ interface LoadoutGroup {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
+  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexSwapDockComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -108,8 +109,8 @@ interface LoadoutGroup {
       } @else if (!detail()) {
         <div class="sc-card empty">{{ 'codex.detail.notFound' | translate }}</div>
       } @else {
-        <!-- ── Hero ──────────────────────────────────────────────── -->
-        <header class="hero sc-card">
+        <!-- ── Hero (ships get the dim Bay scene — P2 frame, same content) ── -->
+        <header class="hero sc-card" [class.bay]="kind() === 'ship'">
           <figure class="hero-art" [class.icon-only]="!previewUrl()">
             @if (previewUrl(); as src) {
               <img [src]="src" [alt]="displayName()" loading="eager" (error)="onArtError()" />
@@ -302,7 +303,11 @@ interface LoadoutGroup {
             <sc-codex-hardpoint-layout
               [groups]="layoutGroups()"
               [artUrl]="previewUrl()"
-              [alt]="displayName()" />
+              [alt]="displayName()"
+              (swapRequested)="openSwapDock($event)" />
+            @if (swapSlot()) {
+              <sc-codex-swap-dock class="swap-host" [slot]="swapSlot()" (closed)="swapSlot.set(null)" />
+            }
           </section>
         }
 
@@ -383,6 +388,19 @@ interface LoadoutGroup {
       background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--sc-accent) 12%, var(--sc-bg-1)), var(--sc-bg-0)); }
     .hero-art.icon-only { background: radial-gradient(circle at 50% 40%, var(--sc-bg-2), var(--sc-bg-0)); }
     .hero-art img { max-width: 100%; max-height: 320px; object-fit: contain; filter: drop-shadow(0 6px 24px rgba(0,0,0,0.55)); }
+    /* Bay scene (ships): dim hangar light + rim glow around the hull. The
+       frame gets atmospheric — every number stays on the calm right side. */
+    .hero.bay .hero-art {
+      background:
+        radial-gradient(ellipse at 50% 62%, color-mix(in srgb, var(--sc-accent) 17%, #05080d), #04060a 78%);
+      border-right: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent); }
+    .hero.bay .hero-art img {
+      filter: drop-shadow(0 12px 34px rgba(0,0,0,0.72))
+              drop-shadow(0 0 22px color-mix(in srgb, var(--sc-accent) 28%, transparent)); }
+    @media (prefers-reduced-motion: no-preference) {
+      .hero.bay .hero-art img { animation: bay-drift 6s ease-in-out infinite alternate; }
+      @keyframes bay-drift { from { transform: translateY(-3px); } to { transform: translateY(3px); } }
+    }
     .hero-art .hero-icon { width: 100%; height: 100%; min-height: 200px; }
     .hero-body { padding: 22px 24px 22px 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     .kind-tag { align-self: flex-start; font-size: 0.64rem; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.1em;
@@ -498,6 +516,7 @@ interface LoadoutGroup {
     .spec-prov { margin: 10px 0 0; font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
     .raw { margin: 12px 0 0; padding: 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-size: 0.74rem; overflow: auto; max-height: 460px; }
 
+    .swap-host { display: block; margin-top: 12px; }
     .skel-card { height: 260px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
     @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     .err { color: var(--sc-danger); padding: 16px; }
@@ -575,6 +594,7 @@ export class CodexDetailComponent implements OnInit {
     this.showEmptyLoadout.set(false);
     this.usedInBlueprints.set([]);
     this.artBroken.set(false);
+    this.swapSlot.set(null);
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
@@ -814,6 +834,12 @@ export class CodexDetailComponent implements OnInit {
   });
   toggleSpec(): void {
     this.showSpec.update((v) => !v);
+  }
+
+  // Swap-preview dock (Rung 2): the filled slot currently being explored.
+  readonly swapSlot = signal<LayoutSlot | null>(null);
+  openSwapDock(slot: LayoutSlot): void {
+    this.swapSlot.set(this.swapSlot()?.port === slot.port ? null : slot);
   }
 
   /** Loadout groups mapped to the hardpoint-layout input shape (Rung 1). */

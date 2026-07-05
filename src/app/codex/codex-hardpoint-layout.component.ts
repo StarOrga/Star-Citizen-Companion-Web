@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexKind } from './codex.service';
@@ -81,15 +81,20 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
           @for (s of g.slots; track s.port + $index) {
             <li class="slot" [class.empty]="!s.className">
               @if (s.className && s.kind) {
-                <a class="slot-btn" [routerLink]="['/codex', s.kind, s.className]">
-                  <span class="slot-port">{{ s.port }}</span>
-                  <span class="slot-item">{{ s.name }}</span>
-                  <span class="slot-chips">
-                    @if (s.size != null) { <span class="chip">S{{ s.size }}</span> }
-                    @if (s.grade) { <span class="chip">{{ s.grade }}</span> }
-                    @if (s.manufacturerCode) { <span class="chip">{{ s.manufacturerCode }}</span> }
-                  </span>
-                </a>
+                <span class="slot-duo">
+                  <a class="slot-btn linked" [routerLink]="['/codex', s.kind, s.className]">
+                    <span class="slot-port">{{ s.port }}</span>
+                    <span class="slot-item">{{ s.name }}</span>
+                    <span class="slot-chips">
+                      @if (s.size != null) { <span class="chip">S{{ s.size }}</span> }
+                      @if (s.grade) { <span class="chip">{{ s.grade }}</span> }
+                      @if (s.manufacturerCode) { <span class="chip">{{ s.manufacturerCode }}</span> }
+                    </span>
+                  </a>
+                  <button type="button" class="slot-swap" (click)="swapRequested.emit(s)"
+                          [attr.aria-label]="'codex.swap.title' | translate"
+                          [attr.title]="'codex.swap.title' | translate">⇄</button>
+                </span>
               } @else if (s.className) {
                 <span class="slot-btn static">
                   <span class="slot-port">{{ s.port }}</span>
@@ -155,6 +160,11 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
       background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
     .cl-slots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 
+    .slot-duo { display: flex; align-items: stretch; gap: 4px; }
+    .slot-duo .slot-btn { flex: 1 1 auto; min-width: 0; }
+    .slot-swap { flex: 0 0 auto; padding: 0 9px; border-radius: 6px; background: var(--sc-bg-0);
+      border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-size: 0.9rem; cursor: pointer; }
+    .slot-swap:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
     .slot-btn { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 6px;
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); text-decoration: none; }
     a.slot-btn:hover { border-color: var(--sc-accent);
@@ -181,6 +191,8 @@ export class CodexHardpointLayoutComponent {
   /** Ship render (WebP) — falls back to the ship category icon. */
   readonly artUrl = input<string | null>(null);
   readonly alt = input('');
+  /** A filled slot's ⇄ was clicked — the parent opens the swap-preview dock. */
+  readonly swapRequested = output<LayoutSlot>();
 
   private ordered = computed(() =>
     HARDPOINT_CATEGORY_ORDER

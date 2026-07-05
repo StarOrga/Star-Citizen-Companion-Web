@@ -709,6 +709,45 @@ export function groupStatRows(rows: StatRow[]): StatGroup[] {
   }));
 }
 
+// ── swap preview deltas (loadout ladder Rung 2) ───────────────────────────────
+
+// One stat changed by a hypothetical swap: installed → candidate. `pct` is
+// the relative change (null when the pair isn't numerically comparable).
+export interface StatDelta {
+  key: string;
+  from: string;
+  to: string;
+  pct: number | null;
+  unit?: string;
+}
+
+/**
+ * Join two curated stat-row sets by label and compute the per-stat change a
+ * swap would cause ("+12% Max Shield Health"), sorted by impact (|pct| desc,
+ * non-numeric rows last). Rows only one side has are skipped — a delta needs
+ * both ends. Pure sandbox math; nothing is persisted (Rung 2 contract).
+ */
+export function computeStatDeltas(
+  installed: StatRow[],
+  candidate: StatRow[],
+  limit = 6,
+): StatDelta[] {
+  const byKey = new Map(candidate.map((r) => [r.key, r]));
+  const out: StatDelta[] = [];
+  for (const from of installed) {
+    const to = byKey.get(from.key);
+    if (!to || to.value === from.value) continue;
+    const a = compareNumber(from.value);
+    const b = compareNumber(to.value);
+    const pct =
+      a != null && b != null && a !== 0 ? Math.round(((b - a) / Math.abs(a)) * 100) : null;
+    if (pct === 0) continue; // rounds to no change — not worth a row
+    out.push({ key: from.key, from: from.value, to: to.value, pct, unit: from.unit });
+  }
+  out.sort((x, y) => Math.abs(y.pct ?? -1) - Math.abs(x.pct ?? -1));
+  return out.slice(0, limit);
+}
+
 // ── full spec sheet (Manifest) ────────────────────────────────────────────────
 
 export interface SpecSection {

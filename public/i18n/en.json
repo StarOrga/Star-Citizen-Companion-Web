@@ -213,6 +213,17 @@
       "hideFullSpec": "Hide full spec sheet",
       "layoutHint": "Stock loadout as labelled slots — open a slot to inspect the installed item."
     },
+    "swap": {
+      "title": "What fits here",
+      "installed": "Installed",
+      "previewHint": "Preview only — nothing is saved.",
+      "loading": "Scanning compatible items…",
+      "none": "No compatible alternatives in this build.",
+      "delta": "Change vs. installed",
+      "noDelta": "No comparable stat changes.",
+      "openDetail": "Open detail",
+      "close": "Close"
+    },
     "statGroup": {
       "identity": "Identity",
       "offense": "Offense",
