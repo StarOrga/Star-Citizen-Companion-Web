@@ -24,7 +24,7 @@
  */
 
 import { createWriteStream, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { Readable } from 'node:stream';
@@ -86,8 +86,15 @@ async function extract() {
   mkdirSync(OUT_DIR, { recursive: true });
   // python-build-standalone packs everything under a top-level `python/` dir.
   // tar's --strip-components=1 unpacks directly into OUT_DIR.
+  // Paths are passed RELATIVE (cwd: ROOT): GNU tar (Git for Windows, wins the
+  // PATH on many dev machines) treats an absolute `C:\…` as a remote host
+  // ("Cannot connect to C") — relative paths work with GNU tar AND bsdtar/CI.
   log(`extracting → ${OUT_DIR}`);
-  await spawnP('tar', ['-xzf', ARCHIVE, '-C', OUT_DIR, '--strip-components=1']);
+  await spawnP('tar', [
+    '-xzf', relative(ROOT, ARCHIVE).split(sep).join('/'),
+    '-C', relative(ROOT, OUT_DIR).split(sep).join('/'),
+    '--strip-components=1',
+  ], { cwd: ROOT });
 }
 
 async function installRequirements() {
@@ -112,9 +119,9 @@ async function copySidecar() {
   cpSync(resolve(SIDECAR_SRC, 'sc_extract'), SIDECAR_DEST, { recursive: true });
 }
 
-function spawnP(cmd, args) {
+function spawnP(cmd, args, opts = {}) {
   return new Promise((resolveP, reject) => {
-    const child = spawn(cmd, args, { stdio: 'inherit' });
+    const child = spawn(cmd, args, { stdio: 'inherit', ...opts });
     child.on('exit', (code) => (code === 0 ? resolveP() : reject(new Error(`${cmd} exited ${code}`))));
     child.on('error', reject);
   });
