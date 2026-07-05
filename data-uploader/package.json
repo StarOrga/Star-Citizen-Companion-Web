@@ -28,7 +28,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^22.0.0",
     "@types/yauzl": "^2.10.3",
-    "electron": "^33.0.0",
+    "electron": "^39.8.5",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "png-to-ico": "^3.0.1",
