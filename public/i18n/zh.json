@@ -335,5 +335,21 @@
       "name": "Error",
       "message": "Message"
     }
+  },
+  "releaseNotes": {
+    "title": "What's New",
+    "subtitle": "News and improvements from every release.",
+    "current": "Current",
+    "loading": "Loading release notes …",
+    "empty": "No release notes yet.",
+    "whatsNew": "What's New",
+    "cat": {
+      "added": "Added",
+      "changed": "Changed",
+      "fixed": "Fixed",
+      "removed": "Removed",
+      "deprecated": "Deprecated",
+      "security": "Security"
+    }
   }
 }

@@ -148,6 +148,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./settings/settings.component').then((m) => m.SettingsComponent),
       },
+      {
+        // "What's New" — release notes from CHANGELOG.md. Viewer-accessible
+        // (authGuard via parent only, no role gate).
+        path: 'release-notes',
+        loadComponent: () =>
+          import('./release-notes/release-notes.component').then((m) => m.ReleaseNotesComponent),
+      },
     ],
   },
   {

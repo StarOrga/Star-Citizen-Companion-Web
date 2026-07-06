@@ -808,5 +808,21 @@
       "list": "Liste",
       "draftRestored": "Entwurf wiederhergestellt"
     }
+  },
+  "releaseNotes": {
+    "title": "Was ist neu",
+    "subtitle": "Neuigkeiten und Verbesserungen aus jedem Release.",
+    "current": "Aktuell",
+    "loading": "Release Notes werden geladen …",
+    "empty": "Noch keine Release Notes.",
+    "whatsNew": "Was ist neu",
+    "cat": {
+      "added": "Neu",
+      "changed": "Geändert",
+      "fixed": "Behoben",
+      "removed": "Entfernt",
+      "deprecated": "Veraltet",
+      "security": "Sicherheit"
+    }
   }
 }
