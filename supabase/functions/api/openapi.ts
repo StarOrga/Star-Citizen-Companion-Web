@@ -4,7 +4,7 @@
 
 import type { Context } from './_router.ts';
 
-const SPEC = {
+export const SPEC = {
   openapi: '3.1.0',
   info: {
     title: 'SC Companion Public API',
