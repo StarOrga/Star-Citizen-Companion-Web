@@ -119,6 +119,10 @@
     "hoursAgo": "vor {{n}} Std",
     "daysAgo": "vor {{n}} Tg"
   },
+  "telemetry": {
+    "toggle": "Fehlerberichte senden",
+    "hint": "Sendet anonyme Absturzberichte (keine persönlichen Daten), damit Fehler behoben werden können. Jederzeit abschaltbar."
+  },
   "skins": {
     "open": "3D-Skins extrahieren",
     "title": "3D-Skins extrahieren & hochladen",

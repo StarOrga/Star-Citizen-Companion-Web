@@ -182,6 +182,19 @@ export const api = {
     writeText: (text: string): Promise<{ ok: boolean }> =>
       ipcRenderer.invoke('sc:clipboard:write', text),
   },
+  settings: {
+    get: (): Promise<{ telemetryEnabled: boolean }> => ipcRenderer.invoke('sc:settings:get'),
+    setTelemetry: (enabled: boolean): Promise<{ telemetryEnabled: boolean }> =>
+      ipcRenderer.invoke('sc:settings:setTelemetry', enabled),
+  },
+  log: {
+    // Structured log line into the shared main.log file.
+    write: (level: 'info' | 'warn' | 'error' | 'debug', message: string): void =>
+      ipcRenderer.send('sc:log:write', level, message),
+    // Forward a renderer crash → logged + reported to crash telemetry.
+    crash: (payload: { name?: string; message?: string; stack?: string | null }): void =>
+      ipcRenderer.send('sc:log:crash', payload),
+  },
   update: {
     status: (): Promise<UpdateEvent> => ipcRenderer.invoke('sc:update:status'),
     check: (): Promise<UpdateEvent> => ipcRenderer.invoke('sc:update:check'),

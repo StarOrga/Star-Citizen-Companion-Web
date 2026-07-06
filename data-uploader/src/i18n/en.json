@@ -119,6 +119,10 @@
     "hoursAgo": "{{n}} h ago",
     "daysAgo": "{{n}} d ago"
   },
+  "telemetry": {
+    "toggle": "Send error reports",
+    "hint": "Sends anonymous crash reports (no personal data) so bugs can be fixed. You can turn this off any time."
+  },
   "skins": {
     "open": "Extract 3D skins",
     "title": "Extract & upload 3D skins",
