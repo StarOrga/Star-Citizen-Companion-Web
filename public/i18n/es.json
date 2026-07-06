@@ -310,7 +310,13 @@
     "window": {
       "7": "Last 7 days",
       "30": "Last 30 days",
-      "90": "Last 90 days"
+      "90": "Last 90 days",
+      "label": "Time range",
+      "short": {
+        "7": "7d",
+        "30": "30d",
+        "90": "90d"
+      }
     },
     "totals": {
       "crashes": "Crashes",
