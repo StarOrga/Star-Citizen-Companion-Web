@@ -1,12 +1,14 @@
 {
   "name": "sc-companion",
-  "version": "0.26.1",
+  "version": "0.26.2",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
   "scripts": {
     "ng": "ng",
     "start": "ng serve --host 127.0.0.1 --port 4200",
+    "gen:release-notes": "node scripts/gen-release-notes.js",
+    "prebuild": "node scripts/gen-release-notes.js",
     "build": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false --browsers=ChromeHeadless",

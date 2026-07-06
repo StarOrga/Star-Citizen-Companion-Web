@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.2] - 2026-07-07
+
+### Added
+
+- **What's New page.** A user-facing release-notes page at `/release-notes`,
+  reachable from a "What's New" link + version in the site footer. It renders
+  every release as a timeline with color-coded category tags (Added / Changed /
+  Fixed / …). The content is generated at build time from `CHANGELOG.md` by a
+  `prebuild` step (`scripts/gen-release-notes.js` → `public/release-notes.json`),
+  so it refreshes automatically on every deploy — no separate content step. (admin feedback)
+
 ## [0.26.1] - 2026-07-07
 
 ### Changed
