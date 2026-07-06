@@ -16,6 +16,10 @@ interface TelemetryStats {
   recentCrashes: RecentCrash[];
 }
 
+type ProductFilter = 'scc-app' | 'data-uploader' | 'all';
+
+const PRODUCT_STORAGE_KEY = 'sc-telemetry-product';
+
 @Component({
   selector: 'sc-telemetry-stats',
   standalone: true,
@@ -29,6 +33,19 @@ interface TelemetryStats {
           <p class="hint">{{ 'telemetry.subtitle' | translate }}</p>
         </div>
         <div class="head-actions">
+          <div class="seg" role="tablist" aria-label="{{ 'telemetry.product.label' | translate }}">
+            @for (p of products; track p) {
+              <button
+                type="button"
+                class="seg-btn"
+                role="tab"
+                [class.active]="product() === p"
+                [attr.aria-selected]="product() === p"
+                [disabled]="busy()"
+                (click)="setProduct(p)"
+              >{{ 'telemetry.product.' + p | translate }}</button>
+            }
+          </div>
           <select class="sc-select" [value]="windowDays()" (change)="setWindow($event)" [disabled]="busy()">
             <option [value]="7">{{ 'telemetry.window.7' | translate }}</option>
             <option [value]="30">{{ 'telemetry.window.30' | translate }}</option>
@@ -115,7 +132,17 @@ interface TelemetryStats {
   styles: [`
     .page { padding: 1rem; max-width: 1100px; margin: 0 auto; }
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; }
-    .head-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .head-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .seg { display: inline-flex; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; overflow: hidden; }
+    .seg-btn {
+      background: transparent; color: var(--sc-text-dim, #8b97a8); border: 0;
+      padding: 0.4rem 0.8rem; font-size: 0.82rem; cursor: pointer; white-space: nowrap;
+      border-right: 1px solid rgba(255,255,255,.12);
+    }
+    .seg-btn:last-child { border-right: 0; }
+    .seg-btn:hover:not(:disabled) { color: var(--sc-text, #e6edf3); background: rgba(255,255,255,.04); }
+    .seg-btn.active { background: var(--sc-accent, #52c1e6); color: #041016; font-weight: 600; }
+    .seg-btn:disabled { opacity: .6; cursor: default; }
     .hint { color: var(--sc-text-dim, #8b97a8); font-size: 0.85rem; }
     .err { background: rgba(248,81,73,.12); color: #f85149; padding: 0.6rem 0.9rem; border-radius: 8px; margin-bottom: 1rem; }
     .empty { text-align: center; color: var(--sc-text-dim, #8b97a8); }
@@ -159,10 +186,15 @@ interface TelemetryStats {
 export class TelemetryStatsComponent implements OnInit {
   private readonly supabase = inject(SupabaseClientProvider);
 
+  /** Segmented-control options; also the i18n key suffixes (telemetry.product.*). */
+  readonly products: ProductFilter[] = ['scc-app', 'data-uploader', 'all'];
+
   readonly stats = signal<TelemetryStats | null>(null);
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
   readonly windowDays = signal(30);
+  /** Which desktop product to show — default persisted in localStorage. */
+  readonly product = signal<ProductFilter>(this.readStoredProduct());
 
   readonly maxVersionCrashes = computed(() =>
     Math.max(1, ...(this.stats()?.byVersion ?? []).map((v) => v.crashes)));
@@ -178,6 +210,28 @@ export class TelemetryStatsComponent implements OnInit {
     void this.load();
   }
 
+  setProduct(p: ProductFilter): void {
+    if (this.product() === p) return;
+    this.product.set(p);
+    // Persist the choice so it becomes the default the next time the page opens.
+    try {
+      localStorage.setItem(PRODUCT_STORAGE_KEY, p);
+    } catch {
+      /* private-mode / disabled storage — selection just isn't remembered */
+    }
+    void this.load();
+  }
+
+  private readStoredProduct(): ProductFilter {
+    try {
+      const v = localStorage.getItem(PRODUCT_STORAGE_KEY);
+      if (v === 'scc-app' || v === 'data-uploader' || v === 'all') return v;
+    } catch {
+      /* storage unavailable — fall through to default */
+    }
+    return 'scc-app';
+  }
+
   pct(n: number, max: number): number {
     return Math.round((n / max) * 100);
   }
@@ -187,6 +241,8 @@ export class TelemetryStatsComponent implements OnInit {
     this.errorMsg.set(null);
     const { data, error } = await this.supabase.client.rpc('get_telemetry_stats', {
       window_days: this.windowDays(),
+      // 'all' → null: no product restriction server-side.
+      product_filter: this.product() === 'all' ? null : this.product(),
     });
     if (error) {
       this.errorMsg.set(error.message);

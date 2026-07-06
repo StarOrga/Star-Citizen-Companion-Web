@@ -65,6 +65,7 @@ function safeEqual(a: string, b: string): boolean {
 
 const ROLES = new Set(['host', 'daemon', 'overlay', 'desktop', 'renderer']);
 const CHANNELS = new Set(['stable', 'beta', 'dev']);
+const PRODUCTS = new Set(['scc-app', 'data-uploader']);
 
 function clamp(s: unknown, n: number): string | null {
   if (s == null) return null;
@@ -137,6 +138,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const appVersion = clamp(body.appVersion, 40) ?? 'unknown';
   const channel = CHANNELS.has(String(body.channel)) ? String(body.channel) : 'dev';
   const role = ROLES.has(String(body.role)) ? String(body.role) : null;
+  // product identifies the sending client (scc-app | data-uploader). Unknown /
+  // absent → null (legacy readers coalesce NULL to 'scc-app').
+  const product = PRODUCTS.has(String(body.product)) ? String(body.product) : null;
 
   const rows = (events as Record<string, unknown>[]).map((ev) => {
     const isCrash = type === 'crash';
@@ -145,6 +149,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       app_version: appVersion,
       build_id: clamp(body.buildId, 80),
       channel,
+      product,
       os: clamp(body.os, 20),
       os_release: clamp(body.osRelease, 40),
       arch: clamp(body.arch, 20),

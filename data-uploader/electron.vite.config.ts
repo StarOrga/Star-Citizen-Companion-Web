@@ -51,6 +51,14 @@ export default defineConfig({
       __SC_SUPABASE_ANON_KEY__: JSON.stringify(
         process.env['SC_SUPABASE_ANON_KEY'] ?? 'sb_publishable_ZWbS9qWheOQB0s77mlWLvw_wEcmTVDQ',
       ),
+      // Telemetry HMAC signing key — shared anti-abuse secret for the
+      // ingest-telemetry edge function (NOT a user-data credential). Baked in
+      // like RELEASE_TOKEN. The dev fallback MUST match the edge function's own
+      // fallback ('scc-telemetry-dev-key-v1') so a local stack accepts reports;
+      // CI sets SC_TELEMETRY_HMAC_KEY to the real secret for release builds.
+      __SC_TELEMETRY_HMAC_KEY__: JSON.stringify(
+        process.env['SC_TELEMETRY_HMAC_KEY'] ?? 'scc-telemetry-dev-key-v1',
+      ),
     },
   },
   preload: {

@@ -91,7 +91,8 @@ main {
 
 .statusbar {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
   padding: 6px 18px;
   background: var(--sc-bg-1);
   border-top: 1px solid var(--sc-border);
@@ -99,6 +100,18 @@ main {
   color: var(--sc-fg-2);
   font-family: monospace;
 }
+.statusbar #status-line { flex: 1 1 auto; min-width: 0; }
+.telemetry-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  color: var(--sc-fg-2);
+}
+.telemetry-toggle input { accent-color: var(--sc-accent); cursor: pointer; margin: 0; }
+.telemetry-toggle:hover { color: var(--sc-fg-0); }
 
 h1, h2, h3 { font-family: var(--sc-font-display); margin: 0 0 0.6em; letter-spacing: 0.04em; }
 h1 { font-size: 1.4rem; }
