@@ -53,6 +53,7 @@ supabase/.env
 .claude/cache/
 .claude/scheduled_tasks.lock
 .claude/worktrees/
+.claude/tmp/
 AUTONOMOUS-RESUME.json
 AUTONOMOUS-REPORT.html
 

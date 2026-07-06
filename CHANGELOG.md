@@ -4,6 +4,15 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.1] - 2026-07-07
+
+### Changed
+
+- **Telemetry time-range selector.** Replaced the off-style white `<select>`
+  dropdown on `/admin/telemetry` with a segmented control (`7d / 30d / 90d`)
+  that matches the adjacent product-filter control, for one consistent,
+  in-theme header. (admin feedback)
+
 ## [0.26.0] - 2026-07-07
 
 ### Added

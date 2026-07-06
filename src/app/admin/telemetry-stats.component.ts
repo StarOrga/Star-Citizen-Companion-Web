@@ -46,11 +46,20 @@ const PRODUCT_STORAGE_KEY = 'sc-telemetry-product';
               >{{ 'telemetry.product.' + p | translate }}</button>
             }
           </div>
-          <select class="sc-select" [value]="windowDays()" (change)="setWindow($event)" [disabled]="busy()">
-            <option [value]="7">{{ 'telemetry.window.7' | translate }}</option>
-            <option [value]="30">{{ 'telemetry.window.30' | translate }}</option>
-            <option [value]="90">{{ 'telemetry.window.90' | translate }}</option>
-          </select>
+          <div class="seg" role="tablist" aria-label="{{ 'telemetry.window.label' | translate }}">
+            @for (w of windows; track w) {
+              <button
+                type="button"
+                class="seg-btn"
+                role="tab"
+                [class.active]="windowDays() === w"
+                [attr.aria-selected]="windowDays() === w"
+                [attr.title]="'telemetry.window.' + w | translate"
+                [disabled]="busy()"
+                (click)="setWindow(w)"
+              >{{ 'telemetry.window.short.' + w | translate }}</button>
+            }
+          </div>
           <button class="sc-btn" (click)="load()" [disabled]="busy()">{{ 'telemetry.refresh' | translate }}</button>
         </div>
       </header>
@@ -188,6 +197,8 @@ export class TelemetryStatsComponent implements OnInit {
 
   /** Segmented-control options; also the i18n key suffixes (telemetry.product.*). */
   readonly products: ProductFilter[] = ['scc-app', 'data-uploader', 'all'];
+  /** Time-range options (days); also the i18n key suffixes (telemetry.window.short.*). */
+  readonly windows = [7, 30, 90] as const;
 
   readonly stats = signal<TelemetryStats | null>(null);
   readonly busy = signal(false);
@@ -205,8 +216,9 @@ export class TelemetryStatsComponent implements OnInit {
     void this.load();
   }
 
-  setWindow(ev: Event): void {
-    this.windowDays.set(Number((ev.target as HTMLSelectElement).value) || 30);
+  setWindow(days: number): void {
+    if (this.windowDays() === days) return;
+    this.windowDays.set(days);
     void this.load();
   }
 
