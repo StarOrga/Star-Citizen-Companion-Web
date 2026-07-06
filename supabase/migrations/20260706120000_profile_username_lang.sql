@@ -116,6 +116,13 @@ grant execute on function public.set_preferred_lang(text) to authenticated;
 -- ============================================================
 -- list_users_for_admin — add `username` to the admin result set
 -- ============================================================
+-- DROP first: this function already exists (migration 00003) and we are
+-- widening its RETURNS TABLE with `username`. Postgres rejects a return-type
+-- change via CREATE OR REPLACE ("cannot change return type of existing
+-- function, use DROP FUNCTION first"), so the replace alone would fail on
+-- apply. Argument list is unchanged (no args), so the drop is unambiguous.
+drop function if exists public.list_users_for_admin();
+
 create or replace function public.list_users_for_admin()
 returns table (
   id uuid,
