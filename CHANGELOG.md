@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - 2026-07-07
+
+### Added
+
+- **Admin feedback board.** A new admins-only channel at `/admin/feedback` where
+  any admin can post free-text suggestions ("what could be better"), multiple
+  messages in a row. Shared board — every admin sees every message — with a
+  status per item (`open → in_progress → shipped → rejected`). Backed by the
+  RLS-guarded `admin_feedback` table.
+- **Composer conveniences.** The input persists its draft in `localStorage`
+  (survives an accidental window close), auto-continues bullet/numbered lists on
+  Enter (empty marker exits the list), sends on **Ctrl/Cmd+Enter** (plain Enter =
+  newline), and offers a bold/bullet/numbered/code toolbar. Messages render via a
+  dependency-free, HTML-escaping Markdown subset (links limited to http/mailto).
+- **Nightly auto-ship routine (runbook).** `docs/feedback-routine.md` specifies
+  the 19:00 cloud routine that consumes open feedback, implements each item on a
+  branch, and ships on green build+tests via PR + auto-merge (never force-push),
+  writing the status + `ship_ref` back to the board.
+
 ## [0.25.0] - 2026-07-06
 
 ### Added

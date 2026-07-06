@@ -49,6 +49,9 @@ import { QuickSearchComponent } from './quick-search.component';
           <a routerLink="/admin/telemetry" routerLinkActive="active" class="admin-link">
             {{ 'nav.telemetry' | translate }}
           </a>
+          <a routerLink="/admin/feedback" routerLinkActive="active" class="admin-link">
+            {{ 'nav.feedback' | translate }}
+          </a>
         }
       </nav>
 

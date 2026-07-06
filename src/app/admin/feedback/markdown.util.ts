@@ -1,0 +1,127 @@
+/**
+ * Minimal, safe Markdown -> HTML for the admin feedback board.
+ *
+ * Supports the subset admins actually use in feedback: headings (`#`..`###`),
+ * bold, italic, inline code, links, unordered/ordered lists, blockquotes,
+ * paragraphs and line breaks. Everything else renders as plain text.
+ *
+ * SAFETY: source text is HTML-escaped *first*, so no raw user markup can reach
+ * the DOM - only this function's own known tag set is emitted. Links are
+ * restricted to http/https/mailto. The result is additionally run through
+ * Angular's [innerHTML] sanitizer at the binding site (defence in depth).
+ *
+ * Deliberately dependency-free: a controlled subset is safer and lighter than
+ * pulling `marked` + `dompurify` into the bundle for an admins-only surface.
+ */
+
+// Object-replacement char — a sentinel that cannot appear in escaped output
+// nor in normal feedback text. Used to shield inline-code spans from further
+// formatting, then swapped back at the end.
+const CODE_MARK = '￼';
+const CODE_MARK_RE = new RegExp(CODE_MARK + '(\\d+)' + CODE_MARK, 'g');
+
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Escape + apply inline formatting (bold, italic, code, links) to one text run. */
+function inline(raw: string): string {
+  // Pull inline-code spans out first so their contents aren't re-formatted.
+  const codes: string[] = [];
+  let s = raw.replace(/`([^`]+)`/g, (_m, c: string) => {
+    codes.push(esc(c));
+    return CODE_MARK + (codes.length - 1) + CODE_MARK;
+  });
+
+  s = esc(s);
+
+  // Links: [text](url) - only http(s)/mailto schemes survive.
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, text: string, url: string) => {
+    if (!/^(https?:\/\/|mailto:)/i.test(url)) return m;
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+  });
+
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
+  s = s.replace(/(^|[^_\w])_([^_]+)_/g, '$1<em>$2</em>');
+
+  // Restore protected code spans.
+  s = s.replace(CODE_MARK_RE, (_m, i: string) => `<code>${codes[+i]}</code>`);
+  return s;
+}
+
+export function renderMarkdown(src: string): string {
+  const lines = (src ?? '').replace(/\r\n?/g, '\n').split('\n');
+  const out: string[] = [];
+  let para: string[] = [];
+  let i = 0;
+
+  const flushPara = () => {
+    if (para.length) {
+      out.push(`<p>${para.map(inline).join('<br>')}</p>`);
+      para = [];
+    }
+  };
+
+  while (i < lines.length) {
+    const t = lines[i].trim();
+
+    if (t === '') {
+      flushPara();
+      i++;
+      continue;
+    }
+
+    const h = /^(#{1,3})\s+(.*)$/.exec(t);
+    if (h) {
+      flushPara();
+      const lvl = h[1].length + 2; // # -> h3, ## -> h4, ### -> h5
+      out.push(`<h${lvl}>${inline(h[2])}</h${lvl}>`);
+      i++;
+      continue;
+    }
+
+    if (/^[-*+]\s+/.test(t)) {
+      flushPara();
+      const items: string[] = [];
+      while (i < lines.length && /^[-*+]\s+/.test(lines[i].trim())) {
+        items.push(`<li>${inline(lines[i].trim().replace(/^[-*+]\s+/, ''))}</li>`);
+        i++;
+      }
+      out.push(`<ul>${items.join('')}</ul>`);
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(t)) {
+      flushPara();
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i].trim())) {
+        items.push(`<li>${inline(lines[i].trim().replace(/^\d+\.\s+/, ''))}</li>`);
+        i++;
+      }
+      out.push(`<ol>${items.join('')}</ol>`);
+      continue;
+    }
+
+    if (/^>\s?/.test(t)) {
+      flushPara();
+      const quoted: string[] = [];
+      while (i < lines.length && /^>\s?/.test(lines[i].trim())) {
+        quoted.push(inline(lines[i].trim().replace(/^>\s?/, '')));
+        i++;
+      }
+      out.push(`<blockquote>${quoted.join('<br>')}</blockquote>`);
+      continue;
+    }
+
+    para.push(t);
+    i++;
+  }
+
+  flushPara();
+  return out.join('');
+}
