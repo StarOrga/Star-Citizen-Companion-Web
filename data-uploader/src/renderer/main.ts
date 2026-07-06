@@ -17,6 +17,31 @@ interface ToolEnv {
 
 const $ = (sel: string): HTMLElement | null => document.querySelector(sel);
 
+// Funnel renderer-side failures into the same main.log + crash telemetry as the
+// main process. Installed synchronously at module load — before init() runs —
+// so an error during startup is still captured. Best-effort: window.sc may be
+// briefly undefined only if the preload failed entirely (itself logged there).
+function installRendererCrashCapture(): void {
+  window.addEventListener('error', (ev) => {
+    const err = ev.error instanceof Error ? ev.error : null;
+    window.sc?.log?.crash({
+      name: err?.name ?? 'Error',
+      message: err?.message ?? String(ev.message ?? 'unknown renderer error'),
+      stack: err?.stack ?? null,
+    });
+  });
+  window.addEventListener('unhandledrejection', (ev) => {
+    const reason = ev.reason;
+    const err = reason instanceof Error ? reason : null;
+    window.sc?.log?.crash({
+      name: err?.name ?? 'UnhandledRejection',
+      message: err?.message ?? String(reason),
+      stack: err?.stack ?? null,
+    });
+  });
+}
+installRendererCrashCapture();
+
 type ViewName = 'discover' | 'configure' | 'run' | 'auth-upload' | 'skins';
 type LogLevel = 'info' | 'success' | 'warn' | 'error';
 
@@ -122,6 +147,8 @@ async function init(): Promise<void> {
       paintConnection();
     });
   }
+
+  void initTelemetryToggle();
 
   // Auto-update banner — subscribe + paint last known status (no-op on dev).
   window.sc.update.onEvent(paintUpdateBanner);
@@ -469,6 +496,26 @@ function applyBranding(): void {
   }
   link.type = 'image/svg+xml';
   link.href = href;
+}
+
+// Telemetry opt-out toggle in the status bar. Crash reporting is ON by default;
+// unchecking it disables all telemetry sends (persisted in the main process).
+async function initTelemetryToggle(): Promise<void> {
+  const box = $('#telemetry-checkbox') as HTMLInputElement | null;
+  const label = $('#telemetry-label');
+  const wrap = $('#telemetry-toggle');
+  if (!box) return;
+  if (label) label.textContent = t('telemetry.toggle', {}) || 'Fehlerberichte senden';
+  if (wrap) wrap.title = t('telemetry.hint', {}) || 'Sendet anonyme Absturzberichte, um Fehler zu beheben.';
+  try {
+    const { telemetryEnabled } = await window.sc.settings.get();
+    box.checked = telemetryEnabled;
+  } catch {
+    box.checked = true;
+  }
+  box.addEventListener('change', () => {
+    void window.sc.settings.setTelemetry(box.checked);
+  });
 }
 
 function paintEnv(env: ToolEnv): void {

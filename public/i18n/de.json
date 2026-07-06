@@ -757,6 +757,12 @@
     "crashesByType": "Abstürze nach Typ",
     "crashesByRole": "Nach Prozess",
     "recent": "Letzte Abstürze",
+    "product": {
+      "label": "Produkt",
+      "scc-app": "SCC-App",
+      "data-uploader": "Data Uploader",
+      "all": "Alle"
+    },
     "col": {
       "at": "Wann",
       "version": "Version",

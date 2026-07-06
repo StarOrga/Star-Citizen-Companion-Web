@@ -757,6 +757,12 @@
     "crashesByType": "Crashes by type",
     "crashesByRole": "By process",
     "recent": "Recent crashes",
+    "product": {
+      "label": "Product",
+      "scc-app": "SCC App",
+      "data-uploader": "Data Uploader",
+      "all": "All"
+    },
     "col": {
       "at": "When",
       "version": "Version",

@@ -13,6 +13,7 @@ declare const __SC_API_BASE__: string;
 declare const __SC_WEB_BASE__: string;
 declare const __SC_TOOL_VERSION__: string;
 declare const __SC_SUPABASE_ANON_KEY__: string;
+declare const __SC_TELEMETRY_HMAC_KEY__: string;
 
 export const RELEASE_TOKEN: string = __SC_RELEASE_TOKEN__;
 /**
@@ -36,4 +37,19 @@ export const SUPABASE_ANON_KEY: string = __SC_SUPABASE_ANON_KEY__;
 export const WEB_BASE: string = __SC_WEB_BASE__;
 export const TOOL_VERSION: string = __SC_TOOL_VERSION__;
 
+/**
+ * HMAC-SHA256 key for signing anonymous crash-telemetry requests to the
+ * `ingest-telemetry` edge function. Shared anti-abuse secret (NOT a credential
+ * to user data), baked in at build time exactly like RELEASE_TOKEN. The dev
+ * fallback matches the edge function's own fallback so telemetry works against
+ * a local supabase stack without extra config.
+ */
+export const TELEMETRY_HMAC_KEY: string = __SC_TELEMETRY_HMAC_KEY__;
+
 export const IS_UNSIGNED_DEV_BUILD = RELEASE_TOKEN === 'dev-token-unsigned';
+
+/**
+ * Telemetry channel: signed release builds report as 'stable'; unsigned dev
+ * builds as 'dev' so their noise never pollutes production crash stats.
+ */
+export const TELEMETRY_CHANNEL: 'stable' | 'dev' = IS_UNSIGNED_DEV_BUILD ? 'dev' : 'stable';

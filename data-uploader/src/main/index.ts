@@ -1,6 +1,9 @@
 import { app, BrowserWindow, Menu, ipcMain, dialog, shell, clipboard } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { initLogging, logFromRenderer } from './logging.js';
+import { getSettings, setTelemetryEnabled } from './settings.js';
+import { reportCrash } from './telemetry-reporter.js';
 import { discoverAll, discoverManual } from '../lib/discovery.js';
 import { PROFILES, DEFAULT_PROFILE, estimateForSize } from '../lib/performance.js';
 import { runOAuthFlow } from '../lib/oauth.js';
@@ -41,6 +44,11 @@ import {
   getCachedSnapshot,
   runSync,
 } from './session.js';
+
+// Configure logging + install uncaughtException/unhandledRejection handlers
+// before any window or IPC work, so a startup failure lands in main.log and
+// crash telemetry instead of vanishing silently (the v0.8.2 failure mode).
+initLogging();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -91,6 +99,39 @@ ipcMain.handle('sc:env', () => ({
   releaseTokenFingerprint: RELEASE_TOKEN.slice(0, 8) + '…',
   platform: process.platform,
 }));
+
+// ============= Settings / Telemetry IPC =============
+
+ipcMain.handle('sc:settings:get', () => {
+  const s = getSettings();
+  // Never expose the raw installId to the renderer — it is an internal, opaque
+  // dedup id. The UI only needs the opt-out flag.
+  return { telemetryEnabled: s.telemetryEnabled };
+});
+
+ipcMain.handle('sc:settings:setTelemetry', (_e, enabled: boolean) => {
+  const s = setTelemetryEnabled(Boolean(enabled));
+  return { telemetryEnabled: s.telemetryEnabled };
+});
+
+// ============= Renderer logging / crash forwarding =============
+
+ipcMain.on('sc:log:write', (_e, level: string, message: string) => {
+  logFromRenderer(typeof level === 'string' ? level : 'info', String(message ?? ''));
+});
+
+ipcMain.on(
+  'sc:log:crash',
+  (_e, payload: { name?: string; message?: string; stack?: string | null }) => {
+    logFromRenderer('error', `crash: ${payload?.name ?? 'Error'}: ${payload?.message ?? ''}`);
+    void reportCrash({
+      errorType: 'renderer',
+      name: payload?.name ?? 'Error',
+      message: payload?.message ?? '',
+      stack: payload?.stack ?? null,
+    });
+  },
+);
 
 ipcMain.handle('sc:discover', async () => {
   return discoverAll();

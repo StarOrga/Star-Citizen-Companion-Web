@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.0] - 2026-07-06
+
+### Added
+
+- **Data Uploader crash telemetry + logging.** The uploader now initializes
+  logging eagerly and installs main + renderer crash handlers, so a startup
+  failure lands in `logs/main.log` instead of vanishing (the v0.8.2 symptom).
+  Uncaught errors are reported (opt-out, via a status-bar toggle) to the shared
+  `ingest-telemetry` function as `product = data-uploader`.
+- **Admin telemetry product switcher.** The `/admin/telemetry` page gains an
+  **SCC-App / Data Uploader / All** segmented control (default remembered in
+  `localStorage`); the `telemetry_events` table + `get_telemetry_stats` gained a
+  `product` dimension (legacy `NULL` counts as SCC-App).
+
 ## [0.24.0] - 2026-07-06
 
 ### Added
