@@ -243,6 +243,15 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     .no-matches { text-align: center; color: var(--sc-fg-2); padding: 24px !important; }
     @media (max-width: 640px) {
       .filter-search, .filter-role { flex: 1 1 100%; }
+      /* Make the wide user table scroll horizontally instead of pushing the page. */
+      .table {
+        display: block;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+      }
+      .table thead, .table tbody { display: table; width: 100%; min-width: 640px; }
     }
 
     .table { width: 100%; padding: 0; border-collapse: collapse; overflow: hidden; }
@@ -272,7 +281,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       background: rgba(0, 212, 255, 0.06);
       box-shadow: inset 2px 0 0 var(--sc-accent);
     }
-    .mono { font-family: monospace; font-size: 0.82rem; color: var(--sc-fg-1); }
+    .mono { font-family: monospace; font-size: 0.82rem; color: var(--sc-fg-1); overflow-wrap: anywhere; }
     .role-pill {
       display: inline-block;
       padding: 2px 8px;

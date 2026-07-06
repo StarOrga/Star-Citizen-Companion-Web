@@ -437,8 +437,18 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
 
     @media (max-width: 640px) {
       .head { flex-direction: column; align-items: stretch; }
+      .head-actions .sc-btn { flex: 1; justify-content: center; }
       .scope-row { grid-template-columns: 1fr; padding: 8px 0; }
       .scope-code { min-width: 0; }
+      .reveal-token-row { flex-direction: column; }
+      /* Token table scrolls horizontally instead of overflowing the page. */
+      .table {
+        display: block;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+      .table thead, .table tbody { display: table; width: 100%; min-width: 620px; }
     }
   `],
 })

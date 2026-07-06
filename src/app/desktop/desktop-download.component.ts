@@ -104,7 +104,7 @@ interface ReleaseInfo {
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-    .value { color: var(--sc-fg-0); }
+    .value { color: var(--sc-fg-0); text-align: right; overflow-wrap: anywhere; min-width: 0; }
     .value.version {
       font-family: var(--sc-font-display);
       font-size: 1.2rem;

@@ -140,7 +140,8 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
-    .value { color: var(--sc-fg-0); }
+    .value { color: var(--sc-fg-0); min-width: 0; text-align: right; overflow-wrap: anywhere; }
+    .label { flex: 0 0 auto; }
     .mono { font-family: monospace; font-size: 0.85rem; }
     .role-pill {
       display: inline-block;
@@ -244,6 +245,14 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
     .danger-btn:hover:not(:disabled) {
       background: var(--sc-danger);
       color: var(--sc-bg-0);
+    }
+
+    @media (max-width: 560px) {
+      .row { flex-direction: column; gap: 4px; align-items: flex-start; }
+      .value { text-align: left; }
+      .text-input { min-width: 0; flex: 1 1 100%; }
+      .field-row .sc-btn { flex: 1 1 100%; justify-content: center; }
+      .danger-btn { width: 100%; justify-content: center; }
     }
   `],
 })

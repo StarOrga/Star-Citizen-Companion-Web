@@ -241,8 +241,29 @@ import { QuickSearchComponent } from './quick-search.component';
       .topbar { gap: 12px; padding: 10px 16px; }
       .brand { min-width: 0; }
       .brand .title { display: none; }
-      .nav a { padding: 6px 10px; font-size: 0.7rem; }
+      /* Nav becomes a horizontally-scrollable strip so links never overflow
+         the row or wrap awkwardly onto multiple lines. */
+      .nav {
+        flex: 1 1 100%;
+        order: 3;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        margin: 0 -16px;
+        padding: 2px 16px;
+      }
+      .nav::-webkit-scrollbar { display: none; }
+      .nav a { padding: 8px 12px; font-size: 0.72rem; white-space: nowrap; flex: 0 0 auto; }
+      .actions { flex: 1; justify-content: flex-end; }
       .content { padding: 20px 16px; }
+    }
+    @media (max-width: 400px) {
+      .topbar { padding: 8px 12px; }
+      .nav { margin: 0 -12px; padding: 2px 12px; }
+      /* Anchor the dropdown to the viewport edges so a 180px menu can't push
+         the page wider than the screen. */
+      .dropdown { right: 0; left: auto; min-width: 200px; max-width: calc(100vw - 24px); }
     }
   `],
 })
