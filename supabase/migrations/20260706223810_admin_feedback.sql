@@ -54,7 +54,7 @@ comment on table public.admin_feedback is
 -- updated_at trigger
 -- ============================================================
 create or replace function public.admin_feedback_touch_updated_at()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = '' as $$
 begin
   new.updated_at := now();
   return new;
