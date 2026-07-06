@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexBridgeComponent } from './codex-bridge.component';
 import { CodexListRow, CodexService } from './codex.service';
+import { RoleService } from '../auth/role.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShip } from '../hangar/hangar.types';
 
@@ -54,6 +55,9 @@ describe('CodexBridgeComponent', () => {
 
     const codex: Partial<CodexService> = {
       build: signal({ patchVersion: '4.2', buildNumber: '9000000' }) as never,
+      // Freshness signals consumed by the embedded status banner.
+      stale: signal(false) as never,
+      latestLivePatch: signal(null) as never,
       compareKeys: compareKeys.asReadonly(),
       loadCurrentBuild: jasmine.createSpy('loadCurrentBuild').and.resolveTo(null),
       listBridgeShips: jasmine.createSpy('listBridgeShips').and.resolveTo(opts.catalog),
@@ -95,6 +99,9 @@ describe('CodexBridgeComponent', () => {
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
         { provide: HangarService, useValue: hangar },
+        // Stub RoleService so the embedded status banner never constructs the
+        // real one (which pulls Auth/Supabase and hangs whenStable in tests).
+        { provide: RoleService, useValue: { isCollaborator: signal(false) } },
       ],
     }).compileComponents();
 

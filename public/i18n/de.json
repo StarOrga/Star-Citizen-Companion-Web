@@ -72,7 +72,9 @@
       "extracted": "Extrahiert",
       "tool": "Extraktor",
       "coverage": "Abdeckung",
-      "qualityHint": "Qualitätswert ist vorläufig, bis er echt berechnet wird."
+      "qualityHint": "Qualitätswert ist vorläufig, bis er echt berechnet wird.",
+      "stale": "Daten-Upload nötig — es ist eine neuere Spielversion live, als dieser Katalog abbildet.",
+      "staleUploadLink": "Data Uploader öffnen"
     },
     "search": {
       "placeholder": "Name oder Klasse suchen (z. B. Gladius, AEGS_*)…",

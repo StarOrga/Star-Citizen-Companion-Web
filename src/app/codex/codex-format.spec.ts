@@ -5,6 +5,7 @@ import {
   classifyStatPurpose,
   cleanLocaleValue,
   collectCompareAttributes,
+  comparePatchVersion,
   computeStatDeltas,
   curateComponentStats,
   flattenSpec,
@@ -15,6 +16,7 @@ import {
   groupStatRows,
   humanizeClassName,
   humanizeKey,
+  isCatalogStale,
   isMeaningfulValue,
   isNoiseKey,
   meaningfulRows,
@@ -466,6 +468,40 @@ describe('codex-format', () => {
       expect(flattenSpec(null)).toEqual([]);
       expect(flattenSpec('x')).toEqual([]);
       expect(flattenSpec([1, 2])).toEqual([]);
+    });
+  });
+
+  describe('comparePatchVersion', () => {
+    it('orders numeric patch versions correctly (not lexically)', () => {
+      expect(comparePatchVersion('4.8.0', '4.10.0')).toBe(-1); // 8 < 10 (lexical would be wrong)
+      expect(comparePatchVersion('4.10.0', '4.8.0')).toBe(1);
+      expect(comparePatchVersion('4.8.0', '4.8.0')).toBe(0);
+    });
+    it('treats missing trailing groups as zero', () => {
+      expect(comparePatchVersion('4', '4.0.0')).toBe(0);
+      expect(comparePatchVersion('4.8', '4.8.1')).toBe(-1);
+    });
+    it('sorts a fuzzy "4.x" seed below a real 4.8.0', () => {
+      expect(comparePatchVersion('4.x', '4.8.0')).toBe(-1);
+      expect(comparePatchVersion('4.8.0', '4.x')).toBe(1);
+    });
+    it('ignores non-numeric decoration and nullish input', () => {
+      expect(comparePatchVersion('4.8.0-LIVE.9876543', '4.8.0')).toBe(1); // trailing build number counts
+      expect(comparePatchVersion(null, undefined)).toBe(0);
+      expect(comparePatchVersion('', '4.8.0')).toBe(-1);
+    });
+  });
+
+  describe('isCatalogStale', () => {
+    it('is stale when a newer patch is live than the build', () => {
+      expect(isCatalogStale('4.8.0', '4.x')).toBe(true);
+      expect(isCatalogStale('4.10.0', '4.8.0')).toBe(true);
+    });
+    it('is not stale when equal or older, or when either side is unknown', () => {
+      expect(isCatalogStale('4.8.0', '4.8.0')).toBe(false);
+      expect(isCatalogStale('4.7.0', '4.8.0')).toBe(false);
+      expect(isCatalogStale(null, '4.8.0')).toBe(false);
+      expect(isCatalogStale('4.8.0', null)).toBe(false);
     });
   });
 });
