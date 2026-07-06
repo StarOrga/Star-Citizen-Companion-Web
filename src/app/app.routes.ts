@@ -138,8 +138,9 @@ export const routes: Routes = [
           import('./admin/telemetry-stats.component').then((m) => m.TelemetryStatsComponent),
       },
       {
-        path: 'profile',
-        loadComponent: () => import('./profile/profile.component').then((m) => m.ProfileComponent),
+        path: 'settings',
+        loadComponent: () =>
+          import('./settings/settings.component').then((m) => m.SettingsComponent),
       },
     ],
   },
