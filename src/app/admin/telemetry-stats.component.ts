@@ -135,10 +135,25 @@ interface TelemetryStats {
     .role-pill { background: rgba(255,255,255,.06); border-radius: 12px; padding: 2px 10px; font-size: 0.78rem; }
     .table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     .table th, .table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,.07); vertical-align: top; }
-    .table .msg { color: var(--sc-text-dim, #8b97a8); max-width: 360px; }
-    .mono { font-family: ui-monospace, monospace; }
+    .table .msg { color: var(--sc-text-dim, #8b97a8); max-width: 360px; overflow-wrap: anywhere; }
+    .mono { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
     .gen { text-align: right; margin-top: 0.5rem; }
     @media (max-width: 760px) { .totals { grid-template-columns: repeat(2,1fr); } .cols { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) {
+      .page { padding: 0; }
+      .head { flex-direction: column; align-items: stretch; }
+      .head-actions { flex-wrap: wrap; }
+      .stat .num { font-size: 1.45rem; }
+      .bar-row { grid-template-columns: 90px 1fr 40px; gap: 0.4rem; }
+      .table .msg { max-width: 200px; }
+      .table {
+        display: block;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+      .table thead, .table tbody { display: table; width: 100%; min-width: 480px; }
+    }
   `],
 })
 export class TelemetryStatsComponent implements OnInit {

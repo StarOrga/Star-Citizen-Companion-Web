@@ -221,7 +221,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .state { margin: 0; color: var(--sc-fg-2); font-size: 0.82rem; }
     .results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; }
     .result-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
-    .r-name { flex: 1; font-size: 0.86rem; }
+    .r-name { flex: 1; font-size: 0.86rem; min-width: 0; overflow-wrap: anywhere; }
     .r-meta { display: flex; gap: 4px; }
     .already { font-size: 0.7rem; color: var(--sc-fg-2); font-style: italic; }
 
@@ -242,7 +242,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .flag-toggle:hover { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d); }
     .flag-toggle.is-flagship { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d);
       background: color-mix(in srgb, var(--sc-warning, #ffc14d) 16%, transparent); }
-    .cls { font-size: 0.7rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
+    .cls { font-size: 0.7rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: 0.64rem; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
@@ -274,7 +274,17 @@ const SEARCH_DEBOUNCE_MS = 250;
     .hint { color: var(--sc-fg-2); font-size: 0.84rem; margin: 0; }
 
     @media (max-width: 720px) {
-      .head { flex-direction: column; }
+      .head { flex-direction: column; align-items: stretch; }
+      .counts { flex-wrap: wrap; }
+    }
+    @media (max-width: 560px) {
+      .grid, .pinned-strip { grid-template-columns: 1fr 1fr; }
+      .new-loadout { width: 100%; }
+      .new-loadout .ld-name { flex: 1 1 100%; }
+    }
+    @media (max-width: 400px) {
+      .grid, .pinned-strip { grid-template-columns: 1fr; }
+      .count-chip strong { font-size: 1.05rem; }
     }
   `],
 })

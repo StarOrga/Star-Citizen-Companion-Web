@@ -345,6 +345,11 @@ interface PortRow {
     @media (max-width: 720px) {
       .head { flex-direction: column; }
     }
+    @media (max-width: 560px) {
+      .stat strong { font-size: 1.15rem; }
+      .assign-name { min-width: 0; flex: 1 1 100%; }
+      .new-config, .new-config .cfg-name { flex: 1 1 100%; }
+    }
   `],
 })
 export class HangarShipDetailComponent implements OnInit {

@@ -4,6 +4,43 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-07-06
+
+### Added
+
+- **Account settings page (`/settings`).** The standalone Profile menu item is
+  gone — a profile avatar dropdown (top-right) now offers Settings and Sign out.
+  Settings bundles read-only account info, a **unique username** (validated
+  `a–z 0–9 _`, 3–20 chars, case-insensitive uniqueness), the **language
+  switcher** (moved from the topbar; persists to the profile and applies on the
+  next login), and a **delete-my-account** danger zone.
+- **Admin user list: filtering & sorting.** Search across name/username/email,
+  a role filter, an X-of-Y result count with clear-all, and click-to-sort
+  columns (user, email, role, joined, last-seen; nulls sort last). The new
+  `username` is shown as an `@handle` and is searchable/sortable.
+- **Public API OpenAPI export (`docs/api/openapi.json`)** for upload to the
+  readme.io documentation site, plus an "API documentation" link on the API
+  Tokens admin page.
+
+### Changed
+
+- **Ctrl+K quick search — full keyboard operation.** The whole page now blurs
+  behind the palette; the caret stays in the input while ↑/↓ move a highlighted
+  result (scrolled into view) and Enter opens the active one. Listbox/option
+  a11y added.
+- **Comprehensive mobile-responsive pass** across shell, feature pages, admin,
+  settings and uploader — no horizontal page scroll at phone widths, wide tables
+  become scroll-containers, grids/inputs stack, long ids/emails/tokens wrap.
+
+### Database
+
+- Migration `20260706120000_profile_username_lang.sql`: adds `profiles.username`
+  (citext, unique) and `profiles.preferred_lang` (CHECK de/en/fr/es/pt/ru/zh),
+  RPCs `set_username()` / `set_preferred_lang()` (SECURITY DEFINER), and extends
+  `list_users_for_admin()` with `username`. **Not yet applied to the cloud
+  project** — `db:push` is blocked by a pre-existing migration-history desync;
+  username/language/settings-save features error at runtime until it is applied.
+
 ## [0.22.1] - 2026-07-05
 
 ### Security
