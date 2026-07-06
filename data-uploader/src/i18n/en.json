@@ -123,6 +123,12 @@
     "toggle": "Send error reports",
     "hint": "Sends anonymous crash reports (no personal data) so bugs can be fixed. You can turn this off any time."
   },
+  "catalog": {
+    "publishing": "Publishing to Codex",
+    "published": "Codex updated",
+    "ships": "ships",
+    "failed": "Codex publish failed"
+  },
   "skins": {
     "open": "Extract 3D skins",
     "title": "Extract & upload 3D skins",

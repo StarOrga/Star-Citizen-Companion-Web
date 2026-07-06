@@ -528,6 +528,11 @@ interface LoadoutGroup {
       .hero-body { padding: 20px; }
       .dmg { grid-template-columns: 84px 1fr 56px; }
     }
+    @media (max-width: 400px) {
+      .hero-body { padding: 16px; }
+      .hero-body h1 { font-size: 1.4rem; }
+      .stat-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    }
   `],
 })
 export class CodexDetailComponent implements OnInit {

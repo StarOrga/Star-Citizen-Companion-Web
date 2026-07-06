@@ -21,12 +21,13 @@
     "news": "Verse News",
     "codex": "Codex",
     "p4k": "Bundle-Historie",
-    "profile": "Profil",
+    "settings": "Einstellungen",
     "admin": "Admin",
     "desktop": "Data Uploader",
     "signOut": "Abmelden",
     "brandAria": "Star Citizen Companion (SCC)",
     "langAria": "Sprache",
+    "accountMenu": "Konto-Menü",
     "hangar": "Hangar",
     "telemetry": "Telemetrie"
   },
@@ -71,7 +72,9 @@
       "extracted": "Extrahiert",
       "tool": "Extraktor",
       "coverage": "Abdeckung",
-      "qualityHint": "Qualitätswert ist vorläufig, bis er echt berechnet wird."
+      "qualityHint": "Qualitätswert ist vorläufig, bis er echt berechnet wird.",
+      "stale": "Daten-Upload nötig — es ist eine neuere Spielversion live, als dieser Katalog abbildet.",
+      "staleUploadLink": "Data Uploader öffnen"
     },
     "search": {
       "placeholder": "Name oder Klasse suchen (z. B. Gladius, AEGS_*)…",
@@ -456,6 +459,33 @@
       "viewer": "Viewer"
     }
   },
+  "settings": {
+    "title": "Einstellungen",
+    "username": {
+      "title": "Benutzername",
+      "label": "Benutzername",
+      "hint": "3–20 Zeichen: Kleinbuchstaben a–z, Ziffern 0–9 und Unterstrich (_).",
+      "placeholder": "dein_callsign",
+      "save": "Speichern",
+      "saving": "Speichere…",
+      "saved": "Benutzername gespeichert.",
+      "errInvalid": "Ungültiger Benutzername. 3–20 Zeichen: a–z, 0–9, _.",
+      "errTaken": "Dieser Benutzername ist bereits vergeben.",
+      "errGeneric": "Benutzername konnte nicht gespeichert werden. Bitte erneut versuchen."
+    },
+    "language": {
+      "title": "Sprache",
+      "label": "Sprache"
+    },
+    "danger": {
+      "title": "Account löschen",
+      "warning": "Deinen Account endgültig löschen. Auch deine Uploads + Bundles verschwinden. Nicht rückgängig machbar.",
+      "deleteBtn": "Meinen Account löschen",
+      "deleting": "Lösche…",
+      "confirm": "Dein Account ({{email}}) wird endgültig gelöscht. Auch deine Uploads + Bundles verschwinden. Du wirst danach ausgeloggt. Sicher?",
+      "failed": "Löschen fehlgeschlagen"
+    }
+  },
   "admin": {
     "title": "Admin · User-Management",
     "subtitle": "Nur Admins können Rollen ändern. Letzter Admin kann nicht demoted werden — promote vorher einen weiteren Admin.",
@@ -495,6 +525,7 @@
     },
     "tokens": {
       "navLink": "API-Tokens",
+      "docsLink": "API-Dokumentation ↗",
       "title": "Admin · API-Tokens",
       "subtitle": "Bearer-Tokens für die öffentliche /v1-API ausstellen. Tokens werden EINMALIG im Klartext angezeigt — sicher im Passwort-Manager ablegen.",
       "refresh": "Aktualisieren",
@@ -543,6 +574,13 @@
         "ack": "Ich hab's gesichert",
         "tokenLabel": "Klartext-Token"
       }
+    },
+    "filter": {
+      "searchPlaceholder": "Name, Username oder E-Mail suchen…",
+      "allRoles": "Alle Rollen",
+      "count": "{{shown}} von {{total}}",
+      "clear": "Filter zurücksetzen",
+      "noMatches": "Keine User passen zu den Filtern."
     }
   },
   "desktop": {
@@ -692,8 +730,9 @@
     "placeholder": "Schiffe, Waffen, Komponenten durchsuchen…",
     "searching": "Suche…",
     "noResults": "Keine Treffer.",
-    "hint": "Tippe um zu suchen — Enter öffnet den ersten Treffer. Strg+K öffnet die Suche überall.",
-    "addToHangar": "→ Hangar"
+    "hint": "Tippe um zu suchen — ↑↓ zum Navigieren, Enter öffnet den markierten Treffer. Strg+K öffnet die Suche überall.",
+    "addToHangar": "→ Hangar",
+    "navHint": "↑↓ navigieren · ↵ öffnen · esc schließen"
   },
   "telemetry": {
     "title": "Telemetrie & Crash-Statistik",

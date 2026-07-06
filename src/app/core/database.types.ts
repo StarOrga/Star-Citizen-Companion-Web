@@ -1097,9 +1097,11 @@ export type Database = {
           id: string
           is_approved: boolean
           preferred_channel: string | null
+          preferred_lang: string | null
           role: string
           rsi_handle: string | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           created_at?: string
@@ -1107,9 +1109,11 @@ export type Database = {
           id: string
           is_approved?: boolean
           preferred_channel?: string | null
+          preferred_lang?: string | null
           role?: string
           rsi_handle?: string | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           created_at?: string
@@ -1117,9 +1121,11 @@ export type Database = {
           id?: string
           is_approved?: boolean
           preferred_channel?: string | null
+          preferred_lang?: string | null
           role?: string
           rsi_handle?: string | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -1288,6 +1294,7 @@ export type Database = {
           id: string
           last_sign_in_at: string
           role: string
+          username: string | null
         }[]
       }
       set_bundle_disabled: {
@@ -1298,8 +1305,16 @@ export type Database = {
         Args: { p_build_id: string }
         Returns: undefined
       }
+      set_preferred_lang: {
+        Args: { lang: string }
+        Returns: undefined
+      }
       set_user_role: {
         Args: { new_role: string; target_id: string }
+        Returns: undefined
+      }
+      set_username: {
+        Args: { new_name: string }
         Returns: undefined
       }
     }

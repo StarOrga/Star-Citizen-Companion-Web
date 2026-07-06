@@ -1,12 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { FooterComponent } from './footer.component';
 import { QuickSearchComponent } from './quick-search.component';
-
-type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
 
 @Component({
   selector: 'sc-shell',
@@ -44,17 +50,42 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
             {{ 'nav.telemetry' | translate }}
           </a>
         }
-        <a routerLink="/profile" routerLinkActive="active">{{ 'nav.profile' | translate }}</a>
       </nav>
 
       <div class="actions">
         <sc-quick-search />
-        <select class="sc-select lang" [value]="currentLang()" (change)="setLang(asLangValue($event))" [attr.aria-label]="'nav.langAria' | translate">
-          @for (l of locales; track l) {
-            <option [value]="l">{{ l.toUpperCase() }}</option>
+
+        <div class="profile-menu">
+          <button
+            type="button"
+            class="avatar-btn"
+            (click)="toggleMenu($event)"
+            [attr.aria-label]="'nav.accountMenu' | translate"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="menuOpen()">
+            {{ avatarInitial() }}
+          </button>
+
+          @if (menuOpen()) {
+            <div class="dropdown" role="menu" (keydown)="onMenuKeydown($event)">
+              <a
+                class="dropdown-item"
+                role="menuitem"
+                routerLink="/settings"
+                (click)="closeMenu()">
+                {{ 'nav.settings' | translate }}
+              </a>
+              <button
+                type="button"
+                class="dropdown-item"
+                role="menuitem"
+                [disabled]="signingOut()"
+                (click)="doSignOut()">
+                {{ 'nav.signOut' | translate }}
+              </button>
+            </div>
           }
-        </select>
-        <button class="sc-btn" [disabled]="signingOut()" (click)="doSignOut()">{{ 'nav.signOut' | translate }}</button>
+        </div>
       </div>
     </header>
 
@@ -131,23 +162,74 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
       gap: 8px;
       align-items: center;
     }
-    .sc-select.lang {
-      background: var(--sc-bg-1);
-      color: var(--sc-fg-0);
+
+    .profile-menu { position: relative; }
+    .avatar-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
       border: 1px solid var(--sc-border);
-      border-radius: 4px;
-      padding: 6px 10px;
+      background: var(--sc-bg-1);
+      color: var(--sc-accent);
       font-family: var(--sc-font-display);
-      font-size: 0.75rem;
-      letter-spacing: 0.08em;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0;
       cursor: pointer;
-      min-width: 60px;
+      transition: all 0.18s ease;
     }
-    .sc-select.lang:focus {
+    .avatar-btn:hover {
+      border-color: var(--sc-accent);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+    }
+    .avatar-btn:focus-visible {
       outline: none;
       border-color: var(--sc-accent);
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35);
     }
+
+    .dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      min-width: 180px;
+      display: flex;
+      flex-direction: column;
+      padding: 6px;
+      background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
+      border: 1px solid var(--sc-border);
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), var(--sc-glow);
+      z-index: 30;
+    }
+    .dropdown-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 9px 12px;
+      background: transparent;
+      border: 0;
+      border-radius: 4px;
+      color: var(--sc-fg-1);
+      font-family: var(--sc-font-display);
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .dropdown-item:hover:not(:disabled),
+    .dropdown-item:focus-visible {
+      outline: none;
+      color: var(--sc-accent);
+      background: rgba(0, 212, 255, 0.1);
+    }
+    .dropdown-item:disabled { opacity: 0.5; cursor: default; }
+
     .content {
       flex: 1;
       width: 100%;
@@ -159,36 +241,100 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
       .topbar { gap: 12px; padding: 10px 16px; }
       .brand { min-width: 0; }
       .brand .title { display: none; }
-      .nav a { padding: 6px 10px; font-size: 0.7rem; }
+      /* Nav becomes a horizontally-scrollable strip so links never overflow
+         the row or wrap awkwardly onto multiple lines. */
+      .nav {
+        flex: 1 1 100%;
+        order: 3;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        margin: 0 -16px;
+        padding: 2px 16px;
+      }
+      .nav::-webkit-scrollbar { display: none; }
+      .nav a { padding: 8px 12px; font-size: 0.72rem; white-space: nowrap; flex: 0 0 auto; }
+      .actions { flex: 1; justify-content: flex-end; }
       .content { padding: 20px 16px; }
+    }
+    @media (max-width: 400px) {
+      .topbar { padding: 8px 12px; }
+      .nav { margin: 0 -12px; padding: 2px 12px; }
+      /* Anchor the dropdown to the viewport edges so a 180px menu can't push
+         the page wider than the screen. */
+      .dropdown { right: 0; left: auto; min-width: 200px; max-width: calc(100vw - 24px); }
     }
   `],
 })
 export class ShellComponent {
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
-  private readonly translate = inject(TranslateService);
+  private readonly host = inject(ElementRef<HTMLElement>);
 
-  readonly locales: readonly LangId[] = ['de', 'en', 'fr', 'es', 'pt', 'ru', 'zh'];
-  readonly currentLang = computed(() => (this.translate.getCurrentLang() ?? 'en') as LangId);
   readonly signingOut = signal(false);
+  readonly menuOpen = signal(false);
+
+  readonly avatarInitial = computed(() => {
+    const user = this.auth.user();
+    const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
+    const name =
+      (meta['username'] as string | undefined) ??
+      (meta['full_name'] as string | undefined) ??
+      (meta['name'] as string | undefined) ??
+      user?.email ??
+      '';
+    const first = name.trim().charAt(0);
+    return first ? first.toUpperCase() : '?';
+  });
+
+  toggleMenu(event: Event) {
+    event.stopPropagation();
+    this.menuOpen.update((open) => !open);
+  }
+
+  closeMenu() {
+    this.menuOpen.set(false);
+  }
+
+  // Close on any click outside the profile-menu subtree.
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (!this.menuOpen()) return;
+    const menuEl = (this.host.nativeElement as HTMLElement).querySelector('.profile-menu');
+    if (menuEl && !menuEl.contains(event.target as Node)) {
+      this.closeMenu();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    if (this.menuOpen()) this.closeMenu();
+  }
+
+  onMenuKeydown(event: KeyboardEvent) {
+    const items = Array.from(
+      (this.host.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.dropdown-item'),
+    );
+    if (items.length === 0) return;
+    const idx = items.indexOf(document.activeElement as HTMLElement);
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      items[(idx + 1 + items.length) % items.length].focus();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      items[(idx - 1 + items.length) % items.length].focus();
+    }
+  }
 
   async doSignOut() {
     if (this.signingOut()) return;
+    this.closeMenu();
     this.signingOut.set(true);
     try {
       await this.auth.signOut();
     } finally {
       this.signingOut.set(false);
     }
-  }
-
-  setLang(next: LangId) {
-    this.translate.use(next);
-    if (typeof localStorage !== 'undefined') localStorage.setItem('sc.lang', next);
-  }
-
-  asLangValue(e: Event): LangId {
-    return (e.target as HTMLSelectElement).value as LangId;
   }
 }

@@ -4,6 +4,65 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.0] - 2026-07-06
+
+### Added
+
+- **Codex freshness hint.** The Codex quality/provenance banner now warns
+  *"requires a data upload — a newer game version is live than this catalog
+  reflects"* when the current build is behind the newest uploaded LIVE patch
+  (read from the viewer-safe `p4k_bundles_public_stats` view via a tolerant
+  patch comparison). An **"Open Data Uploader"** link is shown **only** to
+  collaborators/admins — the same gate as the nav tab.
+- **Desktop upload now feeds the public Codex.** After a successful bundle
+  upload the Data Uploader drives the `ingest-catalog` pipeline from the same
+  extract, so a desktop upload refreshes `codex_builds`/`codex_ships` (which the
+  public `/codex` reads) instead of only `p4k_bundles`. Runs before cleanup and
+  is non-fatal — a catalog failure never blocks the confirmed bundle upload.
+
+### Hardened
+
+- Catalog promotion refuses to flip `is_current` onto an empty/partial extract
+  (no ships **and** no manufacturers), so a broken upload can never blank the
+  live Codex — the last good build stays live.
+
+## [0.23.0] - 2026-07-06
+
+### Added
+
+- **Account settings page (`/settings`).** The standalone Profile menu item is
+  gone — a profile avatar dropdown (top-right) now offers Settings and Sign out.
+  Settings bundles read-only account info, a **unique username** (validated
+  `a–z 0–9 _`, 3–20 chars, case-insensitive uniqueness), the **language
+  switcher** (moved from the topbar; persists to the profile and applies on the
+  next login), and a **delete-my-account** danger zone.
+- **Admin user list: filtering & sorting.** Search across name/username/email,
+  a role filter, an X-of-Y result count with clear-all, and click-to-sort
+  columns (user, email, role, joined, last-seen; nulls sort last). The new
+  `username` is shown as an `@handle` and is searchable/sortable.
+- **Public API OpenAPI export (`docs/api/openapi.json`)** for upload to the
+  readme.io documentation site, plus an "API documentation" link on the API
+  Tokens admin page.
+
+### Changed
+
+- **Ctrl+K quick search — full keyboard operation.** The whole page now blurs
+  behind the palette; the caret stays in the input while ↑/↓ move a highlighted
+  result (scrolled into view) and Enter opens the active one. Listbox/option
+  a11y added.
+- **Comprehensive mobile-responsive pass** across shell, feature pages, admin,
+  settings and uploader — no horizontal page scroll at phone widths, wide tables
+  become scroll-containers, grids/inputs stack, long ids/emails/tokens wrap.
+
+### Database
+
+- Migration `20260706120000_profile_username_lang.sql`: adds `profiles.username`
+  (citext, unique) and `profiles.preferred_lang` (CHECK de/en/fr/es/pt/ru/zh),
+  RPCs `set_username()` / `set_preferred_lang()` (SECURITY DEFINER), and extends
+  `list_users_for_admin()` with `username`. **Not yet applied to the cloud
+  project** — `db:push` is blocked by a pre-existing migration-history desync;
+  username/language/settings-save features error at runtime until it is applied.
+
 ## [0.22.1] - 2026-07-05
 
 ### Security

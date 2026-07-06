@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
+import { isCatalogStale, comparePatchVersion } from './codex-format';
 import {
   CODEX_ENTITY_TABLES,
   BlueprintIngredientPayload,
@@ -169,6 +170,21 @@ export class CodexService {
   readonly buildLoading = signal(false);
   readonly buildError = signal<string | null>(null);
 
+  /**
+   * Newest LIVE patch version anyone has uploaded (from the viewer-safe
+   * `p4k_bundles_public_stats` view), or null if unknown. Compared against the
+   * current build's patch to detect a stale catalog.
+   */
+  readonly latestLivePatch = signal<string | null>(null);
+
+  /**
+   * True when a newer LIVE patch has been uploaded than the one the current
+   * codex build reflects — i.e. the catalog needs a fresh data upload. Drives
+   * the provenance-banner "new server version" hint. Fails closed (never nags
+   * when either version is unknown).
+   */
+  readonly stale = computed(() => isCatalogStale(this.latestLivePatch(), this.build()?.patchVersion));
+
   // Compare tray: pinned `${kind}:${className}` keys (max 4).
   private readonly _compare = signal<string[]>([]);
   readonly compareKeys = this._compare.asReadonly();
@@ -210,12 +226,37 @@ export class CodexService {
       }
       const mapped = mapBuild(data);
       this.build.set(mapped);
+      // Fire-and-forget: freshness check must never block or fail the build load.
+      void this.loadLatestLivePatch();
       return mapped;
     } catch (err) {
       this.buildError.set((err as Error).message ?? 'Unknown error');
       return null;
     } finally {
       this.buildLoading.set(false);
+    }
+  }
+
+  /**
+   * Load the newest uploaded LIVE patch from the viewer-safe public-stats view
+   * and store it. Picks the max by tolerant patch comparison (lexical order is
+   * wrong: "4.8.0" vs "4.10.0"). Best-effort: any failure leaves it null, which
+   * simply means "no staleness nag" rather than surfacing an error.
+   */
+  private async loadLatestLivePatch(): Promise<void> {
+    try {
+      const { data, error } = await this.sb.client
+        .from('p4k_bundles_public_stats')
+        .select('patch_version')
+        .eq('channel', 'live');
+      if (error || !data?.length) return;
+      const newest = data
+        .map((r) => r.patch_version as string | null)
+        .filter((p): p is string => !!p)
+        .reduce((max, p) => (comparePatchVersion(p, max) > 0 ? p : max), '');
+      if (newest) this.latestLivePatch.set(newest);
+    } catch {
+      /* freshness is advisory — never surface an error for it */
     }
   }
 

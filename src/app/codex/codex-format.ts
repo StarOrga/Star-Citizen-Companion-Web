@@ -840,6 +840,46 @@ export function formatQuality(q: number | null | undefined): string {
   return `${Math.round(q * 100)} %`;
 }
 
+// ── patch-version comparison (data-freshness) ─────────────────────────────────
+
+/**
+ * Compare two Star-Citizen patch strings tolerantly. Returns 1 if `a` is newer
+ * than `b`, -1 if older, 0 if equal-or-incomparable.
+ *
+ * SC patch labels are messy across extractor/uploader versions — "4.x",
+ * "4.8.0", "4.8.0-LIVE.9876543", "PTU-4.9". We compare only the leading integer
+ * groups (`4.8.0` → [4,8,0]); missing groups count as 0 so "4" == "4.0.0" and
+ * "4.x" (→ [4]) sorts BELOW "4.8.0". Anything non-numeric is ignored, so a
+ * schema change that reformats the label never throws — it just degrades to a
+ * best-effort numeric compare.
+ */
+export function comparePatchVersion(a: string | null | undefined, b: string | null | undefined): number {
+  const parts = (v: string | null | undefined): number[] =>
+    (v ?? '').match(/\d+/g)?.map(Number) ?? [];
+  const pa = parts(a);
+  const pb = parts(b);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const x = pa[i] ?? 0;
+    const y = pb[i] ?? 0;
+    if (x !== y) return x > y ? 1 : -1;
+  }
+  return 0;
+}
+
+/**
+ * Whether a `latest` known patch is strictly newer than the `current` codex
+ * build's patch — i.e. the catalog is stale and a fresh data upload is needed.
+ * Never true when either side is missing (fail closed → no false "stale" nag).
+ */
+export function isCatalogStale(
+  latest: string | null | undefined,
+  current: string | null | undefined,
+): boolean {
+  if (!latest || !current) return false;
+  return comparePatchVersion(latest, current) > 0;
+}
+
 // ── ship equipment summary ────────────────────────────────────────────────────
 
 export interface PortSummaryEntry {

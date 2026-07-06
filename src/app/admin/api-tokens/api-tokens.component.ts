@@ -21,6 +21,9 @@ interface FlashMessage {
   text: string;
 }
 
+/** Public API documentation (readme.io). One-line change if the host moves. */
+const README_IO_URL = 'https://star-citizen-companion.readme.io';
+
 @Component({
   selector: 'sc-api-tokens',
   standalone: true,
@@ -32,6 +35,9 @@ interface FlashMessage {
         <div>
           <h1>{{ 'admin.tokens.title' | translate }}</h1>
           <p class="hint">{{ 'admin.tokens.subtitle' | translate }}</p>
+          <a class="docs-link" [href]="readmeUrl" target="_blank" rel="noopener noreferrer">
+            {{ 'admin.tokens.docsLink' | translate }}
+          </a>
         </div>
         <div class="head-actions">
           <button class="sc-btn" (click)="refresh()" [disabled]="busy()">
@@ -197,6 +203,16 @@ interface FlashMessage {
     }
     .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 70ch; }
+    .docs-link {
+      display: inline-block;
+      margin-top: 8px;
+      color: var(--sc-accent);
+      font-family: var(--sc-font-display);
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+    }
+    .docs-link:hover { text-decoration: underline; }
 
     .sc-btn-primary {
       background: var(--sc-accent);
@@ -421,8 +437,18 @@ interface FlashMessage {
 
     @media (max-width: 640px) {
       .head { flex-direction: column; align-items: stretch; }
+      .head-actions .sc-btn { flex: 1; justify-content: center; }
       .scope-row { grid-template-columns: 1fr; padding: 8px 0; }
       .scope-code { min-width: 0; }
+      .reveal-token-row { flex-direction: column; }
+      /* Token table scrolls horizontally instead of overflowing the page. */
+      .table {
+        display: block;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+      .table thead, .table tbody { display: table; width: 100%; min-width: 620px; }
     }
   `],
 })
@@ -431,6 +457,7 @@ export class ApiTokensComponent implements OnInit {
   private readonly translate = inject(TranslateService);
 
   readonly allScopes = API_TOKEN_SCOPES;
+  readonly readmeUrl = README_IO_URL;
 
   readonly tokens = signal<ApiTokenRow[]>([]);
   readonly busy = signal(false);

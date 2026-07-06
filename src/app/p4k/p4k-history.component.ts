@@ -248,6 +248,7 @@ import { RoleService } from '../auth/role.service';
     .summary-general {
       display: flex;
       gap: 32px;
+      flex-wrap: wrap;
       padding: 16px 22px;
       border-bottom: 1px solid var(--sc-border);
     }
@@ -264,6 +265,7 @@ import { RoleService } from '../auth/role.service';
       display: flex;
       align-items: center;
       gap: 24px;
+      flex-wrap: wrap;
       padding: 10px 22px;
       border-top: 1px solid var(--sc-border);
     }
@@ -385,6 +387,7 @@ import { RoleService } from '../auth/role.service';
     }
 
     .uploader { display: flex; flex-direction: column; gap: 2px; line-height: 1.2; }
+    .uploader span { overflow-wrap: anywhere; }
 
     .diff-cell .diff-mini {
       font-family: monospace;
@@ -463,6 +466,26 @@ import { RoleService } from '../auth/role.service';
     .sc-btn.micro.danger:hover:not(:disabled) {
       background: var(--sc-danger);
       color: var(--sc-bg-0);
+    }
+
+    @media (max-width: 720px) {
+      /* Wide 11-column table scrolls horizontally instead of overflowing the page. */
+      .table {
+        display: block;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+      .table thead, .table tbody { display: table; width: 100%; min-width: 900px; }
+    }
+    @media (max-width: 560px) {
+      .head { align-items: stretch; }
+      .header-actions { justify-content: flex-start; }
+      .summary-general { gap: 20px; padding: 14px 16px; }
+      .summary-channels-label { padding: 12px 16px 4px; }
+      .summary-row { gap: 14px 18px; padding: 10px 16px; }
+      .kpi-value { font-size: 1.25rem; }
+      .sum-quality, .sum-entities { font-size: 1.1rem; }
     }
   `],
 })

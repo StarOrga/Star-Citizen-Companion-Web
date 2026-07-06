@@ -212,6 +212,20 @@ export const api = {
     ): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('sc:cleanup:extractDir', outDir, info),
   },
+  catalog: {
+    // Promote a just-uploaded extract into the public Codex (codex_* tables).
+    upload: (
+      accessToken: string,
+      outDir: string,
+    ): Promise<{ ok: boolean; buildId?: string; counts?: Record<string, number>; error?: string }> =>
+      ipcRenderer.invoke('sc:catalog:upload', accessToken, outDir),
+    onEvent: (cb: (ev: { phase: string; current: number; total: number }) => void): (() => void) => {
+      const listener = (_e: unknown, payload: { phase: string; current: number; total: number }): void =>
+        cb(payload);
+      ipcRenderer.on('sc:catalog:event', listener);
+      return () => ipcRenderer.removeListener('sc:catalog:event', listener);
+    },
+  },
   extract: {
     env: (): Promise<{ interpreter: string; cwd: string; source: 'env' | 'packaged' | 'dev-path' }> =>
       ipcRenderer.invoke('sc:extract:env'),

@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CODEX_KINDS, CodexService } from './codex.service';
+import { RoleService } from '../auth/role.service';
 
 interface CoverageRow {
   kind: string;
@@ -19,7 +21,7 @@ interface CoverageRow {
 @Component({
   selector: 'sc-codex-status-banner',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (svc.build(); as b) {
@@ -34,6 +36,16 @@ interface CoverageRow {
           }
           <span class="caret" aria-hidden="true">{{ expanded() ? '▾' : '▸' }}</span>
         </button>
+
+        @if (svc.stale()) {
+          <div class="stale" role="status">
+            <span class="stale-dot" aria-hidden="true">●</span>
+            <span class="stale-txt">{{ 'codex.status.stale' | translate }}</span>
+            @if (roles.isCollaborator()) {
+              <a class="stale-link" routerLink="/uploader">{{ 'codex.status.staleUploadLink' | translate }} →</a>
+            }
+          </div>
+        }
 
         @if (expanded()) {
           <div class="detail">
@@ -85,11 +97,20 @@ interface CoverageRow {
       .cov-n { font-size: 0.68rem; color: var(--sc-fg-0); font-family: var(--sc-font-mono, monospace); white-space: nowrap; }
       .cov-tot { color: var(--sc-fg-2); }
       .hint { margin: 4px 0 0; font-size: 0.66rem; color: var(--sc-fg-2); font-style: italic; }
+      .stale { display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+        padding: 7px 14px; border-top: 1px solid var(--sc-border);
+        background: color-mix(in srgb, var(--sc-warning, #d29922) 12%, transparent); }
+      .stale-dot { color: var(--sc-warning, #d29922); font-size: 0.6rem; line-height: 1; }
+      .stale-txt { font-size: 0.7rem; color: var(--sc-fg-1); }
+      .stale-link { font-size: 0.7rem; font-weight: 600; color: var(--sc-accent);
+        text-decoration: none; white-space: nowrap; margin-left: auto; }
+      .stale-link:hover { text-decoration: underline; }
     `,
   ],
 })
 export class CodexStatusBannerComponent {
   readonly svc = inject(CodexService);
+  readonly roles = inject(RoleService);
   readonly expanded = signal(false);
 
   toggle(): void {

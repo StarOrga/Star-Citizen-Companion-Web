@@ -21,12 +21,13 @@
     "news": "Verse News",
     "codex": "Codex",
     "p4k": "Bundle History",
-    "profile": "Profile",
+    "settings": "Settings",
     "admin": "Admin",
     "desktop": "Data Uploader",
     "signOut": "Sign out",
     "brandAria": "Star Citizen Companion (SCC)",
     "langAria": "Language",
+    "accountMenu": "Account menu",
     "hangar": "Hangar",
     "telemetry": "Telemetry"
   },
@@ -71,7 +72,9 @@
       "extracted": "Extracted",
       "tool": "Extractor",
       "coverage": "Coverage",
-      "qualityHint": "Quality score is preliminary until it's computed for real."
+      "qualityHint": "Quality score is preliminary until it's computed for real.",
+      "stale": "Requires a data upload — a newer game version is live than this catalog reflects.",
+      "staleUploadLink": "Open Data Uploader"
     },
     "search": {
       "placeholder": "Search name or class (e.g. Gladius, AEGS_*)…",
@@ -456,6 +459,33 @@
       "viewer": "Viewer"
     }
   },
+  "settings": {
+    "title": "Settings",
+    "username": {
+      "title": "Username",
+      "label": "Username",
+      "hint": "3–20 characters: lowercase letters a–z, digits 0–9 and underscore (_).",
+      "placeholder": "your_callsign",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Username saved.",
+      "errInvalid": "Invalid username. Use 3–20 chars: a–z, 0–9, _.",
+      "errTaken": "That username is already taken.",
+      "errGeneric": "Could not save username. Please try again."
+    },
+    "language": {
+      "title": "Language",
+      "label": "Language"
+    },
+    "danger": {
+      "title": "Delete account",
+      "warning": "Permanently delete your account. Your uploads + bundles go too. This cannot be undone.",
+      "deleteBtn": "Delete my account",
+      "deleting": "Deleting…",
+      "confirm": "Your account ({{email}}) will be permanently deleted. Your uploads + bundles go too. You'll be signed out afterwards. Sure?",
+      "failed": "Delete failed"
+    }
+  },
   "admin": {
     "title": "Admin · User Management",
     "subtitle": "Only admins can change roles. The last admin cannot be demoted — promote another admin first.",
@@ -495,6 +525,7 @@
     },
     "tokens": {
       "navLink": "API Tokens",
+      "docsLink": "API documentation ↗",
       "title": "Admin · API Tokens",
       "subtitle": "Issue bearer tokens for the public /v1 API. Tokens are shown ONCE in plaintext — store them in your secrets manager.",
       "refresh": "Refresh",
@@ -543,6 +574,13 @@
         "ack": "I have saved it",
         "tokenLabel": "Plaintext token"
       }
+    },
+    "filter": {
+      "searchPlaceholder": "Search name, username or email…",
+      "allRoles": "All roles",
+      "count": "{{shown}} of {{total}}",
+      "clear": "Clear filters",
+      "noMatches": "No users match the filters."
     }
   },
   "desktop": {
@@ -692,8 +730,9 @@
     "placeholder": "Search ships, weapons, components…",
     "searching": "Searching…",
     "noResults": "No matches.",
-    "hint": "Type to search — Enter opens the first match. Ctrl+K opens this search anywhere.",
-    "addToHangar": "→ Hangar"
+    "hint": "Type to search — ↑↓ to navigate, Enter opens the highlighted match. Ctrl+K opens this search anywhere.",
+    "addToHangar": "→ Hangar",
+    "navHint": "↑↓ navigate · ↵ open · esc close"
   },
   "telemetry": {
     "title": "Telemetry & Crash Stats",

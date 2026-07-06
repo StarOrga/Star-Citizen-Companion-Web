@@ -123,6 +123,12 @@
     "toggle": "Fehlerberichte senden",
     "hint": "Sendet anonyme Absturzberichte (keine persönlichen Daten), damit Fehler behoben werden können. Jederzeit abschaltbar."
   },
+  "catalog": {
+    "publishing": "Codex wird veröffentlicht",
+    "published": "Codex aktualisiert",
+    "ships": "Schiffe",
+    "failed": "Codex-Veröffentlichung fehlgeschlagen"
+  },
   "skins": {
     "open": "3D-Skins extrahieren",
     "title": "3D-Skins extrahieren & hochladen",
