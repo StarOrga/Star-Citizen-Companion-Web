@@ -25,6 +25,7 @@ import {
   collectPorts,
   collectIngredients,
   dedupeStrings,
+  hasViableCatalog,
   mapManufacturers,
   mapShips,
   mapWeapons,
@@ -311,6 +312,14 @@ export async function uploadCatalog(
     }
 
     // 10. finalize (flip is_current) ---------------------------------------
+    // Hardening: never promote an empty/partial build to live. If the extract
+    // yielded no ships AND no manufacturers, the out_dir was corrupt or its
+    // layout changed — leave the build row written but is_current untouched so
+    // the codex keeps showing the last good build.
+    if (!hasViableCatalog(counts)) {
+      log.warn(`[catalog] not finalizing empty/partial build ${buildId} (counts: ${JSON.stringify(counts)})`);
+      return { ok: false, buildId, counts, error: 'empty_catalog' };
+    }
     onProgress({ phase: 'finalize', current: 0, total: 1 });
     await post('finalize', { build_id: buildId, entity_counts: { ...(manifest.entity_counts as object), seeded: counts } });
     onProgress({ phase: 'finalize', current: 1, total: 1 });

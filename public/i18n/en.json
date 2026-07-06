@@ -72,7 +72,9 @@
       "extracted": "Extracted",
       "tool": "Extractor",
       "coverage": "Coverage",
-      "qualityHint": "Quality score is preliminary until it's computed for real."
+      "qualityHint": "Quality score is preliminary until it's computed for real.",
+      "stale": "Requires a data upload — a newer game version is live than this catalog reflects.",
+      "staleUploadLink": "Open Data Uploader"
     },
     "search": {
       "placeholder": "Search name or class (e.g. Gladius, AEGS_*)…",

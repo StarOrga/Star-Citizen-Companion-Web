@@ -290,6 +290,16 @@ export function mapBlueprints(list: Record<string, unknown>[], tag: Tag): Entity
   });
 }
 
+/**
+ * Whether a promotion produced enough to safely become the live catalog. A real
+ * extract always yields manufacturers + ships; if BOTH are empty the out_dir was
+ * partial or corrupt (a changed extractor layout, an interrupted run…), so the
+ * caller must NOT flip is_current onto it — the last good build stays live.
+ */
+export function hasViableCatalog(counts: Record<string, number>): boolean {
+  return (counts.ships ?? 0) > 0 || (counts.manufacturers ?? 0) > 0;
+}
+
 /** Collect blueprint ingredient rows across all blueprints. */
 export function collectIngredients(
   buildId: string,

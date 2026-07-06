@@ -8,6 +8,7 @@ import {
   collectPorts,
   collectIngredients,
   dedupeStrings,
+  hasViableCatalog,
   mapShips,
   mapManufacturers,
   type Nat,
@@ -106,6 +107,17 @@ describe('collectPorts', () => {
     // non-array itemPorts is a no-op
     collectPorts(out, BUILD, nat, 'X', 'ship', undefined);
     expect(out).toHaveLength(1);
+  });
+});
+
+describe('hasViableCatalog', () => {
+  it('is viable when ships or manufacturers were produced', () => {
+    expect(hasViableCatalog({ ships: 308, manufacturers: 0 })).toBe(true);
+    expect(hasViableCatalog({ ships: 0, manufacturers: 12 })).toBe(true);
+  });
+  it('is NOT viable when both core kinds are empty (protects is_current)', () => {
+    expect(hasViableCatalog({ ships: 0, manufacturers: 0, weapons: 5 })).toBe(false);
+    expect(hasViableCatalog({})).toBe(false);
   });
 });
 
