@@ -1080,6 +1080,11 @@ async function doUploadAfterAuth(): Promise<void> {
   );
   paintDiffSummary(r.diffSummary);
 
+  // Promote the extract into the public Codex (codex_* tables) BEFORE cleanup,
+  // so the out_dir still exists. Non-fatal: the bundle upload already succeeded;
+  // a codex failure only means the public catalog isn't refreshed this run.
+  await promoteToCodex(result.output_dir);
+
   // Upload confirmed — reclaim the run's extracted files so they don't fill
   // the disk. Best-effort: the main process guards + swallows failures.
   const outDir = state.lastResult?.output_dir;
@@ -1096,6 +1101,40 @@ async function doUploadAfterAuth(): Promise<void> {
         'ok',
       );
     }
+  }
+}
+
+// Drive the codex promotion with a live per-table progress line. Non-fatal:
+// any failure is surfaced as a warning but never blocks the confirmed upload.
+async function promoteToCodex(outDir: string | undefined): Promise<void> {
+  if (!outDir || !state.authToken) return;
+  const label = t('catalog.publishing', {}) || 'Codex wird veröffentlicht';
+  setAuthStatus(`${label}…`, 'warn');
+  const unsub = window.sc.catalog.onEvent((ev) => {
+    const pct = ev.total > 0 ? Math.round((ev.current / ev.total) * 100) : 0;
+    setAuthStatus(`${label}: ${ev.phase} ${ev.current}/${ev.total} (${pct}%)`, 'warn');
+  });
+  try {
+    const res = await window.sc.catalog.upload(state.authToken, outDir);
+    if (res.ok) {
+      const ships = res.counts?.['ships'] ?? 0;
+      setAuthStatus(
+        `${t('catalog.published', {}) || 'Codex aktualisiert'} · ${ships} ${t('catalog.ships', {}) || 'Schiffe'}`,
+        'ok',
+      );
+    } else {
+      setAuthStatus(
+        `${t('catalog.failed', {}) || 'Codex-Veröffentlichung fehlgeschlagen'}: ${res.error ?? '—'}`,
+        'error',
+      );
+    }
+  } catch (err) {
+    setAuthStatus(
+      `${t('catalog.failed', {}) || 'Codex-Veröffentlichung fehlgeschlagen'}: ${(err as Error).message}`,
+      'error',
+    );
+  } finally {
+    unsub();
   }
 }
 

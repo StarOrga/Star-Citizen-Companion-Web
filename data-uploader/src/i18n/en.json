@@ -119,6 +119,12 @@
     "hoursAgo": "{{n}} h ago",
     "daysAgo": "{{n}} d ago"
   },
+  "catalog": {
+    "publishing": "Publishing to Codex",
+    "published": "Codex updated",
+    "ships": "ships",
+    "failed": "Codex publish failed"
+  },
   "skins": {
     "open": "Extract 3D skins",
     "title": "Extract & upload 3D skins",

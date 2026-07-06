@@ -119,6 +119,12 @@
     "hoursAgo": "vor {{n}} Std",
     "daysAgo": "vor {{n}} Tg"
   },
+  "catalog": {
+    "publishing": "Codex wird veröffentlicht",
+    "published": "Codex aktualisiert",
+    "ships": "Schiffe",
+    "failed": "Codex-Veröffentlichung fehlgeschlagen"
+  },
   "skins": {
     "open": "3D-Skins extrahieren",
     "title": "3D-Skins extrahieren & hochladen",

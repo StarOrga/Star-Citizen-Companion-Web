@@ -32,6 +32,7 @@ import {
   type SkinExportFinal,
 } from './skin-bridge.js';
 import { uploadSkins, type SkinUploadResult } from './skin-ingest.js';
+import { uploadCatalog, type CatalogUploadResult } from './catalog-bridge.js';
 import {
   persistAuthResult,
   ensureAccessToken,
@@ -243,6 +244,17 @@ ipcMain.handle(
     uploadSkins(accessToken, ships, (message, level) =>
       event.sender.send('sc:skin:event', { jobId: 'upload', type: 'log', message, level: level ?? 'info' }),
     ),
+);
+
+// ============= Catalog-promotion IPC =============
+
+// Feed the just-uploaded extract into the public Codex (codex_* tables) via
+// ingest-catalog. Runs AFTER the bundle upload and BEFORE cleanup so the
+// out_dir still exists. Streams per-table progress to the renderer.
+ipcMain.handle(
+  'sc:catalog:upload',
+  async (event, accessToken: string, outDir: string): Promise<CatalogUploadResult> =>
+    uploadCatalog(accessToken, outDir, (p) => event.sender.send('sc:catalog:event', p)),
 );
 
 // ============= Cleanup IPC =============
