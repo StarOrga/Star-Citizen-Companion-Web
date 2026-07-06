@@ -572,6 +572,13 @@
         "ack": "Ich hab's gesichert",
         "tokenLabel": "Klartext-Token"
       }
+    },
+    "filter": {
+      "searchPlaceholder": "Name, Username oder E-Mail suchen…",
+      "allRoles": "Alle Rollen",
+      "count": "{{shown}} von {{total}}",
+      "clear": "Filter zurücksetzen",
+      "noMatches": "Keine User passen zu den Filtern."
     }
   },
   "desktop": {
@@ -721,8 +728,9 @@
     "placeholder": "Schiffe, Waffen, Komponenten durchsuchen…",
     "searching": "Suche…",
     "noResults": "Keine Treffer.",
-    "hint": "Tippe um zu suchen — Enter öffnet den ersten Treffer. Strg+K öffnet die Suche überall.",
-    "addToHangar": "→ Hangar"
+    "hint": "Tippe um zu suchen — ↑↓ zum Navigieren, Enter öffnet den markierten Treffer. Strg+K öffnet die Suche überall.",
+    "addToHangar": "→ Hangar",
+    "navHint": "↑↓ navigieren · ↵ öffnen · esc schließen"
   },
   "telemetry": {
     "title": "Telemetrie & Crash-Statistik",

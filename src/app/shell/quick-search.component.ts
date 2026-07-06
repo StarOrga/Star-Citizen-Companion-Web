@@ -52,10 +52,16 @@ const PER_KIND_LIMIT = 6;
             #searchBox
             class="qs-input"
             type="search"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="qs-results-list"
+            [attr.aria-activedescendant]="activeDescendant()"
             [ngModel]="query()"
             (ngModelChange)="onQuery($event)"
-            (keyup.escape)="close()"
-            (keyup.enter)="openFirst()"
+            (keydown.escape)="close()"
+            (keydown.enter)="onEnter($event)"
+            (keydown.arrowdown)="moveActive($event, 1)"
+            (keydown.arrowup)="moveActive($event, -1)"
             [attr.placeholder]="'quickSearch.placeholder' | translate" />
 
           @if (loading()) {
@@ -67,9 +73,15 @@ const PER_KIND_LIMIT = 6;
           }
 
           @if (results().length > 0) {
-            <ul class="qs-results">
-              @for (r of results(); track r.kind + ':' + r.row.classNameSlug) {
-                <li class="qs-row" (click)="openResult(r)">
+            <ul class="qs-results" id="qs-results-list" role="listbox">
+              @for (r of results(); track r.kind + ':' + r.row.classNameSlug; let i = $index) {
+                <li class="qs-row"
+                    role="option"
+                    [id]="'qs-opt-' + i"
+                    [class.active]="i === activeIndex()"
+                    [attr.aria-selected]="i === activeIndex()"
+                    (click)="openResult(r)"
+                    (mouseenter)="activeIndex.set(i)">
                   <span class="qs-kind">{{ ('codex.kindSingular.' + r.kind) | translate }}</span>
                   <span class="qs-name">{{ name(r.row) }}</span>
                   <span class="qs-chips">
@@ -93,6 +105,8 @@ const PER_KIND_LIMIT = 6;
               }
             </ul>
           }
+
+          <p class="qs-nav-hint">{{ 'quickSearch.navHint' | translate }}</p>
         </div>
       </div>
     }
@@ -115,7 +129,8 @@ const PER_KIND_LIMIT = 6;
 
     .overlay {
       position: fixed; inset: 0; z-index: 100;
-      background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(3px);
+      background: rgba(0, 0, 0, 0.68);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
       display: flex; justify-content: center; align-items: flex-start;
       padding: 12vh 16px 16px;
     }
@@ -136,7 +151,8 @@ const PER_KIND_LIMIT = 6;
       padding: 9px 10px; border-radius: 6px; cursor: pointer;
       background: var(--sc-bg-0); border: 1px solid transparent;
     }
-    .qs-row:hover { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
+    .qs-row:hover,
+    .qs-row.active { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
     .qs-kind {
       flex: 0 0 auto; width: 92px; font-size: 0.62rem; text-transform: uppercase;
       letter-spacing: 0.07em; color: var(--sc-fg-2);
@@ -153,6 +169,10 @@ const PER_KIND_LIMIT = 6;
     }
     .add-btn:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .in-hangar { font-size: 0.66rem; color: var(--sc-fg-2); font-style: italic; }
+    .qs-nav-hint {
+      margin: 0; padding: 6px 4px 0; border-top: 1px solid var(--sc-border);
+      color: var(--sc-fg-2); font-size: 0.7rem; text-align: center; letter-spacing: 0.03em;
+    }
 
     @media (max-width: 720px) {
       .trigger-label { display: none; }
@@ -172,6 +192,12 @@ export class QuickSearchComponent {
   readonly query = signal('');
   readonly loading = signal(false);
   readonly results = signal<QuickResult[]>([]);
+  readonly activeIndex = signal(0);
+
+  /** id of the currently active <li> for aria-activedescendant (empty when no results). */
+  readonly activeDescendant = computed(() =>
+    this.results().length > 0 ? `qs-opt-${this.activeIndex()}` : null,
+  );
 
   private readonly hangarClassNames = computed(
     () => new Set(this.hangar.ships().map((s) => s.shipClassName)),
@@ -204,6 +230,7 @@ export class QuickSearchComponent {
     this.visible.set(false);
     this.query.set('');
     this.results.set([]);
+    this.activeIndex.set(0);
   }
 
   onQuery(value: string): void {
@@ -212,9 +239,34 @@ export class QuickSearchComponent {
     const term = value.trim();
     if (!term) {
       this.results.set([]);
+      this.activeIndex.set(0);
       return;
     }
     this.searchTimer = setTimeout(() => void this.runSearch(term), SEARCH_DEBOUNCE_MS);
+  }
+
+  /** Move the active row by delta (keyboard nav), clamped to bounds, then scroll it into view. */
+  moveActive(ev: Event, delta: number): void {
+    const count = this.results().length;
+    if (count === 0) return;
+    ev.preventDefault();
+    const next = Math.min(count - 1, Math.max(0, this.activeIndex() + delta));
+    this.activeIndex.set(next);
+    setTimeout(() => {
+      document
+        .getElementById(`qs-opt-${next}`)
+        ?.scrollIntoView({ block: 'nearest' });
+    }, 0);
+  }
+
+  onEnter(ev: Event): void {
+    ev.preventDefault();
+    this.openActive();
+  }
+
+  openActive(): void {
+    const r = this.results()[this.activeIndex()];
+    if (r) this.openResult(r);
   }
 
   name(r: CodexListRow): string {
@@ -230,11 +282,6 @@ export class QuickSearchComponent {
   openResult(r: QuickResult): void {
     this.close();
     void this.router.navigate(['/codex', r.kind, r.row.classNameSlug]);
-  }
-
-  openFirst(): void {
-    const first = this.results()[0];
-    if (first) this.openResult(first);
   }
 
   async addToHangar(ev: Event, row: CodexListRow): Promise<void> {
@@ -256,8 +303,12 @@ export class QuickSearchComponent {
         for (const row of lists[i].rows) merged.push({ kind, row });
       });
       this.results.set(merged);
+      this.activeIndex.set(0);
     } catch {
-      if (seq === this.searchSeq) this.results.set([]);
+      if (seq === this.searchSeq) {
+        this.results.set([]);
+        this.activeIndex.set(0);
+      }
     } finally {
       if (seq === this.searchSeq) this.loading.set(false);
     }

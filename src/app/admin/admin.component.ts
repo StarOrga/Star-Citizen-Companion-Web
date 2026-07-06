@@ -9,10 +9,18 @@ interface AdminUserRow {
   id: string;
   email: string;
   display_name: string | null;
+  username: string | null;
   role: Role;
   created_at: string;
   last_sign_in_at: string | null;
 }
+
+type SortKey = 'user' | 'email' | 'role' | 'joined' | 'lastSeen';
+type SortDir = 'asc' | 'desc';
+type RoleFilter = 'all' | Role;
+
+/** Higher rank = "more privileged"; used for role-column sorting. */
+const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 };
 
 @Component({
   selector: 'sc-admin',
@@ -74,21 +82,60 @@ interface AdminUserRow {
       } @else if (users().length === 0 && !busy()) {
         <div class="sc-card empty">—</div>
       } @else {
+        <div class="filter-bar sc-card">
+          <input type="search"
+                 class="filter-search"
+                 [value]="search()"
+                 (input)="search.set(asInput($event))"
+                 [placeholder]="'admin.filter.searchPlaceholder' | translate"
+                 [attr.aria-label]="'admin.filter.searchPlaceholder' | translate">
+          <select class="filter-role"
+                  [value]="roleFilter()"
+                  (change)="roleFilter.set(asRoleFilter($event))"
+                  [attr.aria-label]="'admin.col.role' | translate">
+            <option value="all">{{ 'admin.filter.allRoles' | translate }}</option>
+            <option value="admin">{{ 'profile.roles.admin' | translate }}</option>
+            <option value="collaborator">{{ 'profile.roles.collaborator' | translate }}</option>
+            <option value="viewer">{{ 'profile.roles.viewer' | translate }}</option>
+          </select>
+          <span class="filter-count">
+            {{ 'admin.filter.count' | translate: { shown: filteredSortedUsers().length, total: users().length } }}
+          </span>
+          @if (filtersActive()) {
+            <button type="button" class="sc-btn micro" (click)="clearFilters()">
+              {{ 'admin.filter.clear' | translate }}
+            </button>
+          }
+        </div>
+
         <table class="sc-card table">
           <thead>
             <tr>
-              <th>{{ 'admin.col.user' | translate }}</th>
-              <th>{{ 'admin.col.email' | translate }}</th>
-              <th>{{ 'admin.col.role' | translate }}</th>
-              <th>{{ 'admin.col.joined' | translate }}</th>
-              <th>{{ 'admin.col.lastSeen' | translate }}</th>
+              <th class="sortable" (click)="toggleSort('user')" [class.active]="sortKey() === 'user'">
+                {{ 'admin.col.user' | translate }}<span class="sort-ind">{{ sortIndicator('user') }}</span>
+              </th>
+              <th class="sortable" (click)="toggleSort('email')" [class.active]="sortKey() === 'email'">
+                {{ 'admin.col.email' | translate }}<span class="sort-ind">{{ sortIndicator('email') }}</span>
+              </th>
+              <th class="sortable" (click)="toggleSort('role')" [class.active]="sortKey() === 'role'">
+                {{ 'admin.col.role' | translate }}<span class="sort-ind">{{ sortIndicator('role') }}</span>
+              </th>
+              <th class="sortable" (click)="toggleSort('joined')" [class.active]="sortKey() === 'joined'">
+                {{ 'admin.col.joined' | translate }}<span class="sort-ind">{{ sortIndicator('joined') }}</span>
+              </th>
+              <th class="sortable" (click)="toggleSort('lastSeen')" [class.active]="sortKey() === 'lastSeen'">
+                {{ 'admin.col.lastSeen' | translate }}<span class="sort-ind">{{ sortIndicator('lastSeen') }}</span>
+              </th>
               <th>{{ 'admin.col.actions' | translate }}</th>
             </tr>
           </thead>
           <tbody>
-            @for (u of users(); track u.id) {
+            @for (u of filteredSortedUsers(); track u.id) {
               <tr [class.is-self]="u.id === selfId()">
-                <td>{{ u.display_name ?? '—' }}</td>
+                <td>
+                  <span class="user-name">{{ u.display_name ?? '—' }}</span>
+                  @if (u.username) { <span class="user-handle">&#64;{{ u.username }}</span> }
+                </td>
                 <td class="mono">{{ u.email }}</td>
                 <td>
                   <span class="role-pill" [class]="u.role">
@@ -132,6 +179,10 @@ interface AdminUserRow {
                   </button>
                 </td>
               </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="no-matches">{{ 'admin.filter.noMatches' | translate }}</td>
+              </tr>
             }
           </tbody>
         </table>
@@ -150,6 +201,50 @@ interface AdminUserRow {
       border-radius: 4px;
     }
     .empty { text-align: center; color: var(--sc-fg-2); padding: 40px; }
+
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      flex-wrap: wrap;
+    }
+    .filter-search {
+      flex: 1 1 220px;
+      min-width: 160px;
+      padding: 8px 12px;
+      background: var(--sc-bg-1);
+      color: var(--sc-fg-0);
+      border: 1px solid var(--sc-border);
+      border-radius: 4px;
+      font: inherit;
+      font-size: 0.88rem;
+    }
+    .filter-role {
+      padding: 8px 12px;
+      background: var(--sc-bg-1);
+      color: var(--sc-fg-0);
+      border: 1px solid var(--sc-border);
+      border-radius: 4px;
+      font: inherit;
+      font-size: 0.88rem;
+    }
+    .filter-search:focus,
+    .filter-role:focus {
+      outline: none;
+      border-color: var(--sc-accent);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
+    }
+    .filter-count {
+      color: var(--sc-fg-2);
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+    .no-matches { text-align: center; color: var(--sc-fg-2); padding: 24px !important; }
+    @media (max-width: 640px) {
+      .filter-search, .filter-role { flex: 1 1 100%; }
+    }
+
     .table { width: 100%; padding: 0; border-collapse: collapse; overflow: hidden; }
     .table th, .table td {
       padding: 10px 14px;
@@ -166,6 +261,12 @@ interface AdminUserRow {
       text-transform: uppercase;
       color: var(--sc-fg-2);
     }
+    .table thead th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    .table thead th.sortable:hover { color: var(--sc-fg-0); }
+    .table thead th.active { color: var(--sc-accent); }
+    .sort-ind { display: inline-block; width: 1em; margin-left: 4px; font-size: 0.8em; }
+    .user-name { display: block; }
+    .user-handle { display: block; color: var(--sc-fg-2); font-size: 0.76rem; font-family: monospace; }
     .table tbody tr:hover { background: rgba(0, 212, 255, 0.04); }
     .table tbody tr.is-self {
       background: rgba(0, 212, 255, 0.06);
@@ -272,6 +373,57 @@ export class AdminComponent implements OnInit {
   readonly selfId = computed(() => this.auth.user()?.id ?? null);
   readonly adminCount = computed(() => this.users().filter((u) => u.role === 'admin').length);
 
+  // Client-side filter + sort state (no refetch — operates over users()).
+  readonly search = signal('');
+  readonly roleFilter = signal<RoleFilter>('all');
+  readonly sortKey = signal<SortKey>('joined');
+  readonly sortDir = signal<SortDir>('desc');
+
+  readonly filtersActive = computed(
+    () => this.search().trim() !== '' || this.roleFilter() !== 'all',
+  );
+
+  readonly filteredSortedUsers = computed<AdminUserRow[]>(() => {
+    const term = this.search().trim().toLowerCase();
+    const roleF = this.roleFilter();
+    const key = this.sortKey();
+    const dir = this.sortDir();
+
+    const filtered = this.users().filter((u) => {
+      if (roleF !== 'all' && u.role !== roleF) return false;
+      if (!term) return true;
+      const haystack = [u.display_name, u.username, u.email]
+        .filter((v): v is string => !!v)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+
+    const factor = dir === 'asc' ? 1 : -1;
+    // Nulls always sort last, regardless of direction.
+    const cmp = (a: string | number | null, b: string | number | null): number => {
+      const aNull = a == null || a === '';
+      const bNull = b == null || b === '';
+      if (aNull && bNull) return 0;
+      if (aNull) return 1;
+      if (bNull) return -1;
+      if (typeof a === 'number' && typeof b === 'number') return (a - b) * factor;
+      return String(a).localeCompare(String(b)) * factor;
+    };
+
+    const val = (u: AdminUserRow): string | number | null => {
+      switch (key) {
+        case 'user': return u.display_name ?? u.username ?? null;
+        case 'email': return u.email;
+        case 'role': return ROLE_RANK[u.role];
+        case 'joined': return u.created_at;
+        case 'lastSeen': return u.last_sign_in_at;
+      }
+    };
+
+    return [...filtered].sort((a, b) => cmp(val(a), val(b)));
+  });
+
   // Invite form state
   readonly inviteEmail = signal('');
   readonly inviteRole = signal<Role>('collaborator');
@@ -284,6 +436,34 @@ export class AdminComponent implements OnInit {
 
   asSelectRole(e: Event): Role {
     return (e.target as HTMLSelectElement).value as Role;
+  }
+
+  asRoleFilter(e: Event): RoleFilter {
+    return (e.target as HTMLSelectElement).value as RoleFilter;
+  }
+
+  /** Default sort direction per column — recency columns start descending. */
+  private defaultDir(key: SortKey): SortDir {
+    return key === 'joined' || key === 'lastSeen' ? 'desc' : 'asc';
+  }
+
+  toggleSort(key: SortKey): void {
+    if (this.sortKey() === key) {
+      this.sortDir.set(this.sortDir() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortKey.set(key);
+      this.sortDir.set(this.defaultDir(key));
+    }
+  }
+
+  sortIndicator(key: SortKey): string {
+    if (this.sortKey() !== key) return '';
+    return this.sortDir() === 'asc' ? '▲' : '▼';
+  }
+
+  clearFilters(): void {
+    this.search.set('');
+    this.roleFilter.set('all');
   }
 
   async onInviteSubmit(e: Event) {
