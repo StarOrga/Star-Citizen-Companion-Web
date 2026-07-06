@@ -29,7 +29,8 @@
     "langAria": "Language",
     "accountMenu": "Account menu",
     "hangar": "Hangar",
-    "telemetry": "Telemetry"
+    "telemetry": "Telemetry",
+    "feedback": "Feedback"
   },
   "codex": {
     "title": "Codex",
@@ -763,6 +764,37 @@
       "role": "Process",
       "name": "Error",
       "message": "Message"
+    }
+  },
+  "adminFeedback": {
+    "title": "Feedback Board",
+    "subtitle": "Admins-only channel. Post what could be better — the nightly routine picks up open items, ships them, and marks them here.",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "empty": "No feedback yet. Be the first to post.",
+    "errorTitle": "Error",
+    "you": "You",
+    "unknownUser": "Unknown",
+    "shipRef": "View change",
+    "setStatus": "Change status",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this message? This cannot be undone.",
+    "status": {
+      "open": "Open",
+      "in_progress": "In progress",
+      "shipped": "Shipped",
+      "rejected": "Rejected"
+    },
+    "compose": {
+      "placeholder": "What could be better? Markdown supported — Enter for a new line, Ctrl+Enter to send.",
+      "send": "Send",
+      "sendHint": "Enter = new line · Ctrl+Enter = send",
+      "bold": "Bold",
+      "bullet": "Bullet list",
+      "numbered": "Numbered list",
+      "code": "Inline code",
+      "list": "List",
+      "draftRestored": "Draft restored"
     }
   }
 }

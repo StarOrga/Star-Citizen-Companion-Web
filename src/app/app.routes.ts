@@ -138,6 +138,12 @@ export const routes: Routes = [
           import('./admin/telemetry-stats.component').then((m) => m.TelemetryStatsComponent),
       },
       {
+        path: 'admin/feedback',
+        canActivate: [roleGuard('admin')],
+        loadComponent: () =>
+          import('./admin/feedback/admin-feedback.component').then((m) => m.AdminFeedbackComponent),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./settings/settings.component').then((m) => m.SettingsComponent),

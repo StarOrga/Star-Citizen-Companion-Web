@@ -29,7 +29,8 @@
     "langAria": "Sprache",
     "accountMenu": "Konto-Menü",
     "hangar": "Hangar",
-    "telemetry": "Telemetrie"
+    "telemetry": "Telemetrie",
+    "feedback": "Feedback"
   },
   "codex": {
     "title": "Codex",
@@ -763,6 +764,37 @@
       "role": "Prozess",
       "name": "Fehler",
       "message": "Nachricht"
+    }
+  },
+  "adminFeedback": {
+    "title": "Feedback-Board",
+    "subtitle": "Nur für Admins. Schreib, was besser werden kann — die Abendroutine nimmt offene Punkte auf, shippt sie und markiert sie hier.",
+    "refresh": "Aktualisieren",
+    "loading": "Lädt…",
+    "empty": "Noch kein Feedback. Sei der Erste.",
+    "errorTitle": "Fehler",
+    "you": "Du",
+    "unknownUser": "Unbekannt",
+    "shipRef": "Änderung ansehen",
+    "setStatus": "Status ändern",
+    "delete": "Löschen",
+    "deleteConfirm": "Diese Nachricht löschen? Kann nicht rückgängig gemacht werden.",
+    "status": {
+      "open": "Offen",
+      "in_progress": "In Arbeit",
+      "shipped": "Geshipped",
+      "rejected": "Abgelehnt"
+    },
+    "compose": {
+      "placeholder": "Was könnte besser sein? Markdown möglich — Enter für neue Zeile, Strg+Enter zum Senden.",
+      "send": "Senden",
+      "sendHint": "Enter = neue Zeile · Strg+Enter = senden",
+      "bold": "Fett",
+      "bullet": "Aufzählung",
+      "numbered": "Nummerierte Liste",
+      "code": "Inline-Code",
+      "list": "Liste",
+      "draftRestored": "Entwurf wiederhergestellt"
     }
   }
 }
