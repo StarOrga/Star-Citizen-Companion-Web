@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BundleDiffSummary, ChannelTag, P4kBundleRow, P4kService } from './p4k.service';
 import { RoleService } from '../auth/role.service';
+import { useAutoRefresh } from '../core/auto-refresh';
 
 @Component({
   selector: 'sc-p4k-history',
@@ -30,9 +31,6 @@ import { RoleService } from '../auth/role.service';
               {{ 'p4k.toggle.disabled' | translate }}
             </label>
           }
-          <button class="sc-btn" (click)="refresh()" [disabled]="svc.busy()">
-            {{ 'p4k.refresh' | translate }}
-          </button>
         </div>
       </header>
 
@@ -531,6 +529,10 @@ export class P4kHistoryComponent implements OnInit {
   /** When embedded under the Data Upload page, the page title/subtitle chrome
    *  is dropped — the host page supplies the section heading. */
   readonly embedded = input(false);
+
+  constructor() {
+    useAutoRefresh(() => this.refresh(), { enabled: () => !this.svc.busy() });
+  }
 
   private readonly _expanded = signal<Set<string>>(new Set());
 

@@ -12,6 +12,7 @@ import {
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
+import { useAutoRefresh } from '../../core/auto-refresh';
 import { AuthService } from '../../auth/auth.service';
 import { renderMarkdown } from './markdown.util';
 
@@ -51,9 +52,6 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
             <h1>{{ 'adminFeedback.title' | translate }}</h1>
             <p class="hint">{{ 'adminFeedback.subtitle' | translate }}</p>
           </div>
-          <button class="sc-btn" (click)="refresh()" [disabled]="busy()">
-            {{ 'adminFeedback.refresh' | translate }}
-          </button>
         </header>
       }
 
@@ -449,6 +447,10 @@ export class AdminFeedbackComponent implements OnInit {
       .replace(/\s+/g, ' ')
       .trim();
     return text.length > 120 ? `${text.slice(0, 117)}…` : text;
+  }
+
+  constructor() {
+    useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
   }
 
   async ngOnInit() {

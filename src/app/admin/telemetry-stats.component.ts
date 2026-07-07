@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { useAutoRefresh } from '../core/auto-refresh';
 
 interface VersionRow { version: string; crashes: number; usage: number; sessions: number; }
 interface CountRow { name?: string; role?: string; count: number; }
@@ -60,7 +61,6 @@ const PRODUCT_STORAGE_KEY = 'sc-telemetry-product';
               >{{ 'telemetry.window.short.' + w | translate }}</button>
             }
           </div>
-          <button class="sc-btn" (click)="load()" [disabled]="busy()">{{ 'telemetry.refresh' | translate }}</button>
         </div>
       </header>
 
@@ -206,6 +206,10 @@ export class TelemetryStatsComponent implements OnInit {
   readonly windowDays = signal(30);
   /** Which desktop product to show — default persisted in localStorage. */
   readonly product = signal<ProductFilter>(this.readStoredProduct());
+
+  constructor() {
+    useAutoRefresh(() => this.load(), { enabled: () => !this.busy() });
+  }
 
   readonly maxVersionCrashes = computed(() =>
     Math.max(1, ...(this.stats()?.byVersion ?? []).map((v) => v.crashes)));
