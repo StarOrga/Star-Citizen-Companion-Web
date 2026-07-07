@@ -5,6 +5,7 @@ import {
   OnInit,
   computed,
   inject,
+  input,
   signal,
   viewChild,
 } from '@angular/core';
@@ -36,7 +37,6 @@ interface FeedbackRow {
 }
 
 const DRAFT_KEY = 'sc.adminFeedback.draft';
-const STATUSES: FeedbackStatus[] = ['open', 'in_progress', 'shipped', 'rejected'];
 
 @Component({
   selector: 'sc-admin-feedback',
@@ -44,16 +44,18 @@ const STATUSES: FeedbackStatus[] = ['open', 'in_progress', 'shipped', 'rejected'
   imports: [DatePipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="page">
-      <header class="head">
-        <div>
-          <h1>{{ 'adminFeedback.title' | translate }}</h1>
-          <p class="hint">{{ 'adminFeedback.subtitle' | translate }}</p>
-        </div>
-        <button class="sc-btn" (click)="refresh()" [disabled]="busy()">
-          {{ 'adminFeedback.refresh' | translate }}
-        </button>
-      </header>
+    <section class="page" [class.embedded]="embedded()">
+      @if (!embedded()) {
+        <header class="head">
+          <div>
+            <h1>{{ 'adminFeedback.title' | translate }}</h1>
+            <p class="hint">{{ 'adminFeedback.subtitle' | translate }}</p>
+          </div>
+          <button class="sc-btn" (click)="refresh()" [disabled]="busy()">
+            {{ 'adminFeedback.refresh' | translate }}
+          </button>
+        </header>
+      }
 
       @if (errorMsg()) {
         <div class="err"><strong>{{ 'adminFeedback.errorTitle' | translate }}:</strong> {{ errorMsg() }}</div>
@@ -84,24 +86,13 @@ const STATUSES: FeedbackStatus[] = ['open', 'in_progress', 'shipped', 'rejected'
                 <p class="proc-note">{{ m.processing_note }}</p>
               }
 
-              <div class="msg-actions">
-                <label class="status-set">
-                  <span class="sr-only">{{ 'adminFeedback.setStatus' | translate }}</span>
-                  <select [value]="m.status"
-                          (change)="setStatus(m, asStatus($event))"
-                          [disabled]="busy()"
-                          [attr.aria-label]="'adminFeedback.setStatus' | translate">
-                    @for (s of statuses; track s) {
-                      <option [value]="s">{{ ('adminFeedback.status.' + s) | translate }}</option>
-                    }
-                  </select>
-                </label>
-                @if (m.author_id === selfId()) {
+              @if (m.author_id === selfId()) {
+                <div class="msg-actions">
                   <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
                     {{ 'adminFeedback.delete' | translate }}
                   </button>
-                }
-              </div>
+                </div>
+              }
             </article>
           }
         }
@@ -150,6 +141,8 @@ const STATUSES: FeedbackStatus[] = ['open', 'in_progress', 'shipped', 'rejected'
   `,
   styles: [`
     .page { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
+    /* Embedded inside the FAB chat panel: fill the panel width, no page chrome. */
+    .page.embedded { max-width: none; gap: 12px; }
     .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
     .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
     .err {
@@ -224,15 +217,6 @@ const STATUSES: FeedbackStatus[] = ['open', 'in_progress', 'shipped', 'rejected'
     }
 
     .msg-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .status-set select {
-      padding: 4px 8px;
-      background: var(--sc-bg-1);
-      color: var(--sc-fg-0);
-      border: 1px solid var(--sc-border);
-      border-radius: 4px;
-      font: inherit;
-      font-size: 0.76rem;
-    }
     .sc-btn.micro { padding: 4px 10px; font-size: 0.7rem; letter-spacing: 0.04em; }
     .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
     .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
@@ -302,7 +286,10 @@ export class AdminFeedbackComponent implements OnInit {
 
   private readonly ta = viewChild<ElementRef<HTMLTextAreaElement>>('ta');
 
-  readonly statuses = STATUSES;
+  /** When embedded in the feedback FAB panel, the page chrome (title, subtitle,
+   *  manual refresh) is dropped — the panel supplies its own header. */
+  readonly embedded = input(false);
+
   readonly messages = signal<FeedbackRow[]>([]);
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
@@ -326,10 +313,6 @@ export class AdminFeedbackComponent implements OnInit {
     return m.author?.display_name
       ?? (m.author?.username ? `@${m.author.username}` : null)
       ?? this.translate.instant('adminFeedback.unknownUser');
-  }
-
-  asStatus(e: Event): FeedbackStatus {
-    return (e.target as HTMLSelectElement).value as FeedbackStatus;
   }
 
   // ---- Draft persistence (localStorage) ----------------------------------
@@ -487,20 +470,6 @@ export class AdminFeedbackComponent implements OnInit {
     this.draft.set('');
     this.draftRestored.set(false);
     this.saveDraft('');
-    await this.refresh();
-  }
-
-  async setStatus(m: FeedbackRow, status: FeedbackStatus) {
-    if (status === m.status) return;
-    this.busy.set(true);
-    this.errorMsg.set(null);
-    const patch: Record<string, unknown> = { status };
-    if (status === 'shipped') patch['shipped_at'] = new Date().toISOString();
-    const { error } = await this.sb.client
-      .from('admin_feedback')
-      .update(patch)
-      .eq('id', m.id);
-    if (error) this.errorMsg.set(error.message);
     await this.refresh();
   }
 

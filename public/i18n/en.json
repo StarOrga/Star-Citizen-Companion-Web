@@ -809,6 +809,11 @@
       "draftRestored": "Draft restored"
     }
   },
+  "feedbackFab": {
+    "open": "Open feedback",
+    "close": "Close feedback",
+    "title": "Feedback"
+  },
   "releaseNotes": {
     "title": "What's New",
     "subtitle": "News and improvements from every release.",
