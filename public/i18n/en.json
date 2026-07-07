@@ -789,6 +789,7 @@
     "unknownUser": "Unknown",
     "shipRef": "View change",
     "setStatus": "Change status",
+    "shippedGroup": "Shipped · {{count}}",
     "delete": "Delete",
     "deleteConfirm": "Delete this message? This cannot be undone.",
     "status": {

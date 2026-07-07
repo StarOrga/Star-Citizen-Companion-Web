@@ -9,7 +9,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { AuthService } from '../../auth/auth.service';
@@ -41,7 +41,7 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
 @Component({
   selector: 'sc-admin-feedback',
   standalone: true,
-  imports: [DatePipe, TranslateModule],
+  imports: [DatePipe, NgTemplateOutlet, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page" [class.embedded]="embedded()">
@@ -67,36 +67,61 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
         } @else if (messages().length === 0) {
           <div class="sc-card empty">{{ 'adminFeedback.empty' | translate }}</div>
         } @else {
-          @for (m of messages(); track m.id) {
-            <article class="msg sc-card" [class.is-self]="m.author_id === selfId()">
-              <div class="msg-head">
-                <span class="author">{{ authorLabel(m) }}</span>
-                <span class="ts">{{ m.created_at | date:'short' }}</span>
-                <span class="status-pill" [class]="m.status">{{ ('adminFeedback.status.' + m.status) | translate }}</span>
-              </div>
+          @for (m of activeMessages(); track m.id) {
+            <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+          }
 
-              <div class="msg-body" [innerHTML]="render(m.body)"></div>
-
-              @if (m.ship_ref) {
-                <a class="ship-ref" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
-                  {{ 'adminFeedback.shipRef' | translate }} ↗
-                </a>
-              }
-              @if (m.processing_note) {
-                <p class="proc-note">{{ m.processing_note }}</p>
-              }
-
-              @if (m.author_id === selfId()) {
-                <div class="msg-actions">
-                  <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
-                    {{ 'adminFeedback.delete' | translate }}
-                  </button>
+          <!-- Shipped items are stacked away so open ones stay directly visible. -->
+          @if (shippedMessages().length > 0) {
+            <div class="shipped-stack">
+              <button
+                type="button"
+                class="shipped-toggle"
+                (click)="toggleShipped()"
+                [attr.aria-expanded]="showShipped()">
+                <span class="chev" [class.open]="showShipped()">▸</span>
+                {{ 'adminFeedback.shippedGroup' | translate: { count: shippedMessages().length } }}
+              </button>
+              @if (showShipped()) {
+                <div class="shipped-list">
+                  @for (m of shippedMessages(); track m.id) {
+                    <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+                  }
                 </div>
               }
-            </article>
+            </div>
           }
         }
       </div>
+
+      <ng-template #msgCard let-m>
+        <article class="msg sc-card" [class.is-self]="m.author_id === selfId()">
+          <div class="msg-head">
+            <span class="author">{{ authorLabel(m) }}</span>
+            <span class="ts">{{ m.created_at | date:'short' }}</span>
+            <span class="status-pill" [class]="m.status">{{ ('adminFeedback.status.' + m.status) | translate }}</span>
+          </div>
+
+          <div class="msg-body" [innerHTML]="render(m.body)"></div>
+
+          @if (m.ship_ref) {
+            <a class="ship-ref" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
+              {{ 'adminFeedback.shipRef' | translate }} ↗
+            </a>
+          }
+          @if (m.processing_note) {
+            <p class="proc-note">{{ m.processing_note }}</p>
+          }
+
+          @if (m.author_id === selfId()) {
+            <div class="msg-actions">
+              <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
+                {{ 'adminFeedback.delete' | translate }}
+              </button>
+            </div>
+          }
+        </article>
+      </ng-template>
 
       <!-- Composer -->
       <div class="composer sc-card">
@@ -155,6 +180,36 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
     .empty { text-align: center; color: var(--sc-fg-2); padding: 40px; }
 
     .board { display: flex; flex-direction: column; gap: 12px; }
+
+    /* Collapsed stack of shipped items — keeps the open ones front-and-centre. */
+    .shipped-stack { display: flex; flex-direction: column; }
+    .shipped-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--sc-bg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 8px;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: 0.74rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .shipped-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .shipped-toggle:focus-visible {
+      outline: none;
+      color: var(--sc-fg-0);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3);
+    }
+    .shipped-toggle .chev { display: inline-block; transition: transform 0.16s ease; }
+    .shipped-toggle .chev.open { transform: rotate(90deg); }
+    .shipped-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+    .shipped-list .msg { opacity: 0.72; }
+
     .msg { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
     .msg.is-self { box-shadow: inset 2px 0 0 var(--sc-accent); }
     .msg-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -296,6 +351,16 @@ export class AdminFeedbackComponent implements OnInit {
   readonly draft = signal('');
   readonly draftRestored = signal(false);
   readonly selfId = computed(() => this.auth.user()?.id ?? null);
+
+  /** Shipped items are collapsed into a stack so the open ones stay directly
+   *  visible; expanding reveals the resolved history. */
+  readonly showShipped = signal(false);
+  readonly activeMessages = computed(() => this.messages().filter((m) => m.status !== 'shipped'));
+  readonly shippedMessages = computed(() => this.messages().filter((m) => m.status === 'shipped'));
+
+  toggleShipped(): void {
+    this.showShipped.update((v) => !v);
+  }
 
   async ngOnInit() {
     this.restoreDraft();

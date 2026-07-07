@@ -789,6 +789,7 @@
     "unknownUser": "Unbekannt",
     "shipRef": "Änderung ansehen",
     "setStatus": "Status ändern",
+    "shippedGroup": "Geshippt · {{count}}",
     "delete": "Löschen",
     "deleteConfirm": "Diese Nachricht löschen? Kann nicht rückgängig gemacht werden.",
     "status": {
