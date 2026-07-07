@@ -33,7 +33,6 @@ import { FeedbackFabComponent } from './feedback-fab.component';
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
         <a routerLink="/hangar" routerLinkActive="active">{{ 'nav.hangar' | translate }}</a>
         @if (roles.isCollaborator()) {
-          <a routerLink="/p4k" routerLinkActive="active">{{ 'nav.p4k' | translate }}</a>
           <a routerLink="/uploader" routerLinkActive="active">{{ 'nav.desktop' | translate }}</a>
         }
         @if (roles.isAdmin()) {

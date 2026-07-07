@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { P4kHistoryComponent } from '../p4k/p4k-history.component';
 
 interface PlatformAsset {
   url: string;
@@ -21,7 +22,7 @@ interface ReleaseInfo {
 @Component({
   selector: 'sc-desktop-download',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, TranslateModule],
+  imports: [DatePipe, DecimalPipe, TranslateModule, P4kHistoryComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -76,10 +77,16 @@ interface ReleaseInfo {
           <p>{{ 'desktop.noReleaseHint' | translate }}</p>
         </div>
       }
+
+      <!-- Bundle history, merged in from the former /p4k page. -->
+      <div class="bundle-history">
+        <h2 class="section-title">{{ 'desktop.bundleHistory' | translate }}</h2>
+        <sc-p4k-history [embedded]="true" />
+      </div>
     </section>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; gap: 20px; max-width: 760px; }
+    .page { display: flex; flex-direction: column; gap: 20px; max-width: 1000px; }
     .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
     .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
     .err {
@@ -89,7 +96,22 @@ interface ReleaseInfo {
       color: var(--sc-danger);
       border-radius: 4px;
     }
-    .release { display: flex; flex-direction: column; gap: 12px; }
+    .release { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+    .bundle-history {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 12px;
+      padding-top: 24px;
+      border-top: 1px solid var(--sc-border);
+    }
+    .section-title {
+      margin: 0;
+      font-family: var(--sc-font-display);
+      font-size: 1.1rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
     .row {
       display: flex;
       justify-content: space-between;
