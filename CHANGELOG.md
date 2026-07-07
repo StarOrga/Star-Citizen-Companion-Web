@@ -4,6 +4,28 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.0] - 2026-07-07
+
+### Changed
+
+- **3D ship skins ride along the normal upload (data uploader).** Skins are no
+  longer a separate "3D-Skins" button / view with manual ship input — they are a
+  sub-property of every ship, built and uploaded automatically as part of the
+  normal extract → upload flow. The metadata extract writes a build manifest
+  (`skins/_build_manifest.json`) of every ship with a buildable livery; the
+  upload step then ensures `cgf-converter`, builds each ship's glbs from the
+  manifest, and uploads them right after the bundle + Codex promote — one click,
+  no separate step.
+- **Two-level per-patch skin cache.** A build cache (a ship with an existing
+  `skins.json` skips the ~2–3 min/livery rebuild) plus an upload cache (a
+  `.uploaded` marker skips re-PUTing the multi-GB assets). The first upload of a
+  patch version builds everything; every re-run finishes in seconds. Skin
+  failures are non-fatal — the metadata bundle upload is never blocked.
+
+### Added
+
+- **`skins` entity counter** surfaces in the extract run + bundle summary.
+
 ## [0.27.0] - 2026-07-07
 
 ### Added

@@ -57,7 +57,8 @@
       "ammunition": "Munition",
       "blueprints": "Baupläne",
       "records_total": "Datensätze gesamt",
-      "previews": "Vorschaubilder"
+      "previews": "Vorschaubilder",
+      "skins": "Skins"
     }
   },
   "upload": {
@@ -130,18 +131,13 @@
     "failed": "Codex-Veröffentlichung fehlgeschlagen"
   },
   "skins": {
-    "open": "3D-Skins extrahieren",
-    "title": "3D-Skins extrahieren & hochladen",
-    "intro": "Baut pro Schiff ein web-fähiges glb je Lackierung (100 % aus der Data.p4k) und lädt es in die App. cgf-converter wird beim ersten Mal geladen (~117 MB). Pro Skin ~2–3 Min.",
-    "noChannel": "Kein Channel gefunden — erst auf der Discover-Seite scannen.",
-    "shipsLabel": "Schiffe (Komma-getrennt, z. B. DRAK_Cutlass_Black)",
-    "run": "Bauen & Hochladen",
     "tools": "Build-Tools werden sichergestellt…",
     "toolsFailed": "Tool-Download fehlgeschlagen",
     "buildFailed": "Build fehlgeschlagen",
     "uploading": "Upload läuft…",
-    "done": "Fertig — Skins sind live in der App.",
+    "done": "3D-Skins fertig — {n} Schiff(e) live.",
     "partial": "Schiffe hochgeladen (Rest siehe Log)",
-    "needInput": "Channel + mindestens ein Schiff nötig."
+    "building": "3D-Skins werden gebaut",
+    "none": "Keine baubaren 3D-Skins gefunden."
   }
 }

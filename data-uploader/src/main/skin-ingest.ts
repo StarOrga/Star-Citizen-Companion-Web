@@ -6,7 +6,7 @@
  * catalog rows. Auth mirrors the bundle upload (user JWT + release token).
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { API_BASE, RELEASE_TOKEN, TOOL_VERSION } from '../lib/release-token.js';
 
@@ -32,6 +32,8 @@ export interface SkinUploadResult {
   uploaded?: number;
   committed?: number;
   error?: string;
+  /** True when skipped because the ship was already uploaded in a prior run. */
+  cached?: boolean;
 }
 
 type LogFn = (message: string, level?: 'info' | 'warn' | 'error') => void;
@@ -86,6 +88,14 @@ export async function uploadSkins(
   const out: SkinUploadResult[] = [];
   for (const { shipId, dir } of ships) {
     try {
+      // Upload-cache: a ship uploaded in a prior run carries a .uploaded marker
+      // next to its assets — skip the (potentially multi-GB) re-PUT + re-commit.
+      const marker = resolve(dir, '.uploaded');
+      if (existsSync(marker)) {
+        onLog(`${shipId}: already uploaded — skipping`, 'info');
+        out.push({ ok: true, ship_id: shipId, uploaded: 0, committed: 0, cached: true });
+        continue;
+      }
       const catPath = resolve(dir, 'skins.json');
       if (!existsSync(catPath)) {
         out.push({ ok: false, ship_id: shipId, error: 'skins.json missing' });
@@ -136,6 +146,12 @@ export async function uploadSkins(
         continue;
       }
       const count = (committed.json['count'] as number | undefined) ?? skins.length;
+      // Mark shipped so a re-run's upload-cache skips this ship.
+      try {
+        writeFileSync(marker, `${cat.ship} ${count} rows`);
+      } catch {
+        /* marker is best-effort — worst case the ship re-uploads next run */
+      }
       onLog(`${shipId}: uploaded ${n} objects, committed ${count} rows`, 'info');
       out.push({ ok: true, ship_id: shipId, uploaded: n, committed: count });
     } catch (err) {

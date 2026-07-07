@@ -119,7 +119,9 @@ interface ExtractEvent {
 interface SkinExportRequest {
   p4kPath: string;
   outDir: string;
-  ships: string[];
+  ships?: string[];
+  manifest?: string;
+  skipExisting?: boolean;
   textureSize?: number;
   limitSkins?: number;
 }
@@ -137,6 +139,7 @@ interface SkinShipResult {
   ship_id: string;
   export_dir: string;
   skins: SkinEntry[];
+  cached?: boolean;
 }
 interface SkinExportFinal {
   ok: boolean;
@@ -149,6 +152,7 @@ interface SkinUploadResult {
   uploaded?: number;
   committed?: number;
   error?: string;
+  cached?: boolean;
 }
 
 export const api = {
