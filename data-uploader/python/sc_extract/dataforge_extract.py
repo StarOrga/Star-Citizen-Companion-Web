@@ -218,6 +218,11 @@ class CodexExtractor:
         # sub-property of every ship, extracted inline with the metadata.
         self._skin_disco = None
         self._skins_total = 0
+        # Ships that have at least one 3D-buildable paint (a resolvable material),
+        # captured as ShipRefs for the follow-on glb build. Written to
+        # skins/_build_manifest.json so the build step is driven by the extract
+        # instead of manual ship input.
+        self._skin_build_refs: List[Dict[str, str]] = []
 
     # ── public entry ─────────────────────────────────────────────────────────
     def run(self) -> Dict[str, int]:
@@ -228,6 +233,7 @@ class CodexExtractor:
         self.extract_ammunition()
         self.extract_blueprints()     # crafting blueprints (CraftingBlueprintRecord)
         self.extract_entities()       # ships / weapons / components / items
+        self._write_skin_build_manifest()
         if self._assets:
             self.on_log("info", f"preview images: {self._assets.converted} converted, "
                                 f"{self._assets.misses} missing")
@@ -782,10 +788,29 @@ class CodexExtractor:
         if ref is None:
             return []
         try:
-            return self._skin_disco.catalog(ref, hull_cga=hull)
+            cat = self._skin_disco.catalog(ref, hull_cga=hull)
         except Exception as exc:  # noqa: BLE001 — one ship's skins must not fail the run
             self.on_log("warn", f"skin catalog for {class_name}: {type(exc).__name__}: {exc}")
             return []
+        # Record ships with a buildable (material-backed) paint for the glb build.
+        if any(c.get("has_material") for c in cat):
+            self._skin_build_refs.append({
+                "ship_id": ref.ship_id, "mfr": ref.mfr,
+                "ship": ref.ship, "series_token": ref.series_token,
+            })
+        return cat
+
+    def _write_skin_build_manifest(self) -> None:
+        """Drop skins/_build_manifest.json listing every ship with a buildable
+        paint. The follow-on 3D-glb build reads this instead of manual ship
+        input, so skins ride along the normal extract → upload flow."""
+        skins_dir = self.out / "skins"
+        skins_dir.mkdir(parents=True, exist_ok=True)
+        (skins_dir / "_build_manifest.json").write_text(
+            json.dumps({"ships": self._skin_build_refs}, ensure_ascii=False, indent=2),
+            encoding="utf-8")
+        self.on_log("info", f"skin build manifest: {len(self._skin_build_refs)} "
+                            f"ship(s) with buildable liveries")
 
     # ── typed projections ──────────────────────────────────────────────────────
     # Leaf field names that carry a localization @-key for name/description.

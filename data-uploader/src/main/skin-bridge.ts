@@ -26,8 +26,14 @@ const CGF_CONVERTER_MIN_BYTES = 100_000_000; // ~117 MB self-contained .NET bina
 export interface SkinExportRequest {
   p4kPath: string;
   outDir: string;
-  /** "DRAK_Cutlass_Black" (known) or "id:MFR:Ship:SeriesToken". */
-  ships: string[];
+  /** "DRAK_Cutlass_Black" (known) or "id:MFR:Ship:SeriesToken". Optional when
+   *  `manifest` drives the build (the normal extract → upload flow). */
+  ships?: string[];
+  /** Path to the extract's skins/_build_manifest.json — builds every ship the
+   *  metadata extract flagged as having a buildable livery. */
+  manifest?: string;
+  /** Patch-version cache: skip ships already built into `outDir`. */
+  skipExisting?: boolean;
   textureSize?: number;
   limitSkins?: number;
 }
@@ -47,6 +53,8 @@ export interface SkinShipResult {
   ship_id: string;
   export_dir: string;
   skins: SkinEntry[];
+  /** True when the build was skipped because the ship was already cached. */
+  cached?: boolean;
 }
 
 export interface SkinExportFinal {
@@ -133,7 +141,9 @@ export function startSkinExport(
     '--converter', converterPath(),
     '--texture-size', String(req.textureSize ?? 1024),
   ];
-  for (const s of req.ships) args.push('--ship', s);
+  if (req.manifest) args.push('--manifest', req.manifest);
+  for (const s of req.ships ?? []) args.push('--ship', s);
+  if (req.skipExisting) args.push('--skip-existing');
   if (req.limitSkins) args.push('--limit-skins', String(req.limitSkins));
 
   let child: ChildProcessWithoutNullStreams;

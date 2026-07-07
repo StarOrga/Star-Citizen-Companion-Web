@@ -37,5 +37,15 @@
     "uploadOk": "Upload OK",
     "uploadFailed": "Échec de l'upload",
     "cleaned": "Extracted files cleaned up (upload confirmed)"
+  },
+  "skins": {
+    "building": "Construction des skins 3D",
+    "none": "Aucun skin 3D constructible trouvé.",
+    "done": "Skins 3D terminés — {n} vaisseau(x) en ligne.",
+    "tools": "Préparation des outils de build…",
+    "toolsFailed": "Échec du téléchargement de l’outil",
+    "buildFailed": "Échec de la construction",
+    "uploading": "Téléversement…",
+    "partial": "vaisseaux téléversés (voir le journal pour le reste)"
   }
 }

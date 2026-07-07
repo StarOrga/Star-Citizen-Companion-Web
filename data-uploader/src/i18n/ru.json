@@ -37,5 +37,15 @@
     "uploadOk": "Загрузка ОК",
     "uploadFailed": "Ошибка загрузки",
     "cleaned": "Extracted files cleaned up (upload confirmed)"
+  },
+  "skins": {
+    "building": "Сборка 3D-скинов",
+    "none": "Собираемых 3D-скинов не найдено.",
+    "done": "3D-скины готовы — {n} кораб. в сети.",
+    "tools": "Подготовка инструментов сборки…",
+    "toolsFailed": "Не удалось загрузить инструмент",
+    "buildFailed": "Ошибка сборки",
+    "uploading": "Загрузка…",
+    "partial": "кораблей загружено (остальное — в журнале)"
   }
 }

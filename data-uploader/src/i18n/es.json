@@ -37,5 +37,15 @@
     "uploadOk": "Subida OK",
     "uploadFailed": "Error de subida",
     "cleaned": "Extracted files cleaned up (upload confirmed)"
+  },
+  "skins": {
+    "building": "Construyendo skins 3D",
+    "none": "No se encontraron skins 3D construibles.",
+    "done": "Skins 3D listas — {n} nave(s) en vivo.",
+    "tools": "Preparando herramientas de compilación…",
+    "toolsFailed": "Error al descargar la herramienta",
+    "buildFailed": "Error de compilación",
+    "uploading": "Subiendo…",
+    "partial": "naves subidas (ver registro para el resto)"
   }
 }

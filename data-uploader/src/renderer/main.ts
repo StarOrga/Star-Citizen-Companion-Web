@@ -42,7 +42,7 @@ function installRendererCrashCapture(): void {
 }
 installRendererCrashCapture();
 
-type ViewName = 'discover' | 'configure' | 'run' | 'auth-upload' | 'skins';
+type ViewName = 'discover' | 'configure' | 'run' | 'auth-upload';
 type LogLevel = 'info' | 'success' | 'warn' | 'error';
 
 interface SkinShipResult {
@@ -77,6 +77,7 @@ const COUNTER_ORDER = [
   'manufacturers',
   'ships',
   'vehicles',
+  'skins',
   'components',
   'items',
   'weapons',
@@ -128,7 +129,8 @@ const state = {
   profile: 'standard' as 'minimal' | 'standard' | 'maximum' | 'auto',
   lastResult: null as ExtractResultPayload | null,
   authToken: null as string | null,
-  skinShips: 'DRAK_Cutlass_Black',
+  // 3D-livery build result from the upload step (skins ride along the normal
+  // extract → upload flow — no separate view).
   skinResult: null as SkinShipResult[] | null,
 };
 
@@ -550,10 +552,6 @@ function render(): void {
       app.innerHTML = renderAuthUpload();
       wireAuthUpload();
       break;
-    case 'skins':
-      app.innerHTML = renderSkins();
-      wireSkins();
-      break;
   }
 }
 
@@ -566,7 +564,6 @@ function renderDiscover(): string {
     <div id="channels-mount"></div>
     <div class="btn-row" id="discover-next" style="display:none; margin-top: 18px;">
       <button id="btn-to-configure" class="btn btn-primary">${t('discover.next', {}) || 'Weiter → Konfiguration'}</button>
-      <button id="btn-to-skins" class="btn">${t('skins.open', {}) || '3D-Skins extrahieren'}</button>
     </div>
   `;
 }
@@ -574,11 +571,6 @@ function renderDiscover(): string {
 function wireDiscover(): void {
   $('#btn-to-configure')?.addEventListener('click', () => {
     state.view = 'configure';
-    render();
-  });
-
-  $('#btn-to-skins')?.addEventListener('click', () => {
-    state.view = 'skins';
     render();
   });
 
@@ -1132,6 +1124,19 @@ async function doUploadAfterAuth(): Promise<void> {
   // a codex failure only means the public catalog isn't refreshed this run.
   await promoteToCodex(result.output_dir);
 
+  // Build + upload the 3D liveries as part of the SAME upload — skins are a
+  // sub-property of every ship, not a separate step. Reads the extract's build
+  // manifest, cached per patch version. Runs BEFORE cleanup (manifest lives in
+  // out_dir). Fully non-fatal: the bundle is already confirmed.
+  try {
+    await buildAndUploadSkins(result);
+  } catch (err) {
+    setAuthStatus(
+      `${t('skins.buildFailed', {}) || '3D-Skins übersprungen (Bundle ist hochgeladen)'}: ${(err as Error).message}`,
+      'warn',
+    );
+  }
+
   // Upload confirmed — reclaim the run's extracted files so they don't fill
   // the disk. Best-effort: the main process guards + swallows failures.
   const outDir = state.lastResult?.output_dir;
@@ -1232,158 +1237,73 @@ function setAuthStatus(msg: string, cls: 'ok' | 'warn' | 'error'): void {
   el.className = cls;
 }
 
-// ============= View: Skins (3D livery export → upload) =============
+// ============= 3D liveries (built + uploaded inside the normal upload) =======
 
-function pickSkinChannel(): (typeof state.channels)[number] | undefined {
-  return state.channels.find((c) => c.selected) ?? state.channels[0];
-}
+// Build + upload every ship's 3D liveries as part of the confirmed bundle
+// upload — skins are a sub-property of each ship, not a separate view. Driven
+// by the extract's skins/_build_manifest.json and cached per patch version:
+// the first run of a patch is long (builds all glbs), re-runs skip ships that
+// are already built + uploaded. Entirely non-fatal — the bundle upload has
+// already succeeded, so any skin failure only means liveries aren't refreshed.
+async function buildAndUploadSkins(result: ExtractResultPayload): Promise<void> {
+  if (!state.authToken) return;
+  const ch = state.channels.find((c) => c.selected) ?? state.channels[0];
+  if (!ch) return;
 
-function renderSkins(): string {
-  const ch = pickSkinChannel();
-  const chInfo = ch
-    ? `<p class="ok">${ch.channel}${ch.version ? ' v' + ch.version : ''} · ${ch.dataP4kPath}</p>`
-    : `<p class="warn">${t('skins.noChannel', {}) || 'Kein Channel gefunden — erst auf der Discover-Seite scannen.'}</p>`;
-  return `
-    <h1>${t('skins.title', {}) || '3D-Skins extrahieren & hochladen'}</h1>
-    <div class="card">
-      <p>${t('skins.intro', {}) || 'Baut pro Schiff ein web-fähiges glb je Lackierung (100% aus der Data.p4k) und lädt es in die App. cgf-converter wird beim ersten Mal geladen (~117 MB). Pro Skin ~2–3 Min.'}</p>
-      ${chInfo}
-      <label class="field">
-        <span>${t('skins.shipsLabel', {}) || 'Schiffe (Komma-getrennt, z. B. DRAK_Cutlass_Black)'}</span>
-        <input id="skin-ships" type="text" value="${state.skinShips.replace(/"/g, '&quot;')}" spellcheck="false" />
-      </label>
-      <div class="btn-row" style="margin-top:12px;">
-        <button id="btn-skin-run" class="btn btn-primary" ${ch ? '' : 'disabled'}>${t('skins.run', {}) || 'Bauen & Hochladen'}</button>
-        <button id="btn-skin-back" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
-      </div>
-    </div>
-    <div class="card" style="margin-top:12px;">
-      <h2 id="skin-phase">…</h2>
-      <div class="progress-bar"><span id="skin-bar" style="width:0%"></span></div>
-      <div class="log-stream" id="skin-log"></div>
-      <p id="skin-status" class="warn" style="margin-top:10px;"></p>
-    </div>
-  `;
-}
+  const manifest = `${result.output_dir}/skins/_build_manifest.json`;
+  const skinsOut = `${ch.installPath}/.sc-companion-extracts/skins-${result.patch_version}`;
+  const label = t('skins.building', {}) || '3D-Skins werden gebaut';
 
-function wireSkins(): void {
-  $('#btn-skin-back')?.addEventListener('click', () => {
-    state.view = 'discover';
-    render();
-  });
-  const input = $('#skin-ships') as HTMLInputElement | null;
-  input?.addEventListener('input', () => {
-    state.skinShips = input.value;
-  });
-  $('#btn-skin-run')?.addEventListener('click', () => void runSkinFlow());
-}
-
-async function runSkinFlow(): Promise<void> {
-  const ch = pickSkinChannel();
-  const btn = $('#btn-skin-run') as HTMLButtonElement | null;
-  const bar = $('#skin-bar') as HTMLElement | null;
-  const phaseEl = $('#skin-phase');
-  const logEl = $('#skin-log');
-  const setBar = (pct: number): void => {
-    if (bar) bar.style.width = pct + '%';
-  };
-  const appendLog = (msg: string, level: LogLevel = 'info'): void => {
-    if (!logEl) return;
-    const line = document.createElement('div');
-    line.className = 'log-line log-' + level;
-    line.textContent = (level === 'error' ? '[err] ' : level === 'warn' ? '[warn] ' : '') + msg;
-    logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
-  };
-  const setSkinStatus = (msg: string, cls: 'ok' | 'warn' | 'error'): void => {
-    const el = $('#skin-status');
-    if (el) {
-      el.textContent = msg;
-      el.className = cls;
-    }
-  };
-
-  const ships = state.skinShips.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
-  if (!ch || ships.length === 0) {
-    setSkinStatus(t('skins.needInput', {}) || 'Channel + mindestens ein Schiff nötig.', 'error');
+  // 1. ensure cgf-converter (first-use download ~117 MB).
+  const unsubTools = window.sc.skin.onToolProgress((pct) =>
+    setAuthStatus(`${t('skins.tools', {}) || 'Build-Tools werden geladen'} … ${pct}%`, 'warn'),
+  );
+  const tools = await window.sc.skin.ensureTools();
+  unsubTools();
+  if (!tools.ok) {
+    setAuthStatus(
+      `${t('skins.toolsFailed', {}) || '3D-Tools nicht verfügbar — Skins übersprungen'}: ${tools.error ?? '—'}`,
+      'warn',
+    );
     return;
   }
-  if (btn) btn.disabled = true;
 
-  try {
-    // 1. ensure cgf-converter (downloads on first use)
-    setSkinStatus(t('skins.tools', {}) || 'Build-Tools werden sichergestellt…', 'warn');
-    const unsubTools = window.sc.skin.onToolProgress((pct) => setBar(pct));
-    const tools = await window.sc.skin.ensureTools();
-    unsubTools();
-    if (!tools.ok) {
-      setSkinStatus(`${t('skins.toolsFailed', {}) || 'Tool-Download fehlgeschlagen'}: ${tools.error ?? '—'}`, 'error');
-      return;
-    }
-    setBar(0);
-
-    // 2. build glbs (streams events)
-    const outDir = `${ch.installPath}/.sc-companion-extracts/skins-${ch.version ?? 'unknown'}`;
-    appendLog(`${ships.length} ship(s) → ${outDir}`);
-    const unsub = window.sc.skin.onEvent((ev) => {
-      switch (ev.type) {
-        case 'phase':
-          if (phaseEl) phaseEl.textContent = ev.phase ?? '…';
-          if (typeof ev.pct === 'number') setBar(ev.pct);
-          return;
-        case 'count':
-          if (ev.counter) appendLog(`${ev.counter.key}: ${ev.counter.value} skin(s)`, 'success');
-          return;
-        case 'log':
-          appendLog(ev.message ?? '', ev.level ?? 'info');
-          return;
-        case 'error':
-          appendLog(ev.message ?? 'error', 'error');
-          return;
-      }
-    });
-
-    const final = await window.sc.skin
-      .start({ p4kPath: ch.dataP4kPath, outDir, ships })
-      .finally(unsub);
-    if (!final.ok || !final.ships) {
-      setSkinStatus(`${t('skins.buildFailed', {}) || 'Build fehlgeschlagen'}: ${final.error ?? '—'}`, 'error');
-      return;
-    }
-    state.skinResult = final.ships;
-    setBar(100);
-
-    // 3. auth (reuse the persisted session if present) + upload
-    if (!state.authToken) {
-      setSkinStatus(t('upload.signingIn', {}) || 'Im Browser anmelden…', 'warn');
-      const token = await ensureUploadToken();
-      if (!token) {
-        setSkinStatus(t('upload.signInFailed', {}) || 'Anmeldung fehlgeschlagen', 'error');
-        return;
-      }
-    }
-    setSkinStatus(t('skins.uploading', {}) || 'Upload läuft…', 'warn');
-    const results = await window.sc.skin.upload(
-      state.authToken,
-      final.ships.map((s) => ({ shipId: s.ship_id, dir: s.export_dir })),
+  // 2. build glbs (streams; first run per patch is long, cached runs are quick).
+  const unsub = window.sc.skin.onEvent((ev) => {
+    if (ev.type === 'phase' && ev.phase) setAuthStatus(`${label}: ${ev.phase}`, 'warn');
+    else if (ev.type === 'count' && ev.counter)
+      setAuthStatus(`${label}: ${ev.counter.key} (${ev.counter.value})`, 'warn');
+    else if (ev.type === 'log' && ev.level === 'error') setAuthStatus(`${label}: ${ev.message ?? ''}`, 'warn');
+  });
+  const built = await window.sc.skin
+    .start({ p4kPath: ch.dataP4kPath, outDir: skinsOut, manifest, skipExisting: true })
+    .finally(unsub);
+  if (!built.ok || !built.ships) {
+    setAuthStatus(
+      `${t('skins.buildFailed', {}) || '3D-Skins-Build fehlgeschlagen (Bundle ist hochgeladen)'}: ${built.error ?? '—'}`,
+      'warn',
     );
-    for (const res of results) {
-      if (res.ok) {
-        appendLog(`✓ ${res.ship_id}: ${res.uploaded ?? 0} Objekte, ${res.committed ?? 0} Zeilen`, 'success');
-      } else {
-        appendLog(`✗ ${res.ship_id}: ${res.error ?? 'Fehler'}`, 'error');
-      }
-    }
-    const okCount = results.filter((r) => r.ok).length;
-    setSkinStatus(
-      okCount === results.length
-        ? (t('skins.done', {}) || 'Fertig — Skins sind live in der App.')
-        : `${okCount}/${results.length} ${t('skins.partial', {}) || 'Schiffe hochgeladen (Rest siehe Log)'}`,
-      okCount === results.length ? 'ok' : 'warn',
-    );
-  } finally {
-    if (btn) btn.disabled = false;
+    return;
   }
+  state.skinResult = built.ships;
+  if (built.ships.length === 0) {
+    setAuthStatus(t('skins.none', {}) || 'Keine baubaren 3D-Skins gefunden.', 'ok');
+    return;
+  }
+
+  // 3. upload (upload-cache skips ships already shipped in a prior run).
+  setAuthStatus(t('skins.uploading', {}) || '3D-Skins werden hochgeladen…', 'warn');
+  const results = await window.sc.skin.upload(
+    state.authToken,
+    built.ships.map((s) => ({ shipId: s.ship_id, dir: s.export_dir })),
+  );
+  const okCount = results.filter((r) => r.ok).length;
+  setAuthStatus(
+    okCount === results.length
+      ? t('skins.done', { n: String(okCount) }) || `3D-Skins fertig — ${okCount} Schiff(e) live.`
+      : `${okCount}/${results.length} ${t('skins.partial', {}) || 'Schiffe hochgeladen (Rest siehe Protokoll)'}`,
+    okCount === results.length ? 'ok' : 'warn',
+  );
 }
 
 void init();

@@ -37,5 +37,15 @@
     "uploadOk": "上传成功",
     "uploadFailed": "上传失败",
     "cleaned": "Extracted files cleaned up (upload confirmed)"
+  },
+  "skins": {
+    "building": "正在构建 3D 涂装",
+    "none": "未找到可构建的 3D 涂装。",
+    "done": "3D 涂装完成 — {n} 艘飞船已上线。",
+    "tools": "正在准备构建工具…",
+    "toolsFailed": "工具下载失败",
+    "buildFailed": "构建失败",
+    "uploading": "上传中…",
+    "partial": "艘飞船已上传（其余见日志）"
   }
 }
