@@ -791,6 +791,7 @@
     "shipRef": "Änderung ansehen",
     "setStatus": "Status ändern",
     "shippedGroup": "Geshippt · {{count}}",
+    "toggleDetails": "Eintrag aus- oder einklappen",
     "delete": "Löschen",
     "deleteConfirm": "Diese Nachricht löschen? Kann nicht rückgängig gemacht werden.",
     "status": {

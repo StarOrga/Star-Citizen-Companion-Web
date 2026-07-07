@@ -791,6 +791,7 @@
     "shipRef": "View change",
     "setStatus": "Change status",
     "shippedGroup": "Shipped · {{count}}",
+    "toggleDetails": "Expand or collapse this entry",
     "delete": "Delete",
     "deleteConfirm": "Delete this message? This cannot be undone.",
     "status": {
