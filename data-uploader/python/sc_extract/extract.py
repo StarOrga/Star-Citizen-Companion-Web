@@ -275,6 +275,7 @@ def _real_extract(cfg: ExtractConfig) -> ExtractResult:
         "weapons": counts.get("weapons", 0),
         "components": counts.get("components", 0),
         "items": counts.get("items", 0),
+        "skins": counts.get("skins", 0),
         "manufacturers": counts.get("manufacturers", 0),
         "ammunition": counts.get("ammunition", 0),
         "blueprints": counts.get("blueprints", 0),

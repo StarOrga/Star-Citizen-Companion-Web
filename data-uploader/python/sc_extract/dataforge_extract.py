@@ -213,6 +213,11 @@ class CodexExtractor:
         self._dim_cache: Dict[str, Optional[Dict[str, Any]]] = {}
         # guid -> manufacturer code, built lazily
         self._manu_cache: Dict[str, Dict[str, Any]] = {}
+        # Ship-skin (livery) catalog discovery — built lazily on the first ship,
+        # index pre-bucketed once so per-ship lookup is cheap. Skins are a
+        # sub-property of every ship, extracted inline with the metadata.
+        self._skin_disco = None
+        self._skins_total = 0
 
     # ── public entry ─────────────────────────────────────────────────────────
     def run(self) -> Dict[str, int]:
@@ -671,17 +676,20 @@ class CodexExtractor:
                 self.on_count("weapons", n_wpn)
                 self.on_count("components", n_comp)
                 self.on_count("items", n_item)
+                self.on_count("skins", self._skins_total)
                 self.on_progress("entities", current=i, total=total,
                                  pct=_mapped_pct(i, total, *_PCT_ENTITIES))
 
         self.on_progress("entities", current=total, total=total, pct=_PCT_ENTITIES[1])
         self.on_log("info", f"catalog: {n_ship} ships · {n_wpn} weapons · "
-                            f"{n_comp} components · {n_item} items "
+                            f"{n_comp} components · {n_item} items · "
+                            f"{self._skins_total} skins "
                             f"({n_skip} dev/NPC variants skipped)")
         self._bump("ships", n_ship)
         self._bump("weapons", n_wpn)
         self._bump("components", n_comp)
         self._bump("items", n_item)
+        self._bump("skins", self._skins_total)
 
     # ── asset helpers (preview image + dimensions) ─────────────────────────────
     def _display_icon(self, resolved: Dict[str, Any]) -> Optional[str]:
@@ -702,16 +710,16 @@ class CodexExtractor:
             return None
         return self._assets.resolve(self._display_icon(resolved))
 
-    def _dimensions(self, comps) -> Optional[Dict[str, Any]]:
-        """Real-world L/W/H (metres) from the ship's .cga geometry bounding box."""
-        if self.p4k is None:
-            return None
-        from .geometry import bbox_from_cga_bytes, normalize_geometry_path
-        # The mesh path lives on a component (e.g. SGeometryResourceParams) whose
-        # `Geometry` field is an SGeometryNodeParams: comp.Geometry.Geometry.Geometry.path.
-        # First try that documented nesting; then fall back to a generic deep
-        # search for ANY .cga/.cgf path string (the nesting depth has varied
-        # across patches). No per-ship special-casing — same scan for every hull.
+    def _hull_path(self, comps) -> Optional[str]:
+        """Normalized (Data/-rooted) whole-ship .cga/.cgf mesh path, or None.
+
+        The mesh path lives on a component (e.g. SGeometryResourceParams) whose
+        `Geometry` field is an SGeometryNodeParams: comp.Geometry.Geometry.Geometry.path.
+        First try that documented nesting; then fall back to a generic deep
+        search for ANY .cga/.cgf path string (the nesting depth has varied
+        across patches). No per-ship special-casing — same scan for every hull.
+        Shared by dimensions parsing and skin-catalog discovery."""
+        from .geometry import normalize_geometry_path
         path = None
         for c in comps:
             g = c.get("Geometry")
@@ -727,7 +735,14 @@ class CodexExtractor:
                 if cand:
                     path = cand
                     break
-        key = normalize_geometry_path(path)
+        return normalize_geometry_path(path)
+
+    def _dimensions(self, comps) -> Optional[Dict[str, Any]]:
+        """Real-world L/W/H (metres) from the ship's .cga geometry bounding box."""
+        if self.p4k is None:
+            return None
+        from .geometry import bbox_from_cga_bytes
+        key = self._hull_path(comps)
         if not key:
             return None
         if key in self._dim_cache:
@@ -745,6 +760,32 @@ class CodexExtractor:
             self.on_log("warn", f"dimensions failed for {key}: {exc}")
         self._dim_cache[key] = dims
         return dims
+
+    def _skin_catalog(self, class_name: str, comps) -> List[Dict[str, Any]]:
+        """Liveries (paint skins) for a ship, as a sub-property of its record.
+
+        Derives the ship's manufacturer/folder from the already-resolved hull
+        mesh path (no hard-coded ship table) and returns the cheap paint catalog
+        — id, name, description, icon, and whether a 3D material exists. The
+        heavy glb build is a separate, cached step; this only enumerates.
+        Best-effort: any failure yields an empty list, never aborts the ship."""
+        if self.p4k is None:
+            return []
+        hull = self._hull_path(comps)
+        if not hull:
+            return []
+        from .ship_discovery import ShipDiscovery, ref_from_hull
+        if self._skin_disco is None:
+            self._skin_disco = ShipDiscovery(self.p4k)
+            self._skin_disco.build_index()
+        ref = ref_from_hull(class_name, hull)
+        if ref is None:
+            return []
+        try:
+            return self._skin_disco.catalog(ref, hull_cga=hull)
+        except Exception as exc:  # noqa: BLE001 — one ship's skins must not fail the run
+            self.on_log("warn", f"skin catalog for {class_name}: {type(exc).__name__}: {exc}")
+            return []
 
     # ── typed projections ──────────────────────────────────────────────────────
     # Leaf field names that carry a localization @-key for name/description.
@@ -799,6 +840,8 @@ class CodexExtractor:
     def _project_ship(self, r, resolved, comps, attach) -> Dict[str, Any]:
         base = self._base_entity(r, resolved, comps, attach)
         vcp = _find_component(comps, "VehicleComponentParams") or {}
+        skins = self._skin_catalog(base["className"], comps)
+        self._skins_total += len(skins)
         base.update({
             "entityKind": "ship",
             "role": vcp.get("vehicleRole"),
@@ -811,6 +854,9 @@ class CodexExtractor:
             "flight": self._flight_stats(resolved, comps),
             "itemPorts": self._item_ports(comps),
             "defaultLoadout": self._default_loadout(comps),
+            # liveries (paint skins) as a sub-property of the ship — catalog only
+            # (names + icons); the 3D glb build is a separate cached step.
+            "skins": skins,
         })
         return base
 

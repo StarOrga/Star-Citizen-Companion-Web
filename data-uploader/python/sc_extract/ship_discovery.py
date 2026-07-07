@@ -56,6 +56,35 @@ class ShipDiscovery:
         self._loc_names: Dict[str, str] = {}
         self._loc_descs: Dict[str, str] = {}
         self._loc_loaded = False
+        # Optional pre-built candidate buckets so a per-ship catalog lookup is
+        # O(paints) instead of O(archive entries). Populated by build_index();
+        # when absent the methods fall back to a full self.infos scan (fine for
+        # the single-ship CLI / unit tests, catastrophic for a whole-catalog run).
+        self._indexed = False
+        self._icons_index: Dict[str, List] = {}   # series token -> [icon infos]
+        self._mtls_index: Dict[str, List] = {}     # "mfr/ship"    -> [mtl infos]
+
+    # ---- index (whole-catalog fast path) ----------------------------------
+    def build_index(self) -> None:
+        """One pass over the archive: bucket paint icons by series token and
+        ship materials by MFR/Ship folder. Turns the per-ship icon/material
+        scans from O(entries) into O(1) lookups — required when discovering
+        skins for every ship in a single extract run."""
+        if self._indexed:
+            return
+        root = SHIPS_ROOT.lower() + "/"
+        for i in self.infos:
+            fn = i.filename.lower().replace("\\", "/")
+            if "/paintcolorlogos/" in fn and fn.endswith(".dds") and ".dds." not in fn:
+                stem = Path(fn).stem
+                if stem.startswith("paint_"):
+                    series = stem[len("paint_"):].split("_", 1)[0]
+                    self._icons_index.setdefault(series, []).append(i)
+            elif fn.startswith(root) and fn.endswith(".mtl"):
+                parts = fn[len(root):].split("/")
+                if len(parts) >= 2:
+                    self._mtls_index.setdefault(f"{parts[0]}/{parts[1]}", []).append(i)
+        self._indexed = True
 
     # ---- localization -----------------------------------------------------
     def _load_loc(self) -> None:
@@ -94,8 +123,9 @@ class ShipDiscovery:
 
     def _ship_mtls(self, ref: ShipRef) -> List[str]:
         base = f"{SHIPS_ROOT}/{ref.mfr}/{ref.ship}".lower()
+        src = self._mtls_index.get(f"{ref.mfr}/{ref.ship}".lower(), []) if self._indexed else self.infos
         out = []
-        for i in self.infos:
+        for i in src:
             fn = i.filename.lower().replace("\\", "/")
             if fn.startswith(base + "/") and fn.endswith(".mtl"):
                 name = Path(fn).stem
@@ -120,8 +150,9 @@ class ShipDiscovery:
         variant marker (series-generic event paints)."""
         pref = f"paint_{ref.series_token.lower()}_"
         my_var = self._variant_of(ref.ship_id)
+        src = self._icons_index.get(ref.series_token.lower(), []) if self._indexed else self.infos
         out = {}
-        for i in self.infos:
+        for i in src:
             fn = i.filename.lower().replace("\\", "/")
             if "/paintcolorlogos/" not in fn or not fn.endswith(".dds") or ".dds." in fn:
                 continue
@@ -218,3 +249,60 @@ class ShipDiscovery:
             objectdir_anchor="Data",
             paints=[p for p in paints if p.mtl or p.icon_dds],
         )
+
+    def catalog(self, ref: ShipRef, hull_cga: str = "") -> List[Dict[str, str]]:
+        """Cheap paint catalog (no 3D build) for a ship — the metadata-extract
+        counterpart to discover(). Same icon/name/material heuristics, but the
+        caller supplies the hull path (already resolved during projection) and
+        gets plain catalog dicts back. ``has_material`` flags which paints could
+        additionally be built into a textured 3D glb later.
+        """
+        mtls = self._ship_mtls(ref)
+        icons = self.find_paint_icons(ref)
+        std_mtl = next((m for m in mtls if Path(m).stem.lower() == ref.ship_id.lower()), None)
+
+        out: List[Dict[str, str]] = []
+        # Every flyable hull has its factory finish — list it as the base livery.
+        out.append({
+            "id": "standard",
+            "name": f"{ref.ship.replace('_', ' ')} (Standard)",
+            "description": "Factory-standard finish.",
+            "source": "factory",
+            "name_verified": False,
+            "has_material": bool(std_mtl or hull_cga),
+            "icon": None,
+        })
+        for tok, icon in sorted(icons.items()):
+            name, desc = self._loc_lookup(ref.series_token, tok)
+            mtl = self._match_mtl(tok, mtls, ref)
+            out.append({
+                "id": _slug(tok),
+                "name": name or f"{ref.series_token} {tok.replace('_', ' ').title()}",
+                "description": desc,
+                "source": "store" if name else "event",
+                "name_verified": bool(name),
+                "has_material": bool(mtl),
+                "icon": icon,
+            })
+        return out
+
+
+def ref_from_hull(ship_id: str, hull_path: str) -> Optional[ShipRef]:
+    """Build a ShipRef from a resolved hull mesh path
+    (``Data/Objects/Spaceships/Ships/<MFR>/<Ship>/...``). The series token —
+    used for the ``Paint_<series>_`` icon prefix and the
+    ``item_Name<series>_Paint_`` localization keys — defaults to the ship folder,
+    which matches the P4K convention for every ship verified so far. Returns
+    None when the path is not under the ships root (e.g. ground vehicles)."""
+    if not hull_path:
+        return None
+    low = hull_path.replace("\\", "/").lower()
+    marker = SHIPS_ROOT.lower() + "/"
+    idx = low.find(marker)
+    if idx == -1:
+        return None
+    rest = hull_path.replace("\\", "/")[idx + len(marker):].split("/")
+    if len(rest) < 2:
+        return None
+    mfr, ship = rest[0], rest[1]
+    return ShipRef(ship_id=ship_id, mfr=mfr, ship=ship, series_token=ship)

@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2026-07-07
+
+### Added
+
+- **Ship liveries as a ship sub-property (data uploader, phase 1).** The extractor
+  now emits each ship's paint skins inline with its metadata — every ship record
+  carries a `skins` list (id, name, description, icon, source, `has_material`)
+  instead of skins living in a disconnected, manually-driven pipeline. Ship
+  manufacturer / folder / series are derived generically from the resolved hull
+  `.cga` path (`ref_from_hull`), so skins are discovered for *all* ships
+  automatically — no hard-coded ship registry. A pre-built index keeps the
+  per-ship catalog lookup `O(paints)` instead of scanning the whole archive, and
+  a new `skins` counter runs through to the bundle summary. Follow-up phases wire
+  the integrated 3D-glb build, auto-upload, and remove the separate uploader
+  "3D-Skins" view.
+
 ## [0.26.2] - 2026-07-07
 
 ### Added

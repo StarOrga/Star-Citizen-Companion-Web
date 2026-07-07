@@ -10,7 +10,7 @@ import io
 
 import pytest
 
-from sc_extract.ship_discovery import ShipDiscovery, ShipRef
+from sc_extract.ship_discovery import ShipDiscovery, ShipRef, ref_from_hull
 
 
 class FakeInfo:
@@ -119,6 +119,47 @@ def test_discover_builds_spec_with_hull_and_paints():
     ids = {p.id for p in spec.paints}
     assert "standard" in ids
     assert not any("steel" in p.mtl.lower() for p in spec.paints if p.mtl)
+
+
+# ── generic derivation + whole-catalog fast path (metadata-extract fold-in) ──
+
+def test_ref_from_hull_derives_mfr_and_folder():
+    ref = ref_from_hull(
+        "DRAK_Cutlass_Black",
+        "Data/Objects/Spaceships/Ships/DRAK/Cutlass/DRAK_Cutlass_Black.cga",
+    )
+    assert ref is not None
+    assert (ref.mfr, ref.ship, ref.series_token) == ("DRAK", "Cutlass", "Cutlass")
+    assert ref.ship_id == "DRAK_Cutlass_Black"
+
+
+def test_ref_from_hull_returns_none_off_ships_root():
+    # ground vehicles / other meshes are not under the ships root
+    assert ref_from_hull("X", "Data/Objects/GroundVehicles/Foo/bar.cga") is None
+    assert ref_from_hull("X", "") is None
+
+
+def test_catalog_matches_discover_with_index():
+    d = make_disco()
+    d.build_index()
+    cat = d.catalog(REF, hull_cga=f"{CUT}/DRAK_Cutlass_Black.cga")
+    ids = {c["id"] for c in cat}
+    # standard base finish + coalfire store paint, steel filtered out
+    assert "standard" in ids
+    assert any("coalfire" in i for i in ids)
+    assert not any("steel" in i for i in ids)
+    # coalfire resolves its verified store name via localization
+    coalfire = next(c for c in cat if "coalfire" in c["id"])
+    assert coalfire["name_verified"] is True
+    assert coalfire["name"] == "Cutlass Coalfire Livery"
+
+
+def test_build_index_matches_full_scan_icons_and_mtls():
+    scan = make_disco()
+    idx = make_disco()
+    idx.build_index()
+    assert idx.find_paint_icons(REF) == scan.find_paint_icons(REF)
+    assert idx._ship_mtls(REF) == scan._ship_mtls(REF)
 
 
 if __name__ == "__main__":
