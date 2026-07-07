@@ -117,6 +117,12 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
     .panel {
       width: min(420px, calc(100vw - 32px));
       height: min(560px, calc(100vh - 140px));
+      /* User-resizable: drag the corner grip to enlarge the chat window. */
+      resize: both;
+      min-width: 320px;
+      min-height: 320px;
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 120px);
       display: flex;
       flex-direction: column;
       background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
@@ -162,10 +168,20 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35);
     }
 
+    /* The embedded board fills the body and manages its own scroll, so the
+       composer stays pinned below the history instead of overlapping it. */
     .panel-body {
       flex: 1;
-      overflow-y: auto;
-      padding: 14px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-body sc-admin-feedback {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
     }
 
     @media (max-width: 640px) {

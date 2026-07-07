@@ -100,25 +100,39 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
             <span class="author">{{ authorLabel(m) }}</span>
             <span class="ts">{{ m.created_at | date:'short' }}</span>
             <span class="status-pill" [class]="m.status">{{ ('adminFeedback.status.' + m.status) | translate }}</span>
+            @if (embedded()) {
+              <button
+                type="button"
+                class="expand-toggle"
+                (click)="toggleExpand(m.id)"
+                [attr.aria-expanded]="isExpanded(m.id)"
+                [attr.aria-label]="'adminFeedback.toggleDetails' | translate">
+                {{ isExpanded(m.id) ? '▾' : '▸' }}
+              </button>
+            }
           </div>
 
-          <div class="msg-body" [innerHTML]="render(m.body)"></div>
+          @if (!embedded() || isExpanded(m.id)) {
+            <div class="msg-body" [innerHTML]="render(m.body)"></div>
 
-          @if (m.ship_ref) {
-            <a class="ship-ref" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
-              {{ 'adminFeedback.shipRef' | translate }} ↗
-            </a>
-          }
-          @if (m.processing_note) {
-            <p class="proc-note">{{ m.processing_note }}</p>
-          }
+            @if (m.ship_ref) {
+              <a class="ship-ref" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
+                {{ 'adminFeedback.shipRef' | translate }} ↗
+              </a>
+            }
+            @if (m.processing_note) {
+              <p class="proc-note">{{ m.processing_note }}</p>
+            }
 
-          @if (m.author_id === selfId()) {
-            <div class="msg-actions">
-              <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
-                {{ 'adminFeedback.delete' | translate }}
-              </button>
-            </div>
+            @if (m.author_id === selfId()) {
+              <div class="msg-actions">
+                <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
+                  {{ 'adminFeedback.delete' | translate }}
+                </button>
+              </div>
+            }
+          } @else {
+            <button type="button" class="msg-preview" (click)="toggleExpand(m.id)">{{ preview(m.body) }}</button>
           }
         </article>
       </ng-template>
@@ -166,8 +180,57 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
   `,
   styles: [`
     .page { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
-    /* Embedded inside the FAB chat panel: fill the panel width, no page chrome. */
-    .page.embedded { max-width: none; gap: 12px; }
+    /* Embedded inside the FAB chat panel: fill the panel, scroll the history,
+       and keep the composer pinned below it (never behind it). */
+    .page.embedded {
+      max-width: none;
+      gap: 12px;
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: 14px;
+      box-sizing: border-box;
+    }
+    .page.embedded .board { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+    .page.embedded .composer { position: static; flex: 0 0 auto; }
+
+    .expand-toggle {
+      margin-left: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--sc-border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--sc-fg-2);
+      cursor: pointer;
+      font-size: 0.72rem;
+      transition: all 0.16s ease;
+    }
+    .expand-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .expand-toggle:focus-visible {
+      outline: none;
+      color: var(--sc-fg-0);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3);
+    }
+    .msg-preview {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      border: 0;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: 0.88rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .msg-preview:hover { color: var(--sc-fg-0); }
     .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
     .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
     .err {
@@ -360,6 +423,32 @@ export class AdminFeedbackComponent implements OnInit {
 
   toggleShipped(): void {
     this.showShipped.update((v) => !v);
+  }
+
+  /** Per-entry expand state for the embedded chat overview (collapsed by default). */
+  private readonly _expanded = signal<Set<string>>(new Set());
+
+  isExpanded(id: string): boolean {
+    return this._expanded().has(id);
+  }
+
+  toggleExpand(id: string): void {
+    this._expanded.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  /** Plain-text, truncated preview of a markdown body for the collapsed row. */
+  preview(body: string): string {
+    const text = body
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/[*_`#>~]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return text.length > 120 ? `${text.slice(0, 117)}…` : text;
   }
 
   async ngOnInit() {
