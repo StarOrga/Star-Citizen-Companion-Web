@@ -27,6 +27,10 @@ export interface P4kBundleRow {
   uploaded_by_email: string;
   uploaded_by_name: string | null;
   created_at: string;
+  /** Set when this upload was auto-retired by a newer tool-version upload of the
+   *  same (channel, patch, build). Non-null ⇒ superseded history (not a manual
+   *  moderation disable). */
+  superseded_at: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -36,7 +40,10 @@ export class P4kService {
   readonly bundles = signal<P4kBundleRow[]>([]);
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
-  readonly includeHistory = signal(false);
+  // Default ON: the history view should show every upload (incl. superseded
+  // ones) out of the box — a re-upload with a newer tool version supersedes the
+  // prior bundle, and hiding those made past uploads look lost.
+  readonly includeHistory = signal(true);
   readonly includeDisabled = signal(false);
 
   async listBundles(): Promise<void> {

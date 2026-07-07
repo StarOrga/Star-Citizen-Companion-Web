@@ -22,6 +22,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app } from 'electron';
 import log from 'electron-log';
+import { packagedPythonMissing, pythonSpawnEnoentMessage } from '../lib/python-locate.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -120,6 +121,15 @@ export function startExtraction(
   const { interpreter, cwd, source } = resolvePythonPaths();
   log.info(`[python-bridge] launching sc_extract via ${source} interpreter=${interpreter} cwd=${cwd}`);
 
+  // A packaged build that fell back to the bare-`python` dev path means the
+  // embedded interpreter is missing — fail fast with an actionable message
+  // instead of a cryptic `spawn python ENOENT`.
+  const missing = packagedPythonMissing(source, app.isPackaged);
+  if (missing) {
+    log.error('[python-bridge]', missing);
+    return { promise: Promise.resolve({ ok: false, error: missing }), cancel: () => {} };
+  }
+
   const args = [
     '-E', // ignore PYTHON* env vars — no env-driven sys.path manipulation at startup
     '-s', // skip the user site-packages dir — fewer path stats (embedded Lib/site-packages still loads)
@@ -203,8 +213,12 @@ export function startExtraction(
 
   const promise = new Promise<ExtractFinal>((resolveP) => {
     child.on('error', (err) => {
-      lastError = err.message;
-      resolveP({ ok: false, error: err.message });
+      const msg =
+        (err as NodeJS.ErrnoException).code === 'ENOENT'
+          ? pythonSpawnEnoentMessage(interpreter, app.isPackaged)
+          : err.message;
+      lastError = msg;
+      resolveP({ ok: false, error: msg });
     });
     child.on('exit', (code, signal) => {
       if (cancelled) {

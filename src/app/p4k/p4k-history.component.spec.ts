@@ -24,6 +24,7 @@ function row(channel: ChannelTag, patch: string, quality: number, created: strin
     uploaded_by_email: 'u@example.com',
     uploaded_by_name: 'U',
     created_at: created,
+    superseded_at: null,
   };
 }
 
@@ -87,5 +88,37 @@ describe('P4kHistoryComponent — summary card (rendered DOM)', () => {
       .querySelector('.summary-row .sum-quality')!
       .textContent!.trim();
     expect(quality).toBe('90');
+  });
+});
+
+describe('P4kHistoryComponent — superseded vs disabled', () => {
+  const supersededRow = (): P4kBundleRow => ({
+    ...row('live', '4.8.0', 88, '2026-06-01T00:00:00Z'),
+    disabled: true,
+    superseded_at: '2026-07-01T00:00:00Z',
+    disabled_reason: 'superseded by tool 0.9.0',
+  });
+  const manualDisabledRow = (): P4kBundleRow => ({
+    ...row('live', '4.8.0', 88, '2026-06-01T00:00:00Z'),
+    disabled: true,
+    superseded_at: null,
+    disabled_reason: 'bad extract',
+  });
+
+  it('isSuperseded is true only for auto-retired (superseded_at set) rows', () => {
+    const c = setup([]).componentInstance;
+    expect(c.isSuperseded(supersededRow())).toBe(true);
+    expect(c.isSuperseded(manualDisabledRow())).toBe(false); // manual moderation disable
+    expect(c.isSuperseded(row('live', '4.8.0', 88, '2026-06-01T00:00:00Z'))).toBe(false); // active
+  });
+
+  it('renders a Superseded badge on a superseded row', () => {
+    const el = setup([supersededRow()]).nativeElement as HTMLElement;
+    expect(el.querySelector('.superseded-tag')).toBeTruthy();
+  });
+
+  it('renders no Superseded badge on an active row', () => {
+    const el = setup([row('live', '4.8.0', 88, '2026-06-01T00:00:00Z')]).nativeElement as HTMLElement;
+    expect(el.querySelector('.superseded-tag')).toBeNull();
   });
 });

@@ -1279,6 +1279,7 @@ export type Database = {
               patch_version: string
               quality_score: number
               schema_version: number
+              superseded_at: string | null
               tool_version: string
               uploaded_by_email: string
               uploaded_by_id: string

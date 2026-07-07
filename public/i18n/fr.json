@@ -60,6 +60,10 @@
       "tool": "Ver. outil",
       "uploader": "Uploadeur",
       "when": "Uploadé"
+    },
+    "superseded": {
+      "badge": "Remplacé",
+      "title": "Remplacé par un envoi plus récent"
     }
   },
   "profile": {

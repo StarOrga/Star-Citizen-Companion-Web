@@ -445,6 +445,10 @@
       "disable": "Disable bundle \"{{name}}\".\n\nReason (optional):",
       "reenable": "Re-enable bundle \"{{name}}\"?",
       "delete": "Permanently delete bundle \"{{name}}\"?\n\nThis cannot be undone."
+    },
+    "superseded": {
+      "badge": "Superseded",
+      "title": "Superseded by a newer upload"
     }
   },
   "profile": {
