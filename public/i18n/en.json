@@ -23,7 +23,7 @@
     "p4k": "Bundle History",
     "settings": "Settings",
     "admin": "Admin",
-    "desktop": "Data Uploader",
+    "desktop": "Data Upload",
     "signOut": "Sign out",
     "brandAria": "Star Citizen Companion (SCC)",
     "langAria": "Language",
@@ -585,8 +585,9 @@
     }
   },
   "desktop": {
-    "title": "Data Uploader",
+    "title": "Data Upload",
     "subtitle": "Download the Data Uploader for your local Star Citizen install. Admin + collaborator only.",
+    "bundleHistory": "Bundle History",
     "loading": "Loading release…",
     "currentVersion": "Current version",
     "released": "Released",

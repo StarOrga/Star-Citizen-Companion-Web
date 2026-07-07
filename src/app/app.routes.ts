@@ -77,11 +77,9 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./hangar/role-loadout-editor.component').then((m) => m.RoleLoadoutEditorComponent),
       },
-      {
-        path: 'p4k',
-        canActivate: [roleGuard('admin', 'collaborator')],
-        loadComponent: () => import('./p4k/p4k-history.component').then((m) => m.P4kHistoryComponent),
-      },
+      // Bundle History merged into the Data Upload page (/uploader). Keep the
+      // old /p4k URL working for bookmarks/muscle-memory via a redirect.
+      { path: 'p4k', pathMatch: 'full', redirectTo: 'uploader' },
       {
         path: 'uploader',
         canActivate: [roleGuard('admin', 'collaborator')],

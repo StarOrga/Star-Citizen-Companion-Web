@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -13,10 +13,12 @@ import { RoleService } from '../auth/role.service';
   template: `
     <section class="page">
       <header class="head">
-        <div>
-          <h1>{{ 'p4k.title' | translate }}</h1>
-          <p class="hint">{{ 'p4k.subtitle' | translate }}</p>
-        </div>
+        @if (!embedded()) {
+          <div>
+            <h1>{{ 'p4k.title' | translate }}</h1>
+            <p class="hint">{{ 'p4k.subtitle' | translate }}</p>
+          </div>
+        }
         <div class="header-actions">
           <label class="toggle">
             <input type="checkbox" [checked]="svc.includeHistory()" (change)="svc.toggleHistory()" />
@@ -493,6 +495,10 @@ export class P4kHistoryComponent implements OnInit {
   readonly svc = inject(P4kService);
   readonly roles = inject(RoleService);
   private readonly translate = inject(TranslateService);
+
+  /** When embedded under the Data Upload page, the page title/subtitle chrome
+   *  is dropped — the host page supplies the section heading. */
+  readonly embedded = input(false);
 
   private readonly _expanded = signal<Set<string>>(new Set());
 
