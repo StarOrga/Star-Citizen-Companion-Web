@@ -18,6 +18,7 @@ import { dirname, resolve } from 'node:path';
 import { app } from 'electron';
 import log from 'electron-log';
 import { resolvePythonPaths, type PythonExtractEvent } from './python-bridge.js';
+import { packagedPythonMissing, pythonSpawnEnoentMessage } from '../lib/python-locate.js';
 
 const CGF_CONVERTER_URL =
   'https://github.com/Markemp/Cryengine-Converter/releases/download/v2.0.0/cgf-converter.exe';
@@ -130,6 +131,12 @@ export function startSkinExport(
   const { interpreter, cwd, source } = resolvePythonPaths();
   log.info(`[skin-bridge] launching skin_export_app via ${source} interpreter=${interpreter}`);
 
+  const missing = packagedPythonMissing(source, app.isPackaged);
+  if (missing) {
+    log.error('[skin-bridge]', missing);
+    return { promise: Promise.resolve({ ok: false, error: missing }), cancel: () => {} };
+  }
+
   const args = [
     '-E', '-s', '-B', '-u',
     '-X', 'utf8', // force UTF-8 stdio — `-E` strips PYTHONUTF8/PYTHONIOENCODING, so without this
@@ -195,7 +202,15 @@ export function startSkinExport(
   });
 
   const promise = new Promise<SkinExportFinal>((resolveP) => {
-    child.on('error', (err) => resolveP({ ok: false, error: err.message }));
+    child.on('error', (err) =>
+      resolveP({
+        ok: false,
+        error:
+          (err as NodeJS.ErrnoException).code === 'ENOENT'
+            ? pythonSpawnEnoentMessage(interpreter, app.isPackaged)
+            : err.message,
+      }),
+    );
     child.on('exit', (code, signal) => {
       if (cancelled) return resolveP({ ok: false, error: 'cancelled' });
       if (code === 0 && ships) return resolveP({ ok: true, ships });

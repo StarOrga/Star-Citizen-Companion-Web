@@ -60,6 +60,10 @@
       "tool": "工具版本",
       "uploader": "上传者",
       "when": "上传时间"
+    },
+    "superseded": {
+      "badge": "已取代",
+      "title": "已被更新的上传取代"
     }
   },
   "profile": {

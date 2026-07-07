@@ -60,6 +60,10 @@
       "tool": "Ver. herr.",
       "uploader": "Subido por",
       "when": "Subido"
+    },
+    "superseded": {
+      "badge": "Reemplazado",
+      "title": "Reemplazado por una subida más reciente"
     }
   },
   "profile": {

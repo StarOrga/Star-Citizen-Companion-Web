@@ -445,6 +445,10 @@
       "disable": "Bundle \"{{name}}\" deaktivieren.\n\nGrund (optional):",
       "reenable": "Bundle \"{{name}}\" wieder aktivieren?",
       "delete": "Bundle \"{{name}}\" endgültig löschen?\n\nDies kann nicht rückgängig gemacht werden."
+    },
+    "superseded": {
+      "badge": "Ersetzt",
+      "title": "Ersetzt durch neueren Upload"
     }
   },
   "profile": {

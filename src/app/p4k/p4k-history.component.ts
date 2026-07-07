@@ -113,7 +113,8 @@ import { RoleService } from '../auth/role.service';
           </thead>
           <tbody>
             @for (b of bundles(); track b.id) {
-              <tr [class.disabled-row]="b.disabled">
+              <tr [class.disabled-row]="b.disabled && !b.superseded_at"
+                  [class.superseded-row]="isSuperseded(b)">
                 <td>
                   @if (b.diff_summary) {
                     <button class="expand-btn"
@@ -124,7 +125,14 @@ import { RoleService } from '../auth/role.service';
                     </button>
                   }
                 </td>
-                <td><span class="ch-pill" [class]="b.channel">{{ b.channel.toUpperCase() }}</span></td>
+                <td>
+                  <span class="ch-pill" [class]="b.channel">{{ b.channel.toUpperCase() }}</span>
+                  @if (isSuperseded(b)) {
+                    <span class="superseded-tag" [title]="b.disabled_reason ?? ''">
+                      {{ 'p4k.superseded.badge' | translate }}
+                    </span>
+                  }
+                </td>
                 <td class="mono">{{ b.patch_version }}</td>
                 <td class="mono small">{{ b.build_number || '—' }}</td>
                 <td>
@@ -167,7 +175,10 @@ import { RoleService } from '../auth/role.service';
                 <td>{{ b.created_at | date:'short' }}</td>
                 @if (roles.isAdmin()) {
                   <td class="actions">
-                    @if (b.disabled) {
+                    @if (isSuperseded(b)) {
+                      <!-- superseded = history; re-enabling would create a second
+                           active bundle for the same key, so only allow delete -->
+                    } @else if (b.disabled) {
                       <button class="sc-btn micro" (click)="reenable(b)" [disabled]="svc.busy()">
                         {{ 'p4k.actions.reenable' | translate }}
                       </button>
@@ -210,8 +221,8 @@ import { RoleService } from '../auth/role.service';
                         </tbody>
                       </table>
                       @if (b.disabled) {
-                        <p class="disabled-note">
-                          <strong>{{ 'p4k.disabled.title' | translate }}:</strong>
+                        <p class="disabled-note" [class.superseded-note]="isSuperseded(b)">
+                          <strong>{{ (isSuperseded(b) ? 'p4k.superseded.title' : 'p4k.disabled.title') | translate }}:</strong>
                           {{ b.disabled_reason ?? ('p4k.disabled.noReason' | translate) }}
                         </p>
                       }
@@ -335,6 +346,27 @@ import { RoleService } from '../auth/role.service';
     .table tbody tr:hover { background: rgba(0, 212, 255, 0.04); }
     .table tbody tr.disabled-row { opacity: 0.5; }
     .table tbody tr.disabled-row .ch-pill { filter: grayscale(0.7); }
+    /* Superseded = a prior upload kept as history — muted, but not the faded
+       "disabled/revoked" treatment. */
+    .table tbody tr.superseded-row { opacity: 0.72; }
+    .superseded-tag {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-family: var(--sc-font-display);
+      font-size: 0.62rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      vertical-align: middle;
+      background: rgba(122, 134, 156, 0.16);
+      color: var(--sc-fg-2);
+      border: 1px solid var(--sc-border);
+    }
+    .disabled-note.superseded-note {
+      background: rgba(0, 212, 255, 0.08);
+      border-left-color: var(--sc-accent);
+    }
     .mono { font-family: monospace; color: var(--sc-fg-1); }
     .small { font-size: 0.76rem; color: var(--sc-fg-2); }
     .num { font-variant-numeric: tabular-nums; text-align: right; }
@@ -519,6 +551,12 @@ export class P4kHistoryComponent implements OnInit {
 
   async refresh() {
     await this.svc.listBundles();
+  }
+
+  /** A bundle auto-retired by a newer tool-version upload — history, not a
+   *  manual moderation disable. */
+  isSuperseded(b: P4kBundleRow): boolean {
+    return b.disabled && b.superseded_at !== null;
   }
 
   isExpanded(id: string): boolean {

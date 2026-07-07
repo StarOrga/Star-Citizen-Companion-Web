@@ -24,6 +24,7 @@ function row(p: {
     uploaded_by_email: 'u@example.com',
     uploaded_by_name: 'U',
     created_at: p.created ?? '2026-01-01T00:00:00Z',
+    superseded_at: null,
   };
 }
 

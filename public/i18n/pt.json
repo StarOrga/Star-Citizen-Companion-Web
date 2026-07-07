@@ -60,6 +60,10 @@
       "tool": "Ver. ferr.",
       "uploader": "Enviado por",
       "when": "Enviado"
+    },
+    "superseded": {
+      "badge": "Substituído",
+      "title": "Substituído por um envio mais recente"
     }
   },
   "profile": {

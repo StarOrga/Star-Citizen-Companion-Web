@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.29.0] - 2026-07-07
+
+### Fixed
+
+- **Bundle history now shows every upload, not just the active one.** A re-upload
+  with a newer tool version supersedes the prior bundle for its
+  (channel, patch, build); those superseded rows were marked `disabled` and hidden
+  behind the admin-only "disabled" toggle, so past uploads looked lost. Supersession
+  now has its own marker (`superseded_at`, distinct from a moderation disable): the
+  history view surfaces superseded uploads for any collaborator (History toggle now
+  defaults on), tagged with a neutral "Superseded" badge, while genuine moderation
+  disables stay admin-gated. The single-active-per-key invariant is unchanged.
+- **Clearer data-uploader error when the bundled Python is missing.** A packaged
+  install whose embedded interpreter is absent (e.g. an interrupted or partial
+  auto-update) previously died with a cryptic `spawn python ENOENT`. It now fails
+  fast with an actionable message telling the user to reinstall; dev builds get a
+  message pointing at `SC_EXTRACT_PYTHON` / a PATH Python.
+
 ## [0.28.0] - 2026-07-07
 
 ### Changed
