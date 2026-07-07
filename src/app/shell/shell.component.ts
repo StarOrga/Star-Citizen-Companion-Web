@@ -13,11 +13,12 @@ import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { FooterComponent } from './footer.component';
 import { QuickSearchComponent } from './quick-search.component';
+import { FeedbackFabComponent } from './feedback-fab.component';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent, FeedbackFabComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="topbar">
@@ -48,9 +49,6 @@ import { QuickSearchComponent } from './quick-search.component';
           </a>
           <a routerLink="/admin/telemetry" routerLinkActive="active" class="admin-link">
             {{ 'nav.telemetry' | translate }}
-          </a>
-          <a routerLink="/admin/feedback" routerLinkActive="active" class="admin-link">
-            {{ 'nav.feedback' | translate }}
           </a>
         }
       </nav>
@@ -97,6 +95,8 @@ import { QuickSearchComponent } from './quick-search.component';
     </main>
 
     <sc-footer />
+
+    <sc-feedback-fab />
   `,
   styles: [`
     :host { display: flex; flex-direction: column; min-height: 100vh; }
