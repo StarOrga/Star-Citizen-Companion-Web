@@ -18,6 +18,7 @@ import { app, BrowserWindow } from 'electron';
 import electronUpdater, { type UpdateInfo } from 'electron-updater';
 import log from 'electron-log';
 import { API_BASE, RELEASE_TOKEN, IS_UNSIGNED_DEV_BUILD, TOOL_VERSION } from '../lib/release-token.js';
+import { reportCrash } from './telemetry-reporter.js';
 
 // CommonJS interop — electron-updater's named exports aren't exposed via ESM.
 const { autoUpdater } = electronUpdater;
@@ -32,14 +33,55 @@ export type UpdateEventPayload =
 
 const FEED_URL = `${API_BASE}/functions/v1/desktop-latest`;
 
+/**
+ * Re-check cadence for long-open sessions. The startup check alone never fires
+ * again while the window stays open — so an uploader left running for hours (a
+ * full extraction can take a while) would never notice a release published
+ * mid-session. Mirrors the web app's SwUpdateService poll; a native, restart-
+ * gated updater needn't be as eager as the 30-min web poll, so this is coarser.
+ */
+const UPDATE_POLL_MS = 6 * 60 * 60 * 1000;
+
 let initialized = false;
 let lastEvent: UpdateEventPayload = { type: 'not-available', currentVersion: TOOL_VERSION };
+
+/**
+ * True while an update is downloading or already staged. Re-checking then is
+ * pointless (electron-updater is already on it) and could restart the download,
+ * so the periodic poll skips these states.
+ */
+function isUpdateBusy(type: UpdateEventPayload['type']): boolean {
+  return type === 'available' || type === 'progress' || type === 'downloaded';
+}
 
 function broadcast(payload: UpdateEventPayload): void {
   lastEvent = payload;
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.send('sc:update:event', payload);
   }
+}
+
+// De-dupe: the periodic poll + electron-updater emitting both a rejected
+// promise AND an 'error' event for the same failure would otherwise report the
+// identical error repeatedly. Only a *changed* message is worth a new report.
+let lastReportedError: string | null = null;
+
+/**
+ * Forward an update failure to crash telemetry so 401s / feed outages show up
+ * in the dashboard instead of dying silently in the renderer banner. Best-effort
+ * and never throws (reportCrash swallows everything and honours the opt-out).
+ */
+function reportUpdateError(err: unknown): void {
+  const message = err instanceof Error ? err.message : String(err);
+  if (message === lastReportedError) return;
+  lastReportedError = message;
+  void reportCrash({
+    errorType: 'update',
+    name: err instanceof Error ? err.name : null,
+    message,
+    stack: err instanceof Error ? (err.stack ?? null) : null,
+    extra: { feed: FEED_URL, toolVersion: TOOL_VERSION },
+  });
 }
 
 export function getLastUpdateEvent(): UpdateEventPayload {
@@ -107,9 +149,13 @@ export function initAutoUpdater(): void {
   autoUpdater.on('update-downloaded', (info: UpdateInfo) =>
     broadcast({ type: 'downloaded', version: info.version }),
   );
-  autoUpdater.on('error', (err) =>
-    broadcast({ type: 'error', message: err?.message ?? String(err) }),
-  );
+  // electron-updater's canonical error channel — fires for check AND download
+  // failures (the rejected promises below emit through here too), so this is the
+  // single choke point where update errors reach both the banner and telemetry.
+  autoUpdater.on('error', (err) => {
+    broadcast({ type: 'error', message: err?.message ?? String(err) });
+    reportUpdateError(err);
+  });
 
   // Defer first check so the UI is interactive before any network call.
   setTimeout(() => {
@@ -118,6 +164,16 @@ export function initAutoUpdater(): void {
       broadcast({ type: 'error', message: err?.message ?? String(err) });
     });
   }, 4000);
+
+  // Re-check periodically so a long-open session eventually sees new releases.
+  // Silent by design: failures only log (no error banner) and busy states are
+  // skipped, so background polling never interrupts the user.
+  setInterval(() => {
+    if (isUpdateBusy(lastEvent.type)) return;
+    autoUpdater.checkForUpdates().catch((err) => {
+      log.warn('[updater] periodic checkForUpdates failed:', err);
+    });
+  }, UPDATE_POLL_MS);
 }
 
 export async function checkForUpdatesManually(): Promise<UpdateEventPayload> {

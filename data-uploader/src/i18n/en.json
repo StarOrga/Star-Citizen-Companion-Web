@@ -91,7 +91,10 @@
     "progress": "Downloading update: {{pct}}%",
     "downloaded": "Update v{{version}} ready — please restart.",
     "install": "Install now",
-    "error": "Update error: {{message}}"
+    "error": "Update error: {{message}}",
+    "check": "Check for updates",
+    "checking": "Checking…",
+    "uptodate": "Up to date (v{{version}})"
   },
   "session": {
     "title": "Web connection",

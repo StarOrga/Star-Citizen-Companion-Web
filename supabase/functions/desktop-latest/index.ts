@@ -114,17 +114,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (releaseToken) {
     if (!serviceKey) return jsonResp({ error: 'service_misconfigured' }, 500);
     const adminClient = createClient(supabaseUrl, serviceKey);
-    // Token must match AND the release that issued it must still be active —
-    // otherwise rotated/revoked tokens would keep fetching update metadata
-    // forever (Codex review 2026-05-24, finding HIGH 1).
+    // Token validity is decoupled from is_current ON PURPOSE. Gating on
+    // is_current here (as this used to) meant that the instant a newer release
+    // was registered — flipping older rows to is_current=false via
+    // dr_dedupe_current — every already-installed older build's baked token got
+    // 401'd and could NEVER auto-update. So we accept any KNOWN, non-revoked
+    // release token and then serve the CURRENT release below. token_revoked is
+    // the explicit kill-switch for a leaked token (preserves the intent of the
+    // Codex 2026-05-24 HIGH 1 finding) without self-defeating the updater.
     const { data: tokenRow } = await adminClient
       .from('desktop_releases')
       .select('id')
       .eq('release_token', releaseToken)
-      .eq('is_current', true)
+      .eq('token_revoked', false)
       .maybeSingle();
     if (!tokenRow) return jsonResp({ error: 'invalid_or_revoked_release_token' }, 401);
-    // Token valid AND active → fall through to release-lookup using service client.
+    // Token valid → fall through to current-release lookup using service client.
     return await respondWithLatest(adminClient, req);
   }
 
