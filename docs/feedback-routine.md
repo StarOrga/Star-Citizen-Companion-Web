@@ -1,8 +1,12 @@
-# Nightly Admin-Feedback Routine (19:00)
+# Admin-Feedback Routine (local scheduled task, every 20 min)
 
-Autonomous evening routine that turns the admins-only feedback board
-(`public.admin_feedback`) into shipped changes. Runs as a **scheduled cloud
-agent** (server-side, independent of any local PC).
+Autonomous routine that turns the admins-only feedback board
+(`public.admin_feedback`) into shipped changes. Runs as a **local Claude
+scheduled task** (`nightly-admin-feedback`, cron `*/20 * * * *`) — it fires
+only while Claude is running on the dev machine, **not** a PC-independent
+cloud agent. A true event-driven / PC-independent build would require a
+claude.ai Cloud environment + Supabase INSERT webhook; considered and
+declined 2026-07-07 (see `sc-admin-feedback-routine` memory).
 
 ## Contract
 
@@ -21,8 +25,11 @@ open ──pick up──▶ in_progress ──green build+tests──▶ shipped
 
 For each `open` row (process independently, most-recent context wins):
 
-1. **Claim it.** `update admin_feedback set status='in_progress',
-   processed_at=now() where id=<id>`.
+1. **Claim it (atomically).** `update admin_feedback set status='in_progress',
+   processed_at=now() where id=<id> and status='open'`. If **zero** rows were
+   updated, a concurrent run already claimed it — skip the item and move on.
+   This atomic claim is the single-flight lock that makes overlapping ~20-min
+   runs safe; never process an item you did not successfully claim.
 2. **Understand.** Read `body` (markdown). If it is not an actionable code
    change (vague, a question, out of scope), set `status='rejected'`,
    `processing_note='<short why>'`, `processed_at=now()` and continue.
@@ -51,6 +58,9 @@ For each `open` row (process independently, most-recent context wins):
   auto-ship; open a PR and leave `in_progress` for human review.
 - Batch cap: if more than ~10 open items exist, process the oldest 10 and leave
   the rest `open` for the next run.
+- **Overlapping runs are expected** — the task fires every ~20 min, and a run
+  that processes several items can outlast that interval. The atomic claim in
+  step 1 is the *only* concurrency guard; there is no external lock.
 
 ## Data model reference
 
