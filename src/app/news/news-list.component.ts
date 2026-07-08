@@ -27,6 +27,12 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
         <div class="title-block">
           <h1>{{ 'news.title' | translate }}</h1>
           <p class="hint">{{ 'news.subtitle' | translate }}</p>
+          @if (updatedRel(); as rel) {
+            <p class="freshness" [class.stale]="updatedStale()">
+              <span class="pulse" aria-hidden="true"></span>
+              {{ 'news.lastUpdated' | translate:{ rel: rel } }}
+            </p>
+          }
         </div>
 
         @if (svc.feed()?.status; as st) {
@@ -84,12 +90,40 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
         </div>
 
         @if (svc.loading() && !svc.feed()) {
-          <div class="bucket">
-            <div class="bucket-head"><h2>&nbsp;</h2></div>
+          <div class="bucket" aria-hidden="true">
+            <div class="bucket-head"><span class="skel-line shimmer head"></span></div>
             <div class="cards today-cards">
-              <div class="card skel featured"></div>
-              <div class="card skel"></div>
-              <div class="card skel"></div>
+              <div class="card skel featured">
+                <span class="skel-thumb shimmer"></span>
+                <span class="skel-body">
+                  <span class="skel-line shimmer lg"></span>
+                  <span class="skel-line shimmer"></span>
+                  <span class="skel-line shimmer sm"></span>
+                </span>
+              </div>
+              @for (n of [1, 2]; track n) {
+                <div class="card skel">
+                  <span class="skel-thumb shimmer"></span>
+                  <span class="skel-body">
+                    <span class="skel-line shimmer lg"></span>
+                    <span class="skel-line shimmer sm"></span>
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+          <div class="bucket" aria-hidden="true">
+            <div class="bucket-head"><span class="skel-line shimmer head"></span></div>
+            <div class="cards regular-cards">
+              @for (n of [1, 2, 3, 4]; track n) {
+                <div class="card skel">
+                  <span class="skel-thumb shimmer"></span>
+                  <span class="skel-body">
+                    <span class="skel-line shimmer lg"></span>
+                    <span class="skel-line shimmer sm"></span>
+                  </span>
+                </div>
+              }
             </div>
           </div>
         } @else if (svc.error(); as err) {
@@ -200,10 +234,6 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
           }
         }
       </div>
-
-      @if (svc.feed()?.fetchedAt; as fetched) {
-        <p class="footer-hint">{{ 'news.lastUpdated' | translate:{ rel: relTime(fetched) } }}</p>
-      }
     </section>
   `,
   styles: [`
@@ -387,13 +417,56 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .card.featured .body p { -webkit-line-clamp: 4; }
 
     /* ---------- Skeleton ---------- */
-    .card.skel { background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; min-height: 180px; }
+    /* Mirrors the real card (thumb on top, text lines below) so the loading state
+       reads as "content is coming", not as empty boxes. */
+    .card.skel { display: flex; flex-direction: column; gap: 0; cursor: default; min-height: 180px; }
+    .card.skel:hover { transform: none; box-shadow: none; border-color: var(--sc-border); }
     .card.skel.featured { min-height: 380px; }
+    .skel-thumb { width: 100%; aspect-ratio: 16 / 9; display: block; }
+    .card.skel.featured .skel-thumb { aspect-ratio: 21 / 9; }
+    .skel-body { display: flex; flex-direction: column; gap: 9px; padding: 14px; flex: 1; }
+    .skel-line { display: block; height: 11px; border-radius: 5px; width: 100%; }
+    .skel-line.lg { height: 15px; width: 78%; }
+    .skel-line.sm { width: 42%; margin-top: auto; }
+    .skel-line.head { height: 12px; width: 120px; }
+    /* Shared shimmer sweep — one keyframe, staggered so the tiles don't pulse in lockstep. */
+    .shimmer {
+      background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%);
+      background-size: 200% 100%;
+      animation: skel 1.4s ease-in-out infinite;
+    }
+    .card.skel:nth-child(2) .shimmer { animation-delay: 0.12s; }
+    .card.skel:nth-child(3) .shimmer { animation-delay: 0.24s; }
+    .card.skel:nth-child(4) .shimmer { animation-delay: 0.36s; }
     @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .shimmer { animation: none; background-position: 0 0; }
+    }
+
+    /* ---------- Freshness indicator (live "updated X min ago") ---------- */
+    .freshness {
+      display: inline-flex; align-items: center; gap: 7px;
+      margin: 6px 0 0; font-size: 0.72rem; color: var(--sc-fg-2);
+      font-variant-numeric: tabular-nums;
+    }
+    .freshness .pulse {
+      width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;
+      background: var(--sc-success);
+      animation: fresh-pulse 2.4s ease-out infinite;
+    }
+    .freshness.stale { color: var(--sc-warning); }
+    .freshness.stale .pulse { background: var(--sc-warning); animation: none; }
+    @keyframes fresh-pulse {
+      0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sc-success) 55%, transparent); }
+      70% { box-shadow: 0 0 0 6px transparent; }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .freshness .pulse { animation: none; }
+    }
 
     .empty { text-align: center; color: var(--sc-fg-2); padding: 40px; margin: 16px; }
     .err { color: var(--sc-danger); margin: 16px; padding: 16px; }
-    .footer-hint { text-align: center; font-size: 0.72rem; color: var(--sc-fg-2); margin: 0; }
   `],
 })
 export class NewsListComponent implements OnInit, OnDestroy {
@@ -406,13 +479,32 @@ export class NewsListComponent implements OnInit, OnDestroy {
   readonly olderOpen = signal(false);
   readonly hasFilter = computed(() => this.svc.activeChannels().size > 0);
 
+  // Ticking clock so every relative time ("updated X min ago", card timestamps)
+  // stays live between the 5-min feed refreshes instead of freezing at load time.
+  private readonly now = signal(Date.now());
+  private clockTimer: ReturnType<typeof setInterval> | null = null;
+
+  // Live "updated X ago" label for the header, recomputed as the clock ticks.
+  readonly updatedRel = computed(() => {
+    const fetched = this.svc.feed()?.fetchedAt;
+    return fetched ? this.relFrom(fetched, this.now()) : null;
+  });
+  // Feed is considered stale once it outlives ~1.4 poll cycles (poll = 5 min).
+  readonly updatedStale = computed(() => {
+    const fetched = this.svc.feed()?.fetchedAt;
+    if (!fetched) return false;
+    return this.now() - Date.parse(fetched) > 7 * 60 * 1000;
+  });
+
   ngOnInit() {
     this.svc.refresh();
     this.svc.startPolling();
+    this.clockTimer = setInterval(() => this.now.set(Date.now()), 30_000);
   }
 
   ngOnDestroy() {
     this.svc.stopPolling();
+    if (this.clockTimer) { clearInterval(this.clockTimer); this.clockTimer = null; }
   }
 
   toggleStatus() { this.statusOpen.update((v) => !v); }
@@ -443,9 +535,13 @@ export class NewsListComponent implements OnInit, OnDestroy {
   }
 
   relTime(iso: string): string {
+    return this.relFrom(iso, this.now());
+  }
+
+  private relFrom(iso: string, nowMs: number): string {
     const t = Date.parse(iso);
     if (!Number.isFinite(t)) return '';
-    const diffMs = Date.now() - t;
+    const diffMs = nowMs - t;
     if (diffMs < 60000) return this.t.instant('news.relative.now');
     const min = Math.floor(diffMs / 60000);
     if (min < 60) return this.t.instant('news.relative.minutes', { n: min });
