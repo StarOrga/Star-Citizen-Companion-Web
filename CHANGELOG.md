@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.0] - 2026-07-08
+
+### Added
+
+- **Verse News shows a live "updated X min ago" indicator at the top.** The
+  overall refresh time moved from a stale footer hint to the header, with a
+  pulsing freshness dot and an exact minute count. A 30-second clock keeps it —
+  and every card timestamp — updating between the 5-minute feed refreshes; the
+  indicator turns amber once the feed is stale (> 7 min).
+
+### Changed
+
+- **Richer Verse News loading skeletons.** The initial-load placeholder now
+  mirrors the real card layout (thumbnail + text lines across the Today and
+  This-week buckets, with a staggered shimmer) instead of a few empty boxes, so
+  first paint reads as content loading. Respects `prefers-reduced-motion`.
+
 ## [0.29.1] - 2026-07-08
 
 ### Fixed
