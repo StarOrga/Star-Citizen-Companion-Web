@@ -15,6 +15,7 @@ import {
   ApiTokensService,
   CreatedToken,
 } from './api-tokens.service';
+import { useAutoRefresh } from '../../core/auto-refresh';
 
 interface FlashMessage {
   kind: 'success' | 'error';
@@ -40,9 +41,6 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
           </a>
         </div>
         <div class="head-actions">
-          <button class="sc-btn" (click)="refresh()" [disabled]="busy()">
-            {{ 'admin.tokens.refresh' | translate }}
-          </button>
           <button
             class="sc-btn sc-btn-primary"
             (click)="openCreateDialog()"
@@ -455,6 +453,10 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
 export class ApiTokensComponent implements OnInit {
   private readonly svc = inject(ApiTokensService);
   private readonly translate = inject(TranslateService);
+
+  constructor() {
+    useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
+  }
 
   readonly allScopes = API_TOKEN_SCOPES;
   readonly readmeUrl = README_IO_URL;

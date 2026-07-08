@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { DatePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { useAutoRefresh } from '../core/auto-refresh';
 import { Role, RoleService } from '../auth/role.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -34,9 +35,6 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
           <h1>{{ 'admin.title' | translate }}</h1>
           <p class="hint">{{ 'admin.subtitle' | translate }}</p>
         </div>
-        <button class="sc-btn" (click)="refresh()" [disabled]="busy()">
-          {{ 'admin.refresh' | translate }}
-        </button>
       </header>
 
       <div class="sc-card invite-card">
@@ -380,6 +378,10 @@ export class AdminComponent implements OnInit {
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
   readonly selfId = computed(() => this.auth.user()?.id ?? null);
+
+  constructor() {
+    useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
+  }
   readonly adminCount = computed(() => this.users().filter((u) => u.role === 'admin').length);
 
   // Client-side filter + sort state (no refetch — operates over users()).
