@@ -4,6 +4,29 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.29.1] - 2026-07-08
+
+### Fixed
+
+- **Data-uploader auto-update no longer locks itself out.** The update feed
+  (`desktop-latest`) validated the build's release token against `is_current`,
+  but registering any newer release flips older rows off `is_current` — so every
+  already-installed older build got `401 invalid_or_revoked_release_token` and
+  could never update. Token validity is now an explicit `token_revoked` kill-switch
+  (leaked tokens still revocable), decoupled from `is_current`; the feed continues
+  to serve the current release. **Requires deploying the `desktop-latest` function
+  and applying the `token_revoked` migration.**
+- **Update failures now reach crash telemetry.** Uploader update errors (401s, feed
+  outages) were only shown in the in-app banner and never reported, so they were
+  invisible in the dashboard. They are now sent to `ingest-telemetry`
+  (`errorType: 'update'`, deduped against poll spam).
+
+### Added
+
+- **Data-uploader re-checks for updates periodically** (every 6 h) so a long-open
+  session notices releases published after launch, plus a discoverable
+  "check for updates" button in the header.
+
 ## [0.29.0] - 2026-07-07
 
 ### Fixed

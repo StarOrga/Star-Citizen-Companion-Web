@@ -155,6 +155,7 @@ async function init(): Promise<void> {
   // Auto-update banner — subscribe + paint last known status (no-op on dev).
   window.sc.update.onEvent(paintUpdateBanner);
   void window.sc.update.status().then(paintUpdateBanner);
+  initUpdateCheckButton();
 
   // Web-connection tile — auto-connect (persisted session) + auto-sync.
   void initConnectionTile();
@@ -440,6 +441,43 @@ type UpdateEvent =
   | { type: 'progress'; pct: number; bytesPerSecond?: number; transferred?: number; total?: number }
   | { type: 'downloaded'; version: string }
   | { type: 'error'; message: string };
+
+// Manual "check for updates" trigger in the header. The auto banner stays
+// silent for 'checking'/'not-available', so this button gives the user explicit
+// feedback for those states inline; 'available'/'progress'/'downloaded'/'error'
+// are surfaced by the banner via onEvent. Mirrors the web app's discoverable
+// update affordance (there the SwUpdate poll is invisible, but a manual check
+// is what users reach for when they want to confirm they're current).
+function initUpdateCheckButton(): void {
+  const btn = $('#update-check-btn') as HTMLButtonElement | null;
+  if (!btn) return;
+  const idleLabel = (): string => t('update.check', {}) || 'Nach Updates suchen';
+  btn.textContent = idleLabel();
+  btn.title = idleLabel();
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = t('update.checking', {}) || 'Suche…';
+    let ev: UpdateEvent;
+    try {
+      ev = await window.sc.update.check();
+    } catch {
+      ev = { type: 'error', message: 'check failed' };
+    }
+    // 'not-available' hides the banner, so confirm "up to date" on the button
+    // itself; every other outcome is already visible in the banner.
+    if (ev.type === 'not-available') {
+      btn.textContent = t('update.uptodate', { version: ev.currentVersion }) || `Aktuell (v${ev.currentVersion})`;
+      setTimeout(() => {
+        btn.textContent = idleLabel();
+        btn.disabled = false;
+      }, 3000);
+    } else {
+      btn.textContent = idleLabel();
+      btn.disabled = false;
+    }
+  });
+}
 
 function paintUpdateBanner(ev: UpdateEvent): void {
   const banner = $('#update-banner');
