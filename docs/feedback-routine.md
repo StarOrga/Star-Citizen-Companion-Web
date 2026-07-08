@@ -17,9 +17,57 @@ Status lifecycle the routine drives:
 
 ```
 open ──pick up──▶ in_progress ──green build+tests──▶ shipped
-                                └──red / needs review──▶ (stays in_progress, PR opened)
-                     └──not actionable──▶ rejected (with processing_note)
+  ▲                             └──red / needs review──▶ (stays in_progress, PR opened)
+  │                  └──not actionable──▶ rejected (with processing_note)
+  └──reaper: orphaned claim (no PR) went stale──────────┘
 ```
+
+## Resuming interrupted work (stale-claim reaper)
+
+The routine's queue is `status = 'open'` only. That means a run which claims
+an item (sets `in_progress`) and is then **interrupted before reaching a
+terminal state** — usage limit hit, PC powered off, Claude not running, a
+crash — leaves the item stranded in `in_progress`. Nothing looks at
+`in_progress` rows, so the work is **never resumed**. This was the gap behind
+feedback item `253da974` ("die letzte Nachricht die in Arbeit ist wurde nicht
+wieder aufgenommen").
+
+The fix is a **reaper that runs first, every cycle** (STEP 1.5 in the task).
+Because the reaper is part of the routine, the interruption naturally heals on
+the next cron tick after the machine/Claude is back — no PC-independent
+infrastructure required (that was declined 2026-07-07).
+
+It reopens only **orphaned** claims and never disturbs intentional holds:
+
+```sql
+update public.admin_feedback
+set status = 'open',
+    processing_note = 'auto-reopened: in_progress claim went stale (interrupted run) — resuming',
+    processed_at = now()
+where status = 'in_progress'
+  and ship_ref is null                             -- no PR was ever opened → incomplete, not a review hold
+  and processed_at < now() - interval '30 minutes' -- older than ~1.5 cadence cycles → not a run in flight
+returning id;
+```
+
+Why the two guards:
+
+- **`ship_ref IS NULL`** distinguishes an *interrupted* claim from an
+  *intentional manual-review hold*. A held item (red build, or a
+  sensitive/broad change — e.g. PR #108) always carries a `ship_ref` (its PR)
+  and a `processing_note`; a human owns it, so the reaper must leave it alone.
+  An orphaned claim never got as far as opening a PR, so `ship_ref` is null.
+- **`processed_at < now() - interval '30 minutes'`** protects a *currently
+  overlapping run* that legitimately claimed the item and is still
+  implementing/building — 30 min comfortably exceeds a normal single-item
+  cycle while the ~20-min cadence keeps resumption prompt. Worst case if a
+  genuine build outruns 30 min: the item is reopened and re-done on a fresh
+  branch+PR — wasted effort, never data corruption (the atomic claim still
+  prevents two runs acting on it at the same instant, and each item ships via
+  its own independent PR).
+
+Reaped items are logged in the run report and then flow through the normal
+per-item procedure below in the same run.
 
 ## Per-item procedure
 
