@@ -59,6 +59,10 @@
       "records_total": "Datensätze gesamt",
       "previews": "Vorschaubilder",
       "skins": "Skins"
+    },
+    "hint": {
+      "open": "Öffne das ~157-GB-Archiv — das dauert einen Moment.",
+      "datacore": "DataCore wird dekomprimiert — kann etwas dauern."
     }
   },
   "upload": {
@@ -73,6 +77,12 @@
     "uploadOk": "Upload OK",
     "uploadFailed": "Upload-Fehler",
     "cleaned": "Extrahierte Dateien aufgeräumt (Upload bestätigt)",
+    "bundleUploading": "Bundle-Metadaten werden hochgeladen…",
+    "steps": {
+      "bundle": "Bundle",
+      "codex": "Codex",
+      "skins": "3D-Skins"
+    },
     "err": {
       "unauthorized": "Nicht angemeldet oder Sitzung ungültig — bitte neu verbinden.",
       "forbidden": "Keine Berechtigung zum Hochladen — deinem Konto fehlt die Upload-Rolle.",
@@ -131,7 +141,8 @@
     "publishing": "Codex wird veröffentlicht",
     "published": "Codex aktualisiert",
     "ships": "Schiffe",
-    "failed": "Codex-Veröffentlichung fehlgeschlagen"
+    "failed": "Codex-Veröffentlichung fehlgeschlagen",
+    "step": "Schritt {{current}} / {{total}} wird veröffentlicht"
   },
   "skins": {
     "tools": "Build-Tools werden sichergestellt…",
@@ -141,6 +152,17 @@
     "done": "3D-Skins fertig — {n} Schiff(e) live.",
     "partial": "Schiffe hochgeladen (Rest siehe Log)",
     "building": "3D-Skins werden gebaut",
-    "none": "Keine baubaren 3D-Skins gefunden."
+    "none": "Keine baubaren 3D-Skins gefunden.",
+    "stepTools": "Build-Tools werden vorbereitet",
+    "stepBuild": "Liveries werden gebaut",
+    "stepUpload": "Liveries werden hochgeladen",
+    "shipProgress": "Schiff {{current}} / {{total}}",
+    "hintBuild": "Erst-Build baut jedes Schiff einzeln — kann pro Schiff einige Minuten dauern.",
+    "hintUpload": "Große Livery-Dateien werden übertragen — je nach Größe dauert das."
+  },
+  "progress": {
+    "still": "arbeitet noch",
+    "eta": "Rest",
+    "perSec": "/s"
   }
 }

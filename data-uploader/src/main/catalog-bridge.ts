@@ -45,6 +45,12 @@ export interface CatalogProgress {
   phase: string; // human/i18n key-ish label, e.g. 'ships'
   current: number;
   total: number;
+  // Additive/optional: which of the fixed publish steps we're on (1-based)
+  // and how many total, so the renderer can show an overall two-tier bar
+  // instead of only the within-table current/total (which resets to 0 each
+  // table). Omitted for callers that don't care — never a breaking change.
+  phaseIndex?: number;
+  phaseTotal?: number;
 }
 export type CatalogProgressCb = (p: CatalogProgress) => void;
 
@@ -87,6 +93,32 @@ export async function uploadCatalog(
   const manifestPath = join(outDir, 'manifest.json');
   if (!existsSync(manifestPath)) return { ok: false, error: 'manifest_missing' };
 
+  // Fixed order of `phase` values this function emits, below — lets the
+  // renderer show an overall "step N / M" figure on top of the per-table
+  // current/total (which resets each table). Additive only: onProgress still
+  // receives the original phase/current/total unchanged, just with two extra
+  // optional fields attached.
+  const PHASE_ORDER = [
+    'init',
+    'codex_manufacturers',
+    'codex_ships',
+    'codex_weapons',
+    'codex_components',
+    'codex_items',
+    'codex_ammunition',
+    'codex_blueprints',
+    'codex_blueprint_ingredients',
+    'codex_entity_strings',
+    'codex_item_ports',
+    'codex_locale_strings',
+    'codex_previews',
+    'finalize',
+  ];
+  const progress = (p: CatalogProgress): void => {
+    const idx = PHASE_ORDER.indexOf(p.phase);
+    onProgress(idx === -1 ? p : { ...p, phaseIndex: idx + 1, phaseTotal: PHASE_ORDER.length });
+  };
+
   const headers = {
     'content-type': 'application/json',
     authorization: `Bearer ${accessToken}`,
@@ -112,7 +144,7 @@ export async function uploadCatalog(
       const slice = rows.slice(i, i + CHUNK);
       await post('upsert', { table, rows: slice });
       done += slice.length;
-      onProgress({ phase: table, current: done, total: rows.length });
+      progress({ phase: table, current: done, total: rows.length });
     }
     return done;
   };
@@ -131,7 +163,7 @@ export async function uploadCatalog(
     };
 
     // 1. build row ----------------------------------------------------------
-    onProgress({ phase: 'init', current: 0, total: 1 });
+    progress({ phase: 'init', current: 0, total: 1 });
     const initRes = await post('init', {
       build: {
         ...nat,
@@ -238,7 +270,7 @@ export async function uploadCatalog(
         const slice = ingredientRows.slice(i, i + CHUNK);
         await post('ingredients', { build_id: buildId, rows: slice });
         ing += slice.length;
-        onProgress({ phase: 'codex_blueprint_ingredients', current: ing, total: ingredientRows.length });
+        progress({ phase: 'codex_blueprint_ingredients', current: ing, total: ingredientRows.length });
       }
       counts.blueprint_ingredients = ing;
     }
@@ -251,7 +283,7 @@ export async function uploadCatalog(
         const slice = deduped.slice(i, i + CHUNK);
         await post('strings', { rows: slice });
         done += slice.length;
-        onProgress({ phase: 'codex_entity_strings', current: done, total: deduped.length });
+        progress({ phase: 'codex_entity_strings', current: done, total: deduped.length });
       }
       counts.entity_strings = done;
     }
@@ -262,7 +294,7 @@ export async function uploadCatalog(
         const slice = ports.slice(i, i + CHUNK);
         await post('ports', { build_id: buildId, rows: slice });
         done += slice.length;
-        onProgress({ phase: 'codex_item_ports', current: done, total: ports.length });
+        progress({ phase: 'codex_item_ports', current: done, total: ports.length });
       }
       counts.item_ports = done;
     }
@@ -286,7 +318,7 @@ export async function uploadCatalog(
         const slice = localeRows.slice(i, i + LOCALE_CHUNK);
         await post('locale_strings', { rows: slice });
         done += slice.length;
-        onProgress({ phase: 'codex_locale_strings', current: done, total: localeRows.length });
+        progress({ phase: 'codex_locale_strings', current: done, total: localeRows.length });
       }
       counts.locale_strings = done;
     }
@@ -305,7 +337,7 @@ export async function uploadCatalog(
             content_base64: bytes.toString('base64'),
           });
           done += 1;
-          onProgress({ phase: 'codex_previews', current: done, total: files.length });
+          progress({ phase: 'codex_previews', current: done, total: files.length });
         }
         counts.previews = done;
       }
@@ -320,9 +352,9 @@ export async function uploadCatalog(
       log.warn(`[catalog] not finalizing empty/partial build ${buildId} (counts: ${JSON.stringify(counts)})`);
       return { ok: false, buildId, counts, error: 'empty_catalog' };
     }
-    onProgress({ phase: 'finalize', current: 0, total: 1 });
+    progress({ phase: 'finalize', current: 0, total: 1 });
     await post('finalize', { build_id: buildId, entity_counts: { ...(manifest.entity_counts as object), seeded: counts } });
-    onProgress({ phase: 'finalize', current: 1, total: 1 });
+    progress({ phase: 'finalize', current: 1, total: 1 });
 
     log.info(`[catalog] promoted build ${buildId} (${nat.channel} ${nat.patch_version} ${nat.build_number})`);
     return { ok: true, buildId, counts };

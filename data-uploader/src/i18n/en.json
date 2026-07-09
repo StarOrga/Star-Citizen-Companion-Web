@@ -59,6 +59,10 @@
       "records_total": "Records total",
       "previews": "Previews",
       "skins": "Skins"
+    },
+    "hint": {
+      "open": "Opening the ~157 GB archive — this takes a moment.",
+      "datacore": "Decompressing the DataCore — this can take a while."
     }
   },
   "upload": {
@@ -73,6 +77,12 @@
     "uploadOk": "Upload OK",
     "uploadFailed": "Upload failed",
     "cleaned": "Extracted files cleaned up (upload confirmed)",
+    "bundleUploading": "Uploading bundle metadata…",
+    "steps": {
+      "bundle": "Bundle",
+      "codex": "Codex",
+      "skins": "3D Skins"
+    },
     "err": {
       "unauthorized": "Not signed in or your session is invalid — please reconnect.",
       "forbidden": "You don't have permission to upload — your account is missing the uploader role.",
@@ -131,7 +141,8 @@
     "publishing": "Publishing to Codex",
     "published": "Codex updated",
     "ships": "ships",
-    "failed": "Codex publish failed"
+    "failed": "Codex publish failed",
+    "step": "Publishing step {{current}} / {{total}}"
   },
   "skins": {
     "tools": "Ensuring build tools…",
@@ -141,6 +152,17 @@
     "done": "3D skins done — {n} ship(s) live.",
     "partial": "ships uploaded (see log for the rest)",
     "building": "Building 3D skins",
-    "none": "No buildable 3D skins found."
+    "none": "No buildable 3D skins found.",
+    "stepTools": "Preparing build tools",
+    "stepBuild": "Building liveries",
+    "stepUpload": "Uploading liveries",
+    "shipProgress": "Ship {{current}} / {{total}}",
+    "hintBuild": "First build assembles each ship one by one — can take a few minutes per ship.",
+    "hintUpload": "Transferring large livery files — this depends on their size."
+  },
+  "progress": {
+    "still": "still working",
+    "eta": "ETA",
+    "perSec": "/s"
   }
 }

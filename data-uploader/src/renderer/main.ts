@@ -7,6 +7,13 @@
  */
 
 import { load as loadI18n, setLocale, getLocale, t, type LocaleId } from '../lib/i18n.js';
+import {
+  progressCardHtml,
+  mountProgress,
+  type ProgressController,
+  type ProgressStep,
+  type ProgressLabels,
+} from './progress.js';
 
 interface ToolEnv {
   toolVersion: string;
@@ -597,11 +604,13 @@ function render(): void {
 
 function renderDiscover(): string {
   return `
-    <h1>${t('discover.title', {}) || 'Star-Citizen-Installations finden'}</h1>
-    <p>${t('discover.subtitle', {}) || 'Cascade läuft automatisch: RSI-Launcher → Filesystem-Scan → optional manuell.'}</p>
-    <div id="channels-mount"></div>
-    <div class="btn-row" id="discover-next" style="display:none; margin-top: 18px;">
-      <button id="btn-to-configure" class="btn btn-primary">${t('discover.next', {}) || 'Weiter → Konfiguration'}</button>
+    <div class="view">
+      <h1>${t('discover.title', {}) || 'Star-Citizen-Installations finden'}</h1>
+      <p class="view-intro">${t('discover.subtitle', {}) || 'Cascade läuft automatisch: RSI-Launcher → Filesystem-Scan → optional manuell.'}</p>
+      <div id="channels-mount" class="view-body"></div>
+      <div class="btn-row view-footer" id="discover-next" style="display:none;">
+        <button id="btn-to-configure" class="btn btn-primary">${t('discover.next', {}) || 'Weiter → Konfiguration'}</button>
+      </div>
     </div>
   `;
 }
@@ -672,34 +681,34 @@ function paintChannels(): void {
   }
 
   const hasChannels = state.channels.length > 0;
-  const list = hasChannels
-    ? `
-    <div class="card">
-      <h2>${t('discover.found', {}) || 'Gefundene Channels'}</h2>
-      <div class="channel-list">
-        ${state.channels
-          .map(
-            (c, i) => `
-          <label class="channel-row">
-            <input type="checkbox" data-idx="${i}" ${c.selected ? 'checked' : ''} />
-            <span class="channel-pill ${c.channel}">${c.channel}</span>
-            <div class="channel-meta">
-              <span class="channel-name">${c.version ? 'v' + c.version : c.channel + ' (no version)'}</span>
-              <span class="channel-path">${c.installPath}</span>
-            </div>
-            <span class="channel-size">${(c.sizeBytes / 1024 ** 3).toFixed(1)} GB</span>
-          </label>
-        `,
-          )
-          .join('')}
-      </div>
-    </div>`
-    : `<p class="discover-empty">${t('discover.none', {}) || 'Keine Installation automatisch gefunden — füge unten einen Ordner manuell hinzu.'}</p>`;
+  // Found installs render as a horizontal card track; the manual-add tile rides
+  // at the end of the same track so "add by hand" is always reachable.
+  const cards = state.channels
+    .map(
+      (c, i) => `
+      <label class="channel-card ${c.selected ? 'selected' : ''}" data-card="${i}">
+        <div class="channel-card-top">
+          <span class="channel-pill ${c.channel}">${c.channel}</span>
+          <input type="checkbox" data-idx="${i}" ${c.selected ? 'checked' : ''} />
+        </div>
+        <span class="channel-name">${c.version ? 'v' + c.version : c.channel + ' (no version)'}</span>
+        <span class="channel-path" title="${escapeHtml(c.installPath)}">${escapeHtml(c.installPath)}</span>
+        <span class="channel-size">${(c.sizeBytes / 1024 ** 3).toFixed(1)} GB</span>
+      </label>
+    `,
+    )
+    .join('');
 
-  // Big "add folder" button always sits below the versions, to pull in more by hand.
+  const empty = hasChannels
+    ? ''
+    : `<p class="discover-empty">${t('discover.none', {}) || 'Keine Installation automatisch gefunden — füge rechts einen Ordner manuell hinzu.'}</p>`;
+
   mount.innerHTML = `
-    ${list}
-    <button id="btn-manual" type="button" class="btn btn-add-folder">＋ ${t('discover.addManual', {}) || 'Ordner manuell hinzufügen'}</button>
+    <div class="channel-track">
+      ${cards}
+      ${empty}
+      <button id="btn-manual" type="button" class="channel-add-card">＋ ${t('discover.addManual', {}) || 'Ordner manuell hinzufügen'}</button>
+    </div>
   `;
 
   mount.querySelectorAll('input[type=checkbox]').forEach((el) => {
@@ -707,7 +716,10 @@ function paintChannels(): void {
       const idx = Number((e.target as HTMLInputElement).dataset['idx']);
       if (!Number.isInteger(idx)) return;
       const ch = state.channels[idx];
-      if (ch) ch.selected = (e.target as HTMLInputElement).checked;
+      if (ch) {
+        ch.selected = (e.target as HTMLInputElement).checked;
+        mount.querySelector(`.channel-card[data-card="${idx}"]`)?.classList.toggle('selected', ch.selected);
+      }
     });
   });
   $('#btn-manual')?.addEventListener('click', () => void addManualFolder());
@@ -719,12 +731,14 @@ function paintChannels(): void {
 
 function renderConfigure(): string {
   return `
-    <h1>${t('configure.title', {}) || 'Profil wählen'}</h1>
-    <p>${t('configure.subtitle', {}) || 'Live umschaltbar — du kannst während des Laufs wechseln.'}</p>
-    <div class="profiles" id="profiles-mount"></div>
-    <div class="btn-row" style="margin-top:18px;">
-      <button id="btn-back-discover" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
-      <button id="btn-start-run" class="btn btn-primary">${t('configure.start', {}) || 'Extraktion starten'}</button>
+    <div class="view">
+      <h1>${t('configure.title', {}) || 'Profil wählen'}</h1>
+      <p class="view-intro">${t('configure.subtitle', {}) || 'Live umschaltbar — du kannst während des Laufs wechseln.'}</p>
+      <div class="profiles view-body" id="profiles-mount"></div>
+      <div class="btn-row view-footer">
+        <button id="btn-back-discover" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
+        <button id="btn-start-run" class="btn btn-primary">${t('configure.start', {}) || 'Extraktion starten'}</button>
+      </div>
     </div>
   `;
 }
@@ -784,24 +798,24 @@ async function renderProfiles(): Promise<void> {
 
 function renderRun(): string {
   return `
-    <h1>${t('run.title', {}) || 'Extraktion läuft'}</h1>
-    <div class="card">
-      <div class="run-head">
-        <h2 id="phase-label">…</h2>
-        <span id="run-elapsed" class="run-elapsed"></span>
+    <div class="view">
+      <h1>${t('run.title', {}) || 'Extraktion läuft'}</h1>
+      <div class="run-grid view-body">
+        <section class="card run-main">
+          ${progressCardHtml('run-progress', runSteps())}
+        </section>
+        <section class="card run-log">
+          <div class="log-header">
+            <span class="log-title">${t('run.logTitle', {}) || 'Protokoll'}</span>
+            <button id="btn-copy-log" type="button" class="btn btn-copy">${t('run.copyLog', {}) || 'Kopieren'}</button>
+          </div>
+          <div class="log-stream" id="log"></div>
+        </section>
       </div>
-      <div class="progress-bar" id="progress-bar"><span id="bar" style="width:0%"></span></div>
-      <div id="progress-detail" class="progress-detail"></div>
-      <div class="counters" id="counters"></div>
-      <div class="log-header">
-        <span class="log-title">${t('run.logTitle', {}) || 'Protokoll'}</span>
-        <button id="btn-copy-log" type="button" class="btn btn-copy">${t('run.copyLog', {}) || 'Kopieren'}</button>
+      <div class="btn-row view-footer">
+        <button id="btn-back-configure" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
+        <button id="btn-to-upload" class="btn btn-primary" disabled>${t('run.next', {}) || 'Upload anbieten'}</button>
       </div>
-      <div class="log-stream" id="log"></div>
-    </div>
-    <div class="btn-row">
-      <button id="btn-back-configure" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
-      <button id="btn-to-upload" class="btn btn-primary" disabled>${t('run.next', {}) || 'Upload anbieten'}</button>
     </div>
   `;
 }
@@ -840,13 +854,12 @@ async function copyLog(): Promise<void> {
 }
 
 async function runRealExtract(): Promise<void> {
-  const bar = $('#bar') as HTMLElement | null;
-  const phase = $('#phase-label');
   const logEl = $('#log');
-  const counters = $('#counters');
-  const setBar = (pct: number) => {
-    if (bar) bar.style.width = pct + '%';
-  };
+  const progress = mountProgress('run-progress', {
+    counterLabel,
+    steps: runSteps(),
+    labels: progressLabels(),
+  });
   const appendLog = (msg: string, level: LogLevel = 'info') => {
     const prefix = level === 'error' ? '[err] ' : level === 'warn' ? '[warn] ' : '';
     const text = prefix + msg;
@@ -859,54 +872,8 @@ async function runRealExtract(): Promise<void> {
     logEl.scrollTop = logEl.scrollHeight;
   };
   const countMap: Record<string, number> = {};
-  const paintCounters = (): void => {
-    if (!counters) return;
-    counters.innerHTML = orderedCounts(countMap)
-      .map(
-        ([key, value]) =>
-          `<div class="counter"><div class="label">${escapeHtml(counterLabel(key))}</div><div class="value">${value.toLocaleString()}</div></div>`,
-      )
-      .join('');
-  };
 
-  // Live "where am I" line under the bar. Shows current/total when the goal is
-  // known, a running count when it isn't, and a bare label for opaque phases —
-  // and flips the bar to an indeterminate pulse while there's nothing to count.
-  const progressDetail = $('#progress-detail');
-  const progressBar = $('#progress-bar');
-  const setProgressDetail = (ev: {
-    stage?: string;
-    current?: number;
-    total?: number;
-    pct?: number;
-    detail?: string;
-  }): void => {
-    const label = stageLabel(ev.stage ?? '');
-    let txt: string;
-    if (typeof ev.total === 'number' && ev.total > 0 && typeof ev.current === 'number') {
-      const pct = typeof ev.pct === 'number' ? ev.pct : Math.floor((ev.current / ev.total) * 100);
-      txt = `${label} — ${ev.current.toLocaleString()} / ${ev.total.toLocaleString()} (${pct} %)`;
-    } else if (typeof ev.current === 'number') {
-      txt = `${label} — ${ev.current.toLocaleString()}`;
-    } else {
-      txt = `${label} …`;
-    }
-    if (ev.detail) txt += `  ·  ${ev.detail}`;
-    if (progressDetail) progressDetail.textContent = txt;
-    const indeterminate = typeof ev.total !== 'number' && typeof ev.current !== 'number';
-    progressBar?.classList.toggle('indeterminate', indeterminate);
-  };
-
-  // Elapsed clock — the main reassurance during the long opaque steps (opening
-  // the ~157 GB archive, decompressing the DataCore) where no count ticks.
-  const startedAt = Date.now();
-  const elapsedEl = $('#run-elapsed');
-  const tickElapsed = (): void => {
-    if (elapsedEl) elapsedEl.textContent = fmtElapsed(Date.now() - startedAt);
-  };
-  tickElapsed();
-  const elapsedTimer = window.setInterval(tickElapsed, 1000);
-
+  progress.start();
   extractLogText = '';
 
   const channel = state.channels.find((c) => c.selected);
@@ -926,23 +893,41 @@ async function runRealExtract(): Promise<void> {
     switch (ev.type) {
       case 'phase': {
         const label = phaseLabel(ev.phase ?? 'unknown');
-        if (phase) phase.textContent = label;
-        if (typeof ev.pct === 'number') setBar(ev.pct);
+        const si = RUN_STEP_INDEX[ev.phase ?? ''];
+        if (si !== undefined) progress.setStep(si);
+        progress.update({ phaseLabel: label, overallPct: ev.pct });
         appendLog(`▶ ${label}`);
         return;
       }
-      case 'progress':
-        if (typeof ev.pct === 'number') setBar(ev.pct);
-        setProgressDetail(ev);
+      case 'progress': {
+        // Name the two long opaque stages so a multi-minute wait is explained
+        // rather than looking hung (they emit pct but no current/total).
+        const hint =
+          ev.stage === 'open'
+            ? t('run.hint.open', {}) || 'Öffne das große Archiv — das dauert einen Moment.'
+            : ev.stage === 'datacore'
+              ? t('run.hint.datacore', {}) || 'DataCore wird dekomprimiert — kann etwas dauern.'
+              : '';
+        progress.update({
+          overallPct: ev.pct,
+          stageLabel: stageLabel(ev.stage ?? ''),
+          current: ev.current,
+          total: ev.total,
+          detail: ev.detail,
+          hint,
+        });
         return;
+      }
       case 'file':
-        if (typeof ev.pct === 'number') setBar(ev.pct);
+        progress.update({ overallPct: ev.pct });
         if (ev.fileName) appendLog(`  · ${ev.fileName}`);
         return;
       case 'count':
         if (ev.counter) {
           countMap[ev.counter.key] = ev.counter.value;
-          paintCounters();
+          const ordered: Record<string, number> = {};
+          for (const [k, v] of orderedCounts(countMap)) ordered[k] = v;
+          progress.update({ counters: ordered });
         }
         return;
       case 'log':
@@ -952,13 +937,11 @@ async function runRealExtract(): Promise<void> {
         appendLog(ev.message ?? 'warning', 'warn');
         return;
       case 'done':
-        setBar(100);
-        progressBar?.classList.remove('indeterminate');
-        if (phase) phase.textContent = phaseLabel('done');
-        if (progressDetail) progressDetail.textContent = '';
+        progress.setStep(5); // past the last phase → all step chips 'done'
+        progress.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false, hint: '' });
         return;
       case 'error':
-        progressBar?.classList.remove('indeterminate');
+        progress.update({ indeterminate: false });
         appendLog(ev.message ?? 'extraction error', 'error');
         return;
     }
@@ -984,7 +967,7 @@ async function runRealExtract(): Promise<void> {
       const totalEntities = Object.values(final.result.entity_counts)
         .reduce((a, b) => a + b, 0)
         .toLocaleString();
-      const elapsed = fmtElapsed(Date.now() - startedAt);
+      const elapsed = fmtElapsed(progress.elapsedMs());
       appendLog(
         tOr(
           'run.doneSummary',
@@ -1003,13 +986,46 @@ async function runRealExtract(): Promise<void> {
     }
   } finally {
     unsubscribe();
-    window.clearInterval(elapsedTimer);
-    tickElapsed();
-    progressBar?.classList.remove('indeterminate');
+    progress.stop();
+    progress.update({ indeterminate: false });
   }
 }
 
 // ============= View: Auth-Upload =============
+
+// The 3 sub-flows of one upload run, in the order they actually execute
+// (see doUploadAfterAuth) — surfaced as a small stepper on the shared
+// progress card so the upload flow reads as a sibling of the Run view.
+function uploadSteps(): ProgressStep[] {
+  return [
+    { key: 'bundle', label: t('upload.steps.bundle', {}) || 'Bundle' },
+    { key: 'codex', label: t('upload.steps.codex', {}) || 'Codex' },
+    { key: 'skins', label: t('upload.steps.skins', {}) || '3D-Skins' },
+  ];
+}
+
+// The extract pipeline's fixed phases, surfaced as the same step-chip journey
+// the upload flow uses — so both views read as siblings. `phaseLabel` reuses
+// the existing run.phase.* i18n keys.
+function runSteps(): ProgressStep[] {
+  return [
+    { key: 'discover', label: phaseLabel('discover') },
+    { key: 'plan', label: phaseLabel('plan') },
+    { key: 'extract', label: phaseLabel('extract') },
+    { key: 'validate', label: phaseLabel('validate') },
+    { key: 'bundle', label: phaseLabel('bundle') },
+  ];
+}
+const RUN_STEP_INDEX: Record<string, number> = { discover: 0, plan: 1, extract: 2, validate: 3, bundle: 4 };
+
+// Localized labels for the shared progress meta line (throughput / ETA / stall).
+function progressLabels(): Partial<ProgressLabels> {
+  return {
+    still: t('progress.still', {}) || 'arbeitet noch',
+    eta: t('progress.eta', {}) || 'Rest',
+    perSec: t('progress.perSec', {}) || '/s',
+  };
+}
 
 function renderAuthUpload(): string {
   const result = state.lastResult;
@@ -1020,37 +1036,52 @@ function renderAuthUpload(): string {
         .join('')
     : '<li><em>no extraction yet</em></li>';
   return `
-    <h1>${t('upload.title', {}) || 'Upload'}</h1>
-    <div class="card">
-      <p>${t('upload.intro', {}) || 'Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.'}</p>
-      <div class="btn-row">
-        <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start', {}) || 'Upload starten'}</button>
+    <div class="view">
+      <h1>${t('upload.title', {}) || 'Upload'}</h1>
+      <div class="upload-grid view-body">
+        <section class="card upload-actions">
+          <p>${t('upload.intro', {}) || 'Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.'}</p>
+          <div class="btn-row">
+            <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start', {}) || 'Upload starten'}</button>
+          </div>
+          ${progressCardHtml('upload-progress', uploadSteps())}
+          <p id="auth-status" class="warn" style="margin-top: 10px;"></p>
+          <div id="upload-result" style="margin-top: 14px;"></div>
+        </section>
+        <section class="card upload-summary">
+          <h2>${t('upload.bundle', {}) || 'Bundle-Zusammenfassung'}</h2>
+          ${hasResult
+            ? `
+            <ul class="bundle-meta">
+              <li><strong>channel:</strong> ${result!.channel}</li>
+              <li><strong>patch:</strong> ${result!.patch_version}</li>
+              <li><strong>build:</strong> ${result!.build_number || '<em>n/a</em>'}</li>
+              <li><strong>quality:</strong> ${result!.quality_score.toFixed(0)}/100</li>
+            </ul>
+            <h3 style="margin-top: 10px;">Entity counts</h3>
+            <ul class="entity-strip">${counts}</ul>
+          `
+            : '<p class="warn">No extraction result — go back and run the extractor first.</p>'}
+        </section>
       </div>
-      <p id="auth-status" class="warn" style="margin-top: 10px;"></p>
-    </div>
-    <div class="card" style="margin-top: 12px;">
-      <h2>${t('upload.bundle', {}) || 'Bundle-Zusammenfassung'}</h2>
-      ${hasResult
-        ? `
-        <ul class="bundle-meta">
-          <li><strong>channel:</strong> ${result!.channel}</li>
-          <li><strong>patch:</strong> ${result!.patch_version}</li>
-          <li><strong>build:</strong> ${result!.build_number || '<em>n/a</em>'}</li>
-          <li><strong>quality:</strong> ${result!.quality_score.toFixed(0)}/100</li>
-        </ul>
-        <h3 style="margin-top: 10px;">Entity counts</h3>
-        <ul class="bundle-meta">${counts}</ul>
-      `
-        : '<p class="warn">No extraction result — go back and run the extractor first.</p>'}
-      <div id="upload-result" style="margin-top: 14px;"></div>
-    </div>
-    <div class="btn-row">
-      <button id="btn-back-run" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
+      <div class="btn-row view-footer">
+        <button id="btn-back-run" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
+      </div>
     </div>
   `;
 }
 
+// Progress-card controller for the currently-mounted upload view — created
+// fresh on every `wireAuthUpload()` (i.e. every time the view is (re)rendered),
+// read by the upload sub-flow functions below.
+let uploadProgress: ProgressController | null = null;
+
 function wireAuthUpload(): void {
+  uploadProgress = mountProgress('upload-progress', {
+    counterLabel,
+    steps: uploadSteps(),
+    labels: progressLabels(),
+  });
   $('#btn-back-run')?.addEventListener('click', () => {
     state.view = 'run';
     render();
@@ -1066,11 +1097,19 @@ async function doStartUpload(): Promise<void> {
   if (!state.lastResult) return;
   const btn = $('#btn-start-upload') as HTMLButtonElement | null;
   if (btn) btn.disabled = true;
+  uploadProgress?.start();
+  uploadProgress?.setStep(0);
   try {
     if (!state.authToken) {
-      setAuthStatus(t('upload.signingIn', {}) || 'Im Browser anmelden…', 'warn');
+      uploadProgress?.update({
+        phaseLabel: t('upload.signingIn', {}) || 'Im Browser anmelden…',
+        indeterminate: true,
+        detail: '',
+      });
       const token = await ensureUploadToken();
       if (!token) {
+        uploadProgress?.update({ indeterminate: false });
+        uploadProgress?.stop();
         setAuthStatus(t('upload.signInFailed', {}) || 'Anmeldung fehlgeschlagen', 'error');
         return;
       }
@@ -1134,7 +1173,12 @@ function friendlyUploadError(r: { error?: string; details?: unknown }): string {
 async function doUploadAfterAuth(): Promise<void> {
   if (!state.authToken || !state.lastResult) return;
   const result = state.lastResult;
-  setAuthStatus(t('upload.uploading', {}) || 'Upload läuft…', 'warn');
+  uploadProgress?.setStep(0);
+  uploadProgress?.update({
+    phaseLabel: t('upload.bundleUploading', {}) || 'Bundle-Metadaten werden hochgeladen…',
+    indeterminate: true,
+    detail: '',
+  });
   const ch = result.channel as 'LIVE' | 'PTU' | 'EPTU' | 'TECH-PREVIEW';
   const r = await window.sc.upload({
     accessToken: state.authToken,
@@ -1148,9 +1192,12 @@ async function doUploadAfterAuth(): Promise<void> {
     manifestPath: result.manifest_path,
   });
   if (!r.ok) {
+    uploadProgress?.update({ indeterminate: false });
+    uploadProgress?.stop();
     setAuthStatus(friendlyUploadError(r), 'error');
     return;
   }
+  uploadProgress?.update({ indeterminate: false, overallPct: 100 });
   setAuthStatus(
     `${t('upload.uploadOk', {}) || 'Upload OK'} · bundle_id ${r.bundleId ?? '—'}`,
     'ok',
@@ -1160,20 +1207,24 @@ async function doUploadAfterAuth(): Promise<void> {
   // Promote the extract into the public Codex (codex_* tables) BEFORE cleanup,
   // so the out_dir still exists. Non-fatal: the bundle upload already succeeded;
   // a codex failure only means the public catalog isn't refreshed this run.
-  await promoteToCodex(result.output_dir);
+  uploadProgress?.setStep(1);
+  await promoteToCodex(result.output_dir, uploadProgress);
 
   // Build + upload the 3D liveries as part of the SAME upload — skins are a
   // sub-property of every ship, not a separate step. Reads the extract's build
   // manifest, cached per patch version. Runs BEFORE cleanup (manifest lives in
   // out_dir). Fully non-fatal: the bundle is already confirmed.
+  uploadProgress?.setStep(2);
   try {
-    await buildAndUploadSkins(result);
+    await buildAndUploadSkins(result, uploadProgress);
   } catch (err) {
+    uploadProgress?.update({ indeterminate: false });
     setAuthStatus(
       `${t('skins.buildFailed', {}) || '3D-Skins übersprungen (Bundle ist hochgeladen)'}: ${(err as Error).message}`,
       'warn',
     );
   }
+  uploadProgress?.stop();
 
   // Upload confirmed — reclaim the run's extracted files so they don't fill
   // the disk. Best-effort: the main process guards + swallows failures.
@@ -1196,29 +1247,53 @@ async function doUploadAfterAuth(): Promise<void> {
 
 // Drive the codex promotion with a live per-table progress line. Non-fatal:
 // any failure is surfaced as a warning but never blocks the confirmed upload.
-async function promoteToCodex(outDir: string | undefined): Promise<void> {
+// `progress` is optional so this stays callable without a mounted view (tests).
+async function promoteToCodex(outDir: string | undefined, progress?: ProgressController | null): Promise<void> {
   if (!outDir || !state.authToken) return;
   const label = t('catalog.publishing', {}) || 'Codex wird veröffentlicht';
-  setAuthStatus(`${label}…`, 'warn');
+  progress?.update({ phaseLabel: label, indeterminate: true, detail: '' });
   const unsub = window.sc.catalog.onEvent((ev) => {
-    const pct = ev.total > 0 ? Math.round((ev.current / ev.total) * 100) : 0;
-    setAuthStatus(`${label}: ${ev.phase} ${ev.current}/${ev.total} (${pct}%)`, 'warn');
+    // phaseIndex/phaseTotal are additive fields (catalog-bridge.ts) — an
+    // overall two-tier bar: which of the ~14 fixed publish steps we're on,
+    // refined by how far the CURRENT step's own current/total has gotten.
+    const stepFrac = ev.total > 0 ? ev.current / ev.total : 0;
+    const overallPct =
+      typeof ev.phaseIndex === 'number' && typeof ev.phaseTotal === 'number' && ev.phaseTotal > 0
+        ? Math.round(((ev.phaseIndex - 1 + stepFrac) / ev.phaseTotal) * 100)
+        : undefined;
+    const stageLbl =
+      typeof ev.phaseIndex === 'number' && typeof ev.phaseTotal === 'number'
+        ? t('catalog.step', { current: String(ev.phaseIndex), total: String(ev.phaseTotal) }) ||
+          `Step ${ev.phaseIndex}/${ev.phaseTotal}`
+        : undefined;
+    progress?.update({
+      phaseLabel: label,
+      stageLabel: stageLbl,
+      current: ev.current,
+      total: ev.total > 0 ? ev.total : undefined,
+      overallPct,
+      detail: ev.phase,
+      indeterminate: false,
+    });
   });
   try {
     const res = await window.sc.catalog.upload(state.authToken, outDir);
     if (res.ok) {
       const ships = res.counts?.['ships'] ?? 0;
+      progress?.update({ overallPct: 100, indeterminate: false });
       setAuthStatus(
         `${t('catalog.published', {}) || 'Codex aktualisiert'} · ${ships} ${t('catalog.ships', {}) || 'Schiffe'}`,
         'ok',
       );
     } else {
+      progress?.update({ indeterminate: false });
       setAuthStatus(
         `${t('catalog.failed', {}) || 'Codex-Veröffentlichung fehlgeschlagen'}: ${res.error ?? '—'}`,
         'error',
       );
     }
   } catch (err) {
+    progress?.update({ indeterminate: false });
     setAuthStatus(
       `${t('catalog.failed', {}) || 'Codex-Veröffentlichung fehlgeschlagen'}: ${(err as Error).message}`,
       'error',
@@ -1261,10 +1336,12 @@ function paintDiffSummary(diff: unknown): void {
     <h3>Diff vs. previous bundle</h3>
     <p>Σ <span class="ok">+${totalAdded.toLocaleString()}</span>
        / <span class="error">−${totalRemoved.toLocaleString()}</span></p>
-    <table class="diff-table">
-      <thead><tr><th>entity</th><th>prev</th><th>new</th><th>delta</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="4"><em>no entity changes</em></td></tr>'}</tbody>
-    </table>
+    <div class="diff-scroll">
+      <table class="diff-table">
+        <thead><tr><th>entity</th><th>prev</th><th>new</th><th>delta</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="4"><em>no entity changes</em></td></tr>'}</tbody>
+      </table>
+    </div>
   `;
 }
 
@@ -1283,7 +1360,10 @@ function setAuthStatus(msg: string, cls: 'ok' | 'warn' | 'error'): void {
 // the first run of a patch is long (builds all glbs), re-runs skip ships that
 // are already built + uploaded. Entirely non-fatal — the bundle upload has
 // already succeeded, so any skin failure only means liveries aren't refreshed.
-async function buildAndUploadSkins(result: ExtractResultPayload): Promise<void> {
+async function buildAndUploadSkins(
+  result: ExtractResultPayload,
+  progress?: ProgressController | null,
+): Promise<void> {
   if (!state.authToken) return;
   const ch = state.channels.find((c) => c.selected) ?? state.channels[0];
   if (!ch) return;
@@ -1293,12 +1373,15 @@ async function buildAndUploadSkins(result: ExtractResultPayload): Promise<void> 
   const label = t('skins.building', {}) || '3D-Skins werden gebaut';
 
   // 1. ensure cgf-converter (first-use download ~117 MB).
+  const toolsLabel = t('skins.stepTools', {}) || 'Build-Tools werden geladen';
+  progress?.update({ phaseLabel: toolsLabel, indeterminate: true, detail: '' });
   const unsubTools = window.sc.skin.onToolProgress((pct) =>
-    setAuthStatus(`${t('skins.tools', {}) || 'Build-Tools werden geladen'} … ${pct}%`, 'warn'),
+    progress?.update({ phaseLabel: toolsLabel, current: pct, total: 100, overallPct: pct, indeterminate: false }),
   );
   const tools = await window.sc.skin.ensureTools();
   unsubTools();
   if (!tools.ok) {
+    progress?.update({ indeterminate: false });
     setAuthStatus(
       `${t('skins.toolsFailed', {}) || '3D-Tools nicht verfügbar — Skins übersprungen'}: ${tools.error ?? '—'}`,
       'warn',
@@ -1307,16 +1390,41 @@ async function buildAndUploadSkins(result: ExtractResultPayload): Promise<void> 
   }
 
   // 2. build glbs (streams; first run per patch is long, cached runs are quick).
+  // Reads ev.pct (phase events) AND ev.current/ev.total (ships progress
+  // events, see skin_export_app.py) so the card shows "ship X / Y" plus a
+  // moving overall bar instead of just a static phase word.
+  progress?.update({
+    phaseLabel: label,
+    indeterminate: true,
+    detail: '',
+    hint: t('skins.hintBuild', {}) || 'Erst-Build baut jedes Schiff einzeln — kann pro Schiff einige Minuten dauern.',
+  });
+  const skinCounters: Record<string, number> = {};
   const unsub = window.sc.skin.onEvent((ev) => {
-    if (ev.type === 'phase' && ev.phase) setAuthStatus(`${label}: ${ev.phase}`, 'warn');
-    else if (ev.type === 'count' && ev.counter)
-      setAuthStatus(`${label}: ${ev.counter.key} (${ev.counter.value})`, 'warn');
-    else if (ev.type === 'log' && ev.level === 'error') setAuthStatus(`${label}: ${ev.message ?? ''}`, 'warn');
+    if (ev.type === 'phase' && ev.phase) {
+      progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
+    } else if (ev.type === 'progress') {
+      progress?.update({
+        stageLabel:
+          t('skins.shipProgress', { current: String(ev.current ?? 0), total: String(ev.total ?? 0) }) ||
+          `Ship ${ev.current}/${ev.total}`,
+        current: ev.current,
+        total: ev.total,
+        overallPct: ev.pct,
+        detail: ev.detail,
+      });
+    } else if (ev.type === 'count' && ev.counter) {
+      skinCounters[ev.counter.key] = ev.counter.value;
+      progress?.update({ counters: skinCounters });
+    } else if (ev.type === 'log' && ev.level === 'error') {
+      progress?.update({ detail: ev.message ?? '' });
+    }
   });
   const built = await window.sc.skin
     .start({ p4kPath: ch.dataP4kPath, outDir: skinsOut, manifest, skipExisting: true })
     .finally(unsub);
   if (!built.ok || !built.ships) {
+    progress?.update({ indeterminate: false });
     setAuthStatus(
       `${t('skins.buildFailed', {}) || '3D-Skins-Build fehlgeschlagen (Bundle ist hochgeladen)'}: ${built.error ?? '—'}`,
       'warn',
@@ -1325,17 +1433,26 @@ async function buildAndUploadSkins(result: ExtractResultPayload): Promise<void> 
   }
   state.skinResult = built.ships;
   if (built.ships.length === 0) {
+    progress?.update({ indeterminate: false });
     setAuthStatus(t('skins.none', {}) || 'Keine baubaren 3D-Skins gefunden.', 'ok');
     return;
   }
 
   // 3. upload (upload-cache skips ships already shipped in a prior run).
-  setAuthStatus(t('skins.uploading', {}) || '3D-Skins werden hochgeladen…', 'warn');
+  progress?.update({
+    phaseLabel: t('skins.stepUpload', {}) || t('skins.uploading', {}) || '3D-Skins werden hochgeladen…',
+    indeterminate: true,
+    current: 0,
+    total: built.ships.length,
+    detail: '',
+    hint: t('skins.hintUpload', {}) || 'Große Livery-Dateien werden übertragen — je nach Größe dauert das.',
+  });
   const results = await window.sc.skin.upload(
     state.authToken,
     built.ships.map((s) => ({ shipId: s.ship_id, dir: s.export_dir })),
   );
   const okCount = results.filter((r) => r.ok).length;
+  progress?.update({ indeterminate: false, current: okCount, total: results.length, overallPct: 100 });
   setAuthStatus(
     okCount === results.length
       ? t('skins.done', { n: String(okCount) }) || `3D-Skins fertig — ${okCount} Schiff(e) live.`

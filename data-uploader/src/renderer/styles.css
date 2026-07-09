@@ -82,12 +82,47 @@ body {
 }
 .topbar select:focus { outline: none; border-color: var(--sc-accent); }
 
+/* ------- styled scrollbars (Chromium/Electron) -------
+   Horizontal scroll is a first-class citizen in this layout: the page itself
+   never scrolls vertically, so the only bars a user sees are the deliberate
+   horizontal tracks (counter strip, channel track, diff table) and the bounded
+   log panel. Thin, rounded, accent-glowing — matched to the SC design tokens. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--sc-accent), var(--sc-accent-hot));
+  border-radius: 999px;
+  border: 2px solid var(--sc-bg-1);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--sc-accent); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* main is a fixed-height stage: the active view fills it exactly, so the PAGE
+   never scrolls vertically. Overflow is pushed inward — wide strips scroll
+   horizontally, the log panel scrolls inside its own bounds. */
 main {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  padding: 24px 28px;
+  overflow: hidden;
+  padding: 20px 26px;
+  display: flex;
+  flex-direction: column;
 }
+
+/* ------- view scaffold -------
+   Every view is a full-height flex column: a fixed title/intro at the top, a
+   flexible body that owns any scrolling, and an optional fixed footer button
+   row pinned to the bottom. */
+.view { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.view > h1 { margin-bottom: 4px; }
+.view-intro { color: var(--sc-fg-1); margin: 0 0 12px; }
+.view-body { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; gap: 16px; }
+.view-footer { flex: 0 0 auto; padding-top: 14px; }
+.view-body .card { margin-bottom: 0; }
+
+/* Horizontal-scroll utility — a single row that scrolls sideways rather than
+   wrapping into extra height. */
+.h-scroll { overflow-x: auto; overflow-y: hidden; }
 
 .statusbar {
   display: flex;
@@ -151,26 +186,72 @@ h3 { font-size: 0.9rem; }
 .btn-primary:hover:not(:disabled) { background: var(--accent-strong); }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.btn:focus-visible, select:focus-visible, input:focus-visible, .profile-pill:focus-visible, .channel-row input:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+.btn:focus-visible, select:focus-visible, input:focus-visible, .profile-pill:focus-visible, .channel-card input:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
-.channel-list { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
-.channel-row {
+/* Discover: found channels laid out as a horizontal card track. Installs are
+   few (LIVE/PTU/EPTU/TECH-PREVIEW), so cards read large and scroll sideways
+   instead of stacking into vertical page scroll. The manual-add tile rides at
+   the end of the same track. */
+.channel-track {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--sc-bg-1);
-  border: 1px solid var(--sc-border);
-  border-radius: 6px;
+  align-items: stretch;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 10px;
 }
-.channel-row input[type=checkbox] {
+.channel-card {
+  flex: 0 0 auto;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
+  border: 1px solid var(--sc-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.channel-card:hover { border-color: var(--sc-accent); }
+.channel-card.selected { border-color: var(--sc-accent); box-shadow: var(--sc-glow); }
+.channel-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.channel-card input[type=checkbox] {
   width: 18px; height: 18px;
   accent-color: var(--sc-accent);
+  cursor: pointer;
 }
-.channel-meta { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.channel-name { font-family: var(--sc-font-display); letter-spacing: 0.06em; font-size: 0.92rem; }
-.channel-path { color: var(--sc-fg-2); font-size: 0.78rem; font-family: monospace; overflow: hidden; text-overflow: ellipsis; }
-.channel-size { color: var(--sc-fg-1); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.channel-name { font-family: var(--sc-font-display); letter-spacing: 0.06em; font-size: 1.05rem; }
+.channel-path {
+  color: var(--sc-fg-2); font-size: 0.74rem; font-family: monospace;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.channel-size {
+  margin-top: auto;
+  color: var(--sc-accent); font-family: var(--sc-font-display);
+  font-size: 1.1rem; font-variant-numeric: tabular-nums;
+}
+/* Manual-add tile — a dashed card matching the track height. */
+.channel-add-card {
+  flex: 0 0 auto;
+  width: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px dashed var(--sc-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sc-fg-1);
+  font-family: var(--sc-font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.channel-add-card:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
 .channel-pill {
   font-family: var(--sc-font-display);
   font-size: 0.66rem;
@@ -203,28 +284,18 @@ h3 { font-size: 0.9rem; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.discover-empty { color: var(--sc-fg-2); padding: 16px 0; }
+.discover-empty { color: var(--sc-fg-2); align-self: center; margin: auto; }
 
-/* Big dashed "add a folder by hand" button, sits below the version list */
-.btn-add-folder {
-  display: block;
-  width: 100%;
-  margin-top: 12px;
-  padding: 14px;
-  border-style: dashed;
-  color: var(--sc-fg-1);
-}
-.btn-add-folder:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
-
-.profiles { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+/* Configure: profile pills fill the body height as side-by-side columns. */
+.profiles { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
 .profile-pill {
-  flex: 1; min-width: 140px;
-  padding: 14px 16px;
+  flex: 1; min-width: 160px;
+  padding: 18px 18px;
   border: 1px solid var(--sc-border);
   border-radius: 8px;
   background: var(--sc-bg-1);
   cursor: pointer;
-  display: flex; flex-direction: column; gap: 4px;
+  display: flex; flex-direction: column; gap: 8px;
   transition: all 0.15s;
 }
 .profile-pill:hover { border-color: var(--sc-accent); }
@@ -247,8 +318,25 @@ h3 { font-size: 0.9rem; }
 }
 .progress-bar > span {
   position: absolute; inset: 0 auto 0 0;
-  background: linear-gradient(90deg, var(--sc-accent), var(--sc-accent-hot));
+  /* A traveling highlight glint on top of the accent gradient — keeps a
+     DETERMINATE bar visibly "alive" even while its width sits still for
+     minutes (e.g. between two 'progress' events on a huge phase), so long
+     stretches never read as frozen. */
+  background: linear-gradient(
+    90deg,
+    var(--sc-accent) 0%,
+    var(--sc-accent-hot) 35%,
+    rgba(255, 255, 255, 0.92) 50%,
+    var(--sc-accent-hot) 65%,
+    var(--sc-accent) 100%
+  );
+  background-size: 240% 100%;
+  animation: progress-shimmer 2s linear infinite;
   transition: width 0.2s ease;
+}
+@keyframes progress-shimmer {
+  0% { background-position: 240% 0; }
+  100% { background-position: -240% 0; }
 }
 /* Indeterminate: goal not yet quantifiable (opening the archive, decompressing
    the DataCore). A sliding sliver keeps the bar visibly alive without faking a
@@ -262,6 +350,99 @@ h3 { font-size: 0.9rem; }
   0% { transform: translateX(-110%); }
   100% { transform: translateX(330%); }
 }
+
+/* ------- shared progress component (Run + Upload views) -------
+   A single "sibling" surface for both long-running flows: phase line +
+   heartbeat, optional step chips (multi-stage upload flow), bar, detail
+   line, sub-count chips. See progress.ts for the controller. */
+.sc-progress { display: flex; flex-direction: column; min-height: 0; }
+.sc-progress-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sc-progress-phase {
+  font-family: var(--sc-font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+}
+.sc-progress-heartbeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+/* The heartbeat dot pulses on its own clock — independent of any real
+   progress event — so it keeps moving through opaque/dead-zone stages
+   (archive open, DataCore decompress, opaque multi-GB PUTs) where nothing
+   else on screen changes for a long time. */
+.sc-progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sc-accent);
+  box-shadow: 0 0 6px var(--sc-accent);
+  animation: sc-heartbeat 1.4s ease-in-out infinite;
+}
+@keyframes sc-heartbeat {
+  0%, 100% { opacity: 0.4; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+.sc-progress-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 2px;
+  flex-wrap: wrap;
+}
+.sc-progress-step {
+  font-family: var(--sc-font-display);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--sc-border);
+  color: var(--sc-fg-2);
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.sc-progress-step.active {
+  border-color: var(--sc-accent);
+  color: var(--sc-accent);
+  box-shadow: var(--sc-glow);
+}
+.sc-progress-step.done { border-color: var(--sc-success); color: var(--sc-success); }
+.sc-progress-step-arrow { color: var(--sc-fg-2); font-size: 0.7rem; }
+.sc-progress .progress-bar { margin-top: 8px; }
+
+/* Meta line: live throughput + ETA when the goal is known, otherwise a stall
+   timer ("arbeitet noch · 42s") and/or a contextual hint for opaque steps. */
+.sc-progress-meta {
+  min-height: 1.05em;
+  margin-top: 4px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.72rem;
+  color: var(--sc-fg-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sc-progress-meta.anxious { color: var(--sc-warning); }
+
+/* A counter chip flashes when its value ticks — cheap "it's alive" signal on
+   an otherwise static strip. Auto-disabled under prefers-reduced-motion. */
+@keyframes sc-count-bump {
+  0% { transform: scale(1); }
+  30% {
+    transform: scale(1.12);
+    border-color: var(--sc-accent);
+    box-shadow: 0 0 10px rgba(var(--accent-primary-rgb), 0.45);
+  }
+  100% { transform: scale(1); }
+}
+.counter.bumped { animation: sc-count-bump 0.5s ease; }
 
 .run-head {
   display: flex;
@@ -328,18 +509,46 @@ h3 { font-size: 0.9rem; }
 .log-line.log-warn { color: var(--sc-warning); }
 .log-line.log-error { color: var(--sc-danger); }
 
+/* Run view: two columns filling the body — progress + counters on the left,
+   the log panel taking the rest on the right. */
+.run-grid { display: flex; gap: 16px; }
+.run-main {
+  flex: 0 0 340px;
+  display: flex; flex-direction: column;
+  min-height: 0;
+  min-width: 0;   /* let the counter strip scroll instead of widening the column */
+}
+.run-log {
+  flex: 1 1 auto;
+  display: flex; flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.run-log .log-header { margin-top: 0; }
+.run-log .log-stream {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+/* Counters: a single horizontal strip that scrolls sideways rather than
+   growing the column's height as more entity types come in. */
 .counters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  display: flex;
   gap: 10px;
-  margin: 10px 0;
+  margin: 10px 0 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
 }
 .counter {
+  flex: 0 0 auto;
+  min-width: 96px;
   text-align: center;
   background: var(--sc-bg-1);
   border: 1px solid var(--sc-border);
   border-radius: 6px;
-  padding: 8px;
+  padding: 10px 12px;
 }
 .counter .label { font-size: 0.72rem; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
 .counter .value { font-family: var(--sc-font-display); font-size: 1.2rem; color: var(--sc-accent); }
@@ -374,16 +583,47 @@ h3 { font-size: 0.9rem; }
   color: var(--sc-danger);
 }
 
+/* ------- Upload view: two columns filling the body ------- */
+.upload-grid { display: flex; gap: 16px; }
+.upload-actions,
+.upload-summary {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex; flex-direction: column;
+  overflow: auto;            /* long diff/counts scroll inside the card, not the page */
+}
+.upload-summary { flex: 1 1 0; }
+
 /* ------- bundle-summary + diff table ------- */
 .bundle-meta {
   list-style: none;
   padding: 0;
   margin: 6px 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 6px;
 }
 .bundle-meta li { padding: 4px 8px; background: rgba(var(--accent-primary-rgb), 0.06); border-radius: 4px; }
+/* Entity counts as a horizontal chip strip rather than a tall wrapping grid. */
+.entity-strip {
+  list-style: none;
+  padding: 0 0 8px;
+  margin: 6px 0;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.entity-strip li {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  background: rgba(var(--accent-primary-rgb), 0.06);
+  border-radius: 6px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* Diff table scrolls horizontally inside its own frame. */
+.diff-scroll { overflow-x: auto; overflow-y: hidden; }
 .diff-table {
   width: 100%;
   border-collapse: collapse;
