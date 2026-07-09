@@ -818,7 +818,14 @@
       "numbered": "Nummerierte Liste",
       "code": "Inline-Code",
       "list": "Liste",
-      "draftRestored": "Entwurf wiederhergestellt"
+      "draftRestored": "Entwurf wiederhergestellt",
+      "attach": "Bild anhängen",
+      "attachHint": "Bilder per Einfügen (Strg+V) oder Ablegen hinzufügen",
+      "attachmentsLabel": "Angehängte Bilder",
+      "removeImage": "Bild entfernen",
+      "dropHere": "Bilder hier ablegen",
+      "imageError": "Bild konnte nicht verarbeitet werden.",
+      "tooManyImages": "Maximal {{max}} Bilder pro Nachricht."
     }
   },
   "feedbackFab": {
