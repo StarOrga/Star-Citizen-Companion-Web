@@ -92,6 +92,44 @@ button {
   }
 }
 
+/* Native form controls — theme every native checkbox/radio to the accent
+   colour so they adopt the StarOrga language instead of the OS default look
+   (previously each control fell back to the platform blue). */
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--sc-accent);
+  cursor: pointer;
+}
+
+/* Scrollbars — align the browser scroll chrome with the dark surface. WebKit/
+   Blink via ::-webkit-scrollbar, Firefox via scrollbar-* on the element. The
+   thumb picks up the accent on hover to match interactive affordances. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sc-border) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--sc-border);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.18s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sc-accent);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .sc-card {
   background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
   border: 1px solid var(--sc-border);
