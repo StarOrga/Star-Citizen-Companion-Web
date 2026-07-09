@@ -1,8 +1,8 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   HostListener,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -13,8 +13,13 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
 /**
  * Admin-only feedback launcher. Replaces the former `/admin/feedback` nav item
  * with a floating action button that opens the feedback board as a chat-style
- * overlay panel — reachable from every page. The board is created only while
- * the panel is open, so it reloads fresh data on each open.
+ * overlay panel — reachable from every page.
+ *
+ * The panel minimizes rather than closes: once opened it stays mounted and is
+ * hidden via CSS while minimized, so the embedded board keeps all of its state
+ * (draft notes, pending attachments, scroll position). A click elsewhere on the
+ * page never dismisses it, and Escape / the header button only minimize — so an
+ * admin jotting notes can freely click around the app without losing them.
  */
 @Component({
   selector: 'sc-feedback-fab',
@@ -24,19 +29,28 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
   template: `
     @if (roles.isAdmin()) {
       <div class="fab-root">
-        @if (open()) {
+        @if (mounted()) {
           <div
             class="panel"
+            [class.minimized]="minimized()"
             role="dialog"
+            [attr.aria-hidden]="minimized()"
             [attr.aria-label]="'feedbackFab.title' | translate">
             <header class="panel-head">
               <span class="panel-title">{{ 'feedbackFab.title' | translate }}</span>
               <button
                 type="button"
-                class="panel-close"
-                (click)="close()"
-                [attr.aria-label]="'feedbackFab.close' | translate">
-                ✕
+                class="panel-min"
+                (click)="minimize()"
+                [attr.aria-label]="'feedbackFab.minimize' | translate">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                  <path
+                    d="M6 17h12"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round" />
+                </svg>
               </button>
             </header>
             <div class="panel-body">
@@ -48,15 +62,15 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
         <button
           type="button"
           class="fab"
-          [class.is-open]="open()"
+          [class.is-open]="isOpen()"
           (click)="toggle($event)"
-          [attr.aria-label]="(open() ? 'feedbackFab.close' : 'feedbackFab.open') | translate"
+          [attr.aria-label]="(isOpen() ? 'feedbackFab.minimize' : 'feedbackFab.open') | translate"
           aria-haspopup="dialog"
-          [attr.aria-expanded]="open()">
-          @if (open()) {
+          [attr.aria-expanded]="isOpen()">
+          @if (isOpen()) {
             <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
               <path
-                d="M6 6l12 12M18 6L6 18"
+                d="M6 17h12"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
@@ -131,6 +145,8 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55), var(--sc-glow);
       overflow: hidden;
     }
+    /* Minimized: kept in the DOM (state preserved) but hidden. */
+    .panel.minimized { display: none; }
     .panel-head {
       display: flex;
       align-items: center;
@@ -147,7 +163,7 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
       font-weight: 600;
       color: var(--sc-fg-0);
     }
-    .panel-close {
+    .panel-min {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -161,8 +177,8 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
       cursor: pointer;
       transition: all 0.16s ease;
     }
-    .panel-close:hover { color: var(--sc-fg-0); background: rgba(255, 255, 255, 0.06); }
-    .panel-close:focus-visible {
+    .panel-min:hover { color: var(--sc-fg-0); background: rgba(255, 255, 255, 0.06); }
+    .panel-min:focus-visible {
       outline: none;
       color: var(--sc-fg-0);
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35);
@@ -192,29 +208,32 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
 })
 export class FeedbackFabComponent {
   readonly roles = inject(RoleService);
-  private readonly host = inject(ElementRef<HTMLElement>);
 
-  readonly open = signal(false);
+  /** Whether the panel is in the DOM. Stays true once first opened so the
+   *  embedded board keeps its state while minimized. */
+  readonly mounted = signal(false);
+  /** Whether the mounted panel is collapsed (hidden) rather than dismissed. */
+  readonly minimized = signal(false);
+  /** Panel is visible when mounted and not minimized. */
+  readonly isOpen = computed(() => this.mounted() && !this.minimized());
 
   toggle(event: Event) {
     event.stopPropagation();
-    this.open.update((o) => !o);
+    if (!this.mounted()) {
+      this.mounted.set(true);
+      this.minimized.set(false);
+      return;
+    }
+    this.minimized.update((m) => !m);
   }
 
-  close() {
-    this.open.set(false);
+  /** Hide the panel without unmounting it — all board state is preserved. */
+  minimize() {
+    this.minimized.set(true);
   }
 
   @HostListener('document:keydown.escape')
   onEscape() {
-    if (this.open()) this.close();
-  }
-
-  // Close on any click outside the FAB subtree (button + panel).
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    if (!this.open()) return;
-    const root = (this.host.nativeElement as HTMLElement).querySelector('.fab-root');
-    if (root && !root.contains(event.target as Node)) this.close();
+    if (this.isOpen()) this.minimize();
   }
 }

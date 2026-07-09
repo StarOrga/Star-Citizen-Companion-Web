@@ -830,6 +830,7 @@
   "feedbackFab": {
     "open": "Feedback öffnen",
     "close": "Feedback schließen",
+    "minimize": "Feedback minimieren",
     "title": "Feedback"
   },
   "releaseNotes": {
