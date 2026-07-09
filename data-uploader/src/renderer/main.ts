@@ -597,11 +597,13 @@ function render(): void {
 
 function renderDiscover(): string {
   return `
-    <h1>${t('discover.title', {}) || 'Star-Citizen-Installations finden'}</h1>
-    <p>${t('discover.subtitle', {}) || 'Cascade läuft automatisch: RSI-Launcher → Filesystem-Scan → optional manuell.'}</p>
-    <div id="channels-mount"></div>
-    <div class="btn-row" id="discover-next" style="display:none; margin-top: 18px;">
-      <button id="btn-to-configure" class="btn btn-primary">${t('discover.next', {}) || 'Weiter → Konfiguration'}</button>
+    <div class="view">
+      <h1>${t('discover.title', {}) || 'Star-Citizen-Installations finden'}</h1>
+      <p class="view-intro">${t('discover.subtitle', {}) || 'Cascade läuft automatisch: RSI-Launcher → Filesystem-Scan → optional manuell.'}</p>
+      <div id="channels-mount" class="view-body"></div>
+      <div class="btn-row view-footer" id="discover-next" style="display:none;">
+        <button id="btn-to-configure" class="btn btn-primary">${t('discover.next', {}) || 'Weiter → Konfiguration'}</button>
+      </div>
     </div>
   `;
 }
@@ -672,34 +674,34 @@ function paintChannels(): void {
   }
 
   const hasChannels = state.channels.length > 0;
-  const list = hasChannels
-    ? `
-    <div class="card">
-      <h2>${t('discover.found', {}) || 'Gefundene Channels'}</h2>
-      <div class="channel-list">
-        ${state.channels
-          .map(
-            (c, i) => `
-          <label class="channel-row">
-            <input type="checkbox" data-idx="${i}" ${c.selected ? 'checked' : ''} />
-            <span class="channel-pill ${c.channel}">${c.channel}</span>
-            <div class="channel-meta">
-              <span class="channel-name">${c.version ? 'v' + c.version : c.channel + ' (no version)'}</span>
-              <span class="channel-path">${c.installPath}</span>
-            </div>
-            <span class="channel-size">${(c.sizeBytes / 1024 ** 3).toFixed(1)} GB</span>
-          </label>
-        `,
-          )
-          .join('')}
-      </div>
-    </div>`
-    : `<p class="discover-empty">${t('discover.none', {}) || 'Keine Installation automatisch gefunden — füge unten einen Ordner manuell hinzu.'}</p>`;
+  // Found installs render as a horizontal card track; the manual-add tile rides
+  // at the end of the same track so "add by hand" is always reachable.
+  const cards = state.channels
+    .map(
+      (c, i) => `
+      <label class="channel-card ${c.selected ? 'selected' : ''}" data-card="${i}">
+        <div class="channel-card-top">
+          <span class="channel-pill ${c.channel}">${c.channel}</span>
+          <input type="checkbox" data-idx="${i}" ${c.selected ? 'checked' : ''} />
+        </div>
+        <span class="channel-name">${c.version ? 'v' + c.version : c.channel + ' (no version)'}</span>
+        <span class="channel-path" title="${escapeHtml(c.installPath)}">${escapeHtml(c.installPath)}</span>
+        <span class="channel-size">${(c.sizeBytes / 1024 ** 3).toFixed(1)} GB</span>
+      </label>
+    `,
+    )
+    .join('');
 
-  // Big "add folder" button always sits below the versions, to pull in more by hand.
+  const empty = hasChannels
+    ? ''
+    : `<p class="discover-empty">${t('discover.none', {}) || 'Keine Installation automatisch gefunden — füge rechts einen Ordner manuell hinzu.'}</p>`;
+
   mount.innerHTML = `
-    ${list}
-    <button id="btn-manual" type="button" class="btn btn-add-folder">＋ ${t('discover.addManual', {}) || 'Ordner manuell hinzufügen'}</button>
+    <div class="channel-track">
+      ${cards}
+      ${empty}
+      <button id="btn-manual" type="button" class="channel-add-card">＋ ${t('discover.addManual', {}) || 'Ordner manuell hinzufügen'}</button>
+    </div>
   `;
 
   mount.querySelectorAll('input[type=checkbox]').forEach((el) => {
@@ -707,7 +709,10 @@ function paintChannels(): void {
       const idx = Number((e.target as HTMLInputElement).dataset['idx']);
       if (!Number.isInteger(idx)) return;
       const ch = state.channels[idx];
-      if (ch) ch.selected = (e.target as HTMLInputElement).checked;
+      if (ch) {
+        ch.selected = (e.target as HTMLInputElement).checked;
+        mount.querySelector(`.channel-card[data-card="${idx}"]`)?.classList.toggle('selected', ch.selected);
+      }
     });
   });
   $('#btn-manual')?.addEventListener('click', () => void addManualFolder());
@@ -719,12 +724,14 @@ function paintChannels(): void {
 
 function renderConfigure(): string {
   return `
-    <h1>${t('configure.title', {}) || 'Profil wählen'}</h1>
-    <p>${t('configure.subtitle', {}) || 'Live umschaltbar — du kannst während des Laufs wechseln.'}</p>
-    <div class="profiles" id="profiles-mount"></div>
-    <div class="btn-row" style="margin-top:18px;">
-      <button id="btn-back-discover" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
-      <button id="btn-start-run" class="btn btn-primary">${t('configure.start', {}) || 'Extraktion starten'}</button>
+    <div class="view">
+      <h1>${t('configure.title', {}) || 'Profil wählen'}</h1>
+      <p class="view-intro">${t('configure.subtitle', {}) || 'Live umschaltbar — du kannst während des Laufs wechseln.'}</p>
+      <div class="profiles view-body" id="profiles-mount"></div>
+      <div class="btn-row view-footer">
+        <button id="btn-back-discover" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
+        <button id="btn-start-run" class="btn btn-primary">${t('configure.start', {}) || 'Extraktion starten'}</button>
+      </div>
     </div>
   `;
 }
@@ -784,24 +791,30 @@ async function renderProfiles(): Promise<void> {
 
 function renderRun(): string {
   return `
-    <h1>${t('run.title', {}) || 'Extraktion läuft'}</h1>
-    <div class="card">
-      <div class="run-head">
-        <h2 id="phase-label">…</h2>
-        <span id="run-elapsed" class="run-elapsed"></span>
+    <div class="view">
+      <h1>${t('run.title', {}) || 'Extraktion läuft'}</h1>
+      <div class="run-grid view-body">
+        <section class="card run-main">
+          <div class="run-head">
+            <h2 id="phase-label">…</h2>
+            <span id="run-elapsed" class="run-elapsed"></span>
+          </div>
+          <div class="progress-bar" id="progress-bar"><span id="bar" style="width:0%"></span></div>
+          <div id="progress-detail" class="progress-detail"></div>
+          <div class="counters" id="counters"></div>
+        </section>
+        <section class="card run-log">
+          <div class="log-header">
+            <span class="log-title">${t('run.logTitle', {}) || 'Protokoll'}</span>
+            <button id="btn-copy-log" type="button" class="btn btn-copy">${t('run.copyLog', {}) || 'Kopieren'}</button>
+          </div>
+          <div class="log-stream" id="log"></div>
+        </section>
       </div>
-      <div class="progress-bar" id="progress-bar"><span id="bar" style="width:0%"></span></div>
-      <div id="progress-detail" class="progress-detail"></div>
-      <div class="counters" id="counters"></div>
-      <div class="log-header">
-        <span class="log-title">${t('run.logTitle', {}) || 'Protokoll'}</span>
-        <button id="btn-copy-log" type="button" class="btn btn-copy">${t('run.copyLog', {}) || 'Kopieren'}</button>
+      <div class="btn-row view-footer">
+        <button id="btn-back-configure" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
+        <button id="btn-to-upload" class="btn btn-primary" disabled>${t('run.next', {}) || 'Upload anbieten'}</button>
       </div>
-      <div class="log-stream" id="log"></div>
-    </div>
-    <div class="btn-row">
-      <button id="btn-back-configure" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
-      <button id="btn-to-upload" class="btn btn-primary" disabled>${t('run.next', {}) || 'Upload anbieten'}</button>
     </div>
   `;
 }
@@ -1020,32 +1033,36 @@ function renderAuthUpload(): string {
         .join('')
     : '<li><em>no extraction yet</em></li>';
   return `
-    <h1>${t('upload.title', {}) || 'Upload'}</h1>
-    <div class="card">
-      <p>${t('upload.intro', {}) || 'Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.'}</p>
-      <div class="btn-row">
-        <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start', {}) || 'Upload starten'}</button>
+    <div class="view">
+      <h1>${t('upload.title', {}) || 'Upload'}</h1>
+      <div class="upload-grid view-body">
+        <section class="card upload-actions">
+          <p>${t('upload.intro', {}) || 'Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.'}</p>
+          <div class="btn-row">
+            <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start', {}) || 'Upload starten'}</button>
+          </div>
+          <p id="auth-status" class="warn" style="margin-top: 10px;"></p>
+          <div id="upload-result" style="margin-top: 14px;"></div>
+        </section>
+        <section class="card upload-summary">
+          <h2>${t('upload.bundle', {}) || 'Bundle-Zusammenfassung'}</h2>
+          ${hasResult
+            ? `
+            <ul class="bundle-meta">
+              <li><strong>channel:</strong> ${result!.channel}</li>
+              <li><strong>patch:</strong> ${result!.patch_version}</li>
+              <li><strong>build:</strong> ${result!.build_number || '<em>n/a</em>'}</li>
+              <li><strong>quality:</strong> ${result!.quality_score.toFixed(0)}/100</li>
+            </ul>
+            <h3 style="margin-top: 10px;">Entity counts</h3>
+            <ul class="entity-strip">${counts}</ul>
+          `
+            : '<p class="warn">No extraction result — go back and run the extractor first.</p>'}
+        </section>
       </div>
-      <p id="auth-status" class="warn" style="margin-top: 10px;"></p>
-    </div>
-    <div class="card" style="margin-top: 12px;">
-      <h2>${t('upload.bundle', {}) || 'Bundle-Zusammenfassung'}</h2>
-      ${hasResult
-        ? `
-        <ul class="bundle-meta">
-          <li><strong>channel:</strong> ${result!.channel}</li>
-          <li><strong>patch:</strong> ${result!.patch_version}</li>
-          <li><strong>build:</strong> ${result!.build_number || '<em>n/a</em>'}</li>
-          <li><strong>quality:</strong> ${result!.quality_score.toFixed(0)}/100</li>
-        </ul>
-        <h3 style="margin-top: 10px;">Entity counts</h3>
-        <ul class="bundle-meta">${counts}</ul>
-      `
-        : '<p class="warn">No extraction result — go back and run the extractor first.</p>'}
-      <div id="upload-result" style="margin-top: 14px;"></div>
-    </div>
-    <div class="btn-row">
-      <button id="btn-back-run" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
+      <div class="btn-row view-footer">
+        <button id="btn-back-run" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
+      </div>
     </div>
   `;
 }
@@ -1261,10 +1278,12 @@ function paintDiffSummary(diff: unknown): void {
     <h3>Diff vs. previous bundle</h3>
     <p>Σ <span class="ok">+${totalAdded.toLocaleString()}</span>
        / <span class="error">−${totalRemoved.toLocaleString()}</span></p>
-    <table class="diff-table">
-      <thead><tr><th>entity</th><th>prev</th><th>new</th><th>delta</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="4"><em>no entity changes</em></td></tr>'}</tbody>
-    </table>
+    <div class="diff-scroll">
+      <table class="diff-table">
+        <thead><tr><th>entity</th><th>prev</th><th>new</th><th>delta</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="4"><em>no entity changes</em></td></tr>'}</tbody>
+      </table>
+    </div>
   `;
 }
 
