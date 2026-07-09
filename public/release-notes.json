@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.30.0",
+  "current": "0.31.0",
   "releases": [
+    {
+      "version": "0.31.0",
+      "date": "2026-07-09",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Attach images to admin feedback.",
+              "text": "The feedback composer accepts images via a toolbar picker, pasting (Ctrl+V), or drag & drop — multiple at once, shown as removable thumbnails before sending. Each image is downscaled (longest edge ≤ 1600px) and re-encoded to a size-bounded JPEG client-side, then inlined into the message as markdown so it renders inline in the board. The feedback markdown renderer gained image support, restricted to https and self-generated raster data: URIs (never SVG) and hardened against markup injection."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.30.0",
       "date": "2026-07-08",
