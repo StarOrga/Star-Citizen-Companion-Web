@@ -818,7 +818,14 @@
       "numbered": "Numbered list",
       "code": "Inline code",
       "list": "List",
-      "draftRestored": "Draft restored"
+      "draftRestored": "Draft restored",
+      "attach": "Attach image",
+      "attachHint": "Add images by pasting (Ctrl+V) or dropping them here",
+      "attachmentsLabel": "Attached images",
+      "removeImage": "Remove image",
+      "dropHere": "Drop images here",
+      "imageError": "Could not process the image.",
+      "tooManyImages": "At most {{max}} images per message."
     }
   },
   "feedbackFab": {

@@ -37,7 +37,21 @@ interface FeedbackRow {
   author: FeedbackAuthor | null;
 }
 
+/** An image queued in the composer, held as a compressed data URI until send. */
+interface PendingImage {
+  id: string;
+  name: string;
+  dataUrl: string;
+}
+
 const DRAFT_KEY = 'sc.adminFeedback.draft';
+
+/** Longest-edge cap (px) applied when re-encoding pasted/dropped images. */
+const IMG_MAX_DIM = 1600;
+/** JPEG quality for the re-encoded attachment. */
+const IMG_QUALITY = 0.85;
+/** Safety cap on how many images ride along on a single message. */
+const MAX_ATTACHMENTS = 10;
 
 @Component({
   selector: 'sc-admin-feedback',
@@ -136,7 +150,15 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
       </ng-template>
 
       <!-- Composer -->
-      <div class="composer sc-card">
+      <div
+        class="composer sc-card"
+        [class.drag-active]="dragActive()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)">
+        @if (dragActive()) {
+          <div class="drop-hint">{{ 'adminFeedback.compose.dropHere' | translate }}</div>
+        }
         <div class="toolbar">
           <button type="button" class="tool" (click)="wrapSelection('**', '**')" [title]="'adminFeedback.compose.bold' | translate">
             <strong>B</strong>
@@ -150,6 +172,10 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
           <button type="button" class="tool" (click)="wrapSelection('\`', '\`')" [title]="'adminFeedback.compose.code' | translate">
             &lt;/&gt;
           </button>
+          <button type="button" class="tool" (click)="fileInput.click()" [title]="'adminFeedback.compose.attach' | translate">
+            🖼
+          </button>
+          <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFileInput($event)" />
           <span class="grow"></span>
           @if (draftRestored()) {
             <span class="draft-flag">{{ 'adminFeedback.compose.draftRestored' | translate }}</span>
@@ -161,15 +187,33 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
                   [value]="draft()"
                   (input)="onInput($event)"
                   (keydown)="onKeydown($event)"
+                  (paste)="onPaste($event)"
                   [placeholder]="'adminFeedback.compose.placeholder' | translate"
                   [attr.aria-label]="'adminFeedback.title' | translate"
                   rows="4"></textarea>
 
+        @if (attachments().length > 0) {
+          <div class="attachments" [attr.aria-label]="'adminFeedback.compose.attachmentsLabel' | translate">
+            @for (a of attachments(); track a.id) {
+              <figure class="thumb">
+                <img [src]="a.dataUrl" [alt]="a.name" />
+                <button
+                  type="button"
+                  class="thumb-remove"
+                  (click)="removeAttachment(a.id)"
+                  [attr.aria-label]="'adminFeedback.compose.removeImage' | translate">
+                  ✕
+                </button>
+              </figure>
+            }
+          </div>
+        }
+
         <div class="composer-foot">
-          <span class="hint">{{ 'adminFeedback.compose.sendHint' | translate }}</span>
+          <span class="hint">{{ 'adminFeedback.compose.attachHint' | translate }}</span>
           <button class="sc-btn sc-btn-primary"
                   (click)="send()"
-                  [disabled]="busy() || draft().trim().length === 0">
+                  [disabled]="busy() || (draft().trim().length === 0 && attachments().length === 0)">
             {{ 'adminFeedback.compose.send' | translate }}
           </button>
         </div>
@@ -316,6 +360,14 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
       border-radius: 3px;
     }
     .msg-body a { color: var(--sc-accent); }
+    .msg-body img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 6px 0;
+      border: 1px solid var(--sc-border);
+      border-radius: 6px;
+    }
     .msg-body blockquote {
       margin: 0 0 8px;
       padding: 4px 12px;
@@ -344,6 +396,64 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
       flex-direction: column;
       gap: 8px;
       padding: 12px 14px;
+    }
+    /* Drag-to-upload affordance: highlight the composer and overlay a hint. */
+    .composer.drag-active {
+      position: relative;
+      border-color: var(--sc-accent);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.28);
+    }
+    .drop-hint {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      background: rgba(0, 212, 255, 0.1);
+      border-radius: 4px;
+      color: var(--sc-accent);
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    /* Pending-image thumbnails shown between the textarea and the send row. */
+    .attachments { display: flex; flex-wrap: wrap; gap: 8px; }
+    .thumb {
+      position: relative;
+      margin: 0;
+      width: 68px;
+      height: 68px;
+      border: 1px solid var(--sc-border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--sc-bg-1);
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumb-remove {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: 0.62rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .thumb-remove:hover { background: var(--sc-danger); }
+    .thumb-remove:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.5);
     }
     .toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .tool {
@@ -412,6 +522,11 @@ export class AdminFeedbackComponent implements OnInit {
   readonly draft = signal('');
   readonly draftRestored = signal(false);
   readonly selfId = computed(() => this.auth.user()?.id ?? null);
+
+  /** Images queued for the next message (compressed data URIs). */
+  readonly attachments = signal<PendingImage[]>([]);
+  /** True while a file is dragged over the composer (drop affordance). */
+  readonly dragActive = signal(false);
 
   /** Shipped items are collapsed into a stack so the open ones stay directly
    *  visible; expanding reveals the resolved history. */
@@ -592,6 +707,129 @@ export class AdminFeedbackComponent implements OnInit {
     el.focus();
   }
 
+  // ---- Image attachments -------------------------------------------------
+
+  onFileInput(e: Event): void {
+    const input = e.target as HTMLInputElement;
+    void this.addFiles(input.files);
+    input.value = ''; // allow re-picking the same file
+  }
+
+  onPaste(e: ClipboardEvent): void {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const files: File[] = [];
+    for (const it of Array.from(items)) {
+      if (it.kind === 'file' && it.type.startsWith('image/')) {
+        const f = it.getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (files.length) {
+      // Swallow the paste so the raw image blob text never lands in the textarea.
+      e.preventDefault();
+      void this.addFiles(files);
+    }
+  }
+
+  onDragOver(e: DragEvent): void {
+    if (!e.dataTransfer?.types?.includes('Files')) return;
+    e.preventDefault();
+    this.dragActive.set(true);
+  }
+
+  onDragLeave(e: DragEvent): void {
+    e.preventDefault();
+    this.dragActive.set(false);
+  }
+
+  onDrop(e: DragEvent): void {
+    const files = e.dataTransfer?.files;
+    this.dragActive.set(false);
+    if (files && files.length) {
+      e.preventDefault();
+      void this.addFiles(files);
+    }
+  }
+
+  removeAttachment(id: string): void {
+    this.attachments.update((list) => list.filter((a) => a.id !== id));
+  }
+
+  /** Accept image files from any source (picker, paste, drop), compressing each. */
+  private async addFiles(files: FileList | File[] | null | undefined): Promise<void> {
+    if (!files) return;
+    const images = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    if (images.length === 0) return;
+    for (const file of images) {
+      if (this.attachments().length >= MAX_ATTACHMENTS) {
+        this.errorMsg.set(
+          this.translate.instant('adminFeedback.compose.tooManyImages', { max: MAX_ATTACHMENTS }),
+        );
+        break;
+      }
+      try {
+        const att = await this.processImage(file);
+        this.attachments.update((list) => [...list, att]);
+      } catch {
+        this.errorMsg.set(this.translate.instant('adminFeedback.compose.imageError'));
+      }
+    }
+  }
+
+  /**
+   * Re-encode an image to a size-bounded JPEG data URI. GIFs are passed through
+   * untouched so animation survives. A white matte replaces transparency so the
+   * JPEG never shows black where the source was transparent.
+   */
+  private processImage(file: File): Promise<PendingImage> {
+    const name = this.safeName(file.name);
+    if (file.type === 'image/gif') {
+      return this.readAsDataUrl(file).then((dataUrl) => ({ id: crypto.randomUUID(), name, dataUrl }));
+    }
+    return new Promise<PendingImage>((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const scale = Math.min(1, IMG_MAX_DIM / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('canvas 2d context unavailable'));
+          return;
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve({ id: crypto.randomUUID(), name, dataUrl: canvas.toDataURL('image/jpeg', IMG_QUALITY) });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('image failed to load'));
+      };
+      img.src = objectUrl;
+    });
+  }
+
+  private readAsDataUrl(file: File): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error ?? new Error('read failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /** Strip markdown-significant chars from a filename used as image alt text. */
+  private safeName(name: string): string {
+    return (name || '').replace(/[\[\]()*_`~\n\r]/g, ' ').trim() || 'image';
+  }
+
   // ---- Data --------------------------------------------------------------
 
   async refresh() {
@@ -610,11 +848,15 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   async send() {
-    const body = this.draft().trim();
+    const text = this.draft().trim();
+    const atts = this.attachments();
     const uid = this.selfId();
-    if (!body || !uid) return;
+    if ((!text && atts.length === 0) || !uid) return;
     this.busy.set(true);
     this.errorMsg.set(null);
+    // Images ride along as markdown image syntax appended below the text.
+    const imgMd = atts.map((a) => `![${a.name}](${a.dataUrl})`).join('\n\n');
+    const body = [text, imgMd].filter((s) => s.length > 0).join('\n\n');
     const { error } = await this.sb.client
       .from('admin_feedback')
       .insert({ body, author_id: uid });
@@ -626,6 +868,7 @@ export class AdminFeedbackComponent implements OnInit {
     this.draft.set('');
     this.draftRestored.set(false);
     this.saveDraft('');
+    this.attachments.set([]);
     await this.refresh();
   }
 

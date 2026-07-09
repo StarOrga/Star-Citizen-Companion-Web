@@ -40,6 +40,39 @@ describe('renderMarkdown', () => {
     expect(renderMarkdown('[x](javascript:alert(1))')).toBe('<p>[x](javascript:alert(1))</p>');
   });
 
+  it('renders trusted images (https and data:image URIs)', () => {
+    expect(renderMarkdown('![shot](https://a.b/x.png)')).toBe(
+      '<p><img src="https://a.b/x.png" alt="shot" loading="lazy"></p>',
+    );
+    const data = 'data:image/jpeg;base64,/9j/4AAQ';
+    expect(renderMarkdown(`![](${data})`)).toBe(
+      `<p><img src="${data}" alt="" loading="lazy"></p>`,
+    );
+  });
+
+  it('rejects untrusted image schemes — never emits an <img> for them', () => {
+    // A non-image data: URI and a javascript: URI are refused by *both* the
+    // image and link passes, so they survive as literal text.
+    expect(renderMarkdown('![x](data:text/html;base64,PHNjcmlwdD4=)')).toBe(
+      '<p>![x](data:text/html;base64,PHNjcmlwdD4=)</p>',
+    );
+    expect(renderMarkdown('![x](javascript:alert(1))')).toBe('<p>![x](javascript:alert(1))</p>');
+    // An http (non-TLS) src is rejected as an image; the remaining [x](http://…)
+    // is still a valid link, so it degrades to a link — crucially, no <img>.
+    const http = renderMarkdown('![x](http://a.b/x.png)');
+    expect(http).not.toContain('<img');
+    expect(http).toBe(
+      '<p>!<a href="http://a.b/x.png" target="_blank" rel="noopener noreferrer">x</a></p>',
+    );
+  });
+
+  it('does not let formatting corrupt an emitted image src', () => {
+    // Underscores/asterisks that might appear near an image must not wrap tags.
+    expect(renderMarkdown('a ![p](https://a.b/x.png) *b*')).toBe(
+      '<p>a <img src="https://a.b/x.png" alt="p" loading="lazy"> <em>b</em></p>',
+    );
+  });
+
   it('escapes HTML so raw markup cannot reach the DOM', () => {
     expect(renderMarkdown('<img src=x onerror=alert(1)>')).toBe(
       '<p>&lt;img src=x onerror=alert(1)&gt;</p>',
