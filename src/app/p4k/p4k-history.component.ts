@@ -91,139 +91,202 @@ import { useAutoRefresh } from '../core/auto-refresh';
           </a>
         </div>
       } @else {
+        <!-- Grouped by patch: each patch version is one expandable row whose
+             detail is the list of individual uploads (its "sub-uploads"). -->
         <table class="sc-card table">
           <thead>
             <tr>
               <th></th>
-              <th>{{ 'p4k.col.channel' | translate }}</th>
               <th>{{ 'p4k.col.version' | translate }}</th>
-              <th>{{ 'p4k.col.build' | translate }}</th>
+              <th>{{ 'p4k.col.channels' | translate }}</th>
+              <th>{{ 'p4k.col.uploads' | translate }}</th>
               <th>{{ 'p4k.col.quality' | translate }}</th>
               <th>{{ 'p4k.col.entities' | translate }}</th>
-              <th>{{ 'p4k.col.diff' | translate }}</th>
-              <th>{{ 'p4k.col.tool' | translate }}</th>
-              <th>{{ 'p4k.col.uploader' | translate }}</th>
               <th>{{ 'p4k.col.when' | translate }}</th>
-              @if (roles.isAdmin()) {
-                <th>{{ 'p4k.col.actions' | translate }}</th>
-              }
             </tr>
           </thead>
           <tbody>
-            @for (b of bundles(); track b.id) {
-              <tr [class.disabled-row]="b.disabled && !b.superseded_at"
-                  [class.superseded-row]="isSuperseded(b)">
+            @for (g of patchGroups(); track g.patch_version) {
+              <tr class="group-row" [class.superseded-row]="g.allSuperseded">
                 <td>
-                  @if (b.diff_summary) {
-                    <button class="expand-btn"
-                            (click)="toggleExpand(b.id)"
-                            [attr.aria-expanded]="isExpanded(b.id)"
-                            [attr.aria-label]="'p4k.expand' | translate">
-                      {{ isExpanded(b.id) ? '▾' : '▸' }}
-                    </button>
+                  <button class="expand-btn" type="button"
+                          (click)="toggleGroup(g.patch_version)"
+                          [attr.aria-expanded]="isGroupExpanded(g.patch_version)"
+                          [attr.aria-label]="'p4k.expand' | translate">
+                    {{ isGroupExpanded(g.patch_version) ? '▾' : '▸' }}
+                  </button>
+                </td>
+                <td class="patch-cell mono">
+                  {{ g.patch_version }}
+                  @if (g.allSuperseded) {
+                    <span class="superseded-tag">{{ 'p4k.superseded.badge' | translate }}</span>
                   }
                 </td>
                 <td>
-                  <span class="ch-pill" [class]="b.channel">{{ b.channel.toUpperCase() }}</span>
-                  @if (isSuperseded(b)) {
-                    <span class="superseded-tag" [title]="b.disabled_reason ?? ''">
-                      {{ 'p4k.superseded.badge' | translate }}
-                    </span>
-                  }
+                  <div class="chan-pills">
+                    @for (ch of g.channels; track ch) {
+                      <span class="ch-pill" [class]="ch">{{ ch.toUpperCase() }}</span>
+                    }
+                  </div>
                 </td>
-                <td class="mono">{{ b.patch_version }}</td>
-                <td class="mono small">{{ b.build_number || '—' }}</td>
+                <td class="num">{{ g.uploadCount | number }}</td>
                 <td>
                   <div class="qbar">
                     <div class="qbar-fill"
-                         [class.q-green]="(b.quality_score ?? 0) >= 80"
-                         [class.q-yellow]="(b.quality_score ?? 0) >= 50 && (b.quality_score ?? 0) < 80"
-                         [class.q-red]="(b.quality_score ?? 0) < 50"
-                         [style.width.%]="b.quality_score ?? 0"></div>
-                    <span class="qbar-text">{{ b.quality_score !== null ? (b.quality_score | number:'1.0-0') : '—' }}</span>
+                         [class.q-green]="(g.quality_score ?? 0) >= 80"
+                         [class.q-yellow]="(g.quality_score ?? 0) >= 50 && (g.quality_score ?? 0) < 80"
+                         [class.q-red]="(g.quality_score ?? 0) < 50"
+                         [style.width.%]="g.quality_score ?? 0"></div>
+                    <span class="qbar-text">{{ g.quality_score !== null ? (g.quality_score | number:'1.0-0') : '—' }}</span>
                   </div>
                 </td>
-                <td>
-                  <div class="entity-row">
-                    @for (ent of entityKeys(b); track ent.key) {
-                      <span class="entity-chip" [title]="ent.key">
-                        {{ ent.icon }} {{ ent.value | number }}
-                      </span>
-                    }
-                  </div>
-                </td>
-                <td class="diff-cell">
-                  @if (b.diff_summary?.summary) {
-                    <span class="diff-mini">
-                      <span class="d-add">+{{ b.diff_summary!.summary!.entities_added | number }}</span>
-                      /
-                      <span class="d-rem">−{{ b.diff_summary!.summary!.entities_removed | number }}</span>
-                    </span>
-                  } @else {
-                    <span class="small">—</span>
-                  }
-                </td>
-                <td class="mono small">{{ b.tool_version ?? '—' }}</td>
-                <td>
-                  <div class="uploader">
-                    <span>{{ b.uploaded_by_name ?? '—' }}</span>
-                    <span class="mono small">{{ b.uploaded_by_email }}</span>
-                  </div>
-                </td>
-                <td>{{ b.created_at | date:'short' }}</td>
-                @if (roles.isAdmin()) {
-                  <td class="actions">
-                    @if (isSuperseded(b)) {
-                      <!-- superseded = history; re-enabling would create a second
-                           active bundle for the same key, so only allow delete -->
-                    } @else if (b.disabled) {
-                      <button class="sc-btn micro" (click)="reenable(b)" [disabled]="svc.busy()">
-                        {{ 'p4k.actions.reenable' | translate }}
-                      </button>
-                    } @else {
-                      <button class="sc-btn micro danger" (click)="disable(b)" [disabled]="svc.busy()">
-                        {{ 'p4k.actions.disable' | translate }}
-                      </button>
-                    }
-                    <button class="sc-btn micro danger" (click)="remove(b)" [disabled]="svc.busy()">
-                      {{ 'p4k.actions.delete' | translate }}
-                    </button>
-                  </td>
-                }
+                <td class="num">{{ g.entities | number }}</td>
+                <td>{{ g.latest_at | date:'short' }}</td>
               </tr>
-              @if (isExpanded(b.id) && b.diff_summary) {
-                <tr class="expand-row">
-                  <td colspan="11">
-                    <div class="diff-detail">
-                      <strong>{{ 'p4k.diff.title' | translate }}</strong>
-                      <table class="diff-table">
+              @if (isGroupExpanded(g.patch_version)) {
+                <tr class="group-detail-row">
+                  <td colspan="7">
+                    <div class="uploads-detail">
+                      <div class="uploads-detail-label">{{ 'p4k.detail.uploads' | translate }}</div>
+                      <table class="detail-table">
                         <thead>
                           <tr>
-                            <th>{{ 'p4k.diff.entity' | translate }}</th>
-                            <th>{{ 'p4k.diff.prev' | translate }}</th>
-                            <th>{{ 'p4k.diff.new' | translate }}</th>
-                            <th>{{ 'p4k.diff.delta' | translate }}</th>
+                            <th></th>
+                            <th>{{ 'p4k.col.channel' | translate }}</th>
+                            <th>{{ 'p4k.col.build' | translate }}</th>
+                            <th>{{ 'p4k.col.quality' | translate }}</th>
+                            <th>{{ 'p4k.col.entities' | translate }}</th>
+                            <th>{{ 'p4k.col.diff' | translate }}</th>
+                            <th>{{ 'p4k.col.tool' | translate }}</th>
+                            <th>{{ 'p4k.col.uploader' | translate }}</th>
+                            <th>{{ 'p4k.col.when' | translate }}</th>
+                            @if (roles.isAdmin()) {
+                              <th>{{ 'p4k.col.actions' | translate }}</th>
+                            }
                           </tr>
                         </thead>
                         <tbody>
-                          @for (d of diffEntries(b.diff_summary!); track d.key) {
-                            <tr>
-                              <td class="mono small">{{ d.key }}</td>
-                              <td class="num">{{ d.prev | number }}</td>
-                              <td class="num">{{ d.new | number }}</td>
-                              <td class="num" [class.d-add]="d.delta > 0" [class.d-rem]="d.delta < 0">
-                                {{ d.delta > 0 ? '+' : '' }}{{ d.delta | number }}
+                          @for (b of g.uploads; track b.id) {
+                            <tr class="upload-row"
+                                [class.disabled-row]="b.disabled && !b.superseded_at"
+                                [class.superseded-row]="isSuperseded(b)">
+                              <td>
+                                @if (b.diff_summary) {
+                                  <button class="expand-btn" type="button"
+                                          (click)="toggleExpand(b.id)"
+                                          [attr.aria-expanded]="isExpanded(b.id)"
+                                          [attr.aria-label]="'p4k.expand' | translate">
+                                    {{ isExpanded(b.id) ? '▾' : '▸' }}
+                                  </button>
+                                }
                               </td>
+                              <td>
+                                <span class="ch-pill" [class]="b.channel">{{ b.channel.toUpperCase() }}</span>
+                                @if (isSuperseded(b)) {
+                                  <span class="superseded-tag" [title]="b.disabled_reason ?? ''">
+                                    {{ 'p4k.superseded.badge' | translate }}
+                                  </span>
+                                }
+                              </td>
+                              <td class="mono small">{{ b.build_number || '—' }}</td>
+                              <td>
+                                <div class="qbar">
+                                  <div class="qbar-fill"
+                                       [class.q-green]="(b.quality_score ?? 0) >= 80"
+                                       [class.q-yellow]="(b.quality_score ?? 0) >= 50 && (b.quality_score ?? 0) < 80"
+                                       [class.q-red]="(b.quality_score ?? 0) < 50"
+                                       [style.width.%]="b.quality_score ?? 0"></div>
+                                  <span class="qbar-text">{{ b.quality_score !== null ? (b.quality_score | number:'1.0-0') : '—' }}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div class="entity-row">
+                                  @for (ent of entityKeys(b); track ent.key) {
+                                    <span class="entity-chip" [title]="ent.key">
+                                      {{ ent.icon }} {{ ent.value | number }}
+                                    </span>
+                                  }
+                                </div>
+                              </td>
+                              <td class="diff-cell">
+                                @if (b.diff_summary?.summary) {
+                                  <span class="diff-mini">
+                                    <span class="d-add">+{{ b.diff_summary!.summary!.entities_added | number }}</span>
+                                    /
+                                    <span class="d-rem">−{{ b.diff_summary!.summary!.entities_removed | number }}</span>
+                                  </span>
+                                } @else {
+                                  <span class="small">—</span>
+                                }
+                              </td>
+                              <td class="mono small">{{ b.tool_version ?? '—' }}</td>
+                              <td>
+                                <div class="uploader">
+                                  <span>{{ b.uploaded_by_name ?? '—' }}</span>
+                                  <span class="mono small">{{ b.uploaded_by_email }}</span>
+                                </div>
+                              </td>
+                              <td>{{ b.created_at | date:'short' }}</td>
+                              @if (roles.isAdmin()) {
+                                <td class="actions">
+                                  @if (isSuperseded(b)) {
+                                    <!-- superseded = history; re-enabling would create a second
+                                         active bundle for the same key, so only allow delete -->
+                                  } @else if (b.disabled) {
+                                    <button class="sc-btn micro" (click)="reenable(b)" [disabled]="svc.busy()">
+                                      {{ 'p4k.actions.reenable' | translate }}
+                                    </button>
+                                  } @else {
+                                    <button class="sc-btn micro danger" (click)="disable(b)" [disabled]="svc.busy()">
+                                      {{ 'p4k.actions.disable' | translate }}
+                                    </button>
+                                  }
+                                  <button class="sc-btn micro danger" (click)="remove(b)" [disabled]="svc.busy()">
+                                    {{ 'p4k.actions.delete' | translate }}
+                                  </button>
+                                </td>
+                              }
                             </tr>
+                            @if (isExpanded(b.id) && b.diff_summary) {
+                              <tr class="expand-row">
+                                <td colspan="10">
+                                  <div class="diff-detail">
+                                    <strong>{{ 'p4k.diff.title' | translate }}</strong>
+                                    <table class="diff-table">
+                                      <thead>
+                                        <tr>
+                                          <th>{{ 'p4k.diff.entity' | translate }}</th>
+                                          <th>{{ 'p4k.diff.prev' | translate }}</th>
+                                          <th>{{ 'p4k.diff.new' | translate }}</th>
+                                          <th>{{ 'p4k.diff.delta' | translate }}</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        @for (d of diffEntries(b.diff_summary!); track d.key) {
+                                          <tr>
+                                            <td class="mono small">{{ d.key }}</td>
+                                            <td class="num">{{ d.prev | number }}</td>
+                                            <td class="num">{{ d.new | number }}</td>
+                                            <td class="num" [class.d-add]="d.delta > 0" [class.d-rem]="d.delta < 0">
+                                              {{ d.delta > 0 ? '+' : '' }}{{ d.delta | number }}
+                                            </td>
+                                          </tr>
+                                        }
+                                      </tbody>
+                                    </table>
+                                    @if (b.disabled) {
+                                      <p class="disabled-note" [class.superseded-note]="isSuperseded(b)">
+                                        <strong>{{ (isSuperseded(b) ? 'p4k.superseded.title' : 'p4k.disabled.title') | translate }}:</strong>
+                                        {{ b.disabled_reason ?? ('p4k.disabled.noReason' | translate) }}
+                                      </p>
+                                    }
+                                  </div>
+                                </td>
+                              </tr>
+                            }
                           }
                         </tbody>
                       </table>
-                      @if (b.disabled) {
-                        <p class="disabled-note" [class.superseded-note]="isSuperseded(b)">
-                          <strong>{{ (isSuperseded(b) ? 'p4k.superseded.title' : 'p4k.disabled.title') | translate }}:</strong>
-                          {{ b.disabled_reason ?? ('p4k.disabled.noReason' | translate) }}
-                        </p>
-                      }
                     </div>
                   </td>
                 </tr>
@@ -446,6 +509,47 @@ import { useAutoRefresh } from '../core/auto-refresh';
     .expand-row {
       background: rgba(0, 212, 255, 0.03);
     }
+
+    /* Patch group header row + its expandable upload detail. */
+    .group-row .patch-cell { font-size: 1rem; color: var(--sc-fg-0); }
+    .chan-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .group-detail-row > td { padding: 0; background: rgba(0, 212, 255, 0.03); }
+    .uploads-detail { padding: 10px 14px 14px; }
+    .uploads-detail-label {
+      font-family: var(--sc-font-display);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sc-fg-2);
+      margin-bottom: 8px;
+    }
+    .detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--sc-bg-1);
+      border: 1px solid var(--sc-border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .detail-table th, .detail-table td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--sc-border);
+      font-size: 0.82rem;
+      vertical-align: middle;
+    }
+    .detail-table thead th {
+      background: var(--sc-bg-2);
+      font-family: var(--sc-font-display);
+      font-size: 0.66rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sc-fg-2);
+    }
+    .detail-table tbody tr:last-child td { border-bottom: none; }
+    .detail-table tbody tr.disabled-row { opacity: 0.5; }
+    .detail-table tbody tr.disabled-row .ch-pill { filter: grayscale(0.7); }
+    .detail-table tbody tr.superseded-row { opacity: 0.72; }
     .diff-detail {
       padding: 12px 16px;
     }
@@ -535,9 +639,13 @@ export class P4kHistoryComponent implements OnInit {
   }
 
   private readonly _expanded = signal<Set<string>>(new Set());
+  private readonly _groupExpanded = signal<Set<string>>(new Set());
 
   readonly bundles = computed(() => this.svc.bundles());
   readonly uniqueChannels = computed(() => new Set(this.bundles().map((b) => b.channel)).size);
+
+  /** Uploads grouped by patch version — the history table's top-level rows. */
+  readonly patchGroups = computed<PatchGroup[]>(() => groupBundlesByPatch(this.bundles()));
 
   /**
    * One row per channel, each pointing at that channel's patch-latest bundle
@@ -570,6 +678,17 @@ export class P4kHistoryComponent implements OnInit {
     if (next.has(id)) next.delete(id);
     else next.add(id);
     this._expanded.set(next);
+  }
+
+  isGroupExpanded(patch: string): boolean {
+    return this._groupExpanded().has(patch);
+  }
+
+  toggleGroup(patch: string): void {
+    const next = new Set(this._groupExpanded());
+    if (next.has(patch)) next.delete(patch);
+    else next.add(patch);
+    this._groupExpanded.set(next);
   }
 
   async disable(b: P4kBundleRow): Promise<void> {
@@ -625,6 +744,58 @@ export interface ChannelSummary {
   patch_version: string;
   quality_score: number | null;
   entities: number;
+}
+
+/** Sort order for channel pills within a patch group: live first, then the rest. */
+const CHANNEL_ORDER: readonly ChannelTag[] = ['live', 'ptu', 'eptu', 'tech-preview', 'unknown'];
+
+export interface PatchGroup {
+  patch_version: string;
+  /** All uploads for this patch, newest upload first — the "sub-uploads". */
+  uploads: P4kBundleRow[];
+  /** Distinct channels present, live-first. */
+  channels: ChannelTag[];
+  uploadCount: number;
+  /** Representative quality — the newest still-active upload (else the newest). */
+  quality_score: number | null;
+  /** Representative entity total (same source upload as the quality score). */
+  entities: number;
+  /** Newest upload timestamp across the group. */
+  latest_at: string;
+  /** Every upload in the group is superseded history (none currently active). */
+  allSuperseded: boolean;
+}
+
+/**
+ * Group a flat bundle list into one entry per patch version. Each group carries
+ * its uploads (newest first) so the history table can render a patch as an
+ * expandable row whose detail is the list of individual uploads beneath it.
+ * Groups are ordered by patch version descending (newest patch first).
+ */
+export function groupBundlesByPatch(bundles: readonly P4kBundleRow[]): PatchGroup[] {
+  const byPatch = new Map<string, P4kBundleRow[]>();
+  for (const b of bundles) {
+    const arr = byPatch.get(b.patch_version);
+    if (arr) arr.push(b);
+    else byPatch.set(b.patch_version, [b]);
+  }
+  const groups: PatchGroup[] = [];
+  for (const [patch, ups] of byPatch) {
+    const uploads = [...ups].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    const channels = CHANNEL_ORDER.filter((ch) => uploads.some((u) => u.channel === ch));
+    const representative = uploads.find((u) => !u.disabled) ?? uploads[0];
+    groups.push({
+      patch_version: patch,
+      uploads,
+      channels,
+      uploadCount: uploads.length,
+      quality_score: representative.quality_score,
+      entities: sumCounts(representative.entity_counts),
+      latest_at: uploads[0].created_at,
+      allSuperseded: uploads.every((u) => u.disabled && u.superseded_at !== null),
+    });
+  }
+  return groups.sort((a, b) => compareVersion(b.patch_version, a.patch_version));
 }
 
 /**

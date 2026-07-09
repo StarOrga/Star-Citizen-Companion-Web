@@ -423,7 +423,9 @@
       "tool": "Tool-Version",
       "uploader": "Uploader",
       "when": "Hochgeladen",
-      "actions": "Aktionen"
+      "actions": "Aktionen",
+      "channels": "Channels",
+      "uploads": "Uploads"
     },
     "actions": {
       "disable": "Deaktivieren",
@@ -449,6 +451,9 @@
     "superseded": {
       "badge": "Ersetzt",
       "title": "Ersetzt durch neueren Upload"
+    },
+    "detail": {
+      "uploads": "Uploads in diesem Patch"
     }
   },
   "profile": {

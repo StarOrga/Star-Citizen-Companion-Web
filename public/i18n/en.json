@@ -423,7 +423,9 @@
       "tool": "Tool ver",
       "uploader": "Uploader",
       "when": "Uploaded",
-      "actions": "Actions"
+      "actions": "Actions",
+      "channels": "Channels",
+      "uploads": "Uploads"
     },
     "actions": {
       "disable": "Disable",
@@ -449,6 +451,9 @@
     "superseded": {
       "badge": "Superseded",
       "title": "Superseded by a newer upload"
+    },
+    "detail": {
+      "uploads": "Uploads in this patch"
     }
   },
   "profile": {
