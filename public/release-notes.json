@@ -1,7 +1,33 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.29.1",
+  "current": "0.30.0",
   "releases": [
+    {
+      "version": "0.30.0",
+      "date": "2026-07-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse News shows a live \"updated X min ago\" indicator at the top.",
+              "text": "The overall refresh time moved from a stale footer hint to the header, with a pulsing freshness dot and an exact minute count. A 30-second clock keeps it — and every card timestamp — updating between the 5-minute feed refreshes; the indicator turns amber once the feed is stale (> 7 min)."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Richer Verse News loading skeletons.",
+              "text": "The initial-load placeholder now mirrors the real card layout (thumbnail + text lines across the Today and This-week buckets, with a staggered shimmer) instead of a few empty boxes, so first paint reads as content loading. Respects prefers-reduced-motion."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.29.1",
       "date": "2026-07-08",
