@@ -74,26 +74,37 @@ Plugin defaults still apply; only the rules below override or add.
    tag number ≠ binary version constant ≠ DB-registered version. Three
    places to keep in sync, and the plugin tool only knows about one.
 
-5. **Data-uploader binary release — full checklist in deep-knowledge.**
-   **A web `/devops-ship` bumps `data-uploader/package.json` as SOURCE ONLY — it
-   never builds or publishes a binary.** Merging to `main` runs only the
-   typecheck/test job; the build is gated on the `data-uploader-v*` tag. So if a
-   ship touched `data-uploader/**`, the completion card MUST flag the uploader
-   binary as *unreleased* (`/desktop` keeps serving the old version) UNLESS you
-   also push a `data-uploader-v*` tag and finish the checklist below — a source
-   bump alone is invisible to users.
+5. **Data-uploader ship ⇒ ALSO release the binary — not just a source bump.**
+   When a ship touches `data-uploader/**`, completing the binary release is a
+   **default part of the ship**, not a manual afterthought. Merging to `main`
+   only bumps the source + runs typecheck/test; a source bump alone is invisible
+   to users. So after the merge, unless the user says otherwise, DO the release:
+   1. push the `data-uploader-v<binVersion>` tag (triggers CI build);
+   2. let CI publish the private source release **and** the **full** public
+      mirror (NOT a prerelease — else `/releases/latest` + the download page skip
+      it);
+   3. register the `desktop_releases` row: `UPDATE ... SET is_current=false WHERE
+      is_current=true;` then `INSERT` the new row (`is_current=true`, the
+      `release_token` UUID from the build's `release-token` artefact, and the
+      `platforms` block). The CI "Print ... desktop_releases" step prints the
+      ready INSERT (URLs/sha512/sizes); the UUID comes from `gh run download -n
+      release-token`. `/desktop` + the in-app updater read this row — without it
+      the page stays on the old version.
+   Then verify live in Edge (`/desktop` shows the new version + GitHub
+   `/releases/latest` = the new tag).
 
-   A `data-uploader-v*` tag, a **full** public mirror release (NOT a
-   prerelease — else `/releases/latest` + the download page skip it), AND a
-   `desktop_releases` row (`is_current` + matching `release_token`) are ALL
-   required before a version is visible to users. The `BINARIES_RELEASE_TOKEN`
-   PAT must be ≤ 366 days (StarOrga org policy). When the CI mirror step fails,
-   mirror the built assets via admin `gh` (no PAT). Always verify live in Edge
-   (`/desktop` + GitHub `/releases/latest`) before declaring done. Full
-   rationale + commands: `.claude/deep-knowledge/data-uploader-release.md`.
+   **Only deferral:** the `desktop_releases` INSERT needs Supabase **write**
+   access. When it is genuinely unavailable in the session (Supabase MCP
+   unauthenticated AND no linked `supabase` CLI), do steps 1–2, then **flag the
+   binary loudly as "built + mirrored but NOT live"** and hand off the
+   ready-to-run SQL (token already substituted). Never render a plain
+   `ship-successful` while the row is missing. `BINARIES_RELEASE_TOKEN` PAT must
+   be ≤ 366 days (StarOrga org policy); if the CI mirror step fails, mirror the
+   built assets via admin `gh` (no PAT). Full commands + the Supabase-auth
+   blocker: `.claude/deep-knowledge/data-uploader-release.md`.
 
-   *Why this rule exists:* in the 2026-06-13 web-hangar ship I bumped the
-   uploader to 0.7.0 and rendered `ship-successful` — but no binary was built,
-   so `/desktop` still served 0.6.1. The user had to surface it
-   ("ich sehe keine neue uploader version auf der live website"). Source bump ≠
-   release.
+   *Why this rule exists:* 2026-06-13 I bumped the uploader to 0.7.0 and rendered
+   `ship-successful` with no binary built → `/desktop` still served 0.6.1.
+   2026-07-09 I shipped 0.13.0 source-only and stopped — the user had to say
+   "release it too". Both times a source bump was mistaken for a release. Source
+   bump ≠ release; for uploader ships the release rides along by default.

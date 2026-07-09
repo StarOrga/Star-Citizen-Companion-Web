@@ -48,6 +48,24 @@ Then register `desktop_releases`: the `sha512` + `size_bytes` come from the
 downloaded assets, the `release_token` UUID from the `release-token` workflow
 artifact of the build run.
 
+## The `desktop_releases` row is the usual headless blocker (Supabase auth)
+
+Points 1–2 (tag → CI build → GitHub release → public mirror) are doable with
+`gh` alone. Point 3 (the `desktop_releases` row) needs Supabase **write**
+access, and the **Supabase MCP is normally NOT authenticated in headless /
+automated sessions** (it needs interactive OAuth). When it isn't:
+
+- The build, GitHub release, and public mirror can all be green while `/desktop`
+  still serves the old version — the row is the true "make it live" switch.
+- Register it through an authenticated path instead: interactive Supabase MCP
+  (`/mcp` in a terminal session), the Supabase SQL editor, or a linked
+  `supabase` CLI / psql with the project connection. The `release_token` UUID
+  comes from the build run's `release-token` artifact; `sha512` / `size_bytes`
+  from the built assets — so the row can only be written **after** the build.
+- Until the row lands, report the release as "binary built + mirrored but NOT
+  live", never as done. (Observed 2026-07-09 shipping uploader 0.13.0: Supabase
+  MCP unauthenticated → row deferred; tag/build/mirror done, `/desktop` stale.)
+
 ## Verify live in Edge before declaring done
 
 A green pipeline ≠ a visible release. The prerelease, `desktop_releases`, and
