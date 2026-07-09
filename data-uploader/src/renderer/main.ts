@@ -7,6 +7,7 @@
  */
 
 import { load as loadI18n, setLocale, getLocale, t, type LocaleId } from '../lib/i18n.js';
+import { progressCardHtml, mountProgress, type ProgressController, type ProgressStep } from './progress.js';
 
 interface ToolEnv {
   toolVersion: string;
@@ -795,13 +796,7 @@ function renderRun(): string {
       <h1>${t('run.title', {}) || 'Extraktion läuft'}</h1>
       <div class="run-grid view-body">
         <section class="card run-main">
-          <div class="run-head">
-            <h2 id="phase-label">…</h2>
-            <span id="run-elapsed" class="run-elapsed"></span>
-          </div>
-          <div class="progress-bar" id="progress-bar"><span id="bar" style="width:0%"></span></div>
-          <div id="progress-detail" class="progress-detail"></div>
-          <div class="counters" id="counters"></div>
+          ${progressCardHtml('run-progress')}
         </section>
         <section class="card run-log">
           <div class="log-header">
@@ -853,13 +848,8 @@ async function copyLog(): Promise<void> {
 }
 
 async function runRealExtract(): Promise<void> {
-  const bar = $('#bar') as HTMLElement | null;
-  const phase = $('#phase-label');
   const logEl = $('#log');
-  const counters = $('#counters');
-  const setBar = (pct: number) => {
-    if (bar) bar.style.width = pct + '%';
-  };
+  const progress = mountProgress('run-progress', { counterLabel });
   const appendLog = (msg: string, level: LogLevel = 'info') => {
     const prefix = level === 'error' ? '[err] ' : level === 'warn' ? '[warn] ' : '';
     const text = prefix + msg;
@@ -872,54 +862,8 @@ async function runRealExtract(): Promise<void> {
     logEl.scrollTop = logEl.scrollHeight;
   };
   const countMap: Record<string, number> = {};
-  const paintCounters = (): void => {
-    if (!counters) return;
-    counters.innerHTML = orderedCounts(countMap)
-      .map(
-        ([key, value]) =>
-          `<div class="counter"><div class="label">${escapeHtml(counterLabel(key))}</div><div class="value">${value.toLocaleString()}</div></div>`,
-      )
-      .join('');
-  };
 
-  // Live "where am I" line under the bar. Shows current/total when the goal is
-  // known, a running count when it isn't, and a bare label for opaque phases —
-  // and flips the bar to an indeterminate pulse while there's nothing to count.
-  const progressDetail = $('#progress-detail');
-  const progressBar = $('#progress-bar');
-  const setProgressDetail = (ev: {
-    stage?: string;
-    current?: number;
-    total?: number;
-    pct?: number;
-    detail?: string;
-  }): void => {
-    const label = stageLabel(ev.stage ?? '');
-    let txt: string;
-    if (typeof ev.total === 'number' && ev.total > 0 && typeof ev.current === 'number') {
-      const pct = typeof ev.pct === 'number' ? ev.pct : Math.floor((ev.current / ev.total) * 100);
-      txt = `${label} — ${ev.current.toLocaleString()} / ${ev.total.toLocaleString()} (${pct} %)`;
-    } else if (typeof ev.current === 'number') {
-      txt = `${label} — ${ev.current.toLocaleString()}`;
-    } else {
-      txt = `${label} …`;
-    }
-    if (ev.detail) txt += `  ·  ${ev.detail}`;
-    if (progressDetail) progressDetail.textContent = txt;
-    const indeterminate = typeof ev.total !== 'number' && typeof ev.current !== 'number';
-    progressBar?.classList.toggle('indeterminate', indeterminate);
-  };
-
-  // Elapsed clock — the main reassurance during the long opaque steps (opening
-  // the ~157 GB archive, decompressing the DataCore) where no count ticks.
-  const startedAt = Date.now();
-  const elapsedEl = $('#run-elapsed');
-  const tickElapsed = (): void => {
-    if (elapsedEl) elapsedEl.textContent = fmtElapsed(Date.now() - startedAt);
-  };
-  tickElapsed();
-  const elapsedTimer = window.setInterval(tickElapsed, 1000);
-
+  progress.start();
   extractLogText = '';
 
   const channel = state.channels.find((c) => c.selected);
@@ -939,23 +883,29 @@ async function runRealExtract(): Promise<void> {
     switch (ev.type) {
       case 'phase': {
         const label = phaseLabel(ev.phase ?? 'unknown');
-        if (phase) phase.textContent = label;
-        if (typeof ev.pct === 'number') setBar(ev.pct);
+        progress.update({ phaseLabel: label, overallPct: ev.pct });
         appendLog(`▶ ${label}`);
         return;
       }
       case 'progress':
-        if (typeof ev.pct === 'number') setBar(ev.pct);
-        setProgressDetail(ev);
+        progress.update({
+          overallPct: ev.pct,
+          stageLabel: stageLabel(ev.stage ?? ''),
+          current: ev.current,
+          total: ev.total,
+          detail: ev.detail,
+        });
         return;
       case 'file':
-        if (typeof ev.pct === 'number') setBar(ev.pct);
+        progress.update({ overallPct: ev.pct });
         if (ev.fileName) appendLog(`  · ${ev.fileName}`);
         return;
       case 'count':
         if (ev.counter) {
           countMap[ev.counter.key] = ev.counter.value;
-          paintCounters();
+          const ordered: Record<string, number> = {};
+          for (const [k, v] of orderedCounts(countMap)) ordered[k] = v;
+          progress.update({ counters: ordered });
         }
         return;
       case 'log':
@@ -965,13 +915,10 @@ async function runRealExtract(): Promise<void> {
         appendLog(ev.message ?? 'warning', 'warn');
         return;
       case 'done':
-        setBar(100);
-        progressBar?.classList.remove('indeterminate');
-        if (phase) phase.textContent = phaseLabel('done');
-        if (progressDetail) progressDetail.textContent = '';
+        progress.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false });
         return;
       case 'error':
-        progressBar?.classList.remove('indeterminate');
+        progress.update({ indeterminate: false });
         appendLog(ev.message ?? 'extraction error', 'error');
         return;
     }
@@ -997,7 +944,7 @@ async function runRealExtract(): Promise<void> {
       const totalEntities = Object.values(final.result.entity_counts)
         .reduce((a, b) => a + b, 0)
         .toLocaleString();
-      const elapsed = fmtElapsed(Date.now() - startedAt);
+      const elapsed = fmtElapsed(progress.elapsedMs());
       appendLog(
         tOr(
           'run.doneSummary',
@@ -1016,13 +963,23 @@ async function runRealExtract(): Promise<void> {
     }
   } finally {
     unsubscribe();
-    window.clearInterval(elapsedTimer);
-    tickElapsed();
-    progressBar?.classList.remove('indeterminate');
+    progress.stop();
+    progress.update({ indeterminate: false });
   }
 }
 
 // ============= View: Auth-Upload =============
+
+// The 3 sub-flows of one upload run, in the order they actually execute
+// (see doUploadAfterAuth) — surfaced as a small stepper on the shared
+// progress card so the upload flow reads as a sibling of the Run view.
+function uploadSteps(): ProgressStep[] {
+  return [
+    { key: 'bundle', label: t('upload.steps.bundle', {}) || 'Bundle' },
+    { key: 'codex', label: t('upload.steps.codex', {}) || 'Codex' },
+    { key: 'skins', label: t('upload.steps.skins', {}) || '3D-Skins' },
+  ];
+}
 
 function renderAuthUpload(): string {
   const result = state.lastResult;
@@ -1041,6 +998,7 @@ function renderAuthUpload(): string {
           <div class="btn-row">
             <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start', {}) || 'Upload starten'}</button>
           </div>
+          ${progressCardHtml('upload-progress', uploadSteps())}
           <p id="auth-status" class="warn" style="margin-top: 10px;"></p>
           <div id="upload-result" style="margin-top: 14px;"></div>
         </section>
@@ -1067,7 +1025,13 @@ function renderAuthUpload(): string {
   `;
 }
 
+// Progress-card controller for the currently-mounted upload view — created
+// fresh on every `wireAuthUpload()` (i.e. every time the view is (re)rendered),
+// read by the upload sub-flow functions below.
+let uploadProgress: ProgressController | null = null;
+
 function wireAuthUpload(): void {
+  uploadProgress = mountProgress('upload-progress', { counterLabel, steps: uploadSteps() });
   $('#btn-back-run')?.addEventListener('click', () => {
     state.view = 'run';
     render();
@@ -1083,11 +1047,19 @@ async function doStartUpload(): Promise<void> {
   if (!state.lastResult) return;
   const btn = $('#btn-start-upload') as HTMLButtonElement | null;
   if (btn) btn.disabled = true;
+  uploadProgress?.start();
+  uploadProgress?.setStep(0);
   try {
     if (!state.authToken) {
-      setAuthStatus(t('upload.signingIn', {}) || 'Im Browser anmelden…', 'warn');
+      uploadProgress?.update({
+        phaseLabel: t('upload.signingIn', {}) || 'Im Browser anmelden…',
+        indeterminate: true,
+        detail: '',
+      });
       const token = await ensureUploadToken();
       if (!token) {
+        uploadProgress?.update({ indeterminate: false });
+        uploadProgress?.stop();
         setAuthStatus(t('upload.signInFailed', {}) || 'Anmeldung fehlgeschlagen', 'error');
         return;
       }
@@ -1151,7 +1123,12 @@ function friendlyUploadError(r: { error?: string; details?: unknown }): string {
 async function doUploadAfterAuth(): Promise<void> {
   if (!state.authToken || !state.lastResult) return;
   const result = state.lastResult;
-  setAuthStatus(t('upload.uploading', {}) || 'Upload läuft…', 'warn');
+  uploadProgress?.setStep(0);
+  uploadProgress?.update({
+    phaseLabel: t('upload.bundleUploading', {}) || 'Bundle-Metadaten werden hochgeladen…',
+    indeterminate: true,
+    detail: '',
+  });
   const ch = result.channel as 'LIVE' | 'PTU' | 'EPTU' | 'TECH-PREVIEW';
   const r = await window.sc.upload({
     accessToken: state.authToken,
@@ -1165,9 +1142,12 @@ async function doUploadAfterAuth(): Promise<void> {
     manifestPath: result.manifest_path,
   });
   if (!r.ok) {
+    uploadProgress?.update({ indeterminate: false });
+    uploadProgress?.stop();
     setAuthStatus(friendlyUploadError(r), 'error');
     return;
   }
+  uploadProgress?.update({ indeterminate: false, overallPct: 100 });
   setAuthStatus(
     `${t('upload.uploadOk', {}) || 'Upload OK'} · bundle_id ${r.bundleId ?? '—'}`,
     'ok',
@@ -1177,20 +1157,24 @@ async function doUploadAfterAuth(): Promise<void> {
   // Promote the extract into the public Codex (codex_* tables) BEFORE cleanup,
   // so the out_dir still exists. Non-fatal: the bundle upload already succeeded;
   // a codex failure only means the public catalog isn't refreshed this run.
-  await promoteToCodex(result.output_dir);
+  uploadProgress?.setStep(1);
+  await promoteToCodex(result.output_dir, uploadProgress);
 
   // Build + upload the 3D liveries as part of the SAME upload — skins are a
   // sub-property of every ship, not a separate step. Reads the extract's build
   // manifest, cached per patch version. Runs BEFORE cleanup (manifest lives in
   // out_dir). Fully non-fatal: the bundle is already confirmed.
+  uploadProgress?.setStep(2);
   try {
-    await buildAndUploadSkins(result);
+    await buildAndUploadSkins(result, uploadProgress);
   } catch (err) {
+    uploadProgress?.update({ indeterminate: false });
     setAuthStatus(
       `${t('skins.buildFailed', {}) || '3D-Skins übersprungen (Bundle ist hochgeladen)'}: ${(err as Error).message}`,
       'warn',
     );
   }
+  uploadProgress?.stop();
 
   // Upload confirmed — reclaim the run's extracted files so they don't fill
   // the disk. Best-effort: the main process guards + swallows failures.
@@ -1213,29 +1197,53 @@ async function doUploadAfterAuth(): Promise<void> {
 
 // Drive the codex promotion with a live per-table progress line. Non-fatal:
 // any failure is surfaced as a warning but never blocks the confirmed upload.
-async function promoteToCodex(outDir: string | undefined): Promise<void> {
+// `progress` is optional so this stays callable without a mounted view (tests).
+async function promoteToCodex(outDir: string | undefined, progress?: ProgressController | null): Promise<void> {
   if (!outDir || !state.authToken) return;
   const label = t('catalog.publishing', {}) || 'Codex wird veröffentlicht';
-  setAuthStatus(`${label}…`, 'warn');
+  progress?.update({ phaseLabel: label, indeterminate: true, detail: '' });
   const unsub = window.sc.catalog.onEvent((ev) => {
-    const pct = ev.total > 0 ? Math.round((ev.current / ev.total) * 100) : 0;
-    setAuthStatus(`${label}: ${ev.phase} ${ev.current}/${ev.total} (${pct}%)`, 'warn');
+    // phaseIndex/phaseTotal are additive fields (catalog-bridge.ts) — an
+    // overall two-tier bar: which of the ~14 fixed publish steps we're on,
+    // refined by how far the CURRENT step's own current/total has gotten.
+    const stepFrac = ev.total > 0 ? ev.current / ev.total : 0;
+    const overallPct =
+      typeof ev.phaseIndex === 'number' && typeof ev.phaseTotal === 'number' && ev.phaseTotal > 0
+        ? Math.round(((ev.phaseIndex - 1 + stepFrac) / ev.phaseTotal) * 100)
+        : undefined;
+    const stageLbl =
+      typeof ev.phaseIndex === 'number' && typeof ev.phaseTotal === 'number'
+        ? t('catalog.step', { current: String(ev.phaseIndex), total: String(ev.phaseTotal) }) ||
+          `Step ${ev.phaseIndex}/${ev.phaseTotal}`
+        : undefined;
+    progress?.update({
+      phaseLabel: label,
+      stageLabel: stageLbl,
+      current: ev.current,
+      total: ev.total > 0 ? ev.total : undefined,
+      overallPct,
+      detail: ev.phase,
+      indeterminate: false,
+    });
   });
   try {
     const res = await window.sc.catalog.upload(state.authToken, outDir);
     if (res.ok) {
       const ships = res.counts?.['ships'] ?? 0;
+      progress?.update({ overallPct: 100, indeterminate: false });
       setAuthStatus(
         `${t('catalog.published', {}) || 'Codex aktualisiert'} · ${ships} ${t('catalog.ships', {}) || 'Schiffe'}`,
         'ok',
       );
     } else {
+      progress?.update({ indeterminate: false });
       setAuthStatus(
         `${t('catalog.failed', {}) || 'Codex-Veröffentlichung fehlgeschlagen'}: ${res.error ?? '—'}`,
         'error',
       );
     }
   } catch (err) {
+    progress?.update({ indeterminate: false });
     setAuthStatus(
       `${t('catalog.failed', {}) || 'Codex-Veröffentlichung fehlgeschlagen'}: ${(err as Error).message}`,
       'error',
@@ -1302,7 +1310,10 @@ function setAuthStatus(msg: string, cls: 'ok' | 'warn' | 'error'): void {
 // the first run of a patch is long (builds all glbs), re-runs skip ships that
 // are already built + uploaded. Entirely non-fatal — the bundle upload has
 // already succeeded, so any skin failure only means liveries aren't refreshed.
-async function buildAndUploadSkins(result: ExtractResultPayload): Promise<void> {
+async function buildAndUploadSkins(
+  result: ExtractResultPayload,
+  progress?: ProgressController | null,
+): Promise<void> {
   if (!state.authToken) return;
   const ch = state.channels.find((c) => c.selected) ?? state.channels[0];
   if (!ch) return;
@@ -1312,12 +1323,15 @@ async function buildAndUploadSkins(result: ExtractResultPayload): Promise<void> 
   const label = t('skins.building', {}) || '3D-Skins werden gebaut';
 
   // 1. ensure cgf-converter (first-use download ~117 MB).
+  const toolsLabel = t('skins.stepTools', {}) || 'Build-Tools werden geladen';
+  progress?.update({ phaseLabel: toolsLabel, indeterminate: true, detail: '' });
   const unsubTools = window.sc.skin.onToolProgress((pct) =>
-    setAuthStatus(`${t('skins.tools', {}) || 'Build-Tools werden geladen'} … ${pct}%`, 'warn'),
+    progress?.update({ phaseLabel: toolsLabel, current: pct, total: 100, overallPct: pct, indeterminate: false }),
   );
   const tools = await window.sc.skin.ensureTools();
   unsubTools();
   if (!tools.ok) {
+    progress?.update({ indeterminate: false });
     setAuthStatus(
       `${t('skins.toolsFailed', {}) || '3D-Tools nicht verfügbar — Skins übersprungen'}: ${tools.error ?? '—'}`,
       'warn',
@@ -1326,16 +1340,36 @@ async function buildAndUploadSkins(result: ExtractResultPayload): Promise<void> 
   }
 
   // 2. build glbs (streams; first run per patch is long, cached runs are quick).
+  // Reads ev.pct (phase events) AND ev.current/ev.total (ships progress
+  // events, see skin_export_app.py) so the card shows "ship X / Y" plus a
+  // moving overall bar instead of just a static phase word.
+  progress?.update({ phaseLabel: label, indeterminate: true, detail: '' });
+  const skinCounters: Record<string, number> = {};
   const unsub = window.sc.skin.onEvent((ev) => {
-    if (ev.type === 'phase' && ev.phase) setAuthStatus(`${label}: ${ev.phase}`, 'warn');
-    else if (ev.type === 'count' && ev.counter)
-      setAuthStatus(`${label}: ${ev.counter.key} (${ev.counter.value})`, 'warn');
-    else if (ev.type === 'log' && ev.level === 'error') setAuthStatus(`${label}: ${ev.message ?? ''}`, 'warn');
+    if (ev.type === 'phase' && ev.phase) {
+      progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
+    } else if (ev.type === 'progress') {
+      progress?.update({
+        stageLabel:
+          t('skins.shipProgress', { current: String(ev.current ?? 0), total: String(ev.total ?? 0) }) ||
+          `Ship ${ev.current}/${ev.total}`,
+        current: ev.current,
+        total: ev.total,
+        overallPct: ev.pct,
+        detail: ev.detail,
+      });
+    } else if (ev.type === 'count' && ev.counter) {
+      skinCounters[ev.counter.key] = ev.counter.value;
+      progress?.update({ counters: skinCounters });
+    } else if (ev.type === 'log' && ev.level === 'error') {
+      progress?.update({ detail: ev.message ?? '' });
+    }
   });
   const built = await window.sc.skin
     .start({ p4kPath: ch.dataP4kPath, outDir: skinsOut, manifest, skipExisting: true })
     .finally(unsub);
   if (!built.ok || !built.ships) {
+    progress?.update({ indeterminate: false });
     setAuthStatus(
       `${t('skins.buildFailed', {}) || '3D-Skins-Build fehlgeschlagen (Bundle ist hochgeladen)'}: ${built.error ?? '—'}`,
       'warn',
@@ -1344,17 +1378,25 @@ async function buildAndUploadSkins(result: ExtractResultPayload): Promise<void> 
   }
   state.skinResult = built.ships;
   if (built.ships.length === 0) {
+    progress?.update({ indeterminate: false });
     setAuthStatus(t('skins.none', {}) || 'Keine baubaren 3D-Skins gefunden.', 'ok');
     return;
   }
 
   // 3. upload (upload-cache skips ships already shipped in a prior run).
-  setAuthStatus(t('skins.uploading', {}) || '3D-Skins werden hochgeladen…', 'warn');
+  progress?.update({
+    phaseLabel: t('skins.stepUpload', {}) || t('skins.uploading', {}) || '3D-Skins werden hochgeladen…',
+    indeterminate: true,
+    current: 0,
+    total: built.ships.length,
+    detail: '',
+  });
   const results = await window.sc.skin.upload(
     state.authToken,
     built.ships.map((s) => ({ shipId: s.ship_id, dir: s.export_dir })),
   );
   const okCount = results.filter((r) => r.ok).length;
+  progress?.update({ indeterminate: false, current: okCount, total: results.length, overallPct: 100 });
   setAuthStatus(
     okCount === results.length
       ? t('skins.done', { n: String(okCount) }) || `3D-Skins fertig — ${okCount} Schiff(e) live.`

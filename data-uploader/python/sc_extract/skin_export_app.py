@@ -25,7 +25,7 @@ import json
 import sys
 from pathlib import Path
 
-from .events import count, done, error, log, phase
+from .events import count, done, error, log, phase, progress
 from .hull3d import Hull3DExporter, HullExportConfig
 from .ship_discovery import ShipDiscovery, ShipRef
 from .ship_export import parse_ship
@@ -99,6 +99,10 @@ def main() -> int:
         ships_out: list[dict] = []
         for si, ref in enumerate(refs):
             phase("extract", pct=int(si / max(len(refs), 1) * 100))
+            # Additive: "ship X / Y" — the renderer previously had no goal to
+            # show during this loop (only the phase-level pct above), so a
+            # whole-catalog build of many ships looked frozen ship-to-ship.
+            progress("ships", current=si + 1, total=len(refs))
             # Patch-version cache: a ship already built into --out is reused, so
             # only new/changed liveries rebuild on a re-run. The first run of a
             # patch builds everything; subsequent runs finish in seconds.

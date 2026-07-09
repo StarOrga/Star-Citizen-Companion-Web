@@ -318,8 +318,25 @@ h3 { font-size: 0.9rem; }
 }
 .progress-bar > span {
   position: absolute; inset: 0 auto 0 0;
-  background: linear-gradient(90deg, var(--sc-accent), var(--sc-accent-hot));
+  /* A traveling highlight glint on top of the accent gradient — keeps a
+     DETERMINATE bar visibly "alive" even while its width sits still for
+     minutes (e.g. between two 'progress' events on a huge phase), so long
+     stretches never read as frozen. */
+  background: linear-gradient(
+    90deg,
+    var(--sc-accent) 0%,
+    var(--sc-accent-hot) 35%,
+    rgba(255, 255, 255, 0.92) 50%,
+    var(--sc-accent-hot) 65%,
+    var(--sc-accent) 100%
+  );
+  background-size: 240% 100%;
+  animation: progress-shimmer 2s linear infinite;
   transition: width 0.2s ease;
+}
+@keyframes progress-shimmer {
+  0% { background-position: 240% 0; }
+  100% { background-position: -240% 0; }
 }
 /* Indeterminate: goal not yet quantifiable (opening the archive, decompressing
    the DataCore). A sliding sliver keeps the bar visibly alive without faking a
@@ -333,6 +350,71 @@ h3 { font-size: 0.9rem; }
   0% { transform: translateX(-110%); }
   100% { transform: translateX(330%); }
 }
+
+/* ------- shared progress component (Run + Upload views) -------
+   A single "sibling" surface for both long-running flows: phase line +
+   heartbeat, optional step chips (multi-stage upload flow), bar, detail
+   line, sub-count chips. See progress.ts for the controller. */
+.sc-progress { display: flex; flex-direction: column; min-height: 0; }
+.sc-progress-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sc-progress-phase {
+  font-family: var(--sc-font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+}
+.sc-progress-heartbeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+/* The heartbeat dot pulses on its own clock — independent of any real
+   progress event — so it keeps moving through opaque/dead-zone stages
+   (archive open, DataCore decompress, opaque multi-GB PUTs) where nothing
+   else on screen changes for a long time. */
+.sc-progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sc-accent);
+  box-shadow: 0 0 6px var(--sc-accent);
+  animation: sc-heartbeat 1.4s ease-in-out infinite;
+}
+@keyframes sc-heartbeat {
+  0%, 100% { opacity: 0.4; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+.sc-progress-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 2px;
+  flex-wrap: wrap;
+}
+.sc-progress-step {
+  font-family: var(--sc-font-display);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--sc-border);
+  color: var(--sc-fg-2);
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.sc-progress-step.active {
+  border-color: var(--sc-accent);
+  color: var(--sc-accent);
+  box-shadow: var(--sc-glow);
+}
+.sc-progress-step.done { border-color: var(--sc-success); color: var(--sc-success); }
+.sc-progress-step-arrow { color: var(--sc-fg-2); font-size: 0.7rem; }
+.sc-progress .progress-bar { margin-top: 8px; }
 
 .run-head {
   display: flex;

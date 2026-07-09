@@ -223,9 +223,13 @@ export const api = {
       outDir: string,
     ): Promise<{ ok: boolean; buildId?: string; counts?: Record<string, number>; error?: string }> =>
       ipcRenderer.invoke('sc:catalog:upload', accessToken, outDir),
-    onEvent: (cb: (ev: { phase: string; current: number; total: number }) => void): (() => void) => {
-      const listener = (_e: unknown, payload: { phase: string; current: number; total: number }): void =>
-        cb(payload);
+    onEvent: (
+      cb: (ev: { phase: string; current: number; total: number; phaseIndex?: number; phaseTotal?: number }) => void,
+    ): (() => void) => {
+      const listener = (
+        _e: unknown,
+        payload: { phase: string; current: number; total: number; phaseIndex?: number; phaseTotal?: number },
+      ): void => cb(payload);
       ipcRenderer.on('sc:catalog:event', listener);
       return () => ipcRenderer.removeListener('sc:catalog:event', listener);
     },
