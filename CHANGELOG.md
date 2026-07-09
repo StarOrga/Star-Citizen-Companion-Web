@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.31.0] - 2026-07-09
+
+### Added
+
+- **Attach images to admin feedback.** The feedback composer accepts images via
+  a toolbar picker, pasting (Ctrl+V), or drag & drop — multiple at once, shown
+  as removable thumbnails before sending. Each image is downscaled (longest edge
+  ≤ 1600px) and re-encoded to a size-bounded JPEG client-side, then inlined into
+  the message as markdown so it renders inline in the board. The feedback
+  markdown renderer gained image support, restricted to `https` and
+  self-generated raster `data:` URIs (never SVG) and hardened against markup
+  injection.
+
 ## [0.30.0] - 2026-07-08
 
 ### Added
