@@ -397,7 +397,6 @@
     "errorTitle": "Could not load bundles",
     "retentionHint": "Retention: the last 3 uploader versions per build, max. 20 bundles total — older ones are removed automatically.",
     "toggle": {
-      "history": "History",
       "disabled": "Show disabled"
     },
     "empty": {

@@ -20,18 +20,25 @@ import { useAutoRefresh } from '../core/auto-refresh';
             <p class="hint">{{ 'p4k.subtitle' | translate }}</p>
           </div>
         }
-        <div class="header-actions">
-          <label class="toggle">
-            <input type="checkbox" [checked]="svc.includeHistory()" (change)="svc.toggleHistory()" />
-            {{ 'p4k.toggle.history' | translate }}
-          </label>
-          @if (roles.isAdmin()) {
-            <label class="toggle">
-              <input type="checkbox" [checked]="svc.includeDisabled()" (change)="svc.toggleDisabled()" />
-              {{ 'p4k.toggle.disabled' | translate }}
-            </label>
-          }
-        </div>
+        @if (roles.isAdmin()) {
+          <div class="header-actions">
+            <!-- History is always included now (no user-facing "Verlauf"
+                 selection); the only remaining control is the admin-only
+                 "show disabled" toggle, rendered as a compact top-right icon. -->
+            <button type="button" class="icon-toggle"
+                    [class.active]="svc.includeDisabled()"
+                    (click)="svc.toggleDisabled()"
+                    [attr.aria-pressed]="svc.includeDisabled()"
+                    [attr.aria-label]="'p4k.toggle.disabled' | translate"
+                    [title]="'p4k.toggle.disabled' | translate">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+          </div>
+        }
       </header>
 
       <div class="sc-card summary">
@@ -303,14 +310,21 @@ import { useAutoRefresh } from '../core/auto-refresh';
     .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
     .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
     .header-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .toggle {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 0.85rem; color: var(--sc-fg-1);
-      font-family: var(--sc-font-display);
-      letter-spacing: 0.04em;
-      cursor: pointer;
+    .icon-toggle {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px;
+      background: transparent;
+      color: var(--sc-fg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 6px;
+      transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
     }
-    .toggle input { accent-color: var(--sc-accent); }
+    .icon-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .icon-toggle.active {
+      color: var(--sc-accent);
+      border-color: var(--sc-accent);
+      background: rgba(var(--accent-primary-rgb), 0.12);
+    }
     .err {
       padding: 10px 14px;
       background: rgba(248, 113, 113, 0.1);
