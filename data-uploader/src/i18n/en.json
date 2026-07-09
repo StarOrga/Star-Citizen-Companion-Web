@@ -59,6 +59,10 @@
       "records_total": "Records total",
       "previews": "Previews",
       "skins": "Skins"
+    },
+    "hint": {
+      "open": "Opening the ~157 GB archive — this takes a moment.",
+      "datacore": "Decompressing the DataCore — this can take a while."
     }
   },
   "upload": {
@@ -152,6 +156,13 @@
     "stepTools": "Preparing build tools",
     "stepBuild": "Building liveries",
     "stepUpload": "Uploading liveries",
-    "shipProgress": "Ship {{current}} / {{total}}"
+    "shipProgress": "Ship {{current}} / {{total}}",
+    "hintBuild": "First build assembles each ship one by one — can take a few minutes per ship.",
+    "hintUpload": "Transferring large livery files — this depends on their size."
+  },
+  "progress": {
+    "still": "still working",
+    "eta": "ETA",
+    "perSec": "/s"
   }
 }

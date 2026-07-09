@@ -416,6 +416,34 @@ h3 { font-size: 0.9rem; }
 .sc-progress-step-arrow { color: var(--sc-fg-2); font-size: 0.7rem; }
 .sc-progress .progress-bar { margin-top: 8px; }
 
+/* Meta line: live throughput + ETA when the goal is known, otherwise a stall
+   timer ("arbeitet noch · 42s") and/or a contextual hint for opaque steps. */
+.sc-progress-meta {
+  min-height: 1.05em;
+  margin-top: 4px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.72rem;
+  color: var(--sc-fg-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sc-progress-meta.anxious { color: var(--sc-warning); }
+
+/* A counter chip flashes when its value ticks — cheap "it's alive" signal on
+   an otherwise static strip. Auto-disabled under prefers-reduced-motion. */
+@keyframes sc-count-bump {
+  0% { transform: scale(1); }
+  30% {
+    transform: scale(1.12);
+    border-color: var(--sc-accent);
+    box-shadow: 0 0 10px rgba(var(--accent-primary-rgb), 0.45);
+  }
+  100% { transform: scale(1); }
+}
+.counter.bumped { animation: sc-count-bump 0.5s ease; }
+
 .run-head {
   display: flex;
   align-items: baseline;

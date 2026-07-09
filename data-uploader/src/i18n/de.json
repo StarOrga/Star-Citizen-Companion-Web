@@ -59,6 +59,10 @@
       "records_total": "Datensätze gesamt",
       "previews": "Vorschaubilder",
       "skins": "Skins"
+    },
+    "hint": {
+      "open": "Öffne das ~157-GB-Archiv — das dauert einen Moment.",
+      "datacore": "DataCore wird dekomprimiert — kann etwas dauern."
     }
   },
   "upload": {
@@ -152,6 +156,13 @@
     "stepTools": "Build-Tools werden vorbereitet",
     "stepBuild": "Liveries werden gebaut",
     "stepUpload": "Liveries werden hochgeladen",
-    "shipProgress": "Schiff {{current}} / {{total}}"
+    "shipProgress": "Schiff {{current}} / {{total}}",
+    "hintBuild": "Erst-Build baut jedes Schiff einzeln — kann pro Schiff einige Minuten dauern.",
+    "hintUpload": "Große Livery-Dateien werden übertragen — je nach Größe dauert das."
+  },
+  "progress": {
+    "still": "arbeitet noch",
+    "eta": "Rest",
+    "perSec": "/s"
   }
 }

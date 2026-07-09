@@ -7,7 +7,13 @@
  */
 
 import { load as loadI18n, setLocale, getLocale, t, type LocaleId } from '../lib/i18n.js';
-import { progressCardHtml, mountProgress, type ProgressController, type ProgressStep } from './progress.js';
+import {
+  progressCardHtml,
+  mountProgress,
+  type ProgressController,
+  type ProgressStep,
+  type ProgressLabels,
+} from './progress.js';
 
 interface ToolEnv {
   toolVersion: string;
@@ -796,7 +802,7 @@ function renderRun(): string {
       <h1>${t('run.title', {}) || 'Extraktion läuft'}</h1>
       <div class="run-grid view-body">
         <section class="card run-main">
-          ${progressCardHtml('run-progress')}
+          ${progressCardHtml('run-progress', runSteps())}
         </section>
         <section class="card run-log">
           <div class="log-header">
@@ -849,7 +855,11 @@ async function copyLog(): Promise<void> {
 
 async function runRealExtract(): Promise<void> {
   const logEl = $('#log');
-  const progress = mountProgress('run-progress', { counterLabel });
+  const progress = mountProgress('run-progress', {
+    counterLabel,
+    steps: runSteps(),
+    labels: progressLabels(),
+  });
   const appendLog = (msg: string, level: LogLevel = 'info') => {
     const prefix = level === 'error' ? '[err] ' : level === 'warn' ? '[warn] ' : '';
     const text = prefix + msg;
@@ -883,19 +893,31 @@ async function runRealExtract(): Promise<void> {
     switch (ev.type) {
       case 'phase': {
         const label = phaseLabel(ev.phase ?? 'unknown');
+        const si = RUN_STEP_INDEX[ev.phase ?? ''];
+        if (si !== undefined) progress.setStep(si);
         progress.update({ phaseLabel: label, overallPct: ev.pct });
         appendLog(`▶ ${label}`);
         return;
       }
-      case 'progress':
+      case 'progress': {
+        // Name the two long opaque stages so a multi-minute wait is explained
+        // rather than looking hung (they emit pct but no current/total).
+        const hint =
+          ev.stage === 'open'
+            ? t('run.hint.open', {}) || 'Öffne das große Archiv — das dauert einen Moment.'
+            : ev.stage === 'datacore'
+              ? t('run.hint.datacore', {}) || 'DataCore wird dekomprimiert — kann etwas dauern.'
+              : '';
         progress.update({
           overallPct: ev.pct,
           stageLabel: stageLabel(ev.stage ?? ''),
           current: ev.current,
           total: ev.total,
           detail: ev.detail,
+          hint,
         });
         return;
+      }
       case 'file':
         progress.update({ overallPct: ev.pct });
         if (ev.fileName) appendLog(`  · ${ev.fileName}`);
@@ -915,7 +937,8 @@ async function runRealExtract(): Promise<void> {
         appendLog(ev.message ?? 'warning', 'warn');
         return;
       case 'done':
-        progress.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false });
+        progress.setStep(5); // past the last phase → all step chips 'done'
+        progress.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false, hint: '' });
         return;
       case 'error':
         progress.update({ indeterminate: false });
@@ -981,6 +1004,29 @@ function uploadSteps(): ProgressStep[] {
   ];
 }
 
+// The extract pipeline's fixed phases, surfaced as the same step-chip journey
+// the upload flow uses — so both views read as siblings. `phaseLabel` reuses
+// the existing run.phase.* i18n keys.
+function runSteps(): ProgressStep[] {
+  return [
+    { key: 'discover', label: phaseLabel('discover') },
+    { key: 'plan', label: phaseLabel('plan') },
+    { key: 'extract', label: phaseLabel('extract') },
+    { key: 'validate', label: phaseLabel('validate') },
+    { key: 'bundle', label: phaseLabel('bundle') },
+  ];
+}
+const RUN_STEP_INDEX: Record<string, number> = { discover: 0, plan: 1, extract: 2, validate: 3, bundle: 4 };
+
+// Localized labels for the shared progress meta line (throughput / ETA / stall).
+function progressLabels(): Partial<ProgressLabels> {
+  return {
+    still: t('progress.still', {}) || 'arbeitet noch',
+    eta: t('progress.eta', {}) || 'Rest',
+    perSec: t('progress.perSec', {}) || '/s',
+  };
+}
+
 function renderAuthUpload(): string {
   const result = state.lastResult;
   const hasResult = result !== null;
@@ -1031,7 +1077,11 @@ function renderAuthUpload(): string {
 let uploadProgress: ProgressController | null = null;
 
 function wireAuthUpload(): void {
-  uploadProgress = mountProgress('upload-progress', { counterLabel, steps: uploadSteps() });
+  uploadProgress = mountProgress('upload-progress', {
+    counterLabel,
+    steps: uploadSteps(),
+    labels: progressLabels(),
+  });
   $('#btn-back-run')?.addEventListener('click', () => {
     state.view = 'run';
     render();
@@ -1343,7 +1393,12 @@ async function buildAndUploadSkins(
   // Reads ev.pct (phase events) AND ev.current/ev.total (ships progress
   // events, see skin_export_app.py) so the card shows "ship X / Y" plus a
   // moving overall bar instead of just a static phase word.
-  progress?.update({ phaseLabel: label, indeterminate: true, detail: '' });
+  progress?.update({
+    phaseLabel: label,
+    indeterminate: true,
+    detail: '',
+    hint: t('skins.hintBuild', {}) || 'Erst-Build baut jedes Schiff einzeln — kann pro Schiff einige Minuten dauern.',
+  });
   const skinCounters: Record<string, number> = {};
   const unsub = window.sc.skin.onEvent((ev) => {
     if (ev.type === 'phase' && ev.phase) {
@@ -1390,6 +1445,7 @@ async function buildAndUploadSkins(
     current: 0,
     total: built.ships.length,
     detail: '',
+    hint: t('skins.hintUpload', {}) || 'Große Livery-Dateien werden übertragen — je nach Größe dauert das.',
   });
   const results = await window.sc.skin.upload(
     state.authToken,
