@@ -39,20 +39,13 @@ interface ReleaseInfo {
 
       @if (release(); as r) {
         <div class="sc-card release">
-          <div class="row">
-            <span class="label">{{ 'desktop.currentVersion' | translate }}</span>
+          <div class="release-head">
             <span class="value version">v{{ r.version }}</span>
+            <span class="released">
+              {{ 'desktop.released' | translate }} · {{ r.created_at | date:'mediumDate' }}
+            </span>
           </div>
-          <div class="row">
-            <span class="label">{{ 'desktop.released' | translate }}</span>
-            <span class="value">{{ r.created_at | date:'medium' }}</span>
-          </div>
-          @if (r.notes) {
-            <div class="notes">
-              <span class="label">{{ 'desktop.notes' | translate }}</span>
-              <pre>{{ r.notes }}</pre>
-            </div>
-          }
+          <!-- Primary action: keep Setup + Portable one tap away, always visible. -->
           <div class="platforms">
             @for (entry of platformEntries(r); track entry.key) {
               <a class="sc-btn sc-btn-primary platform" [href]="entry.value.url" download>
@@ -66,6 +59,13 @@ interface ReleaseInfo {
               </a>
             }
           </div>
+          <!-- Release notes are secondary: collapsed by default so the panel stays compact. -->
+          @if (r.notes) {
+            <details class="release-notes">
+              <summary>{{ 'desktop.notes' | translate }}</summary>
+              <pre>{{ r.notes }}</pre>
+            </details>
+          }
         </div>
       } @else if (busy()) {
         <div class="sc-card empty">
@@ -96,7 +96,43 @@ interface ReleaseInfo {
       color: var(--sc-danger);
       border-radius: 4px;
     }
-    .release { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+    .release { display: flex; flex-direction: column; gap: 14px; max-width: 640px; }
+    .release-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .released {
+      color: var(--sc-fg-2);
+      font-family: var(--sc-font-display);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .release-notes {
+      border-top: 1px solid var(--sc-border);
+      padding-top: 10px;
+    }
+    .release-notes summary {
+      cursor: pointer;
+      color: var(--sc-fg-2);
+      font-family: var(--sc-font-display);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      list-style: none;
+    }
+    .release-notes summary::-webkit-details-marker { display: none; }
+    .release-notes summary::before {
+      content: '▸';
+      display: inline-block;
+      margin-right: 8px;
+      transition: transform 0.15s ease;
+    }
+    .release-notes[open] summary::before { transform: rotate(90deg); }
+    .release-notes summary:hover { color: var(--sc-fg-0); }
     .bundle-history {
       display: flex;
       flex-direction: column;
@@ -132,9 +168,8 @@ interface ReleaseInfo {
       font-size: 1.2rem;
       color: var(--sc-accent);
     }
-    .notes { display: flex; flex-direction: column; gap: 6px; }
-    .notes pre {
-      margin: 0;
+    .release-notes pre {
+      margin: 10px 0 0;
       padding: 12px 14px;
       background: var(--sc-bg-1);
       border: 1px solid var(--sc-border);
@@ -144,7 +179,7 @@ interface ReleaseInfo {
       max-height: 220px;
       overflow-y: auto;
     }
-    .platforms { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .platforms { display: flex; flex-direction: column; gap: 8px; }
     .platform {
       flex-direction: column;
       align-items: stretch;
