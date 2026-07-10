@@ -748,7 +748,16 @@
     "noResults": "Keine Treffer.",
     "hint": "Tippe um zu suchen — ↑↓ zum Navigieren, Enter öffnet den markierten Treffer. Strg+K öffnet die Suche überall.",
     "addToHangar": "→ Hangar",
-    "navHint": "↑↓ navigieren · ↵ öffnen · esc schließen"
+    "navHint": "↑↓ navigieren · ↵ öffnen · esc schließen",
+    "otherMatches": "Weitere Treffer",
+    "noneInCategory": "Keine {{category}} gefunden — zeige andere Treffer",
+    "category": {
+      "groupAria": "Suche nach Kategorie eingrenzen",
+      "all": "Alle",
+      "ship": "Schiffe",
+      "weapon": "Waffen",
+      "component": "Komponenten"
+    }
   },
   "telemetry": {
     "title": "Telemetrie & Crash-Statistik",

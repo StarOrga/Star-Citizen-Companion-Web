@@ -748,7 +748,16 @@
     "noResults": "No matches.",
     "hint": "Type to search — ↑↓ to navigate, Enter opens the highlighted match. Ctrl+K opens this search anywhere.",
     "addToHangar": "→ Hangar",
-    "navHint": "↑↓ navigate · ↵ open · esc close"
+    "navHint": "↑↓ navigate · ↵ open · esc close",
+    "otherMatches": "Other matches",
+    "noneInCategory": "No {{category}} found — showing other matches",
+    "category": {
+      "groupAria": "Filter search by category",
+      "all": "All",
+      "ship": "Ships",
+      "weapon": "Weapons",
+      "component": "Components"
+    }
   },
   "telemetry": {
     "title": "Telemetry & Crash Stats",
