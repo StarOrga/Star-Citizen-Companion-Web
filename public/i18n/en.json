@@ -30,7 +30,9 @@
     "accountMenu": "Account menu",
     "hangar": "Hangar",
     "telemetry": "Telemetry",
-    "feedback": "Feedback"
+    "feedback": "Feedback",
+    "signIn": "Sign in",
+    "starscape": "Starscape"
   },
   "codex": {
     "title": "Codex",
@@ -216,7 +218,11 @@
       "fullSpec": "Full spec sheet",
       "showFullSpec": "Show full spec sheet",
       "hideFullSpec": "Hide full spec sheet",
-      "layoutHint": "Stock loadout as labelled slots — open a slot to inspect the installed item."
+      "layoutHint": "Stock loadout as labelled slots — open a slot to inspect the installed item.",
+      "quantumRange": "Quantum range",
+      "quantumSpeed": "Quantum speed",
+      "quantumFuel": "Quantum fuel",
+      "fuelCapacity": "Hydrogen fuel"
     },
     "swap": {
       "title": "What fits here",
@@ -757,6 +763,58 @@
       "loading": "Loading…",
       "empty": "Nothing found.",
       "emptyPort": "No compatible items found in this catalog build (subset seeded)."
+    },
+    "teaser": {
+      "title": "Your personal hangar",
+      "subtitle": "Sign in to build your fleet — free, invite-based during alpha.",
+      "save": {
+        "title": "Save your ships",
+        "text": "Keep your whole fleet in one place: owned ships and wishlist, with custom names and notes."
+      },
+      "overview": {
+        "title": "Fleet overview",
+        "text": "Pinned flagships, counts and quick access to every ship’s detail page."
+      },
+      "loadouts": {
+        "title": "Test loadouts",
+        "text": "Swap components and weapons on your ships and see the stat impact before you spend a single aUEC."
+      },
+      "compare": {
+        "title": "Compare",
+        "text": "Pin ships and components side by side and compare the numbers that matter."
+      },
+      "cta": "Sign in to open your hangar"
+    },
+    "concept": {
+      "title": "Concept wishlist",
+      "hint": "Ships that are not in the game (yet) have no codex entry — track them here with a link to the pledge page. Specs are preliminary until release.",
+      "namePlaceholder": "Ship name (e.g. Polaris)",
+      "manufacturerPlaceholder": "Manufacturer (optional)",
+      "urlPlaceholder": "RSI pledge link (optional)",
+      "add": "Add to wishlist",
+      "empty": "No concept ships on your wishlist yet.",
+      "preliminary": "Concept — preliminary",
+      "pledgeLink": "Pledge page",
+      "remove": "Remove"
+    },
+    "import": {
+      "open": "Import…",
+      "title": "Import from export file",
+      "hint": "Drop a Hangar Transfer Format JSON export here (e.g. from the HangarXPLOR browser extension — you run the export yourself, we never ask for RSI credentials). Entries are matched against the codex and only the rows you confirm are added.",
+      "pickFile": "Choose file",
+      "parsing": "Reading…",
+      "dropHint": "or drop the .json file here",
+      "errParse": "Could not read this file — expected a JSON export.",
+      "errNoShips": "No ship entries found in this file.",
+      "matched": "{{matched}} of {{total}} entries matched to the catalog",
+      "chooseOther": "Choose another file",
+      "exact": "Match",
+      "fuzzy": "Best guess: {{name}}",
+      "noMatch": "No catalog match",
+      "confirm": "Import {{count}} ships",
+      "importing": "Importing…",
+      "done": "{{count}} ships imported.",
+      "close": "Close"
     }
   },
   "quickSearch": {
@@ -891,5 +949,95 @@
       "deprecated": "Deprecated",
       "security": "Security"
     }
+  },
+  "printGuide": {
+    "linkLabel": "3D Printing",
+    "title": "3D Printing Guide",
+    "subtitle": "How the community turns Star Citizen ships into printable models — using your own game files, on your own machine.",
+    "legal": {
+      "title": "Why we don't host any 3D models",
+      "p1": "This site does not store, generate, or serve any 3D geometry extracted from Star Citizen. The RSI EULA prohibits redistributing extracted game assets, and the Fankit & Fandom FAQ explicitly rules out offering game content for download by others.",
+      "p2": "What we CAN do: explain the community workflow and point you to the established local tools. Everything below runs on your own computer against your own game installation.",
+      "eulaLink": "RSI End User License Agreement",
+      "faqLink": "Star Citizen Fankit & Fandom FAQ",
+      "affiliation": "This is an unofficial fan site, not affiliated with the Cloud Imperium group of companies. Star Citizen® is a registered trademark of Cloud Imperium Rights LLC."
+    },
+    "workflow": {
+      "title": "The community workflow",
+      "extract": {
+        "title": "1. Extract from your own Data.p4k",
+        "text": "Use a local extraction tool (unp4k, StarFab) against the Data.p4k of your own Star Citizen installation to pull the CryEngine geometry files (.cgf / .cga) of the ship you want."
+      },
+      "convert": {
+        "title": "2. Convert to a standard mesh format",
+        "text": "Convert the CryEngine chunk files to COLLADA/glTF with Cryengine-Converter or StarBreaker, or import them into Blender directly via SCExporter."
+      },
+      "prep": {
+        "title": "3. Prepare for printing in Blender",
+        "text": "Game meshes are not watertight. Apply a Solidify modifier for wall thickness, then a Remesh pass to close holes and reduce sub-millimetre detail before exporting STL/3MF."
+      },
+      "slice": {
+        "title": "4. Slice and print",
+        "text": "Import the STL into your slicer, scale it (game units are not millimetres — use the real ship dimensions from our Codex as reference), add supports and print."
+      }
+    },
+    "tools": {
+      "title": "Vetted community tools",
+      "hint": "All tools are third-party, open-source projects you run locally. Check each project's documentation and license before use.",
+      "unp4k": "The classic Data.p4k extractor — unpacks game archive entries onto your disk.",
+      "starfab": "Extraction front-end and data tooling for Star Citizen (StarFab GUI on top of scdatatools).",
+      "starbreaker": "Rust toolkit that reads game data and exports meshes to glTF/GLB.",
+      "cryengineConverter": "Converts CryEngine .cgf/.cga chunk files into COLLADA for Blender import.",
+      "scexporter": "Blender add-on that imports Star Citizen geometry directly."
+    },
+    "tips": {
+      "title": "Print-prep tips",
+      "watertight": "Game meshes are display meshes: expect holes, intersecting shells and non-manifold edges — they always need repair before slicing.",
+      "solidify": "Blender's Solidify modifier gives paper-thin hull panels a printable wall thickness (0.8–1.6 mm at desk-model scale).",
+      "remesh": "A voxel Remesh pass closes gaps and merges shells at the cost of fine detail — pick the voxel size to match your printer's resolution.",
+      "scale": "There is no canonical scale in the files. Scale by real dimensions: look up the ship's length in the Codex and scale the model to your target size.",
+      "lod": "Prefer the highest LOD (LOD0) for hero prints; lower LODs slice faster and are fine for small desk models.",
+      "cigGuide": "CIG community guide: Easy preparation of STL files for 3D printing"
+    },
+    "codex": {
+      "title": "Ship dimensions from the Codex",
+      "text": "Every ship page in our Codex lists real length, width and height from the game data — the reference you need to scale a print correctly.",
+      "cta": "Open Codex"
+    }
+  },
+  "consent": {
+    "banner": {
+      "title": "Browser storage",
+      "text": "This app sets no cookies. It stores your login session and language in this browser (required), and — only if you allow it — convenience preferences like news filters and saved articles. You can change this anytime in Settings.",
+      "acceptAll": "Allow all",
+      "essentialOnly": "Essential only"
+    },
+    "settings": {
+      "title": "Browser storage & privacy",
+      "hint": "This app sets no cookies and no tracking storage. Everything below lives in this browser's localStorage only.",
+      "alwaysOn": "Always on",
+      "on": "Allowed",
+      "off": "Off",
+      "essential": {
+        "label": "Essential",
+        "desc": "Login session, language, and this consent decision. Required for the app to work — cannot be disabled."
+      },
+      "preferences": {
+        "label": "Preferences",
+        "desc": "News channel filter, saved articles and similar convenience state. Turning this off deletes the stored values."
+      }
+    }
+  },
+  "starscape": {
+    "title": "Starscape",
+    "subtitle": "High-resolution artwork from RSI Comm-Links, collected from the news crawl. Every image links straight to the original on the RSI CDN — click a tile for full resolution and download.",
+    "filterAll": "All",
+    "empty": "No wallpapers captured yet — they appear as the news crawl runs.",
+    "loadMore": "Load more",
+    "loading": "Loading…",
+    "download": "Download original",
+    "sourceArticle": "Source Comm-Link",
+    "close": "Close",
+    "attribution": "All imagery © Cloud Imperium Games — served directly from the RSI CDN, linked with attribution to the source Comm-Link. Fan-made gallery, no re-sale, no re-hosting."
   }
 }

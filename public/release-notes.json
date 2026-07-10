@@ -1,7 +1,95 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.31.0",
+  "current": "0.33.0",
   "releases": [
+    {
+      "version": "0.33.0",
+      "date": "2026-07-11",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Browse without an account.",
+              "text": "Verse News, the Codex, release notes and the new info pages are public now — no login required. The hangar stays members-only and greets signed-out visitors with a benefits teaser (save your ships · fleet overview · test loadouts · compare) and a sign-in CTA. (#131)"
+            },
+            {
+              "title": "Starscape — a wallpaper gallery from RSI imagery.",
+              "text": "High-resolution Comm-Link artwork collected during the news crawl, browsable as a masonry wall with series filter and lightbox. Every image links straight to the original full-resolution file on the RSI CDN with attribution to its source Comm-Link — the app stores metadata only, never image bytes. (#133)"
+            },
+            {
+              "title": "Import your hangar from an export file.",
+              "text": "Drop a Hangar Transfer Format JSON (e.g. from the HangarXPLOR browser extension) into the new import panel: entries are matched against the codex (exact ship code first, name search as flagged best guess), previewed with their match state, and only confirmed rows are added — nicknames become custom names. No RSI credentials, ever. (#136)"
+            },
+            {
+              "title": "Concept-ship wishlist.",
+              "text": "Track unreleased ships that have no codex entry yet — name, manufacturer, pledge link — with a permanent \"Concept — preliminary\" badge. (#135)"
+            },
+            {
+              "title": "Quantum & fuel facts on ship pages.",
+              "text": "The codex ship detail now derives quantum range, quantum speed and hydrogen/quantum fuel capacities from the stock loadout, and the quantum drive slot shows its jump range as a chip. (#137)"
+            },
+            {
+              "title": "Browser-storage consent.",
+              "text": "A first-visit notice explains what the app stores (no cookies — login session and language are essential; news filters, saved articles and similar preferences are opt-in). A new Settings card makes the choice revisitable; declining purges stored preferences. (#130)"
+            },
+            {
+              "title": "3D-printing guide.",
+              "text": "/tools/3d-print documents the community workflow (own-files extraction → conversion → Blender print-prep) and the vetted external tools — the app hosts no game geometry by design (EULA). (#79)"
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex content follows your language reactively.",
+              "text": "Card titles, compare columns and manufacturer names switch between DE/EN immediately and only use German when a genuine translation exists (English fallback otherwise). (#50)"
+            },
+            {
+              "title": "Language switcher offers DE/EN only",
+              "text": "— the stub locales (FR/ES/PT/RU/ZH) that silently fell back to English are gone; legacy stored choices are normalized. (#23)"
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Status drill-down keeps components during incidents.",
+              "text": "The RSI status page marks degraded/partial/major/maintenance components with short status values the scraper didn't know — affected services vanished from the panel exactly when they mattered. (#20)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.32.0",
+      "date": "2026-07-10",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Per-topic chat threads on the admin feedback board.",
+              "text": "Every feedback topic now carries a thread of follow-up replies (admin_feedback_messages): an admin can answer directly under a topic, and the automated routine posts system replies. A new needs_input status lets the routine park an item it can't auto-ship and ask a question instead of terminally rejecting it — the admin's answer resumes the work on the next run. needs_input topics auto-expand in the embedded panel so the question and reply box are immediately visible."
+            },
+            {
+              "title": "Maximize the feedback panel to near-fullscreen.",
+              "text": "The floating feedback panel gained a maximize/restore button (Escape steps down: fullscreen → docked → minimized), so long threads are readable without leaving the current page."
+            },
+            {
+              "title": "\"View on RSI\" button on the ship detail page.",
+              "text": "Opens the ship's official RSI store/pledge page in a new tab."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.31.0",
       "date": "2026-07-09",

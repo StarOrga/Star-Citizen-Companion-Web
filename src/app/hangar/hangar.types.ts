@@ -64,6 +64,33 @@ export interface HangarShip {
   updatedAt: string;
 }
 
+/**
+ * Wishlist entry for an unreleased/concept ship (#135). No catalog linkage —
+ * the codex only knows flyable ships from the live Data.p4k — so these are
+ * user-authored metadata rows, always shown with a "preliminary" badge.
+ * Typed manually: the generated DB types are refreshed on db push, and this
+ * table may not be in them yet.
+ */
+export interface ConceptShip {
+  id: string;
+  name: string;
+  manufacturer: string | null;
+  rsiUrl: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export function mapConceptShip(r: Record<string, unknown>): ConceptShip {
+  return {
+    id: (r['id'] as string) ?? '',
+    name: (r['name'] as string) ?? '',
+    manufacturer: (r['manufacturer'] as string | null) ?? null,
+    rsiUrl: (r['rsi_url'] as string | null) ?? null,
+    notes: (r['notes'] as string | null) ?? null,
+    createdAt: (r['created_at'] as string) ?? '',
+  };
+}
+
 export interface HangarShipConfig {
   id: string;
   hangarShipId: string;

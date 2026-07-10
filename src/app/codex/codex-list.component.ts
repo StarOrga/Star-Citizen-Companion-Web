@@ -16,9 +16,10 @@ import {
   CodexListFilters,
   CodexListRow,
   CodexService,
-  pickLocalized,
+  pickLocalizedDistinct,
   toLang,
 } from './codex.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
@@ -352,6 +353,11 @@ export class CodexListComponent implements OnInit {
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
 
+  // Data language tracks the UI language as a SIGNAL so OnPush card titles
+  // re-render on a language switch (they previously read t.currentLang
+  // directly and stayed stale until the next unrelated CD cycle). (#50)
+  private readonly dataLang = signal(toLang(this.t.currentLang));
+
   readonly kinds = CODEX_KINDS;
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
 
@@ -392,7 +398,8 @@ export class CodexListComponent implements OnInit {
    */
   cardName(r: CodexListRow): string {
     const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
-    const localized = p?.name ? pickLocalized(p.name, toLang(this.t.currentLang)) : '';
+    // Distinct-pick: DE only when genuinely translated, EN otherwise. (#50)
+    const localized = p?.name ? pickLocalizedDistinct(p.name, this.dataLang()) : '';
     return localized || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
   }
 
@@ -445,6 +452,10 @@ export class CodexListComponent implements OnInit {
   );
 
   constructor() {
+    // Keep the data language in sync with UI language switches. (#50)
+    this.t.onLangChange
+      .pipe(takeUntilDestroyed())
+      .subscribe((e) => this.dataLang.set(toLang(e.lang)));
     // Re-query whenever kind, search term or any facet changes.
     effect(() => {
       // track dependencies

@@ -12,6 +12,7 @@ import {
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
+import { ConsentService } from '../../core/consent.service';
 import { useAutoRefresh } from '../../core/auto-refresh';
 import { AuthService } from '../../auth/auth.service';
 import { renderMarkdown } from './markdown.util';
@@ -603,6 +604,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly translate = inject(TranslateService);
+  private readonly consentSvc = inject(ConsentService);
 
   private readonly ta = viewChild<ElementRef<HTMLTextAreaElement>>('ta');
 
@@ -757,6 +759,8 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   private saveDraft(value: string): void {
+    // Preference-category storage is opt-in (#130) — clearing stays allowed.
+    if (value.trim() && !this.consentSvc.preferencesAllowed()) return;
     try {
       if (value.trim()) localStorage.setItem(DRAFT_KEY, value);
       else localStorage.removeItem(DRAFT_KEY);

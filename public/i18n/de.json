@@ -30,7 +30,9 @@
     "accountMenu": "Konto-Menü",
     "hangar": "Hangar",
     "telemetry": "Telemetrie",
-    "feedback": "Feedback"
+    "feedback": "Feedback",
+    "signIn": "Anmelden",
+    "starscape": "Starscape"
   },
   "codex": {
     "title": "Codex",
@@ -216,7 +218,11 @@
       "fullSpec": "Volles Datenblatt",
       "showFullSpec": "Volles Datenblatt anzeigen",
       "hideFullSpec": "Volles Datenblatt ausblenden",
-      "layoutHint": "Stock-Loadout als beschriftete Slots — Slot öffnen zeigt das verbaute Item."
+      "layoutHint": "Stock-Loadout als beschriftete Slots — Slot öffnen zeigt das verbaute Item.",
+      "quantumRange": "Quantum-Reichweite",
+      "quantumSpeed": "Quantum-Geschwindigkeit",
+      "quantumFuel": "Quantum-Treibstoff",
+      "fuelCapacity": "Wasserstoff-Treibstoff"
     },
     "swap": {
       "title": "Was passt hier?",
@@ -757,6 +763,58 @@
       "loading": "Lädt…",
       "empty": "Nichts gefunden.",
       "emptyPort": "Keine kompatiblen Items in diesem Katalog-Build gefunden (Teilmenge geseedet)."
+    },
+    "teaser": {
+      "title": "Dein persönlicher Hangar",
+      "subtitle": "Melde dich an, um deine Flotte aufzubauen — kostenlos, während der Alpha auf Einladung.",
+      "save": {
+        "title": "Schiffe speichern",
+        "text": "Deine ganze Flotte an einem Ort: Schiffe im Besitz und Wunschliste, mit eigenen Namen und Notizen."
+      },
+      "overview": {
+        "title": "Flotten-Überblick",
+        "text": "Angepinnte Flaggschiffe, Zähler und Schnellzugriff auf jede Schiffs-Detailseite."
+      },
+      "loadouts": {
+        "title": "Loadouts testen",
+        "text": "Tausche Komponenten und Waffen an deinen Schiffen und sieh die Stat-Auswirkung, bevor du eine einzige aUEC ausgibst."
+      },
+      "compare": {
+        "title": "Vergleichen",
+        "text": "Pinne Schiffe und Komponenten nebeneinander und vergleiche die Zahlen, die zählen."
+      },
+      "cta": "Anmelden und Hangar öffnen"
+    },
+    "concept": {
+      "title": "Concept-Wunschliste",
+      "hint": "Schiffe, die (noch) nicht im Spiel sind, haben keinen Codex-Eintrag — tracke sie hier mit Link zur Pledge-Seite. Specs sind bis zum Release vorläufig.",
+      "namePlaceholder": "Schiffsname (z. B. Polaris)",
+      "manufacturerPlaceholder": "Hersteller (optional)",
+      "urlPlaceholder": "RSI-Pledge-Link (optional)",
+      "add": "Zur Wunschliste",
+      "empty": "Noch keine Concept-Schiffe auf deiner Wunschliste.",
+      "preliminary": "Concept — vorläufig",
+      "pledgeLink": "Pledge-Seite",
+      "remove": "Entfernen"
+    },
+    "import": {
+      "open": "Importieren…",
+      "title": "Import aus Export-Datei",
+      "hint": "Ziehe einen JSON-Export im Hangar-Transfer-Format hierher (z. B. aus der HangarXPLOR-Browser-Erweiterung — du führst den Export selbst aus, wir fragen nie nach RSI-Zugangsdaten). Einträge werden gegen den Codex gematcht; nur von dir bestätigte Zeilen werden übernommen.",
+      "pickFile": "Datei wählen",
+      "parsing": "Lese…",
+      "dropHint": "oder .json-Datei hier ablegen",
+      "errParse": "Datei konnte nicht gelesen werden — erwartet wird ein JSON-Export.",
+      "errNoShips": "Keine Schiffseinträge in dieser Datei gefunden.",
+      "matched": "{{matched}} von {{total}} Einträgen im Katalog gefunden",
+      "chooseOther": "Andere Datei wählen",
+      "exact": "Treffer",
+      "fuzzy": "Beste Vermutung: {{name}}",
+      "noMatch": "Kein Katalog-Treffer",
+      "confirm": "{{count}} Schiffe importieren",
+      "importing": "Importiere…",
+      "done": "{{count}} Schiffe importiert.",
+      "close": "Schließen"
     }
   },
   "quickSearch": {
@@ -891,5 +949,95 @@
       "deprecated": "Veraltet",
       "security": "Sicherheit"
     }
+  },
+  "printGuide": {
+    "linkLabel": "3D-Druck",
+    "title": "3D-Druck-Guide",
+    "subtitle": "Wie die Community Star-Citizen-Schiffe in druckbare Modelle verwandelt — mit deinen eigenen Spieldateien, auf deinem eigenen Rechner.",
+    "legal": {
+      "title": "Warum wir keine 3D-Modelle hosten",
+      "p1": "Diese Seite speichert, erzeugt und verteilt keine aus Star Citizen extrahierte 3D-Geometrie. Die RSI-EULA verbietet die Weiterverbreitung extrahierter Spiel-Assets, und die Fankit- & Fandom-FAQ schließt das Anbieten von Spielinhalten zum Download durch Dritte ausdrücklich aus.",
+      "p2": "Was wir tun können: den Community-Workflow erklären und auf die etablierten lokalen Tools verweisen. Alles Folgende läuft auf deinem eigenen Rechner gegen deine eigene Spielinstallation.",
+      "eulaLink": "RSI-Endnutzer-Lizenzvereinbarung (EULA)",
+      "faqLink": "Star Citizen Fankit- & Fandom-FAQ",
+      "affiliation": "Dies ist eine inoffizielle Fan-Site, nicht verbunden mit der Cloud-Imperium-Unternehmensgruppe. Star Citizen® ist eine eingetragene Marke der Cloud Imperium Rights LLC."
+    },
+    "workflow": {
+      "title": "Der Community-Workflow",
+      "extract": {
+        "title": "1. Aus der eigenen Data.p4k extrahieren",
+        "text": "Nutze ein lokales Extraktions-Tool (unp4k, StarFab) gegen die Data.p4k deiner eigenen Star-Citizen-Installation, um die CryEngine-Geometriedateien (.cgf / .cga) des gewünschten Schiffs zu ziehen."
+      },
+      "convert": {
+        "title": "2. In ein Standard-Mesh-Format konvertieren",
+        "text": "Konvertiere die CryEngine-Chunk-Dateien mit Cryengine-Converter oder StarBreaker nach COLLADA/glTF, oder importiere sie via SCExporter direkt in Blender."
+      },
+      "prep": {
+        "title": "3. In Blender druckfertig machen",
+        "text": "Spiel-Meshes sind nicht wasserdicht. Wende einen Solidify-Modifier für Wandstärke an, danach einen Remesh-Durchgang, um Löcher zu schließen und Submillimeter-Details zu reduzieren — dann als STL/3MF exportieren."
+      },
+      "slice": {
+        "title": "4. Slicen und drucken",
+        "text": "Importiere die STL in deinen Slicer, skaliere sie (Spieleinheiten sind keine Millimeter — nutze die echten Schiffsmaße aus unserem Codex als Referenz), füge Stützen hinzu und drucke."
+      }
+    },
+    "tools": {
+      "title": "Bewährte Community-Tools",
+      "hint": "Alle Tools sind Open-Source-Projekte von Dritten, die du lokal ausführst. Prüfe vor der Nutzung Dokumentation und Lizenz des jeweiligen Projekts.",
+      "unp4k": "Der klassische Data.p4k-Extraktor — entpackt Archiv-Einträge auf deine Festplatte.",
+      "starfab": "Extraktions-Frontend und Daten-Tooling für Star Citizen (StarFab-GUI auf Basis von scdatatools).",
+      "starbreaker": "Rust-Toolkit, das Spieldaten liest und Meshes nach glTF/GLB exportiert.",
+      "cryengineConverter": "Konvertiert CryEngine-.cgf/.cga-Chunk-Dateien nach COLLADA für den Blender-Import.",
+      "scexporter": "Blender-Add-on, das Star-Citizen-Geometrie direkt importiert."
+    },
+    "tips": {
+      "title": "Tipps zur Druckvorbereitung",
+      "watertight": "Spiel-Meshes sind Anzeige-Meshes: Löcher, sich schneidende Shells und Non-Manifold-Kanten sind normal — vor dem Slicen ist immer eine Reparatur nötig.",
+      "solidify": "Blenders Solidify-Modifier gibt papierdünnen Rumpfpaneelen eine druckbare Wandstärke (0,8–1,6 mm bei Schreibtisch-Modellgröße).",
+      "remesh": "Ein Voxel-Remesh schließt Lücken und verschmilzt Shells auf Kosten feiner Details — wähle die Voxelgröße passend zur Druckerauflösung.",
+      "scale": "Die Dateien haben keinen kanonischen Maßstab. Skaliere über echte Maße: Schau die Schiffslänge im Codex nach und skaliere das Modell auf deine Zielgröße.",
+      "lod": "Für Hero-Drucke das höchste LOD (LOD0) nehmen; niedrigere LODs slicen schneller und reichen für kleine Schreibtisch-Modelle.",
+      "cigGuide": "CIG-Community-Guide: Easy preparation of STL files for 3D printing"
+    },
+    "codex": {
+      "title": "Schiffsmaße aus dem Codex",
+      "text": "Jede Schiffsseite in unserem Codex listet echte Länge, Breite und Höhe aus den Spieldaten — die Referenz, um einen Druck korrekt zu skalieren.",
+      "cta": "Codex öffnen"
+    }
+  },
+  "consent": {
+    "banner": {
+      "title": "Browser-Speicher",
+      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und gemerkte Artikel. Änderbar jederzeit in den Einstellungen.",
+      "acceptAll": "Alle erlauben",
+      "essentialOnly": "Nur notwendige"
+    },
+    "settings": {
+      "title": "Browser-Speicher & Datenschutz",
+      "hint": "Diese App setzt keine Cookies und kein Tracking. Alles Folgende liegt ausschließlich im localStorage dieses Browsers.",
+      "alwaysOn": "Immer aktiv",
+      "on": "Erlaubt",
+      "off": "Aus",
+      "essential": {
+        "label": "Notwendig",
+        "desc": "Login-Sitzung, Sprache und diese Consent-Entscheidung. Für die Funktion der App erforderlich — nicht abschaltbar."
+      },
+      "preferences": {
+        "label": "Präferenzen",
+        "desc": "News-Kanalfilter, gemerkte Artikel und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
+      }
+    }
+  },
+  "starscape": {
+    "title": "Starscape",
+    "subtitle": "Hochauflösende Artworks aus RSI-Comm-Links, gesammelt beim News-Crawl. Jedes Bild verlinkt direkt aufs Original im RSI-CDN — Kachel anklicken für volle Auflösung und Download.",
+    "filterAll": "Alle",
+    "empty": "Noch keine Wallpaper erfasst — sie erscheinen, sobald der News-Crawl läuft.",
+    "loadMore": "Mehr laden",
+    "loading": "Lädt…",
+    "download": "Original herunterladen",
+    "sourceArticle": "Quell-Comm-Link",
+    "close": "Schließen",
+    "attribution": "Alle Bilder © Cloud Imperium Games — direkt vom RSI-CDN ausgeliefert, mit Verweis auf den Quell-Comm-Link. Fan-Galerie, kein Weiterverkauf, kein Re-Hosting."
   }
 }

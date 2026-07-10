@@ -32,6 +32,7 @@ import { FeedbackFabComponent } from './feedback-fab.component';
       <nav class="nav">
         <a routerLink="/news" routerLinkActive="active">{{ 'nav.news' | translate }}</a>
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
+        <a routerLink="/starscape" routerLinkActive="active">{{ 'nav.starscape' | translate }}</a>
         <a routerLink="/hangar" routerLinkActive="active">{{ 'nav.hangar' | translate }}</a>
         @if (roles.isCollaborator()) {
           <!-- Restricted (collaborator+admin) area — flagged red like the
@@ -58,6 +59,11 @@ import { FeedbackFabComponent } from './feedback-fab.component';
       <div class="actions">
         <sc-quick-search />
 
+        @if (!auth.user()) {
+          <!-- Signed-out (#131): the account menu is meaningless — offer the
+               sign-in CTA instead (redirects back after login via authGuard). -->
+          <a class="sc-btn signin-btn" routerLink="/login">{{ 'nav.signIn' | translate }}</a>
+        } @else {
         <div class="profile-menu">
           <button
             type="button"
@@ -95,6 +101,7 @@ import { FeedbackFabComponent } from './feedback-fab.component';
             </div>
           }
         </div>
+        }
       </div>
     </header>
 
@@ -173,6 +180,13 @@ import { FeedbackFabComponent } from './feedback-fab.component';
       gap: 8px;
       align-items: center;
     }
+    .signin-btn {
+      text-decoration: none;
+      color: var(--sc-accent);
+      border-color: var(--sc-accent);
+      white-space: nowrap;
+    }
+    .signin-btn:hover { background: var(--sc-accent); color: var(--sc-bg-0); }
 
     .profile-menu { position: relative; }
     .avatar-btn {

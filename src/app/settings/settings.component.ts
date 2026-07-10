@@ -10,9 +10,13 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
+import { ConsentService } from '../core/consent.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 
-type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
+// Only languages with a real translation file are offered (issue #23) — the
+// other locale files are machine-stub placeholders; offering them silently
+// fell back to English, which read as "translation exists but is broken".
+type LangId = 'de' | 'en';
 
 @Component({
   selector: 'sc-settings',
@@ -110,7 +114,33 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
         </label>
       </div>
 
-      <!-- 4. Danger zone -->
+      <!-- 4. Browser storage / consent (#130) -->
+      <div class="sc-card section">
+        <h2>{{ 'consent.settings.title' | translate }}</h2>
+        <p class="hint">{{ 'consent.settings.hint' | translate }}</p>
+        <div class="row">
+          <span class="label">{{ 'consent.settings.essential.label' | translate }}</span>
+          <span class="value">
+            <span class="consent-pill locked">{{ 'consent.settings.alwaysOn' | translate }}</span>
+          </span>
+        </div>
+        <p class="consent-desc">{{ 'consent.settings.essential.desc' | translate }}</p>
+        <div class="row">
+          <span class="label">{{ 'consent.settings.preferences.label' | translate }}</span>
+          <span class="value">
+            <label class="consent-toggle">
+              <input
+                type="checkbox"
+                [checked]="consent.preferencesAllowed()"
+                (change)="onConsentToggle($event)" />
+              {{ (consent.preferencesAllowed() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
+            </label>
+          </span>
+        </div>
+        <p class="consent-desc">{{ 'consent.settings.preferences.desc' | translate }}</p>
+      </div>
+
+      <!-- 5. Danger zone -->
       <div class="sc-card danger-zone">
         <h2>{{ 'settings.danger.title' | translate }}</h2>
         <p class="hint">{{ 'settings.danger.warning' | translate }}</p>
@@ -171,6 +201,28 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
     }
 
     .hint { color: var(--sc-fg-2); margin: 0 0 12px; font-size: 0.85rem; }
+
+    .consent-desc { color: var(--sc-fg-2); font-size: 0.78rem; margin: 4px 0 10px; line-height: 1.45; }
+    .consent-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: rgba(122, 134, 156, 0.18);
+      color: var(--sc-fg-2);
+    }
+    .consent-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--sc-fg-0);
+    }
+    .consent-toggle input { accent-color: var(--sc-accent); width: 16px; height: 16px; }
 
     .field-row {
       display: flex;
@@ -272,11 +324,16 @@ export class SettingsComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
   readonly profile = inject(ProfileService);
+  readonly consent = inject(ConsentService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
 
-  readonly locales: readonly LangId[] = ['de', 'en', 'fr', 'es', 'pt', 'ru', 'zh'];
-  readonly currentLang = computed(() => (this.translate.getCurrentLang() ?? 'en') as LangId);
+  readonly locales: readonly LangId[] = ['de', 'en'];
+  // Normalize legacy stored values (fr/es/pt/ru/zh from the old 7-language
+  // dropdown) onto the supported pair so the select always has a valid option.
+  readonly currentLang = computed<LangId>(() =>
+    (this.translate.getCurrentLang() ?? 'en').startsWith('de') ? 'de' : 'en',
+  );
 
   // Username — the saved value is the shared ProfileService signal, so editing
   // here immediately updates the avatar/account-menu across the shell.
@@ -328,6 +385,10 @@ export class SettingsComponent implements OnInit {
     this.usernameInput.set(next);
     this.usernameOk.set(true);
     this.usernameSaving.set(false);
+  }
+
+  onConsentToggle(e: Event) {
+    this.consent.setPreferences((e.target as HTMLInputElement).checked);
   }
 
   onLangChange(e: Event) {

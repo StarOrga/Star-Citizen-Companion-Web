@@ -21,6 +21,7 @@ import {
   pickLocalized,
 } from '../codex/codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
+import { AuthService } from '../auth/auth.service';
 import { HangarService } from '../hangar/hangar.service';
 
 interface QuickResult {
@@ -123,7 +124,8 @@ const PER_KIND_LIMIT = 6;
                     @if (r.row.grade) { <span class="badge">{{ r.row.grade }}</span> }
                     @if (r.row.crewSize != null) { <span class="badge">{{ 'codex.card.crew' | translate: { count: r.row.crewSize } }}</span> }
                   </span>
-                  @if (r.kind === 'ship') {
+                  @if (r.kind === 'ship' && auth.user()) {
+                    <!-- Add-to-hangar needs a session (RLS self-only) — hidden for anon (#131). -->
                     @if (inHangar(r.row.classNameSlug)) {
                       <span class="in-hangar">{{ 'hangar.add.already' | translate }}</span>
                     } @else {
@@ -229,6 +231,7 @@ const PER_KIND_LIMIT = 6;
 export class QuickSearchComponent {
   private readonly codex = inject(CodexService);
   private readonly hangar = inject(HangarService);
+  readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly overlay = inject(Overlay);
   private readonly viewContainer = inject(ViewContainerRef);

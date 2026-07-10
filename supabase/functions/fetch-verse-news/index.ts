@@ -376,12 +376,21 @@ async function fetchSpectrum(): Promise<VerseNewsItem[]> {
 // no longer exist in the export — that stale scrape is what made the chip read "unbekannt".
 
 // Per-component `data-status` (Statuspage enum) → our StatusLevel.
+// The static export's CSS/tag markup uses SHORT values (degraded/partial/major/
+// maintenance — verified 2026-07 against the live page), while the classic
+// Statuspage enum uses long ones. Map both: a component in a real incident
+// carries the short form, and an unmapped value used to silently DROP the
+// component from the drill-down exactly when it mattered (issue #20).
 const COMPONENT_STATUS_MAP: Record<string, StatusLevel> = {
   operational: 'operational',
   degraded_performance: 'degraded',
+  degraded: 'degraded',
   partial_outage: 'partial_outage',
+  partial: 'partial_outage',
   major_outage: 'major_outage',
+  major: 'major_outage',
   under_maintenance: 'maintenance',
+  maintenance: 'maintenance',
 };
 // Overall body class `status-homepage status-<x>` → our StatusLevel.
 const OVERALL_STATUS_MAP: Record<string, StatusLevel> = {
@@ -581,6 +590,64 @@ async function cacheImages(items: VerseNewsItem[]): Promise<void> {
   }
 }
 
+// --------------------- Starscape wallpaper capture (#133) ---------------------
+// Metadata-only: record the ORIGINAL full-res CDN url of every media.rsi news
+// image in `verse_wallpapers`, deduped by CDN id. NO image bytes are stored —
+// the gallery hotlinks RSI directly (maintainer directive: keep DB/storage
+// lean; `source.<ext>` is the verified largest variant, ~4× the cover).
+// Must run BEFORE cacheImages(), which rewrites item urls to our cached copies.
+
+const MEDIA_URL_RE = /^https:\/\/media\.robertsspaceindustries\.com\/([^/]+)\/[^/.]+(\.[a-zA-Z0-9]+)$/;
+
+interface WallpaperRow {
+  image_id: string;
+  source_url: string;
+  preview_url: string;
+  title: string | null;
+  series: string | null;
+  article_url: string;
+  published_at: string | null;
+}
+
+async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
+  if (!SUPABASE_URL || !SERVICE_KEY) return; // misconfigured → skip silently
+  try {
+    const rows = new Map<string, WallpaperRow>();
+    for (const it of items) {
+      // Only comm-link/patch articles carry the hero artwork worth keeping;
+      // youtube thumbs and spectrum previews are not wallpaper material.
+      if (it.source !== 'comm-link' && it.source !== 'patch-notes') continue;
+      for (const url of it.images ?? []) {
+        const m = MEDIA_URL_RE.exec(url);
+        if (!m) continue;
+        const [, id, ext] = m;
+        if (rows.has(id)) continue;
+        const base = `https://media.robertsspaceindustries.com/${id}/`;
+        rows.set(id, {
+          image_id: id,
+          source_url: `${base}source${ext}`,
+          preview_url: `${base}cover${ext}`,
+          title: it.title || null,
+          series: it.category ?? null,
+          article_url: it.url,
+          published_at: it.publishedAt || null,
+        });
+      }
+    }
+    if (rows.size === 0) return;
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    // First capture wins — rows are immutable source metadata, so duplicate
+    // ids from later crawls are ignored instead of churning updated_at.
+    const { error } = await admin
+      .from('verse_wallpapers')
+      .upsert([...rows.values()], { onConflict: 'image_id', ignoreDuplicates: true });
+    if (error) console.error('captureWallpapers upsert failed:', error.message);
+  } catch (err) {
+    // Best-effort side effect — never fail the news feed for the gallery.
+    console.error('captureWallpapers failed:', err);
+  }
+}
+
 // --------------------- Server ---------------------
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
@@ -594,6 +661,10 @@ Deno.serve(async (req: Request) => {
 
   const news = [...commLinks, ...youtube, ...spectrum]
     .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+
+  // Record full-res wallpaper metadata BEFORE the cache rewrite below swaps
+  // the raw RSI urls for our cached copies (#133, best-effort).
+  await captureWallpapers(news);
 
   // Replace upstream RSI image urls with our durable cached copies (best-effort).
   await cacheImages(news);
