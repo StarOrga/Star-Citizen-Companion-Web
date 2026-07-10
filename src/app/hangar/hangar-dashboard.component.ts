@@ -9,6 +9,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
+import { AuthService } from '../auth/auth.service';
 import { CodexListRow, CodexService, pickLocalized } from '../codex/codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
 import { HangarService } from './hangar.service';
@@ -32,6 +33,25 @@ const SEARCH_DEBOUNCE_MS = 250;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
+      @if (!auth.user()) {
+        <!-- Signed-out benefits teaser (#131): the hangar is the members-only
+             surface — pitch what it does and route to sign-in. -->
+        <div class="teaser">
+          <h1>{{ 'hangar.teaser.title' | translate }}</h1>
+          <p class="hint">{{ 'hangar.teaser.subtitle' | translate }}</p>
+          <ul class="benefits">
+            @for (b of ['save', 'overview', 'loadouts', 'compare']; track b) {
+              <li class="sc-card benefit">
+                <strong>{{ 'hangar.teaser.' + b + '.title' | translate }}</strong>
+                <span>{{ 'hangar.teaser.' + b + '.text' | translate }}</span>
+              </li>
+            }
+          </ul>
+          <a class="sc-btn cta" routerLink="/login" [queryParams]="{ redirect: '/hangar' }">
+            {{ 'hangar.teaser.cta' | translate }}
+          </a>
+        </div>
+      } @else {
       <header class="head">
         <div class="title-block">
           <h1>{{ 'hangar.title' | translate }}</h1>
@@ -191,11 +211,26 @@ const SEARCH_DEBOUNCE_MS = 250;
           </div>
         }
       </div>
+      }
     </section>
   `,
   styles: [`
     :host { display: block; }
     .page { display: flex; flex-direction: column; gap: 20px; }
+
+    /* Signed-out teaser (#131) */
+    .teaser { display: flex; flex-direction: column; gap: 16px; max-width: 860px; }
+    .teaser h1 { margin: 0; }
+    .teaser .hint { color: var(--sc-fg-2); margin: -8px 0 0; max-width: 60ch; }
+    .benefits { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .benefit { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; }
+    .benefit strong { font-family: var(--sc-font-display); font-size: 0.9rem;
+      letter-spacing: 0.04em; color: var(--sc-accent); }
+    .benefit span { color: var(--sc-fg-2); font-size: 0.85rem; line-height: 1.5; }
+    .teaser .cta { align-self: flex-start; text-decoration: none;
+      color: var(--sc-bg-0); background: var(--sc-accent); border-color: var(--sc-accent); }
+    .teaser .cta:hover { background: transparent; color: var(--sc-accent); }
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
     .title-block h1 { margin: 0; }
     .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 60ch; }
@@ -290,6 +325,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 })
 export class HangarDashboardComponent implements OnInit {
   readonly hangar = inject(HangarService);
+  readonly auth = inject(AuthService);
   private readonly codex = inject(CodexService);
 
   readonly loadoutRoles = ROLE_LOADOUT_ROLES;
@@ -312,6 +348,9 @@ export class HangarDashboardComponent implements OnInit {
   );
 
   async ngOnInit(): Promise<void> {
+    // Signed-out (#131): the teaser needs no data — and hangar RLS would
+    // reject the queries anyway.
+    if (!this.auth.user()) return;
     await Promise.all([this.hangar.loadAll(), this.codex.loadCurrentBuild()]);
     await this.refreshCards();
   }

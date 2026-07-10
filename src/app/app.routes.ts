@@ -2,7 +2,16 @@ import { Routes } from '@angular/router';
 import { approvedGuard } from './auth/approved.guard';
 import { authGuard } from './auth/auth.guard';
 import { publicOnlyGuard } from './auth/public-only.guard';
+import { publicOrApprovedGuard } from './auth/public-or-approved.guard';
 import { roleGuard } from './auth/role.guard';
+
+// Guard policy (#131): the shell itself is PUBLIC — News, Codex, Release
+// Notes and the 3D-print guide are browsable without login. Every private
+// child names its guards EXPLICITLY (whitelist thinking: a new route is
+// private unless deliberately left open). authGuard always precedes
+// approvedGuard/roleGuard — both hang on RoleService.waitReady without a
+// session, authGuard short-circuits to /login first.
+const PRIVATE = [authGuard, approvedGuard] as const;
 
 export const routes: Routes = [
   {
@@ -16,19 +25,19 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/login.component').then((m) => m.LoginComponent),
   },
   {
+    // The shared shell — PUBLIC since #131. Signed-out visitors get the
+    // public nav + sign-in CTA; personal surfaces below carry their own guards.
     path: '',
     loadComponent: () => import('./shell/shell.component').then((m) => m.ShellComponent),
-    canActivate: [authGuard, approvedGuard],
     children: [
       {
+        // Public: Verse News feed (edge function aggregates public sources).
         path: 'news',
         loadComponent: () => import('./news/news-list.component').then((m) => m.NewsListComponent),
       },
       {
         // Codex landing = "The Bridge" (Slice 1). Scanner + focal hero + lanes.
-        // authGuard ONLY (no roleGuard): every authenticated user, incl. role
-        // `viewer`, may browse it. The full facet filter-list survives verbatim
-        // as the opt-in Index mode at /codex/index below.
+        // Public read since #131 (RLS: codex_* tables allow anon SELECT).
         path: 'codex',
         pathMatch: 'full',
         loadComponent: () =>
@@ -61,19 +70,24 @@ export const routes: Routes = [
           import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),
       },
       {
-        // Personal web hangar — like /codex viewer-accessible (authGuard via
-        // parent); all data is RLS self-only.
+        // Personal web hangar. The DASHBOARD route is reachable signed-out and
+        // renders a benefits teaser + sign-in CTA for anonymous visitors
+        // (#131); signed-in users pass the same invite check as the private
+        // routes. All data is RLS self-only either way.
         path: 'hangar',
+        canActivate: [publicOrApprovedGuard],
         loadComponent: () =>
           import('./hangar/hangar-dashboard.component').then((m) => m.HangarDashboardComponent),
       },
       {
         path: 'hangar/ship/:id',
+        canActivate: [...PRIVATE],
         loadComponent: () =>
           import('./hangar/hangar-ship-detail.component').then((m) => m.HangarShipDetailComponent),
       },
       {
         path: 'hangar/loadout/:id',
+        canActivate: [...PRIVATE],
         loadComponent: () =>
           import('./hangar/role-loadout-editor.component').then((m) => m.RoleLoadoutEditorComponent),
       },
@@ -82,7 +96,7 @@ export const routes: Routes = [
       { path: 'p4k', pathMatch: 'full', redirectTo: 'uploader' },
       {
         path: 'uploader',
-        canActivate: [roleGuard('admin', 'collaborator')],
+        canActivate: [...PRIVATE, roleGuard('admin', 'collaborator')],
         loadComponent: () =>
           import('./desktop/desktop-download.component').then((m) => m.DesktopDownloadComponent),
       },
@@ -120,43 +134,44 @@ export const routes: Routes = [
       { path: 'desktop', pathMatch: 'full', redirectTo: 'uploader' },
       {
         path: 'admin',
-        canActivate: [roleGuard('admin')],
+        canActivate: [...PRIVATE, roleGuard('admin')],
         loadComponent: () => import('./admin/admin.component').then((m) => m.AdminComponent),
       },
       {
         path: 'admin/api-tokens',
-        canActivate: [roleGuard('admin')],
+        canActivate: [...PRIVATE, roleGuard('admin')],
         loadComponent: () =>
           import('./admin/api-tokens/api-tokens.component').then((m) => m.ApiTokensComponent),
       },
       {
         path: 'admin/telemetry',
-        canActivate: [roleGuard('admin')],
+        canActivate: [...PRIVATE, roleGuard('admin')],
         loadComponent: () =>
           import('./admin/telemetry-stats.component').then((m) => m.TelemetryStatsComponent),
       },
       {
         path: 'admin/feedback',
-        canActivate: [roleGuard('admin')],
+        canActivate: [...PRIVATE, roleGuard('admin')],
         loadComponent: () =>
           import('./admin/feedback/admin-feedback.component').then((m) => m.AdminFeedbackComponent),
       },
       {
         path: 'settings',
+        canActivate: [...PRIVATE],
         loadComponent: () =>
           import('./settings/settings.component').then((m) => m.SettingsComponent),
       },
       {
         // 3D-printing guidance (issue #79, Option 0) — a no-hosting info page:
         // links vetted external community tools, documents the print-prep
-        // workflow. Serves ZERO CIG-derived geometry by design (EULA).
+        // workflow. Serves ZERO CIG-derived geometry by design (EULA). Public.
         path: 'tools/3d-print',
         loadComponent: () =>
           import('./tools/print-guide.component').then((m) => m.PrintGuideComponent),
       },
       {
-        // "What's New" — release notes from CHANGELOG.md. Viewer-accessible
-        // (authGuard via parent only, no role gate).
+        // "What's New" — release notes from CHANGELOG.md. Static build asset,
+        // public since #131 (fixes the signed-out dead click on the footer link).
         path: 'release-notes',
         loadComponent: () =>
           import('./release-notes/release-notes.component').then((m) => m.ReleaseNotesComponent),
@@ -168,7 +183,7 @@ export const routes: Routes = [
     // no approvedGuard (a self-registered viewer must not be signed out here).
     // authGuard alone: unauthenticated visitors land on /login with redirect
     // back here; the loopback callback path is /scc/callback (POST).
-    // Placed as a top-level sibling to /login, OUTSIDE the approvedGuard shell.
+    // Placed as a top-level sibling to /login, OUTSIDE the guarded routes.
     path: 'desktop/connect',
     canActivate: [authGuard],
     loadComponent: () =>

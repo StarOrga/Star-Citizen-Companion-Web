@@ -53,7 +53,12 @@ enabled = true
 file_size_limit = "250MiB"
 
 [functions.fetch-verse-news]
-verify_jwt = true
+# JWT verification OFF since #131 (public news): the feed aggregates only
+# public sources (Comm-Link wiki API, YouTube RSS, Spectrum, status page) and
+# must be reachable for signed-out visitors. The client's publishable key is
+# `sb_publishable_*` (not a JWT), so the gateway gate would reject anonymous
+# calls outright. No user data flows through this function.
+verify_jwt = false
 
 [functions.process-p4k]
 verify_jwt = true

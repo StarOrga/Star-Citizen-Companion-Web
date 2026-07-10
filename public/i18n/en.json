@@ -30,7 +30,8 @@
     "accountMenu": "Account menu",
     "hangar": "Hangar",
     "telemetry": "Telemetry",
-    "feedback": "Feedback"
+    "feedback": "Feedback",
+    "signIn": "Sign in"
   },
   "codex": {
     "title": "Codex",
@@ -760,6 +761,27 @@
       "loading": "Loading…",
       "empty": "Nothing found.",
       "emptyPort": "No compatible items found in this catalog build (subset seeded)."
+    },
+    "teaser": {
+      "title": "Your personal hangar",
+      "subtitle": "Sign in to build your fleet — free, invite-based during alpha.",
+      "save": {
+        "title": "Save your ships",
+        "text": "Keep your whole fleet in one place: owned ships and wishlist, with custom names and notes."
+      },
+      "overview": {
+        "title": "Fleet overview",
+        "text": "Pinned flagships, counts and quick access to every ship’s detail page."
+      },
+      "loadouts": {
+        "title": "Test loadouts",
+        "text": "Swap components and weapons on your ships and see the stat impact before you spend a single aUEC."
+      },
+      "compare": {
+        "title": "Compare",
+        "text": "Pin ships and components side by side and compare the numbers that matter."
+      },
+      "cta": "Sign in to open your hangar"
     }
   },
   "quickSearch": {

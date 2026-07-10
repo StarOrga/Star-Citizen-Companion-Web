@@ -58,6 +58,11 @@ import { FeedbackFabComponent } from './feedback-fab.component';
       <div class="actions">
         <sc-quick-search />
 
+        @if (!auth.user()) {
+          <!-- Signed-out (#131): the account menu is meaningless — offer the
+               sign-in CTA instead (redirects back after login via authGuard). -->
+          <a class="sc-btn signin-btn" routerLink="/login">{{ 'nav.signIn' | translate }}</a>
+        } @else {
         <div class="profile-menu">
           <button
             type="button"
@@ -95,6 +100,7 @@ import { FeedbackFabComponent } from './feedback-fab.component';
             </div>
           }
         </div>
+        }
       </div>
     </header>
 
@@ -173,6 +179,13 @@ import { FeedbackFabComponent } from './feedback-fab.component';
       gap: 8px;
       align-items: center;
     }
+    .signin-btn {
+      text-decoration: none;
+      color: var(--sc-accent);
+      border-color: var(--sc-accent);
+      white-space: nowrap;
+    }
+    .signin-btn:hover { background: var(--sc-accent); color: var(--sc-bg-0); }
 
     .profile-menu { position: relative; }
     .avatar-btn {

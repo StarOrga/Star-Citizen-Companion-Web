@@ -30,7 +30,8 @@
     "accountMenu": "Konto-Menü",
     "hangar": "Hangar",
     "telemetry": "Telemetrie",
-    "feedback": "Feedback"
+    "feedback": "Feedback",
+    "signIn": "Anmelden"
   },
   "codex": {
     "title": "Codex",
@@ -760,6 +761,27 @@
       "loading": "Lädt…",
       "empty": "Nichts gefunden.",
       "emptyPort": "Keine kompatiblen Items in diesem Katalog-Build gefunden (Teilmenge geseedet)."
+    },
+    "teaser": {
+      "title": "Dein persönlicher Hangar",
+      "subtitle": "Melde dich an, um deine Flotte aufzubauen — kostenlos, während der Alpha auf Einladung.",
+      "save": {
+        "title": "Schiffe speichern",
+        "text": "Deine ganze Flotte an einem Ort: Schiffe im Besitz und Wunschliste, mit eigenen Namen und Notizen."
+      },
+      "overview": {
+        "title": "Flotten-Überblick",
+        "text": "Angepinnte Flaggschiffe, Zähler und Schnellzugriff auf jede Schiffs-Detailseite."
+      },
+      "loadouts": {
+        "title": "Loadouts testen",
+        "text": "Tausche Komponenten und Waffen an deinen Schiffen und sieh die Stat-Auswirkung, bevor du eine einzige aUEC ausgibst."
+      },
+      "compare": {
+        "title": "Vergleichen",
+        "text": "Pinne Schiffe und Komponenten nebeneinander und vergleiche die Zahlen, die zählen."
+      },
+      "cta": "Anmelden und Hangar öffnen"
     }
   },
   "quickSearch": {
