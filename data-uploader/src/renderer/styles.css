@@ -583,6 +583,36 @@ h3 { font-size: 0.9rem; }
   color: var(--sc-danger);
 }
 
+/* Portable "new version available" hint — lives at the top of the Discover
+   view (first screen only), dismissible. Info-styled, never an error. */
+.discover-update {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 12px 8px 14px;
+  background: linear-gradient(90deg, rgba(var(--accent-primary-rgb), 0.16), rgba(var(--accent-primary-rgb), 0.04));
+  border: 1px solid var(--sc-accent);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--sc-fg-1);
+}
+.discover-update-text { flex: 1 1 auto; min-width: 0; }
+.discover-update .btn { flex: 0 0 auto; }
+.discover-update-close {
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--sc-fg-2);
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.discover-update-close:hover { color: var(--sc-fg-0); }
+
 /* ------- Upload view: two columns filling the body ------- */
 .upload-grid { display: flex; gap: 16px; }
 .upload-actions,

@@ -69,7 +69,7 @@ type UpdateEvent =
   | { type: 'not-available'; currentVersion: string }
   | { type: 'progress'; pct: number; bytesPerSecond?: number; transferred?: number; total?: number }
   | { type: 'downloaded'; version: string }
-  | { type: 'manual'; currentVersion: string }
+  | { type: 'manual'; currentVersion: string; latestVersion: string }
   | { type: 'error'; message: string };
 
 interface ExtractRequest {

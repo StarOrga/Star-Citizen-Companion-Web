@@ -139,6 +139,10 @@ const state = {
   // 3D-livery build result from the upload step (skins ride along the normal
   // extract → upload flow — no separate view).
   skinResult: null as SkinShipResult[] | null,
+  // Portable-only "a newer version is available" hint, shown on the Discover
+  // (first) screen only and dismissible for the session.
+  manualUpdate: null as { currentVersion: string; latestVersion: string } | null,
+  manualUpdateDismissed: false,
 };
 
 async function init(): Promise<void> {
@@ -160,8 +164,8 @@ async function init(): Promise<void> {
   void initTelemetryToggle();
 
   // Auto-update banner — subscribe + paint last known status (no-op on dev).
-  window.sc.update.onEvent(paintUpdateBanner);
-  void window.sc.update.status().then(paintUpdateBanner);
+  window.sc.update.onEvent(onUpdateEvent);
+  void window.sc.update.status().then(onUpdateEvent);
   initUpdateCheckButton();
 
   // Web-connection tile — auto-connect (persisted session) + auto-sync.
@@ -447,7 +451,7 @@ type UpdateEvent =
   | { type: 'not-available'; currentVersion: string }
   | { type: 'progress'; pct: number; bytesPerSecond?: number; transferred?: number; total?: number }
   | { type: 'downloaded'; version: string }
-  | { type: 'manual'; currentVersion: string }
+  | { type: 'manual'; currentVersion: string; latestVersion: string }
   | { type: 'error'; message: string };
 
 // Public download page — opened for portable builds that can't self-update.
@@ -492,6 +496,60 @@ function initUpdateCheckButton(): void {
   });
 }
 
+// Routes update events: the portable 'manual' hint lives on the Discover
+// (first) screen only (state + paintManualBanner); every other state uses the
+// persistent shell banner.
+function onUpdateEvent(ev: UpdateEvent): void {
+  if (ev.type === 'manual') {
+    state.manualUpdate = { currentVersion: ev.currentVersion, latestVersion: ev.latestVersion };
+    state.manualUpdateDismissed = false; // a freshly-published newer version re-shows the hint
+    paintManualBanner();
+    return;
+  }
+  paintUpdateBanner(ev);
+}
+
+// Markup for the dismissible "new version available" banner on the Discover
+// screen. Caller decides whether to render it (state.manualUpdate set + not
+// dismissed).
+function renderDiscoverUpdateBanner(): string {
+  const u = state.manualUpdate;
+  if (!u) return '';
+  const msg =
+    t('update.manual', { version: u.latestVersion }) ||
+    `Neue Version v${u.latestVersion} verfügbar — Portable kann sich nicht selbst updaten, bitte manuell laden.`;
+  return `
+    <div class="discover-update" id="discover-update">
+      <span class="discover-update-text">${escapeHtml(msg)}</span>
+      <button id="du-download" type="button" class="btn btn-sm">${t('update.openDownload', {}) || 'Download-Seite öffnen'}</button>
+      <button id="du-dismiss" type="button" class="discover-update-close" aria-label="${t('common.dismiss', {}) || 'Schließen'}">✕</button>
+    </div>`;
+}
+
+function wireDiscoverUpdateBanner(): void {
+  $('#du-download')?.addEventListener('click', () => void window.open(DOWNLOAD_PAGE_URL));
+  $('#du-dismiss')?.addEventListener('click', () => {
+    state.manualUpdateDismissed = true;
+    $('#discover-update')?.remove();
+  });
+}
+
+// Inject/remove the Discover banner in place (the manual event usually arrives
+// a few seconds after launch, once the user is already on the first screen).
+function paintManualBanner(): void {
+  const existing = $('#discover-update');
+  const show = state.view === 'discover' && !!state.manualUpdate && !state.manualUpdateDismissed;
+  if (!show) {
+    existing?.remove();
+    return;
+  }
+  if (existing) return; // already visible
+  const view = document.querySelector('#app .view');
+  if (!view) return;
+  view.insertAdjacentHTML('afterbegin', renderDiscoverUpdateBanner());
+  wireDiscoverUpdateBanner();
+}
+
 function paintUpdateBanner(ev: UpdateEvent): void {
   const banner = $('#update-banner');
   const text = $('#update-banner-text');
@@ -504,18 +562,10 @@ function paintUpdateBanner(ev: UpdateEvent): void {
   switch (ev.type) {
     case 'checking':
     case 'not-available':
-      banner.classList.add('hidden');
-      return;
+    // 'manual' is handled outside the shell banner — it renders on the Discover
+    // (first) screen only, via paintManualBanner / renderDiscover.
     case 'manual':
-      // Portable build — no in-place auto-update. Gentle info banner (not an
-      // error) with a button to the download page.
-      text.textContent =
-        t('update.manual', { version: ev.currentVersion }) ||
-        `Automatische Updates sind im Portable-Build nicht möglich — neue Versionen bitte manuell laden (aktuell v${ev.currentVersion}).`;
-      action.textContent = t('update.openDownload', {}) || 'Download-Seite öffnen';
-      action.style.display = 'inline-flex';
-      action.onclick = () => void window.open(DOWNLOAD_PAGE_URL);
-      banner.classList.remove('hidden');
+      banner.classList.add('hidden');
       return;
     case 'available':
       text.textContent =
@@ -620,8 +670,11 @@ function render(): void {
 // ============= View: Discover =============
 
 function renderDiscover(): string {
+  const updateBanner =
+    state.manualUpdate && !state.manualUpdateDismissed ? renderDiscoverUpdateBanner() : '';
   return `
     <div class="view">
+      ${updateBanner}
       <h1>${t('discover.title', {}) || 'Star-Citizen-Installations finden'}</h1>
       <p class="view-intro">${t('discover.subtitle', {}) || 'Cascade läuft automatisch: RSI-Launcher → Filesystem-Scan → optional manuell.'}</p>
       <div id="channels-mount" class="view-body"></div>
@@ -633,6 +686,7 @@ function renderDiscover(): string {
 }
 
 function wireDiscover(): void {
+  wireDiscoverUpdateBanner();
   $('#btn-to-configure')?.addEventListener('click', () => {
     state.view = 'configure';
     render();
