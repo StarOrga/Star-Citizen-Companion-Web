@@ -35,9 +35,10 @@ export type UpdateEventPayload =
   | { type: 'not-available'; currentVersion: string }
   | { type: 'progress'; pct: number; bytesPerSecond?: number; transferred?: number; total?: number }
   | { type: 'downloaded'; version: string }
-  // Portable build: in-place auto-update can't work, so we don't attempt it.
-  // The renderer shows a gentle "download the latest manually" hint, never an error.
-  | { type: 'manual'; currentVersion: string }
+  // Portable build with a NEWER version actually available on the feed. The
+  // renderer shows a dismissible "download vX manually" hint on the first screen
+  // only — never an error, and never when already up to date.
+  | { type: 'manual'; currentVersion: string; latestVersion: string }
   | { type: 'error'; message: string };
 
 const FEED_URL = `${API_BASE}/functions/v1/desktop-latest`;
@@ -97,6 +98,53 @@ export function getLastUpdateEvent(): UpdateEventPayload {
   return lastEvent;
 }
 
+/**
+ * Portable-only "is there a newer version?" check. The portable build can't
+ * auto-update, but it CAN ask the same feed the auto-updater would (the feed
+ * returns electron-updater YAML with a `version:` line) and, if that version is
+ * newer than what's running, prompt a manual download. Best-effort: any failure
+ * (offline, 401, malformed) simply yields no banner.
+ */
+async function fetchLatestVersion(): Promise<string | null> {
+  try {
+    const res = await fetch(FEED_URL, {
+      headers: {
+        'X-SC-Release-Token': RELEASE_TOKEN,
+        'X-SC-Tool-Version': TOOL_VERSION,
+        Accept: 'application/yaml',
+      },
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    const m = text.match(/^\s*version:\s*['"]?(\d+\.\d+\.\d+[^\s'"]*)/m);
+    return m ? m[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Numeric x.y.z compare — true when `latest` is strictly newer than `current`. */
+function isNewerVersion(latest: string, current: string): boolean {
+  const a = latest.split('.').map((n) => parseInt(n, 10));
+  const b = current.split('.').map((n) => parseInt(n, 10));
+  for (let i = 0; i < 3; i++) {
+    const x = a[i] ?? 0;
+    const y = b[i] ?? 0;
+    if (x !== y) return x > y;
+  }
+  return false;
+}
+
+async function checkPortableForUpdate(): Promise<void> {
+  const latest = await fetchLatestVersion();
+  if (latest && isNewerVersion(latest, TOOL_VERSION)) {
+    broadcast({ type: 'manual', currentVersion: TOOL_VERSION, latestVersion: latest });
+  } else {
+    // Up to date (or feed unreachable) — no banner.
+    broadcast({ type: 'not-available', currentVersion: TOOL_VERSION });
+  }
+}
+
 export function initAutoUpdater(): void {
   if (initialized) return;
   initialized = true;
@@ -109,10 +157,12 @@ export function initAutoUpdater(): void {
   if (IS_PORTABLE_BUILD) {
     // A portable exe can't replace itself in place while running (and the
     // portable target ships no app-update.yml), so electron-updater's in-place
-    // flow only produces a confusing `ENOENT app-update.yml`. Skip it entirely
-    // and tell the renderer to show a "download the latest manually" hint.
-    log.info('[updater] portable build — auto-update disabled, manual download only');
-    broadcast({ type: 'manual', currentVersion: TOOL_VERSION });
+    // flow only produces a confusing `ENOENT app-update.yml`. Skip it entirely.
+    // Instead ask the feed whether a NEWER version exists and, only then, tell
+    // the renderer to show a dismissible "download vX manually" hint.
+    log.info('[updater] portable build — no in-place update; polling feed for a newer version');
+    setTimeout(() => void checkPortableForUpdate(), 4000);
+    setInterval(() => void checkPortableForUpdate(), UPDATE_POLL_MS);
     return;
   }
 
@@ -206,9 +256,8 @@ export async function checkForUpdatesManually(): Promise<UpdateEventPayload> {
     return ev;
   }
   if (IS_PORTABLE_BUILD) {
-    const ev: UpdateEventPayload = { type: 'manual', currentVersion: TOOL_VERSION };
-    broadcast(ev);
-    return ev;
+    await checkPortableForUpdate();
+    return lastEvent;
   }
   try {
     await autoUpdater.checkForUpdates();

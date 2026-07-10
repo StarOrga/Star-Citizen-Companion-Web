@@ -3,7 +3,8 @@
     "back": "Back",
     "next": "Next",
     "cancel": "Cancel",
-    "ok": "OK"
+    "ok": "OK",
+    "dismiss": "Dismiss"
   },
   "discover": {
     "title": "Find Star Citizen installs",
@@ -105,7 +106,7 @@
     "check": "Check for updates",
     "checking": "Checking…",
     "uptodate": "Up to date (v{{version}})",
-    "manual": "Automatic updates aren't available in the portable build — please download new versions manually (currently v{{version}}).",
+    "manual": "New version v{{version}} available — the portable build can't self-update, please download it manually.",
     "openDownload": "Open download page"
   },
   "session": {

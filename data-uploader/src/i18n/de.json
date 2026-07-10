@@ -3,7 +3,8 @@
     "back": "Zurück",
     "next": "Weiter",
     "cancel": "Abbrechen",
-    "ok": "OK"
+    "ok": "OK",
+    "dismiss": "Schließen"
   },
   "discover": {
     "title": "Star-Citizen-Installations finden",
@@ -105,7 +106,7 @@
     "check": "Nach Updates suchen",
     "checking": "Suche…",
     "uptodate": "Aktuell (v{{version}})",
-    "manual": "Automatische Updates sind im Portable-Build nicht möglich — neue Versionen bitte manuell laden (aktuell v{{version}}).",
+    "manual": "Neue Version v{{version}} verfügbar — der Portable-Build kann sich nicht selbst updaten, bitte manuell laden.",
     "openDownload": "Download-Seite öffnen"
   },
   "session": {
