@@ -4,6 +4,57 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.33.0] - 2026-07-11
+
+### Added
+
+- **Browse without an account.** Verse News, the Codex, release notes and the
+  new info pages are public now — no login required. The hangar stays
+  members-only and greets signed-out visitors with a benefits teaser (save
+  your ships · fleet overview · test loadouts · compare) and a sign-in CTA.
+  (#131)
+- **Starscape — a wallpaper gallery from RSI imagery.** High-resolution
+  Comm-Link artwork collected during the news crawl, browsable as a masonry
+  wall with series filter and lightbox. Every image links straight to the
+  original full-resolution file on the RSI CDN with attribution to its source
+  Comm-Link — the app stores metadata only, never image bytes. (#133)
+- **Import your hangar from an export file.** Drop a Hangar Transfer Format
+  JSON (e.g. from the HangarXPLOR browser extension) into the new import panel:
+  entries are matched against the codex (exact ship code first, name search as
+  flagged best guess), previewed with their match state, and only confirmed
+  rows are added — nicknames become custom names. No RSI credentials, ever.
+  (#136)
+- **Concept-ship wishlist.** Track unreleased ships that have no codex entry
+  yet — name, manufacturer, pledge link — with a permanent "Concept —
+  preliminary" badge. (#135)
+- **Quantum & fuel facts on ship pages.** The codex ship detail now derives
+  quantum range, quantum speed and hydrogen/quantum fuel capacities from the
+  stock loadout, and the quantum drive slot shows its jump range as a chip.
+  (#137)
+- **Browser-storage consent.** A first-visit notice explains what the app
+  stores (no cookies — login session and language are essential; news filters,
+  saved articles and similar preferences are opt-in). A new Settings card
+  makes the choice revisitable; declining purges stored preferences. (#130)
+- **3D-printing guide.** `/tools/3d-print` documents the community workflow
+  (own-files extraction → conversion → Blender print-prep) and the vetted
+  external tools — the app hosts no game geometry by design (EULA). (#79)
+
+### Changed
+
+- **Codex content follows your language reactively.** Card titles, compare
+  columns and manufacturer names switch between DE/EN immediately and only use
+  German when a genuine translation exists (English fallback otherwise). (#50)
+- **Language switcher offers DE/EN only** — the stub locales (FR/ES/PT/RU/ZH)
+  that silently fell back to English are gone; legacy stored choices are
+  normalized. (#23)
+
+### Fixed
+
+- **Status drill-down keeps components during incidents.** The RSI status page
+  marks degraded/partial/major/maintenance components with short status values
+  the scraper didn't know — affected services vanished from the panel exactly
+  when they mattered. (#20)
+
 ## [0.32.0] - 2026-07-10
 
 ### Added
