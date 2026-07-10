@@ -96,8 +96,13 @@ const MAX_ATTACHMENTS = 10;
               </button>
               @if (showShipped()) {
                 <div class="shipped-list">
-                  @for (m of shippedMessages(); track m.id) {
+                  @for (m of shippedVisibleMessages(); track m.id) {
                     <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+                  }
+                  @if (shippedRemaining() > 0) {
+                    <button type="button" class="load-more" (click)="loadMoreShipped()">
+                      {{ 'adminFeedback.loadMore' | translate: { count: shippedRemaining() } }}
+                    </button>
                   }
                 </div>
               }
@@ -136,13 +141,13 @@ const MAX_ATTACHMENTS = 10;
               <p class="proc-note">{{ m.processing_note }}</p>
             }
 
-            @if (m.author_id === selfId()) {
-              <div class="msg-actions">
-                <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
-                  {{ 'adminFeedback.delete' | translate }}
-                </button>
-              </div>
-            }
+            <!-- Any admin may delete any topic (board is admin-only) — clears a
+                 topic once its handling/rejection is accepted. -->
+            <div class="msg-actions">
+              <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
+                {{ 'adminFeedback.delete' | translate }}
+              </button>
+            </div>
           } @else {
             <button type="button" class="msg-preview" (click)="toggleExpand(m.id)">{{ preview(m.body) }}</button>
           }
@@ -314,6 +319,22 @@ const MAX_ATTACHMENTS = 10;
     .shipped-toggle .chev.open { transform: rotate(90deg); }
     .shipped-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
     .shipped-list .msg { opacity: 0.72; }
+    .load-more {
+      align-self: center;
+      margin-top: 4px;
+      padding: 7px 16px;
+      background: transparent;
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: 0.76rem;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .load-more:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .load-more:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
 
     .msg { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
     .msg.is-self { box-shadow: inset 2px 0 0 var(--sc-accent); }
@@ -529,13 +550,41 @@ export class AdminFeedbackComponent implements OnInit {
   readonly dragActive = signal(false);
 
   /** Shipped items are collapsed into a stack so the open ones stay directly
-   *  visible; expanding reveals the resolved history. */
+   *  visible; expanding reveals the resolved history (newest first, paged). */
   readonly showShipped = signal(false);
   readonly activeMessages = computed(() => this.messages().filter((m) => m.status !== 'shipped'));
-  readonly shippedMessages = computed(() => this.messages().filter((m) => m.status === 'shipped'));
+
+  /** Page size for the shipped history — "load more" reveals another batch. */
+  private static readonly SHIPPED_PAGE = 10;
+  readonly shippedVisible = signal(AdminFeedbackComponent.SHIPPED_PAGE);
+
+  /** All shipped items, newest ship first (by shipped_at, falling back to created_at). */
+  readonly shippedMessages = computed(() =>
+    this.messages()
+      .filter((m) => m.status === 'shipped')
+      .sort((a, b) => this.shippedTime(b) - this.shippedTime(a)),
+  );
+  /** The current shipped page (first N of the sorted history). */
+  readonly shippedVisibleMessages = computed(() =>
+    this.shippedMessages().slice(0, this.shippedVisible()),
+  );
+  /** How many shipped items are still hidden below the current page. */
+  readonly shippedRemaining = computed(() =>
+    Math.max(0, this.shippedMessages().length - this.shippedVisible()),
+  );
 
   toggleShipped(): void {
     this.showShipped.update((v) => !v);
+  }
+
+  /** Reveal the next page of shipped history (+10). */
+  loadMoreShipped(): void {
+    this.shippedVisible.update((n) => n + AdminFeedbackComponent.SHIPPED_PAGE);
+  }
+
+  private shippedTime(m: FeedbackRow): number {
+    const t = Date.parse(m.shipped_at ?? m.created_at);
+    return Number.isFinite(t) ? t : 0;
   }
 
   /** Per-entry expand state for the embedded chat overview (collapsed by default). */
