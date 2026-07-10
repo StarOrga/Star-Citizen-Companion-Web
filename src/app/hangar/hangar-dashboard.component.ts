@@ -176,6 +176,52 @@ const SEARCH_DEBOUNCE_MS = 250;
         }
       </div>
 
+      <!-- Concept-ship wishlist (#135) — unreleased ships, no catalog entry -->
+      <div class="concepts">
+        <h2>{{ 'hangar.concept.title' | translate }}</h2>
+        <p class="hint">{{ 'hangar.concept.hint' | translate }}</p>
+
+        <form class="concept-form" (submit)="addConcept($event)">
+          <input type="text" class="text-input" name="name" required maxlength="80"
+                 [(ngModel)]="conceptName"
+                 [attr.placeholder]="'hangar.concept.namePlaceholder' | translate" />
+          <input type="text" class="text-input" name="manufacturer" maxlength="60"
+                 [(ngModel)]="conceptManufacturer"
+                 [attr.placeholder]="'hangar.concept.manufacturerPlaceholder' | translate" />
+          <input type="url" class="text-input wide" name="rsiUrl"
+                 [(ngModel)]="conceptRsiUrl"
+                 [attr.placeholder]="'hangar.concept.urlPlaceholder' | translate" />
+          <button type="submit" class="sc-btn" [disabled]="!conceptName.trim() || conceptSaving()">
+            {{ 'hangar.concept.add' | translate }}
+          </button>
+        </form>
+
+        @if (hangar.conceptShips().length === 0) {
+          <p class="hint">{{ 'hangar.concept.empty' | translate }}</p>
+        } @else {
+          <ul class="concept-list">
+            @for (c of hangar.conceptShips(); track c.id) {
+              <li class="sc-card concept-row">
+                <div class="concept-main">
+                  <strong>{{ c.name }}</strong>
+                  @if (c.manufacturer) { <span class="concept-mfr">{{ c.manufacturer }}</span> }
+                  <span class="badge preliminary">{{ 'hangar.concept.preliminary' | translate }}</span>
+                </div>
+                <div class="concept-actions">
+                  @if (c.rsiUrl) {
+                    <a class="concept-link" [href]="c.rsiUrl" target="_blank" rel="noopener noreferrer">
+                      {{ 'hangar.concept.pledgeLink' | translate }}
+                    </a>
+                  }
+                  <button type="button" class="concept-remove" (click)="removeConcept(c.id)"
+                          [attr.aria-label]="'hangar.concept.remove' | translate">✕</button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
       <!-- Role loadouts -->
       <div class="loadouts">
         <div class="loadouts-head">
@@ -248,7 +294,33 @@ const SEARCH_DEBOUNCE_MS = 250;
     .hero h3 { margin: 0; font-size: 1.05rem; }
     .hero-sub { font-size: 0.74rem; color: var(--sc-fg-2); }
 
-    .sc-card h2, .fleet h2, .loadouts h2 { margin: 0 0 10px; font-size: 1rem; }
+    .sc-card h2, .fleet h2, .loadouts h2, .concepts h2 { margin: 0 0 10px; font-size: 1rem; }
+
+    /* Concept-ship wishlist (#135) */
+    .concepts .hint { color: var(--sc-fg-2); font-size: 0.85rem; margin: 0 0 10px; }
+    .concept-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .concept-form .text-input {
+      flex: 1 1 160px; min-width: 140px; padding: 8px 12px;
+      background: var(--sc-bg-1); color: var(--sc-fg-0);
+      border: 1px solid var(--sc-border); border-radius: 4px; font: inherit; font-size: 0.9rem;
+    }
+    .concept-form .text-input.wide { flex: 2 1 240px; }
+    .concept-form .text-input:focus { outline: none; border-color: var(--sc-accent); }
+    .concept-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .concept-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; flex-wrap: wrap; }
+    .concept-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+    .concept-mfr { color: var(--sc-fg-2); font-size: 0.8rem; }
+    .badge.preliminary {
+      font-size: 0.6rem; padding: 2px 8px; border-radius: 999px; text-transform: uppercase;
+      letter-spacing: 0.06em; background: rgba(255, 170, 60, 0.14); color: #f0b35c;
+      border: 1px solid color-mix(in srgb, #f0b35c 45%, transparent);
+    }
+    .concept-actions { display: flex; align-items: center; gap: 12px; }
+    .concept-link { color: var(--sc-accent); font-size: 0.8rem; }
+    .concept-remove {
+      background: transparent; border: 0; color: var(--sc-fg-2); cursor: pointer; font-size: 0.85rem;
+    }
+    .concept-remove:hover { color: var(--sc-danger); }
     .add-ship { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
     .search-row { display: flex; }
     .search { flex: 1; padding: 9px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.9rem; }
@@ -398,6 +470,33 @@ export class HangarDashboardComponent implements OnInit {
       cards.set(r.classNameSlug, r);
       this.cards.set(cards);
     }
+  }
+
+  // ── concept-ship wishlist (#135) ────────────────────────────────────────────
+  conceptName = '';
+  conceptManufacturer = '';
+  conceptRsiUrl = '';
+  readonly conceptSaving = signal(false);
+
+  async addConcept(e: Event): Promise<void> {
+    e.preventDefault();
+    if (!this.conceptName.trim() || this.conceptSaving()) return;
+    this.conceptSaving.set(true);
+    const created = await this.hangar.addConceptShip({
+      name: this.conceptName,
+      manufacturer: this.conceptManufacturer,
+      rsiUrl: this.conceptRsiUrl,
+    });
+    if (created) {
+      this.conceptName = '';
+      this.conceptManufacturer = '';
+      this.conceptRsiUrl = '';
+    }
+    this.conceptSaving.set(false);
+  }
+
+  async removeConcept(id: string): Promise<void> {
+    await this.hangar.removeConceptShip(id);
   }
 
   async createLoadout(): Promise<void> {

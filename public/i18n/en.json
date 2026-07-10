@@ -784,6 +784,18 @@
         "text": "Pin ships and components side by side and compare the numbers that matter."
       },
       "cta": "Sign in to open your hangar"
+    },
+    "concept": {
+      "title": "Concept wishlist",
+      "hint": "Ships that are not in the game (yet) have no codex entry — track them here with a link to the pledge page. Specs are preliminary until release.",
+      "namePlaceholder": "Ship name (e.g. Polaris)",
+      "manufacturerPlaceholder": "Manufacturer (optional)",
+      "urlPlaceholder": "RSI pledge link (optional)",
+      "add": "Add to wishlist",
+      "empty": "No concept ships on your wishlist yet.",
+      "preliminary": "Concept — preliminary",
+      "pledgeLink": "Pledge page",
+      "remove": "Remove"
     }
   },
   "quickSearch": {

@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import {
+  ConceptShip,
   ConfigLoadoutEntry,
   HangarRoleLoadout,
   HangarRoleLoadoutRow,
@@ -13,6 +14,7 @@ import {
   RoleLoadoutItem,
   RoleLoadoutRole,
   ShipConfigRole,
+  mapConceptShip,
   mapHangarRoleLoadout,
   mapHangarShip,
   mapHangarShipConfig,
@@ -30,6 +32,8 @@ export class HangarService {
 
   readonly ships = signal<HangarShip[]>([]);
   readonly roleLoadouts = signal<HangarRoleLoadout[]>([]);
+  // Concept-ship wishlist (#135) — separate table, no catalog linkage.
+  readonly conceptShips = signal<ConceptShip[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
@@ -63,7 +67,7 @@ export class HangarService {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [shipsRes, loadoutsRes] = await Promise.all([
+      const [shipsRes, loadoutsRes, conceptsRes] = await Promise.all([
         this.sb.client
           .from('hangar_ships')
           .select('*')
@@ -73,6 +77,10 @@ export class HangarService {
           .from('hangar_role_loadouts')
           .select('*')
           .order('updated_at', { ascending: false }),
+        this.sb.client
+          .from('hangar_concept_ships')
+          .select('*')
+          .order('created_at', { ascending: false }),
       ]);
       if (shipsRes.error) throw shipsRes.error;
       if (loadoutsRes.error) throw loadoutsRes.error;
@@ -80,6 +88,13 @@ export class HangarService {
       this.roleLoadouts.set(
         ((loadoutsRes.data ?? []) as HangarRoleLoadoutRow[]).map(mapHangarRoleLoadout),
       );
+      // Best-effort: the concept table ships later than the others (migration
+      // 20260711001000) — a missing relation must not break the hangar.
+      if (!conceptsRes.error) {
+        this.conceptShips.set(
+          ((conceptsRes.data ?? []) as Record<string, unknown>[]).map(mapConceptShip),
+        );
+      }
       // Sync the flagship now the user id is guaranteed available (the
       // constructor may have run before auth resolved). DB-first, see below.
       await this.syncFlagship();
@@ -117,6 +132,51 @@ export class HangarService {
 
   shipByClassName(shipClassName: string): HangarShip | null {
     return this.ships().find((s) => s.shipClassName === shipClassName) ?? null;
+  }
+
+  // ── concept-ship wishlist (#135) ────────────────────────────────────────────
+
+  async addConceptShip(input: {
+    name: string;
+    manufacturer?: string;
+    rsiUrl?: string;
+    notes?: string;
+  }): Promise<ConceptShip | null> {
+    const userId = this.userId;
+    const name = input.name.trim();
+    if (!userId || !name) return null;
+    const { data, error } = await this.sb.client
+      .from('hangar_concept_ships')
+      .insert({
+        user_id: userId,
+        name,
+        manufacturer: input.manufacturer?.trim() || null,
+        rsi_url: input.rsiUrl?.trim() || null,
+        notes: input.notes?.trim() || null,
+      })
+      .select('*')
+      .single();
+    if (error) {
+      // 23505 = duplicate (user_id, name) — already wishlisted, no-op.
+      if ((error as { code?: string }).code === '23505') {
+        return this.conceptShips().find((c) => c.name === name) ?? null;
+      }
+      this.error.set(error.message);
+      return null;
+    }
+    const concept = mapConceptShip(data as Record<string, unknown>);
+    this.conceptShips.set([concept, ...this.conceptShips()]);
+    return concept;
+  }
+
+  async removeConceptShip(id: string): Promise<boolean> {
+    const { error } = await this.sb.client.from('hangar_concept_ships').delete().eq('id', id);
+    if (error) {
+      this.error.set(error.message);
+      return false;
+    }
+    this.conceptShips.set(this.conceptShips().filter((c) => c.id !== id));
+    return true;
   }
 
   shipById(id: string): HangarShip | null {

@@ -784,6 +784,18 @@
         "text": "Pinne Schiffe und Komponenten nebeneinander und vergleiche die Zahlen, die zählen."
       },
       "cta": "Anmelden und Hangar öffnen"
+    },
+    "concept": {
+      "title": "Concept-Wunschliste",
+      "hint": "Schiffe, die (noch) nicht im Spiel sind, haben keinen Codex-Eintrag — tracke sie hier mit Link zur Pledge-Seite. Specs sind bis zum Release vorläufig.",
+      "namePlaceholder": "Schiffsname (z. B. Polaris)",
+      "manufacturerPlaceholder": "Hersteller (optional)",
+      "urlPlaceholder": "RSI-Pledge-Link (optional)",
+      "add": "Zur Wunschliste",
+      "empty": "Noch keine Concept-Schiffe auf deiner Wunschliste.",
+      "preliminary": "Concept — vorläufig",
+      "pledgeLink": "Pledge-Seite",
+      "remove": "Entfernen"
     }
   },
   "quickSearch": {
