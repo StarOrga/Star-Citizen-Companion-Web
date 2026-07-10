@@ -203,6 +203,7 @@
       "loadout": "Default loadout",
       "loadoutEmpty": "Empty (stock)",
       "configureLoadout": "Configure loadout",
+      "viewOnRsi": "View on RSI",
       "noLoadout": "No default loadout recorded.",
       "notFound": "Entry not found in the current build.",
       "showRaw": "Show raw data",

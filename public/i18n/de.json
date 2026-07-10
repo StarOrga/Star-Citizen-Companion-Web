@@ -203,6 +203,7 @@
       "loadout": "Standard-Loadout",
       "loadoutEmpty": "Leer (ab Werk)",
       "configureLoadout": "Loadout konfigurieren",
+      "viewOnRsi": "Bei RSI ansehen",
       "noLoadout": "Kein Standard-Loadout hinterlegt.",
       "notFound": "Eintrag im aktuellen Build nicht gefunden.",
       "showRaw": "Rohdaten anzeigen",
