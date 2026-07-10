@@ -871,6 +871,8 @@
     "open": "Open feedback",
     "close": "Close feedback",
     "minimize": "Minimize feedback",
+    "maximize": "Maximize to full screen",
+    "restore": "Restore window size",
     "title": "Feedback"
   },
   "releaseNotes": {

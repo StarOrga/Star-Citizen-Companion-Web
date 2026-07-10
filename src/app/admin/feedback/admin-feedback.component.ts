@@ -674,6 +674,8 @@ export class AdminFeedbackComponent implements OnInit {
 
   /** Per-entry expand state for the embedded chat overview (collapsed by default). */
   private readonly _expanded = signal<Set<string>>(new Set());
+  /** Topics already auto-expanded once, so a manual collapse is not undone on refresh. */
+  private readonly _autoExpanded = new Set<string>();
 
   isExpanded(id: string): boolean {
     return this._expanded().has(id);
@@ -684,6 +686,26 @@ export class AdminFeedbackComponent implements OnInit {
       const next = new Set(set);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  }
+
+  /**
+   * In the embedded FAB panel, topics are collapsed by default — which hides the
+   * reply composer. Auto-expand `needs_input` topics (the ones awaiting the
+   * admin's answer) so the routine's question and the reply box are immediately
+   * visible. Each topic is auto-expanded only once, so a manual collapse sticks.
+   */
+  private autoExpandNeedsInput(rows: FeedbackRow[]): void {
+    if (!this.embedded()) return;
+    const toExpand = rows.filter(
+      (r) => r.status === 'needs_input' && !this._autoExpanded.has(r.id),
+    );
+    if (toExpand.length === 0) return;
+    for (const r of toExpand) this._autoExpanded.add(r.id);
+    this._expanded.update((set) => {
+      const next = new Set(set);
+      for (const r of toExpand) next.add(r.id);
       return next;
     });
   }
@@ -978,6 +1000,7 @@ export class AdminFeedbackComponent implements OnInit {
     } else {
       const rows = (data ?? []) as unknown as FeedbackRow[];
       this.messages.set(rows);
+      this.autoExpandNeedsInput(rows);
       await this.loadThreads(rows.map((r) => r.id));
     }
     this.busy.set(false);

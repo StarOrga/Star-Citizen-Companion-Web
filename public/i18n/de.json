@@ -871,6 +871,8 @@
     "open": "Feedback öffnen",
     "close": "Feedback schließen",
     "minimize": "Feedback minimieren",
+    "maximize": "Auf Vollbild vergrößern",
+    "restore": "Fenstergröße wiederherstellen",
     "title": "Feedback"
   },
   "releaseNotes": {
