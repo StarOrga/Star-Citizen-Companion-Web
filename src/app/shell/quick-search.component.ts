@@ -1,13 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   HostListener,
+  TemplateRef,
+  ViewContainerRef,
   computed,
   inject,
   signal,
   viewChild,
 } from '@angular/core';
+import { Overlay, OverlayRef } from '@angular/cdk/overlay';
+import { TemplatePortal } from '@angular/cdk/portal';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -45,11 +48,14 @@ const PER_KIND_LIMIT = 6;
       <kbd>Ctrl K</kbd>
     </button>
 
-    @if (visible()) {
+    <!-- Rendered through a CDK overlay (portaled to <body>) rather than inline:
+         the app header (.topbar) uses backdrop-filter, which establishes a
+         containing block for position:fixed descendants. Inline, the full-screen
+         backdrop would be clipped to the header instead of covering the viewport. -->
+    <ng-template #overlayTpl>
       <div class="overlay" (click)="close()">
         <div class="panel sc-card" role="dialog" [attr.aria-label]="'quickSearch.open' | translate" (click)="$event.stopPropagation()">
           <input
-            #searchBox
             class="qs-input"
             type="search"
             role="combobox"
@@ -58,7 +64,6 @@ const PER_KIND_LIMIT = 6;
             [attr.aria-activedescendant]="activeDescendant()"
             [ngModel]="query()"
             (ngModelChange)="onQuery($event)"
-            (keydown.escape)="close()"
             (keydown.enter)="onEnter($event)"
             (keydown.arrowdown)="moveActive($event, 1)"
             (keydown.arrowup)="moveActive($event, -1)"
@@ -109,7 +114,7 @@ const PER_KIND_LIMIT = 6;
           <p class="qs-nav-hint">{{ 'quickSearch.navHint' | translate }}</p>
         </div>
       </div>
-    }
+    </ng-template>
   `,
   styles: [`
     :host { display: contents; }
@@ -185,8 +190,11 @@ export class QuickSearchComponent {
   private readonly codex = inject(CodexService);
   private readonly hangar = inject(HangarService);
   private readonly router = inject(Router);
+  private readonly overlay = inject(Overlay);
+  private readonly viewContainer = inject(ViewContainerRef);
 
-  private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
+  private readonly overlayTpl = viewChild.required<TemplateRef<unknown>>('overlayTpl');
+  private overlayRef: OverlayRef | null = null;
 
   readonly visible = signal(false);
   readonly query = signal('');
@@ -213,6 +221,14 @@ export class QuickSearchComponent {
       this.visible() ? this.close() : this.open();
       return;
     }
+    // Escape closes from anywhere while open — handled on the document (not on
+    // the input) so it works regardless of focus, and pre-empts the native
+    // type="search" "clear field" default.
+    if (ev.key === 'Escape' && this.visible()) {
+      ev.preventDefault();
+      this.close();
+      return;
+    }
     if (ev.key === '/' && !this.visible() && !isEditableTarget(ev.target)) {
       ev.preventDefault();
       this.open();
@@ -220,10 +236,20 @@ export class QuickSearchComponent {
   }
 
   open(): void {
+    if (this.visible()) return;
     this.visible.set(true);
+    const overlayRef = this.overlay.create({
+      positionStrategy: this.overlay.position().global(),
+      scrollStrategy: this.overlay.scrollStrategies.noop(),
+    });
+    overlayRef.attach(new TemplatePortal(this.overlayTpl(), this.viewContainer));
+    this.overlayRef = overlayRef;
     // hangar list backs the "already in hangar" chips — load once, lazily.
     if (this.hangar.ships().length === 0) void this.hangar.loadAll();
-    setTimeout(() => this.searchBox()?.nativeElement.focus(), 0);
+    setTimeout(
+      () => overlayRef.overlayElement.querySelector<HTMLInputElement>('.qs-input')?.focus(),
+      0,
+    );
   }
 
   close(): void {
@@ -231,6 +257,8 @@ export class QuickSearchComponent {
     this.query.set('');
     this.results.set([]);
     this.activeIndex.set(0);
+    this.overlayRef?.dispose();
+    this.overlayRef = null;
   }
 
   onQuery(value: string): void {

@@ -6,6 +6,10 @@
    visual language with no per-component change and no duplicated values. */
 @import '@starorga/star-ui/lib/design-tokens.css';
 
+/* CDK overlay structural styles — positions the overlay container that the
+   quick-search modal is portaled into (outside the backdrop-filtered header). */
+@import '@angular/cdk/overlay-prebuilt.css';
+
 :root {
   --sc-bg-0: var(--surface-canvas);
   --sc-bg-1: var(--surface-panel);
