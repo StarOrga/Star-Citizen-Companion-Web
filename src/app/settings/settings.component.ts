@@ -12,7 +12,10 @@ import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 
-type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
+// Only languages with a real translation file are offered (issue #23) — the
+// other locale files are machine-stub placeholders; offering them silently
+// fell back to English, which read as "translation exists but is broken".
+type LangId = 'de' | 'en';
 
 @Component({
   selector: 'sc-settings',
@@ -275,8 +278,12 @@ export class SettingsComponent implements OnInit {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
 
-  readonly locales: readonly LangId[] = ['de', 'en', 'fr', 'es', 'pt', 'ru', 'zh'];
-  readonly currentLang = computed(() => (this.translate.getCurrentLang() ?? 'en') as LangId);
+  readonly locales: readonly LangId[] = ['de', 'en'];
+  // Normalize legacy stored values (fr/es/pt/ru/zh from the old 7-language
+  // dropdown) onto the supported pair so the select always has a valid option.
+  readonly currentLang = computed<LangId>(() =>
+    (this.translate.getCurrentLang() ?? 'en').startsWith('de') ? 'de' : 'en',
+  );
 
   // Username — the saved value is the shared ProfileService signal, so editing
   // here immediately updates the avatar/account-menu across the shell.

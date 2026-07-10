@@ -98,7 +98,10 @@ export class AppComponent implements OnInit {
         .eq('id', user.id)
         .maybeSingle()
         .then(({ data }) => {
-          const pref = data?.['preferred_lang'] as string | null | undefined;
+          const raw = data?.['preferred_lang'] as string | null | undefined;
+          // Only de/en have real translations (issue #23) — normalize legacy
+          // preferences (fr/es/…) instead of activating a stub locale.
+          const pref = raw === 'de' || raw === 'en' ? raw : null;
           if (pref && pref !== this.translate.getCurrentLang()) {
             this.translate.use(pref);
             if (typeof localStorage !== 'undefined') localStorage.setItem('sc.lang', pref);
@@ -108,7 +111,10 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('sc.lang') : null;
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('sc.lang') : null;
+    // Normalize legacy stored languages (fr/es/pt/ru/zh) onto the supported
+    // de/en pair — see issue #23.
+    const stored = raw === 'de' || raw === 'en' ? raw : null;
     const browser = (this.translate.getBrowserLang() ?? 'en').slice(0, 2);
     const initial = stored ?? (browser === 'de' ? 'de' : 'en');
     this.translate.use(initial);
