@@ -77,7 +77,9 @@
       "admin": "管理员",
       "collaborator": "协作者",
       "viewer": "查看者"
-    }
+    },
+    "username": "用户名",
+    "usernameUnset": "未设置"
   },
   "admin": {
     "title": "管理 · 用户管理",

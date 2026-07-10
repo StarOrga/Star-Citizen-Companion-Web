@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
+import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 
@@ -25,6 +26,16 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
       <!-- 1. Account info (read-only) -->
       @if (auth.user(); as user) {
         <div class="sc-card">
+          <div class="row">
+            <span class="label">{{ 'profile.username' | translate }}</span>
+            <span class="value">
+              @if (profile.username(); as name) {
+                {{ name }}
+              } @else {
+                <span class="muted">{{ 'profile.usernameUnset' | translate }}</span>
+              }
+            </span>
+          </div>
           <div class="row">
             <span class="label">{{ 'profile.email' | translate }}</span>
             <span class="value">{{ user.email }}</span>
@@ -143,6 +154,7 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
     .value { color: var(--sc-fg-0); min-width: 0; text-align: right; overflow-wrap: anywhere; }
     .label { flex: 0 0 auto; }
     .mono { font-family: monospace; font-size: 0.85rem; }
+    .muted { color: var(--sc-fg-2); font-style: italic; }
     .role-pill {
       display: inline-block;
       padding: 2px 10px;
@@ -259,14 +271,16 @@ type LangId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
 export class SettingsComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
+  readonly profile = inject(ProfileService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
 
   readonly locales: readonly LangId[] = ['de', 'en', 'fr', 'es', 'pt', 'ru', 'zh'];
   readonly currentLang = computed(() => (this.translate.getCurrentLang() ?? 'en') as LangId);
 
-  // Username
-  private readonly savedUsername = signal<string>('');
+  // Username — the saved value is the shared ProfileService signal, so editing
+  // here immediately updates the avatar/account-menu across the shell.
+  private readonly savedUsername = computed(() => this.profile.username() ?? '');
   readonly usernameInput = signal<string>('');
   readonly usernameSaving = signal(false);
   readonly usernameOk = signal(false);
@@ -280,16 +294,9 @@ export class SettingsComponent implements OnInit {
   readonly deleteError = signal<string | null>(null);
 
   async ngOnInit() {
-    const user = this.auth.user();
-    if (!user) return;
-    const { data } = await this.sb.client
-      .from('profiles')
-      .select('username, preferred_lang')
-      .eq('id', user.id)
-      .maybeSingle();
-    const username = (data?.['username'] as string | null) ?? '';
-    this.savedUsername.set(username);
-    this.usernameInput.set(username);
+    // Seed the edit field from the shared handle (loaded once by ProfileService).
+    if (!this.profile.loaded()) await this.profile.refresh();
+    this.usernameInput.set(this.profile.username() ?? '');
   }
 
   asInput(e: Event): string {
@@ -303,7 +310,7 @@ export class SettingsComponent implements OnInit {
     this.usernameOk.set(false);
     this.usernameError.set(null);
     const next = this.usernameInput().trim();
-    const { error } = await this.sb.client.rpc('set_username', { new_name: next });
+    const { error } = await this.profile.setUsername(next);
     if (error) {
       const msg = error.message ?? '';
       if (msg.includes('username_invalid')) {
@@ -316,7 +323,8 @@ export class SettingsComponent implements OnInit {
       this.usernameSaving.set(false);
       return;
     }
-    this.savedUsername.set(next);
+    // savedUsername now derives from ProfileService (updated by setUsername),
+    // so usernameDirty resets automatically.
     this.usernameInput.set(next);
     this.usernameOk.set(true);
     this.usernameSaving.set(false);
