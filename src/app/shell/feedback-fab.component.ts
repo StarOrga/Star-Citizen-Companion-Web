@@ -33,25 +33,58 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
           <div
             class="panel"
             [class.minimized]="minimized()"
+            [class.maximized]="maximized()"
             role="dialog"
             [attr.aria-hidden]="minimized()"
             [attr.aria-label]="'feedbackFab.title' | translate">
             <header class="panel-head">
               <span class="panel-title">{{ 'feedbackFab.title' | translate }}</span>
-              <button
-                type="button"
-                class="panel-min"
-                (click)="minimize()"
-                [attr.aria-label]="'feedbackFab.minimize' | translate">
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                  <path
-                    d="M6 17h12"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round" />
-                </svg>
-              </button>
+              <div class="panel-actions">
+                <button
+                  type="button"
+                  class="panel-min"
+                  (click)="toggleMaximize()"
+                  [attr.aria-pressed]="maximized()"
+                  [attr.aria-label]="(maximized() ? 'feedbackFab.restore' : 'feedbackFab.maximize') | translate">
+                  @if (maximized()) {
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                      <path
+                        d="M9 5H5v4M15 5h4v4M9 19H5v-4M15 19h4v-4"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round" />
+                    </svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                      <rect
+                        x="5"
+                        y="5"
+                        width="14"
+                        height="14"
+                        rx="1"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2" />
+                    </svg>
+                  }
+                </button>
+                <button
+                  type="button"
+                  class="panel-min"
+                  (click)="minimize()"
+                  [attr.aria-label]="'feedbackFab.minimize' | translate">
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <path
+                      d="M6 17h12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round" />
+                  </svg>
+                </button>
+              </div>
             </header>
             <div class="panel-body">
               <sc-admin-feedback [embedded]="true" />
@@ -147,6 +180,17 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
     }
     /* Minimized: kept in the DOM (state preserved) but hidden. */
     .panel.minimized { display: none; }
+    /* Maximized: one-click near-fullscreen. Breaks out of the bottom-right
+       anchor to fill the viewport (leaving a small inset margin). */
+    .panel.maximized {
+      position: fixed;
+      inset: 16px;
+      width: auto;
+      height: auto;
+      max-width: none;
+      max-height: none;
+      resize: none;
+    }
     .panel-head {
       display: flex;
       align-items: center;
@@ -163,6 +207,7 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
       font-weight: 600;
       color: var(--sc-fg-0);
     }
+    .panel-actions { display: inline-flex; align-items: center; gap: 4px; }
     .panel-min {
       display: inline-flex;
       align-items: center;
@@ -214,8 +259,15 @@ export class FeedbackFabComponent {
   readonly mounted = signal(false);
   /** Whether the mounted panel is collapsed (hidden) rather than dismissed. */
   readonly minimized = signal(false);
+  /** Whether the panel is expanded to near-fullscreen. Preserved while minimized. */
+  readonly maximized = signal(false);
   /** Panel is visible when mounted and not minimized. */
   readonly isOpen = computed(() => this.mounted() && !this.minimized());
+
+  /** One-click enlarge/restore between the docked size and near-fullscreen. */
+  toggleMaximize() {
+    this.maximized.update((m) => !m);
+  }
 
   toggle(event: Event) {
     event.stopPropagation();
@@ -234,6 +286,9 @@ export class FeedbackFabComponent {
 
   @HostListener('document:keydown.escape')
   onEscape() {
-    if (this.isOpen()) this.minimize();
+    if (!this.isOpen()) return;
+    // Escape steps down: near-fullscreen → docked → minimized.
+    if (this.maximized()) this.maximized.set(false);
+    else this.minimize();
   }
 }

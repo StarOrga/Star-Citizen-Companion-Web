@@ -160,6 +160,17 @@ interface LoadoutGroup {
                     {{ 'quickSearch.addToHangar' | translate }}
                   </button>
                 }
+                <!-- Deep-link out to the official RSI site. We have no reliable
+                     per-ship RSI slug (our classNameSlug ≠ RSI URL slug), so this
+                     lands on the official ships page rather than 404-ing on a
+                     guessed deeplink. -->
+                <a
+                  class="pin rsi-link"
+                  href="https://robertsspaceindustries.com/en/pledge/ships"
+                  target="_blank"
+                  rel="noopener noreferrer">
+                  {{ 'codex.detail.viewOnRsi' | translate }} ↗
+                </a>
               }
               @if (provenance(); as p) {
                 <span class="prov" [attr.title]="'codex.provenance.tooltip' | translate">
@@ -430,6 +441,7 @@ interface LoadoutGroup {
       font-family: var(--sc-font-display); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
     .pin:hover, .pin.pinned { color: var(--sc-accent); border-color: var(--sc-accent); }
     .add-hangar { color: var(--sc-accent); }
+    a.rsi-link { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
     .in-hangar { font-size: 0.74rem; color: var(--sc-fg-2); font-style: italic; }
     .prov { font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
 

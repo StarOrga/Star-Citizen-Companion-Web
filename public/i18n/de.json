@@ -203,6 +203,7 @@
       "loadout": "Standard-Loadout",
       "loadoutEmpty": "Leer (ab Werk)",
       "configureLoadout": "Loadout konfigurieren",
+      "viewOnRsi": "Bei RSI ansehen",
       "noLoadout": "Kein Standard-Loadout hinterlegt.",
       "notFound": "Eintrag im aktuellen Build nicht gefunden.",
       "showRaw": "Rohdaten anzeigen",
@@ -839,7 +840,14 @@
       "open": "Offen",
       "in_progress": "In Arbeit",
       "shipped": "Geshipped",
-      "rejected": "Abgelehnt"
+      "rejected": "Abgelehnt",
+      "needs_input": "Rückfrage"
+    },
+    "thread": {
+      "routine": "Routine",
+      "routineBadge": "Auto",
+      "reply": "Antworten",
+      "replyPlaceholder": "Antwort schreiben… (Markdown möglich)"
     },
     "compose": {
       "placeholder": "Was könnte besser sein? Markdown möglich — Enter für neue Zeile, Strg+Enter zum Senden.",
@@ -864,6 +872,8 @@
     "open": "Feedback öffnen",
     "close": "Feedback schließen",
     "minimize": "Feedback minimieren",
+    "maximize": "Auf Vollbild vergrößern",
+    "restore": "Fenstergröße wiederherstellen",
     "title": "Feedback"
   },
   "releaseNotes": {

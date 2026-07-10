@@ -203,6 +203,7 @@
       "loadout": "Default loadout",
       "loadoutEmpty": "Empty (stock)",
       "configureLoadout": "Configure loadout",
+      "viewOnRsi": "View on RSI",
       "noLoadout": "No default loadout recorded.",
       "notFound": "Entry not found in the current build.",
       "showRaw": "Show raw data",
@@ -839,7 +840,14 @@
       "open": "Open",
       "in_progress": "In progress",
       "shipped": "Shipped",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "needs_input": "Needs input"
+    },
+    "thread": {
+      "routine": "Routine",
+      "routineBadge": "Auto",
+      "reply": "Reply",
+      "replyPlaceholder": "Write a reply… (Markdown supported)"
     },
     "compose": {
       "placeholder": "What could be better? Markdown supported — Enter for a new line, Ctrl+Enter to send.",
@@ -864,6 +872,8 @@
     "open": "Open feedback",
     "close": "Close feedback",
     "minimize": "Minimize feedback",
+    "maximize": "Maximize to full screen",
+    "restore": "Restore window size",
     "title": "Feedback"
   },
   "releaseNotes": {

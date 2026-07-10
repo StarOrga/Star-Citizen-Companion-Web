@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.32.0] - 2026-07-10
+
+### Added
+
+- **Per-topic chat threads on the admin feedback board.** Every feedback topic
+  now carries a thread of follow-up replies (`admin_feedback_messages`): an admin
+  can answer directly under a topic, and the automated routine posts system
+  replies. A new `needs_input` status lets the routine park an item it can't
+  auto-ship and ask a question instead of terminally rejecting it — the admin's
+  answer resumes the work on the next run. `needs_input` topics auto-expand in
+  the embedded panel so the question and reply box are immediately visible.
+- **Maximize the feedback panel to near-fullscreen.** The floating feedback
+  panel gained a maximize/restore button (Escape steps down: fullscreen → docked
+  → minimized), so long threads are readable without leaving the current page.
+- **"View on RSI" button on the ship detail page.** Opens the ship's official
+  RSI store/pledge page in a new tab.
+
 ## [0.31.0] - 2026-07-09
 
 ### Added
