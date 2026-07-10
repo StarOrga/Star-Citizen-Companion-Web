@@ -8,7 +8,8 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { CodexDetail, CodexKind, CodexService, pickLocalized, toLang } from './codex.service';
+import { CodexDetail, CodexKind, CodexService, pickLocalizedDistinct, toLang } from './codex.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   CompareColumn,
   CompareTableRow,
@@ -186,6 +187,10 @@ export class CodexCompareTrayComponent {
   private readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
 
+  // Signal-tracked data language so OnPush column/chip names re-render on a
+  // language switch instead of reading t.currentLang non-reactively. (#50)
+  private readonly dataLang = signal(toLang(this.t.currentLang));
+
   readonly open = signal(false);
   readonly loading = signal(false);
   readonly diffOnly = signal(false);
@@ -206,6 +211,10 @@ export class CodexCompareTrayComponent {
   );
 
   constructor() {
+    // Keep the data language in sync with UI language switches. (#50)
+    this.t.onLangChange
+      .pipe(takeUntilDestroyed())
+      .subscribe((e) => this.dataLang.set(toLang(e.lang)));
     // Re-fetch details whenever the panel is open and the pinned set changes.
     effect(() => {
       const refs = this.refs();
@@ -242,7 +251,10 @@ export class CodexCompareTrayComponent {
     const ds = this.details();
     if (ds.length < 2) return [];
     const perEntity = ds.map((d) =>
-      collectCompareAttributes({ kind: d.kind, payload: d.payload, row: d.row, ports: d.ports }),
+      collectCompareAttributes(
+        { kind: d.kind, payload: d.payload, row: d.row, ports: d.ports },
+        this.dataLang(),
+      ),
     );
     return buildCompareTable(this.columns(), perEntity);
   });
@@ -253,10 +265,10 @@ export class CodexCompareTrayComponent {
     return groupCompareRows(rows);
   });
 
-  /** Entity name in the app language with EN fallback (UC-08). */
+  /** Entity name in the app language with EN fallback (UC-08, distinct-pick #50). */
   private entityName(d: CodexDetail): string {
     const p = d.payload as { name?: { de: string; en: string; key: string } } | undefined;
-    const localized = p?.name ? pickLocalized(p.name, toLang(this.t.currentLang)) : '';
+    const localized = p?.name ? pickLocalizedDistinct(p.name, this.dataLang()) : '';
     return localized || cleanLocaleValue(d.row['name_localized'] as string) || humanizeClassName(d.classNameSlug);
   }
 

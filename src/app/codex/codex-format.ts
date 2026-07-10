@@ -427,7 +427,10 @@ export interface CompareEntityInput {
  * the detail view (curated component stats, filtered weapon params, ammo damage,
  * port summary) so the comparison matches what the detail page shows.
  */
-export function collectCompareAttributes(e: CompareEntityInput): CompareAttr[] {
+export function collectCompareAttributes(
+  e: CompareEntityInput,
+  lang: 'de' | 'en' = 'en',
+): CompareAttr[] {
   const out: CompareAttr[] = [];
   const row = e.row;
   const add = (id: string, labelKey: string, value: unknown, group = 'identity') => {
@@ -436,9 +439,18 @@ export function collectCompareAttributes(e: CompareEntityInput): CompareAttr[] {
   };
 
   // Common identity attributes (same id across kinds → they align in the table).
+  // Manufacturer follows the data language with EN fallback instead of the
+  // former hardcoded `.en` (#50). Inline distinct-pick — no service import here.
+  const mfrName = (e.payload as { manufacturer?: { name?: { de?: string; en?: string } } } | undefined)
+    ?.manufacturer?.name;
+  const cleanStr = (v?: string): string => {
+    const s = (v ?? '').trim();
+    return s && !s.startsWith('@') ? s : '';
+  };
   const mfr =
-    (e.payload as { manufacturer?: { name?: { en?: string } } } | undefined)?.manufacturer?.name
-      ?.en || cleanLocaleValue(row['manufacturer_code'] as string);
+    (lang === 'de' ? cleanStr(mfrName?.de) : '') ||
+    cleanStr(mfrName?.en) ||
+    cleanLocaleValue(row['manufacturer_code'] as string);
   add('manufacturer', 'codex.detail.manufacturer', mfr);
   if (row['size'] != null) add('size', 'codex.detail.size', 'S' + row['size']);
   add('grade', 'codex.detail.grade', row['grade']);

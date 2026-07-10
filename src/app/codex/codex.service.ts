@@ -812,6 +812,31 @@ export function pickLocalized(
 }
 
 /**
+ * Like pickLocalized, but the user-language value is used only when it is a
+ * GENUINE translation: non-empty, not an unresolved '@'-key, and different
+ * from the English copy (the extract ships identical EN text in the de field
+ * for the untranslated remainder). Otherwise English (or the caller's
+ * fallback) is returned — never a raw key, never a fake "translation". (#50)
+ */
+export function pickLocalizedDistinct(
+  text: LocalizedText | null | undefined,
+  lang: Lang,
+  fallback = '',
+): string {
+  if (!text) return fallback;
+  const clean = (v: string | undefined): string => {
+    const s = (v ?? '').trim();
+    return s && !s.startsWith('@') ? s : '';
+  };
+  const en = clean(text.en);
+  if (lang !== 'en') {
+    const primary = clean(text[lang]);
+    if (primary && primary !== en) return primary;
+  }
+  return en || clean(text.de) || fallback;
+}
+
+/**
  * Map an ngx-translate language code ('de', 'en', 'de-DE', …) to a codex data
  * Lang. SC content exists in both DE and EN (DE is ~97.6% genuinely translated,
  * not an English copy), so catalog content is rendered in the app language with
