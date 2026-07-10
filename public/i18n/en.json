@@ -481,7 +481,9 @@
       "admin": "Admin",
       "collaborator": "Collaborator",
       "viewer": "Viewer"
-    }
+    },
+    "username": "Username",
+    "usernameUnset": "Not set"
   },
   "settings": {
     "title": "Settings",
