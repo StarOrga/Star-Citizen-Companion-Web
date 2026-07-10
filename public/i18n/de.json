@@ -215,7 +215,11 @@
       "fullSpec": "Volles Datenblatt",
       "showFullSpec": "Volles Datenblatt anzeigen",
       "hideFullSpec": "Volles Datenblatt ausblenden",
-      "layoutHint": "Stock-Loadout als beschriftete Slots — Slot öffnen zeigt das verbaute Item."
+      "layoutHint": "Stock-Loadout als beschriftete Slots — Slot öffnen zeigt das verbaute Item.",
+      "quantumRange": "Quantum-Reichweite",
+      "quantumSpeed": "Quantum-Geschwindigkeit",
+      "quantumFuel": "Quantum-Treibstoff",
+      "fuelCapacity": "Wasserstoff-Treibstoff"
     },
     "swap": {
       "title": "Was passt hier?",

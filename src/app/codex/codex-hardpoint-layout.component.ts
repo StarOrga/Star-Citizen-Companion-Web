@@ -16,6 +16,8 @@ export interface LayoutSlot {
   size: number | null;
   grade: string | null;
   manufacturerCode: string | null;
+  /** Optional highlighted stat chip, e.g. the jump range on the quantum drive (#137). */
+  statChip?: string | null;
 }
 
 export interface LayoutGroup {
@@ -89,6 +91,7 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
                       @if (s.size != null) { <span class="chip">S{{ s.size }}</span> }
                       @if (s.grade) { <span class="chip">{{ s.grade }}</span> }
                       @if (s.manufacturerCode) { <span class="chip">{{ s.manufacturerCode }}</span> }
+                      @if (s.statChip) { <span class="chip accent">{{ s.statChip }}</span> }
                     </span>
                   </a>
                   <button type="button" class="slot-swap" (click)="swapRequested.emit(s)"
@@ -177,6 +180,8 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
     .slot-chips { display: inline-flex; gap: 4px; flex-wrap: wrap; }
     .chip { font-size: 0.6rem; padding: 1px 6px; border-radius: 999px; background: var(--sc-bg-2);
       color: var(--sc-fg-2); border: 1px solid var(--sc-border); white-space: nowrap; }
+    .chip.accent { color: var(--sc-accent);
+      border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
 
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }

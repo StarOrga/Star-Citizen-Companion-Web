@@ -31,6 +31,12 @@ import {
 } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import {
+  computeLoadoutStats,
+  findStat,
+  type QuantumStats,
+  type ResolvedLoadoutLine,
+} from '../hangar/loadout-stats';
+import {
   DamageRow,
   HARDPOINT_CATEGORY_ORDER,
   HardpointCategory,
@@ -77,6 +83,15 @@ interface Fact {
 interface PortGroup {
   category: HardpointCategory;
   ports: CodexItemPort[];
+}
+
+// Tech spec facts derived from the stock loadout's component payloads (#137):
+// quantum drive numbers plus summed hydrogen / quantum fuel tank capacities.
+interface ShipTechStats {
+  quantum: QuantumStats;
+  quantumDriveClassName: string | null;
+  hydrogenCapacity: number | null;
+  quantumFuelCapacity: number | null;
 }
 
 interface LoadoutItem {
@@ -567,6 +582,10 @@ export class CodexDetailComponent implements OnInit {
   // Resolved deep-link target + display fields for default-loadout entries.
   private readonly loadoutEntities = signal<Map<string, ResolvedEntity>>(new Map());
 
+  // Ship tech stats derived from the stock loadout's component payloads (#137):
+  // quantum range/speed + fuel capacities. Best-effort — null when unresolvable.
+  private readonly techStats = signal<ShipTechStats | null>(null);
+
   // Star Citizen content exists in both DE and EN (DE is ~97.6% genuinely
   // translated, not an English copy). We render datamined CONTENT (names,
   // descriptions, manufacturer, role) in the app language with EN as the
@@ -596,6 +615,7 @@ export class CodexDetailComponent implements OnInit {
     this.expandedPort.set(null);
     this.compatMap.set(new Map());
     this.localeMap.set(new Map());
+    this.techStats.set(null);
     this.showEmptyLoadout.set(false);
     this.usedInBlueprints.set([]);
     this.artBroken.set(false);
@@ -604,7 +624,11 @@ export class CodexDetailComponent implements OnInit {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
       if (d) {
-        await Promise.all([this.resolveLoadoutEntities(d), this.resolveLocale(d)]);
+        await Promise.all([
+          this.resolveLoadoutEntities(d),
+          this.resolveLocale(d),
+          this.resolveShipTech(d),
+        ]);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
         if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug);
         // Ship pages: hangar membership backs the add-to-hangar action.
@@ -669,6 +693,66 @@ export class CodexDetailComponent implements OnInit {
       .map((e) => e.entityClassName)
       .filter((c): c is string => !!c);
     this.loadoutEntities.set(await this.svc.resolveEntities(classNames));
+  }
+
+  /**
+   * Derive ship tech facts (#137 part 1) from the STOCK loadout's component
+   * payloads: quantum jump range / drive speed and the summed hydrogen /
+   * quantum fuel tank capacities. Reuses the hangar's loadout-stats math so
+   * codex and hangar always agree. Best-effort: failures leave the hero
+   * facts without tech chips instead of breaking the page.
+   */
+  private async resolveShipTech(d: CodexDetail): Promise<void> {
+    if (d.kind !== 'ship') return;
+    const entries = (d.payload as ShipPayload | undefined)?.defaultLoadout ?? [];
+    const classNames = [
+      ...new Set(entries.map((e) => e.entityClassName).filter((c): c is string => !!c)),
+    ];
+    if (classNames.length === 0) return;
+    try {
+      const payloads = await this.svc.getEntityPayloads(classNames);
+      const lines: ResolvedLoadoutLine[] = [];
+      for (const e of entries) {
+        if (!e.entityClassName) continue;
+        const hit = payloads.get(e.entityClassName);
+        lines.push({
+          portName: e.itemPortName ?? null,
+          className: e.entityClassName,
+          kind: hit?.kind ?? 'component',
+          payload: hit?.payload ?? null,
+        });
+      }
+      const stats = computeLoadoutStats(lines);
+      let hydrogen: number | null = null;
+      let qtFuel: number | null = null;
+      let qdClassName: string | null = null;
+      for (const line of lines) {
+        const p = line.payload as ComponentPayload | null;
+        if (!p || typeof p !== 'object' || (p as { entityKind?: string }).entityKind !== 'component') continue;
+        const s = p.stats as Record<string, Record<string, unknown>> | undefined;
+        // The payload `kind` union is narrower than the live extract — fuel
+        // tanks arrive with kinds outside ComponentPayload['kind'], so match
+        // on the raw string.
+        const compKind = (p as { kind?: string }).kind ?? '';
+        if (compKind === 'FuelTank') {
+          const c = findStat(s, 'fuel', ['capacity', 'Capacity']);
+          if (c !== null) hydrogen = (hydrogen ?? 0) + c;
+        } else if (compKind === 'QuantumFuelTank') {
+          const c = findStat(s, 'fuel', ['capacity', 'Capacity']);
+          if (c !== null) qtFuel = (qtFuel ?? 0) + c;
+        } else if (compKind === 'QuantumDrive') {
+          qdClassName = line.className;
+        }
+      }
+      this.techStats.set({
+        quantum: stats.quantum,
+        quantumDriveClassName: qdClassName,
+        hydrogenCapacity: hydrogen,
+        quantumFuelCapacity: qtFuel,
+      });
+    } catch {
+      // tech chips are a bonus — never fail the detail page for them
+    }
   }
 
   /** Reverse lookup: crafting blueprints that consume this entity as an ingredient. */
@@ -774,6 +858,18 @@ export class CodexDetailComponent implements OnInit {
           value: `${formatNumber(dim.length)} × ${formatNumber(dim.width)} × ${formatNumber(dim.height)} m`,
         });
       }
+      // Tech facts from the stock loadout (#137): quantum + fuel numbers.
+      const tech = this.techStats();
+      if (tech) {
+        if (tech.quantum.jumpRangeMm != null) {
+          add('codex.detail.quantumRange', this.fmtGm(tech.quantum.jumpRangeMm), true);
+        }
+        if (tech.quantum.driveSpeedMs != null) {
+          add('codex.detail.quantumSpeed', formatNumber(tech.quantum.driveSpeedMs / 1000) + ' km/s');
+        }
+        add('codex.detail.quantumFuel', tech.quantumFuelCapacity == null ? '' : formatNumber(tech.quantumFuelCapacity));
+        add('codex.detail.fuelCapacity', tech.hydrogenCapacity == null ? '' : formatNumber(tech.hydrogenCapacity));
+      }
     } else if (d.kind === 'weapon') {
       const wc = row['weapon_class'];
       if (typeof wc === 'string') add('codex.detail.weaponClass', this.t.instant('codex.weaponClass.' + wc));
@@ -848,8 +944,14 @@ export class CodexDetailComponent implements OnInit {
   }
 
   /** Loadout groups mapped to the hardpoint-layout input shape (Rung 1). */
-  readonly layoutGroups = computed<LayoutGroup[]>(() =>
-    this.loadoutGroups().map((g) => ({
+  readonly layoutGroups = computed<LayoutGroup[]>(() => {
+    // Jump range rendered as a chip directly on the quantum-drive slot (#137).
+    const tech = this.techStats();
+    const qdChip =
+      tech?.quantumDriveClassName && tech.quantum.jumpRangeMm != null
+        ? this.fmtGm(tech.quantum.jumpRangeMm)
+        : null;
+    return this.loadoutGroups().map((g) => ({
       category: g.category,
       slots: g.items.map((l) => ({
         port: this.humanizePort(l.port),
@@ -859,9 +961,15 @@ export class CodexDetailComponent implements OnInit {
         size: l.size,
         grade: l.grade,
         manufacturerCode: l.manufacturerCode,
+        statChip: qdChip && l.className === tech!.quantumDriveClassName ? qdChip : null,
       })),
-    })),
-  );
+    }));
+  });
+
+  /** jumpRange comes in metres → giga-metre display (Gm), same as the hangar. */
+  private fmtGm(v: number): string {
+    return `${formatNumber(Math.round(v / 1_000_000))} Gm`;
+  }
 
   readonly damage = computed<DamageRow[]>(() => {
     const d = this.detail();
