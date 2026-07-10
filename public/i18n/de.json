@@ -709,6 +709,12 @@
       "discard": "Verwerfen",
       "delete": "Löschen"
     },
+    "standard": {
+      "title": "Standard-Komponenten",
+      "subtitle": "Die serienmäßige Ausrüstung dieses Schiffs aus den Live-Spieldaten (P4K) — die Komponenten, mit denen es standardmäßig ausgeliefert wird.",
+      "count": "{{count}} Komponenten",
+      "empty": "Für dieses Schiff sind keine serienmäßigen Komponenten im aktuellen Katalog-Build hinterlegt."
+    },
     "stats": {
       "title": "Loadout-Statistiken",
       "weapons": "Waffen",
