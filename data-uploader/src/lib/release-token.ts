@@ -49,6 +49,15 @@ export const TELEMETRY_HMAC_KEY: string = __SC_TELEMETRY_HMAC_KEY__;
 export const IS_UNSIGNED_DEV_BUILD = RELEASE_TOKEN === 'dev-token-unsigned';
 
 /**
+ * True when running the electron-builder **portable** target. Its stub sets
+ * `PORTABLE_EXECUTABLE_DIR` (+ *_FILE / *_APP_FILENAME) at launch. A portable
+ * exe can't be replaced in place while running, so electron-updater's in-place
+ * auto-update doesn't apply — the updater skips it and points the user at the
+ * download page instead of failing on the missing `app-update.yml`.
+ */
+export const IS_PORTABLE_BUILD = !!process.env['PORTABLE_EXECUTABLE_DIR'];
+
+/**
  * Telemetry channel: signed release builds report as 'stable'; unsigned dev
  * builds as 'dev' so their noise never pollutes production crash stats.
  */

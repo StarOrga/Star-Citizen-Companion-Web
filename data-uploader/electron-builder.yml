@@ -63,4 +63,15 @@ portable:
 # CSC_LINK / CSC_KEY_PASSWORD once an EV-cert (or self-signed cert) is wired up.
 # See concept Open Question #1.
 
-publish: null
+# Generic provider so electron-builder GENERATES `app-update.yml` into the app
+# resources — without it electron-updater fails at runtime with
+# `ENOENT ... app-update.yml` (the auto-updater never gets off the ground). The
+# generic provider has no upload API, so this NEVER auto-publishes during the CI
+# build (release assets are published separately by the gh-release workflow
+# steps); it only bakes the updater config. The runtime feed + release-token
+# header are still set programmatically in src/main/updater.ts (setFeedURL),
+# which overrides this url.
+publish:
+  provider: generic
+  url: https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/desktop-latest
+  channel: latest

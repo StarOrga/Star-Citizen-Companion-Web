@@ -104,7 +104,9 @@
     "error": "Update-Fehler: {{message}}",
     "check": "Nach Updates suchen",
     "checking": "Suche…",
-    "uptodate": "Aktuell (v{{version}})"
+    "uptodate": "Aktuell (v{{version}})",
+    "manual": "Automatische Updates sind im Portable-Build nicht möglich — neue Versionen bitte manuell laden (aktuell v{{version}}).",
+    "openDownload": "Download-Seite öffnen"
   },
   "session": {
     "title": "Web-Verbindung",
