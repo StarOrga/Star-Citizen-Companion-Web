@@ -18,9 +18,23 @@ Status lifecycle the routine drives:
 ```
 open ──pick up──▶ in_progress ──green build+tests──▶ shipped
   ▲                             └──red / needs review──▶ (stays in_progress, PR opened)
-  │                  └──not actionable──▶ rejected (with processing_note)
-  └──reaper: orphaned claim (no PR) went stale──────────┘
+  │                  ├──not actionable (spam/dupe/noise)──▶ rejected (with processing_note)
+  │                  └──needs a human decision / clarification──▶ needs_input
+  │                        (routine posts a SYSTEM reply asking the question)
+  │                                    │
+  └──reaper: orphaned claim (no PR) ───┤
+                                       ▼
+        admin answers in the thread ──▶ picked up again next run
 ```
+
+**Prefer `needs_input` over `rejected` whenever a human answer could unblock
+the work.** `rejected` is now reserved for genuinely non-actionable noise
+(spam, duplicates, empty/garbled). Anything that is "not auto-shippable *yet*"
+— needs a product/auth/RLS/privacy decision, a clarification, or a choice
+between options — goes to `needs_input` with a system reply in the topic's
+thread, so the admin can answer and the routine resumes. This exists because a
+hard `rejected` ended the conversation and the admin had no way to steer the
+routine (the gap behind the per-topic chat, `admin_feedback_messages`).
 
 ## Resuming interrupted work (stale-claim reaper)
 
@@ -78,9 +92,17 @@ For each `open` row (process independently, most-recent context wins):
    updated, a concurrent run already claimed it — skip the item and move on.
    This atomic claim is the single-flight lock that makes overlapping ~20-min
    runs safe; never process an item you did not successfully claim.
-2. **Understand.** Read `body` (markdown). If it is not an actionable code
-   change (vague, a question, out of scope), set `status='rejected'`,
-   `processing_note='<short why>'`, `processed_at=now()` and continue.
+2. **Understand.** Read `body` (markdown) **and the topic's thread** (all
+   `admin_feedback_messages` for this id, oldest first — the admin may have
+   already answered a prior question). Then classify:
+   - **Non-actionable noise** (spam, duplicate, empty/garbled) → `status='rejected'`,
+     `processing_note='<short why>'`, `processed_at=now()`; continue.
+   - **Needs a human decision / clarification** (product call, auth/RLS/privacy,
+     a choice between options, or the body literally asks "create an issue /
+     discuss") → **do not reject.** Post a SYSTEM reply with the question /
+     rationale (see below), set `status='needs_input'`, `processed_at=now()`;
+     continue.
+   - **Actionable now** → implement (step 3).
 3. **Implement** on a fresh branch `feat/feedback-<id-short>` off `main`.
    Follow repo conventions (CLAUDE.md): standalone components, signals,
    OnPush, ngx-translate for all strings, no keys in the bundle.
@@ -96,6 +118,52 @@ For each `open` row (process independently, most-recent context wins):
      `status='in_progress'`, set `ship_ref='<PR url>'` and
      `processing_note='build/tests red — needs manual review'`.
 6. Never touch rows already `shipped` or `rejected`.
+
+## Per-topic chat: `needs_input` + system replies
+
+Each topic (`admin_feedback` row) carries a thread in
+`public.admin_feedback_messages`. Humans post via RLS (`is_system=false`,
+`author_id=self`); the routine posts **system** replies as `service_role`
+(`is_system=true`, `author_id=null`) — service_role bypasses RLS.
+
+**Parking an item for a decision** (instead of `rejected`):
+
+```sql
+-- 1) ask the question in the thread
+insert into public.admin_feedback_messages (feedback_id, is_system, body)
+values ('<id>', true, '<the question / rationale / options, markdown>');
+-- 2) park the topic
+update public.admin_feedback
+set status = 'needs_input', processing_note = '<one-line why parked>', processed_at = now()
+where id = '<id>';
+```
+
+Keep the system reply concrete: state what's blocking, list the options or the
+exact decision needed, and (when relevant) link the GitHub issue you opened for
+the deeper discussion.
+
+**Resuming a `needs_input` topic.** Each run, after the `open` queue, also pick
+up `needs_input` topics whose **latest thread message is human** (the admin
+answered — `is_system=false` and newer than the last system reply):
+
+```sql
+select f.id
+from public.admin_feedback f
+join lateral (
+  select is_system
+  from public.admin_feedback_messages m
+  where m.feedback_id = f.id
+  order by m.created_at desc
+  limit 1
+) last on true
+where f.status = 'needs_input' and last.is_system = false;
+```
+
+For each, read the full thread, then act on the admin's answer: implement (→
+ship, `status='shipped'`), ask a follow-up (post another system reply, stay
+`needs_input`), or — only if the admin explicitly agrees it's out of scope —
+`rejected`. The stale-claim reaper never touches `needs_input` (it filters on
+`status='in_progress'`), so a parked topic waits patiently for the answer.
 
 ## Guardrails
 
@@ -116,10 +184,23 @@ For each `open` row (process independently, most-recent context wins):
 
 | column           | meaning                                                    |
 |------------------|------------------------------------------------------------|
-| `status`         | `open` \| `in_progress` \| `shipped` \| `rejected`         |
+| `status`         | `open` \| `in_progress` \| `shipped` \| `rejected` \| `needs_input` |
 | `ship_ref`       | PR/commit URL the routine attached                         |
 | `processing_note`| routine's note (reject reason / red-build hint)            |
 | `shipped_at`     | set when merged to `main`                                  |
 | `processed_at`   | last time the routine acted on the row                     |
 
-The routine authenticates as `service_role` and therefore bypasses RLS.
+Per-topic replies live in `public.admin_feedback_messages` (see migration
+`20260710160000_admin_feedback_threads.sql`):
+
+| column        | meaning                                                       |
+|---------------|--------------------------------------------------------------|
+| `feedback_id` | FK → `admin_feedback.id` (cascade delete)                    |
+| `author_id`   | FK → `profiles.id`; `null` for system/routine replies        |
+| `is_system`   | `true` = written by the routine (service_role), not a human   |
+| `body`        | markdown reply                                               |
+| `created_at`  | thread order                                                 |
+
+The routine authenticates as `service_role` and therefore bypasses RLS (so it
+can insert `is_system=true` replies, which the RLS insert policy forbids for
+regular admins).

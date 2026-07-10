@@ -16,11 +16,22 @@ import { useAutoRefresh } from '../../core/auto-refresh';
 import { AuthService } from '../../auth/auth.service';
 import { renderMarkdown } from './markdown.util';
 
-type FeedbackStatus = 'open' | 'in_progress' | 'shipped' | 'rejected';
+type FeedbackStatus = 'open' | 'in_progress' | 'shipped' | 'rejected' | 'needs_input';
 
 interface FeedbackAuthor {
   display_name: string | null;
   username: string | null;
+}
+
+/** One reply in a topic's thread (human admin or the automated routine). */
+interface FeedbackMessage {
+  id: string;
+  feedback_id: string;
+  author_id: string | null;
+  is_system: boolean;
+  body: string;
+  created_at: string;
+  author: FeedbackAuthor | null;
 }
 
 interface FeedbackRow {
@@ -140,6 +151,39 @@ const MAX_ATTACHMENTS = 10;
             @if (m.processing_note) {
               <p class="proc-note">{{ m.processing_note }}</p>
             }
+
+            <!-- Per-topic thread: follow-up replies (human admins + the routine). -->
+            @if (messagesFor(m.id).length > 0) {
+              <div class="thread">
+                @for (msg of messagesFor(m.id); track msg.id) {
+                  <div class="reply" [class.is-system]="msg.is_system" [class.is-self]="!msg.is_system && msg.author_id === selfId()">
+                    <div class="reply-head">
+                      <span class="reply-author">{{ authorLabelFor(msg) }}</span>
+                      @if (msg.is_system) { <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span> }
+                      <span class="reply-ts">{{ msg.created_at | date:'short' }}</span>
+                    </div>
+                    <div class="reply-body" [innerHTML]="render(msg.body)"></div>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Reply composer — answer the routine / continue the topic. -->
+            <div class="reply-compose">
+              <textarea
+                class="reply-input"
+                rows="2"
+                [value]="replyDraft(m.id)"
+                (input)="onReplyInput(m.id, $any($event.target).value)"
+                [placeholder]="'adminFeedback.thread.replyPlaceholder' | translate"
+                [attr.aria-label]="'adminFeedback.thread.replyPlaceholder' | translate"></textarea>
+              <button
+                class="sc-btn micro"
+                (click)="sendReply(m.id)"
+                [disabled]="busy() || replyDraft(m.id).trim().length === 0">
+                {{ 'adminFeedback.thread.reply' | translate }}
+              </button>
+            </div>
 
             <!-- Any admin may delete any topic (board is admin-only) — clears a
                  topic once its handling/rejection is accepted. -->
@@ -357,6 +401,7 @@ const MAX_ATTACHMENTS = 10;
       &.in_progress { background: rgba(251, 191, 36, 0.18); color: var(--sc-warning); }
       &.shipped { background: rgba(74, 222, 128, 0.18); color: var(--sc-success); }
       &.rejected { background: rgba(122, 134, 156, 0.2); color: var(--sc-fg-2); }
+      &.needs_input { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
     }
 
     .msg-body {
@@ -404,6 +449,34 @@ const MAX_ATTACHMENTS = 10;
       color: var(--sc-fg-2);
       font-style: italic;
     }
+
+    /* ---- Per-topic thread ---- */
+    .thread { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding-left: 10px; border-left: 2px solid var(--sc-border); }
+    .reply { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: 8px; background: var(--sc-bg-2); }
+    .reply.is-self { box-shadow: inset 2px 0 0 var(--sc-accent); }
+    .reply.is-system { background: color-mix(in srgb, #a78bfa 12%, var(--sc-bg-2)); box-shadow: inset 2px 0 0 #a78bfa; }
+    .reply-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .reply-author { font-weight: 600; font-size: 0.82rem; }
+    .reply-badge {
+      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 1px 6px; border-radius: 999px;
+      background: color-mix(in srgb, #a78bfa 25%, transparent); color: #a78bfa;
+    }
+    .reply-ts { margin-left: auto; color: var(--sc-fg-2); font-size: 0.72rem; }
+    .reply-body { font-size: 0.88rem; line-height: 1.45; overflow-wrap: anywhere; }
+    .reply-body :first-child { margin-top: 0; }
+    .reply-body :last-child { margin-bottom: 0; }
+    .reply-body p { margin: 0 0 6px; }
+    .reply-body a { color: var(--sc-accent); }
+    .reply-body code { font-family: monospace; font-size: 0.85em; background: var(--sc-bg-1); padding: 1px 5px; border-radius: 3px; }
+
+    .reply-compose { display: flex; gap: 8px; align-items: flex-end; margin-top: 2px; }
+    .reply-input {
+      flex: 1; box-sizing: border-box; resize: vertical; min-height: 38px;
+      padding: 8px 10px; background: var(--sc-bg-1); color: var(--sc-fg-0);
+      border: 1px solid var(--sc-border); border-radius: 6px; font: inherit; font-size: 0.86rem; line-height: 1.4;
+    }
+    .reply-input:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.22); }
 
     .msg-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .sc-btn.micro { padding: 4px 10px; font-size: 0.7rem; letter-spacing: 0.04em; }
@@ -543,6 +616,18 @@ export class AdminFeedbackComponent implements OnInit {
   readonly draft = signal('');
   readonly draftRestored = signal(false);
   readonly selfId = computed(() => this.auth.user()?.id ?? null);
+
+  /** Replies per topic, keyed by feedback id (oldest first). */
+  readonly threads = signal<Map<string, FeedbackMessage[]>>(new Map());
+  /** Per-topic reply composer drafts, keyed by feedback id. */
+  private readonly replyDrafts = signal<Map<string, string>>(new Map());
+
+  messagesFor(feedbackId: string): FeedbackMessage[] {
+    return this.threads().get(feedbackId) ?? [];
+  }
+  replyDraft(feedbackId: string): string {
+    return this.replyDrafts().get(feedbackId) ?? '';
+  }
 
   /** Images queued for the next message (compressed data URIs). */
   readonly attachments = signal<PendingImage[]>([]);
@@ -891,9 +976,72 @@ export class AdminFeedbackComponent implements OnInit {
     if (error) {
       this.errorMsg.set(error.message);
     } else {
-      this.messages.set((data ?? []) as unknown as FeedbackRow[]);
+      const rows = (data ?? []) as unknown as FeedbackRow[];
+      this.messages.set(rows);
+      await this.loadThreads(rows.map((r) => r.id));
     }
     this.busy.set(false);
+  }
+
+  /** Fetch every topic's replies in one query and group them by feedback id. */
+  private async loadThreads(feedbackIds: string[]): Promise<void> {
+    if (feedbackIds.length === 0) {
+      this.threads.set(new Map());
+      return;
+    }
+    const { data, error } = await this.sb.client
+      .from('admin_feedback_messages')
+      .select('id, feedback_id, author_id, is_system, body, created_at, author:profiles(display_name, username)')
+      .in('feedback_id', feedbackIds)
+      .order('created_at', { ascending: true });
+    if (error) {
+      // Threads are additive — a load failure must not blank the board.
+      return;
+    }
+    const grouped = new Map<string, FeedbackMessage[]>();
+    for (const row of (data ?? []) as unknown as FeedbackMessage[]) {
+      const list = grouped.get(row.feedback_id) ?? [];
+      list.push(row);
+      grouped.set(row.feedback_id, list);
+    }
+    this.threads.set(grouped);
+  }
+
+  onReplyInput(feedbackId: string, value: string): void {
+    this.replyDrafts.update((m) => new Map(m).set(feedbackId, value));
+  }
+
+  /** Post a human reply into a topic's thread, then reload it. */
+  async sendReply(feedbackId: string): Promise<void> {
+    const text = this.replyDraft(feedbackId).trim();
+    const uid = this.selfId();
+    if (!text || !uid) return;
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const { error } = await this.sb.client
+      .from('admin_feedback_messages')
+      .insert({ feedback_id: feedbackId, author_id: uid, is_system: false, body: text });
+    if (error) {
+      this.errorMsg.set(error.message);
+      this.busy.set(false);
+      return;
+    }
+    this.replyDrafts.update((m) => {
+      const next = new Map(m);
+      next.delete(feedbackId);
+      return next;
+    });
+    await this.refresh();
+  }
+
+  authorLabelFor(msg: FeedbackMessage): string {
+    if (msg.is_system) return this.translate.instant('adminFeedback.thread.routine');
+    if (msg.author_id && msg.author_id === this.selfId()) {
+      return this.translate.instant('adminFeedback.you');
+    }
+    return msg.author?.display_name
+      ?? (msg.author?.username ? `@${msg.author.username}` : null)
+      ?? this.translate.instant('adminFeedback.unknownUser');
   }
 
   async send() {

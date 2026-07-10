@@ -837,7 +837,14 @@
       "open": "Open",
       "in_progress": "In progress",
       "shipped": "Shipped",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "needs_input": "Needs input"
+    },
+    "thread": {
+      "routine": "Routine",
+      "routineBadge": "Auto",
+      "reply": "Reply",
+      "replyPlaceholder": "Write a reply… (Markdown supported)"
     },
     "compose": {
       "placeholder": "What could be better? Markdown supported — Enter for a new line, Ctrl+Enter to send.",

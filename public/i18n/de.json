@@ -837,7 +837,14 @@
       "open": "Offen",
       "in_progress": "In Arbeit",
       "shipped": "Geshipped",
-      "rejected": "Abgelehnt"
+      "rejected": "Abgelehnt",
+      "needs_input": "Rückfrage"
+    },
+    "thread": {
+      "routine": "Routine",
+      "routineBadge": "Auto",
+      "reply": "Antworten",
+      "replyPlaceholder": "Antwort schreiben… (Markdown möglich)"
     },
     "compose": {
       "placeholder": "Was könnte besser sein? Markdown möglich — Enter für neue Zeile, Strg+Enter zum Senden.",
