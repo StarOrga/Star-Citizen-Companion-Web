@@ -447,7 +447,13 @@ type UpdateEvent =
   | { type: 'not-available'; currentVersion: string }
   | { type: 'progress'; pct: number; bytesPerSecond?: number; transferred?: number; total?: number }
   | { type: 'downloaded'; version: string }
+  | { type: 'manual'; currentVersion: string }
   | { type: 'error'; message: string };
+
+// Public download page — opened for portable builds that can't self-update.
+// window.open is intercepted by the main process' setWindowOpenHandler and
+// routed through shell.openExternal (opens in the default browser, no in-app window).
+const DOWNLOAD_PAGE_URL = 'https://sc-companion.vercel.app/desktop';
 
 // Manual "check for updates" trigger in the header. The auto banner stays
 // silent for 'checking'/'not-available', so this button gives the user explicit
@@ -499,6 +505,17 @@ function paintUpdateBanner(ev: UpdateEvent): void {
     case 'checking':
     case 'not-available':
       banner.classList.add('hidden');
+      return;
+    case 'manual':
+      // Portable build — no in-place auto-update. Gentle info banner (not an
+      // error) with a button to the download page.
+      text.textContent =
+        t('update.manual', { version: ev.currentVersion }) ||
+        `Automatische Updates sind im Portable-Build nicht möglich — neue Versionen bitte manuell laden (aktuell v${ev.currentVersion}).`;
+      action.textContent = t('update.openDownload', {}) || 'Download-Seite öffnen';
+      action.style.display = 'inline-flex';
+      action.onclick = () => void window.open(DOWNLOAD_PAGE_URL);
+      banner.classList.remove('hidden');
       return;
     case 'available':
       text.textContent =

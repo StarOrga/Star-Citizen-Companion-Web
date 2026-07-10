@@ -17,7 +17,13 @@
 import { app, BrowserWindow } from 'electron';
 import electronUpdater, { type UpdateInfo } from 'electron-updater';
 import log from 'electron-log';
-import { API_BASE, RELEASE_TOKEN, IS_UNSIGNED_DEV_BUILD, TOOL_VERSION } from '../lib/release-token.js';
+import {
+  API_BASE,
+  RELEASE_TOKEN,
+  IS_UNSIGNED_DEV_BUILD,
+  IS_PORTABLE_BUILD,
+  TOOL_VERSION,
+} from '../lib/release-token.js';
 import { reportCrash } from './telemetry-reporter.js';
 
 // CommonJS interop — electron-updater's named exports aren't exposed via ESM.
@@ -29,6 +35,9 @@ export type UpdateEventPayload =
   | { type: 'not-available'; currentVersion: string }
   | { type: 'progress'; pct: number; bytesPerSecond?: number; transferred?: number; total?: number }
   | { type: 'downloaded'; version: string }
+  // Portable build: in-place auto-update can't work, so we don't attempt it.
+  // The renderer shows a gentle "download the latest manually" hint, never an error.
+  | { type: 'manual'; currentVersion: string }
   | { type: 'error'; message: string };
 
 const FEED_URL = `${API_BASE}/functions/v1/desktop-latest`;
@@ -97,6 +106,16 @@ export function initAutoUpdater(): void {
     return;
   }
 
+  if (IS_PORTABLE_BUILD) {
+    // A portable exe can't replace itself in place while running (and the
+    // portable target ships no app-update.yml), so electron-updater's in-place
+    // flow only produces a confusing `ENOENT app-update.yml`. Skip it entirely
+    // and tell the renderer to show a "download the latest manually" hint.
+    log.info('[updater] portable build — auto-update disabled, manual download only');
+    broadcast({ type: 'manual', currentVersion: TOOL_VERSION });
+    return;
+  }
+
   // Pipe electron-updater's internal logger into electron-log (writes to
   // %USERPROFILE%/AppData/Roaming/<app>/logs/main.log on Windows).
   autoUpdater.logger = log;
@@ -162,6 +181,10 @@ export function initAutoUpdater(): void {
     autoUpdater.checkForUpdates().catch((err) => {
       log.warn('[updater] checkForUpdates failed:', err);
       broadcast({ type: 'error', message: err?.message ?? String(err) });
+      // Some failures (e.g. a missing app-update.yml) only reject the promise
+      // and never fire the 'error' event, so report here too — reportUpdateError
+      // de-dupes so the 'error' handler firing as well is harmless.
+      reportUpdateError(err);
     });
   }, 4000);
 
@@ -182,6 +205,11 @@ export async function checkForUpdatesManually(): Promise<UpdateEventPayload> {
     broadcast(ev);
     return ev;
   }
+  if (IS_PORTABLE_BUILD) {
+    const ev: UpdateEventPayload = { type: 'manual', currentVersion: TOOL_VERSION };
+    broadcast(ev);
+    return ev;
+  }
   try {
     await autoUpdater.checkForUpdates();
     return lastEvent;
@@ -191,6 +219,7 @@ export async function checkForUpdatesManually(): Promise<UpdateEventPayload> {
       message: err instanceof Error ? err.message : String(err),
     };
     broadcast(ev);
+    reportUpdateError(err);
     return ev;
   }
 }

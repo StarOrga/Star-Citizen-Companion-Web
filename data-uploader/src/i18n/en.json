@@ -104,7 +104,9 @@
     "error": "Update error: {{message}}",
     "check": "Check for updates",
     "checking": "Checking…",
-    "uptodate": "Up to date (v{{version}})"
+    "uptodate": "Up to date (v{{version}})",
+    "manual": "Automatic updates aren't available in the portable build — please download new versions manually (currently v{{version}}).",
+    "openDownload": "Open download page"
   },
   "session": {
     "title": "Web connection",
