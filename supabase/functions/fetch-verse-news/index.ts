@@ -376,12 +376,21 @@ async function fetchSpectrum(): Promise<VerseNewsItem[]> {
 // no longer exist in the export — that stale scrape is what made the chip read "unbekannt".
 
 // Per-component `data-status` (Statuspage enum) → our StatusLevel.
+// The static export's CSS/tag markup uses SHORT values (degraded/partial/major/
+// maintenance — verified 2026-07 against the live page), while the classic
+// Statuspage enum uses long ones. Map both: a component in a real incident
+// carries the short form, and an unmapped value used to silently DROP the
+// component from the drill-down exactly when it mattered (issue #20).
 const COMPONENT_STATUS_MAP: Record<string, StatusLevel> = {
   operational: 'operational',
   degraded_performance: 'degraded',
+  degraded: 'degraded',
   partial_outage: 'partial_outage',
+  partial: 'partial_outage',
   major_outage: 'major_outage',
+  major: 'major_outage',
   under_maintenance: 'maintenance',
+  maintenance: 'maintenance',
 };
 // Overall body class `status-homepage status-<x>` → our StatusLevel.
 const OVERALL_STATUS_MAP: Record<string, StatusLevel> = {
