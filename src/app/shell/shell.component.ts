@@ -10,6 +10,7 @@ import {
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
+import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { FooterComponent } from './footer.component';
 import { QuickSearchComponent } from './quick-search.component';
@@ -70,6 +71,12 @@ import { FeedbackFabComponent } from './feedback-fab.component';
 
           @if (menuOpen()) {
             <div class="dropdown" role="menu" (keydown)="onMenuKeydown($event)">
+              <div class="dropdown-header">
+                <span class="dh-name">{{ displayName() }}</span>
+                @if (auth.user()?.email; as email) {
+                  <span class="dh-email">{{ email }}</span>
+                }
+              </div>
               <a
                 class="dropdown-item"
                 role="menuitem"
@@ -209,6 +216,26 @@ import { FeedbackFabComponent } from './feedback-fab.component';
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), var(--sc-glow);
       z-index: 30;
     }
+    .dropdown-header {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 8px 12px 10px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid var(--sc-border);
+    }
+    .dropdown-header .dh-name {
+      font-family: var(--sc-font-display);
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--sc-fg-0);
+      overflow-wrap: anywhere;
+    }
+    .dropdown-header .dh-email {
+      font-size: 0.72rem;
+      color: var(--sc-fg-2);
+      overflow-wrap: anywhere;
+    }
     .dropdown-item {
       display: block;
       width: 100%;
@@ -274,21 +301,31 @@ import { FeedbackFabComponent } from './feedback-fab.component';
 export class ShellComponent {
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
+  readonly profile = inject(ProfileService);
   private readonly host = inject(ElementRef<HTMLElement>);
 
   readonly signingOut = signal(false);
   readonly menuOpen = signal(false);
 
-  readonly avatarInitial = computed(() => {
+  /**
+   * The user's chosen handle is the primary identity (see feedback: "username
+   * is how you are first identified"). Fall back to auth metadata, then email.
+   */
+  readonly displayName = computed(() => {
+    const username = this.profile.username();
+    if (username) return username;
     const user = this.auth.user();
     const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
-    const name =
-      (meta['username'] as string | undefined) ??
+    return (
       (meta['full_name'] as string | undefined) ??
       (meta['name'] as string | undefined) ??
       user?.email ??
-      '';
-    const first = name.trim().charAt(0);
+      ''
+    );
+  });
+
+  readonly avatarInitial = computed(() => {
+    const first = this.displayName().trim().charAt(0);
     return first ? first.toUpperCase() : '?';
   });
 

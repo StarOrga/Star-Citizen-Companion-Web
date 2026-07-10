@@ -77,7 +77,9 @@
       "admin": "Admin",
       "collaborator": "Collaborateur",
       "viewer": "Lecteur"
-    }
+    },
+    "username": "Nom d’utilisateur",
+    "usernameUnset": "Non défini"
   },
   "admin": {
     "title": "Admin · Gestion des utilisateurs",
