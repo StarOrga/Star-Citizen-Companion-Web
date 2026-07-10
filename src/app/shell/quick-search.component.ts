@@ -28,6 +28,10 @@ interface QuickResult {
   row: CodexListRow;
 }
 
+/** Search scope: 'all' or one of the searchable entity kinds. */
+type SearchCategory = 'all' | 'ship' | 'weapon' | 'component';
+const SEARCH_CATEGORIES: readonly SearchCategory[] = ['all', 'ship', 'weapon', 'component'];
+
 const SEARCH_DEBOUNCE_MS = 220;
 const PER_KIND_LIMIT = 6;
 
@@ -69,17 +73,39 @@ const PER_KIND_LIMIT = 6;
             (keydown.arrowup)="moveActive($event, -1)"
             [attr.placeholder]="'quickSearch.placeholder' | translate" />
 
+          <div class="qs-cats" role="tablist" [attr.aria-label]="'quickSearch.category.groupAria' | translate">
+            @for (cat of categories; track cat) {
+              <button type="button" class="qs-cat" role="tab"
+                      [class.active]="category() === cat"
+                      [attr.aria-selected]="category() === cat"
+                      (click)="setCategory(cat)">
+                <span>{{ ('quickSearch.category.' + cat) | translate }}</span>
+                @if (query() && categoryCount(cat) > 0) { <span class="qs-cat-ct">{{ categoryCount(cat) }}</span> }
+              </button>
+            }
+          </div>
+
           @if (loading()) {
             <p class="state">{{ 'quickSearch.searching' | translate }}</p>
-          } @else if (query() && results().length === 0) {
+          } @else if (query() && displayResults().length === 0) {
             <p class="state">{{ 'quickSearch.noResults' | translate }}</p>
           } @else if (!query()) {
             <p class="state hint">{{ 'quickSearch.hint' | translate }}</p>
           }
 
-          @if (results().length > 0) {
+          <!-- Primary category empty but cross-category matches exist: keep the
+               chosen scope's intent, then fall back to "other matches" (the
+               "M5A laser cannon under Ships" case from the feedback). -->
+          @if (noneInCategory()) {
+            <p class="state cat-empty">{{ 'quickSearch.noneInCategory' | translate: { category: (('quickSearch.category.' + category()) | translate) } }}</p>
+          }
+
+          @if (displayResults().length > 0) {
             <ul class="qs-results" id="qs-results-list" role="listbox">
-              @for (r of results(); track r.kind + ':' + r.row.classNameSlug; let i = $index) {
+              @for (r of displayResults(); track r.kind + ':' + r.row.classNameSlug; let i = $index) {
+                @if (i === firstOtherIndex()) {
+                  <li class="qs-divider" role="presentation">{{ 'quickSearch.otherMatches' | translate }}</li>
+                }
                 <li class="qs-row"
                     role="option"
                     [id]="'qs-opt-' + i"
@@ -149,6 +175,20 @@ const PER_KIND_LIMIT = 6;
       font-family: inherit; font-size: 1rem;
     }
     .qs-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(0,212,255,0.25); }
+    .qs-cats { display: flex; gap: 6px; flex-wrap: wrap; }
+    .qs-cat {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 999px;
+      border: 1px solid var(--sc-border); background: transparent;
+      color: var(--sc-fg-1); font-family: inherit; font-size: 0.74rem; cursor: pointer;
+      transition: border-color .16s, background .16s, color .16s;
+    }
+    .qs-cat:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .qs-cat.active { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); border-color: var(--sc-accent); color: var(--sc-fg-0); font-weight: 600; }
+    .qs-cat-ct { font-size: 0.64rem; padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
+    .qs-cat.active .qs-cat-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-bg-0); }
+    .state.cat-empty { color: var(--sc-warning); font-style: italic; }
+    .qs-divider { list-style: none; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); padding: 6px 4px 2px; border-top: 1px dashed color-mix(in srgb, var(--sc-border) 70%, transparent); margin-top: 2px; }
     .state { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; padding: 2px 4px; }
     .qs-results { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
     .qs-row {
@@ -199,12 +239,52 @@ export class QuickSearchComponent {
   readonly visible = signal(false);
   readonly query = signal('');
   readonly loading = signal(false);
+  /** Raw merged matches across all searchable kinds (unfiltered store). */
   readonly results = signal<QuickResult[]>([]);
   readonly activeIndex = signal(0);
+  readonly category = signal<SearchCategory>('all');
+  readonly categories = SEARCH_CATEGORIES;
+
+  /**
+   * Results ordered for the active category: 'all' keeps the merged order;
+   * a specific category floats its own kind to the top, then appends the rest
+   * as "other matches" so nothing a user typed goes missing (feedback 55820e0c).
+   */
+  readonly displayResults = computed<QuickResult[]>(() => {
+    const all = this.results();
+    const cat = this.category();
+    if (cat === 'all') return all;
+    const primary = all.filter((r) => r.kind === cat);
+    const others = all.filter((r) => r.kind !== cat);
+    return [...primary, ...others];
+  });
+
+  /** Count of matches for a category tab ('all' = total). */
+  categoryCount(cat: SearchCategory): number {
+    const all = this.results();
+    return cat === 'all' ? all.length : all.filter((r) => r.kind === cat).length;
+  }
+
+  /** True when the chosen category has no match but other kinds do. */
+  readonly noneInCategory = computed(
+    () =>
+      this.category() !== 'all' &&
+      this.results().length > 0 &&
+      this.categoryCount(this.category()) === 0,
+  );
+
+  /** Index of the first "other matches" row (divider anchor), or -1. */
+  readonly firstOtherIndex = computed(() => {
+    const cat = this.category();
+    if (cat === 'all') return -1;
+    const primaryCount = this.categoryCount(cat);
+    // No divider when there are no primaries (info line covers it) or no others.
+    return primaryCount > 0 && primaryCount < this.displayResults().length ? primaryCount : -1;
+  });
 
   /** id of the currently active <li> for aria-activedescendant (empty when no results). */
   readonly activeDescendant = computed(() =>
-    this.results().length > 0 ? `qs-opt-${this.activeIndex()}` : null,
+    this.displayResults().length > 0 ? `qs-opt-${this.activeIndex()}` : null,
   );
 
   private readonly hangarClassNames = computed(
@@ -257,8 +337,15 @@ export class QuickSearchComponent {
     this.query.set('');
     this.results.set([]);
     this.activeIndex.set(0);
+    this.category.set('all');
     this.overlayRef?.dispose();
     this.overlayRef = null;
+  }
+
+  /** Switch the active search scope; keeps the query, re-orders results. */
+  setCategory(cat: SearchCategory): void {
+    this.category.set(cat);
+    this.activeIndex.set(0);
   }
 
   onQuery(value: string): void {
@@ -275,7 +362,7 @@ export class QuickSearchComponent {
 
   /** Move the active row by delta (keyboard nav), clamped to bounds, then scroll it into view. */
   moveActive(ev: Event, delta: number): void {
-    const count = this.results().length;
+    const count = this.displayResults().length;
     if (count === 0) return;
     ev.preventDefault();
     const next = Math.min(count - 1, Math.max(0, this.activeIndex() + delta));
@@ -293,7 +380,7 @@ export class QuickSearchComponent {
   }
 
   openActive(): void {
-    const r = this.results()[this.activeIndex()];
+    const r = this.displayResults()[this.activeIndex()];
     if (r) this.openResult(r);
   }
 
