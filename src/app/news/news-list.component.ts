@@ -1,4 +1,20 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  TemplateRef,
+  ViewContainerRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { Overlay, OverlayRef } from '@angular/cdk/overlay';
+import { TemplatePortal } from '@angular/cdk/portal';
+import { ActivatedRoute } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { NewsService, NewsChannel, VerseNewsItem } from './news.service';
 import { NewsThumbComponent } from './news-thumb.component';
@@ -19,7 +35,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
 @Component({
   selector: 'sc-news-list',
   standalone: true,
-  imports: [TranslateModule, NewsThumbComponent],
+  imports: [TranslateModule, NewsThumbComponent, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="news-page">
@@ -73,8 +89,8 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       <div class="stream">
         <div class="filter-bar" role="group" [attr.aria-label]="'news.filter.groupAria' | translate">
           <button class="chip all" type="button"
-                  [class.active]="!hasFilter()"
-                  [attr.aria-pressed]="!hasFilter()"
+                  [class.active]="!hasFilter() && !svc.favoritesOnly()"
+                  [attr.aria-pressed]="!hasFilter() && !svc.favoritesOnly()"
                   (click)="clearFilter()">{{ 'news.channels.all' | translate }}</button>
           @for (ch of channels; track ch) {
             <button class="chip" type="button"
@@ -87,6 +103,14 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
               <span class="ct">{{ svc.channelCount(ch) }}</span>
             </button>
           }
+          <button class="chip fav-chip" type="button"
+                  [class.active]="svc.favoritesOnly()"
+                  [attr.aria-pressed]="svc.favoritesOnly()"
+                  (click)="toggleFavoritesOnly()">
+            <span class="ch-icon star" aria-hidden="true">★</span>
+            <span>{{ 'news.channels.favorites' | translate }}</span>
+            <span class="ct">{{ svc.favoriteCount() }}</span>
+          </button>
         </div>
 
         @if (svc.loading() && !svc.feed()) {
@@ -139,28 +163,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
               </div>
               <div class="cards today-cards">
                 @for (item of svc.bucketed().today; track item.id; let i = $index) {
-                  <a class="card" [class.featured]="i === 0"
-                     [class.has-thumb]="!!item.thumbnail"
-                     [attr.data-channel]="item.channel"
-                     [href]="item.url" target="_blank" rel="noopener noreferrer"
-                     [attr.title]="('news.openExternal' | translate:{ host: hostOf(item.url) })">
-                    <sc-news-thumb
-                      [images]="imagesOf(item)"
-                      [channel]="item.channel"
-                      [channelLabel]="('news.channels.' + item.channel) | translate"
-                      [channelIcon]="iconFor(item.channel)"
-                      [featured]="i === 0" />
-                    <div class="body">
-                      <h3>{{ item.title }}</h3>
-                      @if (item.summary && (i === 0 || !item.thumbnail)) {
-                        <p>{{ item.summary }}</p>
-                      }
-                      <div class="foot">
-                        <time>{{ relTime(item.publishedAt) }}</time>
-                        <span class="src">{{ 'news.via' | translate:{ source: hostOf(item.url) } }} ↗</span>
-                      </div>
-                    </div>
-                  </a>
+                  <ng-container *ngTemplateOutlet="card; context: { $implicit: item, featured: i === 0, showSummary: i === 0 || !item.thumbnail }" />
                 }
               </div>
             </section>
@@ -174,22 +177,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
               </div>
               <div class="cards regular-cards">
                 @for (item of svc.bucketed().week; track item.id) {
-                  <a class="card" [class.has-thumb]="!!item.thumbnail"
-                     [attr.data-channel]="item.channel"
-                     [href]="item.url" target="_blank" rel="noopener noreferrer">
-                    <sc-news-thumb
-                      [images]="imagesOf(item)"
-                      [channel]="item.channel"
-                      [channelLabel]="('news.channels.' + item.channel) | translate"
-                      [channelIcon]="iconFor(item.channel)" />
-                    <div class="body">
-                      <h3>{{ item.title }}</h3>
-                      <div class="foot">
-                        <time>{{ relTime(item.publishedAt) }}</time>
-                        <span class="src">{{ hostOf(item.url) }} ↗</span>
-                      </div>
-                    </div>
-                  </a>
+                  <ng-container *ngTemplateOutlet="card; context: { $implicit: item, featured: false, showSummary: false }" />
                 }
               </div>
             </section>
@@ -207,22 +195,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
               @if (olderOpen()) {
                 <div class="cards regular-cards">
                   @for (item of svc.bucketed().older; track item.id) {
-                    <a class="card" [class.has-thumb]="!!item.thumbnail"
-                       [attr.data-channel]="item.channel"
-                       [href]="item.url" target="_blank" rel="noopener noreferrer">
-                      <sc-news-thumb
-                        [images]="imagesOf(item)"
-                        [channel]="item.channel"
-                        [channelLabel]="('news.channels.' + item.channel) | translate"
-                        [channelIcon]="iconFor(item.channel)" />
-                      <div class="body">
-                        <h3>{{ item.title }}</h3>
-                        <div class="foot">
-                          <time>{{ relTime(item.publishedAt) }}</time>
-                          <span class="src">{{ hostOf(item.url) }} ↗</span>
-                        </div>
-                      </div>
-                    </a>
+                    <ng-container *ngTemplateOutlet="card; context: { $implicit: item, featured: false, showSummary: false }" />
                   }
                 </div>
               }
@@ -230,11 +203,98 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
           }
 
           @if (svc.bucketed().today.length === 0 && svc.bucketed().week.length === 0 && svc.bucketed().older.length === 0) {
-            <div class="sc-card empty">{{ (hasFilter() ? 'news.emptyFiltered' : 'news.empty') | translate }}</div>
+            <div class="sc-card empty">{{ (svc.favoritesOnly() ? 'news.emptyFavorites' : (hasFilter() ? 'news.emptyFiltered' : 'news.empty')) | translate }}</div>
           }
         }
       </div>
     </section>
+
+    <!-- One card template for all buckets: click opens the in-app detail
+         overlay; the footer keeps quick actions (save / share / external). -->
+    <ng-template #card let-item let-featured="featured" let-showSummary="showSummary">
+      <article class="card" [class.featured]="featured" [class.has-thumb]="!!item.thumbnail"
+               [attr.data-channel]="item.channel" tabindex="0" role="button"
+               [attr.aria-label]="item.title"
+               (click)="openDetail(item)"
+               (keydown.enter)="openDetail(item)"
+               (keydown.space)="onCardSpace($event, item)">
+        <sc-news-thumb
+          [images]="imagesOf(item)"
+          [channel]="item.channel"
+          [channelLabel]="('news.channels.' + item.channel) | translate"
+          [channelIcon]="iconFor(item.channel)"
+          [featured]="featured" />
+        <div class="body">
+          <h3>{{ item.title }}</h3>
+          @if (item.summary && showSummary) {
+            <p>{{ item.summary }}</p>
+          }
+          <div class="foot">
+            <time>{{ relTime(item.publishedAt) }}</time>
+            <span class="actions">
+              <button type="button" class="act fav" [class.on]="isFav(item)"
+                      [attr.aria-pressed]="isFav(item)"
+                      [attr.aria-label]="'news.favorite.toggle' | translate"
+                      [attr.title]="'news.favorite.toggle' | translate"
+                      (click)="toggleFavorite($event, item)">{{ isFav(item) ? '★' : '☆' }}</button>
+              <button type="button" class="act share"
+                      [attr.aria-label]="'news.share.label' | translate"
+                      [attr.title]="'news.share.label' | translate"
+                      (click)="share($event, item)">⤴</button>
+              <a class="act ext" [href]="item.url" target="_blank" rel="noopener noreferrer"
+                 (click)="$event.stopPropagation()"
+                 [attr.aria-label]="'news.openExternal' | translate:{ host: hostOf(item.url) }"
+                 [attr.title]="'news.openExternal' | translate:{ host: hostOf(item.url) }">{{ hostOf(item.url) }} ↗</a>
+            </span>
+          </div>
+        </div>
+      </article>
+    </ng-template>
+
+    <!-- Enlarged in-app detail (CDK overlay, portaled to <body>). -->
+    <ng-template #detailTpl>
+      <div class="nd-overlay" (click)="closeDetail()">
+        @if (selected(); as item) {
+          <article class="nd-panel sc-card" role="dialog" aria-modal="true"
+                   [attr.aria-label]="item.title" (click)="$event.stopPropagation()">
+            <button type="button" class="nd-close" (click)="closeDetail()"
+                    [attr.aria-label]="'news.detail.close' | translate">✕</button>
+            <sc-news-thumb
+              [images]="imagesOf(item)"
+              [channel]="item.channel"
+              [channelLabel]="('news.channels.' + item.channel) | translate"
+              [channelIcon]="iconFor(item.channel)"
+              [featured]="true" />
+            <div class="nd-body">
+              <div class="nd-chan">
+                <span class="ch-icon" [innerHTML]="iconFor(item.channel)"></span>
+                <span>{{ ('news.channels.' + item.channel) | translate }}</span>
+                <span class="dot-sep">·</span>
+                <time>{{ relTime(item.publishedAt) }}</time>
+              </div>
+              <h2>{{ item.title }}</h2>
+              @if (item.summary) { <p class="nd-summary">{{ item.summary }}</p> }
+              <div class="nd-actions">
+                <button type="button" class="sc-btn" [class.on]="isFav(item)"
+                        [attr.aria-pressed]="isFav(item)" (click)="toggleFavorite($event, item)">
+                  {{ (isFav(item) ? 'news.favorite.saved' : 'news.favorite.save') | translate }}
+                </button>
+                <button type="button" class="sc-btn" (click)="share($event, item)">
+                  {{ 'news.share.label' | translate }}
+                </button>
+                <a class="sc-btn primary" [href]="item.url" target="_blank" rel="noopener noreferrer">
+                  {{ 'news.openExternal' | translate:{ host: hostOf(item.url) } }} ↗
+                </a>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    </ng-template>
+
+    @if (shareHint(); as hint) {
+      <div class="share-toast" role="status">{{ hint | translate }}</div>
+    }
   `,
   styles: [`
     :host { display: block; }
@@ -467,17 +527,96 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
 
     .empty { text-align: center; color: var(--sc-fg-2); padding: 40px; margin: 16px; }
     .err { color: var(--sc-danger); margin: 16px; padding: 16px; }
+
+    /* ---------- Favorites chip ---------- */
+    .fav-chip .ch-icon.star { color: var(--sc-warning); font-size: 0.9rem; line-height: 1; }
+    .fav-chip.active { background: color-mix(in srgb, var(--sc-warning) 20%, transparent); border-color: var(--sc-warning); }
+    .fav-chip.active .ct { background: color-mix(in srgb, var(--sc-warning) 28%, transparent); color: var(--sc-bg-0); }
+
+    /* ---------- Card as button + quick actions ---------- */
+    .card { cursor: pointer; text-align: left; }
+    .card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .card .body .foot .actions { display: inline-flex; align-items: center; gap: 6px; }
+    .act {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 26px; height: 24px; padding: 0 6px; border-radius: 6px;
+      background: transparent; border: 1px solid transparent; color: var(--sc-fg-2);
+      font-family: inherit; font-size: 0.82rem; line-height: 1; cursor: pointer; text-decoration: none;
+    }
+    .act:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .act.fav.on { color: var(--sc-warning); }
+    .act.fav.on:hover { border-color: var(--sc-warning); color: var(--sc-warning); }
+    .act.ext { font-size: 0.7rem; color: var(--sc-accent); text-transform: lowercase; }
+
+    /* ---------- Detail overlay ---------- */
+    .nd-overlay {
+      position: fixed; inset: 0; z-index: 120;
+      background: rgba(0, 0, 0, 0.72);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      display: flex; justify-content: center; align-items: flex-start;
+      padding: 8vh 16px 16px; overflow-y: auto;
+    }
+    .nd-panel {
+      position: relative; width: 100%; max-width: 720px;
+      display: flex; flex-direction: column; gap: 0; overflow: hidden; padding: 0;
+      animation: nd-in .18s ease;
+    }
+    @keyframes nd-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .nd-panel { animation: none; } }
+    .nd-close {
+      position: absolute; top: 10px; right: 10px; z-index: 2;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(0, 0, 0, 0.55); border: 1px solid var(--sc-border);
+      color: var(--sc-fg-0); cursor: pointer; font-size: 1rem; line-height: 1;
+    }
+    .nd-close:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .nd-body { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 20px; }
+    .nd-chan { display: flex; align-items: center; gap: 8px; font-size: 0.74rem; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
+    .nd-chan .ch-icon { display: inline-flex; width: 15px; height: 15px; }
+    .nd-chan .ch-icon svg { width: 100%; height: 100%; }
+    .nd-chan .dot-sep { opacity: 0.6; }
+    .nd-body h2 { margin: 0; font-family: var(--sc-font-display); font-size: 1.35rem; line-height: 1.25; }
+    .nd-summary { margin: 0; color: var(--sc-fg-1); font-size: 0.92rem; line-height: 1.55; white-space: pre-line; }
+    .nd-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+    .nd-actions .sc-btn {
+      padding: 8px 14px; border-radius: 6px; background: var(--sc-bg-1);
+      border: 1px solid var(--sc-accent); color: var(--sc-accent);
+      font-family: var(--sc-font-display); font-size: 0.74rem; letter-spacing: 0.05em;
+      text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;
+    }
+    .nd-actions .sc-btn:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
+    .nd-actions .sc-btn.on { border-color: var(--sc-warning); color: var(--sc-warning); background: color-mix(in srgb, var(--sc-warning) 12%, transparent); }
+    .nd-actions .sc-btn.primary { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); }
+
+    /* ---------- Share toast ---------- */
+    .share-toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+      z-index: 130; padding: 10px 18px; border-radius: 999px;
+      background: var(--sc-bg-2); border: 1px solid var(--sc-accent); color: var(--sc-fg-0);
+      font-size: 0.82rem; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+      animation: nd-in .16s ease;
+    }
   `],
 })
 export class NewsListComponent implements OnInit, OnDestroy {
   readonly svc = inject(NewsService);
   private readonly t = inject(TranslateService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly overlay = inject(Overlay);
+  private readonly viewContainer = inject(ViewContainerRef);
 
   readonly channels = CHANNELS;
   readonly rsiStatusUrl = RSI_STATUS_URL;
   readonly statusOpen = signal(false);
   readonly olderOpen = signal(false);
   readonly hasFilter = computed(() => this.svc.activeChannels().size > 0);
+
+  // Enlarged in-app detail view (CDK overlay), plus a transient share toast.
+  private readonly detailTpl = viewChild.required<TemplateRef<unknown>>('detailTpl');
+  private detailRef: OverlayRef | null = null;
+  readonly selected = signal<VerseNewsItem | null>(null);
+  readonly shareHint = signal<string | null>(null);
+  private shareHintTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Ticking clock so every relative time ("updated X min ago", card timestamps)
   // stays live between the 5-min feed refreshes instead of freezing at load time.
@@ -496,23 +635,112 @@ export class NewsListComponent implements OnInit, OnDestroy {
     return this.now() - Date.parse(fetched) > 7 * 60 * 1000;
   });
 
-  ngOnInit() {
-    this.svc.refresh();
+  async ngOnInit() {
+    // Deep-link support: /news?article=<id> opens that item's detail directly
+    // (the target of a shared link) once the feed has loaded.
+    const articleId = this.route.snapshot.queryParamMap.get('article');
+    await this.svc.refresh();
     this.svc.startPolling();
     this.clockTimer = setInterval(() => this.now.set(Date.now()), 30_000);
+    if (articleId) {
+      const item = this.svc.itemById(articleId);
+      if (item) this.openDetail(item);
+    }
   }
 
   ngOnDestroy() {
     this.svc.stopPolling();
     if (this.clockTimer) { clearInterval(this.clockTimer); this.clockTimer = null; }
+    if (this.shareHintTimer) { clearTimeout(this.shareHintTimer); this.shareHintTimer = null; }
+    this.detailRef?.dispose();
+    this.detailRef = null;
   }
 
   toggleStatus() { this.statusOpen.update((v) => !v); }
   toggleOlder() { this.olderOpen.update((v) => !v); }
 
-  toggleChannel(ch: NewsChannel) { this.svc.toggleChannel(ch); }
-  clearFilter() { this.svc.clearFilter(); }
+  // Channel + favorites filtering are mutually exclusive views: picking a
+  // channel (or "Alle") leaves the saved-only view; the ★ chip enters it.
+  toggleChannel(ch: NewsChannel) {
+    if (this.svc.favoritesOnly()) this.svc.favoritesOnly.set(false);
+    this.svc.toggleChannel(ch);
+  }
+  clearFilter() {
+    this.svc.favoritesOnly.set(false);
+    this.svc.clearFilter();
+  }
+  toggleFavoritesOnly() { this.svc.toggleFavoritesOnly(); }
   isActive(ch: NewsChannel): boolean { return this.svc.activeChannels().has(ch); }
+
+  // ── Detail overlay ──────────────────────────────────────────────────────────
+  openDetail(item: VerseNewsItem): void {
+    this.selected.set(item);
+    if (this.detailRef) return;
+    const ref = this.overlay.create({
+      positionStrategy: this.overlay.position().global(),
+      scrollStrategy: this.overlay.scrollStrategies.block(),
+    });
+    ref.attach(new TemplatePortal(this.detailTpl(), this.viewContainer));
+    this.detailRef = ref;
+  }
+
+  closeDetail(): void {
+    this.selected.set(null);
+    this.detailRef?.dispose();
+    this.detailRef = null;
+  }
+
+  onCardSpace(ev: Event, item: VerseNewsItem): void {
+    ev.preventDefault();
+    this.openDetail(item);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.detailRef) this.closeDetail();
+  }
+
+  // ── Favorites + share ───────────────────────────────────────────────────────
+  isFav(item: VerseNewsItem): boolean {
+    return this.svc.isFavorite(item.id);
+  }
+
+  toggleFavorite(ev: Event, item: VerseNewsItem): void {
+    ev.stopPropagation();
+    this.svc.toggleFavorite(item.id);
+  }
+
+  async share(ev: Event, item: VerseNewsItem): Promise<void> {
+    ev.stopPropagation();
+    const url = this.shareUrl(item);
+    const nav = typeof navigator !== 'undefined' ? navigator : undefined;
+    if (nav?.share) {
+      try {
+        await nav.share({ title: item.title, url });
+      } catch {
+        /* user dismissed the share sheet — not an error */
+      }
+      return;
+    }
+    try {
+      await nav?.clipboard?.writeText(url);
+      this.flashShareHint('news.share.copied');
+    } catch {
+      this.flashShareHint('news.share.failed');
+    }
+  }
+
+  /** Deep link that reopens this article's detail view on our own site. */
+  private shareUrl(item: VerseNewsItem): string {
+    const origin = typeof location !== 'undefined' ? location.origin : '';
+    return `${origin}/news?article=${encodeURIComponent(item.id)}`;
+  }
+
+  private flashShareHint(key: string): void {
+    this.shareHint.set(key);
+    if (this.shareHintTimer) clearTimeout(this.shareHintTimer);
+    this.shareHintTimer = setTimeout(() => this.shareHint.set(null), 2600);
+  }
 
   acknowledgeNew() {
     this.svc.acknowledgeNewPosts();

@@ -343,6 +343,7 @@
     "newPost": "1 neuer Post ↑",
     "empty": "Noch keine News.",
     "emptyFiltered": "Keine News für diese Auswahl.",
+    "emptyFavorites": "Noch keine gemerkten Beiträge — tippe auf ☆ an einem Beitrag, um ihn hier zu sammeln.",
     "errorTitle": "News konnten nicht geladen werden",
     "lastUpdated": "Aktualisiert {{rel}}",
     "status": {
@@ -370,12 +371,26 @@
       "comm-link": "Comm-Link",
       "spectrum": "Spectrum",
       "youtube": "YouTube",
-      "patch": "Patch-Notes"
+      "patch": "Patch-Notes",
+      "favorites": "Favoriten"
     },
     "filter": {
       "label": "Filter",
       "clear": "Alle zeigen",
       "groupAria": "Kanalfilter"
+    },
+    "favorite": {
+      "toggle": "Merken",
+      "save": "★ Merken",
+      "saved": "★ Gemerkt"
+    },
+    "share": {
+      "label": "Teilen",
+      "copied": "Link kopiert",
+      "failed": "Link konnte nicht kopiert werden"
+    },
+    "detail": {
+      "close": "Schließen"
     },
     "via": "via {{source}}",
     "openExternal": "Öffnet {{host}}",

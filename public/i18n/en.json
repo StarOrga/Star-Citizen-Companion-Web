@@ -343,6 +343,7 @@
     "newPost": "1 new post ↑",
     "empty": "No news yet.",
     "emptyFiltered": "No news for this selection.",
+    "emptyFavorites": "No saved posts yet — tap ☆ on any post to collect it here.",
     "errorTitle": "Could not load news",
     "lastUpdated": "Updated {{rel}}",
     "status": {
@@ -370,12 +371,26 @@
       "comm-link": "Comm-Link",
       "spectrum": "Spectrum",
       "youtube": "YouTube",
-      "patch": "Patch notes"
+      "patch": "Patch notes",
+      "favorites": "Favorites"
     },
     "filter": {
       "label": "Filter",
       "clear": "Show all",
       "groupAria": "Channel filter"
+    },
+    "favorite": {
+      "toggle": "Save",
+      "save": "★ Save",
+      "saved": "★ Saved"
+    },
+    "share": {
+      "label": "Share",
+      "copied": "Link copied",
+      "failed": "Couldn't copy link"
+    },
+    "detail": {
+      "close": "Close"
     },
     "via": "via {{source}}",
     "openExternal": "Opens {{host}}",
