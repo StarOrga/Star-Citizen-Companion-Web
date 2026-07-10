@@ -31,7 +31,8 @@
     "hangar": "Hangar",
     "telemetry": "Telemetrie",
     "feedback": "Feedback",
-    "signIn": "Anmelden"
+    "signIn": "Anmelden",
+    "starscape": "Starscape"
   },
   "codex": {
     "title": "Codex",
@@ -995,5 +996,17 @@
         "desc": "News-Kanalfilter, gemerkte Artikel und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
       }
     }
+  },
+  "starscape": {
+    "title": "Starscape",
+    "subtitle": "Hochauflösende Artworks aus RSI-Comm-Links, gesammelt beim News-Crawl. Jedes Bild verlinkt direkt aufs Original im RSI-CDN — Kachel anklicken für volle Auflösung und Download.",
+    "filterAll": "Alle",
+    "empty": "Noch keine Wallpaper erfasst — sie erscheinen, sobald der News-Crawl läuft.",
+    "loadMore": "Mehr laden",
+    "loading": "Lädt…",
+    "download": "Original herunterladen",
+    "sourceArticle": "Quell-Comm-Link",
+    "close": "Schließen",
+    "attribution": "Alle Bilder © Cloud Imperium Games — direkt vom RSI-CDN ausgeliefert, mit Verweis auf den Quell-Comm-Link. Fan-Galerie, kein Weiterverkauf, kein Re-Hosting."
   }
 }

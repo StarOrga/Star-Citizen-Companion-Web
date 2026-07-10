@@ -32,6 +32,7 @@ import { FeedbackFabComponent } from './feedback-fab.component';
       <nav class="nav">
         <a routerLink="/news" routerLinkActive="active">{{ 'nav.news' | translate }}</a>
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
+        <a routerLink="/starscape" routerLinkActive="active">{{ 'nav.starscape' | translate }}</a>
         <a routerLink="/hangar" routerLinkActive="active">{{ 'nav.hangar' | translate }}</a>
         @if (roles.isCollaborator()) {
           <!-- Restricted (collaborator+admin) area — flagged red like the

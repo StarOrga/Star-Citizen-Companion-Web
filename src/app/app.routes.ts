@@ -36,6 +36,13 @@ export const routes: Routes = [
         loadComponent: () => import('./news/news-list.component').then((m) => m.NewsListComponent),
       },
       {
+        // Public: Starscape wallpaper gallery (#133) — hotlinked RSI imagery
+        // metadata, no hosted bytes. Aligned with the public-browsing model.
+        path: 'starscape',
+        loadComponent: () =>
+          import('./starscape/starscape.component').then((m) => m.StarscapeComponent),
+      },
+      {
         // Codex landing = "The Bridge" (Slice 1). Scanner + focal hero + lanes.
         // Public read since #131 (RLS: codex_* tables allow anon SELECT).
         path: 'codex',
