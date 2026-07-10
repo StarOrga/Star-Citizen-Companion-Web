@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { ConsentService } from '../core/consent.service';
 import { useAutoRefresh } from '../core/auto-refresh';
 
 interface VersionRow { version: string; crashes: number; usage: number; sessions: number; }
@@ -194,6 +195,7 @@ const PRODUCT_STORAGE_KEY = 'sc-telemetry-product';
 })
 export class TelemetryStatsComponent implements OnInit {
   private readonly supabase = inject(SupabaseClientProvider);
+  private readonly consentSvc = inject(ConsentService);
 
   /** Segmented-control options; also the i18n key suffixes (telemetry.product.*). */
   readonly products: ProductFilter[] = ['scc-app', 'data-uploader', 'all'];
@@ -230,10 +232,13 @@ export class TelemetryStatsComponent implements OnInit {
     if (this.product() === p) return;
     this.product.set(p);
     // Persist the choice so it becomes the default the next time the page opens.
-    try {
-      localStorage.setItem(PRODUCT_STORAGE_KEY, p);
-    } catch {
-      /* private-mode / disabled storage — selection just isn't remembered */
+    // Preference-category storage is opt-in (#130).
+    if (this.consentSvc.preferencesAllowed()) {
+      try {
+        localStorage.setItem(PRODUCT_STORAGE_KEY, p);
+      } catch {
+        /* private-mode / disabled storage — selection just isn't remembered */
+      }
     }
     void this.load();
   }

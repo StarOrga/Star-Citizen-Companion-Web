@@ -940,5 +940,28 @@
       "text": "Every ship page in our Codex lists real length, width and height from the game data — the reference you need to scale a print correctly.",
       "cta": "Open Codex"
     }
+  },
+  "consent": {
+    "banner": {
+      "title": "Browser storage",
+      "text": "This app sets no cookies. It stores your login session and language in this browser (required), and — only if you allow it — convenience preferences like news filters and saved articles. You can change this anytime in Settings.",
+      "acceptAll": "Allow all",
+      "essentialOnly": "Essential only"
+    },
+    "settings": {
+      "title": "Browser storage & privacy",
+      "hint": "This app sets no cookies and no tracking storage. Everything below lives in this browser's localStorage only.",
+      "alwaysOn": "Always on",
+      "on": "Allowed",
+      "off": "Off",
+      "essential": {
+        "label": "Essential",
+        "desc": "Login session, language, and this consent decision. Required for the app to work — cannot be disabled."
+      },
+      "preferences": {
+        "label": "Preferences",
+        "desc": "News channel filter, saved articles and similar convenience state. Turning this off deletes the stored values."
+      }
+    }
   }
 }

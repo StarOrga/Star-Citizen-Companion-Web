@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { ConsentService } from '../core/consent.service';
 
 export type NewsChannel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 export type StatusLevel = 'operational' | 'degraded' | 'partial_outage' | 'major_outage' | 'maintenance' | 'unknown';
@@ -53,6 +54,7 @@ const ALL_CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'
 @Injectable({ providedIn: 'root' })
 export class NewsService {
   private readonly http = inject(HttpClient);
+  private readonly consent = inject(ConsentService);
   private readonly endpoint = `${environment.supabase.url}/functions/v1/fetch-verse-news`;
 
   readonly feed = signal<VerseFeed | null>(null);
@@ -200,6 +202,8 @@ export class NewsService {
   }
 
   private persistFilter(set: Set<NewsChannel>): void {
+    // Preference-category storage is opt-in (#130) — skip until allowed.
+    if (!this.consent.preferencesAllowed()) return;
     if (typeof localStorage === 'undefined') return;
     try {
       localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(Array.from(set)));
@@ -219,6 +223,8 @@ export class NewsService {
   }
 
   private persistFavorites(set: Set<string>): void {
+    // Preference-category storage is opt-in (#130) — skip until allowed.
+    if (!this.consent.preferencesAllowed()) return;
     if (typeof localStorage === 'undefined') return;
     try {
       localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(Array.from(set)));

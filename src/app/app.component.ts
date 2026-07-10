@@ -2,16 +2,20 @@ import { ChangeDetectionStrategy, Component, effect, inject, OnInit } from '@ang
 import { RouterOutlet } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from './auth/auth.service';
+import { ConsentBannerComponent } from './core/consent-banner.component';
 import { SupabaseClientProvider } from './core/supabase.client';
 import { SwUpdateService } from './core/sw-update.service';
 
 @Component({
   selector: 'sc-root',
   standalone: true,
-  imports: [RouterOutlet, TranslateModule],
+  imports: [RouterOutlet, TranslateModule, ConsentBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <router-outlet />
+
+    <!-- First-visit browser-storage notice (#130) — self-hides once decided. -->
+    <sc-consent-banner />
 
     @if (swUpdate.updateReady()) {
       <div class="sw-update" role="status" aria-live="polite">

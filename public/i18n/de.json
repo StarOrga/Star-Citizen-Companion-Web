@@ -940,5 +940,28 @@
       "text": "Jede Schiffsseite in unserem Codex listet echte Länge, Breite und Höhe aus den Spieldaten — die Referenz, um einen Druck korrekt zu skalieren.",
       "cta": "Codex öffnen"
     }
+  },
+  "consent": {
+    "banner": {
+      "title": "Browser-Speicher",
+      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und gemerkte Artikel. Änderbar jederzeit in den Einstellungen.",
+      "acceptAll": "Alle erlauben",
+      "essentialOnly": "Nur notwendige"
+    },
+    "settings": {
+      "title": "Browser-Speicher & Datenschutz",
+      "hint": "Diese App setzt keine Cookies und kein Tracking. Alles Folgende liegt ausschließlich im localStorage dieses Browsers.",
+      "alwaysOn": "Immer aktiv",
+      "on": "Erlaubt",
+      "off": "Aus",
+      "essential": {
+        "label": "Notwendig",
+        "desc": "Login-Sitzung, Sprache und diese Consent-Entscheidung. Für die Funktion der App erforderlich — nicht abschaltbar."
+      },
+      "preferences": {
+        "label": "Präferenzen",
+        "desc": "News-Kanalfilter, gemerkte Artikel und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
+      }
+    }
   }
 }
