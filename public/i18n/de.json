@@ -796,6 +796,25 @@
       "preliminary": "Concept — vorläufig",
       "pledgeLink": "Pledge-Seite",
       "remove": "Entfernen"
+    },
+    "import": {
+      "open": "Importieren…",
+      "title": "Import aus Export-Datei",
+      "hint": "Ziehe einen JSON-Export im Hangar-Transfer-Format hierher (z. B. aus der HangarXPLOR-Browser-Erweiterung — du führst den Export selbst aus, wir fragen nie nach RSI-Zugangsdaten). Einträge werden gegen den Codex gematcht; nur von dir bestätigte Zeilen werden übernommen.",
+      "pickFile": "Datei wählen",
+      "parsing": "Lese…",
+      "dropHint": "oder .json-Datei hier ablegen",
+      "errParse": "Datei konnte nicht gelesen werden — erwartet wird ein JSON-Export.",
+      "errNoShips": "Keine Schiffseinträge in dieser Datei gefunden.",
+      "matched": "{{matched}} von {{total}} Einträgen im Katalog gefunden",
+      "chooseOther": "Andere Datei wählen",
+      "exact": "Treffer",
+      "fuzzy": "Beste Vermutung: {{name}}",
+      "noMatch": "Kein Katalog-Treffer",
+      "confirm": "{{count}} Schiffe importieren",
+      "importing": "Importiere…",
+      "done": "{{count}} Schiffe importiert.",
+      "close": "Schließen"
     }
   },
   "quickSearch": {

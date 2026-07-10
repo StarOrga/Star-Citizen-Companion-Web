@@ -796,6 +796,25 @@
       "preliminary": "Concept — preliminary",
       "pledgeLink": "Pledge page",
       "remove": "Remove"
+    },
+    "import": {
+      "open": "Import…",
+      "title": "Import from export file",
+      "hint": "Drop a Hangar Transfer Format JSON export here (e.g. from the HangarXPLOR browser extension — you run the export yourself, we never ask for RSI credentials). Entries are matched against the codex and only the rows you confirm are added.",
+      "pickFile": "Choose file",
+      "parsing": "Reading…",
+      "dropHint": "or drop the .json file here",
+      "errParse": "Could not read this file — expected a JSON export.",
+      "errNoShips": "No ship entries found in this file.",
+      "matched": "{{matched}} of {{total}} entries matched to the catalog",
+      "chooseOther": "Choose another file",
+      "exact": "Match",
+      "fuzzy": "Best guess: {{name}}",
+      "noMatch": "No catalog match",
+      "confirm": "Import {{count}} ships",
+      "importing": "Importing…",
+      "done": "{{count}} ships imported.",
+      "close": "Close"
     }
   },
   "quickSearch": {

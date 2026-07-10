@@ -12,6 +12,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { CodexListRow, CodexService, pickLocalized } from '../codex/codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
+import { HangarImportComponent } from './hangar-import.component';
 import { HangarService } from './hangar.service';
 import {
   HangarShip,
@@ -29,7 +30,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 @Component({
   selector: 'sc-hangar-dashboard',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule],
+  imports: [FormsModule, RouterLink, TranslateModule, HangarImportComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -66,11 +67,19 @@ const SEARCH_DEBOUNCE_MS = 250;
             <strong>{{ hangar.wishlistCount() }}</strong>
             <span>{{ 'hangar.counts.wishlist' | translate }}</span>
           </div>
+          <button type="button" class="sc-btn import-btn" (click)="importOpen.set(!importOpen())">
+            {{ 'hangar.import.open' | translate }}
+          </button>
         </div>
       </header>
 
       @if (hangar.error(); as err) {
         <div class="sc-card err">{{ err }}</div>
+      }
+
+      <!-- Import from export file (#136) -->
+      @if (importOpen()) {
+        <sc-hangar-import (closed)="importOpen.set(false)" />
       }
 
       <!-- Top 3 pinned -->
@@ -284,6 +293,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .count-chip { display: flex; flex-direction: column; align-items: center; padding: 8px 16px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
     .count-chip strong { font-family: var(--sc-font-display); font-size: 1.2rem; color: var(--sc-accent); }
     .count-chip span { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+    .import-btn { align-self: center; }
 
     .pinned-strip { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
     .hero { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 16px; text-decoration: none; color: inherit; border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent); transition: transform 0.16s, box-shadow 0.16s; }
@@ -471,6 +481,9 @@ export class HangarDashboardComponent implements OnInit {
       this.cards.set(cards);
     }
   }
+
+  // Import panel visibility (#136).
+  readonly importOpen = signal(false);
 
   // ── concept-ship wishlist (#135) ────────────────────────────────────────────
   conceptName = '';
