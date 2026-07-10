@@ -46,6 +46,7 @@ export interface BucketedNews {
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000;
 const FILTER_STORAGE_KEY = 'sc-companion.news.channels';
+const FAVORITES_STORAGE_KEY = 'sc-companion.news.favorites';
 
 const ALL_CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
 
@@ -61,6 +62,17 @@ export class NewsService {
   // Set of active channel filters. Empty set = "Alle" (all channels visible).
   readonly activeChannels = signal<Set<NewsChannel>>(this.loadFilterFromStorage());
 
+  // Saved ("Merken") article ids, persisted in localStorage.
+  readonly favoriteIds = signal<Set<string>>(this.loadFavoritesFromStorage());
+  // When true, the stream shows only saved items (overrides channel filters).
+  readonly favoritesOnly = signal(false);
+  // How many saved items are present in the current feed (drives the chip count).
+  readonly favoriteCount = computed(() => {
+    const f = this.feed();
+    const favs = this.favoriteIds();
+    return f ? f.news.filter((n) => favs.has(n.id)).length : 0;
+  });
+
   // Items the user hasn't seen yet (newer than lastSeenAt) buffered for the "X neue Posts"-pill.
   private readonly _lastSeenAt = signal<number>(Date.now());
   readonly pendingCount = computed(() => {
@@ -73,6 +85,10 @@ export class NewsService {
   readonly bucketed = computed<BucketedNews>(() => {
     const f = this.feed();
     if (!f) return { today: [], week: [], older: [] };
+    if (this.favoritesOnly()) {
+      const favs = this.favoriteIds();
+      return bucketByTime(f.news.filter((n) => favs.has(n.id)));
+    }
     const active = this.activeChannels();
     const filtered = active.size === 0 ? f.news : f.news.filter((n) => active.has(n.channel));
     return bucketByTime(filtered);
@@ -119,6 +135,31 @@ export class NewsService {
     return this.feed()?.news.filter((n) => n.channel === channel).length ?? 0;
   }
 
+  /** Look up a feed item by id (deep-link / share target). */
+  itemById(id: string): VerseNewsItem | undefined {
+    return this.feed()?.news.find((n) => n.id === id);
+  }
+
+  isFavorite(id: string): boolean {
+    return this.favoriteIds().has(id);
+  }
+
+  /** Toggle "Merken" for an article; persisted across sessions. */
+  toggleFavorite(id: string): void {
+    const next = new Set(this.favoriteIds());
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    this.favoriteIds.set(next);
+    this.persistFavorites(next);
+    // Leaving the favorites view empty would strand the user on a blank stream.
+    if (this.favoritesOnly() && next.size === 0) this.favoritesOnly.set(false);
+  }
+
+  /** Switch the stream between "all channels" and "saved only". */
+  toggleFavoritesOnly(): void {
+    this.favoritesOnly.update((v) => !v);
+  }
+
   startPolling(): void {
     if (this.pollTimer) return;
     this.pollTimer = setInterval(() => {
@@ -162,6 +203,25 @@ export class NewsService {
     if (typeof localStorage === 'undefined') return;
     try {
       localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(Array.from(set)));
+    } catch { /* quota / private mode */ }
+  }
+
+  private loadFavoritesFromStorage(): Set<string> {
+    if (typeof localStorage === 'undefined') return new Set();
+    try {
+      const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? new Set(arr.filter((x): x is string => typeof x === 'string')) : new Set();
+    } catch {
+      return new Set();
+    }
+  }
+
+  private persistFavorites(set: Set<string>): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(Array.from(set)));
     } catch { /* quota / private mode */ }
   }
 }
