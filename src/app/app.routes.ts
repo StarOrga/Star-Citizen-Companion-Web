@@ -147,6 +147,14 @@ export const routes: Routes = [
           import('./settings/settings.component').then((m) => m.SettingsComponent),
       },
       {
+        // 3D-printing guidance (issue #79, Option 0) — a no-hosting info page:
+        // links vetted external community tools, documents the print-prep
+        // workflow. Serves ZERO CIG-derived geometry by design (EULA).
+        path: 'tools/3d-print',
+        loadComponent: () =>
+          import('./tools/print-guide.component').then((m) => m.PrintGuideComponent),
+      },
+      {
         // "What's New" — release notes from CHANGELOG.md. Viewer-accessible
         // (authGuard via parent only, no role gate).
         path: 'release-notes',
