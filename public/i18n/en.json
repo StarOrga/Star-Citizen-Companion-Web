@@ -709,6 +709,12 @@
       "discard": "Discard",
       "delete": "Delete"
     },
+    "standard": {
+      "title": "Standard components",
+      "subtitle": "This ship's factory kit from the live game data (P4K) — the components it ships with by default.",
+      "count": "{{count}} components",
+      "empty": "No standard components are recorded for this ship in the current catalog build."
+    },
     "stats": {
       "title": "Loadout stats",
       "weapons": "Weapons",

@@ -161,6 +161,44 @@ interface PortRow {
           }
         </div>
 
+        <!-- Standard components (factory/stock loadout from P4K) — read-only,
+             always visible so the ship's default kit is listed without first
+             creating a config. -->
+        <div class="sc-card standard">
+          <div class="std-head">
+            <h2>{{ 'hangar.standard.title' | translate }}</h2>
+            @if (stockCount() > 0) {
+              <span class="std-ct">{{ 'hangar.standard.count' | translate: { count: stockCount() } }}</span>
+            }
+          </div>
+          <p class="hint">{{ 'hangar.standard.subtitle' | translate }}</p>
+          @if (stockCount() === 0) {
+            <p class="hint std-empty">{{ 'hangar.standard.empty' | translate }}</p>
+          } @else {
+            @for (cat of stockCategories(); track cat) {
+              <div class="cat">
+                <h3>{{ ('codex.portCategory.' + cat) | translate }}</h3>
+                <div class="std-list">
+                  @for (row of stockPortsByCategory(cat); track row.port.portName) {
+                    <div class="std-item">
+                      <span class="std-name">{{ resolvedName(row.stockClassName!) }}</span>
+                      <span class="std-meta">
+                        @if (row.port.portName) { <span class="std-port">{{ row.port.portName }}</span> }
+                        @if (row.port.minSize != null || row.port.maxSize != null) {
+                          <span class="badge subtle">S{{ row.port.minSize ?? '?' }}–{{ row.port.maxSize ?? '?' }}</span>
+                        }
+                        @for (t of row.port.types.slice(0, 2); track t) {
+                          <span class="badge subtle">{{ humanizeType(t) }}</span>
+                        }
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+
         <!-- Aggregate stats -->
         @if (selectedConfig()) {
           <div class="sc-card stats">
@@ -339,6 +377,17 @@ interface PortRow {
     .assign-name.custom { color: var(--sc-accent); }
     .assign-name.empty { color: var(--sc-fg-2); font-style: italic; }
 
+    .std-head { display: flex; align-items: baseline; gap: 10px; }
+    .std-head h2 { margin: 0; }
+    .std-ct { font-size: 0.7rem; color: var(--sc-fg-2); padding: 1px 8px; border-radius: 999px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
+    .standard .hint { margin: 6px 0 0; }
+    .std-empty { margin-top: 10px; }
+    .std-list { display: flex; flex-direction: column; gap: 6px; }
+    .std-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); flex-wrap: wrap; }
+    .std-name { font-size: 0.88rem; color: var(--sc-fg-0); flex: 1; min-width: 140px; }
+    .std-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .std-port { font-family: var(--sc-font-mono, monospace); font-size: 0.68rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+
     .notes textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.86rem; resize: vertical; margin-bottom: 8px; }
     .notes textarea:focus { outline: none; border-color: var(--sc-accent); }
 
@@ -443,6 +492,20 @@ export class HangarShipDetailComponent implements OnInit {
 
   portsByCategory(cat: HardpointCategory): PortRow[] {
     return this.portRows().filter((r) => r.category === cat);
+  }
+
+  /** Ports that ship a factory/stock component (the ship's standard kit). */
+  private readonly stockRows = computed<PortRow[]>(() =>
+    this.portRows().filter((r) => r.stockClassName),
+  );
+  readonly stockCount = computed(() => this.stockRows().length);
+  readonly stockCategories = computed<HardpointCategory[]>(() => {
+    const present = new Set(this.stockRows().map((r) => r.category));
+    return HARDPOINT_CATEGORY_ORDER.filter((c) => present.has(c));
+  });
+
+  stockPortsByCategory(cat: HardpointCategory): PortRow[] {
+    return this.stockRows().filter((r) => r.category === cat);
   }
 
   async ngOnInit(): Promise<void> {
@@ -640,7 +703,13 @@ export class HangarShipDetailComponent implements OnInit {
 
   /** Re-resolve display names + payloads for everything in the merged loadout. */
   private async refreshResolved(): Promise<void> {
-    const names = this.mergedLines().map((l) => l.className);
+    // Merged loadout names + all stock component names, so the read-only
+    // "standard components" list resolves display names even for ports that
+    // the active config has overridden (which drops them from mergedLines).
+    const stock = (this.shipPayload()?.defaultLoadout ?? [])
+      .map((e) => e.entityClassName)
+      .filter((c): c is string => !!c);
+    const names = [...new Set([...this.mergedLines().map((l) => l.className), ...stock])];
     if (names.length === 0) return;
     const [resolved, payloads] = await Promise.all([
       this.codex.resolveEntities(names),
