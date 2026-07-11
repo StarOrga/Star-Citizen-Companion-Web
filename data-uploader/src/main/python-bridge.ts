@@ -5,7 +5,9 @@
  * Locating the interpreter (in order):
  *   1. SC_EXTRACT_PYTHON env var       — overrides everything (test/CI)
  *   2. Packaged: process.resourcesPath/python/python.exe   (electron-builder extraResources)
- *   3. Dev: `python` (or `python3`) on PATH               (developer setup)
+ *   3. Dev: an interpreter resolved to an ABSOLUTE path via findDevInterpreter()
+ *           (PATH scan → well-known install roots → bare name) — see that
+ *           function for why we don't just trust the inherited PATH.
  *
  * Locating the sidecar source (sc_extract package):
  *   - Packaged: process.resourcesPath/python              (next to the interpreter)
@@ -17,7 +19,7 @@
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createInterface } from 'node:readline';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app } from 'electron';
@@ -105,8 +107,67 @@ export function resolvePythonPaths(): PythonPaths {
 
   // Dev: source lives at <repo>/data-uploader/python relative to out/main/.
   const devSource = resolve(__dirname, '../../python');
-  const candidate = process.platform === 'win32' ? 'python' : 'python3';
-  return { interpreter: candidate, cwd: devSource, source: 'dev-path' };
+  return { interpreter: findDevInterpreter(), cwd: devSource, source: 'dev-path' };
+}
+
+/**
+ * Locate a Python interpreter for dev runs WITHOUT trusting the inherited PATH.
+ *
+ * Electron inherits whatever PATH its launching terminal/IDE had. A per-user
+ * Python install (…\AppData\Local\Programs\Python\Python3xx) appends to the
+ * *user* PATH, which an already-running shell — and any app launched from it —
+ * never sees until that shell restarts. So `spawn('python')` raises ENOENT even
+ * though a freshly opened terminal resolves it fine. We sidestep the whole
+ * inheritance problem by resolving to an ABSOLUTE path here.
+ *
+ * Order:
+ *   1. PATH scan — an activated venv / explicit interpreter wins. The Windows
+ *      Store alias under \WindowsApps is skipped: it's a 0-byte reparse stub
+ *      that opens the Store instead of running Python.
+ *   2. Well-known Windows install roots (newest minor version first).
+ *   3. Bare name as a last resort — keeps a correctly-configured PATH working
+ *      and yields a readable ENOENT (handled with a SC_EXTRACT_PYTHON hint).
+ */
+function findDevInterpreter(): string {
+  const isWin = process.platform === 'win32';
+  const names = isWin ? ['python.exe', 'python3.exe'] : ['python3', 'python'];
+
+  // 1. PATH scan.
+  for (const dir of (process.env['PATH'] ?? '').split(isWin ? ';' : ':')) {
+    if (!dir || (isWin && /\\WindowsApps\\?$/i.test(dir))) continue;
+    for (const name of names) {
+      const candidate = resolve(dir, name);
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+
+  // 2. Well-known install roots (Windows only — POSIX python3 lives on PATH).
+  if (isWin) {
+    const local = process.env['LOCALAPPDATA'];
+    const roots = [
+      local && resolve(local, 'Programs', 'Python'),
+      process.env['ProgramFiles'],
+      process.env['ProgramW6432'],
+    ].filter((r): r is string => !!r);
+    for (const root of roots) {
+      let entries: string[];
+      try {
+        entries = readdirSync(root);
+      } catch {
+        continue; // root missing / unreadable
+      }
+      const pyDirs = entries
+        .filter((e) => /^Python3\d+$/i.test(e))
+        .sort((a, b) => Number(b.slice(7)) - Number(a.slice(7))); // newest minor first
+      for (const d of pyDirs) {
+        const exe = resolve(root, d, 'python.exe');
+        if (existsSync(exe)) return exe;
+      }
+    }
+  }
+
+  // 3. Last resort.
+  return isWin ? 'python' : 'python3';
 }
 
 export interface ExtractHandle {
