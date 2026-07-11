@@ -152,6 +152,27 @@ describe('computeLoadoutStats', () => {
     expect(stats.quantum.driveSpeedMs).toBe(283000);
   });
 
+  it('drops the FLT_MAX jump-range sentinel instead of rendering infinity', () => {
+    // CryEngine emits FLT_MAX (~3.4e38) for "unset/unlimited" — observed live
+    // on QDRV_TARS_S01_Expedition (rendered as "∞ Gm" without the guard).
+    const lines: ResolvedLoadoutLine[] = [
+      {
+        portName: 'qd',
+        className: 'QD1',
+        kind: 'component',
+        payload: componentPayload('QuantumDrive', {
+          SCItemQuantumDriveParams: {
+            jumpRange: 3.4028230607370965e38,
+            quantumFuelRequirement: 0.0098,
+          },
+        }),
+      },
+    ];
+    const stats = computeLoadoutStats(lines);
+    expect(stats.quantum.jumpRangeMm).toBeNull();
+    expect(stats.quantum.fuelCapacity).toBe(0.0098);
+  });
+
   it('groups weapons by size and counts kinds', () => {
     const lines: ResolvedLoadoutLine[] = [
       { portName: 'g1', className: 'W1', kind: 'weapon', payload: weaponPayload(3) },

@@ -75,6 +75,18 @@ export function findStat(
   return null;
 }
 
+/**
+ * CryEngine emits FLT_MAX (~3.4e38) for "unset/unlimited" numeric params —
+ * observed live on quantum-drive jumpRange (renders as "∞ Gm"). Treat any
+ * absurdly large value as absent so the UI omits the stat instead of showing
+ * infinity. 1e30 is far above every real jump range (metres) and far below
+ * FLT_MAX, so it cleanly separates data from sentinel.
+ */
+const FLT_MAX_SENTINEL_THRESHOLD = 1e30;
+function dropFltMaxSentinel(v: number | null): number | null {
+  return v !== null && v >= FLT_MAX_SENTINEL_THRESHOLD ? null : v;
+}
+
 function isComponentPayload(p: unknown): p is ComponentPayload {
   return !!p && typeof p === 'object' && (p as { entityKind?: string }).entityKind === 'component';
 }
@@ -114,7 +126,7 @@ export function computeLoadoutStats(lines: ResolvedLoadoutLine[]): LoadoutStats 
     } else if (line.payload.kind === 'QuantumDrive') {
       // Last drive wins (ships have one QD; multiples would be config errors).
       quantum = {
-        jumpRangeMm: findStat(stats, 'quantum', ['jumpRange', 'JumpRange']),
+        jumpRangeMm: dropFltMaxSentinel(findStat(stats, 'quantum', ['jumpRange', 'JumpRange'])),
         fuelCapacity: findStat(stats, 'quantum', [
           'quantumFuelRequirement',
           'QuantumFuelRequirement',
