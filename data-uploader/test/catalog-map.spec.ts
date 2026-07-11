@@ -11,6 +11,7 @@ import {
   hasViableCatalog,
   mapShips,
   mapManufacturers,
+  mapKeybinds,
   type Nat,
   type StringRow,
   type PortRow,
@@ -130,5 +131,52 @@ describe('collectIngredients', () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ blueprint_class_name: 'bp_1', ingredient_class_name: 'ore_a', quantity: 2, ingredient_index: 0 });
     expect(rows[1]).toMatchObject({ ingredient_class_name: 'ore_b', ingredient_index: 1 });
+  });
+});
+
+describe('mapKeybinds', () => {
+  const data = {
+    actionmaps: [
+      { name: 'spaceship_movement', labelKey: '@ui_CGSpaceFlight', categoryKey: '@ui_CCSpaceFlight', sort: 0 },
+      { name: 'ui_notification', labelKey: '@ui_CGNotification', categoryKey: null, sort: 1 },
+    ],
+    actions: [
+      {
+        actionmap: 'spaceship_movement', name: 'v_strafe_up', labelKey: '@ui_CIStrafeUp',
+        descriptionKey: null, activationMode: 'hold',
+        bindings: { keyboard: 'space', mouse: null, gamepad: null, joystick: 'js1_b1' }, sort: 0,
+      },
+      {
+        actionmap: 'ui_notification', name: 'ui_expand', labelKey: '@ui_CIExpand',
+        descriptionKey: null, activationMode: null,
+        bindings: { keyboard: 'f1', mouse: null, gamepad: null, joystick: null }, sort: 1,
+      },
+    ],
+  };
+
+  it('maps actions to rows with build coordinates + per-device bindings', () => {
+    const rows = mapKeybinds(data, BUILD, nat);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      build_id: BUILD, channel: 'LIVE', patch_version: '4.8.0', build_number: 'desktop',
+      actionmap: 'spaceship_movement', action_name: 'v_strafe_up', label_key: '@ui_CIStrafeUp',
+      category_label_key: '@ui_CGSpaceFlight', activation_mode: 'hold',
+      binding_keyboard: 'space', binding_joystick: 'js1_b1', binding_mouse: null, binding_gamepad: null,
+      sort: 0,
+    });
+    expect(rows[0].payload).toEqual(data.actions[0]);
+  });
+
+  it('resolves category_label_key from the action’s actionmap label', () => {
+    expect(mapKeybinds(data, BUILD, nat)[1].category_label_key).toBe('@ui_CGNotification');
+  });
+
+  it('skips actions missing actionmap or name; empty input → []', () => {
+    expect(mapKeybinds({}, BUILD, nat)).toEqual([]);
+    const partial = { actions: [{ name: 'x' }, { actionmap: 'm' }, { actionmap: 'm', name: 'ok', bindings: {} }] };
+    const rows = mapKeybinds(partial, BUILD, nat);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].action_name).toBe('ok');
+    expect(rows[0].category_label_key).toBeNull();
   });
 });

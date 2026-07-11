@@ -328,3 +328,82 @@ export function collectIngredients(
   }
   return out;
 }
+
+// ── keybindings ─────────────────────────────────────────────────────────────
+
+export interface KeybindRow {
+  build_id: string;
+  channel: string;
+  patch_version: string;
+  build_number: string;
+  actionmap: string;
+  action_name: string;
+  label_key: string | null;
+  description_key: string | null;
+  category_label_key: string | null;
+  activation_mode: string | null;
+  binding_keyboard: string | null;
+  binding_mouse: string | null;
+  binding_gamepad: string | null;
+  binding_joystick: string | null;
+  payload: unknown;
+  sort: number;
+}
+
+/** The keybinds.json the extractor writes (keybinds/keybinds.json). */
+export interface KeybindData {
+  actionmaps?: {
+    name?: string;
+    labelKey?: string | null;
+    categoryKey?: string | null;
+    sort?: number;
+  }[];
+  actions?: {
+    actionmap?: string;
+    name?: string;
+    labelKey?: string | null;
+    descriptionKey?: string | null;
+    activationMode?: string | null;
+    bindings?: {
+      keyboard?: string | null; mouse?: string | null;
+      gamepad?: string | null; joystick?: string | null;
+    };
+    sort?: number;
+  }[];
+}
+
+/**
+ * Map the extractor's keybinds.json onto codex_keybinds rows. Each action row
+ * carries its actionmap's label @-key (category_label_key) so the reference can
+ * render category headings without a second lookup. Labels stay @-keys — they
+ * resolve via codex_locale_strings client-side (all languages). Actions missing
+ * an actionmap or name are skipped; everything else (incl. unbound) is kept.
+ */
+export function mapKeybinds(data: KeybindData, buildId: string, nat: Nat): KeybindRow[] {
+  const categoryByMap = new Map<string, string | null>();
+  for (const am of data.actionmaps ?? []) {
+    if (am.name) categoryByMap.set(am.name, am.labelKey ?? null);
+  }
+  const rows: KeybindRow[] = [];
+  for (const a of data.actions ?? []) {
+    if (!a.actionmap || !a.name) continue;
+    const b = a.bindings ?? {};
+    rows.push({
+      build_id: buildId,
+      ...nat,
+      actionmap: a.actionmap,
+      action_name: a.name,
+      label_key: a.labelKey ?? null,
+      description_key: a.descriptionKey ?? null,
+      category_label_key: categoryByMap.get(a.actionmap) ?? null,
+      activation_mode: a.activationMode ?? null,
+      binding_keyboard: b.keyboard ?? null,
+      binding_mouse: b.mouse ?? null,
+      binding_gamepad: b.gamepad ?? null,
+      binding_joystick: b.joystick ?? null,
+      payload: a,
+      sort: a.sort ?? 0,
+    });
+  }
+  return rows;
+}
