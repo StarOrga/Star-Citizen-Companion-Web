@@ -18,23 +18,28 @@ Status lifecycle the routine drives:
 ```
 open ──pick up──▶ in_progress ──green build+tests──▶ shipped
   ▲                             └──red / needs review──▶ (stays in_progress, PR opened)
-  │                  ├──not actionable (spam/dupe/noise)──▶ rejected (with processing_note)
-  │                  └──needs a human decision / clarification──▶ needs_input
-  │                        (routine posts a SYSTEM reply asking the question)
+  │                  └──not shippable yet (noise OR needs a decision)──▶ needs_input
+  │                        (routine posts a SYSTEM reply explaining why)
   │                                    │
   └──reaper: orphaned claim (no PR) ───┤
                                        ▼
         admin answers in the thread ──▶ picked up again next run
+
+  rejected  ← the ADMIN decides this alone (by deleting the topic); the
+              routine NEVER sets it.
 ```
 
-**Prefer `needs_input` over `rejected` whenever a human answer could unblock
-the work.** `rejected` is now reserved for genuinely non-actionable noise
-(spam, duplicates, empty/garbled). Anything that is "not auto-shippable *yet*"
-— needs a product/auth/RLS/privacy decision, a clarification, or a choice
-between options — goes to `needs_input` with a system reply in the topic's
-thread, so the admin can answer and the routine resumes. This exists because a
-hard `rejected` ended the conversation and the admin had no way to steer the
-routine (the gap behind the per-topic chat, `admin_feedback_messages`).
+**The routine never rejects — the admin alone decides what to discard.** Every
+item the routine cannot ship right now goes to `needs_input` with a system
+reply explaining why (whether it's a product/auth/RLS/privacy decision, a
+choice between options, a clarification, or even apparent noise it is unsure
+about). The admin then either steers it in the thread — and the routine resumes
+— or **deletes the topic** if he wants it gone. There is no routine-side
+`rejected`: a hard reject once ended the conversation and left the admin no way
+to steer the routine (the gap behind the per-topic chat,
+`admin_feedback_messages`), and it took the reject/keep call away from the admin
+who owns the board. `rejected` survives only as a legacy status on old rows;
+the routine leaves those untouched.
 
 ## Resuming interrupted work (stale-claim reaper)
 
@@ -95,13 +100,14 @@ For each `open` row (process independently, most-recent context wins):
 2. **Understand.** Read `body` (markdown) **and the topic's thread** (all
    `admin_feedback_messages` for this id, oldest first — the admin may have
    already answered a prior question). Then classify:
-   - **Non-actionable noise** (spam, duplicate, empty/garbled) → `status='rejected'`,
-     `processing_note='<short why>'`, `processed_at=now()`; continue.
-   - **Needs a human decision / clarification** (product call, auth/RLS/privacy,
-     a choice between options, or the body literally asks "create an issue /
-     discuss") → **do not reject.** Post a SYSTEM reply with the question /
-     rationale (see below), set `status='needs_input'`, `processed_at=now()`;
-     continue.
+   - **Not shippable right now** — either apparent noise (spam, duplicate,
+     empty/garbled) *or* it needs a human decision / clarification (product
+     call, auth/RLS/privacy, a choice between options, or the body literally
+     asks "create an issue / discuss") → **never reject.** Post a SYSTEM reply
+     explaining why (the question, the options, or — for suspected noise — "this
+     looks like a duplicate/spam; delete it if you agree"), set
+     `status='needs_input'`, `processed_at=now()`; continue. Discarding is the
+     admin's call, made by deleting the topic — not the routine's.
    - **Actionable now** → implement (step 3).
 3. **Implement** on a fresh branch `feat/feedback-<id-short>` off `main`.
    Follow repo conventions (CLAUDE.md): standalone components, signals,
@@ -169,6 +175,10 @@ ship, `status='shipped'`), ask a follow-up (post another system reply, stay
 
 - **PR + auto-merge only** — the merge is gated on green build+tests. No direct
   pushes to `main`, no force-push.
+- **The routine never sets `rejected`.** Discarding a topic is the admin's call
+  alone, exercised by deleting it from the board. Anything the routine cannot
+  ship goes to `needs_input` with a system reply; the admin keeps steering or
+  deletes.
 - One branch + PR per feedback item, so each ships/reverts independently.
 - If an item would touch auth, RLS, secrets, or payment paths → do **not**
   auto-ship; open a PR and leave `in_progress` for human review.
@@ -184,7 +194,7 @@ ship, `status='shipped'`), ask a follow-up (post another system reply, stay
 
 | column           | meaning                                                    |
 |------------------|------------------------------------------------------------|
-| `status`         | `open` \| `in_progress` \| `shipped` \| `rejected` \| `needs_input` |
+| `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `rejected` = legacy/admin-only, never set by the routine |
 | `ship_ref`       | PR/commit URL the routine attached                         |
 | `processing_note`| routine's note (reject reason / red-build hint)            |
 | `shipped_at`     | set when merged to `main`                                  |
