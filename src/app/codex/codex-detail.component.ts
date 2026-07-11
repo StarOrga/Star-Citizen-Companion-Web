@@ -186,6 +186,12 @@ interface LoadoutGroup {
                   rel="noopener noreferrer">
                   {{ 'codex.detail.viewOnRsi' | translate }} ↗
                 </a>
+                <!-- 3D-print guide lives here in the codex (ship context: the
+                     guide scales prints by these very dimensions) instead of
+                     the global footer. -->
+                <a class="pin" routerLink="/tools/3d-print">
+                  {{ 'printGuide.linkLabel' | translate }}
+                </a>
               }
               @if (provenance(); as p) {
                 <span class="prov" [attr.title]="'codex.provenance.tooltip' | translate">

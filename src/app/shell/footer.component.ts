@@ -31,7 +31,6 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
 
         <div class="whatsnew">
           <a routerLink="/release-notes">{{ 'releaseNotes.whatsNew' | translate }}</a>
-          <a routerLink="/tools/3d-print" class="secondary">{{ 'printGuide.linkLabel' | translate }}</a>
           @if (version(); as v) {
             <span class="ver">v{{ v }}</span>
           }
@@ -112,8 +111,6 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
       transition: color 0.16s ease;
     }
     .whatsnew a:hover { color: var(--sc-fg-1); }
-    .whatsnew a.secondary { color: var(--sc-fg-2); }
-    .whatsnew a.secondary:hover { color: var(--sc-fg-1); }
     .whatsnew .ver {
       color: var(--sc-fg-2);
       font-size: 0.68rem;

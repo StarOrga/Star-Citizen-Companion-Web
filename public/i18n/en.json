@@ -955,9 +955,9 @@
     "title": "3D Printing Guide",
     "subtitle": "How the community turns Star Citizen ships into printable models — using your own game files, on your own machine.",
     "legal": {
-      "title": "Why we don't host any 3D models",
-      "p1": "This site does not store, generate, or serve any 3D geometry extracted from Star Citizen. The RSI EULA prohibits redistributing extracted game assets, and the Fankit & Fandom FAQ explicitly rules out offering game content for download by others.",
-      "p2": "What we CAN do: explain the community workflow and point you to the established local tools. Everything below runs on your own computer against your own game installation.",
+      "title": "Viewing is fine — downloads are not",
+      "p1": "You can inspect ship models right here in the codex (3D viewer): rendering game content for VIEWING is the established community practice that CIG tolerates across fan tools — the same ground every ship viewer site stands on. It remains a tolerated grey area, not a granted right.",
+      "p2": "What this app deliberately does NOT offer: extracted geometry for download or redistribution. The RSI EULA prohibits redistributing extracted game assets, the Fankit & Fandom FAQ rules out offering game content for download by others, and downloadable models collide with CIG’s own licensed model program. So this page explains the workflow you run yourself, on your own machine, with your own game files.",
       "eulaLink": "RSI End User License Agreement",
       "faqLink": "Star Citizen Fankit & Fandom FAQ",
       "affiliation": "This is an unofficial fan site, not affiliated with the Cloud Imperium group of companies. Star Citizen® is a registered trademark of Cloud Imperium Rights LLC."
