@@ -88,6 +88,28 @@ Why the two guards:
 Reaped items are logged in the run report and then flow through the normal
 per-item procedure below in the same run.
 
+**Usage-limit aborts are the common case — and resumption is delayed, not
+instant.** When a run hits the Claude usage limit mid-item, the process just
+stops: the item stays `in_progress` and the *next* routine run does **not**
+continue it right away. Two things follow from the reaper's guards:
+
+- The **30-minute `processed_at` guard means a gap.** A run at T+20 min skips
+  the stranded item (still inside the window); only a run at ≥ T+30 min reopens
+  it. So an item aborted by the usage limit can visibly sit `in_progress` for up
+  to ~1.5 cadence cycles before it is picked up again. That delay is intended
+  (it protects a legitimately overlapping in-flight run) — it is not a bug, but
+  it does mean "stuck for half an hour" is expected, not lost.
+- **Resumption is a full redo, not a continuation.** The reaper reopens the row
+  to `open`; the next run re-implements it from scratch on a fresh branch+PR. No
+  partial progress (a half-written branch, an un-pushed commit) is recovered —
+  only the *item* resumes, from the beginning. This is safe (each item ships via
+  its own PR, the atomic claim still serialises access) but means wasted work if
+  the abort happened late in an item.
+
+Bottom line: a usage-limit abort is self-healing on a later cron tick once
+Claude is back under limit — just not on the immediately following run, and not
+by picking up where it left off.
+
 ## Per-item procedure
 
 For each `open` row (process independently, most-recent context wins):
