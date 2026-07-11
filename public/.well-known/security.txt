@@ -1,0 +1,7 @@
+# Security contact for SC Companion — https://sc-companion.vercel.app
+# RFC 9116 — https://www.rfc-editor.org/rfc/rfc9116
+Contact: https://github.com/StarOrga/Star-Citizen-Companion-Web/security/advisories/new
+Expires: 2027-07-12T00:00:00.000Z
+Preferred-Languages: en, de
+Canonical: https://sc-companion.vercel.app/.well-known/security.txt
+Policy: https://github.com/StarOrga/Star-Citizen-Companion-Web/security/policy
