@@ -24,6 +24,7 @@ COUNTER_THRESHOLDS: Dict[str, Threshold] = {
     "components": Threshold(expected=600, warning=500, red=350),
     "items": Threshold(expected=1500, warning=1200, red=800),
     "strings": Threshold(expected=50_000, warning=40_000, red=25_000),
+    "keybinds": Threshold(expected=800, warning=400, red=150),
 }
 
 # Per-entity minimal heuristic — only the absolute-must fields, per

@@ -228,6 +228,7 @@ class CodexExtractor:
     def run(self) -> Dict[str, int]:
         self.on_progress("localization", pct=10)
         self.dump_localization()      # full global.ini tables (en/de)
+        self.dump_keybinds()          # default action profile (keybindings)
         self.on_progress("reference", pct=13)
         self.extract_manufacturers()
         self.extract_ammunition()
@@ -268,6 +269,47 @@ class CodexExtractor:
         if not key or key in ("@LOC_EMPTY", "@LOC_PLACEHOLDER", ""):
             return {"de": "", "en": "", "key": key or ""}
         return self.loc.localized_text(key)
+
+    # ── keybindings ───────────────────────────────────────────────────────────
+    def _find_profile_entry(self) -> Optional[str]:
+        """Locate defaultProfile.xml in the P4K (case-insensitive suffix match)."""
+        target = "libs/config/defaultprofile.xml"
+        for name in self.p4k.namelist():
+            if name.lower().replace("\\", "/").endswith(target):
+                return name
+        return None
+
+    def dump_keybinds(self) -> None:
+        """Write the default keybindings from Data/Libs/Config/defaultProfile.xml.
+
+        Actionmaps + actions + per-device default bindings; labels stay raw
+        @-keys (resolved client-side via codex_locale_strings, all languages).
+        Needs the open P4K; a missing/unreadable profile is a warning, not a
+        failure — the rest of the extract still lands.
+        """
+        if self.p4k is None:
+            return
+        entry = self._find_profile_entry()
+        if not entry:
+            self.on_log("warn", "defaultProfile.xml not found in P4K — no keybinds")
+            return
+        try:
+            info = self.p4k.getinfo(entry)
+            with self.p4k.open(info) as f:
+                raw = f.read()
+        except Exception as exc:  # noqa: BLE001
+            self.on_log("warn", f"failed to read {entry}: {exc}")
+            return
+        from .keybinds import parse_default_profile
+
+        data = parse_default_profile(raw)
+        d = self.out / "keybinds"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "keybinds.json").write_text(
+            json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        self.on_log("info", f"keybinds: {len(data['actionmaps'])} actionmaps, "
+                            f"{len(data['actions'])} actions")
+        self._bump("keybinds", len(data["actions"]))
 
     # ── manufacturers ─────────────────────────────────────────────────────────
     def extract_manufacturers(self) -> None:
