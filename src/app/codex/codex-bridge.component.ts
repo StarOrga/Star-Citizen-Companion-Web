@@ -87,8 +87,8 @@ interface Lane {
             <button class="scanner-clear" type="button" (click)="clearSearch()"
                     [attr.aria-label]="'codex.search.clear' | translate">×</button>
           }
-          <a class="index-link" routerLink="/codex/keybinds">{{ 'codex.bridge.keybinds' | translate }}</a>
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>
+          <a class="index-link" routerLink="/codex/keybinds">{{ 'codex.bridge.keybinds' | translate }}</a>
         </div>
         <sc-codex-status-banner />
       </div>
