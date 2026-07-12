@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.34.1] - 2026-07-12
+
+### Fixed
+
+- **Starscape shows only real wallpapers again.** The image crawler treated
+  every picture embedded in a Comm-Link — including tiny inline icons, section
+  patterns and even trailer videos — as a wallpaper, so they cluttered the
+  gallery next to the actual artwork. Capture now keeps only raster images of
+  wallpaper size (≥ 100 KB, JPEG/PNG/WebP) and drops icons, patterns and videos
+  at the source. Existing junk entries need a one-time cleanup of the
+  `verse_wallpapers` table. (#133 follow-up)
+
 ## [0.34.0] - 2026-07-12
 
 ### Added
