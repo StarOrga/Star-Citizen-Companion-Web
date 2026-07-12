@@ -1,6 +1,6 @@
 {
   "name": "@sc-companion/data-uploader",
-  "version": "0.13.2",
+  "version": "0.14.0",
   "description": "Star Citizen Companion - Data Uploader — P4K local extraction & upload tool.",
   "private": true,
   "main": "out/main/index.js",
