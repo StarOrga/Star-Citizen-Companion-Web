@@ -86,6 +86,27 @@ const MAX_ATTACHMENTS = 10;
       }
 
       <div class="board">
+        @if (authorOptions().length > 1) {
+          <div class="author-filter" role="group" [attr.aria-label]="'adminFeedback.filter.label' | translate">
+            <button
+              type="button"
+              class="author-chip"
+              [class.active]="authorFilter() === null"
+              (click)="setAuthorFilter(null)">
+              {{ 'adminFeedback.filter.all' | translate }}
+            </button>
+            @for (a of authorOptions(); track a.id) {
+              <button
+                type="button"
+                class="author-chip"
+                [class.active]="authorFilter() === a.id"
+                (click)="setAuthorFilter(a.id)">
+                {{ a.label }} <span class="chip-count">{{ a.count }}</span>
+              </button>
+            }
+          </div>
+        }
+
         @if (busy() && messages().length === 0) {
           <div class="sc-card empty">{{ 'adminFeedback.loading' | translate }}</div>
         } @else if (messages().length === 0) {
@@ -335,6 +356,31 @@ const MAX_ATTACHMENTS = 10;
     .empty { text-align: center; color: var(--sc-fg-2); padding: 40px; }
 
     .board { display: flex; flex-direction: column; gap: 12px; }
+
+    /* Quick-access author filter: chip row that scopes the board to one creator. */
+    .author-filter { display: flex; flex-wrap: wrap; gap: 6px; }
+    .author-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      background: var(--sc-bg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: 0.74rem;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .author-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .author-chip.active {
+      color: var(--sc-accent);
+      border-color: var(--sc-accent);
+      background: rgba(0, 212, 255, 0.12);
+    }
+    .author-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
+    .chip-count { font-size: 0.68rem; opacity: 0.75; }
 
     /* Collapsed stack of shipped items — keeps the open ones front-and-centre. */
     .shipped-stack { display: flex; flex-direction: column; }
@@ -639,16 +685,67 @@ export class AdminFeedbackComponent implements OnInit {
   /** Shipped items are collapsed into a stack so the open ones stay directly
    *  visible; expanding reveals the resolved history (newest first, paged). */
   readonly showShipped = signal(false);
-  readonly activeMessages = computed(() => this.messages().filter((m) => m.status !== 'shipped'));
+
+  /** Sentinel author-filter key for topics with no author (routine/orphaned). */
+  private static readonly NO_AUTHOR = '__none__';
+  /** Quick-access filter: an author_id (or NO_AUTHOR) to show only, or null for all. */
+  readonly authorFilter = signal<string | null>(null);
+
+  /** Distinct authors across all topics, most-topics first — feeds the filter chips. */
+  readonly authorOptions = computed(() => {
+    const seen = new Map<string, { id: string; label: string; count: number }>();
+    for (const m of this.messages()) {
+      const id = m.author_id ?? AdminFeedbackComponent.NO_AUTHOR;
+      const existing = seen.get(id);
+      if (existing) existing.count++;
+      else seen.set(id, { id, label: this.authorLabel(m), count: 1 });
+    }
+    return Array.from(seen.values()).sort((a, b) => b.count - a.count);
+  });
+
+  private matchesAuthor(m: FeedbackRow): boolean {
+    const f = this.authorFilter();
+    if (f === null) return true;
+    return (m.author_id ?? AdminFeedbackComponent.NO_AUTHOR) === f;
+  }
+
+  /** Toggle the author quick-filter: clicking the active chip clears it. */
+  setAuthorFilter(id: string | null): void {
+    this.authorFilter.update((cur) => (cur === id ? null : id));
+  }
+
+  /**
+   * Latest-activity timestamp for a topic: the newest of its own timestamps and
+   * its last reply. Drives the newest-first ("nach Aktualität") board order so a
+   * freshly-answered topic bubbles to the top.
+   */
+  private recencyTime(m: FeedbackRow): number {
+    const replies = this.threads().get(m.id);
+    const lastReply = replies && replies.length ? replies[replies.length - 1].created_at : null;
+    let max = 0;
+    for (const c of [m.created_at, m.updated_at, m.processed_at, lastReply]) {
+      if (!c) continue;
+      const t = Date.parse(c);
+      if (Number.isFinite(t) && t > max) max = t;
+    }
+    return max;
+  }
+
+  /** Active (non-shipped) topics, author-filtered, newest activity first. */
+  readonly activeMessages = computed(() =>
+    this.messages()
+      .filter((m) => m.status !== 'shipped' && this.matchesAuthor(m))
+      .sort((a, b) => this.recencyTime(b) - this.recencyTime(a)),
+  );
 
   /** Page size for the shipped history — "load more" reveals another batch. */
   private static readonly SHIPPED_PAGE = 10;
   readonly shippedVisible = signal(AdminFeedbackComponent.SHIPPED_PAGE);
 
-  /** All shipped items, newest ship first (by shipped_at, falling back to created_at). */
+  /** All shipped items (author-filtered), newest ship first (by shipped_at, falling back to created_at). */
   readonly shippedMessages = computed(() =>
     this.messages()
-      .filter((m) => m.status === 'shipped')
+      .filter((m) => m.status === 'shipped' && this.matchesAuthor(m))
       .sort((a, b) => this.shippedTime(b) - this.shippedTime(a)),
   );
   /** The current shipped page (first N of the sorted history). */

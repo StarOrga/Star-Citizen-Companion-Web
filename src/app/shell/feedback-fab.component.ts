@@ -162,8 +162,10 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
     .fab.is-open { color: var(--sc-fg-1); }
 
     .panel {
-      width: min(420px, calc(100vw - 32px));
-      height: min(560px, calc(100vh - 140px));
+      /* Docked size — kept roomy so several expanded threads stay visible at
+         once without needing near-fullscreen (feedback fc5373d5). */
+      width: min(480px, calc(100vw - 32px));
+      height: min(680px, calc(100vh - 120px));
       /* User-resizable: drag the corner grip to enlarge the chat window. */
       resize: both;
       min-width: 320px;
