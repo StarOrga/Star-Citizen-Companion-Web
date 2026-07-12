@@ -22,7 +22,7 @@
     "codex": "Codex",
     "p4k": "Bundle History",
     "settings": "Settings",
-    "admin": "Admin",
+    "admin": "Users",
     "desktop": "Data Upload",
     "signOut": "Sign out",
     "brandAria": "Star Citizen Companion (SCC)",
@@ -574,9 +574,9 @@
       "failed": "Delete failed"
     },
     "tokens": {
-      "navLink": "API Tokens",
+      "navLink": "External API",
       "docsLink": "API documentation ↗",
-      "title": "Admin · API Tokens",
+      "title": "Admin · External API",
       "subtitle": "Issue bearer tokens for the public /v1 API. Tokens are shown ONCE in plaintext — store them in your secrets manager.",
       "refresh": "Refresh",
       "newToken": "New token",
