@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.34.0] - 2026-07-12
+
+### Added
+
+- **Keybindings reference in the Codex.** A new page lists every default key
+  binding from the current game build — grouped by category, searchable, with a
+  device switch for keyboard, mouse, gamepad and joystick. Reach it from the
+  subtle "Keybinds" chip next to the Codex scanner. Bindings and their labels are
+  datamined straight from the game's `Data.p4k` (its default action profile plus
+  every language's translations) and uploaded by the Data Uploader like the rest
+  of the catalog. Public — no login required.
+
 ## [0.33.1] - 2026-07-12
 
 ### Changed
