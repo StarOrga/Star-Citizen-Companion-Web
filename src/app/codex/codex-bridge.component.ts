@@ -88,6 +88,7 @@ interface Lane {
                     [attr.aria-label]="'codex.search.clear' | translate">×</button>
           }
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>
+          <a class="index-link" routerLink="/codex/keybinds">{{ 'codex.bridge.keybinds' | translate }}</a>
         </div>
         <sc-codex-status-banner />
       </div>
@@ -253,15 +254,15 @@ interface Lane {
     .scanner-row { position: relative; display: flex; align-items: center; gap: 8px; flex: 1 1 320px; }
     .scanner-icon { position: absolute; left: 14px; color: var(--sc-accent); font-size: 1.1rem; pointer-events: none; }
     .scanner-input {
-      flex: 1; padding: 13px 40px 13px 40px; border-radius: 10px;
+      flex: 1; padding: 13px 14px 13px 40px; border-radius: 10px;
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
       font-family: inherit; font-size: 1rem;
     }
     .scanner-input:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
-    .scanner-clear { position: absolute; right: 96px; border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.4rem; cursor: pointer; line-height: 1; }
+    .scanner-clear { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px; }
     .scanner-clear:hover { color: var(--sc-danger); }
     .index-link {
-      position: absolute; right: 10px; padding: 6px 12px; border-radius: 8px;
+      padding: 6px 12px; border-radius: 8px;
       background: color-mix(in srgb, var(--sc-accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 34%, transparent);
       color: var(--sc-accent); font-family: var(--sc-font-display); font-size: 0.7rem; letter-spacing: 0.05em;
       text-transform: uppercase; text-decoration: none; white-space: nowrap;
@@ -364,7 +365,6 @@ interface Lane {
       .hero-art { padding: 18px; }
       .hero-art img { max-height: 220px; }
       .hero-body { padding: 20px 22px; }
-      .scanner-clear { right: 108px; }
     }
 
     @media (prefers-reduced-motion: reduce) {

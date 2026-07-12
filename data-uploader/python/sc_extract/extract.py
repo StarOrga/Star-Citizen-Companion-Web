@@ -79,7 +79,7 @@ def _clean_stale_output(out_dir: Path, *, include_records: bool) -> None:
     import shutil
 
     subs = ["ships", "weapons", "components", "items", "manufacturers",
-            "ammunition", "blueprints", "localization"]
+            "ammunition", "blueprints", "localization", "keybinds"]
     if include_records:
         subs.append("records")
     for sub in subs:
@@ -279,6 +279,7 @@ def _real_extract(cfg: ExtractConfig) -> ExtractResult:
         "manufacturers": counts.get("manufacturers", 0),
         "ammunition": counts.get("ammunition", 0),
         "blueprints": counts.get("blueprints", 0),
+        "keybinds": counts.get("keybinds", 0),
         "records_total": counts.get("records_total", 0),
         "strings": sum(len(t) for t in localizer._tables.values()),
     }

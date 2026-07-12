@@ -33,9 +33,11 @@ import {
   mapItems,
   mapAmmunition,
   mapBlueprints,
+  mapKeybinds,
   type Nat,
   type StringRow,
   type PortRow,
+  type KeybindData,
 } from '../lib/catalog-map.js';
 
 const CHUNK = 500; // entity/string rows per request
@@ -112,6 +114,7 @@ export async function uploadCatalog(
     'codex_item_ports',
     'codex_locale_strings',
     'codex_previews',
+    'codex_keybinds',
     'finalize',
   ];
   const progress = (p: CatalogProgress): void => {
@@ -340,6 +343,28 @@ export async function uploadCatalog(
           progress({ phase: 'codex_previews', current: done, total: files.length });
         }
         counts.previews = done;
+      }
+    }
+
+    // 9c. keybindings (default action profile) ------------------------------
+    {
+      const file = join(outDir, 'keybinds', 'keybinds.json');
+      if (existsSync(file)) {
+        let data: KeybindData = {};
+        try {
+          data = JSON.parse(await readFile(file, 'utf-8')) as KeybindData;
+        } catch (e) {
+          log.warn(`[catalog] skip keybinds: ${(e as Error).message}`);
+        }
+        const rows = mapKeybinds(data, buildId, nat);
+        let done = 0;
+        for (let i = 0; i < rows.length; i += CHUNK) {
+          const slice = rows.slice(i, i + CHUNK);
+          await post('keybinds', { rows: slice });
+          done += slice.length;
+          progress({ phase: 'codex_keybinds', current: done, total: rows.length });
+        }
+        counts.keybinds = done;
       }
     }
 

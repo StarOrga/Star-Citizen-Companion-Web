@@ -41,6 +41,7 @@
       "scannerPlaceholder": "Scan the codex — type a ship name or class (e.g. Gladius, AEGS_*)…",
       "scannerResults": "Scanner · \"{{term}}\"",
       "indexMode": "Index mode",
+      "keybinds": "Keybinds",
       "backToBridge": "Back to the Bridge",
       "addCompare": "Compare",
       "hero": {
@@ -154,6 +155,22 @@
     "error": {
       "title": "Could not load the codex",
       "retry": "Retry"
+    },
+    "keybinds": {
+      "title": "Keybindings",
+      "back": "Codex",
+      "subtitle": "Default key bindings from the current Star Citizen build.",
+      "device": "Device",
+      "devices": {
+        "keyboard": "Keyboard",
+        "mouse": "Mouse",
+        "gamepad": "Gamepad",
+        "joystick": "Joystick"
+      },
+      "search": "Search keybindings",
+      "searchPlaceholder": "Search action or key…",
+      "count": "{{shown}} of {{total}} actions",
+      "unbound": "—"
     },
     "provenance": {
       "label": "Source",

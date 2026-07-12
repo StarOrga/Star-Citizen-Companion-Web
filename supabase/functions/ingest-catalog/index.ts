@@ -155,6 +155,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return json({ ok: true, upserted: rows.length });
     }
 
+    if (op === 'keybinds') {
+      const rows = body.rows as unknown[];
+      if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
+      const { error } = await admin
+        .from('codex_keybinds')
+        .upsert(rows, { onConflict: 'channel,patch_version,build_number,actionmap,action_name' });
+      if (error) throw error;
+      return json({ ok: true, upserted: rows.length });
+    }
+
     if (op === 'strings') {
       const rows = body.rows as unknown[];
       if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);

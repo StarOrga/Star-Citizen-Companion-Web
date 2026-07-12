@@ -558,6 +558,77 @@ export type Database = {
           },
         ]
       }
+      codex_keybinds: {
+        Row: {
+          action_name: string
+          actionmap: string
+          activation_mode: string | null
+          binding_gamepad: string | null
+          binding_joystick: string | null
+          binding_keyboard: string | null
+          binding_mouse: string | null
+          build_id: string
+          build_number: string
+          category_label_key: string | null
+          channel: string
+          created_at: string
+          description_key: string | null
+          id: string
+          label_key: string | null
+          patch_version: string
+          payload: Json
+          sort: number
+        }
+        Insert: {
+          action_name: string
+          actionmap: string
+          activation_mode?: string | null
+          binding_gamepad?: string | null
+          binding_joystick?: string | null
+          binding_keyboard?: string | null
+          binding_mouse?: string | null
+          build_id: string
+          build_number?: string
+          category_label_key?: string | null
+          channel: string
+          created_at?: string
+          description_key?: string | null
+          id?: string
+          label_key?: string | null
+          patch_version: string
+          payload: Json
+          sort?: number
+        }
+        Update: {
+          action_name?: string
+          actionmap?: string
+          activation_mode?: string | null
+          binding_gamepad?: string | null
+          binding_joystick?: string | null
+          binding_keyboard?: string | null
+          binding_mouse?: string | null
+          build_id?: string
+          build_number?: string
+          category_label_key?: string | null
+          channel?: string
+          created_at?: string
+          description_key?: string | null
+          id?: string
+          label_key?: string | null
+          patch_version?: string
+          payload?: Json
+          sort?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "codex_keybinds_build_id_fkey"
+            columns: ["build_id"]
+            isOneToOne: false
+            referencedRelation: "codex_builds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       codex_locale_strings: {
         Row: {
           build_id: string

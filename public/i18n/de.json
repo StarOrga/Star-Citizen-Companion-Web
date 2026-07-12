@@ -41,6 +41,7 @@
       "scannerPlaceholder": "Codex scannen — Schiffsname oder Klasse eingeben (z. B. Gladius, AEGS_*)…",
       "scannerResults": "Scanner · \"{{term}}\"",
       "indexMode": "Index-Modus",
+      "keybinds": "Keybinds",
       "backToBridge": "Zurück zur Brücke",
       "addCompare": "Vergleich",
       "hero": {
@@ -154,6 +155,22 @@
     "error": {
       "title": "Codex konnte nicht geladen werden",
       "retry": "Erneut versuchen"
+    },
+    "keybinds": {
+      "title": "Tastenbelegung",
+      "back": "Codex",
+      "subtitle": "Standard-Tastenbelegung aus dem aktuellen Star-Citizen-Build.",
+      "device": "Gerät",
+      "devices": {
+        "keyboard": "Tastatur",
+        "mouse": "Maus",
+        "gamepad": "Gamepad",
+        "joystick": "Joystick"
+      },
+      "search": "Keybindings durchsuchen",
+      "searchPlaceholder": "Aktion oder Taste suchen…",
+      "count": "{{shown}} von {{total}} Aktionen",
+      "unbound": "—"
     },
     "provenance": {
       "label": "Quelle",
