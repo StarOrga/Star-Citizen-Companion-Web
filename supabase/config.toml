@@ -63,6 +63,19 @@ verify_jwt = false
 [functions.process-p4k]
 verify_jwt = true
 
+[functions.ingest-catalog]
+# JWT verification OFF — same rationale as ingest-bundle below. The function
+# does its own auth (seed-token OR collaborator-JWT + release-token, see
+# index.ts). With JWT verification ON, the platform gate rejects BOTH the
+# desktop tool's asymmetric session token AND the non-JWT seed token *before*
+# the function runs, breaking every codex catalog + keybinds upload. This block
+# is REQUIRED, not cosmetic: `supabase functions deploy` (incl. the deploy-all
+# `npm run functions:deploy`) defaults verify_jwt to TRUE when a function has no
+# block, silently re-enabling the gate. Absent this block the function stayed
+# working only because prior deploys passed `--no-verify-jwt` by hand. Don't
+# revert without reworking the auth logic in index.ts.
+verify_jwt = false
+
 [functions.ingest-bundle]
 # JWT verification OFF — the function does its own auth (getUser + admin/
 # collaborator role gate + release-token, see index.ts). With JWT verification
