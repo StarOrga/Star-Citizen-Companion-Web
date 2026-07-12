@@ -72,6 +72,14 @@ export const routes: Routes = [
           import('./codex/blueprint-detail.component').then((m) => m.BlueprintDetailComponent),
       },
       {
+        // Keybindings reference — the complete default action profile for the
+        // current build. Public; static segment placed BEFORE codex/:kind so it
+        // is not consumed by the :kind wildcard.
+        path: 'codex/keybinds',
+        loadComponent: () =>
+          import('./codex/keybinds.component').then((m) => m.KeybindsComponent),
+      },
+      {
         path: 'codex/:kind/:className',
         loadComponent: () =>
           import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),

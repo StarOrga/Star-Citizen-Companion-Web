@@ -10,6 +10,7 @@ import {
   CodexBlueprintIngredient,
   CodexComponentRow,
   CodexEntityString,
+  CodexKeybind,
   CodexItemPort,
   CodexItemRow,
   CodexManufacturerRow,
@@ -535,6 +536,41 @@ export class CodexService {
       if (original) out.set(original, r.value);
     }
     return out;
+  }
+
+  /**
+   * All default keybindings for the current build, in document order (the
+   * global `sort` reproduces the profile's actionmap → action order, so callers
+   * can group consecutive rows by `actionmap`). Labels stay as @-keys — resolve
+   * them in a batch via resolveLocaleKeys. Empty array when no build is live.
+   */
+  async listKeybinds(): Promise<CodexKeybind[]> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+    const { data, error } = await this.sb.client
+      .from('codex_keybinds')
+      .select(
+        'actionmap, action_name, label_key, description_key, category_label_key, ' +
+          'activation_mode, binding_keyboard, binding_mouse, binding_gamepad, binding_joystick, sort',
+      )
+      .eq('build_id', build.id)
+      .order('sort', { ascending: true });
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
+      actionmap: (r['actionmap'] as string) ?? '',
+      actionName: (r['action_name'] as string) ?? '',
+      labelKey: (r['label_key'] as string | null) ?? null,
+      descriptionKey: (r['description_key'] as string | null) ?? null,
+      categoryLabelKey: (r['category_label_key'] as string | null) ?? null,
+      activationMode: (r['activation_mode'] as string | null) ?? null,
+      bindings: {
+        keyboard: (r['binding_keyboard'] as string | null) ?? null,
+        mouse: (r['binding_mouse'] as string | null) ?? null,
+        gamepad: (r['binding_gamepad'] as string | null) ?? null,
+        joystick: (r['binding_joystick'] as string | null) ?? null,
+      },
+      sort: (r['sort'] as number | null) ?? 0,
+    }));
   }
 
   /**

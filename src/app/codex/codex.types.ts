@@ -24,6 +24,7 @@ export type CodexItemRow = Tables<'codex_items'>;
 export type CodexAmmunitionRow = Tables<'codex_ammunition'>;
 export type CodexItemPortRow = Tables<'codex_item_ports'>;
 export type CodexEntityStringRow = Tables<'codex_entity_strings'>;
+export type CodexKeybindRow = Tables<'codex_keybinds'>;
 
 // ── Shared shapes (from the extraction contract) ─────────────────────────────
 export interface LocalizedText {
@@ -361,6 +362,33 @@ export interface CodexBlueprintIngredient {
   role: string;
   nameLocalized: string | null;
   entityKind: string | null;
+}
+
+// ── Keybindings ─────────────────────────────────────────────────────────────
+// Default action bindings extracted from Data/Libs/Config/defaultProfile.xml.
+// Labels are raw @-keys resolved via codex_locale_strings (CodexService
+// .resolveLocaleKeys) — all languages, no denormalized copies.
+
+export interface CodexKeybindBinding {
+  keyboard: string | null;
+  mouse: string | null;
+  gamepad: string | null;
+  joystick: string | null;
+}
+
+/** The four input devices a keybinding can target. */
+export type KeybindDevice = keyof CodexKeybindBinding;
+
+/** Ergonomic model for one keybinding action row. */
+export interface CodexKeybind {
+  actionmap: string;
+  actionName: string;
+  labelKey: string | null;
+  descriptionKey: string | null;
+  categoryLabelKey: string | null;
+  activationMode: string | null;
+  bindings: CodexKeybindBinding;
+  sort: number;
 }
 
 // The table names exposed for SELECT (RLS: any authenticated user can read).
