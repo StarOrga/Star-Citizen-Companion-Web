@@ -892,6 +892,10 @@
     "shippedGroup": "Shipped · {{count}}",
     "loadMore": "Load {{count}} more",
     "toggleDetails": "Expand or collapse this entry",
+    "filter": {
+      "label": "Filter by author",
+      "all": "All"
+    },
     "delete": "Delete",
     "deleteConfirm": "Delete this message? This cannot be undone.",
     "status": {

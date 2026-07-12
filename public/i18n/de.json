@@ -892,6 +892,10 @@
     "shippedGroup": "Geshippt · {{count}}",
     "loadMore": "Weitere {{count}} laden",
     "toggleDetails": "Eintrag aus- oder einklappen",
+    "filter": {
+      "label": "Nach Ersteller filtern",
+      "all": "Alle"
+    },
     "delete": "Löschen",
     "deleteConfirm": "Diese Nachricht löschen? Kann nicht rückgängig gemacht werden.",
     "status": {
