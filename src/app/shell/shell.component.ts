@@ -33,7 +33,9 @@ import { FeedbackFabComponent } from './feedback-fab.component';
         <a routerLink="/news" routerLinkActive="active">{{ 'nav.news' | translate }}</a>
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
         <a routerLink="/starscape" routerLinkActive="active">{{ 'nav.starscape' | translate }}</a>
-        <a routerLink="/hangar" routerLinkActive="active">{{ 'nav.hangar' | translate }}</a>
+        <!-- Hangar is intentionally NOT a top-level nav entry: it lives under the
+             Codex Bridge as a sub-link (see codex-bridge.component). Admin call
+             (feedback f0363cef) — declutter the nav bar, route Hangar via Codex. -->
         @if (roles.isCollaborator()) {
           <!-- Restricted (collaborator+admin) area — flagged red like the
                admin-only links so privileged sections stand out from public. -->

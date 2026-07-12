@@ -86,3 +86,6 @@ data-uploader/python/spike_*.py
 data-uploader/python/fs[0-9]*.py
 data-uploader/python/real_cutlass_*.py
 data-uploader/python/demo_visual_extract.py
+
+# graphify knowledge-graph output (generated locally, never committed)
+graphify-out/
