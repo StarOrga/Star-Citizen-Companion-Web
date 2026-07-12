@@ -89,6 +89,7 @@ interface Lane {
           }
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>
           <a class="index-link" routerLink="/codex/keybinds">{{ 'codex.bridge.keybinds' | translate }}</a>
+          <a class="index-link" routerLink="/hangar">{{ 'codex.bridge.hangar' | translate }}</a>
         </div>
         <sc-codex-status-banner />
       </div>
