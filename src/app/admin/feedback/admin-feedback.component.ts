@@ -1,21 +1,19 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   OnInit,
   computed,
   inject,
   input,
   signal,
-  viewChild,
 } from '@angular/core';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
-import { ConsentService } from '../../core/consent.service';
 import { useAutoRefresh } from '../../core/auto-refresh';
 import { AuthService } from '../../auth/auth.service';
 import { renderMarkdown } from './markdown.util';
+import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
 
 type FeedbackStatus = 'open' | 'in_progress' | 'shipped' | 'rejected' | 'needs_input';
 
@@ -49,26 +47,13 @@ interface FeedbackRow {
   author: FeedbackAuthor | null;
 }
 
-/** An image queued in the composer, held as a compressed data URI until send. */
-interface PendingImage {
-  id: string;
-  name: string;
-  dataUrl: string;
-}
-
+/** localStorage key backing the new-topic composer draft. */
 const DRAFT_KEY = 'sc.adminFeedback.draft';
-
-/** Longest-edge cap (px) applied when re-encoding pasted/dropped images. */
-const IMG_MAX_DIM = 1600;
-/** JPEG quality for the re-encoded attachment. */
-const IMG_QUALITY = 0.85;
-/** Safety cap on how many images ride along on a single message. */
-const MAX_ATTACHMENTS = 10;
 
 @Component({
   selector: 'sc-admin-feedback',
   standalone: true,
-  imports: [DatePipe, NgTemplateOutlet, TranslateModule],
+  imports: [DatePipe, NgTemplateOutlet, TranslateModule, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page" [class.embedded]="embedded()">
@@ -163,7 +148,23 @@ const MAX_ATTACHMENTS = 10;
           </div>
 
           @if (!embedded() || isExpanded(m.id)) {
-            <div class="msg-body" [innerHTML]="render(m.body)"></div>
+            <!-- Long bodies are clamped to their first two sentences on the full
+                 board (feedback 73dfa165) so the list stays scannable; expand to
+                 read the rest. In the compact FAB panel the whole card already
+                 collapses, so the body is shown in full when opened there. -->
+            @if (!embedded()) {
+              @let bp = bodyPreview(m.body);
+              @if (bp.truncated && !isBodyExpanded(m.id)) {
+                <div class="msg-body clamped">{{ bp.text }}<button type="button" class="body-toggle" (click)="toggleBody(m.id)">… {{ 'adminFeedback.showMore' | translate }}</button></div>
+              } @else {
+                <div class="msg-body" [innerHTML]="render(m.body)"></div>
+                @if (bp.truncated) {
+                  <button type="button" class="body-toggle" (click)="toggleBody(m.id)">{{ 'adminFeedback.showLess' | translate }}</button>
+                }
+              }
+            } @else {
+              <div class="msg-body" [innerHTML]="render(m.body)"></div>
+            }
 
             @if (m.ship_ref) {
               <a class="ship-ref" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
@@ -184,27 +185,33 @@ const MAX_ATTACHMENTS = 10;
                       @if (msg.is_system) { <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span> }
                       <span class="reply-ts">{{ msg.created_at | date:'short' }}</span>
                     </div>
-                    <div class="reply-body" [innerHTML]="render(msg.body)"></div>
+                    @if (!embedded()) {
+                      @let rp = bodyPreview(msg.body);
+                      @if (rp.truncated && !isBodyExpanded(msg.id)) {
+                        <div class="reply-body clamped">{{ rp.text }}<button type="button" class="body-toggle" (click)="toggleBody(msg.id)">… {{ 'adminFeedback.showMore' | translate }}</button></div>
+                      } @else {
+                        <div class="reply-body" [innerHTML]="render(msg.body)"></div>
+                        @if (rp.truncated) {
+                          <button type="button" class="body-toggle" (click)="toggleBody(msg.id)">{{ 'adminFeedback.showLess' | translate }}</button>
+                        }
+                      }
+                    } @else {
+                      <div class="reply-body" [innerHTML]="render(msg.body)"></div>
+                    }
                   </div>
                 }
               </div>
             }
 
-            <!-- Reply composer — answer the routine / continue the topic. -->
+            <!-- Reply composer — full parity with the new-topic box (toolbar,
+                 Ctrl/Cmd+Enter, image paste/drop, list continuation). -->
             <div class="reply-compose">
-              <textarea
-                class="reply-input"
-                rows="2"
-                [value]="replyDraft(m.id)"
-                (input)="onReplyInput(m.id, $any($event.target).value)"
-                [placeholder]="'adminFeedback.thread.replyPlaceholder' | translate"
-                [attr.aria-label]="'adminFeedback.thread.replyPlaceholder' | translate"></textarea>
-              <button
-                class="sc-btn micro"
-                (click)="sendReply(m.id)"
-                [disabled]="busy() || replyDraft(m.id).trim().length === 0">
-                {{ 'adminFeedback.thread.reply' | translate }}
-              </button>
+              <sc-feedback-composer
+                [compact]="true"
+                [busy]="busy()"
+                placeholder="adminFeedback.thread.replyPlaceholder"
+                sendLabel="adminFeedback.thread.reply"
+                [onSubmit]="replySubmitFor(m.id)" />
             </div>
 
             <!-- Any admin may delete any topic (board is admin-only) — clears a
@@ -220,75 +227,14 @@ const MAX_ATTACHMENTS = 10;
         </article>
       </ng-template>
 
-      <!-- Composer -->
-      <div
-        class="composer sc-card"
-        [class.drag-active]="dragActive()"
-        (dragover)="onDragOver($event)"
-        (dragleave)="onDragLeave($event)"
-        (drop)="onDrop($event)">
-        @if (dragActive()) {
-          <div class="drop-hint">{{ 'adminFeedback.compose.dropHere' | translate }}</div>
-        }
-        <div class="toolbar">
-          <button type="button" class="tool" (click)="wrapSelection('**', '**')" [title]="'adminFeedback.compose.bold' | translate">
-            <strong>B</strong>
-          </button>
-          <button type="button" class="tool" (click)="prefixLines('- ')" [title]="'adminFeedback.compose.bullet' | translate">
-            • {{ 'adminFeedback.compose.list' | translate }}
-          </button>
-          <button type="button" class="tool" (click)="prefixLines('1. ')" [title]="'adminFeedback.compose.numbered' | translate">
-            1. {{ 'adminFeedback.compose.list' | translate }}
-          </button>
-          <button type="button" class="tool" (click)="wrapSelection('\`', '\`')" [title]="'adminFeedback.compose.code' | translate">
-            &lt;/&gt;
-          </button>
-          <button type="button" class="tool" (click)="fileInput.click()" [title]="'adminFeedback.compose.attach' | translate">
-            🖼
-          </button>
-          <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFileInput($event)" />
-          <span class="grow"></span>
-          @if (draftRestored()) {
-            <span class="draft-flag">{{ 'adminFeedback.compose.draftRestored' | translate }}</span>
-          }
-        </div>
-
-        <textarea #ta
-                  class="compose-input"
-                  [value]="draft()"
-                  (input)="onInput($event)"
-                  (keydown)="onKeydown($event)"
-                  (paste)="onPaste($event)"
-                  [placeholder]="'adminFeedback.compose.placeholder' | translate"
-                  [attr.aria-label]="'adminFeedback.title' | translate"
-                  rows="4"></textarea>
-
-        @if (attachments().length > 0) {
-          <div class="attachments" [attr.aria-label]="'adminFeedback.compose.attachmentsLabel' | translate">
-            @for (a of attachments(); track a.id) {
-              <figure class="thumb">
-                <img [src]="a.dataUrl" [alt]="a.name" />
-                <button
-                  type="button"
-                  class="thumb-remove"
-                  (click)="removeAttachment(a.id)"
-                  [attr.aria-label]="'adminFeedback.compose.removeImage' | translate">
-                  ✕
-                </button>
-              </figure>
-            }
-          </div>
-        }
-
-        <div class="composer-foot">
-          <span class="hint">{{ 'adminFeedback.compose.attachHint' | translate }}</span>
-          <button class="sc-btn sc-btn-primary"
-                  (click)="send()"
-                  [disabled]="busy() || (draft().trim().length === 0 && attachments().length === 0)">
-            {{ 'adminFeedback.compose.send' | translate }}
-          </button>
-        </div>
-      </div>
+      <!-- New-topic composer -->
+      <sc-feedback-composer
+        class="main-composer"
+        [persistKey]="draftKey"
+        [busy]="busy()"
+        placeholder="adminFeedback.compose.placeholder"
+        sendLabel="adminFeedback.compose.send"
+        [onSubmit]="createTopicBound" />
     </section>
   `,
   styles: [`
@@ -304,7 +250,15 @@ const MAX_ATTACHMENTS = 10;
       box-sizing: border-box;
     }
     .page.embedded .board { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
-    .page.embedded .composer { position: static; flex: 0 0 auto; }
+    .page.embedded .main-composer { position: static; }
+
+    /* New-topic composer stays pinned to the bottom of the board on the full
+       page; the embedded panel scrolls the board and keeps it static. */
+    .main-composer {
+      position: sticky;
+      bottom: 12px;
+      z-index: 1;
+    }
 
     .expand-toggle {
       margin-left: 4px;
@@ -487,6 +441,21 @@ const MAX_ATTACHMENTS = 10;
       border-left: 3px solid var(--sc-border);
       color: var(--sc-fg-1);
     }
+    /* Clamped two-sentence preview (plain text) with an inline expand control. */
+    .msg-body.clamped, .reply-body.clamped { color: var(--sc-fg-1); }
+    .body-toggle {
+      display: inline;
+      margin-left: 6px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      color: var(--sc-accent);
+      font: inherit;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+    .body-toggle:hover { text-decoration: underline; }
+    .body-toggle:focus-visible { outline: none; text-decoration: underline; }
 
     .ship-ref { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; }
     .ship-ref:hover { text-decoration: underline; }
@@ -516,132 +485,17 @@ const MAX_ATTACHMENTS = 10;
     .reply-body p { margin: 0 0 6px; }
     .reply-body a { color: var(--sc-accent); }
     .reply-body code { font-family: monospace; font-size: 0.85em; background: var(--sc-bg-1); padding: 1px 5px; border-radius: 3px; }
+    .reply-body img { display: block; max-width: 100%; height: auto; margin: 6px 0; border: 1px solid var(--sc-border); border-radius: 6px; }
 
-    .reply-compose { display: flex; gap: 8px; align-items: flex-end; margin-top: 2px; }
-    .reply-input {
-      flex: 1; box-sizing: border-box; resize: vertical; min-height: 38px;
-      padding: 8px 10px; background: var(--sc-bg-1); color: var(--sc-fg-0);
-      border: 1px solid var(--sc-border); border-radius: 6px; font: inherit; font-size: 0.86rem; line-height: 1.4;
-    }
-    .reply-input:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.22); }
+    .reply-compose { margin-top: 4px; }
 
     .msg-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .sc-btn.micro { padding: 4px 10px; font-size: 0.7rem; letter-spacing: 0.04em; }
     .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
     .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
 
-    .composer {
-      position: sticky;
-      bottom: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 12px 14px;
-    }
-    /* Drag-to-upload affordance: highlight the composer and overlay a hint. */
-    .composer.drag-active {
-      position: relative;
-      border-color: var(--sc-accent);
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.28);
-    }
-    .drop-hint {
-      position: absolute;
-      inset: 0;
-      z-index: 2;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-      background: rgba(0, 212, 255, 0.1);
-      border-radius: 4px;
-      color: var(--sc-accent);
-      font-size: 0.82rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-    }
-
-    /* Pending-image thumbnails shown between the textarea and the send row. */
-    .attachments { display: flex; flex-wrap: wrap; gap: 8px; }
-    .thumb {
-      position: relative;
-      margin: 0;
-      width: 68px;
-      height: 68px;
-      border: 1px solid var(--sc-border);
-      border-radius: 6px;
-      overflow: hidden;
-      background: var(--sc-bg-1);
-    }
-    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .thumb-remove {
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 18px;
-      height: 18px;
-      padding: 0;
-      border: 0;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
-      font-size: 0.62rem;
-      line-height: 1;
-      cursor: pointer;
-    }
-    .thumb-remove:hover { background: var(--sc-danger); }
-    .thumb-remove:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.5);
-    }
-    .toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .tool {
-      padding: 4px 9px;
-      background: var(--sc-bg-1);
-      color: var(--sc-fg-1);
-      border: 1px solid var(--sc-border);
-      border-radius: 4px;
-      font: inherit;
-      font-size: 0.78rem;
-      cursor: pointer;
-    }
-    .tool:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
-    .grow { flex: 1; }
-    .draft-flag { font-size: 0.72rem; color: var(--sc-fg-2); }
-
-    .compose-input {
-      width: 100%;
-      box-sizing: border-box;
-      min-height: 92px;
-      resize: vertical;
-      padding: 10px 12px;
-      background: var(--sc-bg-1);
-      color: var(--sc-fg-0);
-      border: 1px solid var(--sc-border);
-      border-radius: 4px;
-      font: inherit;
-      font-size: 0.9rem;
-      line-height: 1.5;
-    }
-    .compose-input:focus {
-      outline: none;
-      border-color: var(--sc-accent);
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
-    }
-    .composer-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .composer-foot .hint { margin: 0; font-size: 0.76rem; }
-
-    .sr-only {
-      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
-    }
-
     @media (max-width: 640px) {
-      .composer { position: static; }
-      .composer-foot { flex-direction: column; align-items: stretch; }
-      .composer-foot .sc-btn { width: 100%; }
+      .main-composer { position: static; }
       .status-pill { margin-left: 0; }
     }
   `],
@@ -650,9 +504,6 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly translate = inject(TranslateService);
-  private readonly consentSvc = inject(ConsentService);
-
-  private readonly ta = viewChild<ElementRef<HTMLTextAreaElement>>('ta');
 
   /** When embedded in the feedback FAB panel, the page chrome (title, subtitle,
    *  manual refresh) is dropped — the panel supplies its own header. */
@@ -661,26 +512,17 @@ export class AdminFeedbackComponent implements OnInit {
   readonly messages = signal<FeedbackRow[]>([]);
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
-  readonly draft = signal('');
-  readonly draftRestored = signal(false);
   readonly selfId = computed(() => this.auth.user()?.id ?? null);
+
+  /** localStorage key handed to the new-topic composer for draft persistence. */
+  readonly draftKey = DRAFT_KEY;
 
   /** Replies per topic, keyed by feedback id (oldest first). */
   readonly threads = signal<Map<string, FeedbackMessage[]>>(new Map());
-  /** Per-topic reply composer drafts, keyed by feedback id. */
-  private readonly replyDrafts = signal<Map<string, string>>(new Map());
 
   messagesFor(feedbackId: string): FeedbackMessage[] {
     return this.threads().get(feedbackId) ?? [];
   }
-  replyDraft(feedbackId: string): string {
-    return this.replyDrafts().get(feedbackId) ?? '';
-  }
-
-  /** Images queued for the next message (compressed data URIs). */
-  readonly attachments = signal<PendingImage[]>([]);
-  /** True while a file is dragged over the composer (drop affordance). */
-  readonly dragActive = signal(false);
 
   /** Shipped items are collapsed into a stack so the open ones stay directly
    *  visible; expanding reveals the resolved history (newest first, paged). */
@@ -789,6 +631,22 @@ export class AdminFeedbackComponent implements OnInit {
     });
   }
 
+  /** Per-body "show full text" state for the two-sentence clamp (feedback 73dfa165). */
+  private readonly _bodyExpanded = signal<Set<string>>(new Set());
+
+  isBodyExpanded(id: string): boolean {
+    return this._bodyExpanded().has(id);
+  }
+
+  toggleBody(id: string): void {
+    this._bodyExpanded.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   /**
    * In the embedded FAB panel, topics are collapsed by default — which hides the
    * reply composer. Auto-expand `needs_input` topics (the ones awaiting the
@@ -819,12 +677,37 @@ export class AdminFeedbackComponent implements OnInit {
     return text.length > 120 ? `${text.slice(0, 117)}…` : text;
   }
 
+  /**
+   * First-two-sentences preview of a markdown body plus whether anything was cut
+   * — backs the collapse-by-default clamp on the full board. Images and markup
+   * are stripped for the plain preview; their presence still marks the body as
+   * truncatable so the reader can expand to the rich render.
+   */
+  bodyPreview(body: string): { text: string; truncated: boolean } {
+    const raw = body ?? '';
+    const hasImage = /!\[[^\]]*\]\([^)]*\)/.test(raw);
+    const plain = raw
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/[*_`#>~]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const parts = plain ? plain.split(/(?<=[.!?])\s+/) : [];
+    let text = parts.slice(0, 2).join(' ').trim();
+    let truncated = hasImage || parts.length > 2 || text.length < plain.length;
+    const CAP = 300;
+    if (text.length > CAP) {
+      text = text.slice(0, CAP).trimEnd();
+      truncated = true;
+    }
+    return { text: text || plain, truncated };
+  }
+
   constructor() {
     useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
   }
 
   async ngOnInit() {
-    this.restoreDraft();
     await this.refresh();
   }
 
@@ -839,252 +722,6 @@ export class AdminFeedbackComponent implements OnInit {
     return m.author?.display_name
       ?? (m.author?.username ? `@${m.author.username}` : null)
       ?? this.translate.instant('adminFeedback.unknownUser');
-  }
-
-  // ---- Draft persistence (localStorage) ----------------------------------
-
-  private restoreDraft(): void {
-    try {
-      const saved = localStorage.getItem(DRAFT_KEY);
-      if (saved && saved.trim()) {
-        this.draft.set(saved);
-        this.draftRestored.set(true);
-      }
-    } catch {
-      /* localStorage unavailable (private mode) — ignore */
-    }
-  }
-
-  private saveDraft(value: string): void {
-    // Preference-category storage is opt-in (#130) — clearing stays allowed.
-    if (value.trim() && !this.consentSvc.preferencesAllowed()) return;
-    try {
-      if (value.trim()) localStorage.setItem(DRAFT_KEY, value);
-      else localStorage.removeItem(DRAFT_KEY);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  onInput(e: Event): void {
-    const value = (e.target as HTMLTextAreaElement).value;
-    this.draft.set(value);
-    this.draftRestored.set(false);
-    this.saveDraft(value);
-  }
-
-  // ---- Composer keyboard behaviour ---------------------------------------
-
-  onKeydown(e: KeyboardEvent): void {
-    // Ctrl/Cmd+Enter → send.
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      void this.send();
-      return;
-    }
-    // Plain Enter → continue an active list; otherwise default newline.
-    if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
-      this.handleListContinuation(e);
-    }
-  }
-
-  /**
-   * When Enter is pressed inside a bullet/numbered line, insert the next
-   * marker automatically. An empty marker line exits the list instead.
-   */
-  private handleListContinuation(e: KeyboardEvent): void {
-    const el = this.ta()?.nativeElement;
-    if (!el) return;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    if (start !== end) return; // selection active — let default happen
-
-    const value = el.value;
-    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-    const currentLine = value.slice(lineStart, start);
-
-    const ul = /^(\s*)([-*+])\s+(.*)$/.exec(currentLine);
-    const ol = /^(\s*)(\d+)\.\s+(.*)$/.exec(currentLine);
-    if (!ul && !ol) return;
-
-    e.preventDefault();
-    const indent = (ul ?? ol)![1];
-    const content = (ul ? ul[3] : ol![3]).trim();
-
-    let insert: string;
-    let replaceFrom = start;
-    if (content === '') {
-      // Empty marker → drop the marker and exit the list.
-      replaceFrom = lineStart;
-      insert = '\n';
-    } else if (ul) {
-      insert = `\n${indent}${ul[2]} `;
-    } else {
-      insert = `\n${indent}${Number(ol![2]) + 1}. `;
-    }
-
-    const next = value.slice(0, replaceFrom) + insert + value.slice(end);
-    const caret = replaceFrom + insert.length;
-    this.applyValue(el, next, caret);
-  }
-
-  // ---- Toolbar -----------------------------------------------------------
-
-  wrapSelection(before: string, after: string): void {
-    const el = this.ta()?.nativeElement;
-    if (!el) return;
-    const { selectionStart: s, selectionEnd: e, value } = el;
-    const sel = value.slice(s, e);
-    const next = value.slice(0, s) + before + sel + after + value.slice(e);
-    const caret = sel ? s + before.length + sel.length + after.length : s + before.length;
-    this.applyValue(el, next, caret);
-  }
-
-  prefixLines(marker: string): void {
-    const el = this.ta()?.nativeElement;
-    if (!el) return;
-    const { selectionStart: s, selectionEnd: e, value } = el;
-    const lineStart = value.lastIndexOf('\n', s - 1) + 1;
-    const block = value.slice(lineStart, e);
-    let n = 0;
-    const prefixed = block
-      .split('\n')
-      .map((line) => (marker === '1. ' ? `${++n}. ${line}` : `${marker}${line}`))
-      .join('\n');
-    const next = value.slice(0, lineStart) + prefixed + value.slice(e);
-    this.applyValue(el, next, lineStart + prefixed.length);
-  }
-
-  private applyValue(el: HTMLTextAreaElement, next: string, caret: number): void {
-    el.value = next;
-    el.setSelectionRange(caret, caret);
-    this.draft.set(next);
-    this.draftRestored.set(false);
-    this.saveDraft(next);
-    el.focus();
-  }
-
-  // ---- Image attachments -------------------------------------------------
-
-  onFileInput(e: Event): void {
-    const input = e.target as HTMLInputElement;
-    void this.addFiles(input.files);
-    input.value = ''; // allow re-picking the same file
-  }
-
-  onPaste(e: ClipboardEvent): void {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    const files: File[] = [];
-    for (const it of Array.from(items)) {
-      if (it.kind === 'file' && it.type.startsWith('image/')) {
-        const f = it.getAsFile();
-        if (f) files.push(f);
-      }
-    }
-    if (files.length) {
-      // Swallow the paste so the raw image blob text never lands in the textarea.
-      e.preventDefault();
-      void this.addFiles(files);
-    }
-  }
-
-  onDragOver(e: DragEvent): void {
-    if (!e.dataTransfer?.types?.includes('Files')) return;
-    e.preventDefault();
-    this.dragActive.set(true);
-  }
-
-  onDragLeave(e: DragEvent): void {
-    e.preventDefault();
-    this.dragActive.set(false);
-  }
-
-  onDrop(e: DragEvent): void {
-    const files = e.dataTransfer?.files;
-    this.dragActive.set(false);
-    if (files && files.length) {
-      e.preventDefault();
-      void this.addFiles(files);
-    }
-  }
-
-  removeAttachment(id: string): void {
-    this.attachments.update((list) => list.filter((a) => a.id !== id));
-  }
-
-  /** Accept image files from any source (picker, paste, drop), compressing each. */
-  private async addFiles(files: FileList | File[] | null | undefined): Promise<void> {
-    if (!files) return;
-    const images = Array.from(files).filter((f) => f.type.startsWith('image/'));
-    if (images.length === 0) return;
-    for (const file of images) {
-      if (this.attachments().length >= MAX_ATTACHMENTS) {
-        this.errorMsg.set(
-          this.translate.instant('adminFeedback.compose.tooManyImages', { max: MAX_ATTACHMENTS }),
-        );
-        break;
-      }
-      try {
-        const att = await this.processImage(file);
-        this.attachments.update((list) => [...list, att]);
-      } catch {
-        this.errorMsg.set(this.translate.instant('adminFeedback.compose.imageError'));
-      }
-    }
-  }
-
-  /**
-   * Re-encode an image to a size-bounded JPEG data URI. GIFs are passed through
-   * untouched so animation survives. A white matte replaces transparency so the
-   * JPEG never shows black where the source was transparent.
-   */
-  private processImage(file: File): Promise<PendingImage> {
-    const name = this.safeName(file.name);
-    if (file.type === 'image/gif') {
-      return this.readAsDataUrl(file).then((dataUrl) => ({ id: crypto.randomUUID(), name, dataUrl }));
-    }
-    return new Promise<PendingImage>((resolve, reject) => {
-      const objectUrl = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        const scale = Math.min(1, IMG_MAX_DIM / Math.max(img.width, img.height));
-        const w = Math.max(1, Math.round(img.width * scale));
-        const h = Math.max(1, Math.round(img.height * scale));
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('canvas 2d context unavailable'));
-          return;
-        }
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve({ id: crypto.randomUUID(), name, dataUrl: canvas.toDataURL('image/jpeg', IMG_QUALITY) });
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error('image failed to load'));
-      };
-      img.src = objectUrl;
-    });
-  }
-
-  private readAsDataUrl(file: File): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error ?? new Error('read failed'));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  /** Strip markdown-significant chars from a filename used as image alt text. */
-  private safeName(name: string): string {
-    return (name || '').replace(/[\[\]()*_`~\n\r]/g, ' ').trim() || 'image';
   }
 
   // ---- Data --------------------------------------------------------------
@@ -1131,33 +768,6 @@ export class AdminFeedbackComponent implements OnInit {
     this.threads.set(grouped);
   }
 
-  onReplyInput(feedbackId: string, value: string): void {
-    this.replyDrafts.update((m) => new Map(m).set(feedbackId, value));
-  }
-
-  /** Post a human reply into a topic's thread, then reload it. */
-  async sendReply(feedbackId: string): Promise<void> {
-    const text = this.replyDraft(feedbackId).trim();
-    const uid = this.selfId();
-    if (!text || !uid) return;
-    this.busy.set(true);
-    this.errorMsg.set(null);
-    const { error } = await this.sb.client
-      .from('admin_feedback_messages')
-      .insert({ feedback_id: feedbackId, author_id: uid, is_system: false, body: text });
-    if (error) {
-      this.errorMsg.set(error.message);
-      this.busy.set(false);
-      return;
-    }
-    this.replyDrafts.update((m) => {
-      const next = new Map(m);
-      next.delete(feedbackId);
-      return next;
-    });
-    await this.refresh();
-  }
-
   authorLabelFor(msg: FeedbackMessage): string {
     if (msg.is_system) return this.translate.instant('adminFeedback.thread.routine');
     if (msg.author_id && msg.author_id === this.selfId()) {
@@ -1168,29 +778,62 @@ export class AdminFeedbackComponent implements OnInit {
       ?? this.translate.instant('adminFeedback.unknownUser');
   }
 
-  async send() {
-    const text = this.draft().trim();
-    const atts = this.attachments();
+  // ---- Composer submit handlers ------------------------------------------
+
+  /** Compose the stored body: text with any images appended as markdown. */
+  private buildBody(payload: ComposerPayload): string {
+    const imgMd = payload.images.map((a) => `![${a.name}](${a.dataUrl})`).join('\n\n');
+    return [payload.text, imgMd].filter((s) => s.length > 0).join('\n\n');
+  }
+
+  /** Stable handler reference for the new-topic composer. */
+  readonly createTopicBound = (payload: ComposerPayload): Promise<boolean> =>
+    this.createTopic(payload);
+
+  /** Create a new feedback topic. Returns true once persisted (composer clears). */
+  async createTopic(payload: ComposerPayload): Promise<boolean> {
     const uid = this.selfId();
-    if ((!text && atts.length === 0) || !uid) return;
-    this.busy.set(true);
+    const body = this.buildBody(payload);
+    if (!body || !uid) return false;
     this.errorMsg.set(null);
-    // Images ride along as markdown image syntax appended below the text.
-    const imgMd = atts.map((a) => `![${a.name}](${a.dataUrl})`).join('\n\n');
-    const body = [text, imgMd].filter((s) => s.length > 0).join('\n\n');
     const { error } = await this.sb.client
       .from('admin_feedback')
       .insert({ body, author_id: uid });
     if (error) {
       this.errorMsg.set(error.message);
-      this.busy.set(false);
-      return;
+      return false;
     }
-    this.draft.set('');
-    this.draftRestored.set(false);
-    this.saveDraft('');
-    this.attachments.set([]);
     await this.refresh();
+    return true;
+  }
+
+  /** Memoized per-topic reply handlers, so each composer gets a stable input. */
+  private readonly replySubmitters = new Map<string, (p: ComposerPayload) => Promise<boolean>>();
+
+  replySubmitFor(feedbackId: string): (p: ComposerPayload) => Promise<boolean> {
+    let fn = this.replySubmitters.get(feedbackId);
+    if (!fn) {
+      fn = (p: ComposerPayload) => this.sendReply(feedbackId, p);
+      this.replySubmitters.set(feedbackId, fn);
+    }
+    return fn;
+  }
+
+  /** Post a human reply into a topic's thread. Returns true once persisted. */
+  async sendReply(feedbackId: string, payload: ComposerPayload): Promise<boolean> {
+    const uid = this.selfId();
+    const body = this.buildBody(payload);
+    if (!body || !uid) return false;
+    this.errorMsg.set(null);
+    const { error } = await this.sb.client
+      .from('admin_feedback_messages')
+      .insert({ feedback_id: feedbackId, author_id: uid, is_system: false, body });
+    if (error) {
+      this.errorMsg.set(error.message);
+      return false;
+    }
+    await this.refresh();
+    return true;
   }
 
   async remove(m: FeedbackRow) {
