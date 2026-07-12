@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.33.1",
+  "current": "0.34.1",
   "releases": [
+    {
+      "version": "0.34.1",
+      "date": "2026-07-12",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Starscape shows only real wallpapers again.",
+              "text": "The image crawler treated every picture embedded in a Comm-Link — including tiny inline icons, section patterns and even trailer videos — as a wallpaper, so they cluttered the gallery next to the actual artwork. Capture now keeps only raster images of wallpaper size (≥ 100 KB, JPEG/PNG/WebP) and drops icons, patterns and videos at the source. Existing junk entries need a one-time cleanup of the verse_wallpapers table. (#133 follow-up)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.34.0",
+      "date": "2026-07-12",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Keybindings reference in the Codex.",
+              "text": "A new page lists every default key binding from the current game build — grouped by category, searchable, with a device switch for keyboard, mouse, gamepad and joystick. Reach it from the subtle \"Keybinds\" chip next to the Codex scanner. Bindings and their labels are datamined straight from the game's Data.p4k (its default action profile plus every language's translations) and uploaded by the Data Uploader like the rest of the catalog. Public — no login required."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.33.1",
       "date": "2026-07-12",
