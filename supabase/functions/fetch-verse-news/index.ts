@@ -599,6 +599,19 @@ async function cacheImages(items: VerseNewsItem[]): Promise<void> {
 
 const MEDIA_URL_RE = /^https:\/\/media\.robertsspaceindustries\.com\/([^/]+)\/[^/.]+(\.[a-zA-Z0-9]+)$/;
 
+// A comm-link body embeds inline icons, section patterns, logos and even trailer
+// videos next to its hero artwork — the wiki API returns them all in one `images`
+// array with no role hint. Two cheap, robust signals separate real wallpapers
+// from that noise (verified against live capture data, #133 follow-up):
+//   1. Format — only raster photos are wallpaper material. .mp4 trailers and
+//      .gif/.svg UI assets are not (the extension gate skips a needless HEAD).
+//   2. Byte size — inline icons/patterns are 2–3 KB; every real RSI wallpaper
+//      observed is ≥190 KB. 100 KB cleanly splits the two via CDN content-length.
+const WALLPAPER_EXT_RE = /^\.(jpe?g|png|webp)$/i;
+const WALLPAPER_CONTENT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MIN_WALLPAPER_BYTES = 100_000;
+const WALLPAPER_HEAD_TIMEOUT_MS = 6000;
+
 interface WallpaperRow {
   image_id: string;
   source_url: string;
@@ -607,6 +620,28 @@ interface WallpaperRow {
   series: string | null;
   article_url: string;
   published_at: string | null;
+}
+
+// HEAD the original CDN url and keep it only if it is a raster image of wallpaper
+// size. Any failure (network, timeout, missing/odd headers) is treated as "not a
+// wallpaper": the row is skipped and retried on the next crawl, so unverified
+// noise never reaches the public gallery.
+async function isWallpaperMedia(sourceUrl: string): Promise<boolean> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), WALLPAPER_HEAD_TIMEOUT_MS);
+  try {
+    const res = await fetch(sourceUrl, { method: 'HEAD', signal: ctrl.signal });
+    if (!res.ok) return false;
+    const contentType = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+    if (!WALLPAPER_CONTENT_TYPES.has(contentType)) return false;
+    const bytes = Number(res.headers.get('content-length') ?? '0');
+    if (bytes > 0 && bytes < MIN_WALLPAPER_BYTES) return false;
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
@@ -621,6 +656,7 @@ async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
         const m = MEDIA_URL_RE.exec(url);
         if (!m) continue;
         const [, id, ext] = m;
+        if (!WALLPAPER_EXT_RE.test(ext)) continue; // .mp4/.gif/.svg → not wallpaper material
         if (rows.has(id)) continue;
         const base = `https://media.robertsspaceindustries.com/${id}/`;
         rows.set(id, {
@@ -635,12 +671,19 @@ async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
       }
     }
     if (rows.size === 0) return;
+    // Verify each candidate really is wallpaper-sized artwork before it reaches
+    // the public gallery — this is what keeps inline icons/patterns/videos out (#133).
+    const verified = await Promise.all(
+      [...rows.values()].map(async (row) => ((await isWallpaperMedia(row.source_url)) ? row : null)),
+    );
+    const keep = verified.filter((row): row is WallpaperRow => row !== null);
+    if (keep.length === 0) return;
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
     // First capture wins — rows are immutable source metadata, so duplicate
     // ids from later crawls are ignored instead of churning updated_at.
     const { error } = await admin
       .from('verse_wallpapers')
-      .upsert([...rows.values()], { onConflict: 'image_id', ignoreDuplicates: true });
+      .upsert(keep, { onConflict: 'image_id', ignoreDuplicates: true });
     if (error) console.error('captureWallpapers upsert failed:', error.message);
   } catch (err) {
     // Best-effort side effect — never fail the news feed for the gallery.
