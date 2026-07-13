@@ -1064,6 +1064,10 @@
     "download": "Download original",
     "sourceArticle": "Source Comm-Link",
     "close": "Close",
-    "attribution": "All imagery © Cloud Imperium Games — served directly from the RSI CDN, linked with attribution to the source Comm-Link. Fan-made gallery, no re-sale, no re-hosting."
+    "attribution": "All imagery © Cloud Imperium Games — served directly from the RSI CDN, linked with attribution to the source Comm-Link. Fan-made gallery, no re-sale, no re-hosting.",
+    "appTitle": "Desktop Wallpaper App",
+    "appDesc": "Rotate your desktop through Starscape — a tiny tray app with prefetch, crossfade and one-click autostart.",
+    "appDownload": "Download for Windows",
+    "appNote": "Windows only · ~0.3 MB · unsigned (SmartScreen: More info → Run anyway)"
   }
 }

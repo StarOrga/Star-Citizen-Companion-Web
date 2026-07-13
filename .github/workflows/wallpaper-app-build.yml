@@ -1,0 +1,71 @@
+name: wallpaper-app
+
+# Native Windows tray app (Rust). PRs build-check it; a `wallpaper-app-v*` tag
+# builds the release binary and publishes it to the PUBLIC binaries-mirror repo
+# via BINARIES_RELEASE_TOKEN — the same handoff the data-uploader uses.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wallpaper-app/**'
+      - '.github/workflows/wallpaper-app-build.yml'
+    tags:
+      - 'wallpaper-app-v*'
+  pull_request:
+    paths:
+      - 'wallpaper-app/**'
+      - '.github/workflows/wallpaper-app-build.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: wallpaper-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain (MSVC, preinstalled on the runner)
+        shell: pwsh
+        run: |
+          rustup default stable-x86_64-pc-windows-msvc
+          rustc --version
+          cargo --version
+
+      - name: Build (release)
+        run: cargo build --release
+
+      - name: Stage tagged artifact
+        if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}" -replace '^wallpaper-app-v', ''
+          Copy-Item target/release/starscape-wallpaper.exe "starscape-wallpaper-$v.exe"
+          $sha = (Get-FileHash -Algorithm SHA256 "starscape-wallpaper-$v.exe").Hash.ToLower()
+          $size = (Get-Item "starscape-wallpaper-$v.exe").Length
+          Write-Host "asset: starscape-wallpaper-$v.exe  size=$size  sha256=$sha"
+
+      - name: Publish to PUBLIC binaries-mirror release (end-user download)
+        if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: StarOrga/Star-Citizen-Companion-Binaries
+          token: ${{ secrets.BINARIES_RELEASE_TOKEN }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: wallpaper-app/starscape-wallpaper-*.exe
+          fail_on_unmatched_files: false
+          body: |
+            **Starscape Wallpaper** — tiny native Windows tray app that rotates your
+            desktop background through the Star Citizen Companion "Starscape" gallery
+            (original-resolution RSI news art), with an optional crossfade and
+            one-click autostart. No installer, ~0.3 MB, runs from the tray.
+
+            Unsigned (Phase-2 limitation) — Windows SmartScreen will warn on first
+            run: choose **More info → Run anyway**.
+
+            Source: [Star-Citizen-Companion-Web](https://github.com/StarOrga/Star-Citizen-Companion-Web) (private).

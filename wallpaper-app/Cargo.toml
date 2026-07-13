@@ -1,0 +1,36 @@
+[package]
+name = "starscape-wallpaper"
+version = "0.1.0"
+edition = "2021"
+description = "Star Citizen Companion — dynamic desktop wallpaper from the Starscape gallery"
+license = "MIT"
+repository = "https://github.com/StarOrga/Star-Citizen-Companion-Web"
+
+[[bin]]
+name = "starscape-wallpaper"
+path = "src/main.rs"
+
+[dependencies.windows-sys]
+version = "0.59"
+features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_UI_Shell",
+  "Win32_System_LibraryLoader",
+  "Win32_System_Registry",
+  "Win32_System_Com",
+  "Win32_Networking_WinHttp",
+  "Win32_Graphics_Gdi",
+  "Win32_Graphics_GdiPlus",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_System_Threading",
+  "Win32_Globalization",
+  "Win32_Security",
+]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
