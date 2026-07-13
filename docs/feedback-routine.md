@@ -106,6 +106,35 @@ continue it right away. Two things follow from the reaper's guards:
   its own PR, the atomic claim still serialises access) but means wasted work if
   the abort happened late in an item.
 
+### The one abort window the `ship_ref IS NULL` guard can't see — and how the redo stays idempotent
+
+`ship_ref` is only ever written to the DB in the **final** ship UPDATE (green
+merge, or red/sensitive hold). So an abort *before* that UPDATE always leaves
+`ship_ref = NULL` in the DB — which is exactly what makes the reaper's guard
+correct for distinguishing an interrupted claim from an intentional hold.
+
+But there is a narrow window the DB state alone cannot describe: an abort
+**after `gh pr create` (or even `gh pr merge`) but before the ship UPDATE runs**.
+The DB still shows `ship_ref = NULL`, so the reaper correctly reopens the item —
+yet a PR (possibly already merged into `main`) now exists on GitHub that the DB
+knows nothing about. A naive full redo would then rebuild work that already
+landed and open a **duplicate PR** (or attempt a double-merge).
+
+This is closed by an **idempotency check at the start of implementation**
+(per-item procedure step 3): because the branch name `feat/feedback-<id-short>`
+is deterministic, the run first looks for an existing branch/PR for this item
+and *reconciles* it instead of rebuilding:
+
+- **merged PR exists** → work already in `main`; skip the rebuild, just mark the
+  row `shipped` (using the PR's `mergedAt` / url).
+- **open PR exists** → resume from that branch (re-verify → merge or hold); never
+  open a second PR.
+- **stale branch, no PR** → delete the branch, then rebuild fresh.
+- **nothing exists** → normal fresh branch off `main`.
+
+So the redo is safe even in the post-PR abort window: at worst it re-runs verify
+on an already-correct branch, never double-ships.
+
 Bottom line: a usage-limit abort is self-healing on a later cron tick once
 Claude is back under limit — just not on the immediately following run, and not
 by picking up where it left off.
@@ -131,9 +160,16 @@ For each `open` row (process independently, most-recent context wins):
      `status='needs_input'`, `processed_at=now()`; continue. Discarding is the
      admin's call, made by deleting the topic — not the routine's.
    - **Actionable now** → implement (step 3).
-3. **Implement** on a fresh branch `feat/feedback-<id-short>` off `main`.
-   Follow repo conventions (CLAUDE.md): standalone components, signals,
-   OnPush, ngx-translate for all strings, no keys in the bundle.
+3. **Implement.** *First, an idempotency check* — a reaped item may already
+   carry a branch/PR from the interrupted run (see the abort-window note above).
+   Since `feat/feedback-<id-short>` is deterministic, `gh pr list --state all
+   --head feat/feedback-<id-short>` (+ `git ls-remote --heads origin
+   feat/feedback-<id-short>`) first, and reconcile: **merged PR** → mark
+   `shipped` from its `mergedAt`/url, no rebuild; **open PR** → resume + verify
+   on that branch, no second PR; **stale branch, no PR** → delete it, rebuild;
+   **nothing** → fresh branch off `main`. Then implement, following repo
+   conventions (CLAUDE.md): standalone components, signals, OnPush,
+   ngx-translate for all strings, no keys in the bundle.
 4. **Verify (the safety net).** Run in order — all must pass:
    - `npm run typecheck`
    - `npm run build`
