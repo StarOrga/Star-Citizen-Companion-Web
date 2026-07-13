@@ -13,7 +13,7 @@ import { SupabaseClientProvider } from '../../core/supabase.client';
 import { useAutoRefresh } from '../../core/auto-refresh';
 import { AuthService } from '../../auth/auth.service';
 import { renderMarkdown } from './markdown.util';
-import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
+import { ComposerPayload, FeedbackComposerComponent, PendingImage } from './feedback-composer.component';
 
 type FeedbackStatus = 'open' | 'in_progress' | 'shipped' | 'rejected' | 'needs_input';
 
@@ -780,10 +780,54 @@ export class AdminFeedbackComponent implements OnInit {
 
   // ---- Composer submit handlers ------------------------------------------
 
-  /** Compose the stored body: text with any images appended as markdown. */
-  private buildBody(payload: ComposerPayload): string {
-    const imgMd = payload.images.map((a) => `![${a.name}](${a.dataUrl})`).join('\n\n');
-    return [payload.text, imgMd].filter((s) => s.length > 0).join('\n\n');
+  /** Storage bucket backing feedback screenshot attachments. */
+  private static readonly IMAGES_BUCKET = 'feedback-images';
+
+  /**
+   * Upload the composer's queued images to Storage and return their public URLs
+   * (in order). Images are uploaded rather than inlined as base64 because a
+   * single compressed screenshot exceeds the message body's 20 000-char check
+   * constraint. Throws on the first upload failure so the caller keeps the draft.
+   */
+  private async uploadImages(images: PendingImage[]): Promise<string[]> {
+    const uid = this.selfId();
+    if (!uid || images.length === 0) return [];
+    const bucket = this.sb.client.storage.from(AdminFeedbackComponent.IMAGES_BUCKET);
+    const urls: string[] = [];
+    for (const img of images) {
+      const blob = this.dataUrlToBlob(img.dataUrl);
+      const path = `${uid}/${crypto.randomUUID()}.${this.extForType(blob.type)}`;
+      const { error } = await bucket.upload(path, blob, { contentType: blob.type, upsert: false });
+      if (error) throw new Error(error.message);
+      urls.push(bucket.getPublicUrl(path).data.publicUrl);
+    }
+    return urls;
+  }
+
+  /** File extension for a known image MIME type (JPEG is the compressed default). */
+  private extForType(mime: string): string {
+    switch (mime) {
+      case 'image/png': return 'png';
+      case 'image/gif': return 'gif';
+      case 'image/webp': return 'webp';
+      default: return 'jpg';
+    }
+  }
+
+  /** Decode a `data:<mime>;base64,<data>` URI into a Blob for upload. */
+  private dataUrlToBlob(dataUrl: string): Blob {
+    const comma = dataUrl.indexOf(',');
+    const mime = /^data:([^;]+)/.exec(dataUrl)?.[1] ?? 'image/jpeg';
+    const bin = atob(dataUrl.slice(comma + 1));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
+  /** Compose the stored body: text with any uploaded images appended as markdown. */
+  private buildBody(text: string, images: PendingImage[], urls: string[]): string {
+    const imgMd = urls.map((url, i) => `![${images[i].name}](${url})`).join('\n\n');
+    return [text, imgMd].filter((s) => s.length > 0).join('\n\n');
   }
 
   /** Stable handler reference for the new-topic composer. */
@@ -793,9 +837,16 @@ export class AdminFeedbackComponent implements OnInit {
   /** Create a new feedback topic. Returns true once persisted (composer clears). */
   async createTopic(payload: ComposerPayload): Promise<boolean> {
     const uid = this.selfId();
-    const body = this.buildBody(payload);
-    if (!body || !uid) return false;
+    if (!uid) return false;
     this.errorMsg.set(null);
+    let body: string;
+    try {
+      body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
+    } catch {
+      this.errorMsg.set(this.translate.instant('adminFeedback.compose.uploadError'));
+      return false;
+    }
+    if (!body) return false;
     const { error } = await this.sb.client
       .from('admin_feedback')
       .insert({ body, author_id: uid });
@@ -822,9 +873,16 @@ export class AdminFeedbackComponent implements OnInit {
   /** Post a human reply into a topic's thread. Returns true once persisted. */
   async sendReply(feedbackId: string, payload: ComposerPayload): Promise<boolean> {
     const uid = this.selfId();
-    const body = this.buildBody(payload);
-    if (!body || !uid) return false;
+    if (!uid) return false;
     this.errorMsg.set(null);
+    let body: string;
+    try {
+      body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
+    } catch {
+      this.errorMsg.set(this.translate.instant('adminFeedback.compose.uploadError'));
+      return false;
+    }
+    if (!body) return false;
     const { error } = await this.sb.client
       .from('admin_feedback_messages')
       .insert({ feedback_id: feedbackId, author_id: uid, is_system: false, body });

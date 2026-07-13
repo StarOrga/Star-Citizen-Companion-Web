@@ -946,7 +946,8 @@
       "removeImage": "Remove image",
       "dropHere": "Drop images here",
       "imageError": "Could not process the image.",
-      "tooManyImages": "At most {{max}} images per message."
+      "tooManyImages": "At most {{max}} images per message.",
+      "uploadError": "Image upload failed. Please try again."
     }
   },
   "feedbackFab": {
