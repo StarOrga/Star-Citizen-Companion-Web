@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.35.0] - 2026-07-13
+
+### Added
+
+- **Starscape desktop wallpaper app.** A tiny (~0.3 MB) native Windows tray app,
+  downloadable from the Starscape page, rotates your desktop background through the
+  Starscape gallery in original resolution. It prefetches the next few images (no
+  on-desktop loading), offers an optional crossfade, a one-click "Start with
+  Windows" toggle, and runs from the system tray with minimal memory. Built in Rust
+  (pure Win32, no runtime); published to the public binaries mirror on a
+  `wallpaper-app-v*` tag. (feedback b5e070df)
+
+### Changed
+
+- **Tighter Starscape junk filter.** Captured wallpapers now must clear a minimum
+  pixel size and a landscape aspect ratio (≥ 1280×720, aspect 1.2–2.6), read from
+  the image header before capture, so stray icons, patterns and off-shape grabs no
+  longer reach the gallery. Additive only — an unreadable size never rejects.
+  (feedback b5e070df)
+
 ## [0.34.3] - 2026-07-13
 
 ### Added

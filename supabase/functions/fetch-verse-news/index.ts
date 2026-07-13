@@ -610,6 +610,15 @@ const MEDIA_URL_RE = /^https:\/\/media\.robertsspaceindustries\.com\/([^/]+)\/[^
 const WALLPAPER_EXT_RE = /^\.(jpe?g|png|webp)$/i;
 const WALLPAPER_CONTENT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MIN_WALLPAPER_BYTES = 100_000;
+// A real desktop wallpaper is large and roughly landscape. Inline UI art, Twitch
+// grabs, emoji/logo tiles and flat colour/pattern swatches fail one of these gates
+// (feedback b5e070df: "minimum pixel count + must not be just a pattern/icon").
+// These only ever ADD rejections — an unreadable size never empties the gallery.
+const MIN_WALLPAPER_WIDTH = 1280;
+const MIN_WALLPAPER_HEIGHT = 720;
+const MIN_WALLPAPER_ASPECT = 1.2; // taller than ~5:4 → poster/portrait, not wallpaper
+const MAX_WALLPAPER_ASPECT = 2.6; // wider than ~21:9 → banner/strip, not wallpaper
+const WALLPAPER_PROBE_BYTES = 65_536;
 const WALLPAPER_HEAD_TIMEOUT_MS = 6000;
 
 interface WallpaperRow {
@@ -630,18 +639,92 @@ async function isWallpaperMedia(sourceUrl: string): Promise<boolean> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), WALLPAPER_HEAD_TIMEOUT_MS);
   try {
-    const res = await fetch(sourceUrl, { method: 'HEAD', signal: ctrl.signal });
-    if (!res.ok) return false;
+    // One ranged GET gives us the content-type, the total size (Content-Range)
+    // AND the leading bytes we need to read the pixel dimensions — no second
+    // request. A valid Referer unlocks the CDN for non-browser clients.
+    const res = await fetch(sourceUrl, {
+      headers: { Range: `bytes=0-${WALLPAPER_PROBE_BYTES - 1}`, Referer: RSI_BASE + '/' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return false; // 200 (full) or 206 (partial) both fine
     const contentType = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
     if (!WALLPAPER_CONTENT_TYPES.has(contentType)) return false;
-    const bytes = Number(res.headers.get('content-length') ?? '0');
-    if (bytes > 0 && bytes < MIN_WALLPAPER_BYTES) return false;
+    const total = totalSize(res);
+    if (total > 0 && total < MIN_WALLPAPER_BYTES) return false;
+
+    const head = new Uint8Array(await res.arrayBuffer());
+    const dim = safeImageDimensions(head);
+    if (dim) {
+      // Confidently-bad size/shape → reject. Unknown dims fall through to the
+      // size/type verdict above (never stricter than before).
+      if (dim.w < MIN_WALLPAPER_WIDTH || dim.h < MIN_WALLPAPER_HEIGHT) return false;
+      const aspect = dim.w / dim.h;
+      if (aspect < MIN_WALLPAPER_ASPECT || aspect > MAX_WALLPAPER_ASPECT) return false;
+    }
     return true;
   } catch {
     return false;
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Total resource size from a ranged response: prefer Content-Range's "/<total>",
+// else Content-Length (which, on a 206, is only the partial length).
+function totalSize(res: Response): number {
+  const cr = res.headers.get('content-range'); // e.g. "bytes 0-65535/1234567"
+  if (cr) {
+    const slash = cr.lastIndexOf('/');
+    const n = slash >= 0 ? Number(cr.slice(slash + 1)) : NaN;
+    if (Number.isFinite(n)) return n;
+  }
+  return Number(res.headers.get('content-length') ?? '0');
+}
+
+function safeImageDimensions(b: Uint8Array): { w: number; h: number } | null {
+  try {
+    return imageDimensions(b);
+  } catch {
+    return null;
+  }
+}
+
+// Read pixel width/height from the file header only (no decode). Supports PNG and
+// JPEG; returns null for WEBP/unknown so the size/type gate stays authoritative.
+function imageDimensions(b: Uint8Array): { w: number; h: number } | null {
+  // PNG: 8-byte signature, then IHDR — width/height big-endian at offset 16/20.
+  if (b.length >= 24 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
+    const w = (b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19];
+    const h = (b[20] << 24) | (b[21] << 16) | (b[22] << 8) | b[23];
+    return w > 0 && h > 0 ? { w, h } : null;
+  }
+  // JPEG: walk marker segments to the Start-Of-Frame (SOFn) that carries the size.
+  if (b.length >= 4 && b[0] === 0xff && b[1] === 0xd8) {
+    let p = 2;
+    while (p + 9 < b.length) {
+      if (b[p] !== 0xff) {
+        p++;
+        continue;
+      }
+      let marker = b[p + 1];
+      while (marker === 0xff && p + 1 < b.length) {
+        p++;
+        marker = b[p + 1];
+      }
+      const len = (b[p + 2] << 8) | b[p + 3];
+      // SOF0..SOF15 hold the frame dimensions (DHT/DAC/RSTn are not frame headers).
+      const isSof =
+        marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+      if (isSof) {
+        const h = (b[p + 5] << 8) | b[p + 6];
+        const w = (b[p + 7] << 8) | b[p + 8];
+        return w > 0 && h > 0 ? { w, h } : null;
+      }
+      if (len <= 0) break;
+      p += 2 + len;
+    }
+  }
+  return null;
 }
 
 async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {

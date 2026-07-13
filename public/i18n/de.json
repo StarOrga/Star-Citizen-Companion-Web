@@ -1064,6 +1064,10 @@
     "download": "Original herunterladen",
     "sourceArticle": "Quell-Comm-Link",
     "close": "Schließen",
-    "attribution": "Alle Bilder © Cloud Imperium Games — direkt vom RSI-CDN ausgeliefert, mit Verweis auf den Quell-Comm-Link. Fan-Galerie, kein Weiterverkauf, kein Re-Hosting."
+    "attribution": "Alle Bilder © Cloud Imperium Games — direkt vom RSI-CDN ausgeliefert, mit Verweis auf den Quell-Comm-Link. Fan-Galerie, kein Weiterverkauf, kein Re-Hosting.",
+    "appTitle": "Desktop-Wallpaper-App",
+    "appDesc": "Dein Desktop rotiert durch Starscape — winzige Tray-App mit Vorladen, Überblendung und Autostart per Klick.",
+    "appDownload": "Für Windows herunterladen",
+    "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)"
   }
 }

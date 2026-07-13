@@ -27,6 +27,17 @@ import { StarscapeService, Wallpaper } from './starscape.service';
           <h1>{{ 'starscape.title' | translate }}</h1>
           <p class="hint">{{ 'starscape.subtitle' | translate }}</p>
         </div>
+        <a
+          class="app-cta"
+          [href]="appDownloadUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          download>
+          <span class="app-cta-title">🖥️ {{ 'starscape.appTitle' | translate }}</span>
+          <span class="app-cta-desc">{{ 'starscape.appDesc' | translate }}</span>
+          <span class="app-cta-dl">↓ {{ 'starscape.appDownload' | translate }}</span>
+          <span class="app-cta-note">{{ 'starscape.appNote' | translate }}</span>
+        </a>
       </header>
 
       @if (svc.seriesOptions().length > 0) {
@@ -111,8 +122,32 @@ import { StarscapeService, Wallpaper } from './starscape.service';
   `,
   styles: [`
     .page { display: flex; flex-direction: column; gap: 18px; }
+    .head { display: flex; gap: 18px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
     .head h1 { margin: 0; }
     .head .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 68ch; }
+
+    /* Desktop wallpaper app download CTA. */
+    .app-cta {
+      display: flex; flex-direction: column; gap: 3px;
+      padding: 12px 16px; min-width: 240px; max-width: 320px;
+      border: 1px solid var(--sc-border); border-radius: 10px;
+      background: color-mix(in srgb, var(--sc-accent) 7%, var(--sc-bg-1));
+      text-decoration: none; color: var(--sc-fg-1);
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    }
+    .app-cta:hover {
+      transform: translateY(-2px); border-color: var(--sc-accent);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 22%, transparent);
+    }
+    .app-cta-title { font-family: var(--sc-font-display); font-size: 0.9rem; color: var(--sc-fg-0); }
+    .app-cta-desc { font-size: 0.74rem; color: var(--sc-fg-2); line-height: 1.35; }
+    .app-cta-dl {
+      margin-top: 4px; align-self: flex-start;
+      padding: 3px 10px; border-radius: 999px; font-size: 0.74rem;
+      color: var(--sc-accent); border: 1px solid var(--sc-accent);
+    }
+    .app-cta:hover .app-cta-dl { background: var(--sc-accent); color: var(--sc-bg-0); }
+    .app-cta-note { font-size: 0.62rem; color: var(--sc-fg-2); opacity: 0.8; margin-top: 2px; }
 
     .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; }
     .chip {
@@ -191,6 +226,14 @@ import { StarscapeService, Wallpaper } from './starscape.service';
 })
 export class StarscapeComponent implements OnInit {
   readonly svc = inject(StarscapeService);
+
+  /**
+   * Direct download of the native desktop wallpaper app (published to the public
+   * binaries mirror by the `wallpaper-app` CI workflow on a `wallpaper-app-v*`
+   * tag). Bump the version segment when a newer release ships.
+   */
+  readonly appDownloadUrl =
+    'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/wallpaper-app-v0.1.0/starscape-wallpaper-0.1.0.exe';
 
   readonly active = signal<Wallpaper | null>(null);
   readonly broken = signal<ReadonlySet<string>>(new Set<string>());
