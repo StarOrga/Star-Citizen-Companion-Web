@@ -1,7 +1,69 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.34.2",
+  "current": "0.35.0",
   "releases": [
+    {
+      "version": "0.35.0",
+      "date": "2026-07-13",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Starscape desktop wallpaper app.",
+              "text": "A tiny (~0.3 MB) native Windows tray app, downloadable from the Starscape page, rotates your desktop background through the Starscape gallery in original resolution. It prefetches the next few images (no on-desktop loading), offers an optional crossfade, a one-click \"Start with Windows\" toggle, and runs from the system tray with minimal memory. Built in Rust (pure Win32, no runtime); published to the public binaries mirror on a wallpaper-app-v* tag. (feedback b5e070df)"
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Tighter Starscape junk filter.",
+              "text": "Captured wallpapers now must clear a minimum pixel size and a landscape aspect ratio (≥ 1280×720, aspect 1.2–2.6), read from the image header before capture, so stray icons, patterns and off-shape grabs no longer reach the gallery. Additive only — an unreadable size never rejects. (feedback b5e070df)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.34.3",
+      "date": "2026-07-13",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Instant boot splash on first visit.",
+              "text": "A cold visit used to show a blank page while the app bundle downloaded and started. The page now paints a branded SCC splash (compass ring, spinner, wordmark) immediately and swaps it for the app the moment it is ready — so the first impression is never an empty screen. The page background is set inline too, killing the pre-stylesheet white flash. Respects the reduced-motion preference."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Footer disclaimer is now collapsible.",
+              "text": "The footer's trademark/legal disclaimer shows only its first clause plus a \"…\" toggle; the full disclaimer and the Cloud Imperium trademark line expand on click. The footer stays compact without dropping the required attribution."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Browser tab icon shows the SCC logo.",
+              "text": "The favicon.ico fallback was still Angular's stock default, which some browsers preferred over the SVG icon. It is now a proper multi-size (16/32/48) SCC-branded icon."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.34.2",
       "date": "2026-07-13",
