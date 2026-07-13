@@ -673,7 +673,9 @@
     "madeByCommunity": "Made by the Community",
     "badgeAlt": "Star Citizen — Made by the Community fan site badge",
     "disclaimer": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content not authored by this site's host or its users is the property of its respective owner.",
-    "trademarks": "Star Citizen, Roberts Space Industries and Cloud Imperium are trademarks of Cloud Imperium Rights LLC."
+    "trademarks": "Star Citizen, Roberts Space Industries and Cloud Imperium are trademarks of Cloud Imperium Rights LLC.",
+    "disclaimerExpand": "Show full disclaimer",
+    "disclaimerCollapse": "Collapse disclaimer"
   },
   "hangar": {
     "title": "My Hangar",
