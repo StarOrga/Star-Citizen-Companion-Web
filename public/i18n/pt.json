@@ -137,7 +137,9 @@
     "madeByCommunity": "Made by the Community",
     "badgeAlt": "Star Citizen — selo de site de fãs Made by the Community",
     "disclaimer": "Este é um site de fãs não oficial de Star Citizen, sem afiliação com o grupo de empresas Cloud Imperium. Todo o conteúdo não criado pelo anfitrião deste site ou por seus usuários é propriedade de seu respectivo titular.",
-    "trademarks": "Star Citizen, Roberts Space Industries e Cloud Imperium são marcas da Cloud Imperium Rights LLC."
+    "trademarks": "Star Citizen, Roberts Space Industries e Cloud Imperium são marcas da Cloud Imperium Rights LLC.",
+    "disclaimerExpand": "Mostrar o aviso legal completo",
+    "disclaimerCollapse": "Recolher o aviso legal"
   },
   "codex": {
     "kinds": {

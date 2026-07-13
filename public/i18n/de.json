@@ -673,7 +673,9 @@
     "madeByCommunity": "Made by the Community",
     "badgeAlt": "Star Citizen — Made by the Community Fan-Site-Badge",
     "disclaimer": "Dies ist eine inoffizielle Star-Citizen-Fan-Site, nicht verbunden mit der Cloud-Imperium-Unternehmensgruppe. Alle Inhalte, die nicht vom Betreiber dieser Seite oder ihren Nutzern erstellt wurden, sind Eigentum der jeweiligen Rechteinhaber.",
-    "trademarks": "Star Citizen, Roberts Space Industries und Cloud Imperium sind Marken von Cloud Imperium Rights LLC."
+    "trademarks": "Star Citizen, Roberts Space Industries und Cloud Imperium sind Marken von Cloud Imperium Rights LLC.",
+    "disclaimerExpand": "Vollständigen Haftungsausschluss anzeigen",
+    "disclaimerCollapse": "Haftungsausschluss einklappen"
   },
   "hangar": {
     "title": "Mein Hangar",

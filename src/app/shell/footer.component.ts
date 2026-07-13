@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ReleaseNotesService } from '../release-notes/release-notes.service';
 
 /**
@@ -25,8 +26,20 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
 
         <div class="meta">
           <p class="brand">Star Citizen Companion</p>
-          <p class="disclaimer">{{ 'footer.disclaimer' | translate }}</p>
-          <p class="copyright">{{ 'footer.trademarks' | translate }}</p>
+          @if (expanded()) {
+            <p class="disclaimer">{{ 'footer.disclaimer' | translate }}</p>
+            <p class="copyright">
+              {{ 'footer.trademarks' | translate }}
+              <button type="button" class="disclaimer-toggle"
+                      (click)="expanded.set(false)"
+                      [attr.aria-label]="'footer.disclaimerCollapse' | translate">▲</button>
+            </p>
+          } @else {
+            <p class="disclaimer">{{ disclaimerShort() }}<button
+                      type="button" class="disclaimer-toggle"
+                      (click)="expanded.set(true)"
+                      [attr.aria-label]="'footer.disclaimerExpand' | translate">…</button></p>
+          }
         </div>
 
         <div class="whatsnew">
@@ -94,6 +107,23 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
       margin: 2px 0 0;
       opacity: 0.8;
     }
+    .disclaimer-toggle {
+      appearance: none;
+      background: none;
+      border: none;
+      padding: 0 0 0 2px;
+      margin: 0;
+      font: inherit;
+      color: var(--sc-accent);
+      cursor: pointer;
+      vertical-align: baseline;
+    }
+    .disclaimer-toggle:hover { color: var(--sc-fg-1); }
+    .disclaimer-toggle:focus-visible {
+      outline: 1px solid var(--sc-accent);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
     .whatsnew {
       display: flex;
       flex-direction: column;
@@ -126,7 +156,35 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
 })
 export class FooterComponent implements OnInit {
   private readonly releaseNotes = inject(ReleaseNotesService);
+  private readonly translate = inject(TranslateService);
+  private readonly destroyRef = inject(DestroyRef);
   readonly version = signal<string | null>(this.releaseNotes.notes()?.current ?? null);
+
+  /** Whether the full legal disclaimer + trademark line is shown. */
+  readonly expanded = signal(false);
+
+  /** Full, localized disclaimer text — kept in sync with the active language. */
+  private readonly disclaimerFull = signal('');
+
+  /** First clause of the disclaimer plus an ellipsis affordance. */
+  readonly disclaimerShort = computed(() => {
+    const clause = this.disclaimerFull().split(/[,，]/)[0]?.trim() ?? '';
+    return clause ? `${clause} ` : '';
+  });
+
+  constructor() {
+    this.syncDisclaimer();
+    this.translate.onLangChange
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.syncDisclaimer());
+  }
+
+  private syncDisclaimer(): void {
+    this.translate
+      .get('footer.disclaimer')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((text: string) => this.disclaimerFull.set(text));
+  }
 
   async ngOnInit(): Promise<void> {
     const notes = await this.releaseNotes.load();

@@ -37,8 +37,110 @@
       href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <!-- First-paint boot splash. Rendered instantly from static HTML/CSS so a
+         cold visit never shows a blank page while the Angular bundle downloads
+         and boots. Lives inside <sc-root>, so Angular removes it automatically
+         the moment the app renders — no teardown script needed. -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #050810;
+      }
+      .sc-boot {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+        background: #050810;
+        color: #00d4ff;
+        font-family: 'Orbitron', 'Segoe UI', system-ui, sans-serif;
+      }
+      .sc-boot__ring {
+        position: relative;
+        width: 96px;
+        height: 96px;
+      }
+      .sc-boot__ring svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .sc-boot__arc {
+        position: absolute;
+        inset: -6px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        border-top-color: #00d4ff;
+        border-right-color: #00d4ff;
+        animation: sc-boot-spin 0.9s linear infinite;
+      }
+      .sc-boot__word {
+        font-size: 0.72rem;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: #8aa0b3;
+        font-weight: 600;
+      }
+      .sc-boot__bar {
+        width: 150px;
+        height: 2px;
+        border-radius: 2px;
+        background: rgba(0, 212, 255, 0.15);
+        overflow: hidden;
+      }
+      .sc-boot__bar > i {
+        display: block;
+        width: 40%;
+        height: 100%;
+        background: #00d4ff;
+        animation: sc-boot-slide 1.1s ease-in-out infinite;
+      }
+      @keyframes sc-boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes sc-boot-slide {
+        0% {
+          transform: translateX(-120%);
+        }
+        100% {
+          transform: translateX(370%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .sc-boot__arc {
+          animation: none;
+          border-color: rgba(0, 212, 255, 0.4);
+          border-top-color: #00d4ff;
+        }
+        .sc-boot__bar > i {
+          animation: none;
+          width: 100%;
+        }
+      }
+    </style>
   </head>
   <body class="sc-theme-dark">
-    <sc-root></sc-root>
+    <sc-root>
+      <div class="sc-boot" role="status" aria-label="Star Citizen Companion — loading">
+        <div class="sc-boot__ring">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="100" height="100" rx="16" fill="#050810" />
+            <circle cx="50" cy="50" r="44" fill="none" stroke="#00d4ff" stroke-width="3" opacity="0.35" />
+            <text x="50" y="63" font-family="Orbitron, 'Segoe UI', sans-serif" font-size="34"
+                  font-weight="700" text-anchor="middle" fill="#00d4ff" letter-spacing="1.5">SCC</text>
+          </svg>
+          <span class="sc-boot__arc" aria-hidden="true"></span>
+        </div>
+        <div class="sc-boot__word">Star Citizen Companion</div>
+        <div class="sc-boot__bar" aria-hidden="true"><i></i></div>
+      </div>
+    </sc-root>
   </body>
 </html>

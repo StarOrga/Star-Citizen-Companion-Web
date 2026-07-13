@@ -137,7 +137,9 @@
     "madeByCommunity": "由社区制作",
     "badgeAlt": "Star Citizen —「由社区制作」粉丝网站徽章",
     "disclaimer": "这是一个非官方的 Star Citizen 粉丝网站，与 Cloud Imperium 公司集团无关。本站非由站点托管者或其用户创作的所有内容，均归各自所有者所有。",
-    "trademarks": "Star Citizen、Roberts Space Industries 和 Cloud Imperium 是 Cloud Imperium Rights LLC 的商标。"
+    "trademarks": "Star Citizen、Roberts Space Industries 和 Cloud Imperium 是 Cloud Imperium Rights LLC 的商标。",
+    "disclaimerExpand": "显示完整免责声明",
+    "disclaimerCollapse": "收起免责声明"
   },
   "codex": {
     "kinds": {

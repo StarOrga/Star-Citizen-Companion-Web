@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.34.1",
+  "current": "0.34.2",
   "releases": [
+    {
+      "version": "0.34.2",
+      "date": "2026-07-13",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Feedback screenshots attach again.",
+              "text": "Adding an image to a feedback topic or reply failed with a database check-constraint error: the composer inlined each picture as a base64 data: URI into the message body, and a single compressed screenshot blew past the body's 20 000-character limit, so the insert was rejected and the image stayed stuck in the box. Attachments now upload to a new public feedback-images storage bucket and the message keeps only the small image URL."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.34.1",
       "date": "2026-07-12",

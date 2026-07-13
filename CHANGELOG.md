@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.34.3] - 2026-07-13
+
+### Added
+
+- **Instant boot splash on first visit.** A cold visit used to show a blank page
+  while the app bundle downloaded and started. The page now paints a branded SCC
+  splash (compass ring, spinner, wordmark) immediately and swaps it for the app
+  the moment it is ready — so the first impression is never an empty screen. The
+  page background is set inline too, killing the pre-stylesheet white flash.
+  Respects the reduced-motion preference.
+
+### Changed
+
+- **Footer disclaimer is now collapsible.** The footer's trademark/legal
+  disclaimer shows only its first clause plus a "…" toggle; the full disclaimer
+  and the Cloud Imperium trademark line expand on click. The footer stays compact
+  without dropping the required attribution.
+
+### Fixed
+
+- **Browser tab icon shows the SCC logo.** The `favicon.ico` fallback was still
+  Angular's stock default, which some browsers preferred over the SVG icon. It is
+  now a proper multi-size (16/32/48) SCC-branded icon.
+
 ## [0.34.2] - 2026-07-13
 
 ### Fixed
