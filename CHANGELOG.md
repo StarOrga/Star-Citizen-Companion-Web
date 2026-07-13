@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.34.2] - 2026-07-13
+
+### Fixed
+
+- **Feedback screenshots attach again.** Adding an image to a feedback topic or
+  reply failed with a database check-constraint error: the composer inlined each
+  picture as a base64 `data:` URI into the message body, and a single compressed
+  screenshot blew past the body's 20 000-character limit, so the insert was
+  rejected and the image stayed stuck in the box. Attachments now upload to a new
+  public `feedback-images` storage bucket and the message keeps only the small
+  image URL.
+
 ## [0.34.1] - 2026-07-12
 
 ### Fixed
