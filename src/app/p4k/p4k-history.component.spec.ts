@@ -1,6 +1,5 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideTranslateService } from '@ngx-translate/core';
 import { P4kHistoryComponent } from './p4k-history.component';
@@ -28,7 +27,7 @@ function row(channel: ChannelTag, patch: string, quality: number, created: strin
   };
 }
 
-function setup(bundles: P4kBundleRow[]) {
+function setup(bundles: P4kBundleRow[], isAdmin = false) {
   const svc = {
     bundles: signal(bundles),
     busy: signal(false),
@@ -42,11 +41,10 @@ function setup(bundles: P4kBundleRow[]) {
   TestBed.configureTestingModule({
     imports: [P4kHistoryComponent],
     providers: [
-      provideRouter([]),
       provideHttpClient(),
       provideTranslateService({ fallbackLang: 'en' }),
       { provide: P4kService, useValue: svc },
-      { provide: RoleService, useValue: { isAdmin: signal(false) } },
+      { provide: RoleService, useValue: { isAdmin: signal(isAdmin) } },
     ],
   });
   const fixture = TestBed.createComponent(P4kHistoryComponent);
@@ -54,25 +52,25 @@ function setup(bundles: P4kBundleRow[]) {
   return fixture;
 }
 
-describe('P4kHistoryComponent — summary card (rendered DOM)', () => {
-  it('renders one row per channel: live first, then patch version descending', () => {
+describe('P4kHistoryComponent — summary strip (rendered DOM)', () => {
+  it('renders one chip per channel: live first, then patch version descending', () => {
     const fixture = setup([
       row('ptu', '4.9.0', 70, '2026-05-01T00:00:00Z'),
       row('live', '4.8.0', 90, '2026-05-02T00:00:00Z'),
       row('eptu', '4.10.0', 55, '2026-05-03T00:00:00Z'),
     ]);
-    const rows = Array.from(
-      fixture.nativeElement.querySelectorAll('.summary-row'),
+    const chips = Array.from(
+      fixture.nativeElement.querySelectorAll('.chan-latest .cl'),
     ) as HTMLElement[];
 
-    expect(rows.length).toBe(3);
-    expect(rows.map((r) => r.querySelector('.ch-pill')!.textContent!.trim())).toEqual([
+    expect(chips.length).toBe(3);
+    expect(chips.map((r) => r.querySelector('.ch-pill')!.textContent!.trim())).toEqual([
       'LIVE',
       'EPTU',
       'PTU',
     ]);
-    // Patch version is shown next to the channel in every summary row.
-    expect(rows.map((r) => r.querySelector('.sum-patch')!.textContent!.trim())).toEqual([
+    // Patch version is shown next to the channel in every summary chip.
+    expect(chips.map((r) => r.querySelector('.cv')!.textContent!.trim())).toEqual([
       '4.8.0',
       '4.10.0',
       '4.9.0',
@@ -85,9 +83,47 @@ describe('P4kHistoryComponent — summary card (rendered DOM)', () => {
       row('live', '4.7.0', 40, '2026-05-20T00:00:00Z'), // newer upload, older patch
     ]);
     const quality = fixture.nativeElement
-      .querySelector('.summary-row .sum-quality')!
+      .querySelector('.chan-latest .cl .cq')!
       .textContent!.trim();
     expect(quality).toBe('90');
+  });
+});
+
+describe('P4kHistoryComponent — patch cards (redesigned entries)', () => {
+  it('renders one patch card per patch version, newest first', () => {
+    const el = setup([
+      row('live', '4.8.0', 90, '2026-05-02T00:00:00Z'),
+      row('ptu', '4.10.0', 70, '2026-05-01T00:00:00Z'),
+    ]).nativeElement as HTMLElement;
+    const cards = Array.from(el.querySelectorAll('.hist-list .patch')) as HTMLElement[];
+    expect(cards.length).toBe(2);
+    expect(cards.map((c) => c.querySelector('.patch-ver')!.textContent!.trim())).toEqual([
+      '4.10.0',
+      '4.8.0',
+    ]);
+  });
+
+  it('reveals the per-upload rows only after the patch card is expanded', () => {
+    const fixture = setup([
+      row('live', '4.8.0', 90, '2026-05-01T00:00:00Z'),
+      row('ptu', '4.8.0', 60, '2026-05-02T00:00:00Z'),
+    ]);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelectorAll('.up-row').length).toBe(0);
+
+    (el.querySelector('.patch-main') as HTMLElement).click();
+    fixture.detectChanges();
+
+    // Both uploads for the single 4.8.0 patch group are now shown.
+    expect(el.querySelectorAll('.up-row').length).toBe(2);
+  });
+
+  it('renders admin actions on the upload rows only for admins', () => {
+    const fixture = setup([row('live', '4.8.0', 90, '2026-05-01T00:00:00Z')], true);
+    const el = fixture.nativeElement as HTMLElement;
+    (el.querySelector('.patch-main') as HTMLElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('.up-row .acts')).toBeTruthy();
   });
 });
 
@@ -112,13 +148,14 @@ describe('P4kHistoryComponent — superseded vs disabled', () => {
     expect(c.isSuperseded(row('live', '4.8.0', 88, '2026-06-01T00:00:00Z'))).toBe(false); // active
   });
 
-  it('renders a Superseded badge on a superseded row', () => {
+  it('renders a Superseded badge on a fully-superseded patch card', () => {
     const el = setup([supersededRow()]).nativeElement as HTMLElement;
-    expect(el.querySelector('.superseded-tag')).toBeTruthy();
+    expect(el.querySelector('.patch.superseded')).toBeTruthy();
+    expect(el.querySelector('.patch-ver .badge')).toBeTruthy();
   });
 
-  it('renders no Superseded badge on an active row', () => {
+  it('renders no Superseded badge on an active patch card', () => {
     const el = setup([row('live', '4.8.0', 88, '2026-06-01T00:00:00Z')]).nativeElement as HTMLElement;
-    expect(el.querySelector('.superseded-tag')).toBeNull();
+    expect(el.querySelector('.badge')).toBeNull();
   });
 });

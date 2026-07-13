@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BundleDiffSummary, ChannelTag, P4kBundleRow, P4kService } from './p4k.service';
 import { RoleService } from '../auth/role.service';
@@ -9,22 +8,25 @@ import { useAutoRefresh } from '../core/auto-refresh';
 @Component({
   selector: 'sc-p4k-history',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink, TranslateModule],
+  imports: [DatePipe, DecimalPipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="page">
-      <header class="head">
-        @if (!embedded()) {
+    <section class="hist">
+      @if (!embedded()) {
+        <header class="head">
           <div>
             <h1>{{ 'p4k.title' | translate }}</h1>
             <p class="hint">{{ 'p4k.subtitle' | translate }}</p>
           </div>
-        }
-        @if (roles.isAdmin()) {
-          <div class="header-actions">
-            <!-- History is always included now (no user-facing "Verlauf"
-                 selection); the only remaining control is the admin-only
-                 "show disabled" toggle, rendered as a compact top-right icon. -->
+        </header>
+      }
+
+      <div class="hist-body" [class.card]="!embedded()">
+        <!-- Section header — matches the "Aktuelle Version" header on the merged
+             Data Upload page so release + history read as one panel. -->
+        <div class="sec-head">
+          <span class="t">{{ 'desktop.bundleHistory' | translate }}</span>
+          @if (roles.isAdmin()) {
             <button type="button" class="icon-toggle"
                     [class.active]="svc.includeDisabled()"
                     (click)="svc.toggleDisabled()"
@@ -37,605 +39,413 @@ import { useAutoRefresh } from '../core/auto-refresh';
                 <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
-          </div>
-        }
-      </header>
-
-      <div class="sc-card summary">
-        <div class="summary-general">
-          <div class="kpi">
-            <span class="kpi-label">{{ 'p4k.kpi.total' | translate }}</span>
-            <span class="kpi-value">{{ bundles().length }}</span>
-          </div>
-          <div class="kpi">
-            <span class="kpi-label">{{ 'p4k.kpi.channels' | translate }}</span>
-            <span class="kpi-value">{{ uniqueChannels() }}</span>
-          </div>
+          }
         </div>
 
-        @if (channelSummaries().length > 0) {
-          <div class="summary-channels">
-            <span class="summary-channels-label">{{ 'p4k.kpi.latestPerChannel' | translate }}</span>
-            @for (c of channelSummaries(); track c.channel) {
-              <div class="summary-row">
-                <span class="ch-pill" [class]="c.channel">{{ c.channel.toUpperCase() }}</span>
-                <span class="sum-patch mono">{{ c.patch_version }}</span>
-                <div class="sum-metric">
-                  <span class="kpi-label">{{ 'p4k.kpi.quality' | translate }}</span>
-                  <span class="sum-quality"
+        <!-- Summary strip: totals + latest bundle per channel. -->
+        <div class="hist-summary">
+          <div class="kpi">
+            <span class="kl">{{ 'p4k.kpi.total' | translate }}</span>
+            <span class="kv">{{ bundles().length }}</span>
+          </div>
+          <div class="kpi">
+            <span class="kl">{{ 'p4k.kpi.channels' | translate }}</span>
+            <span class="kv">{{ uniqueChannels() }}</span>
+          </div>
+          @if (channelSummaries().length > 0) {
+            <div class="chan-latest" [attr.aria-label]="'p4k.kpi.latestPerChannel' | translate">
+              @for (c of channelSummaries(); track c.channel) {
+                <div class="cl">
+                  <span class="ch-pill" [class]="c.channel">{{ c.channel.toUpperCase() }}</span>
+                  <span class="cv mono">{{ c.patch_version }}</span>
+                  <span class="cq"
                         [class.q-green]="(c.quality_score ?? 0) >= 80"
                         [class.q-yellow]="(c.quality_score ?? 0) >= 50 && (c.quality_score ?? 0) < 80"
                         [class.q-red]="(c.quality_score ?? 0) < 50">
                     {{ c.quality_score !== null ? (c.quality_score | number:'1.0-0') : '—' }}
                   </span>
                 </div>
-                <div class="sum-metric">
-                  <span class="kpi-label">{{ 'p4k.col.entities' | translate }}</span>
-                  <span class="sum-entities">{{ c.entities | number }}</span>
+              }
+            </div>
+          }
+        </div>
+
+        @if (svc.errorMsg(); as err) {
+          <div class="err">
+            <strong>{{ 'p4k.errorTitle' | translate }}:</strong> {{ err }}
+          </div>
+        }
+
+        @if (bundles().length === 0 && svc.busy()) {
+          <div class="state">{{ 'p4k.loading' | translate }}</div>
+        } @else if (bundles().length === 0 && !svc.busy()) {
+          <div class="state empty">
+            <strong>{{ 'p4k.empty.title' | translate }}</strong>
+            <p>{{ 'p4k.empty.hint' | translate }}</p>
+          </div>
+        } @else {
+          <!-- One card per patch version; expand to reveal its individual uploads. -->
+          <div class="hist-list">
+            @for (g of patchGroups(); track g.patch_version) {
+              <div class="patch" [class.superseded]="g.allSuperseded">
+                <div class="patch-main" role="button" tabindex="0"
+                     (click)="toggleGroup(g.patch_version)"
+                     (keydown.enter)="toggleGroup(g.patch_version)"
+                     (keydown.space)="toggleGroup(g.patch_version); $event.preventDefault()"
+                     [attr.aria-expanded]="isGroupExpanded(g.patch_version)">
+                  <span class="chev">{{ isGroupExpanded(g.patch_version) ? '▾' : '▸' }}</span>
+                  <span class="patch-ver mono">
+                    {{ g.patch_version }}
+                    @if (g.allSuperseded) {
+                      <span class="badge">{{ 'p4k.superseded.badge' | translate }}</span>
+                    }
+                  </span>
+                  <div class="patch-mid">
+                    <div class="pills">
+                      @for (ch of g.channels; track ch) {
+                        <span class="ch-pill" [class]="ch">{{ ch.toUpperCase() }}</span>
+                      }
+                    </div>
+                    <div class="qbar">
+                      <div class="qbar-fill"
+                           [class.q-green]="(g.quality_score ?? 0) >= 80"
+                           [class.q-yellow]="(g.quality_score ?? 0) >= 50 && (g.quality_score ?? 0) < 80"
+                           [class.q-red]="(g.quality_score ?? 0) < 50"
+                           [style.width.%]="g.quality_score ?? 0"></div>
+                      <span class="qbar-text">{{ g.quality_score !== null ? (g.quality_score | number:'1.0-0') : '—' }}</span>
+                    </div>
+                    <span class="meta-mini">
+                      <b>{{ g.uploadCount | number }}</b> {{ 'p4k.col.uploads' | translate }}
+                      · <b>{{ g.entities | number }}</b> {{ 'p4k.col.entities' | translate }}
+                    </span>
+                  </div>
+                  <span class="patch-when">{{ g.latest_at | date:'short' }}</span>
                 </div>
+
+                @if (isGroupExpanded(g.patch_version)) {
+                  <div class="uploads">
+                    @for (b of g.uploads; track b.id) {
+                      <div class="up-row"
+                           [class.disabled-row]="b.disabled && !b.superseded_at"
+                           [class.superseded-row]="isSuperseded(b)">
+                        <div class="up-left">
+                          <span class="ch-pill" [class]="b.channel">{{ b.channel.toUpperCase() }}</span>
+                          @if (isSuperseded(b)) {
+                            <span class="badge" [title]="b.disabled_reason ?? ''">{{ 'p4k.superseded.badge' | translate }}</span>
+                          }
+                          <span class="up-b mono">{{ b.build_number || '—' }}</span>
+                          <div class="qbar">
+                            <div class="qbar-fill"
+                                 [class.q-green]="(b.quality_score ?? 0) >= 80"
+                                 [class.q-yellow]="(b.quality_score ?? 0) >= 50 && (b.quality_score ?? 0) < 80"
+                                 [class.q-red]="(b.quality_score ?? 0) < 50"
+                                 [style.width.%]="b.quality_score ?? 0"></div>
+                            <span class="qbar-text">{{ b.quality_score !== null ? (b.quality_score | number:'1.0-0') : '—' }}</span>
+                          </div>
+                          <div class="up-ent">
+                            @for (ent of entityKeys(b); track ent.key) {
+                              <span class="echip" [title]="ent.key">{{ ent.icon }} {{ ent.value | number }}</span>
+                            }
+                          </div>
+                        </div>
+                        <div class="up-right">
+                          <span class="diff-mini">
+                            @if (b.diff_summary?.summary) {
+                              <span class="d-add">+{{ b.diff_summary!.summary!.entities_added | number }}</span>
+                              /
+                              <span class="d-rem">−{{ b.diff_summary!.summary!.entities_removed | number }}</span>
+                            } @else {
+                              <span class="small">—</span>
+                            }
+                          </span>
+                          <span class="up-tool mono small" [title]="'p4k.col.tool' | translate">{{ b.tool_version ?? '—' }}</span>
+                          <div class="uploader-cell">
+                            <span class="n">{{ b.uploaded_by_name ?? '—' }}</span>
+                            <span class="e mono">{{ b.uploaded_by_email }}</span>
+                          </div>
+                          <span class="up-when">{{ b.created_at | date:'short' }}</span>
+                          @if (b.diff_summary) {
+                            <button class="expand-btn" type="button"
+                                    (click)="toggleExpand(b.id)"
+                                    [attr.aria-expanded]="isExpanded(b.id)"
+                                    [attr.aria-label]="'p4k.col.diff' | translate">
+                              {{ isExpanded(b.id) ? '▾' : '▸' }}
+                            </button>
+                          }
+                          @if (roles.isAdmin()) {
+                            <div class="acts">
+                              @if (isSuperseded(b)) {
+                                <!-- superseded = history; re-enabling would create a second
+                                     active bundle for the same key, so only allow delete -->
+                              } @else if (b.disabled) {
+                                <button class="sc-btn micro" (click)="reenable(b)" [disabled]="svc.busy()">
+                                  {{ 'p4k.actions.reenable' | translate }}
+                                </button>
+                              } @else {
+                                <button class="sc-btn micro danger" (click)="disable(b)" [disabled]="svc.busy()">
+                                  {{ 'p4k.actions.disable' | translate }}
+                                </button>
+                              }
+                              <button class="sc-btn micro danger" (click)="remove(b)" [disabled]="svc.busy()">
+                                {{ 'p4k.actions.delete' | translate }}
+                              </button>
+                            </div>
+                          }
+                        </div>
+                      </div>
+
+                      @if (isExpanded(b.id) && b.diff_summary) {
+                        <div class="diff-detail">
+                          <strong>{{ 'p4k.diff.title' | translate }}</strong>
+                          <table class="diff-table">
+                            <thead>
+                              <tr>
+                                <th>{{ 'p4k.diff.entity' | translate }}</th>
+                                <th>{{ 'p4k.diff.prev' | translate }}</th>
+                                <th>{{ 'p4k.diff.new' | translate }}</th>
+                                <th>{{ 'p4k.diff.delta' | translate }}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (d of diffEntries(b.diff_summary!); track d.key) {
+                                <tr>
+                                  <td class="mono small">{{ d.key }}</td>
+                                  <td class="num">{{ d.prev | number }}</td>
+                                  <td class="num">{{ d.new | number }}</td>
+                                  <td class="num" [class.d-add]="d.delta > 0" [class.d-rem]="d.delta < 0">
+                                    {{ d.delta > 0 ? '+' : '' }}{{ d.delta | number }}
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                          @if (b.disabled) {
+                            <p class="disabled-note" [class.superseded-note]="isSuperseded(b)">
+                              <strong>{{ (isSuperseded(b) ? 'p4k.superseded.title' : 'p4k.disabled.title') | translate }}:</strong>
+                              {{ b.disabled_reason ?? ('p4k.disabled.noReason' | translate) }}
+                            </p>
+                          }
+                        </div>
+                      }
+                    }
+                  </div>
+                }
               </div>
             }
           </div>
+
+          <p class="retention-hint">{{ 'p4k.retentionHint' | translate }}</p>
         }
       </div>
-
-      @if (svc.errorMsg(); as err) {
-        <div class="err">
-          <strong>{{ 'p4k.errorTitle' | translate }}:</strong> {{ err }}
-        </div>
-      }
-
-      @if (bundles().length === 0 && svc.busy()) {
-        <div class="sc-card empty">
-          <p>{{ 'p4k.loading' | translate }}</p>
-        </div>
-      } @else if (bundles().length === 0 && !svc.busy()) {
-        <div class="sc-card empty">
-          <h2>{{ 'p4k.empty.title' | translate }}</h2>
-          <p>{{ 'p4k.empty.hint' | translate }}</p>
-          <a routerLink="/uploader" class="sc-btn sc-btn-primary" style="margin-top: 12px;">
-            {{ 'p4k.empty.goDesktop' | translate }}
-          </a>
-        </div>
-      } @else {
-        <!-- Grouped by patch: each patch version is one expandable row whose
-             detail is the list of individual uploads (its "sub-uploads"). -->
-        <table class="sc-card table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>{{ 'p4k.col.version' | translate }}</th>
-              <th>{{ 'p4k.col.channels' | translate }}</th>
-              <th>{{ 'p4k.col.uploads' | translate }}</th>
-              <th>{{ 'p4k.col.quality' | translate }}</th>
-              <th>{{ 'p4k.col.entities' | translate }}</th>
-              <th>{{ 'p4k.col.when' | translate }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (g of patchGroups(); track g.patch_version) {
-              <tr class="group-row" [class.superseded-row]="g.allSuperseded">
-                <td>
-                  <button class="expand-btn" type="button"
-                          (click)="toggleGroup(g.patch_version)"
-                          [attr.aria-expanded]="isGroupExpanded(g.patch_version)"
-                          [attr.aria-label]="'p4k.expand' | translate">
-                    {{ isGroupExpanded(g.patch_version) ? '▾' : '▸' }}
-                  </button>
-                </td>
-                <td class="patch-cell mono">
-                  {{ g.patch_version }}
-                  @if (g.allSuperseded) {
-                    <span class="superseded-tag">{{ 'p4k.superseded.badge' | translate }}</span>
-                  }
-                </td>
-                <td>
-                  <div class="chan-pills">
-                    @for (ch of g.channels; track ch) {
-                      <span class="ch-pill" [class]="ch">{{ ch.toUpperCase() }}</span>
-                    }
-                  </div>
-                </td>
-                <td class="num">{{ g.uploadCount | number }}</td>
-                <td>
-                  <div class="qbar">
-                    <div class="qbar-fill"
-                         [class.q-green]="(g.quality_score ?? 0) >= 80"
-                         [class.q-yellow]="(g.quality_score ?? 0) >= 50 && (g.quality_score ?? 0) < 80"
-                         [class.q-red]="(g.quality_score ?? 0) < 50"
-                         [style.width.%]="g.quality_score ?? 0"></div>
-                    <span class="qbar-text">{{ g.quality_score !== null ? (g.quality_score | number:'1.0-0') : '—' }}</span>
-                  </div>
-                </td>
-                <td class="num">{{ g.entities | number }}</td>
-                <td>{{ g.latest_at | date:'short' }}</td>
-              </tr>
-              @if (isGroupExpanded(g.patch_version)) {
-                <tr class="group-detail-row">
-                  <td colspan="7">
-                    <div class="uploads-detail">
-                      <div class="uploads-detail-label">{{ 'p4k.detail.uploads' | translate }}</div>
-                      <table class="detail-table">
-                        <thead>
-                          <tr>
-                            <th></th>
-                            <th>{{ 'p4k.col.channel' | translate }}</th>
-                            <th>{{ 'p4k.col.build' | translate }}</th>
-                            <th>{{ 'p4k.col.quality' | translate }}</th>
-                            <th>{{ 'p4k.col.entities' | translate }}</th>
-                            <th>{{ 'p4k.col.diff' | translate }}</th>
-                            <th>{{ 'p4k.col.tool' | translate }}</th>
-                            <th>{{ 'p4k.col.uploader' | translate }}</th>
-                            <th>{{ 'p4k.col.when' | translate }}</th>
-                            @if (roles.isAdmin()) {
-                              <th>{{ 'p4k.col.actions' | translate }}</th>
-                            }
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @for (b of g.uploads; track b.id) {
-                            <tr class="upload-row"
-                                [class.disabled-row]="b.disabled && !b.superseded_at"
-                                [class.superseded-row]="isSuperseded(b)">
-                              <td>
-                                @if (b.diff_summary) {
-                                  <button class="expand-btn" type="button"
-                                          (click)="toggleExpand(b.id)"
-                                          [attr.aria-expanded]="isExpanded(b.id)"
-                                          [attr.aria-label]="'p4k.expand' | translate">
-                                    {{ isExpanded(b.id) ? '▾' : '▸' }}
-                                  </button>
-                                }
-                              </td>
-                              <td>
-                                <span class="ch-pill" [class]="b.channel">{{ b.channel.toUpperCase() }}</span>
-                                @if (isSuperseded(b)) {
-                                  <span class="superseded-tag" [title]="b.disabled_reason ?? ''">
-                                    {{ 'p4k.superseded.badge' | translate }}
-                                  </span>
-                                }
-                              </td>
-                              <td class="mono small">{{ b.build_number || '—' }}</td>
-                              <td>
-                                <div class="qbar">
-                                  <div class="qbar-fill"
-                                       [class.q-green]="(b.quality_score ?? 0) >= 80"
-                                       [class.q-yellow]="(b.quality_score ?? 0) >= 50 && (b.quality_score ?? 0) < 80"
-                                       [class.q-red]="(b.quality_score ?? 0) < 50"
-                                       [style.width.%]="b.quality_score ?? 0"></div>
-                                  <span class="qbar-text">{{ b.quality_score !== null ? (b.quality_score | number:'1.0-0') : '—' }}</span>
-                                </div>
-                              </td>
-                              <td>
-                                <div class="entity-row">
-                                  @for (ent of entityKeys(b); track ent.key) {
-                                    <span class="entity-chip" [title]="ent.key">
-                                      {{ ent.icon }} {{ ent.value | number }}
-                                    </span>
-                                  }
-                                </div>
-                              </td>
-                              <td class="diff-cell">
-                                @if (b.diff_summary?.summary) {
-                                  <span class="diff-mini">
-                                    <span class="d-add">+{{ b.diff_summary!.summary!.entities_added | number }}</span>
-                                    /
-                                    <span class="d-rem">−{{ b.diff_summary!.summary!.entities_removed | number }}</span>
-                                  </span>
-                                } @else {
-                                  <span class="small">—</span>
-                                }
-                              </td>
-                              <td class="mono small">{{ b.tool_version ?? '—' }}</td>
-                              <td>
-                                <div class="uploader">
-                                  <span>{{ b.uploaded_by_name ?? '—' }}</span>
-                                  <span class="mono small">{{ b.uploaded_by_email }}</span>
-                                </div>
-                              </td>
-                              <td>{{ b.created_at | date:'short' }}</td>
-                              @if (roles.isAdmin()) {
-                                <td class="actions">
-                                  @if (isSuperseded(b)) {
-                                    <!-- superseded = history; re-enabling would create a second
-                                         active bundle for the same key, so only allow delete -->
-                                  } @else if (b.disabled) {
-                                    <button class="sc-btn micro" (click)="reenable(b)" [disabled]="svc.busy()">
-                                      {{ 'p4k.actions.reenable' | translate }}
-                                    </button>
-                                  } @else {
-                                    <button class="sc-btn micro danger" (click)="disable(b)" [disabled]="svc.busy()">
-                                      {{ 'p4k.actions.disable' | translate }}
-                                    </button>
-                                  }
-                                  <button class="sc-btn micro danger" (click)="remove(b)" [disabled]="svc.busy()">
-                                    {{ 'p4k.actions.delete' | translate }}
-                                  </button>
-                                </td>
-                              }
-                            </tr>
-                            @if (isExpanded(b.id) && b.diff_summary) {
-                              <tr class="expand-row">
-                                <td colspan="10">
-                                  <div class="diff-detail">
-                                    <strong>{{ 'p4k.diff.title' | translate }}</strong>
-                                    <table class="diff-table">
-                                      <thead>
-                                        <tr>
-                                          <th>{{ 'p4k.diff.entity' | translate }}</th>
-                                          <th>{{ 'p4k.diff.prev' | translate }}</th>
-                                          <th>{{ 'p4k.diff.new' | translate }}</th>
-                                          <th>{{ 'p4k.diff.delta' | translate }}</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        @for (d of diffEntries(b.diff_summary!); track d.key) {
-                                          <tr>
-                                            <td class="mono small">{{ d.key }}</td>
-                                            <td class="num">{{ d.prev | number }}</td>
-                                            <td class="num">{{ d.new | number }}</td>
-                                            <td class="num" [class.d-add]="d.delta > 0" [class.d-rem]="d.delta < 0">
-                                              {{ d.delta > 0 ? '+' : '' }}{{ d.delta | number }}
-                                            </td>
-                                          </tr>
-                                        }
-                                      </tbody>
-                                    </table>
-                                    @if (b.disabled) {
-                                      <p class="disabled-note" [class.superseded-note]="isSuperseded(b)">
-                                        <strong>{{ (isSuperseded(b) ? 'p4k.superseded.title' : 'p4k.disabled.title') | translate }}:</strong>
-                                        {{ b.disabled_reason ?? ('p4k.disabled.noReason' | translate) }}
-                                      </p>
-                                    }
-                                  </div>
-                                </td>
-                              </tr>
-                            }
-                          }
-                        </tbody>
-                      </table>
-                    </div>
-                  </td>
-                </tr>
-              }
-            }
-          </tbody>
-        </table>
-        <p class="retention-hint">{{ 'p4k.retentionHint' | translate }}</p>
-      }
     </section>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; gap: 20px; }
-    .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+    .hist { display: flex; flex-direction: column; }
+    .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
-    .header-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+    /* Standalone (/p4k direct) wraps itself in a card; embedded relies on the
+       host Data Upload panel and only draws a top divider on its section head. */
+    .hist-body.card { background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 12px; overflow: hidden; }
+
+    .sec-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 20px;
+      background: var(--sc-bg-2);
+      border-bottom: 1px solid var(--sc-border);
+    }
+    .hist-body:not(.card) .sec-head { border-top: 1px solid var(--sc-border); }
+    .sec-head .t {
+      font-family: var(--sc-font-display);
+      font-size: 0.82rem; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--sc-fg-1);
+    }
     .icon-toggle {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 32px; height: 32px;
-      background: transparent;
-      color: var(--sc-fg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 6px;
+      width: 30px; height: 30px; margin-left: auto;
+      background: transparent; color: var(--sc-fg-2);
+      border: 1px solid var(--sc-border); border-radius: 6px;
       transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
     }
     .icon-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .icon-toggle.active {
-      color: var(--sc-accent);
-      border-color: var(--sc-accent);
+      color: var(--sc-accent); border-color: var(--sc-accent);
       background: rgba(var(--accent-primary-rgb), 0.12);
     }
+
     .err {
+      margin: 14px 20px 0;
       padding: 10px 14px;
       background: rgba(248, 113, 113, 0.1);
       border: 1px solid var(--sc-danger);
       color: var(--sc-danger);
       border-radius: 4px;
     }
-    .summary { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
-    .summary-general {
-      display: flex;
-      gap: 32px;
-      flex-wrap: wrap;
-      padding: 16px 22px;
-      border-bottom: 1px solid var(--sc-border);
-    }
-    .summary-channels { display: flex; flex-direction: column; }
-    .summary-channels-label {
-      font-family: var(--sc-font-display);
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--sc-fg-2);
-      padding: 12px 22px 4px;
-    }
-    .summary-row {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      flex-wrap: wrap;
-      padding: 10px 22px;
-      border-top: 1px solid var(--sc-border);
-    }
-    .summary-row:first-of-type { border-top: none; }
-    .sum-patch { font-size: 1.1rem; color: var(--sc-fg-0); min-width: 64px; }
-    .sum-metric { display: flex; flex-direction: column; gap: 2px; }
-    .sum-quality {
-      font-family: var(--sc-font-display);
-      font-size: 1.25rem;
-      font-variant-numeric: tabular-nums;
-      color: var(--sc-fg-0);
-    }
-    .sum-quality.q-green { color: var(--sc-success); }
-    .sum-quality.q-yellow { color: var(--sc-warning); }
-    .sum-quality.q-red { color: var(--sc-danger); }
-    .sum-entities {
-      font-family: var(--sc-font-display);
-      font-size: 1.25rem;
-      font-variant-numeric: tabular-nums;
-      color: var(--sc-fg-1);
-    }
-    .kpi { display: flex; flex-direction: column; gap: 4px; }
-    .kpi-label {
-      font-family: var(--sc-font-display);
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--sc-fg-2);
-    }
-    .kpi-value {
-      font-family: var(--sc-font-display);
-      font-size: 1.45rem;
-      color: var(--sc-fg-0);
-      font-variant-numeric: tabular-nums;
-    }
-    .kpi-value.q-green { color: var(--sc-success); }
-    .kpi-value.q-yellow { color: var(--sc-warning); }
-    .kpi-value.q-red { color: var(--sc-danger); }
 
-    .empty { text-align: center; padding: 40px 24px; color: var(--sc-fg-2); }
-    .empty h2 { margin: 0 0 8px; }
+    /* Summary strip. */
+    .hist-summary {
+      display: flex; align-items: center; gap: 28px; flex-wrap: wrap;
+      padding: 14px 20px; border-bottom: 1px solid var(--sc-border);
+    }
+    .kpi { display: flex; flex-direction: column; gap: 2px; }
+    .kpi .kl {
+      font-family: var(--sc-font-display);
+      font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--sc-fg-2);
+    }
+    .kpi .kv {
+      font-family: var(--sc-font-display); font-size: 1.4rem;
+      color: var(--sc-fg-0); font-variant-numeric: tabular-nums;
+    }
+    .chan-latest { display: flex; gap: 12px; flex-wrap: wrap; margin-left: auto; }
+    .cl {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--sc-bg-0); border: 1px solid var(--sc-border);
+      border-radius: 999px; padding: 5px 12px;
+    }
+    .cl .cv { color: var(--sc-fg-1); font-size: 0.82rem; }
+    .cl .cq { font-variant-numeric: tabular-nums; font-size: 0.82rem; color: var(--sc-fg-2); }
+    .cl .cq.q-green { color: var(--sc-success); }
+    .cl .cq.q-yellow { color: var(--sc-warning); }
+    .cl .cq.q-red { color: var(--sc-danger); }
+
+    .state { padding: 32px 20px; text-align: center; color: var(--sc-fg-2); }
+    .state.empty strong { color: var(--sc-fg-1); }
+    .state.empty p { margin: 6px 0 0; }
+    .go-desktop { align-self: flex-start; margin: 0 20px 4px; }
 
     .retention-hint {
-      margin: 6px 2px 0;
-      font-size: 0.74rem;
-      color: var(--sc-fg-2);
+      margin: 0; padding: 12px 20px 16px;
+      font-size: 0.74rem; color: var(--sc-fg-2);
     }
 
-    .table { width: 100%; padding: 0; border-collapse: collapse; overflow: hidden; }
-    .table th, .table td {
-      padding: 10px 12px;
-      text-align: left;
-      border-bottom: 1px solid var(--sc-border);
-      font-size: 0.86rem;
-      vertical-align: middle;
-    }
-    .table thead th {
-      background: var(--sc-bg-2);
-      font-family: var(--sc-font-display);
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--sc-fg-2);
-    }
-    .table tbody tr:hover { background: rgba(0, 212, 255, 0.04); }
-    .table tbody tr.disabled-row { opacity: 0.5; }
-    .table tbody tr.disabled-row .ch-pill { filter: grayscale(0.7); }
-    /* Superseded = a prior upload kept as history — muted, but not the faded
-       "disabled/revoked" treatment. */
-    .table tbody tr.superseded-row { opacity: 0.72; }
-    .superseded-tag {
-      display: inline-block;
-      margin-left: 8px;
-      padding: 1px 7px;
-      border-radius: 999px;
-      font-family: var(--sc-font-display);
-      font-size: 0.62rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      vertical-align: middle;
-      background: rgba(122, 134, 156, 0.16);
-      color: var(--sc-fg-2);
-      border: 1px solid var(--sc-border);
-    }
-    .disabled-note.superseded-note {
-      background: rgba(0, 212, 255, 0.08);
-      border-left-color: var(--sc-accent);
-    }
-    .mono { font-family: monospace; color: var(--sc-fg-1); }
-    .small { font-size: 0.76rem; color: var(--sc-fg-2); }
-    .num { font-variant-numeric: tabular-nums; text-align: right; }
-
+    /* Channel pill (shared visual grammar with the summary). */
     .ch-pill {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-family: var(--sc-font-display);
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
+      display: inline-block; padding: 2px 10px; border-radius: 999px;
+      font-family: var(--sc-font-display); font-size: 0.68rem; letter-spacing: 0.08em;
       &.live { background: rgba(0, 212, 255, 0.18); color: var(--sc-accent); }
       &.ptu { background: rgba(74, 222, 128, 0.18); color: var(--sc-success); }
       &.eptu { background: rgba(251, 191, 36, 0.18); color: var(--sc-warning); }
       &.tech-preview { background: rgba(255, 87, 34, 0.18); color: var(--sc-accent-hot); }
       &.unknown { background: rgba(122, 134, 156, 0.18); color: var(--sc-fg-2); }
     }
+    .badge {
+      display: inline-block; padding: 1px 7px; border-radius: 999px;
+      font-family: var(--sc-font-display); font-size: 0.6rem;
+      letter-spacing: 0.06em; text-transform: uppercase; vertical-align: middle;
+      background: rgba(122, 134, 156, 0.16); color: var(--sc-fg-2);
+      border: 1px solid var(--sc-border);
+    }
 
+    .mono { font-family: monospace; }
+    .small { font-size: 0.76rem; color: var(--sc-fg-2); }
+    .num { font-variant-numeric: tabular-nums; text-align: right; }
+
+    /* Quality bar (reused for patch + upload rows). */
     .qbar {
-      position: relative;
-      width: 100%;
-      max-width: 100px;
-      height: 18px;
-      background: var(--sc-bg-2);
-      border-radius: 4px;
-      overflow: hidden;
+      position: relative; width: 88px; height: 16px;
+      background: var(--sc-bg-2); border-radius: 4px; overflow: hidden; flex: none;
     }
     .qbar-fill {
-      position: absolute; left: 0; top: 0; bottom: 0;
-      transition: width 0.2s;
+      position: absolute; left: 0; top: 0; bottom: 0; transition: width 0.2s;
       &.q-green { background: rgba(74, 222, 128, 0.55); }
       &.q-yellow { background: rgba(251, 191, 36, 0.55); }
       &.q-red { background: rgba(248, 113, 113, 0.55); }
     }
     .qbar-text {
-      position: absolute; inset: 0;
-      display: grid; place-items: center;
-      font-size: 0.72rem;
-      font-variant-numeric: tabular-nums;
-      color: var(--sc-fg-0);
-      font-weight: 600;
+      position: absolute; inset: 0; display: grid; place-items: center;
+      font-size: 0.72rem; font-variant-numeric: tabular-nums; color: var(--sc-fg-0); font-weight: 600;
     }
 
-    .entity-row { display: flex; gap: 6px; flex-wrap: wrap; }
-    .entity-chip {
-      padding: 1px 6px;
-      background: var(--sc-bg-2);
-      border-radius: 3px;
-      font-size: 0.76rem;
-      font-variant-numeric: tabular-nums;
-      color: var(--sc-fg-1);
+    /* ── Patch cards ── */
+    .hist-list { display: flex; flex-direction: column; gap: 10px; padding: 16px 20px; }
+    .patch {
+      border: 1px solid var(--sc-border); border-radius: 10px;
+      background: var(--sc-bg-0); overflow: hidden;
+      transition: border-color 0.15s ease;
+    }
+    .patch:hover { border-color: color-mix(in srgb, var(--sc-accent) 40%, var(--sc-border)); }
+    .patch.superseded { opacity: 0.72; }
+    .patch-main {
+      display: grid; grid-template-columns: auto minmax(84px, auto) 1fr auto;
+      align-items: center; gap: 14px; padding: 12px 14px; cursor: pointer;
+    }
+    .patch-main:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; border-radius: 8px; }
+    .chev { color: var(--sc-accent); font-size: 0.9rem; width: 16px; text-align: center; }
+    .patch-ver { font-size: 1.05rem; color: var(--sc-fg-0); display: flex; align-items: center; gap: 8px; }
+    .patch-mid { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .meta-mini { color: var(--sc-fg-2); font-size: 0.72rem; white-space: nowrap; }
+    .meta-mini b { color: var(--sc-fg-1); font-variant-numeric: tabular-nums; font-weight: 600; }
+    .patch-when {
+      color: var(--sc-fg-2); font-size: 0.74rem;
+      font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap;
     }
 
-    .uploader { display: flex; flex-direction: column; gap: 2px; line-height: 1.2; }
-    .uploader span { overflow-wrap: anywhere; }
-
-    .diff-cell .diff-mini {
-      font-family: monospace;
-      font-size: 0.78rem;
-      font-variant-numeric: tabular-nums;
+    /* ── Expanded uploads ── */
+    .uploads { border-top: 1px solid var(--sc-border); background: rgba(0, 212, 255, 0.03); padding: 6px; }
+    .up-row {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; flex-wrap: wrap; padding: 9px 10px; border-radius: 8px;
     }
+    .up-row:hover { background: rgba(0, 212, 255, 0.05); }
+    .up-row.disabled-row { opacity: 0.5; }
+    .up-row.disabled-row .ch-pill { filter: grayscale(0.7); }
+    .up-row.superseded-row { opacity: 0.72; }
+    .up-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-width: 0; }
+    .up-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+    .up-b { font-size: 0.78rem; color: var(--sc-fg-1); }
+    .up-ent { display: flex; gap: 5px; flex-wrap: wrap; }
+    .echip {
+      padding: 1px 6px; background: var(--sc-bg-2); border-radius: 3px;
+      font-size: 0.74rem; color: var(--sc-fg-1); font-variant-numeric: tabular-nums;
+    }
+    .diff-mini { font-family: monospace; font-size: 0.76rem; font-variant-numeric: tabular-nums; }
     .d-add { color: var(--sc-success); }
     .d-rem { color: var(--sc-danger); }
+    .up-tool { color: var(--sc-fg-2); }
+    .uploader-cell { display: flex; flex-direction: column; line-height: 1.15; text-align: right; }
+    .uploader-cell .n { font-size: 0.8rem; overflow-wrap: anywhere; }
+    .uploader-cell .e { font-size: 0.72rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .up-when { color: var(--sc-fg-2); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
 
     .expand-btn {
-      background: transparent;
-      border: none;
-      color: var(--sc-accent);
-      cursor: pointer;
-      font-size: 0.9rem;
-      padding: 2px 6px;
-      border-radius: 4px;
-      transition: background 0.15s, color 0.15s;
+      background: transparent; border: none; color: var(--sc-accent); cursor: pointer;
+      font-size: 0.9rem; padding: 2px 6px; border-radius: 4px; transition: background 0.15s;
     }
-    .expand-btn:hover {
-      background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
-      color: var(--sc-accent);
-    }
-    .expand-row {
-      background: rgba(0, 212, 255, 0.03);
-    }
+    .expand-btn:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
 
-    /* Patch group header row + its expandable upload detail. */
-    .group-row .patch-cell { font-size: 1rem; color: var(--sc-fg-0); }
-    .chan-pills { display: flex; gap: 6px; flex-wrap: wrap; }
-    .group-detail-row > td { padding: 0; background: rgba(0, 212, 255, 0.03); }
-    .uploads-detail { padding: 10px 14px 14px; }
-    .uploads-detail-label {
-      font-family: var(--sc-font-display);
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--sc-fg-2);
-      margin-bottom: 8px;
+    .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+    .sc-btn.micro { padding: 4px 10px; font-size: 0.7rem; letter-spacing: 0.04em; }
+    .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
+    .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
+
+    /* Diff detail (per-upload expand). */
+    .diff-detail { padding: 10px 14px 12px 34px; }
+    .diff-detail > strong {
+      font-family: var(--sc-font-display); font-size: 0.72rem;
+      letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-fg-2);
     }
-    .detail-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--sc-bg-1);
-      border: 1px solid var(--sc-border);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    .detail-table th, .detail-table td {
-      padding: 8px 10px;
-      text-align: left;
-      border-bottom: 1px solid var(--sc-border);
-      font-size: 0.82rem;
-      vertical-align: middle;
-    }
-    .detail-table thead th {
-      background: var(--sc-bg-2);
-      font-family: var(--sc-font-display);
-      font-size: 0.66rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--sc-fg-2);
-    }
-    .detail-table tbody tr:last-child td { border-bottom: none; }
-    .detail-table tbody tr.disabled-row { opacity: 0.5; }
-    .detail-table tbody tr.disabled-row .ch-pill { filter: grayscale(0.7); }
-    .detail-table tbody tr.superseded-row { opacity: 0.72; }
-    .diff-detail {
-      padding: 12px 16px;
-    }
-    .diff-detail strong {
-      font-family: var(--sc-font-display);
-      font-size: 0.78rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--sc-fg-2);
-    }
-    .diff-table {
-      width: 100%;
-      max-width: 600px;
-      margin-top: 8px;
-      border-collapse: collapse;
-    }
-    .diff-table th, .diff-table td {
-      padding: 4px 10px;
-      border-bottom: 1px solid var(--sc-border);
-      font-size: 0.82rem;
-    }
+    .diff-table { width: 100%; max-width: 560px; margin-top: 8px; border-collapse: collapse; }
+    .diff-table th, .diff-table td { padding: 4px 10px; border-bottom: 1px solid var(--sc-border); font-size: 0.82rem; }
     .diff-table th {
-      text-align: left;
-      font-family: var(--sc-font-display);
-      font-size: 0.7rem;
-      letter-spacing: 0.06em;
-      color: var(--sc-fg-2);
-      text-transform: uppercase;
+      text-align: left; font-family: var(--sc-font-display); font-size: 0.68rem;
+      letter-spacing: 0.06em; color: var(--sc-fg-2); text-transform: uppercase;
     }
     .disabled-note {
-      margin-top: 10px;
-      padding: 8px 12px;
+      margin-top: 10px; padding: 8px 12px;
       background: rgba(122, 134, 156, 0.12);
-      border-left: 3px solid var(--sc-fg-2);
-      border-radius: 0 4px 4px 0;
-      font-size: 0.85rem;
-      color: var(--sc-fg-1);
+      border-left: 3px solid var(--sc-fg-2); border-radius: 0 4px 4px 0;
+      font-size: 0.85rem; color: var(--sc-fg-1);
     }
+    .disabled-note.superseded-note { background: rgba(0, 212, 255, 0.08); border-left-color: var(--sc-accent); }
 
-    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
-    .sc-btn.micro {
-      padding: 4px 10px;
-      font-size: 0.7rem;
-      letter-spacing: 0.04em;
-    }
-    .sc-btn.micro.danger {
-      color: var(--sc-danger);
-      border-color: var(--sc-danger);
-    }
-    .sc-btn.micro.danger:hover:not(:disabled) {
-      background: var(--sc-danger);
-      color: var(--sc-bg-0);
-    }
-
-    @media (max-width: 720px) {
-      /* Wide 11-column table scrolls horizontally instead of overflowing the page. */
-      .table {
-        display: block;
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-      }
-      .table thead, .table tbody { display: table; width: 100%; min-width: 900px; }
-    }
-    @media (max-width: 560px) {
-      .head { align-items: stretch; }
-      .header-actions { justify-content: flex-start; }
-      .summary-general { gap: 20px; padding: 14px 16px; }
-      .summary-channels-label { padding: 12px 16px 4px; }
-      .summary-row { gap: 14px 18px; padding: 10px 16px; }
-      .kpi-value { font-size: 1.25rem; }
-      .sum-quality, .sum-entities { font-size: 1.1rem; }
+    @media (max-width: 640px) {
+      .patch-main { grid-template-columns: auto 1fr auto; gap: 10px; }
+      .patch-mid { order: 3; grid-column: 1 / -1; }
+      .hist-summary { gap: 18px; }
+      .chan-latest { margin-left: 0; }
+      .up-right { justify-content: flex-start; }
     }
   `],
 })
@@ -645,7 +455,8 @@ export class P4kHistoryComponent implements OnInit {
   private readonly translate = inject(TranslateService);
 
   /** When embedded under the Data Upload page, the page title/subtitle chrome
-   *  is dropped — the host page supplies the section heading. */
+   *  is dropped and the standalone card wrapper is skipped — the host panel
+   *  supplies the surrounding card and section rhythm. */
   readonly embedded = input(false);
 
   constructor() {
@@ -658,7 +469,7 @@ export class P4kHistoryComponent implements OnInit {
   readonly bundles = computed(() => this.svc.bundles());
   readonly uniqueChannels = computed(() => new Set(this.bundles().map((b) => b.channel)).size);
 
-  /** Uploads grouped by patch version — the history table's top-level rows. */
+  /** Uploads grouped by patch version — the history's top-level cards. */
   readonly patchGroups = computed<PatchGroup[]>(() => groupBundlesByPatch(this.bundles()));
 
   /**
@@ -782,9 +593,9 @@ export interface PatchGroup {
 
 /**
  * Group a flat bundle list into one entry per patch version. Each group carries
- * its uploads (newest first) so the history table can render a patch as an
- * expandable row whose detail is the list of individual uploads beneath it.
- * Groups are ordered by patch version descending (newest patch first).
+ * its uploads (newest first) so the history can render a patch as an expandable
+ * card whose detail is the list of individual uploads beneath it. Groups are
+ * ordered by patch version descending (newest patch first).
  */
 export function groupBundlesByPatch(bundles: readonly P4kBundleRow[]): PatchGroup[] {
   const byPatch = new Map<string, P4kBundleRow[]>();
