@@ -56,6 +56,22 @@ Because the reaper is part of the routine, the interruption naturally heals on
 the next cron tick after the machine/Claude is back — no PC-independent
 infrastructure required (that was declined 2026-07-07).
 
+**Run the reaper FIRST — before the queue read, before any empty-stop.** The
+task numbers the queue read as STEP 1 and the reaper as STEP 1.5, but the
+reaper *executes first* every cycle. This ordering is load-bearing: the queue
+read looks only at `open`/`needs_input` and never at `in_progress`, so a run
+that reads the queue first, finds it empty, and takes the "No open feedback →
+stop" exit strands every `in_progress` item **without ever reaping it**. That
+is precisely the `b5e070df` failure — the item sat `in_progress` for hours
+while later runs kept stopping at the empty-queue check.
+
+**No recency cap — resume back to the last successful ship, not just recent
+runs.** The reaper's only age gate is the 30-minute *lower* bound; there is
+deliberately **no upper bound**. One sweep reopens *every* stranded
+`in_progress` row regardless of how many cadence cycles ago it stranded, so the
+first run after a multi-hour downtime gap (PC off / usage-limit / Claude not
+running) catches all of them at once — not merely the last few runs.
+
 It reopens only **orphaned** claims and never disturbs intentional holds:
 
 ```sql
@@ -84,6 +100,20 @@ Why the two guards:
   branch+PR — wasted effort, never data corruption (the atomic claim still
   prevents two runs acting on it at the same instant, and each item ships via
   its own independent PR).
+
+### Answered-but-stranded resumes are covered by the same guard
+
+A `needs_input` topic the admin has answered is normally resumed by the
+per-topic query: a run picks it up, claims it `in_progress`
+(`... where status='needs_input'`), and acts on the answer. If that run **dies
+mid-resume**, the item is left `in_progress` with `ship_ref` still null —
+invisible to the needs_input-resume query (it is no longer `needs_input`) yet
+caught by this reaper (`ship_ref IS NULL`). On the redo it re-enters as `open`;
+the per-item procedure reads the **full thread** and acts on the admin's
+already-posted answer. **Do not re-ask a question the admin already answered** —
+resume from the answer. `b5e070df` is the canonical case: the admin posted
+"unsigned v1 ok, lets go", a run claimed the resume and died, and the item
+stranded until a reaper-first run reopened it.
 
 Reaped items are logged in the run report and then flow through the normal
 per-item procedure below in the same run.
