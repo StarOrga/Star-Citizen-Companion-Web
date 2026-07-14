@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.35.2] - 2026-07-14
+
+### Fixed
+
+- **Connecting the SC Database from the desktop app no longer shows a callback
+  error.** The desktop sign-in page (`/desktop/connect`) validated the app's
+  local callback against a fixed port range (46800–46899), but the app binds an
+  OS-assigned port — so the page rejected every real callback and displayed an
+  error instead of signing in. Callback validation now accepts any port on
+  `http://127.0.0.1`, matching the desktop connect contract. The security
+  boundary is unchanged: the callback must still be a local `127.0.0.1` HTTP
+  address, the one-time `state` anti-forgery token must match, and the app only
+  accepts the handoff from the official web origin. This retroactively fixes the
+  Connect flow for already-installed app versions.
+
 ## [0.35.1] - 2026-07-14
 
 ### Changed
