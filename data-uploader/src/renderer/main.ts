@@ -166,7 +166,6 @@ async function init(): Promise<void> {
   // Auto-update banner — subscribe + paint last known status (no-op on dev).
   window.sc.update.onEvent(onUpdateEvent);
   void window.sc.update.status().then(onUpdateEvent);
-  initUpdateCheckButton();
 
   // Web-connection tile — auto-connect (persisted session) + auto-sync.
   void initConnectionTile();
@@ -459,47 +458,33 @@ type UpdateEvent =
 // routed through shell.openExternal (opens in the default browser, no in-app window).
 const DOWNLOAD_PAGE_URL = 'https://sc-companion.vercel.app/desktop';
 
-// Manual "check for updates" trigger in the header. The auto banner stays
-// silent for 'checking'/'not-available', so this button gives the user explicit
-// feedback for those states inline; 'available'/'progress'/'downloaded'/'error'
-// are surfaced by the banner via onEvent. Mirrors the web app's discoverable
-// update affordance (there the SwUpdate poll is invisible, but a manual check
-// is what users reach for when they want to confirm they're current).
-function initUpdateCheckButton(): void {
-  const btn = $('#update-check-btn') as HTMLButtonElement | null;
-  if (!btn) return;
-  const idleLabel = (): string => t('update.check', {}) || 'Nach Updates suchen';
-  btn.textContent = idleLabel();
-  btn.title = idleLabel();
+// Update checks ride on navigation instead of a manual button: every view
+// transition (opening the uploader, moving to the next step, …) triggers a
+// silent check via render() → maybeAutoCheckUpdate(). No user interaction, no
+// error banner — outcomes surface through the auto-update banner / manual hint.
+const AUTO_UPDATE_CHECK_THROTTLE_MS = 2 * 60 * 1000;
+let lastAutoUpdateCheckAt = 0;
+// Mirrors the last event type seen via onUpdateEvent, so navigation checks can
+// skip while an update is already checking/downloading/staged.
+let lastUpdateType: UpdateEvent['type'] | null = null;
 
-  btn.addEventListener('click', async () => {
-    btn.disabled = true;
-    btn.textContent = t('update.checking', {}) || 'Suche…';
-    let ev: UpdateEvent;
-    try {
-      ev = await window.sc.update.check();
-    } catch {
-      ev = { type: 'error', message: 'check failed' };
-    }
-    // 'not-available' hides the banner, so confirm "up to date" on the button
-    // itself; every other outcome is already visible in the banner.
-    if (ev.type === 'not-available') {
-      btn.textContent = t('update.uptodate', { version: ev.currentVersion }) || `Aktuell (v${ev.currentVersion})`;
-      setTimeout(() => {
-        btn.textContent = idleLabel();
-        btn.disabled = false;
-      }, 3000);
-    } else {
-      btn.textContent = idleLabel();
-      btn.disabled = false;
-    }
-  });
+function maybeAutoCheckUpdate(): void {
+  if (lastUpdateType === 'checking' || isUpdateBusyType(lastUpdateType)) return;
+  const now = Date.now();
+  if (now - lastAutoUpdateCheckAt < AUTO_UPDATE_CHECK_THROTTLE_MS) return;
+  lastAutoUpdateCheckAt = now;
+  window.sc.update.checkSilent();
+}
+
+function isUpdateBusyType(type: UpdateEvent['type'] | null): boolean {
+  return type === 'available' || type === 'progress' || type === 'downloaded';
 }
 
 // Routes update events: the portable 'manual' hint lives on the Discover
 // (first) screen only (state + paintManualBanner); every other state uses the
 // persistent shell banner.
 function onUpdateEvent(ev: UpdateEvent): void {
+  lastUpdateType = ev.type;
   if (ev.type === 'manual') {
     state.manualUpdate = { currentVersion: ev.currentVersion, latestVersion: ev.latestVersion };
     state.manualUpdateDismissed = false; // a freshly-published newer version re-shows the hint
@@ -647,6 +632,8 @@ function setStatus(msg: string): void {
 function render(): void {
   const app = $('#app');
   if (!app) return;
+  // Every navigation is a natural moment to check for updates (throttled).
+  maybeAutoCheckUpdate();
   switch (state.view) {
     case 'discover':
       app.innerHTML = renderDiscover();

@@ -202,7 +202,10 @@ export const api = {
   },
   update: {
     status: (): Promise<UpdateEvent> => ipcRenderer.invoke('sc:update:status'),
-    check: (): Promise<UpdateEvent> => ipcRenderer.invoke('sc:update:check'),
+    // Fire-and-forget silent check; outcome arrives via onEvent, not a return.
+    // Update checks are automatic now (startup, navigation, periodic poll) —
+    // there is no manual "check" entry point.
+    checkSilent: (): void => ipcRenderer.send('sc:update:check-silent'),
     install: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('sc:update:install'),
     onEvent: (cb: (ev: UpdateEvent) => void): (() => void) => {
       const listener = (_e: unknown, payload: UpdateEvent): void => cb(payload);

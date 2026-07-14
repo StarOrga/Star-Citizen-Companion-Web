@@ -11,7 +11,7 @@ import { uploadBundle, type UploadPayload } from '../lib/uploader.js';
 import { RELEASE_TOKEN, TOOL_VERSION, API_BASE, WEB_BASE } from '../lib/release-token.js';
 import {
   initAutoUpdater,
-  checkForUpdatesManually,
+  checkForUpdatesSilently,
   installUpdateNow,
   getLastUpdateEvent,
 } from './updater.js';
@@ -207,7 +207,9 @@ ipcMain.handle('sc:clipboard:write', (_e, text: string) => {
 // ============= Auto-Update IPC =============
 
 ipcMain.handle('sc:update:status', () => getLastUpdateEvent());
-ipcMain.handle('sc:update:check', async () => checkForUpdatesManually());
+// Fire-and-forget silent check driven by renderer navigation — results flow
+// back through the sc:update:event broadcast, so no reply is needed.
+ipcMain.on('sc:update:check-silent', () => checkForUpdatesSilently());
 ipcMain.handle('sc:update:install', () => {
   installUpdateNow();
   return { ok: true };
