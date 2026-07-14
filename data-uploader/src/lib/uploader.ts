@@ -54,14 +54,26 @@ export interface UploadResult {
   details?: unknown;
 }
 
+/**
+ * Hard ceiling for a single upload POST. A hung socket (server wedged, flaky
+ * VPN, captive portal) would otherwise leave the fetch pending forever — the UI
+ * spinner never resolves and no error is ever surfaced. On expiry we abort and
+ * report a distinct `'timeout'` code so the caller can both tell the operator
+ * *and* fire a stall telemetry report.
+ */
+export const UPLOAD_TIMEOUT_MS = 120_000;
+
 export async function uploadBundle(
   apiBase: string,
   payload: UploadPayload,
+  timeoutMs: number = UPLOAD_TIMEOUT_MS,
 ): Promise<UploadResult> {
   const endpoint = `${apiBase}/functions/v1/ingest-bundle`;
   const manifest = payload.manifestPath
     ? safeReadJson(payload.manifestPath, payload.manifest)
     : payload.manifest;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
@@ -82,6 +94,7 @@ export async function uploadBundle(
         data: payload.data,
         tool_version: TOOL_VERSION,
       }),
+      signal: controller.signal,
     });
     const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
@@ -98,7 +111,14 @@ export async function uploadBundle(
       diffSummary: (json['diff_summary'] as DiffSummary | null | undefined) ?? null,
     };
   } catch (err) {
+    // AbortError === our own timeout tripped; normalise to a stable code the
+    // renderer maps to a friendly "timed out" message and telemetry can bucket.
+    if (err instanceof Error && err.name === 'AbortError') {
+      return { ok: false, error: 'timeout' };
+    }
     return { ok: false, error: (err as Error).message };
+  } finally {
+    clearTimeout(timer);
   }
 }
 

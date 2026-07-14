@@ -20,7 +20,9 @@
   "configure": {
     "title": "Pick a profile",
     "subtitle": "Switchable live — change it mid-run.",
-    "start": "Start extraction"
+    "start": "Start extraction",
+    "autoUpload": "Upload automatically after extraction",
+    "autoUploadHint": "Uploads the bundle automatically once extraction finishes (only when you're already connected)."
   },
   "run": {
     "title": "Extracting",
@@ -30,6 +32,9 @@
     "copied": "Copied ✓",
     "copyFailed": "Failed",
     "doneSummary": "Done — quality {{score}}/100 · {{entities}} entities in {{time}}",
+    "bundleReady": "Extraction complete — the bundle is ready to upload.",
+    "bundleReadyCta": "Bundle ready — upload now",
+    "autoUploading": "Auto-upload on — switching to upload…",
     "phase": {
       "discover": "Analyzing installation",
       "plan": "Planning run",
@@ -79,6 +84,8 @@
     "uploadFailed": "Upload failed",
     "cleaned": "Extracted files cleaned up (upload confirmed)",
     "bundleUploading": "Uploading bundle metadata…",
+    "reconnectExpired": "Your session has expired — you'll be asked to sign in again when the upload starts.",
+    "reconnectOffline": "Not connected to the web — starting the upload will sign you in.",
     "steps": {
       "bundle": "Bundle",
       "codex": "Codex",
@@ -94,6 +101,7 @@
       "serverMisconfigured": "The server is misconfigured — please contact the operator.",
       "generic": "Upload failed — please try again.",
       "network": "Network error — couldn't reach the server. Check your connection and retry.",
+      "timeout": "Upload timed out — the server didn't respond in time. Please try again.",
       "withDetail": "{{friendly}} ({{detail}})"
     }
   },

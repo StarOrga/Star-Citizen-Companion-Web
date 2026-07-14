@@ -8,6 +8,7 @@ import { discoverAll, discoverManual } from '../lib/discovery.js';
 import { PROFILES, DEFAULT_PROFILE, estimateForSize } from '../lib/performance.js';
 import { runOAuthFlow } from '../lib/oauth.js';
 import { uploadBundle, type UploadPayload } from '../lib/uploader.js';
+import { createWatchdog } from '../lib/watchdog.js';
 import { RELEASE_TOKEN, TOOL_VERSION, API_BASE, WEB_BASE } from '../lib/release-token.js';
 import {
   initAutoUpdater,
@@ -193,9 +194,21 @@ ipcMain.handle('sc:sync:start', async (event) =>
   runSync((p) => event.sender.send('sc:sync:event', p)),
 );
 
-ipcMain.handle('sc:upload', async (_e, payload: UploadPayload) =>
-  uploadBundle(API_BASE, payload),
-);
+ipcMain.handle('sc:upload', async (_e, payload: UploadPayload) => {
+  const result = await uploadBundle(API_BASE, payload);
+  // A timed-out upload throws nothing (we catch the AbortError internally), so
+  // surface it to crash telemetry here — otherwise a hung upload is invisible.
+  if (!result.ok && result.error === 'timeout') {
+    void reportCrash({
+      errorType: 'timeout',
+      name: 'UploadTimeout',
+      message: 'ingest-bundle upload aborted after client timeout',
+      stack: null,
+      extra: { channel: payload.channel, patchVersion: payload.patchVersion },
+    });
+  }
+  return result;
+});
 
 // Sandboxed renderers can't reach the `clipboard` module, and navigator.clipboard
 // is unreliable over file:// — route copy requests through the main process.
@@ -222,6 +235,24 @@ interface ActiveJob {
 }
 const activeJobs = new Map<string, ActiveJob>();
 
+// A long-running native job (Python extract / cgf-converter skin export) that
+// stops emitting events for this long is treated as WEDGED and reported to
+// crash telemetry — a silent hang produces no exception on its own, so without
+// this it would be invisible server-side. Generous enough to clear the longest
+// legitimately-opaque stages ("open" the archive, "datacore" decompress).
+const JOB_STALL_MS = 5 * 60_000;
+
+/** Fire a one-shot stall crash report for a wedged native job. */
+function reportJobStall(kind: string, idleMs: number, jobId: string): void {
+  void reportCrash({
+    errorType: 'hang',
+    name: 'JobStall',
+    message: `${kind} job made no progress for ${Math.round(idleMs / 1000)}s`,
+    stack: null,
+    extra: { kind, jobId, idleMs },
+  });
+}
+
 ipcMain.handle('sc:extract:env', () => {
   const paths = resolvePythonPaths();
   return { interpreter: paths.interpreter, cwd: paths.cwd, source: paths.source };
@@ -229,17 +260,24 @@ ipcMain.handle('sc:extract:env', () => {
 
 ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<ExtractFinal> => {
   const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const watchdog = createWatchdog({
+    timeoutMs: JOB_STALL_MS,
+    onTimeout: (idle) => reportJobStall('extract', idle, jobId),
+  });
   const handle = startExtraction(req, (ev: PythonExtractEvent) => {
+    watchdog.pet(); // every event is a sign of life — reset the stall timer
     event.sender.send('sc:extract:event', { jobId, ...ev });
   });
   activeJobs.set(jobId, { cancel: handle.cancel });
+  watchdog.start();
   try {
     const final = await handle.promise;
-    activeJobs.delete(jobId);
     return final;
   } catch (err) {
-    activeJobs.delete(jobId);
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  } finally {
+    watchdog.stop();
+    activeJobs.delete(jobId);
   }
 });
 
@@ -260,17 +298,24 @@ ipcMain.handle('sc:skin:ensureTools', async (event) => {
 
 ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<SkinExportFinal> => {
   const jobId = `skin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const watchdog = createWatchdog({
+    timeoutMs: JOB_STALL_MS,
+    onTimeout: (idle) => reportJobStall('skin', idle, jobId),
+  });
   const handle = startSkinExport(req, (ev) => {
+    watchdog.pet();
     event.sender.send('sc:skin:event', { jobId, ...ev });
   });
   activeJobs.set(jobId, { cancel: handle.cancel });
+  watchdog.start();
   try {
     const final = await handle.promise;
-    activeJobs.delete(jobId);
     return final;
   } catch (err) {
-    activeJobs.delete(jobId);
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  } finally {
+    watchdog.stop();
+    activeJobs.delete(jobId);
   }
 });
 
