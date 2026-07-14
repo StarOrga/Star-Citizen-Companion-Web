@@ -239,38 +239,27 @@ export function initAutoUpdater(): void {
   }, 4000);
 
   // Re-check periodically so a long-open session eventually sees new releases.
-  // Silent by design: failures only log (no error banner) and busy states are
-  // skipped, so background polling never interrupts the user.
-  setInterval(() => {
-    if (isUpdateBusy(lastEvent.type)) return;
-    autoUpdater.checkForUpdates().catch((err) => {
-      log.warn('[updater] periodic checkForUpdates failed:', err);
-    });
-  }, UPDATE_POLL_MS);
+  // Same silent path the renderer's navigation triggers use.
+  setInterval(() => checkForUpdatesSilently(), UPDATE_POLL_MS);
 }
 
-export async function checkForUpdatesManually(): Promise<UpdateEventPayload> {
-  if (IS_UNSIGNED_DEV_BUILD) {
-    const ev: UpdateEventPayload = { type: 'not-available', currentVersion: TOOL_VERSION };
-    broadcast(ev);
-    return ev;
-  }
+/**
+ * Silent, best-effort check. Used by the periodic poll AND by the renderer's
+ * navigation triggers (opening the uploader, moving to the next step, …) now
+ * that the manual "check for updates" button is gone. It NEVER paints an error
+ * banner — a feed outage shouldn't nag the user every time they move between
+ * steps — and it skips busy states so an in-flight download isn't disturbed.
+ */
+export function checkForUpdatesSilently(): void {
+  if (IS_UNSIGNED_DEV_BUILD) return;
+  if (isUpdateBusy(lastEvent.type)) return;
   if (IS_PORTABLE_BUILD) {
-    await checkPortableForUpdate();
-    return lastEvent;
+    void checkPortableForUpdate();
+    return;
   }
-  try {
-    await autoUpdater.checkForUpdates();
-    return lastEvent;
-  } catch (err) {
-    const ev: UpdateEventPayload = {
-      type: 'error',
-      message: err instanceof Error ? err.message : String(err),
-    };
-    broadcast(ev);
-    reportUpdateError(err);
-    return ev;
-  }
+  autoUpdater.checkForUpdates().catch((err) => {
+    log.warn('[updater] silent checkForUpdates failed:', err);
+  });
 }
 
 export function installUpdateNow(): void {

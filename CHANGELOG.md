@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.35.1] - 2026-07-14
+
+### Changed
+
+- **Data Uploader checks for updates automatically — no more manual button.** The
+  header's "check for updates" button is gone; the uploader now checks silently at
+  every natural moment (launch, and each step/navigation), throttled so rapid moves
+  don't hammer the feed and skipped while a download is already in flight. Unlike the
+  old button, these background checks never raise an error banner on a feed outage.
+  The startup check and 6-hour periodic re-check are unchanged. (data-uploader v0.15.0)
+
 ## [0.35.0] - 2026-07-13
 
 ### Added

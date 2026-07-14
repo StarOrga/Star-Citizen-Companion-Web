@@ -103,9 +103,6 @@
     "downloaded": "Update v{{version}} ready — please restart.",
     "install": "Install now",
     "error": "Update error: {{message}}",
-    "check": "Check for updates",
-    "checking": "Checking…",
-    "uptodate": "Up to date (v{{version}})",
     "manual": "New version v{{version}} available — the portable build can't self-update, please download it manually.",
     "openDownload": "Open download page"
   },
