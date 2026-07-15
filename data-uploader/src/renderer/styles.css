@@ -738,6 +738,41 @@ h3 { font-size: 0.9rem; }
   padding: 6px 10px;
 }
 
+/* Auto-upload opt-in on the Configure screen — mirrors the telemetry toggle. */
+.auto-upload-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--sc-fg-2);
+  font-size: 0.85rem;
+  margin-top: 12px;
+}
+.auto-upload-toggle input { accent-color: var(--sc-accent); cursor: pointer; margin: 0; }
+.auto-upload-toggle:hover { color: var(--sc-fg-0); }
+
+/* "Bundle ready" affordance on the Run screen. */
+.run-ready-note {
+  margin: 12px 0 0;
+  font-size: 0.85rem;
+  color: var(--sc-accent);
+}
+.btn.btn-ready {
+  box-shadow: 0 0 0 1px rgba(var(--accent-primary-rgb), 0.4), 0 0 14px rgba(var(--accent-primary-rgb), 0.35);
+}
+
+/* "Re-authorise needed" hint on the Upload screen. */
+.reconnect-notice {
+  font-size: 0.8rem;
+  color: var(--sc-warning);
+  background: rgba(var(--accent-warning-rgb), 0.1);
+  border: 1px solid var(--sc-warning);
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 10px 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

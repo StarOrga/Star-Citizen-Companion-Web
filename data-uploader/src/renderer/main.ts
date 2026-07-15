@@ -134,7 +134,13 @@ const state = {
     selected: boolean;
   }>,
   profile: 'standard' as 'minimal' | 'standard' | 'maximum' | 'auto',
+  // When set on the Configure screen, a successful extraction flows straight
+  // into the upload (no manual "Upload anbieten" click) — for unattended runs.
+  autoUpload: false,
   lastResult: null as ExtractResultPayload | null,
+  // Flips true the moment the extract finishes OK — drives the clear
+  // "Bundle fertig, du kannst hochladen" affordance on the Run screen.
+  extractDone: false,
   authToken: null as string | null,
   // 3D-livery build result from the upload step (skins ride along the normal
   // extract → upload flow — no separate view).
@@ -169,6 +175,14 @@ async function init(): Promise<void> {
 
   // Web-connection tile — auto-connect (persisted session) + auto-sync.
   void initConnectionTile();
+
+  // Re-validate the session whenever the operator returns to the window — the
+  // web app may have been redeployed in the background, invalidating the login.
+  // `force` bypasses the throttle since a focus event is a deliberate return.
+  window.addEventListener('focus', () => void revalidateSession(true));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void revalidateSession(true);
+  });
 
   render();
 }
@@ -261,6 +275,35 @@ async function autoSync(): Promise<void> {
     conn.syncing = false;
     paintConnection();
   }
+}
+
+// Lightweight session re-check — detects a session that went stale WHILE the
+// app was open (e.g. the web app was redeployed and the operator must
+// re-authorise) so the "Sitzung abgelaufen" pill appears proactively, instead
+// of the failure only surfacing as an error the moment Upload is pressed.
+// Unlike refreshConnection() this NEVER kicks off a full catalog sync — it only
+// refreshes the connection pill. Throttled so focus/navigation churn is cheap.
+const SESSION_REVALIDATE_THROTTLE_MS = 30_000;
+let lastSessionRevalidateAt = 0;
+
+async function revalidateSession(force = false): Promise<void> {
+  if (!conn.resolved) return; // initial resolve owns the first status fetch
+  const now = Date.now();
+  if (!force && now - lastSessionRevalidateAt < SESSION_REVALIDATE_THROTTLE_MS) return;
+  lastSessionRevalidateAt = now;
+  let next: ConnStatus;
+  try {
+    next = (await window.sc.session.status()) as ConnStatus;
+  } catch {
+    return; // transient failure — keep the last known pill rather than flapping
+  }
+  const was = conn.status?.connected ?? false;
+  conn.status = next;
+  if (!next.connected) state.authToken = null; // force a fresh token on next upload
+  paintConnection();
+  // Only just discovered the session died → also refresh the auth-upload
+  // warning if that view is currently showing.
+  if (was && !next.connected && state.view === 'auth-upload') paintReconnectNotice();
 }
 
 async function connectNow(): Promise<void> {
@@ -632,8 +675,10 @@ function setStatus(msg: string): void {
 function render(): void {
   const app = $('#app');
   if (!app) return;
-  // Every navigation is a natural moment to check for updates (throttled).
+  // Every navigation is a natural moment to check for updates + re-validate the
+  // session (both throttled), so a stale login is caught before the user acts.
   maybeAutoCheckUpdate();
+  void revalidateSession();
   switch (state.view) {
     case 'discover':
       app.innerHTML = renderDiscover();
@@ -793,6 +838,10 @@ function renderConfigure(): string {
       <h1>${t('configure.title', {}) || 'Profil wählen'}</h1>
       <p class="view-intro">${t('configure.subtitle', {}) || 'Live umschaltbar — du kannst während des Laufs wechseln.'}</p>
       <div class="profiles view-body" id="profiles-mount"></div>
+      <label class="auto-upload-toggle" title="${t('configure.autoUploadHint', {}) || 'Lädt das Bundle nach der Extraktion automatisch hoch (nur wenn du bereits verbunden bist).'}">
+        <input type="checkbox" id="chk-auto-upload" ${state.autoUpload ? 'checked' : ''} />
+        <span>${t('configure.autoUpload', {}) || 'Nach der Extraktion automatisch hochladen'}</span>
+      </label>
       <div class="btn-row view-footer">
         <button id="btn-back-discover" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
         <button id="btn-start-run" class="btn btn-primary">${t('configure.start', {}) || 'Extraktion starten'}</button>
@@ -803,6 +852,9 @@ function renderConfigure(): string {
 
 function wireConfigure(): void {
   void renderProfiles();
+  ($('#chk-auto-upload') as HTMLInputElement | null)?.addEventListener('change', (e) => {
+    state.autoUpload = (e.target as HTMLInputElement).checked;
+  });
   $('#btn-back-discover')?.addEventListener('click', () => {
     state.view = 'discover';
     render();
@@ -870,12 +922,30 @@ function renderRun(): string {
           <div class="log-stream" id="log"></div>
         </section>
       </div>
+      <p id="run-ready-note" class="run-ready-note" style="display:none;"></p>
       <div class="btn-row view-footer">
         <button id="btn-back-configure" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
         <button id="btn-to-upload" class="btn btn-primary" disabled>${t('run.next', {}) || 'Upload anbieten'}</button>
       </div>
     </div>
   `;
+}
+
+// Flip the Run footer into a clear "bundle is ready — upload now" state once the
+// extraction succeeds, so the affordance reads as a positive call-to-action
+// rather than a button that silently un-disables.
+function markBundleReady(): void {
+  const btn = $('#btn-to-upload') as HTMLButtonElement | null;
+  if (btn) {
+    btn.removeAttribute('disabled');
+    btn.classList.add('btn-ready');
+    btn.textContent = `✓ ${t('run.bundleReadyCta', {}) || 'Bundle fertig — jetzt hochladen'}`;
+  }
+  const note = $('#run-ready-note');
+  if (note) {
+    note.textContent = t('run.bundleReady', {}) || 'Extraktion abgeschlossen — das Bundle ist bereit zum Upload.';
+    note.style.display = 'block';
+  }
 }
 
 function wireRun(): void {
@@ -1022,6 +1092,7 @@ async function runRealExtract(): Promise<void> {
 
     if (final.ok && final.result) {
       state.lastResult = final.result;
+      state.extractDone = true;
       const totalEntities = Object.values(final.result.entity_counts)
         .reduce((a, b) => a + b, 0)
         .toLocaleString();
@@ -1038,7 +1109,15 @@ async function runRealExtract(): Promise<void> {
         ),
         'success',
       );
-      ($('#btn-to-upload') as HTMLButtonElement | null)?.removeAttribute('disabled');
+      markBundleReady();
+      // Auto-upload only when the operator opted in AND a session is already
+      // live — never trigger an interactive browser login unattended.
+      if (state.autoUpload && state.authToken) {
+        appendLog(t('run.autoUploading', {}) || 'Auto-Upload aktiv — wechsle zum Upload…', 'info');
+        state.view = 'auth-upload';
+        render();
+        void doStartUpload();
+      }
     } else {
       appendLog(final.error ?? 'unknown extraction failure', 'error');
     }
@@ -1099,6 +1178,7 @@ function renderAuthUpload(): string {
       <div class="upload-grid view-body">
         <section class="card upload-actions">
           <p>${t('upload.intro', {}) || 'Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.'}</p>
+          <div id="reconnect-notice" class="reconnect-notice" style="display:none;"></div>
           <div class="btn-row">
             <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start', {}) || 'Upload starten'}</button>
           </div>
@@ -1145,6 +1225,28 @@ function wireAuthUpload(): void {
     render();
   });
   $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
+  // Force a fresh session check on entry so a "re-authorise needed" hint shows
+  // up-front here, not only after the upload attempt fails.
+  paintReconnectNotice();
+  void revalidateSession(true).then(paintReconnectNotice);
+}
+
+// Show/hide the "your login expired — reconnect first" hint on the upload view,
+// reflecting the current connection status. Safe to call when the view isn't
+// mounted (the element lookup simply misses).
+function paintReconnectNotice(): void {
+  const el = $('#reconnect-notice');
+  if (!el) return;
+  const needsReconnect = conn.status ? !conn.status.connected : false;
+  if (needsReconnect) {
+    const msg = conn.status?.needsReconnect
+      ? t('upload.reconnectExpired', {}) || 'Deine Sitzung ist abgelaufen — melde dich beim Upload-Start neu an.'
+      : t('upload.reconnectOffline', {}) || 'Nicht mit dem Web verbunden — der Upload-Start meldet dich an.';
+    el.textContent = msg;
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 // One-shot flow: trigger browser login if needed, then immediately upload.
@@ -1215,6 +1317,8 @@ function friendlyUploadError(r: { error?: string; details?: unknown }): string {
       friendly = t('upload.err.invalidBody'); break;
     case 'server_misconfigured':
       friendly = t('upload.err.serverMisconfigured'); break;
+    case 'timeout':
+      friendly = t('upload.err.timeout'); break;
     default:
       // Unknown code === a raw fetch/timeout message from the transport layer.
       friendly = KNOWN_UPLOAD_ERRORS.has(code) ? t('upload.err.generic') : t('upload.err.network');

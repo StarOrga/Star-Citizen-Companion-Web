@@ -20,7 +20,9 @@
   "configure": {
     "title": "Profil wählen",
     "subtitle": "Live umschaltbar — du kannst während des Laufs wechseln.",
-    "start": "Extraktion starten"
+    "start": "Extraktion starten",
+    "autoUpload": "Nach der Extraktion automatisch hochladen",
+    "autoUploadHint": "Lädt das Bundle nach der Extraktion automatisch hoch (nur wenn du bereits verbunden bist)."
   },
   "run": {
     "title": "Extraktion läuft",
@@ -30,6 +32,9 @@
     "copied": "Kopiert ✓",
     "copyFailed": "Fehlgeschlagen",
     "doneSummary": "Fertig — Qualität {{score}}/100 · {{entities}} Entitäten in {{time}}",
+    "bundleReady": "Extraktion abgeschlossen — das Bundle ist bereit zum Upload.",
+    "bundleReadyCta": "Bundle fertig — jetzt hochladen",
+    "autoUploading": "Auto-Upload aktiv — wechsle zum Upload…",
     "phase": {
       "discover": "Installation analysieren",
       "plan": "Lauf planen",
@@ -79,6 +84,8 @@
     "uploadFailed": "Upload-Fehler",
     "cleaned": "Extrahierte Dateien aufgeräumt (Upload bestätigt)",
     "bundleUploading": "Bundle-Metadaten werden hochgeladen…",
+    "reconnectExpired": "Deine Sitzung ist abgelaufen — melde dich beim Upload-Start neu an.",
+    "reconnectOffline": "Nicht mit dem Web verbunden — der Upload-Start meldet dich an.",
     "steps": {
       "bundle": "Bundle",
       "codex": "Codex",
@@ -94,6 +101,7 @@
       "serverMisconfigured": "Der Server ist nicht korrekt konfiguriert — bitte den Betreiber informieren.",
       "generic": "Upload fehlgeschlagen — bitte erneut versuchen.",
       "network": "Netzwerkfehler — Server nicht erreichbar. Verbindung prüfen und erneut versuchen.",
+      "timeout": "Zeitüberschreitung beim Upload — der Server hat nicht rechtzeitig geantwortet. Bitte erneut versuchen.",
       "withDetail": "{{friendly}} ({{detail}})"
     }
   },
