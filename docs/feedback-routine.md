@@ -169,6 +169,37 @@ Bottom line: a usage-limit abort is self-healing on a later cron tick once
 Claude is back under limit — just not on the immediately following run, and not
 by picking up where it left off.
 
+## Surfacing open review-holds (the reaper's mirror image)
+
+A sensitive/red item the routine parks for the admin lives as `in_progress`
+**with** a `ship_ref` (its PR) — and after that, **nothing ever looks at it
+again**: the reaper skips it by design (`ship_ref IS NOT NULL` — it is an
+intentional hold, not an orphaned claim) and the `needs_input`-resume query
+never sees it (it is `in_progress`, not `needs_input`). So a green, mergeable
+review-hold PR can sit unnoticed for days until the admin happens to ask.
+
+That is exactly what happened to PR #167 (feedback `10cd9fd7`): parked
+`in_progress` + `ship_ref` on 2026-07-14 as "green build/tests but sensitive
+(auth flow)", it stayed green and `MERGEABLE` for a day and surfaced only when
+the admin asked "is anything still open?". The routine had *correctly* not
+auto-merged it — but it had also never mentioned it again.
+
+**Every cycle, after the reaper, list open review-holds and report them**
+(never auto-merge — sensitive/red is a human call; only make them visible):
+
+```sql
+-- open review-holds: sensitive/red items parked for the admin (in_progress WITH a PR)
+select id, ship_ref, processing_note, processed_at
+from public.admin_feedback
+where status = 'in_progress' and ship_ref is not null
+order by processed_at asc;
+```
+
+Critically: an otherwise-empty `open`/`needs_input` queue is **not** "nothing to
+do" while a hold is open. Report each hold — PR link, `processing_note`, age —
+instead of taking the silent "No open feedback." stop, so a parked PR the routine
+can't merge itself still nudges the admin to review/merge it.
+
 ## Per-item procedure
 
 For each `open` row (process independently, most-recent context wins):
