@@ -4,6 +4,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { isLoopbackCallback } from './loopback.util';
 
 type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'unauthorized' | 'error';
 
@@ -130,7 +131,7 @@ export class DesktopAuthComponent implements OnInit {
       this.errorMsg.set(this.translate.instant('desktopAuth.errorMissingParams'));
       return;
     }
-    if (!isLoopback(this.cb)) {
+    if (!isLoopbackCallback(this.cb)) {
       this.status.set('error');
       this.errorMsg.set(this.translate.instant('desktopAuth.errorBadCallback'));
       return;
@@ -202,18 +203,6 @@ export class DesktopAuthComponent implements OnInit {
     if (expiresAt) addField('expires_at', expiresAt);
     document.body.appendChild(form);
     form.submit();
-  }
-}
-
-function isLoopback(url: string): boolean {
-  try {
-    const u = new URL(url);
-    if (u.protocol !== 'http:') return false;
-    if (u.hostname !== '127.0.0.1') return false;
-    const p = parseInt(u.port, 10);
-    return p >= 46800 && p <= 46899;
-  } catch {
-    return false;
   }
 }
 

@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { isLoopbackCallback } from './loopback.util';
 
 type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'error';
 
@@ -13,8 +14,8 @@ type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'error';
  * `${webOrigin}/desktop/connect?cb=http://127.0.0.1:4682X/scc/callback&state=<csrf>`
  * in the user's default browser.  This component:
  *
- *  1. Validates the callback URL is a 127.0.0.1 loopback in the expected port
- *     range (46800–46899).
+ *  1. Validates the callback URL is a 127.0.0.1 HTTP loopback (any port — the
+ *     app binds an OS-assigned ephemeral port; see loopback.util.ts).
  *  2. Ensures the user is signed in (else routes to /login with redirect=this).
  *  3. Reads the Supabase session and POSTs
  *     { state, token, refresh_token, expires_at, email }
@@ -124,7 +125,7 @@ export class DesktopReadAuthComponent implements OnInit {
       this.errorMsg.set(this.translate.instant('desktopConnect.errorMissingParams'));
       return;
     }
-    if (!isLoopback(this.cb)) {
+    if (!isLoopbackCallback(this.cb)) {
       this.status.set('error');
       this.errorMsg.set(this.translate.instant('desktopConnect.errorBadCallback'));
       return;
@@ -179,23 +180,6 @@ export class DesktopReadAuthComponent implements OnInit {
     if (expiresAt) addField('expires_at', expiresAt);
     document.body.appendChild(form);
     form.submit();
-  }
-}
-
-/**
- * Validate that `url` is an HTTP loopback on 127.0.0.1, port 46800–46899.
- * The path segment is ignored here — the callback path is enforced separately
- * by `buildCallbackUrl`.
- */
-function isLoopback(url: string): boolean {
-  try {
-    const u = new URL(url);
-    if (u.protocol !== 'http:') return false;
-    if (u.hostname !== '127.0.0.1') return false;
-    const p = parseInt(u.port, 10);
-    return p >= 46800 && p <= 46899;
-  } catch {
-    return false;
   }
 }
 

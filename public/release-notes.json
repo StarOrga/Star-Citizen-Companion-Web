@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.35.1",
+  "current": "0.35.2",
   "releases": [
+    {
+      "version": "0.35.2",
+      "date": "2026-07-14",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Connecting the SC Database from the desktop app no longer shows a callback error.",
+              "text": "The desktop sign-in page (/desktop/connect) validated the app's local callback against a fixed port range (46800–46899), but the app binds an OS-assigned port — so the page rejected every real callback and displayed an error instead of signing in. Callback validation now accepts any port on http://127.0.0.1, matching the desktop connect contract. The security boundary is unchanged: the callback must still be a local 127.0.0.1 HTTP address, the one-time state anti-forgery token must match, and the app only accepts the handoff from the official web origin. This retroactively fixes the Connect flow for already-installed app versions."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.35.1",
       "date": "2026-07-14",
