@@ -36,7 +36,17 @@
     "uploading": "上传中…",
     "uploadOk": "上传成功",
     "uploadFailed": "上传失败",
-    "cleaned": "Extracted files cleaned up (upload confirmed)"
+    "cleaned": "Extracted files cleaned up (upload confirmed)",
+    "job": {
+      "pause": "暂停",
+      "pausing": "将在当前步骤后暂停…",
+      "paused": "上传已暂停 — 进度已保存。",
+      "resumeAction": "继续上传",
+      "resumed": "正在继续上传…",
+      "discard": "放弃",
+      "cancelled": "已放弃上传 — 已保存的进度被清除。",
+      "resumeBanner": "发现中断的上传（{{hint}}）— 是否继续？"
+    }
   },
   "skins": {
     "building": "正在构建 3D 涂装",

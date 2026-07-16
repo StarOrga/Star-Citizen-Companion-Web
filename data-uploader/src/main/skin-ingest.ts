@@ -9,6 +9,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { API_BASE, RELEASE_TOKEN, TOOL_VERSION } from '../lib/release-token.js';
+import { isInterrupt, type PauseControl } from '../lib/pause-control.js';
 
 interface SkinCatalogEntry {
   id: string;
@@ -37,6 +38,19 @@ export interface SkinUploadResult {
 }
 
 type LogFn = (message: string, level?: 'info' | 'warn' | 'error') => void;
+
+/**
+ * Resume + pause wiring. All optional — omitting `hooks` keeps the original
+ * one-shot behaviour.
+ */
+export interface SkinUploadHooks {
+  /** Cooperative pause/cancel, checked between ships. */
+  control?: PauseControl;
+  /** Ship ids a prior run already committed — skipped without touching disk. */
+  doneShips?: string[];
+  /** Fired when a ship is fully committed, so a kill can't lose the progress. */
+  onShipDone?: (shipId: string) => void;
+}
 
 const fnUrl = (name: string): string => `${API_BASE}/functions/v1/${name}`;
 
@@ -84,10 +98,21 @@ export async function uploadSkins(
   accessToken: string,
   ships: { shipId: string; dir: string }[],
   onLog: LogFn,
+  hooks: SkinUploadHooks = {},
 ): Promise<SkinUploadResult[]> {
   const out: SkinUploadResult[] = [];
+  const done = new Set(hooks.doneShips ?? []);
   for (const { shipId, dir } of ships) {
     try {
+      // Safe boundary between ships — a pause here costs nothing to replay.
+      hooks.control?.checkpoint();
+      // Job-state cache: a ship this job already committed. Complements the
+      // on-disk marker below, which also survives a *new* job over the same dir.
+      if (done.has(shipId)) {
+        onLog(`${shipId}: already uploaded in this job — skipping`, 'info');
+        out.push({ ok: true, ship_id: shipId, uploaded: 0, committed: 0, cached: true });
+        continue;
+      }
       // Upload-cache: a ship uploaded in a prior run carries a .uploaded marker
       // next to its assets — skip the (potentially multi-GB) re-PUT + re-commit.
       const marker = resolve(dir, '.uploaded');
@@ -121,6 +146,10 @@ export async function uploadSkins(
       // 2. PUT each object straight to storage
       let n = 0;
       for (const s of built) {
+        // Pause between assets keeps a multi-GB ship responsive. Resume replays
+        // the whole ship (the marker is only written after `commit`), which is
+        // safe: every PUT is an upsert.
+        hooks.control?.checkpoint();
         await putSigned(byPath.get(`${cat.ship}/${s.id}.glb`), resolve(dir, s.model!), 'model/gltf-binary');
         n++;
         if (s.icon) {
@@ -152,9 +181,13 @@ export async function uploadSkins(
       } catch {
         /* marker is best-effort — worst case the ship re-uploads next run */
       }
+      hooks.onShipDone?.(shipId);
       onLog(`${shipId}: uploaded ${n} objects, committed ${count} rows`, 'info');
       out.push({ ok: true, ship_id: shipId, uploaded: n, committed: count });
     } catch (err) {
+      // Pause/cancel is control flow — unwind to the caller instead of being
+      // recorded as a per-ship upload failure.
+      if (isInterrupt(err)) throw err;
       out.push({ ok: false, ship_id: shipId, error: (err as Error).message });
     }
   }

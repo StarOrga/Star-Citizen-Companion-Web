@@ -36,7 +36,17 @@
     "uploading": "Envoi en cours…",
     "uploadOk": "Upload OK",
     "uploadFailed": "Échec de l'upload",
-    "cleaned": "Extracted files cleaned up (upload confirmed)"
+    "cleaned": "Extracted files cleaned up (upload confirmed)",
+    "job": {
+      "pause": "Pause",
+      "pausing": "Mise en pause après l'étape en cours…",
+      "paused": "Téléversement en pause — votre progression est enregistrée.",
+      "resumeAction": "Reprendre le téléversement",
+      "resumed": "Reprise du téléversement…",
+      "discard": "Abandonner",
+      "cancelled": "Téléversement abandonné — la progression enregistrée a été supprimée.",
+      "resumeBanner": "Téléversement interrompu détecté ({{hint}}) — le reprendre ?"
+    }
   },
   "skins": {
     "building": "Construction des skins 3D",

@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { DiscoveredChannel } from '../lib/discovery.js';
 import type { PerformanceProfile, ProfileId, ETA } from '../lib/performance.js';
 import type { UploadPayload, UploadResult } from '../lib/uploader.js';
+import type { UploadJobState, JobNat } from '../lib/upload-job.js';
+import type { JobView } from '../main/upload-session.js';
 
 interface ToolEnv {
   toolVersion: string;
@@ -170,6 +172,24 @@ export const api = {
   authenticate: (): Promise<AuthResult> => ipcRenderer.invoke('sc:authenticate'),
   upload: (payload: UploadPayload): Promise<UploadResult> =>
     ipcRenderer.invoke('sc:upload', payload),
+  /**
+   * Durable upload job — pause/resume that survives closing or killing the app.
+   * State lives in the main process (on disk), so the renderer only asks.
+   */
+  uploadJob: {
+    get: (): Promise<JobView> => ipcRenderer.invoke('sc:upload:job'),
+    begin: (outDir: string, nat: JobNat): Promise<UploadJobState> =>
+      ipcRenderer.invoke('sc:upload:begin', outDir, nat),
+    pause: (): Promise<JobView> => ipcRenderer.invoke('sc:upload:pause'),
+    resume: (): Promise<JobView> => ipcRenderer.invoke('sc:upload:resume'),
+    cancel: (): Promise<JobView> => ipcRenderer.invoke('sc:upload:cancel'),
+    finish: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('sc:upload:finish'),
+    onPaused: (cb: (v: JobView) => void): (() => void) => {
+      const listener = (_e: unknown, payload: JobView): void => cb(payload);
+      ipcRenderer.on('sc:upload:paused', listener);
+      return () => ipcRenderer.removeListener('sc:upload:paused', listener);
+    },
+  },
   session: {
     status: (): Promise<SessionStatus> => ipcRenderer.invoke('sc:session:status'),
     token: (): Promise<TokenResult> => ipcRenderer.invoke('sc:session:token'),
