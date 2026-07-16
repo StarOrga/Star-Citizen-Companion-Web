@@ -103,6 +103,16 @@
       "network": "Network error — couldn't reach the server. Check your connection and retry.",
       "timeout": "Upload timed out — the server didn't respond in time. Please try again.",
       "withDetail": "{{friendly}} ({{detail}})"
+    },
+    "job": {
+      "pause": "Pause",
+      "pausing": "Pausing after the current step…",
+      "paused": "Upload paused — your progress is saved.",
+      "resumeAction": "Resume upload",
+      "resumed": "Resuming upload…",
+      "discard": "Discard",
+      "cancelled": "Upload discarded — the saved progress was removed.",
+      "resumeBanner": "Found an interrupted upload ({{hint}}) — resume it?"
     }
   },
   "update": {

@@ -7,6 +7,7 @@
  */
 
 import { load as loadI18n, setLocale, getLocale, t, type LocaleId } from '../lib/i18n.js';
+import type { JobView } from '../main/upload-session.js';
 import {
   progressCardHtml,
   mountProgress,
@@ -149,6 +150,11 @@ const state = {
   // (first) screen only and dismissible for the session.
   manualUpdate: null as { currentVersion: string; latestVersion: string } | null,
   manualUpdateDismissed: false,
+  // Mirrors the durable upload job owned by the main process. Only a display
+  // cache — the file under userData is the source of truth, which is what lets
+  // an upload resume after the app is closed or killed.
+  uploadPaused: false,
+  resumableJob: null as JobView | null,
 };
 
 async function init(): Promise<void> {
@@ -1179,8 +1185,12 @@ function renderAuthUpload(): string {
         <section class="card upload-actions">
           <p>${t('upload.intro', {}) || 'Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.'}</p>
           <div id="reconnect-notice" class="reconnect-notice" style="display:none;"></div>
+          <div id="resume-notice" class="reconnect-notice" style="display:none;"></div>
           <div class="btn-row">
             <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start', {}) || 'Upload starten'}</button>
+            <button id="btn-pause-upload" class="btn" style="display:none;">${t('upload.job.pause', {}) || 'Pause'}</button>
+            <button id="btn-resume-upload" class="btn btn-primary" style="display:none;">${t('upload.job.resumeAction', {}) || 'Upload fortsetzen'}</button>
+            <button id="btn-discard-upload" class="btn" style="display:none;">${t('upload.job.discard', {}) || 'Verwerfen'}</button>
           </div>
           ${progressCardHtml('upload-progress', uploadSteps())}
           <p id="auth-status" class="warn" style="margin-top: 10px;"></p>
@@ -1225,10 +1235,86 @@ function wireAuthUpload(): void {
     render();
   });
   $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
+  $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
+  $('#btn-resume-upload')?.addEventListener('click', () => void doResumeUpload());
+  $('#btn-discard-upload')?.addEventListener('click', () => void doDiscardUpload());
   // Force a fresh session check on entry so a "re-authorise needed" hint shows
   // up-front here, not only after the upload attempt fails.
   paintReconnectNotice();
   void revalidateSession(true).then(paintReconnectNotice);
+  // Surface an upload the last session left unfinished (paused, or killed
+  // mid-run) so the operator can continue it instead of starting over.
+  void refreshJobView();
+}
+
+// ============= Durable upload job (pause / resume / kill-recovery) =============
+
+/** Pull the main process's job view and repaint the pause/resume affordances. */
+async function refreshJobView(): Promise<void> {
+  try {
+    state.resumableJob = await window.sc.uploadJob.get();
+  } catch {
+    state.resumableJob = null;
+  }
+  state.uploadPaused = state.resumableJob?.state?.status === 'paused';
+  paintJobNotice();
+}
+
+/**
+ * Paint the resume banner + button visibility from the job view.
+ * Three mutually-exclusive shapes: idle (nothing), running (Pause offered),
+ * resumable (banner + Resume/Discard).
+ */
+function paintJobNotice(): void {
+  const notice = $('#resume-notice');
+  const startBtn = $('#btn-start-upload') as HTMLButtonElement | null;
+  const pauseBtn = $('#btn-pause-upload') as HTMLButtonElement | null;
+  const resumeBtn = $('#btn-resume-upload') as HTMLButtonElement | null;
+  const discardBtn = $('#btn-discard-upload') as HTMLButtonElement | null;
+  if (!notice || !startBtn || !pauseBtn || !resumeBtn || !discardBtn) return;
+
+  const job = state.resumableJob;
+  const resumable = Boolean(job?.resumable);
+  const running = uploadRunning;
+
+  pauseBtn.style.display = running ? '' : 'none';
+  resumeBtn.style.display = !running && resumable ? '' : 'none';
+  discardBtn.style.display = !running && resumable ? '' : 'none';
+  // A resumable job makes "start over" the wrong default — hide it so the
+  // operator resumes rather than silently re-uploading everything.
+  startBtn.style.display = !running && resumable ? 'none' : '';
+
+  if (!running && resumable && job?.resumeHint) {
+    notice.textContent =
+      t('upload.job.resumeBanner', { hint: job.resumeHint }) ||
+      `Unterbrochener Upload gefunden (${job.resumeHint}) — fortsetzen?`;
+    notice.style.display = 'block';
+  } else {
+    notice.style.display = 'none';
+  }
+}
+
+/** True while this renderer is actively driving the stages. */
+let uploadRunning = false;
+
+async function doPauseUpload(): Promise<void> {
+  // Only signals intent — the stages unwind at their next chunk boundary, and
+  // the main process persists the cursor.
+  state.resumableJob = await window.sc.uploadJob.pause();
+  setAuthStatus(t('upload.job.pausing', {}) || 'Pausiere nach dem aktuellen Schritt…', 'warn');
+}
+
+async function doResumeUpload(): Promise<void> {
+  await window.sc.uploadJob.resume();
+  setAuthStatus(t('upload.job.resumed', {}) || 'Upload wird fortgesetzt…', 'ok');
+  await doStartUpload();
+}
+
+async function doDiscardUpload(): Promise<void> {
+  state.resumableJob = await window.sc.uploadJob.cancel();
+  state.uploadPaused = false;
+  setAuthStatus(t('upload.job.cancelled', {}) || 'Upload verworfen — der Fortschritt wurde gelöscht.', 'warn');
+  paintJobNotice();
 }
 
 // Show/hide the "your login expired — reconnect first" hint on the upload view,
@@ -1257,6 +1343,8 @@ async function doStartUpload(): Promise<void> {
   if (!state.lastResult) return;
   const btn = $('#btn-start-upload') as HTMLButtonElement | null;
   if (btn) btn.disabled = true;
+  uploadRunning = true;
+  paintJobNotice();
   uploadProgress?.start();
   uploadProgress?.setStep(0);
   try {
@@ -1277,6 +1365,10 @@ async function doStartUpload(): Promise<void> {
     await doUploadAfterAuth();
   } finally {
     if (btn) btn.disabled = false;
+    uploadRunning = false;
+    // Re-read the durable job: it decides whether we now offer Resume (paused
+    // or interrupted) or nothing at all (finished).
+    await refreshJobView();
   }
 }
 
@@ -1335,6 +1427,15 @@ function friendlyUploadError(r: { error?: string; details?: unknown }): string {
 async function doUploadAfterAuth(): Promise<void> {
   if (!state.authToken || !state.lastResult) return;
   const result = state.lastResult;
+  // Register (or adopt) the durable job BEFORE any network call, so even a kill
+  // during the very first request leaves a resumable record behind. Adopting an
+  // existing job for the same out_dir is what turns "reopen the app" into
+  // "continue where we stopped".
+  await window.sc.uploadJob.begin(result.output_dir, {
+    channel: result.channel,
+    patchVersion: result.patch_version,
+    buildNumber: result.build_number,
+  });
   uploadProgress?.setStep(0);
   uploadProgress?.update({
     phaseLabel: t('upload.bundleUploading', {}) || 'Bundle-Metadaten werden hochgeladen…',
@@ -1370,7 +1471,13 @@ async function doUploadAfterAuth(): Promise<void> {
   // so the out_dir still exists. Non-fatal: the bundle upload already succeeded;
   // a codex failure only means the public catalog isn't refreshed this run.
   uploadProgress?.setStep(1);
-  await promoteToCodex(result.output_dir, uploadProgress);
+  const codex = await promoteToCodex(result.output_dir, uploadProgress);
+  // Stop the whole run on a pause. Falling through would upload skins and —
+  // worse — reach the cleanup below, deleting the out_dir that a resume needs.
+  if (codex === 'paused') {
+    setAuthStatus(t('upload.job.paused', {}) || 'Upload pausiert — der Fortschritt ist gespeichert.', 'warn');
+    return;
+  }
 
   // Build + upload the 3D liveries as part of the SAME upload — skins are a
   // sub-property of every ship, not a separate step. Reads the extract's build
@@ -1387,6 +1494,18 @@ async function doUploadAfterAuth(): Promise<void> {
     );
   }
   uploadProgress?.stop();
+
+  // Paused during the skin stage — same reasoning as the codex stage above:
+  // never clean up an out_dir a resume still needs.
+  const jobAfterSkins = await window.sc.uploadJob.get();
+  if (jobAfterSkins.state?.status === 'paused') {
+    setAuthStatus(t('upload.job.paused', {}) || 'Upload pausiert — der Fortschritt ist gespeichert.', 'warn');
+    return;
+  }
+
+  // Every stage confirmed — drop the job file so the next launch doesn't offer
+  // to resume an upload that already finished.
+  await window.sc.uploadJob.finish();
 
   // Upload confirmed — reclaim the run's extracted files so they don't fill
   // the disk. Best-effort: the main process guards + swallows failures.
@@ -1410,8 +1529,11 @@ async function doUploadAfterAuth(): Promise<void> {
 // Drive the codex promotion with a live per-table progress line. Non-fatal:
 // any failure is surfaced as a warning but never blocks the confirmed upload.
 // `progress` is optional so this stays callable without a mounted view (tests).
-async function promoteToCodex(outDir: string | undefined, progress?: ProgressController | null): Promise<void> {
-  if (!outDir || !state.authToken) return;
+async function promoteToCodex(
+  outDir: string | undefined,
+  progress?: ProgressController | null,
+): Promise<'ok' | 'failed' | 'paused'> {
+  if (!outDir || !state.authToken) return 'failed';
   const label = t('catalog.publishing', {}) || 'Codex wird veröffentlicht';
   progress?.update({ phaseLabel: label, indeterminate: true, detail: '' });
   const unsub = window.sc.catalog.onEvent((ev) => {
@@ -1447,19 +1569,28 @@ async function promoteToCodex(outDir: string | undefined, progress?: ProgressCon
         `${t('catalog.published', {}) || 'Codex aktualisiert'} · ${ships} ${t('catalog.ships', {}) || 'Schiffe'}`,
         'ok',
       );
-    } else {
-      progress?.update({ indeterminate: false });
-      setAuthStatus(
-        `${t('catalog.failed', {}) || 'Codex-Veröffentlichung fehlgeschlagen'}: ${res.error ?? '—'}`,
-        'error',
-      );
+      return 'ok';
     }
+    // A pause is not a failure — the cursor is safe on disk and the operator
+    // asked for this. Say so instead of showing a red "publish failed".
+    if (res.error === 'paused' || res.error === 'cancelled') {
+      progress?.update({ indeterminate: false });
+      progress?.stop();
+      return 'paused';
+    }
+    progress?.update({ indeterminate: false });
+    setAuthStatus(
+      `${t('catalog.failed', {}) || 'Codex-Veröffentlichung fehlgeschlagen'}: ${res.error ?? '—'}`,
+      'error',
+    );
+    return 'failed';
   } catch (err) {
     progress?.update({ indeterminate: false });
     setAuthStatus(
       `${t('catalog.failed', {}) || 'Codex-Veröffentlichung fehlgeschlagen'}: ${(err as Error).message}`,
       'error',
     );
+    return 'failed';
   } finally {
     unsub();
   }

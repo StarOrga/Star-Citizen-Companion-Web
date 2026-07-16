@@ -36,7 +36,17 @@
     "uploading": "Enviando…",
     "uploadOk": "Upload OK",
     "uploadFailed": "Falha no upload",
-    "cleaned": "Extracted files cleaned up (upload confirmed)"
+    "cleaned": "Extracted files cleaned up (upload confirmed)",
+    "job": {
+      "pause": "Pausar",
+      "pausing": "Pausando após a etapa atual…",
+      "paused": "Envio pausado — seu progresso está salvo.",
+      "resumeAction": "Retomar envio",
+      "resumed": "Retomando o envio…",
+      "discard": "Descartar",
+      "cancelled": "Envio descartado — o progresso salvo foi removido.",
+      "resumeBanner": "Envio interrompido encontrado ({{hint}}) — retomar?"
+    }
   },
   "skins": {
     "building": "Construindo skins 3D",

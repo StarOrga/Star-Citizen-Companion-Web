@@ -19,6 +19,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import log from 'electron-log';
 import { API_BASE, RELEASE_TOKEN } from '../lib/release-token.js';
+import { isInterrupt, type PauseControl } from '../lib/pause-control.js';
 import {
   makeTagger,
   collectStrings,
@@ -63,6 +64,28 @@ export interface CatalogUploadResult {
   error?: string;
 }
 
+/**
+ * Resume + pause wiring. All optional: omitting `hooks` entirely reproduces the
+ * original one-shot behaviour, so callers that don't care (and the existing
+ * tests) are unaffected.
+ */
+export interface CatalogHooks {
+  /** Cooperative pause/cancel, checked between chunks. */
+  control?: PauseControl;
+  /** Reuse a build row from an interrupted run instead of `init`-ing a new one. */
+  buildId?: string | null;
+  /** Phases already fully sent — their network calls are skipped. */
+  donePhases?: string[];
+  /** Rows of `phase` already sent, for a mid-phase resume. */
+  sentFor?: (phase: string) => number;
+  /** Fired right after `init` mints a build id, so it survives a kill. */
+  onBuildId?: (buildId: string) => void;
+  /** Fired before each chunk goes out — persist this to resume mid-phase. */
+  onCursor?: (phase: string, sent: number) => void;
+  /** Fired when a phase is fully sent. */
+  onPhaseDone?: (phase: string) => void;
+}
+
 function endpoint(): string {
   return `${API_BASE.replace(/\/$/, '')}/functions/v1/ingest-catalog`;
 }
@@ -90,6 +113,7 @@ export async function uploadCatalog(
   accessToken: string,
   outDir: string,
   onProgress: CatalogProgressCb,
+  hooks: CatalogHooks = {},
 ): Promise<CatalogUploadResult> {
   if (!existsSync(outDir)) return { ok: false, error: 'out_dir_missing' };
   const manifestPath = join(outDir, 'manifest.json');
@@ -141,16 +165,54 @@ export async function uploadCatalog(
     return j;
   };
 
-  const sendEntity = async (table: string, rows: unknown[]): Promise<number> => {
-    let done = 0;
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const slice = rows.slice(i, i + CHUNK);
-      await post('upsert', { table, rows: slice });
-      done += slice.length;
-      progress({ phase: table, current: done, total: rows.length });
+  const isPhaseDone = (phase: string): boolean => (hooks.donePhases ?? []).includes(phase);
+  const alreadySent = (phase: string): number => hooks.sentFor?.(phase) ?? 0;
+
+  /**
+   * Send `rows` for one phase in chunks, resumably.
+   *
+   * Returns the number of rows the phase *represents* — not the number this
+   * particular run pushed over the wire. On a resumed run the difference
+   * matters: a skipped phase still contributed its rows to the build, and
+   * `hasViableCatalog(counts)` gates finalization on ships/manufacturers being
+   * non-zero. Reporting 0 for an already-sent phase would make a resumed run
+   * refuse to finalize a build it had actually uploaded in full.
+   */
+  const sendChunks = async (
+    phase: string,
+    rows: unknown[],
+    chunkSize: number,
+    send: (slice: unknown[]) => Promise<unknown>,
+    opts: { onFirstChunk?: () => Promise<void> } = {},
+  ): Promise<number> => {
+    if (isPhaseDone(phase)) {
+      progress({ phase, current: rows.length, total: rows.length });
+      return rows.length;
     }
+    const skip = alreadySent(phase);
+    // `clear_*` ops (ports, ingredients) wipe the build's existing rows, so they
+    // may only run when this phase starts from scratch. Re-issuing one on a
+    // mid-phase resume would delete precisely the rows we already paid to send.
+    if (skip === 0 && opts.onFirstChunk) await opts.onFirstChunk();
+    let done = Math.min(skip, rows.length);
+    if (done > 0) progress({ phase, current: done, total: rows.length });
+    for (let i = done; i < rows.length; i += chunkSize) {
+      // Safe boundary: between chunks, never mid-request.
+      hooks.control?.checkpoint();
+      // Persist the cursor BEFORE the call it guards. A kill mid-flight then
+      // replays this one chunk (an idempotent upsert) rather than skipping it.
+      hooks.onCursor?.(phase, done);
+      const slice = rows.slice(i, i + chunkSize);
+      await send(slice);
+      done += slice.length;
+      progress({ phase, current: done, total: rows.length });
+    }
+    hooks.onPhaseDone?.(phase);
     return done;
   };
+
+  const sendEntity = async (table: string, rows: unknown[]): Promise<number> =>
+    sendChunks(table, rows, CHUNK, (slice) => post('upsert', { table, rows: slice }));
 
   try {
     const manifest = JSON.parse(await readFile(manifestPath, 'utf-8')) as Record<string, unknown>;
@@ -166,19 +228,29 @@ export async function uploadCatalog(
     };
 
     // 1. build row ----------------------------------------------------------
+    // A resumed run reuses the build row the interrupted run already created —
+    // re-`init`-ing would orphan the rows we uploaded against the old id and
+    // restart the whole catalog from zero.
     progress({ phase: 'init', current: 0, total: 1 });
-    const initRes = await post('init', {
-      build: {
-        ...nat,
-        schema_version: manifest.schema_version ?? 1,
-        quality_score: manifest.quality_score ?? null,
-        tool_version: manifest.tool_version ?? null,
-        entity_counts: manifest.entity_counts ?? {},
-        manifest,
-      },
-    });
-    const buildId = String(initRes.build_id ?? '');
-    if (!buildId) return { ok: false, error: 'no_build_id' };
+    let buildId = hooks.buildId ?? '';
+    if (buildId) {
+      log.info(`[catalog] resuming build ${buildId}`);
+    } else {
+      const initRes = await post('init', {
+        build: {
+          ...nat,
+          schema_version: manifest.schema_version ?? 1,
+          quality_score: manifest.quality_score ?? null,
+          tool_version: manifest.tool_version ?? null,
+          entity_counts: manifest.entity_counts ?? {},
+          manifest,
+        },
+      });
+      buildId = String(initRes.build_id ?? '');
+      if (!buildId) return { ok: false, error: 'no_build_id' };
+      hooks.onBuildId?.(buildId);
+    }
+    progress({ phase: 'init', current: 1, total: 1 });
     const tag = makeTagger(buildId, nat);
 
     const strings: StringRow[] = [];
@@ -267,39 +339,30 @@ export async function uploadCatalog(
       counts.blueprints = await sendEntity('codex_blueprints', mapBlueprints(list, tag));
 
       const ingredientRows = collectIngredients(buildId, nat, list);
-      await post('clear_ingredients', { build_id: buildId });
-      let ing = 0;
-      for (let i = 0; i < ingredientRows.length; i += CHUNK) {
-        const slice = ingredientRows.slice(i, i + CHUNK);
-        await post('ingredients', { build_id: buildId, rows: slice });
-        ing += slice.length;
-        progress({ phase: 'codex_blueprint_ingredients', current: ing, total: ingredientRows.length });
-      }
-      counts.blueprint_ingredients = ing;
+      counts.blueprint_ingredients = await sendChunks(
+        'codex_blueprint_ingredients',
+        ingredientRows,
+        CHUNK,
+        (slice) => post('ingredients', { build_id: buildId, rows: slice }),
+        { onFirstChunk: () => post('clear_ingredients', { build_id: buildId }).then(() => undefined) },
+      );
     }
 
     // 8. entity strings (deduped) + ports ----------------------------------
     {
       const deduped = dedupeStrings(strings);
-      let done = 0;
-      for (let i = 0; i < deduped.length; i += CHUNK) {
-        const slice = deduped.slice(i, i + CHUNK);
-        await post('strings', { rows: slice });
-        done += slice.length;
-        progress({ phase: 'codex_entity_strings', current: done, total: deduped.length });
-      }
-      counts.entity_strings = done;
+      counts.entity_strings = await sendChunks('codex_entity_strings', deduped, CHUNK, (slice) =>
+        post('strings', { rows: slice }),
+      );
     }
     {
-      await post('clear_ports', { build_id: buildId });
-      let done = 0;
-      for (let i = 0; i < ports.length; i += CHUNK) {
-        const slice = ports.slice(i, i + CHUNK);
-        await post('ports', { build_id: buildId, rows: slice });
-        done += slice.length;
-        progress({ phase: 'codex_item_ports', current: done, total: ports.length });
-      }
-      counts.item_ports = done;
+      counts.item_ports = await sendChunks(
+        'codex_item_ports',
+        ports,
+        CHUNK,
+        (slice) => post('ports', { build_id: buildId, rows: slice }),
+        { onFirstChunk: () => post('clear_ports', { build_id: buildId }).then(() => undefined) },
+      );
     }
 
     // 9. full localization tables ------------------------------------------
@@ -316,14 +379,12 @@ export async function uploadCatalog(
           }
         }
       }
-      let done = 0;
-      for (let i = 0; i < localeRows.length; i += LOCALE_CHUNK) {
-        const slice = localeRows.slice(i, i + LOCALE_CHUNK);
-        await post('locale_strings', { rows: slice });
-        done += slice.length;
-        progress({ phase: 'codex_locale_strings', current: done, total: localeRows.length });
-      }
-      counts.locale_strings = done;
+      counts.locale_strings = await sendChunks(
+        'codex_locale_strings',
+        localeRows,
+        LOCALE_CHUNK,
+        (slice) => post('locale_strings', { rows: slice }),
+      );
     }
 
     // 9b. preview images ----------------------------------------------------
@@ -331,18 +392,17 @@ export async function uploadCatalog(
       const dir = join(outDir, 'previews');
       if (existsSync(dir)) {
         const files = (await readdir(dir)).filter((f) => f.endsWith('.webp'));
-        let done = 0;
-        for (const name of files) {
+        // One image per request (they are large) — chunk size 1 makes every
+        // preview its own resume point.
+        counts.previews = await sendChunks('codex_previews', files, 1, async (slice) => {
+          const name = String(slice[0]);
           const bytes = await readFile(join(dir, name));
           await post('preview', {
             build_number: nat.build_number,
             name,
             content_base64: bytes.toString('base64'),
           });
-          done += 1;
-          progress({ phase: 'codex_previews', current: done, total: files.length });
-        }
-        counts.previews = done;
+        });
       }
     }
 
@@ -357,14 +417,9 @@ export async function uploadCatalog(
           log.warn(`[catalog] skip keybinds: ${(e as Error).message}`);
         }
         const rows = mapKeybinds(data, buildId, nat);
-        let done = 0;
-        for (let i = 0; i < rows.length; i += CHUNK) {
-          const slice = rows.slice(i, i + CHUNK);
-          await post('keybinds', { rows: slice });
-          done += slice.length;
-          progress({ phase: 'codex_keybinds', current: done, total: rows.length });
-        }
-        counts.keybinds = done;
+        counts.keybinds = await sendChunks('codex_keybinds', rows, CHUNK, (slice) =>
+          post('keybinds', { rows: slice }),
+        );
       }
     }
 
@@ -377,6 +432,7 @@ export async function uploadCatalog(
       log.warn(`[catalog] not finalizing empty/partial build ${buildId} (counts: ${JSON.stringify(counts)})`);
       return { ok: false, buildId, counts, error: 'empty_catalog' };
     }
+    hooks.control?.checkpoint();
     progress({ phase: 'finalize', current: 0, total: 1 });
     await post('finalize', { build_id: buildId, entity_counts: { ...(manifest.entity_counts as object), seeded: counts } });
     progress({ phase: 'finalize', current: 1, total: 1 });
@@ -384,6 +440,10 @@ export async function uploadCatalog(
     log.info(`[catalog] promoted build ${buildId} (${nat.channel} ${nat.patch_version} ${nat.build_number})`);
     return { ok: true, buildId, counts };
   } catch (err) {
+    // A pause/cancel is control flow, not a failure: let it unwind to the
+    // caller, which persists the cursor and reports `paused` rather than
+    // burying it as an "upload error" the operator would try to retry.
+    if (isInterrupt(err)) throw err;
     const error = err instanceof Error ? err.message : String(err);
     log.error(`[catalog] promotion failed: ${error}`);
     return { ok: false, error };

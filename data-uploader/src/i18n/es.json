@@ -36,7 +36,17 @@
     "uploading": "Subiendo…",
     "uploadOk": "Subida OK",
     "uploadFailed": "Error de subida",
-    "cleaned": "Extracted files cleaned up (upload confirmed)"
+    "cleaned": "Extracted files cleaned up (upload confirmed)",
+    "job": {
+      "pause": "Pausar",
+      "pausing": "Pausando tras el paso actual…",
+      "paused": "Subida en pausa: tu progreso está guardado.",
+      "resumeAction": "Reanudar subida",
+      "resumed": "Reanudando la subida…",
+      "discard": "Descartar",
+      "cancelled": "Subida descartada: se eliminó el progreso guardado.",
+      "resumeBanner": "Se encontró una subida interrumpida ({{hint}}). ¿Reanudarla?"
+    }
   },
   "skins": {
     "building": "Construyendo skins 3D",

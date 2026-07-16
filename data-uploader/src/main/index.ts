@@ -45,6 +45,8 @@ import {
   getCachedSnapshot,
   runSync,
 } from './session.js';
+import * as uploadJob from './upload-session.js';
+import { isInterrupt, PausedError } from '../lib/pause-control.js';
 
 // Configure logging + install uncaughtException/unhandledRejection handlers
 // before any window or IPC work, so a startup failure lands in main.log and
@@ -194,8 +196,42 @@ ipcMain.handle('sc:sync:start', async (event) =>
   runSync((p) => event.sender.send('sc:sync:event', p)),
 );
 
+// ============= Resumable upload-job IPC =============
+
+// The job file is the only thing that survives a kill, so every stage boundary
+// below writes through it before doing network work.
+
+ipcMain.handle('sc:upload:job', () => uploadJob.view());
+
+ipcMain.handle('sc:upload:begin', (_e, outDir: string, nat: { channel: string; patchVersion: string; buildNumber: string }) =>
+  uploadJob.begin(outDir, nat),
+);
+
+ipcMain.handle('sc:upload:pause', () => uploadJob.pause());
+ipcMain.handle('sc:upload:resume', () => uploadJob.resume());
+ipcMain.handle('sc:upload:cancel', () => uploadJob.cancel());
+ipcMain.handle('sc:upload:finish', () => {
+  uploadJob.finish();
+  return { ok: true };
+});
+
 ipcMain.handle('sc:upload', async (_e, payload: UploadPayload) => {
+  // Skip a bundle POST this job already confirmed — a resume must not create a
+  // second bundle row for the same extract.
+  const job = uploadJob.get();
+  if (job?.bundle.status === 'done' && job.bundle.bundleId) {
+    return { ok: true, bundleId: job.bundle.bundleId, prevBundleId: null, diffSummary: null };
+  }
+  // Record the attempt BEFORE the POST: if we die in-flight we cannot know
+  // whether the row landed, and `bundleNeedsRetry` uses this to say so.
+  uploadJob.update((s) => ({ ...s, bundle: { ...s.bundle, status: 'running', attempted: true } }));
   const result = await uploadBundle(API_BASE, payload);
+  if (result.ok) {
+    uploadJob.update((s) => ({
+      ...s,
+      bundle: { status: 'done', bundleId: result.bundleId ?? null, attempted: true },
+    }));
+  }
   // A timed-out upload throws nothing (we catch the AbortError internally), so
   // surface it to crash telemetry here — otherwise a hung upload is invisible.
   if (!result.ok && result.error === 'timeout') {
@@ -328,10 +364,27 @@ ipcMain.handle('sc:skin:cancel', (_e, jobId: string) => {
 
 ipcMain.handle(
   'sc:skin:upload',
-  async (event, accessToken: string, ships: { shipId: string; dir: string }[]): Promise<SkinUploadResult[]> =>
-    uploadSkins(accessToken, ships, (message, level) =>
-      event.sender.send('sc:skin:event', { jobId: 'upload', type: 'log', message, level: level ?? 'info' }),
-    ),
+  async (event, accessToken: string, ships: { shipId: string; dir: string }[]): Promise<SkinUploadResult[]> => {
+    try {
+      const results = await uploadSkins(
+        accessToken,
+        ships,
+        (message, level) =>
+          event.sender.send('sc:skin:event', { jobId: 'upload', type: 'log', message, level: level ?? 'info' }),
+        uploadJob.hooksForSkins(),
+      );
+      uploadJob.update((s) => ({ ...s, skins: { ...s.skins, status: 'done' } }));
+      return results;
+    } catch (err) {
+      if (isInterrupt(err)) {
+        // Paused/cancelled between ships — the renderer reads the job view to
+        // learn that, so an empty result here is not an error.
+        event.sender.send('sc:upload:paused', uploadJob.view());
+        return [];
+      }
+      throw err;
+    }
+  },
 );
 
 // ============= Catalog-promotion IPC =============
@@ -341,8 +394,24 @@ ipcMain.handle(
 // out_dir still exists. Streams per-table progress to the renderer.
 ipcMain.handle(
   'sc:catalog:upload',
-  async (event, accessToken: string, outDir: string): Promise<CatalogUploadResult> =>
-    uploadCatalog(accessToken, outDir, (p) => event.sender.send('sc:catalog:event', p)),
+  async (event, accessToken: string, outDir: string): Promise<CatalogUploadResult> => {
+    try {
+      const result = await uploadCatalog(
+        accessToken,
+        outDir,
+        (p) => event.sender.send('sc:catalog:event', p),
+        uploadJob.hooksForCatalog(),
+      );
+      if (result.ok) uploadJob.update((s) => ({ ...s, catalog: { ...s.catalog, status: 'done' } }));
+      return result;
+    } catch (err) {
+      if (isInterrupt(err)) {
+        event.sender.send('sc:upload:paused', uploadJob.view());
+        return { ok: false, error: err instanceof PausedError ? 'paused' : 'cancelled' };
+      }
+      throw err;
+    }
+  },
 );
 
 // ============= Cleanup IPC =============

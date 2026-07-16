@@ -103,6 +103,16 @@
       "network": "Netzwerkfehler — Server nicht erreichbar. Verbindung prüfen und erneut versuchen.",
       "timeout": "Zeitüberschreitung beim Upload — der Server hat nicht rechtzeitig geantwortet. Bitte erneut versuchen.",
       "withDetail": "{{friendly}} ({{detail}})"
+    },
+    "job": {
+      "pause": "Pause",
+      "pausing": "Pausiere nach dem aktuellen Schritt…",
+      "paused": "Upload pausiert — der Fortschritt ist gespeichert.",
+      "resumeAction": "Upload fortsetzen",
+      "resumed": "Upload wird fortgesetzt…",
+      "discard": "Verwerfen",
+      "cancelled": "Upload verworfen — der Fortschritt wurde gelöscht.",
+      "resumeBanner": "Unterbrochener Upload gefunden ({{hint}}) — fortsetzen?"
     }
   },
   "update": {
