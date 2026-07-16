@@ -33,6 +33,11 @@ from typing import Callable, Dict, List, Optional
 
 LogFn = Callable[[str, str], None]
 
+# Adaptive size-budget floors: how far the retry ladder may degrade a skin that
+# blows the per-model budget before we give up and keep the smallest attempt.
+MIN_TEXTURE_SIZE = 256
+MAX_SIMPLIFY_ERROR = 0.01
+
 # Identifiers that flow into filenames, storage object paths, and (on Windows)
 # a shell=True command line MUST be restricted to a safe charset — no path
 # separators, no '..', no cmd.exe metacharacters (& ^ | % < > " etc.).
@@ -78,6 +83,10 @@ class HullExportConfig:
     work_dir: Path                # scratch (mirrored Data tree, raw glbs)
     texture_size: int = 1024
     simplify_error: float = 0.002
+    # Per-model size budget. A skin over budget is re-optimized down the quality
+    # ladder (halve textures, coarsen simplify) until it fits — so only the heavy
+    # skins lose fidelity, not the whole catalog. 0 disables the budget.
+    max_model_bytes: int = 1_000_000
     on_log: LogFn = _noop
     keep_work: bool = False       # keep scratch for debugging
 
@@ -167,13 +176,17 @@ class Hull3DExporter:
                 f"cgf-converter produced no usable glb for {cga_disk.name} (rc={r.returncode})")
         produced.replace(out_glb)
 
-    def _optimize(self, in_glb: Path, out_glb: Path) -> None:
+    def _optimize(self, in_glb: Path, out_glb: Path,
+                  texture_size: Optional[int] = None,
+                  simplify_error: Optional[float] = None) -> None:
         import json as _json
         import os
         import sys
+        ts = self.cfg.texture_size if texture_size is None else texture_size
+        err = self.cfg.simplify_error if simplify_error is None else simplify_error
         flags = ["optimize", str(in_glb.resolve()), str(out_glb.resolve()),
-                 "--texture-compress", "webp", "--texture-size", str(self.cfg.texture_size),
-                 "--simplify", "true", "--simplify-error", str(self.cfg.simplify_error),
+                 "--texture-compress", "webp", "--texture-size", str(ts),
+                 "--simplify", "true", "--simplify-error", str(err),
                  "--compress", "draco"]
         host_argv = os.environ.get("SC_GLTF_TRANSFORM_ARGV")
         if host_argv:
@@ -200,6 +213,44 @@ class Hull3DExporter:
         if not out_glb.exists():
             raise RuntimeError(
                 f"gltf-transform failed (rc={r.returncode}): {(r.stderr or '')[-400:]}")
+
+    def quality_ladder(self) -> List[tuple]:
+        """(texture_size, simplify_error) attempts, best first.
+
+        Step 0 is the configured quality — the vast majority of skins stop there.
+        Each further step halves the texture and doubles the simplify error,
+        down to MIN_TEXTURE_SIZE.
+        """
+        steps = [(self.cfg.texture_size, self.cfg.simplify_error)]
+        ts, err = self.cfg.texture_size, self.cfg.simplify_error
+        while ts > MIN_TEXTURE_SIZE:
+            ts //= 2
+            err = min(err * 2, MAX_SIMPLIFY_ERROR)
+            steps.append((ts, err))
+        return steps
+
+    def _optimize_to_budget(self, in_glb: Path, out_glb: Path, skin_id: str) -> int:
+        """Optimize, retrying at lower quality while the glb exceeds the budget.
+
+        Returns the final size in bytes. The last ladder step is kept even if it
+        is still over budget — a slightly-too-big skin beats no skin at all.
+        """
+        budget = self.cfg.max_model_bytes
+        ladder = self.quality_ladder()
+        size = 0
+        for i, (ts, err) in enumerate(ladder):
+            self._optimize(in_glb, out_glb, ts, err)
+            size = out_glb.stat().st_size
+            if budget <= 0 or size <= budget:
+                return size
+            if i == len(ladder) - 1:
+                self.log("warn", f"  {skin_id}: {size/1e6:.2f} MB still over the "
+                                 f"{budget/1e6:.2f} MB budget at texture {ts} — keeping it")
+                return size
+            self.log("info", f"  {skin_id}: {size/1e6:.2f} MB over the "
+                             f"{budget/1e6:.2f} MB budget — retrying at texture "
+                             f"{ladder[i+1][0]}")
+        return size
 
     # ---- public API --------------------------------------------------------
     def export_ship(self, spec: ShipSpec) -> dict:
@@ -265,14 +316,14 @@ class Hull3DExporter:
         mtl_rel = os.path.relpath(mtl_disk, cga_disk.parent).replace("\\", "/")
         raw_glb = mirror / f"{spec.ship_id}_{paint.id}.glb"
         self._cgf_to_glb(cga_disk, objectdir, mtl_rel, raw_glb)
-        # 4. optimize -> web glb
+        # 4. optimize -> web glb (within the per-model size budget)
         web_glb = ship_out / "models" / f"{spec.ship_id}_{paint.id}.glb"
-        self._optimize(raw_glb, web_glb)
+        size_bytes = self._optimize_to_budget(raw_glb, web_glb, paint.id)
         # 5. icon
         icon_rel = None
         if paint.icon_dds:
             icon_rel = self._export_icon(paint, ship_out)
-        size_mb = web_glb.stat().st_size / 1e6
+        size_mb = size_bytes / 1e6
         return {"id": paint.id, "name": paint.name, "description": paint.description,
                 "source": paint.source, "name_verified": paint.name_verified,
                 "model": f"models/{web_glb.name}", "model_mb": round(size_mb, 2),

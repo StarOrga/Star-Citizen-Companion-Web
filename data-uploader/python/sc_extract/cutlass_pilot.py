@@ -88,6 +88,9 @@ def main() -> int:
     ap.add_argument("--work", type=Path, default=None)
     ap.add_argument("--limit", type=int, default=None, help="only first N skins (testing)")
     ap.add_argument("--texture-size", type=int, default=1024)
+    ap.add_argument("--max-model-mb", type=float, default=1.0,
+                    help="per-skin glb size budget; over-budget skins are re-optimized "
+                         "at lower texture size (0 disables)")
     ap.add_argument("--keep-work", action="store_true")
     args = ap.parse_args()
 
@@ -110,6 +113,7 @@ def main() -> int:
         out_dir=args.out,
         work_dir=args.work or (args.out / "_work"),
         texture_size=args.texture_size,
+        max_model_bytes=int(args.max_model_mb * 1e6),
         on_log=log,
         keep_work=args.keep_work,
     )

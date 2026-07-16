@@ -124,6 +124,7 @@ interface SkinExportRequest {
   manifest?: string;
   skipExisting?: boolean;
   textureSize?: number;
+  maxModelMb?: number;
   limitSkins?: number;
 }
 interface SkinEntry {
