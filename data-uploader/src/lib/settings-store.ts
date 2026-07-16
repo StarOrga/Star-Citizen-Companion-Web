@@ -14,6 +14,16 @@ export interface Settings {
   telemetryEnabled: boolean;
   /** Opaque random id, generated once and reused across launches. */
   installId: string;
+  /** Closing the window hides to the tray instead of quitting. Default ON. */
+  minimizeToTray: boolean;
+  /** Launch with Windows (registered via Electron's login-item API). Default OFF. */
+  autoStart: boolean;
+  /**
+   * On launch, compare the local data.p4k against what's already uploaded and
+   * run the whole pipeline unattended when it differs. Default OFF — it starts
+   * hours of CPU work, so it must be a deliberate opt-in.
+   */
+  autoRunOnNewVersion: boolean;
 }
 
 /** Injectable text persistence (file-backed in production). */
@@ -49,6 +59,10 @@ export class SettingsStore {
         typeof parsed?.installId === 'string' && parsed.installId.length > 0
           ? parsed.installId
           : this.makeId(),
+      minimizeToTray: typeof parsed?.minimizeToTray === 'boolean' ? parsed.minimizeToTray : true,
+      autoStart: typeof parsed?.autoStart === 'boolean' ? parsed.autoStart : false,
+      autoRunOnNewVersion:
+        typeof parsed?.autoRunOnNewVersion === 'boolean' ? parsed.autoRunOnNewVersion : false,
     };
     this.cache = settings;
     // Persist immediately so the freshly-minted installId is stable next launch.
@@ -61,7 +75,15 @@ export class SettingsStore {
   }
 
   setTelemetryEnabled(enabled: boolean): Settings {
-    const next: Settings = { ...this.load(), telemetryEnabled: enabled };
+    return this.patch({ telemetryEnabled: enabled });
+  }
+
+  /**
+   * Merge a partial update. `installId` is deliberately not patchable — it is
+   * the stable crash-dedup id and must survive every settings change.
+   */
+  patch(partial: Partial<Omit<Settings, 'installId'>>): Settings {
+    const next: Settings = { ...this.load(), ...partial };
     this.cache = next;
     this.persist(next);
     return next;

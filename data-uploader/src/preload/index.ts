@@ -4,6 +4,30 @@ import type { PerformanceProfile, ProfileId, ETA } from '../lib/performance.js';
 import type { UploadPayload, UploadResult } from '../lib/uploader.js';
 import type { UploadJobState, JobNat } from '../lib/upload-job.js';
 import type { JobView } from '../main/upload-session.js';
+import type { AutoRunDecision } from '../lib/auto-run.js';
+
+/** The settings subset the UI is allowed to see (no installId). */
+export interface PublicSettings {
+  telemetryEnabled: boolean;
+  minimizeToTray: boolean;
+  autoStart: boolean;
+  autoRunOnNewVersion: boolean;
+}
+
+/** Tray strings resolved from the renderer's i18n dictionary. */
+export interface TrayLabelPush {
+  open?: string;
+  quit?: string;
+  pauseUpload?: string;
+  resumeUpload?: string;
+  hiddenHint?: string;
+  idle?: string;
+  extract?: string;
+  upload?: string;
+  done?: string;
+  error?: string;
+  paused?: string;
+}
 
 interface ToolEnv {
   toolVersion: string;
@@ -209,9 +233,26 @@ export const api = {
       ipcRenderer.invoke('sc:clipboard:write', text),
   },
   settings: {
-    get: (): Promise<{ telemetryEnabled: boolean }> => ipcRenderer.invoke('sc:settings:get'),
-    setTelemetry: (enabled: boolean): Promise<{ telemetryEnabled: boolean }> =>
+    get: (): Promise<PublicSettings> => ipcRenderer.invoke('sc:settings:get'),
+    setTelemetry: (enabled: boolean): Promise<PublicSettings> =>
       ipcRenderer.invoke('sc:settings:setTelemetry', enabled),
+    patch: (partial: Partial<Omit<PublicSettings, 'telemetryEnabled'>>): Promise<PublicSettings> =>
+      ipcRenderer.invoke('sc:settings:patch', partial),
+  },
+  tray: {
+    /** Push resolved i18n strings to main (the tray lives there). */
+    setLabels: (labels: TrayLabelPush): void => ipcRenderer.send('sc:tray:labels', labels),
+  },
+  autoRun: {
+    /** Ask main whether an unattended run should start now. */
+    decide: (signedIn: boolean): Promise<AutoRunDecision> =>
+      ipcRenderer.invoke('sc:autorun:decide', signedIn),
+    /** The tray's Resume item asks the renderer to re-drive the stages. */
+    onResumeRequested: (cb: () => void): (() => void) => {
+      const listener = (): void => cb();
+      ipcRenderer.on('sc:upload:resumeRequested', listener);
+      return () => ipcRenderer.removeListener('sc:upload:resumeRequested', listener);
+    },
   },
   log: {
     // Structured log line into the shared main.log file.

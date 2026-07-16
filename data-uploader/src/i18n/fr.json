@@ -45,7 +45,8 @@
       "resumed": "Reprise du téléversement…",
       "discard": "Abandonner",
       "cancelled": "Téléversement abandonné — la progression enregistrée a été supprimée.",
-      "resumeBanner": "Téléversement interrompu détecté ({{hint}}) — le reprendre ?"
+      "resumeBanner": "Téléversement interrompu détecté ({{hint}}) — le reprendre ?",
+      "pauseShort": "en pause"
     }
   },
   "skins": {
@@ -57,5 +58,25 @@
     "buildFailed": "Échec de la construction",
     "uploading": "Téléversement…",
     "partial": "vaisseaux téléversés (voir le journal pour le reste)"
+  },
+  "tray": {
+    "open": "Ouvrir la fenêtre",
+    "quit": "Quitter",
+    "hiddenHint": "Continue de tourner dans la zone de notification.",
+    "idle": "Inactif",
+    "extract": "Extraction",
+    "upload": "Téléversement",
+    "done": "terminé",
+    "error": "échec",
+    "minimize": "Réduire dans la zone de notification à la fermeture",
+    "minimizeHint": "La croix masque la fenêtre au lieu de quitter.",
+    "autoStart": "Démarrer avec Windows",
+    "autoStartHint": "Démarre avec Windows — directement en zone de notification, sans fenêtre."
+  },
+  "autorun": {
+    "toggle": "Tout exécuter automatiquement si data.p4k est plus récent",
+    "hint": "Au démarrage, vérifie si le data.p4k local est plus récent que celui déjà téléversé, puis exécute tout le processus automatiquement.",
+    "starting": "Nouvelle version détectée ({{channel}} : {{local}} vs {{server}}) — démarrage automatique.",
+    "resumeFirst": "Téléversement interrompu détecté — exécution automatique ignorée."
   }
 }

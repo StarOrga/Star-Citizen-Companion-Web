@@ -112,7 +112,8 @@
       "resumed": "Resuming upload…",
       "discard": "Discard",
       "cancelled": "Upload discarded — the saved progress was removed.",
-      "resumeBanner": "Found an interrupted upload ({{hint}}) — resume it?"
+      "resumeBanner": "Found an interrupted upload ({{hint}}) — resume it?",
+      "pauseShort": "paused"
     }
   },
   "update": {
@@ -182,5 +183,25 @@
     "still": "still working",
     "eta": "ETA",
     "perSec": "/s"
+  },
+  "tray": {
+    "open": "Open window",
+    "quit": "Quit",
+    "hiddenHint": "Still running in the tray.",
+    "idle": "Idle",
+    "extract": "Extraction",
+    "upload": "Upload",
+    "done": "done",
+    "error": "failed",
+    "minimize": "Minimise to tray on close",
+    "minimizeHint": "The X hides the window to the tray instead of quitting.",
+    "autoStart": "Start with Windows",
+    "autoStartHint": "Launches with Windows — straight into the tray, no window."
+  },
+  "autorun": {
+    "toggle": "Run the whole pipeline automatically on a new data.p4k",
+    "hint": "On launch, checks whether the local data.p4k is newer than what's uploaded — and runs the whole process automatically.",
+    "starting": "New version detected ({{channel}}: {{local}} vs {{server}}) — starting automatically.",
+    "resumeFirst": "Found an interrupted upload — skipped the automatic run."
   }
 }

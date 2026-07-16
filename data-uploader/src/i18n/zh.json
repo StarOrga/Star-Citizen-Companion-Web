@@ -45,7 +45,8 @@
       "resumed": "正在继续上传…",
       "discard": "放弃",
       "cancelled": "已放弃上传 — 已保存的进度被清除。",
-      "resumeBanner": "发现中断的上传（{{hint}}）— 是否继续？"
+      "resumeBanner": "发现中断的上传（{{hint}}）— 是否继续？",
+      "pauseShort": "已暂停"
     }
   },
   "skins": {
@@ -57,5 +58,25 @@
     "buildFailed": "构建失败",
     "uploading": "上传中…",
     "partial": "艘飞船已上传（其余见日志）"
+  },
+  "tray": {
+    "open": "打开窗口",
+    "quit": "退出",
+    "hiddenHint": "仍在托盘中运行。",
+    "idle": "空闲",
+    "extract": "提取",
+    "upload": "上传",
+    "done": "完成",
+    "error": "失败",
+    "minimize": "关闭时最小化到托盘",
+    "minimizeHint": "点击 X 会将窗口隐藏到托盘，而不是退出程序。",
+    "autoStart": "随 Windows 启动",
+    "autoStartHint": "随 Windows 启动 — 直接进入托盘，不显示窗口。"
+  },
+  "autorun": {
+    "toggle": "检测到新的 data.p4k 时自动执行完整流程",
+    "hint": "启动时检查本地 data.p4k 是否比已上传的更新，并自动执行完整流程。",
+    "starting": "检测到新版本（{{channel}}：{{local}} vs {{server}}）— 正在自动开始。",
+    "resumeFirst": "发现中断的上传 — 已跳过自动运行。"
   }
 }

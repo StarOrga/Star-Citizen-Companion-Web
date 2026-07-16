@@ -45,7 +45,8 @@
       "resumed": "Reanudando la subida…",
       "discard": "Descartar",
       "cancelled": "Subida descartada: se eliminó el progreso guardado.",
-      "resumeBanner": "Se encontró una subida interrumpida ({{hint}}). ¿Reanudarla?"
+      "resumeBanner": "Se encontró una subida interrumpida ({{hint}}). ¿Reanudarla?",
+      "pauseShort": "en pausa"
     }
   },
   "skins": {
@@ -57,5 +58,25 @@
     "buildFailed": "Error de compilación",
     "uploading": "Subiendo…",
     "partial": "naves subidas (ver registro para el resto)"
+  },
+  "tray": {
+    "open": "Abrir ventana",
+    "quit": "Salir",
+    "hiddenHint": "Sigue ejecutándose en la bandeja.",
+    "idle": "Inactivo",
+    "extract": "Extracción",
+    "upload": "Subida",
+    "done": "listo",
+    "error": "error",
+    "minimize": "Minimizar a la bandeja al cerrar",
+    "minimizeHint": "La X oculta la ventana en la bandeja en lugar de salir.",
+    "autoStart": "Iniciar con Windows",
+    "autoStartHint": "Se inicia con Windows, directamente en la bandeja, sin ventana."
+  },
+  "autorun": {
+    "toggle": "Ejecutar todo automáticamente con una nueva data.p4k",
+    "hint": "Al iniciar, comprueba si la data.p4k local es más reciente que la subida y ejecuta todo el proceso automáticamente.",
+    "starting": "Nueva versión detectada ({{channel}}: {{local}} vs {{server}}): iniciando automáticamente.",
+    "resumeFirst": "Se encontró una subida interrumpida: se omitió la ejecución automática."
   }
 }

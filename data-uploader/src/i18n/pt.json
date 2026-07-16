@@ -45,7 +45,8 @@
       "resumed": "Retomando o envio…",
       "discard": "Descartar",
       "cancelled": "Envio descartado — o progresso salvo foi removido.",
-      "resumeBanner": "Envio interrompido encontrado ({{hint}}) — retomar?"
+      "resumeBanner": "Envio interrompido encontrado ({{hint}}) — retomar?",
+      "pauseShort": "em pausa"
     }
   },
   "skins": {
@@ -57,5 +58,25 @@
     "buildFailed": "Falha na construção",
     "uploading": "Enviando…",
     "partial": "naves enviadas (veja o registro para o resto)"
+  },
+  "tray": {
+    "open": "Abrir janela",
+    "quit": "Sair",
+    "hiddenHint": "Continua a executar na bandeja.",
+    "idle": "Ocioso",
+    "extract": "Extração",
+    "upload": "Envio",
+    "done": "concluído",
+    "error": "falhou",
+    "minimize": "Minimizar para a bandeja ao fechar",
+    "minimizeHint": "O X esconde a janela na bandeja em vez de sair.",
+    "autoStart": "Iniciar com o Windows",
+    "autoStartHint": "Inicia com o Windows — direto na bandeja, sem janela."
+  },
+  "autorun": {
+    "toggle": "Executar tudo automaticamente numa nova data.p4k",
+    "hint": "Ao iniciar, verifica se a data.p4k local é mais recente do que a já enviada e executa todo o processo automaticamente.",
+    "starting": "Nova versão detetada ({{channel}}: {{local}} vs {{server}}) — a iniciar automaticamente.",
+    "resumeFirst": "Envio interrompido encontrado — execução automática ignorada."
   }
 }
