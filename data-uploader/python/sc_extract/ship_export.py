@@ -50,6 +50,9 @@ def main() -> int:
                     help="ship_id:MFR:Ship:SeriesToken (repeatable) or a known ship_id")
     ap.add_argument("--limit-skins", type=int, default=None)
     ap.add_argument("--texture-size", type=int, default=1024)
+    ap.add_argument("--max-model-mb", type=float, default=1.0,
+                    help="per-skin glb size budget; over-budget skins are re-optimized "
+                         "at lower texture size (0 disables)")
     ap.add_argument("--catalog-only", action="store_true",
                     help="discover + write catalog JSON only (skip the slow glb build)")
     ap.add_argument("--keep-work", action="store_true")
@@ -70,6 +73,7 @@ def main() -> int:
     cfg = HullExportConfig(
         cgf_converter=args.converter, out_dir=args.out,
         work_dir=args.out / "_work", texture_size=args.texture_size,
+        max_model_bytes=int(args.max_model_mb * 1e6),
         on_log=log, keep_work=args.keep_work,
     )
     exporter = Hull3DExporter(p4k, cfg)

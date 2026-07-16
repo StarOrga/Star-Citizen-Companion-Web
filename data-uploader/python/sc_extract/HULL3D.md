@@ -16,7 +16,8 @@ Data.p4k
    textured glb  (~155 MB, full-res)
         │
         ▼  gltf-transform optimize  (weld · simplify · webp@1024 · draco)
-   web glb  (~3 MB)  ──►  <model-viewer> in the Angular app (lazy-loaded route)
+        ▼  over the per-skin budget? re-optimize at 512, then 256
+   web glb  (≤1 MB)  ──►  <model-viewer> in the Angular app (lazy-loaded route)
 ```
 
 Plus per skin: the official store **icon** (`Data/UI/SharedAssets/PaintColorLogos/
@@ -70,3 +71,22 @@ out/DRAK_Cutlass_Black/
 - ~155 MB intermediate glb per skin (scratch, auto-deleted unless `--keep-work`).
 - `--texture-size` (default 1024) and `simplify_error` (0.002) trade size vs. fidelity.
 - One skin ≈ texture-extract (~2–3 min) + convert + optimize. Runs are serial.
+
+## Size budget (`--max-model-mb`, default 1.0)
+
+The whole livery catalog (~350 skins) has to fit the Supabase storage quota, so
+each web glb carries a **per-skin size budget**. A skin that lands over budget is
+re-optimized down a quality ladder — texture halves, `simplify_error` doubles —
+until it fits:
+
+```
+1024 / 0.002  →  512 / 0.004  →  256 / 0.008   (floor: MIN_TEXTURE_SIZE)
+```
+
+Most skins pass at step 0, so **only the heavy ones lose fidelity** rather than
+the whole catalog being exported at a blanket-low resolution. If even the last
+step is over budget the skin is still exported (a too-big skin beats a missing
+one) and a `warn` is logged. `--max-model-mb 0` disables the budget entirely.
+
+Each retry costs one more `gltf-transform optimize` pass over the ~155 MB raw
+glb — the P4K texture extract and cgf-converter step are *not* repeated.

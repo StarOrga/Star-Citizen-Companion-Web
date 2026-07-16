@@ -36,6 +36,10 @@ export interface SkinExportRequest {
   /** Patch-version cache: skip ships already built into `outDir`. */
   skipExisting?: boolean;
   textureSize?: number;
+  /** Per-skin glb size budget in MB (default 1). Over-budget skins are
+   *  re-optimized at a lower texture size so the catalog stays within the
+   *  Supabase storage quota. 0 disables the budget. */
+  maxModelMb?: number;
   limitSkins?: number;
 }
 
@@ -147,6 +151,7 @@ export function startSkinExport(
     '--out', req.outDir,
     '--converter', converterPath(),
     '--texture-size', String(req.textureSize ?? 1024),
+    '--max-model-mb', String(req.maxModelMb ?? 1),
   ];
   if (req.manifest) args.push('--manifest', req.manifest);
   for (const s of req.ships ?? []) args.push('--ship', s);
