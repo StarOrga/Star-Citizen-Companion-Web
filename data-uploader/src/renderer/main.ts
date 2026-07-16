@@ -7,7 +7,23 @@
  */
 
 import { load as loadI18n, setLocale, getLocale, t, type LocaleId } from '../lib/i18n.js';
-import type { JobView } from '../main/upload-session.js';
+// Local mirrors of the shapes the preload bridge hands us, following this
+// file's existing convention (see `ToolEnv` / `ConnSnapshot` below). The
+// renderer's tsconfig project only spans `src/renderer/**` + i18n, so importing
+// these from `src/main` / `src/preload` would drag Node/Electron-only modules
+// into a DOM-only program.
+interface JobViewLike {
+  resumable: boolean;
+  resumeHint: string | null;
+  state: { status: string } | null;
+}
+
+interface PublicSettings {
+  telemetryEnabled: boolean;
+  minimizeToTray: boolean;
+  autoStart: boolean;
+  autoRunOnNewVersion: boolean;
+}
 import {
   progressCardHtml,
   mountProgress,
@@ -154,7 +170,10 @@ const state = {
   // cache — the file under userData is the source of truth, which is what lets
   // an upload resume after the app is closed or killed.
   uploadPaused: false,
-  resumableJob: null as JobView | null,
+  resumableJob: null as JobViewLike | null,
+  // Persisted prefs owned by main (tray / autostart / auto-run). Cached here
+  // only so the Configure view can render the checkboxes synchronously.
+  settings: null as PublicSettings | null,
 };
 
 async function init(): Promise<void> {
@@ -170,8 +189,30 @@ async function init(): Promise<void> {
       await setLocale(select.value as LocaleId);
       render();
       paintConnection();
+      // The tray lives in main and has no dictionary — re-push on every locale
+      // change or its menu would stay stuck in the boot language.
+      pushTrayLabels();
     });
   }
+
+  // The tray is built before the renderer exists, so it starts on English
+  // defaults; hand it the real strings as soon as i18n is up.
+  pushTrayLabels();
+
+  // Cache the persisted prefs so the Configure view can render its checkboxes.
+  try {
+    state.settings = await window.sc.settings.get();
+  } catch {
+    state.settings = null;
+  }
+
+  // The tray's Resume item can only signal intent — the renderer sequences the
+  // upload stages, so it has to do the actual resuming.
+  window.sc.autoRun.onResumeRequested(() => {
+    state.view = 'auth-upload';
+    render();
+    void doStartUpload();
+  });
 
   void initTelemetryToggle();
 
@@ -190,6 +231,84 @@ async function init(): Promise<void> {
     if (document.visibilityState === 'visible') void revalidateSession(true);
   });
 
+  render();
+
+  // Unattended "new data.p4k → run everything" check. Last, so a decision that
+  // starts a run does so against a fully wired UI. Never awaited by init.
+  void maybeAutoRun();
+}
+
+// ============= Auto-run (new data.p4k → full pipeline, unattended) =============
+
+/** Hand the tray its strings, resolved from the renderer's dictionary. */
+function pushTrayLabels(): void {
+  window.sc.tray.setLabels({
+    open: t('tray.open', {}) || 'Fenster öffnen',
+    quit: t('tray.quit', {}) || 'Beenden',
+    pauseUpload: t('upload.job.pause', {}) || 'Pause',
+    resumeUpload: t('upload.job.resumeAction', {}) || 'Upload fortsetzen',
+    hiddenHint: t('tray.hiddenHint', {}) || 'Läuft im Tray weiter.',
+    idle: t('tray.idle', {}) || 'Bereit',
+    extract: t('tray.extract', {}) || 'Extraktion',
+    upload: t('tray.upload', {}) || 'Upload',
+    done: t('tray.done', {}) || 'fertig',
+    error: t('tray.error', {}) || 'fehlgeschlagen',
+    paused: t('upload.job.pauseShort', {}) || 'pausiert',
+  });
+}
+
+/**
+ * Ask main whether the local data.p4k is newer than what the server holds and,
+ * if so, drive the whole pipeline: select the channel → extract → upload.
+ *
+ * Deliberately reuses the existing manual path (`autoUpload` + `startRun`)
+ * rather than a parallel "unattended" pipeline — one code path means the
+ * automated run cannot silently diverge from the one that gets exercised daily.
+ */
+async function maybeAutoRun(): Promise<void> {
+  // A job left over from a kill outranks starting a brand-new extraction: it is
+  // already paid for, and re-running would duplicate the work.
+  await refreshJobView();
+  if (state.resumableJob?.resumable) {
+    setStatus(t('autorun.resumeFirst', {}) || 'Unterbrochener Upload gefunden — Auto-Lauf übersprungen.');
+    state.view = 'auth-upload';
+    render();
+    return;
+  }
+
+  let decision: Awaited<ReturnType<typeof window.sc.autoRun.decide>>;
+  try {
+    decision = await window.sc.autoRun.decide(Boolean(state.authToken));
+  } catch {
+    return;
+  }
+  if (!decision.run || !decision.channel) return;
+
+  // Adopt the decided channel as the selection the run operates on.
+  state.channels = [
+    {
+      channel: decision.channel.channel,
+      installPath: decision.channel.installPath,
+      dataP4kPath: decision.channel.dataP4kPath,
+      version: decision.channel.version,
+      sizeBytes: decision.channel.sizeBytes,
+      source: decision.channel.source,
+      selected: true,
+    },
+  ];
+  state.scanned = true;
+  state.autoUpload = true; // extraction rolls straight into the upload
+  setStatus(
+    t('autorun.starting', {
+      channel: decision.channel.channel,
+      local: decision.localVersion ?? '?',
+      server: decision.serverVersion ?? '—',
+    }) ||
+      `Neue Version erkannt (${decision.channel.channel}: ${decision.localVersion} vs. ${decision.serverVersion ?? '—'}) — starte automatisch.`,
+  );
+  // Entering the Run view IS the trigger: `render()` → `wireRun()` →
+  // `runRealExtract()`, and `state.autoUpload` carries it into the upload.
+  state.view = 'run';
   render();
 }
 
@@ -848,6 +967,18 @@ function renderConfigure(): string {
         <input type="checkbox" id="chk-auto-upload" ${state.autoUpload ? 'checked' : ''} />
         <span>${t('configure.autoUpload', {}) || 'Nach der Extraktion automatisch hochladen'}</span>
       </label>
+      <label class="auto-upload-toggle" title="${t('tray.minimizeHint', {}) || 'Das X schließt das Fenster in den Tray, statt das Programm zu beenden.'}">
+        <input type="checkbox" id="chk-minimize-tray" ${state.settings?.minimizeToTray ? 'checked' : ''} />
+        <span>${t('tray.minimize', {}) || 'Beim Schließen in den Tray minimieren'}</span>
+      </label>
+      <label class="auto-upload-toggle" title="${t('tray.autoStartHint', {}) || 'Startet das Programm mit Windows — direkt im Tray, ohne Fenster.'}">
+        <input type="checkbox" id="chk-autostart" ${state.settings?.autoStart ? 'checked' : ''} />
+        <span>${t('tray.autoStart', {}) || 'Mit Windows starten'}</span>
+      </label>
+      <label class="auto-upload-toggle" title="${t('autorun.hint', {}) || 'Prüft beim Start, ob eine neuere data.p4k vorliegt als bereits hochgeladen — und fährt dann den kompletten Prozess automatisch.'}">
+        <input type="checkbox" id="chk-autorun" ${state.settings?.autoRunOnNewVersion ? 'checked' : ''} />
+        <span>${t('autorun.toggle', {}) || 'Bei neuer data.p4k-Version automatisch komplett durchlaufen'}</span>
+      </label>
       <div class="btn-row view-footer">
         <button id="btn-back-discover" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
         <button id="btn-start-run" class="btn btn-primary">${t('configure.start', {}) || 'Extraktion starten'}</button>
@@ -860,6 +991,21 @@ function wireConfigure(): void {
   void renderProfiles();
   ($('#chk-auto-upload') as HTMLInputElement | null)?.addEventListener('change', (e) => {
     state.autoUpload = (e.target as HTMLInputElement).checked;
+  });
+  // The three persisted preferences below live in main (tray behaviour and the
+  // OS login item are main-process concerns), so each write goes through IPC and
+  // we re-cache whatever main reports back as the truth.
+  const persist = async (partial: Record<string, boolean>): Promise<void> => {
+    state.settings = await window.sc.settings.patch(partial);
+  };
+  ($('#chk-minimize-tray') as HTMLInputElement | null)?.addEventListener('change', (e) => {
+    void persist({ minimizeToTray: (e.target as HTMLInputElement).checked });
+  });
+  ($('#chk-autostart') as HTMLInputElement | null)?.addEventListener('change', (e) => {
+    void persist({ autoStart: (e.target as HTMLInputElement).checked });
+  });
+  ($('#chk-autorun') as HTMLInputElement | null)?.addEventListener('change', (e) => {
+    void persist({ autoRunOnNewVersion: (e.target as HTMLInputElement).checked });
   });
   $('#btn-back-discover')?.addEventListener('click', () => {
     state.view = 'discover';

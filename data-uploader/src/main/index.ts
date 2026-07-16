@@ -1,8 +1,9 @@
 import { app, BrowserWindow, Menu, ipcMain, dialog, shell, clipboard } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import log from 'electron-log';
 import { initLogging, logFromRenderer } from './logging.js';
-import { getSettings, setTelemetryEnabled } from './settings.js';
+import { getSettings, setTelemetryEnabled, patchSettings, syncAutoStartWithOs } from './settings.js';
 import { reportCrash } from './telemetry-reporter.js';
 import { discoverAll, discoverManual } from '../lib/discovery.js';
 import { PROFILES, DEFAULT_PROFILE, estimateForSize } from '../lib/performance.js';
@@ -47,6 +48,9 @@ import {
 } from './session.js';
 import * as uploadJob from './upload-session.js';
 import { isInterrupt, PausedError } from '../lib/pause-control.js';
+import { ProgressHub } from '../lib/progress-hub.js';
+import { initTray, updateTray, destroyTray, notifyHidden, hasTray, type TrayMenuLabels } from './tray.js';
+import { decideAutoRun, describeDecision, type AutoRunDecision } from '../lib/auto-run.js';
 
 // Configure logging + install uncaughtException/unhandledRejection handlers
 // before any window or IPC work, so a startup failure lands in main.log and
@@ -56,6 +60,49 @@ initLogging();
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let mainWindow: BrowserWindow | null = null;
+
+// Main's own copy of pipeline progress — the tray renders from this, and must
+// keep working while the window is hidden (i.e. with no renderer listening).
+const hub = new ProgressHub();
+
+// Set only by the tray's Quit item / app.quit(): distinguishes "the operator
+// wants the process gone" from "the operator clicked X", which merely hides.
+let quitting = false;
+
+// Localized tray strings live in the renderer's i18n dictionary, so it pushes
+// them to main. English defaults keep the tray sane before the first push (and
+// if the renderer never loads).
+let trayLabels: TrayMenuLabels = {
+  open: 'Open',
+  quit: 'Quit',
+  pauseUpload: 'Pause upload',
+  resumeUpload: 'Resume upload',
+  idle: 'Idle',
+  extract: 'Extraction',
+  upload: 'Upload',
+  done: 'done',
+  error: 'failed',
+  paused: 'paused',
+};
+
+function showMainWindow(): void {
+  if (!mainWindow) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  if (!mainWindow.isVisible()) mainWindow.show();
+  mainWindow.focus();
+}
+
+function quitForReal(): void {
+  quitting = true;
+  destroyTray();
+  app.quit();
+}
+
+/** True once the operator has been told where the window went (once per run). */
+let hiddenNoticeShown = false;
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -79,7 +126,27 @@ function createWindow(): void {
   // Remove the native menu bar entirely (autoHideMenuBar still shows it on Alt-press).
   mainWindow.setMenu(null);
 
-  mainWindow.on('ready-to-show', () => mainWindow?.show());
+  // `--hidden` is passed by the autostart login item: come up straight into the
+  // tray so an unattended run never steals focus at login.
+  const startHidden = process.argv.includes('--hidden') && getSettings().minimizeToTray;
+  mainWindow.on('ready-to-show', () => {
+    if (startHidden) return;
+    mainWindow?.show();
+  });
+
+  // X = minimize to tray. Intercept `close` (not `closed`) so the window is
+  // merely hidden and any running extraction/upload keeps going. Guarded by
+  // hasTray(): without a tray icon, hiding would make the app unreachable with
+  // no way to get it back — in that case fall through to a real close.
+  mainWindow.on('close', (e) => {
+    if (quitting || !getSettings().minimizeToTray || !hasTray()) return;
+    e.preventDefault();
+    mainWindow?.hide();
+    if (!hiddenNoticeShown) {
+      hiddenNoticeShown = true;
+      notifyHidden(trayLabels.hiddenHint ?? 'Still running in the tray.');
+    }
+  });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
@@ -105,16 +172,73 @@ ipcMain.handle('sc:env', () => ({
 
 // ============= Settings / Telemetry IPC =============
 
-ipcMain.handle('sc:settings:get', () => {
+/** Everything the UI may see — deliberately excludes the opaque installId. */
+function publicSettings(): {
+  telemetryEnabled: boolean;
+  minimizeToTray: boolean;
+  autoStart: boolean;
+  autoRunOnNewVersion: boolean;
+} {
   const s = getSettings();
   // Never expose the raw installId to the renderer — it is an internal, opaque
-  // dedup id. The UI only needs the opt-out flag.
-  return { telemetryEnabled: s.telemetryEnabled };
-});
+  // dedup id.
+  return {
+    telemetryEnabled: s.telemetryEnabled,
+    minimizeToTray: s.minimizeToTray,
+    autoStart: s.autoStart,
+    autoRunOnNewVersion: s.autoRunOnNewVersion,
+  };
+}
+
+ipcMain.handle('sc:settings:get', () => publicSettings());
 
 ipcMain.handle('sc:settings:setTelemetry', (_e, enabled: boolean) => {
-  const s = setTelemetryEnabled(Boolean(enabled));
-  return { telemetryEnabled: s.telemetryEnabled };
+  setTelemetryEnabled(Boolean(enabled));
+  return publicSettings();
+});
+
+ipcMain.handle(
+  'sc:settings:patch',
+  (_e, partial: { minimizeToTray?: boolean; autoStart?: boolean; autoRunOnNewVersion?: boolean }) => {
+    // Whitelist: the renderer must not be able to write arbitrary keys (e.g.
+    // overwrite installId) by posting an unexpected object.
+    const clean: Parameters<typeof patchSettings>[0] = {};
+    if (typeof partial?.minimizeToTray === 'boolean') clean.minimizeToTray = partial.minimizeToTray;
+    if (typeof partial?.autoStart === 'boolean') clean.autoStart = partial.autoStart;
+    if (typeof partial?.autoRunOnNewVersion === 'boolean') {
+      clean.autoRunOnNewVersion = partial.autoRunOnNewVersion;
+    }
+    patchSettings(clean);
+    return publicSettings();
+  },
+);
+
+// ============= Tray IPC =============
+
+// The renderer owns the i18n dictionary, so it pushes resolved tray strings to
+// main on boot and on every locale change.
+ipcMain.on('sc:tray:labels', (_e, labels: Partial<TrayMenuLabels>) => {
+  trayLabels = { ...trayLabels, ...labels };
+  updateTray(hub.get());
+});
+
+// ============= Auto-run IPC =============
+
+/**
+ * Decide whether to run the pipeline unattended: local data.p4k vs. what the
+ * server already holds. Pure decision in `lib/auto-run`; this only gathers the
+ * inputs. The renderer performs the run, because it owns the stage sequencing.
+ */
+ipcMain.handle('sc:autorun:decide', async (_e, signedIn: boolean): Promise<AutoRunDecision> => {
+  const settings = getSettings();
+  const decision = decideAutoRun({
+    enabled: settings.autoRunOnNewVersion,
+    signedIn: Boolean(signedIn),
+    channels: settings.autoRunOnNewVersion ? await discoverAll() : [],
+    snapshot: getCachedSnapshot(),
+  });
+  log.info(`[autorun] ${describeDecision(decision)}`);
+  return decision;
 });
 
 // ============= Renderer logging / crash forwarding =============
@@ -207,11 +331,23 @@ ipcMain.handle('sc:upload:begin', (_e, outDir: string, nat: { channel: string; p
   uploadJob.begin(outDir, nat),
 );
 
-ipcMain.handle('sc:upload:pause', () => uploadJob.pause());
-ipcMain.handle('sc:upload:resume', () => uploadJob.resume());
-ipcMain.handle('sc:upload:cancel', () => uploadJob.cancel());
+ipcMain.handle('sc:upload:pause', () => {
+  hub.setPaused(true);
+  return uploadJob.pause();
+});
+ipcMain.handle('sc:upload:resume', () => {
+  hub.setPaused(false);
+  return uploadJob.resume();
+});
+ipcMain.handle('sc:upload:cancel', () => {
+  hub.setPaused(false);
+  hub.finish('upload', 'error');
+  return uploadJob.cancel();
+});
 ipcMain.handle('sc:upload:finish', () => {
   uploadJob.finish();
+  hub.setPaused(false);
+  hub.finish('upload', 'done');
   return { ok: true };
 });
 
@@ -225,6 +361,8 @@ ipcMain.handle('sc:upload', async (_e, payload: UploadPayload) => {
   // Record the attempt BEFORE the POST: if we die in-flight we cannot know
   // whether the row landed, and `bundleNeedsRetry` uses this to say so.
   uploadJob.update((s) => ({ ...s, bundle: { ...s.bundle, status: 'running', attempted: true } }));
+  hub.start('upload');
+  hub.update('upload', 'bundle', null);
   const result = await uploadBundle(API_BASE, payload);
   if (result.ok) {
     uploadJob.update((s) => ({
@@ -300,16 +438,25 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
     timeoutMs: JOB_STALL_MS,
     onTimeout: (idle) => reportJobStall('extract', idle, jobId),
   });
+  hub.start('extract');
   const handle = startExtraction(req, (ev: PythonExtractEvent) => {
     watchdog.pet(); // every event is a sign of life — reset the stall timer
+    // Mirror into main's hub so the tray shows extraction progress even while
+    // the window is hidden.
+    const e = ev as { phase?: string; pct?: number };
+    if (typeof e.phase === 'string' || typeof e.pct === 'number') {
+      hub.update('extract', e.phase ?? null, typeof e.pct === 'number' ? e.pct : null);
+    }
     event.sender.send('sc:extract:event', { jobId, ...ev });
   });
   activeJobs.set(jobId, { cancel: handle.cancel });
   watchdog.start();
   try {
     const final = await handle.promise;
+    hub.finish('extract', final.ok ? 'done' : 'error');
     return final;
   } catch (err) {
+    hub.finish('extract', 'error');
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   } finally {
     watchdog.stop();
@@ -399,7 +546,16 @@ ipcMain.handle(
       const result = await uploadCatalog(
         accessToken,
         outDir,
-        (p) => event.sender.send('sc:catalog:event', p),
+        (p) => {
+          // Two-tier: the overall publish step drives the tray's percentage,
+          // since the per-table current/total resets on every table.
+          const pct =
+            typeof p.phaseIndex === 'number' && typeof p.phaseTotal === 'number' && p.phaseTotal > 0
+              ? ((p.phaseIndex - 1 + (p.total > 0 ? p.current / p.total : 0)) / p.phaseTotal) * 100
+              : null;
+          hub.update('upload', p.phase, pct);
+          event.sender.send('sc:catalog:event', p);
+        },
         uploadJob.hooksForCatalog(),
       );
       if (result.ok) uploadJob.update((s) => ({ ...s, catalog: { ...s.catalog, status: 'done' } }));
@@ -442,16 +598,42 @@ if (!gotLock) {
 }
 
 app.on('second-instance', () => {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
-  }
+  // Also un-hides a tray-resident instance: double-clicking the .exe while the
+  // app sits in the tray should bring the window back, not appear to do nothing.
+  showMainWindow();
 });
 
 app.whenReady().then(() => {
   app.setAppUserModelId('com.sc-companion.data-uploader');
   Menu.setApplicationMenu(null); // Belt-and-suspenders alongside per-window setMenu(null)
   createWindow();
+  // Tray first, then the close handler can safely rely on hasTray().
+  initTray(
+    {
+      show: showMainWindow,
+      quit: quitForReal,
+      pause: () => {
+        uploadJob.pause();
+        hub.setPaused(true);
+      },
+      resume: () => {
+        uploadJob.resume();
+        hub.setPaused(false);
+        // Resuming is renderer-driven (it sequences the stages), so ask it to
+        // pick the job back up. Restore the window: an upload the operator just
+        // resumed by hand is something they want to watch.
+        showMainWindow();
+        mainWindow?.webContents.send('sc:upload:resumeRequested');
+      },
+      labels: () => trayLabels,
+    },
+    hub.get(),
+  );
+  // Keep the tray text in lockstep with pipeline progress.
+  hub.onChange((s) => updateTray(s));
+  // The OS Run key is the source of truth for autostart; re-assert our stored
+  // preference in case it was cleared by an uninstall/reinstall or by policy.
+  syncAutoStartWithOs();
   initAutoUpdater(); // Schedules an update check 4 s after launch (skipped in dev builds).
   // Fire-and-forget: reclaim leftover extract dirs from prior failed/uploaded
   // runs. Non-blocking so it never delays window paint; errors are swallowed.
@@ -477,9 +659,12 @@ function cancelAllJobs(): void {
 app.on('before-quit', cancelAllJobs);
 
 app.on('window-all-closed', () => {
-  // Single-window utility: closing the window means quitting on every platform
-  // (no macOS dock-resident behavior — pressing X should make the process gone,
-  // not background it). Tear down extraction children first so nothing lingers.
+  // With minimize-to-tray on, X only hides the window, so this normally never
+  // fires. It still can (e.g. the window is destroyed some other way) — staying
+  // alive then would leave an invisible, unreachable process, so quit unless we
+  // are deliberately tray-resident. Tear down extraction children first so
+  // nothing lingers.
+  if (hasTray() && getSettings().minimizeToTray && !quitting) return;
   cancelAllJobs();
   app.quit();
 });

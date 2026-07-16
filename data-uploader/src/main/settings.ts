@@ -35,3 +35,40 @@ export function isTelemetryEnabled(): boolean {
 export function setTelemetryEnabled(enabled: boolean): Settings {
   return store().setTelemetryEnabled(enabled);
 }
+
+/** Merge a partial settings update and persist it. */
+export function patchSettings(partial: Partial<Omit<Settings, 'installId'>>): Settings {
+  const next = store().patch(partial);
+  // Autostart lives in the OS (registry Run key), not just in our JSON — keep
+  // the two in sync on every write, or a toggle would only *look* applied.
+  if ('autoStart' in partial) applyAutoStart(next.autoStart);
+  return next;
+}
+
+/**
+ * Register/unregister the app as a login item.
+ *
+ * `openAsHidden` is macOS-only; on Windows we pass `--hidden` as an arg and the
+ * app reads it to start straight into the tray — an unattended auto-run should
+ * not steal focus at login.
+ *
+ * Never applied in dev: registering the electron-vite dev binary would leave a
+ * broken Run entry on the developer's machine after the session ends.
+ */
+export function applyAutoStart(enabled: boolean): void {
+  if (!app.isPackaged) return;
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: enabled,
+      openAsHidden: enabled,
+      args: enabled ? ['--hidden'] : [],
+    });
+  } catch {
+    /* best-effort: a locked-down policy must not break settings */
+  }
+}
+
+/** Re-assert the stored autostart preference against the OS at launch. */
+export function syncAutoStartWithOs(): void {
+  applyAutoStart(getSettings().autoStart);
+}

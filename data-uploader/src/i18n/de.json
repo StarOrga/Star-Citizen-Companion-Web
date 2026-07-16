@@ -112,7 +112,8 @@
       "resumed": "Upload wird fortgesetzt…",
       "discard": "Verwerfen",
       "cancelled": "Upload verworfen — der Fortschritt wurde gelöscht.",
-      "resumeBanner": "Unterbrochener Upload gefunden ({{hint}}) — fortsetzen?"
+      "resumeBanner": "Unterbrochener Upload gefunden ({{hint}}) — fortsetzen?",
+      "pauseShort": "pausiert"
     }
   },
   "update": {
@@ -182,5 +183,25 @@
     "still": "arbeitet noch",
     "eta": "Rest",
     "perSec": "/s"
+  },
+  "tray": {
+    "open": "Fenster öffnen",
+    "quit": "Beenden",
+    "hiddenHint": "Läuft im Tray weiter.",
+    "idle": "Bereit",
+    "extract": "Extraktion",
+    "upload": "Upload",
+    "done": "fertig",
+    "error": "fehlgeschlagen",
+    "minimize": "Beim Schließen in den Tray minimieren",
+    "minimizeHint": "Das X schließt das Fenster in den Tray, statt das Programm zu beenden.",
+    "autoStart": "Mit Windows starten",
+    "autoStartHint": "Startet das Programm mit Windows — direkt im Tray, ohne Fenster."
+  },
+  "autorun": {
+    "toggle": "Bei neuer data.p4k-Version automatisch komplett durchlaufen",
+    "hint": "Prüft beim Start, ob eine neuere data.p4k vorliegt als bereits hochgeladen — und fährt dann den kompletten Prozess automatisch.",
+    "starting": "Neue Version erkannt ({{channel}}: {{local}} vs. {{server}}) — starte automatisch.",
+    "resumeFirst": "Unterbrochener Upload gefunden — Auto-Lauf übersprungen."
   }
 }
