@@ -1034,13 +1034,13 @@
   "consent": {
     "banner": {
       "title": "Browser-Speicher",
-      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und gemerkte Artikel. Änderbar jederzeit in den Einstellungen.",
+      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und gemerkte Artikel sowie anonyme Nutzungsstatistiken. Änderbar jederzeit in den Einstellungen.",
       "acceptAll": "Alle erlauben",
       "essentialOnly": "Nur notwendige"
     },
     "settings": {
       "title": "Browser-Speicher & Datenschutz",
-      "hint": "Diese App setzt keine Cookies und kein Tracking. Alles Folgende liegt ausschließlich im localStorage dieses Browsers.",
+      "hint": "Diese App setzt keine Cookies. Alles Folgende liegt im localStorage dieses Browsers. Anonyme Nutzungsstatistiken sind standardmäßig aus und werden nur mit deiner Zustimmung erhoben.",
       "alwaysOn": "Immer aktiv",
       "on": "Erlaubt",
       "off": "Aus",
@@ -1051,6 +1051,10 @@
       "preferences": {
         "label": "Präferenzen",
         "desc": "News-Kanalfilter, gemerkte Artikel und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
+      },
+      "statistics": {
+        "label": "Statistik",
+        "desc": "Anonyme Nutzungsstatistiken (PostHog, EU-Server), um zu verstehen welche Bereiche genutzt werden. Standardmäßig aus, keine Identifizierung, keine Sitzungsaufzeichnung. Beim Abschalten werden die gespeicherten Werte gelöscht."
       }
     }
   },

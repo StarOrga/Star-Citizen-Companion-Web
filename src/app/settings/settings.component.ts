@@ -138,6 +138,19 @@ type LangId = 'de' | 'en';
           </span>
         </div>
         <p class="consent-desc">{{ 'consent.settings.preferences.desc' | translate }}</p>
+        <div class="row">
+          <span class="label">{{ 'consent.settings.statistics.label' | translate }}</span>
+          <span class="value">
+            <label class="consent-toggle">
+              <input
+                type="checkbox"
+                [checked]="consent.statisticsAllowed()"
+                (change)="onStatisticsToggle($event)" />
+              {{ (consent.statisticsAllowed() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
+            </label>
+          </span>
+        </div>
+        <p class="consent-desc">{{ 'consent.settings.statistics.desc' | translate }}</p>
       </div>
 
       <!-- 5. Danger zone -->
@@ -389,6 +402,10 @@ export class SettingsComponent implements OnInit {
 
   onConsentToggle(e: Event) {
     this.consent.setPreferences((e.target as HTMLInputElement).checked);
+  }
+
+  onStatisticsToggle(e: Event) {
+    this.consent.setStatistics((e.target as HTMLInputElement).checked);
   }
 
   onLangChange(e: Event) {

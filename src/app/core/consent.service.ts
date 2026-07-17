@@ -1,23 +1,27 @@
 import { Injectable, computed, signal } from '@angular/core';
 
 /**
- * Browser-storage consent (issue #130).
+ * Browser-storage consent (issue #130, extended for analytics in #139).
  *
- * The app sets no cookies — it uses localStorage in two categories:
+ * The app sets no cookies — it uses localStorage in three categories:
  *  - `essential`: required for the app to function. Auth session (`sc.auth`),
  *    language (`sc.lang`), and the consent decision itself (`sc.consent`).
  *    Not configurable — without these, login and language selection break.
  *  - `preferences`: convenience state (news channel filter, saved articles,
  *    admin UI drafts/defaults). Opt-in: nothing in this category is written
  *    until the user allows it; declining purges what exists.
+ *  - `statistics`: anonymous product analytics (PostHog, EU region). Opt-in:
+ *    no analytics library is loaded and no event is sent until the user
+ *    allows it; declining purges PostHog's own localStorage state.
  *
  * The decision is stored in localStorage itself — persisting the consent
  * choice is universally treated as strictly necessary.
  */
-export type ConsentCategory = 'essential' | 'preferences';
+export type ConsentCategory = 'essential' | 'preferences' | 'statistics';
 
 interface ConsentState {
   preferences: boolean;
+  statistics: boolean;
   decidedAt: string;
 }
 
@@ -31,6 +35,10 @@ const PREFERENCE_KEYS = [
   'sc-telemetry-product',
   'sc.adminFeedback.draft',
 ] as const;
+
+// PostHog namespaces its localStorage entries `ph_<projectKey>_*`, so the exact
+// key depends on the project key. Purge by prefix instead of an exact list.
+const STATISTICS_KEY_PREFIX = 'ph_';
 
 @Injectable({ providedIn: 'root' })
 export class ConsentService {
@@ -46,26 +54,54 @@ export class ConsentService {
    */
   readonly preferencesAllowed = computed(() => this.state()?.preferences ?? false);
 
-  /** Banner: accept both categories. */
+  /**
+   * May anonymous analytics be collected? Opt-in and independent of
+   * `preferences`: false until explicitly allowed, and false for anyone who
+   * decided before this category existed (their stored state has no
+   * `statistics` field — see `readState`).
+   */
+  readonly statisticsAllowed = computed(() => this.state()?.statistics ?? false);
+
+  /** Banner: accept all categories. */
   acceptAll(): void {
-    this.setPreferences(true);
+    this.set({ preferences: true, statistics: true });
   }
 
   /** Banner: essential only. */
   essentialOnly(): void {
-    this.setPreferences(false);
+    this.set({ preferences: false, statistics: false });
   }
 
   /** Settings toggle. Declining purges already-stored preference keys. */
   setPreferences(allowed: boolean): void {
-    const next: ConsentState = { preferences: allowed, decidedAt: new Date().toISOString() };
+    this.set({ preferences: allowed });
+  }
+
+  /** Settings toggle. Declining purges PostHog's stored analytics state. */
+  setStatistics(allowed: boolean): void {
+    this.set({ statistics: allowed });
+  }
+
+  /**
+   * Applies a partial decision on top of the current one. An undecided visitor
+   * toggling a single category implicitly declines the categories they did not
+   * touch — opt-in means absence of consent is a "no".
+   */
+  private set(patch: Partial<Omit<ConsentState, 'decidedAt'>>): void {
+    const current = this.state();
+    const next: ConsentState = {
+      preferences: patch.preferences ?? current?.preferences ?? false,
+      statistics: patch.statistics ?? current?.statistics ?? false,
+      decidedAt: new Date().toISOString(),
+    };
     this.state.set(next);
     try {
       localStorage.setItem(CONSENT_KEY, JSON.stringify(next));
     } catch {
       /* private mode / quota — the in-memory signal still applies this session */
     }
-    if (!allowed) purgePreferenceKeys();
+    if (!next.preferences) purgePreferenceKeys();
+    if (!next.statistics) purgeStatisticsKeys();
   }
 }
 
@@ -76,7 +112,14 @@ function readState(): ConsentState | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<ConsentState>;
     if (typeof parsed?.preferences !== 'boolean') return null;
-    return { preferences: parsed.preferences, decidedAt: parsed.decidedAt ?? '' };
+    return {
+      preferences: parsed.preferences,
+      // Absent for anyone who decided before the statistics category existed.
+      // Re-asking would be more correct than assuming, but assuming "no" is the
+      // safe direction: they simply stay opted out until they opt in.
+      statistics: typeof parsed.statistics === 'boolean' ? parsed.statistics : false,
+      decidedAt: parsed.decidedAt ?? '',
+    };
   } catch {
     return null;
   }
@@ -90,5 +133,15 @@ function purgePreferenceKeys(): void {
     } catch {
       /* ignore */
     }
+  }
+}
+
+function purgeStatisticsKeys(): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const stale = Object.keys(localStorage).filter((k) => k.startsWith(STATISTICS_KEY_PREFIX));
+    for (const key of stale) localStorage.removeItem(key);
+  } catch {
+    /* ignore */
   }
 }
