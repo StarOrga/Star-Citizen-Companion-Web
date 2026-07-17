@@ -767,6 +767,12 @@
       "ofPorts": "von {{count}} Ports",
       "note": "Berechnet aus den extrahierten Komponentendaten dieses Katalog-Builds; Werte nicht geseedeter Items fehlen — Angaben sind Näherungen."
     },
+    "compStat": {
+      "jumpRange": "Sprungreichweite",
+      "driveSpeed": "Antriebstempo",
+      "shieldHp": "Schild-HP",
+      "shieldRegen": "Schild-Regen"
+    },
     "loadout": {
       "title": "Hardpoints & Loadout",
       "noPorts": "Für dieses Schiff sind keine Hardpoint-Daten verfügbar.",

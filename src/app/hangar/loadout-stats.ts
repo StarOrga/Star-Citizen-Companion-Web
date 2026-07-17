@@ -87,6 +87,14 @@ function dropFltMaxSentinel(v: number | null): number | null {
   return v !== null && v >= FLT_MAX_SENTINEL_THRESHOLD ? null : v;
 }
 
+// Struct-field candidates, shared by the aggregate stats and the per-component
+// key-stat readout so both dig the same fields out of the heterogeneous stats.
+const QD_JUMP_RANGE_FIELDS = ['jumpRange', 'JumpRange'];
+const QD_DRIVE_SPEED_FIELDS = ['driveSpeed', 'DriveSpeed'];
+const QD_FUEL_FIELDS = ['quantumFuelRequirement', 'QuantumFuelRequirement'];
+const SHIELD_HP_FIELDS = ['MaxShieldHealth', 'ShieldHealth', 'Health'];
+const SHIELD_REGEN_FIELDS = ['MaxShieldRegen', 'ShieldRegen', 'RegenRate'];
+
 function isComponentPayload(p: unknown): p is ComponentPayload {
   return !!p && typeof p === 'object' && (p as { entityKind?: string }).entityKind === 'component';
 }
@@ -119,19 +127,16 @@ export function computeLoadoutStats(lines: ResolvedLoadoutLine[]): LoadoutStats 
     const stats = line.payload.stats as Record<string, Record<string, unknown>> | undefined;
 
     if (line.payload.kind === 'Shield') {
-      const hp = findStat(stats, 'shield', ['MaxShieldHealth', 'ShieldHealth', 'Health']);
-      const regen = findStat(stats, 'shield', ['MaxShieldRegen', 'ShieldRegen', 'RegenRate']);
+      const hp = findStat(stats, 'shield', SHIELD_HP_FIELDS);
+      const regen = findStat(stats, 'shield', SHIELD_REGEN_FIELDS);
       if (hp !== null) shieldHp = (shieldHp ?? 0) + hp;
       if (regen !== null) shieldRegen = (shieldRegen ?? 0) + regen;
     } else if (line.payload.kind === 'QuantumDrive') {
       // Last drive wins (ships have one QD; multiples would be config errors).
       quantum = {
-        jumpRangeMm: dropFltMaxSentinel(findStat(stats, 'quantum', ['jumpRange', 'JumpRange'])),
-        fuelCapacity: findStat(stats, 'quantum', [
-          'quantumFuelRequirement',
-          'QuantumFuelRequirement',
-        ]),
-        driveSpeedMs: findStat(stats, 'quantum', ['driveSpeed', 'DriveSpeed']),
+        jumpRangeMm: dropFltMaxSentinel(findStat(stats, 'quantum', QD_JUMP_RANGE_FIELDS)),
+        fuelCapacity: findStat(stats, 'quantum', QD_FUEL_FIELDS),
+        driveSpeedMs: findStat(stats, 'quantum', QD_DRIVE_SPEED_FIELDS),
       };
     }
   }
@@ -145,6 +150,49 @@ export function computeLoadoutStats(lines: ResolvedLoadoutLine[]): LoadoutStats 
     shieldRegen,
     quantum,
   };
+}
+
+/** How a component key-stat's raw value should be rendered by the UI. */
+export type ComponentStatFormat = 'gm' | 'kmPerSec' | 'int' | 'intPerSec';
+
+/** One notable stat of a single component, ready to show on its loadout row. */
+export interface ComponentKeyStat {
+  /** i18n key under `hangar.compStat.*`. */
+  labelKey: string;
+  /** how the component formats `value` (source units below). */
+  format: ComponentStatFormat;
+  /** raw value in source units: metres (gm), m/s (kmPerSec), or hp / hp·s⁻¹. */
+  value: number;
+}
+
+/**
+ * The headline technical stats of a *single* component, so the loadout list can
+ * show e.g. the quantum drive's jump range right on its row (not only in the
+ * aggregate card). Same defensive extraction as `computeLoadoutStats`; returns
+ * an empty array for components without curated headline stats.
+ */
+export function componentKeyStats(payload: unknown): ComponentKeyStat[] {
+  if (!isComponentPayload(payload)) return [];
+  const stats = payload.stats as Record<string, Record<string, unknown>> | undefined;
+  const out: ComponentKeyStat[] = [];
+
+  if (payload.kind === 'QuantumDrive') {
+    const jump = dropFltMaxSentinel(findStat(stats, 'quantum', QD_JUMP_RANGE_FIELDS));
+    if (jump !== null) out.push({ labelKey: 'hangar.compStat.jumpRange', format: 'gm', value: jump });
+    const speed = findStat(stats, 'quantum', QD_DRIVE_SPEED_FIELDS);
+    if (speed !== null) {
+      out.push({ labelKey: 'hangar.compStat.driveSpeed', format: 'kmPerSec', value: speed });
+    }
+  } else if (payload.kind === 'Shield') {
+    const hp = findStat(stats, 'shield', SHIELD_HP_FIELDS);
+    if (hp !== null) out.push({ labelKey: 'hangar.compStat.shieldHp', format: 'int', value: hp });
+    const regen = findStat(stats, 'shield', SHIELD_REGEN_FIELDS);
+    if (regen !== null) {
+      out.push({ labelKey: 'hangar.compStat.shieldRegen', format: 'intPerSec', value: regen });
+    }
+  }
+
+  return out;
 }
 
 /**
