@@ -865,6 +865,12 @@
       "ofPorts": "of {{count}} ports",
       "note": "Computed from the extracted component data of this catalog build; values for unseeded items are missing — figures are approximations."
     },
+    "compStat": {
+      "jumpRange": "Jump range",
+      "driveSpeed": "Drive speed",
+      "shieldHp": "Shield HP",
+      "shieldRegen": "Shield regen"
+    },
     "loadout": {
       "title": "Hardpoints & loadout",
       "noPorts": "No hardpoint data available for this ship.",
