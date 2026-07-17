@@ -47,6 +47,13 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
           @if (version(); as v) {
             <span class="ver">v{{ v }}</span>
           }
+          <nav class="legal-links" [attr.aria-label]="'footer.legalNav' | translate">
+            <a routerLink="/about">{{ 'footer.links.about' | translate }}</a>
+            <span aria-hidden="true">·</span>
+            <a routerLink="/legal/privacy">{{ 'footer.links.privacy' | translate }}</a>
+            <span aria-hidden="true">·</span>
+            <a routerLink="/legal/imprint">{{ 'footer.links.imprint' | translate }}</a>
+          </nav>
         </div>
       </div>
     </footer>
@@ -146,6 +153,18 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
       font-size: 0.68rem;
       font-family: ui-monospace, monospace;
     }
+    .legal-links {
+      display: flex;
+      gap: 6px;
+      font-size: 0.68rem;
+      color: var(--sc-fg-2);
+    }
+    .legal-links a {
+      color: var(--sc-fg-2);
+      text-decoration: none;
+      transition: color 0.16s ease;
+    }
+    .legal-links a:hover { color: var(--sc-accent); }
     @media (max-width: 640px) {
       .site-footer { padding: 12px 16px; }
       .inner { flex-direction: column; align-items: flex-start; gap: 10px; }

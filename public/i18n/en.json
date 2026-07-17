@@ -675,7 +675,105 @@
     "disclaimer": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content not authored by this site's host or its users is the property of its respective owner.",
     "trademarks": "Star Citizen, Roberts Space Industries and Cloud Imperium are trademarks of Cloud Imperium Rights LLC.",
     "disclaimerExpand": "Show full disclaimer",
-    "disclaimerCollapse": "Collapse disclaimer"
+    "disclaimerCollapse": "Collapse disclaimer",
+    "legalNav": "Legal and project information",
+    "links": {
+      "about": "About",
+      "privacy": "Privacy",
+      "imprint": "Site notice"
+    }
+  },
+  "legal": {
+    "about": {
+      "title": "About SC Companion",
+      "subtitle": "Who runs this site, what it does, and where the code lives.",
+      "what": {
+        "title": "What is this?",
+        "p1": "Star Citizen Companion (SCC) is a free, non-commercial companion app for the space sim Star Citizen: Verse news, a ship and equipment codex, and personal hangar and loadout tools.",
+        "p2": "News, codex and release notes are browsable without an account. An account is only needed for personal features such as your hangar, and registration is currently invite-only."
+      },
+      "openSource": {
+        "title": "Open source",
+        "p1": "The entire application is developed in the open. Every change is publicly reviewable on GitHub — this is the same code that runs on this site.",
+        "repoLink": "Source code on GitHub (StarOrga/Star-Citizen-Companion-Web)"
+      },
+      "data": {
+        "title": "Your data",
+        "p1": "SCC shows no ads, runs no third-party tracking, and stores only what the features need. Details are in the privacy policy:",
+        "privacyLink": "Privacy policy"
+      },
+      "affiliation": {
+        "title": "Fan project — not affiliated",
+        "p1": "SCC is an unofficial fan project made by the community. It is not affiliated with, endorsed by, or sponsored by Cloud Imperium Games or Roberts Space Industries, and it never asks for your RSI account credentials."
+      },
+      "contact": {
+        "title": "Contact",
+        "p1": "The fastest way to reach the maintainers:",
+        "issuesLink": "GitHub issues (bugs, questions, feedback)",
+        "securityLink": "Security contact (security.txt, RFC 9116)"
+      }
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "updated": "Last updated: July 2026",
+      "summary": {
+        "title": "In short",
+        "noAds": "No advertising, no ad networks.",
+        "noTracking": "No third-party analytics or tracking cookies.",
+        "minimal": "Only the data the features need — nothing is sold or shared for marketing.",
+        "euHosting": "Application data is stored in the EU (Supabase, region eu-central-1 / Frankfurt)."
+      },
+      "hosting": {
+        "title": "Hosting and server logs",
+        "p1": "This site is delivered by Vercel Inc. (USA). When you visit, Vercel technically processes your IP address and browser information to serve the page and to protect the service (legitimate interest, Art. 6(1)(f) GDPR).",
+        "p2": "The app itself is a static web application; there is no server-side page rendering with personal data."
+      },
+      "account": {
+        "title": "Account and application data",
+        "p1": "If you create an account, your e-mail address and a salted password hash are processed by our backend provider Supabase in the EU region eu-central-1 (Frankfurt). Optionally you can sign in with Google; in that case Google learns that you signed in to this site, and we receive your e-mail address from Google.",
+        "p2": "Feature data you create (profile, hangar ships, loadouts, settings) is stored under your account and is only readable by you — enforced with row-level security in the database.",
+        "p3": "Accounts are invite-only. Sign-ups that are not approved can be removed together with their data."
+      },
+      "local": {
+        "title": "Cookies and local storage",
+        "p1": "SCC sets no third-party tracking cookies. Your browser's local storage keeps the sign-in session token, language preference and UI state. As an installable web app (PWA), a service worker caches static assets on your device for faster loading and offline use — this cache contains no personal data and can be cleared by uninstalling the app or clearing site data."
+      },
+      "thirdParty": {
+        "title": "Third-party services",
+        "p1": "The app talks to a small, fixed set of services (also technically enforced by our Content-Security-Policy):",
+        "supabase": "Supabase (database, authentication) — EU region eu-central-1.",
+        "vercel": "Vercel (hosting, CDN) — delivery of the static app.",
+        "google": "Google Sign-In (optional) — only if you choose to sign in with Google.",
+        "fonts": "Google Fonts — font files are loaded from Google servers; Google may see your IP address.",
+        "gameApis": "Public Star Citizen data: status.robertsspaceindustries.com and api.star-citizen.wiki (read-only, no account data is sent)."
+      },
+      "rights": {
+        "title": "Your rights",
+        "p1": "Under the GDPR you have the right to access, rectification, erasure, restriction of processing, data portability and objection regarding your personal data.",
+        "p2": "You can delete your account and its data in the app settings, or contact the maintainers via the site notice — we will handle requests promptly."
+      }
+    },
+    "imprint": {
+      "title": "Site Notice",
+      "operator": {
+        "title": "Operator",
+        "p1": "Star Citizen Companion (sc-companion.vercel.app) is a non-commercial, open-source community project. It is maintained by the StarOrga organization and its contributors on GitHub.",
+        "p2": "The project earns no revenue: no ads, no paid features, no sponsoring."
+      },
+      "contact": {
+        "title": "Contact",
+        "issuesLink": "GitHub issues — general contact, bugs, feedback",
+        "securityLink": "Security reports — private advisory on GitHub"
+      },
+      "liability": {
+        "title": "Liability for content and links",
+        "p1": "The contents of this site are created with care; nevertheless no guarantee is taken for correctness, completeness or timeliness. Game data shown in the codex is community-extracted and may deviate from the live game.",
+        "p2": "External links lead to third-party content over which we have no control; at the time of linking no legal violations were apparent. If we become aware of violations, affected links will be removed."
+      },
+      "trademark": {
+        "title": "Trademarks"
+      }
+    }
   },
   "hangar": {
     "title": "My Hangar",

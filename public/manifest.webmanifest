@@ -1,6 +1,11 @@
 {
   "name": "SC Companion",
   "short_name": "SC Companion",
+  "id": "/",
+  "lang": "en",
+  "dir": "ltr",
+  "description": "Star Citizen Companion (SCC) — unofficial community companion app for Star Citizen: Verse news, codex, hangar and loadout tools. Not affiliated with Cloud Imperium Games.",
+  "categories": ["utilities", "games", "news"],
   "theme_color": "#0a0e1a",
   "background_color": "#050810",
   "display": "standalone",
