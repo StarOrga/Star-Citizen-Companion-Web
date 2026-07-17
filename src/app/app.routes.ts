@@ -191,6 +191,21 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./release-notes/release-notes.component').then((m) => m.ReleaseNotesComponent),
       },
+      {
+        // Public trust/legal surface: a login-capable site without reachable
+        // about/privacy/imprint pages matches phishing heuristics of AV
+        // URL-reputation scanners. Deliberately unguarded and in sitemap.xml.
+        path: 'about',
+        loadComponent: () => import('./legal/about.component').then((m) => m.AboutComponent),
+      },
+      {
+        path: 'legal/privacy',
+        loadComponent: () => import('./legal/privacy.component').then((m) => m.PrivacyComponent),
+      },
+      {
+        path: 'legal/imprint',
+        loadComponent: () => import('./legal/imprint.component').then((m) => m.ImprintComponent),
+      },
     ],
   },
   {

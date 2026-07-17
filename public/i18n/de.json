@@ -675,7 +675,106 @@
     "disclaimer": "Dies ist eine inoffizielle Star-Citizen-Fan-Site, nicht verbunden mit der Cloud-Imperium-Unternehmensgruppe. Alle Inhalte, die nicht vom Betreiber dieser Seite oder ihren Nutzern erstellt wurden, sind Eigentum der jeweiligen Rechteinhaber.",
     "trademarks": "Star Citizen, Roberts Space Industries und Cloud Imperium sind Marken von Cloud Imperium Rights LLC.",
     "disclaimerExpand": "Vollständigen Haftungsausschluss anzeigen",
-    "disclaimerCollapse": "Haftungsausschluss einklappen"
+    "disclaimerCollapse": "Haftungsausschluss einklappen",
+    "legalNav": "Rechtliches und Projekt-Informationen",
+    "links": {
+      "about": "Über",
+      "privacy": "Datenschutz",
+      "imprint": "Impressum"
+    }
+  },
+  "legal": {
+    "about": {
+      "title": "Über SC Companion",
+      "subtitle": "Wer diese Seite betreibt, was sie tut und wo der Code liegt.",
+      "what": {
+        "title": "Was ist das hier?",
+        "p1": "Star Citizen Companion (SCC) ist eine kostenlose, nicht-kommerzielle Companion-App für die Weltraumsimulation Star Citizen: Verse-News, ein Schiffs- und Ausrüstungs-Codex sowie persönliche Hangar- und Loadout-Werkzeuge.",
+        "p2": "News, Codex und Release Notes sind ohne Konto nutzbar. Ein Konto braucht es nur für persönliche Funktionen wie den Hangar — die Registrierung ist derzeit nur auf Einladung möglich."
+      },
+      "openSource": {
+        "title": "Open Source",
+        "p1": "Die gesamte Anwendung wird offen entwickelt. Jede Änderung ist öffentlich auf GitHub nachvollziehbar — es ist derselbe Code, der auf dieser Seite läuft.",
+        "repoLink": "Quellcode auf GitHub (StarOrga/Star-Citizen-Companion-Web)"
+      },
+      "data": {
+        "title": "Deine Daten",
+        "p1": "SCC zeigt keine Werbung und speichert nur, was die Funktionen brauchen. Produkt-Analytik läuft über PostHog auf EU-Servern. Details stehen in der Datenschutzerklärung:",
+        "privacyLink": "Datenschutzerklärung"
+      },
+      "affiliation": {
+        "title": "Fan-Projekt — nicht affiliiert",
+        "p1": "SCC ist ein inoffizielles Fan-Projekt aus der Community. Es ist nicht mit Cloud Imperium Games oder Roberts Space Industries verbunden, wird von ihnen weder unterstützt noch gesponsert — und fragt niemals nach deinen RSI-Zugangsdaten."
+      },
+      "contact": {
+        "title": "Kontakt",
+        "p1": "Der schnellste Weg zu den Maintainern:",
+        "issuesLink": "GitHub Issues (Bugs, Fragen, Feedback)",
+        "securityLink": "Security-Kontakt (security.txt, RFC 9116)"
+      }
+    },
+    "privacy": {
+      "title": "Datenschutzerklärung",
+      "updated": "Stand: Juli 2026",
+      "summary": {
+        "title": "Kurz gefasst",
+        "noAds": "Keine Werbung, keine Werbenetzwerke.",
+        "noTracking": "Keine Werbe-Tracker. Produkt-Analytik läuft über PostHog auf EU-Servern, um die App zu verbessern.",
+        "minimal": "Nur die Daten, die die Funktionen brauchen — nichts wird verkauft oder zu Marketingzwecken geteilt.",
+        "euHosting": "Anwendungsdaten liegen in der EU (Supabase, Region eu-central-1 / Frankfurt)."
+      },
+      "hosting": {
+        "title": "Hosting und Server-Logs",
+        "p1": "Diese Seite wird von Vercel Inc. (USA) ausgeliefert. Beim Aufruf verarbeitet Vercel technisch bedingt deine IP-Adresse und Browser-Informationen, um die Seite auszuliefern und den Dienst zu schützen (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO).",
+        "p2": "Die App selbst ist eine statische Web-Anwendung; es findet kein serverseitiges Rendern mit personenbezogenen Daten statt."
+      },
+      "account": {
+        "title": "Konto- und Anwendungsdaten",
+        "p1": "Wenn du ein Konto anlegst, verarbeitet unser Backend-Anbieter Supabase deine E-Mail-Adresse und einen gesalzenen Passwort-Hash in der EU-Region eu-central-1 (Frankfurt). Optional kannst du dich mit Google anmelden; Google erfährt dann, dass du dich auf dieser Seite angemeldet hast, und wir erhalten deine E-Mail-Adresse von Google.",
+        "p2": "Funktionsdaten, die du anlegst (Profil, Hangar-Schiffe, Loadouts, Einstellungen), werden unter deinem Konto gespeichert und sind nur für dich lesbar — durchgesetzt per Row-Level-Security in der Datenbank.",
+        "p3": "Konten sind nur auf Einladung möglich. Nicht freigeschaltete Registrierungen können samt Daten entfernt werden."
+      },
+      "local": {
+        "title": "Cookies und lokaler Speicher",
+        "p1": "SCC setzt keine Tracking-Cookies von Dritten. Im lokalen Speicher deines Browsers liegen Session-Token, Spracheinstellung und UI-Zustand. Als installierbare Web-App (PWA) cached ein Service Worker statische Dateien auf deinem Gerät für schnelleres Laden und Offline-Nutzung — dieser Cache enthält keine personenbezogenen Daten und lässt sich durch Deinstallation oder Löschen der Website-Daten entfernen."
+      },
+      "thirdParty": {
+        "title": "Dienste von Drittanbietern",
+        "p1": "Die App kommuniziert mit einem kleinen, festen Satz an Diensten (technisch zusätzlich per Content-Security-Policy durchgesetzt):",
+        "supabase": "Supabase (Datenbank, Authentifizierung) — EU-Region eu-central-1.",
+        "vercel": "Vercel (Hosting, CDN) — Auslieferung der statischen App.",
+        "google": "Google Sign-In (optional) — nur wenn du dich bewusst mit Google anmeldest.",
+        "posthog": "PostHog (Produkt-Analytik und Fehlerdiagnose) — EU-Cloud, eingebunden über einen First-Party-Proxy; erfasst Nutzungsereignisse und Fehler zur Verbesserung der App.",
+        "fonts": "Google Fonts — Schriftdateien werden von Google-Servern geladen; Google kann dabei deine IP-Adresse sehen.",
+        "gameApis": "Öffentliche Star-Citizen-Daten: status.robertsspaceindustries.com und api.star-citizen.wiki (nur lesend, es werden keine Kontodaten übertragen)."
+      },
+      "rights": {
+        "title": "Deine Rechte",
+        "p1": "Nach der DSGVO hast du das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch bezüglich deiner personenbezogenen Daten.",
+        "p2": "Du kannst dein Konto samt Daten in den App-Einstellungen löschen oder die Maintainer über das Impressum kontaktieren — Anfragen werden zeitnah bearbeitet."
+      }
+    },
+    "imprint": {
+      "title": "Impressum",
+      "operator": {
+        "title": "Betreiber",
+        "p1": "Star Citizen Companion (sc-companion.vercel.app) ist ein nicht-kommerzielles Open-Source-Community-Projekt. Es wird von der StarOrga-Organisation und ihren Mitwirkenden auf GitHub betreut.",
+        "p2": "Das Projekt erzielt keine Einnahmen: keine Werbung, keine Bezahlfunktionen, kein Sponsoring."
+      },
+      "contact": {
+        "title": "Kontakt",
+        "issuesLink": "GitHub Issues — allgemeiner Kontakt, Bugs, Feedback",
+        "securityLink": "Sicherheitsmeldungen — privates Advisory auf GitHub"
+      },
+      "liability": {
+        "title": "Haftung für Inhalte und Links",
+        "p1": "Die Inhalte dieser Seite werden mit Sorgfalt erstellt; für Richtigkeit, Vollständigkeit und Aktualität wird dennoch keine Gewähr übernommen. Im Codex gezeigte Spieldaten sind community-extrahiert und können vom Live-Spiel abweichen.",
+        "p2": "Externe Links führen zu Inhalten Dritter, auf die wir keinen Einfluss haben; zum Zeitpunkt der Verlinkung waren keine Rechtsverstöße erkennbar. Werden uns Verstöße bekannt, entfernen wir betroffene Links."
+      },
+      "trademark": {
+        "title": "Marken"
+      }
+    }
   },
   "hangar": {
     "title": "Mein Hangar",
