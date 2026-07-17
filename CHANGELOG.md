@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.37.0] - 2026-07-17
+
+### Added
+
+- **Starscape filters out broken and blank wallpapers automatically.** Corrupted
+  or truncated comm-link images (glitch stripes, large blown-out fill blocks)
+  and near-empty "pattern" backgrounds with no actual artwork no longer reach
+  the gallery. The news crawl now decodes every wallpaper candidate's pixels and
+  scores them on entropy, color dominance, uniform bands, bright-fill share and
+  edge density before accepting the image — calibrated against the full live
+  dataset with zero false positives (genuinely dark space scenes are kept). Six
+  existing broken/blank entries were purged from the gallery.
+
 ## [0.36.0] - 2026-07-17
 
 ### Added
