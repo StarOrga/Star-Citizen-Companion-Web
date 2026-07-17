@@ -9,4 +9,6 @@ export const environment = {
     p4kBucket: 'p4k-uploads',
     maxP4kSizeMb: 200,
   },
+  posthogKey: import.meta.env['NG_APP_POSTHOG_PROJECT_TOKEN'] || '',
+  posthogHost: import.meta.env['NG_APP_POSTHOG_HOST'] || 'https://eu.i.posthog.com',
 };

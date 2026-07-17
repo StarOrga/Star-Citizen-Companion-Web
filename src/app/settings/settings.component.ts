@@ -11,6 +11,7 @@ import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { ConsentService } from '../core/consent.service';
+import { PostHogService } from '../core/posthog.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 
 // Only languages with a real translation file are offered (issue #23) — the
@@ -327,6 +328,7 @@ export class SettingsComponent implements OnInit {
   readonly consent = inject(ConsentService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
+  private readonly posthog = inject(PostHogService);
 
   readonly locales: readonly LangId[] = ['de', 'en'];
   // Normalize legacy stored values (fr/es/pt/ru/zh from the old 7-language
@@ -385,6 +387,7 @@ export class SettingsComponent implements OnInit {
     this.usernameInput.set(next);
     this.usernameOk.set(true);
     this.usernameSaving.set(false);
+    this.posthog.posthog.capture('settings_username_saved');
   }
 
   onConsentToggle(e: Event) {
@@ -395,6 +398,7 @@ export class SettingsComponent implements OnInit {
     const lang = (e.target as HTMLSelectElement).value as LangId;
     this.translate.use(lang);
     if (typeof localStorage !== 'undefined') localStorage.setItem('sc.lang', lang);
+    this.posthog.posthog.capture('settings_language_changed', { lang });
     // Persist to the profile as the logged-in preference. Fire-and-forget:
     // a failure here (e.g. migration not yet applied) must not block the UI.
     this.sb.client
