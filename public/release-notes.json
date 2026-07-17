@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.35.2",
+  "current": "0.36.0",
   "releases": [
+    {
+      "version": "0.36.0",
+      "date": "2026-07-17",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Ship detail shows each component's key stats right on its row.",
+              "text": "In the hangar ship detail view, a component's headline figures now appear directly on its hardpoint (and standard-components) row — the quantum drive's jump range and drive speed, and a shield's HP and regen — instead of only in the aggregate \"Loadout stats\" card. So the jump range stands next to the Quantum drive itself. Values come from the existing extracted catalog data (no new data source); components without curated headline stats simply show none."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.35.2",
       "date": "2026-07-14",
