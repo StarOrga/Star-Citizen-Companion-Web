@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.36.0] - 2026-07-17
+
+### Added
+
+- **Ship detail shows each component's key stats right on its row.** In the
+  hangar ship detail view, a component's headline figures now appear directly on
+  its hardpoint (and standard-components) row — the quantum drive's **jump range**
+  and **drive speed**, and a shield's **HP** and **regen** — instead of only in
+  the aggregate "Loadout stats" card. So the jump range stands next to the
+  Quantum drive itself. Values come from the existing extracted catalog data (no
+  new data source); components without curated headline stats simply show none.
+
 ## [0.35.2] - 2026-07-14
 
 ### Fixed

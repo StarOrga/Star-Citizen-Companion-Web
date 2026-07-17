@@ -35,7 +35,13 @@ import {
   SHIP_CONFIG_ROLES,
   ShipConfigRole,
 } from './hangar.types';
-import { LoadoutStats, computeLoadoutStats, mergeLoadout } from './loadout-stats';
+import {
+  ComponentKeyStat,
+  LoadoutStats,
+  componentKeyStats,
+  computeLoadoutStats,
+  mergeLoadout,
+} from './loadout-stats';
 
 interface PortRow {
   port: CodexItemPort;
@@ -191,6 +197,18 @@ interface PortRow {
                           <span class="badge subtle">{{ humanizeType(t) }}</span>
                         }
                       </span>
+                      @if (portStats(row.stockClassName); as cstats) {
+                        @if (cstats.length) {
+                          <div class="comp-stats">
+                            @for (st of cstats; track st.labelKey) {
+                              <span class="comp-stat">
+                                <span class="cs-k">{{ st.labelKey | translate }}</span>
+                                <span class="cs-v">{{ st.text }}</span>
+                              </span>
+                            }
+                          </div>
+                        }
+                      }
                     </div>
                   }
                 </div>
@@ -274,6 +292,18 @@ interface PortRow {
                           </button>
                         }
                       </div>
+                      @if (portStats(row.assigned); as cstats) {
+                        @if (cstats.length) {
+                          <div class="comp-stats">
+                            @for (st of cstats; track st.labelKey) {
+                              <span class="comp-stat">
+                                <span class="cs-k">{{ st.labelKey | translate }}</span>
+                                <span class="cs-v">{{ st.text }}</span>
+                              </span>
+                            }
+                          </div>
+                        }
+                      }
                       @if (pickerPort() === row.port.portName) {
                         <sc-hangar-item-picker
                           [port]="portQuery(row.port)"
@@ -376,6 +406,12 @@ interface PortRow {
     .assign-name { flex: 1; font-size: 0.86rem; min-width: 140px; }
     .assign-name.custom { color: var(--sc-accent); }
     .assign-name.empty { color: var(--sc-fg-2); font-style: italic; }
+
+    .comp-stats { display: flex; flex-wrap: wrap; gap: 6px; }
+    .std-item .comp-stats { flex: 1 1 100%; }
+    .comp-stat { display: inline-flex; align-items: baseline; gap: 5px; padding: 2px 9px; border-radius: 999px; background: var(--sc-bg-2); border: 1px solid var(--sc-border); }
+    .cs-k { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
+    .cs-v { font-size: 0.74rem; font-family: var(--sc-font-display); color: var(--sc-accent); }
 
     .std-head { display: flex; align-items: baseline; gap: 10px; }
     .std-head h2 { margin: 0; }
@@ -641,6 +677,33 @@ export class HangarShipDetailComponent implements OnInit {
   /** jumpRange comes in metres → giga-metre display (Gm). */
   fmtGm(v: number): string {
     return `${formatNumber(Math.round(v / 1_000_000))} Gm`;
+  }
+
+  /**
+   * Headline technical stats of the component on a port (e.g. the quantum
+   * drive's jump range), formatted for display. Empty when the component has no
+   * curated stats or its payload isn't resolved yet.
+   */
+  portStats(className: string | null): { labelKey: string; text: string }[] {
+    if (!className) return [];
+    const payload = this.payloads().get(className)?.payload ?? null;
+    return componentKeyStats(payload).map((s) => ({
+      labelKey: s.labelKey,
+      text: this.formatCompStat(s),
+    }));
+  }
+
+  private formatCompStat(s: ComponentKeyStat): string {
+    switch (s.format) {
+      case 'gm':
+        return this.fmtGm(s.value);
+      case 'kmPerSec':
+        return `${this.fmt(s.value / 1000)} km/s`;
+      case 'intPerSec':
+        return `+${this.fmt(s.value)}/s`;
+      default:
+        return this.fmt(s.value);
+    }
   }
 
   weaponSizeSummary(): string {
