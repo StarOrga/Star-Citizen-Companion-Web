@@ -4,6 +4,10 @@
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
+import { Buffer } from 'node:buffer';
+import jpeg from 'npm:jpeg-js@0.4.4';
+import { PNG } from 'npm:pngjs@7.0.0';
+import { scoreWallpaper } from './wallpaper-quality.ts';
 
 type Channel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 
@@ -727,6 +731,75 @@ function imageDimensions(b: Uint8Array): { w: number; h: number } | null {
   return null;
 }
 
+// Header checks (above) catch wrong format/size/aspect, but let through images
+// that are technically big landscape rasters yet visually broken: truncated /
+// corrupted JPEGs that render as glitch blocks, or near-blank pattern
+// backgrounds with no real subject. `scoreWallpaper` (wallpaper-quality.ts)
+// inspects decoded pixels to catch those. See module header for calibration.
+const MAX_CONTENT_SCORED_PER_RUN = 12; // bound decode/score CPU per crawl
+const WALLPAPER_CONTENT_TIMEOUT_MS = 10_000;
+
+// Decode + content-score a candidate's FULL cover image (the cover variant is
+// ≤1140px wide — plenty for the scorer's internal 256px downscale — and far
+// cheaper to fetch/decode than the multi-MB `source` original).
+//
+// Decoder choice (#133): npm:jpeg-js for JPEG, npm:pngjs for PNG — both pure
+// JS, no wasm/native deps, safe on Supabase Edge (Deno). WebP has no
+// lightweight pure-JS decoder available, so WebP candidates are accepted on
+// header checks alone (content check skipped, logged) rather than pulling in
+// a wasm decoder for one format.
+//
+// Decode-throw policy (parity-evidenced): a Node harness ran jpeg-js/pngjs
+// against all 26 calibration images (wave-0 scratchpad, incl. all 6 known-bad
+// rows) and reproduced the sharp-based verdicts 26/26 with ZERO decode
+// throws. There is no observed case of a passing-header image throwing, so we
+// keep the documented default behaviour: treat a decode throw as a reject for
+// *this* crawl only. The row simply retries next crawl (identical semantics
+// to any other captureWallpapers rejection), so a transient decode hiccup can
+// never permanently drop a real wallpaper.
+async function passesContentCheck(row: WallpaperRow): Promise<boolean> {
+  const ext = row.preview_url.slice(row.preview_url.lastIndexOf('.')).toLowerCase();
+  if (ext !== '.jpg' && ext !== '.jpeg' && ext !== '.png') {
+    console.log(`captureWallpapers: content check skipped (${ext || 'unknown ext'}) for ${row.image_id}`);
+    return true;
+  }
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), WALLPAPER_CONTENT_TIMEOUT_MS);
+  try {
+    const res = await fetch(row.preview_url, {
+      headers: { Referer: RSI_BASE + '/' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return false;
+    const buf = new Uint8Array(await res.arrayBuffer());
+    let rgba: Uint8Array;
+    let width: number;
+    let height: number;
+    if (ext === '.jpg' || ext === '.jpeg') {
+      const decoded = jpeg.decode(buf, { useTArray: true, maxMemoryUsageInMB: 512 });
+      rgba = decoded.data;
+      width = decoded.width;
+      height = decoded.height;
+    } else {
+      const decoded = PNG.sync.read(Buffer.from(buf));
+      rgba = decoded.data;
+      width = decoded.width;
+      height = decoded.height;
+    }
+    const score = scoreWallpaper(rgba, width, height);
+    if (!score.ok) {
+      console.log(`captureWallpapers: content-rejected ${row.image_id} [${score.reasons.join(',')}]`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error(`captureWallpapers: content check threw for ${row.image_id}, rejecting this crawl:`, err);
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
   if (!SUPABASE_URL || !SERVICE_KEY) return; // misconfigured → skip silently
   try {
@@ -761,12 +834,27 @@ async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
     );
     const keep = verified.filter((row): row is WallpaperRow => row !== null);
     if (keep.length === 0) return;
+    // Content-score at most MAX_CONTENT_SCORED_PER_RUN header-passed candidates
+    // per run to bound CPU. Anything beyond the cap is skipped this run (not
+    // upserted) and simply retried on the next crawl if the article is still in
+    // the feed — same retry semantics as a header-check failure above.
+    const toScore = keep.slice(0, MAX_CONTENT_SCORED_PER_RUN);
+    if (keep.length > toScore.length) {
+      console.log(
+        `captureWallpapers: ${keep.length - toScore.length} header-passed candidate(s) deferred to next crawl (per-run cap)`,
+      );
+    }
+    const scored = await Promise.all(
+      toScore.map(async (row) => ((await passesContentCheck(row)) ? row : null)),
+    );
+    const finalRows = scored.filter((row): row is WallpaperRow => row !== null);
+    if (finalRows.length === 0) return;
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
     // First capture wins — rows are immutable source metadata, so duplicate
     // ids from later crawls are ignored instead of churning updated_at.
     const { error } = await admin
       .from('verse_wallpapers')
-      .upsert(keep, { onConflict: 'image_id', ignoreDuplicates: true });
+      .upsert(finalRows, { onConflict: 'image_id', ignoreDuplicates: true });
     if (error) console.error('captureWallpapers upsert failed:', error.message);
   } catch (err) {
     // Best-effort side effect — never fail the news feed for the gallery.

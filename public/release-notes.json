@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.35.2",
+  "current": "0.37.0",
   "releases": [
+    {
+      "version": "0.37.0",
+      "date": "2026-07-17",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Starscape filters out broken and blank wallpapers automatically.",
+              "text": "Corrupted or truncated comm-link images (glitch stripes, large blown-out fill blocks) and near-empty \"pattern\" backgrounds with no actual artwork no longer reach the gallery. The news crawl now decodes every wallpaper candidate's pixels and scores them on entropy, color dominance, uniform bands, bright-fill share and edge density before accepting the image — calibrated against the full live dataset with zero false positives (genuinely dark space scenes are kept). Six existing broken/blank entries were purged from the gallery."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.36.0",
+      "date": "2026-07-17",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Ship detail shows each component's key stats right on its row.",
+              "text": "In the hangar ship detail view, a component's headline figures now appear directly on its hardpoint (and standard-components) row — the quantum drive's jump range and drive speed, and a shield's HP and regen — instead of only in the aggregate \"Loadout stats\" card. So the jump range stands next to the Quantum drive itself. Values come from the existing extracted catalog data (no new data source); components without curated headline stats simply show none."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.35.2",
       "date": "2026-07-14",
