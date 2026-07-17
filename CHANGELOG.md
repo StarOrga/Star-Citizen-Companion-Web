@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.38.0] - 2026-07-17
+
+### Added
+- Public trust pages `/about`, `/legal/privacy`, `/legal/imprint` (DE/EN), linked from the footer and the login card — a credential form without reachable self-description/privacy/imprint pages is a classic phishing-heuristic trigger for AV URL-reputation scanners (Kaspersky "danger of data loss" block on the shared `*.vercel.app` origin).
+- Real static `robots.txt`, `sitemap.xml` and `humans.txt` (previously the SPA rewrite answered them with HTML 200 — a soft-404/cloaking signal to scanners).
+- JSON-LD `WebApplication`/`Organization` structured data and `application-name` meta in `index.html`; enriched web manifest (`id`, `lang`, `description`, `categories`).
+
+### Changed
+- CSP `frame-ancestors` hardened from `'self'` to `'none'` — now consistent with `X-Frame-Options: DENY`.
+- Privacy policy and about page disclose PostHog product analytics (EU cloud, first-party proxy) introduced in 0.37.0.
+
+### Fixed
+- App crashed at boot (white screen) and every Karma spec errored since the PostHog integration: `import.meta.env` is undefined at runtime because no env-substituting builder is wired — accesses are now optional-chained; PostHog stays dormant until a token-injection mechanism exists.
+
 ## [0.37.0] - 2026-07-17
 
 ### Added
