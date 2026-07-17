@@ -51,7 +51,7 @@ import { TranslateModule } from '@ngx-translate/core';
         <h2>{{ 'legal.privacy.thirdParty.title' | translate }}</h2>
         <p>{{ 'legal.privacy.thirdParty.p1' | translate }}</p>
         <ul class="list">
-          @for (item of ['supabase', 'vercel', 'google', 'fonts', 'gameApis']; track item) {
+          @for (item of ['supabase', 'vercel', 'google', 'posthog', 'fonts', 'gameApis']; track item) {
             <li>{{ 'legal.privacy.thirdParty.' + item | translate }}</li>
           }
         </ul>

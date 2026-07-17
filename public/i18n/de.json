@@ -699,7 +699,7 @@
       },
       "data": {
         "title": "Deine Daten",
-        "p1": "SCC zeigt keine Werbung, nutzt kein Dritt-Tracking und speichert nur, was die Funktionen brauchen. Details stehen in der Datenschutzerklärung:",
+        "p1": "SCC zeigt keine Werbung und speichert nur, was die Funktionen brauchen. Produkt-Analytik läuft über PostHog auf EU-Servern. Details stehen in der Datenschutzerklärung:",
         "privacyLink": "Datenschutzerklärung"
       },
       "affiliation": {
@@ -719,7 +719,7 @@
       "summary": {
         "title": "Kurz gefasst",
         "noAds": "Keine Werbung, keine Werbenetzwerke.",
-        "noTracking": "Keine Dritt-Analytics, keine Tracking-Cookies.",
+        "noTracking": "Keine Werbe-Tracker. Produkt-Analytik läuft über PostHog auf EU-Servern, um die App zu verbessern.",
         "minimal": "Nur die Daten, die die Funktionen brauchen — nichts wird verkauft oder zu Marketingzwecken geteilt.",
         "euHosting": "Anwendungsdaten liegen in der EU (Supabase, Region eu-central-1 / Frankfurt)."
       },
@@ -744,6 +744,7 @@
         "supabase": "Supabase (Datenbank, Authentifizierung) — EU-Region eu-central-1.",
         "vercel": "Vercel (Hosting, CDN) — Auslieferung der statischen App.",
         "google": "Google Sign-In (optional) — nur wenn du dich bewusst mit Google anmeldest.",
+        "posthog": "PostHog (Produkt-Analytik und Fehlerdiagnose) — EU-Cloud, eingebunden über einen First-Party-Proxy; erfasst Nutzungsereignisse und Fehler zur Verbesserung der App.",
         "fonts": "Google Fonts — Schriftdateien werden von Google-Servern geladen; Google kann dabei deine IP-Adresse sehen.",
         "gameApis": "Öffentliche Star-Citizen-Daten: status.robertsspaceindustries.com und api.star-citizen.wiki (nur lesend, es werden keine Kontodaten übertragen)."
       },
