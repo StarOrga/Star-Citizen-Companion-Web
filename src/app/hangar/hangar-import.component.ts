@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexListRow, CodexService } from '../codex/codex.service';
+import { PostHogService } from '../core/posthog.service';
 import { HangarService } from './hangar.service';
 
 /**
@@ -141,6 +142,7 @@ const MAX_ENTRIES = 200;
 export class HangarImportComponent {
   private readonly codex = inject(CodexService);
   private readonly hangar = inject(HangarService);
+  private readonly posthog = inject(PostHogService);
 
   readonly closed = output<void>();
 
@@ -281,6 +283,12 @@ export class HangarImportComponent {
     this.entries.set(next);
     this.doneCount.set(done);
     this.importing.set(false);
+    if (done > 0) {
+      this.posthog.posthog.capture('hangar_fleet_imported', {
+        ships_imported: done,
+        total_in_file: next.length,
+      });
+    }
   }
 }
 

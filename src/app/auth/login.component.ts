@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from './auth.service';
+import { PostHogService } from '../core/posthog.service';
 import { FooterComponent } from '../shell/footer.component';
 
 @Component({
@@ -175,6 +176,7 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly posthog = inject(PostHogService);
 
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
@@ -208,6 +210,7 @@ export class LoginComponent {
       if (error) {
         this.errorMsg.set(error.message);
       } else {
+        this.posthog.posthog.capture('user_signed_in', { provider: 'email' });
         // navigateByUrl handles path + query string in one call
         // (router.navigate(['/path?q=1']) treats the whole thing as a single segment).
         await this.router.navigateByUrl(this.safeRedirectTarget());
@@ -242,6 +245,8 @@ export class LoginComponent {
     if (error) {
       this.errorMsg.set(error.message);
       this.busy.set(false);
+    } else {
+      this.posthog.posthog.capture('user_signed_in_with_google', { provider: 'google' });
     }
   }
 }
