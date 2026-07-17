@@ -1,4 +1,5 @@
 import {
+  componentKeyStats,
   computeLoadoutStats,
   findStat,
   mergeLoadout,
@@ -195,6 +196,64 @@ describe('computeLoadoutStats', () => {
     expect(stats.shieldRegen).toBeNull();
     expect(stats.quantum.jumpRangeMm).toBeNull();
     expect(stats.totalAssigned).toBe(1);
+  });
+});
+
+describe('componentKeyStats', () => {
+  it('returns jump range and drive speed for a quantum drive', () => {
+    const stats = componentKeyStats(
+      componentPayload('QuantumDrive', {
+        SCItemQuantumDriveParams: { jumpRange: 583000000, driveSpeed: 283000 },
+      }),
+    );
+    expect(stats).toEqual([
+      { labelKey: 'hangar.compStat.jumpRange', format: 'gm', value: 583000000 },
+      { labelKey: 'hangar.compStat.driveSpeed', format: 'kmPerSec', value: 283000 },
+    ]);
+  });
+
+  it('drops the FLT_MAX jump-range sentinel for a quantum drive', () => {
+    const stats = componentKeyStats(
+      componentPayload('QuantumDrive', {
+        SCItemQuantumDriveParams: { jumpRange: 3.4028230607370965e38, driveSpeed: 283000 },
+      }),
+    );
+    expect(stats).toEqual([
+      { labelKey: 'hangar.compStat.driveSpeed', format: 'kmPerSec', value: 283000 },
+    ]);
+  });
+
+  it('returns HP and regen for a shield', () => {
+    const stats = componentKeyStats(
+      componentPayload('Shield', {
+        SCItemShieldGeneratorParams: { MaxShieldHealth: 4000, MaxShieldRegen: 220 },
+      }),
+    );
+    expect(stats).toEqual([
+      { labelKey: 'hangar.compStat.shieldHp', format: 'int', value: 4000 },
+      { labelKey: 'hangar.compStat.shieldRegen', format: 'intPerSec', value: 220 },
+    ]);
+  });
+
+  it('omits missing fields instead of emitting nulls', () => {
+    const stats = componentKeyStats(
+      componentPayload('QuantumDrive', {
+        SCItemQuantumDriveParams: { jumpRange: 100000000 },
+      }),
+    );
+    expect(stats).toEqual([
+      { labelKey: 'hangar.compStat.jumpRange', format: 'gm', value: 100000000 },
+    ]);
+  });
+
+  it('returns [] for components without curated headline stats', () => {
+    expect(componentKeyStats(componentPayload('PowerPlant', { X: { y: 1 } }))).toEqual([]);
+  });
+
+  it('returns [] for non-component payloads', () => {
+    expect(componentKeyStats(weaponPayload(3))).toEqual([]);
+    expect(componentKeyStats(null)).toEqual([]);
+    expect(componentKeyStats(undefined)).toEqual([]);
   });
 });
 
