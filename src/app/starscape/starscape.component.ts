@@ -228,12 +228,13 @@ export class StarscapeComponent implements OnInit {
   readonly svc = inject(StarscapeService);
 
   /**
-   * Direct download of the native desktop wallpaper app (published to the public
-   * binaries mirror by the `wallpaper-app` CI workflow on a `wallpaper-app-v*`
-   * tag). Bump the version segment when a newer release ships.
+   * Direct download of the native desktop wallpaper app. Points at the stable
+   * `wallpaper-app-latest` alias release (a version-less asset the `wallpaper-app`
+   * CI workflow republishes on every `wallpaper-app-v*` tag), so this link always
+   * resolves to the newest build and never needs a manual version bump.
    */
   readonly appDownloadUrl =
-    'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/wallpaper-app-v0.1.0/starscape-wallpaper-0.1.0.exe';
+    'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/wallpaper-app-latest/starscape-wallpaper.exe';
 
   readonly active = signal<Wallpaper | null>(null);
   readonly broken = signal<ReadonlySet<string>>(new Set<string>());
