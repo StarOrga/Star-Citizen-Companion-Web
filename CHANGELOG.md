@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.40.0] - 2026-07-19
+
+### Fixed
+
+- **Starscape wallpaper app: corrupt ("grainy") wallpapers.** A truncated image
+  download (a mid-stream network hiccup) could still pass the size check and be
+  set as the desktop background, producing heavy grain/scanline artifacts. The
+  native app now rejects short reads (Content-Length mismatch) and incomplete
+  JPEG/PNG data (magic bytes + EOI/IEND trailer), so a partial image can never
+  become a wallpaper.
+- **Starscape wallpaper app: silent startup failures.** The windowless tray app
+  ran with `panic = "abort"` and no logging, so any startup problem vanished
+  without a trace ("it just doesn't start"). It now writes a diagnostics log to
+  `%APPDATA%\StarscapeWallpaper\starscape.log` (panic hook + startup milestones +
+  GDI+/decode failures) and always shows a tray icon (system fallback when the
+  bundled icon can't load), so it never runs invisibly.
+
+### Changed
+
+- **Never-stale desktop-app download.** The Starscape "Download for Windows"
+  button now points at a stable `wallpaper-app-latest` alias release (a
+  version-less asset the CI republishes on every `wallpaper-app-v*` tag) instead
+  of a hardcoded version, so it always resolves to the newest build.
+
 ## [0.39.0] - 2026-07-18
 
 ### Added
