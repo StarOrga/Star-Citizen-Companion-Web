@@ -1,14 +1,15 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from './auth.service';
+import { AnalyticsService } from '../core/analytics.service';
 import { FooterComponent } from '../shell/footer.component';
 
 @Component({
   selector: 'sc-login',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslateModule, FooterComponent],
+  imports: [ReactiveFormsModule, TranslateModule, FooterComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="login-shell">
@@ -50,6 +51,17 @@ import { FooterComponent } from '../shell/footer.component';
           </button>
 
           <p class="invite-only">{{ 'auth.inviteOnly' | translate }}</p>
+
+          <!-- Trust links: a bare credential form with no self-description is a
+               phishing-heuristic trigger for AV URL scanners — keep these visible
+               on the login card itself, not only in the footer. -->
+          <nav class="trust-links" [attr.aria-label]="'footer.legalNav' | translate">
+            <a routerLink="/about">{{ 'footer.links.about' | translate }}</a>
+            <span aria-hidden="true">·</span>
+            <a routerLink="/legal/privacy">{{ 'footer.links.privacy' | translate }}</a>
+            <span aria-hidden="true">·</span>
+            <a routerLink="/legal/imprint">{{ 'footer.links.imprint' | translate }}</a>
+          </nav>
         </div>
       </main>
 
@@ -88,6 +100,20 @@ import { FooterComponent } from '../shell/footer.component';
       font-size: 0.78rem;
       line-height: 1.45;
     }
+    .trust-links {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 14px;
+      font-size: 0.72rem;
+      color: var(--sc-fg-2);
+    }
+    .trust-links a {
+      color: var(--sc-fg-2);
+      text-decoration: none;
+      transition: color 0.16s ease;
+    }
+    .trust-links a:hover { color: var(--sc-accent); }
     h1 {
       text-align: center;
       font-size: 2rem;
@@ -150,6 +176,7 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly analytics = inject(AnalyticsService);
 
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
@@ -183,6 +210,7 @@ export class LoginComponent {
       if (error) {
         this.errorMsg.set(error.message);
       } else {
+        this.analytics.capture('user_signed_in', { provider: 'email' });
         // navigateByUrl handles path + query string in one call
         // (router.navigate(['/path?q=1']) treats the whole thing as a single segment).
         await this.router.navigateByUrl(this.safeRedirectTarget());
@@ -217,6 +245,8 @@ export class LoginComponent {
     if (error) {
       this.errorMsg.set(error.message);
       this.busy.set(false);
+    } else {
+      this.analytics.capture('user_signed_in_with_google', { provider: 'google' });
     }
   }
 }

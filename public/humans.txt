@@ -1,0 +1,16 @@
+/* TEAM */
+Maintainer: StarOrga community
+Site: https://sc-companion.vercel.app
+Source: https://github.com/StarOrga/Star-Citizen-Companion-Web
+Contact: see /.well-known/security.txt
+
+/* SITE */
+Standards: HTML5, CSS3, TypeScript
+Components: Angular, Supabase
+Hosting: Vercel
+
+/* NOTE */
+Star Citizen Companion is an unofficial fan project.
+It is not affiliated with the Cloud Imperium group of companies.
+Star Citizen, Roberts Space Industries and Cloud Imperium are
+trademarks of Cloud Imperium Rights LLC.

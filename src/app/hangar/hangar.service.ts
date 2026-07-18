@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
+import { AnalyticsService } from '../core/analytics.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import {
   ConceptShip,
@@ -29,6 +30,7 @@ import {
 export class HangarService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
+  private readonly analytics = inject(AnalyticsService);
 
   readonly ships = signal<HangarShip[]>([]);
   readonly roleLoadouts = signal<HangarRoleLoadout[]>([]);
@@ -127,6 +129,11 @@ export class HangarService {
     }
     const ship = mapHangarShip(data as HangarShipRow);
     this.ships.set([ship, ...this.ships()]);
+    this.analytics.capture('hangar_ship_added', {
+      ship_class: shipClassName,
+      status,
+      ship_count: this.ships().length,
+    });
     return ship;
   }
 
@@ -166,6 +173,9 @@ export class HangarService {
     }
     const concept = mapConceptShip(data as Record<string, unknown>);
     this.conceptShips.set([concept, ...this.conceptShips()]);
+    this.analytics.capture('hangar_concept_ship_added', {
+      has_rsi_url: !!input.rsiUrl?.trim(),
+    });
     return concept;
   }
 
@@ -270,6 +280,13 @@ export class HangarService {
     if (removed && this.flagshipClassName() === removed.shipClassName) {
       this.setFlagship(null);
     }
+    if (removed) {
+      this.analytics.capture('hangar_ship_removed', {
+        ship_class: removed.shipClassName,
+        status: removed.status,
+        ship_count: this.ships().length,
+      });
+    }
     return true;
   }
 
@@ -291,6 +308,9 @@ export class HangarService {
     this.flagshipClassName.set(shipClassName);
     this.writeFlagship(shipClassName);
     void this.persistFlagshipRemote(shipClassName);
+    if (shipClassName) {
+      this.analytics.capture('hangar_flagship_set', { ship_class: shipClassName });
+    }
   }
 
   /** Toggle: pin if not the flagship, clear if it already is (single flagship). */
@@ -471,7 +491,9 @@ export class HangarService {
       this.error.set(error.message);
       return null;
     }
-    return mapHangarShipConfig(data as HangarShipConfigRow);
+    const config = mapHangarShipConfig(data as HangarShipConfigRow);
+    this.analytics.capture('hangar_ship_config_saved', { role: config.role });
+    return config;
   }
 
   /**
@@ -528,6 +550,7 @@ export class HangarService {
     }
     const loadout = mapHangarRoleLoadout(data as HangarRoleLoadoutRow);
     this.roleLoadouts.set([loadout, ...this.roleLoadouts()]);
+    this.analytics.capture('hangar_loadout_created', { role });
     return loadout;
   }
 
