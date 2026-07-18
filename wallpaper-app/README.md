@@ -32,6 +32,17 @@ with an optional crossfade and one-click autostart.
 Config lives at `%APPDATA%\StarscapeWallpaper\config.ini` (rotation interval, fade,
 paused); prefetched images in `…\cache`.
 
+## Troubleshooting
+
+If the app doesn't appear to start, check the diagnostics log at
+`%APPDATA%\StarscapeWallpaper\starscape.log`. It records startup milestones, any
+panic before the process exits, GDI+ init failures, and per-download outcomes —
+including a wallpaper **rejected for being truncated/corrupt** (the cause of a
+grainy "krisselig" background). The tray icon always appears (a system fallback
+is used if the bundled `.ico` can't load), so a *missing* icon means the process
+never launched at all — most often an antivirus/SmartScreen quarantine on the
+unsigned binary.
+
 ## Build
 
 ```sh
@@ -48,7 +59,11 @@ Push a `wallpaper-app-v<version>` tag. The `wallpaper-app` GitHub Actions workfl
 builds the release binary and publishes it to the public
 [`StarOrga/Star-Citizen-Companion-Binaries`](https://github.com/StarOrga/Star-Citizen-Companion-Binaries)
 mirror (via `BINARIES_RELEASE_TOKEN`), the same handoff the `data-uploader` uses.
-The Starscape page links to that asset.
+
+Two releases are published per tag: the versioned `wallpaper-app-v<version>`
+(history) and a stable **`wallpaper-app-latest`** alias carrying a version-less
+`starscape-wallpaper.exe`. The Starscape page links the alias, so the download
+URL always resolves to the newest build and never needs a manual bump.
 
 The binary is **unsigned** (Phase-2 limitation) — Windows SmartScreen warns on
 first run: **More info → Run anyway**.

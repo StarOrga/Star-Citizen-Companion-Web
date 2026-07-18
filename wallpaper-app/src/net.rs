@@ -10,9 +10,11 @@ use windows_sys::Win32::Networking::WinHttp::{
     WinHttpAddRequestHeaders, WinHttpCloseHandle, WinHttpConnect, WinHttpOpen, WinHttpOpenRequest,
     WinHttpQueryDataAvailable, WinHttpQueryHeaders, WinHttpReadData, WinHttpReceiveResponse,
     WinHttpSendRequest, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_ADDREQ_FLAG_ADD,
-    WINHTTP_FLAG_SECURE, WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_QUERY_STATUS_CODE,
+    WINHTTP_FLAG_SECURE, WINHTTP_QUERY_CONTENT_LENGTH, WINHTTP_QUERY_FLAG_NUMBER,
+    WINHTTP_QUERY_STATUS_CODE,
 };
 
+use crate::log;
 use crate::util::wide;
 
 // Supabase project (publishable key — the same one shipped in the web bundle;
@@ -25,8 +27,19 @@ const LIST_PATH: &str =
 const MEDIA_HOST: &str = "media.robertsspaceindustries.com";
 const RSI_REFERER: &str = "https://robertsspaceindustries.com/";
 
-/// GET `https://{host}{path}` with optional extra headers. Returns (status, body).
-fn https_get(host: &str, path: &str, headers: &[String]) -> Option<(u16, Vec<u8>)> {
+/// A fully-received HTTP response. `content_length` is the server-advertised
+/// body size when present (used to detect a short/truncated read).
+struct Response {
+    status: u16,
+    content_length: Option<u64>,
+    body: Vec<u8>,
+}
+
+/// GET `https://{host}{path}` with optional extra headers. Returns `None` on any
+/// transport failure OR a mid-stream read failure — a partial body is never
+/// handed back, because that is exactly how a corrupt "krisselig" wallpaper used
+/// to slip through.
+fn https_get(host: &str, path: &str, headers: &[String]) -> Option<Response> {
     unsafe {
         let agent = wide("StarscapeWallpaper/0.1");
         let session = WinHttpOpen(
@@ -77,8 +90,10 @@ fn https_get(host: &str, path: &str, headers: &[String]) -> Option<(u16, Vec<u8>
 
         let result = if ok {
             let status = query_status(request);
-            let body = read_body(request);
-            Some((status, body))
+            let content_length = query_content_length(request);
+            // A `None` here means a read error mid-stream — treat the whole
+            // request as failed rather than returning a truncated body.
+            read_body(request).map(|body| Response { status, content_length, body })
         } else {
             None
         };
@@ -108,23 +123,44 @@ unsafe fn query_status(request: *mut c_void) -> u16 {
     }
 }
 
-unsafe fn read_body(request: *mut c_void) -> Vec<u8> {
+/// Server-advertised `Content-Length`, if present and numeric. Used only as a
+/// truncation check — chunked responses (no length) fall back to the format
+/// completeness check in [`download_image`].
+unsafe fn query_content_length(request: *mut c_void) -> Option<u64> {
+    let mut len: u32 = 0;
+    let mut size = std::mem::size_of::<u32>() as u32;
+    let ok = WinHttpQueryHeaders(
+        request,
+        WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER,
+        std::ptr::null(),
+        &mut len as *mut u32 as *mut c_void,
+        &mut size,
+        std::ptr::null_mut(),
+    );
+    if ok != 0 {
+        Some(len as u64)
+    } else {
+        None
+    }
+}
+
+/// Read the response body. Returns `None` if the stream fails part-way through
+/// (so the caller can distinguish "complete" from "truncated"); `Some(bytes)`
+/// only on a clean end-of-response.
+unsafe fn read_body(request: *mut c_void) -> Option<Vec<u8>> {
     let mut out = Vec::new();
     loop {
         let mut avail: u32 = 0;
-        if WinHttpQueryDataAvailable(request, &mut avail) == 0 || avail == 0 {
-            break;
+        if WinHttpQueryDataAvailable(request, &mut avail) == 0 {
+            return None; // query failed mid-stream → not a clean EOF
+        }
+        if avail == 0 {
+            break; // clean end of response
         }
         let mut chunk = vec![0u8; avail as usize];
         let mut read: u32 = 0;
-        if WinHttpReadData(
-            request,
-            chunk.as_mut_ptr() as *mut c_void,
-            avail,
-            &mut read,
-        ) == 0
-        {
-            break;
+        if WinHttpReadData(request, chunk.as_mut_ptr() as *mut c_void, avail, &mut read) == 0 {
+            return None; // read failed mid-stream → truncated
         }
         if read == 0 {
             break;
@@ -136,7 +172,7 @@ unsafe fn read_body(request: *mut c_void) -> Vec<u8> {
             break;
         }
     }
-    out
+    Some(out)
 }
 
 /// Fetch the ordered list of original-resolution wallpaper URLs.
@@ -146,13 +182,14 @@ pub fn fetch_wallpaper_urls() -> Vec<String> {
         format!("Authorization: Bearer {SUPA_KEY}"),
         "Accept: application/json".to_string(),
     ];
-    let Some((status, body)) = https_get(SUPA_HOST, LIST_PATH, &headers) else {
+    let Some(resp) = https_get(SUPA_HOST, LIST_PATH, &headers) else {
         return Vec::new();
     };
-    if status != 200 {
+    if resp.status != 200 {
+        log::line(&format!("list: HTTP {} from Supabase", resp.status));
         return Vec::new();
     }
-    parse_source_urls(&String::from_utf8_lossy(&body))
+    parse_source_urls(&String::from_utf8_lossy(&resp.body))
 }
 
 /// The endpoint returns `[{"source_url":"https://..."}, ...]`. Extract each value
@@ -177,19 +214,83 @@ fn parse_source_urls(json: &str) -> Vec<String> {
 }
 
 /// Download an RSI-CDN image to `dest`. A valid Referer is what unlocks the CDN
-/// for non-browser clients (mirrors the edge function). Returns true on success.
+/// for non-browser clients (mirrors the edge function). Returns true only for a
+/// complete, well-formed image — a truncated download is rejected so it can
+/// never be set as a corrupt wallpaper.
 pub fn download_image(url: &str, dest: &Path) -> bool {
-    let Some((host, path)) = split_url(url) else { return false };
+    let Some((host, path)) = split_url(url) else {
+        log::line(&format!("download: unparseable url {url}"));
+        return false;
+    };
     // Only the RSI media CDN is expected; refuse anything else.
     if host != MEDIA_HOST {
+        log::line(&format!("download: refused non-CDN host {host}"));
         return false;
     }
     let headers = vec![format!("Referer: {RSI_REFERER}")];
-    let Some((status, body)) = https_get(host, &path, &headers) else { return false };
-    if status != 200 || body.len() < 50_000 {
+    let Some(resp) = https_get(host, &path, &headers) else {
+        log::line(&format!("download: request/read failed (truncated?) for {url}"));
+        return false;
+    };
+    if resp.status != 200 {
+        log::line(&format!("download: HTTP {} for {url}", resp.status));
         return false;
     }
-    std::fs::write(dest, &body).is_ok()
+    // Truncation guard #1: fewer bytes than the server said it would send. This
+    // is the exact failure that used to yield a half-decoded, grainy wallpaper.
+    if let Some(expected) = resp.content_length {
+        if (resp.body.len() as u64) < expected {
+            log::line(&format!(
+                "download: truncated {}/{} bytes for {url}",
+                resp.body.len(),
+                expected
+            ));
+            return false;
+        }
+    }
+    if resp.body.len() < 50_000 {
+        log::line(&format!("download: implausibly small ({} bytes) for {url}", resp.body.len()));
+        return false;
+    }
+    // Truncation guard #2: the bytes must actually terminate as a complete image
+    // (covers chunked responses with no Content-Length).
+    if !image_looks_complete(&resp.body) {
+        log::line(&format!("download: incomplete image data ({} bytes) for {url}", resp.body.len()));
+        return false;
+    }
+    match std::fs::write(dest, &resp.body) {
+        Ok(()) => true,
+        Err(e) => {
+            log::line(&format!("download: write failed ({e}) for {}", dest.display()));
+            false
+        }
+    }
+}
+
+/// True if `bytes` is a fully-terminated JPEG or PNG. A truncated (progressive)
+/// JPEG decodes into visible grain/scanline garbage — the precise artefact this
+/// guards against. Any other, unrecognised format falls through to `true` so a
+/// valid-but-uncommon image is never wrongly rejected (the size floor already
+/// applied in [`download_image`]).
+fn image_looks_complete(bytes: &[u8]) -> bool {
+    if bytes.len() < 8 {
+        return false;
+    }
+    // JPEG: starts with SOI (FF D8), ends with EOI (FF D9). Tolerate a few
+    // trailing padding bytes some encoders append after EOI.
+    if bytes.starts_with(&[0xFF, 0xD8]) {
+        let window = 8usize.min(bytes.len());
+        return bytes[bytes.len() - window..]
+            .windows(2)
+            .any(|w| w[0] == 0xFF && w[1] == 0xD9);
+    }
+    // PNG: 8-byte signature, terminated by the IEND chunk.
+    const PNG_SIG: [u8; 8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    const PNG_IEND: [u8; 8] = [0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82];
+    if bytes.starts_with(&PNG_SIG) {
+        return bytes.ends_with(&PNG_IEND);
+    }
+    true
 }
 
 fn split_url(url: &str) -> Option<(&str, String)> {

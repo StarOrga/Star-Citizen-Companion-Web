@@ -45,6 +45,8 @@ jobs:
         run: |
           $v = "${{ github.ref_name }}" -replace '^wallpaper-app-v', ''
           Copy-Item target/release/starscape-wallpaper.exe "starscape-wallpaper-$v.exe"
+          # Version-less alias for the stable 'latest' download URL used by the website.
+          Copy-Item target/release/starscape-wallpaper.exe "starscape-wallpaper.exe"
           $sha = (Get-FileHash -Algorithm SHA256 "starscape-wallpaper-$v.exe").Hash.ToLower()
           $size = (Get-Item "starscape-wallpaper-$v.exe").Length
           Write-Host "asset: starscape-wallpaper-$v.exe  size=$size  sha256=$sha"
@@ -69,3 +71,23 @@ jobs:
             run: choose **More info → Run anyway**.
 
             Source: [Star-Citizen-Companion-Web](https://github.com/StarOrga/Star-Citizen-Companion-Web) (private).
+
+      - name: Update stable 'latest' alias release (never-stale download URL)
+        if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: StarOrga/Star-Citizen-Companion-Binaries
+          token: ${{ secrets.BINARIES_RELEASE_TOKEN }}
+          tag_name: wallpaper-app-latest
+          name: Starscape Wallpaper (latest)
+          # Version-less asset → the website links a fixed URL that always resolves
+          # to the newest build: …/releases/download/wallpaper-app-latest/starscape-wallpaper.exe
+          files: wallpaper-app/starscape-wallpaper.exe
+          fail_on_unmatched_files: false
+          body: |
+            Always the newest **Starscape Wallpaper** build — an alias of the most
+            recent `wallpaper-app-v*` release. The website's "Download for Windows"
+            button points here so the link never goes stale.
+
+            Unsigned (Phase-2 limitation) — Windows SmartScreen will warn on first
+            run: choose **More info → Run anyway**.
