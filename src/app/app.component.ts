@@ -2,11 +2,10 @@ import { ChangeDetectionStrategy, Component, effect, inject, OnInit } from '@ang
 import { RouterOutlet } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from './auth/auth.service';
+import { AnalyticsService } from './core/analytics.service';
 import { ConsentBannerComponent } from './core/consent-banner.component';
-import { PostHogService } from './core/posthog.service';
 import { SupabaseClientProvider } from './core/supabase.client';
 import { SwUpdateService } from './core/sw-update.service';
-import { environment } from '../environments/environment';
 
 @Component({
   selector: 'sc-root',
@@ -80,7 +79,7 @@ export class AppComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly auth = inject(AuthService);
   private readonly sb = inject(SupabaseClientProvider);
-  private readonly posthog = inject(PostHogService);
+  private readonly analytics = inject(AnalyticsService);
   readonly swUpdate = inject(SwUpdateService);
 
   /**
@@ -135,14 +134,9 @@ export class AppComponent implements OnInit {
       });
     }
 
-    this.posthog.init(environment.posthogKey, {
-      api_host: '/ingest',
-      ui_host: environment.posthogHost,
-      defaults: '2026-05-30',
-      capture_exceptions: true,
-    });
-
     this.auth.init();
     this.swUpdate.init();
+    // No-op without a configured key or statistics consent (#139).
+    this.analytics.init();
   }
 }

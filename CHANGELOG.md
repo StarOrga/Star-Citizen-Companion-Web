@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.39.0] - 2026-07-18
+
+### Added
+
+- **Anonymous usage statistics (opt-in).** A new `statistics` consent category
+  wires up PostHog (EU region) so we can see which areas of the app get used.
+  It is off by default and collects nothing until you allow it in the consent
+  banner or under Settings → Browser storage & privacy. No cookies, no user
+  identification, no session recording; the analytics library is lazy-loaded
+  only after consent, and revoking consent purges its local state. The project
+  key is a public, write-only ingest key (same class as the Supabase
+  publishable key), not a secret. (#139)
+
 ## [0.38.0] - 2026-07-17
 
 ### Added

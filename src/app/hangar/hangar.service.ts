@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
-import { PostHogService } from '../core/posthog.service';
+import { AnalyticsService } from '../core/analytics.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import {
   ConceptShip,
@@ -30,7 +30,7 @@ import {
 export class HangarService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
-  private readonly posthog = inject(PostHogService);
+  private readonly analytics = inject(AnalyticsService);
 
   readonly ships = signal<HangarShip[]>([]);
   readonly roleLoadouts = signal<HangarRoleLoadout[]>([]);
@@ -129,7 +129,7 @@ export class HangarService {
     }
     const ship = mapHangarShip(data as HangarShipRow);
     this.ships.set([ship, ...this.ships()]);
-    this.posthog.posthog.capture('hangar_ship_added', {
+    this.analytics.capture('hangar_ship_added', {
       ship_class: shipClassName,
       status,
       ship_count: this.ships().length,
@@ -173,7 +173,7 @@ export class HangarService {
     }
     const concept = mapConceptShip(data as Record<string, unknown>);
     this.conceptShips.set([concept, ...this.conceptShips()]);
-    this.posthog.posthog.capture('hangar_concept_ship_added', {
+    this.analytics.capture('hangar_concept_ship_added', {
       has_rsi_url: !!input.rsiUrl?.trim(),
     });
     return concept;
@@ -281,7 +281,7 @@ export class HangarService {
       this.setFlagship(null);
     }
     if (removed) {
-      this.posthog.posthog.capture('hangar_ship_removed', {
+      this.analytics.capture('hangar_ship_removed', {
         ship_class: removed.shipClassName,
         status: removed.status,
         ship_count: this.ships().length,
@@ -309,7 +309,7 @@ export class HangarService {
     this.writeFlagship(shipClassName);
     void this.persistFlagshipRemote(shipClassName);
     if (shipClassName) {
-      this.posthog.posthog.capture('hangar_flagship_set', { ship_class: shipClassName });
+      this.analytics.capture('hangar_flagship_set', { ship_class: shipClassName });
     }
   }
 
@@ -492,7 +492,7 @@ export class HangarService {
       return null;
     }
     const config = mapHangarShipConfig(data as HangarShipConfigRow);
-    this.posthog.posthog.capture('hangar_ship_config_saved', { role: config.role });
+    this.analytics.capture('hangar_ship_config_saved', { role: config.role });
     return config;
   }
 
@@ -550,7 +550,7 @@ export class HangarService {
     }
     const loadout = mapHangarRoleLoadout(data as HangarRoleLoadoutRow);
     this.roleLoadouts.set([loadout, ...this.roleLoadouts()]);
-    this.posthog.posthog.capture('hangar_loadout_created', { role });
+    this.analytics.capture('hangar_loadout_created', { role });
     return loadout;
   }
 

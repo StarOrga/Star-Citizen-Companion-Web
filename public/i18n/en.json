@@ -1139,13 +1139,13 @@
   "consent": {
     "banner": {
       "title": "Browser storage",
-      "text": "This app sets no cookies. It stores your login session and language in this browser (required), and — only if you allow it — convenience preferences like news filters and saved articles. You can change this anytime in Settings.",
+      "text": "This app sets no cookies. It stores your login session and language in this browser (required), and — only if you allow it — convenience preferences like news filters and saved articles, plus anonymous usage statistics. You can change this anytime in Settings.",
       "acceptAll": "Allow all",
       "essentialOnly": "Essential only"
     },
     "settings": {
       "title": "Browser storage & privacy",
-      "hint": "This app sets no cookies and no tracking storage. Everything below lives in this browser's localStorage only.",
+      "hint": "This app sets no cookies. Everything below lives in this browser's localStorage. Anonymous usage statistics are off by default and collected only with your consent.",
       "alwaysOn": "Always on",
       "on": "Allowed",
       "off": "Off",
@@ -1156,6 +1156,10 @@
       "preferences": {
         "label": "Preferences",
         "desc": "News channel filter, saved articles and similar convenience state. Turning this off deletes the stored values."
+      },
+      "statistics": {
+        "label": "Statistics",
+        "desc": "Anonymous usage statistics (PostHog, EU servers) to understand which areas get used. Off by default, no identification, no session recording. Turning this off deletes the stored values."
       }
     }
   },

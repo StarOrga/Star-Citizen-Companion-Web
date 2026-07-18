@@ -1,14 +1,14 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Session, User } from '@supabase/supabase-js';
-import { PostHogService } from '../core/posthog.service';
+import { AnalyticsService } from '../core/analytics.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly router = inject(Router);
-  private readonly posthog = inject(PostHogService);
+  private readonly analytics = inject(AnalyticsService);
 
   private readonly _session = signal<Session | null>(null);
   private readonly _ready = signal(false);
@@ -23,22 +23,16 @@ export class AuthService {
     if (this.initialized) return;
     this.initialized = true;
 
+    // Analytics stays anonymous by design (#139): we never identify the user,
+    // so auth state only drives the session signals — no identify()/reset().
     this.sb.client.auth.getSession().then(({ data }) => {
       this._session.set(data.session);
       this._ready.set(true);
-      if (data.session?.user) {
-        this.identifyUser(data.session.user);
-      }
     });
 
-    this.sb.client.auth.onAuthStateChange((event, session) => {
+    this.sb.client.auth.onAuthStateChange((_event, session) => {
       this._session.set(session);
       this._ready.set(true);
-      if (event === 'SIGNED_IN' && session?.user) {
-        this.identifyUser(session.user);
-      } else if (event === 'SIGNED_OUT') {
-        this.posthog.posthog.reset();
-      }
     });
   }
 
@@ -59,15 +53,9 @@ export class AuthService {
   }
 
   async signOut(navigate = true) {
-    this.posthog.posthog.capture('user_signed_out');
+    // Anonymous product event — no-op without statistics consent (#139).
+    this.analytics.capture('user_signed_out');
     await this.sb.client.auth.signOut();
     if (navigate) await this.router.navigate(['/login']);
-  }
-
-  private identifyUser(user: User): void {
-    this.posthog.posthog.identify(user.id, {
-      email: user.email,
-      provider: (user.app_metadata['provider'] as string | undefined) ?? 'email',
-    });
   }
 }

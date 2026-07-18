@@ -1,7 +1,71 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.37.0",
+  "current": "0.39.0",
   "releases": [
+    {
+      "version": "0.39.0",
+      "date": "2026-07-18",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Anonymous usage statistics (opt-in).",
+              "text": "A new statistics consent category wires up PostHog (EU region) so we can see which areas of the app get used. It is off by default and collects nothing until you allow it in the consent banner or under Settings → Browser storage & privacy. No cookies, no user identification, no session recording; the analytics library is lazy-loaded only after consent, and revoking consent purges its local state. The project key is a public, write-only ingest key (same class as the Supabase publishable key), not a secret. (#139)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.38.0",
+      "date": "2026-07-17",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Public trust pages /about, /legal/privacy, /legal/imprint (DE/EN), linked from the footer and the login card — a credential form without reachable self-description/privacy/imprint pages is a classic phishing-heuristic trigger for AV URL-reputation scanners (Kaspersky \"danger of data loss\" block on the shared *.vercel.app origin)."
+            },
+            {
+              "title": "",
+              "text": "Real static robots.txt, sitemap.xml and humans.txt (previously the SPA rewrite answered them with HTML 200 — a soft-404/cloaking signal to scanners)."
+            },
+            {
+              "title": "",
+              "text": "JSON-LD WebApplication/Organization structured data and application-name meta in index.html; enriched web manifest (id, lang, description, categories)."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "CSP frame-ancestors hardened from 'self' to 'none' — now consistent with X-Frame-Options: DENY."
+            },
+            {
+              "title": "",
+              "text": "Privacy policy and about page disclose PostHog product analytics (EU cloud, first-party proxy) introduced in 0.37.0."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "App crashed at boot (white screen) and every Karma spec errored since the PostHog integration: import.meta.env is undefined at runtime because no env-substituting builder is wired — accesses are now optional-chained; PostHog stays dormant until a token-injection mechanism exists."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.37.0",
       "date": "2026-07-17",

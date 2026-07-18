@@ -11,7 +11,7 @@ import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { ConsentService } from '../core/consent.service';
-import { PostHogService } from '../core/posthog.service';
+import { AnalyticsService } from '../core/analytics.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 
 // Only languages with a real translation file are offered (issue #23) — the
@@ -139,6 +139,19 @@ type LangId = 'de' | 'en';
           </span>
         </div>
         <p class="consent-desc">{{ 'consent.settings.preferences.desc' | translate }}</p>
+        <div class="row">
+          <span class="label">{{ 'consent.settings.statistics.label' | translate }}</span>
+          <span class="value">
+            <label class="consent-toggle">
+              <input
+                type="checkbox"
+                [checked]="consent.statisticsAllowed()"
+                (change)="onStatisticsToggle($event)" />
+              {{ (consent.statisticsAllowed() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
+            </label>
+          </span>
+        </div>
+        <p class="consent-desc">{{ 'consent.settings.statistics.desc' | translate }}</p>
       </div>
 
       <!-- 5. Danger zone -->
@@ -328,7 +341,7 @@ export class SettingsComponent implements OnInit {
   readonly consent = inject(ConsentService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
-  private readonly posthog = inject(PostHogService);
+  private readonly analytics = inject(AnalyticsService);
 
   readonly locales: readonly LangId[] = ['de', 'en'];
   // Normalize legacy stored values (fr/es/pt/ru/zh from the old 7-language
@@ -387,18 +400,22 @@ export class SettingsComponent implements OnInit {
     this.usernameInput.set(next);
     this.usernameOk.set(true);
     this.usernameSaving.set(false);
-    this.posthog.posthog.capture('settings_username_saved');
+    this.analytics.capture('settings_username_saved');
   }
 
   onConsentToggle(e: Event) {
     this.consent.setPreferences((e.target as HTMLInputElement).checked);
   }
 
+  onStatisticsToggle(e: Event) {
+    this.consent.setStatistics((e.target as HTMLInputElement).checked);
+  }
+
   onLangChange(e: Event) {
     const lang = (e.target as HTMLSelectElement).value as LangId;
     this.translate.use(lang);
     if (typeof localStorage !== 'undefined') localStorage.setItem('sc.lang', lang);
-    this.posthog.posthog.capture('settings_language_changed', { lang });
+    this.analytics.capture('settings_language_changed', { lang });
     // Persist to the profile as the logged-in preference. Fire-and-forget:
     // a failure here (e.g. migration not yet applied) must not block the UI.
     this.sb.client

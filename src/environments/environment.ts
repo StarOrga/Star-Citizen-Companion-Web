@@ -9,6 +9,12 @@ export const environment = {
     p4kBucket: 'p4k-uploads',
     maxP4kSizeMb: 200,
   },
-  posthogKey: import.meta.env?.['NG_APP_POSTHOG_PROJECT_TOKEN'] ?? '',
-  posthogHost: import.meta.env?.['NG_APP_POSTHOG_HOST'] ?? 'https://eu.i.posthog.com',
+  // Anonymous product analytics (#139). The project key is a public, write-only
+  // ingest key — same class as the Supabase publishable key above, not a secret.
+  // Empty = analytics stays inert: the library is never loaded and no event is
+  // sent, regardless of consent. Fill in to activate. EU region per admin call.
+  posthog: {
+    key: 'phc_Am939BozLUF73xus4GT5KKEKRx44xL5syfXHZDvL97iZ',
+    host: 'https://eu.i.posthog.com',
+  },
 };
