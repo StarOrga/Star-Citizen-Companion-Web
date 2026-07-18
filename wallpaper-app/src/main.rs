@@ -9,6 +9,7 @@
 #![windows_subsystem = "windows"]
 
 mod gfx;
+mod log;
 mod net;
 mod util;
 
@@ -25,10 +26,11 @@ use windows_sys::Win32::UI::Shell::{
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     AppendMenuW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyMenu, DestroyWindow,
-    DispatchMessageW, GetCursorPos, GetMessageW, PostMessageW, PostQuitMessage, RegisterClassW,
-    SetForegroundWindow, SetTimer, TrackPopupMenu, TranslateMessage, HICON, MF_CHECKED,
-    MF_SEPARATOR, MF_STRING, MSG, TPM_NONOTIFY, TPM_RETURNCMD, TPM_RIGHTBUTTON, WM_APP, WM_DESTROY,
-    WM_LBUTTONDBLCLK, WM_RBUTTONUP, WM_TIMER, WNDCLASSW, WS_OVERLAPPED,
+    DispatchMessageW, GetCursorPos, GetMessageW, LoadIconW, PostMessageW, PostQuitMessage,
+    RegisterClassW, SetForegroundWindow, SetTimer, TrackPopupMenu, TranslateMessage, HICON,
+    IDI_APPLICATION, MF_CHECKED, MF_SEPARATOR, MF_STRING, MSG, TPM_NONOTIFY, TPM_RETURNCMD,
+    TPM_RIGHTBUTTON, WM_APP, WM_DESTROY, WM_LBUTTONDBLCLK, WM_RBUTTONUP, WM_TIMER, WNDCLASSW,
+    WS_OVERLAPPED,
 };
 
 use util::Config;
@@ -70,8 +72,14 @@ fn t(de: &str, en: &str) -> String {
 }
 
 fn main() {
+    // Diagnostics first: without this a startup failure (GDI+, window, a panic
+    // under `panic = "abort"`) vanishes with no feedback — "it just doesn't start".
+    log::install_panic_hook();
+    log::line("startup: launching");
+
     // One instance only (autostart + a manual launch must not double up).
     if util::acquire_single_instance().is_none() {
+        log::line("startup: another instance already running — exiting");
         return;
     }
     let token = gfx::startup();
@@ -81,6 +89,7 @@ fn main() {
     QUEUE.get_or_init(|| Arc::new(Mutex::new(VecDeque::new())));
 
     unsafe { run(cfg) };
+    log::line("shutdown: message loop ended");
     gfx::shutdown(token);
 }
 
@@ -111,13 +120,21 @@ unsafe fn run(cfg: Config) {
         std::ptr::null(),
     );
     if hwnd.is_null() {
+        log::line("startup: main window creation failed — cannot host the tray icon");
         return;
     }
 
-    let hicon = gfx::load_tray_icon();
+    // Always show *some* tray icon. If the embedded .ico fails to parse the app
+    // would otherwise run with an invisible icon and look like it never started.
+    let mut hicon = gfx::load_tray_icon();
+    if hicon.is_null() {
+        log::line("tray: embedded icon unavailable — using system fallback icon");
+        hicon = LoadIconW(std::ptr::null_mut(), IDI_APPLICATION);
+    }
     UI.get_or_init(|| Mutex::new(Ui { cfg, shown: false }));
 
     add_tray_icon(hwnd, hicon);
+    log::line("startup: tray icon added, entering message loop");
     SetTimer(hwnd, TIMER_ROTATE, cfg.interval_min * 60_000, None);
 
     // Background prefetch thread.
@@ -272,14 +289,21 @@ fn prefetch_loop(hwnd_isize: isize, q: Arc<Mutex<VecDeque<PathBuf>>>) {
     let mut urls: Vec<String> = Vec::new();
     let mut idx: usize = 0;
     let mut counter: u64 = 0;
+    let mut warned_empty = false;
 
     loop {
         if urls.is_empty() {
             urls = net::fetch_wallpaper_urls();
             if urls.is_empty() {
+                if !warned_empty {
+                    log::line("prefetch: wallpaper list empty/unreachable — retrying every 15s");
+                    warned_empty = true;
+                }
                 std::thread::sleep(std::time::Duration::from_secs(15));
                 continue;
             }
+            warned_empty = false;
+            log::line(&format!("prefetch: fetched {} wallpaper urls", urls.len()));
         }
 
         let ready = q.lock().unwrap().len();

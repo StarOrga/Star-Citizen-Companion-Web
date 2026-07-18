@@ -33,13 +33,19 @@ static mut PAINT_W: i32 = 0;
 static mut PAINT_H: i32 = 0;
 static mut FADE_CLASS_REGISTERED: bool = false;
 
-/// Start GDI+; returns the token to pass to [`shutdown`].
+/// Start GDI+; returns the token to pass to [`shutdown`]. A non-zero status means
+/// image decoding will silently fail later — log it so that shows up as a cause.
 pub fn startup() -> usize {
     unsafe {
         let mut token: usize = 0;
         let mut input: GdiplusStartupInput = std::mem::zeroed();
         input.GdiplusVersion = 1;
-        GdiplusStartup(&mut token, &input, std::ptr::null_mut());
+        let status = GdiplusStartup(&mut token, &input, std::ptr::null_mut());
+        if status != 0 {
+            crate::log::line(&format!(
+                "gfx: GdiplusStartup failed (status {status}) — image decode disabled"
+            ));
+        }
         token
     }
 }
@@ -99,6 +105,7 @@ unsafe fn load_hbitmap(path: &Path) -> Option<(HBITMAP, i32, i32)> {
     let pw = wide(&path.to_string_lossy());
     let mut bmp: *mut GpBitmap = std::ptr::null_mut();
     if GdipCreateBitmapFromFile(pw.as_ptr(), &mut bmp) != 0 || bmp.is_null() {
+        crate::log::line(&format!("gfx: could not decode {}", path.display()));
         return None;
     }
     let mut w: u32 = 0;
