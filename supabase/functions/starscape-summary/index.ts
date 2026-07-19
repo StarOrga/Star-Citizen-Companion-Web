@@ -16,6 +16,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { Buffer } from 'node:buffer';
 import { Resvg, initWasm } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { buildSummarySvg, type SummaryItem } from './summary-svg.ts';
+import { Orbitron_700, Orbitron_500, Rajdhani_500, Rajdhani_600 } from './fonts.ts';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -47,19 +48,24 @@ interface VerseNewsItem {
 }
 
 // ---------------------------------------------------------------------
-// Fonts — loaded once at module scope (cold-start cost only).
-// The `new URL('./fonts/…', import.meta.url)` args are kept as STRING
-// LITERALS on purpose: the Supabase deploy bundler only statically
-// detects (and therefore includes) referenced files when the path is a
-// literal — a dynamic `./fonts/${name}` would deploy without the TTFs and
-// the function would fail closed to the plain-text fallback.
+// Fonts — embedded as base64 in fonts.ts, part of the JS import graph so
+// `supabase functions deploy` ALWAYS bundles them. Deno.readFile of static
+// asset files is NOT included by the deploy bundler; the previous
+// module-scope Promise.all(readFile(...)) rejected unhandled at boot and
+// 503'd the whole isolate. Decoded synchronously here — nothing to reject.
 // ---------------------------------------------------------------------
-const fontsPromise = Promise.all([
-  Deno.readFile(new URL('./fonts/Orbitron-700.ttf', import.meta.url)),
-  Deno.readFile(new URL('./fonts/Orbitron-500.ttf', import.meta.url)),
-  Deno.readFile(new URL('./fonts/Rajdhani-500.ttf', import.meta.url)),
-  Deno.readFile(new URL('./fonts/Rajdhani-600.ttf', import.meta.url)),
-]);
+function b64ToBytes(s: string): Uint8Array {
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+const FONT_BUFFERS: Uint8Array[] = [
+  b64ToBytes(Orbitron_700),
+  b64ToBytes(Orbitron_500),
+  b64ToBytes(Rajdhani_500),
+  b64ToBytes(Rajdhani_600),
+];
 
 // ---------------------------------------------------------------------
 // resvg-wasm — the npm wrapper ships its own .wasm as a package subpath,
@@ -211,11 +217,10 @@ function clampInt(raw: string | null, fallback: number, min: number, max: number
 
 async function renderPng(svg: string, width: number): Promise<Uint8Array> {
   await ensureWasm();
-  const [orbitron700, orbitron500, rajdhani500, rajdhani600] = await fontsPromise;
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'width', value: width },
     font: {
-      fontBuffers: [orbitron700, orbitron500, rajdhani500, rajdhani600],
+      fontBuffers: FONT_BUFFERS,
       defaultFontFamily: 'Rajdhani',
       loadSystemFonts: false,
     },
