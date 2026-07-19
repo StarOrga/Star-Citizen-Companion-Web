@@ -12,6 +12,7 @@ export interface PublicSettings {
   minimizeToTray: boolean;
   autoStart: boolean;
   autoRunOnNewVersion: boolean;
+  shutdownAfterUpload: boolean;
 }
 
 /** Tray strings resolved from the renderer's i18n dictionary. */
@@ -242,6 +243,18 @@ export const api = {
   tray: {
     /** Push resolved i18n strings to main (the tray lives there). */
     setLabels: (labels: TrayLabelPush): void => ipcRenderer.send('sc:tray:labels', labels),
+  },
+  system: {
+    /**
+     * Schedule an OS shutdown `delaySeconds` from now (default 60), leaving a
+     * grace window the operator can cancel. Best-effort: a locked-down box that
+     * denies the command just reports `ok:false`.
+     */
+    shutdown: (delaySeconds?: number): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('sc:system:shutdown', delaySeconds),
+    /** Abort a shutdown scheduled by `shutdown()`. */
+    abortShutdown: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('sc:system:abortShutdown'),
   },
   autoRun: {
     /** Ask main whether an unattended run should start now. */

@@ -86,6 +86,13 @@
     "bundleUploading": "Bundle-Metadaten werden hochgeladen…",
     "reconnectExpired": "Deine Sitzung ist abgelaufen — melde dich beim Upload-Start neu an.",
     "reconnectOffline": "Nicht mit dem Web verbunden — der Upload-Start meldet dich an.",
+    "shutdownAfter": "PC nach Upload herunterfahren",
+    "shutdownAfterHint": "Fährt den PC nach erfolgreichem Upload herunter — mit 60-Sekunden-Countdown zum Abbrechen.",
+    "shutdownScheduled": "Upload fertig — PC wird in {{secs}} s heruntergefahren.",
+    "shutdownCancel": "Abbrechen",
+    "shutdownCancelled": "Herunterfahren abgebrochen.",
+    "shutdownFailed": "Herunterfahren konnte nicht geplant werden",
+    "shutdownAbortFailed": "Abbruch fehlgeschlagen — bitte manuell abbrechen.",
     "steps": {
       "bundle": "Bundle",
       "codex": "Codex",

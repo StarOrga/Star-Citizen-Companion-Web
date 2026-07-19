@@ -17,10 +17,18 @@ translation happens here.
 
 from __future__ import annotations
 
+import io
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional
 
 DEVICES = ("keyboard", "mouse", "gamepad", "joystick")
+
+# SC ships defaultProfile.xml as CryEngine binary XML (CryXmlB). Plain
+# ``ET.fromstring`` chokes on it ("not well-formed") and silently yields zero
+# actionmaps. The 7-byte magic lets us route binary blobs through scdatatools'
+# CryXmlB decoder while keeping plain-text profiles (and the unit-test fixtures)
+# on the stdlib path — so the module stays importable without scdatatools.
+_CRYXMLB_MAGIC = b"CryXmlB"
 
 # rebind input prefix -> device, used when a <rebind> omits an explicit device.
 _PREFIX_DEVICE = {
@@ -67,18 +75,37 @@ def _action_bindings(action: ET.Element) -> Dict[str, Optional[str]]:
     return bindings
 
 
+def _parse_root(xml_bytes: bytes) -> Optional[ET.Element]:
+    """Return the profile root element from either CryXmlB-binary or text XML.
+
+    CryXmlB blobs are decoded via scdatatools (lazy-imported so the text path
+    needs no third-party deps). Any parse failure returns ``None`` so the caller
+    can degrade to empty lists instead of aborting the extract.
+    """
+    if xml_bytes[:len(_CRYXMLB_MAGIC)] == _CRYXMLB_MAGIC:
+        try:
+            from scdatatools.engine.cryxml import etree_from_cryxml_file
+            return etree_from_cryxml_file(io.BytesIO(xml_bytes)).getroot()
+        except Exception:  # noqa: BLE001 — missing dep or malformed blob → degrade
+            return None
+    try:
+        return ET.fromstring(xml_bytes)
+    except ET.ParseError:
+        return None
+
+
 def parse_default_profile(xml_bytes: bytes) -> Dict[str, List[dict]]:
     """Parse a defaultProfile.xml blob → ``{actionmaps: [...], actions: [...]}``.
 
-    Malformed or empty input yields empty lists rather than raising, so a bad or
-    missing profile degrades gracefully instead of aborting the whole extract.
+    Accepts both the CryXmlB-binary form SC ships and plain-text XML. Malformed
+    or empty input yields empty lists rather than raising, so a bad or missing
+    profile degrades gracefully instead of aborting the whole extract.
     """
     empty: Dict[str, List[dict]] = {"actionmaps": [], "actions": []}
     if not xml_bytes or not xml_bytes.strip():
         return empty
-    try:
-        root = ET.fromstring(xml_bytes)
-    except ET.ParseError:
+    root = _parse_root(xml_bytes)
+    if root is None:
         return empty
 
     actionmaps: List[dict] = []

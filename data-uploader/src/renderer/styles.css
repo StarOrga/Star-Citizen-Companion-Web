@@ -738,8 +738,9 @@ h3 { font-size: 0.9rem; }
   padding: 6px 10px;
 }
 
-/* Auto-upload opt-in on the Configure screen — mirrors the telemetry toggle. */
-.auto-upload-toggle {
+/* Opt-in toggles (Configure auto-upload, Upload-screen shutdown) share one look. */
+.auto-upload-toggle,
+.sc-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -749,8 +750,76 @@ h3 { font-size: 0.9rem; }
   font-size: 0.85rem;
   margin-top: 12px;
 }
-.auto-upload-toggle input { accent-color: var(--sc-accent); cursor: pointer; margin: 0; }
-.auto-upload-toggle:hover { color: var(--sc-fg-0); }
+.auto-upload-toggle:hover,
+.sc-toggle:hover { color: var(--sc-fg-0); }
+
+/* Custom-themed checkbox — one accent-glowing control shared by every toggle
+   (footer telemetry, Configure preferences, the Upload-screen shutdown opt-in),
+   replacing the browser default so all checkboxes match the SC design tokens. */
+.telemetry-toggle input[type='checkbox'],
+.auto-upload-toggle input[type='checkbox'],
+.sc-toggle input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  position: relative;
+  border: 1px solid var(--sc-border);
+  border-radius: 4px;
+  background: rgba(var(--accent-primary-rgb), 0.04);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.telemetry-toggle input[type='checkbox']:hover,
+.auto-upload-toggle input[type='checkbox']:hover,
+.sc-toggle input[type='checkbox']:hover {
+  border-color: var(--sc-accent);
+}
+.telemetry-toggle input[type='checkbox']:checked,
+.auto-upload-toggle input[type='checkbox']:checked,
+.sc-toggle input[type='checkbox']:checked {
+  background: var(--sc-accent);
+  border-color: var(--sc-accent);
+  box-shadow: 0 0 8px rgba(var(--accent-primary-rgb), 0.5);
+}
+/* Rotated-border checkmark, drawn in the dark base colour over the accent fill. */
+.telemetry-toggle input[type='checkbox']:checked::after,
+.auto-upload-toggle input[type='checkbox']:checked::after,
+.sc-toggle input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--sc-bg-0);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.telemetry-toggle input[type='checkbox']:focus-visible,
+.auto-upload-toggle input[type='checkbox']:focus-visible,
+.sc-toggle input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--sc-accent);
+  outline-offset: 2px;
+}
+
+/* Cancelable "PC shuts down in 60 s" banner on the Upload screen. */
+.shutdown-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: var(--sc-warning);
+  background: rgba(var(--accent-warning-rgb), 0.1);
+  border: 1px solid var(--sc-warning);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 12px 0 0;
+}
+.shutdown-notice .btn { padding: 4px 12px; font-size: 0.78rem; }
 
 /* "Bundle ready" affordance on the Run screen. */
 .run-ready-note {
