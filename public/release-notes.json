@@ -1,7 +1,53 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.39.0",
+  "current": "0.41.0",
   "releases": [
+    {
+      "version": "0.41.0",
+      "date": "2026-07-19",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Loading & transition animations across the app.",
+              "text": "Switching views or waiting for content used to feel frozen — Verse News showed almost no motion before content appeared, and Starscape's grid was just thin empty stripes while images loaded. A shared \"sensor sweep\" motion system now makes every wait read as the ship scanning: a navigation scan bar spans the top on slow switches (and stays hidden on fast/cached ones, with a \"weak signal\" note if a load really drags), Verse News skeletons pulse with a visible cyan phosphor sweep and HUD corner brackets, and Starscape tiles reserve their space — no more collapsed stripes — and \"power on\" out of a blur as each image decodes. Routed views develop in on arrival, tab taps give instant feedback, and the whole system stays GPU-light on mobile and honours the OS \"reduce motion\" setting."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.40.0",
+      "date": "2026-07-19",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Starscape wallpaper app: corrupt (\"grainy\") wallpapers.",
+              "text": "A truncated image download (a mid-stream network hiccup) could still pass the size check and be set as the desktop background, producing heavy grain/scanline artifacts. The native app now rejects short reads (Content-Length mismatch) and incomplete JPEG/PNG data (magic bytes + EOI/IEND trailer), so a partial image can never become a wallpaper."
+            },
+            {
+              "title": "Starscape wallpaper app: silent startup failures.",
+              "text": "The windowless tray app ran with panic = \"abort\" and no logging, so any startup problem vanished without a trace (\"it just doesn't start\"). It now writes a diagnostics log to %APPDATA%\\StarscapeWallpaper\\starscape.log (panic hook + startup milestones + GDI+/decode failures) and always shows a tray icon (system fallback when the bundled icon can't load), so it never runs invisibly."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Never-stale desktop-app download.",
+              "text": "The Starscape \"Download for Windows\" button now points at a stable wallpaper-app-latest alias release (a version-less asset the CI republishes on every wallpaper-app-v* tag) instead of a hardcoded version, so it always resolves to the newest build."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.39.0",
       "date": "2026-07-18",
