@@ -8,7 +8,7 @@ use std::path::Path;
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
     BeginPaint, CreateCompatibleDC, DeleteDC, DeleteObject, EndPaint, SelectObject,
-    SetStretchBltMode, StretchBlt, UpdateWindow, HALFTONE, HBITMAP, PAINTSTRUCT, SRCCOPY,
+    SetStretchBltMode, StretchBlt, UpdateWindow, HALFTONE, HBITMAP, HDC, PAINTSTRUCT, SRCCOPY,
 };
 use windows_sys::Win32::Graphics::GdiPlus::{
     GdipCreateBitmapFromFile, GdipCreateHBITMAPFromBitmap, GdipDisposeImage, GdipGetImageHeight,
@@ -101,7 +101,9 @@ pub fn load_tray_icon() -> HICON {
     }
 }
 
-unsafe fn load_hbitmap(path: &Path) -> Option<(HBITMAP, i32, i32)> {
+/// Decode an image file to a device-independent HBITMAP + its pixel size.
+/// Shared by the wallpaper crossfade overlay and the screensaver slideshow.
+pub(crate) unsafe fn load_hbitmap(path: &Path) -> Option<(HBITMAP, i32, i32)> {
     let pw = wide(&path.to_string_lossy());
     let mut bmp: *mut GpBitmap = std::ptr::null_mut();
     if GdipCreateBitmapFromFile(pw.as_ptr(), &mut bmp) != 0 || bmp.is_null() {
@@ -123,30 +125,35 @@ unsafe fn load_hbitmap(path: &Path) -> Option<(HBITMAP, i32, i32)> {
     Some((hbm, w as i32, h as i32))
 }
 
+/// Cover-fit blit of `bmp` (size `iw`x`ih`) into the `sw`x`sh` area of `hdc`:
+/// scale to fill, center, crop the overflow. Shared by the wallpaper crossfade
+/// overlay and the screensaver slideshow.
+pub(crate) unsafe fn blit_cover_fit(hdc: HDC, bmp: HBITMAP, iw: i32, ih: i32, sw: i32, sh: i32) {
+    if bmp.is_null() || iw <= 0 || ih <= 0 {
+        return;
+    }
+    let scale = (sw as f64 / iw as f64).max(sh as f64 / ih as f64);
+    let dw = (iw as f64 * scale).round() as i32;
+    let dh = (ih as f64 * scale).round() as i32;
+    let dx = (sw - dw) / 2;
+    let dy = (sh - dh) / 2;
+    let mem = CreateCompatibleDC(hdc);
+    let old = SelectObject(mem, bmp as _);
+    SetStretchBltMode(hdc, HALFTONE);
+    StretchBlt(hdc, dx, dy, dw, dh, mem, 0, 0, iw, ih, SRCCOPY);
+    SelectObject(mem, old);
+    DeleteDC(mem);
+}
+
 extern "system" fn overlay_proc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     unsafe {
         match msg {
             WM_PAINT => {
                 let mut ps: PAINTSTRUCT = std::mem::zeroed();
                 let hdc = BeginPaint(hwnd, &mut ps);
-                let bmp = PAINT_BMP;
-                if !bmp.is_null() {
-                    let sw = GetSystemMetrics(SM_CXSCREEN);
-                    let sh = GetSystemMetrics(SM_CYSCREEN);
-                    let (iw, ih) = (PAINT_W.max(1), PAINT_H.max(1));
-                    // Cover-fit: scale to fill, center, crop the overflow.
-                    let scale = (sw as f64 / iw as f64).max(sh as f64 / ih as f64);
-                    let dw = (iw as f64 * scale).round() as i32;
-                    let dh = (ih as f64 * scale).round() as i32;
-                    let dx = (sw - dw) / 2;
-                    let dy = (sh - dh) / 2;
-                    let mem = CreateCompatibleDC(hdc);
-                    let old = SelectObject(mem, bmp as _);
-                    SetStretchBltMode(hdc, HALFTONE);
-                    StretchBlt(hdc, dx, dy, dw, dh, mem, 0, 0, iw, ih, SRCCOPY);
-                    SelectObject(mem, old);
-                    DeleteDC(mem);
-                }
+                let sw = GetSystemMetrics(SM_CXSCREEN);
+                let sh = GetSystemMetrics(SM_CYSCREEN);
+                blit_cover_fit(hdc, PAINT_BMP, PAINT_W.max(1), PAINT_H.max(1), sw, sh);
                 EndPaint(hwnd, &ps);
                 0
             }
