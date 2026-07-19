@@ -44,16 +44,69 @@ pub fn cache_dir() -> PathBuf {
 
 // ---------------- Config (tiny key=value file) ----------------
 
+/// Overarching behavior mode: which surface(s) show Starscape imagery.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    /// Rotate the desktop background on the interval timer (legacy/default behavior).
+    Wallpaper,
+    /// Show a fullscreen slideshow after user inactivity; desktop background untouched.
+    Screensaver,
+    /// Both of the above.
+    Both,
+}
+
+impl Mode {
+    fn as_str(self) -> &'static str {
+        match self {
+            Mode::Wallpaper => "wallpaper",
+            Mode::Screensaver => "screensaver",
+            Mode::Both => "both",
+        }
+    }
+
+    fn from_str(s: &str) -> Option<Mode> {
+        match s {
+            "wallpaper" => Some(Mode::Wallpaper),
+            "screensaver" => Some(Mode::Screensaver),
+            "both" => Some(Mode::Both),
+            _ => None,
+        }
+    }
+
+    pub fn wants_wallpaper(self) -> bool {
+        matches!(self, Mode::Wallpaper | Mode::Both)
+    }
+
+    pub fn wants_screensaver(self) -> bool {
+        matches!(self, Mode::Screensaver | Mode::Both)
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Config {
     pub interval_min: u32,
     pub fade: bool,
     pub paused: bool,
+    pub mode: Mode,
+    pub screensaver_after_min: u32,
+    pub autostart_initialized: bool,
+    pub summary_on_boot: bool,
+    /// yyyymmdd of the last day the boot summary was shown; 0 = never.
+    pub summary_last_shown: u32,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        Config { interval_min: 30, fade: true, paused: false }
+        Config {
+            interval_min: 30,
+            fade: true,
+            paused: false,
+            mode: Mode::Wallpaper,
+            screensaver_after_min: 10,
+            autostart_initialized: false,
+            summary_on_boot: true,
+            summary_last_shown: 0,
+        }
     }
 }
 
@@ -62,7 +115,19 @@ impl Config {
         data_dir().join("config.ini")
     }
 
-    pub fn load() -> Config {
+    /// True if the config file already exists on disk (i.e. NOT a brand-new
+    /// install). Must be called BEFORE [`Config::load`] if the caller needs to
+    /// distinguish first-run from returning-user (load() itself never creates
+    /// the file, but callers should check existence first for clarity).
+    pub fn exists() -> bool {
+        Config::path().exists()
+    }
+
+    /// Load the config, defaulting any missing/unknown keys. Returns
+    /// `(config, existed)` where `existed` is true iff the config file was
+    /// already present on disk (a genuine first run never had one).
+    pub fn load() -> (Config, bool) {
+        let existed = Config::exists();
         let mut cfg = Config::default();
         if let Ok(text) = fs::read_to_string(Config::path()) {
             for line in text.lines() {
@@ -76,17 +141,45 @@ impl Config {
                     }
                     "fade" => cfg.fade = v == "1" || v.eq_ignore_ascii_case("true"),
                     "paused" => cfg.paused = v == "1" || v.eq_ignore_ascii_case("true"),
+                    "mode" => {
+                        if let Some(m) = Mode::from_str(v) {
+                            cfg.mode = m;
+                        }
+                    }
+                    "screensaver_after_min" => {
+                        if let Ok(n) = v.parse::<u32>() {
+                            cfg.screensaver_after_min = n.clamp(1, 240);
+                        }
+                    }
+                    "autostart_initialized" => {
+                        cfg.autostart_initialized = v == "1" || v.eq_ignore_ascii_case("true");
+                    }
+                    "summary_on_boot" => {
+                        cfg.summary_on_boot = v == "1" || v.eq_ignore_ascii_case("true");
+                    }
+                    "summary_last_shown" => {
+                        if let Ok(n) = v.parse::<u32>() {
+                            cfg.summary_last_shown = n;
+                        }
+                    }
                     _ => {}
                 }
             }
         }
-        cfg
+        (cfg, existed)
     }
 
     pub fn save(&self) {
         let text = format!(
-            "interval_min={}\nfade={}\npaused={}\n",
-            self.interval_min, self.fade as u8, self.paused as u8
+            "interval_min={}\nfade={}\npaused={}\nmode={}\nscreensaver_after_min={}\nautostart_initialized={}\nsummary_on_boot={}\nsummary_last_shown={}\n",
+            self.interval_min,
+            self.fade as u8,
+            self.paused as u8,
+            self.mode.as_str(),
+            self.screensaver_after_min,
+            self.autostart_initialized as u8,
+            self.summary_on_boot as u8,
+            self.summary_last_shown,
         );
         let _ = fs::write(Config::path(), text);
     }
@@ -135,6 +228,19 @@ pub fn set_autostart(enable: bool) -> bool {
     } else {
         delete_hkcu_value(RUN_KEY, RUN_VALUE)
     }
+}
+
+// ---------------- Date helper (for the once-per-day boot summary) ----------------
+
+/// Today's local date as `yyyymmdd` (e.g. `20260719`). Used only to gate the
+/// once-per-day boot summary; falls back to `0` on any failure (never shown
+/// twice is preferable to a hard crash, and `0` never matches a "real" date).
+pub fn today_yyyymmdd() -> u32 {
+    use windows_sys::Win32::Foundation::SYSTEMTIME;
+    use windows_sys::Win32::System::SystemInformation::GetLocalTime;
+    let mut st: SYSTEMTIME = unsafe { std::mem::zeroed() };
+    unsafe { GetLocalTime(&mut st) };
+    (st.wYear as u32) * 10_000 + (st.wMonth as u32) * 100 + (st.wDay as u32)
 }
 
 // ---------------- Open URL in default browser ----------------

@@ -213,6 +213,41 @@ fn parse_source_urls(json: &str) -> Vec<String> {
     out
 }
 
+/// Fetch the weekly Verse-News summary image (rendered server-side by the
+/// `starscape-summary` edge function) and write it to `dest`. Unlike
+/// [`download_image`] this targets the Supabase host directly (never the RSI
+/// CDN allowlist in that function), reusing the same truncation/size guards.
+pub fn fetch_summary_image(dest: &Path, w: u32, h: u32) -> bool {
+    let path = format!("/functions/v1/starscape-summary?w={w}&h={h}");
+    let headers = vec![
+        format!("apikey: {SUPA_KEY}"),
+        format!("Authorization: Bearer {SUPA_KEY}"),
+    ];
+    let Some(resp) = https_get(SUPA_HOST, &path, &headers) else {
+        log::line("summary: request/read failed (truncated?)");
+        return false;
+    };
+    if resp.status != 200 {
+        log::line(&format!("summary: HTTP {} from starscape-summary", resp.status));
+        return false;
+    }
+    if resp.body.len() < 5_000 {
+        log::line(&format!("summary: implausibly small ({} bytes)", resp.body.len()));
+        return false;
+    }
+    if !image_looks_complete(&resp.body) {
+        log::line(&format!("summary: incomplete image data ({} bytes)", resp.body.len()));
+        return false;
+    }
+    match std::fs::write(dest, &resp.body) {
+        Ok(()) => true,
+        Err(e) => {
+            log::line(&format!("summary: write failed ({e}) for {}", dest.display()));
+            false
+        }
+    }
+}
+
 /// Download an RSI-CDN image to `dest`. A valid Referer is what unlocks the CDN
 /// for non-browser clients (mirrors the edge function). Returns true only for a
 /// complete, well-formed image — a truncated download is rejected so it can
