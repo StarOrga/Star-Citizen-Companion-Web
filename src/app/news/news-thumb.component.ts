@@ -127,7 +127,7 @@ export function rsiVariant(url: string, target: 'post' | 'cover'): string {
        once the active image has decoded (kept mounted so the fade can play). */
     .skel {
       position: absolute; inset: 0; z-index: 0;
-      background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%);
+      background: linear-gradient(110deg, var(--sc-skel-base) 30%, var(--sc-skel-hi) 50%, var(--sc-skel-base) 70%);
       background-size: 200% 100%;
       animation: thumb-skel 1.4s ease-in-out infinite;
       opacity: 1; transition: opacity 0.45s ease; pointer-events: none;
