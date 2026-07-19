@@ -67,4 +67,14 @@ describe('SettingsStore', () => {
     const second = store.load();
     expect(second.installId).toBe(first.installId);
   });
+
+  it('defaults shutdownAfterUpload OFF and persists a deliberate opt-in', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    expect(store.load().shutdownAfterUpload).toBe(false);
+    store.patch({ shutdownAfterUpload: true });
+    // Survives a reload from the same backing store.
+    const reloaded = new SettingsStore(io, seqIds());
+    expect(reloaded.load().shutdownAfterUpload).toBe(true);
+  });
 });

@@ -12,6 +12,9 @@ extraction must be COMPLETE, so nothing is dropped.
 
 import io
 import json
+import sys
+import types
+import xml.etree.ElementTree as ET
 
 from sc_extract.keybinds import parse_default_profile
 
@@ -135,6 +138,50 @@ class TestRobustness:
 
     def test_garbage_is_safe(self):
         assert parse_default_profile(b"<not-a-profile/>") == {"actionmaps": [], "actions": []}
+
+
+class TestCryXmlBinaryDispatch:
+    """SC ships defaultProfile.xml as CryXmlB binary, not text. Regression guard:
+    magic-prefixed blobs must be routed through the CryXmlB decoder, NOT fed to
+    ET.fromstring (which fails "not well-formed" and silently yields 0 actionmaps
+    — the original bug). scdatatools is faked so the test stays hermetic.
+    """
+
+    def _install_fake_scdatatools(self, monkeypatch, tree_or_exc):
+        def etree_from_cryxml_file(source):
+            if isinstance(tree_or_exc, Exception):
+                raise tree_or_exc
+            return tree_or_exc
+
+        root = types.ModuleType("scdatatools")
+        engine = types.ModuleType("scdatatools.engine")
+        cryxml = types.ModuleType("scdatatools.engine.cryxml")
+        cryxml.etree_from_cryxml_file = etree_from_cryxml_file
+        root.engine = engine
+        engine.cryxml = cryxml
+        monkeypatch.setitem(sys.modules, "scdatatools", root)
+        monkeypatch.setitem(sys.modules, "scdatatools.engine", engine)
+        monkeypatch.setitem(sys.modules, "scdatatools.engine.cryxml", cryxml)
+
+    def test_cryxmlb_bytes_are_decoded_not_parsed_as_text(self, monkeypatch):
+        # The decoder yields the real tree; the raw bytes are NOT valid text XML,
+        # so a pass-through to ET.fromstring would return empty (the bug).
+        tree = ET.ElementTree(ET.fromstring(PROFILE_XML))
+        self._install_fake_scdatatools(monkeypatch, tree)
+        data = parse_default_profile(b"CryXmlB\x00\x6b\xce\x02\x00garbage-binary")
+        assert len(data["actionmaps"]) == 2
+        assert len(data["actions"]) == 7
+        assert data["actions"][0]["bindings"]["keyboard"] == "c"
+
+    def test_cryxmlb_decode_failure_degrades_to_empty(self, monkeypatch):
+        self._install_fake_scdatatools(monkeypatch, ValueError("bad blob"))
+        assert parse_default_profile(b"CryXmlB\x00bad") == {"actionmaps": [], "actions": []}
+
+    def test_cryxmlb_missing_dependency_degrades_to_empty(self, monkeypatch):
+        # scdatatools absent → ImportError inside the branch → graceful empty.
+        for mod in ("scdatatools", "scdatatools.engine", "scdatatools.engine.cryxml"):
+            monkeypatch.setitem(sys.modules, mod, None)
+        assert parse_default_profile(b"CryXmlB\x00x") == {"actionmaps": [], "actions": []}
 
 
 class _FakeP4K:

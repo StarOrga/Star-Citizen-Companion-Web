@@ -23,6 +23,7 @@ interface PublicSettings {
   minimizeToTray: boolean;
   autoStart: boolean;
   autoRunOnNewVersion: boolean;
+  shutdownAfterUpload: boolean;
 }
 import {
   progressCardHtml,
@@ -1338,7 +1339,12 @@ function renderAuthUpload(): string {
             <button id="btn-resume-upload" class="btn btn-primary" style="display:none;">${t('upload.job.resumeAction', {}) || 'Upload fortsetzen'}</button>
             <button id="btn-discard-upload" class="btn" style="display:none;">${t('upload.job.discard', {}) || 'Verwerfen'}</button>
           </div>
+          <label class="sc-toggle" title="${t('upload.shutdownAfterHint', {}) || 'Fährt den PC nach erfolgreichem Upload herunter — mit 60-Sekunden-Countdown zum Abbrechen.'}">
+            <input type="checkbox" id="chk-shutdown-after" ${state.settings?.shutdownAfterUpload ? 'checked' : ''} />
+            <span>${t('upload.shutdownAfter', {}) || 'PC nach Upload herunterfahren'}</span>
+          </label>
           ${progressCardHtml('upload-progress', uploadSteps())}
+          <div id="shutdown-notice" class="shutdown-notice" style="display:none;"></div>
           <p id="auth-status" class="warn" style="margin-top: 10px;"></p>
           <div id="upload-result" style="margin-top: 14px;"></div>
         </section>
@@ -1384,6 +1390,12 @@ function wireAuthUpload(): void {
   $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
   $('#btn-resume-upload')?.addEventListener('click', () => void doResumeUpload());
   $('#btn-discard-upload')?.addEventListener('click', () => void doDiscardUpload());
+  ($('#chk-shutdown-after') as HTMLInputElement | null)?.addEventListener('change', (e) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    void window.sc.settings.patch({ shutdownAfterUpload: checked }).then((s) => {
+      state.settings = s;
+    });
+  });
   // Force a fresh session check on entry so a "re-authorise needed" hint shows
   // up-front here, not only after the upload attempt fails.
   paintReconnectNotice();
@@ -1490,6 +1502,9 @@ async function doStartUpload(): Promise<void> {
   const btn = $('#btn-start-upload') as HTMLButtonElement | null;
   if (btn) btn.disabled = true;
   uploadRunning = true;
+  // Fresh attempt: drop any stale status/diff from a previous attempt so a landed
+  // bundle's "first upload" message can't coexist with a new "duplicate" error.
+  clearUploadFeedback();
   paintJobNotice();
   uploadProgress?.start();
   uploadProgress?.setStep(0);
@@ -1670,6 +1685,10 @@ async function doUploadAfterAuth(): Promise<void> {
       );
     }
   }
+
+  // Every stage confirmed and cleaned up — this is the only place we reach on a
+  // fully-successful upload, so it is where an opted-in shutdown belongs.
+  await maybeShutdownAfterUpload();
 }
 
 // Drive the codex promotion with a live per-table progress line. Non-fatal:
@@ -1789,6 +1808,57 @@ function setAuthStatus(msg: string, cls: 'ok' | 'warn' | 'error'): void {
   if (!el) return;
   el.textContent = msg;
   el.className = cls;
+}
+
+// The status line (#auth-status) and the diff/first-upload panel (#upload-result)
+// are independent DOM regions. Nothing cleared them between attempts, so a green
+// "first upload — no diff" from a landed bundle could linger UNDER a red
+// "duplicate" error from a later re-attempt (resume / re-click / auto-run) —
+// two contradictory messages at once. Wipe both at the start of every attempt so
+// error and success are always mutually exclusive.
+function clearUploadFeedback(): void {
+  const status = $('#auth-status');
+  if (status) {
+    status.textContent = '';
+    status.className = 'warn';
+  }
+  const result = $('#upload-result');
+  if (result) result.innerHTML = '';
+}
+
+// After a fully-confirmed upload, honour the operator's "shut down when done"
+// opt-in. The OS gets a 60 s countdown (cancelable via the button we paint here
+// or the native dialog), so an accidental tick or a "wait, one more thing" is
+// always recoverable. No-op when the box is off or the platform refuses.
+const SHUTDOWN_DELAY_SECS = 60;
+async function maybeShutdownAfterUpload(): Promise<void> {
+  if (!state.settings?.shutdownAfterUpload) return;
+  const notice = $('#shutdown-notice');
+  const res = await window.sc.system.shutdown(SHUTDOWN_DELAY_SECS);
+  if (!notice) return;
+  if (!res.ok) {
+    notice.textContent =
+      (t('upload.shutdownFailed', {}) || 'Herunterfahren konnte nicht geplant werden') +
+      (res.error ? `: ${res.error}` : '');
+    notice.style.display = 'block';
+    return;
+  }
+  notice.innerHTML = `
+    <span>${
+      t('upload.shutdownScheduled', { secs: String(SHUTDOWN_DELAY_SECS) }) ||
+      `Upload fertig — PC wird in ${SHUTDOWN_DELAY_SECS} s heruntergefahren.`
+    }</span>
+    <button id="btn-abort-shutdown" class="btn">${t('upload.shutdownCancel', {}) || 'Abbrechen'}</button>
+  `;
+  notice.style.display = 'flex';
+  $('#btn-abort-shutdown')?.addEventListener('click', () => {
+    void window.sc.system.abortShutdown().then((r) => {
+      notice.textContent = r.ok
+        ? t('upload.shutdownCancelled', {}) || 'Herunterfahren abgebrochen.'
+        : t('upload.shutdownAbortFailed', {}) || 'Abbruch fehlgeschlagen — bitte manuell abbrechen.';
+      notice.style.display = 'block';
+    });
+  });
 }
 
 // ============= 3D liveries (built + uploaded inside the normal upload) =======

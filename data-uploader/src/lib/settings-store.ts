@@ -24,6 +24,12 @@ export interface Settings {
    * hours of CPU work, so it must be a deliberate opt-in.
    */
   autoRunOnNewVersion: boolean;
+  /**
+   * Shut the PC down after a fully-confirmed upload. Default OFF — a destructive,
+   * unattended action the operator must deliberately opt into. Honoured with a
+   * short cancelable countdown so an accidental tick is recoverable.
+   */
+  shutdownAfterUpload: boolean;
 }
 
 /** Injectable text persistence (file-backed in production). */
@@ -63,6 +69,8 @@ export class SettingsStore {
       autoStart: typeof parsed?.autoStart === 'boolean' ? parsed.autoStart : false,
       autoRunOnNewVersion:
         typeof parsed?.autoRunOnNewVersion === 'boolean' ? parsed.autoRunOnNewVersion : false,
+      shutdownAfterUpload:
+        typeof parsed?.shutdownAfterUpload === 'boolean' ? parsed.shutdownAfterUpload : false,
     };
     this.cache = settings;
     // Persist immediately so the freshly-minted installId is stable next launch.

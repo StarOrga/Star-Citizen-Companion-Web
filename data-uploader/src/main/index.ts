@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, ipcMain, dialog, shell, clipboard } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { exec } from 'node:child_process';
 import log from 'electron-log';
 import { initLogging, logFromRenderer } from './logging.js';
 import { getSettings, setTelemetryEnabled, patchSettings, syncAutoStartWithOs } from './settings.js';
@@ -178,6 +179,7 @@ function publicSettings(): {
   minimizeToTray: boolean;
   autoStart: boolean;
   autoRunOnNewVersion: boolean;
+  shutdownAfterUpload: boolean;
 } {
   const s = getSettings();
   // Never expose the raw installId to the renderer — it is an internal, opaque
@@ -186,6 +188,7 @@ function publicSettings(): {
     telemetryEnabled: s.telemetryEnabled,
     minimizeToTray: s.minimizeToTray,
     autoStart: s.autoStart,
+    shutdownAfterUpload: s.shutdownAfterUpload,
     autoRunOnNewVersion: s.autoRunOnNewVersion,
   };
 }
@@ -199,7 +202,15 @@ ipcMain.handle('sc:settings:setTelemetry', (_e, enabled: boolean) => {
 
 ipcMain.handle(
   'sc:settings:patch',
-  (_e, partial: { minimizeToTray?: boolean; autoStart?: boolean; autoRunOnNewVersion?: boolean }) => {
+  (
+    _e,
+    partial: {
+      minimizeToTray?: boolean;
+      autoStart?: boolean;
+      autoRunOnNewVersion?: boolean;
+      shutdownAfterUpload?: boolean;
+    },
+  ) => {
     // Whitelist: the renderer must not be able to write arbitrary keys (e.g.
     // overwrite installId) by posting an unexpected object.
     const clean: Parameters<typeof patchSettings>[0] = {};
@@ -208,10 +219,55 @@ ipcMain.handle(
     if (typeof partial?.autoRunOnNewVersion === 'boolean') {
       clean.autoRunOnNewVersion = partial.autoRunOnNewVersion;
     }
+    if (typeof partial?.shutdownAfterUpload === 'boolean') {
+      clean.shutdownAfterUpload = partial.shutdownAfterUpload;
+    }
     patchSettings(clean);
     return publicSettings();
   },
 );
+
+// ============= System power IPC =============
+
+/** Run a shell command, resolving ok/err instead of throwing. */
+function execAsync(cmd: string): Promise<{ ok: boolean; error?: string }> {
+  return new Promise((resolve) => {
+    exec(cmd, (err) => {
+      if (err) {
+        log.warn('[system] command failed', { cmd, error: err.message });
+        resolve({ ok: false, error: err.message });
+      } else {
+        resolve({ ok: true });
+      }
+    });
+  });
+}
+
+// Schedule an OS shutdown with a cancelable grace window. The renderer only asks
+// after a fully-confirmed upload AND when the operator opted in. `delaySeconds`
+// is sanitised to a non-negative integer; the message is a fixed literal — no
+// user-controlled data reaches the shell.
+ipcMain.handle('sc:system:shutdown', (_e, delaySeconds?: number) => {
+  const secs =
+    typeof delaySeconds === 'number' && Number.isFinite(delaySeconds)
+      ? Math.max(0, Math.floor(delaySeconds))
+      : 60;
+  if (process.platform === 'win32') {
+    return execAsync(`shutdown /s /t ${secs} /c "Star Citizen Companion: upload complete."`);
+  }
+  if (process.platform === 'darwin' || process.platform === 'linux') {
+    // Unix `shutdown` takes minutes, not seconds, and typically needs privileges.
+    const mins = Math.max(1, Math.ceil(secs / 60));
+    return execAsync(`shutdown -h +${mins}`);
+  }
+  return Promise.resolve({ ok: false, error: `unsupported platform: ${process.platform}` });
+});
+
+ipcMain.handle('sc:system:abortShutdown', () => {
+  if (process.platform === 'win32') return execAsync('shutdown /a');
+  if (process.platform === 'darwin' || process.platform === 'linux') return execAsync('shutdown -c');
+  return Promise.resolve({ ok: false, error: `unsupported platform: ${process.platform}` });
+});
 
 // ============= Tray IPC =============
 

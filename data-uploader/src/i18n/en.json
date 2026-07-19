@@ -86,6 +86,13 @@
     "bundleUploading": "Uploading bundle metadata…",
     "reconnectExpired": "Your session has expired — you'll be asked to sign in again when the upload starts.",
     "reconnectOffline": "Not connected to the web — starting the upload will sign you in.",
+    "shutdownAfter": "Shut down PC after upload",
+    "shutdownAfterHint": "Shuts the PC down after a successful upload — with a 60-second countdown you can cancel.",
+    "shutdownScheduled": "Upload done — the PC shuts down in {{secs}} s.",
+    "shutdownCancel": "Cancel",
+    "shutdownCancelled": "Shutdown cancelled.",
+    "shutdownFailed": "Couldn't schedule the shutdown",
+    "shutdownAbortFailed": "Couldn't cancel — please abort manually.",
     "steps": {
       "bundle": "Bundle",
       "codex": "Codex",
