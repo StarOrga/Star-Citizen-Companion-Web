@@ -102,6 +102,12 @@ verify_jwt = false
 # every Bearer-token request before our middleware sees it.
 verify_jwt = false
 
+[functions.starscape-summary]
+# JWT verification OFF — public, unauthenticated PNG endpoint consumed by the
+# Starscape desktop wallpaper app (no login/session at boot time). Renders a
+# branded weekly Verse News summary image; no user data flows through it.
+verify_jwt = false
+
 [functions.ingest-telemetry]
 # JWT verification OFF — the desktop app is an unauthenticated machine client.
 # The function does its own HMAC auth (X-SCC-Signature over timestamp+rawBody
