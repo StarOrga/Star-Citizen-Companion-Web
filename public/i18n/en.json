@@ -31,7 +31,10 @@
     "telemetry": "Telemetry",
     "feedback": "Feedback",
     "signIn": "Sign in",
-    "starscape": "Starscape"
+    "starscape": "Starscape",
+    "loading": {
+      "weak": "Weak signal · retuning"
+    }
   },
   "codex": {
     "title": "Codex",

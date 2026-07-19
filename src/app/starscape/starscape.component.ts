@@ -9,6 +9,18 @@ import {
 import { DatePipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { StarscapeService, Wallpaper } from './starscape.service';
+import { ImgReadyDirective } from '../news/news-thumb.component';
+
+// Believable, varied masonry-tile heights (px) for the loading skeletons. The
+// gallery rows carry no dimension metadata, so a fixed cycle of plausible
+// heights gives the grid a real "images incoming" silhouette instead of the
+// collapsed border stripes a zero-height <img> produces before it decodes.
+const SKEL_HEIGHTS = [210, 280, 240, 320, 200, 300, 260, 190, 340, 230];
+// Number of placeholder tiles painted while the very first page is in flight.
+const SKELETON_SLOTS = 12;
+// Above-the-fold tiles load eagerly (with high fetch priority for the first
+// row) so first paint is driven by real bytes, not lazy-load proximity.
+const EAGER_TILES = 8;
 
 /**
  * Starscape (#133) — high-res wallpaper gallery from crawled RSI news imagery.
@@ -18,7 +30,7 @@ import { StarscapeService, Wallpaper } from './starscape.service';
 @Component({
   selector: 'sc-starscape',
   standalone: true,
-  imports: [TranslateModule, DatePipe],
+  imports: [TranslateModule, DatePipe, ImgReadyDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -71,13 +83,37 @@ import { StarscapeService, Wallpaper } from './starscape.service';
         </div>
       }
 
+      <!-- First-page load: a believable masonry silhouette of sensor "contacts"
+           so the grid reads as "images incoming", never as collapsed stripes. -->
+      @if (svc.loading() && svc.wallpapers().length === 0) {
+        <div class="wall" aria-hidden="true">
+          @for (i of skeletonSlots; track i) {
+            <span class="tile skel-tile sc-skel" [style.height.px]="skelH(i)"></span>
+          }
+        </div>
+      }
+
       <div class="wall">
-        @for (w of svc.wallpapers(); track w.imageId) {
-          <button type="button" class="tile" (click)="open(w)" [attr.aria-label]="w.title">
+        @for (w of svc.wallpapers(); track w.imageId; let i = $index) {
+          <button type="button" class="tile" [class.loaded]="loaded().has(w.imageId)"
+                  (click)="open(w)" [attr.aria-label]="w.title">
+            <!-- Skeleton holds the tile's height while its preview decodes, so
+                 the column never collapses to a border stripe. Dropped once the
+                 image is ready (or has failed) — then the image defines height. -->
+            @if (!loaded().has(w.imageId) && !broken().has(w.imageId)) {
+              <span class="tile-skel sc-skel" [style.height.px]="skelH(i)" aria-hidden="true"></span>
+            }
             <img
+              class="tile-img"
+              [class.ready]="loaded().has(w.imageId)"
               [src]="w.previewUrl"
               [alt]="w.title ?? ''"
-              loading="lazy"
+              decoding="async"
+              [attr.loading]="i < eagerTiles ? 'eager' : 'lazy'"
+              [attr.fetchpriority]="i < 4 ? 'high' : null"
+              scImgReady
+              (ready)="onLoad(w.imageId)"
+              (load)="onLoad(w.imageId)"
               (error)="onBroken(w.imageId)"
               [class.hidden]="broken().has(w.imageId)" />
             @if (w.series) { <span class="tile-series">{{ w.series }}</span> }
@@ -172,6 +208,40 @@ import { StarscapeService, Wallpaper } from './starscape.service';
       box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 14px color-mix(in srgb, var(--sc-accent) 25%, transparent); }
     .tile img { display: block; width: 100%; height: auto; }
     .tile img.hidden { display: none; }
+
+    /* Blur-up "power-on" reveal: the preview develops out of a blur the moment
+       it decodes, instead of popping in. While undecoded the <img> carries no
+       height — the sibling skeleton reserves the box. */
+    .tile-img {
+      opacity: 0; filter: blur(12px); transform: scale(1.03);
+      transition: opacity 0.55s ease, filter 0.55s ease, transform 0.55s ease;
+    }
+    .tile-img.ready { opacity: 1; filter: blur(0); transform: none; }
+
+    /* Skeleton layer (per-tile + the first-load grid) — holds height and runs
+       the shared phosphor sweep from .sc-skel (styles.scss). */
+    .tile-skel { display: block; width: 100%; border-radius: inherit; }
+    .skel-tile {
+      display: block; width: 100%; margin: 0 0 12px;
+      border: 1px solid var(--sc-border); border-radius: 8px;
+      break-inside: avoid; cursor: default; pointer-events: none;
+    }
+    .skel-tile:hover { transform: none; box-shadow: none; }
+
+    /* Contact-lock: a one-shot accent flash as the image confirms — the shared
+       "signal acquired" punctuation, echoing the news-card reveal. */
+    .tile.loaded { animation: sc-tile-lock 0.6s ease-out; }
+    @keyframes sc-tile-lock {
+      0% { box-shadow: 0 0 0 0 transparent; }
+      25% { box-shadow: 0 0 0 1px var(--sc-accent), 0 0 18px color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tile-img { transition: opacity 0.2s ease; filter: none; transform: none; }
+      .tile-img.ready { filter: none; }
+      .tile.loaded { animation: none; }
+    }
+
     .tile-series {
       position: absolute; left: 8px; bottom: 8px;
       padding: 2px 8px; border-radius: 999px; font-size: 0.62rem;
@@ -238,9 +308,29 @@ export class StarscapeComponent implements OnInit {
 
   readonly active = signal<Wallpaper | null>(null);
   readonly broken = signal<ReadonlySet<string>>(new Set<string>());
+  // Preview images that have decoded at least once — gates each tile's blur-up
+  // reveal and drops its skeleton. Cache hits are recovered via ImgReadyDirective.
+  readonly loaded = signal<ReadonlySet<string>>(new Set<string>());
+
+  // Template constants for the loading skeletons.
+  readonly skeletonSlots = Array.from({ length: SKELETON_SLOTS }, (_, i) => i);
+  readonly eagerTiles = EAGER_TILES;
 
   async ngOnInit(): Promise<void> {
     if (this.svc.wallpapers().length === 0) await this.svc.load(true);
+  }
+
+  /** Plausible varied placeholder height (px) for tile `i`, cycled from a fixed set. */
+  skelH(i: number): number {
+    return SKEL_HEIGHTS[i % SKEL_HEIGHTS.length];
+  }
+
+  /** Marks a preview decoded → fades it in and removes its skeleton. */
+  onLoad(id: string): void {
+    if (this.loaded().has(id)) return;
+    const next = new Set(this.loaded());
+    next.add(id);
+    this.loaded.set(next);
   }
 
   open(w: Wallpaper): void {

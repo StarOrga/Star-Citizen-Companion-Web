@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.0] - 2026-07-19
+
+### Added
+
+- **Loading & transition animations across the app.** Switching views or waiting
+  for content used to feel frozen — Verse News showed almost no motion before
+  content appeared, and Starscape's grid was just thin empty stripes while
+  images loaded. A shared "sensor sweep" motion system now makes every wait read
+  as the ship scanning: a navigation scan bar spans the top on slow switches
+  (and stays hidden on fast/cached ones, with a "weak signal" note if a load
+  really drags), Verse News skeletons pulse with a visible cyan phosphor sweep
+  and HUD corner brackets, and Starscape tiles reserve their space — no more
+  collapsed stripes — and "power on" out of a blur as each image decodes. Routed
+  views develop in on arrival, tab taps give instant feedback, and the whole
+  system stays GPU-light on mobile and honours the OS "reduce motion" setting.
+
 ## [0.40.0] - 2026-07-19
 
 ### Fixed

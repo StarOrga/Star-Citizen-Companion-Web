@@ -117,7 +117,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
           <div class="bucket" aria-hidden="true">
             <div class="bucket-head"><span class="skel-line shimmer head"></span></div>
             <div class="cards today-cards">
-              <div class="card skel featured">
+              <div class="card skel featured sc-hud-frame">
                 <span class="skel-thumb shimmer"></span>
                 <span class="skel-body">
                   <span class="skel-line shimmer lg"></span>
@@ -126,7 +126,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
                 </span>
               </div>
               @for (n of [1, 2]; track n) {
-                <div class="card skel">
+                <div class="card skel sc-hud-frame">
                   <span class="skel-thumb shimmer"></span>
                   <span class="skel-body">
                     <span class="skel-line shimmer lg"></span>
@@ -140,7 +140,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
             <div class="bucket-head"><span class="skel-line shimmer head"></span></div>
             <div class="cards regular-cards">
               @for (n of [1, 2, 3, 4]; track n) {
-                <div class="card skel">
+                <div class="card skel sc-hud-frame">
                   <span class="skel-thumb shimmer"></span>
                   <span class="skel-body">
                     <span class="skel-line shimmer lg"></span>
@@ -212,7 +212,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     <!-- One card template for all buckets: click opens the in-app detail
          overlay; the footer keeps quick actions (save / share / external). -->
     <ng-template #card let-item let-featured="featured" let-showSummary="showSummary">
-      <article class="card" [class.featured]="featured" [class.has-thumb]="!!item.thumbnail"
+      <article class="card sc-reveal" [class.featured]="featured" [class.has-thumb]="!!item.thumbnail"
                [attr.data-channel]="item.channel" tabindex="0" role="button"
                [attr.aria-label]="item.title"
                (click)="openDetail(item)"
@@ -489,9 +489,11 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .skel-line.lg { height: 15px; width: 78%; }
     .skel-line.sm { width: 42%; margin-top: auto; }
     .skel-line.head { height: 12px; width: 120px; }
-    /* Shared shimmer sweep — one keyframe, staggered so the tiles don't pulse in lockstep. */
+    /* Shared shimmer sweep — one keyframe, staggered so the tiles don't pulse in
+       lockstep. Accent-tinted highlight (was bg-1↔bg-2, invisible in the dark
+       theme — the root of "no loading animation") so the sweep actually reads. */
     .shimmer {
-      background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%);
+      background: linear-gradient(110deg, var(--sc-skel-base) 30%, var(--sc-skel-hi) 50%, var(--sc-skel-base) 70%);
       background-size: 200% 100%;
       animation: skel 1.4s ease-in-out infinite;
     }

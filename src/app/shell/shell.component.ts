@@ -1,13 +1,25 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   HostListener,
   computed,
   inject,
   signal,
 } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  NavigationCancel,
+  NavigationEnd,
+  NavigationError,
+  NavigationStart,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from '@angular/router';
+import { animate, style, transition, trigger } from '@angular/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
@@ -21,6 +33,17 @@ import { FeedbackFabComponent } from './feedback-fab.component';
   standalone: true,
   imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent, FeedbackFabComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Routed views "develop" into focus as they mount — fade + slight rise, keyed
+  // to a per-navigation counter so it replays on every switch. Header/footer are
+  // outside .content, so they stay put.
+  animations: [
+    trigger('routeReveal', [
+      transition(':increment', [
+        style({ opacity: 0, transform: 'translateY(10px) scale(0.994)' }),
+        animate('320ms cubic-bezier(0.2, 0.8, 0.2, 1)', style({ opacity: 1, transform: 'none' })),
+      ]),
+    ]),
+  ],
   template: `
     <header class="topbar">
       <a class="brand" routerLink="/news" [attr.aria-label]="'nav.brandAria' | translate">
@@ -107,8 +130,20 @@ import { FeedbackFabComponent } from './feedback-fab.component';
       </div>
     </header>
 
-    <main class="content">
-      <router-outlet />
+    <!-- Navigation "sensor sweep" — only appears once a switch runs past 250ms,
+         so it covers the lazy-chunk/guard gap on real waits but never flashes on
+         instant/cached routes. -->
+    @if (navActive()) {
+      <div class="nav-scan" role="status" aria-live="polite">
+        <span class="nav-scan__bar"></span>
+      </div>
+      @if (navPhase() === 'weak') {
+        <div class="nav-scan__label">{{ 'nav.loading.weak' | translate }}</div>
+      }
+    }
+
+    <main class="content" [@routeReveal]="reveal()">
+      <router-outlet (activate)="onRouteActivate()" />
     </main>
 
     <sc-footer />
@@ -166,11 +201,49 @@ import { FeedbackFabComponent } from './feedback-fab.component';
       transition: all 0.18s ease;
       text-decoration: none;
       &:hover { color: var(--sc-accent); background: rgba(0, 212, 255, 0.08); }
+      /* Instant tap acknowledgment — the switch feels pressed before any load. */
+      &:active { transform: scale(0.96); }
       &.active {
         color: var(--sc-accent);
         background: rgba(0, 212, 255, 0.14);
         box-shadow: inset 0 -2px 0 var(--sc-accent);
       }
+    }
+
+    /* Navigation progress — the "sensor sweep" scan bar, pinned to the very top
+       of the viewport above the sticky header (classic top-loading-bar spot). */
+    .nav-scan {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      height: 2px; overflow: hidden; pointer-events: none;
+      background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
+    }
+    .nav-scan__bar {
+      position: absolute; top: 0; left: 0; height: 100%; width: 38%;
+      background: linear-gradient(90deg, transparent, var(--sc-accent) 45%, var(--sc-accent-hot) 55%, var(--sc-accent) 65%, transparent);
+      box-shadow: 0 0 12px var(--sc-accent);
+      animation: nav-scan-sweep 1.05s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+      will-change: transform;
+    }
+    @keyframes nav-scan-sweep {
+      0% { transform: translateX(-130%); }
+      100% { transform: translateX(360%); }
+    }
+    /* Reassurance for genuinely slow loads (>3s) — a bottom-centre HUD toast,
+       matching the app's existing toast placement so it never clashes with the header. */
+    .nav-scan__label {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      z-index: 50; pointer-events: none;
+      padding: 4px 14px; border-radius: 999px;
+      background: color-mix(in srgb, var(--sc-bg-2) 88%, transparent);
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      font-family: var(--sc-font-display); font-size: 0.62rem; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--sc-accent);
+      animation: sc-reveal-in 0.3s ease both;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .nav-scan__bar { animation: none; width: 100%;
+        background: color-mix(in srgb, var(--sc-accent) 40%, transparent); box-shadow: none; }
     }
     .nav a.admin-link {
       color: var(--sc-accent-hot);
@@ -319,9 +392,69 @@ export class ShellComponent {
   readonly roles = inject(RoleService);
   readonly profile = inject(ProfileService);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly signingOut = signal(false);
   readonly menuOpen = signal(false);
+
+  // Bumped each time a routed view mounts so the [@routeReveal] animation replays.
+  readonly reveal = signal(0);
+
+  // Navigation "sensor sweep" state. Gated at 250ms so instant/cached routes
+  // never flash a loader; escalates to a "weak signal" label past 3s.
+  readonly navActive = signal(false);
+  readonly navPhase = signal<'acquiring' | 'weak'>('acquiring');
+  private navShowTimer: ReturnType<typeof setTimeout> | null = null;
+  private navWeakTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
+      if (e instanceof NavigationStart) {
+        this.startNavIndicator();
+      } else if (
+        e instanceof NavigationEnd ||
+        e instanceof NavigationCancel ||
+        e instanceof NavigationError
+      ) {
+        this.stopNavIndicator();
+      }
+    });
+    this.destroyRef.onDestroy(() => this.clearNavTimers());
+  }
+
+  /** A routed view mounted — replay the content reveal. */
+  onRouteActivate(): void {
+    this.reveal.update((n) => n + 1);
+  }
+
+  // Show the sweep only after 250ms so a snappy navigation shows nothing at all
+  // (a flash-of-loader makes fast apps feel slower); escalate the label past 3s.
+  private startNavIndicator(): void {
+    this.clearNavTimers();
+    this.navShowTimer = setTimeout(() => {
+      this.navPhase.set('acquiring');
+      this.navActive.set(true);
+    }, 250);
+    this.navWeakTimer = setTimeout(() => this.navPhase.set('weak'), 3000);
+  }
+
+  private stopNavIndicator(): void {
+    this.clearNavTimers();
+    this.navActive.set(false);
+    this.navPhase.set('acquiring');
+  }
+
+  private clearNavTimers(): void {
+    if (this.navShowTimer) {
+      clearTimeout(this.navShowTimer);
+      this.navShowTimer = null;
+    }
+    if (this.navWeakTimer) {
+      clearTimeout(this.navWeakTimer);
+      this.navWeakTimer = null;
+    }
+  }
 
   /**
    * The user's chosen handle is the primary identity (see feedback: "username
