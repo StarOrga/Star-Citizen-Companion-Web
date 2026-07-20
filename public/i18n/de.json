@@ -576,6 +576,19 @@
       "confirmOther": "{{email}} wirklich endgültig löschen? Auch deren Uploads + Bundles verschwinden. Nicht rückgängig machbar.",
       "failed": "Löschen fehlgeschlagen"
     },
+    "desktopReleases": {
+      "navLink": "Desktop-Releases",
+      "title": "Admin · Desktop-Releases",
+      "subtitle": "Eine gebaute Version durch die Ringe alpha → beta → stable weiterreichen.",
+      "pointers": "Channel-Zeiger",
+      "channel": "Channel",
+      "version": "Version",
+      "noPointers": "Noch keine Channels konfiguriert.",
+      "promote": "Version promoten",
+      "selectVersion": "Version",
+      "targetChannel": "Ziel-Channel",
+      "promoteAction": "Promoten"
+    },
     "tokens": {
       "navLink": "Externe API",
       "docsLink": "API-Dokumentation ↗",
@@ -648,7 +661,17 @@
     "noRelease": "Noch kein veröffentlichter Release.",
     "noReleaseHint": "Sobald der erste Build im CI durchgelaufen ist, erscheint er hier.",
     "size": "Größe",
-    "hash": "SHA-256"
+    "hash": "SHA-256",
+    "channel": {
+      "label": "Channel",
+      "alpha": "Alpha",
+      "beta": "Beta",
+      "stable": "Stabil"
+    }
+  },
+  "download": {
+    "title": "Download",
+    "subtitle": "Hol dir den Data Uploader für deinen lokalen Star-Citizen-Install."
   },
   "desktopConnect": {
     "title": "Star Citizen Companion verbinden",

@@ -576,6 +576,19 @@
       "confirmOther": "Permanently delete {{email}}? Their uploads + bundles go too. This cannot be undone.",
       "failed": "Delete failed"
     },
+    "desktopReleases": {
+      "navLink": "Desktop Releases",
+      "title": "Admin · Desktop Releases",
+      "subtitle": "Move a built version forward through the alpha → beta → stable rings.",
+      "pointers": "Channel pointers",
+      "channel": "Channel",
+      "version": "Version",
+      "noPointers": "No channels configured yet.",
+      "promote": "Promote a version",
+      "selectVersion": "Version",
+      "targetChannel": "Target channel",
+      "promoteAction": "Promote"
+    },
     "tokens": {
       "navLink": "External API",
       "docsLink": "API documentation ↗",
@@ -648,7 +661,17 @@
     "noRelease": "No published release yet.",
     "noReleaseHint": "Once the first CI build lands, it'll show up here.",
     "size": "Size",
-    "hash": "SHA-256"
+    "hash": "SHA-256",
+    "channel": {
+      "label": "Channel",
+      "alpha": "Alpha",
+      "beta": "Beta",
+      "stable": "Stable"
+    }
+  },
+  "download": {
+    "title": "Download",
+    "subtitle": "Get the Data Uploader for your local Star Citizen install."
   },
   "desktopConnect": {
     "title": "Connect Star Citizen Companion",
