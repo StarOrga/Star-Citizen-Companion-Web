@@ -78,6 +78,9 @@ import { FeedbackFabComponent } from './feedback-fab.component';
           <a routerLink="/admin/telemetry" routerLinkActive="active" class="admin-link">
             {{ 'nav.telemetry' | translate }}
           </a>
+          <a routerLink="/admin/desktop-releases" routerLinkActive="active" class="admin-link">
+            {{ 'admin.desktopReleases.navLink' | translate }}
+          </a>
         }
       </nav>
 
