@@ -24,6 +24,7 @@ interface PublicSettings {
   autoStart: boolean;
   autoRunOnNewVersion: boolean;
   shutdownAfterUpload: boolean;
+  updateChannel: 'alpha' | 'beta' | 'stable';
 }
 import {
   progressCardHtml,
@@ -175,6 +176,8 @@ const state = {
   // Persisted prefs owned by main (tray / autostart / auto-run). Cached here
   // only so the Configure view can render the checkboxes synchronously.
   settings: null as PublicSettings | null,
+  // The signed-in user's role — gates the update-channel picker (viewer: hidden).
+  role: null as 'admin' | 'collaborator' | 'viewer' | null,
 };
 
 async function init(): Promise<void> {
@@ -205,6 +208,13 @@ async function init(): Promise<void> {
     state.settings = await window.sc.settings.get();
   } catch {
     state.settings = null;
+  }
+
+  // Role decides whether the Configure view shows the update-channel picker.
+  try {
+    state.role = await window.sc.session.role();
+  } catch {
+    state.role = 'viewer';
   }
 
   // The tray's Resume item can only signal intent — the renderer sequences the
@@ -958,6 +968,40 @@ function paintChannels(): void {
 
 // ============= View: Configure =============
 
+/** Channels the current role may pick (highest first). Empty = no picker. */
+function allowedChannels(): Array<'alpha' | 'beta' | 'stable'> {
+  switch (state.role) {
+    case 'admin':
+      return ['alpha', 'beta', 'stable'];
+    case 'collaborator':
+      return ['beta', 'stable'];
+    default:
+      return [];
+  }
+}
+
+/** Role-gated update-channel <select>; empty string for viewers (no picker). */
+function renderChannelPicker(): string {
+  const opts = allowedChannels();
+  if (opts.length < 2) return '';
+  const cur = state.settings?.updateChannel ?? 'stable';
+  const options = opts
+    .map(
+      (c) =>
+        `<option value="${c}" ${c === cur ? 'selected' : ''}>${
+          t('settings.updateChannel.' + c, {}) || c
+        }</option>`,
+    )
+    .join('');
+  return `
+      <label class="auto-upload-toggle channel-row" title="${
+        t('settings.updateChannel.hint', {}) || 'Welchem Release-Ring automatische Updates folgen.'
+      }">
+        <span>${t('settings.updateChannel.label', {}) || 'Update-Channel'}</span>
+        <select id="sel-update-channel" class="channel-select">${options}</select>
+      </label>`;
+}
+
 function renderConfigure(): string {
   return `
     <div class="view">
@@ -980,6 +1024,7 @@ function renderConfigure(): string {
         <input type="checkbox" id="chk-autorun" ${state.settings?.autoRunOnNewVersion ? 'checked' : ''} />
         <span>${t('autorun.toggle', {}) || 'Bei neuer data.p4k-Version automatisch komplett durchlaufen'}</span>
       </label>
+      ${renderChannelPicker()}
       <div class="btn-row view-footer">
         <button id="btn-back-discover" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
         <button id="btn-start-run" class="btn btn-primary">${t('configure.start', {}) || 'Extraktion starten'}</button>
@@ -1007,6 +1052,12 @@ function wireConfigure(): void {
   });
   ($('#chk-autorun') as HTMLInputElement | null)?.addEventListener('change', (e) => {
     void persist({ autoRunOnNewVersion: (e.target as HTMLInputElement).checked });
+  });
+  ($('#sel-update-channel') as HTMLSelectElement | null)?.addEventListener('change', (e) => {
+    const value = (e.target as HTMLSelectElement).value as 'alpha' | 'beta' | 'stable';
+    void window.sc.settings.patch({ updateChannel: value }).then((s) => {
+      state.settings = s;
+    });
   });
   $('#btn-back-discover')?.addEventListener('click', () => {
     state.view = 'discover';

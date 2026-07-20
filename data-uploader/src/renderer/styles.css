@@ -753,6 +753,21 @@ h3 { font-size: 0.9rem; }
 .auto-upload-toggle:hover,
 .sc-toggle:hover { color: var(--sc-fg-0); }
 
+/* Role-gated update-channel picker (Configure view) — a select, not a checkbox,
+   so it spreads label ↔ control and keeps the default cursor. */
+.auto-upload-toggle.channel-row { justify-content: space-between; cursor: default; width: 100%; }
+.channel-select {
+  background: rgba(var(--accent-primary-rgb), 0.06);
+  color: var(--sc-fg-0);
+  border: 1px solid var(--sc-border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+}
+.channel-select:hover,
+.channel-select:focus { border-color: var(--sc-accent); outline: none; }
+
 /* Custom-themed checkbox — one accent-glowing control shared by every toggle
    (footer telemetry, Configure preferences, the Upload-screen shutdown opt-in),
    replacing the browser default so all checkboxes match the SC design tokens. */

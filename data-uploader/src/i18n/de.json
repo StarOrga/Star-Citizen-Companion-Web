@@ -159,6 +159,15 @@
     "hoursAgo": "vor {{n}} Std",
     "daysAgo": "vor {{n}} Tg"
   },
+  "settings": {
+    "updateChannel": {
+      "label": "Update-Channel",
+      "hint": "Welchem Release-Ring automatische Updates folgen.",
+      "alpha": "Alpha",
+      "beta": "Beta",
+      "stable": "Stabil"
+    }
+  },
   "telemetry": {
     "toggle": "Fehlerberichte senden",
     "hint": "Sendet anonyme Absturzberichte (keine persönlichen Daten), damit Fehler behoben werden können. Jederzeit abschaltbar."

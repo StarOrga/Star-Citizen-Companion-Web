@@ -159,6 +159,15 @@
     "hoursAgo": "{{n}} h ago",
     "daysAgo": "{{n}} d ago"
   },
+  "settings": {
+    "updateChannel": {
+      "label": "Update channel",
+      "hint": "Which release ring auto-updates follow.",
+      "alpha": "Alpha",
+      "beta": "Beta",
+      "stable": "Stable"
+    }
+  },
   "telemetry": {
     "toggle": "Send error reports",
     "hint": "Sends anonymous crash reports (no personal data) so bugs can be fixed. You can turn this off any time."
