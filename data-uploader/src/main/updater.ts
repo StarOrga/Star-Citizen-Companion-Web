@@ -43,6 +43,16 @@ export type UpdateEventPayload =
 
 const FEED_URL = `${API_BASE}/functions/v1/desktop-latest`;
 
+export type ReleaseChannel = 'alpha' | 'beta' | 'stable';
+
+/**
+ * The release ring the updater currently follows. Pushed in from the main
+ * process (persisted in settings; default 'stable'). electron-updater requests
+ * `<feed>/<channel>.yml`, which the desktop-latest edge function resolves to
+ * that channel's pointer.
+ */
+let currentChannel: ReleaseChannel = 'stable';
+
 /**
  * Re-check cadence for long-open sessions. The startup check alone never fires
  * again while the window stays open — so an uploader left running for hours (a
@@ -107,7 +117,7 @@ export function getLastUpdateEvent(): UpdateEventPayload {
  */
 async function fetchLatestVersion(): Promise<string | null> {
   try {
-    const res = await fetch(FEED_URL, {
+    const res = await fetch(`${FEED_URL}/${currentChannel}.yml`, {
       headers: {
         'X-SC-Release-Token': RELEASE_TOKEN,
         'X-SC-Tool-Version': TOOL_VERSION,
@@ -145,9 +155,10 @@ async function checkPortableForUpdate(): Promise<void> {
   }
 }
 
-export function initAutoUpdater(): void {
+export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
   if (initialized) return;
   initialized = true;
+  currentChannel = channel;
 
   if (IS_UNSIGNED_DEV_BUILD) {
     log.info('[updater] dev build — skipping auto-update');
@@ -182,6 +193,10 @@ export function initAutoUpdater(): void {
     'X-SC-Tool-Version': TOOL_VERSION,
     Accept: 'application/yaml',
   };
+
+  // electron-updater appends `/<channel>.yml` to the feed URL for this value,
+  // so the desktop-latest edge function serves the matching channel pointer.
+  autoUpdater.channel = currentChannel;
 
   autoUpdater.setFeedURL({
     provider: 'generic',
@@ -260,6 +275,22 @@ export function checkForUpdatesSilently(): void {
   autoUpdater.checkForUpdates().catch((err) => {
     log.warn('[updater] silent checkForUpdates failed:', err);
   });
+}
+
+/**
+ * Switch the auto-update ring at runtime (from the role-gated renderer picker).
+ * Re-points electron-updater at `<feed>/<channel>.yml` and immediately
+ * re-checks so the banner reflects the newly-selected channel.
+ */
+export function setUpdateChannel(channel: ReleaseChannel): void {
+  currentChannel = channel;
+  if (IS_UNSIGNED_DEV_BUILD) return;
+  if (IS_PORTABLE_BUILD) {
+    void checkPortableForUpdate();
+    return;
+  }
+  autoUpdater.channel = channel;
+  checkForUpdatesSilently();
 }
 
 export function installUpdateNow(): void {
