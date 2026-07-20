@@ -31,6 +31,19 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 };
 
+const CHANNELS = new Set(['alpha', 'beta', 'stable']);
+
+/** Resolve the requested release channel from path suffix or ?channel=. */
+function resolveChannel(req: Request): string {
+  const url = new URL(req.url);
+  const q = url.searchParams.get('channel');
+  if (q && CHANNELS.has(q)) return q;
+  // electron-updater requests `<feed>/<channel>.yml`; `latest.yml` = legacy stable.
+  const last = url.pathname.split('/').pop() ?? '';
+  const stem = last.replace(/\.ya?ml$/i, '');
+  return CHANNELS.has(stem) ? stem : 'stable';
+}
+
 interface ReleaseRow {
   id: string;
   version: string;
@@ -129,8 +142,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .eq('token_revoked', false)
       .maybeSingle();
     if (!tokenRow) return jsonResp({ error: 'invalid_or_revoked_release_token' }, 401);
-    // Token valid → fall through to current-release lookup using service client.
-    return await respondWithLatest(adminClient, req);
+    // Token valid → serve the requested channel's pointer. No server-side role
+    // clamp on the token path: binaries are public (GitHub mirror) and the
+    // channel picker is UI-gated per role; the token only proves "a known build".
+    return await respondForChannel(adminClient, req, resolveChannel(req), false);
   }
 
   // --- Auth path 2: JWT + role (Web UI) ---
@@ -153,25 +168,33 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return jsonResp({ error: 'forbidden' }, 403);
   }
 
-  return await respondWithLatest(userClient, req);
+  // Role known here → clamp the requested channel to the caller's tier.
+  return await respondForChannel(userClient, req, resolveChannel(req), true);
 });
 
-async function respondWithLatest(
+async function respondForChannel(
   client: ReturnType<typeof createClient>,
   req: Request,
+  channel: string,
+  clamp: boolean,
 ): Promise<Response> {
-  const { data, error } = await client
-    .from('desktop_releases')
-    .select('id, version, platforms, notes, created_at')
-    .eq('is_current', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) return jsonResp({ error: 'query_failed', message: error.message }, 500);
-  if (!data) return jsonResp({ error: 'no_release' }, 404);
-
-  const release = data as unknown as ReleaseRow;
+  let release: ReleaseRow | null = null;
+  if (clamp) {
+    // Role-clamped resolver (security-definer RPC decides the effective channel).
+    const { data, error } = await client.rpc('desktop_release_for_channel', { p_channel: channel });
+    if (error) return jsonResp({ error: 'query_failed', message: error.message }, 500);
+    release = ((Array.isArray(data) ? data[0] : data) as unknown as ReleaseRow) ?? null;
+  } else {
+    // Service client (token path) — read the channel pointer directly.
+    const { data, error } = await client
+      .from('desktop_channels')
+      .select('desktop_releases!inner(id, version, platforms, notes, created_at)')
+      .eq('channel', channel)
+      .maybeSingle();
+    if (error) return jsonResp({ error: 'query_failed', message: error.message }, 500);
+    release = (data as { desktop_releases?: ReleaseRow } | null)?.desktop_releases ?? null;
+  }
+  if (!release) return jsonResp({ error: 'no_release' }, 404);
 
   const accept = (req.headers.get('accept') ?? '').toLowerCase();
   if (accept.includes('yaml') || accept.includes('yml')) {
@@ -187,5 +210,6 @@ async function respondWithLatest(
     notes: release.notes,
     releaseDate: release.created_at,
     platforms: release.platforms,
+    channel,
   });
 }

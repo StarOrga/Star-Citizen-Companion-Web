@@ -77,4 +77,14 @@ describe('SettingsStore', () => {
     const reloaded = new SettingsStore(io, seqIds());
     expect(reloaded.load().shutdownAfterUpload).toBe(true);
   });
+
+  it('defaults updateChannel to stable and round-trips a patch', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    expect(store.load().updateChannel).toBe('stable');
+    store.patch({ updateChannel: 'beta' });
+    // Survives a reload from the same backing store.
+    const reloaded = new SettingsStore(io, seqIds());
+    expect(reloaded.load().updateChannel).toBe('beta');
+  });
 });

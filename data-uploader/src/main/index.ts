@@ -14,6 +14,7 @@ import { createWatchdog } from '../lib/watchdog.js';
 import { RELEASE_TOKEN, TOOL_VERSION, API_BASE, WEB_BASE } from '../lib/release-token.js';
 import {
   initAutoUpdater,
+  setUpdateChannel,
   checkForUpdatesSilently,
   installUpdateNow,
   getLastUpdateEvent,
@@ -42,6 +43,7 @@ import { uploadCatalog, type CatalogUploadResult } from './catalog-bridge.js';
 import {
   persistAuthResult,
   ensureAccessToken,
+  fetchUserRole,
   getSessionStatus,
   clearSession,
   getCachedSnapshot,
@@ -180,6 +182,7 @@ function publicSettings(): {
   autoStart: boolean;
   autoRunOnNewVersion: boolean;
   shutdownAfterUpload: boolean;
+  updateChannel: 'alpha' | 'beta' | 'stable';
 } {
   const s = getSettings();
   // Never expose the raw installId to the renderer — it is an internal, opaque
@@ -190,6 +193,7 @@ function publicSettings(): {
     autoStart: s.autoStart,
     shutdownAfterUpload: s.shutdownAfterUpload,
     autoRunOnNewVersion: s.autoRunOnNewVersion,
+    updateChannel: s.updateChannel,
   };
 }
 
@@ -209,6 +213,7 @@ ipcMain.handle(
       autoStart?: boolean;
       autoRunOnNewVersion?: boolean;
       shutdownAfterUpload?: boolean;
+      updateChannel?: 'alpha' | 'beta' | 'stable';
     },
   ) => {
     // Whitelist: the renderer must not be able to write arbitrary keys (e.g.
@@ -222,7 +227,16 @@ ipcMain.handle(
     if (typeof partial?.shutdownAfterUpload === 'boolean') {
       clean.shutdownAfterUpload = partial.shutdownAfterUpload;
     }
+    if (
+      partial?.updateChannel === 'alpha' ||
+      partial?.updateChannel === 'beta' ||
+      partial?.updateChannel === 'stable'
+    ) {
+      clean.updateChannel = partial.updateChannel;
+    }
     patchSettings(clean);
+    // Re-point the auto-updater when the ring changed (re-checks the new feed).
+    if (clean.updateChannel) setUpdateChannel(clean.updateChannel);
     return publicSettings();
   },
 );
@@ -369,6 +383,8 @@ ipcMain.handle('sc:session:signOut', () => {
   clearSession();
   return { ok: true };
 });
+
+ipcMain.handle('sc:session:role', async () => fetchUserRole());
 
 ipcMain.handle('sc:sync:cached', () => getCachedSnapshot());
 
@@ -690,7 +706,9 @@ app.whenReady().then(() => {
   // The OS Run key is the source of truth for autostart; re-assert our stored
   // preference in case it was cleared by an uninstall/reinstall or by policy.
   syncAutoStartWithOs();
-  initAutoUpdater(); // Schedules an update check 4 s after launch (skipped in dev builds).
+  // Schedules an update check 4 s after launch (skipped in dev builds); follows
+  // the operator's persisted release ring (default stable).
+  initAutoUpdater(getSettings().updateChannel);
   // Fire-and-forget: reclaim leftover extract dirs from prior failed/uploaded
   // runs. Non-blocking so it never delays window paint; errors are swallowed.
   void scanAndCleanupDiscovered();

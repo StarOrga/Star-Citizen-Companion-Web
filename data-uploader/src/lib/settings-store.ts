@@ -30,6 +30,12 @@ export interface Settings {
    * short cancelable countdown so an accidental tick is recoverable.
    */
   shutdownAfterUpload: boolean;
+  /**
+   * Auto-update ring the operator opted into (role-gated in the UI). Default
+   * 'stable'; only admins/collaborators ever see the picker to change it. The
+   * renderer maps it onto electron-updater's channel via the main process.
+   */
+  updateChannel: 'alpha' | 'beta' | 'stable';
 }
 
 /** Injectable text persistence (file-backed in production). */
@@ -71,6 +77,10 @@ export class SettingsStore {
         typeof parsed?.autoRunOnNewVersion === 'boolean' ? parsed.autoRunOnNewVersion : false,
       shutdownAfterUpload:
         typeof parsed?.shutdownAfterUpload === 'boolean' ? parsed.shutdownAfterUpload : false,
+      updateChannel:
+        parsed?.updateChannel === 'alpha' || parsed?.updateChannel === 'beta'
+          ? parsed.updateChannel
+          : 'stable',
     };
     this.cache = settings;
     // Persist immediately so the freshly-minted installId is stable next launch.

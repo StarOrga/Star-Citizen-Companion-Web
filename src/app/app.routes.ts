@@ -116,6 +116,14 @@ export const routes: Routes = [
           import('./desktop/desktop-download.component').then((m) => m.DesktopDownloadComponent),
       },
       {
+        // Minimal download surface for ANY invited user (viewer+). No bundle
+        // history; the channel picker self-hides for viewers → stable-only.
+        path: 'download',
+        canActivate: [...PRIVATE],
+        loadComponent: () =>
+          import('./desktop/download.component').then((m) => m.DownloadComponent),
+      },
+      {
         // OAuth-callback endpoint for the Electron loopback flow.
         // Auth-guarded but role-gated INSIDE the component (so unauthenticated
         // users land on /login with a redirect back here, instead of bouncing
@@ -169,6 +177,14 @@ export const routes: Routes = [
         canActivate: [...PRIVATE, roleGuard('admin')],
         loadComponent: () =>
           import('./admin/feedback/admin-feedback.component').then((m) => m.AdminFeedbackComponent),
+      },
+      {
+        path: 'admin/desktop-releases',
+        canActivate: [...PRIVATE, roleGuard('admin')],
+        loadComponent: () =>
+          import('./admin/desktop-releases/desktop-releases.component').then(
+            (m) => m.DesktopReleasesComponent,
+          ),
       },
       {
         path: 'settings',

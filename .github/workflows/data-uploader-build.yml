@@ -151,7 +151,7 @@ jobs:
             — that's the URL `electron-updater` and the `desktop_releases`
             row should point at.
 
-            **Release token fingerprint:** `${{ steps.token.outputs.release_token_fingerprint }}…` (first 8 chars stored in the binary; download the **release-token** workflow artefact to get the full UUID, then register it in `desktop_releases` via the admin RPC alongside the public URLs above).
+            **Release token fingerprint:** `${{ steps.token.outputs.release_token_fingerprint }}…` (first 8 chars stored in the binary; download the **release-token** workflow artefact to get the full UUID, then register the build with the CTE printed in the build log — it registers `desktop_releases` AND points the **alpha** ring at it — then promote alpha → beta → stable in the web `/admin/desktop-releases` panel).
 
       - name: Publish to PUBLIC binaries-mirror release (end-user download)
         # End-users with the installed Tool can't authenticate to GitHub, so
@@ -182,7 +182,7 @@ jobs:
 
             Source code: [Star-Citizen-Companion-Web](https://github.com/StarOrga/Star-Citizen-Companion-Web) (private).
 
-      - name: Print public asset URLs + SHA-512 + sizes (for desktop_releases.platforms registration)
+      - name: Print catalog-register + alpha-pointer SQL (desktop_releases + desktop_channels)
         # Surfaces every field the admin needs into the action log so the
         # `desktop_releases` INSERT can be copy-pasted without local
         # downloads or hash computations. SHA-512 is mandatory —
@@ -215,29 +215,24 @@ jobs:
           Write-Host "PASTE INTO ADMIN INSERT for desktop_releases (Supabase SQL editor):"
           Write-Host "================================================================"
           Write-Host ""
-          Write-Host "INSERT INTO public.desktop_releases (version, is_current, release_token, platforms, notes)"
-          Write-Host "VALUES ("
-          Write-Host "  '$binVersion',"
-          Write-Host "  true,"
-          Write-Host "  '<UUID-from-release-token-artefact>',"
-          Write-Host "  jsonb_build_object("
-          Write-Host "    'win-x64-setup', jsonb_build_object("
-          Write-Host "      'url', '$setupUrl',"
-          Write-Host "      'kind', 'nsis',"
-          Write-Host "      'sha512', '$setupSha',"
-          Write-Host "      'size_bytes', $setupSize"
+          Write-Host "WITH new_rel AS ("
+          Write-Host "  INSERT INTO public.desktop_releases (version, release_token, platforms, notes)"
+          Write-Host "  VALUES ("
+          Write-Host "    '$binVersion',"
+          Write-Host "    '<UUID-from-release-token-artefact>',"
+          Write-Host "    jsonb_build_object("
+          Write-Host "      'win-x64-setup', jsonb_build_object('url','$setupUrl','kind','nsis','sha512','$setupSha','size_bytes',$setupSize),"
+          Write-Host "      'win-x64-portable', jsonb_build_object('url','$portableUrl','kind','portable','sha512','$portableSha','size_bytes',$portableSize)"
           Write-Host "    ),"
-          Write-Host "    'win-x64-portable', jsonb_build_object("
-          Write-Host "      'url', '$portableUrl',"
-          Write-Host "      'kind', 'portable',"
-          Write-Host "      'sha512', '$portableSha',"
-          Write-Host "      'size_bytes', $portableSize"
-          Write-Host "    )"
-          Write-Host "  ),"
-          Write-Host "  'TODO: release notes here'"
-          Write-Host ");"
+          Write-Host "    'TODO: release notes here'"
+          Write-Host "  )"
+          Write-Host "  RETURNING id"
+          Write-Host ")"
+          Write-Host "INSERT INTO public.desktop_channels (channel, release_id)"
+          Write-Host "SELECT 'alpha', id FROM new_rel"
+          Write-Host "ON CONFLICT (channel) DO UPDATE SET release_id = EXCLUDED.release_id, updated_at = now();"
           Write-Host ""
-          Write-Host "Remember to set the prior is_current row to false first:"
-          Write-Host "  UPDATE public.desktop_releases SET is_current = false WHERE is_current = true;"
+          Write-Host "This registers the build AND points the alpha ring at it (promotion-pointer model)."
+          Write-Host "Promote alpha -> beta -> stable later in the web /admin/desktop-releases panel."
           Write-Host "================================================================"
           Write-Host ""

@@ -194,3 +194,29 @@ export async function runSync(onProgress: (p: SyncProgress) => void): Promise<Sy
   if (result.ok && result.snapshot) vstore.saveSnapshot(result.snapshot);
   return result;
 }
+
+/**
+ * Resolve the signed-in user's role via the `current_user_role` RPC so the
+ * renderer can gate the channel picker. Best-effort: any failure (offline, no
+ * session, unexpected shape) yields 'viewer' — the safe, no-picker default.
+ */
+export async function fetchUserRole(): Promise<'admin' | 'collaborator' | 'viewer'> {
+  const { token } = await ensureAccessToken();
+  if (!token) return 'viewer';
+  try {
+    const res = await fetch(`${API_BASE}/rest/v1/rpc/current_user_role`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      body: '{}',
+    });
+    if (!res.ok) return 'viewer';
+    const role: unknown = await res.json();
+    return role === 'admin' || role === 'collaborator' ? role : 'viewer';
+  } catch {
+    return 'viewer';
+  }
+}

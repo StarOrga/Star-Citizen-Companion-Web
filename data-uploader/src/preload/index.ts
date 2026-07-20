@@ -13,6 +13,7 @@ export interface PublicSettings {
   autoStart: boolean;
   autoRunOnNewVersion: boolean;
   shutdownAfterUpload: boolean;
+  updateChannel: 'alpha' | 'beta' | 'stable';
 }
 
 /** Tray strings resolved from the renderer's i18n dictionary. */
@@ -219,6 +220,9 @@ export const api = {
     status: (): Promise<SessionStatus> => ipcRenderer.invoke('sc:session:status'),
     token: (): Promise<TokenResult> => ipcRenderer.invoke('sc:session:token'),
     signOut: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('sc:session:signOut'),
+    /** The signed-in user's role — gates the update-channel picker. */
+    role: (): Promise<'admin' | 'collaborator' | 'viewer'> =>
+      ipcRenderer.invoke('sc:session:role'),
   },
   sync: {
     cached: (): Promise<CatalogSnapshot | null> => ipcRenderer.invoke('sc:sync:cached'),

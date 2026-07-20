@@ -865,11 +865,36 @@ export type Database = {
           },
         ]
       }
+      desktop_channels: {
+        Row: {
+          channel: string
+          release_id: string
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          release_id: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          release_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "desktop_channels_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "desktop_releases"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       desktop_releases: {
         Row: {
           created_at: string
           id: string
-          is_current: boolean
           notes: string | null
           platforms: Json
           release_token: string
@@ -878,7 +903,6 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          is_current?: boolean
           notes?: string | null
           platforms?: Json
           release_token?: string
@@ -887,7 +911,6 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          is_current?: boolean
           notes?: string | null
           platforms?: Json
           release_token?: string
@@ -1296,6 +1319,20 @@ export type Database = {
       }
       current_user_role: { Args: never; Returns: string }
       delete_p4k_bundle: { Args: { bundle_id: string }; Returns: undefined }
+      desktop_release_for_channel: {
+        Args: { p_channel: string }
+        Returns: {
+          channel: string
+          created_at: string
+          notes: string | null
+          platforms: Json
+          version: string
+        }[]
+      }
+      promote_desktop_channel: {
+        Args: { p_to_channel: string; p_version: string }
+        Returns: undefined
+      }
       diff_bundle: { Args: { new_id: string; prev_id: string }; Returns: Json }
       ingest_bundle_atomic: {
         Args: {
