@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { P4kHistoryComponent } from '../p4k/p4k-history.component';
+import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
 
 interface PlatformAsset {
   url: string;
@@ -12,7 +13,6 @@ interface PlatformAsset {
 }
 
 interface ReleaseInfo {
-  id: string;
   version: string;
   platforms: Record<string, PlatformAsset>;
   notes: string | null;
@@ -30,7 +30,7 @@ interface ReleaseInfo {
 @Component({
   selector: 'sc-desktop-download',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, TranslateModule, P4kHistoryComponent],
+  imports: [DatePipe, DecimalPipe, TranslateModule, P4kHistoryComponent, ChannelPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="uploader">
@@ -47,6 +47,7 @@ interface ReleaseInfo {
         <!-- Section 1: the current desktop-tool release. -->
         <div class="sec-head">
           <span class="t">{{ 'desktop.currentVersion' | translate }}</span>
+          <sc-channel-picker [(channel)]="channel" />
         </div>
 
         @if (release(); as r) {
@@ -107,7 +108,7 @@ interface ReleaseInfo {
 
     /* Shared section header (also defined in p4k-history for the embedded half). */
     .sec-head {
-      display: flex; align-items: center; gap: 12px;
+      display: flex; align-items: center; gap: 12px; justify-content: space-between;
       padding: 13px 20px;
       background: var(--sc-bg-2);
       border-bottom: 1px solid var(--sc-border);
@@ -161,27 +162,30 @@ interface ReleaseInfo {
     }
   `],
 })
-export class DesktopDownloadComponent implements OnInit {
+export class DesktopDownloadComponent {
   private readonly sb = inject(SupabaseClientProvider);
 
   readonly release = signal<ReleaseInfo | null>(null);
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
+  readonly channel = signal<ReleaseChannel>('stable');
 
-  async ngOnInit() {
+  constructor() {
+    // Re-resolve the download whenever the picked channel changes. The RPC
+    // clamps server-side to the caller's role, so a viewer always gets stable.
+    effect(() => {
+      void this.load(this.channel());
+    });
+  }
+
+  private async load(channel: ReleaseChannel): Promise<void> {
     this.busy.set(true);
-    const { data, error } = await this.sb.client
-      .from('desktop_releases')
-      .select('id, version, platforms, notes, created_at')
-      .eq('is_current', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (error) {
-      this.errorMsg.set(error.message);
-    } else {
-      this.release.set(data as ReleaseInfo | null);
-    }
+    this.errorMsg.set(null);
+    const { data, error } = await this.sb.client.rpc('desktop_release_for_channel', {
+      p_channel: channel,
+    });
+    if (error) this.errorMsg.set(error.message);
+    else this.release.set((data as unknown as ReleaseInfo[])?.[0] ?? null);
     this.busy.set(false);
   }
 
