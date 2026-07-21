@@ -311,7 +311,9 @@
       "loading": "Skin lädt…",
       "loadError": "3D-Modell konnte nicht geladen werden",
       "loadCatalogError": "Lackierungen konnten nicht geladen werden.",
-      "retry": "Erneut versuchen"
+      "retry": "Erneut versuchen",
+      "collapse": "3D-Ansicht einklappen",
+      "expand": "3D-Ansicht ausklappen"
     }
   },
   "blueprint": {

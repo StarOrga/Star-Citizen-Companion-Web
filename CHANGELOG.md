@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.2] - 2026-07-21
+
+### Changed
+
+- **Ship 3D livery viewer is now collapsible and remembers your choice.** The
+  viewer can be folded away via its header; the open/closed state is saved and
+  reused across ships and pages. First-time default adapts to the device —
+  expanded on desktop, collapsed on mobile so the 3D stage doesn't dominate a
+  phone screen. While collapsed the ~3 MB 3D model is not downloaded at all.
+  (admin feedback, part of #137)
+
 ## [0.41.1] - 2026-07-21
 
 ### Changed
