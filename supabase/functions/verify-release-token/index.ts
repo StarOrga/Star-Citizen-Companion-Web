@@ -32,19 +32,29 @@ Deno.serve(async (req: Request): Promise<Response> => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
   );
 
+  // is_current was dropped by the desktop-channels migration; validity is now a
+  // known + non-revoked token (mirrors desktop-latest / ingest-bundle). Separate
+  // the query error from "no such token" so a schema drift surfaces as a 500
+  // instead of masquerading as unknown_token.
   const { data, error } = await supabase
     .from('desktop_releases')
-    .select('id, version, is_current')
+    .select('id, version, token_revoked')
     .eq('release_token', body.token)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
+    return new Response(
+      JSON.stringify({ ok: false, error: 'server_misconfigured', message: error.message }),
+      { status: 500, headers: { 'content-type': 'application/json' } },
+    );
+  }
+  if (!data) {
     return new Response(
       JSON.stringify({ ok: false, error: 'unknown_token' }),
       { status: 403, headers: { 'content-type': 'application/json' } },
     );
   }
-  if (!data.is_current) {
+  if (data.token_revoked) {
     return new Response(
       JSON.stringify({ ok: false, error: 'revoked', last_known_version: data.version }),
       { status: 403, headers: { 'content-type': 'application/json' } },

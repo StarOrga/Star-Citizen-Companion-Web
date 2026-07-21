@@ -99,10 +99,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const role = (profile as { role?: string } | null)?.role ?? '';
     if (!['admin', 'collaborator'].includes(role)) return json({ error: 'forbidden' }, 403);
     if (!releaseToken) return json({ error: 'missing_release_token' }, 400);
-    const { data: release } = await admin
-      .from('desktop_releases').select('id, is_current')
+    // is_current was dropped by the desktop-channels migration; a known,
+    // non-revoked token is valid (mirrors desktop-latest / ingest-bundle).
+    const { data: release, error: relErr } = await admin
+      .from('desktop_releases').select('id, token_revoked')
       .eq('release_token', releaseToken).maybeSingle();
-    if (!release || !(release as { is_current: boolean }).is_current) {
+    if (relErr) return json({ error: 'server_misconfigured', message: relErr.message }, 500);
+    if (!release || (release as { token_revoked: boolean }).token_revoked) {
       return json({ error: 'forbidden', message: 'release token invalid/revoked' }, 403);
     }
     authed = true;

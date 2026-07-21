@@ -82,13 +82,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const adminClient = createClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: release } = await adminClient
+  // Token validity is decoupled from is_current (dropped by the desktop-channels
+  // migration, promotion-pointer model). A known, non-revoked token may upload;
+  // `token_revoked` is the explicit per-release kill-switch for a leaked token.
+  // Mirrors desktop-latest — keep these in lockstep so a schema change can't
+  // silently break one path. The query `error` is surfaced as a 500 instead of
+  // being swallowed: swallowing it once turned a dropped column into a
+  // misleading `unknown_release_token` (see the is_current regression).
+  const { data: release, error: relErr } = await adminClient
     .from('desktop_releases')
-    .select('id, version, is_current')
+    .select('id, version, token_revoked')
     .eq('release_token', releaseToken)
     .maybeSingle();
+  if (relErr) return json({ error: 'server_misconfigured', message: relErr.message }, 500);
   if (!release) return json({ error: 'unknown_release_token' }, 403);
-  if (!(release as { is_current: boolean }).is_current) {
+  if ((release as { token_revoked: boolean }).token_revoked) {
     return json({ error: 'release_token_revoked' }, 403);
   }
 
