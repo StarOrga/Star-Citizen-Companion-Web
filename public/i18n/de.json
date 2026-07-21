@@ -1057,7 +1057,8 @@
       "in_progress": "In Arbeit",
       "shipped": "Geshipped",
       "rejected": "Abgelehnt",
-      "needs_input": "Rückfrage"
+      "needs_input": "Rückfrage",
+      "answered": "Beantwortet"
     },
     "thread": {
       "routine": "Routine",

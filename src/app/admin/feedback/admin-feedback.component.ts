@@ -134,7 +134,14 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
           <div class="msg-head">
             <span class="author">{{ authorLabel(m) }}</span>
             <span class="ts">{{ m.created_at | date:'short' }}</span>
-            <span class="status-pill" [class]="m.status">{{ ('adminFeedback.status.' + m.status) | translate }}</span>
+            @if (isAnsweredAwaitingRoutine(m)) {
+              <!-- The admin replied to a Rückfrage: mark it distinctly as
+                   "answered — awaiting the routine" so it reads apart from a
+                   needs_input topic that is still waiting for the admin. -->
+              <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
+            } @else {
+              <span class="status-pill" [class]="m.status">{{ ('adminFeedback.status.' + m.status) | translate }}</span>
+            }
             @if (embedded()) {
               <button
                 type="button"
@@ -403,6 +410,9 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
       &.shipped { background: rgba(74, 222, 128, 0.18); color: var(--sc-success); }
       &.rejected { background: rgba(122, 134, 156, 0.2); color: var(--sc-fg-2); }
       &.needs_input { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
+      /* Admin answered a Rückfrage → awaiting the routine (distinct from a
+         needs_input topic still waiting on the admin). */
+      &.answered { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; }
     }
 
     .msg-body {
@@ -522,6 +532,19 @@ export class AdminFeedbackComponent implements OnInit {
 
   messagesFor(feedbackId: string): FeedbackMessage[] {
     return this.threads().get(feedbackId) ?? [];
+  }
+
+  /**
+   * True when the admin has answered a Rückfrage and the topic is now waiting on
+   * the routine: status is `needs_input` and the newest thread reply is human
+   * (not a system/routine message). Drives the distinct "Answered" pill so the
+   * admin can tell "I already replied" apart from "still needs my input".
+   */
+  isAnsweredAwaitingRoutine(m: FeedbackRow): boolean {
+    if (m.status !== 'needs_input') return false;
+    const replies = this.threads().get(m.id);
+    const last = replies && replies.length ? replies[replies.length - 1] : null;
+    return !!last && !last.is_system;
   }
 
   /** Shipped items are collapsed into a stack so the open ones stay directly
