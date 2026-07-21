@@ -152,7 +152,20 @@ function createWindow(): void {
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
+    // Only hand real web links to the OS browser. A renderer-driven window.open()
+    // to file:// or a custom scheme must never reach shell.openExternal — that is
+    // an arbitrary-protocol launch surface. Everything is denied in-window either
+    // way; this just gates the external hand-off.
+    try {
+      const { protocol } = new URL(url);
+      if (protocol === 'https:' || protocol === 'http:') {
+        void shell.openExternal(url);
+      } else {
+        log.warn('[window-open] refused non-web url', { url });
+      }
+    } catch {
+      log.warn('[window-open] refused unparseable url', { url });
+    }
     return { action: 'deny' };
   });
 
