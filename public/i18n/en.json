@@ -1057,7 +1057,8 @@
       "in_progress": "In progress",
       "shipped": "Shipped",
       "rejected": "Rejected",
-      "needs_input": "Needs input"
+      "needs_input": "Needs input",
+      "answered": "Answered"
     },
     "thread": {
       "routine": "Routine",

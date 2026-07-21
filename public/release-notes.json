@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.41.3",
+  "current": "0.41.4",
   "releases": [
+    {
+      "version": "0.41.4",
+      "date": "2026-07-21",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Admin feedback board: topics you've answered are now marked \"Answered\".",
+              "text": "When you reply to a routine's follow-up question, the topic shows a distinct \"Answered\" pill (instead of the generic \"Needs input\") so you can tell at a glance which questions are waiting on you versus already handed back to the routine. (admin feedback)"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.41.3",
       "date": "2026-07-21",

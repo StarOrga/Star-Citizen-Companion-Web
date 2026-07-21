@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.4] - 2026-07-21
+
+### Changed
+
+- **Admin feedback board: topics you've answered are now marked "Answered".**
+  When you reply to a routine's follow-up question, the topic shows a distinct
+  "Answered" pill (instead of the generic "Needs input") so you can tell at a
+  glance which questions are waiting on you versus already handed back to the
+  routine. (admin feedback)
+
 ## [0.41.3] - 2026-07-21
 
 ### Changed
