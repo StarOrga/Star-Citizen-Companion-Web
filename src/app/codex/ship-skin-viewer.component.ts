@@ -36,9 +36,19 @@ type ViewMode = '3d' | 'paint';
     @if (skins().length) {
       <section class="skins">
         <header class="skins-head">
-          <h3>{{ 'codex.skins.title' | translate }}</h3>
+          <button
+            type="button"
+            class="head-toggle"
+            [attr.aria-expanded]="expanded()"
+            [attr.aria-label]="(expanded() ? 'codex.skins.collapse' : 'codex.skins.expand') | translate"
+            (click)="toggleExpanded()"
+          >
+            <span class="caret" [class.open]="expanded()" aria-hidden="true">▸</span>
+            <span class="ttl">{{ 'codex.skins.title' | translate }}</span>
+          </button>
           <span class="src">{{ 'codex.skins.source' | translate }}</span>
         </header>
+        @if (expanded()) {
         <div class="skins-body">
           <div class="stage">
             <div class="modes">
@@ -132,6 +142,7 @@ type ViewMode = '3d' | 'paint';
             }
           </ul>
         </div>
+        }
       </section>
     } @else if (catalogError()) {
       <section class="skins">
@@ -161,10 +172,39 @@ type ViewMode = '3d' | 'paint';
         padding: 0.75rem 1rem;
         border-bottom: 1px solid var(--border, #23262d);
       }
-      .skins-head h3 {
+      .head-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
         margin: 0;
-        font-size: 1rem;
+        padding: 0;
+        background: none;
+        border: 0;
+        cursor: pointer;
+        font: inherit;
         color: var(--accent, #f0c420);
+      }
+      .head-toggle .ttl {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      .head-toggle .caret {
+        display: inline-block;
+        color: var(--muted, #8a92a0);
+        transition: transform 0.15s ease;
+      }
+      .head-toggle .caret.open {
+        transform: rotate(90deg);
+      }
+      .head-toggle:focus-visible {
+        outline: 2px solid var(--accent, #f0c420);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .head-toggle .caret {
+          transition: none;
+        }
       }
       .skins-head .src {
         font-size: 0.72rem;
@@ -375,6 +415,15 @@ type ViewMode = '3d' | 'paint';
 export class ShipSkinViewerComponent {
   readonly shipId = input.required<string>();
 
+  // Persist the collapsed/expanded state of the whole viewer (#137 part 2).
+  // Default when the user never toggled it: expanded on desktop, collapsed on
+  // mobile (the 3D stage eats a lot of vertical space on phones). The stored
+  // choice then wins on every ship/page. While collapsed the body is removed
+  // from the DOM, so the ~3 MB model-viewer glb is never downloaded until the
+  // user opens it.
+  private static readonly OPEN_KEY = 'sc.skinViewer.open';
+  readonly expanded = signal<boolean>(this.initialExpanded());
+
   private readonly service = inject(ShipSkinsService);
   readonly skins = signal<ShipSkin[]>([]);
   readonly current = signal<ShipSkin | null>(null);
@@ -421,6 +470,39 @@ export class ShipSkinViewerComponent {
   /** Re-fetch the skin catalog after a transient load failure. */
   retry(): void {
     this.load(this.shipId());
+  }
+
+  /** Initial expanded state: stored preference wins, else viewport default. */
+  private initialExpanded(): boolean {
+    try {
+      const saved =
+        typeof localStorage !== 'undefined'
+          ? localStorage.getItem(ShipSkinViewerComponent.OPEN_KEY)
+          : null;
+      if (saved === '1') return true;
+      if (saved === '0') return false;
+    } catch {
+      // localStorage unavailable (private mode / SSR) — fall through to default.
+    }
+    // No stored choice → expanded on desktop, collapsed on mobile (≤720px,
+    // matching the layout breakpoint below).
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      return !window.matchMedia('(max-width: 720px)').matches;
+    }
+    return true;
+  }
+
+  /** Toggle the viewer open/closed and remember the choice. */
+  toggleExpanded(): void {
+    const next = !this.expanded();
+    this.expanded.set(next);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(ShipSkinViewerComponent.OPEN_KEY, next ? '1' : '0');
+      }
+    } catch {
+      // best-effort persistence — ignore write failures
+    }
   }
 
   iconFor(s: ShipSkin): string | null {

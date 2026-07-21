@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.41.1",
+  "current": "0.41.2",
   "releases": [
+    {
+      "version": "0.41.2",
+      "date": "2026-07-21",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Ship 3D livery viewer is now collapsible and remembers your choice.",
+              "text": "The viewer can be folded away via its header; the open/closed state is saved and reused across ships and pages. First-time default adapts to the device — expanded on desktop, collapsed on mobile so the 3D stage doesn't dominate a phone screen. While collapsed the ~3 MB 3D model is not downloaded at all. (admin feedback, part of #137)"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.41.1",
       "date": "2026-07-21",

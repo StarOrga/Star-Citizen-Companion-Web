@@ -311,7 +311,9 @@
       "loading": "Loading skin…",
       "loadError": "3D model failed to load",
       "loadCatalogError": "Could not load liveries.",
-      "retry": "Retry"
+      "retry": "Retry",
+      "collapse": "Collapse 3D view",
+      "expand": "Expand 3D view"
     }
   },
   "blueprint": {
