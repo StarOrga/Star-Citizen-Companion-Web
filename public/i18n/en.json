@@ -1100,6 +1100,9 @@
     "loading": "Loading release notes …",
     "empty": "No release notes yet.",
     "whatsNew": "What's New",
+    "recentHint": "Showing the last 3 months.",
+    "loadMore": "Show {{count}} older releases",
+    "showLess": "Show fewer",
     "cat": {
       "added": "Added",
       "changed": "Changed",

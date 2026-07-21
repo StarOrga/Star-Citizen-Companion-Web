@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { ReleaseNotesService } from './release-notes.service';
@@ -29,8 +29,11 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
       @if (loading()) {
         <div class="sc-card empty">{{ 'releaseNotes.loading' | translate }}</div>
       } @else if (releases().length) {
+        @if (!showAll() && hiddenCount() > 0) {
+          <p class="recent-hint">{{ 'releaseNotes.recentHint' | translate }}</p>
+        }
         <ol class="timeline">
-          @for (r of releases(); track r.version) {
+          @for (r of visibleReleases(); track r.version) {
             <li class="release">
               <div class="rel-head">
                 <span class="ver mono">v{{ r.version }}</span>
@@ -59,6 +62,15 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
             </li>
           }
         </ol>
+        @if (hiddenCount() > 0) {
+          <button type="button" class="load-more" (click)="showAll.set(true)">
+            {{ 'releaseNotes.loadMore' | translate: { count: hiddenCount() } }}
+          </button>
+        } @else if (showAll() && releases().length > visibleRecentCount()) {
+          <button type="button" class="load-more ghost" (click)="showAll.set(false)">
+            {{ 'releaseNotes.showLess' | translate }}
+          </button>
+        }
       } @else {
         <div class="sc-card empty">{{ 'releaseNotes.empty' | translate }}</div>
       }
@@ -79,6 +91,17 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
       background: rgba(0, 212, 255, 0.08); font-family: var(--sc-font-display);
     }
     .empty { text-align: center; color: var(--sc-fg-2); padding: 1.5rem; }
+    .recent-hint { color: var(--sc-fg-2); font-size: 0.8rem; margin: 0 0 1rem; }
+    .load-more {
+      display: block; margin: 0.5rem auto 0; padding: 8px 18px;
+      border-radius: 999px; cursor: pointer;
+      font-family: var(--sc-font-display); font-size: 0.78rem; letter-spacing: 0.05em;
+      border: 1px solid var(--sc-accent); color: var(--sc-accent);
+      background: rgba(0, 212, 255, 0.06);
+    }
+    .load-more:hover { background: rgba(0, 212, 255, 0.14); }
+    .load-more.ghost { border-color: var(--sc-border); color: var(--sc-fg-2); background: transparent; }
+    .load-more.ghost:hover { border-color: var(--sc-fg-2); }
 
     .timeline { list-style: none; margin: 0; padding: 0; position: relative; }
     .timeline::before {
@@ -129,6 +152,31 @@ export class ReleaseNotesComponent implements OnInit {
   readonly loading = signal(true);
   readonly releases = signal(this.svc.notes()?.releases ?? []);
   readonly current = signal<string | null>(this.svc.notes()?.current ?? null);
+
+  /** Collapse older releases by default; "load more" reveals the full history. */
+  readonly showAll = signal(false);
+
+  // Releases within the last 3 months. Undated entries count as recent (they're
+  // typically the newest/unreleased). If nothing falls inside the window (e.g.
+  // no release in 3 months), keep the single most-recent one so the page is
+  // never empty.
+  private readonly recentReleases = computed(() => {
+    const all = this.releases();
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - 3);
+    const cutoffMs = cutoff.getTime();
+    const recent = all.filter((r) => {
+      const t = new Date(r.date).getTime();
+      return Number.isNaN(t) || t >= cutoffMs;
+    });
+    return recent.length > 0 ? recent : all.slice(0, 1);
+  });
+
+  readonly visibleReleases = computed(() =>
+    this.showAll() ? this.releases() : this.recentReleases(),
+  );
+  readonly visibleRecentCount = computed(() => this.recentReleases().length);
+  readonly hiddenCount = computed(() => this.releases().length - this.visibleReleases().length);
 
   async ngOnInit(): Promise<void> {
     const notes = await this.svc.load();

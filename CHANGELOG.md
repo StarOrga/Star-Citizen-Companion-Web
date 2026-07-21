@@ -4,6 +4,15 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.3] - 2026-07-21
+
+### Changed
+
+- **"What's New" page now shows only the last 3 months by default.** Older
+  releases are collapsed behind a "Show N older releases" button (and can be
+  folded away again), so the changelog opens focused on recent changes instead
+  of the full history. (admin feedback)
+
 ## [0.41.2] - 2026-07-21
 
 ### Changed

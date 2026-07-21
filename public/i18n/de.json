@@ -1100,6 +1100,9 @@
     "loading": "Release Notes werden geladen …",
     "empty": "Noch keine Release Notes.",
     "whatsNew": "Was ist neu",
+    "recentHint": "Zeigt die letzten 3 Monate.",
+    "loadMore": "{{count}} ältere Einträge anzeigen",
+    "showLess": "Weniger anzeigen",
     "cat": {
       "added": "Neu",
       "changed": "Geändert",
