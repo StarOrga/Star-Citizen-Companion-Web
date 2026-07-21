@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.41.0",
+  "current": "0.41.1",
   "releases": [
+    {
+      "version": "0.41.1",
+      "date": "2026-07-21",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex ship detail: the \"View on RSI\" button now opens the name-sorted RSI ships listing",
+              "text": "(sortField=name) instead of the unsorted store landing, so you can scan alphabetically to your ship. (admin feedback)"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.41.0",
       "date": "2026-07-19",
