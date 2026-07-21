@@ -100,13 +100,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const adminClient = createClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: release } = await adminClient
+  // is_current was dropped by the desktop-channels migration; validity is now a
+  // known + non-revoked token (mirrors desktop-latest / ingest-bundle). A query
+  // error surfaces as 500 rather than masquerading as an unknown token.
+  const { data: release, error: relErr } = await adminClient
     .from('desktop_releases')
-    .select('id, is_current')
+    .select('id, token_revoked')
     .eq('release_token', releaseToken)
     .maybeSingle();
+  if (relErr) return json({ error: 'server_misconfigured', message: relErr.message }, 500);
   if (!release) return json({ error: 'unknown_release_token' }, 403);
-  if (!(release as { is_current: boolean }).is_current) {
+  if ((release as { token_revoked: boolean }).token_revoked) {
     return json({ error: 'release_token_revoked' }, 403);
   }
 

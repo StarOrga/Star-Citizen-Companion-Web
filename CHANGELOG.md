@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.5] - 2026-07-21
+
+### Fixed
+
+- **Desktop uploader: uploads no longer fail with "unknown release token".**
+  The desktop-channels migration dropped `desktop_releases.is_current`, but four
+  edge functions (`ingest-bundle`, `ingest-skins`, `ingest-catalog`,
+  `verify-release-token`) still validated the release token against that column.
+  PostgREST erroring on the missing column left every upload rejected —
+  regardless of a valid, registered token — even while the app's connection pill
+  showed "connected" (the pill only checks the session, not the release token).
+  Release-token validity now keys on `token_revoked` (mirroring `desktop-latest`),
+  and a schema/query error surfaces as an honest `server_misconfigured` (500)
+  instead of a misleading token error. In-progress extractions resume without
+  re-extracting.
+
 ## [0.41.4] - 2026-07-21
 
 ### Changed
