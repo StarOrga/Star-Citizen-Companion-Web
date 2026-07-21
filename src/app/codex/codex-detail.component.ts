@@ -177,11 +177,11 @@ interface LoadoutGroup {
                 }
                 <!-- Deep-link out to the official RSI site. We have no reliable
                      per-ship RSI slug (our classNameSlug ≠ RSI URL slug), so this
-                     lands on the official ships page rather than 404-ing on a
-                     guessed deeplink. -->
+                     lands on the official ships listing (admin-chosen target:
+                     name-sorted) rather than 404-ing on a guessed deeplink. -->
                 <a
                   class="pin rsi-link"
-                  href="https://robertsspaceindustries.com/en/pledge/ships"
+                  href="https://robertsspaceindustries.com/en/pledge/ships?sortField=name&sortDirection=asc"
                   target="_blank"
                   rel="noopener noreferrer">
                   {{ 'codex.detail.viewOnRsi' | translate }} ↗
