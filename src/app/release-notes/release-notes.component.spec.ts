@@ -81,15 +81,50 @@ describe('ReleaseNotesComponent', () => {
     expect(c.kind('Deploy')).toBeNull();
   });
 
-  it('renders one timeline entry per release after load', async () => {
+  it('renders one timeline entry per release after load (full history)', async () => {
     fixture.detectChanges(); // triggers ngOnInit → load()
     http.expectOne('release-notes.json').flush(SAMPLE);
     await fixture.whenStable();
+    // Expand to the full history so the assertion is independent of the wall
+    // clock (the 3-month default would otherwise hide the fixed sample dates
+    // once they age past the window).
+    fixture.componentInstance.showAll.set(true);
     fixture.detectChanges();
 
     const releases = fixture.nativeElement.querySelectorAll('.release');
     expect(releases.length).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('v0.26.1');
     expect(fixture.nativeElement.textContent).toContain('Segmented control.');
+  });
+
+  it('shows only the last 3 months by default and reveals the rest on load-more', async () => {
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const recent = new Date();
+    const old = new Date();
+    old.setMonth(old.getMonth() - 6);
+    const notes: ReleaseNotes = {
+      generatedFrom: 'CHANGELOG.md',
+      current: '1.0.0',
+      releases: [
+        { version: '1.0.0', date: iso(recent), sections: [{ category: 'Added', label: '', items: [{ title: '', text: 'Fresh.' }] }] },
+        { version: '0.1.0', date: iso(old), sections: [{ category: 'Added', label: '', items: [{ title: '', text: 'Ancient.' }] }] },
+      ],
+    };
+    fixture.detectChanges();
+    http.expectOne('release-notes.json').flush(notes);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Default: only the recent release is in the timeline; the old one is hidden.
+    expect(fixture.nativeElement.querySelectorAll('.release').length).toBe(1);
+    expect(fixture.componentInstance.hiddenCount()).toBe(1);
+    const loadMore = fixture.nativeElement.querySelector('.load-more');
+    expect(loadMore).toBeTruthy();
+
+    // Load-more reveals the full history.
+    loadMore.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.release').length).toBe(2);
+    expect(fixture.componentInstance.hiddenCount()).toBe(0);
   });
 });

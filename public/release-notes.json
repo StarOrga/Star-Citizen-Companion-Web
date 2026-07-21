@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.41.2",
+  "current": "0.41.3",
   "releases": [
+    {
+      "version": "0.41.3",
+      "date": "2026-07-21",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "\"What's New\" page now shows only the last 3 months by default.",
+              "text": "Older releases are collapsed behind a \"Show N older releases\" button (and can be folded away again), so the changelog opens focused on recent changes instead of the full history. (admin feedback)"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.41.2",
       "date": "2026-07-21",
