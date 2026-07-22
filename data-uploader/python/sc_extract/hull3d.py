@@ -51,6 +51,32 @@ def safe_id(value: str, kind: str) -> str:
     return value
 
 
+# cmd.exe metacharacters. Windows paths never legitimately contain these, so a
+# hit means a crafted/hostile path — we refuse rather than trust list2cmdline
+# quoting as a security boundary (BatBadBut class of shell injection).
+_SHELL_META = re.compile(r'[&|^<>%"]')
+
+
+def _safe_join(base: Path, *parts: str) -> Path:
+    """Join archive/CLI-controlled segments under `base`, refusing any result
+    that escapes it (zip-slip / path traversal). P4K entry names and .mtl
+    texture references are untrusted content in a crafted or corrupt archive:
+    a `..`-laden or drive-rooted entry must never write outside `base`."""
+    base = base.resolve()
+    dest = (base / Path(*parts)).resolve()
+    if not dest.is_relative_to(base):
+        raise ValueError(f"path escapes {base}: {parts!r}")
+    return dest
+
+
+def _reject_shell_meta(argv: List[str]) -> None:
+    """Guard a cmd.exe-bound argv: raise if any element carries a shell
+    metacharacter (the glb paths derive from the CLI --out/--work dirs)."""
+    for a in argv:
+        if _SHELL_META.search(a):
+            raise ValueError(f"refusing shell exec: metacharacter in {a!r}")
+
+
 def _noop(level: str, msg: str) -> None:  # default logger
     pass
 
@@ -126,7 +152,7 @@ class Hull3DExporter:
         return self.p4k.open(info).read()
 
     def _mirror_save(self, p4k_path: str, root: Path) -> Path:
-        dest = root / p4k_path.replace("\\", "/")
+        dest = _safe_join(root, p4k_path.replace("\\", "/"))
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(self._read(p4k_path))
         return dest
@@ -150,7 +176,7 @@ class Hull3DExporter:
             if not info:
                 continue
             try:
-                out = root / "Data" / (rel + ".dds")
+                out = _safe_join(root, "Data", rel + ".dds")
                 out.parent.mkdir(parents=True, exist_ok=True)
                 out.write_bytes(ddsmod.collect_and_unsplit(info))
                 ok += 1
@@ -204,6 +230,12 @@ class Hull3DExporter:
             cmd = [npx, "--yes", "@gltf-transform/cli@latest", *flags]
             # Windows npx is a .CMD shim → must go through the shell with quoting.
             if sys.platform == "win32":
+                # npx is a .CMD shim, so this dev-only branch must go through
+                # cmd.exe; list2cmdline quoting is NOT a boundary against cmd.exe
+                # metacharacter parsing, so refuse hostile paths outright. Prod
+                # never reaches here — the packaged app supplies
+                # SC_GLTF_TRANSFORM_ARGV and takes the shell-free path above.
+                _reject_shell_meta(cmd)
                 r = subprocess.run(subprocess.list2cmdline(cmd), shell=True,
                                    capture_output=True, encoding="utf-8",
                                    errors="replace", timeout=900)
