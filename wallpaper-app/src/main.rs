@@ -409,7 +409,7 @@ unsafe fn show_menu(hwnd: HWND) {
     let l_auto = util::wide(&t("Mit Windows starten", "Start with Windows"));
     let l_summary_now =
         util::wide(&t("Verse-News-Zusammenfassung jetzt zeigen", "Show Verse News summary now"));
-    let l_star = util::wide(&t("Starscape öffnen", "Open Starscape"));
+    let l_star = util::wide(&t("Starscape Website öffnen", "Open Starscape website"));
     let l_quit = util::wide(&t("Beenden", "Quit"));
 
     let menu = CreatePopupMenu();
