@@ -47,10 +47,12 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                  [value]="inviteEmail()"
                  (input)="inviteEmail.set(asInput($event))"
                  [placeholder]="'admin.invite.emailPlaceholder' | translate"
+                 [attr.aria-label]="'admin.invite.emailPlaceholder' | translate"
                  [disabled]="inviteBusy()"
                  required>
           <select [value]="inviteRole()"
                   (change)="inviteRole.set(asSelectRole($event))"
+                  [attr.aria-label]="'admin.col.role' | translate"
                   [disabled]="inviteBusy()">
             <option value="viewer">{{ 'profile.roles.viewer' | translate }}</option>
             <option value="collaborator">{{ 'profile.roles.collaborator' | translate }}</option>
@@ -109,19 +111,29 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
         <table class="sc-card table">
           <thead>
             <tr>
-              <th class="sortable" (click)="toggleSort('user')" [class.active]="sortKey() === 'user'">
+              <th class="sortable" (click)="toggleSort('user')"
+                  (keydown.enter)="toggleSort('user')" (keydown.space)="$event.preventDefault(); toggleSort('user')"
+                  tabindex="0" [attr.aria-sort]="ariaSort('user')" [class.active]="sortKey() === 'user'">
                 {{ 'admin.col.user' | translate }}<span class="sort-ind">{{ sortIndicator('user') }}</span>
               </th>
-              <th class="sortable" (click)="toggleSort('email')" [class.active]="sortKey() === 'email'">
+              <th class="sortable" (click)="toggleSort('email')"
+                  (keydown.enter)="toggleSort('email')" (keydown.space)="$event.preventDefault(); toggleSort('email')"
+                  tabindex="0" [attr.aria-sort]="ariaSort('email')" [class.active]="sortKey() === 'email'">
                 {{ 'admin.col.email' | translate }}<span class="sort-ind">{{ sortIndicator('email') }}</span>
               </th>
-              <th class="sortable" (click)="toggleSort('role')" [class.active]="sortKey() === 'role'">
+              <th class="sortable" (click)="toggleSort('role')"
+                  (keydown.enter)="toggleSort('role')" (keydown.space)="$event.preventDefault(); toggleSort('role')"
+                  tabindex="0" [attr.aria-sort]="ariaSort('role')" [class.active]="sortKey() === 'role'">
                 {{ 'admin.col.role' | translate }}<span class="sort-ind">{{ sortIndicator('role') }}</span>
               </th>
-              <th class="sortable" (click)="toggleSort('joined')" [class.active]="sortKey() === 'joined'">
+              <th class="sortable" (click)="toggleSort('joined')"
+                  (keydown.enter)="toggleSort('joined')" (keydown.space)="$event.preventDefault(); toggleSort('joined')"
+                  tabindex="0" [attr.aria-sort]="ariaSort('joined')" [class.active]="sortKey() === 'joined'">
                 {{ 'admin.col.joined' | translate }}<span class="sort-ind">{{ sortIndicator('joined') }}</span>
               </th>
-              <th class="sortable" (click)="toggleSort('lastSeen')" [class.active]="sortKey() === 'lastSeen'">
+              <th class="sortable" (click)="toggleSort('lastSeen')"
+                  (keydown.enter)="toggleSort('lastSeen')" (keydown.space)="$event.preventDefault(); toggleSort('lastSeen')"
+                  tabindex="0" [attr.aria-sort]="ariaSort('lastSeen')" [class.active]="sortKey() === 'lastSeen'">
                 {{ 'admin.col.lastSeen' | translate }}<span class="sort-ind">{{ sortIndicator('lastSeen') }}</span>
               </th>
               <th>{{ 'admin.col.actions' | translate }}</th>
@@ -465,6 +477,12 @@ export class AdminComponent implements OnInit {
       this.sortKey.set(key);
       this.sortDir.set(this.defaultDir(key));
     }
+  }
+
+  /** WCAG 4.1.2 — expose the current sort state to assistive tech via aria-sort. */
+  ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
+    if (this.sortKey() !== key) return 'none';
+    return this.sortDir() === 'asc' ? 'ascending' : 'descending';
   }
 
   sortIndicator(key: SortKey): string {

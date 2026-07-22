@@ -124,6 +124,11 @@ interface Lane {
         }
       } @else {
         <!-- One focal hero -->
+        <!-- WCAG 1.3.1: guarantee an <h1> even when no hero resolves (empty
+             hangar + no featured row) — the hero's own <h1> is conditional. -->
+        @if (!hero()) {
+          <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">{{ 'codex.title' | translate }}</h1>
+        }
         @if (hero(); as h) {
           <article class="hero" [class.is-hangar]="heroFromHangar()">
             <div class="hero-art" [class.icon-only]="!heroThumb()">
