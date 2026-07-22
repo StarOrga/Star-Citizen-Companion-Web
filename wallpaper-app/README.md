@@ -27,7 +27,7 @@ with an optional crossfade and one-click autostart.
   installs**; existing installs keep whatever they already had)
 - **Show Verse News summary now** — re-fetch the summary and set it as the
   wallpaper immediately, useful for testing without a reboot
-- **Open Starscape** — the web gallery
+- **Open Starscape website** — the web gallery
 - **Quit**
 
 ## How it works

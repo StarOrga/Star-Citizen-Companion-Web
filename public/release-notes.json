@@ -1,9 +1,9 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.41.6",
+  "current": "0.41.8",
   "releases": [
     {
-      "version": "0.41.6",
+      "version": "0.41.8",
       "date": "2026-07-22",
       "sections": [
         {
@@ -13,6 +13,50 @@
             {
               "title": "Product analytics: pageviews now reach PostHog Web Analytics.",
               "text": "Route-change pageviews sent a relative $current_url (e.g. /codex/ships), so PostHog parsed an empty $host from it — and Web Analytics, which groups pageviews by host, silently dropped every one (\"No pageview events detected\"). The $current_url is now absolute (origin + path, with the query string and fragment still stripped for privacy), restoring a real $host/$pathname. The page already open when statistics consent is granted is now captured too, instead of only future navigations — so the landing page, the most common pageview, is no longer lost. (analytics)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.41.7",
+      "date": "2026-07-22",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Starscape desktop app now shows the real SCC brand icon.",
+              "text": "The bundled tray icon was placeholder artwork (a purple \"A\" glyph); regenerated from the canonical SCC favicon."
+            },
+            {
+              "title": "Task Manager now lists the process as \"Starscape\" with its icon.",
+              "text": "The binary carried no Windows resource, so it appeared as the raw starscape-wallpaper.exe with a generic icon. A version/icon resource is now embedded (FileDescription = \"Starscape\"), and CI hard-fails a release that doesn't embed it."
+            },
+            {
+              "title": "Tray menu entry renamed \"Open Starscape\" → \"Open Starscape website\"",
+              "text": "to make clear it opens the web gallery."
+            },
+            {
+              "title": "Weekly Verse-News summary no longer renders an empty thumbnail.",
+              "text": "When a news item's primary image was a mostly-transparent title-card overlay (e.g. \"Alpha 4.9 Frontier Tensions\"), the summary wallpaper showed a blank box. It now picks an opaque, landscape image from the item's other images — mirroring the website's news thumbnails."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.41.6",
+      "date": "2026-07-21",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "\"Playable\" status no longer shown when the game is under maintenance.",
+              "text": "The Verse News status chip took RSI's overall indicator at face value, which stays \"operational\" during a scheduled Persistent Universe maintenance — so it read \"Playable\" while the PU was actually down. The headline now reflects the Persistent Universe component's state, so a PU maintenance/outage shows as such at the top; the per-service drill-down is unchanged. (admin feedback)"
             }
           ]
         }

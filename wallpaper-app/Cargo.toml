@@ -1,6 +1,6 @@
 [package]
 name = "starscape-wallpaper"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 description = "Star Citizen Companion — dynamic desktop wallpaper from the Starscape gallery"
 license = "MIT"
@@ -28,6 +28,9 @@ features = [
   "Win32_Globalization",
   "Win32_Security",
 ]
+
+[build-dependencies]
+winresource = "0.1"
 
 [profile.release]
 opt-level = "z"

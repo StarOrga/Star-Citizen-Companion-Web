@@ -4,7 +4,7 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.41.6] - 2026-07-22
+## [0.41.8] - 2026-07-22
 
 ### Fixed
 
@@ -17,6 +17,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page already open when statistics consent is granted is now captured too,
   instead of only future navigations — so the landing page, the most common
   pageview, is no longer lost. (analytics)
+
+## [0.41.7] - 2026-07-22
+
+### Fixed
+
+- **Starscape desktop app now shows the real SCC brand icon.** The bundled tray
+  icon was placeholder artwork (a purple "A" glyph); regenerated from the
+  canonical SCC favicon.
+- **Task Manager now lists the process as "Starscape" with its icon.** The
+  binary carried no Windows resource, so it appeared as the raw
+  `starscape-wallpaper.exe` with a generic icon. A version/icon resource is now
+  embedded (`FileDescription = "Starscape"`), and CI hard-fails a release that
+  doesn't embed it.
+- **Tray menu entry renamed "Open Starscape" → "Open Starscape website"** to make
+  clear it opens the web gallery.
+- **Weekly Verse-News summary no longer renders an empty thumbnail.** When a news
+  item's primary image was a mostly-transparent title-card overlay (e.g. "Alpha
+  4.9 Frontier Tensions"), the summary wallpaper showed a blank box. It now picks
+  an opaque, landscape image from the item's other images — mirroring the
+  website's news thumbnails.
+
+## [0.41.6] - 2026-07-21
+
+### Fixed
+
+- **"Playable" status no longer shown when the game is under maintenance.** The
+  Verse News status chip took RSI's overall indicator at face value, which stays
+  "operational" during a scheduled Persistent Universe maintenance — so it read
+  "Playable" while the PU was actually down. The headline now reflects the
+  Persistent Universe component's state, so a PU maintenance/outage shows as such
+  at the top; the per-service drill-down is unchanged. (admin feedback)
 
 ## [0.41.5] - 2026-07-21
 
