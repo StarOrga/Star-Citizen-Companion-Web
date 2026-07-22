@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.41.4",
+  "current": "0.41.6",
   "releases": [
+    {
+      "version": "0.41.6",
+      "date": "2026-07-22",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Product analytics: pageviews now reach PostHog Web Analytics.",
+              "text": "Route-change pageviews sent a relative $current_url (e.g. /codex/ships), so PostHog parsed an empty $host from it — and Web Analytics, which groups pageviews by host, silently dropped every one (\"No pageview events detected\"). The $current_url is now absolute (origin + path, with the query string and fragment still stripped for privacy), restoring a real $host/$pathname. The page already open when statistics consent is granted is now captured too, instead of only future navigations — so the landing page, the most common pageview, is no longer lost. (analytics)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.41.5",
+      "date": "2026-07-21",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Desktop uploader: uploads no longer fail with \"unknown release token\".",
+              "text": "The desktop-channels migration dropped desktop_releases.is_current, but four edge functions (ingest-bundle, ingest-skins, ingest-catalog, verify-release-token) still validated the release token against that column. PostgREST erroring on the missing column left every upload rejected — regardless of a valid, registered token — even while the app's connection pill showed \"connected\" (the pill only checks the session, not the release token). Release-token validity now keys on token_revoked (mirroring desktop-latest), and a schema/query error surfaces as an honest server_misconfigured (500) instead of a misleading token error. In-progress extractions resume without re-extracting."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.41.4",
       "date": "2026-07-21",

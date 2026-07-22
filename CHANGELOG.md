@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.6] - 2026-07-22
+
+### Fixed
+
+- **Product analytics: pageviews now reach PostHog Web Analytics.**
+  Route-change pageviews sent a relative `$current_url` (e.g. `/codex/ships`), so
+  PostHog parsed an empty `$host` from it — and Web Analytics, which groups
+  pageviews by host, silently dropped every one ("No pageview events detected").
+  The `$current_url` is now absolute (origin + path, with the query string and
+  fragment still stripped for privacy), restoring a real `$host`/`$pathname`. The
+  page already open when statistics consent is granted is now captured too,
+  instead of only future navigations — so the landing page, the most common
+  pageview, is no longer lost. (analytics)
+
 ## [0.41.5] - 2026-07-21
 
 ### Fixed
