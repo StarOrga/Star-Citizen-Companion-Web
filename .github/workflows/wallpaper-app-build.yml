@@ -36,8 +36,28 @@ jobs:
           rustc --version
           cargo --version
 
+      # Puts rc.exe (Windows SDK resource compiler) on PATH so build.rs/winresource
+      # can embed the app icon + VERSIONINFO. Without it winresource fails "program
+      # not found" and — being non-fatal by design — would silently ship a binary
+      # with no icon and no "Starscape" process name.
+      - name: MSVC developer environment (rc.exe for the icon/version resource)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Build (release)
         run: cargo build --release
+
+      # Hard gate: fail the build if the version resource did not embed, so a
+      # missing icon/name can never reach a release.
+      - name: Verify embedded icon + version resource
+        shell: pwsh
+        run: |
+          $vi = (Get-Item target/release/starscape-wallpaper.exe).VersionInfo
+          Write-Host "FileDescription='$($vi.FileDescription)' ProductName='$($vi.ProductName)' FileVersion='$($vi.FileVersion)'"
+          if ($vi.FileDescription -ne 'Starscape') {
+            throw "Version resource missing/incorrect (FileDescription='$($vi.FileDescription)') — winresource could not embed it."
+          }
 
       - name: Stage tagged artifact
         if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')

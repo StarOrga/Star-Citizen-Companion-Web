@@ -16,6 +16,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { Buffer } from 'node:buffer';
 import { Resvg, initWasm } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { buildSummarySvg, type SummaryItem } from './summary-svg.ts';
+import { imageCandidates, selectBestImage, type FetchedImage } from './image-select.ts';
 import { Orbitron_700, Orbitron_500, Rajdhani_500, Rajdhani_600 } from './fonts.ts';
 
 const CORS_HEADERS = {
@@ -125,10 +126,6 @@ function hasImage(it: VerseNewsItem): boolean {
   return !!(it.thumbnail || it.images?.length);
 }
 
-function itemImageUrl(it: VerseNewsItem): string | undefined {
-  return it.thumbnail ?? it.images?.[0];
-}
-
 // Prefer comm-link (fallback patch) items with a usable image, published
 // within the last 7 days; backfill with the most recent items overall if
 // fewer than `count` qualify. Final list is newest-first.
@@ -163,8 +160,7 @@ function selectItems(news: VerseNewsItem[], count: number): VerseNewsItem[] {
 // Image inlining — SVG (and resvg) can't fetch remote urls, so every hero
 // / thumbnail image is downloaded server-side and embedded as base64.
 // ---------------------------------------------------------------------
-async function fetchImageAsDataUri(url: string | undefined): Promise<string | undefined> {
-  if (!url) return undefined;
+async function fetchImage(url: string): Promise<FetchedImage | undefined> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), IMG_FETCH_TIMEOUT_MS);
   try {
@@ -176,13 +172,16 @@ async function fetchImageAsDataUri(url: string | undefined): Promise<string | un
     const contentType = (res.headers.get('content-type') ?? 'image/jpeg').split(';')[0].trim();
     const bytes = new Uint8Array(await res.arrayBuffer());
     if (!bytes.length) return undefined;
-    const b64 = Buffer.from(bytes).toString('base64');
-    return `data:${contentType};base64,${b64}`;
+    return { bytes, contentType };
   } catch {
     return undefined;
   } finally {
     clearTimeout(t);
   }
+}
+
+function toDataUri(img: FetchedImage): string {
+  return `data:${img.contentType};base64,${Buffer.from(img.bytes).toString('base64')}`;
 }
 
 // ---------------------------------------------------------------------
@@ -257,9 +256,10 @@ Deno.serve(async (req: Request) => {
     const news = await fetchVerseNews();
     const selected = selectItems(news, count);
 
-    const [heroDataUri, ...thumbDataUris] = await Promise.all(
-      selected.map((it) => fetchImageAsDataUri(itemImageUrl(it))),
+    const chosen = await Promise.all(
+      selected.map((it) => selectBestImage(imageCandidates(it), fetchImage)),
     );
+    const [heroDataUri, ...thumbDataUris] = chosen.map((c) => (c ? toDataUri(c) : undefined));
 
     const items: SummaryItem[] = selected.map((it) => ({
       title: it.title,
