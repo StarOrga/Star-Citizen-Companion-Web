@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { environment } from '../../environments/environment';
-import { AnalyticsService } from './analytics.service';
+import { AnalyticsService, pageviewUrl } from './analytics.service';
 import { ConsentService } from './consent.service';
 
 /**
@@ -60,5 +60,34 @@ describe('AnalyticsService', () => {
     } finally {
       environment.posthog.key = originalKey;
     }
+  });
+});
+
+/**
+ * PostHog derives `$host`/`$pathname` from `$current_url`; a relative path
+ * yields an empty host and Web Analytics drops the pageview. These pin the
+ * `$current_url` sent for a route to an absolute URL, query/fragment stripped.
+ */
+describe('pageviewUrl', () => {
+  it('prefixes the origin so PostHog can derive a non-empty $host', () => {
+    expect(pageviewUrl('/codex/ships', 'https://sc-companion.vercel.app')).toBe(
+      'https://sc-companion.vercel.app/codex/ships',
+    );
+  });
+
+  it('drops the query string and fragment', () => {
+    expect(pageviewUrl('/news?channel=rsi#top', 'https://sc-companion.vercel.app')).toBe(
+      'https://sc-companion.vercel.app/news',
+    );
+  });
+
+  it('handles the root path', () => {
+    expect(pageviewUrl('/', 'https://sc-companion.vercel.app')).toBe('https://sc-companion.vercel.app/');
+  });
+
+  it('produces a URL whose parsed host is non-empty (the actual regression)', () => {
+    expect(new URL(pageviewUrl('/starscape', 'https://sc-companion.vercel.app')).host).toBe(
+      'sc-companion.vercel.app',
+    );
   });
 });

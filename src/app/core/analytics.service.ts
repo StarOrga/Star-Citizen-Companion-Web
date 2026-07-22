@@ -105,19 +105,36 @@ export class AnalyticsService {
     this.client.reset();
   }
 
-  /** Pageviews for Angular route changes (the SPA has exactly one page load). */
+  /**
+   * Pageviews for Angular route changes (the SPA has exactly one real page
+   * load). `router.events` only fires on *future* navigations, so we also emit
+   * one for the page already open when the library finished loading — otherwise
+   * the landing page, the single most common pageview, is never captured.
+   */
   private bindRouter(): void {
     if (this.routerBound) return;
     this.routerBound = true;
+    this.capturePageview(this.router.url);
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {
-      // Route out of the URL rather than sending it verbatim: paths carry ids
-      // (e.g. /codex/ships/<id>) we have no reason to collect.
-      this.capture('$pageview', { $current_url: stripQuery((e as NavigationEnd).urlAfterRedirects) });
+      this.capturePageview((e as NavigationEnd).urlAfterRedirects);
     });
+  }
+
+  private capturePageview(routerUrl: string): void {
+    this.capture('$pageview', { $current_url: pageviewUrl(routerUrl) });
   }
 }
 
-/** Drops the query string + fragment, which can carry tokens or search terms. */
-function stripQuery(url: string): string {
-  return url.split(/[?#]/)[0];
+/**
+ * Turns an Angular router URL into the absolute `$current_url` a pageview needs.
+ *
+ * Absolute is not cosmetic: PostHog derives `$host` and `$pathname` by parsing
+ * `$current_url`, and Web Analytics groups pageviews by host. A bare router path
+ * (`/codex/ships`) parses to an empty host, so those pageviews are silently
+ * dropped from Web Analytics ("No pageview events detected"). Prefixing the
+ * origin restores the host; we still strip the query string and fragment, which
+ * can carry tokens or search terms we have no reason to collect.
+ */
+export function pageviewUrl(routerUrl: string, origin: string = location.origin): string {
+  return origin + routerUrl.split(/[?#]/)[0];
 }
