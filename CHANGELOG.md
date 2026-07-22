@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.6] - 2026-07-21
+
+### Fixed
+
+- **"Playable" status no longer shown when the game is under maintenance.** The
+  Verse News status chip took RSI's overall indicator at face value, which stays
+  "operational" during a scheduled Persistent Universe maintenance — so it read
+  "Playable" while the PU was actually down. The headline now reflects the
+  Persistent Universe component's state, so a PU maintenance/outage shows as such
+  at the top; the per-service drill-down is unchanged. (admin feedback)
+
 ## [0.41.5] - 2026-07-21
 
 ### Fixed

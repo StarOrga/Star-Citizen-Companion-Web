@@ -32,6 +32,31 @@ export interface VerseStatus {
   updatedAt: string;
 }
 
+/** Severity order for comparing two status levels (higher = worse). */
+const STATUS_PRIORITY: Record<StatusLevel, number> = {
+  unknown: -1,
+  operational: 0,
+  maintenance: 1,
+  degraded: 2,
+  partial_outage: 3,
+  major_outage: 4,
+};
+
+/**
+ * Playability-aware headline status. RSI's Statuspage overall indicator only
+ * reflects declared incidents and stays "operational" during a scheduled
+ * Persistent Universe maintenance — which would wrongly read as "Playable"
+ * (feedback 740d31cb). The headline chip is about whether the game can be
+ * played, so escalate it to at least the Persistent Universe component's level.
+ * Other services' maintenance (website, platform) does not flip the headline;
+ * it stays visible in the per-service drill-down.
+ */
+export function effectivePlayability(st: VerseStatus): StatusLevel {
+  const pu = st.components.find((c) => /persistent universe/i.test(c.name));
+  if (!pu) return st.overall;
+  return STATUS_PRIORITY[pu.status] > STATUS_PRIORITY[st.overall] ? pu.status : st.overall;
+}
+
 export interface VerseFeed {
   status: VerseStatus | null;
   news: VerseNewsItem[];

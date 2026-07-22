@@ -16,7 +16,7 @@ import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { NewsService, NewsChannel, VerseNewsItem } from './news.service';
+import { NewsService, NewsChannel, VerseNewsItem, VerseStatus, StatusLevel, effectivePlayability } from './news.service';
 import { NewsThumbComponent } from './news-thumb.component';
 
 const CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
@@ -52,12 +52,13 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
         </div>
 
         @if (svc.feed()?.status; as st) {
-          <button class="status-chip" type="button" [class]="'status-' + st.overall"
+          @let eff = effectiveStatus(st);
+          <button class="status-chip" type="button" [class]="'status-' + eff"
                   [attr.aria-expanded]="statusOpen()" (click)="toggleStatus()">
-            <span class="dot" [class]="'status-' + st.overall"></span>
+            <span class="dot" [class]="'status-' + eff"></span>
             <span class="meta">
               <span class="t">{{ 'news.status.title' | translate }}</span>
-              <strong>{{ ('news.status.' + st.overall) | translate }}</strong>
+              <strong>{{ ('news.status.' + eff) | translate }}</strong>
             </span>
             <span class="chev" aria-hidden="true">{{ statusOpen() ? '▴' : '▾' }}</span>
           </button>
@@ -660,6 +661,16 @@ export class NewsListComponent implements OnInit, OnDestroy {
 
   toggleStatus() { this.statusOpen.update((v) => !v); }
   toggleOlder() { this.olderOpen.update((v) => !v); }
+
+  /**
+   * Playability-aware headline for the status chip: escalates the RSI overall
+   * to at least the Persistent Universe component's level so a scheduled PU
+   * maintenance no longer reads as "Playable" (feedback 740d31cb). See
+   * `effectivePlayability`.
+   */
+  effectiveStatus(st: VerseStatus): StatusLevel {
+    return effectivePlayability(st);
+  }
 
   // Channel + favorites filtering are mutually exclusive views: picking a
   // channel (or "Alle") leaves the saved-only view; the ★ chip enters it.
