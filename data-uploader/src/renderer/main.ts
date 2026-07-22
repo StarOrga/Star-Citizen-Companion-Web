@@ -526,6 +526,27 @@ function connErrorText(code: string): string {
   return code;
 }
 
+// Inline line icons (Tabler set, MIT). The renderer CSP blocks CDN webfonts,
+// so icons ship as inline SVG — they inherit `currentColor` + size from CSS.
+const IC_CLOUD =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.657 18c-2.572 0 -4.657 -2.007 -4.657 -4.483c0 -2.475 2.085 -4.482 4.657 -4.482c.393 -1.762 1.794 -3.2 3.675 -3.773c1.88 -.572 3.956 -.193 5.444 1c1.488 1.19 2.162 3.007 1.77 4.769h.99c1.913 0 3.464 1.56 3.464 3.483c0 1.921 -1.551 3.481 -3.465 3.481h-11.878"/></svg>';
+const IC_REFRESH =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/></svg>';
+const IC_LOGOUT =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"/><path d="M9 12h12l-3 -3"/><path d="M18 15l3 -3"/></svg>';
+const IC_RING =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M7 6m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 6m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M7 8l0 8"/><path d="M9 18h6a2 2 0 0 0 2 -2v-5"/><path d="M14 14l3 -3l3 3"/></svg>';
+
+/**
+ * Compact, single-row web-connection bar. One line carries everything:
+ * a live status dot, the identity (email when signed in, a connect CTA
+ * otherwise), the server-catalog chips + freshness, and the action cluster
+ * (release-ring picker + refresh + sign-out as icon buttons). A running sync
+ * swaps the middle for a thin progress bar; persist/error notes stack below.
+ *
+ * The ring picker used to live buried on the Configure view — it now rides
+ * here so it is reachable on every screen (role-gated: admin→3, collab→2 rings).
+ */
 function paintConnection(): void {
   const mount = $('#connection-tile');
   if (!mount) return;
@@ -545,74 +566,89 @@ function paintConnection(): void {
     pillText = t('session.expired', {}) || 'Sitzung abgelaufen';
   }
 
-  let identity = '';
+  // Left cluster: email when signed in, otherwise a short state + connect CTA.
+  let idBlock: string;
   if (s?.connected) {
-    identity = `
-      <div class="conn-id">
-        <span class="conn-email">${escapeHtml(s.email ?? '')}</span>
-        <button id="conn-signout" type="button" class="conn-link">${t('session.signOut', {}) || 'Abmelden'}</button>
-      </div>`;
+    idBlock = `<span class="conn-email" title="${escapeHtml(s.email ?? '')}">${escapeHtml(s.email ?? '')}</span>`;
   } else if (conn.resolved) {
     const label = s?.needsReconnect
       ? t('session.reconnect', {}) || 'Neu verbinden'
       : t('session.connect', {}) || 'Mit Web verbinden';
-    const hint = s?.needsReconnect
-      ? t('session.expiredHint', {}) || 'Deine gespeicherte Sitzung ist abgelaufen.'
-      : t('session.connectHint', {}) || 'Einmal anmelden — bleibt danach automatisch verbunden.';
-    identity = `
-      <div class="conn-id">
-        <span class="conn-hint">${hint}</span>
-        <button id="conn-connect" type="button" class="btn btn-primary btn-sm">${label}</button>
-      </div>`;
+    idBlock = `<span class="conn-state">${pillText}</span>
+        <button id="conn-connect" type="button" class="btn btn-primary btn-sm">${label}</button>`;
+  } else {
+    idBlock = `<span class="conn-state">${pillText}</span>`;
   }
 
-  let syncRow = '';
-  if (conn.syncing) {
-    syncRow = `
-      <div class="conn-sync">
-        <div class="conn-sync-head">
-          <span>${t('sync.syncing', {}) || 'Synchronisiere Server-Stand…'}</span>
-          <span class="conn-pct">${conn.syncPct}%</span>
-        </div>
-        <div class="progress-bar"><span style="width:${conn.syncPct}%"></span></div>
-      </div>`;
-  } else if (snap) {
-    const chips = snap.channels
-      .map(
-        (c) =>
-          `<span class="conn-chip ${escapeHtml(c.channel)}"><strong>${escapeHtml(c.channel.toUpperCase())}</strong> v${escapeHtml(c.patchVersion)} · ${c.entityTotal.toLocaleString()}</span>`,
-      )
-      .join('');
-    const refresh = s?.connected
-      ? ` · <button id="conn-sync" type="button" class="conn-link">${t('sync.refresh', {}) || 'Aktualisieren'}</button>`
-      : '';
-    syncRow = `
-      <div class="conn-sync">
-        <div class="conn-sync-head">
-          <span>${t('sync.serverState', {}) || 'Server-Stand'}</span>
-          <span class="conn-meta">${t('sync.lastSynced', { when: relTime(snap.syncedAt) }) || `aktualisiert ${relTime(snap.syncedAt)}`}${refresh}</span>
-        </div>
+  // Middle: server-catalog chips + freshness (only when connected + not syncing).
+  let serverBlock = '';
+  if (s?.connected && !conn.syncing) {
+    if (snap) {
+      const chips = snap.channels
+        .map(
+          (c) =>
+            `<span class="conn-chip ${escapeHtml(c.channel)}"><strong>${escapeHtml(c.channel.toUpperCase())}</strong> v${escapeHtml(c.patchVersion)} · ${c.entityTotal.toLocaleString()}</span>`,
+        )
+        .join('');
+      serverBlock = `
+        <span class="conn-div" aria-hidden="true"></span>
+        <span class="conn-srv-ico" aria-hidden="true">${IC_CLOUD}</span>
         <div class="conn-chips">${chips || `<span class="conn-empty">${t('sync.empty', {}) || 'Noch keine Bundles auf dem Server.'}</span>`}</div>
-      </div>`;
-  } else if (s?.connected) {
-    syncRow = `<div class="conn-sync"><span class="conn-meta">${t('sync.idle', {}) || 'Bereit zu synchronisieren.'}</span></div>`;
+        <span class="conn-fresh">· ${t('sync.lastSynced', { when: relTime(snap.syncedAt) }) || `aktualisiert ${relTime(snap.syncedAt)}`}</span>`;
+    } else {
+      serverBlock = `
+        <span class="conn-div" aria-hidden="true"></span>
+        <span class="conn-fresh">${t('sync.idle', {}) || 'Bereit zu synchronisieren.'}</span>`;
+    }
   }
+
+  // Right cluster: ring picker (role-gated) + refresh + sign-out icon buttons.
+  let actions = '';
+  if (s?.connected) {
+    const rings = allowedChannels();
+    let ring = '';
+    if (rings.length >= 2) {
+      const cur = state.settings?.updateChannel ?? 'stable';
+      const opts = rings
+        .map(
+          (c) =>
+            `<option value="${c}" ${c === cur ? 'selected' : ''}>${t('settings.updateChannel.' + c, {}) || c}</option>`,
+        )
+        .join('');
+      ring = `<span class="conn-ring" title="${t('settings.updateChannel.hint', {}) || 'Welchem Release-Ring automatische Updates folgen.'}">
+          <span class="conn-ring-ico" aria-hidden="true">${IC_RING}</span>
+          <select id="conn-ring" aria-label="${t('settings.updateChannel.label', {}) || 'Update-Channel'}">${opts}</select>
+        </span>`;
+    }
+    actions = `${ring}
+      <button id="conn-sync" type="button" class="conn-icon-btn" title="${t('sync.refresh', {}) || 'Aktualisieren'}" aria-label="${t('sync.refresh', {}) || 'Aktualisieren'}">${IC_REFRESH}</button>
+      <button id="conn-signout" type="button" class="conn-icon-btn" title="${t('session.signOut', {}) || 'Abmelden'}" aria-label="${t('session.signOut', {}) || 'Abmelden'}">${IC_LOGOUT}</button>`;
+  }
+
+  // A running sync replaces the middle with a thin labelled progress bar.
+  const syncBar = conn.syncing
+    ? `<div class="conn-syncbar">
+        <div class="conn-syncbar-head"><span>${t('sync.syncing', {}) || 'Synchronisiere Server-Stand…'}</span><span class="conn-pct">${conn.syncPct}%</span></div>
+        <div class="progress-bar"><span style="width:${conn.syncPct}%"></span></div>
+      </div>`
+    : '';
 
   const persistNote =
     s && !s.canPersist
       ? `<div class="conn-persist-note">${t('session.noPersist', {}) || 'Hinweis: Kein OS-Schlüsselspeicher — Sitzung gilt nur bis zum Schließen.'}</div>`
       : '';
-
   const errorRow = conn.error ? `<div class="conn-error">${escapeHtml(connErrorText(conn.error))}</div>` : '';
 
   mount.innerHTML = `
-    <div class="conn-card">
-      <div class="conn-top">
-        <span class="conn-title">${t('session.title', {}) || 'Web-Verbindung'}</span>
-        <span class="conn-pill ${pillCls}">${pillText}</span>
+    <div class="conn-card conn-card--${pillCls}">
+      <div class="conn-bar">
+        <span class="conn-dot conn-dot--${pillCls}" title="${escapeHtml(pillText)}"></span>
+        <div class="conn-idwrap">${idBlock}</div>
+        ${serverBlock}
+        <span class="conn-spacer"></span>
+        <div class="conn-actions">${actions}</div>
       </div>
-      ${identity}
-      ${syncRow}
+      ${syncBar}
       ${persistNote}
       ${errorRow}
     </div>
@@ -621,6 +657,12 @@ function paintConnection(): void {
   $('#conn-connect')?.addEventListener('click', () => void connectNow());
   $('#conn-signout')?.addEventListener('click', () => void signOutNow());
   $('#conn-sync')?.addEventListener('click', () => void autoSync());
+  ($('#conn-ring') as HTMLSelectElement | null)?.addEventListener('change', (e) => {
+    const value = (e.target as HTMLSelectElement).value as 'alpha' | 'beta' | 'stable';
+    void window.sc.settings.patch({ updateChannel: value }).then((st) => {
+      state.settings = st;
+    });
+  });
 }
 
 type UpdateEvent =
@@ -980,27 +1022,8 @@ function allowedChannels(): Array<'alpha' | 'beta' | 'stable'> {
   }
 }
 
-/** Role-gated update-channel <select>; empty string for viewers (no picker). */
-function renderChannelPicker(): string {
-  const opts = allowedChannels();
-  if (opts.length < 2) return '';
-  const cur = state.settings?.updateChannel ?? 'stable';
-  const options = opts
-    .map(
-      (c) =>
-        `<option value="${c}" ${c === cur ? 'selected' : ''}>${
-          t('settings.updateChannel.' + c, {}) || c
-        }</option>`,
-    )
-    .join('');
-  return `
-      <label class="auto-upload-toggle channel-row" title="${
-        t('settings.updateChannel.hint', {}) || 'Welchem Release-Ring automatische Updates folgen.'
-      }">
-        <span>${t('settings.updateChannel.label', {}) || 'Update-Channel'}</span>
-        <select id="sel-update-channel" class="channel-select">${options}</select>
-      </label>`;
-}
+// The update-channel picker moved out of Configure into the always-visible
+// connection bar (see paintConnection). `allowedChannels()` above is shared.
 
 function renderConfigure(): string {
   return `
@@ -1024,7 +1047,6 @@ function renderConfigure(): string {
         <input type="checkbox" id="chk-autorun" ${state.settings?.autoRunOnNewVersion ? 'checked' : ''} />
         <span>${t('autorun.toggle', {}) || 'Bei neuer data.p4k-Version automatisch komplett durchlaufen'}</span>
       </label>
-      ${renderChannelPicker()}
       <div class="btn-row view-footer">
         <button id="btn-back-discover" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
         <button id="btn-start-run" class="btn btn-primary">${t('configure.start', {}) || 'Extraktion starten'}</button>
@@ -1052,12 +1074,6 @@ function wireConfigure(): void {
   });
   ($('#chk-autorun') as HTMLInputElement | null)?.addEventListener('change', (e) => {
     void persist({ autoRunOnNewVersion: (e.target as HTMLInputElement).checked });
-  });
-  ($('#sel-update-channel') as HTMLSelectElement | null)?.addEventListener('change', (e) => {
-    const value = (e.target as HTMLSelectElement).value as 'alpha' | 'beta' | 'stable';
-    void window.sc.settings.patch({ updateChannel: value }).then((s) => {
-      state.settings = s;
-    });
   });
   $('#btn-back-discover')?.addEventListener('click', () => {
     state.view = 'discover';
