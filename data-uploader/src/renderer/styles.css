@@ -668,66 +668,84 @@ h3 { font-size: 0.9rem; }
 .diff-table th { color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; }
 .diff-table td:not(:first-child) { text-align: right; font-family: var(--sc-font-display); }
 
-/* ------- web-connection tile ------- */
-.conn-tile { padding: 12px 28px 0; }
+/* ------- web-connection bar (compact, single-row, icon-driven) ------- */
+.conn-tile { padding: 10px 28px 0; }
 .conn-card {
   background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
   border: 1px solid var(--sc-border);
   border-radius: 8px;
-  padding: 12px 16px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.conn-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.conn-title {
-  font-family: var(--sc-font-display);
-  font-size: 0.74rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--sc-fg-2);
+.conn-bar { display: flex; align-items: center; gap: 10px; min-height: 30px; }
+
+/* Live status dot — replaces the old text pill; pulses while online/checking. */
+.conn-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--sc-fg-2); }
+.conn-dot--online { background: var(--sc-success); animation: conn-pulse 2.4s ease-out infinite; }
+.conn-dot--warn { background: var(--sc-warning); }
+.conn-dot--pending { background: var(--sc-accent); animation: conn-pulse 1.4s ease-out infinite; }
+@keyframes conn-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(var(--status-success-rgb), 0.45); }
+  70% { box-shadow: 0 0 0 6px rgba(var(--status-success-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--status-success-rgb), 0); }
 }
-.conn-pill {
-  font-family: var(--sc-font-display);
-  font-size: 0.64rem;
-  padding: 2px 10px;
-  border-radius: 999px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+
+.conn-idwrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.conn-email {
+  font-size: 0.85rem; color: var(--sc-fg-0);
+  max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.conn-pill.online { background: rgba(var(--status-success-rgb), 0.18); color: var(--sc-success); }
-.conn-pill.offline { background: var(--sc-bg-3); color: var(--sc-fg-2); }
-.conn-pill.pending { background: rgba(var(--accent-primary-rgb), 0.14); color: var(--sc-accent); }
-.conn-pill.warn { background: rgba(var(--accent-warning-rgb), 0.18); color: var(--sc-warning); }
-.conn-id { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.conn-email { font-size: 0.85rem; color: var(--sc-fg-0); }
-.conn-hint { font-size: 0.8rem; color: var(--sc-fg-2); }
-.conn-link {
-  background: none; border: none; cursor: pointer;
-  color: var(--sc-accent); font: inherit; font-size: 0.76rem; padding: 0;
-  text-decoration: underline; -webkit-app-region: no-drag;
-}
-.conn-link:hover { color: var(--accent-strong); }
-.btn-sm { padding: 5px 12px; font-size: 0.7rem; }
-.conn-sync { display: flex; flex-direction: column; gap: 6px; }
-.conn-sync-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.78rem; color: var(--sc-fg-1); }
-.conn-meta { color: var(--sc-fg-2); font-size: 0.74rem; }
-.conn-pct { font-family: var(--sc-font-display); color: var(--sc-accent); font-variant-numeric: tabular-nums; }
-.conn-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.conn-state { font-size: 0.82rem; color: var(--sc-fg-1); }
+
+.conn-div { width: 1px; height: 18px; background: var(--sc-border); flex: none; }
+.conn-srv-ico { display: inline-flex; color: var(--sc-accent); flex: none; }
+.conn-srv-ico svg { width: 16px; height: 16px; }
+.conn-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .conn-chip {
-  font-size: 0.72rem;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--sc-bg-1);
-  border: 1px solid var(--sc-border);
-  color: var(--sc-fg-1);
-  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem; padding: 2px 9px; border-radius: 999px;
+  background: var(--sc-bg-1); border: 1px solid var(--sc-border);
+  color: var(--sc-fg-1); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .conn-chip strong { color: var(--sc-accent); font-family: var(--sc-font-display); letter-spacing: 0.04em; margin-right: 2px; }
 .conn-chip.ptu strong { color: var(--sc-success); }
 .conn-chip.eptu strong { color: var(--sc-warning); }
 .conn-chip.tech-preview strong { color: var(--sc-accent-hot); }
-.conn-empty { color: var(--sc-fg-2); font-size: 0.78rem; }
+.conn-empty { color: var(--sc-fg-2); font-size: 0.74rem; }
+.conn-fresh { color: var(--sc-fg-2); font-size: 0.74rem; white-space: nowrap; }
+
+.conn-spacer { flex: 1 1 8px; }
+.conn-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+
+/* Release-ring picker — moved here from Configure so it is always reachable. */
+.conn-ring {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(var(--accent-primary-rgb), 0.06);
+  border: 1px solid var(--sc-border); border-radius: 6px; padding: 2px 6px 2px 8px;
+}
+.conn-ring:hover { border-color: var(--sc-accent); }
+.conn-ring-ico { display: inline-flex; color: var(--sc-accent); }
+.conn-ring-ico svg { width: 15px; height: 15px; }
+.conn-ring select {
+  background: transparent; border: none; color: var(--sc-fg-0);
+  font: inherit; font-size: 0.76rem; padding: 2px 0; outline: none; cursor: pointer;
+}
+
+.conn-icon-btn {
+  width: 30px; height: 30px; border-radius: 6px; flex: none;
+  border: 1px solid var(--sc-border); background: var(--sc-bg-1); color: var(--sc-fg-1);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: color 0.12s, border-color 0.12s;
+}
+.conn-icon-btn svg { width: 17px; height: 17px; }
+.conn-icon-btn:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
+
+.btn-sm { padding: 5px 12px; font-size: 0.7rem; }
+
+.conn-syncbar { display: flex; flex-direction: column; gap: 5px; }
+.conn-syncbar-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.76rem; color: var(--sc-fg-1); }
+.conn-pct { font-family: var(--sc-font-display); color: var(--sc-accent); font-variant-numeric: tabular-nums; }
 .conn-persist-note { font-size: 0.72rem; color: var(--sc-warning); }
 .conn-error {
   font-size: 0.78rem;
@@ -752,21 +770,6 @@ h3 { font-size: 0.9rem; }
 }
 .auto-upload-toggle:hover,
 .sc-toggle:hover { color: var(--sc-fg-0); }
-
-/* Role-gated update-channel picker (Configure view) — a select, not a checkbox,
-   so it spreads label ↔ control and keeps the default cursor. */
-.auto-upload-toggle.channel-row { justify-content: space-between; cursor: default; width: 100%; }
-.channel-select {
-  background: rgba(var(--accent-primary-rgb), 0.06);
-  color: var(--sc-fg-0);
-  border: 1px solid var(--sc-border);
-  border-radius: 4px;
-  padding: 4px 10px;
-  font: inherit;
-  font-size: 0.85rem;
-}
-.channel-select:hover,
-.channel-select:focus { border-color: var(--sc-accent); outline: none; }
 
 /* Custom-themed checkbox — one accent-glowing control shared by every toggle
    (footer telemetry, Configure preferences, the Upload-screen shutdown opt-in),
