@@ -506,7 +506,15 @@ fn prefetch_loop(hwnd_isize: isize, q: Arc<Mutex<VecDeque<PathBuf>>>) {
             let ext = if url.to_lowercase().ends_with(".png") { "png" } else { "jpg" };
             let dest = cache.join(format!("wp_{counter}.{ext}"));
             counter += 1;
-            if net::download_image(&url, &dest) {
+            // Skip sources under 1/5 of the primary monitor's pixel count — they
+            // look soft/upscaled when cover-fit to the desktop. Read per download
+            // so a resolution change is picked up; 0 (metrics failed) disables it.
+            let min_pixels = unsafe {
+                let cx = GetSystemMetrics(SM_CXSCREEN).max(0) as u64;
+                let cy = GetSystemMetrics(SM_CYSCREEN).max(0) as u64;
+                (cx * cy) / 5
+            };
+            if net::download_image(&url, &dest, min_pixels) {
                 q.lock().unwrap().push_back(dest);
                 unsafe {
                     PostMessageW(hwnd_isize as *mut c_void, WM_IMG_READY, 0, 0);
