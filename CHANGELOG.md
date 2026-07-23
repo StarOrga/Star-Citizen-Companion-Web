@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.43.0] - 2026-07-23
+
+### Added
+
+- **Feedback board: status filter + quick-access TOC.** The admin feedback board
+  gained a status quick-filter (Rückfragen / open / in progress, with live
+  counts) alongside the existing author filter, and a horizontal quick-access
+  table of contents that jumps straight to a topic — leading with and
+  highlighting the Rückfragen still awaiting the admin's answer. In the embedded
+  panel an "expand/collapse all" toggle closes every topic to just its heading so
+  the board stays scannable. (admin-feedback)
+
+### Fixed
+
+- **Feedback chat: screenshot attachments work again.** Pasting, dropping, or
+  picking an image failed with "Bild konnte nicht verarbeitet werden" because the
+  hardened Content-Security-Policy (`img-src` without `blob:`) blocked the `blob:`
+  object URL the composer used to decode images. The composer now decodes via
+  `createImageBitmap`, which needs no URL and is CSP-independent. (admin-feedback)
+
 ## [0.42.0] - 2026-07-23
 
 ### Changed
