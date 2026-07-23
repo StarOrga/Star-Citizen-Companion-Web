@@ -1,6 +1,7 @@
 // fetch-verse-news — aggregates RSI Comm-Link, Patch-Notes, YouTube, Spectrum
 // and the real RSI Status page into one VerseFeed JSON.
-// JWT verification is on — only authenticated users can hit it.
+// JWT verification is OFF (config.toml verify_jwt=false, #131): a public news feed
+// of public sources, reachable by signed-out visitors; client sends sb_publishable_*.
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
@@ -8,6 +9,7 @@ import { Buffer } from 'node:buffer';
 import jpeg from 'npm:jpeg-js@0.4.4';
 import { PNG } from 'npm:pngjs@7.0.0';
 import { scoreWallpaper } from './wallpaper-quality.ts';
+import { isCommLinkArticleUrl } from './comm-link-url.ts';
 
 type Channel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 
@@ -112,8 +114,14 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
         source: channel === 'patch' ? 'patch-notes' : 'comm-link',
       } satisfies VerseNewsItem;
     });
-    await backfillMissingImages(items);
-    return items;
+    // Keep only entries whose "open on RSI" link is a real article permalink. The wiki
+    // API also surfaces storefront ad promos (channel "Undefined", e.g. "Fly with D-Box"
+    // → /promotions/<code>, which 404s) and, when an entry has no rsi_url, our own bare
+    // /comm-link index fallback — both hand the user a card whose external link lands on
+    // a dead or redirecting RSI error page instead of an article (the reported link bug).
+    const articles = items.filter((it) => isCommLinkArticleUrl(it.url));
+    await backfillMissingImages(articles);
+    return articles;
   } catch (err) {
     console.error('fetchCommLinks failed:', err);
     return [];
