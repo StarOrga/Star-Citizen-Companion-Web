@@ -4,6 +4,39 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.9] - 2026-07-23
+
+### Security
+
+- **P4K extractor hardened against zip-slip / path traversal.** The hull-geometry
+  writer trusted archive-entry names and `.mtl` texture references verbatim, so a
+  crafted or corrupt `Data.p4k` could write outside the work directory. Every
+  write is now containment-checked against its base dir. The Windows dev-only
+  `npx` fallback additionally refuses shell metacharacters, and the Python
+  dependency set is fully version-pinned (AES/crypto libraries included).
+
+### Fixed
+
+- **Accessibility (WCAG 2.1 AA).** Muted/secondary text now meets the 4.5:1
+  contrast minimum on every screen (was ~3.45:1). The admin user table's sortable
+  columns are keyboard-operable and announce their sort state to assistive tech.
+  Placeholder-only inputs across hangar, admin and loadout editors gained
+  accessible names, and the Codex landing page always exposes a page heading.
+- **Codex build date now follows the app language** (de/en) instead of the
+  browser locale.
+
+### Changed
+
+- **Tightened web security headers.** The Content-Security-Policy no longer allows
+  inline scripts and constrains images to the actual CDN/storage hosts; a
+  Cross-Origin-Opener-Policy header was added. Installable PWA icons (192/512 PNG)
+  are now shipped.
+- **Desktop auto-updater** orders pre-release rings (alpha/beta) by real SemVer
+  precedence and only hands genuine http(s) links to the OS browser.
+- **`desktop-latest` edge function** sets an explicit (private) `Cache-Control`
+  and an `Allow` header on 405 responses (RFC 9110/9111). *Requires an
+  edge-function deploy to take effect.*
+
 ## [0.41.8] - 2026-07-22
 
 ### Fixed
