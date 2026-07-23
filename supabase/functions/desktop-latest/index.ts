@@ -114,7 +114,7 @@ function toLatestYaml(release: ReleaseRow): string {
 
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
-  if (req.method !== 'GET') return jsonResp({ error: 'method_not_allowed' }, 405);
+  if (req.method !== 'GET') return jsonResp({ error: 'method_not_allowed' }, 405, { Allow: 'GET, OPTIONS' });
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -200,16 +200,27 @@ async function respondForChannel(
   if (accept.includes('yaml') || accept.includes('yml')) {
     return new Response(toLatestYaml(release), {
       status: 200,
-      headers: { 'content-type': 'application/yaml; charset=utf-8', ...CORS },
+      headers: {
+        'content-type': 'application/yaml; charset=utf-8',
+        // RFC 9111: make caching intentional on the most-polled endpoint. Private
+        // (never shared) because the JWT path clamps the response to the caller's
+        // role — a shared cache could serve one role's channel pointer to another.
+        'cache-control': 'private, max-age=60',
+        ...CORS,
+      },
     });
   }
 
   // Default: JSON for human/UI consumption
-  return jsonResp({
-    version: release.version,
-    notes: release.notes,
-    releaseDate: release.created_at,
-    platforms: release.platforms,
-    channel,
-  });
+  return jsonResp(
+    {
+      version: release.version,
+      notes: release.notes,
+      releaseDate: release.created_at,
+      platforms: release.platforms,
+      channel,
+    },
+    200,
+    { 'cache-control': 'private, max-age=60' },
+  );
 }
