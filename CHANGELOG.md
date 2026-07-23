@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.42.0] - 2026-07-23
+
+### Changed
+
+- **Desktop-release promotion moved inline into the Data Upload page.** Admins
+  now roll a version forward through the alpha → beta → stable rings from a
+  compact, admin-only row right under the current release — where builds are
+  already downloaded with a channel picker — instead of a separate
+  `admin/desktop-releases` page. The old admin route and its nav link are
+  removed; collaborators and viewers never see the control. The underlying
+  `promote_desktop_channel` RPC (admin + monotonicity enforced server-side) is
+  unchanged.
+
 ## [0.41.9] - 2026-07-23
 
 ### Security
