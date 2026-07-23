@@ -182,7 +182,7 @@ jobs:
 
             Source code: [Star-Citizen-Companion-Web](https://github.com/StarOrga/Star-Citizen-Companion-Web) (private).
 
-      - name: Print catalog-register + alpha-pointer SQL (desktop_releases + desktop_channels)
+      - name: Print catalog-register SQL — alpha default + all-rings fast-track (desktop_releases + desktop_channels)
         # Surfaces every field the admin needs into the action log so the
         # `desktop_releases` INSERT can be copy-pasted without local
         # downloads or hash computations. SHA-512 is mandatory —
@@ -192,6 +192,15 @@ jobs:
         # internal" version (electron-vite bakes it into __SC_TOOL_VERSION__).
         # Tag and binary-version can drift on CI-retries — the admin
         # registers with version = binary version, NOT the tag.
+        #
+        # Two ready-to-paste blocks are printed:
+        #   1. DEFAULT — points the ALPHA ring only (promotion-pointer model;
+        #      promote alpha -> beta -> stable later). Correct for normal releases.
+        #   2. FAST-TRACK — points ALL rings at once. Use for the FIRST release or
+        #      a hotfix that must reach every installed build immediately (e.g. an
+        #      older build whose updater asks a lower ring that has no newer build
+        #      yet). Deliberately opt-in — do NOT make this the default, it skips
+        #      the ring soak.
         shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
@@ -210,29 +219,46 @@ jobs:
           $setupUrl = "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/$tag/$($setupFile.Name)"
           $portableUrl = "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/$tag/$($portableFile.Name)"
 
+          # The full release token is a masked secret and is NEVER printed here.
+          # Fetch it from the workflow's private artefact and paste it for <UUID>:
+          $tokenCmd = "gh run download ${{ github.run_id }} -n release-token --repo StarOrga/Star-Citizen-Companion-Web"
+
+          function Emit-Block($title, $mode) {
+            Write-Host "================================================================"
+            Write-Host $title
+            Write-Host "================================================================"
+            Write-Host "WITH new_rel AS ("
+            Write-Host "  INSERT INTO public.desktop_releases (version, release_token, platforms, notes)"
+            Write-Host "  VALUES ("
+            Write-Host "    '$binVersion',"
+            Write-Host "    '<UUID>',"
+            Write-Host "    jsonb_build_object("
+            Write-Host "      'win-x64-setup', jsonb_build_object('url','$setupUrl','kind','nsis','sha512','$setupSha','size_bytes',$setupSize),"
+            Write-Host "      'win-x64-portable', jsonb_build_object('url','$portableUrl','kind','portable','sha512','$portableSha','size_bytes',$portableSize)"
+            Write-Host "    ),"
+            Write-Host "    'TODO release notes'"
+            Write-Host "  )"
+            Write-Host "  RETURNING id"
+            Write-Host ")"
+            if ($mode -eq 'all') {
+              Write-Host "INSERT INTO public.desktop_channels (channel, release_id)"
+              Write-Host "SELECT ch.c, new_rel.id FROM new_rel, (VALUES ('alpha'),('beta'),('stable')) AS ch(c)"
+              Write-Host "ON CONFLICT (channel) DO UPDATE SET release_id = EXCLUDED.release_id, updated_at = now();"
+            } else {
+              Write-Host "INSERT INTO public.desktop_channels (channel, release_id)"
+              Write-Host "SELECT 'alpha', id FROM new_rel"
+              Write-Host "ON CONFLICT (channel) DO UPDATE SET release_id = EXCLUDED.release_id, updated_at = now();"
+            }
+            Write-Host ""
+          }
+
           Write-Host ""
-          Write-Host "================================================================"
-          Write-Host "PASTE INTO ADMIN INSERT for desktop_releases (Supabase SQL editor):"
-          Write-Host "================================================================"
+          Write-Host "Release token (masked in logs) — fetch the full UUID with:"
+          Write-Host "  $tokenCmd"
           Write-Host ""
-          Write-Host "WITH new_rel AS ("
-          Write-Host "  INSERT INTO public.desktop_releases (version, release_token, platforms, notes)"
-          Write-Host "  VALUES ("
-          Write-Host "    '$binVersion',"
-          Write-Host "    '<UUID-from-release-token-artefact>',"
-          Write-Host "    jsonb_build_object("
-          Write-Host "      'win-x64-setup', jsonb_build_object('url','$setupUrl','kind','nsis','sha512','$setupSha','size_bytes',$setupSize),"
-          Write-Host "      'win-x64-portable', jsonb_build_object('url','$portableUrl','kind','portable','sha512','$portableSha','size_bytes',$portableSize)"
-          Write-Host "    ),"
-          Write-Host "    'TODO: release notes here'"
-          Write-Host "  )"
-          Write-Host "  RETURNING id"
-          Write-Host ")"
-          Write-Host "INSERT INTO public.desktop_channels (channel, release_id)"
-          Write-Host "SELECT 'alpha', id FROM new_rel"
-          Write-Host "ON CONFLICT (channel) DO UPDATE SET release_id = EXCLUDED.release_id, updated_at = now();"
-          Write-Host ""
-          Write-Host "This registers the build AND points the alpha ring at it (promotion-pointer model)."
-          Write-Host "Promote alpha -> beta -> stable later in the web /admin/desktop-releases panel."
+          Emit-Block "DEFAULT — register + point ALPHA only (ring model; promote to beta/stable later):" 'alpha'
+          Emit-Block "FAST-TRACK — first release / hotfix: point ALL rings (skips the ring soak):" 'all'
+          Write-Host "Run exactly ONE of the two blocks in the Supabase SQL editor."
+          Write-Host "/desktop + the in-app updater read this row; without it the page stays on the old version."
           Write-Host "================================================================"
           Write-Host ""
