@@ -578,19 +578,6 @@
       "confirmOther": "{{email}} wirklich endgültig löschen? Auch deren Uploads + Bundles verschwinden. Nicht rückgängig machbar.",
       "failed": "Löschen fehlgeschlagen"
     },
-    "desktopReleases": {
-      "navLink": "Desktop-Releases",
-      "title": "Admin · Desktop-Releases",
-      "subtitle": "Eine gebaute Version durch die Ringe alpha → beta → stable weiterreichen.",
-      "pointers": "Channel-Zeiger",
-      "channel": "Channel",
-      "version": "Version",
-      "noPointers": "Noch keine Channels konfiguriert.",
-      "promote": "Version promoten",
-      "selectVersion": "Version",
-      "targetChannel": "Ziel-Channel",
-      "promoteAction": "Promoten"
-    },
     "tokens": {
       "navLink": "Externe API",
       "docsLink": "API-Dokumentation ↗",
@@ -669,6 +656,10 @@
       "alpha": "Alpha",
       "beta": "Beta",
       "stable": "Stabil"
+    },
+    "promote": {
+      "label": "Diese Version heben auf",
+      "action": "Promoten"
     }
   },
   "download": {

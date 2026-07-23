@@ -179,14 +179,6 @@ export const routes: Routes = [
           import('./admin/feedback/admin-feedback.component').then((m) => m.AdminFeedbackComponent),
       },
       {
-        path: 'admin/desktop-releases',
-        canActivate: [...PRIVATE, roleGuard('admin')],
-        loadComponent: () =>
-          import('./admin/desktop-releases/desktop-releases.component').then(
-            (m) => m.DesktopReleasesComponent,
-          ),
-      },
-      {
         path: 'settings',
         canActivate: [...PRIVATE],
         loadComponent: () =>

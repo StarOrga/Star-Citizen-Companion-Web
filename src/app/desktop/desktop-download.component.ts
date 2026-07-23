@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@ang
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { RoleService } from '../auth/role.service';
 import { P4kHistoryComponent } from '../p4k/p4k-history.component';
 import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
 
@@ -70,6 +71,30 @@ interface ReleaseInfo {
               }
             </div>
           </div>
+          <!-- Admin-only inline promotion (feedback 446c245e): promote the
+               currently-shown version forward to a ring, right where releases
+               are downloaded — no separate admin page. Server-side RPC also
+               enforces admin + monotonicity, so this is a convenience gate. -->
+          @if (roles.isAdmin()) {
+            <div class="promote">
+              <span class="pl">{{ 'desktop.promote.label' | translate }}</span>
+              <select class="psel"
+                      [value]="promoteTarget()"
+                      (change)="onPromoteTarget($event)"
+                      [disabled]="promoting()"
+                      [attr.aria-label]="'desktop.promote.label' | translate">
+                <option value="alpha">{{ 'desktop.channel.alpha' | translate }}</option>
+                <option value="beta">{{ 'desktop.channel.beta' | translate }}</option>
+                <option value="stable">{{ 'desktop.channel.stable' | translate }}</option>
+              </select>
+              <button class="sc-btn micro" [disabled]="promoting()" (click)="promote(r.version)">
+                {{ 'desktop.promote.action' | translate }}
+              </button>
+              @if (promoteMsg(); as m) {
+                <span class="pmsg" [class.err]="m.kind === 'error'">{{ m.text }}</span>
+              }
+            </div>
+          }
           @if (r.notes) {
             <details class="rel-notes">
               <summary>{{ 'desktop.notes' | translate }}</summary>
@@ -135,6 +160,28 @@ interface ReleaseInfo {
     }
     .dl .m .hash { font-family: monospace; }
 
+    /* Admin-only inline promote row — compact, low-fanfare (feedback 446c245e). */
+    .promote {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 10px 20px; border-top: 1px solid var(--sc-border);
+      background: var(--sc-bg-1);
+    }
+    .promote .pl {
+      color: var(--sc-fg-2); font-size: 0.7rem;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .promote .psel {
+      background: var(--sc-bg-2); color: var(--sc-fg-0);
+      border: 1px solid var(--sc-border); border-radius: 4px; padding: 5px 8px;
+      font: inherit; font-size: 0.82rem;
+    }
+    .promote .psel:focus {
+      outline: none; border-color: var(--sc-accent);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
+    }
+    .promote .pmsg { font-size: 0.8rem; color: var(--sc-accent); }
+    .promote .pmsg.err { color: var(--sc-danger); }
+
     .rel-notes { border-top: 1px solid var(--sc-border); margin: 0; padding: 10px 20px; }
     .rel-notes summary {
       cursor: pointer; color: var(--sc-fg-2);
@@ -164,11 +211,17 @@ interface ReleaseInfo {
 })
 export class DesktopDownloadComponent {
   private readonly sb = inject(SupabaseClientProvider);
+  readonly roles = inject(RoleService);
 
   readonly release = signal<ReleaseInfo | null>(null);
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
   readonly channel = signal<ReleaseChannel>('stable');
+
+  // Admin-only inline release promotion (feedback 446c245e).
+  readonly promoteTarget = signal<ReleaseChannel>('beta');
+  readonly promoting = signal(false);
+  readonly promoteMsg = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
 
   constructor() {
     // Re-resolve the download whenever the picked channel changes. The RPC
@@ -196,5 +249,33 @@ export class DesktopDownloadComponent {
   hashFingerprint(p: PlatformAsset): string | null {
     const h = p.sha512 ?? p.sha256 ?? '';
     return h ? h.slice(0, 12) : null;
+  }
+
+  onPromoteTarget(ev: Event): void {
+    this.promoteTarget.set((ev.target as HTMLSelectElement).value as ReleaseChannel);
+    this.promoteMsg.set(null);
+  }
+
+  /**
+   * Roll the currently-shown version forward to the selected ring via
+   * `promote_desktop_channel`. Admin + monotonicity are enforced server-side;
+   * any violation surfaces inline. The reference to the affected channel view
+   * is refreshed on success so the new pointer is reflected immediately.
+   */
+  async promote(version: string): Promise<void> {
+    this.promoting.set(true);
+    this.promoteMsg.set(null);
+    const to = this.promoteTarget();
+    const { error } = await this.sb.client.rpc('promote_desktop_channel', {
+      p_version: version,
+      p_to_channel: to,
+    });
+    if (error) {
+      this.promoteMsg.set({ kind: 'error', text: error.message });
+    } else {
+      this.promoteMsg.set({ kind: 'success', text: `v${version} → ${to}` });
+      await this.load(this.channel());
+    }
+    this.promoting.set(false);
   }
 }

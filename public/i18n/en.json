@@ -578,19 +578,6 @@
       "confirmOther": "Permanently delete {{email}}? Their uploads + bundles go too. This cannot be undone.",
       "failed": "Delete failed"
     },
-    "desktopReleases": {
-      "navLink": "Desktop Releases",
-      "title": "Admin · Desktop Releases",
-      "subtitle": "Move a built version forward through the alpha → beta → stable rings.",
-      "pointers": "Channel pointers",
-      "channel": "Channel",
-      "version": "Version",
-      "noPointers": "No channels configured yet.",
-      "promote": "Promote a version",
-      "selectVersion": "Version",
-      "targetChannel": "Target channel",
-      "promoteAction": "Promote"
-    },
     "tokens": {
       "navLink": "External API",
       "docsLink": "API documentation ↗",
@@ -669,6 +656,10 @@
       "alpha": "Alpha",
       "beta": "Beta",
       "stable": "Stable"
+    },
+    "promote": {
+      "label": "Promote this version to",
+      "action": "Promote"
     }
   },
   "download": {
