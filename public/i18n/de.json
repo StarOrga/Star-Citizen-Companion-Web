@@ -1041,6 +1041,16 @@
       "label": "Nach Ersteller filtern",
       "all": "Alle"
     },
+    "statusFilter": {
+      "label": "Nach Status filtern",
+      "all": "Alle"
+    },
+    "expandAll": "Alle ausklappen",
+    "collapseAll": "Alle einklappen",
+    "toc": {
+      "label": "Schnellzugriff auf Themen",
+      "awaiting": "Zu beantworten: {{count}}"
+    },
     "delete": "Löschen",
     "deleteConfirm": "Diese Nachricht löschen? Kann nicht rückgängig gemacht werden.",
     "status": {

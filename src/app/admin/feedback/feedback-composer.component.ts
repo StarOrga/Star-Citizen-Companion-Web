@@ -517,39 +517,37 @@ export class FeedbackComposerComponent implements OnInit {
    * Re-encode an image to a size-bounded JPEG data URI. GIFs are passed through
    * untouched so animation survives. A white matte replaces transparency so the
    * JPEG never shows black where the source was transparent.
+   *
+   * Decoding goes through `createImageBitmap(file)` — which reads the File blob
+   * directly — rather than an `<img>` fed a `URL.createObjectURL` object URL. The
+   * object-URL path emits a `blob:` URL, and the hardened Content-Security-Policy
+   * (`img-src` without `blob:`) blocks it, so every attach path failed with
+   * "Bild konnte nicht verarbeitet werden" (feedback d6e6fd5f). createImageBitmap
+   * needs no URL at all and is therefore CSP-independent.
    */
-  private processImage(file: File): Promise<PendingImage> {
+  private async processImage(file: File): Promise<PendingImage> {
     const name = this.safeName(file.name);
     if (file.type === 'image/gif') {
-      return this.readAsDataUrl(file).then((dataUrl) => ({ id: crypto.randomUUID(), name, dataUrl }));
+      const dataUrl = await this.readAsDataUrl(file);
+      return { id: crypto.randomUUID(), name, dataUrl };
     }
-    return new Promise<PendingImage>((resolve, reject) => {
-      const objectUrl = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        const scale = Math.min(1, IMG_MAX_DIM / Math.max(img.width, img.height));
-        const w = Math.max(1, Math.round(img.width * scale));
-        const h = Math.max(1, Math.round(img.height * scale));
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('canvas 2d context unavailable'));
-          return;
-        }
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve({ id: crypto.randomUUID(), name, dataUrl: canvas.toDataURL('image/jpeg', IMG_QUALITY) });
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error('image failed to load'));
-      };
-      img.src = objectUrl;
-    });
+    const bitmap = await createImageBitmap(file);
+    try {
+      const scale = Math.min(1, IMG_MAX_DIM / Math.max(bitmap.width, bitmap.height));
+      const w = Math.max(1, Math.round(bitmap.width * scale));
+      const h = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('canvas 2d context unavailable');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      return { id: crypto.randomUUID(), name, dataUrl: canvas.toDataURL('image/jpeg', IMG_QUALITY) };
+    } finally {
+      bitmap.close();
+    }
   }
 
   private readAsDataUrl(file: File): Promise<string> {
