@@ -78,7 +78,8 @@ interface PortRow {
             <div class="name-row">
               @if (editingName()) {
                 <input class="name-input" type="text" [ngModel]="nameDraft()" (ngModelChange)="nameDraft.set($event)"
-                       (keyup.enter)="saveName()" (keyup.escape)="editingName.set(false)" />
+                       (keyup.enter)="saveName()" (keyup.escape)="editingName.set(false)"
+                       [attr.aria-label]="'hangar.detail.rename' | translate" />
                 <button class="sc-btn small" type="button" (click)="saveName()">{{ 'hangar.detail.save' | translate }}</button>
               } @else {
                 <h1>{{ s.customName || shipDisplayName() }}</h1>
@@ -127,7 +128,8 @@ interface PortRow {
             <h2>{{ 'hangar.configs.title' | translate }}</h2>
             <div class="new-config">
               <input class="cfg-name" type="text" [ngModel]="newConfigName()" (ngModelChange)="newConfigName.set($event)"
-                     [attr.placeholder]="'hangar.configs.namePlaceholder' | translate" />
+                     [attr.placeholder]="'hangar.configs.namePlaceholder' | translate"
+                     [attr.aria-label]="'hangar.configs.namePlaceholder' | translate" />
               <select class="sc-select" [ngModel]="newConfigRole()" (ngModelChange)="newConfigRole.set($event)">
                 @for (r of roles; track r) {
                   <option [value]="r">{{ ('hangar.roles.' + r) | translate }}</option>

@@ -29,6 +29,16 @@
   --sc-font-body: var(--font-body-text);
 }
 
+/* WCAG 1.4.3 (ISO/IEC 40500) contrast fix — app-level override of the StarUI
+   `--text-tertiary` token. Upstream #5a7a94 measures ~3.45:1 on --surface-canvas
+   (#0d2635), below the 4.5:1 AA minimum for the muted/secondary text it drives
+   app-wide (via --sc-fg-2). #84a0b6 lifts it to ~5.7:1 on canvas / ~5.2:1 on
+   panels with minimal hue shift.
+   TODO(star-ui): fold this into the design-tokens package, then drop the override. */
+:root {
+  --text-tertiary: #84a0b6;
+}
+
 * {
   box-sizing: border-box;
 }

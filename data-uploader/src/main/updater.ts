@@ -133,16 +133,52 @@ async function fetchLatestVersion(): Promise<string | null> {
   }
 }
 
-/** Numeric x.y.z compare — true when `latest` is strictly newer than `current`. */
+/**
+ * SemVer 2.0.0 precedence (§11) — true when `latest` is strictly newer than
+ * `current`. A plain x.y.z compare ignored pre-release tags, so on the alpha/beta
+ * rings 1.2.0-alpha.2 looked equal to 1.2.0-alpha.1 (and to the final 1.2.0,
+ * which must outrank any of its pre-releases). Build metadata (`+…`) is ignored.
+ */
 function isNewerVersion(latest: string, current: string): boolean {
-  const a = latest.split('.').map((n) => parseInt(n, 10));
-  const b = current.split('.').map((n) => parseInt(n, 10));
+  return compareSemver(latest, current) > 0;
+}
+
+/** -1 | 0 | 1 SemVer comparison of two `x.y.z[-prerelease]` strings. */
+function compareSemver(a: string, b: string): number {
+  const parse = (v: string): { main: number[]; pre: string[] } => {
+    const raw = v.trim().replace(/^v/, '').split('+', 1)[0]; // drop build metadata
+    const dash = raw.indexOf('-');
+    const core = dash === -1 ? raw : raw.slice(0, dash);
+    const preStr = dash === -1 ? '' : raw.slice(dash + 1);
+    const main = core.split('.').map((n) => parseInt(n, 10) || 0);
+    while (main.length < 3) main.push(0);
+    return { main, pre: preStr ? preStr.split('.') : [] };
+  };
+  const pa = parse(a);
+  const pb = parse(b);
   for (let i = 0; i < 3; i++) {
-    const x = a[i] ?? 0;
-    const y = b[i] ?? 0;
-    if (x !== y) return x > y;
+    if (pa.main[i] !== pb.main[i]) return pa.main[i] > pb.main[i] ? 1 : -1;
   }
-  return false;
+  // Equal core: a build WITHOUT a pre-release outranks one that has one.
+  if (pa.pre.length === 0 || pb.pre.length === 0) {
+    if (pa.pre.length === pb.pre.length) return 0;
+    return pa.pre.length === 0 ? 1 : -1;
+  }
+  const n = Math.max(pa.pre.length, pb.pre.length);
+  for (let i = 0; i < n; i++) {
+    const x = pa.pre[i];
+    const y = pb.pre[i];
+    if (x === undefined) return -1; // fewer identifiers → lower precedence
+    if (y === undefined) return 1;
+    if (x === y) continue;
+    const xn = /^\d+$/.test(x);
+    const yn = /^\d+$/.test(y);
+    if (xn && yn) return parseInt(x, 10) > parseInt(y, 10) ? 1 : -1;
+    if (xn) return -1; // numeric identifiers rank below alphanumeric ones
+    if (yn) return 1;
+    return x > y ? 1 : -1; // ASCII lexical order
+  }
+  return 0;
 }
 
 async function checkPortableForUpdate(): Promise<void> {

@@ -193,13 +193,16 @@ const SEARCH_DEBOUNCE_MS = 250;
         <form class="concept-form" (submit)="addConcept($event)">
           <input type="text" class="text-input" name="name" required maxlength="80"
                  [(ngModel)]="conceptName"
-                 [attr.placeholder]="'hangar.concept.namePlaceholder' | translate" />
+                 [attr.placeholder]="'hangar.concept.namePlaceholder' | translate"
+                 [attr.aria-label]="'hangar.concept.namePlaceholder' | translate" />
           <input type="text" class="text-input" name="manufacturer" maxlength="60"
                  [(ngModel)]="conceptManufacturer"
-                 [attr.placeholder]="'hangar.concept.manufacturerPlaceholder' | translate" />
+                 [attr.placeholder]="'hangar.concept.manufacturerPlaceholder' | translate"
+                 [attr.aria-label]="'hangar.concept.manufacturerPlaceholder' | translate" />
           <input type="url" class="text-input wide" name="rsiUrl"
                  [(ngModel)]="conceptRsiUrl"
-                 [attr.placeholder]="'hangar.concept.urlPlaceholder' | translate" />
+                 [attr.placeholder]="'hangar.concept.urlPlaceholder' | translate"
+                 [attr.aria-label]="'hangar.concept.urlPlaceholder' | translate" />
           <button type="submit" class="sc-btn" [disabled]="!conceptName.trim() || conceptSaving()">
             {{ 'hangar.concept.add' | translate }}
           </button>
@@ -242,7 +245,8 @@ const SEARCH_DEBOUNCE_MS = 250;
               }
             </select>
             <input class="ld-name" type="text" [ngModel]="newLoadoutName()" (ngModelChange)="newLoadoutName.set($event)"
-                   [attr.placeholder]="'hangar.roleLoadouts.namePlaceholder' | translate" />
+                   [attr.placeholder]="'hangar.roleLoadouts.namePlaceholder' | translate"
+                   [attr.aria-label]="'hangar.roleLoadouts.namePlaceholder' | translate" />
             <button class="sc-btn small" type="button" [disabled]="!newLoadoutName().trim()" (click)="createLoadout()">
               {{ 'hangar.roleLoadouts.create' | translate }}
             </button>

@@ -40,7 +40,8 @@ import {
             <div class="name-row">
               @if (editingName()) {
                 <input class="name-input" type="text" [ngModel]="nameDraft()" (ngModelChange)="nameDraft.set($event)"
-                       (keyup.enter)="saveName()" (keyup.escape)="editingName.set(false)" />
+                       (keyup.enter)="saveName()" (keyup.escape)="editingName.set(false)"
+                       [attr.aria-label]="'hangar.detail.rename' | translate" />
                 <button class="sc-btn small" type="button" (click)="saveName()">{{ 'hangar.detail.save' | translate }}</button>
               } @else {
                 <h1>{{ l.name }}</h1>
@@ -92,7 +93,8 @@ import {
           <div class="add-slot">
             <input class="slot-input" type="text" [ngModel]="newSlot()" (ngModelChange)="newSlot.set($event)"
                    (keyup.enter)="addSlot()"
-                   [attr.placeholder]="'hangar.roleLoadouts.addSlotPlaceholder' | translate" />
+                   [attr.placeholder]="'hangar.roleLoadouts.addSlotPlaceholder' | translate"
+                   [attr.aria-label]="'hangar.roleLoadouts.addSlotPlaceholder' | translate" />
             <button class="sc-btn small" type="button" [disabled]="!newSlot().trim()" (click)="addSlot()">
               {{ 'hangar.roleLoadouts.addSlot' | translate }}
             </button>

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CODEX_KINDS, CodexService } from './codex.service';
 import { RoleService } from '../auth/role.service';
 
@@ -111,6 +111,7 @@ interface CoverageRow {
 export class CodexStatusBannerComponent {
   readonly svc = inject(CodexService);
   readonly roles = inject(RoleService);
+  readonly translate = inject(TranslateService);
   readonly expanded = signal(false);
 
   toggle(): void {
@@ -139,6 +140,14 @@ export class CodexStatusBannerComponent {
     const at = this.svc.build()?.extractedAt;
     if (!at) return null;
     const d = new Date(at);
-    return isNaN(d.getTime()) ? at : d.toLocaleDateString();
+    // Locale-aware: honour the app's de/en toggle instead of the browser locale
+    // (bare toLocaleDateString() ignored the active language — ISO 8601 / i18n).
+    return isNaN(d.getTime())
+      ? at
+      : d.toLocaleDateString(this.translate.currentLang || 'en', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
   }
 }

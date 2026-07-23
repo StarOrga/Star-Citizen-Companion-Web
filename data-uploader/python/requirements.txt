@@ -13,14 +13,14 @@ scdatatools==1.0.4
 
 # scdatatools imports these at module load even on the leaf p4k/forge path, so
 # they must be installed for `from scdatatools.p4k import P4KFile` to succeed:
-python-nubia
-pyquaternion
-pycryptodome      # Crypto.Cipher.AES — transparent P4K entry decryption
-xxhash
-sentry-sdk
-rsa
-cryptography
-zstandard         # P4K entries are zstd-compressed
-lz4
-Pillow            # DDS → PNG icon conversion (icons currently deferred)
-numpy
+python-nubia==0.2b5
+pyquaternion==0.9.9
+pycryptodome==3.23.0   # Crypto.Cipher.AES — transparent P4K entry decryption
+xxhash==3.7.0
+sentry-sdk==2.61.0
+rsa==4.9.1
+cryptography==47.0.0   # AES-backed P4K decryption — pinned; supply-chain sensitive
+zstandard==0.25.0      # P4K entries are zstd-compressed
+lz4==4.4.5
+Pillow==11.0.0         # DDS → PNG icon conversion (icons currently deferred)
+numpy==2.2.0
