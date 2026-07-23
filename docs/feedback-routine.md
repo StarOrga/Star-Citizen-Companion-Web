@@ -318,6 +318,37 @@ For each `open` row (process independently, most-recent context wins):
      the oldest-first queue; see the reaper section).
 6. Never touch rows already `shipped` or `rejected`.
 
+## Non-verifiable / decision-needed items → `needs_input`, never a bare `in_progress`
+
+`in_progress` is a **transient** state, legitimate only while a run is actively
+implementing an item *or* while it holds a real review-hold PR (`ship_ref` set).
+An item the routine **cannot itself drive to a terminal state** must be parked as
+`needs_input` (with a system reply) — never left sitting in `in_progress`. Two
+classes qualify:
+
+- **The npm gate can't verify it** — a native/desktop change (the Rust
+  wallpaper-app / Starscape, the Electron uploader binary) or an external
+  platform (readme.io). The routine may open a PR for a human, but it cannot
+  self-certify `typecheck`+`build`+`test` green, so shipping it is the admin's
+  call.
+- **It needs an admin decision** — a product/UX call, an A/B choice,
+  auth/RLS/secrets/privacy.
+
+**Rule:** a persistent `in_progress` with `ship_ref IS NULL` is an anti-pattern.
+`in_progress` is valid only *with* a `ship_ref`; otherwise park it `needs_input`
+so it leaves the active queue and the admin can see it's on them.
+
+**Why this is load-bearing (the 2026-07-23 starvation).** The queue is
+oldest-first, capped at 10/run. A bare `in_progress` item (`ship_ref IS NULL`)
+the routine can't finish jams the **head** of the queue: the reaper reopens it
+every ~30 min (it looks orphaned — see the reaper's `ship_ref IS NULL` guard),
+oldest-first re-picks it first, and a usage-limit abort then never reaches the
+newer, immediately-shippable items behind it. Three trivially-actionable
+feedback-panel web items (`c5b6b13c`, `d6e6fd5f`, `69f3f015`) sat
+`processed_at = NULL` for >22 h behind exactly such an item (`a5783bed`, a
+wallpaper-app change left `in_progress` + "npm-gate cannot verify") — surfacing
+to the user as "3 days, nothing happened".
+
 ## Per-topic chat: `needs_input` + system replies
 
 Each topic (`admin_feedback` row) carries a thread in
