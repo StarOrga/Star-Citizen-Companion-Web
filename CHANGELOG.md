@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.11] - 2026-07-23
+
+### Fixed
+
+- **Verse News: promo/ad "comm-links" no longer open a broken RSI page.** The
+  star-citizen.wiki API occasionally surfaces storefront ad promos as comm-links
+  (e.g. "Fly with D-Box" → `/promotions/<code>`, which 404s), and entries with no
+  permalink fell back to the bare `/comm-link` index — both gave a card whose
+  "open on RSI" link dead-ended on a 404 or a redirecting RSI error screen. The
+  feed now keeps only real article permalinks (`/comm-link/<category>/<id>-<slug>`),
+  so every news link opens an actual article. Ship-promo transmissions that RSI
+  redirects client-side (e.g. "Grey's Market Basher") return 200 and are kept —
+  they are indistinguishable from a normal article server-side. (news)
+
 ## [0.41.10] - 2026-07-23
 
 ### Fixed
