@@ -47,6 +47,15 @@ interface FeedbackRow {
   author: FeedbackAuthor | null;
 }
 
+/** One entry in the quick-access table of contents (horizontal jump bar). */
+interface TocEntry {
+  id: string;
+  label: string;
+  status: FeedbackStatus;
+  /** needs_input topic whose newest reply is the routine's → the admin still owes an answer. */
+  awaitingAdmin: boolean;
+}
+
 /** localStorage key backing the new-topic composer draft. */
 const DRAFT_KEY = 'sc.adminFeedback.draft';
 
@@ -71,6 +80,56 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
       }
 
       <div class="board">
+        <!-- Board toolbar: status quick-filter + (in the panel) expand/collapse-all. -->
+        <div class="board-toolbar">
+          <div class="status-filter" role="group" [attr.aria-label]="'adminFeedback.statusFilter.label' | translate">
+            <button
+              type="button"
+              class="status-chip"
+              [class.active]="statusFilter() === null"
+              (click)="setStatusFilter(null)">
+              {{ 'adminFeedback.statusFilter.all' | translate }}
+            </button>
+            @if (statusCounts().needs_input > 0) {
+              <button
+                type="button"
+                class="status-chip needs_input"
+                [class.active]="statusFilter() === 'needs_input'"
+                (click)="setStatusFilter('needs_input')">
+                {{ 'adminFeedback.status.needs_input' | translate }} <span class="chip-count">{{ statusCounts().needs_input }}</span>
+              </button>
+            }
+            @if (statusCounts().open > 0) {
+              <button
+                type="button"
+                class="status-chip open"
+                [class.active]="statusFilter() === 'open'"
+                (click)="setStatusFilter('open')">
+                {{ 'adminFeedback.status.open' | translate }} <span class="chip-count">{{ statusCounts().open }}</span>
+              </button>
+            }
+            @if (statusCounts().in_progress > 0) {
+              <button
+                type="button"
+                class="status-chip in_progress"
+                [class.active]="statusFilter() === 'in_progress'"
+                (click)="setStatusFilter('in_progress')">
+                {{ 'adminFeedback.status.in_progress' | translate }} <span class="chip-count">{{ statusCounts().in_progress }}</span>
+              </button>
+            }
+          </div>
+          @if (embedded() && activeMessages().length > 1) {
+            <button
+              type="button"
+              class="expand-all"
+              (click)="toggleExpandAll()"
+              [attr.aria-pressed]="allExpanded()">
+              <span class="chev" [class.open]="allExpanded()">▸</span>
+              {{ (allExpanded() ? 'adminFeedback.collapseAll' : 'adminFeedback.expandAll') | translate }}
+            </button>
+          }
+        </div>
+
         @if (authorOptions().length > 1) {
           <div class="author-filter" role="group" [attr.aria-label]="'adminFeedback.filter.label' | translate">
             <button
@@ -90,6 +149,27 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
               </button>
             }
           </div>
+        }
+
+        <!-- Quick-access TOC: jump straight to a topic; leads with the Rückfragen
+             still awaiting the admin's answer (feedback 69f3f015). -->
+        @if (tocEntries().length > 1) {
+          <nav class="board-toc" [attr.aria-label]="'adminFeedback.toc.label' | translate">
+            @if (awaitingAdminCount() > 0) {
+              <span class="toc-lead">{{ 'adminFeedback.toc.awaiting' | translate: { count: awaitingAdminCount() } }}</span>
+            }
+            @for (e of tocEntries(); track e.id) {
+              <button
+                type="button"
+                class="toc-chip"
+                [class]="e.status"
+                [class.awaiting]="e.awaitingAdmin"
+                (click)="jumpTo(e.id)"
+                [title]="e.label">
+                <span class="toc-dot"></span>{{ e.label }}
+              </button>
+            }
+          </nav>
         }
 
         @if (busy() && messages().length === 0) {
@@ -130,7 +210,7 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
       </div>
 
       <ng-template #msgCard let-m>
-        <article class="msg sc-card" [class.is-self]="m.author_id === selfId()">
+        <article class="msg sc-card" [id]="cardDomId(m.id)" [class.is-self]="m.author_id === selfId()">
           <div class="msg-head">
             <span class="author">{{ authorLabel(m) }}</span>
             <span class="ts">{{ m.created_at | date:'short' }}</span>
@@ -342,6 +422,101 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
     }
     .author-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     .chip-count { font-size: 0.68rem; opacity: 0.75; }
+
+    /* Board toolbar: status quick-filter on the left, expand-all on the right. */
+    .board-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .status-filter { display: flex; flex-wrap: wrap; gap: 6px; }
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      background: var(--sc-bg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: 0.74rem;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .status-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .status-chip.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
+    .status-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
+    /* The needs_input filter carries the same violet accent as its status pill. */
+    .status-chip.needs_input.active { color: #a78bfa; border-color: #a78bfa; background: rgba(167, 139, 250, 0.14); }
+
+    .expand-all {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: transparent;
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: 0.72rem;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .expand-all:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .expand-all:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
+    .expand-all .chev { display: inline-block; transition: transform 0.16s ease; }
+    .expand-all .chev.open { transform: rotate(90deg); }
+
+    /* Horizontal quick-access TOC: a scrollable row of jump chips. Chips for
+       Rückfragen still awaiting the admin are ordered first and highlighted. */
+    .board-toc {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 2px 0 6px;
+      scrollbar-width: thin;
+    }
+    .toc-lead {
+      flex: 0 0 auto;
+      order: -2;
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #a78bfa;
+    }
+    .toc-chip {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 180px;
+      padding: 4px 10px;
+      background: var(--sc-bg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: 0.72rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .toc-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .toc-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
+    .toc-dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--sc-fg-2); }
+    .toc-chip.open .toc-dot { background: var(--sc-accent); }
+    .toc-chip.in_progress .toc-dot { background: var(--sc-warning); }
+    .toc-chip.needs_input .toc-dot { background: #a78bfa; }
+    /* Rückfragen awaiting the admin lead the row and read as solid violet. */
+    .toc-chip.awaiting {
+      order: -1;
+      color: #a78bfa;
+      border-color: rgba(167, 139, 250, 0.5);
+      background: rgba(167, 139, 250, 0.12);
+    }
 
     /* Collapsed stack of shipped items — keeps the open ones front-and-centre. */
     .shipped-stack { display: flex; flex-direction: column; }
@@ -580,6 +755,38 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /**
+   * Status quick-filter: narrow the active board to a single status (or null for
+   * all active topics). Pairs with the author filter — both AND-narrow the list
+   * and the quick-access TOC. The `needs_input` filter is the important one: it
+   * surfaces exactly the Rückfragen the admin still has to answer (feedback
+   * 69f3f015).
+   */
+  readonly statusFilter = signal<FeedbackStatus | null>(null);
+
+  setStatusFilter(s: FeedbackStatus | null): void {
+    this.statusFilter.update((cur) => (cur === s ? null : s));
+  }
+
+  private matchesStatus(m: FeedbackRow): boolean {
+    const f = this.statusFilter();
+    return f === null || m.status === f;
+  }
+
+  /** Per-status topic counts (author-filtered) backing the status filter chips. */
+  readonly statusCounts = computed(() => {
+    const counts = { open: 0, in_progress: 0, needs_input: 0 };
+    for (const m of this.messages()) {
+      if (
+        this.matchesAuthor(m) &&
+        (m.status === 'open' || m.status === 'in_progress' || m.status === 'needs_input')
+      ) {
+        counts[m.status]++;
+      }
+    }
+    return counts;
+  });
+
+  /**
    * Latest-activity timestamp for a topic: the newest of its own timestamps and
    * its last reply. Drives the newest-first ("nach Aktualität") board order so a
    * freshly-answered topic bubbles to the top.
@@ -596,12 +803,86 @@ export class AdminFeedbackComponent implements OnInit {
     return max;
   }
 
-  /** Active (non-shipped) topics, author-filtered, newest activity first. */
+  /** Active (non-shipped) topics, author- and status-filtered, newest activity first. */
   readonly activeMessages = computed(() =>
     this.messages()
-      .filter((m) => m.status !== 'shipped' && this.matchesAuthor(m))
+      .filter((m) => m.status !== 'shipped' && this.matchesAuthor(m) && this.matchesStatus(m))
       .sort((a, b) => this.recencyTime(b) - this.recencyTime(a)),
   );
+
+  /**
+   * Quick-access table of contents for the active board: one entry per visible
+   * topic (short label + status) so the admin can jump straight to a thread
+   * (feedback 69f3f015). Topics still awaiting the admin's answer are flagged so
+   * the TOC can lead with them; the rest follow and are reachable via scroll or
+   * the status filter.
+   */
+  readonly tocEntries = computed<TocEntry[]>(() =>
+    this.activeMessages().map((m) => ({
+      id: m.id,
+      label: this.shortLabel(m.body),
+      status: m.status,
+      awaitingAdmin: m.status === 'needs_input' && !this.isAnsweredAwaitingRoutine(m),
+    })),
+  );
+
+  /** How many topics still await the admin's answer — drives the TOC lead label. */
+  readonly awaitingAdminCount = computed(
+    () => this.tocEntries().filter((e) => e.awaitingAdmin).length,
+  );
+
+  /** Very short plain-text label (a few words) for a TOC jump chip. */
+  private shortLabel(body: string): string {
+    const text = (body ?? '')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/[*_`#>~]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return text.length > 42 ? `${text.slice(0, 40)}…` : text || '—';
+  }
+
+  /** Stable DOM id for a topic card — the TOC scroll target. */
+  cardDomId(id: string): string {
+    return `fb-card-${id}`;
+  }
+
+  /**
+   * Jump to a topic from the TOC: ensure it is expanded (the embedded panel
+   * collapses topics by default) and scroll it into view within the board's own
+   * scroll area. Deferred to the next frame so the just-expanded card has laid
+   * out before we scroll to it.
+   */
+  jumpTo(id: string): void {
+    this._expanded.update((set) => new Set(set).add(id));
+    requestAnimationFrame(() => {
+      document.getElementById(this.cardDomId(id))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  /** True when every active topic is currently expanded (embedded panel). */
+  readonly allExpanded = computed(() => {
+    const active = this.activeMessages();
+    return active.length > 0 && active.every((m) => this._expanded().has(m.id));
+  });
+
+  /**
+   * Expand or collapse every active topic at once (feedback c5b6b13c). Collapsing
+   * leaves just the topic headings so the board stays scannable; only active
+   * topics are touched, so an expanded shipped item is left as-is.
+   */
+  toggleExpandAll(): void {
+    const ids = this.activeMessages().map((m) => m.id);
+    const collapse = this.allExpanded();
+    this._expanded.update((set) => {
+      const next = new Set(set);
+      for (const id of ids) {
+        if (collapse) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  }
 
   /** Page size for the shipped history — "load more" reveals another batch. */
   private static readonly SHIPPED_PAGE = 10;

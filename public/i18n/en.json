@@ -1041,6 +1041,16 @@
       "label": "Filter by author",
       "all": "All"
     },
+    "statusFilter": {
+      "label": "Filter by status",
+      "all": "All"
+    },
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "toc": {
+      "label": "Quick access to topics",
+      "awaiting": "To answer: {{count}}"
+    },
     "delete": "Delete",
     "deleteConfirm": "Delete this message? This cannot be undone.",
     "status": {
