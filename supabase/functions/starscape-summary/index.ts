@@ -33,6 +33,12 @@ const RSI_REFERER = 'https://robertsspaceindustries.com/';
 const IMG_FETCH_TIMEOUT_MS = 6000;
 const NEWS_FETCH_TIMEOUT_MS = 8000;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+// Cap the rasterization width. resvg-wasm's render buffers scale with output size
+// and blow the edge-runtime memory limit (WORKER_RESOURCE_LIMIT) at ≥2560px wide.
+// The SVG viewBox stays at the requested w×h (layout/aspect unchanged) — only the
+// pixel raster is capped; the wallpaper is cover-fit scaled to the screen anyway,
+// so a 1440p/4K display just upscales this crisp-enough background imperceptibly.
+const MAX_RENDER_WIDTH = 1920;
 
 type VerseChannel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 
@@ -217,7 +223,7 @@ function clampInt(raw: string | null, fallback: number, min: number, max: number
 async function renderPng(svg: string, width: number): Promise<Uint8Array> {
   await ensureWasm();
   const resvg = new Resvg(svg, {
-    fitTo: { mode: 'width', value: width },
+    fitTo: { mode: 'width', value: Math.min(width, MAX_RENDER_WIDTH) },
     font: {
       fontBuffers: FONT_BUFFERS,
       defaultFontFamily: 'Rajdhani',

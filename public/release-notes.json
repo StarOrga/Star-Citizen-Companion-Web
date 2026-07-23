@@ -1,7 +1,55 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.41.8",
+  "current": "0.41.9",
   "releases": [
+    {
+      "version": "0.41.9",
+      "date": "2026-07-23",
+      "sections": [
+        {
+          "category": "Security",
+          "label": "",
+          "items": [
+            {
+              "title": "P4K extractor hardened against zip-slip / path traversal.",
+              "text": "The hull-geometry writer trusted archive-entry names and .mtl texture references verbatim, so a crafted or corrupt Data.p4k could write outside the work directory. Every write is now containment-checked against its base dir. The Windows dev-only npx fallback additionally refuses shell metacharacters, and the Python dependency set is fully version-pinned (AES/crypto libraries included)."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Accessibility (WCAG 2.1 AA).",
+              "text": "Muted/secondary text now meets the 4.5:1 contrast minimum on every screen (was ~3.45:1). The admin user table's sortable columns are keyboard-operable and announce their sort state to assistive tech. Placeholder-only inputs across hangar, admin and loadout editors gained accessible names, and the Codex landing page always exposes a page heading."
+            },
+            {
+              "title": "Codex build date now follows the app language",
+              "text": "(de/en) instead of the browser locale."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Tightened web security headers.",
+              "text": "The Content-Security-Policy no longer allows inline scripts and constrains images to the actual CDN/storage hosts; a Cross-Origin-Opener-Policy header was added. Installable PWA icons (192/512 PNG) are now shipped."
+            },
+            {
+              "title": "Desktop auto-updater",
+              "text": "orders pre-release rings (alpha/beta) by real SemVer precedence and only hands genuine http(s) links to the OS browser."
+            },
+            {
+              "title": "desktop-latest edge function",
+              "text": "sets an explicit (private) Cache-Control and an Allow header on 405 responses (RFC 9110/9111). *Requires an edge-function deploy to take effect.*"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.41.8",
       "date": "2026-07-22",

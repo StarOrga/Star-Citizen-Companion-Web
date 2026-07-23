@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.10] - 2026-07-23
+
+### Fixed
+
+- **Weekly Verse-News summary wallpaper no longer fails at 1440p/4K.** The
+  transparent-thumbnail fix in 0.41.7 measured PNG alpha by fully decoding each
+  image, which pushed the `starscape-summary` edge function over its memory
+  limit (HTTP 546) for every request ≥1920×1080 — so the desktop app's boot
+  summary always fell back to a gallery image. Image selection now reads only the
+  file header (dimensions + alpha flag, no pixel decode) and the render width is
+  capped at 1920 px (the wallpaper is scaled to the screen anyway). Verified live
+  at 1080p, 1440p, 4K and ultrawide.
+
 ## [0.41.9] - 2026-07-23
 
 ### Security
