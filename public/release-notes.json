@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.44.1",
+  "current": "0.44.2",
   "releases": [
+    {
+      "version": "0.44.2",
+      "date": "2026-07-24",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Feedback panel: topics collapse to dated one-liners.",
+              "text": "In the embedded feedback panel each topic now reads as a single clickable row — chevron · generated title · author · status — instead of a two-line head plus preview. Active topics are grouped under non-interactive day headings (Today / Yesterday / date), and the per-row timestamp is dropped in the panel since the heading already carries the date; the full-screen board keeps its author and timestamp. The title is derived from the topic body so it is always available. (admin-feedback)"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.44.1",
       "date": "2026-07-24",
