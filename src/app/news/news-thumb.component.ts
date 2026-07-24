@@ -39,7 +39,12 @@ const MAX_IMAGES = 8;
 // tiles are auto-fill minmax(280px)). Featured tops out at `cover` (1140w), regular
 // stays on `post` (500w) on typical viewports.
 const SIZES_FEATURED = '(max-width: 800px) 100vw, 60vw';
-const SIZES_REGULAR = '(max-width: 800px) 100vw, 320px';
+// On phones the regular cards are full-width, but they are secondary thumbnails —
+// under-declaring the slot width biases the srcset toward the light `post` (500w)
+// variant there, so the grid paints fast on mobile networks instead of pulling a
+// 1140w `cover` per card (admin feedback 32cbf3ad: "images too slow on mobile,
+// load a smaller resolution first"). The featured hero keeps its crisp `cover`.
+const SIZES_REGULAR = '(max-width: 800px) 62vw, 320px';
 
 /**
  * Swap the variant segment of an image url to a tile-sized one.

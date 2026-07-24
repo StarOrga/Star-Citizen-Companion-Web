@@ -62,7 +62,7 @@ import { FeedbackFabComponent } from './feedback-fab.component';
         @if (roles.isCollaborator()) {
           <!-- Restricted (collaborator+admin) area — flagged red like the
                admin-only links so privileged sections stand out from public. -->
-          <a routerLink="/uploader" routerLinkActive="active" class="admin-link">{{ 'nav.desktop' | translate }}</a>
+          <a routerLink="/uploader" routerLinkActive="active" class="admin-link mobile-hidden">{{ 'nav.desktop' | translate }}</a>
         }
         @if (roles.isAdmin()) {
           <a
@@ -72,7 +72,7 @@ import { FeedbackFabComponent } from './feedback-fab.component';
             class="admin-link">
             {{ 'nav.admin' | translate }}
           </a>
-          <a routerLink="/admin/api-tokens" routerLinkActive="active" class="admin-link">
+          <a routerLink="/admin/api-tokens" routerLinkActive="active" class="admin-link mobile-hidden">
             {{ 'admin.tokens.navLink' | translate }}
           </a>
           <a routerLink="/admin/telemetry" routerLinkActive="active" class="admin-link">
@@ -374,6 +374,10 @@ import { FeedbackFabComponent } from './feedback-fab.component';
         padding: 2px 16px;
       }
       .nav::-webkit-scrollbar { display: none; }
+      /* Desktop-only workflows (Data Upload, External API) can't be used on a
+         phone — hide them so the mobile nav strip stays short (admin feedback
+         32cbf3ad). Routes still work via deep-link. */
+      .nav a.mobile-hidden { display: none; }
       .nav a { padding: 8px 12px; font-size: 0.72rem; white-space: nowrap; flex: 0 0 auto; }
       .actions { flex: 1; justify-content: flex-end; }
       .content { padding: 20px 16px; }
