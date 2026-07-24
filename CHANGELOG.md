@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.45.0] - 2026-07-24
+
+### Added
+
+- **Starscape desktop builds are now tracked in `desktop_releases`.** The
+  wallpaper-app (Starscape) registers alongside the data-uploader via a new
+  `product` discriminator, and the Starscape gallery page shows the current build
+  version + a hash-verified download resolved through the public
+  `starscape_latest_release()` RPC — falling back to the never-stale
+  `wallpaper-app-latest` alias so the button always works. The CI prints the
+  register SQL on a tagged release for a reproducible flow. Ships wallpaper-app
+  0.3.2 (the low-resolution-source skip, #199). (starscape)
+
 ## [0.44.3] - 2026-07-24
 
 ### Changed
