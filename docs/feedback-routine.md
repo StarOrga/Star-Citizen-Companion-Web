@@ -490,6 +490,38 @@ ship, `status='shipped'`), ask a follow-up (post another system reply, stay
 `rejected`. The stale-claim reaper never touches `needs_input` (it filters on
 `status='in_progress'`), so a parked topic waits patiently for the answer.
 
+## The admin side: the feedback panel's three views
+
+The routine's counterpart is the admins-only panel (`sc-feedback-fab` →
+`sc-admin-feedback`, embedded in a FAB overlay reachable from every page). It
+has one view switch at the top, available in the docked panel, the maximized
+panel and on the full board page alike:
+
+| View | Component | What it is for |
+|------|-----------|----------------|
+| **Übersicht** | `admin-feedback.component.ts` | the classic board — day-grouped topic list, status/author filters, shipped stack, new-topic composer |
+| **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin first (oldest first), then untouched `open` topics. Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
+| **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / offen / beantwortete Rückfragen |
+
+Queue and aggregation rules live as pure functions in `feedback.types.ts`
+(`buildWorkflowQueue`, `computeStats`), unit-tested in `feedback.types.spec.ts`.
+
+Two things the routine should be aware of:
+
+- **"Erledigt" in the processing mode does not change `status`.** The routine
+  owns the status machine; ticking an item off only takes it out of the admin's
+  working queue (stored client-side against the topic's `updated_at`). As soon
+  as the routine touches the topic, the stamp mismatches and the item comes
+  back into the queue.
+- **Answering happens through the normal thread insert** (`is_system=false`),
+  i.e. exactly the resume condition above — the processing mode is just a
+  faster way to produce those replies.
+
+Answering a Rückfrage and a freshly `shipped` topic appearing between two polls
+each trigger a short confetti burst (`celebration.service.ts`, hand-rolled Web
+Animations API, no dependency). All of it is suppressed under
+`prefers-reduced-motion: reduce`.
+
 ## Guardrails
 
 - **PR + auto-merge only** — the merge is gated on green build+tests. No direct
