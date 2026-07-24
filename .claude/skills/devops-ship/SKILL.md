@@ -83,25 +83,35 @@ Plugin defaults still apply; only the rules below override or add.
    2. let CI publish the private source release **and** the **full** public
       mirror (NOT a prerelease — else `/releases/latest` + the download page skip
       it);
-   3. register the `desktop_releases` row: `UPDATE ... SET is_current=false WHERE
-      is_current=true;` then `INSERT` the new row (`is_current=true`, the
-      `release_token` UUID from the build's `release-token` artefact, and the
-      `platforms` block). The CI "Print ... desktop_releases" step prints the
-      ready INSERT (URLs/sha512/sizes); the UUID comes from `gh run download -n
-      release-token`. `/desktop` + the in-app updater read this row — without it
-      the page stays on the old version.
+   3. register the build in the catalog + point the **alpha** channel at it in
+      one statement: `WITH new_rel AS (INSERT INTO public.desktop_releases
+      (version, release_token, platforms, notes) VALUES (...) RETURNING id)
+      INSERT INTO public.desktop_channels (channel, release_id) SELECT 'alpha',
+      id FROM new_rel ON CONFLICT (channel) DO UPDATE SET release_id =
+      EXCLUDED.release_id, updated_at = now();`. `desktop_releases` is an
+      immutable build catalog; `desktop_channels` (alpha/beta/stable →
+      release_id) picks which build each ring serves. New releases default to the
+      **alpha** ring; promotion to beta/stable is a deliberate later step via the
+      `/admin/desktop-releases` panel or `promote_desktop_channel(version,
+      channel)` — never auto-promote on ship. The CI "Print catalog-register SQL"
+      step prints this ready CTE (URLs/sha512/sizes filled in); the
+      `release_token` UUID comes from `gh run download -n release-token`.
+      `/desktop` + the in-app updater resolve the release through the channel
+      pointer (role-clamped: admin→alpha, collaborator→beta, viewer→stable) —
+      without the row + alpha pointer the page stays on the old version.
    Then verify live in Edge (`/desktop` shows the new version + GitHub
    `/releases/latest` = the new tag).
 
-   **Only deferral:** the `desktop_releases` INSERT needs Supabase **write**
+   **Only deferral:** the catalog-register CTE needs Supabase **write**
    access. When it is genuinely unavailable in the session (Supabase MCP
    unauthenticated AND no linked `supabase` CLI), do steps 1–2, then **flag the
    binary loudly as "built + mirrored but NOT live"** and hand off the
    ready-to-run SQL (token already substituted). Never render a plain
-   `ship-successful` while the row is missing. `BINARIES_RELEASE_TOKEN` PAT must
-   be ≤ 366 days (StarOrga org policy); if the CI mirror step fails, mirror the
-   built assets via admin `gh` (no PAT). Full commands + the Supabase-auth
-   blocker: `.claude/deep-knowledge/data-uploader-release.md`.
+   `ship-successful` while the row + alpha pointer are missing.
+   `BINARIES_RELEASE_TOKEN` PAT must be ≤ 366 days (StarOrga org policy); if the
+   CI mirror step fails, mirror the built assets via admin `gh` (no PAT). Full
+   commands + the Supabase-auth blocker:
+   `.claude/deep-knowledge/data-uploader-release.md`.
 
    *Why this rule exists:* 2026-06-13 I bumped the uploader to 0.7.0 and rendered
    `ship-successful` with no binary built → `/desktop` still served 0.6.1.
