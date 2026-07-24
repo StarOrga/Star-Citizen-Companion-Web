@@ -5,7 +5,8 @@ import { exec } from 'node:child_process';
 import log from 'electron-log';
 import { initLogging, logFromRenderer } from './logging.js';
 import { getSettings, setTelemetryEnabled, patchSettings, syncAutoStartWithOs } from './settings.js';
-import { reportCrash, reportError } from './telemetry-reporter.js';
+import { reportCrash, reportError, reportExtractAbort } from './telemetry-reporter.js';
+import { classifyExtractAbort, type ExtractAbortReason } from '../lib/telemetry.js';
 import { discoverAll, discoverManual } from '../lib/discovery.js';
 import { PROFILES, DEFAULT_PROFILE, estimateForSize } from '../lib/performance.js';
 import { runOAuthFlow } from '../lib/oauth.js';
@@ -434,6 +435,9 @@ ipcMain.handle('sc:upload:resume', () => {
   hub.setPaused(false);
   return uploadJob.resume();
 });
+// NOTE: deliberately NO telemetry here. A cancelled upload loses nothing — the
+// persisted job file lets the operator resume it — so it is not an incident.
+// Only *extraction* aborts are reported (see requestExtractAbort).
 ipcMain.handle('sc:upload:cancel', () => {
   hub.setPaused(false);
   hub.finish('upload', 'error');
@@ -508,9 +512,65 @@ ipcMain.handle('sc:update:install', () => {
 // ============= Extract IPC =============
 
 interface ActiveJob {
+  /** Extraction aborts are telemetried; skin exports are not. */
+  kind: 'extract' | 'skin';
   cancel: () => void;
+  /**
+   * Set the moment an abort is *requested* (operator cancel / app quit). Two
+   * jobs it does: it records why, and it marks the abort as already reported so
+   * the promise-resolution path doesn't send a second, duplicate event.
+   */
+  abortReason: ExtractAbortReason | null;
+  startedAt: number;
+  /** Last progress the sidecar reported — context for the abort payload. */
+  lastPhase: string | null;
+  lastPct: number | null;
 }
 const activeJobs = new Map<string, ActiveJob>();
+
+function newActiveJob(kind: ActiveJob['kind']): ActiveJob {
+  return { kind, cancel: () => {}, abortReason: null, startedAt: Date.now(), lastPhase: null, lastPct: null };
+}
+
+/**
+ * Report an extraction abort that was just *requested* (operator cancel, app
+ * quit). Reports here rather than at promise resolution because on quit the
+ * process can be gone before the killed child's `exit` ever resolves it.
+ *
+ * Returns the in-flight report so the quit path can give it a grace window, or
+ * null when there is nothing to send (not an extraction, or already reported).
+ */
+function requestExtractAbort(
+  jobId: string,
+  job: ActiveJob,
+  reason: ExtractAbortReason,
+): Promise<boolean> | null {
+  if (job.kind !== 'extract' || job.abortReason) return null;
+  job.abortReason = reason;
+  return reportExtractAbort(reason, {
+    jobId,
+    phase: job.lastPhase,
+    pct: job.lastPct,
+    elapsedMs: Date.now() - job.startedAt,
+  });
+}
+
+/** Report an extraction that ENDED badly on its own (sidecar failure/crash). */
+function reportExtractOutcome(
+  jobId: string,
+  job: ActiveJob,
+  final: { ok: boolean; error?: string | null },
+): void {
+  const reason = classifyExtractAbort(final, job.abortReason);
+  if (!reason) return;
+  void reportExtractAbort(reason, {
+    jobId,
+    phase: job.lastPhase,
+    pct: job.lastPct,
+    elapsedMs: Date.now() - job.startedAt,
+    error: final.error ?? null,
+  });
+}
 
 // A long-running native job (Python extract / cgf-converter skin export) that
 // stops emitting events for this long is treated as WEDGED and reported to
@@ -542,26 +602,37 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
     onTimeout: (idle) => reportJobStall('extract', idle, jobId),
   });
   hub.start('extract');
+  const job = newActiveJob('extract');
   const handle = startExtraction(req, (ev: PythonExtractEvent) => {
     watchdog.pet(); // every event is a sign of life — reset the stall timer
     // Mirror into main's hub so the tray shows extraction progress even while
     // the window is hidden.
     const e = ev as { phase?: string; pct?: number };
     if (typeof e.phase === 'string' || typeof e.pct === 'number') {
+      // Remember the last position too: if the run is aborted, this is the only
+      // clue the telemetry row has about HOW FAR it got.
+      if (typeof e.phase === 'string') job.lastPhase = e.phase;
+      if (typeof e.pct === 'number') job.lastPct = e.pct;
       hub.update('extract', e.phase ?? null, typeof e.pct === 'number' ? e.pct : null);
     }
     event.sender.send('sc:extract:event', { jobId, ...ev });
   });
-  activeJobs.set(jobId, { cancel: handle.cancel });
+  job.cancel = handle.cancel;
+  activeJobs.set(jobId, job);
   watchdog.start();
   try {
     const final = await handle.promise;
     hub.finish('extract', final.ok ? 'done' : 'error');
+    // Covers what the old 'extract-failed' report could not: the bridge RESOLVES
+    // (never throws) for a dead sidecar, a non-zero exit, or a missing 'done'
+    // event, so those failures used to reach telemetry not at all.
+    reportExtractOutcome(jobId, job, final);
     return final;
   } catch (err) {
     hub.finish('extract', 'error');
-    void reportError('extract-failed', err, { jobId });
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    const message = err instanceof Error ? err.message : String(err);
+    reportExtractOutcome(jobId, job, { ok: false, error: message });
+    return { ok: false, error: message };
   } finally {
     watchdog.stop();
     activeJobs.delete(jobId);
@@ -590,11 +661,13 @@ ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<S
     timeoutMs: JOB_STALL_MS,
     onTimeout: (idle) => reportJobStall('skin', idle, jobId),
   });
+  const job = newActiveJob('skin');
   const handle = startSkinExport(req, (ev) => {
     watchdog.pet();
     event.sender.send('sc:skin:event', { jobId, ...ev });
   });
-  activeJobs.set(jobId, { cancel: handle.cancel });
+  job.cancel = handle.cancel;
+  activeJobs.set(jobId, job);
   watchdog.start();
   try {
     const final = await handle.promise;
@@ -687,6 +760,10 @@ ipcMain.handle(
 ipcMain.handle('sc:extract:cancel', (_e, jobId: string) => {
   const job = activeJobs.get(jobId);
   if (!job) return { ok: false, error: 'unknown_job' };
+  // Operator-driven extraction abort — telemetried before the kill, so the
+  // report is on the wire even if the teardown goes sideways. Fire-and-forget:
+  // cancelling must never wait on (or fail because of) the network.
+  void requestExtractAbort(jobId, job, 'cancelled');
   job.cancel();
   return { ok: true };
 });
@@ -751,10 +828,22 @@ app.whenReady().then(() => {
   });
 });
 
+// How long quitting may be held back so an extraction-abort report can reach
+// the network. Short enough that quit still feels instant, and hard-capped so a
+// dead network can never wedge the shutdown.
+const QUIT_TELEMETRY_GRACE_MS = 1500;
+
 // Kill any in-flight Python extraction so it can't linger as an orphaned
-// process in Task Manager after the app window is closed.
-function cancelAllJobs(): void {
-  for (const job of activeJobs.values()) {
+// process in Task Manager after the app window is closed. Passing a reason also
+// telemetries the extraction jobs it tears down; returns those in-flight
+// reports so the caller can wait on them briefly.
+function cancelAllJobs(reason: ExtractAbortReason | null = null): Promise<boolean>[] {
+  const pending: Promise<boolean>[] = [];
+  for (const [jobId, job] of activeJobs) {
+    if (reason) {
+      const report = requestExtractAbort(jobId, job, reason);
+      if (report) pending.push(report);
+    }
     try {
       job.cancel();
     } catch {
@@ -762,17 +851,32 @@ function cancelAllJobs(): void {
     }
   }
   activeJobs.clear();
+  return pending;
 }
 
-app.on('before-quit', cancelAllJobs);
+/** Set once we have already deferred a quit — a deferral must never repeat. */
+let quitDeferredForTelemetry = false;
+
+app.on('before-quit', (e) => {
+  // Quitting mid-extraction throws away the whole scan, so it is reported —
+  // but the process would normally die before the POST leaves. Hold the quit
+  // for a bounded grace window, exactly once, then go regardless of outcome.
+  const pending = cancelAllJobs('quit');
+  if (!pending.length || quitDeferredForTelemetry) return;
+  quitDeferredForTelemetry = true;
+  e.preventDefault();
+  void Promise.race([
+    Promise.allSettled(pending),
+    new Promise((resolve) => setTimeout(resolve, QUIT_TELEMETRY_GRACE_MS)),
+  ]).finally(() => app.quit());
+});
 
 app.on('window-all-closed', () => {
   // With minimize-to-tray on, X only hides the window, so this normally never
   // fires. It still can (e.g. the window is destroyed some other way) — staying
   // alive then would leave an invisible, unreachable process, so quit unless we
-  // are deliberately tray-resident. Tear down extraction children first so
-  // nothing lingers.
+  // are deliberately tray-resident. Job teardown (and its abort telemetry) is
+  // handled by the before-quit hook, which app.quit() always fires.
   if (hasTray() && getSettings().minimizeToTray && !quitting) return;
-  cancelAllJobs();
   app.quit();
 });

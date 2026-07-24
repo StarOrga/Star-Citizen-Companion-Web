@@ -17,7 +17,10 @@ import {
   signCrashRequest,
   normaliseOs,
   toCrashInput,
+  buildExtractAbort,
   type CrashInput,
+  type ExtractAbortContext,
+  type ExtractAbortReason,
   type TelemetryMeta,
 } from '../lib/telemetry.js';
 import {
@@ -107,6 +110,26 @@ export async function reportError(
   extra?: Record<string, unknown> | null,
 ): Promise<boolean> {
   return reportCrash(toCrashInput(errorType, err, extra));
+}
+
+/**
+ * Report that a P4K EXTRACTION was aborted — operator cancel, app quit, or a
+ * sidecar failure. An aborted extraction throws away everything scanned so far
+ * (there is no resume), so the operator has to start from zero; that is worth a
+ * telemetry row on its own dashboard bucket.
+ *
+ * Deliberately NOT wired to the upload path: an interrupted upload resumes from
+ * the persisted job file, so an upload abort is a non-event. Do not "for
+ * symmetry" call this from `sc:upload:cancel`.
+ *
+ * Best-effort like every other reporter here — honours the opt-out and never
+ * throws into the abort/cleanup path that called it.
+ */
+export async function reportExtractAbort(
+  reason: ExtractAbortReason,
+  ctx: ExtractAbortContext,
+): Promise<boolean> {
+  return reportCrash(buildExtractAbort(reason, ctx));
 }
 
 /** Guard against reporting during app shutdown when the network is torn down. */
