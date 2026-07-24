@@ -1066,6 +1066,10 @@
     },
     "expandAll": "Alle ausklappen",
     "collapseAll": "Alle einklappen",
+    "dateGroup": {
+      "today": "Heute",
+      "yesterday": "Gestern"
+    },
     "toc": {
       "label": "Schnellzugriff auf Themen",
       "awaiting": "Zu beantworten: {{count}}"

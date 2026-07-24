@@ -56,6 +56,15 @@ interface TocEntry {
   awaitingAdmin: boolean;
 }
 
+/** A run of active topics sharing one calendar day, under a single day heading. */
+interface FeedbackGroup {
+  /** Stable day key (local Y-M-D) used for tracking and grouping. */
+  key: string;
+  /** Human day heading: Today / Yesterday / localized date. */
+  label: string;
+  items: FeedbackRow[];
+}
+
 /** localStorage key backing the new-topic composer draft. */
 const DRAFT_KEY = 'sc.adminFeedback.draft';
 
@@ -177,8 +186,13 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
         } @else if (messages().length === 0) {
           <div class="sc-card empty">{{ 'adminFeedback.empty' | translate }}</div>
         } @else {
-          @for (m of activeMessages(); track m.id) {
-            <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+          <!-- Active topics grouped under a non-interactive day heading (Today /
+               Yesterday / date) so the list reads as a dated timeline. -->
+          @for (g of activeGroups(); track g.key) {
+            <div class="date-group">{{ g.label }}</div>
+            @for (m of g.items; track m.id) {
+              <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+            }
           }
 
           <!-- Shipped items are stacked away so open ones stay directly visible. -->
@@ -211,28 +225,40 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
 
       <ng-template #msgCard let-m>
         <article class="msg sc-card" [id]="cardDomId(m.id)" [class.is-self]="m.author_id === selfId()">
-          <div class="msg-head">
-            <span class="author">{{ authorLabel(m) }}</span>
-            <span class="ts">{{ m.created_at | date:'short' }}</span>
-            @if (isAnsweredAwaitingRoutine(m)) {
-              <!-- The admin replied to a Rückfrage: mark it distinctly as
-                   "answered — awaiting the routine" so it reads apart from a
-                   needs_input topic that is still waiting for the admin. -->
-              <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
-            } @else {
-              <span class="status-pill" [class]="m.status">{{ ('adminFeedback.status.' + m.status) | translate }}</span>
-            }
-            @if (embedded()) {
-              <button
-                type="button"
-                class="expand-toggle"
-                (click)="toggleExpand(m.id)"
-                [attr.aria-expanded]="isExpanded(m.id)"
-                [attr.aria-label]="'adminFeedback.toggleDetails' | translate">
-                {{ isExpanded(m.id) ? '▾' : '▸' }}
-              </button>
-            }
-          </div>
+          @if (embedded()) {
+            <!-- Compact panel: the whole topic collapses to a single clickable
+                 one-liner — chevron · generated title · author · status. The day
+                 heading above carries the date, so no per-row timestamp is shown
+                 (feedback 92f08bb4). -->
+            <button
+              type="button"
+              class="msg-head one-liner"
+              (click)="toggleExpand(m.id)"
+              [attr.aria-expanded]="isExpanded(m.id)"
+              [attr.aria-label]="'adminFeedback.toggleDetails' | translate">
+              <span class="chev" [class.open]="isExpanded(m.id)">▸</span>
+              <span class="topic-title">{{ topicTitle(m.body) }}</span>
+              <span class="row-author">{{ authorLabel(m) }}</span>
+              @if (isAnsweredAwaitingRoutine(m)) {
+                <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
+              } @else {
+                <span class="status-pill" [class]="m.status">{{ ('adminFeedback.status.' + m.status) | translate }}</span>
+              }
+            </button>
+          } @else {
+            <div class="msg-head">
+              <span class="author">{{ authorLabel(m) }}</span>
+              <span class="ts">{{ m.created_at | date:'short' }}</span>
+              @if (isAnsweredAwaitingRoutine(m)) {
+                <!-- The admin replied to a Rückfrage: mark it distinctly as
+                     "answered — awaiting the routine" so it reads apart from a
+                     needs_input topic that is still waiting for the admin. -->
+                <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
+              } @else {
+                <span class="status-pill" [class]="m.status">{{ ('adminFeedback.status.' + m.status) | translate }}</span>
+              }
+            </div>
+          }
 
           @if (!embedded() || isExpanded(m.id)) {
             <!-- Long bodies are clamped to their first two sentences on the full
@@ -270,7 +296,7 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
                     <div class="reply-head">
                       <span class="reply-author">{{ authorLabelFor(msg) }}</span>
                       @if (msg.is_system) { <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span> }
-                      <span class="reply-ts">{{ msg.created_at | date:'short' }}</span>
+                      <span class="reply-ts">{{ msg.created_at | date: (embedded() ? 'shortDate' : 'short') }}</span>
                     </div>
                     @if (!embedded()) {
                       @let rp = bodyPreview(msg.body);
@@ -308,8 +334,6 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
                 {{ 'adminFeedback.delete' | translate }}
               </button>
             </div>
-          } @else {
-            <button type="button" class="msg-preview" (click)="toggleExpand(m.id)">{{ preview(m.body) }}</button>
           }
         </article>
       </ng-template>
@@ -347,44 +371,61 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
       z-index: 1;
     }
 
-    .expand-toggle {
-      margin-left: 4px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-      border: 1px solid var(--sc-border);
-      border-radius: 6px;
-      background: transparent;
+    /* Non-interactive day heading between dated groups of topics. */
+    .date-group {
+      margin: 6px 2px 0;
+      font-size: 0.66rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
       color: var(--sc-fg-2);
-      cursor: pointer;
-      font-size: 0.72rem;
-      transition: all 0.16s ease;
     }
-    .expand-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .expand-toggle:focus-visible {
-      outline: none;
-      color: var(--sc-fg-0);
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3);
-    }
-    .msg-preview {
-      display: block;
+    .date-group:first-child { margin-top: 0; }
+
+    /* Compact panel one-liner: chevron · title · author · status, on one row. */
+    .msg-head.one-liner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       width: 100%;
-      text-align: left;
       padding: 0;
-      margin: 0;
       background: transparent;
       border: 0;
-      color: var(--sc-fg-2);
+      color: inherit;
       font: inherit;
-      font-size: 0.88rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      text-align: left;
       cursor: pointer;
     }
-    .msg-preview:hover { color: var(--sc-fg-0); }
+    .msg-head.one-liner .chev {
+      flex: 0 0 auto;
+      color: var(--sc-fg-2);
+      font-size: 0.72rem;
+      transition: transform 0.16s ease;
+    }
+    .msg-head.one-liner .chev.open { transform: rotate(90deg); }
+    .msg-head.one-liner .topic-title {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-weight: 600;
+      font-size: 0.86rem;
+      color: var(--sc-fg-0);
+    }
+    .msg-head.one-liner .row-author {
+      flex: 0 0 auto;
+      color: var(--sc-fg-2);
+      font-size: 0.72rem;
+    }
+    .msg-head.one-liner:hover .topic-title { color: var(--sc-accent); }
+    .msg-head.one-liner:focus-visible {
+      outline: none;
+      border-radius: 6px;
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3);
+    }
+    /* The status pill keeps its own colours; it trails the row via the title's grow. */
+    .msg-head.one-liner .status-pill { flex: 0 0 auto; margin-left: 0; }
     .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
     .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
     .err {
@@ -811,6 +852,69 @@ export class AdminFeedbackComponent implements OnInit {
   );
 
   /**
+   * Active topics bucketed under a day heading (feedback 92f08bb4). The board is
+   * already recency-sorted, so consecutive topics on the same local day fall into
+   * one group — the template renders a non-interactive "Today / Yesterday / date"
+   * heading before each run.
+   */
+  readonly activeGroups = computed<FeedbackGroup[]>(() => {
+    const groups: FeedbackGroup[] = [];
+    let current: FeedbackGroup | null = null;
+    for (const m of this.activeMessages()) {
+      const t = this.recencyTime(m);
+      const key = this.dayKey(t);
+      if (!current || current.key !== key) {
+        current = { key, label: this.dayLabel(t), items: [] };
+        groups.push(current);
+      }
+      current.items.push(m);
+    }
+    return groups;
+  });
+
+  /** Local calendar-day key (Y-M-D) for a timestamp — the grouping bucket id. */
+  private dayKey(t: number): string {
+    const d = new Date(t);
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  }
+
+  /** Day heading: Today / Yesterday for the two most recent days, else a localized date. */
+  private dayLabel(t: number): string {
+    const d = new Date(t);
+    const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const day = startOf(d);
+    const today = startOf(new Date());
+    const DAY_MS = 86_400_000;
+    if (day === today) return this.translate.instant('adminFeedback.dateGroup.today');
+    if (day === today - DAY_MS) return this.translate.instant('adminFeedback.dateGroup.yesterday');
+    return new Intl.DateTimeFormat(this.translate.currentLang || 'en', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(d);
+  }
+
+  /**
+   * A concise, single-line title for a topic's one-liner row (feedback 92f08bb4).
+   * Derived from the body's first meaningful text with markup and images stripped;
+   * capped so it fits the compact row. Falls back to a dash for image-only posts.
+   * (A future enhancement could persist an LLM-generated summary — this heuristic
+   * gives an always-available title without a schema change.)
+   */
+  topicTitle(body: string): string {
+    const text = (body ?? '')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/[*_`#>~]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!text) return '—';
+    const firstSentence = text.split(/(?<=[.!?])\s+/)[0] ?? text;
+    const base = firstSentence.length <= 64 ? firstSentence : text;
+    return base.length > 64 ? `${base.slice(0, 62).trimEnd()}…` : base;
+  }
+
+  /**
    * Quick-access table of contents for the active board: one entry per visible
    * topic (short label + status) so the admin can jump straight to a thread
    * (feedback 69f3f015). Topics still awaiting the admin's answer are flagged so
@@ -969,16 +1073,6 @@ export class AdminFeedbackComponent implements OnInit {
       for (const r of toExpand) next.add(r.id);
       return next;
     });
-  }
-
-  /** Plain-text, truncated preview of a markdown body for the collapsed row. */
-  preview(body: string): string {
-    const text = body
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .replace(/[*_`#>~]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    return text.length > 120 ? `${text.slice(0, 117)}…` : text;
   }
 
   /**
