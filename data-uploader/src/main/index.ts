@@ -9,6 +9,7 @@ import { reportCrash } from './telemetry-reporter.js';
 import { discoverAll, discoverManual } from '../lib/discovery.js';
 import { PROFILES, DEFAULT_PROFILE, estimateForSize } from '../lib/performance.js';
 import { runOAuthFlow } from '../lib/oauth.js';
+import { raiseWindow } from '../lib/window-focus.js';
 import { uploadBundle, type UploadPayload } from '../lib/uploader.js';
 import { createWatchdog } from '../lib/watchdog.js';
 import { RELEASE_TOKEN, TOOL_VERSION, API_BASE, WEB_BASE } from '../lib/release-token.js';
@@ -93,9 +94,9 @@ function showMainWindow(): void {
     createWindow();
     return;
   }
-  if (mainWindow.isMinimized()) mainWindow.restore();
-  if (!mainWindow.isVisible()) mainWindow.show();
-  mainWindow.focus();
+  // Reliable foregrounding (topmost-flash) so this works even when another app
+  // (e.g. the browser right after the OAuth handoff) holds the OS foreground.
+  raiseWindow(mainWindow);
 }
 
 function quitForReal(): void {
@@ -378,6 +379,15 @@ ipcMain.handle('sc:authenticate', async () => {
       persistAuthResult(result);
     } catch {
       /* persistence is best-effort; never block the auth result on it */
+    }
+    // The OAuth handoff finishes in the browser, which now owns the OS
+    // foreground. Pull our window back to the front so the operator lands in
+    // the uploader instead of having to alt-tab back from the "you can close
+    // this window" browser tab.
+    try {
+      showMainWindow();
+    } catch {
+      /* foregrounding is best-effort; never block the auth result on it */
     }
   }
   return result;
