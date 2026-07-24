@@ -63,6 +63,27 @@ export interface CrashInput {
   extra?: Record<string, unknown> | null;
 }
 
+/**
+ * Normalise a HANDLED (non-fatal) error into a CrashInput. Accepts a real
+ * Error, a plain string (e.g. the `error` code uploadBundle returns), or any
+ * thrown value. Kept pure so the main-process `reportError` wrapper stays a thin
+ * one-liner and this normalisation is unit-testable without Electron.
+ */
+export function toCrashInput(
+  errorType: string,
+  err: unknown,
+  extra?: Record<string, unknown> | null,
+): CrashInput {
+  const e = err instanceof Error ? err : null;
+  return {
+    errorType,
+    name: e?.name ?? null,
+    message: e ? e.message : err == null ? '' : String(err),
+    stack: e?.stack ?? null,
+    extra: extra ?? null,
+  };
+}
+
 export interface SignedRequest {
   url: string;
   body: string;

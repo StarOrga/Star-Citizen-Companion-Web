@@ -4,6 +4,7 @@ import {
   buildCrashBody,
   signCrashRequest,
   normaliseOs,
+  toCrashInput,
   PRODUCT,
   ROLE,
   type TelemetryMeta,
@@ -31,6 +32,31 @@ const crash: CrashInput = {
 // Real HMAC so the test pins the exact wire signature the edge function verifies.
 const hmacHex = (key: string, msg: string): string =>
   createHmac('sha256', key).update(msg).digest('hex');
+
+describe('toCrashInput', () => {
+  it('extracts name/message/stack from a real Error', () => {
+    const err = new TypeError('boom');
+    const input = toCrashInput('extract-failed', err, { jobId: 'j1' });
+    expect(input.errorType).toBe('extract-failed');
+    expect(input.name).toBe('TypeError');
+    expect(input.message).toBe('boom');
+    expect(input.stack).toContain('boom');
+    expect(input.extra).toEqual({ jobId: 'j1' });
+  });
+
+  it('treats a bare string error as the message (no name/stack)', () => {
+    const input = toCrashInput('upload-failed', 'HTTP 500');
+    expect(input.name).toBeNull();
+    expect(input.message).toBe('HTTP 500');
+    expect(input.stack).toBeNull();
+    expect(input.extra).toBeNull();
+  });
+
+  it('coerces a null/undefined thrown value to an empty message', () => {
+    expect(toCrashInput('x', null).message).toBe('');
+    expect(toCrashInput('x', undefined).message).toBe('');
+  });
+});
 
 describe('normaliseOs', () => {
   it('maps node platforms to the server vocabulary', () => {

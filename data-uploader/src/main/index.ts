@@ -5,7 +5,7 @@ import { exec } from 'node:child_process';
 import log from 'electron-log';
 import { initLogging, logFromRenderer } from './logging.js';
 import { getSettings, setTelemetryEnabled, patchSettings, syncAutoStartWithOs } from './settings.js';
-import { reportCrash } from './telemetry-reporter.js';
+import { reportCrash, reportError } from './telemetry-reporter.js';
 import { discoverAll, discoverManual } from '../lib/discovery.js';
 import { PROFILES, DEFAULT_PROFILE, estimateForSize } from '../lib/performance.js';
 import { runOAuthFlow } from '../lib/oauth.js';
@@ -475,6 +475,14 @@ ipcMain.handle('sc:upload', async (_e, payload: UploadPayload) => {
       stack: null,
       extra: { channel: payload.channel, patchVersion: payload.patchVersion },
     });
+  } else if (!result.ok) {
+    // Handled upload failure (HTTP 4xx/5xx, network error) — surfaced to the
+    // operator but previously never telemetried (#212), so the dashboard showed
+    // 0 errors while operators hit them.
+    void reportError('upload-failed', new Error(result.error ?? 'upload failed'), {
+      channel: payload.channel,
+      patchVersion: payload.patchVersion,
+    });
   }
   return result;
 });
@@ -552,6 +560,7 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
     return final;
   } catch (err) {
     hub.finish('extract', 'error');
+    void reportError('extract-failed', err, { jobId });
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   } finally {
     watchdog.stop();
@@ -570,6 +579,7 @@ ipcMain.handle('sc:skin:ensureTools', async (event) => {
     );
     return { ok: true, path };
   } catch (err) {
+    void reportError('skin-tools-failed', err);
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 });
@@ -590,6 +600,7 @@ ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<S
     const final = await handle.promise;
     return final;
   } catch (err) {
+    void reportError('skin-failed', err, { jobId });
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   } finally {
     watchdog.stop();
