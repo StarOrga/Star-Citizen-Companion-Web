@@ -24,6 +24,7 @@ import {
   IS_PORTABLE_BUILD,
   TOOL_VERSION,
 } from '../lib/release-token.js';
+import { isNewerVersion } from '../lib/semver.js';
 import { reportCrash } from './telemetry-reporter.js';
 
 // CommonJS interop — electron-updater's named exports aren't exposed via ESM.
@@ -133,54 +134,6 @@ async function fetchLatestVersion(): Promise<string | null> {
   }
 }
 
-/**
- * SemVer 2.0.0 precedence (§11) — true when `latest` is strictly newer than
- * `current`. A plain x.y.z compare ignored pre-release tags, so on the alpha/beta
- * rings 1.2.0-alpha.2 looked equal to 1.2.0-alpha.1 (and to the final 1.2.0,
- * which must outrank any of its pre-releases). Build metadata (`+…`) is ignored.
- */
-function isNewerVersion(latest: string, current: string): boolean {
-  return compareSemver(latest, current) > 0;
-}
-
-/** -1 | 0 | 1 SemVer comparison of two `x.y.z[-prerelease]` strings. */
-function compareSemver(a: string, b: string): number {
-  const parse = (v: string): { main: number[]; pre: string[] } => {
-    const raw = v.trim().replace(/^v/, '').split('+', 1)[0]; // drop build metadata
-    const dash = raw.indexOf('-');
-    const core = dash === -1 ? raw : raw.slice(0, dash);
-    const preStr = dash === -1 ? '' : raw.slice(dash + 1);
-    const main = core.split('.').map((n) => parseInt(n, 10) || 0);
-    while (main.length < 3) main.push(0);
-    return { main, pre: preStr ? preStr.split('.') : [] };
-  };
-  const pa = parse(a);
-  const pb = parse(b);
-  for (let i = 0; i < 3; i++) {
-    if (pa.main[i] !== pb.main[i]) return pa.main[i] > pb.main[i] ? 1 : -1;
-  }
-  // Equal core: a build WITHOUT a pre-release outranks one that has one.
-  if (pa.pre.length === 0 || pb.pre.length === 0) {
-    if (pa.pre.length === pb.pre.length) return 0;
-    return pa.pre.length === 0 ? 1 : -1;
-  }
-  const n = Math.max(pa.pre.length, pb.pre.length);
-  for (let i = 0; i < n; i++) {
-    const x = pa.pre[i];
-    const y = pb.pre[i];
-    if (x === undefined) return -1; // fewer identifiers → lower precedence
-    if (y === undefined) return 1;
-    if (x === y) continue;
-    const xn = /^\d+$/.test(x);
-    const yn = /^\d+$/.test(y);
-    if (xn && yn) return parseInt(x, 10) > parseInt(y, 10) ? 1 : -1;
-    if (xn) return -1; // numeric identifiers rank below alphanumeric ones
-    if (yn) return 1;
-    return x > y ? 1 : -1; // ASCII lexical order
-  }
-  return 0;
-}
-
 async function checkPortableForUpdate(): Promise<void> {
   const latest = await fetchLatestVersion();
   if (latest && isNewerVersion(latest, TOOL_VERSION)) {
@@ -240,20 +193,40 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
     useMultipleRangeRequest: false,
   });
 
-  // Don't install automatically — let the renderer decide so the user can
-  // finish an extraction in progress before restarting.
-  autoUpdater.autoDownload = true;
+  // Gate downloads ourselves (autoDownload OFF): the 'update-available' handler
+  // below decides whether the offered version is actually NEWER than what the
+  // user is running before pulling it. Left ON, electron-updater would download
+  // (and, with autoInstallOnAppQuit, silently stage on quit) whatever the feed
+  // returns — so a stale channel pointer could DOWNGRADE the app.
+  autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
   autoUpdater.on('checking-for-update', () => broadcast({ type: 'checking' }));
-  autoUpdater.on('update-available', (info: UpdateInfo) =>
+  autoUpdater.on('update-available', (info: UpdateInfo) => {
+    // Downgrade guard. electron-updater compares the feed version against the
+    // packaged app.getVersion(); we additionally gate on TOOL_VERSION — the
+    // version shown in the UI and the one the user reasons about. If the two
+    // ever drift, or the selected ring's pointer is stale (e.g. `stable` still
+    // points at an older release than an installed alpha/beta build), the feed
+    // can offer a version that is NOT newer. Never download or stage that.
+    if (!isNewerVersion(info.version, TOOL_VERSION)) {
+      log.warn(
+        `[updater] feed offered v${info.version}, not newer than running v${TOOL_VERSION} — ignoring (no downgrade)`,
+      );
+      broadcast({ type: 'not-available', currentVersion: TOOL_VERSION });
+      return;
+    }
     broadcast({
       type: 'available',
       version: info.version,
       releaseDate: info.releaseDate,
       notes: typeof info.releaseNotes === 'string' ? info.releaseNotes : null,
-    }),
-  );
+    });
+    // autoDownload is off — kick the background download for a genuine upgrade.
+    autoUpdater.downloadUpdate().catch((err) => {
+      log.warn('[updater] downloadUpdate failed:', err);
+    });
+  });
   autoUpdater.on('update-not-available', () =>
     broadcast({ type: 'not-available', currentVersion: TOOL_VERSION }),
   );
