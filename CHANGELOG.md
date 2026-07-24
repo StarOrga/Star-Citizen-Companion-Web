@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.46.2] - 2026-07-24
+
+### Changed
+
+- **Feedback panel — filter bar decluttered (Phase 1 of 605d317d).** Status and
+  author quick-filters now share one compact row; the horizontal jump-TOC strip
+  and the per-chip counts are gone. A single motivating totals line replaces
+  them — open Rückfragen + shipped so far for the current filtering, with "In
+  Arbeit" deliberately omitted. Phases 2 (Abarbeitungsmodus view toggle) and 3
+  (progress dashboard + confetti) follow.
+
 ## [0.46.1] - 2026-07-24
 
 ### Changed

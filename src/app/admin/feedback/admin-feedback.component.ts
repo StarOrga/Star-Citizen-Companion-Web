@@ -106,42 +106,67 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
       }
 
       <div class="board">
-        <!-- Board toolbar: status quick-filter + (in the panel) expand/collapse-all. -->
+        <!-- Board toolbar: status + author quick-filters on ONE compact row
+             (feedback 605d317d — no more doubled filter bars, no horizontal
+             TOC scroll strip). Per-chip counts are gone; the single motivating
+             totals line below carries the numbers instead. -->
         <div class="board-toolbar">
-          <div class="status-filter" role="group" [attr.aria-label]="'adminFeedback.statusFilter.label' | translate">
-            <button
-              type="button"
-              class="status-chip"
-              [class.active]="statusFilter() === null"
-              (click)="setStatusFilter(null)">
-              {{ 'adminFeedback.statusFilter.all' | translate }}
-            </button>
-            @if (statusCounts().needs_input > 0) {
+          <div class="filters">
+            <div class="status-filter" role="group" [attr.aria-label]="'adminFeedback.statusFilter.label' | translate">
               <button
                 type="button"
-                class="status-chip needs_input"
-                [class.active]="statusFilter() === 'needs_input'"
-                (click)="setStatusFilter('needs_input')">
-                {{ 'adminFeedback.status.needs_input' | translate }} <span class="chip-count">{{ statusCounts().needs_input }}</span>
+                class="status-chip"
+                [class.active]="statusFilter() === null"
+                (click)="setStatusFilter(null)">
+                {{ 'adminFeedback.statusFilter.all' | translate }}
               </button>
-            }
-            @if (statusCounts().open > 0) {
-              <button
-                type="button"
-                class="status-chip open"
-                [class.active]="statusFilter() === 'open'"
-                (click)="setStatusFilter('open')">
-                {{ 'adminFeedback.status.open' | translate }} <span class="chip-count">{{ statusCounts().open }}</span>
-              </button>
-            }
-            @if (statusCounts().in_progress > 0) {
-              <button
-                type="button"
-                class="status-chip in_progress"
-                [class.active]="statusFilter() === 'in_progress'"
-                (click)="setStatusFilter('in_progress')">
-                {{ 'adminFeedback.status.in_progress' | translate }} <span class="chip-count">{{ statusCounts().in_progress }}</span>
-              </button>
+              @if (statusCounts().needs_input > 0) {
+                <button
+                  type="button"
+                  class="status-chip needs_input"
+                  [class.active]="statusFilter() === 'needs_input'"
+                  (click)="setStatusFilter('needs_input')">
+                  {{ 'adminFeedback.status.needs_input' | translate }}
+                </button>
+              }
+              @if (statusCounts().open > 0) {
+                <button
+                  type="button"
+                  class="status-chip open"
+                  [class.active]="statusFilter() === 'open'"
+                  (click)="setStatusFilter('open')">
+                  {{ 'adminFeedback.status.open' | translate }}
+                </button>
+              }
+              @if (statusCounts().in_progress > 0) {
+                <button
+                  type="button"
+                  class="status-chip in_progress"
+                  [class.active]="statusFilter() === 'in_progress'"
+                  (click)="setStatusFilter('in_progress')">
+                  {{ 'adminFeedback.status.in_progress' | translate }}
+                </button>
+              }
+            </div>
+            @if (authorOptions().length > 1) {
+              <div class="author-filter" role="group" [attr.aria-label]="'adminFeedback.filter.label' | translate">
+                <button
+                  type="button"
+                  class="author-chip"
+                  [class.active]="authorFilter() === null"
+                  (click)="setAuthorFilter(null)">
+                  {{ 'adminFeedback.filter.all' | translate }}
+                </button>
+                @for (a of authorOptions(); track a.id) {
+                  <button
+                    type="button"
+                    class="author-chip"
+                    [class.active]="authorFilter() === a.id"
+                    (click)="setAuthorFilter(a.id)">
+                    {{ a.label }}
+                  </button>
+                }
+              </div>
             }
           </div>
           @if (embedded() && activeMessages().length > 1) {
@@ -156,46 +181,18 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
           }
         </div>
 
-        @if (authorOptions().length > 1) {
-          <div class="author-filter" role="group" [attr.aria-label]="'adminFeedback.filter.label' | translate">
-            <button
-              type="button"
-              class="author-chip"
-              [class.active]="authorFilter() === null"
-              (click)="setAuthorFilter(null)">
-              {{ 'adminFeedback.filter.all' | translate }}
-            </button>
-            @for (a of authorOptions(); track a.id) {
-              <button
-                type="button"
-                class="author-chip"
-                [class.active]="authorFilter() === a.id"
-                (click)="setAuthorFilter(a.id)">
-                {{ a.label }} <span class="chip-count">{{ a.count }}</span>
-              </button>
+        <!-- One motivating totals line for the current filtering (feedback
+             605d317d): open Rückfragen + shipped so far. "In Arbeit" is
+             deliberately left out — it isn't a number worth celebrating. -->
+        @if (motivatingStats().rueckfragen > 0 || motivatingStats().shipped > 0) {
+          <p class="board-stats">
+            @if (motivatingStats().rueckfragen > 0) {
+              <span class="stat rueckfragen">{{ 'adminFeedback.stats.rueckfragen' | translate: { count: motivatingStats().rueckfragen } }}</span>
             }
-          </div>
-        }
-
-        <!-- Quick-access TOC: jump straight to a topic; leads with the Rückfragen
-             still awaiting the admin's answer (feedback 69f3f015). -->
-        @if (tocEntries().length > 1) {
-          <nav class="board-toc" [attr.aria-label]="'adminFeedback.toc.label' | translate">
-            @if (awaitingAdminCount() > 0) {
-              <span class="toc-lead">{{ 'adminFeedback.toc.awaiting' | translate: { count: awaitingAdminCount() } }}</span>
+            @if (motivatingStats().shipped > 0) {
+              <span class="stat shipped">{{ 'adminFeedback.stats.shipped' | translate: { count: motivatingStats().shipped } }}</span>
             }
-            @for (e of tocEntries(); track e.id) {
-              <button
-                type="button"
-                class="toc-chip"
-                [class]="e.status"
-                [class.awaiting]="e.awaitingAdmin"
-                (click)="jumpTo(e.id)"
-                [title]="e.label">
-                <span class="toc-dot"></span>{{ e.label }}
-              </button>
-            }
-          </nav>
+          </p>
         }
 
         @if (busy() && messages().length === 0) {
@@ -483,10 +480,11 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
       background: rgba(0, 212, 255, 0.12);
     }
     .author-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
-    .chip-count { font-size: 0.68rem; opacity: 0.75; }
-
-    /* Board toolbar: status quick-filter on the left, expand-all on the right. */
+    /* Board toolbar: filters (status + author) on the left, expand-all right. */
     .board-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    /* Status + author chip groups now share one wrapping row (feedback 605d317d);
+       the wider column gap keeps the two groups visually distinct. */
+    .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
     .status-filter { display: flex; flex-wrap: wrap; gap: 6px; }
     .status-chip {
       display: inline-flex;
@@ -528,56 +526,17 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
     .expand-all .chev { display: inline-block; transition: transform 0.16s ease; }
     .expand-all .chev.open { transform: rotate(90deg); }
 
-    /* Horizontal quick-access TOC: a scrollable row of jump chips. Chips for
-       Rückfragen still awaiting the admin are ordered first and highlighted. */
-    .board-toc {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      overflow-x: auto;
-      padding: 2px 0 6px;
-      scrollbar-width: thin;
+    /* One motivating totals line under the filters (feedback 605d317d): open
+       Rückfragen (violet, like their status pill) + shipped so far (accent).
+       "In Arbeit" is intentionally not shown. */
+    .board-stats {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+      margin: 0; padding: 2px 0; font-size: 0.78rem; color: var(--sc-fg-2);
     }
-    .toc-lead {
-      flex: 0 0 auto;
-      order: -2;
-      font-size: 0.68rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #a78bfa;
-    }
-    .toc-chip {
-      flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      max-width: 180px;
-      padding: 4px 10px;
-      background: var(--sc-bg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 999px;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: 0.72rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-    .toc-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .toc-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
-    .toc-dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--sc-fg-2); }
-    .toc-chip.open .toc-dot { background: var(--sc-accent); }
-    .toc-chip.in_progress .toc-dot { background: var(--sc-warning); }
-    .toc-chip.needs_input .toc-dot { background: #a78bfa; }
-    /* Rückfragen awaiting the admin lead the row and read as solid violet. */
-    .toc-chip.awaiting {
-      order: -1;
-      color: #a78bfa;
-      border-color: rgba(167, 139, 250, 0.5);
-      background: rgba(167, 139, 250, 0.12);
+    .board-stats .stat.rueckfragen { color: #a78bfa; font-weight: 600; }
+    .board-stats .stat.shipped { color: var(--sc-accent); font-weight: 600; }
+    .board-stats .stat + .stat::before {
+      content: '·'; margin-right: 8px; color: var(--sc-fg-2); font-weight: 400;
     }
 
     /* Collapsed stack of shipped items — keeps the open ones front-and-centre. */
@@ -849,6 +808,24 @@ export class AdminFeedbackComponent implements OnInit {
       }
     }
     return counts;
+  });
+
+  /**
+   * Aggregate, motivating totals for the CURRENT filtering (author scope only —
+   * the status filter just picks a view, so the headline numbers stay stable as
+   * the admin flips between chips). Feedback 605d317d: show only the numbers that
+   * feel good — open Rückfragen still to answer + how many topics shipped — and
+   * deliberately omit "In Arbeit".
+   */
+  readonly motivatingStats = computed(() => {
+    let rueckfragen = 0;
+    let shipped = 0;
+    for (const m of this.messages()) {
+      if (!this.matchesAuthor(m)) continue;
+      if (m.status === 'needs_input') rueckfragen++;
+      else if (m.status === 'shipped') shipped++;
+    }
+    return { rueckfragen, shipped };
   });
 
   /**
