@@ -38,7 +38,15 @@ with an optional crossfade and one-click autostart.
 2. Downloads originals from the RSI media CDN (with a Referer, like the news crawl).
 3. Sets the desktop wallpaper via `SystemParametersInfoW(SPI_SETDESKWALLPAPER)`;
    the crossfade uses a fullscreen layered overlay animated from transparent to
-   opaque, then swaps the real wallpaper underneath it.
+   opaque, then swaps the real wallpaper underneath it. **That overlay lives
+   inside Explorer's wallpaper layer**, not on top of the desktop: before it is
+   ever shown it is re-parented (`SetParent`) into the `WorkerW` behind the
+   desktop icons — or into `Progman` itself, which is what current Windows 11
+   builds use since they no longer spawn a separate `WorkerW`. It is never
+   `WS_EX_TOPMOST` and carries `WS_EX_NOACTIVATE`, so a wallpaper change can
+   neither cover an application (fullscreen games included) nor move the focus.
+   If that layer cannot be reached, the crossfade is skipped and the wallpaper
+   switches instantly rather than risking a window over the user's work.
 4. **Screensaver mode** shows a fullscreen `WS_POPUP` slideshow (reusing the same
    image decode/paint code as the wallpaper crossfade) after `GetLastInputInfo`
    reports the configured idle time. It advances every ~8s through the same
