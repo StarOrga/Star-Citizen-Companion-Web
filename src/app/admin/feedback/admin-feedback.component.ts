@@ -586,6 +586,20 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
 
     .msg { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
     .msg.is-self { box-shadow: inset 2px 0 0 var(--sc-accent); }
+    /* In the compact FAB panel the card's gradient (bg-2 → bg-1) is identical to
+       the panel's own background, so topics blended together and the separation
+       between individual feedbacks was hard to read (feedback cfa46ac2). Lift
+       each embedded card onto a distinct, more prominent surface with a clearer
+       border + shadow, so every feedback reads as its own boxed area again. */
+    .page.embedded .msg {
+      background: var(--sc-bg-3);
+      border-color: color-mix(in srgb, var(--sc-border) 55%, var(--sc-fg-2));
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+    }
+    .page.embedded .msg.is-self {
+      border-color: color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
+      box-shadow: inset 2px 0 0 var(--sc-accent), 0 1px 4px rgba(0, 0, 0, 0.28);
+    }
     /* Detail region under a topic head — its own column so the 8px rhythm is kept
        once the children are wrapped for the collapse animation. */
     .msg-detail { display: flex; flex-direction: column; gap: 8px; }
