@@ -1,6 +1,6 @@
 [package]
 name = "starscape-wallpaper"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 description = "Star Citizen Companion — dynamic desktop wallpaper from the Starscape gallery"
 license = "MIT"
