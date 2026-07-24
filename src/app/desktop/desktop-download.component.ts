@@ -236,6 +236,13 @@ export class DesktopDownloadComponent {
     const { data, error } = await this.sb.client.rpc('desktop_release_for_channel', {
       p_channel: channel,
     });
+    // Latest-wins guard: on first open the parent starts at 'stable' and the
+    // channel-picker then re-defaults to the role's top ring (alpha for admin),
+    // so two loads race. If a newer channel was picked while this request was in
+    // flight, drop this now-stale response — otherwise a late 'stable' reply
+    // clobbers the freshly-loaded 'alpha' release and blanks the shown version
+    // (feedback e892e715: "channel alpha, aber die Version wird nicht angezeigt").
+    if (this.channel() !== channel) return;
     if (error) this.errorMsg.set(error.message);
     else this.release.set((data as unknown as ReleaseInfo[])?.[0] ?? null);
     this.busy.set(false);

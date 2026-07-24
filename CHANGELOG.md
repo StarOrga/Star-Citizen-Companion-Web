@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.46.5] - 2026-07-24
+
+### Fixed
+
+- **Data Upload — correct release shown on first open (e892e715).** Opening the
+  Data Upload page for the first time showed the picked channel (alpha for
+  admins) but not its version, until you toggled channels and back. The parent
+  started at `stable` and fired a load before the channel-picker re-defaulted to
+  the role's top ring, so two channel loads raced and a late `stable` response
+  clobbered the freshly-loaded `alpha` release. Added a latest-wins guard that
+  drops a channel load whose response arrives after a newer channel was picked.
+
 ## [0.46.4] - 2026-07-24
 
 ### Fixed
