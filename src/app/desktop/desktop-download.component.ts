@@ -96,10 +96,10 @@ interface ReleaseInfo {
             </div>
           }
           @if (r.notes) {
-            <details class="rel-notes">
-              <summary>{{ 'desktop.notes' | translate }}</summary>
+            <div class="rel-notes">
+              <span class="rn-label">{{ 'desktop.notes' | translate }}</span>
               <pre>{{ r.notes }}</pre>
-            </details>
+            </div>
           }
         } @else if (busy()) {
           <div class="sec-body muted">{{ 'desktop.loading' | translate }}</div>
@@ -182,20 +182,19 @@ interface ReleaseInfo {
     .promote .pmsg { font-size: 0.8rem; color: var(--sc-accent); }
     .promote .pmsg.err { color: var(--sc-danger); }
 
-    .rel-notes { border-top: 1px solid var(--sc-border); margin: 0; padding: 10px 20px; }
-    .rel-notes summary {
-      cursor: pointer; color: var(--sc-fg-2);
+    /* Always-inline, low-key release notes (feedback 2ebe600e): no collapse,
+       no heavy box — a quiet label + muted body that sits under the release. */
+    .rel-notes { border-top: 1px solid var(--sc-border); margin: 0; padding: 12px 20px; }
+    .rel-notes .rn-label {
+      display: block; color: var(--sc-fg-2);
       font-family: var(--sc-font-display); font-size: 0.7rem;
-      letter-spacing: 0.08em; text-transform: uppercase; list-style: none;
+      letter-spacing: 0.08em; text-transform: uppercase;
     }
-    .rel-notes summary::-webkit-details-marker { display: none; }
-    .rel-notes summary::before { content: '▸'; display: inline-block; margin-right: 8px; transition: transform 0.15s ease; }
-    .rel-notes[open] summary::before { transform: rotate(90deg); }
-    .rel-notes summary:hover { color: var(--sc-fg-0); }
     .rel-notes pre {
-      margin: 10px 0 0; padding: 12px 14px;
-      background: var(--sc-bg-0); border: 1px solid var(--sc-border); border-radius: 6px;
-      font-size: 0.85rem; white-space: pre-wrap; max-height: 220px; overflow-y: auto;
+      margin: 8px 0 0; padding: 0;
+      background: none; border: 0; color: var(--sc-fg-2);
+      font-family: inherit; font-size: 0.82rem; line-height: 1.5;
+      white-space: pre-wrap; max-height: 220px; overflow-y: auto;
     }
 
     .sec-body { padding: 20px; color: var(--sc-fg-1); display: flex; flex-direction: column; gap: 4px; }

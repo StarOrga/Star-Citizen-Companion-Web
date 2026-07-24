@@ -4,6 +4,15 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.46.1] - 2026-07-24
+
+### Changed
+
+- **Data Upload / download page: release notes are always inline.** The release
+  notes no longer sit behind an aufklappbar `<details>` toggle — they render
+  inline by default and quieter (subtle label + muted body, no boxed `<pre>`).
+  Applied to both `/uploader` and the minimal `/download` surface. (2ebe600e)
+
 ## [0.46.0] - 2026-07-24
 
 ### Added
