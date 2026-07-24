@@ -91,19 +91,98 @@ When torn between asking and defaulting, prefer the default and keep the change
 easy to revert. A reversible wrong guess costs one follow-up PR; an unnecessary
 question costs a day.
 
-## Concurrency: one isolated worktree per run
+## Concurrency: isolated worktrees + up to 3 parallel disjoint-area threads
 
 Runs overlap (cron ~every 20 min; a run can outlast that). The atomic claim
 (per-item `status` lock) stops two runs implementing the *same* item — but it
-does **not** stop them colliding in a **shared git checkout**: two runs editing,
-branching, or `git checkout`-ing the same working tree corrupt each other's
-uncommitted work (observed 2026-07-24: one run's RSI-upcoming edits landed on
-another run's docs branch). So **each run works in its own isolated git
-worktree**, not the shared primary checkout — create/enter a per-run worktree, do
-all edits/build/commit/ship there, and leave the primary checkout as the clean
-base. (This reverses the earlier "work on the primary checkout" guidance, which
-was the direct cause of the collision — see the
-`feedback-routine-shared-checkout-collision` memory / PR #204→#206.)
+does **not** stop them colliding in a **shared git checkout**: two runs — or two
+threads within one run — editing, branching, or `git checkout`-ing the same
+working tree corrupt each other's uncommitted work (observed 2026-07-24: one
+run's RSI-upcoming edits landed on another run's docs branch). So **every unit of
+work runs in its own isolated git worktree**, never the shared primary checkout —
+create/enter a per-thread worktree, do all edits/build/commit/ship there, and
+leave the primary checkout as the clean base. (This reverses the earlier "work on
+the primary checkout" guidance, which was the direct cause of the collision — see
+the `feedback-routine-shared-checkout-collision` memory / PR #204→#206.)
+
+### Up to 3 disjoint-area threads may run in parallel
+
+A run MAY implement up to **three** feedback items **at the same time**, each in
+its own isolated worktree (a fanned-out sub-worker per item), **but only if their
+implementation areas are pairwise disjoint**. Items that share an area are
+serialised, never parallelised. This makes real the concurrency for independent
+work that was previously only a de-facto "one item per cadence", while keeping
+same-area items safe from the contradictory-redesign / merge-hell failure of
+2026-07-23 (see the `feedback-overlapping-items-serialize` memory).
+
+**Implementation area = the set of files/dirs an item will touch.** Judge
+disjointness at two levels:
+
+- **Coarse area** (the Scope table): `web` (`src/`, `public/`) · `data-uploader/`
+  · `wallpaper-app/` (Starscape) · `supabase/migrations/` · `supabase/functions/`.
+  Two items in *different* coarse areas are disjoint by construction.
+- **Fine area** (within the same coarse area — most often two `web` items): the
+  concrete feature/component/route subtree each item will edit (e.g.
+  `admin/feedback-panel` vs. `mobile-nav` vs. the `loadout` view). Two
+  same-coarse items are disjoint only if their expected file sets do **not**
+  overlap.
+
+**Shared "seam" files don't by themselves make areas overlap, but they force
+serial merges.** Independent items very often both touch a few global files —
+`public/i18n/{de,en}.json` (additive new keys), `package.json` / `CHANGELOG.md`
+(version bump), global tokens/styles. Adding keys at opposite ends of a JSON file
+is not a design conflict, so it does **not** disqualify parallelism — but it *does*
+mean the branches can't both merge blind. The merge phase (below) is therefore
+serial + rebased, which absorbs these seam collisions deterministically.
+
+**When in doubt, serialise.** If you can't cheaply convince yourself two items'
+file sets are disjoint (e.g. both "rework the admin panel" — the 2026-07-23 case
+where later items built structurally on the first), treat them as the same area:
+run the oldest now, leave the rest `open` for the next cadence run against the
+updated `origin/main`. A wrong "disjoint" guess costs a merge conflict; a wrong
+"same-area" guess only costs one cadence cycle of latency — so bias to serial.
+
+### Selecting the parallel batch (before implementing anything)
+
+After the reaper (STEP 1.5) and the queue read (STEP 1), pick the batch:
+
+1. Order all actionable items (`open`, plus answered `needs_input` resumes)
+   oldest-first.
+2. Greedily admit items into the batch while (a) the batch size is `< 3` **and**
+   (b) the candidate's area is disjoint from every already-admitted item's area.
+3. Skip (leave `open` / untouched) any candidate whose area overlaps an admitted
+   item — it ships in a later run against the merged result.
+4. Atomically claim **each** admitted item (the per-item `where status='open'`
+   guard) before fanning out; drop from the batch any that another concurrent run
+   already claimed (zero rows updated).
+
+A single admitted item is just a batch of one (no fan-out overhead). The cap is
+**3 per run**; the atomic claim keeps this safe even when another overlapping
+cron run is also selecting a batch — the two runs can't claim the same item, and
+merges are serial + rebased regardless.
+
+### Merge phase is serial, even when implementation was parallel
+
+Parallel *implementation* is safe in isolated worktrees; parallel *merge* is not.
+Each fanned-out worker implements + verifies + pushes its branch + opens its PR,
+but does **not** merge. The orchestrator then merges them **one at a time,
+oldest-first**, bringing each branch up to the current `origin/main`
+(rebase / update-branch) immediately before its squash-merge. This absorbs the
+shared seam-file collisions (i18n keys, version bump) deterministically:
+
+- A branch that rebases clean and stays green → squash-merge, run its out-of-band
+  deploys, mark `shipped`.
+- A branch that hits a genuine conflict on rebase (the areas turned out to overlap
+  after all) → don't force it: leave that item `open`, or hold it as a review-PR
+  with a `ship_ref` if a human should look, and let the next cadence run redo it
+  against the now-merged main. **Never merge two feedback PRs simultaneously.**
+
+**Spawn hazard — give every worker its OWN worktree and make it commit+push.**
+Fanning out sub-workers can reset a shared worktree to `origin/main` mid-flight
+(`sc-worktree-reset-hazard`). So the orchestrator must not edit code itself while
+workers run: each worker gets a fresh `git worktree add <sibling> feat/feedback-<id>`,
+and every worker **commits and pushes its branch before returning** so its work
+is persisted remotely before the serial merge phase begins.
 
 ## Resuming interrupted work (stale-claim reaper)
 
@@ -266,7 +345,15 @@ can't merge itself still nudges the admin to review/merge it.
 
 ## Per-item procedure
 
-For each `open` row (process independently, most-recent context wins):
+This runs **once per admitted batch item** — for a batch of one, inline; for a
+parallel batch (2–3 disjoint-area items), fanned out to one sub-worker per item,
+each in its own isolated worktree (see "Concurrency"). Steps 1–4 (claim →
+understand → implement → verify) plus *pushing the branch and opening the PR* run
+**inside the worker**; the **merge in step 5 is hoisted out to the orchestrator's
+serial, oldest-first merge phase** so two feedback PRs never merge at once. For a
+batch of one the two phases collapse and it's a plain implement-then-merge.
+
+For each admitted `open` row (process independently, most-recent context wins):
 
 1. **Claim it (atomically).** `update admin_feedback set status='in_progress',
    processed_at=now() where id=<id> and status='open'`. If **zero** rows were
@@ -302,20 +389,27 @@ For each `open` row (process independently, most-recent context wins):
    npm test`; a Rust/Starscape change is verified by a **green CI build** (no
    local cargo); a migration/function is verified by its headless apply/deploy.
    All gates relevant to the change must pass.
-5. **Ship decision:**
-   - **All green** → open a PR and auto-merge to `main` (never force-push). Then
-     run any **out-of-band deploy** the change needs — `npm run db:push` for a
-     migration, `npm run functions:deploy` for an edge function, push the
-     `*-v<ver>` tag so CI builds the desktop binary + register `desktop_releases`
-     (`/devops-ship` does this end-to-end). Only once the deploy is done:
+5. **Ship decision** (the worker pushes its branch + opens the PR; the
+   orchestrator performs the merge in its serial, oldest-first phase — for a
+   batch of one these collapse into a single inline step):
+   - **All green** → the worker opens a PR (never force-push). The orchestrator,
+     merging serially, first brings the branch up to current `origin/main`
+     (rebase / update-branch) — on a clean rebase it squash-merges, then runs any
+     **out-of-band deploy** the change needs — `npm run db:push` for a migration,
+     `npm run functions:deploy` for an edge function, push the `*-v<ver>` tag so
+     CI builds the desktop binary + register `desktop_releases` (`/devops-ship`
+     does this end-to-end). Only once the deploy is done:
      `update admin_feedback set status='shipped', shipped_at=now(),
      ship_ref='<PR url>', processed_at=now(), processing_note=null where id=<id>`.
+     If the rebase hits a real conflict (areas overlapped after all), don't force
+     it — leave the item `open` for the next run (or hold it as a review-PR), and
+     merge the remaining batch branches.
    - **Red, or a genuinely risky/irreversible call** (auth/RLS/secrets/payment, a
-     destructive migration, data deletion) → don't auto-ship; open a PR for manual
-     review, leave `status='in_progress'`, set `ship_ref='<PR url>'` + a
-     `processing_note`. `in_progress` is only ever valid **with** a `ship_ref` (a
-     real review-hold) — never leave a bare `in_progress` (it jams the reaper +
-     the oldest-first queue; see the reaper section).
+     destructive migration, data deletion) → don't auto-ship; the worker opens a
+     PR for manual review and the item is left `status='in_progress'` with
+     `ship_ref='<PR url>'` + a `processing_note`. `in_progress` is only ever valid
+     **with** a `ship_ref` (a real review-hold) — never leave a bare `in_progress`
+     (it jams the reaper + the oldest-first queue; see the reaper section).
 6. Never touch rows already `shipped` or `rejected`.
 
 ## Non-verifiable / decision-needed items → `needs_input`, never a bare `in_progress`
@@ -339,11 +433,12 @@ classes qualify:
 so it leaves the active queue and the admin can see it's on them.
 
 **Why this is load-bearing (the 2026-07-23 starvation).** The queue is
-oldest-first, capped at 10/run. A bare `in_progress` item (`ship_ref IS NULL`)
-the routine can't finish jams the **head** of the queue: the reaper reopens it
-every ~30 min (it looks orphaned — see the reaper's `ship_ref IS NULL` guard),
-oldest-first re-picks it first, and a usage-limit abort then never reaches the
-newer, immediately-shippable items behind it. Three trivially-actionable
+oldest-first and a run admits only a small batch (up to 3 disjoint-area items).
+A bare `in_progress` item (`ship_ref IS NULL`) the routine can't finish jams the
+**head** of the queue: the reaper reopens it every ~30 min (it looks orphaned —
+see the reaper's `ship_ref IS NULL` guard), oldest-first re-admits it first, and
+a usage-limit abort then never reaches the newer, immediately-shippable items
+behind it. Three trivially-actionable
 feedback-panel web items (`c5b6b13c`, `d6e6fd5f`, `69f3f015`) sat
 `processed_at = NULL` for >22 h behind exactly such an item (`a5783bed`, a
 wallpaper-app change left `in_progress` + "npm-gate cannot verify") — surfacing
@@ -408,12 +503,17 @@ ship, `status='shipped'`), ask a follow-up (post another system reply, stay
   **destructive** migration (drop/rename/data-loss) → do **not** auto-ship; open a
   PR and leave `in_progress` (with its `ship_ref`) for human review. Everything
   else the routine can sensibly default → ship it (see "Bias to action").
-- Batch cap: if more than ~10 open items exist, process the oldest 10 and leave
-  the rest `open` for the next run.
+- **Parallel batch cap: up to 3 disjoint-area items per run**, implemented
+  concurrently (one isolated worktree + sub-worker each) but merged serially,
+  oldest-first (see "Concurrency: isolated worktrees + up to 3 parallel
+  disjoint-area threads"). Same-area items are not parallelised — the oldest runs
+  and the rest stay `open` for the next cadence run. Any actionable items beyond
+  the batch of 3 also stay `open` for the next run.
 - **Overlapping runs are expected** — the task fires every ~20 min and a run can
   outlast that. The atomic per-item claim stops two runs taking the *same* item,
-  but it does **not** prevent shared-checkout corruption: each run works in its
-  own isolated worktree (see "Concurrency: one isolated worktree per run").
+  but it does **not** prevent shared-checkout corruption: every thread works in
+  its own isolated worktree (see "Concurrency: isolated worktrees + up to 3
+  parallel disjoint-area threads").
 
 ## Data model reference
 
