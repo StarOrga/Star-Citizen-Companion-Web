@@ -9,7 +9,7 @@ import {
 import { DatePipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { StarscapeService, Wallpaper } from './starscape.service';
-import { ImgReadyDirective } from '../news/news-thumb.component';
+import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
 
 // Believable, varied masonry-tile heights (px) for the loading skeletons. The
 // gallery rows carry no dimension metadata, so a fixed cycle of plausible
@@ -103,10 +103,17 @@ const EAGER_TILES = 8;
             @if (!loaded().has(w.imageId) && !broken().has(w.imageId)) {
               <span class="tile-skel sc-skel" [style.height.px]="skelH(i)" aria-hidden="true"></span>
             }
+            <!-- Responsive sources: a phone pulls the light post (500w) variant,
+                 desktop the crisp cover (1140w) — so the mobile grid paints fast
+                 and shows something immediately instead of loading a 1140w image
+                 per tile (admin feedback 32cbf3ad). The src fallback is the light
+                 variant too, so browsers ignoring srcset still get the fast one. -->
             <img
               class="tile-img"
               [class.ready]="loaded().has(w.imageId)"
-              [src]="w.previewUrl"
+              [srcset]="srcsetFor(w.previewUrl)"
+              [src]="lowResFor(w.previewUrl)"
+              sizes="(max-width: 640px) 48vw, (max-width: 900px) 31vw, 244px"
               [alt]="w.title ?? ''"
               decoding="async"
               [attr.loading]="i < eagerTiles ? 'eager' : 'lazy'"
@@ -291,6 +298,9 @@ const EAGER_TILES = 8;
     @media (max-width: 640px) {
       .wall { columns: 2 150px; }
       .lightbox { padding: 8px; }
+      /* The desktop wallpaper-app download is useless on a phone — hide it so the
+         header is just the gallery title (admin feedback 32cbf3ad). */
+      .app-cta { display: none; }
     }
   `],
 })
@@ -323,6 +333,22 @@ export class StarscapeComponent implements OnInit {
   /** Plausible varied placeholder height (px) for tile `i`, cycled from a fixed set. */
   skelH(i: number): number {
     return SKEL_HEIGHTS[i % SKEL_HEIGHTS.length];
+  }
+
+  /**
+   * Responsive `srcset` for a tile: light `post` (≤500w) + crisp `cover` (≤1140w),
+   * derived from the stored `cover` preview url. Returns '' for urls that can't be
+   * re-varianted (e.g. the signed RSI proxy) so the browser just uses `src`.
+   */
+  srcsetFor(previewUrl: string): string {
+    const post = rsiVariant(previewUrl, 'post');
+    const cover = rsiVariant(previewUrl, 'cover');
+    return post === cover ? '' : `${post} 500w, ${cover} 1140w`;
+  }
+
+  /** Light `post` variant used as the `src` fallback — the fast, mobile-first source. */
+  lowResFor(previewUrl: string): string {
+    return rsiVariant(previewUrl, 'post');
   }
 
   /** Marks a preview decoded → fades it in and removes its skeleton. */
