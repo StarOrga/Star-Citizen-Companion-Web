@@ -89,6 +89,19 @@
       "empty": {
         "title": "Nothing upcoming",
         "body": "Every ship RSI lists is already in the game data — no difference to show."
+      },
+      "searchPlaceholder": "Search ship, manufacturer or role…",
+      "searchAria": "Search upcoming ships",
+      "searchClear": "Clear search",
+      "favoritesOnly": "Favorites only",
+      "favorite": {
+        "add": "Add to favorites",
+        "remove": "Remove from favorites"
+      },
+      "newBadge": "New",
+      "noMatches": {
+        "title": "No matches",
+        "body": "No upcoming ship matches the search and filter — shorten the term or drop the favorites filter."
       }
     },
     "categoriesAria": "Codex categories",
@@ -453,6 +466,15 @@
       "yesterday": "yesterday",
       "days": "{{n}} days ago",
       "weeks": "{{n}} weeks ago"
+    },
+    "upcomingShips": {
+      "title": "Upcoming Ships",
+      "addedOne": "1 new ship on the ship matrix",
+      "addedMany": "{{count}} new ships on the ship matrix",
+      "favoritesUpdated": "{{count}} of your favorites changed status",
+      "more": "+{{count}} more",
+      "open": "Open upcoming ships",
+      "dismiss": "Dismiss notice"
     }
   },
   "p4k": {

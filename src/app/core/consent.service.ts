@@ -8,7 +8,8 @@ import { Injectable, computed, signal } from '@angular/core';
  *    language (`sc.lang`), and the consent decision itself (`sc.consent`).
  *    Not configurable — without these, login and language selection break.
  *  - `preferences`: convenience state (news channel filter, saved articles,
- *    admin UI drafts/defaults). Opt-in: nothing in this category is written
+ *    favorited upcoming ships and their seen-baseline, admin UI
+ *    drafts/defaults). Opt-in: nothing in this category is written
  *    until the user allows it; declining purges what exists.
  *  - `statistics`: anonymous product analytics (PostHog, EU region). Opt-in:
  *    no analytics library is loaded and no event is sent until the user
@@ -33,6 +34,8 @@ const PREFERENCE_KEYS = [
   'sc-companion.news.channels',
   'sc-companion.news.favorites',
   'sc-companion.news.watched',
+  'sc-companion.upcoming.favorites',
+  'sc-companion.upcoming.baseline',
   'sc-telemetry-product',
   'sc.adminFeedback.draft',
 ] as const;

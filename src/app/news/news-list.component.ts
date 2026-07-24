@@ -20,6 +20,7 @@ import { ActivatedRoute } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { NewsService, NewsChannel, VerseNewsItem, VerseStatus, StatusLevel, effectivePlayability, pickRecentVideos } from './news.service';
 import { NewsThumbComponent } from './news-thumb.component';
+import { UpcomingShipsNoticeComponent } from './upcoming-ships-notice.component';
 
 const CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
 const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
@@ -42,7 +43,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
 @Component({
   selector: 'sc-news-list',
   standalone: true,
-  imports: [TranslateModule, NewsThumbComponent, NgTemplateOutlet],
+  imports: [TranslateModule, NewsThumbComponent, NgTemplateOutlet, UpcomingShipsNoticeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="news-page">
@@ -87,6 +88,10 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
           <a class="ext-link" [href]="rsiStatusUrl" target="_blank" rel="noopener noreferrer">{{ 'news.status.checkExternal' | translate }}</a>
         </div>
       }
+
+      <!-- Codex "Upcoming Ships" delta (feedback d3fbc023): self-hides when
+           there is nothing new since the user last looked. -->
+      <sc-upcoming-ships-notice />
 
       @if (svc.pendingCount() > 0) {
         <button class="new-pill" type="button" (click)="acknowledgeNew()">
