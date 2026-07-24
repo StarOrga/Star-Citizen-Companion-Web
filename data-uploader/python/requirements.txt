@@ -26,7 +26,7 @@ python-nubia==0.2b5    # scdatatools: python_nubia~=0.2b2
 pyquaternion==0.9.9    # scdatatools: pyquaternion~=0.9.9
 pycryptodome==3.12.0   # scdatatools: pycryptodome~=3.12.0 — Crypto.Cipher.AES
 xxhash==2.0.2          # scdatatools: xxhash~=2.0.2
-sentry-sdk==1.5.8      # scdatatools: sentry-sdk==1.5.8 (exact)
+sentry-sdk==1.45.1      # scdatatools: sentry-sdk==1.45.1 (exact)
 zstandard==0.12.0      # scdatatools: zstandard~=0.12.0 — P4K zstd entries
 numpy==1.21.6          # scdatatools: numpy~=1.21.5; last 1.21.x with a cp310 wheel
 
