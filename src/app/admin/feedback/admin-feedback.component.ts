@@ -7,6 +7,7 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { animate, style, transition, trigger } from '@angular/animations';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
@@ -73,6 +74,22 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
   standalone: true,
   imports: [DatePipe, NgTemplateOutlet, TranslateModule, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Smooth height/opacity collapse+expand for a topic's detail region, so the
+  // guided answer flow in the panel reads as a fold rather than a hard cut
+  // (feedback 816a0ec8). Disabled on the full board (see [@.disabled] below),
+  // where every card is always open.
+  animations: [
+    trigger('expandCollapse', [
+      transition(':enter', [
+        style({ height: '0', opacity: 0, overflow: 'hidden' }),
+        animate('220ms cubic-bezier(0.2, 0.8, 0.2, 1)', style({ height: '*', opacity: 1 })),
+      ]),
+      transition(':leave', [
+        style({ overflow: 'hidden' }),
+        animate('180ms cubic-bezier(0.4, 0, 1, 1)', style({ height: '0', opacity: 0 })),
+      ]),
+    ]),
+  ],
   template: `
     <section class="page" [class.embedded]="embedded()">
       @if (!embedded()) {
@@ -261,6 +278,9 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
           }
 
           @if (!embedded() || isExpanded(m.id)) {
+           <!-- Animate the fold only in the panel; the full board keeps every
+                card open, so its detail region is never toggled. -->
+           <div class="msg-detail" [@expandCollapse] [@.disabled]="!embedded()">
             <!-- Long bodies are clamped to their first two sentences on the full
                  board (feedback 73dfa165) so the list stays scannable; expand to
                  read the rest. In the compact FAB panel the whole card already
@@ -334,6 +354,7 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
                 {{ 'adminFeedback.delete' | translate }}
               </button>
             </div>
+           </div>
           }
         </article>
       </ng-template>
@@ -606,6 +627,9 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
 
     .msg { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
     .msg.is-self { box-shadow: inset 2px 0 0 var(--sc-accent); }
+    /* Detail region under a topic head — its own column so the 8px rhythm is kept
+       once the children are wrapped for the collapse animation. */
+    .msg-detail { display: flex; flex-direction: column; gap: 8px; }
     .msg-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .author { font-weight: 600; font-size: 0.9rem; }
     .ts { color: var(--sc-fg-2); font-size: 0.76rem; }
@@ -1055,23 +1079,56 @@ export class AdminFeedbackComponent implements OnInit {
     });
   }
 
-  /**
-   * In the embedded FAB panel, topics are collapsed by default — which hides the
-   * reply composer. Auto-expand `needs_input` topics (the ones awaiting the
-   * admin's answer) so the routine's question and the reply box are immediately
-   * visible. Each topic is auto-expanded only once, so a manual collapse sticks.
-   */
-  private autoExpandNeedsInput(rows: FeedbackRow[]): void {
-    if (!this.embedded()) return;
-    const toExpand = rows.filter(
-      (r) => r.status === 'needs_input' && !this._autoExpanded.has(r.id),
+  /** Topics still awaiting the admin's answer (an open Rückfrage), in board order. */
+  private awaitingQuestions(): FeedbackRow[] {
+    return this.activeMessages().filter(
+      (m) => m.status === 'needs_input' && !this.isAnsweredAwaitingRoutine(m),
     );
-    if (toExpand.length === 0) return;
-    for (const r of toExpand) this._autoExpanded.add(r.id);
+  }
+
+  /**
+   * Guided one-at-a-time flow in the embedded FAB panel (feedback 816a0ec8).
+   * The panel keeps exactly the first still-unanswered Rückfrage open — the
+   * routine's question and its reply box — while the rest stay collapsed so the
+   * overview reads cleanly. Answering advances to the next via
+   * {@link advanceAfterAnswer}; here we only ensure something is open when
+   * nothing is, and never reopen a question the admin manually collapsed (each
+   * id is auto-expanded at most once).
+   */
+  private autoExpandFirstQuestion(): void {
+    if (!this.embedded()) return;
+    const awaiting = this.awaitingQuestions();
+    if (awaiting.length === 0) return;
+    // Already guiding one open question → leave the admin's place untouched.
+    if (awaiting.some((m) => this._expanded().has(m.id))) return;
+    const first = awaiting[0];
+    if (this._autoExpanded.has(first.id)) return; // manually collapsed — respect it
+    this._autoExpanded.add(first.id);
+    this._expanded.update((set) => new Set(set).add(first.id));
+  }
+
+  /**
+   * After the admin answers a Rückfrage in the panel, fold the answered topic
+   * away and open the next still-unanswered one, scrolling it into view — the
+   * "collapse → move up → next unfolds" flow the overview asks for (feedback
+   * 816a0ec8). The answered topic bubbles up on its own via the recency sort;
+   * the CSS `expandCollapse` animation softens the fold. No-op on the full board.
+   */
+  private advanceAfterAnswer(answeredId: string): void {
+    if (!this.embedded()) return;
     this._expanded.update((set) => {
       const next = new Set(set);
-      for (const r of toExpand) next.add(r.id);
+      next.delete(answeredId);
       return next;
+    });
+    const next = this.awaitingQuestions().find((m) => m.id !== answeredId);
+    if (!next) return;
+    this._autoExpanded.add(next.id);
+    this._expanded.update((set) => new Set(set).add(next.id));
+    requestAnimationFrame(() => {
+      document
+        .getElementById(this.cardDomId(next.id))
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
@@ -1136,8 +1193,10 @@ export class AdminFeedbackComponent implements OnInit {
     } else {
       const rows = (data ?? []) as unknown as FeedbackRow[];
       this.messages.set(rows);
-      this.autoExpandNeedsInput(rows);
+      // Threads first: the guided auto-expand needs each topic's replies to tell
+      // an unanswered Rückfrage from one already answered (awaiting the routine).
       await this.loadThreads(rows.map((r) => r.id));
+      this.autoExpandFirstQuestion();
     }
     this.busy.set(false);
   }
@@ -1273,6 +1332,10 @@ export class AdminFeedbackComponent implements OnInit {
     const uid = this.selfId();
     if (!uid) return false;
     this.errorMsg.set(null);
+    // Was this reply answering an open Rückfrage? If so, advance the guided flow
+    // once persisted (fold this one away, open the next) — captured before the
+    // refresh flips the topic to "answered".
+    const wasQuestion = this.messages().find((m) => m.id === feedbackId)?.status === 'needs_input';
     let body: string;
     try {
       body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
@@ -1289,6 +1352,7 @@ export class AdminFeedbackComponent implements OnInit {
       return false;
     }
     await this.refresh();
+    if (wasQuestion) this.advanceAfterAnswer(feedbackId);
     return true;
   }
 
