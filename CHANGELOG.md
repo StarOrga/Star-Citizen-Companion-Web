@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.46.3] - 2026-07-24
+
+### Fixed
+
+- **PWA — silent update on a fresh open, reload prompt only while active
+  (4f9fcff8).** A newer build that is already ready when the site opens is now
+  activated and loaded silently, so a returning visitor simply gets the newest
+  version with no reload button. A build that lands later — while you are already
+  on the page — still raises the deliberate reload prompt so you don't lose your
+  view. A once-per-session guard caps silent reloads at one, so a persistent
+  "ready" state can never loop the page.
+
 ## [0.46.2] - 2026-07-24
 
 ### Changed

@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.46.1",
+  "current": "0.46.2",
   "releases": [
+    {
+      "version": "0.46.2",
+      "date": "2026-07-24",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Feedback panel — filter bar decluttered (Phase 1 of 605d317d).",
+              "text": "Status and author quick-filters now share one compact row; the horizontal jump-TOC strip and the per-chip counts are gone. A single motivating totals line replaces them — open Rückfragen + shipped so far for the current filtering, with \"In Arbeit\" deliberately omitted. Phases 2 (Abarbeitungsmodus view toggle) and 3 (progress dashboard + confetti) follow."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.46.1",
       "date": "2026-07-24",
