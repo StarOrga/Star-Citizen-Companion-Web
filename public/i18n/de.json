@@ -52,11 +52,14 @@
         "fromHangar": "Aus deinem Hangar",
         "flagship": "Dein Flaggschiff",
         "open": "Öffnen",
+        "openShip": "{{ship}} öffnen",
         "freshness": "{{patch}} LIVE · Build {{build}}"
       },
       "flagship": {
-        "set": "★ Als Flaggschiff",
-        "pinned": "★ Flaggschiff"
+        "set": "★ Als Flaggschiff festlegen",
+        "pinned": "★ Flaggschiff",
+        "hint": "Dein Flaggschiff ist dein Standardschiff: Es wird im Codex immer ganz oben angezeigt, im Hangar mit ★ markiert und in deinem Profil gespeichert – damit ist es auf allen Geräten dasselbe.",
+        "hintPinned": "Das ist dein Flaggschiff: Es wird im Codex immer ganz oben angezeigt und im Hangar mit ★ markiert. Nochmal tippen hebt die Markierung auf."
       },
       "lanes": {
         "hangar": "Dein Hangar",
