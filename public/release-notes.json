@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.44.0",
+  "current": "0.44.1",
   "releases": [
+    {
+      "version": "0.44.1",
+      "date": "2026-07-24",
+      "sections": [
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Upload / p4k history: redundant bundle summary strip.",
+              "text": "The aggregate overview above the patch-version list (total bundles, channel count, and the latest-bundle-per-channel chips) duplicated information already shown per patch version below it, so it was removed — the screen now leads straight into the per-patch entries. The section header and the admin \"show disabled\" toggle are unchanged. (p4k)"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.44.0",
       "date": "2026-07-24",

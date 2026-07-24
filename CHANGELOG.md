@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.44.1] - 2026-07-24
+
+### Removed
+
+- **Data Upload / p4k history: redundant bundle summary strip.** The aggregate
+  overview above the patch-version list (total bundles, channel count, and the
+  latest-bundle-per-channel chips) duplicated information already shown per patch
+  version below it, so it was removed — the screen now leads straight into the
+  per-patch entries. The section header and the admin "show disabled" toggle are
+  unchanged. (p4k)
+
 ## [0.44.0] - 2026-07-24
 
 ### Added
