@@ -252,7 +252,16 @@ pub fn fetch_summary_image(dest: &Path, w: u32, h: u32) -> bool {
 /// for non-browser clients (mirrors the edge function). Returns true only for a
 /// complete, well-formed image — a truncated download is rejected so it can
 /// never be set as a corrupt wallpaper.
-pub fn download_image(url: &str, dest: &Path) -> bool {
+///
+/// `min_pixels` is a lower bound on the image's total pixel count (width×height);
+/// anything below it is a low-resolution source that would look soft/upscaled
+/// when cover-fit onto the desktop, so it is skipped without being written to
+/// disk. Pass `0` to disable the check. The size is read straight from the image
+/// header (no full decode), and unrecognised formats are kept (never wrongly
+/// dropped). A too-small image can only be detected after its bytes arrive — the
+/// wallpaper list carries no dimensions — but rejecting it here still avoids the
+/// disk write, the GDI+ decode and the wallpaper switch for that image.
+pub fn download_image(url: &str, dest: &Path, min_pixels: u64) -> bool {
     let Some((host, path)) = split_url(url) else {
         log::line(&format!("download: unparseable url {url}"));
         return false;
@@ -293,6 +302,20 @@ pub fn download_image(url: &str, dest: &Path) -> bool {
         log::line(&format!("download: incomplete image data ({} bytes) for {url}", resp.body.len()));
         return false;
     }
+    // Resolution floor: skip a source with fewer than `min_pixels` total pixels
+    // (e.g. under 1/5 of the desktop's pixel count) — it would look soft when
+    // scaled to fill. Unknown formats report no size and are kept.
+    if min_pixels > 0 {
+        if let Some((iw, ih)) = image_dimensions(&resp.body) {
+            let px = iw as u64 * ih as u64;
+            if px < min_pixels {
+                log::line(&format!(
+                    "download: skipped low-res {iw}x{ih} ({px}px < {min_pixels}px floor) for {url}"
+                ));
+                return false;
+            }
+        }
+    }
     match std::fs::write(dest, &resp.body) {
         Ok(()) => true,
         Err(e) => {
@@ -328,10 +351,140 @@ fn image_looks_complete(bytes: &[u8]) -> bool {
     true
 }
 
+/// Read an image's pixel dimensions `(width, height)` straight from its header,
+/// without a full decode — cheap enough to run on every prefetched image. Only
+/// JPEG (SOFn frame header) and PNG (IHDR chunk) are understood; any other or
+/// malformed format returns `None`, and the caller then keeps the image (same
+/// permissive stance as [`image_looks_complete`]).
+fn image_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
+    // PNG: 8-byte signature, then the IHDR chunk whose first two fields are the
+    // width and height as big-endian u32 at the fixed offsets 16 and 20.
+    const PNG_SIG: [u8; 8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    if bytes.starts_with(&PNG_SIG) {
+        if bytes.len() < 24 {
+            return None;
+        }
+        let w = u32::from_be_bytes(bytes[16..20].try_into().ok()?);
+        let h = u32::from_be_bytes(bytes[20..24].try_into().ok()?);
+        return (w != 0 && h != 0).then_some((w, h));
+    }
+
+    // JPEG: walk the marker segments until a Start-Of-Frame (SOFn) reports the
+    // frame's height and width. Each marker is 0xFF followed by its code (with
+    // optional 0xFF fill bytes in between); most carry a 2-byte big-endian
+    // length. Stop at Start-Of-Scan, where entropy-coded data begins.
+    if bytes.starts_with(&[0xFF, 0xD8]) {
+        let mut i = 2usize;
+        while i + 1 < bytes.len() {
+            if bytes[i] != 0xFF {
+                i += 1;
+                continue;
+            }
+            // Collapse any run of 0xFF fill bytes to land on the marker code.
+            let mut j = i + 1;
+            while j < bytes.len() && bytes[j] == 0xFF {
+                j += 1;
+            }
+            if j >= bytes.len() {
+                return None;
+            }
+            let marker = bytes[j];
+            let seg = j + 1; // first byte after the marker code
+            match marker {
+                // Stand-alone markers (no length payload): padding/SOI/EOI/RSTn.
+                0x01 | 0xD0..=0xD9 => {
+                    i = seg;
+                }
+                // Start-Of-Scan: headers are done, no dimensions past here.
+                0xDA => return None,
+                // SOFn frame headers carry size — all C0..CF except DHT(C4),
+                // JPG(C8) and DAC(CC), which are not frame headers.
+                0xC0..=0xC3 | 0xC5..=0xC7 | 0xC9..=0xCB | 0xCD..=0xCF => {
+                    // [len_hi len_lo precision h_hi h_lo w_hi w_lo ...]
+                    if seg + 6 >= bytes.len() {
+                        return None;
+                    }
+                    let h = u32::from(u16::from_be_bytes([bytes[seg + 3], bytes[seg + 4]]));
+                    let w = u32::from(u16::from_be_bytes([bytes[seg + 5], bytes[seg + 6]]));
+                    return (w != 0 && h != 0).then_some((w, h));
+                }
+                // Any other marker: skip its length-prefixed segment.
+                _ => {
+                    if seg + 1 >= bytes.len() {
+                        return None;
+                    }
+                    let len = u16::from_be_bytes([bytes[seg], bytes[seg + 1]]) as usize;
+                    if len < 2 {
+                        return None;
+                    }
+                    i = seg + len;
+                }
+            }
+        }
+        return None;
+    }
+
+    None
+}
+
 fn split_url(url: &str) -> Option<(&str, String)> {
     let rest = url.strip_prefix("https://")?;
     match rest.find('/') {
         Some(i) => Some((&rest[..i], rest[i..].to_string())),
         None => Some((rest, "/".to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn png_dimensions_from_ihdr() {
+        // 8-byte signature, IHDR length+type, then width=3840, height=2160.
+        let mut png: Vec<u8> = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+        png.extend_from_slice(&[0, 0, 0, 13]); // IHDR length
+        png.extend_from_slice(b"IHDR");
+        png.extend_from_slice(&3840u32.to_be_bytes());
+        png.extend_from_slice(&2160u32.to_be_bytes());
+        assert_eq!(image_dimensions(&png), Some((3840, 2160)));
+    }
+
+    #[test]
+    fn jpeg_dimensions_from_sof0() {
+        // SOI, an APP0 segment to skip over, then an SOF0 frame header carrying
+        // height=2160 and width=3840.
+        let jpeg: Vec<u8> = vec![
+            0xFF, 0xD8, // SOI
+            0xFF, 0xE0, 0x00, 0x04, 0xAA, 0xBB, // APP0, length 4 (2 payload bytes)
+            0xFF, 0xC0, 0x00, 0x11, 0x08, // SOF0, length 17, precision 8
+            0x08, 0x70, // height 2160
+            0x0F, 0x00, // width 3840
+            0x03, // remaining frame bytes (unread)
+        ];
+        assert_eq!(image_dimensions(&jpeg), Some((3840, 2160)));
+    }
+
+    #[test]
+    fn jpeg_dimensions_tolerate_fill_bytes() {
+        // Extra 0xFF fill bytes before the SOF0 marker code must be collapsed.
+        let jpeg: Vec<u8> = vec![
+            0xFF, 0xD8, 0xFF, 0xFF, 0xC0, 0x00, 0x11, 0x08, 0x04, 0x38, 0x07, 0x80, 0x03,
+        ];
+        assert_eq!(image_dimensions(&jpeg), Some((1920, 1080)));
+    }
+
+    #[test]
+    fn unknown_format_reports_no_size() {
+        assert_eq!(image_dimensions(&[0x00, 0x01, 0x02, 0x03, 0x04, 0x05]), None);
+        assert_eq!(image_dimensions(&[]), None);
+    }
+
+    #[test]
+    fn truncated_headers_report_no_size() {
+        // PNG signature but no IHDR payload.
+        assert_eq!(image_dimensions(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]), None);
+        // JPEG SOI with a dangling marker.
+        assert_eq!(image_dimensions(&[0xFF, 0xD8, 0xFF]), None);
     }
 }
