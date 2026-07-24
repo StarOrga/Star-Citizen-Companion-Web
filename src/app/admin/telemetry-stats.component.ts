@@ -8,15 +8,33 @@ import { useAutoRefresh } from '../core/auto-refresh';
 interface VersionRow { version: string; crashes: number; usage: number; sessions: number; }
 interface CountRow { name?: string; role?: string; count: number; }
 interface RecentCrash { version: string; role: string | null; name: string | null; message: string; at: number; }
+/** Aborted P4K extraction, broken down by why it stopped. */
+interface AbortReasonRow { reason: string; count: number; }
+interface RecentAbort {
+  version: string;
+  reason: string;
+  phase: string | null;
+  pct: number | null;
+  message: string;
+  at: number;
+}
+interface ExtractAborts { total: number; byReason: AbortReasonRow[]; recent: RecentAbort[]; }
 interface TelemetryStats {
   generatedAt: number;
   windowDays: number;
-  totals: { crashes: number; usage: number; installs: number; sessions: number };
+  /** Which product the server actually aggregated ('scc-app' | 'data-uploader' | 'all'). */
+  product?: string;
+  totals: { crashes: number; usage: number; installs: number; sessions: number; extractAborts?: number };
   byVersion: VersionRow[];
   crashesByType: CountRow[];
   crashesByRole: CountRow[];
   recentCrashes: RecentCrash[];
+  /** Absent until the telemetry_extract_aborts migration is deployed. */
+  extractAborts?: ExtractAborts;
 }
+
+/** Abort reasons the uploader can send — anything else renders verbatim. */
+const KNOWN_ABORT_REASONS = ['cancelled', 'quit', 'error'];
 
 type ProductFilter = 'scc-app' | 'data-uploader' | 'all';
 
@@ -109,6 +127,61 @@ const PRODUCT_STORAGE_KEY = 'sc-telemetry-product';
           </div>
         </div>
 
+        @if (aborts(); as a) {
+          <div class="sc-card">
+            <h2>
+              {{ 'telemetry.aborts.title' | translate }}
+              <span class="count-badge">{{ a.total | number }}</span>
+            </h2>
+            <p class="hint">{{ 'telemetry.aborts.hint' | translate }}</p>
+            @if (a.total) {
+              <h2 class="sub">{{ 'telemetry.aborts.byReason' | translate }}</h2>
+              @for (r of a.byReason; track r.reason) {
+                <div class="bar-row">
+                  <span class="bar-label">
+                    @if (reasonLabelKey(r.reason); as key) {
+                      {{ key | translate }}
+                    } @else {
+                      <span class="mono">{{ r.reason }}</span>
+                    }
+                  </span>
+                  <span class="bar"><span class="bar-fill warn" [style.width.%]="pct(r.count, maxAbortReason())"></span></span>
+                  <span class="bar-num">{{ r.count | number }}</span>
+                </div>
+              }
+              <h2 class="sub">{{ 'telemetry.aborts.recent' | translate }}</h2>
+              <table class="table">
+                <thead><tr>
+                  <th>{{ 'telemetry.col.at' | translate }}</th>
+                  <th>{{ 'telemetry.col.version' | translate }}</th>
+                  <th>{{ 'telemetry.aborts.col.reason' | translate }}</th>
+                  <th>{{ 'telemetry.aborts.col.phase' | translate }}</th>
+                  <th>{{ 'telemetry.aborts.col.progress' | translate }}</th>
+                </tr></thead>
+                <tbody>
+                  @for (r of a.recent; track $index) {
+                    <tr>
+                      <td class="mono">{{ r.at | date:'short' }}</td>
+                      <td class="mono">{{ r.version }}</td>
+                      <td>
+                        @if (reasonLabelKey(r.reason); as key) {
+                          {{ key | translate }}
+                        } @else {
+                          <span class="mono">{{ r.reason }}</span>
+                        }
+                      </td>
+                      <td class="mono">{{ r.phase ?? '—' }}</td>
+                      <td class="mono">{{ r.pct != null ? (r.pct | number:'1.0-0') + '%' : '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="hint">{{ 'telemetry.empty' | translate }}</p>
+            }
+          </div>
+        }
+
         <div class="sc-card">
           <h2>{{ 'telemetry.recent' | translate }}</h2>
           @if (s.recentCrashes.length) {
@@ -168,6 +241,10 @@ const PRODUCT_STORAGE_KEY = 'sc-telemetry-product';
     .bar-fill { display: block; height: 100%; background: var(--sc-accent, #52c1e6); border-radius: 4px; }
     .bar-fill.warn { background: #d29922; }
     .bar-num { text-align: right; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+    .count-badge {
+      background: rgba(210,153,34,.18); color: #d29922; border-radius: 12px;
+      padding: 1px 9px; font-size: 0.78rem; font-variant-numeric: tabular-nums; margin-left: 0.4rem;
+    }
     .pills { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .role-pill { background: rgba(255,255,255,.06); border-radius: 12px; padding: 2px 10px; font-size: 0.78rem; }
     .table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
@@ -217,6 +294,24 @@ export class TelemetryStatsComponent implements OnInit {
     Math.max(1, ...(this.stats()?.byVersion ?? []).map((v) => v.crashes)));
   readonly maxTypeCount = computed(() =>
     Math.max(1, ...(this.stats()?.crashesByType ?? []).map((c) => c.count)));
+
+  /**
+   * Aborted extractions — only the Data Uploader reports them, so the card stays
+   * hidden for the SCC-app view. Also absent (→ hidden) until the RPC that
+   * returns the block is deployed, so an older backend degrades cleanly.
+   */
+  readonly aborts = computed<ExtractAborts | null>(() => {
+    const s = this.stats();
+    if (!s?.extractAborts) return null;
+    return s.product === 'scc-app' ? null : s.extractAborts;
+  });
+  readonly maxAbortReason = computed(() =>
+    Math.max(1, ...(this.aborts()?.byReason ?? []).map((r) => r.count)));
+
+  /** i18n key for a known abort reason, or null to render the raw value. */
+  reasonLabelKey(reason: string): string | null {
+    return KNOWN_ABORT_REASONS.includes(reason) ? `telemetry.aborts.reason.${reason}` : null;
+  }
 
   ngOnInit(): void {
     void this.load();

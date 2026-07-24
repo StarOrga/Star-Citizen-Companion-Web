@@ -1055,6 +1055,22 @@
     "crashesByType": "Abstürze nach Typ",
     "crashesByRole": "Nach Prozess",
     "recent": "Letzte Abstürze",
+    "aborts": {
+      "title": "Abgebrochene Extraktionen",
+      "hint": "Eine abgebrochene P4K-Extraktion lässt sich nicht fortsetzen — der Scan beginnt wieder bei null. Abgebrochene Uploads zählen hier bewusst nicht mit, die laufen einfach weiter.",
+      "byReason": "Nach Grund",
+      "recent": "Letzte Abbrüche",
+      "reason": {
+        "cancelled": "Vom Nutzer abgebrochen",
+        "quit": "App beendet",
+        "error": "Fehler"
+      },
+      "col": {
+        "reason": "Grund",
+        "phase": "Phase",
+        "progress": "Fortschritt"
+      }
+    },
     "product": {
       "label": "Produkt",
       "scc-app": "SCC-App",

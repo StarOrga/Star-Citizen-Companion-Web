@@ -1055,6 +1055,22 @@
     "crashesByType": "Crashes by type",
     "crashesByRole": "By process",
     "recent": "Recent crashes",
+    "aborts": {
+      "title": "Aborted extractions",
+      "hint": "An aborted P4K extraction cannot be resumed — the scan restarts from zero. Aborted uploads are deliberately not counted here; those simply resume.",
+      "byReason": "By reason",
+      "recent": "Recent aborts",
+      "reason": {
+        "cancelled": "Cancelled by user",
+        "quit": "App quit",
+        "error": "Error"
+      },
+      "col": {
+        "reason": "Reason",
+        "phase": "Phase",
+        "progress": "Progress"
+      }
+    },
     "product": {
       "label": "Product",
       "scc-app": "SCC App",
