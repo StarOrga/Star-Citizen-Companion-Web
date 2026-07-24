@@ -437,6 +437,10 @@
       "copied": "Link kopiert",
       "failed": "Link konnte nicht kopiert werden"
     },
+    "videos": {
+      "title": "Neue Videos",
+      "watched": "Gesehen"
+    },
     "detail": {
       "close": "Schließen"
     },

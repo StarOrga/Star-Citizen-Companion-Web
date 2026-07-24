@@ -437,6 +437,10 @@
       "copied": "Link copied",
       "failed": "Couldn't copy link"
     },
+    "videos": {
+      "title": "Recent Videos",
+      "watched": "Watched"
+    },
     "detail": {
       "close": "Close"
     },

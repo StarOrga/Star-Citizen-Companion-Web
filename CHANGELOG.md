@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.46.0] - 2026-07-24
+
+### Added
+
+- **Verse News: recent-videos rail with hover-dwell "watched" tracking.** A
+  dedicated "Recent Videos" row surfaces the ~5 newest YouTube clips at the top
+  of Verse News. Resting the pointer on a clip for ~1.5 s — or opening it — marks
+  it "watched"; watched clips drop out of the rail on the next load so it stays
+  fresh with newer content, while the current view stays stable (a watched
+  snapshot keeps cards from reshuffling under the cursor). Watched state persists
+  per user in localStorage under the existing preference consent (#130). Videos
+  are removed from the default "Alle" stream to avoid showing each clip twice;
+  selecting the YouTube channel still lists them all. (news, #146)
+
 ## [0.45.0] - 2026-07-24
 
 ### Added

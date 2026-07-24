@@ -73,6 +73,10 @@ export interface BucketedNews {
 const POLL_INTERVAL_MS = 5 * 60 * 1000;
 const FILTER_STORAGE_KEY = 'sc-companion.news.channels';
 const FAVORITES_STORAGE_KEY = 'sc-companion.news.favorites';
+const WATCHED_STORAGE_KEY = 'sc-companion.news.watched';
+
+// How many recent videos the Verse News video rail surfaces at once (#146).
+const VIDEO_RAIL_SIZE = 5;
 
 const ALL_CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
 
@@ -100,6 +104,20 @@ export class NewsService {
     return f ? f.news.filter((n) => favs.has(n.id)).length : 0;
   });
 
+  // Videos the user has effectively "watched" (hover-dwell or open), persisted
+  // in localStorage so already-seen clips drop out of the rail over time (#146).
+  readonly watchedIds = signal<Set<string>>(this.loadWatchedFromStorage());
+
+  // All video items in the current feed, newest first — the pool the Verse News
+  // video rail draws its recent-unwatched slice from (#146).
+  readonly allVideos = computed<VerseNewsItem[]>(() => {
+    const f = this.feed();
+    if (!f) return [];
+    return f.news
+      .filter((n) => n.channel === 'youtube')
+      .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+  });
+
   // Items the user hasn't seen yet (newer than lastSeenAt) buffered for the "X neue Posts"-pill.
   private readonly _lastSeenAt = signal<number>(Date.now());
   readonly pendingCount = computed(() => {
@@ -117,7 +135,12 @@ export class NewsService {
       return bucketByTime(f.news.filter((n) => favs.has(n.id)));
     }
     const active = this.activeChannels();
-    const filtered = active.size === 0 ? f.news : f.news.filter((n) => active.has(n.channel));
+    // In the default "Alle" view videos have their own recent-videos rail
+    // (#146), so drop them from the stream to avoid showing each clip twice.
+    // Selecting the YouTube channel explicitly still lists every video here.
+    const filtered = active.size === 0
+      ? f.news.filter((n) => n.channel !== 'youtube')
+      : f.news.filter((n) => active.has(n.channel));
     return bucketByTime(filtered);
   });
 
@@ -185,6 +208,23 @@ export class NewsService {
   /** Switch the stream between "all channels" and "saved only". */
   toggleFavoritesOnly(): void {
     this.favoritesOnly.update((v) => !v);
+  }
+
+  isWatched(id: string): boolean {
+    return this.watchedIds().has(id);
+  }
+
+  /**
+   * Mark a video "watched" (hover-dwell threshold reached, or opened). Persisted
+   * so it drops out of the recent-videos rail on subsequent loads (#146). Idempotent.
+   */
+  markWatched(id: string): void {
+    const current = this.watchedIds();
+    if (current.has(id)) return;
+    const next = new Set(current);
+    next.add(id);
+    this.watchedIds.set(next);
+    this.persistWatched(next);
   }
 
   startPolling(): void {
@@ -255,6 +295,43 @@ export class NewsService {
       localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(Array.from(set)));
     } catch { /* quota / private mode */ }
   }
+
+  private loadWatchedFromStorage(): Set<string> {
+    if (typeof localStorage === 'undefined') return new Set();
+    try {
+      const raw = localStorage.getItem(WATCHED_STORAGE_KEY);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? new Set(arr.filter((x): x is string => typeof x === 'string')) : new Set();
+    } catch {
+      return new Set();
+    }
+  }
+
+  private persistWatched(set: Set<string>): void {
+    // Preference-category storage is opt-in (#130) — skip until allowed.
+    if (!this.consent.preferencesAllowed()) return;
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(WATCHED_STORAGE_KEY, JSON.stringify(Array.from(set)));
+    } catch { /* quota / private mode */ }
+  }
+}
+
+/**
+ * Pure selector for the Verse News video rail (#146): the newest `limit` videos
+ * the user hasn't watched yet. The caller passes a `watched` snapshot rather than
+ * the live set so freshly-dwelled clips don't reshuffle out from under the cursor
+ * — they only drop on the next load. Falls back to the newest videos when every
+ * candidate is already watched, so the rail never renders empty while videos exist.
+ */
+export function pickRecentVideos(
+  videos: VerseNewsItem[],
+  watched: Set<string>,
+  limit = VIDEO_RAIL_SIZE,
+): VerseNewsItem[] {
+  const unseen = videos.filter((v) => !watched.has(v.id));
+  return (unseen.length > 0 ? unseen : videos).slice(0, limit);
 }
 
 function bucketByTime(items: VerseNewsItem[]): BucketedNews {

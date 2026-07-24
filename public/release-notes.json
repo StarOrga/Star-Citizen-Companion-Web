@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.44.2",
+  "current": "0.45.0",
   "releases": [
+    {
+      "version": "0.45.0",
+      "date": "2026-07-24",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Starscape desktop builds are now tracked in desktop_releases.",
+              "text": "The wallpaper-app (Starscape) registers alongside the data-uploader via a new product discriminator, and the Starscape gallery page shows the current build version + a hash-verified download resolved through the public starscape_latest_release() RPC — falling back to the never-stale wallpaper-app-latest alias so the button always works. The CI prints the register SQL on a tagged release for a reproducible flow. Ships wallpaper-app 0.3.2 (the low-resolution-source skip, #199). (starscape)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.44.3",
+      "date": "2026-07-24",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Feedback panel: guided one-at-a-time answer flow.",
+              "text": "In the embedded feedback panel the overview now opens only the first still-unanswered Rückfrage instead of expanding every open question at once. Answering a question folds it away (animated height/opacity collapse), lets it bubble to the top, and opens the next unanswered question, scrolling it into view — so working through the admin's open questions reads as a guided flow rather than a wall of open threads. The full-screen board is unchanged (every card stays open there). (admin-feedback)"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.44.2",
       "date": "2026-07-24",
