@@ -89,6 +89,19 @@
       "empty": {
         "title": "Nichts Kommendes",
         "body": "Jedes von RSI gelistete Schiff steckt bereits in den Spieldaten — keine Differenz anzuzeigen."
+      },
+      "searchPlaceholder": "Schiff, Hersteller oder Rolle suchen…",
+      "searchAria": "Kommende Schiffe durchsuchen",
+      "searchClear": "Suche zurücksetzen",
+      "favoritesOnly": "Nur Favoriten",
+      "favorite": {
+        "add": "Zu Favoriten hinzufügen",
+        "remove": "Aus Favoriten entfernen"
+      },
+      "newBadge": "Neu",
+      "noMatches": {
+        "title": "Keine Treffer",
+        "body": "Kein kommendes Schiff passt zu Suche und Filter — Suchbegriff kürzen oder Favoritenfilter lösen."
       }
     },
     "categoriesAria": "Codex-Kategorien",
@@ -453,6 +466,15 @@
       "yesterday": "gestern",
       "days": "vor {{n}} Tagen",
       "weeks": "vor {{n}} Wochen"
+    },
+    "upcomingShips": {
+      "title": "Kommende Schiffe",
+      "addedOne": "1 neues Schiff in der Schiffsmatrix",
+      "addedMany": "{{count}} neue Schiffe in der Schiffsmatrix",
+      "favoritesUpdated": "{{count}} deiner Favoriten haben einen neuen Status",
+      "more": "+{{count}} weitere",
+      "open": "Kommende Schiffe öffnen",
+      "dismiss": "Hinweis ausblenden"
     }
   },
   "p4k": {
