@@ -16,6 +16,7 @@ import log from 'electron-log';
 import {
   signCrashRequest,
   normaliseOs,
+  toCrashInput,
   type CrashInput,
   type TelemetryMeta,
 } from '../lib/telemetry.js';
@@ -91,6 +92,21 @@ export async function reportCrash(crash: CrashInput): Promise<boolean> {
     log.debug(`[telemetry] send failed: ${err instanceof Error ? err.message : String(err)}`);
     return false;
   }
+}
+
+/**
+ * Report a HANDLED, non-fatal error — an upload/extract/skin failure the UI
+ * already shows the operator but that was previously never telemetried, so the
+ * dashboard read 0 errors while operators hit them (issue #212). Same signed
+ * wire path as reportCrash (server buckets it by `errorType`); best-effort,
+ * honours the opt-out, and never throws.
+ */
+export async function reportError(
+  errorType: string,
+  err: unknown,
+  extra?: Record<string, unknown> | null,
+): Promise<boolean> {
+  return reportCrash(toCrashInput(errorType, err, extra));
 }
 
 /** Guard against reporting during app shutdown when the network is torn down. */
