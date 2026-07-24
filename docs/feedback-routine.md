@@ -41,6 +41,70 @@ to steer the routine (the gap behind the per-topic chat,
 who owns the board. `rejected` survives only as a legacy status on old rows;
 the routine leaves those untouched.
 
+## Scope: the whole project, not just the web app
+
+Feedback can target **any** part of the project and the routine ships all of it —
+not only the Angular web app. The binaries for the desktop apps live in other
+repos, but the source and the feedback live here, so they are **in scope**. Each
+area has its own verify + release path; use the one(s) the change touches:
+
+| Area | Verify (the gate) | Release / deploy |
+|------|-------------------|------------------|
+| **Web app** (`src/`, `public/`) | root `npm run typecheck && npm run build && npm test` | PR → squash-merge; Vercel auto-deploys on main-push |
+| **Data-uploader** (`data-uploader/`, Electron) | `cd data-uploader && npm ci && npm run typecheck && npm run build && npm test` (nested project — needs its own `npm ci`) | after merge, tag `data-uploader-v<ver>` → `data-uploader-build.yml` builds the binary → register the `desktop_releases` row (`/devops-ship` rule 5 + `.claude/deep-knowledge/data-uploader-release.md`) |
+| **Wallpaper-app / Starscape** (`wallpaper-app/`, Rust) | **no cargo in the routine env** — do NOT try `cargo build` locally; the gate is a **green CI build** | after merge, push the tag so `wallpaper-app-build.yml` builds + publishes the binary; watch that run |
+| **Supabase migrations** (`supabase/migrations/`) | additive change → apply headless `npm run db:push`; a **destructive** migration (drop/rename/data-loss) is a review-hold, never an auto-apply | `db push` to the cloud project IS the deploy — run it after/with the merge |
+| **Supabase edge functions** (`supabase/functions/`) | deploy is the test: `npm run functions:deploy` (or `supabase functions deploy <name>`; CLI creds are stored) | the deploy after merge |
+
+**Native builds go through CI, not the routine's machine.** The routine env has
+Node + the Supabase CLI but **not** the Rust toolchain. So for Rust/Starscape the
+routine must NOT self-certify locally — merge the source change and let the
+existing `*-build.yml` workflow build the binary, watching that run as the gate.
+This replaces the old failure where `a5783bed` (a wallpaper-app change) was
+parked as a bare "no cargo toolchain" review-PR instead of being built by CI.
+
+**Out-of-band deploys don't ride the merge.** A migration or edge function is NOT
+live just because the PR merged — `db push` / `functions deploy` run separately
+(the ship pre-flight flags these paths). Finish the deploy, then mark `shipped`.
+
+## Bias to action — don't park what you can sensibly default
+
+`needs_input` is expensive: it bounces the topic back to the admin and stalls it
+for a cadence cycle or days. The admin's answer is very often just "ja, genau,
+mach" — meaning defaulting-and-shipping would have been right. So the routine's
+bias is to **decide and ship**, and to park only when it genuinely must:
+
+- **Just do it** (implement + ship on a sensible default, note the choice in the
+  PR): obvious UX/polish, a clearly-worded feature, a small A/B where one option
+  is the reasonable default, wording/i18n/layout — anything a normal follow-up
+  PR could reverse. If you'd only be asking to hear "yes", don't ask: ship it and
+  say what you chose.
+- **Park as `needs_input`** (a real question): a genuinely irreversible or risky
+  call — auth / RLS / secrets / payment, a **destructive** DB migration, deleting
+  user data; a real fork where the wrong pick is expensive to undo and no sensible
+  default exists; or a missing external resource the routine can't supply (e.g. a
+  readme.io API key).
+- **Suspected noise**: park `needs_input` with "looks like a duplicate/spam —
+  delete it if you agree"; the admin owns the discard.
+
+When torn between asking and defaulting, prefer the default and keep the change
+easy to revert. A reversible wrong guess costs one follow-up PR; an unnecessary
+question costs a day.
+
+## Concurrency: one isolated worktree per run
+
+Runs overlap (cron ~every 20 min; a run can outlast that). The atomic claim
+(per-item `status` lock) stops two runs implementing the *same* item — but it
+does **not** stop them colliding in a **shared git checkout**: two runs editing,
+branching, or `git checkout`-ing the same working tree corrupt each other's
+uncommitted work (observed 2026-07-24: one run's RSI-upcoming edits landed on
+another run's docs branch). So **each run works in its own isolated git
+worktree**, not the shared primary checkout — create/enter a per-run worktree, do
+all edits/build/commit/ship there, and leave the primary checkout as the clean
+base. (This reverses the earlier "work on the primary checkout" guidance, which
+was the direct cause of the collision — see the
+`feedback-routine-shared-checkout-collision` memory / PR #204→#206.)
+
 ## Resuming interrupted work (stale-claim reaper)
 
 The routine's queue is `status = 'open'` only. That means a run which claims
@@ -231,17 +295,27 @@ For each `open` row (process independently, most-recent context wins):
    **nothing** → fresh branch off `main`. Then implement, following repo
    conventions (CLAUDE.md): standalone components, signals, OnPush,
    ngx-translate for all strings, no keys in the bundle.
-4. **Verify (the safety net).** Run in order — all must pass:
-   - `npm run typecheck`
-   - `npm run build`
-   - `npm test`
+4. **Verify (the safety net).** Run the verify path(s) for the **area(s) the
+   change touches** (see the Scope table) — not just root npm. A web change is
+   `npm run typecheck && npm run build && npm test`; a data-uploader change also
+   runs `cd data-uploader && npm ci && npm run typecheck && npm run build &&
+   npm test`; a Rust/Starscape change is verified by a **green CI build** (no
+   local cargo); a migration/function is verified by its headless apply/deploy.
+   All gates relevant to the change must pass.
 5. **Ship decision:**
-   - **All green** → open a PR and auto-merge it to `main` (never force-push).
-     On merge: `update admin_feedback set status='shipped', shipped_at=now(),
+   - **All green** → open a PR and auto-merge to `main` (never force-push). Then
+     run any **out-of-band deploy** the change needs — `npm run db:push` for a
+     migration, `npm run functions:deploy` for an edge function, push the
+     `*-v<ver>` tag so CI builds the desktop binary + register `desktop_releases`
+     (`/devops-ship` does this end-to-end). Only once the deploy is done:
+     `update admin_feedback set status='shipped', shipped_at=now(),
      ship_ref='<PR url>', processed_at=now(), processing_note=null where id=<id>`.
-   - **Any red / non-trivial risk** → open a PR for manual review, leave
-     `status='in_progress'`, set `ship_ref='<PR url>'` and
-     `processing_note='build/tests red — needs manual review'`.
+   - **Red, or a genuinely risky/irreversible call** (auth/RLS/secrets/payment, a
+     destructive migration, data deletion) → don't auto-ship; open a PR for manual
+     review, leave `status='in_progress'`, set `ship_ref='<PR url>'` + a
+     `processing_note`. `in_progress` is only ever valid **with** a `ship_ref` (a
+     real review-hold) — never leave a bare `in_progress` (it jams the reaper +
+     the oldest-first queue; see the reaper section).
 6. Never touch rows already `shipped` or `rejected`.
 
 ## Per-topic chat: `needs_input` + system replies
@@ -299,13 +373,16 @@ ship, `status='shipped'`), ask a follow-up (post another system reply, stay
   ship goes to `needs_input` with a system reply; the admin keeps steering or
   deletes.
 - One branch + PR per feedback item, so each ships/reverts independently.
-- If an item would touch auth, RLS, secrets, or payment paths → do **not**
-  auto-ship; open a PR and leave `in_progress` for human review.
+- If an item would touch auth, RLS, secrets, or payment paths, or apply a
+  **destructive** migration (drop/rename/data-loss) → do **not** auto-ship; open a
+  PR and leave `in_progress` (with its `ship_ref`) for human review. Everything
+  else the routine can sensibly default → ship it (see "Bias to action").
 - Batch cap: if more than ~10 open items exist, process the oldest 10 and leave
   the rest `open` for the next run.
-- **Overlapping runs are expected** — the task fires every ~20 min, and a run
-  that processes several items can outlast that interval. The atomic claim in
-  step 1 is the *only* concurrency guard; there is no external lock.
+- **Overlapping runs are expected** — the task fires every ~20 min and a run can
+  outlast that. The atomic per-item claim stops two runs taking the *same* item,
+  but it does **not** prevent shared-checkout corruption: each run works in its
+  own isolated worktree (see "Concurrency: one isolated worktree per run").
 
 ## Data model reference
 
