@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.46.3",
+  "current": "0.46.4",
   "releases": [
+    {
+      "version": "0.46.4",
+      "date": "2026-07-24",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Feedback panel — visible per-card boxing in the FAB panel (cfa46ac2).",
+              "text": "In the embedded feedback panel each topic card shared the exact same bg-2 → bg-1 gradient as the panel behind it, so the individual feedbacks blended together and the separation was hard to read. Embedded cards now sit on the more prominent --sc-bg-3 surface with a clearer border + subtle shadow, so every feedback reads as its own boxed area again. Full-page board unchanged."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.46.3",
       "date": "2026-07-24",
