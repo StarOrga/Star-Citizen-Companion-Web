@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.44.2] - 2026-07-24
+
+### Changed
+
+- **Feedback panel: topics collapse to dated one-liners.** In the embedded
+  feedback panel each topic now reads as a single clickable row — chevron ·
+  generated title · author · status — instead of a two-line head plus preview.
+  Active topics are grouped under non-interactive day headings (Today /
+  Yesterday / date), and the per-row timestamp is dropped in the panel since the
+  heading already carries the date; the full-screen board keeps its author and
+  timestamp. The title is derived from the topic body so it is always available.
+  (admin-feedback)
+
 ## [0.44.1] - 2026-07-24
 
 ### Removed
