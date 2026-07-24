@@ -16,7 +16,22 @@ export interface Wallpaper {
   publishedAt: string | null;
 }
 
+/** The registered latest Starscape desktop build (from `starscape_latest_release`). */
+export interface StarscapeRelease {
+  version: string;
+  downloadUrl: string;
+  sha256: string | null;
+  sizeBytes: number | null;
+}
+
 const PAGE_SIZE = 24;
+
+/** Platform entry shape inside `desktop_releases.platforms` for the win-x64 exe. */
+interface PlatformAsset {
+  url?: string;
+  sha256?: string;
+  size_bytes?: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class StarscapeService {
@@ -36,6 +51,36 @@ export class StarscapeService {
   });
 
   readonly hasMore = computed(() => this.wallpapers().length < this.total());
+
+  /**
+   * The registered latest Starscape desktop build, or null until loaded / when no
+   * row is registered. When null the download CTA falls back to the fixed
+   * `wallpaper-app-latest` alias URL, so the button always works.
+   */
+  readonly desktopRelease = signal<StarscapeRelease | null>(null);
+
+  /** Resolve the current Starscape build via the public `starscape_latest_release` RPC. */
+  async loadDesktopRelease(): Promise<void> {
+    try {
+      const { data, error } = await this.sb.client.rpc('starscape_latest_release');
+      if (error) return; // silent — CTA keeps the fixed-URL fallback
+      const row = (Array.isArray(data) ? data[0] : data) as
+        | { version?: string; platforms?: Record<string, PlatformAsset> }
+        | null
+        | undefined;
+      const platforms = row?.platforms ?? {};
+      const win = platforms['win-x64'] ?? Object.values(platforms)[0];
+      if (!row?.version || !win?.url) return;
+      this.desktopRelease.set({
+        version: row.version,
+        downloadUrl: win.url,
+        sha256: win.sha256 ?? null,
+        sizeBytes: win.size_bytes ?? null,
+      });
+    } catch {
+      /* ignore — the fixed-URL fallback covers it */
+    }
+  }
 
   async load(reset = false): Promise<void> {
     if (this.loading()) return;
