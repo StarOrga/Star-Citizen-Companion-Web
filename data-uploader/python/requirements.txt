@@ -12,22 +12,26 @@
 scdatatools==1.0.4
 
 # scdatatools imports these at module load even on the leaf p4k/forge path, so
-# they must be installed for `from scdatatools.p4k import P4KFile` to succeed:
-python-nubia==0.2b5
-pyquaternion==0.9.9
-pycryptodome==3.23.0   # Crypto.Cipher.AES — transparent P4K entry decryption
-xxhash==3.7.0
-sentry-sdk==2.61.0
+# they must be installed for `from scdatatools.p4k import P4KFile` to succeed.
+#
+# ⚠ TRANSITIVE deps below: their versions are dictated by scdatatools 1.0.4's own
+# metadata (scdatatools.egg-info/requires.txt), NOT free to pick. #200 blanket-
+# pinned them to latest, violating scdatatools's `~=` ranges → `pip install -r
+# requirements.txt` became unsolvable and every data-uploader-v* tag build failed
+# at fetch-embedded-python (the CI test jobs never install requirements.txt, so
+# it stayed invisible). Keep each within scdatatools 1.0.4's range; to lift any,
+# bump scdatatools. Embedded Python is 3.10.x. See
+# .claude/deep-knowledge/data-uploader-python.md.
+python-nubia==0.2b5    # scdatatools: python_nubia~=0.2b2
+pyquaternion==0.9.9    # scdatatools: pyquaternion~=0.9.9
+pycryptodome==3.12.0   # scdatatools: pycryptodome~=3.12.0 — Crypto.Cipher.AES
+xxhash==2.0.2          # scdatatools: xxhash~=2.0.2
+sentry-sdk==1.5.8      # scdatatools: sentry-sdk==1.5.8 (exact)
+zstandard==0.12.0      # scdatatools: zstandard~=0.12.0 — P4K zstd entries
+numpy==1.21.6          # scdatatools: numpy~=1.21.5; last 1.21.x with a cp310 wheel
+
+# Our own direct deps — NOT required by scdatatools, so free to pin/update:
 rsa==4.9.1
 cryptography==47.0.0   # AES-backed P4K decryption — pinned; supply-chain sensitive
-zstandard==0.25.0      # P4K entries are zstd-compressed
 lz4==4.4.5
 Pillow==11.0.0         # DDS → PNG icon conversion (icons currently deferred)
-# scdatatools 1.0.4 requires numpy~=1.21.5 (>=1.21.5,<1.22). The embedded Python
-# is 3.10.x, whose last compatible numpy is 1.21.6 (cp310 wheel exists; numpy's
-# Requires-Python is >=3.7,<3.11). numpy 2.x — pinned here in error by #200 —
-# makes `pip install -r requirements.txt` unsolvable at build time and silently
-# breaks every tag build (the CI test jobs don't install requirements.txt, so it
-# stayed invisible until a data-uploader-v* tag). See
-# .claude/deep-knowledge/data-uploader-python.md.
-numpy==1.21.6
