@@ -4,7 +4,6 @@ import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexKind } from './codex.service';
 import { HARDPOINT_CATEGORY_ORDER, HardpointCategory } from './codex-format';
-import { CodexCategoryIconComponent } from './codex-category-icon.component';
 
 // One labelled slot in the read-only layout (Rung 1): the port, what the
 // stock loadout installs there, and where to jump on click.
@@ -30,33 +29,25 @@ const LEFT_CATEGORIES: HardpointCategory[] = ['weapons', 'missiles', 'avionics']
 const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion'];
 
 /**
- * Read-only hardpoint layout (loadout ladder Rung 1): the ship silhouette
- * with the stock loadout as labelled slot clusters docked around it. No
- * positional port data exists in the extract, so clusters are grouped by
- * functional category — an honest schematic, not an invented blueprint.
- * Opening a slot navigates to the installed item's detail page.
+ * Read-only hardpoint layout (loadout ladder Rung 1): the stock loadout as
+ * labelled slot clusters in two columns. No positional port data exists in
+ * the extract, so clusters are grouped by functional category — an honest
+ * schematic, not an invented blueprint. Opening a slot navigates to the
+ * installed item's detail page. The ship render deliberately stays out of
+ * this block; the detail hero above already shows it.
  */
 @Component({
   selector: 'sc-codex-hardpoint-layout',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, TranslateModule, CodexCategoryIconComponent],
+  imports: [NgTemplateOutlet, RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="layout" [class.no-art]="!artUrl()">
+    <div class="layout">
       <div class="col left">
         @for (g of leftGroups(); track g.category) {
           <ng-container *ngTemplateOutlet="cluster; context: { $implicit: g, side: 'left' }" />
         }
       </div>
-
-      <figure class="silhouette" aria-hidden="true">
-        @if (artUrl(); as src) {
-          <img [src]="src" [alt]="alt()" loading="lazy" />
-        } @else {
-          <sc-codex-icon class="sil-icon" kind="ship" [sub]="null" />
-        }
-        <span class="scanline"></span>
-      </figure>
 
       <div class="col right">
         @for (g of rightGroups(); track g.category) {
@@ -122,32 +113,11 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
     :host { display: block; }
     .layout {
       display: grid; gap: 14px; align-items: start;
-      grid-template-columns: minmax(0, 1fr) minmax(200px, 320px) minmax(0, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .bottom { grid-column: 1 / -1; display: grid; gap: 14px;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
     .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-
-    .silhouette {
-      position: relative; margin: 0; align-self: stretch; min-height: 220px;
-      display: flex; align-items: center; justify-content: center;
-      border-radius: 10px; border: 1px solid color-mix(in srgb, var(--sc-accent) 22%, transparent);
-      background:
-        radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--sc-accent) 10%, var(--sc-bg-1)), var(--sc-bg-0));
-      overflow: hidden;
-    }
-    .silhouette img { max-width: 92%; max-height: 260px; object-fit: contain;
-      filter: drop-shadow(0 4px 18px rgba(0,0,0,0.6)); }
-    .sil-icon { width: 60%; height: 60%; opacity: 0.6; }
-    /* One calm scan line — atmosphere in the frame, never over a number. */
-    .scanline { position: absolute; inset: 0; pointer-events: none;
-      background: linear-gradient(180deg, transparent 0%,
-        color-mix(in srgb, var(--sc-accent) 7%, transparent) 50%, transparent 100%);
-      background-size: 100% 46px; background-repeat: repeat-y; opacity: 0.5; }
-    @media (prefers-reduced-motion: no-preference) {
-      .scanline { animation: hl-scan 7s linear infinite; }
-      @keyframes hl-scan { from { background-position-y: 0; } to { background-position-y: 46px; } }
-    }
 
     .cluster { border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border);
       padding: 10px 12px; position: relative; }
@@ -185,7 +155,6 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
 
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
-      .silhouette { order: -1; min-height: 160px; }
       .cluster[data-side="left"], .cluster[data-side="right"] { border-left: none; border-right: none; }
     }
   `],
@@ -193,9 +162,6 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
 export class CodexHardpointLayoutComponent {
   /** Loadout slots grouped by functional category (display order applied here). */
   readonly groups = input.required<LayoutGroup[]>();
-  /** Ship render (WebP) — falls back to the ship category icon. */
-  readonly artUrl = input<string | null>(null);
-  readonly alt = input('');
   /** A filled slot's ⇄ was clicked — the parent opens the swap-preview dock. */
   readonly swapRequested = output<LayoutSlot>();
 

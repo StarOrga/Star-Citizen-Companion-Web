@@ -334,8 +334,6 @@ interface LoadoutGroup {
             <p class="hint">{{ 'codex.detail.layoutHint' | translate }}</p>
             <sc-codex-hardpoint-layout
               [groups]="layoutGroups()"
-              [artUrl]="previewUrl()"
-              [alt]="displayName()"
               (swapRequested)="openSwapDock($event)" />
             @if (swapSlot()) {
               <sc-codex-swap-dock class="swap-host" [slot]="swapSlot()" (closed)="swapSlot.set(null)" />
