@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.43.0",
+  "current": "0.44.0",
   "releases": [
+    {
+      "version": "0.44.0",
+      "date": "2026-07-24",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex: Upcoming Ships.",
+              "text": "A new public view under the Codex lists ships announced on the public RSI ship-matrix that aren't in our datamined game data yet — the difference between what RSI lists and what the live build holds. A periodic edge function (rsi-upcoming-ships) scrapes the matrix and diffs it against the uploader-ingested ships (codex_ships), splitting the result into \"In concept\" and \"Flight-ready on RSI\" blocks; cards deep-link to RSI. (codex)"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.43.0",
       "date": "2026-07-23",
