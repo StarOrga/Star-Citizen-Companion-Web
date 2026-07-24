@@ -21,12 +21,14 @@ import { CelebrationService } from './celebration.service';
 import { FeedbackDashboardComponent } from './feedback-dashboard.component';
 import { FeedbackWorkflowComponent } from './feedback-workflow.component';
 import {
+  FeedbackBucket,
   FeedbackMessage,
   FeedbackRow,
   FeedbackStatus,
   buildWorkflowQueue,
+  bucketLabelStatus,
+  feedbackBucket,
   isArchived,
-  isAwaitingAdmin,
   refKind,
   topicTitle,
 } from './feedback.types';
@@ -45,7 +47,8 @@ export type BoardTab = 'active' | 'archive';
 interface TocEntry {
   id: string;
   label: string;
-  status: FeedbackStatus;
+  /** Presentation bucket (ToDo / Rückfrage / in progress …), not the raw status. */
+  bucket: FeedbackBucket;
   /** needs_input topic whose newest reply is the routine's → the admin still owes an answer. */
   awaitingAdmin: boolean;
 }
@@ -212,25 +215,25 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                 {{ 'adminFeedback.statusFilter.all' | translate }}
               </button>
               @if (boardTab() === 'active') {
-                @if (statusCounts().needs_input > 0) {
+                @if (bucketCounts().awaiting_admin > 0) {
                   <button
                     type="button"
                     class="status-chip needs_input"
-                    [class.active]="statusFilter() === 'needs_input'"
-                    (click)="setStatusFilter('needs_input')">
+                    [class.active]="statusFilter() === 'awaiting_admin'"
+                    (click)="setStatusFilter('awaiting_admin')">
                     {{ 'adminFeedback.status.needs_input' | translate }}
                   </button>
                 }
-                @if (statusCounts().open > 0) {
+                @if (bucketCounts().todo > 0) {
                   <button
                     type="button"
                     class="status-chip open"
-                    [class.active]="statusFilter() === 'open'"
-                    (click)="setStatusFilter('open')">
+                    [class.active]="statusFilter() === 'todo'"
+                    (click)="setStatusFilter('todo')">
                     {{ 'adminFeedback.status.open' | translate }}
                   </button>
                 }
-                @if (statusCounts().in_progress > 0) {
+                @if (bucketCounts().in_progress > 0) {
                   <button
                     type="button"
                     class="status-chip in_progress"
@@ -240,7 +243,7 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                   </button>
                 }
               } @else {
-                @if (statusCounts().shipped > 0) {
+                @if (bucketCounts().shipped > 0) {
                   <button
                     type="button"
                     class="status-chip shipped"
@@ -249,7 +252,7 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                     {{ 'adminFeedback.status.shipped' | translate }}
                   </button>
                 }
-                @if (statusCounts().issue_created > 0) {
+                @if (bucketCounts().issue_created > 0) {
                   <button
                     type="button"
                     class="status-chip issue_created"
@@ -258,7 +261,7 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                     {{ 'adminFeedback.status.issue_created' | translate }}
                   </button>
                 }
-                @if (statusCounts().rejected > 0) {
+                @if (bucketCounts().rejected > 0) {
                   <button
                     type="button"
                     class="status-chip rejected"
@@ -356,6 +359,17 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
       </div>
       }
 
+      <!-- Status pills of one topic. The presentation bucket decides the label,
+           not the raw status: an answered Rückfrage reads as ToDo (the routine
+           has to pick it up again) and only keeps the small "beantwortet" marker
+           next to it, which says who acted last (feedback 34c44134). -->
+      <ng-template #pills let-m>
+        <span class="status-pill" [class]="bucketLabel(m)">{{ ('adminFeedback.status.' + bucketLabel(m)) | translate }}</span>
+        @if (isAnsweredAwaitingRoutine(m)) {
+          <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
+        }
+      </ng-template>
+
       <ng-template #msgCard let-m>
         <article class="msg sc-card" [id]="cardDomId(m.id)" [class.is-self]="m.author_id === selfId()">
           @if (embedded()) {
@@ -372,24 +386,13 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
               <span class="chev" [class.open]="isExpanded(m.id)">▸</span>
               <span class="topic-title">{{ topicTitle(m.body) }}</span>
               <span class="row-author">{{ authorLabel(m) }}</span>
-              @if (isAnsweredAwaitingRoutine(m)) {
-                <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
-              } @else {
-                <span class="status-pill" [class]="m.status">{{ ('adminFeedback.status.' + m.status) | translate }}</span>
-              }
+              <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
             </button>
           } @else {
             <div class="msg-head">
               <span class="author">{{ authorLabel(m) }}</span>
               <span class="ts">{{ m.created_at | date:'short' }}</span>
-              @if (isAnsweredAwaitingRoutine(m)) {
-                <!-- The admin replied to a Rückfrage: mark it distinctly as
-                     "answered — awaiting the routine" so it reads apart from a
-                     needs_input topic that is still waiting for the admin. -->
-                <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
-              } @else {
-                <span class="status-pill" [class]="m.status">{{ ('adminFeedback.status.' + m.status) | translate }}</span>
-              }
+              <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
             </div>
           }
 
@@ -875,6 +878,9 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
          needs_input topic still waiting on the admin). */
       &.answered { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; }
     }
+    /* A second pill (the "beantwortet" marker) trails the bucket pill instead of
+       being pushed to the far edge by another margin-left: auto. */
+    .status-pill + .status-pill { margin-left: 0; }
 
     .msg-body {
       font-size: 0.92rem;
@@ -1120,13 +1126,29 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /**
+   * The presentation bucket of a topic — the board's one bucketing rule (see
+   * {@link feedbackBucket}). Every view here (filter chips, counts, list,
+   * pills, TOC) goes through this, so an answered Rückfrage is consistently
+   * treated as ToDo instead of each view deciding for itself.
+   */
+  bucketOf(m: FeedbackRow): FeedbackBucket {
+    return feedbackBucket(m, this.threads().get(m.id));
+  }
+
+  /** The status vocabulary a topic's bucket is labelled and coloured with. */
+  bucketLabel(m: FeedbackRow): FeedbackStatus {
+    return bucketLabelStatus(this.bucketOf(m));
+  }
+
+  /**
    * True when the admin has answered a Rückfrage and the topic is now waiting on
-   * the routine: status is `needs_input` and the newest thread reply is human
-   * (not a system/routine message). Drives the distinct "Answered" pill so the
-   * admin can tell "I already replied" apart from "still needs my input".
+   * the routine: status is `needs_input` but the newest thread reply is human,
+   * so the bucket already flipped to ToDo. Drives the small extra "beantwortet"
+   * marker next to the ToDo pill — the topic is back on the routine's pile, the
+   * marker only records that the admin's part is done.
    */
   isAnsweredAwaitingRoutine(m: FeedbackRow): boolean {
-    return m.status === 'needs_input' && !isAwaitingAdmin(m, this.threads().get(m.id));
+    return m.status === 'needs_input' && this.bucketOf(m) === 'todo';
   }
 
   /**
@@ -1149,7 +1171,7 @@ export class AdminFeedbackComponent implements OnInit {
 
   /**
    * Switch the overview's Active/Archive tab. The status chips differ per tab
-   * (active: open / in_progress / needs_input, archive: shipped /
+   * (active: ToDo / in_progress / awaiting_admin, archive: shipped /
    * issue_created / rejected), so a selection carried across would filter
    * everything away — clear it.
    */
@@ -1188,37 +1210,36 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /**
-   * Status quick-filter: narrow the active board to a single status (or null for
-   * all active topics). Pairs with the author filter — both AND-narrow the list
-   * and the quick-access TOC. The `needs_input` filter is the important one: it
-   * surfaces exactly the Rückfragen the admin still has to answer (feedback
-   * 69f3f015).
+   * Status quick-filter: narrow the active board to a single presentation bucket
+   * (or null for all active topics). Pairs with the author filter — both
+   * AND-narrow the list and the quick-access TOC. The `awaiting_admin` filter is
+   * the important one: it surfaces exactly the Rückfragen the admin still has to
+   * answer (feedback 69f3f015) — an already-answered one sits in ToDo instead,
+   * where the routine will pick it up (feedback 34c44134).
    */
-  readonly statusFilter = signal<FeedbackStatus | null>(null);
+  readonly statusFilter = signal<FeedbackBucket | null>(null);
 
-  setStatusFilter(s: FeedbackStatus | null): void {
-    this.statusFilter.update((cur) => (cur === s ? null : s));
+  setStatusFilter(b: FeedbackBucket | null): void {
+    this.statusFilter.update((cur) => (cur === b ? null : b));
   }
 
   private matchesStatus(m: FeedbackRow): boolean {
     const f = this.statusFilter();
-    return f === null || m.status === f;
+    return f === null || this.bucketOf(m) === f;
   }
 
-  /** Per-status topic counts (author-filtered) backing the status filter chips. */
-  readonly statusCounts = computed(() => {
-    const counts = {
-      open: 0,
+  /** Per-bucket topic counts (author-filtered) backing the status filter chips. */
+  readonly bucketCounts = computed(() => {
+    const counts: Record<FeedbackBucket, number> = {
+      todo: 0,
+      awaiting_admin: 0,
       in_progress: 0,
-      needs_input: 0,
       shipped: 0,
       issue_created: 0,
       rejected: 0,
     };
     for (const m of this.messages()) {
-      if (this.matchesAuthor(m) && m.status in counts) {
-        counts[m.status as keyof typeof counts]++;
-      }
+      if (this.matchesAuthor(m)) counts[this.bucketOf(m)]++;
     }
     return counts;
   });
@@ -1228,7 +1249,8 @@ export class AdminFeedbackComponent implements OnInit {
    * the status filter just picks a view, so the headline numbers stay stable as
    * the admin flips between chips). Feedback 605d317d: show only the numbers that
    * feel good — open Rückfragen still to answer + how many topics shipped — and
-   * deliberately omit "In Arbeit".
+   * deliberately omit "In Arbeit". Only Rückfragen still waiting on the admin
+   * are counted; answered ones moved to ToDo (feedback 34c44134).
    */
   readonly motivatingStats = computed(() => {
     let rueckfragen = 0;
@@ -1236,9 +1258,10 @@ export class AdminFeedbackComponent implements OnInit {
     let issues = 0;
     for (const m of this.messages()) {
       if (!this.matchesAuthor(m)) continue;
-      if (m.status === 'needs_input') rueckfragen++;
-      else if (m.status === 'shipped') shipped++;
-      else if (m.status === 'issue_created') issues++;
+      const bucket = this.bucketOf(m);
+      if (bucket === 'awaiting_admin') rueckfragen++;
+      else if (bucket === 'shipped') shipped++;
+      else if (bucket === 'issue_created') issues++;
     }
     return { rueckfragen, shipped, issues };
   });
@@ -1342,12 +1365,15 @@ export class AdminFeedbackComponent implements OnInit {
    * the status filter.
    */
   readonly tocEntries = computed<TocEntry[]>(() =>
-    this.activeMessages().map((m) => ({
-      id: m.id,
-      label: this.shortLabel(m.body),
-      status: m.status,
-      awaitingAdmin: m.status === 'needs_input' && !this.isAnsweredAwaitingRoutine(m),
-    })),
+    this.activeMessages().map((m) => {
+      const bucket = this.bucketOf(m);
+      return {
+        id: m.id,
+        label: this.shortLabel(m.body),
+        bucket,
+        awaitingAdmin: bucket === 'awaiting_admin',
+      };
+    }),
   );
 
   /** How many topics still await the admin's answer — drives the TOC lead label. */

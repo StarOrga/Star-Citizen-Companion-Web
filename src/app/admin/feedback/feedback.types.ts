@@ -114,6 +114,72 @@ export function isAwaitingAdmin(row: FeedbackRow, replies: readonly FeedbackMess
   return !last || last.is_system;
 }
 
+// ---- Presentation buckets -------------------------------------------------
+
+/**
+ * The bucket a topic is *presented* in. This is the board's display vocabulary
+ * and deliberately not the same thing as the DB status: `needs_input` splits in
+ * two, because the two halves mean opposite things for the admin.
+ *
+ * - `awaiting_admin` — a Rückfrage the routine asked and nobody answered yet:
+ *   the ball is with the admin.
+ * - `todo` — everything the *routine* still has to pick up. That is every
+ *   untouched `open` topic **and** an already-answered Rückfrage (feedback
+ *   34c44134): once the admin replied, the topic is back on the routine's pile,
+ *   so it belongs to the ToDo bucket rather than into its own "answered" corner.
+ * - `in_progress` — the routine is working on it right now.
+ * - `shipped` / `issue_created` / `rejected` — terminal, mirrors the status.
+ *
+ * The DB status value is never touched by this — `open` stays `open` on the
+ * wire, "ToDo" is purely the label the UI puts on the bucket.
+ */
+export type FeedbackBucket =
+  | 'awaiting_admin'
+  | 'todo'
+  | 'in_progress'
+  | 'shipped'
+  | 'issue_created'
+  | 'rejected';
+
+/** Buckets that are still on the board's working set (the Active tab). */
+export const ACTIVE_BUCKETS: readonly FeedbackBucket[] = ['awaiting_admin', 'todo', 'in_progress'];
+
+/**
+ * The single bucketing rule for the whole board: status filter, day-grouped
+ * list, TOC and dashboard all resolve a topic through this function instead of
+ * re-deriving "is this really still open?" per view.
+ */
+export function feedbackBucket(
+  row: FeedbackRow,
+  replies?: readonly FeedbackMessage[],
+): FeedbackBucket {
+  switch (row.status) {
+    case 'shipped':
+    case 'issue_created':
+    case 'rejected':
+      return row.status;
+    case 'in_progress':
+      return 'in_progress';
+    case 'needs_input':
+      // Answered → back on the routine's pile → ToDo. Still unanswered → the
+      // admin owes the answer and keeps the distinct Rückfrage presentation.
+      return isAwaitingAdmin(row, replies) ? 'awaiting_admin' : 'todo';
+    default:
+      return 'todo';
+  }
+}
+
+/**
+ * The status vocabulary a bucket is labelled with, so the UI can keep using the
+ * existing `adminFeedback.status.*` translation keys: `todo` reads as the
+ * (renamed) `open` label "ToDo", `awaiting_admin` as "Rückfrage".
+ */
+export function bucketLabelStatus(bucket: FeedbackBucket): FeedbackStatus {
+  if (bucket === 'todo') return 'open';
+  if (bucket === 'awaiting_admin') return 'needs_input';
+  return bucket;
+}
+
 /** Milliseconds for an ISO timestamp, or 0 when absent/unparseable. */
 export function timeOf(iso: string | null | undefined): number {
   if (!iso) return 0;
@@ -162,8 +228,12 @@ export function buildWorkflowQueue(
     // Ticked off and untouched since → stays out of the queue.
     if (handled.get(row.id) === row.updated_at) continue;
     const replies = threads.get(row.id) ?? [];
-    if (isAwaitingAdmin(row, replies)) questions.push({ row, replies, kind: 'question' });
-    else if (row.status === 'open') fresh.push({ row, replies, kind: 'new' });
+    const bucket = feedbackBucket(row, replies);
+    if (bucket === 'awaiting_admin') questions.push({ row, replies, kind: 'question' });
+    // Only *untouched* ToDo topics are work for the admin. An already-answered
+    // Rückfrage shares the ToDo bucket in the board views, but the admin is done
+    // with it — it waits on the routine, so it stays out of this queue.
+    else if (bucket === 'todo' && row.status === 'open') fresh.push({ row, replies, kind: 'new' });
   }
 
   return [...questions.sort(oldestFirst), ...fresh.sort(oldestFirst)];
@@ -174,7 +244,10 @@ export function buildWorkflowQueue(
 export interface FeedbackStats {
   /** Topics whose ship landed inside the window. */
   shipped: number;
-  /** Topics raised inside the window that are still active (not shipped/rejected). */
+  /**
+   * Topics raised inside the window that are still on the pile — every active
+   * bucket (ToDo, awaiting the admin, in progress). Labelled "ToDo" in the UI.
+   */
   open: number;
   /** Answers the admin gave to a routine Rückfrage inside the window. */
   answered: number;
@@ -195,6 +268,9 @@ function shippedTime(row: FeedbackRow): number {
  * - `shipped`  — by the topic's ship time
  * - `open`     — by the topic's creation time (still active today)
  * - `answered` — by the answer message's creation time
+ *
+ * "Still active" is resolved through {@link feedbackBucket}, so an answered
+ * Rückfrage lands in the ToDo/open count exactly like the board's list does.
  */
 export function computeStats(
   rows: readonly FeedbackRow[],
@@ -205,9 +281,11 @@ export function computeStats(
   const stats: FeedbackStats = { shipped: 0, open: 0, answered: 0 };
 
   for (const row of rows) {
-    if (row.status === 'shipped') {
+    const replies = threads.get(row.id);
+    const bucket = feedbackBucket(row, replies);
+    if (bucket === 'shipped') {
       if (inWindow(shippedTime(row))) stats.shipped++;
-    } else if (!isArchived(row)) {
+    } else if (ACTIVE_BUCKETS.includes(bucket)) {
       // Only non-terminal topics count as still open — an `issue_created` or
       // legacy `rejected` row is done, it just didn't ship from here.
       if (inWindow(timeOf(row.created_at))) stats.open++;
@@ -216,7 +294,6 @@ export function computeStats(
     // An answered Rückfrage = a human reply that directly follows a routine
     // message in the same thread. Counting messages (not topics) keeps a
     // multi-round back-and-forth honest.
-    const replies = threads.get(row.id);
     if (!replies) continue;
     for (let i = 0; i < replies.length; i++) {
       const msg = replies[i];
