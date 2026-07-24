@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.46.6] - 2026-07-24
+
+### Fixed
+
+- **Codex ship detail — redundant, over-tall ship render under Standard Loadout
+  (481fc015).** The read-only hardpoint layout drew the ship art a second time
+  in a center column between the slot clusters. That figure was
+  `align-self: stretch`, so on ships with many hardpoints its frame grew to the
+  full height of the tallest cluster column — a very tall, mostly empty panel
+  showing exactly the image the detail hero already shows top-left. No hardpoint
+  markers were positioned on it (clusters dock in their own grid columns,
+  grouped by functional category, because the extract carries no positional port
+  data), so the render was purely decorative. Removed it and collapsed the
+  layout to two cluster columns.
+
 ## [0.46.5] - 2026-07-24
 
 ### Fixed

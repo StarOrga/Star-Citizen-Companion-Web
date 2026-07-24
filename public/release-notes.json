@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.46.4",
+  "current": "0.46.5",
   "releases": [
+    {
+      "version": "0.46.5",
+      "date": "2026-07-24",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Upload — correct release shown on first open (e892e715).",
+              "text": "Opening the Data Upload page for the first time showed the picked channel (alpha for admins) but not its version, until you toggled channels and back. The parent started at stable and fired a load before the channel-picker re-defaulted to the role's top ring, so two channel loads raced and a late stable response clobbered the freshly-loaded alpha release. Added a latest-wins guard that drops a channel load whose response arrives after a newer channel was picked."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.46.4",
       "date": "2026-07-24",

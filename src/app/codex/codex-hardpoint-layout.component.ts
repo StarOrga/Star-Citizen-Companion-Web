@@ -24,7 +24,7 @@ export interface LayoutGroup {
   slots: LayoutSlot[];
 }
 
-// Which side of the silhouette a category cluster docks to (desktop).
+// Which column a category cluster docks to (desktop).
 const LEFT_CATEGORIES: HardpointCategory[] = ['weapons', 'missiles', 'avionics'];
 const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion'];
 
