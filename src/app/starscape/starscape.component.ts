@@ -3,6 +3,7 @@ import {
   Component,
   HostListener,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -41,13 +42,16 @@ const EAGER_TILES = 8;
         </div>
         <a
           class="app-cta"
-          [href]="appDownloadUrl"
+          [href]="downloadUrl()"
           target="_blank"
           rel="noopener noreferrer"
           download>
           <span class="app-cta-title">🖥️ {{ 'starscape.appTitle' | translate }}</span>
           <span class="app-cta-desc">{{ 'starscape.appDesc' | translate }}</span>
-          <span class="app-cta-dl">↓ {{ 'starscape.appDownload' | translate }}</span>
+          <span class="app-cta-dl">
+            ↓ {{ 'starscape.appDownload' | translate }}
+            @if (appVersion(); as v) { <span class="app-cta-ver">v{{ v }}</span> }
+          </span>
           <span class="app-cta-note">{{ 'starscape.appNote' | translate }}</span>
         </a>
       </header>
@@ -190,6 +194,8 @@ const EAGER_TILES = 8;
       color: var(--sc-accent); border: 1px solid var(--sc-accent);
     }
     .app-cta:hover .app-cta-dl { background: var(--sc-accent); color: var(--sc-bg-0); }
+    /* Registered build version, shown as a subtle badge inside the download pill. */
+    .app-cta-ver { margin-left: 6px; opacity: 0.85; font-variant-numeric: tabular-nums; }
     .app-cta-note { font-size: 0.62rem; color: var(--sc-fg-2); opacity: 0.8; margin-top: 2px; }
 
     .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -308,13 +314,18 @@ export class StarscapeComponent implements OnInit {
   readonly svc = inject(StarscapeService);
 
   /**
-   * Direct download of the native desktop wallpaper app. Points at the stable
-   * `wallpaper-app-latest` alias release (a version-less asset the `wallpaper-app`
-   * CI workflow republishes on every `wallpaper-app-v*` tag), so this link always
-   * resolves to the newest build and never needs a manual version bump.
+   * Fixed fallback download: the stable `wallpaper-app-latest` alias release (a
+   * version-less asset the `wallpaper-app` CI republishes on every
+   * `wallpaper-app-v*` tag). Used when no `desktop_releases` row is registered yet
+   * (or the resolver fails), so the button always works.
    */
   readonly appDownloadUrl =
     'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/wallpaper-app-latest/starscape-wallpaper.exe';
+
+  /** Registered-build download URL when available, else the never-stale alias. */
+  readonly downloadUrl = computed(() => this.svc.desktopRelease()?.downloadUrl ?? this.appDownloadUrl);
+  /** Registered build version (e.g. "0.3.2"), or null before it loads / if unregistered. */
+  readonly appVersion = computed(() => this.svc.desktopRelease()?.version ?? null);
 
   readonly active = signal<Wallpaper | null>(null);
   readonly broken = signal<ReadonlySet<string>>(new Set<string>());
@@ -327,6 +338,7 @@ export class StarscapeComponent implements OnInit {
   readonly eagerTiles = EAGER_TILES;
 
   async ngOnInit(): Promise<void> {
+    void this.svc.loadDesktopRelease();
     if (this.svc.wallpapers().length === 0) await this.svc.load(true);
   }
 
