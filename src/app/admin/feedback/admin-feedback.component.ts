@@ -25,12 +25,21 @@ import {
   FeedbackRow,
   FeedbackStatus,
   buildWorkflowQueue,
+  isArchived,
   isAwaitingAdmin,
+  refKind,
   topicTitle,
 } from './feedback.types';
 
 /** The board's three modes: scan the list, work the queue, read the numbers. */
 export type FeedbackView = 'overview' | 'workflow' | 'progress';
+
+/**
+ * Which half of the overview list is on screen: the working set or the done
+ * pile (feedback eeba60e7). Orthogonal to {@link FeedbackView} — this only
+ * splits the overview's own list.
+ */
+export type BoardTab = 'active' | 'archive';
 
 /** One entry in the quick-access table of contents (horizontal jump bar). */
 interface TocEntry {
@@ -168,6 +177,32 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
              totals line below carries the numbers instead. -->
         <div class="board-toolbar">
           <div class="filters">
+            <!-- Active ↔ Archive tabs inside the overview (feedback eeba60e7).
+                 Active holds the working set (open / in Arbeit / Rückfrage);
+                 Archive holds the terminal ones — shipped and issue-created —
+                 each with its link. -->
+            <div class="archive-switch" role="group" [attr.aria-label]="'adminFeedback.tab.label' | translate">
+              <button
+                type="button"
+                class="archive-tab"
+                [class.active]="boardTab() === 'active'"
+                [attr.aria-pressed]="boardTab() === 'active'"
+                (click)="setBoardTab('active')">
+                {{ 'adminFeedback.tab.active' | translate }}
+                <span class="tab-count">{{ activeCount() }}</span>
+              </button>
+              <button
+                type="button"
+                class="archive-tab"
+                [class.active]="boardTab() === 'archive'"
+                [attr.aria-pressed]="boardTab() === 'archive'"
+                (click)="setBoardTab('archive')">
+                {{ 'adminFeedback.tab.archive' | translate }}
+                <span class="tab-count">{{ archiveCount() }}</span>
+              </button>
+            </div>
+            <!-- Status chips narrow the CURRENT tab; their vocabulary differs
+                 per tab, so switching tabs clears the chip selection. -->
             <div class="status-filter" role="group" [attr.aria-label]="'adminFeedback.statusFilter.label' | translate">
               <button
                 type="button"
@@ -176,32 +211,62 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                 (click)="setStatusFilter(null)">
                 {{ 'adminFeedback.statusFilter.all' | translate }}
               </button>
-              @if (statusCounts().needs_input > 0) {
-                <button
-                  type="button"
-                  class="status-chip needs_input"
-                  [class.active]="statusFilter() === 'needs_input'"
-                  (click)="setStatusFilter('needs_input')">
-                  {{ 'adminFeedback.status.needs_input' | translate }}
-                </button>
-              }
-              @if (statusCounts().open > 0) {
-                <button
-                  type="button"
-                  class="status-chip open"
-                  [class.active]="statusFilter() === 'open'"
-                  (click)="setStatusFilter('open')">
-                  {{ 'adminFeedback.status.open' | translate }}
-                </button>
-              }
-              @if (statusCounts().in_progress > 0) {
-                <button
-                  type="button"
-                  class="status-chip in_progress"
-                  [class.active]="statusFilter() === 'in_progress'"
-                  (click)="setStatusFilter('in_progress')">
-                  {{ 'adminFeedback.status.in_progress' | translate }}
-                </button>
+              @if (boardTab() === 'active') {
+                @if (statusCounts().needs_input > 0) {
+                  <button
+                    type="button"
+                    class="status-chip needs_input"
+                    [class.active]="statusFilter() === 'needs_input'"
+                    (click)="setStatusFilter('needs_input')">
+                    {{ 'adminFeedback.status.needs_input' | translate }}
+                  </button>
+                }
+                @if (statusCounts().open > 0) {
+                  <button
+                    type="button"
+                    class="status-chip open"
+                    [class.active]="statusFilter() === 'open'"
+                    (click)="setStatusFilter('open')">
+                    {{ 'adminFeedback.status.open' | translate }}
+                  </button>
+                }
+                @if (statusCounts().in_progress > 0) {
+                  <button
+                    type="button"
+                    class="status-chip in_progress"
+                    [class.active]="statusFilter() === 'in_progress'"
+                    (click)="setStatusFilter('in_progress')">
+                    {{ 'adminFeedback.status.in_progress' | translate }}
+                  </button>
+                }
+              } @else {
+                @if (statusCounts().shipped > 0) {
+                  <button
+                    type="button"
+                    class="status-chip shipped"
+                    [class.active]="statusFilter() === 'shipped'"
+                    (click)="setStatusFilter('shipped')">
+                    {{ 'adminFeedback.status.shipped' | translate }}
+                  </button>
+                }
+                @if (statusCounts().issue_created > 0) {
+                  <button
+                    type="button"
+                    class="status-chip issue_created"
+                    [class.active]="statusFilter() === 'issue_created'"
+                    (click)="setStatusFilter('issue_created')">
+                    {{ 'adminFeedback.status.issue_created' | translate }}
+                  </button>
+                }
+                @if (statusCounts().rejected > 0) {
+                  <button
+                    type="button"
+                    class="status-chip rejected"
+                    [class.active]="statusFilter() === 'rejected'"
+                    (click)="setStatusFilter('rejected')">
+                    {{ 'adminFeedback.status.rejected' | translate }}
+                  </button>
+                }
               }
             </div>
             @if (authorOptions().length > 1) {
@@ -225,7 +290,7 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
               </div>
             }
           </div>
-          @if (embedded() && activeMessages().length > 1) {
+          @if (embedded() && visibleMessages().length > 1) {
             <button
               type="button"
               class="expand-all"
@@ -240,13 +305,16 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
         <!-- One motivating totals line for the current filtering (feedback
              605d317d): open Rückfragen + shipped so far. "In Arbeit" is
              deliberately left out — it isn't a number worth celebrating. -->
-        @if (motivatingStats().rueckfragen > 0 || motivatingStats().shipped > 0) {
+        @if (motivatingStats().rueckfragen > 0 || motivatingStats().shipped > 0 || motivatingStats().issues > 0) {
           <p class="board-stats">
             @if (motivatingStats().rueckfragen > 0) {
               <span class="stat rueckfragen">{{ 'adminFeedback.stats.rueckfragen' | translate: { count: motivatingStats().rueckfragen } }}</span>
             }
             @if (motivatingStats().shipped > 0) {
               <span class="stat shipped">{{ 'adminFeedback.stats.shipped' | translate: { count: motivatingStats().shipped } }}</span>
+            }
+            @if (motivatingStats().issues > 0) {
+              <span class="stat issues">{{ 'adminFeedback.stats.issues' | translate: { count: motivatingStats().issues } }}</span>
             }
           </p>
         }
@@ -255,38 +323,32 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
           <div class="sc-card empty">{{ 'adminFeedback.loading' | translate }}</div>
         } @else if (messages().length === 0) {
           <div class="sc-card empty">{{ 'adminFeedback.empty' | translate }}</div>
-        } @else {
+        } @else if (boardTab() === 'active') {
           <!-- Active topics grouped under a non-interactive day heading (Today /
                Yesterday / date) so the list reads as a dated timeline. -->
+          @if (activeMessages().length === 0) {
+            <div class="sc-card empty">{{ 'adminFeedback.emptyActive' | translate }}</div>
+          }
           @for (g of activeGroups(); track g.key) {
             <div class="date-group">{{ g.label }}</div>
             @for (m of g.items; track m.id) {
               <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
             }
           }
-
-          <!-- Shipped items are stacked away so open ones stay directly visible. -->
-          @if (shippedMessages().length > 0) {
-            <div class="shipped-stack">
-              <button
-                type="button"
-                class="shipped-toggle"
-                (click)="toggleShipped()"
-                [attr.aria-expanded]="showShipped()">
-                <span class="chev" [class.open]="showShipped()">▸</span>
-                {{ 'adminFeedback.shippedGroup' | translate: { count: shippedMessages().length } }}
-              </button>
-              @if (showShipped()) {
-                <div class="shipped-list">
-                  @for (m of shippedVisibleMessages(); track m.id) {
-                    <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
-                  }
-                  @if (shippedRemaining() > 0) {
-                    <button type="button" class="load-more" (click)="loadMoreShipped()">
-                      {{ 'adminFeedback.loadMore' | translate: { count: shippedRemaining() } }}
-                    </button>
-                  }
-                </div>
+        } @else {
+          <!-- Archive: everything terminal (shipped + issue-created + legacy
+               rejected), newest first and paged. Each row carries its link. -->
+          @if (archiveMessages().length === 0) {
+            <div class="sc-card empty">{{ 'adminFeedback.emptyArchive' | translate }}</div>
+          } @else {
+            <div class="archive-list">
+              @for (m of archiveVisibleMessages(); track m.id) {
+                <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+              }
+              @if (archiveRemaining() > 0) {
+                <button type="button" class="load-more" (click)="loadMoreArchive()">
+                  {{ 'adminFeedback.loadMore' | translate: { count: archiveRemaining() } }}
+                </button>
               }
             </div>
           }
@@ -353,9 +415,17 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
               <div class="msg-body" [innerHTML]="render(m.body)"></div>
             }
 
+            <!-- ship_ref holds either the PR that shipped the topic or the
+                 GitHub issue it was handed off to — label the link accordingly
+                 so the archive tells the two apart at a glance. -->
             @if (m.ship_ref) {
-              <a class="ship-ref" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
-                {{ 'adminFeedback.shipRef' | translate }} ↗
+              <a
+                class="ship-ref"
+                [class.issue]="linkKind(m) === 'issue'"
+                [href]="m.ship_ref"
+                target="_blank"
+                rel="noopener noreferrer">
+                {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
               </a>
             }
             @if (m.processing_note) {
@@ -402,8 +472,34 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
             </div>
 
             <!-- Any admin may delete any topic (board is admin-only) — clears a
-                 topic once its handling/rejection is accepted. -->
+                 topic once its handling/rejection is accepted. Active topics can
+                 additionally be archived as "issue created" by pasting the
+                 GitHub issue url (feedback eeba60e7). -->
             <div class="msg-actions">
+              @if (!archived(m)) {
+                @if (issueFormFor() === m.id) {
+                  <form class="issue-form" (submit)="submitIssueRef(m, $event)">
+                    <input
+                      class="issue-input"
+                      type="url"
+                      required
+                      [value]="issueUrl()"
+                      (input)="issueUrl.set($any($event.target).value)"
+                      [attr.placeholder]="'adminFeedback.issue.placeholder' | translate"
+                      [attr.aria-label]="'adminFeedback.issue.placeholder' | translate" />
+                    <button class="sc-btn micro" type="submit" [disabled]="busy()">
+                      {{ 'adminFeedback.issue.save' | translate }}
+                    </button>
+                    <button class="sc-btn micro" type="button" (click)="cancelIssueForm()">
+                      {{ 'adminFeedback.issue.cancel' | translate }}
+                    </button>
+                  </form>
+                } @else {
+                  <button class="sc-btn micro" (click)="openIssueForm(m)" [disabled]="busy()">
+                    {{ 'adminFeedback.issue.mark' | translate }}
+                  </button>
+                }
+              }
               <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
                 {{ 'adminFeedback.delete' | translate }}
               </button>
@@ -638,6 +734,46 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
     .status-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     /* The needs_input filter carries the same violet accent as its status pill. */
     .status-chip.needs_input.active { color: #a78bfa; border-color: #a78bfa; background: rgba(167, 139, 250, 0.14); }
+    /* Archive chips echo their status pills: shipped green, issue indigo. */
+    .status-chip.shipped.active { color: var(--sc-success); border-color: var(--sc-success); background: rgba(74, 222, 128, 0.14); }
+    .status-chip.issue_created.active { color: #818cf8; border-color: #818cf8; background: rgba(129, 140, 248, 0.14); }
+
+    /* Active ↔ Archive tabs leading the overview's filter row. Deliberately a
+       quieter segmented control than the top-level .view-switch — it splits one
+       list, it does not switch the board's mode. */
+    .archive-switch {
+      display: inline-flex;
+      padding: 2px;
+      background: var(--sc-bg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+    }
+    .archive-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 12px;
+      background: transparent;
+      border: 0;
+      border-radius: 999px;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: 0.74rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .archive-tab:hover { color: var(--sc-fg-0); }
+    .archive-tab.active { background: rgba(0, 212, 255, 0.14); color: var(--sc-accent); }
+    .archive-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
+    .archive-tab .tab-count {
+      font-size: 0.68rem;
+      font-weight: 500;
+      color: var(--sc-fg-2);
+      font-variant-numeric: tabular-nums;
+    }
+    .archive-tab.active .tab-count { color: inherit; }
 
     .expand-all {
       display: inline-flex;
@@ -668,38 +804,15 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
     }
     .board-stats .stat.rueckfragen { color: #a78bfa; font-weight: 600; }
     .board-stats .stat.shipped { color: var(--sc-accent); font-weight: 600; }
+    .board-stats .stat.issues { color: #818cf8; font-weight: 600; }
     .board-stats .stat + .stat::before {
       content: '·'; margin-right: 8px; color: var(--sc-fg-2); font-weight: 400;
     }
 
-    /* Collapsed stack of shipped items — keeps the open ones front-and-centre. */
-    .shipped-stack { display: flex; flex-direction: column; }
-    .shipped-toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: var(--sc-bg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 8px;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: 0.74rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-    .shipped-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .shipped-toggle:focus-visible {
-      outline: none;
-      color: var(--sc-fg-0);
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3);
-    }
-    .shipped-toggle .chev { display: inline-block; transition: transform 0.16s ease; }
-    .shipped-toggle .chev.open { transform: rotate(90deg); }
-    .shipped-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
-    .shipped-list .msg { opacity: 0.72; }
+    /* Archive tab list — done topics, dimmed a touch so the tab reads as history. */
+    .archive-list { display: flex; flex-direction: column; gap: 12px; }
+    .archive-list .msg { opacity: 0.82; }
+    .archive-list .msg:hover, .archive-list .msg:focus-within { opacity: 1; }
     .load-more {
       align-self: center;
       margin-top: 4px;
@@ -755,6 +868,8 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
       &.in_progress { background: rgba(251, 191, 36, 0.18); color: var(--sc-warning); }
       &.shipped { background: rgba(74, 222, 128, 0.18); color: var(--sc-success); }
       &.rejected { background: rgba(122, 134, 156, 0.2); color: var(--sc-fg-2); }
+      /* Handed off to a GitHub issue — terminal like shipped, but distinct. */
+      &.issue_created { background: rgba(129, 140, 248, 0.2); color: #818cf8; }
       &.needs_input { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
       /* Admin answered a Rückfrage → awaiting the routine (distinct from a
          needs_input topic still waiting on the admin). */
@@ -813,8 +928,10 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
     .body-toggle:hover { text-decoration: underline; }
     .body-toggle:focus-visible { outline: none; text-decoration: underline; }
 
-    .ship-ref { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; }
+    .ship-ref { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; align-self: flex-start; }
     .ship-ref:hover { text-decoration: underline; }
+    /* Issue links carry the issue_created accent so the archive reads at a glance. */
+    .ship-ref.issue { color: #818cf8; }
     .proc-note {
       margin: 0;
       font-size: 0.8rem;
@@ -846,6 +963,20 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
     .reply-compose { margin-top: 4px; }
 
     .msg-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* Inline "issue created" hand-off: paste the issue url, confirm, archived. */
+    .issue-form { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .issue-input {
+      flex: 1 1 220px;
+      min-width: 0;
+      padding: 4px 8px;
+      background: var(--sc-bg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 6px;
+      color: var(--sc-fg-0);
+      font: inherit;
+      font-size: 0.76rem;
+    }
+    .issue-input:focus-visible { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25); }
     .sc-btn.micro { padding: 4px 10px; font-size: 0.7rem; letter-spacing: 0.04em; }
     .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
     .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
@@ -998,9 +1129,35 @@ export class AdminFeedbackComponent implements OnInit {
     return m.status === 'needs_input' && !isAwaitingAdmin(m, this.threads().get(m.id));
   }
 
-  /** Shipped items are collapsed into a stack so the open ones stay directly
-   *  visible; expanding reveals the resolved history (newest first, paged). */
-  readonly showShipped = signal(false);
+  /**
+   * Which half of the overview list is shown (feedback eeba60e7): the working
+   * set or the Archive of terminal topics (shipped + issue-created + legacy
+   * rejected). Replaces the old collapsible "shipped" stack — done work now has
+   * its own tab instead of a drawer at the bottom of the active list.
+   */
+  readonly boardTab = signal<BoardTab>('active');
+
+  /** Template-side alias for the shared {@link isArchived} rule. */
+  archived(m: FeedbackRow): boolean {
+    return isArchived(m);
+  }
+
+  /** Template-side alias for the shared {@link refKind} rule. */
+  linkKind(m: FeedbackRow): 'issue' | 'ship' {
+    return refKind(m);
+  }
+
+  /**
+   * Switch the overview's Active/Archive tab. The status chips differ per tab
+   * (active: open / in_progress / needs_input, archive: shipped /
+   * issue_created / rejected), so a selection carried across would filter
+   * everything away — clear it.
+   */
+  setBoardTab(tab: BoardTab): void {
+    if (this.boardTab() === tab) return;
+    this.boardTab.set(tab);
+    this.statusFilter.set(null);
+  }
 
   /** Sentinel author-filter key for topics with no author (routine/orphaned). */
   private static readonly NO_AUTHOR = '__none__';
@@ -1050,13 +1207,17 @@ export class AdminFeedbackComponent implements OnInit {
 
   /** Per-status topic counts (author-filtered) backing the status filter chips. */
   readonly statusCounts = computed(() => {
-    const counts = { open: 0, in_progress: 0, needs_input: 0 };
+    const counts = {
+      open: 0,
+      in_progress: 0,
+      needs_input: 0,
+      shipped: 0,
+      issue_created: 0,
+      rejected: 0,
+    };
     for (const m of this.messages()) {
-      if (
-        this.matchesAuthor(m) &&
-        (m.status === 'open' || m.status === 'in_progress' || m.status === 'needs_input')
-      ) {
-        counts[m.status]++;
+      if (this.matchesAuthor(m) && m.status in counts) {
+        counts[m.status as keyof typeof counts]++;
       }
     }
     return counts;
@@ -1072,12 +1233,14 @@ export class AdminFeedbackComponent implements OnInit {
   readonly motivatingStats = computed(() => {
     let rueckfragen = 0;
     let shipped = 0;
+    let issues = 0;
     for (const m of this.messages()) {
       if (!this.matchesAuthor(m)) continue;
       if (m.status === 'needs_input') rueckfragen++;
       else if (m.status === 'shipped') shipped++;
+      else if (m.status === 'issue_created') issues++;
     }
-    return { rueckfragen, shipped };
+    return { rueckfragen, shipped, issues };
   });
 
   /**
@@ -1097,11 +1260,24 @@ export class AdminFeedbackComponent implements OnInit {
     return max;
   }
 
-  /** Active (non-shipped) topics, author- and status-filtered, newest activity first. */
+  /** Active (non-terminal) topics, author- and status-filtered, newest activity first. */
   readonly activeMessages = computed(() =>
     this.messages()
-      .filter((m) => m.status !== 'shipped' && this.matchesAuthor(m) && this.matchesStatus(m))
+      .filter((m) => !isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m))
       .sort((a, b) => this.recencyTime(b) - this.recencyTime(a)),
+  );
+
+  /** Topics rendered in the current tab — backs the expand-all control. */
+  readonly visibleMessages = computed(() =>
+    this.boardTab() === 'active' ? this.activeMessages() : this.archiveVisibleMessages(),
+  );
+
+  /** Tab badge: how many topics live in each half (author-filtered, chip-independent). */
+  readonly activeCount = computed(
+    () => this.messages().filter((m) => !isArchived(m) && this.matchesAuthor(m)).length,
+  );
+  readonly archiveCount = computed(
+    () => this.messages().filter((m) => isArchived(m) && this.matchesAuthor(m)).length,
   );
 
   /**
@@ -1208,19 +1384,20 @@ export class AdminFeedbackComponent implements OnInit {
     });
   }
 
-  /** True when every active topic is currently expanded (embedded panel). */
+  /** True when every topic in the current tab is expanded (embedded panel). */
   readonly allExpanded = computed(() => {
-    const active = this.activeMessages();
-    return active.length > 0 && active.every((m) => this._expanded().has(m.id));
+    const visible = this.visibleMessages();
+    return visible.length > 0 && visible.every((m) => this._expanded().has(m.id));
   });
 
   /**
-   * Expand or collapse every active topic at once (feedback c5b6b13c). Collapsing
-   * leaves just the topic headings so the board stays scannable; only active
-   * topics are touched, so an expanded shipped item is left as-is.
+   * Expand or collapse every topic of the current tab at once (feedback
+   * c5b6b13c). Collapsing leaves just the topic headings so the board stays
+   * scannable; only the tab's own rows are touched, so an expanded card in the
+   * other tab is left as-is.
    */
   toggleExpandAll(): void {
-    const ids = this.activeMessages().map((m) => m.id);
+    const ids = this.visibleMessages().map((m) => m.id);
     const collapse = this.allExpanded();
     this._expanded.update((set) => {
       const next = new Set(set);
@@ -1232,37 +1409,46 @@ export class AdminFeedbackComponent implements OnInit {
     });
   }
 
-  /** Page size for the shipped history — "load more" reveals another batch. */
-  private static readonly SHIPPED_PAGE = 10;
-  readonly shippedVisible = signal(AdminFeedbackComponent.SHIPPED_PAGE);
+  /** Page size for the archive — "load more" reveals another batch. */
+  private static readonly ARCHIVE_PAGE = 10;
+  readonly archiveVisible = signal(AdminFeedbackComponent.ARCHIVE_PAGE);
 
-  /** All shipped items (author-filtered), newest ship first (by shipped_at, falling back to created_at). */
-  readonly shippedMessages = computed(() =>
+  /**
+   * The Archive: every terminal topic (author- and status-filtered), newest
+   * completion first. Shipped and issue-created rows are interleaved by their
+   * own completion time so the tab reads as one "done" history.
+   */
+  readonly archiveMessages = computed(() =>
     this.messages()
-      .filter((m) => m.status === 'shipped' && this.matchesAuthor(m))
-      .sort((a, b) => this.shippedTime(b) - this.shippedTime(a)),
+      .filter((m) => isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m))
+      .sort((a, b) => this.archiveTime(b) - this.archiveTime(a)),
   );
-  /** The current shipped page (first N of the sorted history). */
-  readonly shippedVisibleMessages = computed(() =>
-    this.shippedMessages().slice(0, this.shippedVisible()),
+  /** The current archive page (first N of the sorted history). */
+  readonly archiveVisibleMessages = computed(() =>
+    this.archiveMessages().slice(0, this.archiveVisible()),
   );
-  /** How many shipped items are still hidden below the current page. */
-  readonly shippedRemaining = computed(() =>
-    Math.max(0, this.shippedMessages().length - this.shippedVisible()),
+  /** How many archived items are still hidden below the current page. */
+  readonly archiveRemaining = computed(() =>
+    Math.max(0, this.archiveMessages().length - this.archiveVisible()),
   );
 
-  toggleShipped(): void {
-    this.showShipped.update((v) => !v);
+  /** Reveal the next page of archive history (+10). */
+  loadMoreArchive(): void {
+    this.archiveVisible.update((n) => n + AdminFeedbackComponent.ARCHIVE_PAGE);
   }
 
-  /** Reveal the next page of shipped history (+10). */
-  loadMoreShipped(): void {
-    this.shippedVisible.update((n) => n + AdminFeedbackComponent.SHIPPED_PAGE);
-  }
-
-  private shippedTime(m: FeedbackRow): number {
-    const t = Date.parse(m.shipped_at ?? m.created_at);
-    return Number.isFinite(t) ? t : 0;
+  /**
+   * When a topic reached its terminal state: `shipped_at` for shipped rows,
+   * else the routine's last touch, else the row's own timestamps. Drives the
+   * archive's newest-first order across both terminal kinds.
+   */
+  private archiveTime(m: FeedbackRow): number {
+    for (const c of [m.shipped_at, m.processed_at, m.updated_at, m.created_at]) {
+      if (!c) continue;
+      const t = Date.parse(c);
+      if (Number.isFinite(t)) return t;
+    }
+    return 0;
   }
 
   /** Per-entry expand state for the embedded chat overview (collapsed by default). */
@@ -1578,6 +1764,56 @@ export class AdminFeedbackComponent implements OnInit {
     await this.refresh();
     if (wasQuestion) this.advanceAfterAnswer(feedbackId);
     return true;
+  }
+
+  // ---- Issue hand-off ------------------------------------------------------
+
+  /** Topic id whose inline "issue created" url form is open (null = none). */
+  readonly issueFormFor = signal<string | null>(null);
+  /** Draft issue url in that form. */
+  readonly issueUrl = signal('');
+
+  openIssueForm(m: FeedbackRow): void {
+    this.issueUrl.set(m.ship_ref ?? '');
+    this.issueFormFor.set(m.id);
+  }
+
+  cancelIssueForm(): void {
+    this.issueFormFor.set(null);
+    this.issueUrl.set('');
+  }
+
+  /**
+   * Archive a topic as "issue created": store the GitHub issue url in
+   * `ship_ref` and flip the status to the terminal `issue_created`. That moves
+   * the row out of the active board into the Archive, where its link renders as
+   * an issue link. Any admin may update the board (RLS `admin_feedback_update`).
+   */
+  async submitIssueRef(m: FeedbackRow, ev: Event): Promise<void> {
+    ev.preventDefault();
+    const url = this.issueUrl().trim();
+    if (!/^https?:\/\/\S+$/i.test(url)) {
+      this.errorMsg.set(this.translate.instant('adminFeedback.issue.invalidUrl'));
+      return;
+    }
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const { error } = await this.sb.client
+      .from('admin_feedback')
+      .update({
+        status: 'issue_created',
+        ship_ref: url,
+        processed_at: new Date().toISOString(),
+        processing_note: null,
+      })
+      .eq('id', m.id);
+    if (error) {
+      this.errorMsg.set(error.message);
+      this.busy.set(false);
+      return;
+    }
+    this.cancelIssueForm();
+    await this.refresh();
   }
 
   async remove(m: FeedbackRow) {

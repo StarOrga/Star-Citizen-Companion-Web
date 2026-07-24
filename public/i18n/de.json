@@ -1091,12 +1091,14 @@
     "refresh": "Aktualisieren",
     "loading": "Lädt…",
     "empty": "Noch kein Feedback. Sei der Erste.",
+    "emptyActive": "Nichts Aktives — alles liegt im Archiv.",
+    "emptyArchive": "Archiv ist leer. Geshippte Themen und solche mit Issue landen hier.",
     "errorTitle": "Fehler",
     "you": "Du",
     "unknownUser": "Unbekannt",
     "shipRef": "Änderung ansehen",
+    "issueRef": "Issue ansehen",
     "setStatus": "Status ändern",
-    "shippedGroup": "Geshippt · {{count}}",
     "loadMore": "Weitere {{count}} laden",
     "toggleDetails": "Eintrag aus- oder einklappen",
     "showMore": "mehr",
@@ -1109,9 +1111,15 @@
       "label": "Nach Status filtern",
       "all": "Alle"
     },
+    "tab": {
+      "label": "Zwischen aktiven Themen und Archiv wechseln",
+      "active": "Aktiv",
+      "archive": "Archiv"
+    },
     "stats": {
       "rueckfragen": "{{count}} Rückfragen",
-      "shipped": "{{count}} shipped"
+      "shipped": "{{count}} shipped",
+      "issues": "{{count}} Issues erstellt"
     },
     "expandAll": "Alle ausklappen",
     "collapseAll": "Alle einklappen",
@@ -1125,12 +1133,20 @@
     },
     "delete": "Löschen",
     "deleteConfirm": "Diese Nachricht löschen? Kann nicht rückgängig gemacht werden.",
+    "issue": {
+      "mark": "Issue erstellt",
+      "placeholder": "GitHub-Issue-URL",
+      "save": "Archivieren",
+      "cancel": "Abbrechen",
+      "invalidUrl": "Bitte eine gültige Issue-URL angeben (http/https)."
+    },
     "status": {
       "open": "Offen",
       "in_progress": "In Arbeit",
       "shipped": "Geshipped",
       "rejected": "Abgelehnt",
       "needs_input": "Rückfrage",
+      "issue_created": "Issue erstellt",
       "answered": "Beantwortet"
     },
     "thread": {

@@ -9,7 +9,39 @@
  * and unit-tested in `feedback.types.spec.ts`.
  */
 
-export type FeedbackStatus = 'open' | 'in_progress' | 'shipped' | 'rejected' | 'needs_input';
+export type FeedbackStatus =
+  | 'open'
+  | 'in_progress'
+  | 'shipped'
+  | 'rejected'
+  | 'needs_input'
+  | 'issue_created';
+
+/**
+ * Terminal statuses — a topic that reached one of these is done and lives in
+ * the board's Archive tab (feedback eeba60e7). A topic ends either because it
+ * shipped (`ship_ref` = PR url) or because it was handed off to a GitHub issue
+ * (`ship_ref` = issue url). Legacy `rejected` rows are archived too: the
+ * routine never sets that status any more, but old rows carry it and would
+ * otherwise be orphaned in a view nobody opens.
+ */
+export const ARCHIVE_STATUSES: readonly FeedbackStatus[] = ['shipped', 'issue_created', 'rejected'];
+
+/** True when a topic reached a terminal status (→ Archive, never worked again). */
+export function isArchived(row: FeedbackRow): boolean {
+  return ARCHIVE_STATUSES.includes(row.status);
+}
+
+/**
+ * Which kind of link a topic's `ship_ref` points at, so the UI can label it
+ * ("View change" vs "View issue"). `issue_created` rows always carry an issue
+ * url; other rows are sniffed from the url, so a manually attached issue link
+ * on an older row is labelled correctly too.
+ */
+export function refKind(row: FeedbackRow): 'issue' | 'ship' {
+  if (row.status === 'issue_created') return 'issue';
+  return /\/issues\/\d+/.test(row.ship_ref ?? '') ? 'issue' : 'ship';
+}
 
 export interface FeedbackAuthor {
   display_name: string | null;
@@ -175,7 +207,9 @@ export function computeStats(
   for (const row of rows) {
     if (row.status === 'shipped') {
       if (inWindow(shippedTime(row))) stats.shipped++;
-    } else if (row.status !== 'rejected') {
+    } else if (!isArchived(row)) {
+      // Only non-terminal topics count as still open — an `issue_created` or
+      // legacy `rejected` row is done, it just didn't ship from here.
       if (inWindow(timeOf(row.created_at))) stats.open++;
     }
 

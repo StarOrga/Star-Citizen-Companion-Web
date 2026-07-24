@@ -25,9 +25,15 @@ open ──pick up──▶ in_progress ──green build+tests──▶ shipped
                                        ▼
         admin answers in the thread ──▶ picked up again next run
 
-  rejected  ← the ADMIN decides this alone (by deleting the topic); the
-              routine NEVER sets it.
+  rejected      ← the ADMIN decides this alone (by deleting the topic); the
+                  routine NEVER sets it.
+  issue_created ← the ADMIN archives a topic against a GitHub issue
+                  (ship_ref = issue url); terminal, the routine NEVER sets it.
 ```
+
+`shipped`, `issue_created` and legacy `rejected` are **terminal** — together
+they form the panel's Archive tab (see "Active vs. Archive" below). The routine
+only ever works the active half (`open` / `in_progress` / `needs_input`).
 
 **The routine never rejects — the admin alone decides what to discard.** Every
 item the routine cannot ship right now goes to `needs_input` with a system
@@ -410,7 +416,8 @@ For each admitted `open` row (process independently, most-recent context wins):
      `ship_ref='<PR url>'` + a `processing_note`. `in_progress` is only ever valid
      **with** a `ship_ref` (a real review-hold) — never leave a bare `in_progress`
      (it jams the reaper + the oldest-first queue; see the reaper section).
-6. Never touch rows already `shipped` or `rejected`.
+6. Never touch rows in a terminal status — `shipped`, `issue_created` or
+   `rejected`.
 
 ## Non-verifiable / decision-needed items → `needs_input`, never a bare `in_progress`
 
@@ -499,12 +506,15 @@ panel and on the full board page alike:
 
 | View | Component | What it is for |
 |------|-----------|----------------|
-| **Übersicht** | `admin-feedback.component.ts` | the classic board — day-grouped topic list, status/author filters, shipped stack, new-topic composer |
+| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list, status/author filters, new-topic composer |
 | **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin first (oldest first), then untouched `open` topics. Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
 | **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / offen / beantwortete Rückfragen |
 
 Queue and aggregation rules live as pure functions in `feedback.types.ts`
-(`buildWorkflowQueue`, `computeStats`), unit-tested in `feedback.types.spec.ts`.
+(`buildWorkflowQueue`, `computeStats`, `isArchived`, `refKind`), unit-tested in
+`feedback.types.spec.ts`. All three views share that vocabulary: a terminal
+topic is out of the processing queue, out of the dashboard's "offen" bucket and
+in the overview's Archive tab, from the one `isArchived` rule.
 
 Two things the routine should be aware of:
 
@@ -553,11 +563,32 @@ Animations API, no dependency). All of it is suppressed under
 
 | column           | meaning                                                    |
 |------------------|------------------------------------------------------------|
-| `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `rejected` = legacy/admin-only, never set by the routine |
-| `ship_ref`       | PR/commit URL the routine attached                         |
+| `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `issue_created` = admin-driven hand-off to a GitHub issue · `rejected` = legacy/admin-only, never set by the routine |
+| `ship_ref`       | link that closed the topic: PR/commit URL for `shipped`, GitHub issue URL for `issue_created` (also set on a review-hold `in_progress` row) |
 | `processing_note`| routine's note (reject reason / red-build hint)            |
 | `shipped_at`     | set when merged to `main`                                  |
 | `processed_at`   | last time the routine acted on the row                     |
+
+### Active vs. Archive (`issue_created`)
+
+Statuses split into two halves, which is exactly what the admin panel's
+Active/Archive toggle inside the **overview** mode renders (migration
+`20260724220000_admin_feedback_issue_created_status.sql`):
+
+- **Active** — `open`, `in_progress`, `needs_input`. The board the routine and
+  the admin work on.
+- **Archive** (terminal) — `shipped`, `issue_created`, and legacy `rejected`.
+  Nothing here is ever picked up again. Each row renders its `ship_ref` as a
+  link, labelled "View change" for a shipped PR and "View issue" for an issue.
+
+`issue_created` is a **terminal, admin-set** status: the admin archives a topic
+by pasting its GitHub issue URL in the panel (button "Issue created"), which
+writes `status='issue_created'` + `ship_ref=<issue url>` + `processed_at=now()`.
+Its purpose is the "tracked elsewhere, done here" case — the topic leaves the
+active queue without being deleted and without pretending it shipped. **The
+routine never sets it** and, like `shipped`, never touches a row that carries
+it. Legacy `rejected` rows are archived rather than hidden so they stay
+reachable instead of being orphaned in a view nobody opens.
 
 Per-topic replies live in `public.admin_feedback_messages` (see migration
 `20260710160000_admin_feedback_threads.sql`):
