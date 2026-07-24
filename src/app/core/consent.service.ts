@@ -32,6 +32,7 @@ const CONSENT_KEY = 'sc.consent';
 const PREFERENCE_KEYS = [
   'sc-companion.news.channels',
   'sc-companion.news.favorites',
+  'sc-companion.news.watched',
   'sc-telemetry-product',
   'sc.adminFeedback.draft',
 ] as const;

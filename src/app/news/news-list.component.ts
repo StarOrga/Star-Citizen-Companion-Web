@@ -7,8 +7,10 @@ import {
   TemplateRef,
   ViewContainerRef,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
@@ -16,11 +18,16 @@ import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { NewsService, NewsChannel, VerseNewsItem, VerseStatus, StatusLevel, effectivePlayability } from './news.service';
+import { NewsService, NewsChannel, VerseNewsItem, VerseStatus, StatusLevel, effectivePlayability, pickRecentVideos } from './news.service';
 import { NewsThumbComponent } from './news-thumb.component';
 
 const CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
 const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
+
+// Hover-dwell threshold before a video counts as "watched" (#146). Long enough
+// that a cursor merely passing over the rail doesn't burn through the videos,
+// short enough that a deliberate look registers.
+const VIDEO_DWELL_MS = 1500;
 
 // Channel-branded placeholder shown when an item carries no usable image — notably
 // Spectrum threads (the list API gives no main-post image) and the occasional
@@ -113,6 +120,50 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
             <span class="ct">{{ svc.favoriteCount() }}</span>
           </button>
         </div>
+
+        <!-- Recent videos rail (#146): ~5 newest unwatched clips. Hover-dwell or
+             open marks a video watched so it drops out on the next load; the row
+             stays stable during the current view (snapshot) so nothing reshuffles
+             under the cursor. -->
+        @if (showVideoRail()) {
+          <section class="video-rail" [attr.aria-label]="'news.videos.title' | translate">
+            <div class="bucket-head">
+              <h2>{{ 'news.videos.title' | translate }}</h2>
+              <span class="bucket-ct">{{ recentVideos().length }}</span>
+            </div>
+            <div class="rail-track">
+              @for (vid of recentVideos(); track vid.id) {
+                <article class="vid-card sc-reveal" [class.watched]="svc.isWatched(vid.id)"
+                         [attr.data-channel]="vid.channel" tabindex="0" role="button"
+                         [attr.aria-label]="vid.title"
+                         (click)="openVideo(vid)"
+                         (keydown.enter)="openVideo(vid)"
+                         (keydown.space)="onVideoSpace($event, vid)"
+                         (mouseenter)="onVideoEnter(vid)"
+                         (mouseleave)="onVideoLeave()">
+                  <div class="vid-thumb-wrap">
+                    <sc-news-thumb
+                      [images]="imagesOf(vid)"
+                      [channel]="vid.channel"
+                      [channelLabel]="('news.channels.' + vid.channel) | translate"
+                      [channelIcon]="iconFor(vid.channel)"
+                      [featured]="false" />
+                    @if (svc.isWatched(vid.id)) {
+                      <span class="watched-badge">
+                        <span class="tick" aria-hidden="true">✓</span>
+                        {{ 'news.videos.watched' | translate }}
+                      </span>
+                    }
+                  </div>
+                  <div class="vid-body">
+                    <h3>{{ vid.title }}</h3>
+                    <time>{{ relTime(vid.publishedAt) }}</time>
+                  </div>
+                </article>
+              }
+            </div>
+          </section>
+        }
 
         @if (svc.loading() && !svc.feed()) {
           <div class="bucket" aria-hidden="true">
@@ -536,6 +587,49 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .fav-chip.active { background: color-mix(in srgb, var(--sc-warning) 20%, transparent); border-color: var(--sc-warning); }
     .fav-chip.active .ct { background: color-mix(in srgb, var(--sc-warning) 28%, transparent); color: var(--sc-bg-0); }
 
+    /* ---------- Recent videos rail (#146) ---------- */
+    .video-rail { display: flex; flex-direction: column; gap: 10px; }
+    .rail-track {
+      display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 78vw);
+      gap: 12px; overflow-x: auto; padding: 2px 2px 8px;
+      scroll-snap-type: x proximity; scrollbar-width: thin;
+    }
+    /* On wider viewports the ~5-wide row fits without horizontal scrolling. */
+    @media (min-width: 720px) {
+      .rail-track { grid-auto-columns: minmax(0, 1fr); }
+    }
+    .vid-card {
+      display: flex; flex-direction: column; scroll-snap-align: start;
+      background: var(--sc-bg-1); border: 1px solid var(--sc-border);
+      border-radius: 10px; overflow: hidden; cursor: pointer; text-align: left;
+      transition: border-color .15s ease, transform .15s ease, opacity .2s ease;
+    }
+    .vid-card:hover, .vid-card:focus-visible {
+      border-color: var(--sc-accent); transform: translateY(-2px); outline: none;
+    }
+    .vid-card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .vid-thumb-wrap { position: relative; }
+    .watched-badge {
+      position: absolute; top: 8px; right: 8px;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 999px; font-size: 0.68rem; font-weight: 600;
+      color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
+      border: 1px solid var(--sc-border);
+      -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+    }
+    .watched-badge .tick { color: var(--sc-accent); }
+    .vid-card.watched { opacity: 0.55; }
+    .vid-card.watched:hover, .vid-card.watched:focus-visible { opacity: 0.85; }
+    .vid-body { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; }
+    .vid-body h3 {
+      margin: 0; font-size: 0.9rem; line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .vid-body time { color: var(--sc-fg-2); font-size: 0.75rem; }
+    @media (prefers-reduced-motion: reduce) {
+      .vid-card, .vid-card:hover, .vid-card:focus-visible { transform: none; }
+    }
+
     /* ---------- Card as button + quick actions ---------- */
     .card { cursor: pointer; text-align: left; }
     .card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
@@ -614,6 +708,29 @@ export class NewsListComponent implements OnInit, OnDestroy {
   readonly olderOpen = signal(false);
   readonly hasFilter = computed(() => this.svc.activeChannels().size > 0);
 
+  // ── Recent videos rail (#146) ────────────────────────────────────────────
+  // Watched set captured at load. `markWatched` updates the service's live set
+  // (persisted), but the rail renders against this snapshot so a freshly-dwelled
+  // clip stays in place and only drops on the next feed load. Re-synced whenever
+  // the feed reference changes (5-min poll / reload) — that is "subsequent loads".
+  private readonly watchedSnapshot = signal<Set<string>>(new Set());
+  private readonly syncWatchedSnapshot = effect(() => {
+    this.svc.feed(); // dependency: re-sync on every feed (re)load
+    this.watchedSnapshot.set(new Set(untracked(() => this.svc.watchedIds())));
+  });
+  readonly recentVideos = computed(() =>
+    pickRecentVideos(this.svc.allVideos(), this.watchedSnapshot()),
+  );
+  // Shown in the default "Alle" view (or when YouTube is explicitly selected),
+  // never in favorites-only, and only when there are videos to show.
+  readonly showVideoRail = computed(() => {
+    if (this.svc.favoritesOnly()) return false;
+    if (this.recentVideos().length === 0) return false;
+    const active = this.svc.activeChannels();
+    return active.size === 0 || active.has('youtube');
+  });
+  private dwellTimer: ReturnType<typeof setTimeout> | null = null;
+
   // Enlarged in-app detail view (CDK overlay), plus a transient share toast.
   private readonly detailTpl = viewChild.required<TemplateRef<unknown>>('detailTpl');
   private detailRef: OverlayRef | null = null;
@@ -655,6 +772,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
     this.svc.stopPolling();
     if (this.clockTimer) { clearInterval(this.clockTimer); this.clockTimer = null; }
     if (this.shareHintTimer) { clearTimeout(this.shareHintTimer); this.shareHintTimer = null; }
+    this.clearDwell();
     this.detailRef?.dispose();
     this.detailRef = null;
   }
@@ -706,6 +824,38 @@ export class NewsListComponent implements OnInit, OnDestroy {
   onCardSpace(ev: Event, item: VerseNewsItem): void {
     ev.preventDefault();
     this.openDetail(item);
+  }
+
+  // ── Video rail hover-dwell (#146) ────────────────────────────────────────
+  // A mouse resting on a clip past the dwell threshold marks it watched — no
+  // click needed. Leaving early cancels it, so a cursor passing over the row
+  // doesn't consume videos.
+  onVideoEnter(item: VerseNewsItem): void {
+    if (this.svc.isWatched(item.id)) return;
+    this.clearDwell();
+    this.dwellTimer = setTimeout(() => {
+      this.svc.markWatched(item.id);
+      this.dwellTimer = null;
+    }, VIDEO_DWELL_MS);
+  }
+
+  onVideoLeave(): void {
+    this.clearDwell();
+  }
+
+  onVideoSpace(ev: Event, item: VerseNewsItem): void {
+    ev.preventDefault();
+    this.openVideo(item);
+  }
+
+  /** Opening a video (click / keyboard) also counts as watched, then shows detail. */
+  openVideo(item: VerseNewsItem): void {
+    this.svc.markWatched(item.id);
+    this.openDetail(item);
+  }
+
+  private clearDwell(): void {
+    if (this.dwellTimer) { clearTimeout(this.dwellTimer); this.dwellTimer = null; }
   }
 
   @HostListener('document:keydown.escape')
