@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
+import { isValidRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 import { CodexListRow, CodexService, pickLocalized } from '../codex/codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
 import { HangarImportComponent } from './hangar-import.component';
@@ -201,12 +202,18 @@ const SEARCH_DEBOUNCE_MS = 250;
                  [attr.aria-label]="'hangar.concept.manufacturerPlaceholder' | translate" />
           <input type="url" class="text-input wide" name="rsiUrl"
                  [(ngModel)]="conceptRsiUrl"
+                 (ngModelChange)="onConceptUrlInput()"
+                 [class.invalid]="conceptUrlError()"
+                 [attr.aria-invalid]="conceptUrlError() ? 'true' : null"
                  [attr.placeholder]="'hangar.concept.urlPlaceholder' | translate"
                  [attr.aria-label]="'hangar.concept.urlPlaceholder' | translate" />
           <button type="submit" class="sc-btn" [disabled]="!conceptName.trim() || conceptSaving()">
             {{ 'hangar.concept.add' | translate }}
           </button>
         </form>
+        @if (conceptUrlError()) {
+          <p class="concept-url-error" role="alert">{{ 'hangar.concept.urlError' | translate }}</p>
+        }
 
         @if (hangar.conceptShips().length === 0) {
           <p class="hint">{{ 'hangar.concept.empty' | translate }}</p>
@@ -221,7 +228,8 @@ const SEARCH_DEBOUNCE_MS = 250;
                 </div>
                 <div class="concept-actions">
                   @if (c.rsiUrl) {
-                    <a class="concept-link" [href]="c.rsiUrl" target="_blank" rel="noopener noreferrer">
+                    <!-- User-supplied URL: bound as a plain href, never innerHTML. -->
+                    <a class="concept-link" [href]="c.rsiUrl" target="_blank" rel="noopener noreferrer nofollow">
                       {{ 'hangar.concept.pledgeLink' | translate }}
                     </a>
                   }
@@ -320,6 +328,8 @@ const SEARCH_DEBOUNCE_MS = 250;
     }
     .concept-form .text-input.wide { flex: 2 1 240px; }
     .concept-form .text-input:focus { outline: none; border-color: var(--sc-accent); }
+    .concept-form .text-input.invalid { border-color: var(--sc-danger); }
+    .concept-url-error { margin: -4px 0 12px; color: var(--sc-danger); font-size: 0.8rem; }
     .concept-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
     .concept-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; flex-wrap: wrap; }
     .concept-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
@@ -495,9 +505,25 @@ export class HangarDashboardComponent implements OnInit {
   conceptRsiUrl = '';
   readonly conceptSaving = signal(false);
 
+  /** Inline validation error for the optional RSI link (feedback f7d3bd9a). */
+  readonly conceptUrlError = signal(false);
+
+  /** Clear the RSI-link error as soon as the user edits the field again. */
+  onConceptUrlInput(): void {
+    if (this.conceptUrlError()) this.conceptUrlError.set(false);
+  }
+
   async addConcept(e: Event): Promise<void> {
     e.preventDefault();
     if (!this.conceptName.trim() || this.conceptSaving()) return;
+    // The link is optional, but if one is given it must be an official RSI
+    // pledge-ship URL. Fail loudly here instead of silently dropping it — the
+    // service normalizes and the DB CHECK gates, but the user deserves to know.
+    if (this.conceptRsiUrl.trim() && !isValidRsiPledgeShipUrl(this.conceptRsiUrl)) {
+      this.conceptUrlError.set(true);
+      return;
+    }
+    this.conceptUrlError.set(false);
     this.conceptSaving.set(true);
     const created = await this.hangar.addConceptShip({
       name: this.conceptName,

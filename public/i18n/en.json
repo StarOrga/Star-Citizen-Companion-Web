@@ -349,6 +349,27 @@
       "retry": "Retry",
       "collapse": "Collapse 3D view",
       "expand": "Expand 3D view"
+    },
+    "shipLink": {
+      "add": "Add pledge link",
+      "edit": "Edit pledge link",
+      "label": "Official RSI pledge link",
+      "hint": "Our catalog has no reliable RSI store slug for every ship. Paste the official pledge page and it will replace the generic RSI link — for you only.",
+      "placeholder": "https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad",
+      "save": "Save link",
+      "remove": "Remove",
+      "cancel": "Cancel",
+      "saved": "Saved. Only you can see this link.",
+      "error": {
+        "invalidUrl": "Only official RSI pledge-ship links are accepted, e.g. https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad",
+        "rateLimited": "Too many changes in a short time. Please try again in a few minutes.",
+        "forbidden": "You are not allowed to do this.",
+        "saveFailed": "Could not save the link. Please try again."
+      },
+      "adminTitle": "Admin",
+      "promote": "Publish for everyone",
+      "unpromote": "Withdraw global link",
+      "adminHint": "Publishing makes the link above visible to all users. User links are never published automatically."
     }
   },
   "blueprint": {
@@ -986,7 +1007,8 @@
       "empty": "No concept ships on your wishlist yet.",
       "preliminary": "Concept — preliminary",
       "pledgeLink": "Pledge page",
-      "remove": "Remove"
+      "remove": "Remove",
+      "urlError": "Please use an official RSI pledge-ship link, e.g. https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad — or leave the field empty."
     },
     "import": {
       "open": "Import…",

@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { AnalyticsService } from '../core/analytics.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { normalizeRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 import {
   ConceptShip,
   ConfigLoadoutEntry,
@@ -158,7 +159,12 @@ export class HangarService {
         user_id: userId,
         name,
         manufacturer: input.manufacturer?.trim() || null,
-        rsi_url: input.rsiUrl?.trim() || null,
+        // Defence in depth (feedback f7d3bd9a): a concept-ship link is
+        // user-supplied and later rendered as an href, so only an official RSI
+        // pledge-ship URL is ever persisted. The form rejects a bad paste with a
+        // visible error first; anything that still gets here is stripped to
+        // null, and the DB CHECK is the gate neither layer can bypass.
+        rsi_url: normalizeRsiPledgeShipUrl(input.rsiUrl),
         notes: input.notes?.trim() || null,
       })
       .select('*')
@@ -174,7 +180,7 @@ export class HangarService {
     const concept = mapConceptShip(data as Record<string, unknown>);
     this.conceptShips.set([concept, ...this.conceptShips()]);
     this.analytics.capture('hangar_concept_ship_added', {
-      has_rsi_url: !!input.rsiUrl?.trim(),
+      has_rsi_url: !!normalizeRsiPledgeShipUrl(input.rsiUrl),
     });
     return concept;
   }

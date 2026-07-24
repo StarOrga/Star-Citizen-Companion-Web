@@ -129,6 +129,16 @@ verify_jwt = false
 # regular signed-in user cannot rewrite the public documentation.
 verify_jwt = true
 
+[functions.ship-link]
+# JWT verification ON — every action is tied to a real signed-in user. The
+# function stores user-supplied RSI pledge links behind a strict server-side
+# allowlist (see index.ts / _rsi-url.ts) and writes exclusively through the
+# CALLER'S own client, so owner-only RLS applies on top. Promotion of a link to
+# a globally visible entry additionally requires profiles.role = 'admin'.
+# Callers are web sessions only (same as invite-user/delete-user), so the
+# platform gate is the right first line of defence here.
+verify_jwt = true
+
 [edge_runtime]
 enabled = true
 policy = "oneshot"
