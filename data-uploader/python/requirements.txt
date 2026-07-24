@@ -32,6 +32,6 @@ numpy==1.21.6          # scdatatools: numpy~=1.21.5; last 1.21.x with a cp310 wh
 
 # Our own direct deps — NOT required by scdatatools, so free to pin/update:
 rsa==4.9.1
-cryptography==47.0.0   # AES-backed P4K decryption — pinned; supply-chain sensitive
+cryptography==48.0.1   # AES-backed P4K decryption — pinned; supply-chain sensitive (cp39-abi3 wheel → embedded py3.10 OK)
 lz4==4.4.5
-Pillow==11.0.0         # DDS → PNG icon conversion (icons currently deferred)
+Pillow==12.3.0         # DDS → PNG icon conversion (icons currently deferred); cp310 win wheel → embedded py3.10 OK
