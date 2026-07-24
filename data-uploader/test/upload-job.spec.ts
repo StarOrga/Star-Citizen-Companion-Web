@@ -7,6 +7,7 @@ import {
   bundleNeedsRetry,
   sentFor,
   describeResume,
+  resumeSummary,
   type TextIO,
   type UploadJobState,
 } from '../src/lib/upload-job.js';
@@ -153,6 +154,66 @@ describe('describeResume', () => {
     s.catalog.status = 'done';
     s.skins.status = 'done';
     expect(describeResume(s)).toBe('complete');
+  });
+});
+
+describe('resumeSummary', () => {
+  it('a fresh job resumes at the bundle stage (macro 1 / 3)', () => {
+    const sum = resumeSummary(job());
+    expect(sum.activeStage).toBe('bundle');
+    expect(sum.macroStep).toBe(1);
+    expect(sum.macroTotal).toBe(3);
+    expect(sum.stages.map((s) => s.state)).toEqual(['active', 'pending', 'pending']);
+    expect(sum.catalog).toBeUndefined();
+    expect(sum.skinsDone).toBeUndefined();
+  });
+
+  it('maps a mid-phase catalog cursor to its human step number', () => {
+    const s = job();
+    s.bundle.status = 'done';
+    s.catalog.status = 'running';
+    s.catalog.cursor = { phase: 'codex_ships', sent: 1200 };
+    const sum = resumeSummary(s);
+    expect(sum.activeStage).toBe('catalog');
+    expect(sum.macroStep).toBe(2);
+    expect(sum.stages.map((s) => s.state)).toEqual(['done', 'active', 'pending']);
+    // codex_ships is the 3rd of the 15 publish phases — the SAME number the live
+    // bar shows, so banner and bar agree.
+    expect(sum.catalog).toEqual({ step: 3, total: 15, phase: 'codex_ships' });
+  });
+
+  it('falls back to the next unsent phase when catalog has no live cursor', () => {
+    const s = job();
+    s.bundle.status = 'done';
+    s.catalog.status = 'running';
+    s.catalog.donePhases = ['codex_manufacturers', 'codex_ships'];
+    s.catalog.cursor = null;
+    const sum = resumeSummary(s);
+    // codex_weapons is next after the two done phases — step 4 of 15.
+    expect(sum.catalog).toEqual({ step: 4, total: 15, phase: 'codex_weapons' });
+  });
+
+  it('reports committed ships for a skin-stage resume (macro 3 / 3)', () => {
+    const s = job();
+    s.bundle.status = 'done';
+    s.catalog.status = 'done';
+    s.skins.doneShips = ['aurora', 'gladius'];
+    const sum = resumeSummary(s);
+    expect(sum.activeStage).toBe('skins');
+    expect(sum.macroStep).toBe(3);
+    expect(sum.stages.map((s) => s.state)).toEqual(['done', 'done', 'active']);
+    expect(sum.skinsDone).toBe(2);
+  });
+
+  it('reports no active stage for a fully-complete job', () => {
+    const s = job();
+    s.bundle.status = 'done';
+    s.catalog.status = 'done';
+    s.skins.status = 'done';
+    const sum = resumeSummary(s);
+    expect(sum.activeStage).toBeNull();
+    expect(sum.macroStep).toBeNull();
+    expect(sum.stages.map((s) => s.state)).toEqual(['done', 'done', 'done']);
   });
 });
 

@@ -120,6 +120,9 @@
       "discard": "Verwerfen",
       "cancelled": "Upload verworfen — der Fortschritt wurde gelöscht.",
       "resumeBanner": "Unterbrochener Upload gefunden ({{hint}}) — fortsetzen?",
+      "resumeBannerRich": "Unterbrochener Upload · {{macro}}: {{stages}} — fortsetzen?",
+      "stagePending": "offen",
+      "stageSkinsDone": "{{count}} Schiffe fertig",
       "pauseShort": "pausiert"
     }
   },
@@ -198,7 +201,8 @@
   "progress": {
     "still": "arbeitet noch",
     "eta": "Rest",
-    "perSec": "/s"
+    "perSec": "/s",
+    "step": "Schritt {{n}}/{{total}}"
   },
   "tray": {
     "open": "Fenster öffnen",

@@ -20,6 +20,7 @@ import { join } from 'node:path';
 import log from 'electron-log';
 import { API_BASE, RELEASE_TOKEN } from '../lib/release-token.js';
 import { isInterrupt, type PauseControl } from '../lib/pause-control.js';
+import { CATALOG_PHASE_ORDER } from '../lib/catalog-phases.js';
 import {
   makeTagger,
   collectStrings,
@@ -119,31 +120,16 @@ export async function uploadCatalog(
   const manifestPath = join(outDir, 'manifest.json');
   if (!existsSync(manifestPath)) return { ok: false, error: 'manifest_missing' };
 
-  // Fixed order of `phase` values this function emits, below — lets the
-  // renderer show an overall "step N / M" figure on top of the per-table
-  // current/total (which resets each table). Additive only: onProgress still
+  // The fixed order of `phase` values this function emits (below) lives in
+  // `../lib/catalog-phases` so the resume banner can turn a stored cursor into
+  // the SAME "step N / M" this live bar shows. Additive only: onProgress still
   // receives the original phase/current/total unchanged, just with two extra
   // optional fields attached.
-  const PHASE_ORDER = [
-    'init',
-    'codex_manufacturers',
-    'codex_ships',
-    'codex_weapons',
-    'codex_components',
-    'codex_items',
-    'codex_ammunition',
-    'codex_blueprints',
-    'codex_blueprint_ingredients',
-    'codex_entity_strings',
-    'codex_item_ports',
-    'codex_locale_strings',
-    'codex_previews',
-    'codex_keybinds',
-    'finalize',
-  ];
   const progress = (p: CatalogProgress): void => {
-    const idx = PHASE_ORDER.indexOf(p.phase);
-    onProgress(idx === -1 ? p : { ...p, phaseIndex: idx + 1, phaseTotal: PHASE_ORDER.length });
+    const idx = (CATALOG_PHASE_ORDER as readonly string[]).indexOf(p.phase);
+    onProgress(
+      idx === -1 ? p : { ...p, phaseIndex: idx + 1, phaseTotal: CATALOG_PHASE_ORDER.length },
+    );
   };
 
   const headers = {

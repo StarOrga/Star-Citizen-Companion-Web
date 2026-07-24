@@ -396,6 +396,19 @@ h3 { font-size: 0.9rem; }
   margin: 8px 0 2px;
   flex-wrap: wrap;
 }
+/* Macro position "2/3" ahead of the chips — the always-visible "which stage of
+   how many" the operator asked for. Hidden until setStep() fills it in. */
+.sc-progress-stepcount {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--sc-accent);
+  white-space: nowrap;
+}
+.sc-progress-stepcount:empty {
+  display: none;
+}
 .sc-progress-step {
   font-family: var(--sc-font-display);
   font-size: 0.66rem;

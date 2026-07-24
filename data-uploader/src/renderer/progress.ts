@@ -105,13 +105,16 @@ export interface ProgressLabels {
 export function progressCardHtml(id: string, steps?: ProgressStep[]): string {
   const stepsHtml =
     steps && steps.length
-      ? `<div class="sc-progress-steps" id="${id}-steps">${steps
+      ? `<div class="sc-progress-steps" id="${id}-steps">` +
+        `<span class="sc-progress-stepcount" id="${id}-stepcount"></span>` +
+        steps
           .map(
             (s, i) =>
               `${i > 0 ? '<span class="sc-progress-step-arrow">›</span>' : ''}` +
               `<span class="sc-progress-step" id="${id}-step-${escapeHtml(s.key)}" data-idx="${i}">${escapeHtml(s.label)}</span>`,
           )
-          .join('')}</div>`
+          .join('') +
+        `</div>`
       : '';
   return `
     <div class="sc-progress" id="${id}">
@@ -135,6 +138,12 @@ export interface MountProgressOptions {
   counterLabel?: (key: string) => string;
   steps?: ProgressStep[];
   labels?: Partial<ProgressLabels>;
+  /**
+   * Formats the always-visible macro position ("Schritt 2/3") shown ahead of the
+   * step chips. Given the 1-based active step and the total, returns the label.
+   * Omit for a bare "2/3". Only rendered when `steps` are present.
+   */
+  stepLabel?: (step: number, total: number) => string;
 }
 
 /** Wire up a card previously rendered via `progressCardHtml(id, ...)`. */
@@ -147,8 +156,10 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
   const metaEl = byId('-meta');
   const countersEl = byId('-counters');
   const elapsedEl = byId('-elapsed');
+  const stepCountEl = byId('-stepcount');
   const labelFn = opts.counterLabel ?? ((k: string) => k);
-  const stepEls = (opts.steps ?? []).map((s) => byId(`-step-${s.key}`));
+  const steps = opts.steps ?? [];
+  const stepEls = steps.map((s) => byId(`-step-${s.key}`));
   const labels: ProgressLabels = {
     still: opts.labels?.still ?? 'still working',
     eta: opts.labels?.eta ?? 'ETA',
@@ -302,6 +313,17 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
         el.classList.toggle('active', i === idx);
         el.classList.toggle('done', i < idx);
       });
+      // The macro "2/3" — always answers "which of the N stages am I on" at a
+      // glance, even during an otherwise opaque stage (e.g. the bundle POST).
+      // Cleared when idx points past the last step (a "done" sweep), so a
+      // finished run doesn't read as "6/5".
+      if (stepCountEl) {
+        const total = steps.length;
+        stepCountEl.textContent =
+          total > 0 && idx >= 0 && idx < total
+            ? (opts.stepLabel?.(idx + 1, total) ?? `${idx + 1}/${total}`)
+            : '';
+      }
     },
     update(u: ProgressUpdate): void {
       // A phase change invalidates the previous stage's numbers/hint/throughput
