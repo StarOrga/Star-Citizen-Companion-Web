@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   OnInit,
   computed,
   inject,
@@ -13,40 +14,23 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { useAutoRefresh } from '../../core/auto-refresh';
 import { AuthService } from '../../auth/auth.service';
+import { ConsentService } from '../../core/consent.service';
 import { renderMarkdown } from './markdown.util';
 import { ComposerPayload, FeedbackComposerComponent, PendingImage } from './feedback-composer.component';
+import { CelebrationService } from './celebration.service';
+import { FeedbackDashboardComponent } from './feedback-dashboard.component';
+import { FeedbackWorkflowComponent } from './feedback-workflow.component';
+import {
+  FeedbackMessage,
+  FeedbackRow,
+  FeedbackStatus,
+  buildWorkflowQueue,
+  isAwaitingAdmin,
+  topicTitle,
+} from './feedback.types';
 
-type FeedbackStatus = 'open' | 'in_progress' | 'shipped' | 'rejected' | 'needs_input';
-
-interface FeedbackAuthor {
-  display_name: string | null;
-  username: string | null;
-}
-
-/** One reply in a topic's thread (human admin or the automated routine). */
-interface FeedbackMessage {
-  id: string;
-  feedback_id: string;
-  author_id: string | null;
-  is_system: boolean;
-  body: string;
-  created_at: string;
-  author: FeedbackAuthor | null;
-}
-
-interface FeedbackRow {
-  id: string;
-  author_id: string | null;
-  body: string;
-  status: FeedbackStatus;
-  ship_ref: string | null;
-  processing_note: string | null;
-  created_at: string;
-  updated_at: string;
-  shipped_at: string | null;
-  processed_at: string | null;
-  author: FeedbackAuthor | null;
-}
+/** The board's three modes: scan the list, work the queue, read the numbers. */
+export type FeedbackView = 'overview' | 'workflow' | 'progress';
 
 /** One entry in the quick-access table of contents (horizontal jump bar). */
 interface TocEntry {
@@ -68,11 +52,22 @@ interface FeedbackGroup {
 
 /** localStorage key backing the new-topic composer draft. */
 const DRAFT_KEY = 'sc.adminFeedback.draft';
+/** localStorage key remembering the last selected board view. */
+const VIEW_KEY = 'sc.adminFeedback.view';
+/** localStorage key holding the processing mode's ticked-off topics. */
+const HANDLED_KEY = 'sc.adminFeedback.handled';
 
 @Component({
   selector: 'sc-admin-feedback',
   standalone: true,
-  imports: [DatePipe, NgTemplateOutlet, TranslateModule, FeedbackComposerComponent],
+  imports: [
+    DatePipe,
+    NgTemplateOutlet,
+    TranslateModule,
+    FeedbackComposerComponent,
+    FeedbackWorkflowComponent,
+    FeedbackDashboardComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Smooth height/opacity collapse+expand for a topic's detail region, so the
   // guided answer flow in the panel reads as a fold rather than a hard cut
@@ -104,6 +99,67 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
       @if (errorMsg()) {
         <div class="err"><strong>{{ 'adminFeedback.errorTitle' | translate }}:</strong> {{ errorMsg() }}</div>
       }
+
+      <!-- Ship celebration banner: the routine shipped something since the last
+           poll. Auto-hides; the confetti burst rides along (feedback 605d317d). -->
+      @if (shipCheer() > 0) {
+        <p class="ship-cheer" role="status">
+          🚀 {{ 'adminFeedback.cheer.shipped' | translate: { count: shipCheer() } }}
+        </p>
+      }
+
+      <!-- View switch — sits above everything, so it is reachable in the docked
+           panel, the maximized panel and on the full board page alike
+           (feedback 605d317d, phase 2). -->
+      <div class="view-switch" role="group" [attr.aria-label]="'adminFeedback.view.label' | translate">
+        <button
+          type="button"
+          class="view-tab"
+          [class.active]="view() === 'overview'"
+          [attr.aria-pressed]="view() === 'overview'"
+          (click)="setView('overview')">
+          {{ 'adminFeedback.view.overview' | translate }}
+        </button>
+        <button
+          type="button"
+          class="view-tab"
+          [class.active]="view() === 'workflow'"
+          [attr.aria-pressed]="view() === 'workflow'"
+          (click)="setView('workflow')">
+          {{ 'adminFeedback.view.workflow' | translate }}
+          @if (workflowQueue().length > 0) {
+            <span class="tab-badge">{{ workflowQueue().length }}</span>
+          }
+        </button>
+        <button
+          type="button"
+          class="view-tab"
+          [class.active]="view() === 'progress'"
+          [attr.aria-pressed]="view() === 'progress'"
+          (click)="setView('progress')">
+          {{ 'adminFeedback.view.progress' | translate }}
+        </button>
+      </div>
+
+      @if (view() === 'workflow') {
+        <div class="board alt">
+          <sc-feedback-workflow
+            [queue]="workflowQueue()"
+            [selfId]="selfId()"
+            [busy]="busy()"
+            [compact]="embedded()"
+            [reply]="workflowReplyBound"
+            (markHandled)="markHandled($event)"
+            (showProgress)="setView('progress')" />
+        </div>
+      } @else if (view() === 'progress') {
+        <div class="board alt">
+          <sc-feedback-dashboard
+            [rows]="messages()"
+            [threads]="threads()"
+            [compact]="embedded()" />
+        </div>
+      } @else {
 
       <div class="board">
         <!-- Board toolbar: status + author quick-filters on ONE compact row
@@ -236,6 +292,7 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
           }
         }
       </div>
+      }
 
       <ng-template #msgCard let-m>
         <article class="msg sc-card" [id]="cardDomId(m.id)" [class.is-self]="m.author_id === selfId()">
@@ -356,14 +413,17 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
         </article>
       </ng-template>
 
-      <!-- New-topic composer -->
-      <sc-feedback-composer
-        class="main-composer"
-        [persistKey]="draftKey"
-        [busy]="busy()"
-        placeholder="adminFeedback.compose.placeholder"
-        sendLabel="adminFeedback.compose.send"
-        [onSubmit]="createTopicBound" />
+      <!-- New-topic composer — only in the overview; the processing mode has its
+           own inline answer box and the dashboard is read-only. -->
+      @if (view() === 'overview') {
+        <sc-feedback-composer
+          class="main-composer"
+          [persistKey]="draftKey"
+          [busy]="busy()"
+          placeholder="adminFeedback.compose.placeholder"
+          sendLabel="adminFeedback.compose.send"
+          [onSubmit]="createTopicBound" />
+      }
     </section>
   `,
   styles: [`
@@ -456,6 +516,79 @@ const DRAFT_KEY = 'sc.adminFeedback.draft';
     .empty { text-align: center; color: var(--sc-fg-2); padding: 40px; }
 
     .board { display: flex; flex-direction: column; gap: 12px; }
+    /* Processing mode / dashboard reuse the board's scroll box but never its
+       list rhythm, so they get their own modifier instead of the list styles. */
+    .board.alt { gap: 10px; }
+
+    /* ---- View switch: Übersicht · Abarbeiten · Fortschritt ---- */
+    .view-switch {
+      display: flex;
+      align-items: stretch;
+      gap: 2px;
+      padding: 2px;
+      background: var(--sc-bg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+      flex: 0 0 auto;
+    }
+    .view-tab {
+      flex: 1 1 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 5px 8px;
+      background: transparent;
+      border: 0;
+      border-radius: 999px;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: 0.74rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .view-tab:hover { color: var(--sc-fg-0); }
+    .view-tab.active {
+      background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
+      color: var(--sc-accent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 45%, transparent);
+    }
+    .view-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
+    .tab-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.35em;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: color-mix(in srgb, #a78bfa 28%, transparent);
+      color: #a78bfa;
+      font-size: 0.64rem;
+      font-weight: 700;
+    }
+
+    /* ---- "something shipped" banner ---- */
+    .ship-cheer {
+      margin: 0;
+      padding: 7px 12px;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--sc-success) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--sc-success) 45%, transparent);
+      color: var(--sc-success);
+      font-size: 0.82rem;
+      font-weight: 600;
+      animation: cheer-in 0.4s ease-out;
+    }
+    @keyframes cheer-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ship-cheer { animation: none; }
+    }
 
     /* Quick-access author filter: chip row that scopes the board to one creator. */
     .author-filter { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -727,6 +860,8 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly translate = inject(TranslateService);
+  private readonly consent = inject(ConsentService);
+  private readonly celebration = inject(CelebrationService);
 
   /** When embedded in the feedback FAB panel, the page chrome (title, subtitle,
    *  manual refresh) is dropped — the panel supplies its own header. */
@@ -747,6 +882,112 @@ export class AdminFeedbackComponent implements OnInit {
     return this.threads().get(feedbackId) ?? [];
   }
 
+  // ---- View switch (feedback 605d317d, phase 2/3) -------------------------
+
+  /**
+   * Which of the three board modes is showing. Persisted (behind the
+   * preferences consent) so reopening the FAB panel lands where the admin left
+   * off — the panel is mounted once and merely hidden while minimized, so the
+   * switch is equally available docked, maximized and on the full page.
+   */
+  readonly view = signal<FeedbackView>(this.readView());
+
+  setView(v: FeedbackView): void {
+    this.view.set(v);
+    if (!this.consent.preferencesAllowed()) return;
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* private mode / quota — the in-memory signal still works */
+    }
+  }
+
+  private readView(): FeedbackView {
+    try {
+      const raw = localStorage.getItem(VIEW_KEY);
+      if (raw === 'overview' || raw === 'workflow' || raw === 'progress') return raw;
+    } catch {
+      /* ignore */
+    }
+    return 'overview';
+  }
+
+  /**
+   * Topics the admin ticked off in the processing mode, mapped to the topic's
+   * `updated_at` at that moment: if the routine touches the topic afterwards
+   * the stamp no longer matches and the item comes back into the queue.
+   */
+  private readonly handled = signal<ReadonlyMap<string, string>>(this.readHandled());
+
+  markHandled(id: string): void {
+    const row = this.messages().find((m) => m.id === id);
+    if (!row) return;
+    const next = new Map(this.handled());
+    next.set(id, row.updated_at);
+    this.handled.set(next);
+    this.persistHandled(next);
+  }
+
+  private persistHandled(map: ReadonlyMap<string, string>): void {
+    if (!this.consent.preferencesAllowed()) return;
+    try {
+      localStorage.setItem(HANDLED_KEY, JSON.stringify(Array.from(map.entries())));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private readHandled(): ReadonlyMap<string, string> {
+    try {
+      const raw = localStorage.getItem(HANDLED_KEY);
+      if (!raw) return new Map();
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return new Map();
+      return new Map(
+        parsed.filter(
+          (e): e is [string, string] =>
+            Array.isArray(e) && typeof e[0] === 'string' && typeof e[1] === 'string',
+        ),
+      );
+    } catch {
+      return new Map();
+    }
+  }
+
+  /** The guided processing queue: open Rückfragen first, then new topics. */
+  readonly workflowQueue = computed(() =>
+    buildWorkflowQueue(this.messages(), this.threads(), this.handled()),
+  );
+
+  /** Stable reply handler handed to the processing mode's inline composer. */
+  readonly workflowReplyBound = (id: string, payload: ComposerPayload): Promise<boolean> =>
+    this.sendReply(id, payload);
+
+  /** How many topics shipped since the last poll — drives the ship banner. */
+  readonly shipCheer = signal(0);
+  /** Shipped ids as of the previous refresh; `null` until the first load lands. */
+  private shippedSeen: Set<string> | null = null;
+  private shipCheerTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Celebrate topics that shipped between two polls. The very first load only
+   * seeds the baseline — otherwise every page open would confetti the entire
+   * shipped history.
+   */
+  private detectShipped(rows: readonly FeedbackRow[]): void {
+    const now = new Set(rows.filter((r) => r.status === 'shipped').map((r) => r.id));
+    const before = this.shippedSeen;
+    this.shippedSeen = now;
+    if (before === null) return;
+    let fresh = 0;
+    for (const id of now) if (!before.has(id)) fresh++;
+    if (fresh === 0) return;
+    this.shipCheer.set(fresh);
+    this.celebration.burst();
+    if (this.shipCheerTimer) clearTimeout(this.shipCheerTimer);
+    this.shipCheerTimer = setTimeout(() => this.shipCheer.set(0), 6000);
+  }
+
   /**
    * True when the admin has answered a Rückfrage and the topic is now waiting on
    * the routine: status is `needs_input` and the newest thread reply is human
@@ -754,10 +995,7 @@ export class AdminFeedbackComponent implements OnInit {
    * admin can tell "I already replied" apart from "still needs my input".
    */
   isAnsweredAwaitingRoutine(m: FeedbackRow): boolean {
-    if (m.status !== 'needs_input') return false;
-    const replies = this.threads().get(m.id);
-    const last = replies && replies.length ? replies[replies.length - 1] : null;
-    return !!last && !last.is_system;
+    return m.status === 'needs_input' && !isAwaitingAdmin(m, this.threads().get(m.id));
   }
 
   /** Shipped items are collapsed into a stack so the open ones stay directly
@@ -917,16 +1155,7 @@ export class AdminFeedbackComponent implements OnInit {
    * gives an always-available title without a schema change.)
    */
   topicTitle(body: string): string {
-    const text = (body ?? '')
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .replace(/[*_`#>~]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (!text) return '—';
-    const firstSentence = text.split(/(?<=[.!?])\s+/)[0] ?? text;
-    const base = firstSentence.length <= 64 ? firstSentence : text;
-    return base.length > 64 ? `${base.slice(0, 62).trimEnd()}…` : base;
+    return topicTitle(body);
   }
 
   /**
@@ -1151,6 +1380,9 @@ export class AdminFeedbackComponent implements OnInit {
 
   constructor() {
     useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
+    inject(DestroyRef).onDestroy(() => {
+      if (this.shipCheerTimer) clearTimeout(this.shipCheerTimer);
+    });
   }
 
   async ngOnInit() {
@@ -1188,6 +1420,7 @@ export class AdminFeedbackComponent implements OnInit {
       // an unanswered Rückfrage from one already answered (awaiting the routine).
       await this.loadThreads(rows.map((r) => r.id));
       this.autoExpandFirstQuestion();
+      this.detectShipped(rows);
     }
     this.busy.set(false);
   }

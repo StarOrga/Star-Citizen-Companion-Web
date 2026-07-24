@@ -1116,6 +1116,40 @@
       "imageError": "Could not process the image.",
       "tooManyImages": "At most {{max}} images per message.",
       "uploadError": "Image upload failed. Please try again."
+    },
+    "view": {
+      "label": "Switch view",
+      "overview": "Overview",
+      "workflow": "Process",
+      "progress": "Progress"
+    },
+    "cheer": {
+      "shipped": "{{count}} freshly shipped — nice!"
+    },
+    "workflow": {
+      "progress": "{{current}} of {{total}}",
+      "next": "Next",
+      "done": "Done",
+      "answerPlaceholder": "Write an answer… (Markdown supported, Ctrl+Enter to send)",
+      "answerSend": "Answer",
+      "cheerAnswered": "Question answered — the routine takes it from here.",
+      "cheerReplied": "Noted! On to the next one.",
+      "allDoneTitle": "All caught up",
+      "allDoneHint": "No open questions, no new topics. Take a look at what you got done.",
+      "kind": {
+        "question": "Question",
+        "new": "New"
+      }
+    },
+    "dashboard": {
+      "thisMonth": "This month",
+      "allTime": "All-time",
+      "shipped": "Shipped",
+      "open": "Open",
+      "answered": "Questions answered",
+      "shippedShare": "shipped",
+      "donutLabel": "{{label}}: {{pct}}% shipped",
+      "note": "Every metric is attributed by its own timestamp: shipped by ship date, open by creation date, questions by answer date."
     }
   },
   "feedbackFab": {

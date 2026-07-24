@@ -1116,6 +1116,40 @@
       "imageError": "Bild konnte nicht verarbeitet werden.",
       "tooManyImages": "Maximal {{max}} Bilder pro Nachricht.",
       "uploadError": "Bild-Upload fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "view": {
+      "label": "Ansicht wechseln",
+      "overview": "Übersicht",
+      "workflow": "Abarbeiten",
+      "progress": "Fortschritt"
+    },
+    "cheer": {
+      "shipped": "{{count}} frisch geshipped — stark!"
+    },
+    "workflow": {
+      "progress": "{{current}} von {{total}}",
+      "next": "Weiter",
+      "done": "Erledigt",
+      "answerPlaceholder": "Antwort schreiben… (Markdown möglich, Strg+Enter zum Senden)",
+      "answerSend": "Antworten",
+      "cheerAnswered": "Rückfrage beantwortet — die Routine übernimmt ab hier.",
+      "cheerReplied": "Notiert! Weiter geht's.",
+      "allDoneTitle": "Alles abgearbeitet",
+      "allDoneHint": "Keine offenen Rückfragen, keine neuen Themen. Schau dir an, was du geschafft hast.",
+      "kind": {
+        "question": "Rückfrage",
+        "new": "Neu"
+      }
+    },
+    "dashboard": {
+      "thisMonth": "Diesen Monat",
+      "allTime": "All-time",
+      "shipped": "Geshipped",
+      "open": "Offen",
+      "answered": "Rückfragen beantwortet",
+      "shippedShare": "geshipped",
+      "donutLabel": "{{label}}: {{pct}} % geshipped",
+      "note": "Jeder Wert zählt nach seinem eigenen Zeitstempel: geshipped nach Ship-Datum, offen nach Erstellung, Rückfragen nach Antwortdatum."
     }
   },
   "feedbackFab": {
