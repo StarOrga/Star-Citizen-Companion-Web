@@ -52,43 +52,6 @@ function setup(bundles: P4kBundleRow[], isAdmin = false) {
   return fixture;
 }
 
-describe('P4kHistoryComponent — summary strip (rendered DOM)', () => {
-  it('renders one chip per channel: live first, then patch version descending', () => {
-    const fixture = setup([
-      row('ptu', '4.9.0', 70, '2026-05-01T00:00:00Z'),
-      row('live', '4.8.0', 90, '2026-05-02T00:00:00Z'),
-      row('eptu', '4.10.0', 55, '2026-05-03T00:00:00Z'),
-    ]);
-    const chips = Array.from(
-      fixture.nativeElement.querySelectorAll('.chan-latest .cl'),
-    ) as HTMLElement[];
-
-    expect(chips.length).toBe(3);
-    expect(chips.map((r) => r.querySelector('.ch-pill')!.textContent!.trim())).toEqual([
-      'LIVE',
-      'EPTU',
-      'PTU',
-    ]);
-    // Patch version is shown next to the channel in every summary chip.
-    expect(chips.map((r) => r.querySelector('.cv')!.textContent!.trim())).toEqual([
-      '4.8.0',
-      '4.10.0',
-      '4.9.0',
-    ]);
-  });
-
-  it('shows the patch-latest quality score, not a newer upload of an older patch', () => {
-    const fixture = setup([
-      row('live', '4.8.0', 90, '2026-05-01T00:00:00Z'),
-      row('live', '4.7.0', 40, '2026-05-20T00:00:00Z'), // newer upload, older patch
-    ]);
-    const quality = fixture.nativeElement
-      .querySelector('.chan-latest .cl .cq')!
-      .textContent!.trim();
-    expect(quality).toBe('90');
-  });
-});
-
 describe('P4kHistoryComponent — patch cards (redesigned entries)', () => {
   it('renders one patch card per patch version, newest first', () => {
     const el = setup([

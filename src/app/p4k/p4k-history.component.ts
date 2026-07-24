@@ -42,34 +42,6 @@ import { useAutoRefresh } from '../core/auto-refresh';
           }
         </div>
 
-        <!-- Summary strip: totals + latest bundle per channel. -->
-        <div class="hist-summary">
-          <div class="kpi">
-            <span class="kl">{{ 'p4k.kpi.total' | translate }}</span>
-            <span class="kv">{{ bundles().length }}</span>
-          </div>
-          <div class="kpi">
-            <span class="kl">{{ 'p4k.kpi.channels' | translate }}</span>
-            <span class="kv">{{ uniqueChannels() }}</span>
-          </div>
-          @if (channelSummaries().length > 0) {
-            <div class="chan-latest" [attr.aria-label]="'p4k.kpi.latestPerChannel' | translate">
-              @for (c of channelSummaries(); track c.channel) {
-                <div class="cl">
-                  <span class="ch-pill" [class]="c.channel">{{ c.channel.toUpperCase() }}</span>
-                  <span class="cv mono">{{ c.patch_version }}</span>
-                  <span class="cq"
-                        [class.q-green]="(c.quality_score ?? 0) >= 80"
-                        [class.q-yellow]="(c.quality_score ?? 0) >= 50 && (c.quality_score ?? 0) < 80"
-                        [class.q-red]="(c.quality_score ?? 0) < 50">
-                    {{ c.quality_score !== null ? (c.quality_score | number:'1.0-0') : '—' }}
-                  </span>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
         @if (svc.errorMsg(); as err) {
           <div class="err">
             <strong>{{ 'p4k.errorTitle' | translate }}:</strong> {{ err }}
@@ -282,33 +254,6 @@ import { useAutoRefresh } from '../core/auto-refresh';
       border-radius: 4px;
     }
 
-    /* Summary strip. */
-    .hist-summary {
-      display: flex; align-items: center; gap: 28px; flex-wrap: wrap;
-      padding: 14px 20px; border-bottom: 1px solid var(--sc-border);
-    }
-    .kpi { display: flex; flex-direction: column; gap: 2px; }
-    .kpi .kl {
-      font-family: var(--sc-font-display);
-      font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--sc-fg-2);
-    }
-    .kpi .kv {
-      font-family: var(--sc-font-display); font-size: 1.4rem;
-      color: var(--sc-fg-0); font-variant-numeric: tabular-nums;
-    }
-    .chan-latest { display: flex; gap: 12px; flex-wrap: wrap; margin-left: auto; }
-    .cl {
-      display: flex; align-items: center; gap: 8px;
-      background: var(--sc-bg-0); border: 1px solid var(--sc-border);
-      border-radius: 999px; padding: 5px 12px;
-    }
-    .cl .cv { color: var(--sc-fg-1); font-size: 0.82rem; }
-    .cl .cq { font-variant-numeric: tabular-nums; font-size: 0.82rem; color: var(--sc-fg-2); }
-    .cl .cq.q-green { color: var(--sc-success); }
-    .cl .cq.q-yellow { color: var(--sc-warning); }
-    .cl .cq.q-red { color: var(--sc-danger); }
-
     .state { padding: 32px 20px; text-align: center; color: var(--sc-fg-2); }
     .state.empty strong { color: var(--sc-fg-1); }
     .state.empty p { margin: 6px 0 0; }
@@ -443,8 +388,6 @@ import { useAutoRefresh } from '../core/auto-refresh';
     @media (max-width: 640px) {
       .patch-main { grid-template-columns: auto 1fr auto; gap: 10px; }
       .patch-mid { order: 3; grid-column: 1 / -1; }
-      .hist-summary { gap: 18px; }
-      .chan-latest { margin-left: 0; }
       .up-right { justify-content: flex-start; }
     }
   `],
@@ -467,18 +410,9 @@ export class P4kHistoryComponent implements OnInit {
   private readonly _groupExpanded = signal<Set<string>>(new Set());
 
   readonly bundles = computed(() => this.svc.bundles());
-  readonly uniqueChannels = computed(() => new Set(this.bundles().map((b) => b.channel)).size);
 
   /** Uploads grouped by patch version — the history's top-level cards. */
   readonly patchGroups = computed<PatchGroup[]>(() => groupBundlesByPatch(this.bundles()));
-
-  /**
-   * One row per channel, each pointing at that channel's patch-latest bundle
-   * (highest patch_version by semantic compare, NOT upload date — builds within
-   * the same patch tiebreak by created_at). Ordered: `live` first, then the rest
-   * by patch_version descending.
-   */
-  readonly channelSummaries = computed<ChannelSummary[]>(() => summarizeChannels(this.bundles()));
 
   ngOnInit() {
     this.refresh();
