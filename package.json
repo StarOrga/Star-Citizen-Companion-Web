@@ -8,6 +8,7 @@
     "ng": "ng",
     "start": "ng serve --host 127.0.0.1 --port 4200",
     "gen:release-notes": "node scripts/gen-release-notes.js",
+    "gen:readme-content": "node scripts/gen-readme-content.mjs",
     "prebuild": "node scripts/gen-release-notes.js",
     "build": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",

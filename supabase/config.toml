@@ -122,6 +122,13 @@ verify_jwt = false
 # with the TELEMETRY_HMAC_KEY secret) + replay window + per-IP rate limit.
 verify_jwt = false
 
+[functions.readme-sync]
+# JWT verification ON — admin-only. Publishes docs/readme-io/pages to the
+# project's ReadMe (readme.io) site via the v2 API using the README_IO_API_KEY
+# secret. The handler additionally requires profiles.role = 'admin', so a
+# regular signed-in user cannot rewrite the public documentation.
+verify_jwt = true
+
 [edge_runtime]
 enabled = true
 policy = "oneshot"
