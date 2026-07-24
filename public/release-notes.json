@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.46.2",
+  "current": "0.46.3",
   "releases": [
+    {
+      "version": "0.46.3",
+      "date": "2026-07-24",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "PWA — silent update on a fresh open, reload prompt only while active (4f9fcff8).",
+              "text": "A newer build that is already ready when the site opens is now activated and loaded silently, so a returning visitor simply gets the newest version with no reload button. A build that lands later — while you are already on the page — still raises the deliberate reload prompt so you don't lose your view. A once-per-session guard caps silent reloads at one, so a persistent \"ready\" state can never loop the page."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.46.2",
       "date": "2026-07-24",
