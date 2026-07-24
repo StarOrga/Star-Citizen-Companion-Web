@@ -17,12 +17,30 @@ A data-uploader release is not visible to users until ALL of:
    skip prereleases → users keep seeing the old version. `ship_release`'s
    `prerelease: true` (a 0.x convention for the *private* source release) must
    NOT leak into the public mirror.
-3. **`desktop_releases` row registered** in Supabase (`hcnqhvzlavdycidqyaai`):
-   `is_current = true` + `release_token` matching the build's `release-token`
-   artifact + `platforms` (`win-x64-setup` / `win-x64-portable`: `url`, `kind`,
-   `sha512`, `size_bytes`). The `/desktop` web page AND the in-app updater read
-   `desktop_releases`, NOT GitHub directly — without this row the page shows the
-   previous version even when the GitHub release is correct.
+3. **`desktop_releases` row registered + `desktop_channels` alpha pointer set**
+   in Supabase (`hcnqhvzlavdycidqyaai`). `desktop_releases` is an immutable build
+   catalog; `desktop_channels` (alpha/beta/stable → release_id) decides which
+   build each ring serves. A new uploader release defaults to the **alpha** ring;
+   promotion to beta/stable is a deliberate later step via the
+   `/admin/desktop-releases` panel or `promote_desktop_channel(version, channel)`.
+   The row needs `release_token` matching the build's `release-token` artifact +
+   `platforms` (`win-x64-setup` / `win-x64-portable`: `url`, `kind`, `sha512`,
+   `size_bytes`). Register with the CTE the CI prints (its "Print catalog-register
+   SQL" step) — insert the build and point alpha at it in one statement:
+
+       WITH new_rel AS (
+         INSERT INTO public.desktop_releases (version, release_token, platforms, notes)
+         VALUES (...) RETURNING id
+       )
+       INSERT INTO public.desktop_channels (channel, release_id)
+       SELECT 'alpha', id FROM new_rel
+       ON CONFLICT (channel) DO UPDATE
+         SET release_id = EXCLUDED.release_id, updated_at = now();
+
+   The `/desktop` web page AND the in-app updater resolve the release through the
+   channel pointer (role-clamped: admin→alpha, collaborator→beta, viewer→stable),
+   NOT GitHub directly — without the row + pointer the page shows the previous
+   version even when the GitHub release is correct.
 
 ## BINARIES_RELEASE_TOKEN (cross-repo publish PAT)
 
@@ -44,9 +62,10 @@ mirror the already-built assets directly with admin `gh` auth (no PAT, no
     gh release create   data-uploader-v<X.Y.Z> --repo StarOrga/Star-Citizen-Companion-Binaries \
         --latest  <tmp>/*.exe <tmp>/*.blockmap        # NOT --prerelease (see point 2)
 
-Then register `desktop_releases`: the `sha512` + `size_bytes` come from the
-downloaded assets, the `release_token` UUID from the `release-token` workflow
-artifact of the build run.
+Then register the release the same way as a normal ship — the `desktop_releases`
+row + `desktop_channels` alpha pointer (the CTE in "What a release needs" point
+3): the `sha512` + `size_bytes` come from the downloaded assets, the
+`release_token` UUID from the `release-token` workflow artifact of the build run.
 
 ## The `desktop_releases` row is the usual headless blocker (Supabase auth)
 
@@ -56,7 +75,8 @@ access, and the **Supabase MCP is normally NOT authenticated in headless /
 automated sessions** (it needs interactive OAuth). When it isn't:
 
 - The build, GitHub release, and public mirror can all be green while `/desktop`
-  still serves the old version — the row is the true "make it live" switch.
+  still serves the old version — the row + its alpha channel pointer are the true
+  "make it live" switch.
 - Register it through an authenticated path instead: interactive Supabase MCP
   (`/mcp` in a terminal session), the Supabase SQL editor, or a linked
   `supabase` CLI / psql with the project connection. The `release_token` UUID
