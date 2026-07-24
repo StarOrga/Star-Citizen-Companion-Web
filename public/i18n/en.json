@@ -72,6 +72,25 @@
     "index": {
       "title": "Codex — Index mode"
     },
+    "upcoming": {
+      "title": "Upcoming Ships",
+      "subtitle": "Ships announced on the RSI ship-matrix that aren't in our datamined game data yet — the difference between what RSI lists and what the live build holds.",
+      "count": "{{count}} upcoming",
+      "updated": "Updated {{time}}",
+      "diffHint": "{{rsi}} ships on RSI · {{game}} in game data",
+      "conceptTitle": "In concept",
+      "conceptSub": "RSI is still building these — not flyable yet",
+      "flightReadyTitle": "Flight-ready on RSI",
+      "flightReadySub": "RSI lists these as flight-ready, but our game data has no match yet",
+      "status": {
+        "concept": "In concept",
+        "flightReady": "Flight-ready"
+      },
+      "empty": {
+        "title": "Nothing upcoming",
+        "body": "Every ship RSI lists is already in the game data — no difference to show."
+      }
+    },
     "categoriesAria": "Codex categories",
     "soon": "Coming soon — no data extracted yet.",
     "soonShort": "soon",

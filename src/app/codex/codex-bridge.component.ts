@@ -88,6 +88,7 @@ interface Lane {
                     [attr.aria-label]="'codex.search.clear' | translate">×</button>
           }
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>
+          <a class="index-link" routerLink="/codex/upcoming">{{ 'codex.upcoming.title' | translate }}</a>
           <a class="index-link" routerLink="/codex/keybinds">{{ 'codex.bridge.keybinds' | translate }}</a>
           <a class="index-link" routerLink="/hangar">{{ 'codex.bridge.hangar' | translate }}</a>
         </div>

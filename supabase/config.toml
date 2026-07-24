@@ -60,6 +60,14 @@ file_size_limit = "250MiB"
 # calls outright. No user data flows through this function.
 verify_jwt = false
 
+[functions.rsi-upcoming-ships]
+# JWT verification OFF (same rationale as fetch-verse-news): a public read-only
+# catalog diffing the public RSI ship-matrix against our datamined game data.
+# Reachable by signed-out visitors; the client sends its `sb_publishable_*` key
+# (not a JWT), so the platform gate would reject anonymous calls. No user data
+# flows through this function (it reads codex_ships via the service role only).
+verify_jwt = false
+
 [functions.process-p4k]
 verify_jwt = true
 

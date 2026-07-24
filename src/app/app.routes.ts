@@ -80,6 +80,15 @@ export const routes: Routes = [
           import('./codex/keybinds.component').then((m) => m.KeybindsComponent),
       },
       {
+        // Upcoming Ships — the diff between the public RSI ship-matrix and our
+        // datamined game data (edge fn rsi-upcoming-ships). Public; static
+        // segment placed BEFORE codex/:kind/:className so it is not consumed by
+        // the :kind wildcard.
+        path: 'codex/upcoming',
+        loadComponent: () =>
+          import('./codex/codex-upcoming.component').then((m) => m.CodexUpcomingComponent),
+      },
+      {
         path: 'codex/:kind/:className',
         loadComponent: () =>
           import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),

@@ -28,6 +28,16 @@
         "timeout": "10s",
         "strategy": "freshness"
       }
+    },
+    {
+      "name": "rsi-upcoming-ships",
+      "urls": ["https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/rsi-upcoming-ships"],
+      "cacheConfig": {
+        "maxSize": 4,
+        "maxAge": "6h",
+        "timeout": "10s",
+        "strategy": "freshness"
+      }
     }
   ]
 }

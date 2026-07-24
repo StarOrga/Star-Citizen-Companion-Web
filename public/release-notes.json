@@ -1,7 +1,81 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.41.9",
+  "current": "0.43.0",
   "releases": [
+    {
+      "version": "0.43.0",
+      "date": "2026-07-23",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Feedback board: status filter + quick-access TOC.",
+              "text": "The admin feedback board gained a status quick-filter (Rückfragen / open / in progress, with live counts) alongside the existing author filter, and a horizontal quick-access table of contents that jumps straight to a topic — leading with and highlighting the Rückfragen still awaiting the admin's answer. In the embedded panel an \"expand/collapse all\" toggle closes every topic to just its heading so the board stays scannable. (admin-feedback)"
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Feedback chat: screenshot attachments work again.",
+              "text": "Pasting, dropping, or picking an image failed with \"Bild konnte nicht verarbeitet werden\" because the hardened Content-Security-Policy (img-src without blob:) blocked the blob: object URL the composer used to decode images. The composer now decodes via createImageBitmap, which needs no URL and is CSP-independent. (admin-feedback)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.42.0",
+      "date": "2026-07-23",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Desktop-release promotion moved inline into the Data Upload page.",
+              "text": "Admins now roll a version forward through the alpha → beta → stable rings from a compact, admin-only row right under the current release — where builds are already downloaded with a channel picker — instead of a separate admin/desktop-releases page. The old admin route and its nav link are removed; collaborators and viewers never see the control. The underlying promote_desktop_channel RPC (admin + monotonicity enforced server-side) is unchanged."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.41.11",
+      "date": "2026-07-23",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse News: promo/ad \"comm-links\" no longer open a broken RSI page.",
+              "text": "The star-citizen.wiki API occasionally surfaces storefront ad promos as comm-links (e.g. \"Fly with D-Box\" → /promotions/<code>, which 404s), and entries with no permalink fell back to the bare /comm-link index — both gave a card whose \"open on RSI\" link dead-ended on a 404 or a redirecting RSI error screen. The feed now keeps only real article permalinks (/comm-link/<category>/<id>-<slug>), so every news link opens an actual article. Ship-promo transmissions that RSI redirects client-side (e.g. \"Grey's Market Basher\") return 200 and are kept — they are indistinguishable from a normal article server-side. (news)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.41.10",
+      "date": "2026-07-23",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Weekly Verse-News summary wallpaper no longer fails at 1440p/4K.",
+              "text": "The transparent-thumbnail fix in 0.41.7 measured PNG alpha by fully decoding each image, which pushed the starscape-summary edge function over its memory limit (HTTP 546) for every request ≥1920×1080 — so the desktop app's boot summary always fell back to a gallery image. Image selection now reads only the file header (dimensions + alpha flag, no pixel decode) and the render width is capped at 1920 px (the wallpaper is scaled to the screen anyway). Verified live at 1080p, 1440p, 4K and ultrawide."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.41.9",
       "date": "2026-07-23",
