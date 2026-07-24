@@ -402,6 +402,22 @@ async function refreshConnection(): Promise<void> {
     } catch {
       /* ignore */
     }
+    // Re-resolve the role now that a session actually exists. init()'s early
+    // fetch can land BEFORE the persisted session is restored — then it returns
+    // 'viewer', which pins an admin/collaborator to the no-picker default for
+    // the whole run (the ring picker in the connection bar stays hidden). Only
+    // UPGRADE here: main's fetchUserRole() collapses any transient failure to
+    // 'viewer', so applying that blindly could re-hide the picker on a flaky
+    // re-check. A real downgrade (sign-out) goes through the disconnected path.
+    try {
+      const role = await window.sc.session.role();
+      if (role !== 'viewer' && role !== state.role) {
+        state.role = role;
+        paintConnection(); // ring-picker visibility depends on role
+      }
+    } catch {
+      /* keep the last known role */
+    }
     void autoSync();
   }
 }
