@@ -23,9 +23,11 @@ import {
   createJob,
   isResumable,
   describeResume,
+  resumeSummary,
   type TextIO,
   type UploadJobState,
   type JobNat,
+  type ResumeSummary,
 } from '../lib/upload-job.js';
 import {
   catalogHooks,
@@ -64,17 +66,21 @@ export interface JobView {
   state: UploadJobState | null;
   resumable: boolean;
   signal: RunSignal;
-  /** Short human summary of where a resume would pick up. */
+  /** Short TECHNICAL summary of where a resume would pick up (logs/telemetry). */
   resumeHint: string | null;
+  /** Structured, localization-ready resume picture — the renderer's banner + seed. */
+  resumeSummary: ResumeSummary | null;
 }
 
 export function view(): JobView {
   const state = store().load();
+  const resumable = isResumable(state);
   return {
     state,
-    resumable: isResumable(state),
+    resumable,
     signal: control().state(),
-    resumeHint: state && isResumable(state) ? describeResume(state) : null,
+    resumeHint: state && resumable ? describeResume(state) : null,
+    resumeSummary: state && resumable ? resumeSummary(state) : null,
   };
 }
 
@@ -134,7 +140,7 @@ export function cancel(): JobView {
   control().cancel();
   store().clear();
   log.info('[upload-job] cancelled + job state cleared');
-  return { state: null, resumable: false, signal: 'cancelled', resumeHint: null };
+  return { state: null, resumable: false, signal: 'cancelled', resumeHint: null, resumeSummary: null };
 }
 
 /** Mark the whole run finished and drop the state file. */

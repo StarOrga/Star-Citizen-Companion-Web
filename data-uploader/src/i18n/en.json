@@ -120,6 +120,9 @@
       "discard": "Discard",
       "cancelled": "Upload discarded — the saved progress was removed.",
       "resumeBanner": "Found an interrupted upload ({{hint}}) — resume it?",
+      "resumeBannerRich": "Interrupted upload · {{macro}}: {{stages}} — resume?",
+      "stagePending": "pending",
+      "stageSkinsDone": "{{count}} ships done",
       "pauseShort": "paused"
     }
   },
@@ -198,7 +201,8 @@
   "progress": {
     "still": "still working",
     "eta": "ETA",
-    "perSec": "/s"
+    "perSec": "/s",
+    "step": "Step {{n}}/{{total}}"
   },
   "tray": {
     "open": "Open window",

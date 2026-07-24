@@ -20,6 +20,12 @@
  * whole resume model unit-tests without Electron or a network.
  */
 
+import {
+  CATALOG_PHASE_TOTAL,
+  catalogPhaseIndex,
+  nextCatalogPhase,
+} from './catalog-phases.js';
+
 export type StageStatus = 'pending' | 'running' | 'done';
 
 export type JobStatus = 'running' | 'paused' | 'done' | 'error';
@@ -144,7 +150,12 @@ export function sentFor(s: UploadJobState, phase: string): number {
   return s.catalog.cursor?.phase === phase ? s.catalog.cursor.sent : 0;
 }
 
-/** A one-line, human-facing summary of what a resume would pick up. */
+/**
+ * A one-line, TECHNICAL summary of what a resume would pick up — for logs and
+ * telemetry only (`catalog:codex_ships@1200`). The renderer builds a human,
+ * localized banner from `resumeSummary` instead; keep the two in sync in spirit
+ * but never show this raw string to an operator.
+ */
 export function describeResume(s: UploadJobState): string {
   const stage = nextStage(s);
   if (!stage) return 'complete';
@@ -155,6 +166,74 @@ export function describeResume(s: UploadJobState): string {
     return `skins:${s.skins.doneShips.length} ships done`;
   }
   return stage;
+}
+
+/** One macro stage of an upload run, tagged with where a resume stands. */
+export interface StageProgress {
+  stage: MacroStage;
+  state: 'done' | 'active' | 'pending';
+}
+
+export type MacroStage = 'bundle' | 'catalog' | 'skins';
+
+/**
+ * Structured, localization-ready picture of where an interrupted upload would
+ * resume — the data the renderer turns into a human banner and uses to seed the
+ * progress card straight at the resume point (no rewind-from-zero flash).
+ *
+ * Deliberately machine-readable (numbers + enums, no prose): main computes it
+ * from the durable job, IPC hands it to the renderer verbatim, and only the
+ * renderer knows the operator's language.
+ */
+export interface ResumeSummary {
+  /** All three macro stages, in execution order, each done / active / pending. */
+  stages: StageProgress[];
+  /** The stage a resume re-enters, or null when the job is already complete. */
+  activeStage: MacroStage | null;
+  /** 1-based macro position of the active stage (bundle = 1 … skins = 3). */
+  macroStep: number | null;
+  /** How many macro stages there are (always 3) — the "/ N" of the macro line. */
+  macroTotal: number;
+  /** Present when the active stage is `catalog`: where in the publish order it resumes. */
+  catalog?: { step: number; total: number; phase: string };
+  /** Present when the active stage is `skins`: how many ships already committed. */
+  skinsDone?: number;
+}
+
+/** Macro stages in the exact order the renderer sequences them. */
+export const MACRO_STAGES: MacroStage[] = ['bundle', 'catalog', 'skins'];
+
+/**
+ * Turn a durable job into the structured resume picture above. Pure: no I/O, so
+ * both the main-process job view and the tests read the same result.
+ */
+export function resumeSummary(s: UploadJobState): ResumeSummary {
+  const active = nextStage(s);
+  const stages: StageProgress[] = MACRO_STAGES.map((stage) => ({
+    stage,
+    state: s[stage].status === 'done' ? 'done' : stage === active ? 'active' : 'pending',
+  }));
+  const summary: ResumeSummary = {
+    stages,
+    activeStage: active,
+    macroStep: active ? MACRO_STAGES.indexOf(active) + 1 : null,
+    macroTotal: MACRO_STAGES.length,
+  };
+  if (active === 'catalog') {
+    // A live cursor is the exact resume point; without one (catalog is next but
+    // no chunk was mid-flight) fall back to the first data phase not yet sent.
+    const phase =
+      s.catalog.cursor?.phase ?? nextCatalogPhase(s.catalog.donePhases) ?? 'codex_manufacturers';
+    summary.catalog = {
+      step: catalogPhaseIndex(phase) ?? 2,
+      total: CATALOG_PHASE_TOTAL,
+      phase,
+    };
+  }
+  if (active === 'skins') {
+    summary.skinsDone = s.skins.doneShips.length;
+  }
+  return summary;
 }
 
 export class UploadJobStore {

@@ -12,9 +12,19 @@ import { load as loadI18n, setLocale, getLocale, t, type LocaleId } from '../lib
 // renderer's tsconfig project only spans `src/renderer/**` + i18n, so importing
 // these from `src/main` / `src/preload` would drag Node/Electron-only modules
 // into a DOM-only program.
+interface ResumeSummaryLike {
+  stages: { stage: 'bundle' | 'catalog' | 'skins'; state: 'done' | 'active' | 'pending' }[];
+  activeStage: 'bundle' | 'catalog' | 'skins' | null;
+  macroStep: number | null;
+  macroTotal: number;
+  catalog?: { step: number; total: number; phase: string };
+  skinsDone?: number;
+}
+
 interface JobViewLike {
   resumable: boolean;
   resumeHint: string | null;
+  resumeSummary: ResumeSummaryLike | null;
   state: { status: string } | null;
 }
 
@@ -1207,6 +1217,7 @@ async function runRealExtract(): Promise<void> {
     counterLabel,
     steps: runSteps(),
     labels: progressLabels(),
+    stepLabel: stepCounterLabel,
   });
   const appendLog = (msg: string, level: LogLevel = 'info') => {
     const prefix = level === 'error' ? '[err] ' : level === 'warn' ? '[warn] ' : '';
@@ -1384,6 +1395,12 @@ function progressLabels(): Partial<ProgressLabels> {
   };
 }
 
+// The always-visible macro position ("Schritt 2/3") the operator asked for.
+// Fallback carries the numbers inline since tOr does not interpolate fallbacks.
+function stepCounterLabel(step: number, total: number): string {
+  return tOr('progress.step', `Schritt ${step}/${total}`, { n: step, total });
+}
+
 function renderAuthUpload(): string {
   const result = state.lastResult;
   const hasResult = result !== null;
@@ -1448,6 +1465,7 @@ function wireAuthUpload(): void {
     counterLabel,
     steps: uploadSteps(),
     labels: progressLabels(),
+    stepLabel: stepCounterLabel,
   });
   $('#btn-back-run')?.addEventListener('click', () => {
     state.view = 'run';
@@ -1485,6 +1503,42 @@ async function refreshJobView(): Promise<void> {
   paintJobNotice();
 }
 
+// Turn the structured resume summary into a human, localized banner — e.g.
+// "Unterbrochener Upload · Schritt 2/3: Bundle ✓ · Codex (Schritt 3/15) ·
+//  3D-Skins offen — fortsetzen?" — so the operator sees exactly what is done and
+// what a resume picks up, instead of the raw `catalog:codex_ships@1200` hint.
+function formatResumeBanner(sum: ResumeSummaryLike): string {
+  const stageName = (st: 'bundle' | 'catalog' | 'skins'): string =>
+    st === 'bundle'
+      ? tOr('upload.steps.bundle', 'Bundle')
+      : st === 'catalog'
+        ? tOr('upload.steps.codex', 'Codex')
+        : tOr('upload.steps.skins', '3D-Skins');
+
+  const parts = sum.stages.map((s) => {
+    const name = stageName(s.stage);
+    if (s.state === 'done') return `${name} ✓`;
+    if (s.state === 'pending') return `${name} ${tOr('upload.job.stagePending', 'offen')}`;
+    // Active stage — append the sub-position we have for the long stages.
+    if (s.stage === 'catalog' && sum.catalog) {
+      return `${name} (${stepCounterLabel(sum.catalog.step, sum.catalog.total)})`;
+    }
+    if (s.stage === 'skins' && typeof sum.skinsDone === 'number') {
+      return `${name} (${tOr('upload.job.stageSkinsDone', `${sum.skinsDone} Schiffe fertig`, {
+        count: sum.skinsDone,
+      })})`;
+    }
+    return `${name} …`;
+  });
+
+  const macro = sum.macroStep != null ? stepCounterLabel(sum.macroStep, sum.macroTotal) : '';
+  return tOr(
+    'upload.job.resumeBannerRich',
+    `Unterbrochener Upload · ${macro}: ${parts.join(' · ')} — fortsetzen?`,
+    { macro, stages: parts.join(' · ') },
+  );
+}
+
 /**
  * Paint the resume banner + button visibility from the job view.
  * Three mutually-exclusive shapes: idle (nothing), running (Pause offered),
@@ -1509,7 +1563,11 @@ function paintJobNotice(): void {
   // operator resumes rather than silently re-uploading everything.
   startBtn.style.display = !running && resumable ? 'none' : '';
 
-  if (!running && resumable && job?.resumeHint) {
+  if (!running && resumable && job?.resumeSummary) {
+    notice.textContent = formatResumeBanner(job.resumeSummary);
+    notice.style.display = 'block';
+  } else if (!running && resumable && job?.resumeHint) {
+    // Fallback for an older main process that predates the structured summary.
     notice.textContent =
       t('upload.job.resumeBanner', { hint: job.resumeHint }) ||
       `Unterbrochener Upload gefunden (${job.resumeHint}) — fortsetzen?`;
@@ -1659,14 +1717,21 @@ async function doUploadAfterAuth(): Promise<void> {
   // during the very first request leaves a resumable record behind. Adopting an
   // existing job for the same out_dir is what turns "reopen the app" into
   // "continue where we stopped".
-  await window.sc.uploadJob.begin(result.output_dir, {
+  const job = await window.sc.uploadJob.begin(result.output_dir, {
     channel: result.channel,
     patchVersion: result.patch_version,
     buildNumber: result.build_number,
   });
-  uploadProgress?.setStep(0);
+  // On a resume whose bundle already landed, the bundle POST returns instantly
+  // from the main process — so skip the bundle spinner and open the card
+  // straight on the catalog stage (macro 2/3), where the work actually resumes,
+  // instead of flashing "1/3 · Bundle" then jumping.
+  const resumingPastBundle = job?.bundle?.status === 'done';
+  uploadProgress?.setStep(resumingPastBundle ? 1 : 0);
   uploadProgress?.update({
-    phaseLabel: t('upload.bundleUploading', {}) || 'Bundle-Metadaten werden hochgeladen…',
+    phaseLabel: resumingPastBundle
+      ? t('catalog.publishing', {}) || 'Codex wird veröffentlicht'
+      : t('upload.bundleUploading', {}) || 'Bundle-Metadaten werden hochgeladen…',
     indeterminate: true,
     detail: '',
   });
@@ -1688,7 +1753,9 @@ async function doUploadAfterAuth(): Promise<void> {
     setAuthStatus(friendlyUploadError(r), 'error');
     return;
   }
-  uploadProgress?.update({ indeterminate: false, overallPct: 100 });
+  // Only claim the bundle step as 100% on a fresh run; on a resume the card is
+  // already on the catalog stage and promoteToCodex owns the bar from here.
+  if (!resumingPastBundle) uploadProgress?.update({ indeterminate: false, overallPct: 100 });
   setAuthStatus(
     `${t('upload.uploadOk', {}) || 'Upload OK'} · bundle_id ${r.bundleId ?? '—'}`,
     'ok',
