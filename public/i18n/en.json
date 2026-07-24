@@ -52,11 +52,14 @@
         "fromHangar": "From your hangar",
         "flagship": "Your flagship",
         "open": "Open",
+        "openShip": "Open {{ship}}",
         "freshness": "{{patch}} LIVE · build {{build}}"
       },
       "flagship": {
         "set": "★ Set as flagship",
-        "pinned": "★ Flagship"
+        "pinned": "★ Flagship",
+        "hint": "Your flagship is your default ship: it always opens at the top of the Codex, is marked with a ★ in your hangar and is saved to your profile, so it follows you across devices.",
+        "hintPinned": "This is your flagship: it always opens at the top of the Codex and is marked with a ★ in your hangar. Tap again to unpin it."
       },
       "lanes": {
         "hangar": "Your Hangar",

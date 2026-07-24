@@ -189,6 +189,47 @@ describe('CodexBridgeComponent', () => {
     expect(cmp.hero()?.classNameSlug).toBe('AEGS_Gladius');
   });
 
+  it('links the hero art and the hero name to the same target as the Open button', async () => {
+    const fixture = await setup({
+      catalog: [shipRow({ classNameSlug: 'AEGS_Gladius' })],
+      hangar: [],
+    });
+    const el: HTMLElement = fixture.nativeElement;
+    const open = el.querySelector<HTMLAnchorElement>('.hero-actions a.btn.primary');
+    const art = el.querySelector<HTMLAnchorElement>('a.hero-art');
+    const name = el.querySelector<HTMLAnchorElement>('.hero-name a.hero-name-link');
+    expect(open?.getAttribute('href')).toContain('/codex/ship/AEGS_Gladius');
+    expect(art?.getAttribute('href')).toBe(open!.getAttribute('href'));
+    expect(name?.getAttribute('href')).toBe(open!.getAttribute('href'));
+    // The art link is icon/image-only, so it needs its own accessible name.
+    expect(art?.getAttribute('aria-label')).toBeTruthy();
+  });
+
+  it('shows an always-visible flagship explainer only for hangar ships', async () => {
+    const outside = await setup({
+      catalog: [shipRow({ classNameSlug: 'AEGS_Gladius' })],
+      hangar: [],
+    });
+    expect(outside.nativeElement.querySelector('.flagship-hint')).toBeNull();
+    TestBed.resetTestingModule();
+
+    const gladius = shipRow({ classNameSlug: 'AEGS_Gladius' });
+    const owned = await setup({
+      catalog: [],
+      hangar: [hangarShip('AEGS_Gladius')],
+      byClassName: new Map([['AEGS_Gladius', gladius]]),
+    });
+    const hint: HTMLElement | null = owned.nativeElement.querySelector('.flagship-hint');
+    expect(hint).not.toBeNull();
+    const btn: HTMLElement | null = owned.nativeElement.querySelector('.btn.flag');
+    expect(btn?.getAttribute('aria-describedby')).toBe(hint!.id);
+    expect(owned.componentInstance.flagshipHintKey('AEGS_Gladius')).toBe('codex.bridge.flagship.hint');
+    owned.componentInstance.toggleFlagship('AEGS_Gladius');
+    expect(owned.componentInstance.flagshipHintKey('AEGS_Gladius')).toBe(
+      'codex.bridge.flagship.hintPinned',
+    );
+  });
+
   it('toggles the flagship from the hero and reacts in the hero eyebrow', async () => {
     const gladius = shipRow({ classNameSlug: 'AEGS_Gladius' });
     const fixture = await setup({
