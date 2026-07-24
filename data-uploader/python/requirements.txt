@@ -23,4 +23,11 @@ cryptography==47.0.0   # AES-backed P4K decryption — pinned; supply-chain sens
 zstandard==0.25.0      # P4K entries are zstd-compressed
 lz4==4.4.5
 Pillow==11.0.0         # DDS → PNG icon conversion (icons currently deferred)
-numpy==2.2.0
+# scdatatools 1.0.4 requires numpy~=1.21.5 (>=1.21.5,<1.22). The embedded Python
+# is 3.10.x, whose last compatible numpy is 1.21.6 (cp310 wheel exists; numpy's
+# Requires-Python is >=3.7,<3.11). numpy 2.x — pinned here in error by #200 —
+# makes `pip install -r requirements.txt` unsolvable at build time and silently
+# breaks every tag build (the CI test jobs don't install requirements.txt, so it
+# stayed invisible until a data-uploader-v* tag). See
+# .claude/deep-knowledge/data-uploader-python.md.
+numpy==1.21.6
