@@ -84,6 +84,94 @@ export function toCrashInput(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Extraction aborts
+// ---------------------------------------------------------------------------
+//
+// An extraction that ends without a result is DATA LOSS for the operator: the
+// P4K scan has to start over from zero. An *upload* that ends early is not —
+// the resumable upload job picks it back up (see lib/upload-job.ts). So only
+// extraction aborts are telemetried, deliberately, and the upload cancel path
+// must stay silent.
+//
+// Wire-wise this rides the existing signed `crash` batch with a dedicated
+// errorType, so it needs no ingest-function change; the admin dashboard splits
+// it out of the crash aggregates via `error_type` (see the
+// telemetry_extract_aborts migration).
+
+/** Why an extraction stopped without producing a result. */
+export type ExtractAbortReason =
+  /** Operator pressed cancel in the UI. */
+  | 'cancelled'
+  /** App quit / last window closed while the extraction was still running. */
+  | 'quit'
+  /** The sidecar failed, died, or never emitted a usable result. */
+  | 'error';
+
+/** Server-side bucket (`telemetry_events.error_type`) for extraction aborts. */
+export const EXTRACT_ABORT_ERROR_TYPE = 'extract-aborted';
+
+/** Server-side `error_name` — what the dashboard shows as the event label. */
+export const EXTRACT_ABORT_NAME = 'ExtractAborted';
+
+export interface ExtractAbortContext {
+  /** Internal run id — correlates the abort with the log file. */
+  jobId: string;
+  /** Last phase the sidecar reported before the abort (discover/extract/…). */
+  phase?: string | null;
+  /** Last percentage the sidecar reported (0..100). */
+  pct?: number | null;
+  /** How long the extraction had been running when it aborted. */
+  elapsedMs?: number | null;
+  /** Underlying failure text — only set for reason 'error'. */
+  error?: string | null;
+}
+
+/**
+ * Build the crash-wire event for an aborted extraction. Pure so the reason /
+ * payload contract is unit-testable without Electron or a network.
+ */
+export function buildExtractAbort(
+  reason: ExtractAbortReason,
+  ctx: ExtractAbortContext,
+): CrashInput {
+  const detail = reason === 'error' && ctx.error ? `: ${ctx.error}` : '';
+  return {
+    errorType: EXTRACT_ABORT_ERROR_TYPE,
+    name: EXTRACT_ABORT_NAME,
+    message: clamp(`extraction aborted (${reason})${detail}`, MAX_MESSAGE) ?? '',
+    stack: null,
+    extra: {
+      reason,
+      jobId: ctx.jobId,
+      phase: ctx.phase ?? null,
+      // Round: a fractional percentage adds noise without adding signal.
+      pct: typeof ctx.pct === 'number' && Number.isFinite(ctx.pct) ? Math.round(ctx.pct) : null,
+      elapsedMs:
+        typeof ctx.elapsedMs === 'number' && Number.isFinite(ctx.elapsedMs)
+          ? Math.max(0, Math.round(ctx.elapsedMs))
+          : null,
+    },
+  };
+}
+
+/**
+ * Decide whether a finished extraction still owes an abort report.
+ *
+ * `requested` is the reason recorded the moment an abort was *asked for*
+ * (operator cancel / app quit) — those report immediately, because on quit the
+ * process may be gone before the child's exit resolves the promise. Returning
+ * null there is what keeps a cancel from being reported twice.
+ */
+export function classifyExtractAbort(
+  final: { ok: boolean; error?: string | null },
+  requested: ExtractAbortReason | null,
+): ExtractAbortReason | null {
+  if (requested) return null; // already reported at request time
+  if (final.ok) return null; // completed with a result — nothing to report
+  return 'error';
+}
+
 export interface SignedRequest {
   url: string;
   body: string;

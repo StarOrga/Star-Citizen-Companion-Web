@@ -5,6 +5,10 @@ import {
   signCrashRequest,
   normaliseOs,
   toCrashInput,
+  buildExtractAbort,
+  classifyExtractAbort,
+  EXTRACT_ABORT_ERROR_TYPE,
+  EXTRACT_ABORT_NAME,
   PRODUCT,
   ROLE,
   type TelemetryMeta,
@@ -55,6 +59,89 @@ describe('toCrashInput', () => {
   it('coerces a null/undefined thrown value to an empty message', () => {
     expect(toCrashInput('x', null).message).toBe('');
     expect(toCrashInput('x', undefined).message).toBe('');
+  });
+});
+
+describe('buildExtractAbort', () => {
+  it('uses the dedicated extract-aborted bucket, not a generic crash type', () => {
+    const ev = buildExtractAbort('cancelled', { jobId: 'j1' });
+    expect(ev.errorType).toBe(EXTRACT_ABORT_ERROR_TYPE);
+    expect(ev.errorType).toBe('extract-aborted');
+    expect(ev.name).toBe(EXTRACT_ABORT_NAME);
+    // Not a real crash — there is no stack to send.
+    expect(ev.stack).toBeNull();
+  });
+
+  it('carries the reason plus how far the extraction got', () => {
+    const ev = buildExtractAbort('quit', {
+      jobId: 'j2',
+      phase: 'extract',
+      pct: 41.7,
+      elapsedMs: 90_000,
+    });
+    expect(ev.extra).toEqual({
+      reason: 'quit',
+      jobId: 'j2',
+      phase: 'extract',
+      pct: 42, // rounded — fractional percent is noise
+      elapsedMs: 90_000,
+    });
+    expect(ev.message).toBe('extraction aborted (quit)');
+  });
+
+  it('appends the underlying failure text only for reason "error"', () => {
+    expect(
+      buildExtractAbort('error', { jobId: 'j3', error: 'python exited with code 1' }).message,
+    ).toBe('extraction aborted (error): python exited with code 1');
+    // A cancel carries no error text even if one was passed along.
+    expect(buildExtractAbort('cancelled', { jobId: 'j3', error: 'ignored' }).message).toBe(
+      'extraction aborted (cancelled)',
+    );
+  });
+
+  it('defaults the missing progress fields to null instead of dropping them', () => {
+    expect(buildExtractAbort('error', { jobId: 'j4' }).extra).toEqual({
+      reason: 'error',
+      jobId: 'j4',
+      phase: null,
+      pct: null,
+      elapsedMs: null,
+    });
+  });
+
+  it('rejects non-finite progress numbers rather than shipping NaN', () => {
+    const ev = buildExtractAbort('error', { jobId: 'j5', pct: NaN, elapsedMs: Infinity });
+    expect((ev.extra as Record<string, unknown>).pct).toBeNull();
+    expect((ev.extra as Record<string, unknown>).elapsedMs).toBeNull();
+  });
+
+  it('truncates an oversized failure text to the wire budget', () => {
+    const ev = buildExtractAbort('error', { jobId: 'j6', error: 'x'.repeat(2000) });
+    expect(ev.message.length).toBe(500);
+  });
+
+  it('survives the crash wire encoder as a normal event', () => {
+    const body = JSON.parse(buildCrashBody(meta, [buildExtractAbort('cancelled', { jobId: 'j7' })]));
+    expect(body.product).toBe('data-uploader');
+    expect(body.events[0].errorType).toBe('extract-aborted');
+    expect(body.events[0].extra.reason).toBe('cancelled');
+  });
+});
+
+describe('classifyExtractAbort', () => {
+  it('reports a self-terminating failure as reason "error"', () => {
+    expect(classifyExtractAbort({ ok: false, error: 'python exited 2' }, null)).toBe('error');
+  });
+
+  it('stays silent for a successful extraction', () => {
+    expect(classifyExtractAbort({ ok: true }, null)).toBeNull();
+  });
+
+  it('does not double-report an abort that was already sent at request time', () => {
+    // The cancel/quit paths report immediately (the process may not survive to
+    // the promise), so the resolution path must add nothing.
+    expect(classifyExtractAbort({ ok: false, error: 'cancelled' }, 'cancelled')).toBeNull();
+    expect(classifyExtractAbort({ ok: false, error: 'cancelled' }, 'quit')).toBeNull();
   });
 });
 
