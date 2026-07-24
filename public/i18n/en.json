@@ -1091,12 +1091,14 @@
     "refresh": "Refresh",
     "loading": "Loading…",
     "empty": "No feedback yet. Be the first to post.",
+    "emptyActive": "Nothing active — everything is in the archive.",
+    "emptyArchive": "Archive is empty. Shipped topics and ones handed off to an issue land here.",
     "errorTitle": "Error",
     "you": "You",
     "unknownUser": "Unknown",
     "shipRef": "View change",
+    "issueRef": "View issue",
     "setStatus": "Change status",
-    "shippedGroup": "Shipped · {{count}}",
     "loadMore": "Load {{count}} more",
     "toggleDetails": "Expand or collapse this entry",
     "showMore": "more",
@@ -1109,9 +1111,15 @@
       "label": "Filter by status",
       "all": "All"
     },
+    "tab": {
+      "label": "Switch between active topics and the archive",
+      "active": "Active",
+      "archive": "Archive"
+    },
     "stats": {
       "rueckfragen": "{{count}} follow-ups",
-      "shipped": "{{count}} shipped"
+      "shipped": "{{count}} shipped",
+      "issues": "{{count}} issues created"
     },
     "expandAll": "Expand all",
     "collapseAll": "Collapse all",
@@ -1125,12 +1133,20 @@
     },
     "delete": "Delete",
     "deleteConfirm": "Delete this message? This cannot be undone.",
+    "issue": {
+      "mark": "Issue created",
+      "placeholder": "GitHub issue URL",
+      "save": "Archive",
+      "cancel": "Cancel",
+      "invalidUrl": "Please enter a valid issue URL (http/https)."
+    },
     "status": {
       "open": "Open",
       "in_progress": "In progress",
       "shipped": "Shipped",
       "rejected": "Rejected",
       "needs_input": "Needs input",
+      "issue_created": "Issue created",
       "answered": "Answered"
     },
     "thread": {

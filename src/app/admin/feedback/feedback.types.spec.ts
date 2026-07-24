@@ -4,7 +4,9 @@ import {
   FeedbackStatus,
   buildWorkflowQueue,
   computeStats,
+  isArchived,
   isAwaitingAdmin,
+  refKind,
   startOfMonth,
   topicTitle,
 } from './feedback.types';
@@ -79,6 +81,40 @@ describe('isAwaitingAdmin', () => {
   });
 });
 
+describe('isArchived', () => {
+  it('is true for every terminal status', () => {
+    for (const s of ['shipped', 'issue_created', 'rejected'] as const) {
+      expect(isArchived(row('t', s, '2026-07-01T10:00:00Z'))).toBeTrue();
+    }
+  });
+
+  it('is false for the statuses the routine still works', () => {
+    for (const s of ['open', 'in_progress', 'needs_input'] as const) {
+      expect(isArchived(row('a', s, '2026-07-01T10:00:00Z'))).toBeFalse();
+    }
+  });
+});
+
+describe('refKind', () => {
+  const at = '2026-07-01T10:00:00Z';
+
+  it('labels an issue_created row as an issue, whatever the url looks like', () => {
+    expect(refKind(row('i', 'issue_created', at, { ship_ref: 'https://example.test/x' }))).toBe('issue');
+  });
+
+  it('labels a shipped PR as a ship link', () => {
+    expect(refKind(row('s', 'shipped', at, { ship_ref: 'https://github.com/o/r/pull/42' }))).toBe('ship');
+  });
+
+  it('sniffs an issue url attached to a non-issue_created row', () => {
+    expect(refKind(row('s', 'in_progress', at, { ship_ref: 'https://github.com/o/r/issues/7' }))).toBe('issue');
+  });
+
+  it('falls back to a ship link without a ref', () => {
+    expect(refKind(row('s', 'open', at))).toBe('ship');
+  });
+});
+
 describe('buildWorkflowQueue', () => {
   const q1 = row('q1', 'needs_input', '2026-07-03T10:00:00Z');
   const q2 = row('q2', 'needs_input', '2026-07-01T10:00:00Z');
@@ -102,6 +138,14 @@ describe('buildWorkflowQueue', () => {
   it('excludes shipped, in_progress and already-answered questions', () => {
     const ids = buildWorkflowQueue([done, busy, answered], threads).map((i) => i.row.id);
     expect(ids).toEqual([]);
+  });
+
+  it('excludes archived topics, including issue hand-offs', () => {
+    const filed = row('i1', 'issue_created', '2026-07-01T09:00:00Z', {
+      ship_ref: 'https://github.com/o/r/issues/9',
+    });
+    const dropped = row('x1', 'rejected', '2026-07-01T09:00:00Z');
+    expect(buildWorkflowQueue([filed, dropped], threads).map((i) => i.row.id)).toEqual([]);
   });
 
   it('hides items ticked off while their updated_at is unchanged', () => {
@@ -155,6 +199,13 @@ describe('computeStats', () => {
 
   it('handles an empty board', () => {
     expect(computeStats([], new Map(), null)).toEqual({ shipped: 0, open: 0, answered: 0 });
+  });
+
+  it('does not count an issue hand-off as still open', () => {
+    const filed = row('i1', 'issue_created', '2026-07-02T10:00:00Z', {
+      ship_ref: 'https://github.com/o/r/issues/9',
+    });
+    expect(computeStats([filed], new Map(), null)).toEqual({ shipped: 0, open: 0, answered: 0 });
   });
 });
 
