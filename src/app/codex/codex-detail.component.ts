@@ -437,6 +437,16 @@ interface GearRecipe {
           <section class="sc-card block">
             <h2>{{ 'codex.detail.hardpoints' | translate }} <span class="ct">{{ detail()!.ports.length }}</span></h2>
             <p class="hint">{{ 'codex.detail.hardpointsHint' | translate }}</p>
+            <!-- The hull map lives with the loadout list when there is one; a
+                 ship with only structural ports gets it here instead, so it is
+                 never shown twice and never withheld. -->
+            @if (!hasLoadoutSection() && hardpointFrame(); as frame) {
+              <sc-ship-hardpoint-map
+                [markers]="hardpointMarkers()"
+                [frame]="frame"
+                [activePorts]="activePorts()"
+                (hovered)="setActivePorts($event)" />
+            }
             @for (g of hardpointGroups(); track g.category) {
               <div class="hp-group">
                 <h3 class="hp-cat">
@@ -445,7 +455,9 @@ interface GearRecipe {
                 </h3>
                 <ul class="hp-list">
                   @for (port of g.ports; track port.portIndex) {
-                    <li class="hp" [class.expandable]="port.types.length > 0" [class.open]="expandedPort() === port.portIndex">
+                    <li class="hp" [class.expandable]="port.types.length > 0" [class.open]="expandedPort() === port.portIndex"
+                        [class.located]="isPortLocated(port)" [class.on]="isPortActive(port)"
+                        (mouseenter)="hoverPort(port)" (mouseleave)="setActivePorts(null)">
                       <button type="button" class="hp-head" (click)="togglePort(port)" [disabled]="port.types.length === 0">
                         <span class="hp-caret">{{ port.types.length ? (expandedPort() === port.portIndex ? '▾' : '▸') : '·' }}</span>
                         <span class="hp-name">{{ humanizePort(port.portName) }}</span>
@@ -746,6 +758,12 @@ interface GearRecipe {
 
     .hp { border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); overflow: hidden; }
     .hp.open { border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    /* A port whose position on the hull is known gets a locator rail; hovering
+       it lights up its marker on the hull map (and vice versa). Ports without
+       coordinates look exactly as they did before. */
+    .hp.located { border-left: 2px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
+    .hp.located.on { border-left-color: var(--sc-accent);
+      background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-1)); }
     .hp-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: transparent; border: none;
       color: inherit; font: inherit; text-align: left; cursor: default; }
     .hp.expandable .hp-head { cursor: pointer; }
@@ -1423,6 +1441,19 @@ export class CodexDetailComponent implements OnInit {
   readonly locatablePorts = computed<string[]>(() =>
     this.hardpointMarkers().map((m) => m.port),
   );
+
+  /** Whether the loadout card renders (it hosts the hull map when it does). */
+  readonly hasLoadoutSection = computed(() => this.loadoutGroups().length > 0);
+
+  isPortLocated(port: CodexItemPort): boolean {
+    return !!port.portName && this.locatablePorts().includes(port.portName);
+  }
+  isPortActive(port: CodexItemPort): boolean {
+    return !!port.portName && this.activePorts().includes(port.portName);
+  }
+  hoverPort(port: CodexItemPort): void {
+    this.setActivePorts(this.isPortLocated(port) ? [port.portName as string] : null);
+  }
 
   /**
    * The hardpoint(s) currently highlighted, hovered from either side (a loadout
