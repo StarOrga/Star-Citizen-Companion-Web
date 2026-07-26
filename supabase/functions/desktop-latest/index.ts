@@ -80,6 +80,13 @@ interface ReleaseRow {
   >;
   notes: string | null;
   created_at: string;
+  /**
+   * The channel the row was actually resolved on. Both `*_release_for_channel`
+   * RPCs return it, and it is the CLAMPED ring, not the requested one — that
+   * difference is the whole point (see `respondForChannel`). Absent on the
+   * release-token path, which reads the pointer table directly.
+   */
+  channel?: string;
 }
 
 function jsonResp(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
@@ -255,6 +262,15 @@ async function respondForChannel(
   }
   if (!release) return jsonResp({ error: 'no_release' }, 404);
 
+  // Report the EFFECTIVE channel, never the requested one. The clamping RPC
+  // answers a viewer's `beta` request with the stable row, and echoing "beta"
+  // back would tell the caller its request was honoured — Starscape's whole
+  // "never install across rings" guard is a comparison against this field, so
+  // echoing the request silently disabled it (and with it the sign-in prompt).
+  // The token path has no clamp and no `channel` column, so it keeps the
+  // requested value, which there IS the served one.
+  const servedChannel = release.channel ?? channel;
+
   const accept = (req.headers.get('accept') ?? '').toLowerCase();
   if (accept.includes('yaml') || accept.includes('yml')) {
     return new Response(toLatestYaml(release), {
@@ -277,7 +293,7 @@ async function respondForChannel(
       notes: release.notes,
       releaseDate: release.created_at,
       platforms: release.platforms,
-      channel,
+      channel: servedChannel,
       product,
     },
     200,

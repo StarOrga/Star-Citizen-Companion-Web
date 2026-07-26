@@ -6,14 +6,22 @@
 -- `channel` alone. Starscape needs its own alpha/beta/stable pointers, so the
 -- table becomes product-scoped — PK `(product, channel)`.
 --
--- IMPORTANT — three call sites depend on the old single-column key and are all
--- updated here (or, for the edge function, in the same change):
+-- IMPORTANT — every call site that depends on the old single-column key is
+-- updated in this same change. `on conflict (channel)` now raises "no unique or
+-- exclusion constraint matching the ON CONFLICT specification", and an unfiltered
+-- join returns one row per product, so none of these are optional:
 --   1. desktop_release_for_channel() joined desktop_channels with no product
 --      filter → would return TWO rows per channel once Starscape rows exist.
---   2. promote_desktop_channel() used `on conflict (channel)` → that constraint
---      no longer exists, so the RPC would fail at runtime.
+--   2. promote_desktop_channel() used `on conflict (channel)`.
 --   3. supabase/functions/desktop-latest — `.eq('channel', …).maybeSingle()` on
 --      the release-token path (fixed in index.ts by adding a product filter).
+--   4. .github/workflows/data-uploader-build.yml — the register SQL the uploader
+--      release step PRINTS. Not executed by CI, so nothing here would have caught
+--      it; the next uploader release would simply have failed to register.
+--   5. .claude/deep-knowledge/data-uploader-release.md and
+--      .claude/skills/devops-ship/SKILL.md carry the same statement by hand.
+-- (The `docs/superpowers/` plan + spec keep the old form on purpose — they are a
+--  record of what was built in 2026-07, not instructions.)
 --
 -- Alpha-phase policy: additive column + key swap, no rows dropped.
 
@@ -21,8 +29,21 @@
 alter table public.desktop_channels
   add column if not exists product text not null default 'uploader';
 
-alter table public.desktop_channels drop constraint if exists desktop_channels_pkey;
-alter table public.desktop_channels add primary key (product, channel);
+-- Re-runnable: `add primary key` has no `if not exists`, so a second apply (or a
+-- partial apply that got as far as the swap) would fail with "multiple primary
+-- keys for table are not allowed". Guard on the constraint's presence instead.
+-- Widening only: every existing row already has product='uploader' from the
+-- column default, so (product, channel) is unique wherever channel was.
+do $$
+begin
+  alter table public.desktop_channels drop constraint if exists desktop_channels_pkey;
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.desktop_channels'::regclass and contype = 'p'
+  ) then
+    alter table public.desktop_channels add primary key (product, channel);
+  end if;
+end $$;
 
 -- 2. Uploader resolver — unchanged semantics, now explicitly product-scoped ----
 create or replace function public.desktop_release_for_channel(p_channel text)

@@ -101,9 +101,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (!releaseToken) return json({ error: 'missing_release_token' }, 400);
     // is_current was dropped by the desktop-channels migration; a known,
     // non-revoked token is valid (mirrors desktop-latest / ingest-bundle).
+    // product='uploader' only — the Starscape tray app bakes a release token into
+    // a public, unsigned binary, so an unscoped match would accept it here too.
     const { data: release, error: relErr } = await admin
       .from('desktop_releases').select('id, token_revoked')
-      .eq('release_token', releaseToken).maybeSingle();
+      .eq('release_token', releaseToken).eq('product', 'uploader').maybeSingle();
     if (relErr) return json({ error: 'server_misconfigured', message: relErr.message }, 500);
     if (!release || (release as { token_revoked: boolean }).token_revoked) {
       return json({ error: 'forbidden', message: 'release token invalid/revoked' }, 403);

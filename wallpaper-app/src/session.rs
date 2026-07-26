@@ -141,6 +141,35 @@ pub fn ensure_access_token() -> Option<String> {
     }
 }
 
+/// Re-exchange the stored refresh token even though the access token still looks
+/// fresh, and report whether that succeeded.
+///
+/// Needed because a locally-unexpired JWT says nothing about server-side state: a
+/// web logout or a password change revokes it, and the feed then silently treats
+/// us as anonymous. That is indistinguishable from "your role is too low" unless
+/// we ask. GoTrue rejects the refresh token in exactly those cases, so a failure
+/// here means "signed out" (the store is cleared) and a success means the session
+/// is genuinely live and the clamp really is about the account's role.
+pub fn revalidate() -> Option<String> {
+    let session = Session::load()?;
+    if !session.can_refresh() {
+        Session::clear();
+        return None;
+    }
+    match refresh(&session.refresh_token) {
+        Some(fresh) => {
+            fresh.save();
+            log::line("session: re-validated against the auth server");
+            Some(fresh.access_token)
+        }
+        None => {
+            log::line("session: refresh rejected on re-validation — signed out server-side");
+            Session::clear();
+            None
+        }
+    }
+}
+
 /// Exchange a refresh token for a new session (GoTrue rotates the refresh token,
 /// so the response's value replaces the stored one).
 fn refresh(refresh_token: &str) -> Option<Session> {

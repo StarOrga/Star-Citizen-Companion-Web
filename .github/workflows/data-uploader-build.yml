@@ -240,14 +240,20 @@ jobs:
             Write-Host "  )"
             Write-Host "  RETURNING id"
             Write-Host ")"
+            # desktop_channels is keyed (product, channel) since the Starscape
+            # channels migration (20260726120000). Both the column list and the
+            # ON CONFLICT target must name `product` — the column default only
+            # covers the insert, and `ON CONFLICT (channel)` now fails with
+            # "no unique or exclusion constraint matching the ON CONFLICT
+            # specification", which would block registering an uploader release.
             if ($mode -eq 'all') {
-              Write-Host "INSERT INTO public.desktop_channels (channel, release_id)"
-              Write-Host "SELECT ch.c, new_rel.id FROM new_rel, (VALUES ('alpha'),('beta'),('stable')) AS ch(c)"
-              Write-Host "ON CONFLICT (channel) DO UPDATE SET release_id = EXCLUDED.release_id, updated_at = now();"
+              Write-Host "INSERT INTO public.desktop_channels (product, channel, release_id)"
+              Write-Host "SELECT 'uploader', ch.c, new_rel.id FROM new_rel, (VALUES ('alpha'),('beta'),('stable')) AS ch(c)"
+              Write-Host "ON CONFLICT (product, channel) DO UPDATE SET release_id = EXCLUDED.release_id, updated_at = now();"
             } else {
-              Write-Host "INSERT INTO public.desktop_channels (channel, release_id)"
-              Write-Host "SELECT 'alpha', id FROM new_rel"
-              Write-Host "ON CONFLICT (channel) DO UPDATE SET release_id = EXCLUDED.release_id, updated_at = now();"
+              Write-Host "INSERT INTO public.desktop_channels (product, channel, release_id)"
+              Write-Host "SELECT 'uploader', 'alpha', id FROM new_rel"
+              Write-Host "ON CONFLICT (product, channel) DO UPDATE SET release_id = EXCLUDED.release_id, updated_at = now();"
             }
             Write-Host ""
           }

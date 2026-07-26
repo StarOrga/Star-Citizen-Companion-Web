@@ -22,9 +22,16 @@ const SHA256_LEN: usize = 32;
 /// a slice longer than `u32::MAX` would silently truncate.
 const HASH_CHUNK: usize = 1024 * 1024;
 
-/// Application-specific DPAPI entropy. Ties the protected session blob to this
-/// app: another program running as the same user cannot unprotect it by simply
+/// Application-specific DPAPI entropy, so the blob does not unseal by simply
 /// handing the bytes to `CryptUnprotectData`.
+///
+/// Not a secret and not claimed to be one: this string sits in a public repo and
+/// in a public unsigned binary. It raises the bar from "any tool that walks
+/// %APPDATA% and calls CryptUnprotectData" to "a tool written for Starscape". The
+/// real boundary is DPAPI's user+machine binding — anything already running as
+/// this user can unseal the session, and that is inherent to at-rest protection
+/// without a user-supplied passphrase (the data-uploader's `safeStorage` has the
+/// identical property).
 const DPAPI_ENTROPY: &[u8] = b"StarscapeWallpaper/session/v1";
 
 /// Lowercase-hex SHA-256 of `bytes` via Windows CNG.

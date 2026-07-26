@@ -35,15 +35,21 @@ pub const API_HOST: &str = SUPA_HOST;
 /// governs access, so this is not a secret.
 pub const API_KEY: &str = SUPA_KEY;
 
-/// Hosts an update binary may be requested from — checked against the URL the
-/// release catalog hands us, exactly like [`download_image`] pins the RSI CDN.
-/// A tampered catalog row therefore cannot aim the updater at an arbitrary host.
+/// The ONLY prefix an update binary may be requested from.
+///
+/// A bare host allowlist would not pin anything: `github.com` hosts release
+/// assets for every account on the platform, so `https://github.com/<anyone>/
+/// <repo>/releases/download/…` would have passed. The owner and repository are
+/// therefore part of the pin, and it is matched as a literal prefix of the whole
+/// URL rather than as a parsed host.
+///
 /// GitHub answers with a 302 into its object store; WinHTTP follows that itself
-/// and its default redirect policy refuses an https→http downgrade. The
-/// downloaded bytes are hash-checked against the catalog before installation
-/// regardless of where the redirect landed, so the redirect target is not a
-/// trusted input.
-const BINARY_HOSTS: [&str; 2] = ["github.com", "objects.githubusercontent.com"];
+/// and its default redirect policy refuses an https→http downgrade. The redirect
+/// target is deliberately NOT pinned — the downloaded bytes are hash-checked
+/// against the catalog before installation regardless of where it landed, so it
+/// is not a trusted input.
+const BINARY_URL_PREFIX: &str =
+    "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/";
 
 /// Upper bound for an update download. Starscape is ~0.3 MB; 32 MB is a wide
 /// margin that still refuses a runaway response.
@@ -184,9 +190,14 @@ unsafe fn query_content_length(request: *mut c_void) -> Option<u64> {
     }
 }
 
-/// Read the response body. Returns `None` if the stream fails part-way through
-/// (so the caller can distinguish "complete" from "truncated"); `Some(bytes)`
-/// only on a clean end-of-response.
+/// Read the response body. Returns `None` if the stream fails part-way through,
+/// so the caller can distinguish "complete" from "truncated".
+///
+/// One caveat, deliberately: the ~40 MB runaway guard below `break`s out and
+/// therefore returns `Some` with a TRUNCATED body. Callers must not treat `Some`
+/// as "the whole body" on its own — both current consumers cross-check the length
+/// (`download_image` against `content_length`, `download_release_binary` against
+/// `content_length` *and* the catalog's `size_bytes` *and* a SHA-256).
 unsafe fn read_body(request: *mut c_void) -> Option<Vec<u8>> {
     let mut out = Vec::new();
     loop {
@@ -491,16 +502,27 @@ pub fn https_text(
     Some((resp.status, String::from_utf8_lossy(&resp.body).into_owned()))
 }
 
+/// True only for a URL inside [`BINARY_URL_PREFIX`].
+///
+/// Rejects the two ways a literal prefix check can be walked out of: a `..`
+/// segment (which the server would resolve back up out of the release path) and a
+/// backslash (which some resolvers treat as a separator). Everything else is a
+/// path under the pinned owner/repo, so it can only ever be one of that
+/// repository's release assets.
+fn is_pinned_binary_url(url: &str) -> bool {
+    url.starts_with(BINARY_URL_PREFIX) && !url.contains("..") && !url.contains('\\')
+}
+
 /// Download an update binary from the allowlisted binaries mirror, returning the
 /// bytes **in memory** so the caller can verify the SHA-256 before anything
 /// touches disk. `None` for a refused host, a non-200, a truncated stream, or an
 /// implausible size.
 pub fn download_release_binary(url: &str) -> Option<Vec<u8>> {
-    let (host, path) = split_url(url)?;
-    if !BINARY_HOSTS.contains(&host) {
-        log::line(&format!("update: refused non-mirror host {host}"));
+    if !is_pinned_binary_url(url) {
+        log::line("update: refused a download URL outside the pinned binaries mirror");
         return None;
     }
+    let (host, path) = split_url(url)?;
     let resp = https_request("GET", host, &path, &[], None)?;
     if resp.status != 200 {
         log::line(&format!("update: HTTP {} downloading {url}", resp.status));
@@ -636,6 +658,36 @@ mod tests {
       "platforms":{"win-x64":{"url":"https://github.com/o/r/releases/download/t/a.exe","kind":"exe","sha256":"aabb","size_bytes":312320},
       "win-x64-beta":{"url":"https://github.com/o/r/releases/download/t/a-beta.exe","kind":"exe","sha256":"ccdd","size_bytes":312321}},
       "channel":"beta","product":"starscape"}"#;
+
+    #[test]
+    fn the_binary_pin_covers_owner_and_repo_not_just_the_host() {
+        assert!(is_pinned_binary_url(
+            "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/wallpaper-app-v0.4.0/starscape-wallpaper-0.4.0-beta.exe"
+        ));
+        // The finding this test exists for: any GitHub account can host a release
+        // asset, so a host-only allowlist pins nothing.
+        assert!(!is_pinned_binary_url(
+            "https://github.com/attacker/evil/releases/download/x/starscape-wallpaper.exe"
+        ));
+        assert!(!is_pinned_binary_url(
+            "https://github.com/StarOrga/Star-Citizen-Companion-Web/releases/download/x/a.exe"
+        ));
+        // Prefix-walking, scheme downgrade, and lookalike hosts.
+        assert!(!is_pinned_binary_url(
+            "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/../../../attacker/evil/releases/download/x/a.exe"
+        ));
+        assert!(!is_pinned_binary_url(
+            "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/x\\..\\a.exe"
+        ));
+        assert!(!is_pinned_binary_url(
+            "http://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/x/a.exe"
+        ));
+        assert!(!is_pinned_binary_url(
+            "https://github.com.attacker.test/StarOrga/Star-Citizen-Companion-Binaries/releases/download/x/a.exe"
+        ));
+        assert!(!is_pinned_binary_url("https://objects.githubusercontent.com/whatever"));
+        assert!(!is_pinned_binary_url(""));
+    }
 
     #[test]
     fn json_str_reads_scalar_fields() {
