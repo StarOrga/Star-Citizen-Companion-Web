@@ -1,8 +1,5 @@
 ---
-slug: authentication
 title: Authentication
-category: documentation
-position: 2
 excerpt: Bearer tokens, scopes, and the token lifecycle — how SC Companion authorises API calls.
 ---
 
@@ -28,6 +25,9 @@ Because only the hash is stored, SC Companion physically cannot show you a
 token again. Treat the value like a password: keep it server-side, never commit
 it, never ship it in a browser bundle.
 
+Listings show a short **prefix** (`scc_live_8aF3kP9q…`) so you can tell tokens
+apart without ever revealing the secret.
+
 ## Creating a token
 
 1. Sign in to [SC Companion](https://sc-companion.vercel.app) with an account
@@ -50,6 +50,10 @@ curl -X POST \
 ```
 
 The `201` response contains `data.plaintext` — the only time you will ever see it.
+
+At least one scope is required, and every scope must be known: an empty or
+misspelled list is rejected with `invalid_scopes` rather than silently creating
+a powerless token.
 
 ## Scopes
 
@@ -81,6 +85,11 @@ curl -X DELETE -H "Authorization: Bearer <supabase-session-jwt>" \
 ```
 
 Revocation takes effect on the next request — there is no cached grace window.
+It is a soft delete: the row is stamped with `revoked_at` and then filtered out
+of the listing, so the token is gone from your view but the record survives.
+Revoking an already-revoked or foreign token returns `404 not_found`.
+
+Token names are unique per owner; reusing one returns `409 duplicate_name`.
 
 ## Public endpoints
 

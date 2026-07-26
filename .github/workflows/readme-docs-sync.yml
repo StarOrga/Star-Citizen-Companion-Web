@@ -1,0 +1,125 @@
+name: readme-docs
+
+# The documentation site at https://star-citizen-companion.readme.io is
+# published by ReadMe's own **Git Sync**, which has two hard constraints:
+#
+#   1. it syncs the *root* of a repository — there is no "content directory"
+#      setting, and
+#   2. the repository must be empty when you connect it.
+#
+# Neither is negotiable, and neither is compatible with this monorepo. So the
+# authored source stays here under docs/readme-io/pages/ (reviewed in normal
+# PRs, validated by the job below) and this workflow mirrors that subtree into
+# the root of a small dedicated repository that ReadMe watches.
+#
+# One-time setup — see docs/readme-io/GIT-SYNC-SETUP.md. Until the
+# README_DOCS_MIRROR_TOKEN secret exists the mirror step is skipped, so the
+# validation half works on day one and nothing fails on a fork.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/readme-io/**'
+      - 'scripts/gen-readme-content.mjs'
+      - '.github/workflows/readme-docs-sync.yml'
+  pull_request:
+    paths:
+      - 'docs/readme-io/**'
+      - 'scripts/gen-readme-content.mjs'
+      - '.github/workflows/readme-docs-sync.yml'
+  workflow_dispatch:
+
+# The mirror pushes to a *different* repository with a PAT; nothing needs write
+# access to this one.
+permissions:
+  contents: read
+
+env:
+  # Dedicated ReadMe Git-Sync repository. Change both here and in the ReadMe
+  # dashboard if it is ever renamed.
+  MIRROR_REPO: StarOrga/sc-companion-readme-docs
+  MIRROR_BRANCH: main
+  SYNC_SOURCE: docs/readme-io/pages
+
+jobs:
+  validate:
+    name: validate Git-Sync tree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Enforces ReadMe's repository contract: folders are categories, file
+      # names are slugs, _order.yaml drives ordering, and frontmatter is
+      # limited to the keys ReadMe actually reads. A page that would silently
+      # publish wrong fails here instead.
+      - name: Validate the ReadMe Git-Sync tree
+        run: node scripts/gen-readme-content.mjs --check
+
+      # content.ts is committed (the Supabase deploy bundler only ships what
+      # the import graph reaches). Catch a docs edit that forgot to regenerate.
+      - name: Check the bundled inventory is current
+        run: |
+          node scripts/gen-readme-content.mjs
+          if ! git diff --quiet -- supabase/functions/readme-sync/content.ts; then
+            echo "::error::supabase/functions/readme-sync/content.ts is stale — run 'npm run gen:readme-content' and commit the result."
+            git --no-pager diff --stat -- supabase/functions/readme-sync/content.ts
+            exit 1
+          fi
+
+  mirror:
+    name: mirror to the ReadMe repo
+    needs: validate
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mirror docs/readme-io/pages -> ${{ env.MIRROR_REPO }}
+        env:
+          MIRROR_TOKEN: ${{ secrets.README_DOCS_MIRROR_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${MIRROR_TOKEN:-}" ]; then
+            echo "README_DOCS_MIRROR_TOKEN is not set — skipping the mirror."
+            echo "See docs/readme-io/GIT-SYNC-SETUP.md to finish the one-time setup."
+            exit 0
+          fi
+
+          SRC_SHA="$(git rev-parse --short HEAD)"
+
+          # Shallow clone of the mirror, then replace its tracked content with
+          # the sync source. `git rm -r .` keeps .git and drops everything else,
+          # so a page deleted here is deleted there — ReadMe treats the repo as
+          # the source of truth, and a stale orphan page would keep publishing.
+          git clone --depth 1 --branch "$MIRROR_BRANCH" \
+            "https://x-access-token:${MIRROR_TOKEN}@github.com/${MIRROR_REPO}.git" mirror \
+            || git clone --depth 1 \
+              "https://x-access-token:${MIRROR_TOKEN}@github.com/${MIRROR_REPO}.git" mirror
+
+          cd mirror
+          git checkout -B "$MIRROR_BRANCH"
+          git rm -rq --ignore-unmatch . || true
+          cd ..
+
+          cp -r "$SYNC_SOURCE"/. mirror/
+          cp docs/readme-io/MIRROR-README.md mirror/README.md
+
+          cd mirror
+          git config user.name  "sc-companion-docs-bot"
+          git config user.email "docs-bot@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Mirror already matches ${SRC_SHA} — nothing to push."
+            exit 0
+          fi
+
+          git commit -m "docs: sync from Star-Citizen-Companion-Web@${SRC_SHA}"
+          git push origin "$MIRROR_BRANCH"
+          echo "Pushed ${SRC_SHA} to ${MIRROR_REPO}. ReadMe Git Sync picks it up from there."

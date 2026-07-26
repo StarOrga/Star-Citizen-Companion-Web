@@ -1,28 +1,33 @@
 // supabase/functions/readme-sync
 // -----------------------------------------------------------------------
-// Admin-only one-way publish of the repo's documentation source
-// (docs/readme-io/pages/*.md, bundled into content.ts) to the project's
-// ReadMe (readme.io) site.
+// Admin-only, **read-only** health check for the project's ReadMe (readme.io)
+// documentation site.
 //
-// Input:  POST { mode?: 'probe' | 'sync', branch?: string, dryRun?: boolean,
-//                apiVersion?: 'v1' | 'v2' }
-//         GET  ?mode=probe        (read-only, same admin gate)
-// Output: 200 { ok, mode, apiVersion, branch, counts, pages: [...] }
-//         207 partial — some pages failed (see per-page `error`)
+// This function used to publish docs/readme-io/pages/*.md over the ReadMe
+// content API. It cannot, and never could: the ReadMe project is Git-backed,
+// and ReadMe blocks the content API for Git-backed projects by design
+// (403 API_ACCESS_UNAVAILABLE). Publishing now happens through ReadMe's own
+// Git Sync — see docs/readme-io/GIT-SYNC-SETUP.md.
+//
+// Rather than delete the function (the deployed name and its secret are worth
+// keeping) it was reduced to the part that still works and is still useful:
+//
+//   * confirm README_IO_API_KEY is present and accepted,
+//   * confirm the API is still closed *and why* — so if ReadMe ever opens it,
+//     or the project silently changes tier, somebody finds out,
+//   * report the page inventory this repository expects to be live, which is
+//     what a Git-Sync run should have produced.
+//
+// The write path is gone. A request that asks to publish gets an explicit
+// 409 pointing at Git Sync — it never silently no-ops and never pretends.
+//
+// Input:  GET  (no body)              — run the check
+//         POST { branch?: string }    — same, with an explicit branch
+//         POST { mode: 'sync' }       — 409, publishing moved to Git Sync
+// Output: 200 { ok, state, publish, api, repo }
 //         401 { error: 'unauthorized' } / 403 { error: 'forbidden' }
+//         409 { error: 'publish_via_git_sync' }
 //         500 { error: 'README_IO_API_KEY not configured' }
-//
-// Direction is repo → ReadMe, always. The markdown in the repo is the source of
-// truth; a sync overwrites the remote page body. Nothing is ever deleted — a
-// page removed from the repo is left standing in ReadMe for a human to retire,
-// so a bad generator run cannot wipe the documentation site.
-//
-// API version is auto-detected (see readme-api.ts): v2 when the project is on
-// ReadMe Refactored, v1 otherwise. `apiVersion` in the body forces one.
-//
-// `mode=probe` performs only GETs and reports which API answers, the resolved
-// branch, category resolution, and the pages that would be written. Run it
-// first after any ReadMe-side change.
 //
 // The API key lives ONLY as the edge-function secret `README_IO_API_KEY`
 // (CLAUDE.md: no third-party keys in the repo or client bundle).
@@ -31,16 +36,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
 import { PAGES } from './content.ts';
-import {
-  ReadmeApi,
-  anyPageCategoryRef,
-  detectApiVersion,
-  findCategoryRef,
-  firstCategoryRef,
-  pickBranch,
-  type ApiVersion,
-  type PagePayload,
-} from './readme-api.ts';
+import { ReadmeApi, classify, pickBranch } from './readme-api.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -48,22 +44,12 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-const CATEGORY_TITLES: Record<string, string> = {
-  documentation: 'Documentation',
-};
+const SETUP_DOC =
+  'https://github.com/StarOrga/Star-Citizen-Companion-Web/blob/main/docs/readme-io/GIT-SYNC-SETUP.md';
 
-interface SyncBody {
+interface RequestBody {
   mode?: string;
   branch?: string;
-  dryRun?: boolean;
-  apiVersion?: string;
-}
-
-interface PageResult {
-  slug: string;
-  action: 'created' | 'updated' | 'skipped' | 'failed';
-  status?: number;
-  error?: string;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -111,7 +97,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   // A service_role bearer counts as admin: it already outranks every profile
-  // role, so accepting it grants nothing new — it just makes the sync runnable
+  // role, so accepting it grants nothing new — it just makes the check runnable
   // headlessly (CI / release scripts) instead of only from a browser session.
   //
   // Two forms are accepted because the project may be on legacy JWT keys or the
@@ -146,26 +132,29 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   // ---- 2. Input ---------------------------------------------------------
   const url = new URL(req.url);
-  let body: SyncBody = {};
+  let body: RequestBody = {};
   if (req.method === 'POST') {
     try {
-      body = ((await req.json()) ?? {}) as SyncBody;
+      body = ((await req.json()) ?? {}) as RequestBody;
     } catch {
       body = {};
     }
   }
-  const mode = (
-    body.mode ??
-    url.searchParams.get('mode') ??
-    (req.method === 'GET' ? 'probe' : 'sync')
-  ).toLowerCase();
-  if (mode !== 'probe' && mode !== 'sync') {
-    return json({ error: "mode must be 'probe' or 'sync'" }, 400);
+
+  // The old contract had `mode=sync` publish every page. Answer loudly rather
+  // than accepting the request and doing nothing.
+  const mode = (body.mode ?? url.searchParams.get('mode') ?? '').toLowerCase();
+  if (mode === 'sync') {
+    return json(
+      {
+        error: 'publish_via_git_sync',
+        message:
+          'This function no longer publishes. The ReadMe project is Git-backed, so the content API rejects writes; docs are published by ReadMe Git Sync from docs/readme-io/pages/.',
+        setup: SETUP_DOC,
+      },
+      409,
+    );
   }
-  const dryRun = body.dryRun === true || url.searchParams.get('dryRun') === 'true';
-  const branchHint = body.branch ?? url.searchParams.get('branch') ?? undefined;
-  const forcedVersion = (body.apiVersion ?? url.searchParams.get('apiVersion') ?? '')
-    .toLowerCase();
 
   const apiKey = Deno.env.get('README_IO_API_KEY') ?? '';
   if (!apiKey) {
@@ -178,156 +167,53 @@ Deno.serve(async (req: Request): Promise<Response> => {
     );
   }
 
-  // ---- 3. Resolve branch + which API this project actually serves -------
+  // ---- 3. Read-only probe ----------------------------------------------
   const branchProbe = new ReadmeApi(apiKey, 'v2', '1.0');
-  const branchesRes = await branchProbe.probePath('/branches');
-  const branch = pickBranch(branchesRes.body, branchHint);
+  const branches = await branchProbe.listBranches();
+  const branch = pickBranch(branches.body, body.branch ?? url.searchParams.get('branch') ?? undefined);
 
-  let apiVersion: ApiVersion;
-  let detection: { v2Branches: number; v2Guides: number } | null = null;
-  if (forcedVersion === 'v1' || forcedVersion === 'v2') {
-    apiVersion = forcedVersion;
-  } else {
-    const detected = await detectApiVersion(apiKey, branch);
-    apiVersion = detected.version;
-    detection = { v2Branches: detected.v2Branches, v2Guides: detected.v2Guides };
-  }
+  const v1 = new ReadmeApi(apiKey, 'v1', branch);
+  const v2 = new ReadmeApi(apiKey, 'v2', branch);
+  const [v1Guides, v2Guides] = await Promise.all([v1.listGuides(), v2.listGuides()]);
 
-  const api = new ReadmeApi(apiKey, apiVersion, branch);
+  const state = classify(v1Guides, v2Guides);
 
-  // ---- 4. Resolve category references ----------------------------------
-  const categories = await api.listCategories();
-  const existingPages = await api.listGuides();
+  // `git_backed` is the expected state: ReadMe is correctly enforcing that a
+  // Git-backed project publishes from Git. Anything else deserves attention.
+  const ok = state === 'git_backed';
 
-  if (!categories.ok && !existingPages.ok) {
-    return json(
-      {
-        error: 'readme_api_unreachable',
-        detail:
-          'Neither the categories nor the pages endpoint answered. Check that README_IO_API_KEY is a valid project key.',
-        apiVersion,
-        branch,
-        status: { categories: categories.status, pages: existingPages.status },
-        body: categories.body ?? categories.raw ?? null,
-      },
-      502,
-    );
-  }
+  const categories = [...new Set(PAGES.map((p) => p.category))];
 
-  const wanted = [...new Set(PAGES.map((p) => p.category))];
-  const categoryRefs: Record<string, string> = {};
-  const categoryNotes: Record<string, string> = {};
-
-  for (const slug of wanted) {
-    let ref = findCategoryRef(categories.body, slug, apiVersion);
-    if (ref) {
-      categoryNotes[slug] = 'matched by slug';
-    } else if (mode === 'sync' && !dryRun) {
-      const created = await api.createCategory(slug, CATEGORY_TITLES[slug] ?? slug);
-      ref =
-        findCategoryRef(created.body, slug, apiVersion) ??
-        firstCategoryRef(created.body, apiVersion);
-      categoryNotes[slug] = created.ok ? 'created' : `create failed (${created.status})`;
-    }
-    if (!ref) {
-      // Last resort: reuse a category that demonstrably exists — the one an
-      // existing page sits in, else the first in the listing. Publishing into a
-      // real-but-imperfect category is fixable in the ReadMe UI; failing the
-      // whole sync over category placement is not worth it.
-      ref =
-        anyPageCategoryRef(existingPages.body, apiVersion) ??
-        firstCategoryRef(categories.body, apiVersion);
-      if (ref) categoryNotes[slug] ??= 'reused an existing category';
-    }
-    if (ref) categoryRefs[slug] = ref;
-    else categoryNotes[slug] ??= 'UNRESOLVED';
-  }
-
-  // ---- 5. Probe: read-only report --------------------------------------
-  if (mode === 'probe') {
-    return json({
-      ok: Object.keys(categoryRefs).length === wanted.length,
-      mode,
-      apiVersion,
-      detection,
+  return json({
+    ok,
+    state,
+    note:
+      state === 'git_backed'
+        ? 'Expected. ReadMe blocks the content API for Git-backed projects; publishing runs through Git Sync.'
+        : state === 'api_open'
+          ? 'Unexpected: a ReadMe content endpoint answered. The project may have been migrated — revisit the publishing strategy.'
+          : 'Unexpected. Check README_IO_API_KEY and the raw statuses below.',
+    publish: {
+      channel: 'readme-git-sync',
+      source: 'docs/readme-io/pages/',
+      setup: SETUP_DOC,
+    },
+    api: {
       branch,
-      status: { categories: categories.status, pages: existingPages.status },
-      categoryRefs,
-      categoryNotes,
-      pages: PAGES.map((p) => ({
+      branches: { status: branches.status, ok: branches.ok },
+      v1Guides: { status: v1Guides.status, ok: v1Guides.ok },
+      v2Guides: { status: v2Guides.status, ok: v2Guides.ok },
+    },
+    repo: {
+      pages: PAGES.length,
+      categories,
+      inventory: PAGES.map((p) => ({
         slug: p.slug,
         title: p.title,
         category: p.category,
-        position: p.position,
         bytes: p.body.length,
         source: p.source,
-        categoryResolved: !!categoryRefs[p.category],
       })),
-    });
-  }
-
-  // ---- 6. Sync: upsert every page --------------------------------------
-  const results: PageResult[] = [];
-
-  for (const page of PAGES) {
-    const categoryRef = categoryRefs[page.category];
-    if (!categoryRef) {
-      results.push({
-        slug: page.slug,
-        action: 'failed',
-        error: `could not resolve a category for "${page.category}"`,
-      });
-      continue;
-    }
-
-    const payload: PagePayload = {
-      slug: page.slug,
-      title: page.title,
-      body: page.body,
-      excerpt: page.excerpt,
-      position: page.position,
-      categoryRef,
-    };
-
-    const existing = await api.getPage(page.slug);
-    const exists = existing.ok;
-
-    if (dryRun) {
-      results.push({
-        slug: page.slug,
-        action: 'skipped',
-        status: existing.status,
-        error: exists ? undefined : 'would be created',
-      });
-      continue;
-    }
-
-    const res = exists ? await api.updatePage(payload) : await api.createPage(payload);
-
-    results.push({
-      slug: page.slug,
-      action: res.ok ? (exists ? 'updated' : 'created') : 'failed',
-      status: res.status,
-      ...(res.ok ? {} : { error: JSON.stringify(res.body ?? res.raw ?? null).slice(0, 300) }),
-    });
-  }
-
-  const failed = results.filter((r) => r.action === 'failed');
-  return json(
-    {
-      ok: failed.length === 0,
-      mode,
-      apiVersion,
-      dryRun,
-      branch,
-      counts: {
-        created: results.filter((r) => r.action === 'created').length,
-        updated: results.filter((r) => r.action === 'updated').length,
-        skipped: results.filter((r) => r.action === 'skipped').length,
-        failed: failed.length,
-      },
-      pages: results,
     },
-    failed.length === 0 ? 200 : 207,
-  );
+  });
 });

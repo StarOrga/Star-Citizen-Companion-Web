@@ -84,6 +84,15 @@ live in-app at `/tools/extension`.
 - `authGuard` waits for `auth.ready()` before deciding, to avoid a flash-of-login on hard refresh.
 - Service worker: network-first for JS/CSS, lazy assets, 15-min data cache on `fetch-verse-news`.
 
+## Documentation
+
+- **Public docs site:** <https://star-citizen-companion.readme.io> — authored in
+  [`docs/readme-io/pages/`](docs/readme-io/pages) and published by ReadMe's Git
+  Sync via a mirror repository. Never edit it in ReadMe's web editor; see
+  [docs/readme-io/README.md](docs/readme-io/README.md) and
+  [GIT-SYNC-SETUP.md](docs/readme-io/GIT-SYNC-SETUP.md).
+- **API reference:** `GET /openapi.json` on the public API, rendered at `/docs`.
+
 ## Roadmap
 
 - **Phase 1 (alpha, this MVP):** login, Verse News feed, P4K upload + header heuristics.

@@ -1,15 +1,18 @@
 ---
-slug: getting-started
 title: Getting Started
-category: documentation
-position: 1
 excerpt: Make your first authenticated call against the SC Companion Public API in under five minutes.
+metadata:
+  title: SC Companion Public API — Getting Started
+  description: Base URL, tokens, scopes and your first authenticated request against the read-only SC Companion Public API.
 ---
 
 The **SC Companion Public API** gives you read-only access to Star Citizen Verse
 data that SC Companion already aggregates: patch versions, Verse News from
 Comm-Link / Spectrum / YouTube, and (as the ingestion pipelines land) ships and
 components.
+
+New to the project itself? Start at
+[What is SC Companion?](doc:overview) instead.
 
 > 🚧 **Alpha.** SC Companion is in its alpha phase. Endpoints marked *stub*
 > return an empty `data` array with an explanatory `meta.message` until their

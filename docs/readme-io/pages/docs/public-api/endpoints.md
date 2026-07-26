@@ -1,22 +1,22 @@
 ---
-slug: endpoints
 title: Endpoints
-category: documentation
-position: 3
 excerpt: Every route on the SC Companion Public API — parameters, response shapes, and current data status.
 ---
 
 All routes are relative to
 `https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/api`.
 
-| Method | Path | Scope | Status |
-|---|---|---|---|
-| `GET` | `/v1/patch` | `patch:read` | live data |
-| `GET` | `/v1/news` | `news:read` | live data |
-| `GET` | `/v1/ships` | `ships:read` | stub — ingestion pending |
-| `GET` | `/v1/components` | `components:read` | stub — ingestion pending |
-| `GET` | `/openapi.json` | — | public |
-| `GET` | `/docs` | — | public |
+| Method | Path | Auth | Scope | Status |
+|---|---|---|---|---|
+| `GET` | `/v1/patch` | API token | `patch:read` | live data |
+| `GET` | `/v1/news` | API token | `news:read` | live data |
+| `GET` | `/v1/ships` | API token | `ships:read` | stub — ingestion pending |
+| `GET` | `/v1/components` | API token | `components:read` | stub — ingestion pending |
+| `POST` | `/v1/tokens` | session JWT (admin) | — | live |
+| `GET` | `/v1/tokens` | session JWT (admin) | — | live |
+| `DELETE` | `/v1/tokens/:id` | session JWT (admin) | — | live |
+| `GET` | `/openapi.json` | none | — | public |
+| `GET` | `/docs` | none | — | public |
 
 ---
 
@@ -51,6 +51,9 @@ Up to **50** Verse News items from the last **90 days**, ordered by
 | Name | In | Type | Description |
 |---|---|---|---|
 | `source` | query | `comm-link` · `spectrum` · `youtube` · `patch` | Restrict to one channel. Omit for all. |
+
+An unrecognised `source` is rejected with `400 invalid_source` rather than
+silently returning everything.
 
 ```bash
 curl -H "Authorization: Bearer scc_live_…" \
@@ -97,6 +100,26 @@ Ship roster for a patch version.
 
 Component catalog for a patch version. Same `patch` parameter and the same
 stub behaviour as `/v1/ships`.
+
+---
+
+## Token management
+
+These three routes are **session-authenticated**: they take a Supabase session
+JWT from an `admin` account, not an `scc_live_*` API token, and they bypass the
+rate limiter. See [Authentication](doc:authentication) for the full lifecycle.
+
+| Method | Path | Returns |
+|---|---|---|
+| `POST` | `/v1/tokens` | `201 { data: { plaintext, token } }` — the only time the secret is shown |
+| `GET` | `/v1/tokens` | `200 { data: [...] }` — your non-revoked tokens, metadata only |
+| `DELETE` | `/v1/tokens/:id` | `200 { ok: true }`, or `404 not_found` if it is already revoked |
+
+Request body for `POST`:
+
+```json
+{ "name": "fleetview-bot", "scopes": ["news:read", "patch:read"] }
+```
 
 ---
 

@@ -1,8 +1,5 @@
 ---
-slug: rate-limits
 title: Rate Limits
-category: documentation
-position: 4
 excerpt: A sliding 60-second window per token, with the remaining budget exposed on every response.
 ---
 
@@ -27,7 +24,7 @@ local counter drifts out of sync.
 
 ```
 HTTP/1.1 429 Too Many Requests
-Retry-After: 12
+Retry-After: 60
 ```
 
 ```json
@@ -39,7 +36,8 @@ Retry-After: 12
 }
 ```
 
-`Retry-After` is in seconds. Honour it — retrying earlier just burns budget.
+`Retry-After` is in seconds and matches the window length. Honour it — retrying
+earlier just burns budget.
 
 ## Staying inside the budget
 
