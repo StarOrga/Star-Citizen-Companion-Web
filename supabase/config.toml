@@ -68,6 +68,14 @@ verify_jwt = false
 # flows through this function (it reads codex_ships via the service role only).
 verify_jwt = false
 
+[functions.uex-proxy]
+# JWT verification OFF (same rationale as fetch-verse-news): a public read-only
+# proxy to the UEX Corp API for the Codex "Where to buy" feature (#254).
+# Reachable by signed-out visitors; the client sends its `sb_publishable_*` key
+# (not a JWT). The UEX bearer token lives only as the UEX_API_TOKEN edge secret
+# and never reaches the browser. No user data flows through this function.
+verify_jwt = false
+
 [functions.process-p4k]
 verify_jwt = true
 

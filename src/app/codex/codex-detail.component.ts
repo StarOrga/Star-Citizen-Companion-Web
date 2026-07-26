@@ -77,6 +77,7 @@ import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { ShipLinkService } from './ship-link.service';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
+import { BuyOption, UexShopService } from './uex-shop.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 // Lazy-loaded compatible-items state per hardpoint (keyed by port_index).
@@ -314,6 +315,43 @@ interface GearRecipe {
           <section class="sc-card block">
             <h2>{{ 'codex.detail.description' | translate }}</h2>
             <p class="desc">{{ d }}</p>
+          </section>
+        }
+
+        <!-- ── Where to buy (#254/#255): UEX Corp purchase locations for FPS
+             armor pieces and personal weapons. Best-effort — the section only
+             appears for the relevant kinds and quietly shows "no data" rather
+             than an error state for anything unmatched. ───────────────── -->
+        @if (kind() === 'item' || kind() === 'weapon') {
+          <section class="sc-card block">
+            <h2>{{ 'codex.detail.whereToBuy' | translate }}</h2>
+            @if (buyLoading()) {
+              <p class="muted">{{ 'codex.detail.whereToBuyLoading' | translate }}</p>
+            } @else if (buyError()) {
+              <p class="err-inline">{{ 'codex.detail.whereToBuyError' | translate }}</p>
+            } @else if (buyOptions().length === 0) {
+              <p class="muted">{{ 'codex.detail.whereToBuyEmpty' | translate }}</p>
+            } @else {
+              <table class="buy-table">
+                <thead>
+                  <tr>
+                    <th>{{ 'codex.detail.whereToBuyPrice' | translate }}</th>
+                    <th>{{ 'codex.detail.whereToBuyTerminal' | translate }}</th>
+                    <th>{{ 'codex.detail.whereToBuyLocation' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (opt of buyOptions(); track opt.terminal + opt.price) {
+                    <tr>
+                      <td class="buy-price">{{ fmt(opt.price) }} aUEC</td>
+                      <td>{{ opt.terminal }}</td>
+                      <td class="muted">{{ opt.location }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+            <p class="hint buy-attribution">{{ 'codex.detail.whereToBuyAttribution' | translate }}</p>
           </section>
         }
 
@@ -653,6 +691,14 @@ interface GearRecipe {
     .s-value { font-size: 1.05rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
     .s-unit { font-size: 0.7rem; color: var(--sc-fg-2); font-family: system-ui, sans-serif; }
 
+    /* Where to buy */
+    .buy-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .buy-table th { text-align: left; padding: 6px 10px; font-size: 0.66rem; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); }
+    .buy-table td { padding: 7px 10px; border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
+    .buy-price { color: var(--sc-accent); font-family: var(--sc-font-display); white-space: nowrap; }
+    .buy-attribution { margin: 10px 0 0; font-style: italic; }
+
     /* Damage bars */
     .dmg-list { display: flex; flex-direction: column; gap: 8px; }
     .dmg { display: grid; grid-template-columns: 96px 1fr 64px; align-items: center; gap: 10px; }
@@ -754,6 +800,7 @@ export class CodexDetailComponent implements OnInit {
   readonly shipLinks = inject(ShipLinkService);
   readonly role = inject(RoleService);
   readonly auth = inject(AuthService);
+  private readonly uexShop = inject(UexShopService);
 
   readonly detail = signal<CodexDetail | null>(null);
   readonly kind = computed(() => this.detail()?.kind ?? null);
@@ -790,6 +837,13 @@ export class CodexDetailComponent implements OnInit {
 
   // Reverse ingredient lookup: crafting blueprints that consume this entity.
   readonly usedInBlueprints = signal<BlueprintRef[]>([]);
+
+  // "Where to buy" (#254/#255): UEX Corp purchase locations for FPS armor
+  // pieces and personal weapons. Best-effort — never blocks/fails the page.
+  readonly buyOptions = signal<BuyOption[]>([]);
+  readonly buyLoading = signal(false);
+  readonly buyError = signal(false);
+  private buySeq = 0;
 
   // Forward crafting lookup (#187): the recipe that PRODUCES this item, so the
   // codex can answer "which materials does this cost". Null for the vast
@@ -859,6 +913,9 @@ export class CodexDetailComponent implements OnInit {
     this.shipLinkInput.set('');
     this.shipLinkError.set(null);
     this.shipLinkSaved.set(false);
+    this.buyOptions.set([]);
+    this.buyLoading.set(false);
+    this.buyError.set(false);
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
@@ -868,6 +925,7 @@ export class CodexDetailComponent implements OnInit {
           this.resolveLocale(d),
           this.resolveShipTech(d),
         ]);
+        if (kind === 'item' || kind === 'weapon') void this.loadWhereToBuy(d);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
         if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug);
         // Ships are not craftable either, so skip the forward lookup as well.
@@ -1045,6 +1103,35 @@ export class CodexDetailComponent implements OnInit {
     } catch {
       // Crafting data is supplementary — a failed lookup just hides the panel.
       this.recipe.set(null);
+    }
+  }
+
+  /**
+   * "Where to buy" (#254/#255): resolve UEX Corp purchase locations for an FPS
+   * armor piece (`kind === 'item'`) or personal weapon (`kind === 'weapon'`).
+   * Best-effort — an upstream failure surfaces the error state, never breaks
+   * the rest of the detail page.
+   */
+  private async loadWhereToBuy(d: CodexDetail): Promise<void> {
+    const seq = ++this.buySeq;
+    this.buyLoading.set(true);
+    this.buyError.set(false);
+    const name = this.displayName();
+    const row = d.row;
+    try {
+      const options = await this.uexShop.whereToBuy({
+        name,
+        attachType: (row['attach_type'] as string | null) ?? null,
+        weaponClass: (row['weapon_class'] as string | null) ?? null,
+        subType: (row['sub_type'] as string | null) ?? null,
+      });
+      if (seq !== this.buySeq) return;
+      this.buyOptions.set(options);
+    } catch {
+      if (seq !== this.buySeq) return;
+      this.buyError.set(true);
+    } finally {
+      if (seq === this.buySeq) this.buyLoading.set(false);
     }
   }
 
