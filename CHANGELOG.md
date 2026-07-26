@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.51.0] - 2026-07-27
+
+### Added
+
+- **Every feedback topic now has a number you can refer to.** The admin board
+  shows a quiet `#42` ahead of each topic title — in the Übersicht rows (compact
+  panel and full page) and on the Abarbeiten card — so a topic can be named in a
+  conversation instead of quoted or identified by its uuid. The number is a
+  database column fed by a sequence, **not** a position in the list: it is
+  assigned once at creation and never moves, however the board is filtered,
+  searched, re-sorted or pruned. Existing topics were numbered by age, so `#1` is
+  the oldest entry on the board. The board search takes it too — typing `42` or
+  `#42` jumps to that topic, matched exactly (`#4` is not `#42`) and ranked above
+  topics that merely mention the digits. Admin-only: the number is not shown to
+  the author of a user-submitted topic. Feedback 21587480.
+
 ## [0.50.0] - 2026-07-27
 
 ### Added

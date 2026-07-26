@@ -797,7 +797,7 @@ panel and on the full board page alike:
 
 | View | Component | What it is for |
 |------|-----------|----------------|
-| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list, fuzzy search (see below), status/author filters, new-topic composer |
+| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list with each topic's stable `#N` (see below), fuzzy search (see below), status/author filters, new-topic composer |
 | **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin, oldest first — **and nothing else** (feedback b0cc6efc). Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
 | **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen, plus pace, throughput and the live lifecycle map (see below) |
 
@@ -905,6 +905,42 @@ reads as text for assistive tech (dots, spine and meters are `aria-hidden`), and
 it is a vertical spine rather than a horizontal flow chart precisely so it never
 scrolls sideways in the docked panel.
 
+### Referring to a topic by number (feedback 21587480)
+
+Every topic carries a **stable sequential number**, shown as a quiet `#42` ahead
+of the title in the Übersicht rows (both layouts) and in the Abarbeiten card. It
+exists so a topic can be *named* in a conversation — "das aus #42" — instead of
+being quoted or identified by its uuid.
+
+It is a DB column, `admin_feedback.seq`, fed by the sequence
+`admin_feedback_seq_seq` (migration
+`20260726230000_admin_feedback_seq.sql`), **not** a position in the rendered
+list. That distinction is the whole feature: the board is filtered by
+author/status, re-ordered by relevance while searching, split into Aktiv/Archiv
+and topics get deleted, so a list index would mean something different in every
+view and would silently move under a topic somebody already referred to. The
+number is assigned once, at insert, and never changes.
+
+- **The backfill numbered the existing board by `created_at` ascending**, so #1
+  is the oldest topic and the numbering reads like the board's own history.
+- **Gaps are normal and are not a bug.** Sequences are non-transactional: a
+  rolled-back insert, an insert an RLS policy rejected, or a deleted topic burns
+  its number. Closing a gap would mean renumbering topics — exactly what the
+  column exists to prevent.
+- **Admin-only.** The number is not projected into `public.my_feedback`, so the
+  author of a user-submitted topic never sees it. The benefit is internal, and
+  that view is security-critical (see "User-submitted feedback"). Exposing it
+  later would be an additive change there — keeping its `author_id = auth.uid()
+  and source = 'user'` filter and its `revoke all … / grant select` pair intact.
+- **A non-admin cannot pick their own number.** `seq` is defaulted, and defaults
+  are applied *before* the insert policy's `WITH CHECK` runs, so the policy could
+  not pin it. The existing BEFORE-INSERT guard
+  `admin_feedback_normalize_user_insert()` — which already forces `triaged` and
+  pins the timestamps of API inserts — assigns `seq` server-side for
+  `source = 'user'` rows instead.
+- **The routine may use it**: `#N` is an unambiguous, human-readable handle for a
+  topic in a thread reply, a PR body or a Rückfrage.
+
 ### Searching the board (feedback 12476cec)
 
 The Übersicht carries a search field above the filter row (docked panel,
@@ -914,6 +950,11 @@ maximized panel and full board alike). It is dependency-free and lives in
 - **What is searched** — the topic body, its `processing_note`, the author names
   **and every `admin_feedback_messages` reply**. A topic whose only match sits
   three replies down is a hit and is marked "im Thread" in its row.
+- **Its number is a lookup** — typing `42` or `#42` finds topic #42 (the `#` folds
+  away in normalization). That one field is matched **exactly**: no prefix, no
+  infix, no typo tolerance, because a reference number is a pointer, not a guess —
+  `#4` is not `#42` and `#142` is not `#42`. Its field weight (`1.2`) sits above
+  the body's, so #42 leads the list even when other topics mention the digits.
 - **How it matches** — text is normalized (lowercase, diacritics stripped, `ß` →
   `ss`, markdown punctuation dropped), then each term is matched per word:
   exact › prefix › infix › Damerau-Levenshtein typo (1 edit from 4 characters,
@@ -974,6 +1015,7 @@ Animations API, no dependency). All of it is suppressed under
 
 | column           | meaning                                                    |
 |------------------|------------------------------------------------------------|
+| `seq`            | the topic's **stable reference number** ("#42"), from sequence `admin_feedback_seq_seq` — see "Referring to a topic by number" (feedback `21587480`) |
 | `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `issue_created` = admin-driven hand-off to a GitHub issue · `declined` + `needs_input_author` = admin-driven, user topics only · `rejected` = legacy/admin-only, never set by the routine |
 | `ship_ref`       | link that closed the topic: PR/commit URL for `shipped`, GitHub issue URL for `issue_created` (also set on a review-hold `in_progress` row) |
 | `processing_note`| routine's note (reject reason / red-build hint) — **admin-only**, never shown to a feedback author |

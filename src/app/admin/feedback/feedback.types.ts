@@ -88,6 +88,15 @@ export interface FeedbackMessage {
 
 export interface FeedbackRow {
   id: string;
+  /**
+   * The stable, sequential topic number (`admin_feedback.seq`) — the "#42" the
+   * board shows next to a title so a topic can be referred to by number
+   * (feedback 21587480). Server-side and immutable: it is NOT a list index, so
+   * it survives filtering, searching, re-ordering and deletions. Optional
+   * because the many fixture rows in the specs (and any row read through a
+   * projection that omits it) have none; absent means "no number to show".
+   */
+  seq?: number | null;
   author_id: string | null;
   body: string;
   status: FeedbackStatus;
@@ -157,6 +166,17 @@ export function topicTitle(body: string, max = 64): string {
   const firstSentence = text.split(/(?<=[.!?])\s+/)[0] ?? text;
   const base = firstSentence.length <= max ? firstSentence : text;
   return base.length > max ? `${base.slice(0, max - 2).trimEnd()}…` : base;
+}
+
+/**
+ * The topic's reference number, or `null` when it has none (a fixture row, or a
+ * row from before the numbering migration if one ever slipped through). Numbers
+ * start at 1, so `0` and negatives are treated as "no number" rather than
+ * rendered as "#0".
+ */
+export function topicNumber(row: FeedbackRow): number | null {
+  const n = row.seq;
+  return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : null;
 }
 
 // ---- Thread state ---------------------------------------------------------
@@ -502,6 +522,10 @@ export function startOfMonth(now: number = Date.now()): number {
  * typos) and it has to look at the *whole* conversation, not just the generated
  * title — a topic is often only identifiable by what the routine answered three
  * replies down (feedback 12476cec).
+ *
+ * The one field that is matched *strictly* is the topic's reference number
+ * (feedback 21587480): "#42" is a pointer, not a guess, so it resolves exactly
+ * and outranks prose (see {@link numberQuality}).
  */
 
 /**
@@ -624,8 +648,16 @@ function termScore(term: string, words: readonly string[]): number {
   return best + Math.min(Math.max(solidHits - 1, 0), 3) * 0.04;
 }
 
-/** Field weights — the topic body carries the intent, replies only support it. */
+/**
+ * Field weights — the topic body carries the intent, replies only support it.
+ *
+ * `number` sits *above* the body on purpose: typing "42" or "#42" is not a guess
+ * about wording, it is an unambiguous reference to one specific topic (feedback
+ * 21587480), so topic #42 has to outrank every topic that merely mentions the
+ * digits somewhere in its text.
+ */
 const FIELD_WEIGHT = {
+  number: 1.2,
   body: 1,
   note: 0.55,
   thread: 0.5,
@@ -641,6 +673,22 @@ export interface FeedbackSearchHit {
   inBody: boolean;
   /** The query hit one of the thread replies. */
   inThread: boolean;
+  /** The query named the topic's reference number ("42" / "#42"). */
+  inNumber: boolean;
+}
+
+/**
+ * Match quality of one term against the topic's reference number: `1` for the
+ * exact digits, `0` otherwise.
+ *
+ * Deliberately exact-only — no prefix, no infix, no typo tolerance. A reference
+ * number is either the one meant or a different topic; matching "4" against #42
+ * (or #142 against "42") would turn a precise lookup back into a fuzzy one. The
+ * `#` never reaches here: {@link normalizeSearchText} drops it as punctuation, so
+ * "#42" and "42" arrive as the same term.
+ */
+function numberQuality(term: string, numberText: string | null): number {
+  return numberText !== null && term === numberText ? 1 : 0;
 }
 
 /** The searchable text of one topic, normalized once per query pass. */
@@ -652,6 +700,7 @@ function haystack(row: FeedbackRow, replies: readonly FeedbackMessage[] | undefi
       .filter(Boolean)
       .join(' '),
   );
+  const number = topicNumber(row);
   return {
     body,
     bodyWords: body ? body.split(' ') : [],
@@ -659,6 +708,7 @@ function haystack(row: FeedbackRow, replies: readonly FeedbackMessage[] | undefi
     thread,
     threadWords: thread ? thread.split(' ') : [],
     authorWords: author ? author.split(' ') : [],
+    numberText: number === null ? null : String(number),
   };
 }
 
@@ -668,8 +718,9 @@ function haystack(row: FeedbackRow, replies: readonly FeedbackMessage[] | undefi
  * would widen the result list instead of narrowing it.
  *
  * The score is the mean term quality (so a one-word and a four-word query stay
- * on the same scale), weighted by the field each term matched best in, plus a
- * phrase bonus when the query shows up verbatim.
+ * on the same scale), weighted by the field each term matched best in — the
+ * topic's reference number included, see {@link numberQuality} — plus a phrase
+ * bonus when the query shows up verbatim.
  */
 export function scoreFeedbackRow(
   row: FeedbackRow,
@@ -683,16 +734,19 @@ export function scoreFeedbackRow(
   let total = 0;
   let inBody = false;
   let inThread = false;
+  let inNumber = false;
 
   for (const term of terms) {
+    const number = numberQuality(term, fields.numberText) * FIELD_WEIGHT.number;
     const body = termScore(term, fields.bodyWords) * FIELD_WEIGHT.body;
     const note = termScore(term, fields.note) * FIELD_WEIGHT.note;
     const thread = termScore(term, fields.threadWords) * FIELD_WEIGHT.thread;
     const author = termScore(term, fields.authorWords) * FIELD_WEIGHT.author;
-    const best = Math.max(body, note, thread, author);
+    const best = Math.max(number, body, note, thread, author);
     if (best === 0) return null;
     if (body > 0) inBody = true;
     if (thread > 0) inThread = true;
+    if (number > 0) inNumber = true;
     total += best;
   }
 
@@ -703,12 +757,16 @@ export function scoreFeedbackRow(
     else if (fields.thread.includes(phrase)) score += 0.15;
   }
 
-  return { row, score, inBody, inThread };
+  return { row, score, inBody, inThread, inNumber };
 }
 
 /**
- * Fuzzy-search the board across topic bodies, processing notes, author names and
- * every thread reply, ranked by relevance.
+ * Fuzzy-search the board across topic numbers, topic bodies, processing notes,
+ * author names and every thread reply, ranked by relevance.
+ *
+ * Typing a bare number ("42") or a reference ("#42") finds that topic: the `#`
+ * folds away in normalization and the number field is matched exactly, above the
+ * body's weight, so #42 leads the list even when other topics mention "42".
  *
  * Ordering: score descending, ties broken by the topic's own recency, so equally
  * relevant hits still read newest-first. A blank query yields no hits at all —

@@ -1222,6 +1222,7 @@
     "setStatus": "Change status",
     "loadMore": "Load {{count}} more",
     "toggleDetails": "Expand or collapse this entry",
+    "topicNumber": "Topic #{{n}} — a fixed number you can refer to",
     "showMore": "more",
     "showLess": "Show less",
     "filter": {
@@ -1235,7 +1236,7 @@
     },
     "search": {
       "label": "Search feedback",
-      "placeholder": "Search … topic and whole thread",
+      "placeholder": "Search … topic, whole thread or #number",
       "clear": "Clear search",
       "results": "{{count}} results · by relevance",
       "empty": "No results for “{{query}}”.",
