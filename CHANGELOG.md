@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.2] - 2026-07-26
+
+### Added
+
+- **Codex — "Where to buy" panel (#254 / #255, part of #187).** Item and weapon
+  detail pages now show where to purchase the item and at what price, sourced
+  from the UEX Corp API via a new server-side proxy (`uex-proxy` edge function;
+  the UEX token stays a server secret, never in the client). Buy options list
+  price (aUEC), terminal, and physical location, sorted cheapest first, with a
+  community-data caveat + attribution. Items whose UEX name differs from ours
+  (skin/livery variants) fall back to a graceful "no purchase data" state.
+  _Matching is by name within a UEX category; base-name/token-subset matching is
+  a planned follow-up to also cover variants._
+
 ## [0.48.1] - 2026-07-26
 
 ### Fixed

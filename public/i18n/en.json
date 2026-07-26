@@ -305,7 +305,15 @@
       "craftedFromHint": "What it costs to manufacture this item, from the game's crafting data.",
       "noIngredients": "This blueprint lists no materials in this build.",
       "openBlueprint": "Open the full blueprint",
-      "minQuality": "min. quality {{value}}"
+      "minQuality": "min. quality {{value}}",
+      "whereToBuy": "Where to buy",
+      "whereToBuyLoading": "Checking UEX Corp for purchase locations…",
+      "whereToBuyEmpty": "No purchase data found for this item.",
+      "whereToBuyError": "Could not load purchase data right now.",
+      "whereToBuyPrice": "Price",
+      "whereToBuyTerminal": "Terminal",
+      "whereToBuyLocation": "Location",
+      "whereToBuyAttribution": "Prices from UEX Corp — community-maintained, may not reflect live servers. Not affiliated with Cloud Imperium Games."
     },
     "swap": {
       "title": "What fits here",
