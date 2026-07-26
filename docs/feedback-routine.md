@@ -656,7 +656,8 @@ consent), so picking Übersicht or Fortschritt from the view switch still wins o
 the next open; only the fallback changed. With an empty queue the mode shows its
 "Alles abgearbeitet" screen, one click away from Fortschritt.
 
-Two things the processing mode does so a Rückfrage never has to be hunted for:
+Three things the processing mode does so a Rückfrage never has to be hunted for
+and no step goes unnoticed:
 
 - **It scrolls to the open Rückfrage.** The thread box opens at the message the
   admin is expected to react to — `workflowFocusIndex` in `feedback.types.ts`
@@ -669,6 +670,15 @@ Two things the processing mode does so a Rückfrage never has to be hunted for:
 - **The answer panel is pinned.** Composer and the Weiter/Erledigt controls sit
   in a sticky footer at the bottom edge of the scrollport, so however long the
   topic and its thread are, the reply box is always on screen.
+- **Moving on is visible** (feedback 96872872). "Erledigt" pulls the topic out
+  of the queue, so the card refills with the next topic in place — previously
+  only the "3 von 7" counter moved and the admin could miss that a new topic was
+  open. The next card now slides in (~380 ms), wears a short accent ring and a
+  `role="status"` line names the step ("Erledigt – weiter mit 2 von 6"). Under
+  `prefers-reduced-motion: reduce` the slide is dropped; ring and line stay, so
+  the advance is still perceivable. Weiter uses the same slide (without the
+  line — the click itself is the explanation). Draining the last topic reports
+  itself through the "Alles abgearbeitet" screen instead.
 
 Queue, aggregation and search rules live as pure functions in `feedback.types.ts`
 (`buildWorkflowQueue`, `workflowFocusIndex`, `computeStats`, `isArchived`, `refKind`,
