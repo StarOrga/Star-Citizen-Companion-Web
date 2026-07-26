@@ -239,6 +239,29 @@ export function buildWorkflowQueue(
   return [...questions.sort(oldestFirst), ...fresh.sort(oldestFirst)];
 }
 
+/**
+ * Which thread message the processing mode should put in front of the admin
+ * (feedback fda4e3ea) — nobody should have to hunt for the open Rückfrage in a
+ * long thread.
+ *
+ * The rule, oldest-first thread assumed:
+ *
+ * - thread empty → `null`, there is nothing to scroll to
+ * - the thread ends with routine messages → the **first** of that trailing run,
+ *   i.e. the top of the open Rückfrage, so a long question is read from its
+ *   beginning rather than from its tail
+ * - otherwise (the admin had the last word) → the last message, i.e. the
+ *   thread end
+ */
+export function workflowFocusIndex(replies: readonly FeedbackMessage[]): number | null {
+  const last = replies.length - 1;
+  if (last < 0) return null;
+  if (!replies[last].is_system) return last;
+  let i = last;
+  while (i > 0 && replies[i - 1].is_system) i--;
+  return i;
+}
+
 // ---- Progress statistics --------------------------------------------------
 
 export interface FeedbackStats {

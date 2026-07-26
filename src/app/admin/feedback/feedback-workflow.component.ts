@@ -10,13 +10,14 @@ import {
   output,
   signal,
   viewChild,
+  viewChildren,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { renderMarkdown } from './markdown.util';
 import { CelebrationService } from './celebration.service';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
-import { FeedbackMessage, WorkflowItem, topicTitle } from './feedback.types';
+import { FeedbackMessage, WorkflowItem, topicTitle, workflowFocusIndex } from './feedback.types';
 
 /**
  * Guided processing mode ("Abarbeitungsmodus") for the admin feedback board.
@@ -70,13 +71,25 @@ import { FeedbackMessage, WorkflowItem, topicTitle } from './feedback.types';
           }
 
           @if (item.replies.length > 0) {
-            <div class="thread">
-              @for (msg of item.replies; track msg.id) {
-                <div class="reply" [class.is-system]="msg.is_system">
+            <!-- The thread is scrolled to the open Rückfrage on its own (see
+                 workflowFocusIndex), so the admin never has to hunt for it. -->
+            <div #thread class="thread">
+              @for (msg of item.replies; track msg.id; let i = $index) {
+                <div
+                  #replyEl
+                  class="reply"
+                  [class.is-system]="msg.is_system"
+                  [class.is-focus]="isFocused(i, msg)">
                   <div class="reply-head">
                     <span class="reply-author">{{ authorLabelFor(msg) }}</span>
                     @if (msg.is_system) {
-                      <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span>
+                      @if (isFocused(i, msg)) {
+                        <span class="reply-badge open">
+                          {{ 'adminFeedback.workflow.openQuestion' | translate }}
+                        </span>
+                      } @else {
+                        <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span>
+                      }
                     }
                     <span class="reply-ts">{{ msg.created_at | date: 'short' }}</span>
                   </div>
@@ -90,22 +103,27 @@ import { FeedbackMessage, WorkflowItem, topicTitle } from './feedback.types';
             <p class="wf-cheer" role="status">{{ cheer() }}</p>
           }
 
-          <div class="wf-compose">
-            <sc-feedback-composer
-              [compact]="true"
-              [busy]="busy()"
-              placeholder="adminFeedback.workflow.answerPlaceholder"
-              sendLabel="adminFeedback.workflow.answerSend"
-              [onSubmit]="submit" />
-          </div>
+          <!-- Answer box + step controls stay pinned to the bottom of the view:
+               however long the topic and its thread are, the reply panel is
+               always on screen (feedback fda4e3ea). -->
+          <div class="wf-foot">
+            <div class="wf-compose">
+              <sc-feedback-composer
+                [compact]="true"
+                [busy]="busy()"
+                placeholder="adminFeedback.workflow.answerPlaceholder"
+                sendLabel="adminFeedback.workflow.answerSend"
+                [onSubmit]="submit" />
+            </div>
 
-          <div class="wf-actions">
-            <button type="button" class="sc-btn micro" (click)="next()" [disabled]="total() < 2">
-              {{ 'adminFeedback.workflow.next' | translate }} →
-            </button>
-            <button type="button" class="sc-btn micro done" (click)="finish(item)">
-              ✓ {{ 'adminFeedback.workflow.done' | translate }}
-            </button>
+            <div class="wf-actions">
+              <button type="button" class="sc-btn micro" (click)="next()" [disabled]="total() < 2">
+                {{ 'adminFeedback.workflow.next' | translate }} →
+              </button>
+              <button type="button" class="sc-btn micro done" (click)="finish(item)">
+                ✓ {{ 'adminFeedback.workflow.done' | translate }}
+              </button>
+            </div>
           </div>
         </article>
       } @else {
@@ -204,6 +222,17 @@ import { FeedbackMessage, WorkflowItem, topicTitle } from './feedback.types';
       padding: 1px 6px; border-radius: 999px;
       background: color-mix(in srgb, #a78bfa 25%, transparent); color: #a78bfa;
     }
+    /* The Rückfrage the view scrolled to — marked so the eye lands on it. */
+    .reply.is-focus {
+      background: color-mix(in srgb, #a78bfa 20%, var(--sc-bg-2));
+      box-shadow: inset 3px 0 0 #a78bfa, 0 0 0 1px color-mix(in srgb, #a78bfa 45%, transparent);
+      scroll-margin-top: 8px;
+    }
+    .reply-badge.open {
+      background: #a78bfa;
+      color: var(--sc-bg-0);
+      font-weight: 700;
+    }
     .reply-ts { margin-left: auto; color: var(--sc-fg-2); font-size: 0.72rem; }
     .reply-body { font-size: 0.88rem; line-height: 1.45; overflow-wrap: anywhere; }
     .reply-body :first-child { margin-top: 0; }
@@ -211,6 +240,26 @@ import { FeedbackMessage, WorkflowItem, topicTitle } from './feedback.types';
     .reply-body p { margin: 0 0 6px; }
     .reply-body a { color: var(--sc-accent); }
     .reply-body img { display: block; max-width: 100%; height: auto; margin: 6px 0; border-radius: 6px; }
+
+    /* ---- Always-visible answer panel ----
+       Sticks to the bottom edge of whichever scrollport the board runs in — the
+       docked panel scrolls .board, the full page scrolls the document — so the
+       composer and the step controls never scroll out from under the admin.
+       The negative margins let it span the card's padding, so the thread slides
+       under a full-width bar instead of a floating island. */
+    .wf-foot {
+      position: sticky;
+      bottom: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 0 -16px -14px;
+      padding: 10px 16px 14px;
+      background: var(--sc-bg-1);
+      border-top: 1px solid var(--sc-border);
+      border-radius: 0 0 8px 8px;
+    }
 
     .wf-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .sc-btn.micro { padding: 4px 12px; font-size: 0.72rem; letter-spacing: 0.04em; }
@@ -262,6 +311,7 @@ import { FeedbackMessage, WorkflowItem, topicTitle } from './feedback.types';
     /* Docked panel: tighter thread window so the composer stays reachable. */
     .wf.compact .thread { max-height: 220px; }
     .wf.compact .wf-card { padding: 12px 12px; }
+    .wf.compact .wf-foot { margin: 0 -12px -12px; padding: 8px 12px 12px; }
   `],
 })
 export class FeedbackWorkflowComponent {
@@ -285,6 +335,8 @@ export class FeedbackWorkflowComponent {
   readonly showProgress = output<void>();
 
   private readonly cardEl = viewChild<ElementRef<HTMLElement>>('card');
+  private readonly threadEl = viewChild<ElementRef<HTMLElement>>('thread');
+  private readonly replyEls = viewChildren<ElementRef<HTMLElement>>('replyEl');
 
   /** Raw cursor; clamped against the (shrinking) queue by {@link position}. */
   private readonly cursor = signal(0);
@@ -301,10 +353,20 @@ export class FeedbackWorkflowComponent {
     return total === 0 ? 100 : ((this.position() + 1) / total) * 100;
   });
 
+  /**
+   * Index of the thread message the view puts in front of the admin: the open
+   * Rückfrage, else the thread end (see `workflowFocusIndex`). `null` when the
+   * topic has no replies yet.
+   */
+  readonly focusIndex = computed(() => workflowFocusIndex(this.current()?.replies ?? []));
+
   /** Short celebratory line shown on the card right after an answer landed. */
   readonly celebrating = signal(false);
   readonly cheer = signal('');
   private cheerTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** `topicId:messageId` the thread was last scrolled to — guards re-scrolls. */
+  private focusedKey: string | null = null;
 
   constructor() {
     // Queue drained after actually working through it → one closing burst.
@@ -321,9 +383,50 @@ export class FeedbackWorkflowComponent {
       this.celebration.burst();
     });
 
+    // Put the open Rückfrage in front of the admin instead of the thread's
+    // scroll origin. Keyed on the focused message, so the board's polling
+    // refresh does not yank the thread back while the admin reads.
+    effect(() => {
+      const item = this.current();
+      const idx = this.focusIndex();
+      const els = this.replyEls();
+      const thread = this.threadEl()?.nativeElement;
+      if (!item || idx === null || !thread) {
+        this.focusedKey = null;
+        return;
+      }
+      const key = `${item.row.id}:${item.replies[idx]?.id ?? idx}`;
+      if (key === this.focusedKey) return;
+      const el = els[idx]?.nativeElement;
+      // Query not settled yet — leave the key untouched so the next pass retries.
+      if (!el) return;
+      this.focusedKey = key;
+      this.scrollThreadTo(thread, el);
+    });
+
     inject(DestroyRef).onDestroy(() => {
       if (this.cheerTimer) clearTimeout(this.cheerTimer);
     });
+  }
+
+  /** True for the one thread message the view scrolled to, if it is a Rückfrage. */
+  isFocused(index: number, msg: FeedbackMessage): boolean {
+    return msg.is_system && index === this.focusIndex();
+  }
+
+  /**
+   * Scroll the thread box so the focused message starts at its top edge. Only
+   * the thread's own scrollport moves — the page around it stays put. Honours
+   * `prefers-reduced-motion` by jumping instead of animating.
+   */
+  private scrollThreadTo(thread: HTMLElement, el: HTMLElement): void {
+    const delta = el.getBoundingClientRect().top - thread.getBoundingClientRect().top;
+    const top = Math.max(0, thread.scrollTop + delta - 4);
+    if (typeof thread.scrollTo === 'function') {
+      thread.scrollTo({ top, behavior: this.celebration.reducedMotion ? 'auto' : 'smooth' });
+    } else {
+      thread.scrollTop = top;
+    }
   }
 
   title(item: WorkflowItem): string {

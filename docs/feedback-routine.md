@@ -648,8 +648,30 @@ panel and on the full board page alike:
 | **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin first (oldest first), then untouched `open` topics. Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
 | **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen |
 
+**Abarbeiten is the default view** (feedback fda4e3ea). The panel opens in the
+processing mode in all three shells — docked, maximized and full page — because
+opening the board almost always means "what do I have to answer". The choice is
+remembered per browser under `sc.adminFeedback.view` (behind the preferences
+consent), so picking Übersicht or Fortschritt from the view switch still wins on
+the next open; only the fallback changed. With an empty queue the mode shows its
+"Alles abgearbeitet" screen, one click away from Fortschritt.
+
+Two things the processing mode does so a Rückfrage never has to be hunted for:
+
+- **It scrolls to the open Rückfrage.** The thread box opens at the message the
+  admin is expected to react to — `workflowFocusIndex` in `feedback.types.ts`
+  picks the *first* message of the trailing routine run (so a long question is
+  read from its beginning, not its tail) and falls back to the thread end when
+  the admin had the last word. That message is marked "Offene Rückfrage".
+  Scrolling animates unless `prefers-reduced-motion: reduce` is set, and it
+  happens once per message, so the board's polling refresh never yanks the
+  thread back while it is being read.
+- **The answer panel is pinned.** Composer and the Weiter/Erledigt controls sit
+  in a sticky footer at the bottom edge of the scrollport, so however long the
+  topic and its thread are, the reply box is always on screen.
+
 Queue, aggregation and search rules live as pure functions in `feedback.types.ts`
-(`buildWorkflowQueue`, `computeStats`, `isArchived`, `refKind`,
+(`buildWorkflowQueue`, `workflowFocusIndex`, `computeStats`, `isArchived`, `refKind`,
 `feedbackBucket`, `searchFeedback`), unit-tested in `feedback.types.spec.ts`. All three views
 share that vocabulary: a terminal topic is out of the processing queue, out of
 the dashboard's ToDo bucket and in the overview's Archive tab, from the one

@@ -1221,6 +1221,7 @@
       "done": "Done",
       "answerPlaceholder": "Write an answer… (Markdown supported, Ctrl+Enter to send)",
       "answerSend": "Answer",
+      "openQuestion": "Open question",
       "cheerAnswered": "Question answered — the routine takes it from here.",
       "cheerReplied": "Noted! On to the next one.",
       "allDoneTitle": "All caught up",
