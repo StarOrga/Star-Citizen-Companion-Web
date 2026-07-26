@@ -98,6 +98,14 @@ export const routes: Routes = [
           import('./codex/codex-upcoming.component').then((m) => m.CodexUpcomingComponent),
       },
       {
+        // The Showroom — public, livery-first 3D discovery destination. Reads only the
+        // cheap discovery plane (no .glb, no 3D lib on this route). Static segment placed
+        // BEFORE codex/:kind/:className so it is not consumed by the :kind wildcard.
+        path: 'codex/showroom',
+        loadComponent: () =>
+          import('./codex/codex-showroom.component').then((m) => m.CodexShowroomComponent),
+      },
+      {
         path: 'codex/:kind/:className',
         loadComponent: () =>
           import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),
