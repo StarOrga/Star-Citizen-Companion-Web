@@ -30,6 +30,7 @@ import {
   bucketLabelStatus,
   feedbackBucket,
   isArchived,
+  isContinuedAfterShip,
   refKind,
   searchFeedback,
   searchTokens,
@@ -414,6 +415,9 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
         <span class="status-pill" [class]="bucketLabel(m)">{{ ('adminFeedback.status.' + bucketLabel(m)) | translate }}</span>
         @if (isAnsweredAwaitingRoutine(m)) {
           <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
+        }
+        @if (continuedAfterShip(m)) {
+          <span class="status-pill continued">↻ {{ 'adminFeedback.status.continued' | translate }}</span>
         }
         <!-- Why this row is in the result list even though its title looks
              unrelated: the query matched further down the thread. -->
@@ -931,6 +935,8 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
       /* Admin answered a Rückfrage → awaiting the routine (distinct from a
          needs_input topic still waiting on the admin). */
       &.answered { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; }
+      /* Shipped topic reopened by the admin's post-ship reply (review loop). */
+      &.continued { background: rgba(74, 222, 128, 0.2); color: var(--sc-success); }
     }
     /* A second pill (the "beantwortet" marker) trails the bucket pill instead of
        being pushed to the far edge by another margin-left: auto. */
@@ -1212,6 +1218,16 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /**
+   * True when a shipped topic was reopened by the admin's post-ship reply (the
+   * routine's review loop). Like the "beantwortet" marker, it trails the ToDo
+   * pill — the topic is back on the routine's pile, the marker records that it is
+   * a continuation of an already-shipped change rather than a brand-new item.
+   */
+  continuedAfterShip(m: FeedbackRow): boolean {
+    return isContinuedAfterShip(m, this.threads().get(m.id));
+  }
+
+  /**
    * Which half of the overview list is shown (feedback eeba60e7): the working
    * set or the Archive of terminal topics (shipped + issue-created + legacy
    * rejected). Replaces the old collapsible "shipped" stack — done work now has
@@ -1221,7 +1237,7 @@ export class AdminFeedbackComponent implements OnInit {
 
   /** Template-side alias for the shared {@link isArchived} rule. */
   archived(m: FeedbackRow): boolean {
-    return isArchived(m);
+    return isArchived(m, this.threads().get(m.id));
   }
 
   /** Template-side alias for the shared {@link refKind} rule. */
@@ -1403,7 +1419,11 @@ export class AdminFeedbackComponent implements OnInit {
   readonly activeMessages = computed(() =>
     this.messages()
       .filter(
-        (m) => !isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m) && this.matchesSearch(m),
+        (m) =>
+          !isArchived(m, this.threads().get(m.id)) &&
+          this.matchesAuthor(m) &&
+          this.matchesStatus(m) &&
+          this.matchesSearch(m),
       )
       .sort(this.boardOrder()),
   );
@@ -1432,13 +1452,15 @@ export class AdminFeedbackComponent implements OnInit {
    */
   readonly activeCount = computed(
     () =>
-      this.messages().filter((m) => !isArchived(m) && this.matchesAuthor(m) && this.matchesSearch(m))
-        .length,
+      this.messages().filter(
+        (m) => !isArchived(m, this.threads().get(m.id)) && this.matchesAuthor(m) && this.matchesSearch(m),
+      ).length,
   );
   readonly archiveCount = computed(
     () =>
-      this.messages().filter((m) => isArchived(m) && this.matchesAuthor(m) && this.matchesSearch(m))
-        .length,
+      this.messages().filter(
+        (m) => isArchived(m, this.threads().get(m.id)) && this.matchesAuthor(m) && this.matchesSearch(m),
+      ).length,
   );
 
   /**
@@ -1600,7 +1622,11 @@ export class AdminFeedbackComponent implements OnInit {
   readonly archiveMessages = computed(() =>
     this.messages()
       .filter(
-        (m) => isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m) && this.matchesSearch(m),
+        (m) =>
+          isArchived(m, this.threads().get(m.id)) &&
+          this.matchesAuthor(m) &&
+          this.matchesStatus(m) &&
+          this.matchesSearch(m),
       )
       .sort(this.boardOrder((m) => this.archiveTime(m))),
   );
