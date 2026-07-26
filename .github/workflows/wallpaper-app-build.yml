@@ -6,7 +6,7 @@ name: wallpaper-app
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/feedback-52a5ef4c']
     paths:
       - 'wallpaper-app/**'
       - '.github/workflows/wallpaper-app-build.yml'
@@ -16,6 +16,7 @@ on:
     paths:
       - 'wallpaper-app/**'
       - '.github/workflows/wallpaper-app-build.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
