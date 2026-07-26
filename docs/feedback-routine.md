@@ -506,13 +506,13 @@ panel and on the full board page alike:
 
 | View | Component | What it is for |
 |------|-----------|----------------|
-| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list, status/author filters, new-topic composer |
+| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list, fuzzy search (see below), status/author filters, new-topic composer |
 | **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin first (oldest first), then untouched `open` topics. Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
 | **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen |
 
-Queue and aggregation rules live as pure functions in `feedback.types.ts`
+Queue, aggregation and search rules live as pure functions in `feedback.types.ts`
 (`buildWorkflowQueue`, `computeStats`, `isArchived`, `refKind`,
-`feedbackBucket`), unit-tested in `feedback.types.spec.ts`. All three views
+`feedbackBucket`, `searchFeedback`), unit-tested in `feedback.types.spec.ts`. All three views
 share that vocabulary: a terminal topic is out of the processing queue, out of
 the dashboard's ToDo bucket and in the overview's Archive tab, from the one
 `isArchived` rule.
@@ -533,6 +533,28 @@ all resolve through that one rule. An answered Rückfrage keeps a small
 done) but is otherwise counted and filtered as ToDo. The "offen"/"Open" label
 is gone from the UI — it reads **ToDo** everywhere (feedback 34c44134); the
 status value on the wire is still `open`.
+
+### Searching the board (feedback 12476cec)
+
+The Übersicht carries a search field above the filter row (docked panel,
+maximized panel and full board alike). It is dependency-free and lives in
+`searchFeedback` / `scoreFeedbackRow` in `feedback.types.ts`:
+
+- **What is searched** — the topic body, its `processing_note`, the author names
+  **and every `admin_feedback_messages` reply**. A topic whose only match sits
+  three replies down is a hit and is marked "im Thread" in its row.
+- **How it matches** — text is normalized (lowercase, diacritics stripped, `ß` →
+  `ss`, markdown punctuation dropped), then each term is matched per word:
+  exact › prefix › infix › Damerau-Levenshtein typo (1 edit from 4 characters,
+  2 from 7) › subsequence. Every term has to match *somewhere* (AND), so adding a
+  word always narrows.
+- **How results are ranked** — mean term quality × field weight (body `1.0` ›
+  note `0.55` › thread `0.5` › author `0.35`), a density bonus for repeated hits,
+  a bonus when the query appears verbatim, and topic recency as the tiebreaker.
+- **How it interacts with the rest** — search narrows both tabs, the tab counts
+  and the status chips. While a query is active the list is ordered by relevance,
+  so the day headings collapse into one "N Treffer" heading; clearing the query
+  restores the dated timeline.
 
 Two things the routine should be aware of:
 

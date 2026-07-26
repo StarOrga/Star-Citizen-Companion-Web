@@ -24,12 +24,15 @@ import {
   FeedbackBucket,
   FeedbackMessage,
   FeedbackRow,
+  FeedbackSearchHit,
   FeedbackStatus,
   buildWorkflowQueue,
   bucketLabelStatus,
   feedbackBucket,
   isArchived,
   refKind,
+  searchFeedback,
+  searchTokens,
   topicTitle,
 } from './feedback.types';
 
@@ -179,6 +182,33 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
              TOC scroll strip). Per-chip counts are gone; the single motivating
              totals line below carries the numbers instead. -->
         <div class="board-toolbar">
+          <!-- Fuzzy search across the whole conversation — topic body, processing
+               note, author and every thread reply (feedback 12476cec). Typing
+               narrows both tabs and re-orders the hits by relevance; the day
+               headings step aside for a single "N Treffer" heading while a query
+               is active, because relevance and date order contradict each other. -->
+          <div class="search-box">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input
+              #searchInput
+              type="search"
+              autocomplete="off"
+              [value]="searchQuery()"
+              (input)="setSearch($any($event.target).value)"
+              (keydown.escape)="clearSearch()"
+              [attr.placeholder]="'adminFeedback.search.placeholder' | translate"
+              [attr.aria-label]="'adminFeedback.search.label' | translate" />
+            <!-- Shown for any non-empty input, not just a *usable* query: a
+                 whitespace-only field has to be clearable too. -->
+            @if (searchQuery().length > 0) {
+              <button
+                type="button"
+                (click)="clearSearch(); searchInput.focus()"
+                [attr.aria-label]="'adminFeedback.search.clear' | translate">
+                ×
+              </button>
+            }
+          </div>
           <div class="filters">
             <!-- Active ↔ Archive tabs inside the overview (feedback eeba60e7).
                  Active holds the working set (open / in Arbeit / Rückfrage);
@@ -330,7 +360,10 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
           <!-- Active topics grouped under a non-interactive day heading (Today /
                Yesterday / date) so the list reads as a dated timeline. -->
           @if (activeMessages().length === 0) {
-            <div class="sc-card empty">{{ 'adminFeedback.emptyActive' | translate }}</div>
+            <div class="sc-card empty">
+              {{ (searchActive() ? 'adminFeedback.search.empty' : 'adminFeedback.emptyActive')
+                  | translate: { query: searchQuery() } }}
+            </div>
           }
           @for (g of activeGroups(); track g.key) {
             <div class="date-group">{{ g.label }}</div>
@@ -342,8 +375,16 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
           <!-- Archive: everything terminal (shipped + issue-created + legacy
                rejected), newest first and paged. Each row carries its link. -->
           @if (archiveMessages().length === 0) {
-            <div class="sc-card empty">{{ 'adminFeedback.emptyArchive' | translate }}</div>
+            <div class="sc-card empty">
+              {{ (searchActive() ? 'adminFeedback.search.empty' : 'adminFeedback.emptyArchive')
+                  | translate: { query: searchQuery() } }}
+            </div>
           } @else {
+            @if (searchActive()) {
+              <div class="date-group">
+                {{ 'adminFeedback.search.results' | translate: { count: archiveMessages().length } }}
+              </div>
+            }
             <div class="archive-list">
               @for (m of archiveVisibleMessages(); track m.id) {
                 <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
@@ -367,6 +408,11 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
         <span class="status-pill" [class]="bucketLabel(m)">{{ ('adminFeedback.status.' + bucketLabel(m)) | translate }}</span>
         @if (isAnsweredAwaitingRoutine(m)) {
           <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
+        }
+        <!-- Why this row is in the result list even though its title looks
+             unrelated: the query matched further down the thread. -->
+        @if (threadOnlyHit(m)) {
+          <span class="status-pill">{{ 'adminFeedback.search.inThread' | translate }}</span>
         }
       </ng-template>
 
@@ -689,36 +735,38 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
       .ship-cheer { animation: none; }
     }
 
-    /* Quick-access author filter: chip row that scopes the board to one creator. */
+    /* Quick-access author filter: chip row that scopes the board to one creator.
+       The chips themselves share their look with the status chips below. */
     .author-filter { display: flex; flex-wrap: wrap; gap: 6px; }
-    .author-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      background: var(--sc-bg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 999px;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: 0.74rem;
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-    .author-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .author-chip.active {
-      color: var(--sc-accent);
-      border-color: var(--sc-accent);
-      background: rgba(0, 212, 255, 0.12);
-    }
-    .author-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     /* Board toolbar: filters (status + author) on the left, expand-all right. */
     .board-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+    /* Search field: its own full-width row above the filters, so it works in the
+       narrow docked panel and on the wide board alike (feedback 12476cec). The
+       UA's built-in clear cross is dropped for our own labelled button. */
+    .search-box {
+      flex: 1 0 100%; display: flex; align-items: center; gap: 6px;
+      padding: 0 10px; border-radius: 999px;
+      background: var(--sc-bg-2); border: 1px solid var(--sc-border);
+      &:focus-within { border-color: var(--sc-accent); }
+      .search-icon, button { color: var(--sc-fg-2); }
+      input {
+        flex: 1 1 auto; min-width: 0; padding: 6px 0; font: inherit; font-size: 0.8rem;
+        background: transparent; border: 0; color: var(--sc-fg-0);
+        &:focus { outline: none; }
+        &::placeholder { color: var(--sc-fg-2); }
+        &::-webkit-search-cancel-button { display: none; }
+      }
+      button { padding: 0 4px; background: transparent; border: 0; font: inherit; cursor: pointer; }
+      button:hover { color: var(--sc-fg-0); }
+    }
     /* Status + author chip groups now share one wrapping row (feedback 605d317d);
        the wider column gap keeps the two groups visually distinct. */
     .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
     .status-filter { display: flex; flex-wrap: wrap; gap: 6px; }
-    .status-chip {
+    /* Status and author chips are the same control with a different scope, so
+       they share one base look; only the per-status accents below differ. */
+    .status-chip, .author-chip {
       display: inline-flex;
       align-items: center;
       gap: 5px;
@@ -732,9 +780,9 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
       cursor: pointer;
       transition: all 0.16s ease;
     }
-    .status-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .status-chip.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
-    .status-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
+    .status-chip:hover, .author-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .status-chip.active, .author-chip.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
+    .status-chip:focus-visible, .author-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     /* The needs_input filter carries the same violet accent as its status pill. */
     .status-chip.needs_input.active { color: #a78bfa; border-color: #a78bfa; background: rgba(167, 139, 250, 0.14); }
     /* Archive chips echo their status pills: shipped green, issue indigo. */
@@ -1209,6 +1257,58 @@ export class AdminFeedbackComponent implements OnInit {
     this.authorFilter.update((cur) => (cur === id ? null : id));
   }
 
+  // ---- Search -------------------------------------------------------------
+
+  /** Raw search input. Blank (or punctuation-only) means "no search active". */
+  readonly searchQuery = signal('');
+
+  /** True once the query holds at least one usable term. */
+  readonly searchActive = computed(() => searchTokens(this.searchQuery()).length > 0);
+
+  /**
+   * The scored hits for the current query, keyed by topic id — computed once for
+   * the whole board so both tabs, the counts and the chips read the same result
+   * set instead of re-scoring per view. Empty while no search is active, which is
+   * exactly what {@link matchesSearch} treats as "everything passes".
+   */
+  private readonly searchHits = computed<ReadonlyMap<string, FeedbackSearchHit>>(() => {
+    const query = this.searchQuery();
+    if (!this.searchActive()) return new Map();
+    const hits = new Map<string, FeedbackSearchHit>();
+    for (const hit of searchFeedback(this.messages(), this.threads(), query)) {
+      hits.set(hit.row.id, hit);
+    }
+    return hits;
+  });
+
+  private matchesSearch(m: FeedbackRow): boolean {
+    return !this.searchActive() || this.searchHits().has(m.id);
+  }
+
+  /** Relevance of a topic for the current query; 0 when it is not a hit. */
+  private searchScore(m: FeedbackRow): number {
+    return this.searchHits().get(m.id)?.score ?? 0;
+  }
+
+  /** A hit that only matched inside the thread — worth flagging in the row. */
+  threadOnlyHit(m: FeedbackRow): boolean {
+    const hit = this.searchHits().get(m.id);
+    return !!hit && hit.inThread && !hit.inBody;
+  }
+
+  /**
+   * Update the query. Also rewinds the archive paging, so a fresh search always
+   * starts at its most relevant page instead of an offset from the last one.
+   */
+  setSearch(value: string): void {
+    this.searchQuery.set(value);
+    this.archiveVisible.set(AdminFeedbackComponent.ARCHIVE_PAGE);
+  }
+
+  clearSearch(): void {
+    this.setSearch('');
+  }
+
   /**
    * Status quick-filter: narrow the active board to a single presentation bucket
    * (or null for all active topics). Pairs with the author filter — both
@@ -1239,7 +1339,7 @@ export class AdminFeedbackComponent implements OnInit {
       rejected: 0,
     };
     for (const m of this.messages()) {
-      if (this.matchesAuthor(m)) counts[this.bucketOf(m)]++;
+      if (this.matchesAuthor(m) && this.matchesSearch(m)) counts[this.bucketOf(m)]++;
     }
     return counts;
   });
@@ -1283,24 +1383,50 @@ export class AdminFeedbackComponent implements OnInit {
     return max;
   }
 
-  /** Active (non-terminal) topics, author- and status-filtered, newest activity first. */
+  /**
+   * Active (non-terminal) topics, author-, status- and search-filtered. Ordered
+   * newest activity first — except while a search is active, where relevance
+   * wins and recency only breaks ties (feedback 12476cec).
+   */
   readonly activeMessages = computed(() =>
     this.messages()
-      .filter((m) => !isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m))
-      .sort((a, b) => this.recencyTime(b) - this.recencyTime(a)),
+      .filter(
+        (m) => !isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m) && this.matchesSearch(m),
+      )
+      .sort(this.boardOrder()),
   );
+
+  /**
+   * The comparator both tabs sort by: relevance-first while searching, plain
+   * recency otherwise. `recent` supplies the per-tab notion of "newest" (last
+   * activity on the active board, completion time in the archive).
+   */
+  private boardOrder(
+    recent: (m: FeedbackRow) => number = (m) => this.recencyTime(m),
+  ): (a: FeedbackRow, b: FeedbackRow) => number {
+    if (!this.searchActive()) return (a, b) => recent(b) - recent(a);
+    return (a, b) => this.searchScore(b) - this.searchScore(a) || recent(b) - recent(a);
+  }
 
   /** Topics rendered in the current tab — backs the expand-all control. */
   readonly visibleMessages = computed(() =>
     this.boardTab() === 'active' ? this.activeMessages() : this.archiveVisibleMessages(),
   );
 
-  /** Tab badge: how many topics live in each half (author-filtered, chip-independent). */
+  /**
+   * Tab badge: how many topics live in each half (author- and search-filtered,
+   * chip-independent). Counting the search in is what tells the admin that the
+   * thing they are looking for sits in the *other* tab.
+   */
   readonly activeCount = computed(
-    () => this.messages().filter((m) => !isArchived(m) && this.matchesAuthor(m)).length,
+    () =>
+      this.messages().filter((m) => !isArchived(m) && this.matchesAuthor(m) && this.matchesSearch(m))
+        .length,
   );
   readonly archiveCount = computed(
-    () => this.messages().filter((m) => isArchived(m) && this.matchesAuthor(m)).length,
+    () =>
+      this.messages().filter((m) => isArchived(m) && this.matchesAuthor(m) && this.matchesSearch(m))
+        .length,
   );
 
   /**
@@ -1310,9 +1436,24 @@ export class AdminFeedbackComponent implements OnInit {
    * heading before each run.
    */
   readonly activeGroups = computed<FeedbackGroup[]>(() => {
+    const items = this.activeMessages();
+    // While searching, the list is ordered by relevance — day headings would cut
+    // it into meaningless one-row slices, so it collapses into a single result
+    // heading instead (feedback 12476cec).
+    if (this.searchActive()) {
+      if (!items.length) return [];
+      return [
+        {
+          key: 'search',
+          label: this.translate.instant('adminFeedback.search.results', { count: items.length }),
+          items,
+        },
+      ];
+    }
+
     const groups: FeedbackGroup[] = [];
     let current: FeedbackGroup | null = null;
-    for (const m of this.activeMessages()) {
+    for (const m of items) {
       const t = this.recencyTime(m);
       const key = this.dayKey(t);
       if (!current || current.key !== key) {
@@ -1446,8 +1587,10 @@ export class AdminFeedbackComponent implements OnInit {
    */
   readonly archiveMessages = computed(() =>
     this.messages()
-      .filter((m) => isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m))
-      .sort((a, b) => this.archiveTime(b) - this.archiveTime(a)),
+      .filter(
+        (m) => isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m) && this.matchesSearch(m),
+      )
+      .sort(this.boardOrder((m) => this.archiveTime(m))),
   );
   /** The current archive page (first N of the sorted history). */
   readonly archiveVisibleMessages = computed(() =>

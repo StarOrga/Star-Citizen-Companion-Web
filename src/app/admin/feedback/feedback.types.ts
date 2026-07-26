@@ -313,3 +313,261 @@ export function startOfMonth(now: number = Date.now()): number {
   const d = new Date(now);
   return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
 }
+
+// ---- Fuzzy search ---------------------------------------------------------
+
+/**
+ * The board's search is deliberately dependency-free: a few hundred topics live
+ * in memory anyway, so a hand-rolled scorer beats pulling a fuzzy-search library
+ * into the bundle. It has to be forgiving (the admin types from memory, with
+ * typos) and it has to look at the *whole* conversation, not just the generated
+ * title — a topic is often only identifiable by what the routine answered three
+ * replies down (feedback 12476cec).
+ */
+
+/**
+ * Fold text into its comparable form: diacritics stripped (ä→a, é→e), German ß
+ * unfolded to `ss`, lowercased, and every run of non-alphanumerics collapsed to
+ * a single space. Markdown punctuation therefore disappears on its own, so a
+ * query matches text that is bold, linked or fenced in the source.
+ */
+export function normalizeSearchText(text: string): string {
+  return (text ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/ß/g, 'ss')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/** The query split into distinct normalized terms; empty for a blank query. */
+export function searchTokens(query: string): string[] {
+  const normalized = normalizeSearchText(query);
+  if (!normalized) return [];
+  const seen = new Set<string>();
+  for (const token of normalized.split(' ')) {
+    if (token) seen.add(token);
+  }
+  return [...seen];
+}
+
+/**
+ * How many single-character edits a term may be off and still count as a match.
+ * Short terms get none — at three characters nearly everything is one edit away
+ * from everything, which would turn the result list into noise.
+ */
+function editBudget(length: number): number {
+  if (length <= 3) return 0;
+  if (length <= 5) return 1;
+  return 2;
+}
+
+/**
+ * Damerau-Levenshtein distance with an early bail-out: once a whole DP row sits
+ * above `max` the distance can only grow, so we stop and report `max + 1`.
+ * Transpositions count as one edit, which is what most real typos are
+ * ("Suhce" → "Suche").
+ */
+function boundedDistance(a: string, b: string, max: number): number {
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+
+  let beforePrev: number[] = [];
+  let prev: number[] = Array.from({ length: b.length + 1 }, (_, j) => j);
+
+  for (let i = 1; i <= a.length; i++) {
+    const current: number[] = new Array(b.length + 1);
+    current[0] = i;
+    let rowBest = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      let value = Math.min(prev[j] + 1, current[j - 1] + 1, prev[j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        value = Math.min(value, beforePrev[j - 2] + 1);
+      }
+      current[j] = value;
+      if (value < rowBest) rowBest = value;
+    }
+    if (rowBest > max) return max + 1;
+    beforePrev = prev;
+    prev = current;
+  }
+  return prev[b.length];
+}
+
+/** True when every character of `needle` appears in `haystack`, in order. */
+function isSubsequence(needle: string, haystack: string): boolean {
+  let i = 0;
+  for (const ch of haystack) {
+    if (ch === needle[i]) i++;
+    if (i === needle.length) return true;
+  }
+  return i === needle.length;
+}
+
+/**
+ * Match quality of one term against one word, in `[0, 1]`:
+ * exact `1` › prefix `0.78` › infix `0.6` › typo-distance `0.5 − 0.12·d` ›
+ * subsequence `0.22`. The ladder is what makes the ranking explainable — a term
+ * the admin typed in full always outranks the same term guessed from a typo.
+ */
+function wordQuality(term: string, word: string, budget: number): number {
+  if (word === term) return 1;
+  if (word.startsWith(term)) return 0.78;
+  if (word.includes(term)) return 0.6;
+  if (budget > 0) {
+    const distance = boundedDistance(term, word, budget);
+    if (distance <= budget) return 0.5 - 0.12 * distance;
+  }
+  // Abbreviations ("fdbk" → "feedback"), but only against a word of a plausible
+  // length, so a long paragraph-word does not swallow every short term.
+  if (term.length >= 3 && word.length <= term.length + 6 && isSubsequence(term, word)) return 0.22;
+  return 0;
+}
+
+/**
+ * Best quality of `term` anywhere in `words`, plus a small density bonus for
+ * repeated solid hits (capped at three extra occurrences) — a topic that says
+ * "search" five times is more about search than one that mentions it once.
+ */
+function termScore(term: string, words: readonly string[]): number {
+  const budget = editBudget(term.length);
+  let best = 0;
+  let solidHits = 0;
+  for (const word of words) {
+    const quality = wordQuality(term, word, budget);
+    if (quality >= 0.6) solidHits++;
+    if (quality > best) best = quality;
+    if (best === 1 && solidHits > 3) break;
+  }
+  if (best === 0) return 0;
+  return best + Math.min(Math.max(solidHits - 1, 0), 3) * 0.04;
+}
+
+/** Field weights — the topic body carries the intent, replies only support it. */
+const FIELD_WEIGHT = {
+  body: 1,
+  note: 0.55,
+  thread: 0.5,
+  author: 0.35,
+} as const;
+
+/** A topic that matched, with the score it is ranked by and where it matched. */
+export interface FeedbackSearchHit {
+  row: FeedbackRow;
+  /** Relevance, higher is better. Roughly `[0.1, 1.6]`; only the order matters. */
+  score: number;
+  /** The query hit the topic body itself. */
+  inBody: boolean;
+  /** The query hit one of the thread replies. */
+  inThread: boolean;
+}
+
+/** The searchable text of one topic, normalized once per query pass. */
+function haystack(row: FeedbackRow, replies: readonly FeedbackMessage[] | undefined) {
+  const body = normalizeSearchText(row.body);
+  const thread = normalizeSearchText((replies ?? []).map((r) => r.body).join(' \n '));
+  const author = normalizeSearchText(
+    [row.author?.display_name, row.author?.username, ...(replies ?? []).map((r) => r.author?.display_name)]
+      .filter(Boolean)
+      .join(' '),
+  );
+  return {
+    body,
+    bodyWords: body ? body.split(' ') : [],
+    note: normalizeSearchText(row.processing_note ?? '').split(' ').filter(Boolean),
+    thread,
+    threadWords: thread ? thread.split(' ') : [],
+    authorWords: author ? author.split(' ') : [],
+  };
+}
+
+/**
+ * Score one topic against the already-tokenized query. `0` means "not a match":
+ * every term has to land *somewhere* (AND semantics), otherwise adding a word
+ * would widen the result list instead of narrowing it.
+ *
+ * The score is the mean term quality (so a one-word and a four-word query stay
+ * on the same scale), weighted by the field each term matched best in, plus a
+ * phrase bonus when the query shows up verbatim.
+ */
+export function scoreFeedbackRow(
+  row: FeedbackRow,
+  replies: readonly FeedbackMessage[] | undefined,
+  terms: readonly string[],
+  phrase = terms.join(' '),
+): FeedbackSearchHit | null {
+  if (!terms.length) return null;
+  const fields = haystack(row, replies);
+
+  let total = 0;
+  let inBody = false;
+  let inThread = false;
+
+  for (const term of terms) {
+    const body = termScore(term, fields.bodyWords) * FIELD_WEIGHT.body;
+    const note = termScore(term, fields.note) * FIELD_WEIGHT.note;
+    const thread = termScore(term, fields.threadWords) * FIELD_WEIGHT.thread;
+    const author = termScore(term, fields.authorWords) * FIELD_WEIGHT.author;
+    const best = Math.max(body, note, thread, author);
+    if (best === 0) return null;
+    if (body > 0) inBody = true;
+    if (thread > 0) inThread = true;
+    total += best;
+  }
+
+  let score = total / terms.length;
+  // Verbatim phrase beats the same words scattered across the conversation.
+  if (terms.length > 1 && phrase) {
+    if (fields.body.includes(phrase)) score += 0.35;
+    else if (fields.thread.includes(phrase)) score += 0.15;
+  }
+
+  return { row, score, inBody, inThread };
+}
+
+/**
+ * Fuzzy-search the board across topic bodies, processing notes, author names and
+ * every thread reply, ranked by relevance.
+ *
+ * Ordering: score descending, ties broken by the topic's own recency, so equally
+ * relevant hits still read newest-first. A blank query yields no hits at all —
+ * callers treat that as "no search active" and keep their own list order (see
+ * {@link rankFeedbackSearch}).
+ */
+export function searchFeedback(
+  rows: readonly FeedbackRow[],
+  threads: ThreadMap,
+  query: string,
+): FeedbackSearchHit[] {
+  const terms = searchTokens(query);
+  if (!terms.length) return [];
+  const phrase = normalizeSearchText(query);
+
+  const hits: FeedbackSearchHit[] = [];
+  for (const row of rows) {
+    const hit = scoreFeedbackRow(row, threads.get(row.id), terms, phrase);
+    if (hit) hits.push(hit);
+  }
+
+  return hits.sort(
+    (a, b) =>
+      b.score - a.score ||
+      (timeOf(b.row.updated_at) || timeOf(b.row.created_at)) -
+        (timeOf(a.row.updated_at) || timeOf(a.row.created_at)),
+  );
+}
+
+/**
+ * Convenience wrapper for list views: the matching topics in relevance order,
+ * or the input list untouched when the query is blank.
+ */
+export function rankFeedbackSearch(
+  rows: readonly FeedbackRow[],
+  threads: ThreadMap,
+  query: string,
+): FeedbackRow[] {
+  if (!searchTokens(query).length) return [...rows];
+  return searchFeedback(rows, threads, query).map((hit) => hit.row);
+}
