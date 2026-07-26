@@ -267,10 +267,18 @@ describe('buildWorkflowQueue', () => {
     ['q3', [msg('m2', 'q3', true, '2026-07-02T11:00:00Z'), msg('m3', 'q3', false, '2026-07-02T12:00:00Z')]],
   ]);
 
-  it('puts pending questions first, then new topics, each oldest first', () => {
+  it('queues the pending questions, oldest first', () => {
     const queue = buildWorkflowQueue([o1, q1, done, o2, q2, busy, answered], threads);
-    expect(queue.map((i) => i.row.id)).toEqual(['q2', 'q1', 'o2', 'o1']);
-    expect(queue.map((i) => i.kind)).toEqual(['question', 'question', 'new', 'new']);
+    expect(queue.map((i) => i.row.id)).toEqual(['q2', 'q1']);
+  });
+
+  it('keeps plain ToDo topics out — they wait on the routine (feedback b0cc6efc)', () => {
+    expect(buildWorkflowQueue([o1, o2], threads).map((i) => i.row.id)).toEqual([]);
+  });
+
+  it('lets a ToDo topic in once the routine asks something back', () => {
+    const asked = { ...o1, status: 'needs_input' as FeedbackStatus };
+    expect(buildWorkflowQueue([asked], threads).map((i) => i.row.id)).toEqual(['o1']);
   });
 
   it('excludes shipped, in_progress and already-answered questions', () => {
@@ -304,10 +312,11 @@ describe('buildWorkflowQueue', () => {
 });
 
 describe('workflow scope (feedback abfa97c6)', () => {
-  const mine1 = row('m1', 'open', '2026-07-05T10:00:00Z', { author_id: 'me' });
-  const mine2 = row('m2', 'open', '2026-07-06T10:00:00Z', { author_id: 'me' });
-  const theirs = row('t1', 'open', '2026-07-07T10:00:00Z', { author_id: 'you' });
-  const orphan = row('n1', 'open', '2026-07-08T10:00:00Z', { author_id: null });
+  // Unanswered Rückfragen — the only thing the processing queue holds.
+  const mine1 = row('m1', 'needs_input', '2026-07-05T10:00:00Z', { author_id: 'me' });
+  const mine2 = row('m2', 'needs_input', '2026-07-06T10:00:00Z', { author_id: 'me' });
+  const theirs = row('t1', 'needs_input', '2026-07-07T10:00:00Z', { author_id: 'you' });
+  const orphan = row('n1', 'needs_input', '2026-07-08T10:00:00Z', { author_id: null });
   const queue = buildWorkflowQueue([mine1, mine2, theirs, orphan], new Map());
 
   it('counts each scope, with authorless topics landing under "others"', () => {

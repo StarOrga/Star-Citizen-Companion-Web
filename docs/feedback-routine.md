@@ -645,7 +645,7 @@ panel and on the full board page alike:
 | View | Component | What it is for |
 |------|-----------|----------------|
 | **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list, fuzzy search (see below), status/author filters, new-topic composer |
-| **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin first (oldest first), then untouched `open` topics. Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
+| **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin, oldest first — **and nothing else** (feedback b0cc6efc). Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
 | **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen, plus pace, throughput and the live lifecycle map (see below) |
 
 **Abarbeiten is the default view** (feedback fda4e3ea). The panel opens in the
@@ -655,6 +655,15 @@ remembered per browser under `sc.adminFeedback.view` (behind the preferences
 consent), so picking Übersicht or Fortschritt from the view switch still wins on
 the next open; only the fallback changed. With an empty queue the mode shows its
 "Alles abgearbeitet" screen, one click away from Fortschritt.
+
+**The queue holds only what waits on the admin** (feedback b0cc6efc). It used to
+append untouched `open` ToDos after the Rückfragen, which made the mode read as a
+backlog to work off — but an `open` topic is one the admin already wrote and that
+now waits on the *routine*; there is nothing to answer there. A topic enters the
+queue the moment the routine asks something back (`needs_input` with the routine's
+message last = the `awaiting_admin` bucket) and leaves it the moment the admin
+answers. ToDos stay fully visible in the Übersicht list and in the dashboard's
+ToDo counter — the processing mode is the admin's *inbox*, not the board.
 
 Three things the processing mode does so a Rückfrage never has to be hunted for
 and no step goes unnoticed:

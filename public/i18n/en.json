@@ -1272,12 +1272,10 @@
       "answerSend": "Answer",
       "openQuestion": "Open question",
       "cheerAnswered": "Question answered — the routine takes it from here.",
-      "cheerReplied": "Noted! On to the next one.",
       "allDoneTitle": "All caught up",
-      "allDoneHint": "No open questions, no new topics. Take a look at what you got done.",
+      "allDoneHint": "No open questions. Your ToDos sit with the routine — they land here as soon as it needs something from you.",
       "kind": {
-        "question": "Question",
-        "new": "ToDo"
+        "question": "Question"
       },
       "scope": {
         "label": "Scope",

@@ -9,7 +9,7 @@ function row(id: string): FeedbackRow {
     id,
     author_id: 'admin',
     body: `Topic ${id}`,
-    status: 'open',
+    status: 'needs_input',
     ship_ref: null,
     processing_note: null,
     created_at: '2026-07-20T10:00:00Z',
@@ -21,7 +21,7 @@ function row(id: string): FeedbackRow {
 }
 
 function item(id: string): WorkflowItem {
-  return { row: row(id), replies: [], kind: 'new' };
+  return { row: row(id), replies: [] };
 }
 
 describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
