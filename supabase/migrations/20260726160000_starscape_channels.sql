@@ -1,4 +1,4 @@
--- 20260726120000_starscape_channels.sql
+-- 20260726160000_starscape_channels.sql
 -- Release channels for Starscape (wallpaper-app), so the tray app can self-update
 -- against the ring it was downloaded from.
 --
