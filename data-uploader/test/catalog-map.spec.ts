@@ -109,6 +109,41 @@ describe('collectPorts', () => {
     collectPorts(out, BUILD, nat, 'X', 'ship', undefined);
     expect(out).toHaveLength(1);
   });
+
+  it('carries hardpoint coordinates when the extract resolved them', () => {
+    const out: PortRow[] = [];
+    collectPorts(out, BUILD, nat, 'AEGS_Gladius', 'ship', [
+      {
+        portName: 'hardpoint_weapon_left',
+        types: ['WeaponGun'],
+        helperName: 'hardpoint_weapon_left',
+        position: [-3.5, 2, 0.5],
+        rotation: [0, 0, 0, 1],
+      },
+    ]);
+    expect(out[0]).toMatchObject({
+      helper_name: 'hardpoint_weapon_left',
+      position: [-3.5, 2, 0.5],
+      rotation: [0, 0, 0, 1],
+    });
+  });
+
+  it('stores NULL rather than a coordinate for an older or malformed extract', () => {
+    const out: PortRow[] = [];
+    collectPorts(out, BUILD, nat, 'AEGS_Gladius', 'ship', [
+      { portName: 'legacy_port', types: [] }, // pre-#137 extract: no fields at all
+      { portName: 'short_vec', position: [1, 2] },
+      { portName: 'nan_vec', position: [1, Number.NaN, 3] },
+      { portName: 'string_vec', position: ['1', '2', '3'] },
+      // a facing without a position is not usable and must not be kept
+      { portName: 'rot_only', rotation: [0, 0, 0, 1] },
+    ]);
+    for (const row of out) {
+      expect(row.position).toBeNull();
+      expect(row.rotation).toBeNull();
+      expect(row.helper_name).toBeNull();
+    }
+  });
 });
 
 describe('hasViableCatalog', () => {

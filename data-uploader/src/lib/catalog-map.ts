@@ -59,6 +59,12 @@ export interface PortRow {
   types: string[];
   flags: string[];
   port_index: number;
+  /** Hull mesh helper node this port attaches to (audit trail for the join). */
+  helper_name: string | null;
+  /** [x,y,z] metres in hull model space (+X right, +Y nose, +Z up); null = unknown. */
+  position: number[] | null;
+  /** [x,y,z,w] mount facing in the same space; null = unknown. */
+  rotation: number[] | null;
 }
 
 export interface IngredientRow {
@@ -129,6 +135,18 @@ export function collectStrings(
   }
 }
 
+/**
+ * A `[x,y,z]`-style coordinate, or null. Guards the hardpoint columns against a
+ * malformed extract: anything that is not a finite numeric triple/quad is stored
+ * as NULL ("unknown position") rather than as a coordinate the UI would plot.
+ */
+function vector(value: unknown, length: number): number[] | null {
+  if (!Array.isArray(value) || value.length !== length) return null;
+  return value.every((v) => typeof v === 'number' && Number.isFinite(v))
+    ? (value as number[])
+    : null;
+}
+
 /** Collect item-port rows for a parent entity. */
 export function collectPorts(
   out: PortRow[],
@@ -142,7 +160,12 @@ export function collectPorts(
   itemPorts.forEach((p, idx) => {
     const port = p as {
       portName?: string; minSize?: number; maxSize?: number; types?: string[]; flags?: string[];
+      helperName?: string | null; position?: unknown; rotation?: unknown;
     };
+    // Hardpoint coordinates (#137 part 3) only exist for ports the extractor
+    // could match to a helper node in the ship's .cga hull mesh — an older
+    // extract simply has none of these fields and yields NULL columns.
+    const position = vector(port.position, 3);
     out.push({
       build_id: buildId,
       ...nat,
@@ -154,6 +177,10 @@ export function collectPorts(
       types: Array.isArray(port.types) ? port.types : [],
       flags: Array.isArray(port.flags) ? port.flags : [],
       port_index: idx,
+      helper_name: port.helperName ?? null,
+      position,
+      // A facing without a position is not usable and not stored.
+      rotation: position ? vector(port.rotation, 4) : null,
     });
   });
 }
