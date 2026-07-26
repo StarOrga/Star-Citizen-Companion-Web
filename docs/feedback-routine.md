@@ -30,30 +30,47 @@ open ──pick up──▶ in_progress ──green build+tests──▶ shipped
      │                                                          ▼
      └── re-ship + fresh review reply ◀── in_progress (new -<msg> branch, STEP 3–4)
 
+  issue_created / declined / rejected ──admin replies in the thread──▶ open
+     ▲                                    (DB trigger reopens directly to `open`,
+     │                                     clearing ship_ref + decision_note)
+     └── (terminal at rest until an admin replies)
+
   rejected      ← the ADMIN decides this alone (by deleting the topic); the
-                  routine NEVER sets it.
+                  routine NEVER sets it. Reopened to `open` by an admin reply.
   issue_created ← the ADMIN archives a topic against a GitHub issue
-                  (ship_ref = issue url); terminal, the routine NEVER sets it.
+                  (ship_ref = issue url); the routine NEVER sets it. Reopened to
+                  `open` by an admin reply.
   declined      ← the ADMIN declines a USER-submitted topic ("nicht umsetzen &
                   löschen", decision_note = the explanation the author reads);
-                  terminal, the routine NEVER sets it.
+                  the routine NEVER sets it. Reopened to `open` by an admin reply.
   needs_input_author
                 ← the ADMIN asked the topic's AUTHOR something. Active but NOT
                   `open`, so it is parked out of the queue; the author's answer
                   flips it back to `open` (DB trigger). The routine NEVER sets it.
 ```
 
-`issue_created`, `declined` and legacy `rejected` are **terminal** — nothing ever
-picks them up again. `shipped` is terminal **at rest**, but it is deliberately
-*not* a dead end: an admin reply on a shipped topic reopens it as a
-**continuation** (the post-ship review loop — see "Post-ship review & continue"
-below), so the admin can look at the change live and keep iterating in the same
-thread. Together the four form the panel's Archive tab (see "Active vs. Archive"
-below); a shipped topic the admin has replied to flips back into the active half
-the moment the routine claims it. The routine works the active half (`open` /
-`in_progress` / `needs_input`) plus these shipped-with-a-fresh-reply
-continuations. `needs_input_author` is active too, but it belongs to the admin and
-the author, never to the routine.
+`issue_created`, `declined`, legacy `rejected` and `shipped` are all terminal
+**at rest** but none of them is a dead end: **an admin reply in the thread
+reopens any of them** (feedback: "archived topic answered → back to ToDo").
+The two reopen paths differ only in mechanism:
+
+- **`shipped`** reopens as a **continuation** (the post-ship review loop — see
+  "Post-ship review & continue" below): its status stays `shipped` on the wire
+  and the routine's query (d) claims it, because `shipped_at` must be preserved
+  for re-ship detection.
+- **`issue_created` / `declined` / legacy `rejected`** are reopened **directly to
+  `open`** by a DB trigger the instant a human admin replies (migration
+  `20260726180000_admin_feedback_reopen_on_reply.sql`), clearing `ship_ref` and
+  `decision_note`. No routine query change is needed: the row is a plain `open`
+  item and query (a) picks it up like any first-timer. The trigger fires only on
+  a human reply (`is_system=false`); the routine's own system replies never
+  reopen a topic.
+
+Together the four form the panel's Archive tab (see "Active vs. Archive" below);
+any of them flips back into the active half as soon as it is reopened. The
+routine works the active half (`open` / `in_progress` / `needs_input`) plus these
+shipped-with-a-fresh-reply continuations. `needs_input_author` is active too, but
+it belongs to the admin and the author, never to the routine.
 
 **The queue is additionally gated on `triaged`.** A topic filed by a non-admin
 through the user feedback FAB (`source = 'user'`) enters `triaged = false` and
@@ -572,10 +589,13 @@ For each admitted `open` row (process independently, most-recent context wins):
      `ship_ref='<PR url>'` + a `processing_note`. `in_progress` is only ever valid
      **with** a `ship_ref` (a real review-hold) — never leave a bare `in_progress`
      (it jams the reaper + the oldest-first queue; see the reaper section).
-6. Never touch rows in a terminal status — `issue_created` or `rejected`, and a
-   `shipped` row **except** the one sanctioned re-entry: an admin reply after the
-   ship reopens it as a continuation (query (d) / step 5b's invite). Never
-   re-implement a `shipped` topic that has no fresh human reply.
+6. Never touch rows in a terminal status directly. The only way a terminal topic
+   returns to the routine is by being **reopened first**, always by an admin
+   reply: `issue_created` / `declined` / `rejected` are flipped straight to `open`
+   by the reopen trigger (then query (a) sees a plain `open` item), and `shipped`
+   reopens as a continuation (query (d) / step 5b's invite). Never re-implement a
+   still-terminal topic — a `shipped` topic with no fresh human reply, or an
+   archived topic nobody replied to.
 
 ## Non-verifiable / decision-needed items → `needs_input`, never a bare `in_progress`
 
@@ -1034,26 +1054,31 @@ Active/Archive toggle inside the **overview** mode renders (migration
 
 - **Active** — `open`, `in_progress`, `needs_input`, `needs_input_author`. The
   board the routine and the admin work on.
-- **Archive** (terminal) — `shipped`, `issue_created`, `declined`, and legacy
-  `rejected`. `issue_created`, `declined` and `rejected` are never picked up
-  again. `shipped` is terminal **until the admin replies**: a reply on a shipped
-  topic reopens it as a continuation (see "Post-ship review & continue"), and the
-  routine flips it back to `in_progress` (Active) on its next run — so a shipped
-  topic the admin is still iterating on does not rot in the Archive. Each row
-  renders its `ship_ref` as a
-  link, labelled "View change" for a shipped PR and "View issue" for an issue.
-  (During an in-flight continuation `ship_ref` is briefly cleared; the shipping PR
-  stays linked in the thread's review reply.)
+- **Archive** (terminal at rest) — `shipped`, `issue_created`, `declined`, and
+  legacy `rejected`. **All four reopen on an admin reply**, so none rots in the
+  Archive once the admin picks the conversation back up:
+  - `shipped` reopens as a continuation (see "Post-ship review & continue"); the
+    routine flips it back to `in_progress` (Active) on its next run.
+  - `issue_created` / `declined` / `rejected` are flipped straight to `open`
+    (Active) by the reopen trigger the instant a human admin replies (migration
+    `20260726180000`), which also clears `ship_ref` and `decision_note`.
+
+  Each still-archived row renders its `ship_ref` as a link, labelled "View change"
+  for a shipped PR and "View issue" for an issue. (During an in-flight shipped
+  continuation `ship_ref` is briefly cleared; the shipping PR stays linked in the
+  thread's review reply. A reopened `issue_created` topic loses its issue link
+  from `ship_ref` — the GitHub issue itself is untouched.)
 
 `issue_created` is a **terminal, admin-set** status: the admin archives a topic
 by pasting its GitHub issue URL in the panel (button "Issue created"), which
 writes `status='issue_created'` + `ship_ref=<issue url>` + `processed_at=now()`.
 Its purpose is the "tracked elsewhere, done here" case — the topic leaves the
 active queue without being deleted and without pretending it shipped. **The
-routine never sets `issue_created` and never touches a row that carries it** —
-unlike `shipped`, which the post-ship review loop can reopen when the admin
-replies. Legacy `rejected` rows are archived rather than hidden so they stay
-reachable instead of being orphaned in a view nobody opens.
+routine never sets `issue_created` and never touches a row while it carries that
+status** — but an admin reply reopens it to `open` first (the reopen trigger), and
+from then on it is an ordinary `open` item the routine works. Legacy `rejected`
+rows are archived rather than hidden so they stay reachable instead of being
+orphaned in a view nobody opens — and they reopen on an admin reply the same way.
 
 Per-topic replies live in `public.admin_feedback_messages` (see migration
 `20260710160000_admin_feedback_threads.sql`):

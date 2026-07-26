@@ -620,7 +620,13 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
 
             <!-- Reply composer — full parity with the new-topic box (toolbar,
                  Enter to send / Shift+Enter for a newline, image paste/drop,
-                 list continuation). -->
+                 list continuation). On an archived topic a reply reopens it
+                 (shipped: post-ship continuation; issue_created / declined /
+                 rejected: the reopen trigger, migration 20260726180000) — so a
+                 hint says as much before the admin types. -->
+            @if (archived(m)) {
+              <p class="reopen-hint">↻ {{ 'adminFeedback.thread.reopenHint' | translate }}</p>
+            }
             <div class="reply-compose">
               <sc-feedback-composer
                 [compact]="true"
@@ -1332,6 +1338,13 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .reply-body img { display: block; max-width: 100%; height: auto; margin: 6px 0; border: 1px solid var(--sc-border); border-radius: 6px; }
 
     .reply-compose { margin-top: 4px; }
+    /* Archived topics: a reply reopens them, so say so above the composer. */
+    .reopen-hint {
+      margin: 4px 0 0;
+      font-size: 0.78rem;
+      color: var(--sc-fg-2);
+      font-style: italic;
+    }
 
     .msg-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     /* Inline "issue created" hand-off: paste the issue url, confirm, archived. */
