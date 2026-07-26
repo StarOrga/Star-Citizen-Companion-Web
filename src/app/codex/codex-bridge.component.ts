@@ -17,6 +17,7 @@ import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { ExtensionPromoComponent } from './extension-promo.component';
+import { HoloReadyBadgeComponent } from './holo-ready-badge.component';
 import { HangarService } from '../hangar/hangar.service';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -72,6 +73,7 @@ interface Lane {
     CodexCategoryIconComponent,
     CodexStatusBannerComponent,
     ExtensionPromoComponent,
+    HoloReadyBadgeComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -244,6 +246,7 @@ interface Lane {
           </div>
           <div class="lane-info">
             <h3 class="lane-name">{{ rowName(r) }}</h3>
+            <sc-holo-ready-badge [shipId]="r.classNameSlug" />
             @if (r.manufacturerCode) { <span class="lane-mfr">{{ r.manufacturerCode }}</span> }
           </div>
           <div class="lane-actions">

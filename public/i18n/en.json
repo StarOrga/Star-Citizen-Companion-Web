@@ -384,7 +384,9 @@
       "loadCatalogError": "Could not load liveries.",
       "retry": "Retry",
       "collapse": "Collapse 3D view",
-      "expand": "Expand 3D view"
+      "expand": "Expand 3D view",
+      "holoReady": "Holo-Ready — interactive 3D liveries available",
+      "holoReadyShort": "3D"
     },
     "equipped": {
       "alphaDamage": "Alpha damage",

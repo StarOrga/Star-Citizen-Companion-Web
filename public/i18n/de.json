@@ -384,7 +384,9 @@
       "loadCatalogError": "Lackierungen konnten nicht geladen werden.",
       "retry": "Erneut versuchen",
       "collapse": "3D-Ansicht einklappen",
-      "expand": "3D-Ansicht ausklappen"
+      "expand": "3D-Ansicht ausklappen",
+      "holoReady": "Holo-Ready — interaktive 3D-Lackierungen verfügbar",
+      "holoReadyShort": "3D"
     },
     "equipped": {
       "alphaDamage": "Alpha-Schaden",
