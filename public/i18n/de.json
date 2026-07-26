@@ -305,7 +305,15 @@
       "craftedFromHint": "Was die Herstellung dieses Gegenstands kostet — aus den Crafting-Daten des Spiels.",
       "noIngredients": "Dieser Bauplan nennt in diesem Build keine Materialien.",
       "openBlueprint": "Vollständigen Bauplan öffnen",
-      "minQuality": "min. Qualität {{value}}"
+      "minQuality": "min. Qualität {{value}}",
+      "whereToBuy": "Wo zu kaufen",
+      "whereToBuyLoading": "UEX Corp wird nach Kaufmöglichkeiten durchsucht …",
+      "whereToBuyEmpty": "Keine Kaufdaten für diesen Gegenstand gefunden.",
+      "whereToBuyError": "Kaufdaten konnten gerade nicht geladen werden.",
+      "whereToBuyPrice": "Preis",
+      "whereToBuyTerminal": "Terminal",
+      "whereToBuyLocation": "Standort",
+      "whereToBuyAttribution": "Preise von UEX Corp — von der Community gepflegt, spiegeln evtl. nicht die Live-Server wider. Nicht mit Cloud Imperium Games verbunden."
     },
     "swap": {
       "title": "Was passt hier?",
