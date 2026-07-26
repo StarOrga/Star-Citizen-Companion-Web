@@ -573,7 +573,8 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
             }
 
             <!-- Reply composer — full parity with the new-topic box (toolbar,
-                 Ctrl/Cmd+Enter, image paste/drop, list continuation). -->
+                 Enter to send / Shift+Enter for a newline, image paste/drop,
+                 list continuation). -->
             <div class="reply-compose">
               <sc-feedback-composer
                 [compact]="true"

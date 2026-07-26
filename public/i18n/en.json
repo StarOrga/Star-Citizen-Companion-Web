@@ -1260,9 +1260,9 @@
       "replyPlaceholder": "Write a reply… (Markdown supported)"
     },
     "compose": {
-      "placeholder": "What could be better? Markdown supported — Enter for a new line, Ctrl+Enter to send.",
+      "placeholder": "What could be better? Markdown supported — Enter to send, Shift+Enter for a new line.",
       "send": "Send",
-      "sendHint": "Enter = new line · Ctrl+Enter = send",
+      "sendHint": "Enter = send · Shift+Enter = new line",
       "bold": "Bold",
       "bullet": "Bullet list",
       "numbered": "Numbered list",
@@ -1292,7 +1292,7 @@
       "next": "Next",
       "done": "Done",
       "advanced": "Done – on to {{current}} of {{total}}",
-      "answerPlaceholder": "Write an answer… (Markdown supported, Ctrl+Enter to send)",
+      "answerPlaceholder": "Write an answer… (Markdown supported, Enter to send)",
       "answerSend": "Answer",
       "openQuestion": "Open question",
       "cheerAnswered": "Question answered — the routine takes it from here.",
