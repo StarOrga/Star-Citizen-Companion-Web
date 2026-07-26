@@ -208,7 +208,28 @@
       "search": "Keybindings durchsuchen",
       "searchPlaceholder": "Aktion oder Taste suchen…",
       "count": "{{shown}} von {{total}} Aktionen",
-      "unbound": "—"
+      "unbound": "—",
+      "rawKey": "Interner Aktionsschlüssel",
+      "contexts": {
+        "vehicle": "Fahrzeug",
+        "spectator": "Zuschauer",
+        "interface": "Interface",
+        "interaction": "Interaktion",
+        "emote": "Emote",
+        "camera": "Kamera",
+        "character": "Charakter",
+        "turret": "Geschützturm",
+        "eva": "EVA",
+        "hacking": "Hacking",
+        "remote": "Fernsteuerung",
+        "tractor": "Traktorstrahl",
+        "melee": "Nahkampf",
+        "hmd": "HMD",
+        "visor": "Visier",
+        "headtracking": "Head-Tracking",
+        "shop": "Shop",
+        "debug": "Debug"
+      }
     },
     "provenance": {
       "label": "Quelle",

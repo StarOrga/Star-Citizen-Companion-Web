@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { KeybindsComponent } from './keybinds.component';
 import { CodexService } from './codex.service';
 import { CodexKeybind } from './codex.types';
@@ -48,7 +48,15 @@ const LABELS = new Map<string, string>([
 ]);
 
 describe('KeybindsComponent', () => {
-  async function setup(opts: { binds: CodexKeybind[]; labels?: Map<string, string> }) {
+  async function setup(opts: {
+    binds: CodexKeybind[];
+    labels?: Map<string, string>;
+    /** English originals, when they differ from the active-language map. */
+    labelsEn?: Map<string, string>;
+    /** Active UI language — 'de' exercises the English-original fallback. */
+    lang?: string;
+  }) {
+    const empty = new Map<string, string>();
     const codex: Partial<CodexService> = {
       build: signal({ patchVersion: '4.2', buildNumber: '9000000' }) as never,
       stale: signal(false) as never,
@@ -57,7 +65,11 @@ describe('KeybindsComponent', () => {
       listKeybinds: jasmine.createSpy('listKeybinds').and.resolveTo(opts.binds),
       resolveLocaleKeys: jasmine
         .createSpy('resolveLocaleKeys')
-        .and.resolveTo(opts.labels ?? new Map<string, string>()),
+        .and.callFake((_keys: string[], lang: string) =>
+          Promise.resolve(
+            lang === 'en' ? (opts.labelsEn ?? opts.labels ?? empty) : (opts.labels ?? empty),
+          ),
+        ),
     };
 
     await TestBed.configureTestingModule({
@@ -69,6 +81,8 @@ describe('KeybindsComponent', () => {
         { provide: RoleService, useValue: { isCollaborator: signal(false) } },
       ],
     }).compileComponents();
+
+    if (opts.lang) TestBed.inject(TranslateService).use(opts.lang);
 
     const fixture: ComponentFixture<KeybindsComponent> = TestBed.createComponent(KeybindsComponent);
     fixture.detectChanges();
@@ -107,9 +121,50 @@ describe('KeybindsComponent', () => {
     expect(cmp.groups().length).toBe(0);
   });
 
-  it('falls back to a humanized action name when the label key is unresolved', async () => {
+  it('derives a clean name when the label key resolves in no language', async () => {
     const cmp = (await setup({ binds: SAMPLE, labels: new Map() })).componentInstance;
-    expect(cmp.groups()[0].rows[0].label.toLowerCase()).toContain('strafe up');
+    const row = cmp.groups()[0].rows[0];
+    // Prefix stripped, title-cased — not the raw "v strafe up".
+    expect(row.label).toBe('Strafe Up');
+    expect(row.source).toBe('derived');
+    expect(row.context).toBe('vehicle');
+  });
+
+  it('falls back to the English original before deriving', async () => {
+    const cmp = (
+      await setup({ binds: SAMPLE, labels: new Map(), labelsEn: LABELS, lang: 'de' })
+    ).componentInstance;
+    const row = cmp.groups()[0].rows[0];
+    expect(row.label).toBe('Strafe Up');
+    expect(row.source).toBe('english');
+  });
+
+  it('hoists a context shared by every row onto the group header', async () => {
+    const cmp = (await setup({ binds: SAMPLE, labels: LABELS })).componentInstance;
+    expect(cmp.groups()[0].context).toBe('vehicle');
+    expect(cmp.groups()[1].context).toBe('interface');
+  });
+
+  it('shows the raw programmatic key under every derived label', async () => {
+    const fixture = await setup({ binds: SAMPLE, labels: new Map() });
+    const raws: string[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.act-raw') as NodeListOf<HTMLElement>,
+    ).map((el) => el.textContent!.trim());
+    expect(raws).toEqual(['v_strafe_up', 'v_strafe_down', 'ui_back']);
+  });
+
+  it('hides the raw key line for localized labels but keeps it in the tooltip', async () => {
+    const fixture = await setup({ binds: SAMPLE, labels: LABELS });
+    expect(fixture.nativeElement.querySelectorAll('.act-raw').length).toBe(0);
+    const cmp = fixture.componentInstance;
+    expect(cmp.rowTitle(cmp.groups()[0].rows[0])).toContain('v_strafe_up');
+  });
+
+  it('still finds a row by its raw programmatic key', async () => {
+    const cmp = (await setup({ binds: SAMPLE, labels: LABELS })).componentInstance;
+    cmp.onSearch('v_strafe_down');
+    expect(cmp.shownCount()).toBe(1);
+    expect(cmp.groups()[0].rows[0].label).toBe('Strafe Down');
   });
 
   it('renders the empty state when no keybinds are published', async () => {
