@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.49.1] - 2026-07-27
+
+### Changed
+
+- **Codex "Where to buy" — matches far more items now (#254).** Purchase lookup
+  now matches against the item's English name (UEX is English-only, so German
+  display names like "A03-Snipergewehr" previously never matched "A03 Sniper
+  Rifle"), tolerates livery/paint variants via token-subset matching, and
+  searches both the "Personal Weapons" and "Gadgets" UEX categories for FPS
+  gear. Verified against the live API — e.g. A03 Sniper Rifle, P4-AR, S-38
+  Pistol and multi-tools now resolve dozens of purchase locations that used to
+  show "no data".
+
 ## [0.49.0] - 2026-07-26
 
 ### Added

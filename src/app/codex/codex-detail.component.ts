@@ -1116,7 +1116,11 @@ export class CodexDetailComponent implements OnInit {
     const seq = ++this.buySeq;
     this.buyLoading.set(true);
     this.buyError.set(false);
-    const name = this.displayName();
+    // Match against the ENGLISH name: UEX's catalog is English-only, so the
+    // German display name ("A03-Snipergewehr") would never match "A03 Sniper
+    // Rifle". Fall back to the display name when no English name exists.
+    const p = d.payload as { name?: { de: string; en: string; key: string } } | undefined;
+    const name = (p?.name ? pickLocalized(p.name, 'en') : '') || this.displayName();
     const row = d.row;
     try {
       const options = await this.uexShop.whereToBuy({

@@ -94,6 +94,19 @@ function normalizeName(raw: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
+// Word tokens for subset matching: our localized names often carry an extra
+// livery/paint word the bare UEX name lacks (our `Pyro RYT "Hurston" Multi-Tool`
+// vs UEX `Pyro RYT Multi-Tool`), which defeats a plain substring compare. Tokens
+// ≥2 chars drop noise like the "S" in "S-38".
+function tokenize(raw: string): string[] {
+  return raw
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length >= 2);
+}
+
 @Injectable({ providedIn: 'root' })
 export class UexShopService {
   private readonly http = inject(HttpClient);
@@ -115,11 +128,14 @@ export class UexShopService {
    */
   async whereToBuy(query: WhereToBuyQuery): Promise<BuyOption[]> {
     try {
-      const categoryId = this.resolveCategoryId(query);
-      if (categoryId == null) return [];
+      const categoryIds = this.resolveCategoryIds(query);
+      if (categoryIds.length === 0) return [];
 
-      const items = await this.getCategoryItems(categoryId);
-      const match = this.matchItem(items, query.name);
+      // Search across every candidate UEX category (FPS weapons/tools are split
+      // across "Personal Weapons" and "Gadgets" upstream) and match across the
+      // union.
+      const lists = await Promise.all(categoryIds.map((id) => this.getCategoryItems(id)));
+      const match = this.matchItem(lists.flat(), query.name);
       if (!match) return [];
 
       const prices = await this.getItemPrices(match.id);
@@ -159,22 +175,49 @@ export class UexShopService {
     }
   }
 
-  private resolveCategoryId(query: WhereToBuyQuery): number | null {
+  private resolveCategoryIds(query: WhereToBuyQuery): number[] {
     if (query.attachType && ARMOR_CATEGORY_BY_ATTACH_TYPE[query.attachType] != null) {
-      return ARMOR_CATEGORY_BY_ATTACH_TYPE[query.attachType];
+      return [ARMOR_CATEGORY_BY_ATTACH_TYPE[query.attachType]];
     }
     if (query.weaponClass === 'FPS') {
-      return query.subType === 'Gadget' ? FPS_GADGET_CATEGORY : FPS_WEAPON_CATEGORY;
+      // Our `sub_type` split (weapon vs Gadget) does not line up with UEX's, so
+      // search both "Personal Weapons" and "Gadgets" — e.g. multi-tools carry
+      // sub_type 'Gadget' for us but live under Personal Weapons at UEX.
+      return [FPS_WEAPON_CATEGORY, FPS_GADGET_CATEGORY];
     }
-    return null;
+    return [];
   }
 
   private matchItem(items: UexItem[], name: string): UexItem | null {
     const target = normalizeName(name);
     if (!target) return null;
+
+    // 1. Exact normalized-name match wins outright.
     for (const it of items) {
       if (normalizeName(it.name) === target) return it;
     }
+
+    // 2. Token-subset: the UEX name's tokens are all present in ours (our name
+    //    carries extra livery/paint words). Pick the MOST specific such item —
+    //    the one sharing the most tokens — and require ≥2 shared tokens so a
+    //    lone generic word ("pistol", "helmet") can't match everything.
+    const queryTokens = new Set(tokenize(name));
+    if (queryTokens.size) {
+      let best: UexItem | null = null;
+      let bestScore = 0;
+      for (const it of items) {
+        const itTokens = tokenize(it.name);
+        if (itTokens.length < 2) continue;
+        if (!itTokens.every((t) => queryTokens.has(t))) continue;
+        if (itTokens.length > bestScore) {
+          bestScore = itTokens.length;
+          best = it;
+        }
+      }
+      if (best && bestScore >= 2) return best;
+    }
+
+    // 3. Substring fallback (either direction) for names with no clean tokens.
     if (target.length < MIN_CONTAINS_LEN) return null;
     for (const it of items) {
       const norm = normalizeName(it.name);
