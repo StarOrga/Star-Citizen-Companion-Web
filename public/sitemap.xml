@@ -16,6 +16,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://sc-companion.vercel.app/tools/extension</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://sc-companion.vercel.app/legal/privacy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

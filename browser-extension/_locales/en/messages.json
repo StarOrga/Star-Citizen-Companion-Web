@@ -1,0 +1,66 @@
+{
+  "extName": {
+    "message": "Star Citizen Companion — Hangar Import",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Imports the ship list from your own RSI hangar page into Star Citizen Companion. Personalised game content only — no personal data, no credentials.",
+    "description": "Store listing description"
+  },
+
+  "bannerTitle": { "message": "Star Citizen Companion" },
+  "bannerLeadNew": {
+    "message": "Ships found in your hangar: $COUNT$. Import them into Star Citizen Companion?",
+    "placeholders": { "count": { "content": "$1", "example": "12" } }
+  },
+  "bannerLeadChanged": {
+    "message": "Your hangar changed. Ships found: $COUNT$. Import the update into Star Citizen Companion?",
+    "placeholders": { "count": { "content": "$1", "example": "13" } }
+  },
+  "bannerImport": { "message": "Import ships" },
+  "bannerPreparing": { "message": "Preparing…" },
+  "bannerNotNow": { "message": "Not now" },
+  "bannerPrivacyToggle": { "message": "What exactly is read?" },
+  "bannerPrivacyIntro": {
+    "message": "This reads personalised game content only: the ship names listed on this page."
+  },
+  "privacyNoCredentials": { "message": "No credentials, cookies or session tokens are read." },
+  "privacyNoPersonalData": {
+    "message": "No account name, e-mail address, pledge value or order data is read."
+  },
+  "privacyNoUpload": {
+    "message": "Nothing is sent to any server. The list is handed to a Star Citizen Companion tab in this browser, and only reaches your account after you confirm it there."
+  },
+  "privacyRsiOnly": {
+    "message": "The extension is active on your own RSI hangar page and on Star Citizen Companion — nowhere else."
+  },
+
+  "popupStatusNever": { "message": "No import yet." },
+  "popupStatusLast": {
+    "message": "Last import: $DATE$",
+    "placeholders": { "date": { "content": "$1", "example": "26 Jul 2026, 14:20" } }
+  },
+  "popupScan": {
+    "message": "Last seen in your hangar: $COUNT$ ships",
+    "placeholders": { "count": { "content": "$1", "example": "12" } }
+  },
+  "popupScanNone": { "message": "Your hangar has not been read yet." },
+  "popupHowTitle": { "message": "How it works" },
+  "popupHow1": { "message": "Open your hangar at RSI while signed in." },
+  "popupHow2": {
+    "message": "The extension offers an import when your fleet is new or has changed — never when nothing has changed."
+  },
+  "popupHow3": {
+    "message": "Confirm the ships in Star Citizen Companion. Nothing is written before that."
+  },
+  "popupOpenHangar": { "message": "Open my RSI hangar" },
+  "popupOpenApp": { "message": "Open Star Citizen Companion" },
+  "popupOfferAgain": { "message": "Offer the import again" },
+  "popupOfferAgainDone": { "message": "The offer will reappear on your hangar page." },
+  "popupForget": { "message": "Forget stored data" },
+  "popupForgetDone": { "message": "Stored data deleted." },
+  "popupPrivacyTitle": { "message": "Privacy" },
+  "popupStored": {
+    "message": "Stored locally: a checksum of your fleet and the time of the last import — nothing else, and never on a server."
+  }
+}

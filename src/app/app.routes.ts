@@ -104,6 +104,16 @@ export const routes: Routes = [
           import('./hangar/hangar-dashboard.component').then((m) => m.HangarDashboardComponent),
       },
       {
+        // Review/confirm screen for the browser-extension hangar handover
+        // (browser-extension/). Static segment placed BEFORE hangar/ship/:id
+        // for clarity; the payload arrives via postMessage from the
+        // extension's content script, never over the network.
+        path: 'hangar/import',
+        canActivate: [...PRIVATE],
+        loadComponent: () =>
+          import('./hangar/hangar-import-page.component').then((m) => m.HangarImportPageComponent),
+      },
+      {
         path: 'hangar/ship/:id',
         canActivate: [...PRIVATE],
         loadComponent: () =>
@@ -200,6 +210,13 @@ export const routes: Routes = [
         path: 'tools/3d-print',
         loadComponent: () =>
           import('./tools/print-guide.component').then((m) => m.PrintGuideComponent),
+      },
+      {
+        // Install + privacy page for the hangar-import browser extension.
+        // Public: the privacy notice has to be readable BEFORE installing.
+        path: 'tools/extension',
+        loadComponent: () =>
+          import('./tools/extension-install.component').then((m) => m.ExtensionInstallComponent),
       },
       {
         // "What's New" — release notes from CHANGELOG.md. Static build asset,

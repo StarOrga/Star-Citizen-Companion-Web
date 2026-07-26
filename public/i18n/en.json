@@ -1323,6 +1323,106 @@
       "cta": "Open Codex"
     }
   },
+  "extension": {
+    "promo": {
+      "text": "Own your fleet already? A browser extension can import your ships straight from your RSI hangar.",
+      "cta": "How it works",
+      "dismiss": "Hide this note"
+    },
+    "privacy": {
+      "gameContentOnly": "The extension reads personalised game content only — the ship names on your own RSI hangar page. No personal data is collected.",
+      "noCredentials": "No credentials, cookies or session tokens are read.",
+      "noPersonalData": "No account name, e-mail address, pledge value or order data is read.",
+      "noUpload": "Nothing is sent to any server. The ship list is handed to this app inside your browser and only reaches your account after you confirm it.",
+      "scopeLimited": "The extension is active on your own RSI hangar page and on Star Citizen Companion — nowhere else.",
+      "localOnly": "Only a checksum of your fleet and the time of the last import are stored, locally in your browser."
+    },
+    "install": {
+      "title": "Hangar import — browser extension",
+      "subtitle": "Star Citizen Companion cannot read robertsspaceindustries.com by itself: browsers forbid one site from reading another. A small browser extension can read the hangar page you are already looking at — and hand the ship list to your hangar here.",
+      "detected": {
+        "title": "Extension detected",
+        "text": "The extension is installed on this browser. Open your hangar at RSI while signed in and it will offer the import when your fleet is new or has changed.",
+        "openHangar": "Open my RSI hangar"
+      },
+      "what": {
+        "title": "What it does",
+        "text": "Three steps, and you confirm the last one.",
+        "open": {
+          "title": "You open your own hangar at RSI",
+          "text": "Signed in, on your pledges page. The extension does nothing anywhere else."
+        },
+        "offer": {
+          "title": "It offers an import — only when there is something new",
+          "text": "Your fleet is reduced to a checksum. Unchanged hangar, no message. Bought or gifted a ship? The offer comes back on its own."
+        },
+        "confirm": {
+          "title": "You confirm here",
+          "text": "The ship list opens in Star Citizen Companion with every entry visible. Only the rows you tick are written to your hangar."
+        }
+      },
+      "privacy": {
+        "title": "What is read — and what is not",
+        "openSource": "The extension is part of this project's open repository: every line it runs can be read before you install it.",
+        "sourceLink": "Extension source code on GitHub",
+        "appPrivacyLink": "Privacy policy of this app"
+      },
+      "how": {
+        "title": "Install it",
+        "storeNote": "The Chrome Web Store listing is still in review, so for now the extension is installed from source. Chrome, Edge, Brave and Opera all support this.",
+        "download": {
+          "title": "Download the repository",
+          "text": "Grab the ZIP and unpack it. You only need the browser-extension folder inside it."
+        },
+        "devmode": {
+          "title": "Open chrome://extensions and enable developer mode",
+          "text": "The toggle sits in the top right corner of the extensions page."
+        },
+        "load": {
+          "title": "Load unpacked",
+          "text": "Click \"Load unpacked\" and select the browser-extension folder."
+        },
+        "use": {
+          "title": "Open your RSI hangar",
+          "text": "Sign in at RSI and open your pledges page — the import offer appears at the bottom right."
+        },
+        "downloadCta": "Download (ZIP)",
+        "browseCta": "View the source",
+        "browsers": "Chromium-based browsers only for now (Chrome, Edge, Brave, Opera, Vivaldi). A Firefox build may follow."
+      },
+      "alt": {
+        "title": "No extension? Import a file instead",
+        "text": "Your hangar page also accepts a JSON export in the Hangar Transfer Format, which you produce yourself. Same review screen, same rules.",
+        "cta": "To my hangar"
+      },
+      "disclaimer": "Star Citizen Companion is an unofficial fan project and is not affiliated with the Cloud Imperium group of companies. The extension is not endorsed by RSI."
+    },
+    "importPage": {
+      "title": "Import ships from your RSI hangar",
+      "subtitle": "The browser extension read the ship list on your hangar page. Check it below — nothing is written to your hangar before you confirm.",
+      "waiting": "Waiting for the browser extension…",
+      "review": "Review and confirm",
+      "cancel": "Cancel and discard the list",
+      "meta": {
+        "source": "Source",
+        "sourceValue": "Your RSI hangar page (read in your browser)",
+        "ships": "Ships found",
+        "captured": "Read at"
+      },
+      "empty": {
+        "title": "No ship list waiting",
+        "text": "This page is opened by the hangar-import browser extension. Either the extension is not installed, or its list has already been used or expired. Open your RSI hangar again to start a new import.",
+        "installLink": "About the extension",
+        "hangarLink": "To my hangar"
+      },
+      "done": {
+        "title": "{{count}} ships imported",
+        "text": "The extension has been told about this state, so it will stay quiet until your hangar actually changes again.",
+        "hangarLink": "Open my hangar"
+      }
+    },
+    "hangarHint": "Rather not fiddle with files? The browser extension imports straight from your RSI hangar →"
+  },
   "consent": {
     "banner": {
       "title": "Browser storage",

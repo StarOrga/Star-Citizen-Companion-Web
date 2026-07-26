@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Star Citizen Companion</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <img src="../../icons/icon-48.png" alt="" width="28" height="28" />
+      <h1 data-t="extName"></h1>
+    </header>
+
+    <section class="status">
+      <p id="import-status"></p>
+      <p id="scan-status" class="muted"></p>
+    </section>
+
+    <section>
+      <h2 data-t="popupHowTitle"></h2>
+      <ol class="how">
+        <li data-t="popupHow1"></li>
+        <li data-t="popupHow2"></li>
+        <li data-t="popupHow3"></li>
+      </ol>
+    </section>
+
+    <section class="actions">
+      <a
+        class="btn primary"
+        id="open-hangar"
+        href="https://robertsspaceindustries.com/en/account/pledges"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-t="popupOpenHangar"
+      ></a>
+      <a
+        class="btn"
+        id="open-app"
+        href="https://sc-companion.vercel.app/hangar"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-t="popupOpenApp"
+      ></a>
+      <button class="btn" id="offer-again" data-t="popupOfferAgain"></button>
+      <button class="btn danger" id="forget" data-t="popupForget"></button>
+      <p id="toast" class="toast" hidden></p>
+    </section>
+
+    <section class="privacy">
+      <h2 data-t="popupPrivacyTitle"></h2>
+      <p data-t="bannerPrivacyIntro"></p>
+      <ul>
+        <li data-t="privacyNoCredentials"></li>
+        <li data-t="privacyNoPersonalData"></li>
+        <li data-t="privacyNoUpload"></li>
+        <li data-t="privacyRsiOnly"></li>
+      </ul>
+      <p class="muted" data-t="popupStored"></p>
+    </section>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
