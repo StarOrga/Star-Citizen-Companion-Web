@@ -21,6 +21,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which parks the topic until they answer) and, instead of plainly deleting a
   topic, can decline it with a mandatory explanation the author gets to read.
 
+## [0.47.7] - 2026-07-26
+
+### Changed
+
+- **Admin feedback — the processing mode only holds what waits on you.** The
+  "Abarbeiten" queue used to list untouched ToDo topics after the Rückfragen,
+  which read as a backlog to work off. But a ToDo is a topic *you* wrote that now
+  waits on the routine — there is nothing to answer there. The queue is now the
+  open Rückfragen alone, oldest first; a topic enters it the moment the routine
+  asks something back and leaves it when you answer. ToDos stay fully visible in
+  the Übersicht list and in the dashboard's ToDo counter. The view-switch badge
+  and the scope counts follow the narrowed queue, so they promise what the mode
+  shows. Feedback b0cc6efc.
+
 ## [0.47.6] - 2026-07-26
 
 ### Fixed

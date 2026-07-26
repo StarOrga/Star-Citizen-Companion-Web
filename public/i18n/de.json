@@ -1274,12 +1274,10 @@
       "answerSend": "Antworten",
       "openQuestion": "Offene Rückfrage",
       "cheerAnswered": "Rückfrage beantwortet — die Routine übernimmt ab hier.",
-      "cheerReplied": "Notiert! Weiter geht's.",
       "allDoneTitle": "Alles abgearbeitet",
-      "allDoneHint": "Keine offenen Rückfragen, keine neuen Themen. Schau dir an, was du geschafft hast.",
+      "allDoneHint": "Keine offenen Rückfragen. Deine ToDos liegen bei der Routine — sie kommen hier rein, sobald sie etwas von dir braucht.",
       "kind": {
-        "question": "Rückfrage",
-        "new": "ToDo"
+        "question": "Rückfrage"
       },
       "scope": {
         "label": "Auswahl",

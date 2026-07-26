@@ -1365,7 +1365,7 @@ export class AdminFeedbackComponent implements OnInit {
     return DEFAULT_WORKFLOW_SCOPE;
   }
 
-  /** The full processing queue: open Rückfragen first, then new topics. */
+  /** The full processing queue: the open Rückfragen, oldest first. */
   private readonly workflowQueueAll = computed(() =>
     buildWorkflowQueue(this.messages(), this.threads(), this.handled()),
   );

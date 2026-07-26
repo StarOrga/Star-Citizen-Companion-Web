@@ -19,6 +19,22 @@
       ]
     },
     {
+      "version": "0.47.7",
+      "date": "2026-07-26",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Admin feedback — the processing mode only holds what waits on you.",
+              "text": "The \"Abarbeiten\" queue used to list untouched ToDo topics after the Rückfragen, which read as a backlog to work off. But a ToDo is a topic *you* wrote that now waits on the routine — there is nothing to answer there. The queue is now the open Rückfragen alone, oldest first; a topic enters it the moment the routine asks something back and leaves it when you answer. ToDos stay fully visible in the Übersicht list and in the dashboard's ToDo counter. The view-switch badge and the scope counts follow the narrowed queue, so they promise what the mode shows. Feedback b0cc6efc."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "version": "0.47.6",
       "date": "2026-07-26",
       "sections": [
