@@ -1220,7 +1220,8 @@
       "rejected": "Rejected",
       "needs_input": "Needs input",
       "issue_created": "Issue created",
-      "answered": "Answered"
+      "answered": "Answered",
+      "continued": "Continued"
     },
     "thread": {
       "routine": "Routine",

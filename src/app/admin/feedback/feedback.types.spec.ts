@@ -8,6 +8,7 @@ import {
   feedbackBucket,
   isArchived,
   isAwaitingAdmin,
+  isContinuedAfterShip,
   normalizeSearchText,
   rankFeedbackSearch,
   refKind,
@@ -121,6 +122,24 @@ describe('feedbackBucket', () => {
       expect(feedbackBucket(row('t', s, at), [msg('m1', 't', false, at)])).toBe(s);
     }
   });
+
+  it('reopens a shipped topic to ToDo when the admin replies after the ship', () => {
+    const shipped = row('s', 'shipped', at, { shipped_at: '2026-07-01T12:00:00Z' });
+    const humanAfter = [msg('m1', 's', false, '2026-07-01T13:00:00Z')];
+    expect(feedbackBucket(shipped, humanAfter)).toBe('todo');
+  });
+
+  it('keeps a shipped topic archived when the last post-ship reply is the routine (review reply)', () => {
+    const shipped = row('s', 'shipped', at, { shipped_at: '2026-07-01T12:00:00Z' });
+    const systemAfter = [msg('m1', 's', true, '2026-07-01T13:00:00Z')];
+    expect(feedbackBucket(shipped, systemAfter)).toBe('shipped');
+  });
+
+  it('does not reopen a shipped topic on a reply that predates the (re-)ship', () => {
+    const shipped = row('s', 'shipped', at, { shipped_at: '2026-07-01T14:00:00Z' });
+    const humanBefore = [msg('m1', 's', false, '2026-07-01T13:00:00Z')];
+    expect(feedbackBucket(shipped, humanBefore)).toBe('shipped');
+  });
 });
 
 describe('bucketLabelStatus', () => {
@@ -150,6 +169,59 @@ describe('isArchived', () => {
     for (const s of ['open', 'in_progress', 'needs_input'] as const) {
       expect(isArchived(row('a', s, '2026-07-01T10:00:00Z'))).toBeFalse();
     }
+  });
+
+  it('un-archives a shipped topic the admin reopened after the ship (needs the thread)', () => {
+    const shipped = row('s', 'shipped', '2026-07-01T10:00:00Z', { shipped_at: '2026-07-01T12:00:00Z' });
+    const humanAfter = [msg('m1', 's', false, '2026-07-01T13:00:00Z')];
+    // Without the thread it still reads as archived (back-compat for callers that don't track replies).
+    expect(isArchived(shipped)).toBeTrue();
+    // With the thread, the continuation pulls it back onto the active board.
+    expect(isArchived(shipped, humanAfter)).toBeFalse();
+  });
+
+  it('keeps issue_created / rejected archived even with a fresh human reply', () => {
+    for (const s of ['issue_created', 'rejected'] as const) {
+      const term = row('t', s, '2026-07-01T10:00:00Z', { shipped_at: '2026-07-01T12:00:00Z' });
+      expect(isArchived(term, [msg('m1', 't', false, '2026-07-01T13:00:00Z')])).toBeTrue();
+    }
+  });
+});
+
+describe('isContinuedAfterShip', () => {
+  const shippedAt = '2026-07-01T12:00:00Z';
+  const shipped = () => row('s', 'shipped', '2026-07-01T10:00:00Z', { shipped_at: shippedAt });
+
+  it('is true when the newest reply is the admin and it lands after shipped_at', () => {
+    expect(isContinuedAfterShip(shipped(), [msg('m1', 's', false, '2026-07-01T13:00:00Z')])).toBeTrue();
+  });
+
+  it('is false when the newest post-ship reply is the routine (its own review reply)', () => {
+    expect(isContinuedAfterShip(shipped(), [msg('m1', 's', true, '2026-07-01T13:00:00Z')])).toBeFalse();
+  });
+
+  it('is false when the human reply predates the ship (an older thread message)', () => {
+    expect(isContinuedAfterShip(shipped(), [msg('m1', 's', false, '2026-07-01T11:00:00Z')])).toBeFalse();
+  });
+
+  it('only looks at the newest reply — a later routine reply closes the loop again', () => {
+    const replies = [
+      msg('m1', 's', false, '2026-07-01T13:00:00Z'), // admin reopened
+      msg('m2', 's', true, '2026-07-01T14:00:00Z'), // routine re-shipped + review reply
+    ];
+    expect(isContinuedAfterShip(shipped(), replies)).toBeFalse();
+  });
+
+  it('is false for a non-shipped status and for an empty/absent thread', () => {
+    expect(isContinuedAfterShip(row('o', 'open', '2026-07-01T10:00:00Z'), [msg('m1', 'o', false, '2026-07-01T13:00:00Z')])).toBeFalse();
+    expect(isContinuedAfterShip(shipped(), [])).toBeFalse();
+    expect(isContinuedAfterShip(shipped())).toBeFalse();
+  });
+
+  it('falls back to processed_at then created_at when shipped_at is absent', () => {
+    const noShipTs = row('s', 'shipped', '2026-07-01T10:00:00Z', { processed_at: '2026-07-01T12:00:00Z' });
+    expect(isContinuedAfterShip(noShipTs, [msg('m1', 's', false, '2026-07-01T13:00:00Z')])).toBeTrue();
+    expect(isContinuedAfterShip(noShipTs, [msg('m1', 's', false, '2026-07-01T11:00:00Z')])).toBeFalse();
   });
 });
 

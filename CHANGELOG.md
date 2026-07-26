@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.3] - 2026-07-26
+
+### Added
+
+- **Admin feedback — post-ship continuations surface on the active board.** The
+  20-min routine now posts a review reply after every ship and reopens a shipped
+  topic when the admin replies to it (review & continue loop). The panel now
+  recognises that reply immediately: a shipped topic whose newest thread message
+  is the admin's — posted after the ship — reads as **ToDo** on the Active tab
+  (with a small "Fortgesetzt/Continued" pill), instead of sitting unnoticed in
+  the Archive until the routine picks it up. Purely derived from `shipped_at` +
+  message timestamps; no schema change.
+
 ## [0.47.2] - 2026-07-26
 
 ### Added

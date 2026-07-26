@@ -1220,7 +1220,8 @@
       "rejected": "Abgelehnt",
       "needs_input": "Rückfrage",
       "issue_created": "Issue erstellt",
-      "answered": "Beantwortet"
+      "answered": "Beantwortet",
+      "continued": "Fortgesetzt"
     },
     "thread": {
       "routine": "Routine",

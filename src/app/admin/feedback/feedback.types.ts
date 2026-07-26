@@ -27,9 +27,17 @@ export type FeedbackStatus =
  */
 export const ARCHIVE_STATUSES: readonly FeedbackStatus[] = ['shipped', 'issue_created', 'rejected'];
 
-/** True when a topic reached a terminal status (→ Archive, never worked again). */
-export function isArchived(row: FeedbackRow): boolean {
-  return ARCHIVE_STATUSES.includes(row.status);
+/**
+ * True when a topic reached a terminal status (→ Archive). `shipped` is terminal
+ * only *at rest*: when the admin replies to a shipped topic after the ship it is
+ * reopened as a continuation (the routine's post-ship review loop, see
+ * docs/feedback-routine "Post-ship review & continue"), so it belongs on the
+ * active board again — pass its thread so that case is caught. Without the thread
+ * the check falls back to status only (a shipped row reads as archived), matching
+ * the old behaviour for callers that don't track replies.
+ */
+export function isArchived(row: FeedbackRow, replies?: readonly FeedbackMessage[]): boolean {
+  return ARCHIVE_STATUSES.includes(row.status) && !isContinuedAfterShip(row, replies);
 }
 
 /**
@@ -114,6 +122,29 @@ export function isAwaitingAdmin(row: FeedbackRow, replies: readonly FeedbackMess
   return !last || last.is_system;
 }
 
+/**
+ * True when a *shipped* topic has been reopened by a human follow-up: its newest
+ * thread reply is the admin's and it landed **after** the ship (`shipped_at`).
+ * This is the board side of the routine's post-ship review loop
+ * (docs/feedback-routine "Post-ship review & continue"): the admin looked at the
+ * shipped change live and replied to keep iterating, so the topic is back on the
+ * routine's pile even though its DB status is still `shipped` (the routine flips
+ * it to `in_progress` on its next run, ~≤20 min). The routine's own review reply
+ * is `is_system`, so only a *human* reply flips this on — the exact condition of
+ * the routine's continuation query (d). The ship reference time mirrors that
+ * query's `coalesce(shipped_at, processed_at, created_at)`.
+ */
+export function isContinuedAfterShip(
+  row: FeedbackRow,
+  replies?: readonly FeedbackMessage[],
+): boolean {
+  if (row.status !== 'shipped') return false;
+  const last = replies && replies.length ? replies[replies.length - 1] : null;
+  if (!last || last.is_system) return false;
+  const shipRef = timeOf(row.shipped_at) || timeOf(row.processed_at) || timeOf(row.created_at);
+  return timeOf(last.created_at) > shipRef;
+}
+
 // ---- Presentation buckets -------------------------------------------------
 
 /**
@@ -128,7 +159,9 @@ export function isAwaitingAdmin(row: FeedbackRow, replies: readonly FeedbackMess
  *   34c44134): once the admin replied, the topic is back on the routine's pile,
  *   so it belongs to the ToDo bucket rather than into its own "answered" corner.
  * - `in_progress` — the routine is working on it right now.
- * - `shipped` / `issue_created` / `rejected` — terminal, mirrors the status.
+ * - `shipped` / `issue_created` / `rejected` — terminal, mirrors the status —
+ *   except a `shipped` topic the admin replied to after the ship, which reopens
+ *   as a continuation and buckets as `todo` (see {@link isContinuedAfterShip}).
  *
  * The DB status value is never touched by this — `open` stays `open` on the
  * wire, "ToDo" is purely the label the UI puts on the bucket.
@@ -154,10 +187,13 @@ export function feedbackBucket(
   replies?: readonly FeedbackMessage[],
 ): FeedbackBucket {
   switch (row.status) {
-    case 'shipped':
     case 'issue_created':
     case 'rejected':
       return row.status;
+    case 'shipped':
+      // Terminal at rest, but a human reply after the ship reopens it as a
+      // continuation → back on the routine's pile → ToDo (see isContinuedAfterShip).
+      return isContinuedAfterShip(row, replies) ? 'todo' : 'shipped';
     case 'in_progress':
       return 'in_progress';
     case 'needs_input':
