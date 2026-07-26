@@ -34,17 +34,37 @@ open ──pick up──▶ in_progress ──green build+tests──▶ shipped
                   routine NEVER sets it.
   issue_created ← the ADMIN archives a topic against a GitHub issue
                   (ship_ref = issue url); terminal, the routine NEVER sets it.
+  declined      ← the ADMIN declines a USER-submitted topic ("nicht umsetzen &
+                  löschen", decision_note = the explanation the author reads);
+                  terminal, the routine NEVER sets it.
+  needs_input_author
+                ← the ADMIN asked the topic's AUTHOR something. Active but NOT
+                  `open`, so it is parked out of the queue; the author's answer
+                  flips it back to `open` (DB trigger). The routine NEVER sets it.
 ```
 
-`issue_created` and legacy `rejected` are **terminal** — nothing ever picks them
-up again. `shipped` is terminal **at rest**, but it is deliberately *not* a dead
-end: an admin reply on a shipped topic reopens it as a **continuation** (the
-post-ship review loop — see "Post-ship review & continue" below), so the admin can
-look at the change live and keep iterating in the same thread. Together the three
-form the panel's Archive tab (see "Active vs. Archive" below); a shipped topic the
-admin has replied to flips back into the active half the moment the routine claims
-it. The routine works the active half (`open` / `in_progress` / `needs_input`) plus
-these shipped-with-a-fresh-reply continuations.
+`issue_created`, `declined` and legacy `rejected` are **terminal** — nothing ever
+picks them up again. `shipped` is terminal **at rest**, but it is deliberately
+*not* a dead end: an admin reply on a shipped topic reopens it as a
+**continuation** (the post-ship review loop — see "Post-ship review & continue"
+below), so the admin can look at the change live and keep iterating in the same
+thread. Together the four form the panel's Archive tab (see "Active vs. Archive"
+below); a shipped topic the admin has replied to flips back into the active half
+the moment the routine claims it. The routine works the active half (`open` /
+`in_progress` / `needs_input`) plus these shipped-with-a-fresh-reply
+continuations. `needs_input_author` is active too, but it belongs to the admin and
+the author, never to the routine.
+
+**The queue is additionally gated on `triaged`.** A topic filed by a non-admin
+through the user feedback FAB (`source = 'user'`) enters `triaged = false` and
+is **not** work for the routine until an admin releases it — see "User-submitted
+feedback" below. The routine's work-queue read is therefore:
+
+```sql
+select * from public.admin_feedback
+where status = 'open' and triaged
+order by created_at;
+```
 
 **The routine never rejects — the admin alone decides what to discard.** Every
 item the routine cannot ship right now goes to `needs_input` with a system
@@ -635,6 +655,139 @@ ship, `status='shipped'`), ask a follow-up (post another system reply, stay
 `rejected`. The stale-claim reaper never touches `needs_input` (it filters on
 `status='in_progress'`), so a parked topic waits patiently for the answer.
 
+## User-submitted feedback (viewers & collaborators) — feedback `5920cf8c`
+
+Non-admins never see the admin panel, so until now they had no way to send
+feedback at all. They now have their own FAB (`sc-user-feedback-fab` →
+`sc-user-feedback-panel`, `src/app/feedback/`) that files a topic **on this very
+board**: same table, same queue, same workflow — just `source = 'user'` and
+attributed to that person, exactly as if the admin had posted it himself.
+
+**Schema decision** (the admin never answered the question, so this is the
+routine's own recommendation, applied deliberately): reuse `admin_feedback`
+rather than add a parallel user-feedback table. One board, one status machine,
+one search/queue/dashboard implementation. The non-admin half is carved out by
+three additive columns (`source`, `triaged`, `decision_note`), a separate
+message table and one restricted view.
+
+### The privacy rule (hard, non-negotiable)
+
+- **`admin_feedback_messages` is admins-only, always.** That is the admin ↔
+  routine conversation. No policy in this feature grants a non-admin anything on
+  it; its only SELECT policy is `public.is_admin()`.
+- **Non-admins never read `admin_feedback` either.** They have an INSERT policy
+  and nothing else. Their single read path is the security-definer view
+  `public.my_feedback`, which projects only `id`, `body`, timestamps,
+  `decision_note` and a **coarse** `author_status`, and hard-filters
+  `author_id = auth.uid() and source = 'user'` inside its own body. So `status`,
+  `processing_note`, `ship_ref`, `processed_at` never leave the admin side.
+- **The author-visible channel is its own table**,
+  `public.feedback_author_messages` — everything in it is readable by the topic's
+  author by design. Splitting the two conversations by table (instead of by a
+  flag inside one table) is what makes the rule structural rather than a matter
+  of getting one policy predicate right.
+- **The routine must therefore never write into `feedback_author_messages`.**
+  Its voice is `admin_feedback_messages` (`is_system = true`). Anything an author
+  should read is the admin's own message.
+
+### What the author sees (coarse status)
+
+| `author_status` in `my_feedback` | Raw statuses behind it | Label (DE/EN) |
+|---|---|---|
+| `in_progress` | `open`, `in_progress`, `needs_input`, `issue_created` | In Bearbeitung / In progress |
+| `question` | `needs_input_author` | Rückfrage an dich / Question for you |
+| `done` | `shipped` | Umgesetzt / Implemented |
+| `declined` | `declined`, legacy `rejected` | Nicht umgesetzt / Not implemented (+ `decision_note`) |
+
+`needs_input` folding into "in Bearbeitung" is deliberate and confirmed by the
+admin: it means the routine is asking *the admin* — a conversation the author
+must not even be able to detect. The client mirror of this mapping is
+`coarseAuthorStatus()` in `src/app/feedback/user-feedback.types.ts`, unit-tested
+in its spec.
+
+### The two "needs input" flavours
+
+| Status | Who asks whom | Where the question lives | Author sees it? | Routine queue |
+|---|---|---|---|---|
+| `needs_input` | routine → admin | `admin_feedback_messages` | **no** (reads as "in Bearbeitung") | resumed once the admin answers |
+| `needs_input_author` | admin → topic author | `feedback_author_messages` (`is_question = true`) | **yes** | parked — not `open`, so out of the queue; the answer restores the previous status and re-arms the triage gate |
+
+`needs_input_author` is maintained by a trigger on the author channel, never by
+hand, and it works as a **parenthesis** rather than a reset:
+
+- an admin question memorises the topic's current status in
+  `status_before_author_question` and parks it at `needs_input_author` (only on a
+  `source='user'` topic, never on a terminal one);
+- the author's answer **restores** that status (default `open`) and clears the
+  memo. That matters for the canonical case — the routine parks a user topic as
+  `needs_input` ("what did the author mean?"), the admin passes the question on,
+  and the answer must not throw the routine's own open question away;
+- the answer also sets **`triaged = false`** again: it is fresh, unreviewed text
+  from outside, and what waits behind `status='open'` is an agent that implements
+  and merges on its own. So the admin releases it a second time. This is the only
+  place a non-admin action touches `triaged`, and it can only ever move it towards
+  *more* review.
+
+The author may only write into the channel **while a question to them is open**
+(`public.feedback_awaits_author()` gates the insert policy) — it is a channel for
+answering, not an unsolicited chat with the admins. In the panel the status is its
+own bucket, `awaiting_author` ("Rückfrage an Absender"), deliberately kept out of
+the Abarbeiten queue: the ball is with the author, not the admin.
+
+### Triage gate: `triaged`
+
+A user topic enters `triaged = false`. **The routine must skip it** (queue read:
+`status = 'open' and triaged`) until an admin presses "Für die Routine
+freigeben". Rationale: an autonomous agent that implements and ships on its own
+must not be drivable straight from a public feedback box by anyone with an
+account. Every pre-existing (admin-authored) row defaults to `triaged = true`, so
+the routine's behaviour on the existing board is unchanged.
+
+The gate is enforced by the table, not by a client: a BEFORE-INSERT trigger forces
+`triaged = false` on every `source='user'` row (a WITH CHECK alone would have made
+any caller that omits the column fail with a bare permission error), pins the
+insert's `created_at`/`updated_at` to `now()` (they drive the oldest-first queues,
+so an unpinned `created_at` was a free "always first in line"), and rate-limits an
+author to **10 topics per hour**. An author's answer re-opens the gate rather than
+bypassing it (see above).
+
+### What non-admins are granted, and why the grants are load-bearing
+
+Supabase's default privileges grant **ALL** on everything new in `public` to
+`anon` + `authenticated`. `public.my_feedback` is also *auto-updatable* and runs
+with owner rights (`security_invoker = false`), so `grant select` on its own left
+a write-through path around every RLS policy on `admin_feedback`: a signed-in
+viewer could insert a topic that defaulted to `source='admin', triaged=true`
+(landing **directly** in the routine's queue), rewrite a topic's body after the
+admin had released it, or delete a topic and cascade the admin thread with it. The
+migration therefore does an explicit `revoke all ... from public, anon,
+authenticated` before every `grant`, on the view, on
+`feedback_author_messages` and on both helper functions. **Keep that pattern for
+anything new here** — it was a real, verified hole, not a theoretical one.
+
+### One thing that is NOT secret: attachments
+
+Screenshots go to the **public** `feedback-images` bucket (migration
+`20260713000000`), shared by the admin composer and the author channel. Public
+bucket objects are downloadable by URL and the bucket-wide read policy makes them
+listable, so image attachments — including those in admin replies — are not
+covered by the secrecy rule, which is about message *text*. Pre-existing, not
+introduced by the user channel, and worth its own item.
+
+### "Nicht umsetzen & löschen" (declining a user topic)
+
+For a user-submitted topic the admin's delete button becomes **"Nicht umsetzen &
+löschen"** with a **mandatory comment**. It writes `status = 'declined'` +
+`decision_note` and also posts the comment into the author channel, so the author
+gets "Nicht umgesetzt" **plus the reason** instead of a topic that silently
+vanished. It is a soft close on purpose: a hard `DELETE` would cascade the
+author's own thread away. Admin-authored topics keep the plain delete button, and
+so does an **already archived** user topic — once it is declined/shipped and the
+author has the outcome, an admin can still purge the row from the Archive.
+
+**The routine never sets `declined`** — like `rejected` and `issue_created`, that
+call belongs to the admin alone.
+
 ## The admin side: the feedback panel's three views
 
 The routine's counterpart is the admins-only panel (`sc-feedback-fab` →
@@ -704,8 +857,9 @@ the dashboard's ToDo bucket and in the overview's Archive tab, from the one
 |--------|---------------|------------|
 | `todo` | **ToDo** | `status='open'` **and** a `needs_input` topic whose newest thread message is the admin's answer — the routine still has to pick it up, so it is ToDo, not "done" |
 | `awaiting_admin` | Rückfrage / Needs input | `needs_input` whose newest message is the routine's (or none yet) — the ball is with the admin |
+| `awaiting_author` | Rückfrage an Absender / Asked the sender | `needs_input_author` — the admin asked a user topic's author and waits on them |
 | `in_progress` | In Arbeit / In progress | `status='in_progress'` |
-| `shipped` / `issue_created` / `rejected` | as before | terminal → Archive tab |
+| `shipped` / `issue_created` / `declined` / `rejected` | as before | terminal → Archive tab |
 
 The status filter chips, the day-grouped list and the dashboard's ToDo counter
 all resolve through that one rule. An answered Rückfrage keeps a small
@@ -820,11 +974,15 @@ Animations API, no dependency). All of it is suppressed under
 
 | column           | meaning                                                    |
 |------------------|------------------------------------------------------------|
-| `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `issue_created` = admin-driven hand-off to a GitHub issue · `rejected` = legacy/admin-only, never set by the routine |
+| `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `issue_created` = admin-driven hand-off to a GitHub issue · `declined` + `needs_input_author` = admin-driven, user topics only · `rejected` = legacy/admin-only, never set by the routine |
 | `ship_ref`       | link that closed the topic: PR/commit URL for `shipped`, GitHub issue URL for `issue_created` (also set on a review-hold `in_progress` row) |
-| `processing_note`| routine's note (reject reason / red-build hint)            |
+| `processing_note`| routine's note (reject reason / red-build hint) — **admin-only**, never shown to a feedback author |
 | `shipped_at`     | set (and re-set) at each merge to `main`; the review loop's query (d) compares the newest reply against it to detect an admin's post-ship continuation |
 | `processed_at`   | last time the routine acted on the row                     |
+| `source`         | `admin` (default, all legacy rows) \| `user` = filed through the non-admin FAB (feedback `5920cf8c`) |
+| `triaged`        | routine release gate; `true` for every admin row, `false` on a fresh user topic and again after its author answered, until an admin releases it |
+| `decision_note`  | the admin's explanation on a `declined` user topic — **author-visible** (only while the topic is declined) |
+| `status_before_author_question` | admin-only memo: the status a topic had when an admin asked its author something, restored by the answer |
 
 ### Active vs. Archive (`issue_created`)
 
@@ -832,14 +990,15 @@ Statuses split into two halves, which is exactly what the admin panel's
 Active/Archive toggle inside the **overview** mode renders (migration
 `20260724220000_admin_feedback_issue_created_status.sql`):
 
-- **Active** — `open`, `in_progress`, `needs_input`. The board the routine and
-  the admin work on.
-- **Archive** (terminal) — `shipped`, `issue_created`, and legacy `rejected`.
-  `issue_created` and `rejected` are never picked up again. `shipped` is terminal
-  **until the admin replies**: a reply on a shipped topic reopens it as a
-  continuation (see "Post-ship review & continue"), and the routine flips it back
-  to `in_progress` (Active) on its next run — so a shipped topic the admin is still
-  iterating on does not rot in the Archive. Each row renders its `ship_ref` as a
+- **Active** — `open`, `in_progress`, `needs_input`, `needs_input_author`. The
+  board the routine and the admin work on.
+- **Archive** (terminal) — `shipped`, `issue_created`, `declined`, and legacy
+  `rejected`. `issue_created`, `declined` and `rejected` are never picked up
+  again. `shipped` is terminal **until the admin replies**: a reply on a shipped
+  topic reopens it as a continuation (see "Post-ship review & continue"), and the
+  routine flips it back to `in_progress` (Active) on its next run — so a shipped
+  topic the admin is still iterating on does not rot in the Archive. Each row
+  renders its `ship_ref` as a
   link, labelled "View change" for a shipped PR and "View issue" for an issue.
   (During an in-flight continuation `ship_ref` is briefly cleared; the shipping PR
   stays linked in the thread's review reply.)
@@ -867,4 +1026,20 @@ Per-topic replies live in `public.admin_feedback_messages` (see migration
 
 The routine authenticates as `service_role` and therefore bypasses RLS (so it
 can insert `is_system=true` replies, which the RLS insert policy forbids for
-regular admins).
+regular admins). **Bypassing RLS is exactly why the routine must respect the
+privacy rule by discipline:** it may read everything, but it writes its replies
+only into `admin_feedback_messages` — never into the author-visible
+`feedback_author_messages` (see "User-submitted feedback" above).
+
+The author-visible channel for user-submitted topics lives in
+`public.feedback_author_messages` (migration
+`20260726170000_user_feedback_channel.sql`):
+
+| column        | meaning                                                       |
+|---------------|--------------------------------------------------------------|
+| `feedback_id` | FK → `admin_feedback.id` (cascade delete)                    |
+| `author_id`   | FK → `profiles.id`; who wrote the message                    |
+| `from_admin`  | `true` = admin → author, `false` = the author's own reply (only while a question is open) |
+| `is_question` | `true` only on an admin message that asks the author something → sets `status='needs_input_author'` |
+| `body`        | markdown message (author-visible!)                           |
+| `created_at`  | thread order                                                 |

@@ -27,11 +27,12 @@ import { RoleService } from '../auth/role.service';
 import { FooterComponent } from './footer.component';
 import { QuickSearchComponent } from './quick-search.component';
 import { FeedbackFabComponent } from './feedback-fab.component';
+import { UserFeedbackFabComponent } from './user-feedback-fab.component';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent, FeedbackFabComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent, FeedbackFabComponent, UserFeedbackFabComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Routed views "develop" into focus as they mount — fade + slight rise, keyed
   // to a per-navigation counter so it replays on every switch. Header/footer are
@@ -148,7 +149,11 @@ import { FeedbackFabComponent } from './feedback-fab.component';
 
     <sc-footer />
 
+    <!-- Two mutually exclusive launchers: the admin board for admins, the slim
+         "send feedback" panel for every other signed-in user (feedback
+         5920cf8c). Each gates itself on the role, so only ever one renders. -->
     <sc-feedback-fab />
+    <sc-user-feedback-fab />
   `,
   styles: [`
     :host { display: flex; flex-direction: column; min-height: 100vh; }

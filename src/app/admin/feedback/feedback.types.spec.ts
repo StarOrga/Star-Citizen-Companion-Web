@@ -7,11 +7,13 @@ import {
   computePace,
   computeStats,
   feedbackBucket,
+  awaitsTriage,
   filterWorkflowScope,
   isArchived,
   isAwaitingAdmin,
   isContinuedAfterShip,
   isOwnTopic,
+  isUserSubmitted,
   lifecycleSnapshot,
   neededInput,
   normalizeSearchText,
@@ -126,9 +128,23 @@ describe('feedbackBucket', () => {
 
   it('leaves in_progress and every terminal status on their own bucket', () => {
     expect(feedbackBucket(row('p', 'in_progress', at), [])).toBe('in_progress');
-    for (const s of ['shipped', 'issue_created', 'rejected'] as const) {
+    for (const s of ['shipped', 'issue_created', 'rejected', 'declined'] as const) {
       expect(feedbackBucket(row('t', s, at), [msg('m1', 't', false, at)])).toBe(s);
     }
+  });
+
+  // feedback 5920cf8c: the second Rückfrage direction. A topic where the ADMIN
+  // asked the topic's author is waiting on that person — never on the admin, and
+  // never the routine's ToDo, whatever the admin<->routine thread looks like.
+  it('buckets a question to the author as awaiting_author, not awaiting_admin', () => {
+    const asked = row('u', 'needs_input_author', at, { source: 'user', triaged: true });
+    expect(feedbackBucket(asked, [])).toBe('awaiting_author');
+    expect(feedbackBucket(asked, [msg('m1', 'u', true, '2026-07-01T11:00:00Z')])).toBe(
+      'awaiting_author',
+    );
+    expect(feedbackBucket(asked, [msg('m2', 'u', false, '2026-07-01T12:00:00Z')])).toBe(
+      'awaiting_author',
+    );
   });
 
   it('reopens a shipped topic to ToDo when the admin replies after the ship', () => {
@@ -159,8 +175,13 @@ describe('bucketLabelStatus', () => {
     expect(bucketLabelStatus('awaiting_admin')).toBe('needs_input');
   });
 
+  it('keeps the two Rückfrage directions on distinct labels', () => {
+    expect(bucketLabelStatus('awaiting_author')).toBe('needs_input_author');
+    expect(bucketLabelStatus('awaiting_author')).not.toBe(bucketLabelStatus('awaiting_admin'));
+  });
+
   it('passes every other bucket through unchanged', () => {
-    for (const b of ['in_progress', 'shipped', 'issue_created', 'rejected'] as const) {
+    for (const b of ['in_progress', 'shipped', 'issue_created', 'rejected', 'declined'] as const) {
       expect(bucketLabelStatus(b)).toBe(b);
     }
   });
@@ -168,13 +189,13 @@ describe('bucketLabelStatus', () => {
 
 describe('isArchived', () => {
   it('is true for every terminal status', () => {
-    for (const s of ['shipped', 'issue_created', 'rejected'] as const) {
+    for (const s of ['shipped', 'issue_created', 'rejected', 'declined'] as const) {
       expect(isArchived(row('t', s, '2026-07-01T10:00:00Z'))).toBeTrue();
     }
   });
 
   it('is false for the statuses the routine still works', () => {
-    for (const s of ['open', 'in_progress', 'needs_input'] as const) {
+    for (const s of ['open', 'in_progress', 'needs_input', 'needs_input_author'] as const) {
       expect(isArchived(row('a', s, '2026-07-01T10:00:00Z'))).toBeFalse();
     }
   });
@@ -230,6 +251,27 @@ describe('isContinuedAfterShip', () => {
     const noShipTs = row('s', 'shipped', '2026-07-01T10:00:00Z', { processed_at: '2026-07-01T12:00:00Z' });
     expect(isContinuedAfterShip(noShipTs, [msg('m1', 's', false, '2026-07-01T13:00:00Z')])).toBeTrue();
     expect(isContinuedAfterShip(noShipTs, [msg('m1', 's', false, '2026-07-01T11:00:00Z')])).toBeFalse();
+  });
+});
+
+describe('isUserSubmitted / awaitsTriage', () => {
+  const at = '2026-07-01T10:00:00Z';
+
+  it('treats every legacy row (no source column yet) as admin-authored', () => {
+    const legacy = row('l', 'open', at);
+    expect(isUserSubmitted(legacy)).toBeFalse();
+    expect(awaitsTriage(legacy)).toBeFalse();
+  });
+
+  it('gates a fresh user topic until an admin releases it to the routine', () => {
+    const fresh = row('u', 'open', at, { source: 'user', triaged: false });
+    expect(isUserSubmitted(fresh)).toBeTrue();
+    expect(awaitsTriage(fresh)).toBeTrue();
+    expect(awaitsTriage({ ...fresh, triaged: true })).toBeFalse();
+  });
+
+  it('never gates an admin topic, whatever triaged says', () => {
+    expect(awaitsTriage(row('a', 'open', at, { source: 'admin', triaged: false }))).toBeFalse();
   });
 });
 
@@ -292,6 +334,16 @@ describe('buildWorkflowQueue', () => {
     });
     const dropped = row('x1', 'rejected', '2026-07-01T09:00:00Z');
     expect(buildWorkflowQueue([filed, dropped], threads).map((i) => i.row.id)).toEqual([]);
+  });
+
+  it('excludes a topic whose author was asked — the ball is with them', () => {
+    // Since feedback b0cc6efc the queue holds open Rückfragen only, so the
+    // control here is q1 (awaiting_admin), not an untouched open topic.
+    const asked = row('u1', 'needs_input_author', '2026-07-01T08:00:00Z', {
+      source: 'user',
+      triaged: true,
+    });
+    expect(buildWorkflowQueue([asked, q1], threads).map((i) => i.row.id)).toEqual(['q1']);
   });
 
   it('hides items ticked off while their updated_at is unchanged', () => {
@@ -726,10 +778,12 @@ describe('lifecycleSnapshot', () => {
       // 3 open + the answered Rückfrage + the continuation
       todo: 5,
       awaiting_admin: 1,
+      awaiting_author: 0,
       in_progress: 2,
       shipped: 1,
       issue_created: 1,
       rejected: 0,
+      declined: 0,
     });
     expect(snapshot.total).toBe(10);
   });

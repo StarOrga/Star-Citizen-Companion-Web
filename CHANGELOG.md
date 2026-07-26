@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.0] - 2026-07-26
+
+### Added
+
+- **Feedback for everyone — viewers and collaborators get their own feedback
+  panel.** Non-admins deliberately never see the admin board, which also meant
+  they had no way to send feedback at all. They now have their own FAB: write
+  feedback (markdown + screenshots, same composer as the admin board) and follow
+  what became of it under "Mein Feedback". Each submission lands as a normal
+  topic on the admins' board, attributed to its author, so the existing workflow
+  handles it unchanged. The author sees a deliberately coarse state — *In
+  Bearbeitung*, *Rückfrage an dich*, *Umgesetzt*, *Nicht umgesetzt* — and never
+  anything from the internal admin conversation, which stays admin-only in the
+  database. An admin can reply to the author directly (optionally as a question,
+  which parks the topic until they answer) and, instead of plainly deleting a
+  topic, can decline it with a mandatory explanation the author gets to read.
+
 ## [0.47.7] - 2026-07-26
 
 ### Changed

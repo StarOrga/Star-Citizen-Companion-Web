@@ -9,23 +9,42 @@
  * and unit-tested in `feedback.types.spec.ts`.
  */
 
+/**
+ * The raw DB status vocabulary. Note the two "needs input" flavours, which mean
+ * opposite things and have opposite visibility (feedback 5920cf8c):
+ *
+ * - `needs_input` — the ROUTINE asked the ADMIN. Admin-only; the feedback author
+ *   of a user-submitted topic never learns it exists (it folds into their
+ *   "in Bearbeitung").
+ * - `needs_input_author` — the ADMIN asked the AUTHOR. Author-facing, and parked
+ *   out of the routine's `open` queue until the answer arrives.
+ */
 export type FeedbackStatus =
   | 'open'
   | 'in_progress'
   | 'shipped'
   | 'rejected'
   | 'needs_input'
-  | 'issue_created';
+  | 'needs_input_author'
+  | 'issue_created'
+  | 'declined';
 
 /**
  * Terminal statuses — a topic that reached one of these is done and lives in
  * the board's Archive tab (feedback eeba60e7). A topic ends either because it
- * shipped (`ship_ref` = PR url) or because it was handed off to a GitHub issue
- * (`ship_ref` = issue url). Legacy `rejected` rows are archived too: the
- * routine never sets that status any more, but old rows carry it and would
- * otherwise be orphaned in a view nobody opens.
+ * shipped (`ship_ref` = PR url), because it was handed off to a GitHub issue
+ * (`ship_ref` = issue url), or because the admin decided against implementing a
+ * user-submitted topic (`declined`, `decision_note` = the explanation the
+ * author is shown — feedback 5920cf8c). Legacy `rejected` rows are archived
+ * too: the routine never sets that status any more, but old rows carry it and
+ * would otherwise be orphaned in a view nobody opens.
  */
-export const ARCHIVE_STATUSES: readonly FeedbackStatus[] = ['shipped', 'issue_created', 'rejected'];
+export const ARCHIVE_STATUSES: readonly FeedbackStatus[] = [
+  'shipped',
+  'issue_created',
+  'rejected',
+  'declined',
+];
 
 /**
  * True when a topic reached a terminal status (→ Archive). `shipped` is terminal
@@ -79,6 +98,37 @@ export interface FeedbackRow {
   shipped_at: string | null;
   processed_at: string | null;
   author: FeedbackAuthor | null;
+  /**
+   * Who filed the topic (feedback 5920cf8c): `admin` = posted on the internal
+   * board, `user` = submitted through the non-admin FAB by a viewer or
+   * collaborator. Optional so the many test/fixture rows in the specs keep
+   * compiling; absent means `admin`.
+   */
+  source?: 'admin' | 'user';
+  /**
+   * Release gate for the autonomous routine. A user-submitted topic enters
+   * untriaged so an admin reads it before Claude may implement and ship it;
+   * admin-authored rows are triaged by definition.
+   */
+  triaged?: boolean;
+  /** The admin's explanation on a `declined` topic — shown to the author. */
+  decision_note?: string | null;
+}
+
+/** True for a topic a non-admin filed through the user feedback FAB. */
+export function isUserSubmitted(row: FeedbackRow): boolean {
+  return row.source === 'user';
+}
+
+/**
+ * True while a user-submitted topic waits for an admin to release it to the
+ * routine — on first submission, and again after its author answered a question
+ * (their answer is fresh outside text, so it gets re-read before an agent that
+ * ships on its own acts on it). Admin-authored topics (and every row from before
+ * feedback 5920cf8c) are never gated.
+ */
+export function awaitsTriage(row: FeedbackRow): boolean {
+  return isUserSubmitted(row) && row.triaged === false;
 }
 
 /** Replies grouped by topic id, oldest first — the board's thread cache. */
@@ -154,28 +204,40 @@ export function isContinuedAfterShip(
  *
  * - `awaiting_admin` — a Rückfrage the routine asked and nobody answered yet:
  *   the ball is with the admin.
+ * - `awaiting_author` — the mirror image (feedback 5920cf8c): the admin asked the
+ *   person who filed a user topic and waits on them. Active, but nothing for the
+ *   admin or the routine to do — hence its own bucket rather than ToDo.
  * - `todo` — everything the *routine* still has to pick up. That is every
  *   untouched `open` topic **and** an already-answered Rückfrage (feedback
  *   34c44134): once the admin replied, the topic is back on the routine's pile,
  *   so it belongs to the ToDo bucket rather than into its own "answered" corner.
  * - `in_progress` — the routine is working on it right now.
- * - `shipped` / `issue_created` / `rejected` — terminal, mirrors the status —
- *   except a `shipped` topic the admin replied to after the ship, which reopens
- *   as a continuation and buckets as `todo` (see {@link isContinuedAfterShip}).
+ * - `shipped` / `issue_created` / `rejected` / `declined` — terminal, mirrors
+ *   the status — except a `shipped` topic the admin replied to after the ship,
+ *   which reopens as a continuation and buckets as `todo` (see
+ *   {@link isContinuedAfterShip}). `declined` is the admin's "nicht umsetzen"
+ *   on a user-submitted topic (feedback 5920cf8c).
  *
  * The DB status value is never touched by this — `open` stays `open` on the
  * wire, "ToDo" is purely the label the UI puts on the bucket.
  */
 export type FeedbackBucket =
   | 'awaiting_admin'
+  | 'awaiting_author'
   | 'todo'
   | 'in_progress'
   | 'shipped'
   | 'issue_created'
-  | 'rejected';
+  | 'rejected'
+  | 'declined';
 
 /** Buckets that are still on the board's working set (the Active tab). */
-export const ACTIVE_BUCKETS: readonly FeedbackBucket[] = ['awaiting_admin', 'todo', 'in_progress'];
+export const ACTIVE_BUCKETS: readonly FeedbackBucket[] = [
+  'awaiting_admin',
+  'awaiting_author',
+  'todo',
+  'in_progress',
+];
 
 /**
  * The single bucketing rule for the whole board: status filter, day-grouped
@@ -189,6 +251,7 @@ export function feedbackBucket(
   switch (row.status) {
     case 'issue_created':
     case 'rejected':
+    case 'declined':
       return row.status;
     case 'shipped':
       // Terminal at rest, but a human reply after the ship reopens it as a
@@ -196,6 +259,12 @@ export function feedbackBucket(
       return isContinuedAfterShip(row, replies) ? 'todo' : 'shipped';
     case 'in_progress':
       return 'in_progress';
+    case 'needs_input_author':
+      // The admin asked the topic's author and waits on them. There is no
+      // "answered" half to split off here: the author's reply restores the status
+      // the topic had before the question (database trigger on the author
+      // channel), so this status always means "waiting on the author".
+      return 'awaiting_author';
     case 'needs_input':
       // Answered → back on the routine's pile → ToDo. Still unanswered → the
       // admin owes the answer and keeps the distinct Rückfrage presentation.
@@ -208,11 +277,13 @@ export function feedbackBucket(
 /**
  * The status vocabulary a bucket is labelled with, so the UI can keep using the
  * existing `adminFeedback.status.*` translation keys: `todo` reads as the
- * (renamed) `open` label "ToDo", `awaiting_admin` as "Rückfrage".
+ * (renamed) `open` label "ToDo", `awaiting_admin` as "Rückfrage",
+ * `awaiting_author` as "Rückfrage an Absender".
  */
 export function bucketLabelStatus(bucket: FeedbackBucket): FeedbackStatus {
   if (bucket === 'todo') return 'open';
   if (bucket === 'awaiting_admin') return 'needs_input';
+  if (bucket === 'awaiting_author') return 'needs_input_author';
   return bucket;
 }
 
@@ -866,11 +937,13 @@ export interface LifecycleSnapshot {
 function emptyBucketCounts(): Record<FeedbackBucket, number> {
   return {
     awaiting_admin: 0,
+    awaiting_author: 0,
     todo: 0,
     in_progress: 0,
     shipped: 0,
     issue_created: 0,
     rejected: 0,
+    declined: 0,
   };
 }
 

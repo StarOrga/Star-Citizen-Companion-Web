@@ -25,6 +25,8 @@ import {
   WorkflowItem,
   WorkflowScope,
   WorkflowScopeCounts,
+  awaitsTriage,
+  isUserSubmitted,
   topicTitle,
   workflowFocusIndex,
 } from './feedback.types';
@@ -107,6 +109,16 @@ const ADVANCE_SLIDE_MS = 380;
             <!-- Every queue item is an open Rückfrage now (feedback b0cc6efc),
                  so the badge names the one kind instead of switching. -->
             <span class="kind question">{{ 'adminFeedback.workflow.kind.question' | translate }}</span>
+            <!-- A topic a viewer/collaborator filed (feedback 5920cf8c). The
+                 author-facing controls — release, "nicht umsetzen", the channel to
+                 the author — live in the Übersicht, so flag it here rather than
+                 letting it read like an admin's own note. -->
+            @if (fromUser(item)) {
+              <span class="kind from-user">{{ 'adminFeedback.userTopic.badge' | translate }}</span>
+              @if (untriaged(item)) {
+                <span class="kind untriaged">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span>
+              }
+            }
             <span class="wf-title">{{ title(item) }}</span>
             <span class="wf-ts">{{ item.row.created_at | date: 'shortDate' }}</span>
           </header>
@@ -299,6 +311,8 @@ const ADVANCE_SLIDE_MS = 380;
       letter-spacing: 0.07em;
     }
     .kind.question { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
+    .kind.from-user { background: rgba(0, 212, 255, 0.1); color: var(--sc-accent); }
+    .kind.untriaged { background: rgba(244, 114, 182, 0.18); color: #f472b6; }
     .wf-title {
       flex: 1 1 auto;
       min-width: 0;
@@ -604,6 +618,16 @@ export class FeedbackWorkflowComponent {
 
   title(item: WorkflowItem): string {
     return topicTitle(item.row.body, this.compact() ? 48 : 72);
+  }
+
+  /** Filed by a viewer/collaborator through the public feedback FAB. */
+  fromUser(item: WorkflowItem): boolean {
+    return isUserSubmitted(item.row);
+  }
+
+  /** …and still held back from the autonomous routine. */
+  untriaged(item: WorkflowItem): boolean {
+    return awaitsTriage(item.row);
   }
 
   render(body: string): string {
