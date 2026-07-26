@@ -209,6 +209,19 @@ interface LoadoutGroup {
           </div>
         </header>
 
+        <!-- ── Ship liveries — always-on 3D view at hero level (#137 part 2) ──
+             Moved directly beneath the hero so the interactive 3D model stays
+             on-screen (RSI-site feel) instead of being buried below the spec
+             sheet. The viewer itself keeps its deliberate lazy-load: expanded
+             by default on desktop (the ~3 MB glb loads immediately), collapsed
+             by default on mobile (opened on demand to spare cellular data).
+             Comparison is intentionally NOT duplicated here — the existing
+             floating compare tray (<sc-codex-compare-tray/>, pinned via the hero
+             ★ action) is the single comparison surface. -->
+        @if (shipClassName(); as cls) {
+          <sc-ship-skin-viewer [shipId]="cls" />
+        }
+
         <!-- ── Description ───────────────────────────────────────── -->
         @if (description(); as d) {
           <section class="sc-card block">
@@ -374,11 +387,6 @@ interface LoadoutGroup {
               }
             </ul>
           </section>
-        }
-
-        <!-- ── Ship liveries — 3D skin selector (P4K assets) ─────── -->
-        @if (shipClassName(); as cls) {
-          <sc-ship-skin-viewer [shipId]="cls" />
         }
 
         <!-- ── Full spec sheet (Manifest, collapsed) + raw payload ── -->

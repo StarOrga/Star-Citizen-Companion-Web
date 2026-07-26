@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.47.0",
+  "current": "0.47.1",
   "releases": [
+    {
+      "version": "0.47.1",
+      "date": "2026-07-26",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex ship detail — always-on 3D view at hero level (#252, part of #137).",
+              "text": "The interactive 3D livery/skin viewer now renders directly beneath the hero instead of near the bottom of the page below the spec sheet, so the ship's 3D model stays on-screen (closer to the RSI site's layout). It keeps its deliberate lazy-load: expanded by default on desktop (the ~3 MB glb loads immediately), collapsed by default on mobile (opened on demand to spare cellular data). Ship comparison stays on the existing floating compare tray — no duplicate comparison surface was added."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.47.0",
       "date": "2026-07-26",
