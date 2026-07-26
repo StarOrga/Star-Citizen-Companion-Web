@@ -25,6 +25,10 @@ export interface LayoutSlot {
   manufacturerCode: string | null;
   /** Optional highlighted stat chip, e.g. the jump range on the quantum drive (#137). */
   statChip?: string | null;
+  /** What the occupant IS ("Gun", "Quantum Drive", "Mid Range Radar"). */
+  typeLabel?: string | null;
+  /** Damage channels a mounted weapon deals, strongest first (usually one). */
+  damageChannels?: string[];
   /**
    * Curated headline stats of the item installed here, picked for ITS type
    * (a gun gets damage/velocity/range, a shield gets HP/regen). Empty when the
@@ -103,16 +107,7 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
                   <a class="slot-btn linked"
                      [routerLink]="['/codex', row.slot.kind, row.slot.className]"
                      [attr.title]="portTitle(row)">
-                    <span class="slot-port">{{ portLabel(row) }}</span>
-                    <span class="slot-item">{{ row.slot.name }}</span>
-                    <span class="slot-chips">
-                      @if (badge(row); as b) { <span class="chip size">{{ b }}</span> }
-                      @if (row.slot.grade) { <span class="chip">{{ row.slot.grade }}</span> }
-                      @if (row.slot.manufacturerCode) {
-                        <span class="chip">{{ row.slot.manufacturerCode }}</span>
-                      }
-                      @if (row.slot.statChip) { <span class="chip accent">{{ row.slot.statChip }}</span> }
-                    </span>
+                    <ng-container *ngTemplateOutlet="ident; context: { $implicit: row }" />
                     @if (row.slot.stats?.length) {
                       <dl class="slot-stats">
                         @for (st of row.slot.stats; track st.labelKey) {
@@ -138,22 +133,46 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
                 </span>
               } @else if (row.slot.className) {
                 <span class="slot-btn static" [attr.title]="portTitle(row)">
-                  <span class="slot-port">{{ portLabel(row) }}</span>
-                  <span class="slot-item">{{ row.slot.name }}</span>
-                  <span class="slot-chips">
-                    @if (badge(row); as b) { <span class="chip size">{{ b }}</span> }
-                  </span>
+                  <ng-container *ngTemplateOutlet="ident; context: { $implicit: row }" />
                 </span>
               } @else {
                 <span class="slot-btn static" [attr.title]="portTitle(row)">
+                  <span class="slot-head">
+                    @if (badge(row); as b) { <span class="size-tag muted">{{ b }}</span> }
+                    <span class="slot-empty">{{ 'codex.detail.loadoutEmpty' | translate }}</span>
+                  </span>
                   <span class="slot-port">{{ portLabel(row) }}</span>
-                  <span class="slot-empty">{{ 'codex.detail.loadoutEmpty' | translate }}</span>
                 </span>
               }
             </li>
           }
         </ul>
       </section>
+    </ng-template>
+
+    <!--
+      Identity block of one occupied hardpoint, in the order a pilot reads it:
+      size class first (the number that decides what even fits), then WHAT is
+      mounted, then who made it / what type it is, and only then which port it
+      sits on. The port name used to be the headline, which is why
+      "Hardpoint Controller Weapon" read as if it were the weapon.
+    -->
+    <ng-template #ident let-row>
+      <span class="slot-head">
+        @if (badge(row); as b) { <span class="size-tag">{{ b }}</span> }
+        <span class="slot-ident">
+          <span class="slot-item">{{ row.slot.name }}</span>
+          <span class="slot-meta">
+            @if (metaLine(row); as m) { <span class="meta-txt">{{ m }}</span> }
+            @for (ch of row.slot.damageChannels; track ch) {
+              <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
+            }
+            @if (row.slot.grade) { <span class="tag">{{ row.slot.grade }}</span> }
+            @if (row.slot.statChip) { <span class="tag accent">{{ row.slot.statChip }}</span> }
+          </span>
+        </span>
+      </span>
+      <span class="slot-port">{{ portLabel(row) }}</span>
     </ng-template>
   `,
   styles: [`
@@ -185,23 +204,44 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
     .slot-swap { flex: 0 0 auto; padding: 0 9px; border-radius: 6px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-size: 0.9rem; cursor: pointer; }
     .slot-swap:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
-    .slot-btn { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 6px;
+    .slot-btn { display: flex; flex-direction: column; gap: 3px; padding: 7px 8px; border-radius: 6px;
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); text-decoration: none; }
     a.slot-btn:hover { border-color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
     .slot.empty .slot-btn { background: transparent; border-style: dashed; }
-    .slot-port { font-size: 0.66rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .slot-item { font-size: 0.8rem; color: var(--sc-accent); overflow-wrap: anywhere; }
+
+    /* Size badge | name + meta — the two things that identify the occupant. */
+    .slot-head { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+    .slot-ident { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    /* The size class is what decides whether an item fits at all, so it gets a
+       block of its own rather than trailing the row as one chip among many. */
+    .size-tag { flex: 0 0 auto; font-size: 0.66rem; font-weight: 600; line-height: 1.4;
+      padding: 1px 6px; border-radius: 4px; white-space: nowrap;
+      font-variant-numeric: tabular-nums; color: var(--sc-accent);
+      background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    .size-tag.muted { color: var(--sc-fg-2); background: transparent; border-color: var(--sc-border); }
+
+    .slot-item { font-size: 0.84rem; line-height: 1.25; color: var(--sc-accent);
+      overflow-wrap: anywhere; }
     .slot-btn.static .slot-item { color: var(--sc-fg-1); }
-    .slot-empty { font-size: 0.74rem; color: var(--sc-fg-2); font-style: italic; }
-    .slot-chips { display: inline-flex; gap: 4px; flex-wrap: wrap; }
-    .chip { font-size: 0.6rem; padding: 1px 6px; border-radius: 999px; background: var(--sc-bg-2);
-      color: var(--sc-fg-2); border: 1px solid var(--sc-border); white-space: nowrap; }
-    .chip.accent { color: var(--sc-accent);
+    /* "KLA · Gun" + type tags — who made it and what it is, one line under the name. */
+    .slot-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; min-width: 0; }
+    .slot-meta:empty { display: none; }
+    .meta-txt { font-size: 0.64rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .tag { font-size: 0.58rem; letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 0 5px; border-radius: 3px; background: var(--sc-bg-2); color: var(--sc-fg-2);
+      border: 1px solid var(--sc-border); white-space: nowrap; }
+    .tag.accent { text-transform: none; letter-spacing: 0; color: var(--sc-accent);
       border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
-    /* Size/count is the first thing a pilot scans for — give it the accent. */
-    .chip.size { color: var(--sc-fg-0, var(--sc-fg-1)); font-variant-numeric: tabular-nums;
-      border-color: color-mix(in srgb, var(--sc-accent) 35%, var(--sc-border)); }
+    /* Damage type is the gun's identity (shield-eater vs hull-shredder). */
+    .tag.dmg { color: var(--sc-accent-hot, #ff7a45);
+      border-color: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 45%, transparent);
+      background: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 10%, transparent); }
+
+    /* Port name is context, not headline — it sits last and quiet. */
+    .slot-port { font-size: 0.63rem; color: var(--sc-fg-2); opacity: 0.85; overflow-wrap: anywhere; }
+    .slot-empty { font-size: 0.74rem; color: var(--sc-fg-2); font-style: italic; }
 
     /* Per-hardpoint stat readout: label/value pairs that pack left-to-right and
        wrap, so they stay tight in a narrow cluster and never stretch into
@@ -257,6 +297,15 @@ export class CodexHardpointLayoutComponent {
   /** Hover text listing every port a collapsed row stands for. */
   portTitle(row: GroupedSlot<LayoutSlot>): string {
     return row.ports.map((p) => p.port).join(' · ');
+  }
+
+  /**
+   * "KLA · Gun" — the maker and the kind of thing, under the name. Both are
+   * catalog data (a manufacturer code and a humanized engine type), not UI
+   * copy, so neither is translated; either half may be absent.
+   */
+  metaLine(row: GroupedSlot<LayoutSlot>): string {
+    return [row.slot.manufacturerCode, row.slot.typeLabel].filter(Boolean).join(' · ');
   }
 
   fmtStat(stat: EquippedStat): string {

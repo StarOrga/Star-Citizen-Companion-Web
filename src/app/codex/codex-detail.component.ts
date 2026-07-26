@@ -61,7 +61,9 @@ import {
 import {
   ammoClassNameFor,
   ammoClassNamesFor,
+  damageChannelsOf,
   equippedStats,
+  equippedTypeLabel,
   isWeaponMountPort,
   weaponStatsUnavailable,
 } from './codex-equipped-stats';
@@ -1052,6 +1054,8 @@ export class CodexDetailComponent implements OnInit {
           grade: l.grade,
           manufacturerCode: l.manufacturerCode,
           statChip: qdChip && l.className === tech!.quantumDriveClassName ? qdChip : null,
+          typeLabel: equippedTypeLabel(item),
+          damageChannels: damageChannelsOf(item.payload, item.ammoPayload),
           stats: equippedStats(item),
           statsMissing: weaponStatsUnavailable(item),
         };

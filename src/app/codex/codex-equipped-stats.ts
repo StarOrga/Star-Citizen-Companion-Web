@@ -12,19 +12,25 @@
 // projectileSpeed × lifetime`). A stat our extract does not carry is simply
 // not emitted, so the UI omits the row instead of printing a zero.
 //
-// What the 4.9.0 extract actually carries (audited against the live catalog):
-//   * ammunition rows: projectile speed, lifetime, per-channel impact damage
+// What the 4.9.0 extract actually carries (re-audited against the live catalog
+// on 2026-07-26, build b77f1586 / patch 4.9.0):
+//   * ammunition rows: projectile speed, lifetime, per-channel impact damage,
+//     and `raw.projectileParams.penetrationParams.basePenetrationDistance`
 //   * shields: MaxShieldHealth, MaxShieldRegen, regen delays, decay ratio
 //   * quantum drives: jumpRange, driveSpeed, spoolUpTime, cooldownTime, …
 //   * thrusters: thrustCapacity, fuel burn rate
-//   * fuel tanks: capacity (SCU)
-// What it does NOT carry (all zero / null across every row — needs the P4K
-// extractor, not the web app):
+//   * fuel tanks: capacity (SCU, in the ResourceContainer struct)
+//   * every entity: manufacturer code, size, grade and a type discriminator
+//     (weapon.subType / component.kind / item.attachType) — the "KLA · Gun"
+//     identity line
+// What it does NOT carry (verified zero / null on ALL 1 303 weapon rows —
+// needs the P4K extractor, not the web app):
 //   * weapon fireRate → therefore no DPS and no sustained-fire numbers
 //   * weapon ammoContainerRecord → therefore no magazine / max-ammo count
-//   * cooler cooling rate, power-plant power output
+//   * weapon heatPerShot on ship guns → no overheat numbers
+//   * cooler cooling rate, power-plant power output, cargo-grid SCU
 
-import { formatNumber } from './codex-format';
+import { formatNumber, humanizeClassName } from './codex-format';
 import { findStat, toFiniteNumber } from '../hangar/loadout-stats';
 
 /** How the UI renders a raw stat value (source units documented per case). */
@@ -34,6 +40,7 @@ export type EquippedStatFormat =
   | 'perSec' // 14,256 /s — value already per-second
   | 'seconds' // 5.55 s
   | 'metres' // 1,924 m
+  | 'metresDec' // 0.09 m — sub-metre distances (armour penetration)
   | 'mps' // 1,480 m/s
   | 'gm' // source metres → 340 Gm
   | 'kms' // source m/s → 196,000 km/s
@@ -150,6 +157,33 @@ export function alphaDamage(payload: unknown): number | null {
 }
 
 /**
+ * The damage channels a weapon actually deals, strongest first. Drives the
+ * damage-type tag on the hardpoint row (`ENERGY`, `PHYSICAL`, `DISTORTION` …) —
+ * the one identity fact that tells a pilot at a glance whether a gun eats
+ * shields or hull. Reads the projectile first, falling back to weapons that
+ * carry their own impactDamage. Almost always exactly one channel.
+ */
+export function damageChannelsOf(payload: unknown, ammoPayload: unknown): string[] {
+  const rows = impactDamageChannels(ammoPayload);
+  const used = rows.length > 0 ? rows : impactDamageChannels(payload);
+  return [...used].sort((a, b) => b.value - a.value).map((r) => r.channel);
+}
+
+/**
+ * How far a round bites into armour, in metres. Lives only in the untouched
+ * `raw` projectile params — the extractor does not promote it, but it IS there
+ * on every gun that has ammo (spot-check: KLWE_LaserRepeater_S3 → 0.085 m,
+ * matching the "pen 0.09" third-party tools publish).
+ */
+export function penetrationDistance(ammoPayload: unknown): number | null {
+  const p = ammoPayload as
+    | { raw?: { projectileParams?: { penetrationParams?: Record<string, unknown> } } }
+    | undefined;
+  const raw = p?.raw?.projectileParams?.penetrationParams?.['basePenetrationDistance'];
+  return usable(toFiniteNumber(raw ?? null));
+}
+
+/**
  * Effective projectile range in metres. Derived — a bullet simply stops
  * existing when its lifetime expires, so `speed × lifetime` is the distance it
  * can cover. This is the same figure third-party tools publish as "range".
@@ -214,6 +248,7 @@ function weaponStats(payload: unknown, ammoPayload: unknown): EquippedStat[] {
   const ammo = ammoPayload as { speed?: number | null; lifetime?: number | null } | undefined;
   push(out, 'codex.equipped.projectileSpeed', toFiniteNumber(ammo?.speed ?? null), 'mps');
   push(out, 'codex.equipped.range', projectileRange(ammo?.speed, ammo?.lifetime), 'metres', true);
+  push(out, 'codex.equipped.penetration', penetrationDistance(ammoPayload), 'metresDec');
   return out;
 }
 
@@ -302,7 +337,7 @@ function componentStats(kind: string, payload: unknown): EquippedStat[] {
 }
 
 /** How many stats a single hardpoint row shows before it hurts readability. */
-export const MAX_STATS_PER_SLOT = 5;
+export const MAX_STATS_PER_SLOT = 6;
 
 /** Input for {@link equippedStats} — one resolved hardpoint occupant. */
 export interface EquippedItem {
@@ -334,6 +369,35 @@ export function equippedStats(item: EquippedItem): EquippedStat[] {
     rows = [];
   }
   return rows.slice(0, MAX_STATS_PER_SLOT);
+}
+
+// Type discriminators the extract fills in with a placeholder rather than
+// leaving empty — showing them would put "Undefined" on the row.
+const PLACEHOLDER_TYPE = new Set(['undefined', 'unknown', 'none', 'other']);
+
+/**
+ * What the installed thing IS, in one word: "Gun", "Gun Turret", "Quantum
+ * Drive", "Mid Range Radar". Reads the type discriminator that the entity's own
+ * kind uses (component → `kind`, weapon/item → `subType`, then `attachType`),
+ * so an item without a subType still identifies itself by what it attaches to.
+ *
+ * Deliberately NOT translated: like every other catalog value on the page these
+ * are engine identifiers rendered readably, not UI copy.
+ */
+export function equippedTypeLabel(item: EquippedItem): string | null {
+  const p = item.payload as
+    | { entityKind?: string; kind?: string; subType?: string; attachType?: string }
+    | null
+    | undefined;
+  if (!p || typeof p !== 'object') return null;
+  const entityKind = p.entityKind ?? item.kind ?? '';
+  const candidates =
+    entityKind === 'component' ? [p.kind, p.subType, p.attachType] : [p.subType, p.attachType];
+  for (const c of candidates) {
+    const s = (c ?? '').trim();
+    if (s && !PLACEHOLDER_TYPE.has(s.toLowerCase())) return humanizeClassName(s);
+  }
+  return null;
 }
 
 /**
@@ -386,6 +450,9 @@ export function formatEquippedStat(stat: EquippedStat): string {
       return `${formatNumber(v)} s`;
     case 'metres':
       return `${formatNumber(Math.round(v))} m`;
+    case 'metresDec':
+      // Sub-metre distances would round to a flat "0 m" — keep the decimals.
+      return `${formatNumber(v)} m`;
     case 'mps':
       return `${formatNumber(Math.round(v))} m/s`;
     case 'gm':
