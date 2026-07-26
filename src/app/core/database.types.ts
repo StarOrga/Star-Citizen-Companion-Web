@@ -1301,6 +1301,16 @@ export type Database = {
         }
         Relationships: []
       }
+      ship_skins_index: {
+        Row: {
+          ship_id: string
+          livery_count: number
+          model_count: number
+          poster_path: string | null
+          sources: string[]
+          latest_added: string
+        }
+      }
     }
     Functions: {
       codex_compatible_items: {
