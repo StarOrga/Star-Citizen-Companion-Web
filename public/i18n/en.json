@@ -1564,6 +1564,8 @@
     "appTitle": "Desktop Wallpaper App",
     "appDesc": "Rotate your desktop through Starscape — a tiny tray app with prefetch, crossfade and one-click autostart.",
     "appDownload": "Download for Windows",
-    "appNote": "Windows only · ~0.3 MB · unsigned (SmartScreen: More info → Run anyway)"
+    "appNote": "Windows only · ~0.3 MB · unsigned (SmartScreen: More info → Run anyway)",
+    "appRingLock": "The channel is fixed by the download and cannot be changed inside the app.",
+    "appAutoUpdate": "Updates itself silently in the background; the version state lives in the tray menu."
   }
 }

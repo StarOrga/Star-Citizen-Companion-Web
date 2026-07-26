@@ -11,13 +11,14 @@ use windows_sys::Win32::System::Registry::{
     RegCloseKey, RegCreateKeyExW, RegDeleteValueW, RegQueryValueExW, RegSetValueExW, HKEY,
     HKEY_CURRENT_USER, KEY_READ, KEY_WRITE, REG_OPTION_NON_VOLATILE, REG_SZ,
 };
-use windows_sys::Win32::System::Threading::GetCurrentThreadId;
+// AttachThreadInput lives under System::Threading in windows-sys (NOT under
+// UI::Input::KeyboardAndMouse, where the Win32 docs group it).
+use windows_sys::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::SetFocus;
 use windows_sys::Win32::UI::Shell::ShellExecuteW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    AttachThreadInput, BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId,
-    SetForegroundWindow, SystemParametersInfoW, SPIF_SENDCHANGE, SPIF_UPDATEINIFILE,
-    SPI_SETDESKWALLPAPER, SW_SHOWNORMAL,
+    BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId, SetForegroundWindow,
+    SystemParametersInfoW, SPIF_SENDCHANGE, SPIF_UPDATEINIFILE, SPI_SETDESKWALLPAPER, SW_SHOWNORMAL,
 };
 
 /// Null-terminated UTF-16 for Win32 `*W` APIs.

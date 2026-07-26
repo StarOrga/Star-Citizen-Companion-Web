@@ -5,12 +5,12 @@
 
 use std::ffi::c_void;
 
+use windows_sys::Win32::Foundation::LocalFree;
 use windows_sys::Win32::Security::Cryptography::{
     BCryptCloseAlgorithmProvider, BCryptCreateHash, BCryptDestroyHash, BCryptFinishHash,
     BCryptGenRandom, BCryptHashData, BCryptOpenAlgorithmProvider, CryptProtectData,
     CryptUnprotectData, CRYPT_INTEGER_BLOB,
 };
-use windows_sys::Win32::System::Memory::LocalFree;
 
 use crate::util::wide;
 

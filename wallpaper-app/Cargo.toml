@@ -28,9 +28,8 @@ features = [
   "Win32_Globalization",
   "Win32_Security",
   # CNG (SHA-256 of a downloaded update, CSRF random) + DPAPI (session at rest).
+  # LocalFree, for the buffers DPAPI hands back, is already in Win32_Foundation.
   "Win32_Security_Cryptography",
-  # LocalFree, for the buffers DPAPI hands back.
-  "Win32_System_Memory",
 ]
 
 [build-dependencies]
