@@ -366,6 +366,61 @@ Bottom line: a usage-limit abort is self-healing on a later cron tick once
 Claude is back under limit — just not on the immediately following run, and not
 by picking up where it left off.
 
+## In-flight claims inside the 30-minute window — report the work, don't assume liveness
+
+The reaper's `processed_at < now() - interval '30 minutes'` guard protects a run
+that is legitimately still working. But it is a **timer, not a liveness check**:
+at minute 29 an item that is being actively implemented and an item whose owner
+died 29 minutes ago are *indistinguishable in the database*. Reporting such a row
+as "another run has it, no action needed" states something the routine has not
+verified — and if the owner is in fact dead, the finished work sits invisible
+until a later tick.
+
+That is exactly what happened on 2026-07-26 with `02a0570b` and `21587480`. Both
+were claimed at 21:34 by a run that then died. At 22:03 the queue read found them
+29 minutes old, the reaper correctly skipped them, and the run reported them as
+in-flight. What the report did **not** say — because it never looked — was that
+both already carried finished work on disk:
+
+- `02a0570b`: a worktree with two commits **plus ~1000 uncommitted lines** of the
+  hardpoint-map UI, one crash away from being lost.
+- `21587480`: an **open PR (#282)** with all CI checks green, needing only a
+  rebase and a merge.
+
+The admin saw "2 in Arbeit" in the panel and had to ask. Nothing was lost, but a
+whole cadence cycle was, and the routine's own report was the reason it looked
+like there was nothing to do.
+
+**The rule: an in-flight claim is a report item, not a silent skip.** The DB
+cannot tell you whether the owner lives, but the filesystem and GitHub can — and
+both are cheap to ask, with no writes and no interference with a genuinely
+running owner:
+
+```sh
+git worktree list                                   # is there a scfb-<short-id> tree, and is it dirty?
+gh pr list --state all --head feat/feedback-<short-id> --json number,state,url
+```
+
+For every `in_progress` row with `ship_ref IS NULL` that the reaper skipped
+because it is younger than 30 minutes, name in the STEP 5 report:
+
+- its age (so "29 min" reads as "about to be reaped", not "just started"),
+- whether a branch/PR exists — **an open PR with green checks means the item is
+  finished and waiting on a merge**, not "in progress",
+- whether a worktree holds uncommitted work (that is unpersisted work, the only
+  state a crash actually destroys).
+
+Do **not** claim or touch such a row — the 30-minute guard stays, and taking an
+item from a live owner is the failure it exists to prevent. Reporting is the
+whole intervention. The next tick then reaps and resumes it with the
+`feedback-reaped-items-keep-worktree-work` procedure (check for a pushed branch
+and a dirty worktree before rebuilding from scratch).
+
+**Never write "no action needed" about a row you did not inspect.** If the
+routine has not looked at the worktree and the PR list, the honest phrasing is
+"claimed 29 min ago by another run, work state not inspected" — which invites the
+next tick to check, instead of closing the question.
+
 ## Surfacing open review-holds (the reaper's mirror image)
 
 A sensitive/red item the routine parks for the admin lives as `in_progress`
