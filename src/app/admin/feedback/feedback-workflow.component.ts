@@ -443,7 +443,9 @@ const ADVANCE_SLIDE_MS = 380;
       .wf-card.celebrate, .wf-cheer, .wf-advance, .wf-empty-icon { animation: none; }
     }
 
-    /* Docked panel: tighter thread window so the composer stays reachable. */
+    /* Docked panel: tighter vertical rhythm so the one card and its always-on
+       answer foot own the panel, matching the Übersicht density pass (3133f9). */
+    .wf.compact { gap: 8px; }
     .wf.compact .thread { max-height: 220px; }
     .wf.compact .wf-card { padding: 12px 12px; }
     .wf.compact .wf-foot { margin: 0 -12px -12px; padding: 8px 12px 12px; }

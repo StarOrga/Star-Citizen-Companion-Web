@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.49.2] - 2026-07-27
+
+### Changed
+
+- **Feedback board — the docked panel now shows the threads, not the chrome.** In
+  the small (docked) FAB panel the control rows and the new-topic composer used to
+  stack ahead of the list and squeeze it down to barely one visible thread. The
+  compact panel is reorganised so the thread list owns the space: the new-topic
+  composer collapses to a slim **＋ Neues Thema** bar that opens the full composer
+  on demand (and folds back once the topic is sent); search and the status/author
+  chips fold behind a **⌕ / ⚲ Filter** cluster on a single filter row next to the
+  Aktiv/Archiv tabs, with a marker when a hidden filter is active; and the
+  motivating "shipped" totals line is dropped in compact (the numbers live in the
+  Fortschritt tab). The processing mode ("Abarbeiten") gets a matching tighter
+  vertical rhythm. The full-page board is unchanged. Feedback 3133f9.
+
 ## [0.49.1] - 2026-07-27
 
 ### Changed
