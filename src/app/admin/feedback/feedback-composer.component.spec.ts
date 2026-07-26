@@ -1,18 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
+import { ComposerPrefsService } from '../../core/composer-prefs.service';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
 
 /**
- * The chat keyboard contract (feedback aa8d5b18): Enter sends, Shift+Enter
- * breaks the line and continues an active list, Ctrl/Cmd+Enter still sends.
+ * The chat keyboard contract (feedback aa8d5b18): Enter sends by default,
+ * Shift+Enter breaks the line and continues an active list, Ctrl/Cmd+Enter
+ * still sends — and each user can mirror the mapping in the settings.
  */
 describe('FeedbackComposerComponent — Enter sends', () => {
   let fixture: ComponentFixture<FeedbackComposerComponent>;
   let cmp: FeedbackComposerComponent;
   let sent: ComposerPayload[];
 
-  async function setup(draft = 'hello') {
+  async function setup(draft = 'hello', sendOnEnter = true) {
     sent = [];
+    localStorage.setItem('sc.composer.sendOnEnter', sendOnEnter ? '1' : '0');
 
     await TestBed.configureTestingModule({
       imports: [FeedbackComposerComponent],
@@ -49,7 +52,10 @@ describe('FeedbackComposerComponent — Enter sends', () => {
     return e;
   }
 
-  afterEach(() => TestBed.resetTestingModule());
+  afterEach(() => {
+    localStorage.removeItem('sc.composer.sendOnEnter');
+    TestBed.resetTestingModule();
+  });
 
   it('sends on plain Enter and swallows the newline', async () => {
     await setup('ship it');
@@ -128,5 +134,51 @@ describe('FeedbackComposerComponent — Enter sends', () => {
 
     expect(sent).toEqual([]);
     expect(e.defaultPrevented).toBeFalse();
+  });
+
+  describe('with "Enter sendet" turned off', () => {
+    it('does not send on plain Enter — the newline stays with the browser', async () => {
+      await setup('line one', false);
+      const e = press();
+      await fixture.whenStable();
+
+      expect(e.defaultPrevented).toBeFalse();
+      expect(sent).toEqual([]);
+      expect(cmp.draft()).toBe('line one');
+    });
+
+    it('still sends on Ctrl/Cmd+Enter', async () => {
+      await setup('via ctrl', false);
+      press({ ctrlKey: true });
+      await fixture.whenStable();
+      expect(sent.map((p) => p.text)).toEqual(['via ctrl']);
+
+      typeInto('via cmd');
+      press({ metaKey: true });
+      await fixture.whenStable();
+      expect(sent.map((p) => p.text)).toEqual(['via ctrl', 'via cmd']);
+    });
+
+    it('continues a list on plain Enter as well as on Shift+Enter', async () => {
+      await setup('- first', false);
+      press();
+      await fixture.whenStable();
+      expect(sent).toEqual([]);
+      expect(cmp.draft()).toBe('- first\n- ');
+
+      typeInto('1. first');
+      press({ shiftKey: true });
+      await fixture.whenStable();
+      expect(sent).toEqual([]);
+      expect(cmp.draft()).toBe('1. first\n2. ');
+    });
+
+    it('names the Ctrl/Cmd mapping in the hint under the field', async () => {
+      await setup('anything', false);
+      expect(cmp.sendHintKey()).toBe('adminFeedback.compose.sendHintCtrl');
+
+      TestBed.inject(ComposerPrefsService).setSendOnEnter(true);
+      expect(cmp.sendHintKey()).toBe('adminFeedback.compose.sendHint');
+    });
   });
 });

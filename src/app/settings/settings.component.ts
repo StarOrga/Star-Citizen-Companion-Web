@@ -10,6 +10,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
+import { ComposerPrefsService } from '../core/composer-prefs.service';
 import { ConsentService } from '../core/consent.service';
 import { AnalyticsService } from '../core/analytics.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -115,7 +116,32 @@ type LangId = 'de' | 'en';
         </label>
       </div>
 
-      <!-- 4. Browser storage / consent (#130) -->
+      <!-- 4. Input / composer keyboard (feedback aa8d5b18) -->
+      <div class="sc-card section">
+        <h2>{{ 'settings.composer.title' | translate }}</h2>
+        <p class="hint">{{ 'settings.composer.hint' | translate }}</p>
+        <div class="row">
+          <span class="label">{{ 'settings.composer.sendOnEnter.label' | translate }}</span>
+          <span class="value">
+            <label class="consent-toggle">
+              <input
+                type="checkbox"
+                [checked]="composerPrefs.sendOnEnter()"
+                (change)="onSendOnEnterToggle($event)" />
+              {{ (composerPrefs.sendOnEnter() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
+            </label>
+          </span>
+        </div>
+        <p class="consent-desc">
+          {{
+            (composerPrefs.sendOnEnter()
+              ? 'settings.composer.sendOnEnter.descOn'
+              : 'settings.composer.sendOnEnter.descOff') | translate
+          }}
+        </p>
+      </div>
+
+      <!-- 5. Browser storage / consent (#130) -->
       <div class="sc-card section">
         <h2>{{ 'consent.settings.title' | translate }}</h2>
         <p class="hint">{{ 'consent.settings.hint' | translate }}</p>
@@ -154,7 +180,7 @@ type LangId = 'de' | 'en';
         <p class="consent-desc">{{ 'consent.settings.statistics.desc' | translate }}</p>
       </div>
 
-      <!-- 5. Danger zone -->
+      <!-- 6. Danger zone -->
       <div class="sc-card danger-zone">
         <h2>{{ 'settings.danger.title' | translate }}</h2>
         <p class="hint">{{ 'settings.danger.warning' | translate }}</p>
@@ -339,6 +365,7 @@ export class SettingsComponent implements OnInit {
   readonly roles = inject(RoleService);
   readonly profile = inject(ProfileService);
   readonly consent = inject(ConsentService);
+  readonly composerPrefs = inject(ComposerPrefsService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
   private readonly analytics = inject(AnalyticsService);
@@ -401,6 +428,12 @@ export class SettingsComponent implements OnInit {
     this.usernameOk.set(true);
     this.usernameSaving.set(false);
     this.analytics.capture('settings_username_saved');
+  }
+
+  onSendOnEnterToggle(e: Event) {
+    const on = (e.target as HTMLInputElement).checked;
+    this.composerPrefs.setSendOnEnter(on);
+    this.analytics.capture('settings_send_on_enter_changed', { on });
   }
 
   onConsentToggle(e: Event) {

@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.48.2",
+  "current": "0.49.0",
   "releases": [
+    {
+      "version": "0.49.0",
+      "date": "2026-07-26",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "\"Enter sendet\" is now a per-user setting",
+              "text": "(Einstellungen → Eingabe). Which key sends a message is a matter of taste, so each user picks their own mapping instead of living with a fixed one. On (the default) keeps the chat convention: Enter sends, Shift+Enter breaks the line. Off mirrors it: Enter breaks the line and only Ctrl/Cmd+Enter (or the send button) sends. Ctrl/Cmd+Enter sends in both mappings, whichever key inserts the newline also continues a bullet/numbered list, and the hint under the field names the mapping that is actually active. The choice applies to every composer — new topic, thread reply, the answer box in the processing mode and the user feedback panel — and is remembered per browser (sc.composer.sendOnEnter, essential category like the language choice, so a deliberately chosen mapping is never silently lost)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.48.2",
       "date": "2026-07-26",

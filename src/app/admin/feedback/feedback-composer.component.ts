@@ -10,6 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { ComposerPrefsService } from '../../core/composer-prefs.service';
 import { ConsentService } from '../../core/consent.service';
 
 /** An image queued in the composer, held as a compressed data URI until send. */
@@ -39,11 +40,14 @@ const MAX_ATTACHMENTS = 10;
  * 73dfa165): formatting toolbar, automatic list continuation, and image insert
  * via picker / paste / drag-and-drop.
  *
- * Keyboard mapping (feedback aa8d5b18) is the conventional chat one and is
- * identical in every usage — new topic, thread reply, processing answer:
- * - `Enter` sends
- * - `Shift+Enter` inserts a newline, continuing a bullet/numbered list
- * - `Ctrl/Cmd+Enter` also sends (kept from the 73dfa165 build)
+ * Keyboard mapping (feedback aa8d5b18) is the conventional chat one, identical
+ * in every usage — new topic, thread reply, processing answer — and each user
+ * flips it for themselves under `Einstellungen → Eingabe`
+ * (`ComposerPrefsService`):
+ * - `Enter` sends, `Shift+Enter` inserts a newline (default), **or** the mirror
+ *   image, where `Enter` inserts the newline and only `Ctrl/Cmd+Enter` sends
+ * - `Ctrl/Cmd+Enter` always sends, in both mappings
+ * - whichever key inserts the newline also continues a bullet/numbered list
  *
  * The parent supplies an `onSubmit` handler that returns `true` once the
  * message is persisted; the composer only clears itself on success, so a failed
@@ -124,7 +128,7 @@ const MAX_ATTACHMENTS = 10;
 
       <div class="foot">
         <span class="hint">
-          {{ 'adminFeedback.compose.sendHint' | translate }}
+          {{ sendHintKey() | translate }}
           · {{ 'adminFeedback.compose.attachHint' | translate }}
         </span>
         <button
@@ -267,6 +271,7 @@ const MAX_ATTACHMENTS = 10;
 export class FeedbackComposerComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly consentSvc = inject(ConsentService);
+  private readonly composerPrefs = inject(ComposerPrefsService);
   private readonly ta = viewChild<ElementRef<HTMLTextAreaElement>>('ta');
 
   /** i18n key for the textarea placeholder / aria-label. */
@@ -291,6 +296,13 @@ export class FeedbackComposerComponent implements OnInit {
   readonly dragActive = signal(false);
   readonly sending = signal(false);
   readonly errorMsg = signal<string | null>(null);
+
+  /** Hint under the field — must name the mapping the user actually has. */
+  readonly sendHintKey = computed(() =>
+    this.composerPrefs.sendOnEnter()
+      ? 'adminFeedback.compose.sendHint'
+      : 'adminFeedback.compose.sendHintCtrl',
+  );
 
   readonly canSend = computed(
     () =>
@@ -364,32 +376,43 @@ export class FeedbackComposerComponent implements OnInit {
   // ---- Keyboard behaviour ------------------------------------------------
 
   /**
-   * Chat mapping: plain Enter sends, Shift+Enter breaks the line.
+   * Chat mapping, per the user's own `sendOnEnter` setting.
    *
    * Feedback 73dfa165 had briefly moved sending to Ctrl/Cmd+Enter, which read as
-   * "Enter is broken" to everyone typing in the board (feedback aa8d5b18). Enter
-   * is the send key again; Ctrl/Cmd+Enter stays wired for muscle memory.
+   * "Enter is broken" to everyone typing in the board (feedback aa8d5b18) — so
+   * Enter-sends is the default. It is now a per-user choice rather than a fixed
+   * rule: with the setting off, Enter breaks the line and Ctrl/Cmd+Enter sends.
+   * Ctrl/Cmd+Enter sends either way, and the newline key of the active mapping
+   * is the one that continues a list.
    */
   onKeydown(e: KeyboardEvent): void {
     if (e.key !== 'Enter') return;
     // Mid-IME-composition Enter commits the candidate — never a send.
     if (e.isComposing) return;
-
-    // Shift+Enter → newline, and the newline that continues an active list.
-    if (e.shiftKey) {
-      if (!e.ctrlKey && !e.metaKey && !e.altKey) this.handleListContinuation(e);
-      return;
-    }
     // Alt+Enter is not ours — leave it to the browser/OS.
     if (e.altKey) return;
+
+    // Ctrl/Cmd+Enter sends in both mappings.
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      void this.submit();
+      return;
+    }
+
+    // Every non-sending Enter breaks the line — Shift+Enter always, plain Enter
+    // when the user mapped sending to Ctrl/Cmd+Enter — and continues a list.
+    if (e.shiftKey || !this.composerPrefs.sendOnEnter()) {
+      this.handleListContinuation(e);
+      return;
+    }
 
     e.preventDefault();
     void this.submit();
   }
 
   /**
-   * When Shift+Enter is pressed inside a bullet/numbered line, insert the next
-   * marker automatically. An empty marker line exits the list instead.
+   * When the newline key is pressed inside a bullet/numbered line, insert the
+   * next marker automatically. An empty marker line exits the list instead.
    */
   private handleListContinuation(e: KeyboardEvent): void {
     const el = this.ta()?.nativeElement;

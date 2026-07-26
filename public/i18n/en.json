@@ -680,6 +680,15 @@
       "title": "Language",
       "label": "Language"
     },
+    "composer": {
+      "title": "Input",
+      "hint": "Applies to every message field — new topic, thread reply, and the answer box in the processing mode.",
+      "sendOnEnter": {
+        "label": "Enter sends",
+        "descOn": "Enter sends the message, Shift+Enter inserts a new line. Ctrl/Cmd+Enter sends as well.",
+        "descOff": "Enter inserts a new line. Sending happens only with Ctrl/Cmd+Enter or the send button."
+      }
+    },
     "danger": {
       "title": "Delete account",
       "warning": "Permanently delete your account. Your uploads + bundles go too. This cannot be undone.",
@@ -1268,9 +1277,10 @@
       "replyPlaceholder": "Write a reply… (Markdown supported)"
     },
     "compose": {
-      "placeholder": "What could be better? Markdown supported — Enter to send, Shift+Enter for a new line.",
+      "placeholder": "What could be better? Markdown supported.",
       "send": "Send",
       "sendHint": "Enter = send · Shift+Enter = new line",
+      "sendHintCtrl": "Ctrl/Cmd+Enter = send · Enter = new line",
       "bold": "Bold",
       "bullet": "Bullet list",
       "numbered": "Numbered list",
