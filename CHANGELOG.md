@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.49.0] - 2026-07-26
+
+### Added
+
+- **"Enter sendet" is now a per-user setting** (Einstellungen → Eingabe). Which
+  key sends a message is a matter of taste, so each user picks their own mapping
+  instead of living with a fixed one. On (the default) keeps the chat convention:
+  Enter sends, Shift+Enter breaks the line. Off mirrors it: Enter breaks the
+  line and only **Ctrl/Cmd+Enter** (or the send button) sends. Ctrl/Cmd+Enter
+  sends in both mappings, whichever key inserts the newline also continues a
+  bullet/numbered list, and the hint under the field names the mapping that is
+  actually active. The choice applies to every composer — new topic, thread
+  reply, the answer box in the processing mode and the user feedback panel — and
+  is remembered per browser (`sc.composer.sendOnEnter`, essential category like
+  the language choice, so a deliberately chosen mapping is never silently lost).
+
 ## [0.48.2] - 2026-07-26
 
 ### Added
