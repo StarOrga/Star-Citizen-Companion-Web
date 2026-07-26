@@ -1565,7 +1565,7 @@
     "appDesc": "Rotate your desktop through Starscape — a tiny tray app with prefetch, crossfade and one-click autostart.",
     "appDownload": "Download for Windows",
     "appNote": "Windows only · ~0.3 MB · unsigned (SmartScreen: More info → Run anyway)",
-    "appRingLock": "The channel is fixed by the download and cannot be changed inside the app.",
+    "appRingLock": "The channel is fixed by the download and cannot be switched inside the app — to change it, just grab the other download here again.",
     "appAutoUpdate": "Updates itself silently in the background; the version state lives in the tray menu."
   }
 }

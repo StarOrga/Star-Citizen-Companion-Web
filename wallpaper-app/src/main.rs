@@ -98,6 +98,16 @@ static QUEUE: OnceLock<Arc<Mutex<VecDeque<PathBuf>>>> = OnceLock::new();
 /// launching the replacement (the successor would otherwise see the name taken
 /// and exit immediately). Stored as `isize` because a raw HANDLE is not `Sync`.
 static SINGLETON: OnceLock<isize> = OnceLock::new();
+/// True while the tray popup menu owns the UI thread. `TrackPopupMenu` runs its
+/// own modal message loop that DISPATCHES to this window, so a posted
+/// `WM_UPDATE_RESTART` can arrive mid-popup — and destroying the window under an
+/// active popup is undefined. The relaunch is simply deferred instead: the new
+/// build is already on disk, so it takes effect on the next start either way.
+static MENU_OPEN: AtomicBool = AtomicBool::new(false);
+/// Set when a relaunch arrived while [`MENU_OPEN`] — replayed as soon as the
+/// popup closes, so the interactive path (click → sign in → menu → download
+/// finishes) still relaunches immediately instead of waiting for the next start.
+static RESTART_PENDING: AtomicBool = AtomicBool::new(false);
 
 fn ui() -> &'static Mutex<Ui> {
     UI.get().expect("UI not initialised")
@@ -146,13 +156,14 @@ fn main() {
         log::line("startup: existing install migrated — autostart choice preserved");
     }
 
-    // Channel lock: derive the update ring from the downloaded filename EXACTLY
-    // once, then never again. Renaming the exe afterwards cannot move an install
-    // between rings, and there is no in-app switch — the ring is chosen on the
-    // website before the download. Installs that predate this simply lock to
-    // whatever their filename says, i.e. stable.
-    if !cfg.channel_locked {
-        cfg.channel = update::channel_from_exe_name();
+    // Channel lock: the update ring is decided by the DOWNLOAD, never in the app
+    // (see `update::resolve_channel` for the precedence and why). An unmarked
+    // copy — the `latest` alias, a user rename, a self-updated exe — keeps the
+    // ring already on file; only a fresh per-ring download re-locks it.
+    let stored = if cfg.channel_locked { Some(cfg.channel) } else { None };
+    let resolved = update::resolve_channel(stored);
+    if !cfg.channel_locked || resolved != cfg.channel {
+        cfg.channel = resolved;
         cfg.channel_locked = true;
         cfg.save();
         log::line(&format!("startup: update ring locked to {}", cfg.channel.as_str()));
@@ -317,9 +328,13 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
             WM_UPDATE_FOREGROUND => {
                 // The website sign-in just finished. Bring the app forward and
                 // open the tray menu, so the user lands back where they started
-                // instead of hunting for the tray icon.
+                // instead of hunting for the tray icon. This is the ONLY unasked
+                // surface the updater ever shows, and it is a direct reply to the
+                // user's own tray click — the periodic poll never gets here.
                 util::force_foreground(hwnd);
-                show_menu(hwnd);
+                if !MENU_OPEN.load(Ordering::SeqCst) {
+                    show_menu(hwnd);
+                }
                 0
             }
             WM_UPDATE_RESTART => {
@@ -327,6 +342,14 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
                     // Never yank a fullscreen slideshow away. The new exe is
                     // already on disk, so it takes effect on the next start.
                     log::line("update: screensaver on screen — relaunch deferred to next start");
+                    return 0;
+                }
+                if MENU_OPEN.load(Ordering::SeqCst) {
+                    // Dispatched from inside TrackPopupMenu's modal loop —
+                    // tearing the window down here would destroy the window the
+                    // popup is tracking. See MENU_OPEN / RESTART_PENDING.
+                    RESTART_PENDING.store(true, Ordering::SeqCst);
+                    log::line("update: tray menu open — relaunch queued until it closes");
                     return 0;
                 }
                 restart_into_update(hwnd);
@@ -555,6 +578,9 @@ unsafe fn show_menu(hwnd: HWND) {
     let mut pt: POINT = std::mem::zeroed();
     GetCursorPos(&mut pt);
     SetForegroundWindow(hwnd); // required so the menu closes on click-away
+    // Guard the modal loop: it dispatches to this window, so anything that would
+    // destroy the window (WM_UPDATE_RESTART) must stand down until we are out.
+    MENU_OPEN.store(true, Ordering::SeqCst);
     let cmd = TrackPopupMenu(
         menu,
         TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY,
@@ -564,6 +590,7 @@ unsafe fn show_menu(hwnd: HWND) {
         hwnd,
         std::ptr::null(),
     );
+    MENU_OPEN.store(false, Ordering::SeqCst);
     // DestroyMenu recursively destroys attached popup submenus too.
     DestroyMenu(menu);
     PostMessageW(hwnd, 0 /* WM_NULL */, 0, 0);
@@ -598,8 +625,17 @@ unsafe fn show_menu(hwnd: HWND) {
         ID_STARSCAPE => util::open_url(STARSCAPE_URL),
         ID_QUIT => {
             DestroyWindow(hwnd);
+            return;
         }
         _ => {}
+    }
+
+    // An update finished installing while this menu was up (the common case on
+    // the interactive path: click → sign in → menu opens → download completes).
+    // The restart was postponed rather than dropped — run it now that the modal
+    // loop is gone.
+    if RESTART_PENDING.swap(false, Ordering::SeqCst) {
+        PostMessageW(hwnd, WM_UPDATE_RESTART, 0, 0);
     }
 }
 

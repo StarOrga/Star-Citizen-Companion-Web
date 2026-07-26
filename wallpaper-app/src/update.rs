@@ -65,6 +65,10 @@ pub enum State {
     /// The locked ring is above the anonymous tier — a website sign-in is needed
     /// before this ring's builds are served.
     SignInRequired,
+    /// Signed in, but the account's role does not reach the locked ring (e.g. a
+    /// beta copy on a viewer account). Deliberately NOT actionable: clicking
+    /// would only re-open a browser sign-in that cannot change the outcome.
+    NotEntitled,
     /// Download / verification / install failed; clicking retries.
     Failed,
 }
@@ -89,27 +93,60 @@ pub struct Release {
     pub size_bytes: u64,
 }
 
-/// The ring this copy was downloaded from, derived from its own filename.
+/// The ring an asset name declares, or `None` when it carries no ring marker.
 ///
 /// The website serves each ring under its own asset name
 /// (`starscape-wallpaper-<ver>-beta.exe`), which is the only channel signal that
 /// survives a plain single-file download — the binary itself is identical across
 /// rings, because a ring is a promotion pointer, not a build.
-///
-/// Anything unrecognised (renamed by the user, `starscape-wallpaper (1).exe`,
-/// the version-less `latest` alias) resolves to the safest ring: stable.
-pub fn channel_from_exe_name() -> Channel {
-    let stem = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_lowercase()))
-        .unwrap_or_default();
+fn channel_from_stem(stem: &str) -> Option<Channel> {
+    let stem = stem.to_lowercase();
     if stem.contains("-alpha") {
-        Channel::Alpha
+        Some(Channel::Alpha)
     } else if stem.contains("-beta") {
-        Channel::Beta
+        Some(Channel::Beta)
+    } else if stem.contains("-stable") {
+        Some(Channel::Stable)
     } else {
-        Channel::Stable
+        None
     }
+}
+
+/// Ring declared by this copy's own filename, if any.
+fn channel_from_exe_name() -> Option<Channel> {
+    std::env::current_exe()
+        .ok()
+        .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
+        .as_deref()
+        .and_then(channel_from_stem)
+}
+
+/// Decide the ring this install follows, given whatever was persisted before.
+///
+/// Precedence, and why:
+///   1. **An explicit ring marker in our own filename wins.** That marker only
+///      exists on a file downloaded from the website's per-ring link, i.e. it is
+///      a ring choice the user made — before the download, on the website, which
+///      is exactly where the choice is supposed to be made. A stable user who
+///      deliberately fetches `…-beta.exe` therefore lands on beta instead of
+///      having their download silently ignored. It cannot be an escalation: the
+///      feed clamps every response to the account's role, so marking a copy
+///      `-alpha` as a viewer buys nothing but [`State::NotEntitled`].
+///   2. **Otherwise the persisted ring.** The version-less `latest` alias, a
+///      `starscape-wallpaper (1).exe`, or a user rename carries no marker, so it
+///      must never move an existing install between rings.
+///   3. **Otherwise stable** — the safest ring, and the documented default.
+///
+/// There is still no in-app switch, which is the deliberate difference from the
+/// data-uploader's runtime channel picker.
+pub fn resolve_channel(stored: Option<Channel>) -> Channel {
+    pick_channel(channel_from_exe_name(), stored)
+}
+
+/// The precedence rule of [`resolve_channel`], separated from the filesystem so
+/// it can be tested exhaustively.
+fn pick_channel(from_name: Option<Channel>, stored: Option<Channel>) -> Channel {
+    from_name.or(stored).unwrap_or(Channel::Stable)
 }
 
 /// Tray label for the current state — the SCC "status readout" voice, and the
@@ -135,6 +172,10 @@ pub fn tray_label(channel: Channel) -> String {
             &format!("◈ Anmelden für {ring}-Updates"),
             &format!("◈ Sign in for {ring} updates"),
         ),
+        State::NotEntitled => util::t(
+            &format!("◈ v{CURRENT_VERSION} · {ring} für dieses Konto nicht freigegeben"),
+            &format!("◈ v{CURRENT_VERSION} · {ring} not enabled for this account"),
+        ),
         State::Failed => util::t("▲ Update fehlgeschlagen · erneut versuchen", "▲ Update failed · retry"),
         State::Unknown => util::t(
             &format!("◈ Starscape v{CURRENT_VERSION} · {ring}"),
@@ -158,8 +199,14 @@ pub fn is_actionable() -> bool {
 /// should relaunch. The caller owns the relaunch because only the UI thread may
 /// drop the tray icon and release the single-instance mutex first.
 pub fn run_cycle(interactive: bool, channel: Channel, on_signed_in: &dyn Fn()) -> bool {
-    if matches!(state(), State::Downloading | State::Checking) {
-        return false; // a cycle is already in flight
+    match state() {
+        // A cycle is already in flight.
+        State::Downloading | State::Checking => return false,
+        // A build is already staged over the running exe and only the relaunch is
+        // outstanding. Checking again would keep re-downloading the same asset
+        // every poll, because our own version string is still the old one.
+        State::Installed(_) => return false,
+        _ => {}
     }
     set_state(State::Checking);
 
@@ -167,7 +214,10 @@ pub fn run_cycle(interactive: bool, channel: Channel, on_signed_in: &dyn Fn()) -
     let mut outcome = check(channel, token.as_deref());
 
     // Ring above our tier and the user asked for it → sign in, then retry once.
-    if interactive && matches!(outcome, Outcome::Clamped) {
+    // Only worth a browser trip when we had NO usable session: being clamped with
+    // a valid token means the account's role, not its sign-in state, is the limit,
+    // and re-authenticating as the same user cannot change that.
+    if interactive && token.is_none() && matches!(outcome, Outcome::Clamped) {
         if let Some(fresh) = crate::auth::run_oauth_flow() {
             fresh.save();
             on_signed_in();
@@ -177,8 +227,13 @@ pub fn run_cycle(interactive: bool, channel: Channel, on_signed_in: &dyn Fn()) -
     }
 
     match outcome {
+        Outcome::Clamped if token.is_some() => {
+            log::line("update: signed in, but this account's role does not reach the locked ring");
+            set_state(State::NotEntitled);
+            false
+        }
         Outcome::Clamped => {
-            log::line("update: ring above the current tier — website sign-in required");
+            log::line("update: ring above the anonymous tier — website sign-in required");
             set_state(State::SignInRequired);
             false
         }
@@ -435,6 +490,41 @@ mod tests {
         assert!(is_actionable());
         set_state(State::Downloading);
         assert!(!is_actionable());
+        // Clicking cannot grant a role, so this one must not invite a browser trip.
+        set_state(State::NotEntitled);
+        assert!(!is_actionable());
         set_state(State::Unknown);
+    }
+
+    #[test]
+    fn only_an_explicit_ring_marker_is_read_off_a_filename() {
+        assert_eq!(channel_from_stem("starscape-wallpaper-0.4.0-beta"), Some(Channel::Beta));
+        assert_eq!(channel_from_stem("starscape-wallpaper-0.4.0-alpha"), Some(Channel::Alpha));
+        assert_eq!(channel_from_stem("starscape-wallpaper-0.4.0-stable"), Some(Channel::Stable));
+        assert_eq!(channel_from_stem("STARSCAPE-WALLPAPER-0.4.0-BETA"), Some(Channel::Beta));
+        // No marker: the `latest` alias, a plain versioned asset, a browser rename.
+        assert_eq!(channel_from_stem("starscape-wallpaper"), None);
+        assert_eq!(channel_from_stem("starscape-wallpaper-0.4.0"), None);
+        assert_eq!(channel_from_stem("starscape-wallpaper (1)"), None);
+        assert_eq!(channel_from_stem(""), None);
+    }
+
+    #[test]
+    fn a_ring_marked_download_wins_over_the_stored_ring() {
+        // A deliberate per-ring download re-locks the install…
+        assert_eq!(pick_channel(Some(Channel::Beta), Some(Channel::Stable)), Channel::Beta);
+        assert_eq!(pick_channel(Some(Channel::Stable), Some(Channel::Alpha)), Channel::Stable);
+    }
+
+    #[test]
+    fn an_unmarked_copy_never_moves_an_install_between_rings() {
+        // …but an unmarked file (the `latest` alias, a rename) does not.
+        assert_eq!(pick_channel(None, Some(Channel::Beta)), Channel::Beta);
+        assert_eq!(pick_channel(None, Some(Channel::Alpha)), Channel::Alpha);
+    }
+
+    #[test]
+    fn a_first_start_with_no_signal_at_all_is_stable() {
+        assert_eq!(pick_channel(None, None), Channel::Stable);
     }
 }

@@ -6,7 +6,7 @@ name: wallpaper-app
 
 on:
   push:
-    branches: [main, 'feat/feedback-52a5ef4c']
+    branches: [main]
     paths:
       - 'wallpaper-app/**'
       - '.github/workflows/wallpaper-app-build.yml'
@@ -177,7 +177,9 @@ jobs:
           $size = (Get-Item $exe).Length
           $base = "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/${{ github.ref_name }}"
           $asset = { param($n) "jsonb_build_object('url','$base/$n','kind','exe','sha256','$sha','size_bytes',$size)" }
-          Write-Host "=== Release token fingerprint: ${{ steps.token.outputs.fingerprint }}… (full UUID = `release-token` artefact) ==="
+          # Single-quoted tail: a backtick inside a PowerShell double-quoted string
+          # is the escape character, so "`release-token`" would emit a CR.
+          Write-Host ("=== Release token fingerprint: ${{ steps.token.outputs.fingerprint }}… " + '(full UUID = the "release-token" workflow artefact) ===')
           Write-Host "=== Register this Starscape build + point ALPHA at it (Supabase SQL editor / MCP) ==="
           Write-Host "WITH new_rel AS ("
           Write-Host "  INSERT INTO public.desktop_releases (product, version, release_token, platforms, notes)"

@@ -130,6 +130,19 @@ fn handle_connection(mut stream: TcpStream, state: &str) -> Option<Session> {
         return None;
     }
 
+    // Defence in depth on top of the CSRF state: a cross-origin form-POST
+    // navigation always carries an `Origin`, so if one is present it must be the
+    // SCC website. A missing header is NOT rejected — the state handshake is the
+    // real gate, and refusing on absence would break the flow on any browser that
+    // omits it (the data-uploader's loopback accepts it the same way).
+    if let Some(origin) = header(&head, "origin") {
+        if origin != WEB_BASE {
+            respond(&mut stream, 403, "text/html; charset=utf-8", page(false, BAD_ORIGIN).as_bytes());
+            log::line(&format!("auth: hand-off from an unexpected origin ({origin}) — rejected"));
+            return None;
+        }
+    }
+
     let fields = parse_form(&body);
     let got_state = field(&fields, "state");
     if got_state != state {
@@ -189,13 +202,20 @@ fn read_request(stream: &mut TcpStream) -> Option<(String, String)> {
 }
 
 fn content_length(head: &str) -> Option<usize> {
-    for line in head.lines() {
-        let Some((k, v)) = line.split_once(':') else { continue };
-        if k.trim().eq_ignore_ascii_case("content-length") {
-            return v.trim().parse::<usize>().ok();
+    header(head, "content-length").and_then(|v| v.parse::<usize>().ok())
+}
+
+/// First value of `name` (case-insensitive) in a raw request head, trimmed.
+/// `None` for an absent header or an empty value.
+fn header<'a>(head: &'a str, name: &str) -> Option<&'a str> {
+    head.lines().skip(1).find_map(|line| {
+        let (k, v) = line.split_once(':')?;
+        if !k.trim().eq_ignore_ascii_case(name) {
+            return None;
         }
-    }
-    None
+        let v = v.trim();
+        if v.is_empty() { None } else { Some(v) }
+    })
 }
 
 fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
@@ -210,6 +230,7 @@ fn respond(stream: &mut TcpStream, status: u16, content_type: &str, body: &[u8])
         200 => "OK",
         204 => "No Content",
         400 => "Bad Request",
+        403 => "Forbidden",
         404 => "Not Found",
         _ => "OK",
     };
@@ -304,6 +325,8 @@ const START_IN_APP: (&str, &str) =
     ("Starscape", "Bitte die Anmeldung über das Starscape-Traymenü starten.");
 const CSRF_MISMATCH: (&str, &str) = ("Starscape · Fehler", "CSRF-Mismatch — versuch es erneut.");
 const NO_TOKEN: (&str, &str) = ("Starscape · Fehler", "Kein Token erhalten.");
+const BAD_ORIGIN: (&str, &str) =
+    ("Starscape · Fehler", "Unerwartete Herkunft — Anmeldung abgelehnt.");
 
 /// The SCC-styled hand-off page, matching the uploader's `renderPage`.
 fn page(ok: bool, text: (&str, &str)) -> String {
@@ -365,6 +388,17 @@ mod tests {
         let head = "POST /scc/callback HTTP/1.1\r\nHost: x\r\ncontent-length: 42\r\n\r\n";
         assert_eq!(content_length(head), Some(42));
         assert_eq!(content_length("GET / HTTP/1.1\r\n\r\n"), None);
+    }
+
+    #[test]
+    fn origin_is_read_case_insensitively_and_never_from_the_request_line() {
+        let head = "POST /scc/callback HTTP/1.1\r\nHost: x\r\nOrigin: https://sc-companion.vercel.app\r\n\r\n";
+        assert_eq!(header(head, "origin"), Some(WEB_BASE));
+        assert_eq!(header(head, "referer"), None);
+        // An empty value must not read as "present" — that would reject the POST.
+        assert_eq!(header("POST / HTTP/1.1\r\nOrigin:  \r\n\r\n", "origin"), None);
+        // A path that looks like a header must never be mistaken for one.
+        assert_eq!(header("POST /origin: evil HTTP/1.1\r\nHost: x\r\n\r\n", "origin"), None);
     }
 
     #[test]
