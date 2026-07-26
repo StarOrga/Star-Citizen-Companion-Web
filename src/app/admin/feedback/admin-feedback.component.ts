@@ -79,6 +79,12 @@ interface FeedbackGroup {
 const DRAFT_KEY = 'sc.adminFeedback.draft';
 /** localStorage key remembering the last selected board view. */
 const VIEW_KEY = 'sc.adminFeedback.view';
+/**
+ * View the board opens in when nothing is remembered (feedback fda4e3ea): the
+ * processing mode, docked, maximized and on the full page alike. An explicit
+ * pick via the view switch still wins on the next open.
+ */
+const DEFAULT_VIEW: FeedbackView = 'workflow';
 /** localStorage key holding the processing mode's ticked-off topics. */
 const HANDLED_KEY = 'sc.adminFeedback.handled';
 
@@ -1253,6 +1259,12 @@ export class AdminFeedbackComponent implements OnInit {
     }
   }
 
+  /**
+   * The remembered view wins; without one the panel opens in the processing
+   * mode (feedback fda4e3ea). Opening the board is nearly always "what do I
+   * have to answer", not "let me browse the archive" — and the queue's own
+   * empty state hands the admin on to the numbers when there is nothing to do.
+   */
   private readView(): FeedbackView {
     try {
       const raw = localStorage.getItem(VIEW_KEY);
@@ -1260,7 +1272,7 @@ export class AdminFeedbackComponent implements OnInit {
     } catch {
       /* ignore */
     }
-    return 'overview';
+    return DEFAULT_VIEW;
   }
 
   /**

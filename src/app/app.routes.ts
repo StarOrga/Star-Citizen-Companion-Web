@@ -72,6 +72,15 @@ export const routes: Routes = [
           import('./codex/blueprint-detail.component').then((m) => m.BlueprintDetailComponent),
       },
       {
+        // FPS / on-foot equipment Codex section (#251) — curated weapons +
+        // armor, each linking to the EXISTING codex/:kind/:className detail.
+        // Static segment placed BEFORE codex/:kind/:className so it is never
+        // consumed by the :kind wildcard.
+        path: 'codex/fps',
+        loadComponent: () =>
+          import('./codex/fps-list.component').then((m) => m.FpsListComponent),
+      },
+      {
         // Keybindings reference — the complete default action profile for the
         // current build. Public; static segment placed BEFORE codex/:kind so it
         // is not consumed by the :kind wildcard.

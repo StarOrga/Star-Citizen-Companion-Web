@@ -21,6 +21,11 @@ function shipRow(over: Partial<CodexListRow> & { classNameSlug: string }): Codex
     subType: null,
     speed: null,
     isVariant: false,
+    // Required since the FPS section added it to CodexListRow (#251); a ship row
+    // has no attachment slot. Without it the spec build fails to compile, which
+    // is unrelated to this branch — the fixture simply was not updated with the
+    // new column.
+    attachType: null,
     payload: {},
     blueprintCategory: null,
     blueprintTier: null,

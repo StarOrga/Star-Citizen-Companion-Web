@@ -423,6 +423,25 @@
       "usedInCount": "Used in {{count}} blueprint(s)"
     }
   },
+  "fps": {
+    "title": "FPS Equipment",
+    "subtitle": "On-foot gear — weapons and armor, datamined from the live build.",
+    "bridgeLink": "FPS Gear",
+    "categoriesAria": "FPS equipment categories",
+    "category": {
+      "weapon": "Weapons",
+      "armor": "Armor"
+    },
+    "filters": {
+      "weaponType": "Weapon type",
+      "armorSlot": "Armor slot"
+    },
+    "armorStatsHint": "Armor has no detailed stat block in this build yet — name, grade, size and manufacturer only.",
+    "empty": {
+      "weapon": "No FPS weapons in this build.",
+      "armor": "No armor in this build."
+    }
+  },
   "news": {
     "title": "Verse News",
     "subtitle": "Live Comm-Link, Spectrum, YouTube & patches — auto-refresh every 5 min.",
@@ -1223,6 +1242,7 @@
       "done": "Done",
       "answerPlaceholder": "Write an answer… (Markdown supported, Ctrl+Enter to send)",
       "answerSend": "Answer",
+      "openQuestion": "Open question",
       "cheerAnswered": "Question answered — the routine takes it from here.",
       "cheerReplied": "Noted! On to the next one.",
       "allDoneTitle": "All caught up",

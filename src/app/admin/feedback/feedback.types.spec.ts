@@ -17,6 +17,7 @@ import {
   searchTokens,
   startOfMonth,
   topicTitle,
+  workflowFocusIndex,
 } from './feedback.types';
 
 function row(id: string, status: FeedbackStatus, created: string, extra: Partial<FeedbackRow> = {}): FeedbackRow {
@@ -269,6 +270,42 @@ describe('buildWorkflowQueue', () => {
   it('attaches each topic its own replies', () => {
     const queue = buildWorkflowQueue([q1], threads);
     expect(queue[0].replies.map((m) => m.id)).toEqual(['m1']);
+  });
+});
+
+describe('workflowFocusIndex', () => {
+  it('returns null for an empty thread', () => {
+    expect(workflowFocusIndex([])).toBeNull();
+  });
+
+  it('focuses the start of a trailing routine block, not its tail', () => {
+    const replies = [
+      msg('m1', 'q1', false, '2026-07-01T10:00:00Z'),
+      msg('m2', 'q1', true, '2026-07-01T11:00:00Z'),
+      msg('m3', 'q1', true, '2026-07-01T12:00:00Z'),
+    ];
+    expect(workflowFocusIndex(replies)).toBe(1);
+  });
+
+  it('focuses the single open Rückfrage', () => {
+    expect(workflowFocusIndex([msg('m1', 'q1', true, '2026-07-01T10:00:00Z')])).toBe(0);
+  });
+
+  it('falls back to the thread end when the admin had the last word', () => {
+    const replies = [
+      msg('m1', 'q1', true, '2026-07-01T10:00:00Z'),
+      msg('m2', 'q1', false, '2026-07-01T11:00:00Z'),
+    ];
+    expect(workflowFocusIndex(replies)).toBe(1);
+  });
+
+  it('ignores routine messages that were already answered', () => {
+    const replies = [
+      msg('m1', 'q1', true, '2026-07-01T10:00:00Z'),
+      msg('m2', 'q1', false, '2026-07-01T11:00:00Z'),
+      msg('m3', 'q1', false, '2026-07-01T12:00:00Z'),
+    ];
+    expect(workflowFocusIndex(replies)).toBe(2);
   });
 });
 

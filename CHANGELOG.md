@@ -21,6 +21,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which parks the topic until they answer) and, instead of plainly deleting a
   topic, can decline it with a mandatory explanation the author gets to read.
 
+## [0.47.2] - 2026-07-26
+
+### Added
+
+- **Codex — dedicated FPS equipment section (#251, part of #187).** A new
+  `codex/fps` section curates on-foot gear analogous to the ship/blueprint
+  codex: FPS weapons (with sub-type, manufacturer, size and grade facets) and
+  personal armor (filtered by equip slot — Helmet / Torso / Arms / Legs /
+  Undersuit / Backpack). Each item links to the existing detail view, which
+  already renders the weapon stat block and crafting usage. Armor has no rich
+  stat block in the current extract yet (tracked as #253); those cards degrade
+  gracefully to name / grade / size / slot / manufacturer.
+
+### Fixed
+
+- **Codex — untranslated item names no longer leak Star Citizen's raw
+  placeholder.** Entities whose localized name ships as the game's
+  "! … TRANSLATION NOT FOUND FOR LOCID … !" marker now fall back to the English
+  name (or a humanized class name) across the whole codex, instead of printing
+  the marker.
+
 ## [0.47.1] - 2026-07-26
 
 ### Changed
