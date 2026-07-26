@@ -219,6 +219,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                narrows both tabs and re-orders the hits by relevance; the day
                headings step aside for a single "N Treffer" heading while a query
                is active, because relevance and date order contradict each other. -->
+          @if (!embedded() || searchOpen()) {
           <div class="search-box">
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input
@@ -241,6 +242,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
               </button>
             }
           </div>
+          }
           <div class="filters">
             <!-- Active ↔ Archive tabs inside the overview (feedback eeba60e7).
                  Active holds the working set (open / in Arbeit / Rückfrage);
@@ -266,6 +268,45 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                 <span class="tab-count">{{ archiveCount() }}</span>
               </button>
             </div>
+            <!-- Docked panel only: reveal search / fold the chips / expand all,
+                 so the prime filter row stays a single line (feedback 3133f9). -->
+            @if (embedded()) {
+              <div class="toolbar-icons">
+                <button
+                  type="button"
+                  class="tb-icon"
+                  [class.active]="searchOpen()"
+                  [attr.aria-pressed]="searchOpen()"
+                  (click)="toggleSearch()"
+                  [attr.aria-label]="'adminFeedback.search.toggle' | translate">
+                  <span aria-hidden="true">⌕</span>
+                </button>
+                <button
+                  type="button"
+                  class="tb-icon labelled"
+                  [class.active]="filtersOpen()"
+                  [attr.aria-pressed]="filtersOpen()"
+                  (click)="toggleFilters()"
+                  [attr.aria-label]="'adminFeedback.filter.toggle' | translate">
+                  <span aria-hidden="true">⚲</span>
+                  {{ 'adminFeedback.filter.toggle' | translate }}
+                  @if (!filtersOpen() && (statusFilter() !== null || authorFilter() !== null)) {
+                    <span class="dot" aria-hidden="true"></span>
+                  }
+                </button>
+                @if (visibleMessages().length > 1) {
+                  <button
+                    type="button"
+                    class="tb-icon"
+                    (click)="toggleExpandAll()"
+                    [attr.aria-pressed]="allExpanded()"
+                    [attr.aria-label]="(allExpanded() ? 'adminFeedback.collapseAll' : 'adminFeedback.expandAll') | translate">
+                    <span class="chev" [class.open]="allExpanded()" aria-hidden="true">▸</span>
+                  </button>
+                }
+              </div>
+            }
+            @if (!embedded() || filtersOpen()) {
             <!-- Status chips narrow the CURRENT tab; their vocabulary differs
                  per tab, so switching tabs clears the chip selection. -->
             <div class="status-filter" role="group" [attr.aria-label]="'adminFeedback.statusFilter.label' | translate">
@@ -374,23 +415,14 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                 }
               </div>
             }
+            }
           </div>
-          @if (embedded() && visibleMessages().length > 1) {
-            <button
-              type="button"
-              class="expand-all"
-              (click)="toggleExpandAll()"
-              [attr.aria-pressed]="allExpanded()">
-              <span class="chev" [class.open]="allExpanded()">▸</span>
-              {{ (allExpanded() ? 'adminFeedback.collapseAll' : 'adminFeedback.expandAll') | translate }}
-            </button>
-          }
         </div>
 
         <!-- One motivating totals line for the current filtering (feedback
              605d317d): open Rückfragen + shipped so far. "In Arbeit" is
              deliberately left out — it isn't a number worth celebrating. -->
-        @if (motivatingStats().rueckfragen > 0 || motivatingStats().shipped > 0 || motivatingStats().issues > 0) {
+        @if (!embedded() && (motivatingStats().rueckfragen > 0 || motivatingStats().shipped > 0 || motivatingStats().issues > 0)) {
           <p class="board-stats">
             @if (motivatingStats().rueckfragen > 0) {
               <span class="stat rueckfragen">{{ 'adminFeedback.stats.rueckfragen' | translate: { count: motivatingStats().rueckfragen } }}</span>
@@ -711,15 +743,42 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       </ng-template>
 
       <!-- New-topic composer — only in the overview; the processing mode has its
-           own inline answer box and the dashboard is read-only. -->
+           own inline answer box and the dashboard is read-only. On the full board
+           it stays pinned below the list; in the docked panel it collapses to a
+           slim "＋ Neues Thema" bar so the thread list owns the panel, and expands
+           on demand (feedback 3133f9). -->
       @if (view() === 'overview') {
-        <sc-feedback-composer
-          class="main-composer"
-          [persistKey]="draftKey"
-          [busy]="busy()"
-          placeholder="adminFeedback.compose.placeholder"
-          sendLabel="adminFeedback.compose.send"
-          [onSubmit]="createTopicBound" />
+        @if (!embedded()) {
+          <sc-feedback-composer
+            class="main-composer"
+            [persistKey]="draftKey"
+            [busy]="busy()"
+            placeholder="adminFeedback.compose.placeholder"
+            sendLabel="adminFeedback.compose.send"
+            [onSubmit]="createTopicBound" />
+        } @else if (composerOpen()) {
+          <div class="compose-sheet">
+            <div class="cs-head">
+              <span class="cs-title">{{ 'adminFeedback.compose.newTopic' | translate }}</span>
+              <button
+                type="button"
+                class="cs-close"
+                (click)="closeComposer()"
+                [attr.aria-label]="'adminFeedback.compose.collapse' | translate">✕</button>
+            </div>
+            <sc-feedback-composer
+              [persistKey]="draftKey"
+              [busy]="busy()"
+              placeholder="adminFeedback.compose.placeholder"
+              sendLabel="adminFeedback.compose.send"
+              [onSubmit]="createComposerBound" />
+          </div>
+        } @else {
+          <button type="button" class="new-topic-bar" (click)="openComposer()">
+            <span class="nt-plus" aria-hidden="true">＋</span>
+            {{ 'adminFeedback.compose.newTopic' | translate }}
+          </button>
+        }
       }
     </section>
   `,
@@ -981,25 +1040,96 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     }
     .archive-tab.active .tab-count { color: inherit; }
 
-    .expand-all {
+    /* ---- Compact toolbar icon cluster (docked panel, feedback 3133f9) ----
+       Reveal search · fold the status/author chips · expand-all, kept to the
+       right of the always-visible Aktiv/Archiv tabs so the prime row is one
+       line. On the full board this cluster never renders (chips are inline). */
+    .toolbar-icons { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+    .tb-icon {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      background: transparent;
+      gap: 5px;
+      min-height: 28px;
+      padding: 4px 9px;
+      background: var(--sc-bg-2);
       border: 1px solid var(--sc-border);
       border-radius: 999px;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.72rem;
+      font-size: 0.74rem;
       white-space: nowrap;
       cursor: pointer;
       transition: all 0.16s ease;
     }
-    .expand-all:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .expand-all:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
-    .expand-all .chev { display: inline-block; transition: transform 0.16s ease; }
-    .expand-all .chev.open { transform: rotate(90deg); }
+    .tb-icon:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .tb-icon.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
+    .tb-icon:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
+    .tb-icon .chev { display: inline-block; font-size: 0.72rem; transition: transform 0.16s ease; }
+    .tb-icon .chev.open { transform: rotate(90deg); }
+    /* Active-filter marker on the collapsed "Filter" button, so a fold that is
+       hiding an applied chip still reads as "narrowed". */
+    .tb-icon .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent-hot); }
+
+    /* ---- Collapsed new-topic bar (docked panel) ----
+       Stands in for the pinned composer: one tap opens the full compose sheet,
+       so writing a topic is one click away but reading the list is the default. */
+    .new-topic-bar {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      flex: 0 0 auto;
+      padding: 9px 14px;
+      background: var(--sc-bg-2);
+      border: 1px dashed var(--sc-border);
+      border-radius: 10px;
+      color: var(--sc-fg-1);
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .new-topic-bar:hover { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.08); }
+    .new-topic-bar:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
+    .new-topic-bar .nt-plus { font-size: 1.05rem; line-height: 1; color: var(--sc-accent); }
+
+    /* ---- Expanded compose sheet (docked panel) ---- */
+    .compose-sheet {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 0 0 auto;
+      padding: 10px;
+      background: var(--sc-bg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 10px;
+    }
+    .cs-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .cs-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+      color: var(--sc-fg-2);
+    }
+    .cs-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 0;
+      background: transparent;
+      color: var(--sc-fg-2);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .cs-close:hover { color: var(--sc-fg-0); background: rgba(255, 255, 255, 0.06); }
+    .cs-close:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
 
     /* One motivating totals line under the filters (feedback 605d317d): open
        Rückfragen (violet, like their status pill) + shipped so far (accent).
@@ -2148,6 +2278,41 @@ export class AdminFeedbackComponent implements OnInit {
   /** Stable handler reference for the new-topic composer. */
   readonly createTopicBound = (payload: ComposerPayload): Promise<boolean> =>
     this.createTopic(payload);
+
+  // ---- Compact panel disclosures (feedback 3133f9) ------------------------
+  // In the docked FAB panel vertical space is the scarce resource: the control
+  // chrome and the new-topic composer used to stack ahead of the list and leave
+  // barely one thread visible. So in `embedded()` mode the search field, the
+  // status/author chips and the composer each fold away and open on demand —
+  // the thread list owns the panel. On the full board none of this applies.
+
+  /** Docked panel: the new-topic composer is collapsed to a bar by default. */
+  readonly composerOpen = signal(false);
+  openComposer(): void { this.composerOpen.set(true); }
+  closeComposer(): void { this.composerOpen.set(false); }
+
+  /** Docked panel: status + author chips fold behind a "Filter" disclosure. */
+  readonly filtersOpen = signal(false);
+  toggleFilters(): void { this.filtersOpen.update((v) => !v); }
+
+  /** Docked panel: the search field folds behind a search icon. Collapsing it
+   *  also drops any active query, so a hidden search never silently filters. */
+  readonly searchOpen = signal(false);
+  toggleSearch(): void {
+    const next = !this.searchOpen();
+    this.searchOpen.set(next);
+    if (!next) this.clearSearch();
+  }
+
+  /**
+   * Compact new-topic submit: same as {@link createTopicBound}, but folds the
+   * sheet back to the bar once the topic is persisted, so the list returns.
+   */
+  readonly createComposerBound = async (payload: ComposerPayload): Promise<boolean> => {
+    const ok = await this.createTopic(payload);
+    if (ok) this.composerOpen.set(false);
+    return ok;
+  };
 
   /** Create a new feedback topic. Returns true once persisted (composer clears). */
   async createTopic(payload: ComposerPayload): Promise<boolean> {

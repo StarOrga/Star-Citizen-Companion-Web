@@ -1215,7 +1215,8 @@
     "showLess": "Weniger anzeigen",
     "filter": {
       "label": "Nach Ersteller filtern",
-      "all": "Alle"
+      "all": "Alle",
+      "toggle": "Filter"
     },
     "statusFilter": {
       "label": "Nach Status filtern",
@@ -1227,7 +1228,8 @@
       "clear": "Suche löschen",
       "results": "{{count}} Treffer · nach Relevanz",
       "empty": "Keine Treffer für „{{query}}“.",
-      "inThread": "im Thread"
+      "inThread": "im Thread",
+      "toggle": "Suche"
     },
     "tab": {
       "label": "Zwischen aktiven Themen und Archiv wechseln",
@@ -1279,6 +1281,8 @@
     "compose": {
       "placeholder": "Was könnte besser sein? Markdown möglich.",
       "send": "Senden",
+      "newTopic": "Neues Thema",
+      "collapse": "Schließen",
       "sendHint": "Enter = senden · Shift+Enter = neue Zeile",
       "sendHintCtrl": "Strg/Cmd+Enter = senden · Enter = neue Zeile",
       "bold": "Fett",
