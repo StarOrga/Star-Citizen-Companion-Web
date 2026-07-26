@@ -4,6 +4,14 @@ import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexKind } from './codex.service';
 import { HARDPOINT_CATEGORY_ORDER, HardpointCategory } from './codex-format';
+import {
+  EquippedStat,
+  GroupedSlot,
+  commonPortLabel,
+  formatEquippedStat,
+  groupIdenticalSlots,
+  sizeBadge,
+} from './codex-equipped-stats';
 
 // One labelled slot in the read-only layout (Rung 1): the port, what the
 // stock loadout installs there, and where to jump on click.
@@ -17,11 +25,28 @@ export interface LayoutSlot {
   manufacturerCode: string | null;
   /** Optional highlighted stat chip, e.g. the jump range on the quantum drive (#137). */
   statChip?: string | null;
+  /**
+   * Curated headline stats of the item installed here, picked for ITS type
+   * (a gun gets damage/velocity/range, a shield gets HP/regen). Empty when the
+   * extract carries no usable numbers — the row then simply shows no stats
+   * rather than zeros.
+   */
+  stats?: EquippedStat[];
+  /** The occupant is a real gun but this extract has no stats for it. */
+  statsMissing?: boolean;
 }
 
 export interface LayoutGroup {
   category: HardpointCategory;
   slots: LayoutSlot[];
+}
+
+/** A category cluster after identical hardpoints have been collapsed. */
+interface RenderGroup {
+  category: HardpointCategory;
+  /** Total hardpoints in the cluster (the header count — not the row count). */
+  count: number;
+  rows: GroupedSlot<LayoutSlot>[];
 }
 
 // Which column a category cluster docks to (desktop).
@@ -68,38 +93,60 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
       <section class="cluster" [attr.data-side]="side" [attr.data-cat]="g.category">
         <h3 class="cl-head">
           {{ ('codex.portCategory.' + g.category) | translate }}
-          <span class="cl-ct">{{ g.slots.length }}</span>
+          <span class="cl-ct">{{ g.count }}</span>
         </h3>
         <ul class="cl-slots">
-          @for (s of g.slots; track s.port + $index) {
-            <li class="slot" [class.empty]="!s.className">
-              @if (s.className && s.kind) {
+          @for (row of g.rows; track row.slot.port + $index) {
+            <li class="slot" [class.empty]="!row.slot.className">
+              @if (row.slot.className && row.slot.kind) {
                 <span class="slot-duo">
-                  <a class="slot-btn linked" [routerLink]="['/codex', s.kind, s.className]">
-                    <span class="slot-port">{{ s.port }}</span>
-                    <span class="slot-item">{{ s.name }}</span>
+                  <a class="slot-btn linked"
+                     [routerLink]="['/codex', row.slot.kind, row.slot.className]"
+                     [attr.title]="portTitle(row)">
+                    <span class="slot-port">{{ portLabel(row) }}</span>
+                    <span class="slot-item">{{ row.slot.name }}</span>
                     <span class="slot-chips">
-                      @if (s.size != null) { <span class="chip">S{{ s.size }}</span> }
-                      @if (s.grade) { <span class="chip">{{ s.grade }}</span> }
-                      @if (s.manufacturerCode) { <span class="chip">{{ s.manufacturerCode }}</span> }
-                      @if (s.statChip) { <span class="chip accent">{{ s.statChip }}</span> }
+                      @if (badge(row); as b) { <span class="chip size">{{ b }}</span> }
+                      @if (row.slot.grade) { <span class="chip">{{ row.slot.grade }}</span> }
+                      @if (row.slot.manufacturerCode) {
+                        <span class="chip">{{ row.slot.manufacturerCode }}</span>
+                      }
+                      @if (row.slot.statChip) { <span class="chip accent">{{ row.slot.statChip }}</span> }
                     </span>
+                    @if (row.slot.stats?.length) {
+                      <dl class="slot-stats">
+                        @for (st of row.slot.stats; track st.labelKey) {
+                          <div class="stat">
+                            <dt>
+                              {{ st.labelKey | translate }}
+                              @if (st.derived) {
+                                <span class="derived"
+                                      [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
+                              }
+                            </dt>
+                            <dd>{{ fmtStat(st) }}</dd>
+                          </div>
+                        }
+                      </dl>
+                    } @else if (row.slot.statsMissing) {
+                      <span class="slot-note">{{ 'codex.equipped.noStats' | translate }}</span>
+                    }
                   </a>
-                  <button type="button" class="slot-swap" (click)="swapRequested.emit(s)"
+                  <button type="button" class="slot-swap" (click)="swapRequested.emit(row.slot)"
                           [attr.aria-label]="'codex.swap.title' | translate"
                           [attr.title]="'codex.swap.title' | translate">⇄</button>
                 </span>
-              } @else if (s.className) {
-                <span class="slot-btn static">
-                  <span class="slot-port">{{ s.port }}</span>
-                  <span class="slot-item">{{ s.name }}</span>
+              } @else if (row.slot.className) {
+                <span class="slot-btn static" [attr.title]="portTitle(row)">
+                  <span class="slot-port">{{ portLabel(row) }}</span>
+                  <span class="slot-item">{{ row.slot.name }}</span>
                   <span class="slot-chips">
-                    @if (s.size != null) { <span class="chip">S{{ s.size }}</span> }
+                    @if (badge(row); as b) { <span class="chip size">{{ b }}</span> }
                   </span>
                 </span>
               } @else {
-                <span class="slot-btn static">
-                  <span class="slot-port">{{ s.port }}</span>
+                <span class="slot-btn static" [attr.title]="portTitle(row)">
+                  <span class="slot-port">{{ portLabel(row) }}</span>
                   <span class="slot-empty">{{ 'codex.detail.loadoutEmpty' | translate }}</span>
                 </span>
               }
@@ -152,6 +199,22 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
       color: var(--sc-fg-2); border: 1px solid var(--sc-border); white-space: nowrap; }
     .chip.accent { color: var(--sc-accent);
       border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    /* Size/count is the first thing a pilot scans for — give it the accent. */
+    .chip.size { color: var(--sc-fg-0, var(--sc-fg-1)); font-variant-numeric: tabular-nums;
+      border-color: color-mix(in srgb, var(--sc-accent) 35%, var(--sc-border)); }
+
+    /* Per-hardpoint stat readout: label/value pairs that pack left-to-right and
+       wrap, so they stay tight in a narrow cluster and never stretch into
+       "Alpha damage ................ 19" in a wide one. */
+    .slot-stats { margin: 5px 0 0; padding: 5px 0 0; display: flex; flex-wrap: wrap;
+      gap: 2px 14px;
+      border-top: 1px solid color-mix(in srgb, var(--sc-border) 70%, transparent); }
+    .slot-stats .stat { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+    .slot-stats dt { font-size: 0.63rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .slot-stats dd { margin: 0; font-size: 0.7rem; color: var(--sc-fg-1); white-space: nowrap;
+      font-variant-numeric: tabular-nums; }
+    .slot-stats .derived { color: var(--sc-fg-2); cursor: help; }
+    .slot-note { margin-top: 4px; font-size: 0.63rem; color: var(--sc-fg-2); font-style: italic; }
 
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
@@ -165,11 +228,40 @@ export class CodexHardpointLayoutComponent {
   /** A filled slot's ⇄ was clicked — the parent opens the swap-preview dock. */
   readonly swapRequested = output<LayoutSlot>();
 
-  private ordered = computed(() =>
+  private ordered = computed<RenderGroup[]>(() =>
     HARDPOINT_CATEGORY_ORDER
       .map((c) => this.groups().find((g) => g.category === c))
-      .filter((g): g is LayoutGroup => !!g && g.slots.length > 0),
+      .filter((g): g is LayoutGroup => !!g && g.slots.length > 0)
+      .map((g) => ({
+        category: g.category,
+        count: g.slots.length,
+        rows: groupIdenticalSlots(g.slots),
+      })),
   );
+
+  /** "3× S3" / "S3" / "3×" — never a guessed size (see sizeBadge). */
+  badge(row: GroupedSlot<LayoutSlot>): string | null {
+    return sizeBadge(row.count, row.slot.size);
+  }
+
+  /**
+   * Port label for the row. A collapsed run is prefixed with its count and
+   * labelled with the part of the name all its ports share, so it never claims
+   * N copies of one specific mount (see commonPortLabel).
+   */
+  portLabel(row: GroupedSlot<LayoutSlot>): string {
+    if (row.count === 1) return row.slot.port;
+    return `${row.count}× ${commonPortLabel(row.ports.map((p) => p.port))}`;
+  }
+
+  /** Hover text listing every port a collapsed row stands for. */
+  portTitle(row: GroupedSlot<LayoutSlot>): string {
+    return row.ports.map((p) => p.port).join(' · ');
+  }
+
+  fmtStat(stat: EquippedStat): string {
+    return formatEquippedStat(stat);
+  }
 
   readonly leftGroups = computed(() =>
     this.ordered().filter((g) => LEFT_CATEGORIES.includes(g.category)),

@@ -277,7 +277,8 @@
       "quantumRange": "Quantum-Reichweite",
       "quantumSpeed": "Quantum-Geschwindigkeit",
       "quantumFuel": "Quantum-Treibstoff",
-      "fuelCapacity": "Wasserstoff-Treibstoff"
+      "fuelCapacity": "Wasserstoff-Treibstoff",
+      "hardpointExplainer": "Ein Hardpoint ist ein Montagepunkt an der Hülle: Jede Waffe, jeder Schild, Kühler, Triebwerk oder Quantenantrieb sitzt auf einem und lässt sich gegen ein anderes Item gleichen Typs und gleicher Größe tauschen. Unten steht, was das Schiff ab Werk mitbringt."
     },
     "swap": {
       "title": "Was passt hier?",
@@ -349,6 +350,29 @@
       "retry": "Erneut versuchen",
       "collapse": "3D-Ansicht einklappen",
       "expand": "3D-Ansicht ausklappen"
+    },
+    "equipped": {
+      "alphaDamage": "Alpha-Schaden",
+      "dps": "DPS",
+      "fireRate": "Feuerrate",
+      "projectileSpeed": "Geschossgeschwindigkeit",
+      "range": "Reichweite",
+      "shieldHp": "Schild-HP",
+      "shieldRegen": "Regeneration",
+      "regenDelay": "Regen-Verzögerung",
+      "downedDelay": "Ausfall-Verzögerung",
+      "jumpRange": "Sprungreichweite",
+      "driveSpeed": "Antriebsgeschwindigkeit",
+      "spoolTime": "Aufladezeit",
+      "cooldown": "Abklingzeit",
+      "thrust": "Schub",
+      "fuelCapacity": "Treibstoffkapazität",
+      "fuelRate": "Treibstoffrate",
+      "health": "Haltbarkeit",
+      "distortion": "Distortion-Kapazität",
+      "derivedHint": "Abgeleiteter Wert, aus anderen extrahierten Werten berechnet.",
+      "noStats": "Für diese Waffe liegen im aktuellen Extract keine Werte vor.",
+      "armamentMissing": "{{count}} Waffenaufhängungen führen in diesem Extract keine Standardwaffe — das Spiel hinterlegt Standard-Bewaffnung in einem separaten Datensatz, den unser P4K-Extractor noch nicht auflöst."
     }
   },
   "blueprint": {

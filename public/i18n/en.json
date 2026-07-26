@@ -277,7 +277,8 @@
       "quantumRange": "Quantum range",
       "quantumSpeed": "Quantum speed",
       "quantumFuel": "Quantum fuel",
-      "fuelCapacity": "Hydrogen fuel"
+      "fuelCapacity": "Hydrogen fuel",
+      "hardpointExplainer": "A hardpoint is a mounting point on the hull: every weapon, shield, cooler, thruster or quantum drive sits on one, and can be swapped for another item of the same type and size. Below is what the ship carries as delivered."
     },
     "swap": {
       "title": "What fits here",
@@ -349,6 +350,29 @@
       "retry": "Retry",
       "collapse": "Collapse 3D view",
       "expand": "Expand 3D view"
+    },
+    "equipped": {
+      "alphaDamage": "Alpha damage",
+      "dps": "DPS",
+      "fireRate": "Fire rate",
+      "projectileSpeed": "Projectile speed",
+      "range": "Range",
+      "shieldHp": "Shield HP",
+      "shieldRegen": "Regeneration",
+      "regenDelay": "Regen delay",
+      "downedDelay": "Downed delay",
+      "jumpRange": "Jump range",
+      "driveSpeed": "Drive speed",
+      "spoolTime": "Spool-up",
+      "cooldown": "Cooldown",
+      "thrust": "Thrust",
+      "fuelCapacity": "Fuel capacity",
+      "fuelRate": "Fuel rate",
+      "health": "Durability",
+      "distortion": "Distortion capacity",
+      "derivedHint": "Derived value, calculated from other extracted stats.",
+      "noStats": "No stats for this weapon in the current extract.",
+      "armamentMissing": "{{count}} weapon mounts carry no stock weapon in this extract — the game keeps default weapon fits in a separate record that our P4K extractor does not resolve yet."
     }
   },
   "blueprint": {
