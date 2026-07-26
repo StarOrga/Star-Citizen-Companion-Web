@@ -51,6 +51,39 @@ export interface ItemPort {
   maxSize: number | null;
   types: string[];
   flags: string[];
+  // ── hardpoint position on the hull (#137 part 3) ──
+  // Absent on anything extracted before the uploader learned to read the hull
+  // mesh's helper nodes, so all three are optional AND nullable.
+  /** Mesh helper node the port attaches to (audit trail for the join). */
+  helperName?: string | null;
+  /** [x,y,z] metres in hull model space: +X starboard, +Y nose, +Z up. */
+  position?: number[] | null;
+  /** [x,y,z,w] mount facing in the same space. */
+  rotation?: number[] | null;
+}
+
+/**
+ * Where each of a ship's hardpoints sits on the hull, keyed by RAW port name.
+ * Covers the default-loadout mounts too (on ships, weapon/shield hardpoints
+ * usually appear nowhere else) plus `hardpoint_*` helper nodes of the mesh.
+ * Parsed out of the ship's `.cga` by the desktop uploader — see
+ * `data-uploader/python/sc_extract/hardpoints.py` for the axis convention.
+ */
+export interface HardpointTransformEntry {
+  position: number[];
+  rotation: number[] | null;
+  /** The mesh helper node this resolved to. */
+  helper: string;
+  /** How it was matched: `helper` | `portName` | `mesh`. */
+  source: 'helper' | 'portName' | 'mesh';
+}
+
+/** The box hardpoint positions live in, so a consumer can normalise them. */
+export interface HardpointFrameData {
+  min: number[];
+  max: number[];
+  /** `bbox` = the hull's own bounding box; `ports` = derived from the points. */
+  source: 'bbox' | 'ports';
 }
 
 export interface LoadoutEntry {
@@ -104,6 +137,11 @@ export interface ShipPayload extends BaseEntityPayload {
   };
   itemPorts: ItemPort[];
   defaultLoadout: LoadoutEntry[];
+  // Hardpoint positions on the hull (#137 part 3). Both absent for every ship
+  // extracted before the uploader could read them — consumers must treat that
+  // as "position unknown", never as an error.
+  hardpointTransforms?: Record<string, HardpointTransformEntry> | null;
+  hardpointFrame?: HardpointFrameData | null;
 }
 
 export interface WeaponPayload extends BaseEntityPayload {
@@ -258,6 +296,12 @@ export interface CodexItemPort {
   types: string[];
   flags: string[];
   portIndex: number;
+  /** Hull mesh helper node this port attaches to; null = unresolved. */
+  helperName: string | null;
+  /** [x,y,z] metres in hull model space; null = position unknown. */
+  position: number[] | null;
+  /** [x,y,z,w] mount facing; null = unknown. */
+  rotation: number[] | null;
 }
 
 export interface CodexEntityString {

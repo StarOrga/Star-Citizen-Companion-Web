@@ -372,6 +372,17 @@
       "systems": "Systems",
       "other": "Other"
     },
+    "hardpointMap": {
+      "title": "Position on the hull",
+      "hint": "Point at a hardpoint below — the marker shows where it sits on the ship.",
+      "approximate": "extent approximated",
+      "viewTop": "Top view",
+      "viewSide": "Side view (starboard)",
+      "viewTopAria": "Top view of the hull with {{count}} hardpoint markers",
+      "viewSideAria": "Side view of the hull with {{count}} hardpoint markers",
+      "nose": "Nose",
+      "readoutIdle": "No hardpoint selected"
+    },
     "skins": {
       "title": "Liveries",
       "source": "From Data.p4k · real hull + real textures",

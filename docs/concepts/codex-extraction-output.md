@@ -92,6 +92,30 @@ interface ItemPort {
   maxSize: number | null;
   types: string[];     // accepted item types (e.g. ["DockingCollar"])
   flags: string[];
+  // ── hardpoint POSITION (#137 part 3) — ships only, and only when the port
+  // resolved to a helper node in the hull .cga mesh. Absent/null otherwise;
+  // "no position" is a valid, expected state, never an error.
+  helperName?: string | null;   // the mesh helper node the port attaches to
+  position?: number[] | null;   // [x,y,z] metres, hull model space
+  rotation?: number[] | null;   // [x,y,z,w] mount facing, same space
+}
+
+// portName -> where that hardpoint sits on the hull. Ships only. Covers the
+// default-loadout mounts too (on ships, weapon/shield hardpoints usually appear
+// nowhere else) plus every `hardpoint_*` helper node of the mesh, capped at 512.
+interface HardpointTransform {
+  position: number[];            // [x,y,z] metres, hull model space
+  rotation: number[] | null;     // [x,y,z,w]
+  helper: string;                // the mesh node it resolved to (audit trail)
+  source: "helper" | "portName" | "mesh";  // how the join was made
+}
+
+// The box those positions live in, so a consumer can normalise 0..1 without
+// knowing the hull. `source: "ports"` means the hull bounding box was NOT usable
+// as a shared frame and the extent was derived from the points — approximate.
+interface HardpointFrame {
+  min: number[]; max: number[];
+  source: "bbox" | "ports";
 }
 
 interface LoadoutEntry {       // ships only — stock/default loadout
@@ -133,6 +157,12 @@ interface Ship extends BaseEntity {
   };
   itemPorts: ItemPort[];
   defaultLoadout: LoadoutEntry[]; // stock hardpoint → item className map
+  // WHERE each hardpoint sits on the hull, parsed from the ship's .cga helper
+  // nodes (CryEngine axes: +X starboard, +Y nose, +Z up; metres, never rescaled).
+  // Both null when the mesh had no readable node table — the Codex then falls
+  // back to its category-grouped list with no positions at all.
+  hardpointTransforms: Record<string, HardpointTransform>;
+  hardpointFrame: HardpointFrame | null;
 }
 ```
 

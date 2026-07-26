@@ -116,6 +116,59 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(el.querySelector('.slot-item')).toBeNull();
   });
 
+  it('marks a row as locatable only when its port has a hull position', () => {
+    const located = { ...PANTHER, rawPort: 'hardpoint_weapon_top_left' };
+    const unknown = slot({ port: 'Hardpoint Weapon Bottom', rawPort: 'hardpoint_weapon_bottom' });
+    fixture.componentRef.setInput('locatablePorts', ['hardpoint_weapon_top_left']);
+    const el = render([{ category: 'weapons', slots: [located, unknown] }]);
+    const rows = Array.from(el.querySelectorAll('.slot'));
+    expect(rows[0].classList).toContain('located');
+    expect(rows[1].classList).not.toContain('located');
+  });
+
+  it('emits the raw port names of a hovered row, and null on leave', () => {
+    const seen: (string[] | null)[] = [];
+    fixture.componentInstance.hovered.subscribe((v) => seen.push(v));
+    const el = render([
+      {
+        category: 'weapons',
+        slots: [
+          { ...PANTHER, rawPort: 'hardpoint_weapon_top_left' },
+          { ...PANTHER, rawPort: 'hardpoint_weapon_top_right' },
+        ],
+      },
+    ]);
+    const row = el.querySelector('.slot') as HTMLElement;
+    row.dispatchEvent(new MouseEvent('mouseenter'));
+    row.dispatchEvent(new MouseEvent('mouseleave'));
+    // The two identical mounts collapse into ONE row standing for both ports.
+    expect(seen).toEqual([['hardpoint_weapon_top_left', 'hardpoint_weapon_top_right'], null]);
+  });
+
+  it('emits null for a row whose port name the extract never carried', () => {
+    const seen: (string[] | null)[] = [];
+    fixture.componentInstance.hovered.subscribe((v) => seen.push(v));
+    const el = render([{ category: 'weapons', slots: [PANTHER] }]); // no rawPort
+    (el.querySelector('.slot') as HTMLElement).dispatchEvent(new MouseEvent('mouseenter'));
+    expect(seen).toEqual([null]);
+  });
+
+  it('highlights the row the hull map points at', () => {
+    fixture.componentRef.setInput('activePorts', ['hardpoint_weapon_top_left']);
+    const el = render([
+      {
+        category: 'weapons',
+        slots: [
+          { ...PANTHER, rawPort: 'hardpoint_weapon_top_left' },
+          slot({ port: 'Hardpoint Weapon Bottom', rawPort: 'hardpoint_weapon_bottom' }),
+        ],
+      },
+    ]);
+    const rows = Array.from(el.querySelectorAll('.slot'));
+    expect(rows[0].classList).toContain('on');
+    expect(rows[1].classList).not.toContain('on');
+  });
+
   it('says so when a real gun has no numbers in this extract', () => {
     const el = render([
       {

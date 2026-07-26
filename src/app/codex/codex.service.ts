@@ -903,7 +903,25 @@ function mapPort(p: Record<string, unknown>): CodexItemPort {
     types: (p['types'] as string[] | null) ?? [],
     flags: (p['flags'] as string[] | null) ?? [],
     portIndex: (p['port_index'] as number) ?? 0,
+    // Hardpoint position on the hull (#137 part 3). NULL on every row ingested
+    // before the uploader could read the hull mesh — a missing coordinate is
+    // "unknown", never zero.
+    helperName: (p['helper_name'] as string | null) ?? null,
+    position: numericVector(p['position'], 3),
+    rotation: numericVector(p['rotation'], 4),
   };
+}
+
+/**
+ * A jsonb coordinate column as a finite numeric tuple, else null. The column is
+ * jsonb, so anything could technically be in there; a half-valid vector must not
+ * reach the projection math.
+ */
+function numericVector(value: unknown, length: number): number[] | null {
+  if (!Array.isArray(value) || value.length !== length) return null;
+  return value.every((v) => typeof v === 'number' && Number.isFinite(v))
+    ? (value as number[])
+    : null;
 }
 
 function mapString(s: Record<string, unknown>): CodexEntityString {

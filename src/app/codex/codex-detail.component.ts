@@ -72,6 +72,16 @@ import {
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexHardpointLayoutComponent, LayoutGroup, LayoutSlot } from './codex-hardpoint-layout.component';
 import { CodexSwapDockComponent } from './codex-swap-dock.component';
+import { ShipHardpointMapComponent } from './ship-hardpoint-map.component';
+import {
+  HardpointFrame,
+  HardpointMarker,
+  HardpointMarkerInput,
+  HardpointTransform,
+  buildHardpointMarkers,
+  readHardpointFrame,
+  readHardpointTransforms,
+} from './hardpoint-map';
 import { ShipSkinViewerComponent } from './ship-skin-viewer.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { ShipLinkService } from './ship-link.service';
@@ -133,7 +143,7 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexSwapDockComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
+  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexSwapDockComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -501,8 +511,21 @@ interface GearRecipe {
                 {{ 'codex.equipped.armamentMissing' | translate: { count: emptyWeaponMounts() } }}
               </p>
             }
+            <!-- WHERE each hardpoint sits on the hull (#137 part 3). Rendered
+                 only when this ship's extract carries coordinates; every ship
+                 without them keeps exactly the previous list-only layout. -->
+            @if (hardpointFrame(); as frame) {
+              <sc-ship-hardpoint-map
+                [markers]="hardpointMarkers()"
+                [frame]="frame"
+                [activePorts]="activePorts()"
+                (hovered)="setActivePorts($event)" />
+            }
             <sc-codex-hardpoint-layout
               [groups]="layoutGroups()"
+              [locatablePorts]="locatablePorts()"
+              [activePorts]="activePorts()"
+              (hovered)="setActivePorts($event)"
               (swapRequested)="openSwapDock($event)" />
             @if (swapSlot()) {
               <sc-codex-swap-dock class="swap-host" [slot]="swapSlot()" (closed)="swapSlot.set(null)" />
@@ -1334,6 +1357,82 @@ export class CodexDetailComponent implements OnInit {
     this.swapSlot.set(this.swapSlot()?.port === slot.port ? null : slot);
   }
 
+  // ── hardpoint positions on the hull (#137 part 3) ───────────────────────────
+  // The coordinates come out of the ship's .cga mesh via the desktop uploader,
+  // so an already-ingested catalog carries none of this and every computed below
+  // resolves to empty — the loadout list then renders exactly as before.
+  private readonly hardpointTransforms = computed<Map<string, HardpointTransform>>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return new Map();
+    return readHardpointTransforms(
+      (d.payload as { hardpointTransforms?: unknown } | undefined)?.hardpointTransforms,
+    );
+  });
+
+  /** The raw, validated frame from the payload (null when absent/degenerate). */
+  private readonly rawHardpointFrame = computed<HardpointFrame | null>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return null;
+    return readHardpointFrame(
+      (d.payload as { hardpointFrame?: unknown } | undefined)?.hardpointFrame,
+    );
+  });
+
+  /**
+   * One marker per hardpoint the loadout list actually shows a row for, in row
+   * order. Mesh helpers no port references are deliberately NOT plotted: a dot
+   * without a row is a riddle, not information. `codex_item_ports` rows are
+   * included too — they carry their own coordinates since migration
+   * 20260726220000 and are the ship's structural ports.
+   */
+  readonly hardpointMarkers = computed<HardpointMarker[]>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return [];
+    const transforms = this.hardpointTransforms();
+    const frame = this.rawHardpointFrame();
+    if (transforms.size === 0 || !frame) return [];
+    const inputs: HardpointMarkerInput[] = [];
+    const seen = new Set<string>();
+    const add = (rawPort: string | null | undefined, itemName: string | null) => {
+      if (!rawPort || seen.has(rawPort)) return;
+      const hit = transforms.get(rawPort);
+      if (!hit) return;
+      seen.add(rawPort);
+      inputs.push({
+        port: rawPort,
+        label: this.humanizePort(rawPort),
+        itemName,
+        position: hit.position,
+      });
+    };
+    for (const item of this.loadoutAll()) add(item.port, item.className ? item.name : null);
+    for (const port of d.ports) add(port.portName, null);
+    return buildHardpointMarkers(inputs, frame);
+  });
+
+  /**
+   * The frame handed to the map: only once at least one hardpoint resolved. A
+   * frame alone would draw an empty hull outline, which reads as a broken
+   * feature rather than as "no data yet".
+   */
+  readonly hardpointFrame = computed<HardpointFrame | null>(() =>
+    this.hardpointMarkers().length > 0 ? this.rawHardpointFrame() : null,
+  );
+
+  /** Raw port names the map can actually locate — drives the row affordance. */
+  readonly locatablePorts = computed<string[]>(() =>
+    this.hardpointMarkers().map((m) => m.port),
+  );
+
+  /**
+   * The hardpoint(s) currently highlighted, hovered from either side (a loadout
+   * row or a marker). One signal for both directions keeps them in sync.
+   */
+  readonly activePorts = signal<readonly string[]>([]);
+  setActivePorts(ports: string[] | null): void {
+    this.activePorts.set(ports ?? []);
+  }
+
   /** Loadout groups mapped to the hardpoint-layout input shape (Rung 1). */
   readonly layoutGroups = computed<LayoutGroup[]>(() => {
     // Jump range rendered as a chip directly on the quantum-drive slot (#137).
@@ -1359,6 +1458,8 @@ export class CodexDetailComponent implements OnInit {
         };
         return {
           port: this.humanizePort(l.port),
+          // Raw name kept alongside the label so the hull map can match the row.
+          rawPort: l.port,
           className: l.className,
           kind: l.kind,
           name: l.name,

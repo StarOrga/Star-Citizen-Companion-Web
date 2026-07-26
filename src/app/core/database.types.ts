@@ -438,6 +438,7 @@ export type Database = {
           channel: string
           created_at: string
           flags: string[]
+          helper_name: string | null
           id: string
           max_size: number | null
           min_size: number | null
@@ -446,6 +447,8 @@ export type Database = {
           patch_version: string
           port_index: number
           port_name: string | null
+          position: Json | null
+          rotation: Json | null
           types: string[]
         }
         Insert: {
@@ -454,6 +457,7 @@ export type Database = {
           channel: string
           created_at?: string
           flags?: string[]
+          helper_name?: string | null
           id?: string
           max_size?: number | null
           min_size?: number | null
@@ -462,6 +466,8 @@ export type Database = {
           patch_version: string
           port_index?: number
           port_name?: string | null
+          position?: Json | null
+          rotation?: Json | null
           types?: string[]
         }
         Update: {
@@ -470,6 +476,7 @@ export type Database = {
           channel?: string
           created_at?: string
           flags?: string[]
+          helper_name?: string | null
           id?: string
           max_size?: number | null
           min_size?: number | null
@@ -478,6 +485,8 @@ export type Database = {
           patch_version?: string
           port_index?: number
           port_name?: string | null
+          position?: Json | null
+          rotation?: Json | null
           types?: string[]
         }
         Relationships: [

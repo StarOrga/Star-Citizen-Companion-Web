@@ -372,6 +372,17 @@
       "systems": "Systeme",
       "other": "Sonstige"
     },
+    "hardpointMap": {
+      "title": "Position an der Hülle",
+      "hint": "Zeiger auf einen Hardpoint unten — der Marker zeigt, wo er am Schiff sitzt.",
+      "approximate": "Ausdehnung genähert",
+      "viewTop": "Draufsicht",
+      "viewSide": "Seitenansicht (Steuerbord)",
+      "viewTopAria": "Draufsicht der Hülle mit {{count}} Hardpoint-Markern",
+      "viewSideAria": "Seitenansicht der Hülle mit {{count}} Hardpoint-Markern",
+      "nose": "Bug",
+      "readoutIdle": "Kein Hardpoint ausgewählt"
+    },
     "skins": {
       "title": "Lackierungen",
       "source": "Aus Data.p4k · echtes Hull + echte Texturen",

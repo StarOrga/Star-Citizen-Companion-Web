@@ -17,6 +17,11 @@ import {
 // stock loadout installs there, and where to jump on click.
 export interface LayoutSlot {
   port: string; // humanized port label
+  /**
+   * The RAW port name (e.g. `hardpoint_weapon_left`) — the key the hull map
+   * highlights by, because a humanized label is not unique or matchable.
+   */
+  rawPort?: string;
   className: string | null; // null = stock-empty port
   kind: CodexKind | null; // null = installed item not resolvable → no link
   name: string | null;
@@ -59,11 +64,15 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
 
 /**
  * Read-only hardpoint layout (loadout ladder Rung 1): the stock loadout as
- * labelled slot clusters in two columns. No positional port data exists in
- * the extract, so clusters are grouped by functional category — an honest
- * schematic, not an invented blueprint. Opening a slot navigates to the
- * installed item's detail page. The ship render deliberately stays out of
- * this block; the detail hero above already shows it.
+ * labelled slot clusters in two columns, grouped by functional category.
+ * Opening a slot navigates to the installed item's detail page. The ship render
+ * deliberately stays out of this block; the detail hero above already shows it.
+ *
+ * Since #137 part 3 a row can also be LOCATED: hovering (or focusing) it emits
+ * its raw port name(s), which the hull map above turns into a highlighted
+ * marker, and `activePorts` marks the row when the highlight came from the map.
+ * Ships whose extract carries no coordinates simply never get an
+ * `activePorts` match — the layout then behaves exactly as before.
  */
 @Component({
   selector: 'sc-codex-hardpoint-layout',
@@ -101,7 +110,10 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
         </h3>
         <ul class="cl-slots">
           @for (row of g.rows; track row.slot.port + $index) {
-            <li class="slot" [class.empty]="!row.slot.className">
+            <li class="slot" [class.empty]="!row.slot.className"
+                [class.located]="isLocated(row)" [class.on]="isActive(row)"
+                (mouseenter)="emitHover(row)" (mouseleave)="hovered.emit(null)"
+                (focusin)="emitHover(row)" (focusout)="hovered.emit(null)">
               @if (row.slot.className && row.slot.kind) {
                 <span class="slot-duo">
                   <a class="slot-btn linked"
@@ -209,6 +221,12 @@ const RIGHT_CATEGORIES: HardpointCategory[] = ['defense', 'power', 'propulsion']
     a.slot-btn:hover { border-color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
     .slot.empty .slot-btn { background: transparent; border-style: dashed; }
+    /* A row whose position on the hull is known gets a locator rail; when the
+       hull map highlights it, the rail lights up. Rows without coordinates keep
+       their previous appearance entirely. */
+    .slot.located .slot-btn { border-left: 2px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
+    .slot.located.on .slot-btn { border-left-color: var(--sc-accent);
+      background: color-mix(in srgb, var(--sc-accent) 10%, var(--sc-bg-0)); }
 
     /* Size badge | name + meta — the two things that identify the occupant. */
     .slot-head { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
@@ -267,6 +285,37 @@ export class CodexHardpointLayoutComponent {
   readonly groups = input.required<LayoutGroup[]>();
   /** A filled slot's ⇄ was clicked — the parent opens the swap-preview dock. */
   readonly swapRequested = output<LayoutSlot>();
+  /**
+   * Raw port names whose hull position is known. A row is only marked as
+   * locatable when its port is in here, so the affordance never promises a
+   * marker the map cannot show.
+   */
+  readonly locatablePorts = input<readonly string[]>([]);
+  /** Raw port names currently highlighted (came from the hull map). */
+  readonly activePorts = input<readonly string[]>([]);
+  /** A row was hovered/focused: its raw port names, or `null` on leave. */
+  readonly hovered = output<string[] | null>();
+
+  /** Raw port names a (possibly collapsed) row stands for. */
+  private rawPorts(row: GroupedSlot<LayoutSlot>): string[] {
+    return row.ports.map((p) => p.rawPort).filter((p): p is string => !!p);
+  }
+
+  emitHover(row: GroupedSlot<LayoutSlot>): void {
+    const ports = this.rawPorts(row);
+    this.hovered.emit(ports.length > 0 ? ports : null);
+  }
+
+  /** At least one of the row's ports has a known position on the hull. */
+  isLocated(row: GroupedSlot<LayoutSlot>): boolean {
+    const locatable = this.locatablePorts();
+    return locatable.length > 0 && this.rawPorts(row).some((p) => locatable.includes(p));
+  }
+
+  isActive(row: GroupedSlot<LayoutSlot>): boolean {
+    const active = this.activePorts();
+    return active.length > 0 && this.rawPorts(row).some((p) => active.includes(p));
+  }
 
   private ordered = computed<RenderGroup[]>(() =>
     HARDPOINT_CATEGORY_ORDER
