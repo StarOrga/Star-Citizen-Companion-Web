@@ -4,6 +4,7 @@ import {
   FeedbackStatus,
   buildWorkflowQueue,
   bucketLabelStatus,
+  computePace,
   computeStats,
   feedbackBucket,
   filterWorkflowScope,
@@ -11,12 +12,16 @@ import {
   isAwaitingAdmin,
   isContinuedAfterShip,
   isOwnTopic,
+  lifecycleSnapshot,
+  neededInput,
   normalizeSearchText,
   rankFeedbackSearch,
   refKind,
   searchFeedback,
   searchTokens,
+  shippedPerWeek,
   startOfMonth,
+  startOfWeek,
   topicTitle,
   workflowFocusIndex,
   workflowScopeCounts,
@@ -552,5 +557,204 @@ describe('startOfMonth', () => {
     expect(start.getMonth()).toBe(6);
     expect(start.getDate()).toBe(1);
     expect(start.getHours()).toBe(0);
+  });
+});
+
+describe('startOfWeek', () => {
+  it('returns Monday 00:00 of the containing week', () => {
+    // 2026-07-24 is a Friday.
+    const start = new Date(startOfWeek(new Date(2026, 6, 24, 13, 45).getTime()));
+    expect(start.getDay()).toBe(1);
+    expect(start.getDate()).toBe(20);
+    expect(start.getHours()).toBe(0);
+  });
+
+  it('keeps a Sunday in the week that started the Monday before', () => {
+    // 2026-07-26 is a Sunday → still the week of Monday the 20th.
+    const start = new Date(startOfWeek(new Date(2026, 6, 26, 23, 0).getTime()));
+    expect(start.getDate()).toBe(20);
+  });
+});
+
+describe('neededInput', () => {
+  const shipped = '2026-07-10T10:00:00Z';
+
+  it('is true while the topic is parked as a Rückfrage', () => {
+    expect(neededInput(row('a', 'needs_input', '2026-07-01T10:00:00Z'), [])).toBeTrue();
+  });
+
+  it('is true for a system message posted before the ship', () => {
+    const r = row('b', 'shipped', '2026-07-01T10:00:00Z', { shipped_at: shipped });
+    expect(neededInput(r, [msg('m1', 'b', true, '2026-07-05T10:00:00Z')])).toBeTrue();
+  });
+
+  it('ignores the post-ship review reply', () => {
+    const r = row('c', 'shipped', '2026-07-01T10:00:00Z', { shipped_at: shipped });
+    expect(neededInput(r, [msg('m1', 'c', true, '2026-07-10T10:00:05Z')])).toBeFalse();
+  });
+
+  it('ignores human replies entirely', () => {
+    const r = row('d', 'open', '2026-07-01T10:00:00Z');
+    expect(neededInput(r, [msg('m1', 'd', false, '2026-07-02T10:00:00Z')])).toBeFalse();
+    expect(neededInput(r, undefined)).toBeFalse();
+  });
+});
+
+describe('computePace', () => {
+  const rows: FeedbackRow[] = [
+    // 24 h, 48 h and 96 h to ship — all in July.
+    row('s1', 'shipped', '2026-07-02T10:00:00Z', { shipped_at: '2026-07-03T10:00:00Z' }),
+    row('s2', 'shipped', '2026-07-04T10:00:00Z', { shipped_at: '2026-07-06T10:00:00Z' }),
+    row('s3', 'shipped', '2026-07-05T10:00:00Z', { shipped_at: '2026-07-09T10:00:00Z' }),
+    // Shipped in June — outside the July window, but part of all-time.
+    row('s0', 'shipped', '2026-06-01T10:00:00Z', { shipped_at: '2026-06-02T10:00:00Z' }),
+    row('q1', 'needs_input', '2026-07-06T10:00:00Z'),
+  ];
+  const threads = new Map<string, FeedbackMessage[]>([
+    ['s2', [msg('m1', 's2', true, '2026-07-05T10:00:00Z')]],
+  ]);
+  const july = Date.parse('2026-07-01T00:00:00Z');
+
+  it('takes the median of the durations that shipped inside the window', () => {
+    expect(computePace(rows, threads, july).medianShipHours).toBe(48);
+  });
+
+  it('averages the two middle values for an even count', () => {
+    expect(computePace(rows, threads, null).medianShipHours).toBe(36);
+  });
+
+  it('reports null when nothing shipped in the window', () => {
+    expect(computePace([rows[4]], threads, july).medianShipHours).toBeNull();
+  });
+
+  it('rates the Rückfragen against the topics raised in the window', () => {
+    const pace = computePace(rows, threads, july);
+    expect(pace.raised).toBe(4);
+    expect(pace.questioned).toBe(2);
+    expect(pace.questionRate).toBeCloseTo(0.5, 5);
+  });
+
+  it('handles an empty board', () => {
+    expect(computePace([], new Map(), null)).toEqual({
+      medianShipHours: null,
+      raised: 0,
+      questioned: 0,
+      questionRate: 0,
+    });
+  });
+
+  it('ignores a ship stamp that predates the topic', () => {
+    const broken = row('x', 'shipped', '2026-07-10T10:00:00Z', { shipped_at: '2026-07-01T10:00:00Z' });
+    expect(computePace([broken], new Map(), null).medianShipHours).toBeNull();
+  });
+});
+
+describe('shippedPerWeek', () => {
+  const now = new Date(2026, 6, 24, 12, 0).getTime(); // Friday 2026-07-24
+  const thisWeek = new Date(2026, 6, 22, 9, 0).toISOString(); // Wed 22.07.
+  const lastWeek = new Date(2026, 6, 15, 9, 0).toISOString(); // Wed 15.07.
+
+  const rows: FeedbackRow[] = [
+    row('a', 'shipped', '2026-07-01T10:00:00Z', { shipped_at: thisWeek }),
+    row('b', 'shipped', '2026-07-01T10:00:00Z', { shipped_at: thisWeek }),
+    row('c', 'shipped', '2026-07-01T10:00:00Z', { shipped_at: lastWeek }),
+    // Never shipped → not throughput.
+    row('d', 'open', '2026-07-01T10:00:00Z'),
+  ];
+
+  it('buckets ships into the requested number of weeks, newest last', () => {
+    const weeks = shippedPerWeek(rows, 4, now);
+    expect(weeks.length).toBe(4);
+    expect(weeks.map((w) => w.count)).toEqual([0, 0, 1, 2]);
+    expect(weeks[3].current).toBeTrue();
+    expect(weeks[0].current).toBeFalse();
+  });
+
+  it('starts every bucket on a Monday', () => {
+    for (const week of shippedPerWeek(rows, 4, now)) {
+      expect(new Date(week.start).getDay()).toBe(1);
+    }
+  });
+
+  it('drops ships older than the covered range', () => {
+    expect(shippedPerWeek(rows, 1, now).map((w) => w.count)).toEqual([2]);
+  });
+
+  it('handles an empty board', () => {
+    expect(shippedPerWeek([], 3, now).map((w) => w.count)).toEqual([0, 0, 0]);
+  });
+});
+
+describe('lifecycleSnapshot', () => {
+  const now = Date.parse('2026-07-26T10:00:00Z');
+  const rows: FeedbackRow[] = [
+    row('todo', 'open', '2026-07-20T10:00:00Z'),
+    row('oldest', 'open', '2026-07-16T10:00:00Z'),
+    row('reaped', 'open', '2026-07-22T10:00:00Z', {
+      processing_note: 'auto-reopened: in_progress claim went stale (interrupted run) — resuming',
+    }),
+    row('answered', 'needs_input', '2026-07-21T10:00:00Z'),
+    row('asking', 'needs_input', '2026-07-23T10:00:00Z'),
+    row('working', 'in_progress', '2026-07-24T10:00:00Z'),
+    row('hold', 'in_progress', '2026-07-24T10:00:00Z', { ship_ref: 'https://example.test/pull/1' }),
+    row('shipped', 'shipped', '2026-07-10T10:00:00Z', { shipped_at: '2026-07-12T10:00:00Z' }),
+    row('continued', 'shipped', '2026-07-10T10:00:00Z', { shipped_at: '2026-07-12T10:00:00Z' }),
+    row('issue', 'issue_created', '2026-07-11T10:00:00Z'),
+  ];
+  const threads = new Map<string, FeedbackMessage[]>([
+    ['answered', [
+      msg('a1', 'answered', true, '2026-07-21T11:00:00Z'),
+      msg('a2', 'answered', false, '2026-07-21T12:00:00Z'),
+    ]],
+    ['asking', [msg('b1', 'asking', true, '2026-07-23T11:00:00Z')]],
+    ['continued', [msg('c1', 'continued', false, '2026-07-13T10:00:00Z')]],
+  ]);
+
+  const snapshot = lifecycleSnapshot(rows, threads, now);
+
+  it('counts live occupancy through the board buckets', () => {
+    expect(snapshot.counts).toEqual({
+      // 3 open + the answered Rückfrage + the continuation
+      todo: 5,
+      awaiting_admin: 1,
+      in_progress: 2,
+      shipped: 1,
+      issue_created: 1,
+      rejected: 0,
+    });
+    expect(snapshot.total).toBe(10);
+  });
+
+  it('splits in_progress into active work and review holds', () => {
+    expect(snapshot.working).toBe(1);
+    expect(snapshot.reviewHolds).toBe(1);
+  });
+
+  it('breaks the ToDo bucket down by how a topic got there', () => {
+    expect(snapshot.answered).toBe(1);
+    expect(snapshot.continuations).toBe(1);
+    expect(snapshot.reopened).toBe(1);
+  });
+
+  it('ages the oldest active topic in whole days', () => {
+    // The reopened continuation ("continued", raised 10.07.) is active again,
+    // so it — not the oldest plain ToDo — sets the backlog age.
+    expect(snapshot.oldestActiveDays).toBe(16);
+  });
+
+  it('handles an empty board', () => {
+    const empty = lifecycleSnapshot([], new Map(), now);
+    expect(empty.total).toBe(0);
+    expect(empty.oldestActiveDays).toBeNull();
+    expect(empty.counts.todo).toBe(0);
+  });
+
+  it('ignores terminal topics when ageing the backlog', () => {
+    const onlyArchive = lifecycleSnapshot(
+      [row('old', 'issue_created', '2020-01-01T10:00:00Z')],
+      new Map(),
+      now,
+    );
+    expect(onlyArchive.oldestActiveDays).toBeNull();
   });
 });

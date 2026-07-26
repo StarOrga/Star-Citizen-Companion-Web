@@ -4,6 +4,34 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.5] - 2026-07-26
+
+### Added
+
+- **Codex — FPS armor stat block (#253, part of #187).** Personal-armor items
+  (`Char_Armor_*` slots) now carry a stat block: the extractor routes them
+  through the same generic component-stat dump ship components use, so
+  `SCItemSuitArmorParams` / `SCItemClothingParams` values (resistances,
+  temperature ratings, capacity) surface on the item detail. Renders when
+  present, graceful empty otherwise. *Note:* the values light up in the live app
+  only after a new uploader-binary release carrying this extractor and a fresh
+  P4K re-extract + upload — the current build predates the change.
+
+## [0.47.4] - 2026-07-26
+
+### Added
+
+- **Admin feedback — the Fortschritt view now maps the lifecycle and shows the
+  routine's pace.** A live **Lebenszyklus** map draws the status machine from
+  `docs/feedback-routine.md`: every stage a topic can be in (ToDo → In Arbeit →
+  Geshipped, plus the Rückfrage branch and the terminal issue/legacy stages) and
+  every branch it can take — the routine's question and the answer back, the
+  reaper reopening a stale claim, the review hold, the post-ship continuation
+  loop — each annotated with how many topics sit there right now. Next to it:
+  a **Durchsatz** sparkline (ships per week over the last 12 weeks) and, per
+  window, the **median time-to-ship** and the **Rückfrage rate**. Everything is
+  always-on and read-only — the view deliberately has no filters or toggles.
+
 ## [0.47.3] - 2026-07-26
 
 ### Added

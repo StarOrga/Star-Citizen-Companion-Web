@@ -683,3 +683,251 @@ export function rankFeedbackSearch(
   if (!searchTokens(query).length) return [...rows];
   return searchFeedback(rows, threads, query).map((hit) => hit.row);
 }
+
+// ---- Pace: how fast the routine turns topics around ------------------------
+
+/**
+ * Window metrics that describe the routine's *pace* rather than its volume.
+ * Deliberately a second shape next to {@link FeedbackStats}: the dashboard's
+ * shipped/ToDo/answered contract is load-bearing for the existing donut + bars,
+ * so the newer numbers are computed in their own additive pass.
+ */
+export interface FeedbackPace {
+  /**
+   * Median hours from a topic's creation to its ship, over the topics whose
+   * ship landed inside the window. `null` when nothing shipped in it.
+   *
+   * Only rows carrying a real `shipped_at` are measured — the `updated_at`
+   * fallback {@link computeStats} uses for *attribution* would invent
+   * durations for legacy rows that never got a ship stamp.
+   */
+  medianShipHours: number | null;
+  /** Topics *raised* inside the window — the denominator of `questionRate`. */
+  raised: number;
+  /** ...of those, how many the routine had to ask a Rückfrage about. */
+  questioned: number;
+  /** `questioned / raised`, 0..1 — `0` for an empty window. */
+  questionRate: number;
+}
+
+/**
+ * True when the routine had to ask about this topic at least once.
+ *
+ * The routine posts exactly two kinds of system reply: the Rückfrage that parks
+ * a topic, and the review reply it posts *after* a ship. So a system message is
+ * a Rückfrage iff it predates the topic's ship stamp — or the topic never
+ * shipped at all. A topic sitting in `needs_input` counts even when the question
+ * lives in the processing note rather than the thread.
+ */
+export function neededInput(row: FeedbackRow, replies?: readonly FeedbackMessage[]): boolean {
+  if (row.status === 'needs_input') return true;
+  const shipped = timeOf(row.shipped_at);
+  for (const msg of replies ?? []) {
+    if (!msg.is_system) continue;
+    if (!shipped || timeOf(msg.created_at) < shipped) return true;
+  }
+  return false;
+}
+
+/** Median of an unsorted list of numbers; `null` for an empty list. */
+function median(values: readonly number[]): number | null {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * Aggregate the board's pace into one time window (`from` inclusive, `null` =
+ * all-time), attributing each metric by its own timestamp exactly like
+ * {@link computeStats}: ship duration by the ship stamp, the Rückfrage rate by
+ * the topic's creation.
+ */
+export function computePace(
+  rows: readonly FeedbackRow[],
+  threads: ThreadMap,
+  from: number | null,
+): FeedbackPace {
+  const inWindow = (t: number) => from === null || t >= from;
+  const durations: number[] = [];
+  let raised = 0;
+  let questioned = 0;
+
+  for (const row of rows) {
+    const shipped = timeOf(row.shipped_at);
+    const created = timeOf(row.created_at);
+    if (shipped && created && shipped >= created && inWindow(shipped)) {
+      durations.push((shipped - created) / 3_600_000);
+    }
+    if (!inWindow(created)) continue;
+    raised++;
+    if (neededInput(row, threads.get(row.id))) questioned++;
+  }
+
+  return {
+    medianShipHours: median(durations),
+    raised,
+    questioned,
+    questionRate: raised === 0 ? 0 : questioned / raised,
+  };
+}
+
+// ---- Throughput over time -------------------------------------------------
+
+/** One weekly bucket of the throughput chart. */
+export interface ShipWeek {
+  /** Epoch ms of the bucket's Monday, 00:00 local time. */
+  start: number;
+  /** Ships stamped inside the week. */
+  count: number;
+  /** True for the bucket containing "now" (its week is still running). */
+  current: boolean;
+}
+
+/** Epoch ms for Monday 00:00 of the local week containing `now`. */
+export function startOfWeek(now: number = Date.now()): number {
+  const d = new Date(now);
+  const mondayIndex = (d.getDay() + 6) % 7;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() - mondayIndex).getTime();
+}
+
+/**
+ * Ships per calendar week for the last `weeks` weeks, oldest bucket first and
+ * the running week last — the dashboard's throughput sparkline.
+ *
+ * A ship is counted by its `shipped_at` stamp, so a topic reopened as a
+ * continuation counts once, in the week of its *latest* ship (the re-ship bumps
+ * `shipped_at`). Rows without a ship stamp are not throughput and are skipped.
+ * Bucket starts are built with calendar arithmetic rather than a fixed 7×24 h
+ * offset, so a DST switch inside the range does not shift the boundaries.
+ */
+export function shippedPerWeek(
+  rows: readonly FeedbackRow[],
+  weeks = 12,
+  now: number = Date.now(),
+): ShipWeek[] {
+  const span = Math.max(1, weeks);
+  const base = new Date(startOfWeek(now));
+  const buckets: ShipWeek[] = [];
+  for (let back = span - 1; back >= 0; back--) {
+    buckets.push({
+      start: new Date(base.getFullYear(), base.getMonth(), base.getDate() - back * 7).getTime(),
+      count: 0,
+      current: back === 0,
+    });
+  }
+
+  for (const row of rows) {
+    const t = timeOf(row.shipped_at);
+    if (!t || t < buckets[0].start) continue;
+    for (let i = buckets.length - 1; i >= 0; i--) {
+      if (t >= buckets[i].start) {
+        buckets[i].count++;
+        break;
+      }
+    }
+  }
+
+  return buckets;
+}
+
+// ---- Lifecycle snapshot ---------------------------------------------------
+
+/**
+ * The reaper stamps every claim it reopens with this note prefix (see
+ * docs/feedback-routine "Resuming interrupted work"), which is the only
+ * evidence in the row data that a topic took the `in_progress → open` branch.
+ */
+const REOPENED_NOTE = /^\s*auto-reopened/i;
+
+/**
+ * A live reading of the status machine documented in docs/feedback-routine
+ * ("Contract"): how many topics sit in each stage right now, plus the counts
+ * behind the branches the lifecycle can take. Everything here is derivable from
+ * the rows + threads the board already holds — there is no transition history
+ * table, so the map annotates *occupancy*, not throughput.
+ */
+export interface LifecycleSnapshot {
+  /** Live occupancy per presentation bucket (see {@link feedbackBucket}). */
+  counts: Record<FeedbackBucket, number>;
+  /** ToDo topics the reaper reopened after a stale claim — still on the pile. */
+  reopened: number;
+  /** ToDo topics that are an answered Rückfrage, handed back to the routine. */
+  answered: number;
+  /** ToDo topics that are a post-ship continuation waiting to be picked up. */
+  continuations: number;
+  /** `in_progress` topics the routine is implementing right now (no PR yet). */
+  working: number;
+  /** `in_progress` topics parked as a review hold — their PR waits for a human. */
+  reviewHolds: number;
+  /** Whole days the oldest topic in an active bucket has been open; `null` if none. */
+  oldestActiveDays: number | null;
+  /** Every topic on the board. */
+  total: number;
+}
+
+/** All buckets at zero — the snapshot's starting point (and its empty state). */
+function emptyBucketCounts(): Record<FeedbackBucket, number> {
+  return {
+    awaiting_admin: 0,
+    todo: 0,
+    in_progress: 0,
+    shipped: 0,
+    issue_created: 0,
+    rejected: 0,
+  };
+}
+
+/**
+ * Aggregate the board into one lifecycle snapshot. Pure: `now` is injected so
+ * the age metric is testable.
+ */
+export function lifecycleSnapshot(
+  rows: readonly FeedbackRow[],
+  threads: ThreadMap,
+  now: number = Date.now(),
+): LifecycleSnapshot {
+  const snapshot: LifecycleSnapshot = {
+    counts: emptyBucketCounts(),
+    reopened: 0,
+    answered: 0,
+    continuations: 0,
+    working: 0,
+    reviewHolds: 0,
+    oldestActiveDays: null,
+    total: rows.length,
+  };
+
+  let oldestActive = 0;
+
+  for (const row of rows) {
+    const replies = threads.get(row.id);
+    const bucket = feedbackBucket(row, replies);
+    snapshot.counts[bucket]++;
+
+    if (ACTIVE_BUCKETS.includes(bucket)) {
+      const created = timeOf(row.created_at);
+      if (created && (oldestActive === 0 || created < oldestActive)) oldestActive = created;
+    }
+
+    if (bucket === 'todo') {
+      if (isContinuedAfterShip(row, replies)) snapshot.continuations++;
+      // An answered Rückfrage keeps its `needs_input` status on the wire; the
+      // bucket already resolved "answered" for us.
+      else if (row.status === 'needs_input') snapshot.answered++;
+      if (REOPENED_NOTE.test(row.processing_note ?? '')) snapshot.reopened++;
+    } else if (bucket === 'in_progress') {
+      // `in_progress` WITH a PR is an intentional review hold the reaper skips;
+      // without one the routine is actively implementing (docs/feedback-routine
+      // "Surfacing open review-holds").
+      if (row.ship_ref) snapshot.reviewHolds++;
+      else snapshot.working++;
+    }
+  }
+
+  if (oldestActive) {
+    snapshot.oldestActiveDays = Math.max(0, Math.floor((now - oldestActive) / 86_400_000));
+  }
+
+  return snapshot;
+}
