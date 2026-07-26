@@ -17,6 +17,24 @@
 | Ammo `Ammunition.{Speed,Range,Size,Capacity}` + 6-ch damage | `AmmoParams` carries `speed/lifetime/size` directly; damage is nested under projectile params, not a flat `damage` block | ammo keeps a `raw` blob with everything; typed fields are best-effort |
 | ~180 ships, ~250 weapons, ~600 components | **920 ships/vehicles, 1326 weapons, 2145 components, 21033 items, 1124 manufacturers, 235 ammo** (includes AI variants/templates) | counts are much higher; Wave 2 should expect variant rows (filter `*_PU_AI_*`, `*_Template`, `MASTER_*` for the "buyable" view) |
 
+## 0b. Confirmed gaps in the 4.9.0 catalog (audited 2026-07-26)
+
+Measured against the live `codex_*` tables, not assumed. Each of these makes a
+stat the web app **cannot** display; closing them is extractor work.
+
+| Gap | Evidence | Consequence in the app |
+|---|---|---|
+| `weaponParams.fireRate` is `0` on **all 430** ship weapons that carry the struct (likewise `projectilesPerShot`, `heatPerShot` mostly) | fire actions / `SWeaponActionFireParams` are not resolved | **no DPS and no fire-rate row anywhere.** `damagePerSecond()` in `codex-equipped-stats.ts` is implemented and starts working by itself once fireRate is real |
+| `weaponParams.ammoContainerRecord` is `null` on **all 430** | ammo container record not resolved | **no magazine / max-ammo count.** Also forces the gun→projectile link to go through the `<weaponClass>_AMMO` name convention instead of the record reference |
+| Ship weapon hardpoints are stock-**empty**: only **4 of 314** ships have any `subType=Gun` in `defaultLoadout`; 145 ships have weapon ports that are all empty | CIG keeps default weapon fits in a separate loadout record the extractor does not follow (ship `itemPorts` are structural only — the Nomad exposes 5, none of them weapons) | the codex cannot show a ship's stock armament (e.g. the Nomad's 3× S3). The UI discloses this per ship instead of implying the ship is unarmed |
+| Coolers carry no cooling rate, power plants no power output | neither has a dedicated `SCItem*Params` struct (already noted above) | those hardpoints show durability only |
+
+Projectile stats that ARE reachable: ammunition rows carry `speed`, `lifetime`
+and per-channel `impactDamage`, so alpha damage, projectile speed and range
+(`speed × lifetime`) are real for ~71% of `subType=Gun` weapons. Spot-checked
+against erkul.games: `KLWE_LaserRepeater_S3` → 43.65 dmg / 1480 m/s / 1924 m,
+all three exact.
+
 ## 1. Output directory layout
 
 ```

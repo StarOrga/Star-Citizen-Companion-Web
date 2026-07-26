@@ -314,6 +314,25 @@ describe('codex-format', () => {
     it('defaults to other', () => {
       expect(categorizePort([], 'hardpoint_mystery')).toBe('other');
     });
+
+    // A ship must not look armed with things that cannot shoot: the fire-group
+    // controller module and the interior rack holding the crew's personal FPS
+    // weapons both have "weapon" in the port name but are not armament.
+    it('keeps controllers and FPS weapon racks out of the weapons cluster', () => {
+      expect(categorizePort([], 'hardpoint_controller_weapon')).toBe('avionics');
+      expect(categorizePort(['WeaponController'], 'hardpoint_controller_weapon')).toBe('avionics');
+      expect(categorizePort([], 'hardpoint_weapon_rack_01')).toBe('systems');
+    });
+
+    it('clusters every controller module under avionics, whatever it controls', () => {
+      expect(categorizePort(['ShieldController'], 'hardpoint_controller_shield')).toBe('avionics');
+      expect(categorizePort(['EnergyController'], 'hardpoint_controller_energy')).toBe('avionics');
+    });
+
+    it('still classifies real gun mounts as weapons', () => {
+      expect(categorizePort([], 'hardpoint_weapon_top_left')).toBe('weapons');
+      expect(categorizePort([], 'hardpoint_turret')).toBe('weapons');
+    });
   });
 
   describe('classifyStatPurpose', () => {
