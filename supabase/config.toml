@@ -123,10 +123,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.readme-sync]
-# JWT verification ON — admin-only. Publishes docs/readme-io/pages to the
-# project's ReadMe (readme.io) site via the v2 API using the README_IO_API_KEY
-# secret. The handler additionally requires profiles.role = 'admin', so a
-# regular signed-in user cannot rewrite the public documentation.
+# JWT verification ON — admin-only. READ-ONLY health check for the ReadMe
+# (readme.io) site; it does NOT publish. The project is Git-backed, so ReadMe
+# rejects content-API writes (403 API_ACCESS_UNAVAILABLE) — docs are published
+# by ReadMe Git Sync from docs/readme-io/pages/ (see GIT-SYNC-SETUP.md). The
+# function reports whether the API is still closed and what the repo expects to
+# be live, using README_IO_API_KEY. The handler additionally requires
+# profiles.role = 'admin'.
 verify_jwt = true
 
 [edge_runtime]
