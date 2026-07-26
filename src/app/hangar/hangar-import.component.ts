@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  untracked,
+} from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexListRow, CodexService } from '../codex/codex.service';
 import { AnalyticsService } from '../core/analytics.service';
@@ -13,6 +23,10 @@ import { HangarService } from './hangar.service';
  * account — the file is the only input. Entries are matched to the codex
  * catalog (exact ship_code first, name search as fuzzy fallback), previewed
  * with their match state, and only user-confirmed rows are added.
+ *
+ * The same matching + confirm UI is reused for the browser-extension handover
+ * (`preloadedRows`, see browser-extension/README.md): the extension emits rows
+ * in the same shape, so there is exactly one import code path.
  */
 interface ImportEntry {
   /** display name from the file (core `name` = ship type) */
@@ -32,28 +46,38 @@ const MAX_ENTRIES = 200;
 @Component({
   selector: 'sc-hangar-import',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="import sc-card"
          [class.drag]="dragActive()"
+         [class.embedded]="embedded()"
          (dragover)="onDragOver($event)"
          (dragleave)="dragActive.set(false)"
          (drop)="onDrop($event)">
-      <div class="head">
-        <h3>{{ 'hangar.import.title' | translate }}</h3>
-        <button type="button" class="close" (click)="closed.emit()"
-                [attr.aria-label]="'hangar.import.close' | translate">✕</button>
-      </div>
-      <p class="hint">{{ 'hangar.import.hint' | translate }}</p>
+      @if (!embedded()) {
+        <div class="head">
+          <h3>{{ 'hangar.import.title' | translate }}</h3>
+          <button type="button" class="close" (click)="closed.emit()"
+                  [attr.aria-label]="'hangar.import.close' | translate">✕</button>
+        </div>
+        <p class="hint">{{ 'hangar.import.hint' | translate }}</p>
+        <!-- Discovery: the extension is the no-file path to the same screen -->
+        <p class="hint">
+          <a routerLink="/tools/extension">{{ 'extension.hangarHint' | translate }}</a>
+        </p>
+      }
 
-      @if (entries().length === 0) {
+      @if (entries().length === 0 && !embedded()) {
         <div class="pick">
           <button type="button" class="sc-btn" (click)="fileInput.click()" [disabled]="parsing()">
             {{ (parsing() ? 'hangar.import.parsing' : 'hangar.import.pickFile') | translate }}
           </button>
           <span class="pick-hint">{{ 'hangar.import.dropHint' | translate }}</span>
         </div>
+      }
+      @if (embedded() && parsing()) {
+        <p class="hint">{{ 'hangar.import.parsing' | translate }}</p>
       }
       <input #fileInput type="file" accept=".json,application/json" hidden
              (change)="onFileInput($event)" />
@@ -65,7 +89,9 @@ const MAX_ENTRIES = 200;
       @if (entries().length > 0) {
         <div class="summary-row">
           <span>{{ 'hangar.import.matched' | translate: { matched: matchedCount(), total: entries().length } }}</span>
-          <button type="button" class="link-btn" (click)="reset()">{{ 'hangar.import.chooseOther' | translate }}</button>
+          @if (!embedded()) {
+            <button type="button" class="link-btn" (click)="reset()">{{ 'hangar.import.chooseOther' | translate }}</button>
+          }
         </div>
         <ul class="rows">
           @for (e of entries(); track $index) {
@@ -107,6 +133,7 @@ const MAX_ENTRIES = 200;
   `,
   styles: [`
     .import { display: flex; flex-direction: column; gap: 10px; border-color: var(--sc-accent); }
+    .import.embedded { border: 0; background: transparent; padding: 0; }
     .import.drag { background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-1)); }
     .head { display: flex; justify-content: space-between; align-items: center; }
     .head h3 { margin: 0; font-size: 0.95rem; font-family: var(--sc-font-display); letter-spacing: 0.04em; }
@@ -144,7 +171,17 @@ export class HangarImportComponent {
   private readonly hangar = inject(HangarService);
   private readonly analytics = inject(AnalyticsService);
 
+  /**
+   * Rows supplied from outside instead of a picked file — the browser
+   * extension's hangar handover. Same shape as a Hangar Transfer Format entry.
+   */
+  readonly preloadedRows = input<readonly unknown[] | null>(null);
+  /** Embedded mode: the host page owns the framing, so hide card chrome + picker. */
+  readonly embedded = input(false);
+
   readonly closed = output<void>();
+  /** Number of ships actually written, emitted after a confirmed import. */
+  readonly imported = output<number>();
 
   readonly entries = signal<ImportEntry[]>([]);
   readonly parsing = signal(false);
@@ -152,6 +189,15 @@ export class HangarImportComponent {
   readonly parseError = signal<string | null>(null);
   readonly dragActive = signal(false);
   readonly doneCount = signal(0);
+
+  constructor() {
+    // untracked: buildEntries reads hangar.ships(), which would otherwise
+    // become an effect dependency and re-run the import on every hangar write.
+    effect(() => {
+      const rows = this.preloadedRows();
+      if (rows && rows.length > 0) untracked(() => void this.loadRows(rows));
+    });
+  }
 
   matchedCount(): number {
     return this.entries().filter((e) => e.match).length;
@@ -204,7 +250,35 @@ export class HangarImportComponent {
       const json = JSON.parse(text);
       const list = Array.isArray(json) ? json : null;
       if (!list) throw new Error('not-array');
+      await this.buildEntries(list);
+    } catch (err) {
+      const code = (err as Error).message;
+      this.parseError.set(
+        code === 'not-array' || code === 'no-ships'
+          ? 'hangar.import.errNoShips'
+          : 'hangar.import.errParse',
+      );
+    } finally {
+      this.parsing.set(false);
+    }
+  }
 
+  /** Load rows handed in by the browser extension (no file involved). */
+  async loadRows(list: readonly unknown[]): Promise<void> {
+    this.parsing.set(true);
+    this.parseError.set(null);
+    this.doneCount.set(0);
+    try {
+      await this.buildEntries(list);
+    } catch {
+      this.parseError.set('hangar.import.errNoShips');
+    } finally {
+      this.parsing.set(false);
+    }
+  }
+
+  private async buildEntries(list: readonly unknown[]): Promise<void> {
+    {
       // Tolerant extraction: HTF core `name` is the ship type; `ship_code`
       // (e.g. ANVL_Carrack) matches our classNameSlug convention directly.
       const rawEntries = list
@@ -253,15 +327,6 @@ export class HangarImportComponent {
         });
       }
       this.entries.set(entries);
-    } catch (err) {
-      const code = (err as Error).message;
-      this.parseError.set(
-        code === 'not-array' || code === 'no-ships'
-          ? 'hangar.import.errNoShips'
-          : 'hangar.import.errParse',
-      );
-    } finally {
-      this.parsing.set(false);
     }
   }
 
@@ -287,8 +352,10 @@ export class HangarImportComponent {
       this.analytics.capture('hangar_fleet_imported', {
         ships_imported: done,
         total_in_file: next.length,
+        source: this.embedded() ? 'extension' : 'file',
       });
     }
+    this.imported.emit(done);
   }
 }
 

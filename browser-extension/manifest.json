@@ -1,0 +1,59 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extName__",
+  "version": "0.1.0",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
+  "minimum_chrome_version": "111",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://robertsspaceindustries.com/account/pledges*",
+    "https://robertsspaceindustries.com/*/account/pledges*",
+    "https://sc-companion.vercel.app/*",
+    "https://star-citizen-companion-web.vercel.app/*"
+  ],
+  "action": {
+    "default_title": "__MSG_extName__",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://robertsspaceindustries.com/account/pledges*",
+        "https://robertsspaceindustries.com/*/account/pledges*"
+      ],
+      "js": ["src/content/rsi-hangar.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://sc-companion.vercel.app/*",
+        "https://star-citizen-companion-web.vercel.app/*"
+      ],
+      "js": ["src/content/companion-bridge.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/lib/hangar-core.js"],
+      "matches": [
+        "https://robertsspaceindustries.com/*",
+        "https://sc-companion.vercel.app/*",
+        "https://star-citizen-companion-web.vercel.app/*"
+      ]
+    }
+  ]
+}

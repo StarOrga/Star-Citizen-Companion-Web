@@ -62,7 +62,19 @@ public/i18n/       en.json, de.json — ngx-translate
 supabase/
   migrations/      00001_init_schema.sql, 00002_storage_bucket_p4k.sql
   functions/       fetch-verse-news/, process-p4k/
+browser-extension/ Chrome MV3 hangar import (no bundler, no npm deps)
 ```
+
+### Hangar import via browser extension
+
+The web app cannot read robertsspaceindustries.com — the same-origin policy
+forbids it and RSI publishes no hangar API. [`browser-extension/`](browser-extension/README.md)
+closes that gap: it reads the ship list on the user's own hangar page, offers
+the import only when the fleet's fingerprint changed (no daily nagging), and
+hands the list to `/hangar/import` through `chrome.storage.local` +
+`postMessage`. No new endpoint, no token, no RLS change — the confirmed ships
+are written by the user's own Supabase session. Install and privacy details
+live in-app at `/tools/extension`.
 
 ### Key rules
 

@@ -1323,6 +1323,106 @@
       "cta": "Codex öffnen"
     }
   },
+  "extension": {
+    "promo": {
+      "text": "Flotte schon gekauft? Eine Browser-Erweiterung importiert deine Schiffe direkt aus deinem RSI-Hangar.",
+      "cta": "So funktioniert's",
+      "dismiss": "Hinweis ausblenden"
+    },
+    "privacy": {
+      "gameContentOnly": "Die Erweiterung liest ausschließlich personalisierte Spielinhalte — die Schiffsnamen auf deiner eigenen RSI-Hangarseite. Es werden keine persönlichen Daten erfasst.",
+      "noCredentials": "Keine Zugangsdaten, Cookies oder Session-Tokens werden gelesen.",
+      "noPersonalData": "Kein Accountname, keine E-Mail-Adresse, kein Pledge-Wert, keine Bestelldaten.",
+      "noUpload": "Es wird nichts an einen Server gesendet. Die Schiffsliste wird innerhalb deines Browsers an diese App übergeben und landet erst in deinem Account, wenn du sie bestätigst.",
+      "scopeLimited": "Die Erweiterung ist nur auf deiner eigenen RSI-Hangarseite und auf Star Citizen Companion aktiv — sonst nirgends.",
+      "localOnly": "Gespeichert werden nur eine Prüfsumme deiner Flotte und der Zeitpunkt des letzten Imports, lokal in deinem Browser."
+    },
+    "install": {
+      "title": "Hangar-Import — Browser-Erweiterung",
+      "subtitle": "Star Citizen Companion kann robertsspaceindustries.com nicht selbst auslesen: Browser verbieten es einer Seite, eine andere zu lesen. Eine kleine Browser-Erweiterung darf die Hangarseite lesen, die du ohnehin gerade offen hast — und die Schiffsliste hierher übergeben.",
+      "detected": {
+        "title": "Erweiterung erkannt",
+        "text": "Die Erweiterung ist in diesem Browser installiert. Öffne deinen Hangar bei RSI, während du eingeloggt bist — sie bietet den Import an, sobald deine Flotte neu ist oder sich geändert hat.",
+        "openHangar": "Meinen RSI-Hangar öffnen"
+      },
+      "what": {
+        "title": "Was sie macht",
+        "text": "Drei Schritte — den letzten bestätigst du.",
+        "open": {
+          "title": "Du öffnest deinen eigenen Hangar bei RSI",
+          "text": "Eingeloggt, auf deiner Pledges-Seite. Überall sonst tut die Erweiterung nichts."
+        },
+        "offer": {
+          "title": "Sie bietet den Import an — nur wenn es etwas Neues gibt",
+          "text": "Deine Flotte wird auf eine Prüfsumme reduziert. Unveränderter Hangar, keine Meldung. Neues Schiff gekauft oder geschenkt bekommen? Dann kommt das Angebot von allein zurück."
+        },
+        "confirm": {
+          "title": "Du bestätigst hier",
+          "text": "Die Schiffsliste öffnet sich in Star Citizen Companion, jeder Eintrag sichtbar. Nur die von dir angehakten Zeilen landen in deinem Hangar."
+        }
+      },
+      "privacy": {
+        "title": "Was gelesen wird — und was nicht",
+        "openSource": "Die Erweiterung ist Teil des offenen Repositories dieses Projekts: Jede Zeile, die sie ausführt, kannst du vor der Installation nachlesen.",
+        "sourceLink": "Quellcode der Erweiterung auf GitHub",
+        "appPrivacyLink": "Datenschutzerklärung dieser App"
+      },
+      "how": {
+        "title": "Installation",
+        "storeNote": "Der Eintrag im Chrome Web Store ist noch in Prüfung, deshalb wird die Erweiterung vorerst aus dem Quellcode installiert. Chrome, Edge, Brave und Opera unterstützen das alle.",
+        "download": {
+          "title": "Repository herunterladen",
+          "text": "ZIP laden und entpacken. Gebraucht wird daraus nur der Ordner browser-extension."
+        },
+        "devmode": {
+          "title": "chrome://extensions öffnen und den Entwicklermodus aktivieren",
+          "text": "Der Schalter sitzt oben rechts auf der Erweiterungsseite."
+        },
+        "load": {
+          "title": "Entpackte Erweiterung laden",
+          "text": "Auf \"Entpackte Erweiterung laden\" klicken und den Ordner browser-extension auswählen."
+        },
+        "use": {
+          "title": "RSI-Hangar öffnen",
+          "text": "Bei RSI einloggen und die Pledges-Seite öffnen — das Import-Angebot erscheint unten rechts."
+        },
+        "downloadCta": "Herunterladen (ZIP)",
+        "browseCta": "Quellcode ansehen",
+        "browsers": "Vorerst nur Chromium-Browser (Chrome, Edge, Brave, Opera, Vivaldi). Eine Firefox-Version kann folgen."
+      },
+      "alt": {
+        "title": "Keine Erweiterung? Dann per Datei",
+        "text": "Deine Hangarseite nimmt auch einen JSON-Export im Hangar-Transfer-Format an, den du selbst erzeugst. Gleiche Prüfansicht, gleiche Regeln.",
+        "cta": "Zu meinem Hangar"
+      },
+      "disclaimer": "Star Citizen Companion ist ein inoffizielles Fanprojekt und steht in keiner Verbindung zur Cloud-Imperium-Unternehmensgruppe. Die Erweiterung ist nicht von RSI unterstützt."
+    },
+    "importPage": {
+      "title": "Schiffe aus deinem RSI-Hangar importieren",
+      "subtitle": "Die Browser-Erweiterung hat die Schiffsliste auf deiner Hangarseite gelesen. Prüfe sie unten — vor deiner Bestätigung wird nichts in deinen Hangar geschrieben.",
+      "waiting": "Warte auf die Browser-Erweiterung…",
+      "review": "Prüfen und bestätigen",
+      "cancel": "Abbrechen und Liste verwerfen",
+      "meta": {
+        "source": "Quelle",
+        "sourceValue": "Deine RSI-Hangarseite (in deinem Browser gelesen)",
+        "ships": "Gefundene Schiffe",
+        "captured": "Gelesen am"
+      },
+      "empty": {
+        "title": "Keine Schiffsliste vorhanden",
+        "text": "Diese Seite wird von der Hangar-Import-Erweiterung geöffnet. Entweder ist die Erweiterung nicht installiert, oder ihre Liste wurde bereits verwendet bzw. ist abgelaufen. Öffne deinen RSI-Hangar erneut, um einen neuen Import zu starten.",
+        "installLink": "Über die Erweiterung",
+        "hangarLink": "Zu meinem Hangar"
+      },
+      "done": {
+        "title": "{{count}} Schiffe importiert",
+        "text": "Die Erweiterung kennt diesen Stand jetzt und bleibt still, bis sich dein Hangar wirklich wieder ändert.",
+        "hangarLink": "Meinen Hangar öffnen"
+      }
+    },
+    "hangarHint": "Keine Lust auf Dateien? Die Browser-Erweiterung importiert direkt aus deinem RSI-Hangar →"
+  },
   "consent": {
     "banner": {
       "title": "Browser-Speicher",
