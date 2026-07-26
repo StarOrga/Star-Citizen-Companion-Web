@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.1] - 2026-07-26
+
+### Changed
+
+- **Codex ship detail — always-on 3D view at hero level (#252, part of #137).**
+  The interactive 3D livery/skin viewer now renders directly beneath the hero
+  instead of near the bottom of the page below the spec sheet, so the ship's 3D
+  model stays on-screen (closer to the RSI site's layout). It keeps its
+  deliberate lazy-load: expanded by default on desktop (the ~3 MB glb loads
+  immediately), collapsed by default on mobile (opened on demand to spare
+  cellular data). Ship comparison stays on the existing floating compare tray —
+  no duplicate comparison surface was added.
+
 ## [0.47.0] - 2026-07-26
 
 ### Fixed
