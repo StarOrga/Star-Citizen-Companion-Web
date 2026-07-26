@@ -26,15 +26,18 @@ import {
   FeedbackRow,
   FeedbackSearchHit,
   FeedbackStatus,
+  WorkflowScope,
   buildWorkflowQueue,
   bucketLabelStatus,
   feedbackBucket,
+  filterWorkflowScope,
   isArchived,
   isContinuedAfterShip,
   refKind,
   searchFeedback,
   searchTokens,
   topicTitle,
+  workflowScopeCounts,
 } from './feedback.types';
 
 /** The board's three modes: scan the list, work the queue, read the numbers. */
@@ -78,6 +81,15 @@ const VIEW_KEY = 'sc.adminFeedback.view';
 const DEFAULT_VIEW: FeedbackView = 'workflow';
 /** localStorage key holding the processing mode's ticked-off topics. */
 const HANDLED_KEY = 'sc.adminFeedback.handled';
+/** localStorage key remembering the processing mode's scope. */
+const WORKFLOW_SCOPE_KEY = 'sc.adminFeedback.workflowScope';
+/**
+ * Scope the processing mode opens in (feedback abfa97c6): your own topics.
+ * Working the queue means answering Rückfragen, and those you can only answer
+ * on topics you raised — another admin's topic is theirs to steer. The switch
+ * (with its counts) makes the other two scopes one click away.
+ */
+const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
 
 @Component({
   selector: 'sc-admin-feedback',
@@ -170,8 +182,11 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
             [selfId]="selfId()"
             [busy]="busy()"
             [compact]="embedded()"
+            [scope]="workflowScope()"
+            [scopeCounts]="workflowScopeCounts()"
             [reply]="workflowReplyBound"
             (markHandled)="markHandled($event)"
+            (scopeChange)="setWorkflowScope($event)"
             (showProgress)="setView('progress')" />
         </div>
       } @else if (view() === 'progress') {
@@ -1157,9 +1172,50 @@ export class AdminFeedbackComponent implements OnInit {
     }
   }
 
-  /** The guided processing queue: open Rückfragen first, then new topics. */
-  readonly workflowQueue = computed(() =>
+  /**
+   * Whose topics the processing mode walks through (feedback abfa97c6).
+   * Persisted behind the preferences consent like the view itself, so the pick
+   * survives reopening the panel.
+   */
+  readonly workflowScope = signal<WorkflowScope>(this.readWorkflowScope());
+
+  setWorkflowScope(scope: WorkflowScope): void {
+    this.workflowScope.set(scope);
+    if (!this.consent.preferencesAllowed()) return;
+    try {
+      localStorage.setItem(WORKFLOW_SCOPE_KEY, scope);
+    } catch {
+      /* private mode / quota — the in-memory signal still works */
+    }
+  }
+
+  private readWorkflowScope(): WorkflowScope {
+    try {
+      const raw = localStorage.getItem(WORKFLOW_SCOPE_KEY);
+      if (raw === 'mine' || raw === 'others' || raw === 'all') return raw;
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_WORKFLOW_SCOPE;
+  }
+
+  /** The full processing queue: open Rückfragen first, then new topics. */
+  private readonly workflowQueueAll = computed(() =>
     buildWorkflowQueue(this.messages(), this.threads(), this.handled()),
+  );
+
+  /** Queue size per scope — the KPI counts on the mode's scope switch. */
+  readonly workflowScopeCounts = computed(() =>
+    workflowScopeCounts(this.workflowQueueAll(), this.selfId()),
+  );
+
+  /**
+   * The queue as the processing mode shows it — narrowed to the chosen scope.
+   * The view switch's badge reads from here too, so it promises exactly what
+   * the mode will hand over.
+   */
+  readonly workflowQueue = computed(() =>
+    filterWorkflowScope(this.workflowQueueAll(), this.workflowScope(), this.selfId()),
   );
 
   /** Stable reply handler handed to the processing mode's inline composer. */

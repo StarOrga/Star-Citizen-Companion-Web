@@ -1273,7 +1273,16 @@
       "kind": {
         "question": "Rückfrage",
         "new": "ToDo"
-      }
+      },
+      "scope": {
+        "label": "Auswahl",
+        "mine": "Meine",
+        "others": "Andere Admins",
+        "all": "Alle",
+        "showAll": "Alle anzeigen"
+      },
+      "scopeEmptyTitle": "In dieser Auswahl ist nichts offen",
+      "scopeEmptyHint": "{{count}} Thema/Themen liegen in einer anderen Auswahl."
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",
