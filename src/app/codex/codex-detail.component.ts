@@ -14,6 +14,7 @@ import {
   CodexItemPort,
   ComponentPayload,
   Dimensions,
+  ItemPayload,
   Lang,
   LoadoutEntry,
   ShipPayload,
@@ -271,6 +272,23 @@ interface LoadoutGroup {
             <h2>{{ 'codex.detail.weaponParams' | translate }}</h2>
             @for (g of weaponParamGroups(); track g.purpose) {
               @if (showStatGroupHeaders(weaponParamGroups())) {
+                <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
+              }
+              <div class="stat-grid">
+                @for (s of g.rows; track s.key) {
+                  <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        <!-- ── Armor / undersuit stats, grouped by purpose ───────── -->
+        @if (armorStatGroups().length > 0) {
+          <section class="sc-card block">
+            <h2>{{ 'codex.detail.armorStats' | translate }}</h2>
+            @for (g of armorStatGroups(); track g.purpose) {
+              @if (showStatGroupHeaders(armorStatGroups())) {
                 <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
               }
               <div class="stat-grid">
@@ -997,9 +1015,18 @@ export class CodexDetailComponent implements OnInit {
     return meaningfulRows((d.payload as WeaponPayload | undefined)?.weaponParams);
   });
 
+  // Personal FPS armor / undersuit pieces carry an SCItem*Params stat block in
+  // the same heterogeneous shape as components — reuse the exact same curation.
+  readonly armorStats = computed<StatRow[]>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'item') return [];
+    return curateComponentStats((d.payload as ItemPayload | undefined)?.stats);
+  });
+
   // Decision stats grouped by what the thing is FOR (Slice 3) — not a flat dump.
   readonly componentStatGroups = computed<StatGroup[]>(() => groupStatRows(this.componentStats()));
   readonly weaponParamGroups = computed<StatGroup[]>(() => groupStatRows(this.weaponParams()));
+  readonly armorStatGroups = computed<StatGroup[]>(() => groupStatRows(this.armorStats()));
 
   /** Group headers only help once the stats span ≥2 buckets. */
   showStatGroupHeaders(groups: StatGroup[]): boolean {

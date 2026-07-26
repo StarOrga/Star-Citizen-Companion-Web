@@ -99,6 +99,14 @@ _COMPONENT_KIND = {
 _SHIP_WEAPON_TYPES = {"WeaponGun", "Turret", "MissileLauncher", "WeaponDefensive"}
 _FPS_WEAPON_TYPES = {"WeaponPersonal"}
 
+# AttachDef.Type values that denote personal (FPS) armor / clothing pieces.
+# These carry SCItemSuitArmorParams / SCItemClothingParams stat blocks that the
+# generic _component_stats() dump surfaces without per-field foreknowledge.
+_ARMOR_TYPES = {
+    "Char_Armor_Helmet", "Char_Armor_Torso", "Char_Armor_Arms",
+    "Char_Armor_Legs", "Char_Armor_Undersuit", "Char_Armor_Backpack",
+}
+
 _SHIP_PREFIX = "libs/foundry/records/entities/spaceships/"
 
 # Overall progress-bar sub-ranges (percent) for the two long phases, so the bar
@@ -708,7 +716,9 @@ class CodexExtractor:
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
                 n_comp += 1
             elif attach is not None:
-                # any other attachable item — keep as generic item projection
+                # any other attachable item — generic item projection. Personal
+                # armor/clothing pieces additionally carry a generic stat block
+                # (SCItemSuitArmorParams / SCItemClothingParams via _component_stats).
                 obj = self._project_item(r, resolved, comps, attach, atype)
                 item_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -1047,6 +1057,14 @@ class CodexExtractor:
             "size": _to_int(attach.get("Size")) if attach else None,
             "grade": _grade(attach.get("Grade")) if attach else None,
         })
+        # Personal FPS armor / clothing pieces expose a generic stat block
+        # (SCItemSuitArmorParams / SCItemClothingParams scalars, keyed by struct
+        # name) via the same mechanism ship components use — no per-field
+        # foreknowledge, dropped entirely when empty so non-armor items stay lean.
+        if atype in _ARMOR_TYPES:
+            stats = self._component_stats(comps, "Armor")
+            if stats:
+                base["stats"] = stats
         return base
 
     # Component params structs are not the same vocabulary as AttachDef.Type;
