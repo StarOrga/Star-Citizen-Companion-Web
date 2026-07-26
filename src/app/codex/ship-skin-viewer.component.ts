@@ -159,7 +159,6 @@ type ViewMode = '3d' | 'paint';
   styles: [
     `
       .skins {
-        margin-top: 1.5rem;
         border: 1px solid var(--border, #23262d);
         border-radius: 12px;
         overflow: hidden;
