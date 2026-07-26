@@ -3,6 +3,8 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  Injector,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -18,6 +20,11 @@ import { renderMarkdown } from './markdown.util';
 import { CelebrationService } from './celebration.service';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
 import { FeedbackMessage, WorkflowItem, topicTitle, workflowFocusIndex } from './feedback.types';
+
+/** How long the "moved on to the next topic" line and the arrival ring stay. */
+const ADVANCE_NOTICE_MS = 2200;
+/** Slide-in of the topic that took the finished one's place. */
+const ADVANCE_SLIDE_MS = 380;
 
 /**
  * Guided processing mode ("Abarbeitungsmodus") for the admin feedback board.
@@ -55,7 +62,19 @@ import { FeedbackMessage, WorkflowItem, topicTitle, workflowFocusIndex } from '.
           </div>
         </div>
 
-        <article #card class="wf-card sc-card" [class.celebrate]="celebrating()">
+        <!-- Ticking a topic off swaps the card's content in place — this line
+             (plus the card's slide-in) says out loud that the queue moved on. -->
+        @if (advanced(); as adv) {
+          <p class="wf-advance" role="status">
+            ✓ {{ 'adminFeedback.workflow.advanced' | translate: adv }}
+          </p>
+        }
+
+        <article
+          #card
+          class="wf-card sc-card"
+          [class.celebrate]="celebrating()"
+          [class.arrived]="advanced() !== null">
           <header class="wf-head">
             <span class="kind" [class]="item.kind">
               {{ ('adminFeedback.workflow.kind.' + item.kind) | translate }}
@@ -167,8 +186,31 @@ import { FeedbackMessage, WorkflowItem, topicTitle, workflowFocusIndex } from '.
       transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
+    /* ---- Advance cue (a topic was ticked off) ----
+       "Erledigt" pulls the topic out of the queue, so the card silently fills
+       with the next one and only the "3 von 7" counter moves. This line names
+       the step and, as a status role, is announced rather than just drawn
+       (feedback 96872872). It stays put under reduced motion — only its rise
+       and the card's slide-in are dropped there. */
+    .wf-advance {
+      margin: 0;
+      font-size: 0.76rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--sc-success);
+      animation: wf-rise 0.35s ease-out;
+    }
+
     /* ---- The one card in focus ---- */
-    .wf-card { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; }
+    .wf-card {
+      display: flex; flex-direction: column; gap: 10px; padding: 14px 16px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    /* The just-arrived topic, held for the length of the advance notice. */
+    .wf-card.arrived {
+      border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-accent) 30%, transparent);
+    }
     .wf-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .kind {
       padding: 2px 8px;
@@ -301,11 +343,13 @@ import { FeedbackMessage, WorkflowItem, topicTitle, workflowFocusIndex } from '.
       50% { transform: translateY(-8px); }
     }
 
-    /* Respect the OS motion preference — no pop, no bounce, no rise.
-       (The confetti burst is suppressed in CelebrationService.) */
+    /* Respect the OS motion preference — no pop, no bounce, no rise, and no
+       slide-in for the next topic (suppressed in playSlideIn). The advance
+       notice and the card's arrival ring stay: the step must remain visible
+       without motion. (The confetti burst is suppressed in CelebrationService.) */
     @media (prefers-reduced-motion: reduce) {
       .rail-fill { transition: none; }
-      .wf-card.celebrate, .wf-cheer, .wf-empty-icon { animation: none; }
+      .wf-card.celebrate, .wf-cheer, .wf-advance, .wf-empty-icon { animation: none; }
     }
 
     /* Docked panel: tighter thread window so the composer stays reachable. */
@@ -317,6 +361,7 @@ import { FeedbackMessage, WorkflowItem, topicTitle, workflowFocusIndex } from '.
 export class FeedbackWorkflowComponent {
   private readonly translate = inject(TranslateService);
   private readonly celebration = inject(CelebrationService);
+  private readonly injector = inject(Injector);
 
   /** The processing queue, in working order — owned by the parent board. */
   readonly queue = input.required<WorkflowItem[]>();
@@ -365,6 +410,14 @@ export class FeedbackWorkflowComponent {
   readonly cheer = signal('');
   private cheerTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /**
+   * Where the run stands right after a topic was ticked off — `null` while no
+   * step is being reported. Drives the advance notice and the card's arrival
+   * ring; the shape doubles as the translation params for the notice.
+   */
+  readonly advanced = signal<{ current: number; total: number } | null>(null);
+  private advanceTimer: ReturnType<typeof setTimeout> | null = null;
+
   /** `topicId:messageId` the thread was last scrolled to — guards re-scrolls. */
   private focusedKey: string | null = null;
 
@@ -406,6 +459,7 @@ export class FeedbackWorkflowComponent {
 
     inject(DestroyRef).onDestroy(() => {
       if (this.cheerTimer) clearTimeout(this.cheerTimer);
+      if (this.advanceTimer) clearTimeout(this.advanceTimer);
     });
   }
 
@@ -454,16 +508,68 @@ export class FeedbackWorkflowComponent {
   next(): void {
     const total = this.total();
     if (total < 2) return;
+    this.clearAdvance();
     this.cursor.set((this.position() + 1) % total);
+    // Stepping on purpose needs no explanation, but the card still swaps in
+    // place — the same slide keeps the two ways of moving on consistent.
+    this.playSlideIn();
   }
 
   /**
    * Tick the current item off. The status stays untouched — the nightly routine
    * owns the state machine — so this only takes the topic out of the admin's
    * working queue until the routine touches it again.
+   *
+   * The topic leaves the queue synchronously, which means the card is refilled
+   * with the next topic without anything moving — the admin could not tell the
+   * view had changed (feedback 96872872). So the step is reported: the next
+   * card slides in, wears an arrival ring and a status line names where the run
+   * now stands.
    */
   finish(item: WorkflowItem): void {
     this.markHandled.emit(item.row.id);
+    // The parent drops the topic while emitting, so the queue signals already
+    // describe the topic that took its place.
+    const total = this.total();
+    // Queue drained: the "Alles abgearbeitet" screen is change enough.
+    if (total === 0) return;
+    this.announceAdvance(total);
+    this.playSlideIn();
+  }
+
+  /** Show "weiter mit x von y" for a moment, then fall back to the plain card. */
+  private announceAdvance(total: number): void {
+    this.advanced.set({ current: this.position() + 1, total });
+    if (this.advanceTimer) clearTimeout(this.advanceTimer);
+    this.advanceTimer = setTimeout(() => this.advanced.set(null), ADVANCE_NOTICE_MS);
+  }
+
+  private clearAdvance(): void {
+    if (this.advanceTimer) clearTimeout(this.advanceTimer);
+    this.advanceTimer = null;
+    this.advanced.set(null);
+  }
+
+  /**
+   * Slide the card that now holds the next topic in from the right. Runs on the
+   * refilled DOM (hence `afterNextRender`) and is skipped under
+   * `prefers-reduced-motion` — the notice and the arrival ring carry the step
+   * there.
+   */
+  private playSlideIn(): void {
+    if (this.celebration.reducedMotion) return;
+    afterNextRender(
+      () => {
+        this.cardEl()?.nativeElement.animate?.(
+          [
+            { opacity: 0.2, transform: 'translate3d(22px, 0, 0)' },
+            { opacity: 1, transform: 'none' },
+          ],
+          { duration: ADVANCE_SLIDE_MS, easing: 'cubic-bezier(0.2, 0.85, 0.25, 1)' },
+        );
+      },
+      { injector: this.injector },
+    );
   }
 
   /**
@@ -485,6 +591,8 @@ export class FeedbackWorkflowComponent {
       ? 'adminFeedback.workflow.cheerAnswered'
       : 'adminFeedback.workflow.cheerReplied';
     this.cheer.set(this.translate.instant(key));
+    // The answer is the news now — drop a still-running advance notice.
+    this.clearAdvance();
     this.celebrating.set(true);
     this.celebration.burstFrom(this.cardEl()?.nativeElement);
     if (this.cheerTimer) clearTimeout(this.cheerTimer);

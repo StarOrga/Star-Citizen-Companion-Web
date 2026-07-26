@@ -1261,6 +1261,7 @@
       "progress": "{{current}} von {{total}}",
       "next": "Weiter",
       "done": "Erledigt",
+      "advanced": "Erledigt – weiter mit {{current}} von {{total}}",
       "answerPlaceholder": "Antwort schreiben… (Markdown möglich, Strg+Enter zum Senden)",
       "answerSend": "Antworten",
       "openQuestion": "Offene Rückfrage",
