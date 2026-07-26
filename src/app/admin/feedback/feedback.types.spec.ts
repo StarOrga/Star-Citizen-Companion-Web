@@ -767,10 +767,12 @@ describe('lifecycleSnapshot', () => {
       // 3 open + the answered Rückfrage + the continuation
       todo: 5,
       awaiting_admin: 1,
+      awaiting_author: 0,
       in_progress: 2,
       shipped: 1,
       issue_created: 1,
       rejected: 0,
+      declined: 0,
     });
     expect(snapshot.total).toBe(10);
   });

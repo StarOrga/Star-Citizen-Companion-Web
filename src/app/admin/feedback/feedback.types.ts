@@ -943,11 +943,13 @@ export interface LifecycleSnapshot {
 function emptyBucketCounts(): Record<FeedbackBucket, number> {
   return {
     awaiting_admin: 0,
+    awaiting_author: 0,
     todo: 0,
     in_progress: 0,
     shipped: 0,
     issue_created: 0,
     rejected: 0,
+    declined: 0,
   };
 }
 
