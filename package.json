@@ -1,6 +1,6 @@
 {
   "name": "sc-companion",
-  "version": "0.46.6",
+  "version": "0.48.0",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
@@ -9,6 +9,7 @@
     "start": "ng serve --host 127.0.0.1 --port 4200",
     "gen:release-notes": "node scripts/gen-release-notes.js",
     "gen:readme-content": "node scripts/gen-readme-content.mjs",
+    "check:readme-docs": "node scripts/gen-readme-content.mjs --check",
     "prebuild": "node scripts/gen-release-notes.js",
     "build": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",

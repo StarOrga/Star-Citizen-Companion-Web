@@ -873,6 +873,68 @@ h3 { font-size: 0.9rem; }
   margin: 10px 0;
 }
 
+/* Danger button — destructive confirm (e.g. "discard & go back"). */
+.btn-danger {
+  background: transparent;
+  color: var(--sc-danger);
+  border-color: var(--sc-danger);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--sc-danger);
+  color: var(--sc-bg-0);
+  box-shadow: none;
+}
+
+/* Confirmation overlay — SCC-styled modal that guards a "back" navigation which
+   would throw away a running extraction or upload progress. */
+.sc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 5, 12, 0.72);
+  backdrop-filter: blur(3px);
+  animation: sc-modal-fade 0.14s ease;
+}
+.sc-modal {
+  width: min(440px, 100%);
+  background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
+  border: 1px solid var(--sc-accent);
+  border-radius: 10px;
+  padding: 22px 24px;
+  box-shadow: var(--sc-glow), 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: sc-modal-pop 0.16s ease;
+}
+.sc-modal-title {
+  margin: 0 0 10px;
+  font-family: var(--sc-font-display);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  color: var(--sc-accent);
+}
+.sc-modal-msg {
+  margin: 0 0 20px;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--sc-fg-1);
+}
+.sc-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+@keyframes sc-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sc-modal-pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

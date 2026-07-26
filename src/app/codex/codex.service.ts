@@ -56,6 +56,7 @@ export interface CodexListRow {
   weaponClass: string | null;
   componentKind: string | null;
   subType: string | null;
+  attachType: string | null;
   speed: number | null;
   isVariant: boolean;
   payload: unknown;
@@ -77,6 +78,15 @@ export interface CodexListFilters {
   grade?: string;
   componentKind?: string;
   weaponClass?: string;
+  // sub_type facet — shared column across weapon/component/item (e.g. FPS
+  // weapon sub_type Rifle/Pistol/…, armor item sub_type Helmet/Undersuit/…).
+  subType?: string;
+  // attach_type facet — used to scope `item` rows to a single category / slot
+  // (e.g. a specific personal-armor slot 'Char_Armor_Helmet').
+  attachType?: string;
+  // attach_type set — scope `item` rows to several categories at once, e.g. all
+  // personal-armor slots (Char_Armor_Helmet/Torso/Arms/Legs/Undersuit/Backpack).
+  attachTypeIn?: string[];
   // include AI/template variants (default: buyable-only)
   includeVariants?: boolean;
   limit?: number;
@@ -293,6 +303,10 @@ export class CodexService {
       query = query.eq('kind', filters.componentKind);
     if (filters.weaponClass && kind === 'weapon')
       query = query.eq('weapon_class', filters.weaponClass);
+    if (filters.subType) query = query.eq('sub_type', filters.subType);
+    if (filters.attachType && kind === 'item') query = query.eq('attach_type', filters.attachType);
+    if (filters.attachTypeIn?.length && kind === 'item')
+      query = query.in('attach_type', filters.attachTypeIn);
 
     const q = filters.search?.trim();
     if (q) {
@@ -324,6 +338,29 @@ export class CodexService {
   async listBridgeShips(limit = 24): Promise<CodexListRow[]> {
     const res = await this.listByKind('ship', { limit, offset: 0 });
     return res.rows;
+  }
+
+  /**
+   * FPS Codex section (#251): on-foot weapons — `codex_weapons` scoped to
+   * `weapon_class = 'FPS'`. Reuses the same buyable-only / variant filtering
+   * as every other kind (is_variant = false by default), which is also what
+   * drops the huge pile of `@LOC_PLACEHOLDER` / NPC test rows in this table.
+   */
+  async listFpsWeapons(filters: Omit<CodexListFilters, 'weaponClass'> = {}): Promise<CodexListResult> {
+    return this.listByKind('weapon', { ...filters, weaponClass: 'FPS' });
+  }
+
+  /**
+   * FPS Codex section (#251): on-foot / CHARACTER armor — `codex_items` scoped
+   * to the personal-armor slots (`Char_Armor_*`). NB: `attach_type = 'Armor'`
+   * (no `Char_` prefix) is SHIP hull armor (ARMR_* classes) — a different thing
+   * entirely; do not confuse the two. Personal armor carries no rich stat block
+   * in the extract yet (tracked separately, blocked issue #253); the list/detail
+   * degrade gracefully to name/grade/size/slot/manufacturer only. A caller may
+   * additionally pass `attachType` to narrow to one slot (e.g. Char_Armor_Helmet).
+   */
+  async listFpsArmor(filters: Omit<CodexListFilters, 'attachTypeIn'> = {}): Promise<CodexListResult> {
+    return this.listByKind('item', { ...filters, attachTypeIn: [...FPS_ARMOR_ATTACH_TYPES] });
   }
 
   /** Entity row + its hardpoints + its localized strings, for the detail view. */
@@ -461,6 +498,30 @@ export class CodexService {
         }
       }),
     );
+    return out;
+  }
+
+  /**
+   * Batch-fetch ammunition payloads by class name. Guns carry no resolved
+   * ammoContainerRecord in the extract, so their projectile stats (damage,
+   * speed, lifetime) are only reachable via CIG's `<weaponClass>_AMMO` naming
+   * convention — see `ammoClassNameFor`. Missing names simply don't come back;
+   * the caller renders no projectile stats for those.
+   */
+  async getAmmoPayloads(classNames: string[]): Promise<Map<string, unknown>> {
+    const out = new Map<string, unknown>();
+    const build = await this.loadCurrentBuild();
+    const names = Array.from(new Set(classNames.filter(Boolean)));
+    if (!build || names.length === 0) return out;
+    const { data, error } = await this.sb.client
+      .from('codex_ammunition')
+      .select('class_name, payload')
+      .eq('build_id', build.id)
+      .in('class_name', names);
+    if (error || !data) return out;
+    for (const r of data as unknown as Record<string, unknown>[]) {
+      out.set(r['class_name'] as string, r['payload']);
+    }
     return out;
   }
 
@@ -706,6 +767,49 @@ export class CodexService {
   }
 
   /**
+   * Forward query: HOW is this item crafted? Resolves the blueprint that
+   * PRODUCES `outputClassName` and returns it with its ordered ingredients.
+   *
+   * This is the complement of `blueprintsUsingIngredient` (which answers "what
+   * can I build WITH this"). The FPS codex needs the forward direction — "which
+   * materials does this helmet cost" — which is what issue #187 asks for.
+   * Returns null when no blueprint produces the class (most catalog items are
+   * not craftable).
+   */
+  async getCraftingRecipe(outputClassName: string): Promise<BlueprintDetail | null> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return null;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = this.sb.client as any;
+    const { data, error } = await sb
+      .from('codex_blueprints')
+      .select('*')
+      .eq('build_id', build.id)
+      .eq('output_class_name', outputClassName)
+      .order('tier', { ascending: true, nullsFirst: true })
+      .limit(1);
+    if (error || !data?.length) return null;
+
+    const row = data[0] as Record<string, unknown>;
+    const className = row['class_name'] as string;
+    const { data: ingRows } = await sb
+      .from('codex_blueprint_ingredients')
+      .select('*')
+      .eq('build_id', build.id)
+      .eq('blueprint_class_name', className)
+      .order('ingredient_index', { ascending: true });
+
+    return {
+      classNameSlug: className,
+      row,
+      ingredients: ((ingRows ?? []) as unknown[]).map((i) =>
+        mapIngredient(i as Record<string, unknown>),
+      ),
+    };
+  }
+
+  /**
    * Reverse query: which blueprints use a given resource/item as an ingredient?
    * Used to surface a "used in N blueprints" panel on item detail pages.
    * Returns slim blueprint refs, ordered by name.
@@ -778,6 +882,7 @@ function mapListRow(kind: CodexKind, r: Record<string, unknown>): CodexListRow {
     weaponClass: (r['weapon_class'] as string | null) ?? null,
     componentKind: (r['kind'] as string | null) ?? null,
     subType: (r['sub_type'] as string | null) ?? null,
+    attachType: (r['attach_type'] as string | null) ?? null,
     speed: (r['speed'] as number | null) ?? null,
     isVariant: (r['is_variant'] as boolean) ?? false,
     payload: r['payload'],
@@ -830,6 +935,30 @@ function mapIngredient(i: Record<string, unknown>): CodexBlueprintIngredient {
   };
 }
 
+/**
+ * The personal-armor `attach_type` values that make up the FPS armor section.
+ * (`attach_type = 'Armor'` — no prefix — is SHIP hull armor, deliberately excluded.)
+ */
+export const FPS_ARMOR_ATTACH_TYPES = [
+  'Char_Armor_Helmet',
+  'Char_Armor_Torso',
+  'Char_Armor_Arms',
+  'Char_Armor_Legs',
+  'Char_Armor_Undersuit',
+  'Char_Armor_Backpack',
+] as const;
+
+/** Human slot token for a personal-armor attach_type ('Char_Armor_Helmet' → 'Helmet'). */
+export function fpsArmorSlot(attachType: string | null | undefined): string | null {
+  if (!attachType) return null;
+  return attachType.startsWith('Char_Armor_') ? attachType.slice('Char_Armor_'.length) : attachType;
+}
+
+/** Reverse of fpsArmorSlot: a slot token back to its attach_type ('Helmet' → 'Char_Armor_Helmet'). */
+export function fpsArmorAttachType(slot: string | null | undefined): string | null {
+  return slot ? `Char_Armor_${slot}` : null;
+}
+
 /** Pick the active-language string out of a LocalizedText, with fallbacks. */
 export function pickLocalized(
   text: LocalizedText | null | undefined,
@@ -841,7 +970,9 @@ export function pickLocalized(
   // back to the other language or the caller's fallback, never a raw key.
   const clean = (v: string | undefined): string => {
     const s = (v ?? '').trim();
-    return s && !s.startsWith('@') ? s : '';
+    // Drop unresolved '@'-keys AND Star-Citizen's untranslated-LOCID marker
+    // ("! … TRANSLATION NOT FOUND FOR LOCID: … !"), which ships as a real value.
+    return s && !s.startsWith('@') && !/translation not found/i.test(s) ? s : '';
   };
   const primary = lang === 'de' ? clean(text.de) : clean(text.en);
   return primary || clean(text.en) || clean(text.de) || fallback;
@@ -862,7 +993,9 @@ export function pickLocalizedDistinct(
   if (!text) return fallback;
   const clean = (v: string | undefined): string => {
     const s = (v ?? '').trim();
-    return s && !s.startsWith('@') ? s : '';
+    // Drop unresolved '@'-keys AND Star-Citizen's untranslated-LOCID marker
+    // ("! … TRANSLATION NOT FOUND FOR LOCID: … !"), which ships as a real value.
+    return s && !s.startsWith('@') && !/translation not found/i.test(s) ? s : '';
   };
   const en = clean(text.en);
   if (lang !== 'en') {

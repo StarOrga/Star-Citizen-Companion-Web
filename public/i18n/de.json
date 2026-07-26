@@ -208,7 +208,28 @@
       "search": "Keybindings durchsuchen",
       "searchPlaceholder": "Aktion oder Taste suchen…",
       "count": "{{shown}} von {{total}} Aktionen",
-      "unbound": "—"
+      "unbound": "—",
+      "rawKey": "Interner Aktionsschlüssel",
+      "contexts": {
+        "vehicle": "Fahrzeug",
+        "spectator": "Zuschauer",
+        "interface": "Interface",
+        "interaction": "Interaktion",
+        "emote": "Emote",
+        "camera": "Kamera",
+        "character": "Charakter",
+        "turret": "Geschützturm",
+        "eva": "EVA",
+        "hacking": "Hacking",
+        "remote": "Fernsteuerung",
+        "tractor": "Traktorstrahl",
+        "melee": "Nahkampf",
+        "hmd": "HMD",
+        "visor": "Visier",
+        "headtracking": "Head-Tracking",
+        "shop": "Shop",
+        "debug": "Debug"
+      }
     },
     "provenance": {
       "label": "Quelle",
@@ -267,6 +288,7 @@
       "hideRaw": "Rohdaten ausblenden",
       "naValue": "k. A.",
       "keyStats": "Kernwerte",
+      "armorStats": "Rüstungswerte",
       "showEmptyPorts": "{{count}} leere Ports anzeigen",
       "hideEmptyPorts": "Leere Ports ausblenden",
       "equipment": "Ausrüstung",
@@ -277,7 +299,13 @@
       "quantumRange": "Quantum-Reichweite",
       "quantumSpeed": "Quantum-Geschwindigkeit",
       "quantumFuel": "Quantum-Treibstoff",
-      "fuelCapacity": "Wasserstoff-Treibstoff"
+      "fuelCapacity": "Wasserstoff-Treibstoff",
+      "hardpointExplainer": "Ein Hardpoint ist ein Montagepunkt an der Hülle: Jede Waffe, jeder Schild, Kühler, Triebwerk oder Quantenantrieb sitzt auf einem und lässt sich gegen ein anderes Item gleichen Typs und gleicher Größe tauschen. Unten steht, was das Schiff ab Werk mitbringt.",
+      "craftedFrom": "Herstellungsmaterialien",
+      "craftedFromHint": "Was die Herstellung dieses Gegenstands kostet — aus den Crafting-Daten des Spiels.",
+      "noIngredients": "Dieser Bauplan nennt in diesem Build keine Materialien.",
+      "openBlueprint": "Vollständigen Bauplan öffnen",
+      "minQuality": "min. Qualität {{value}}"
     },
     "swap": {
       "title": "Was passt hier?",
@@ -350,6 +378,30 @@
       "collapse": "3D-Ansicht einklappen",
       "expand": "3D-Ansicht ausklappen"
     },
+    "equipped": {
+      "alphaDamage": "Alpha-Schaden",
+      "dps": "DPS",
+      "fireRate": "Feuerrate",
+      "projectileSpeed": "Geschossgeschwindigkeit",
+      "range": "Reichweite",
+      "penetration": "Durchschlag",
+      "shieldHp": "Schild-HP",
+      "shieldRegen": "Regeneration",
+      "regenDelay": "Regen-Verzögerung",
+      "downedDelay": "Ausfall-Verzögerung",
+      "jumpRange": "Sprungreichweite",
+      "driveSpeed": "Antriebsgeschwindigkeit",
+      "spoolTime": "Aufladezeit",
+      "cooldown": "Abklingzeit",
+      "thrust": "Schub",
+      "fuelCapacity": "Treibstoffkapazität",
+      "fuelRate": "Treibstoffrate",
+      "health": "Haltbarkeit",
+      "distortion": "Distortion-Kapazität",
+      "derivedHint": "Abgeleiteter Wert, aus anderen extrahierten Werten berechnet.",
+      "noStats": "Für diese Waffe liegen im aktuellen Extract keine Werte vor.",
+      "armamentMissing": "{{count}} Waffenaufhängungen führen in diesem Extract keine Standardwaffe — das Spiel hinterlegt Standard-Bewaffnung in einem separaten Datensatz, den unser P4K-Extractor noch nicht auflöst."
+    },
     "shipLink": {
       "add": "Pledge-Link hinzufügen",
       "edit": "Pledge-Link bearbeiten",
@@ -418,6 +470,25 @@
       "primary": "Primär",
       "usedIn": "In Bauplänen verwendet",
       "usedInCount": "In {{count}} Bauplan/Bauplänen verwendet"
+    }
+  },
+  "fps": {
+    "title": "FPS-Ausrüstung",
+    "subtitle": "Ausrüstung zu Fuß — Waffen und Rüstung, datamined aus dem Live-Build.",
+    "bridgeLink": "FPS-Ausrüstung",
+    "categoriesAria": "FPS-Ausrüstungskategorien",
+    "category": {
+      "weapon": "Waffen",
+      "armor": "Rüstung"
+    },
+    "filters": {
+      "weaponType": "Waffentyp",
+      "armorSlot": "Rüstungsslot"
+    },
+    "armorStatsHint": "Rüstung hat in diesem Build noch keinen detaillierten Statistikblock — nur Name, Grad, Größe und Hersteller.",
+    "empty": {
+      "weapon": "Keine FPS-Waffen in diesem Build.",
+      "armor": "Keine Rüstung in diesem Build."
     }
   },
   "news": {
@@ -1133,6 +1204,14 @@
       "label": "Nach Status filtern",
       "all": "Alle"
     },
+    "search": {
+      "label": "Feedback durchsuchen",
+      "placeholder": "Suchen … Thema und ganzer Thread",
+      "clear": "Suche löschen",
+      "results": "{{count}} Treffer · nach Relevanz",
+      "empty": "Keine Treffer für „{{query}}“.",
+      "inThread": "im Thread"
+    },
     "tab": {
       "label": "Zwischen aktiven Themen und Archiv wechseln",
       "active": "Aktiv",
@@ -1169,7 +1248,10 @@
       "rejected": "Abgelehnt",
       "needs_input": "Rückfrage",
       "issue_created": "Issue erstellt",
-      "answered": "Beantwortet"
+      "answered": "Beantwortet",
+      "continued": "Fortgesetzt",
+      "needs_input_author": "Rückfrage an Absender",
+      "declined": "Nicht umgesetzt"
     },
     "thread": {
       "routine": "Routine",
@@ -1209,16 +1291,27 @@
       "progress": "{{current}} von {{total}}",
       "next": "Weiter",
       "done": "Erledigt",
+      "advanced": "Erledigt – weiter mit {{current}} von {{total}}",
       "answerPlaceholder": "Antwort schreiben… (Markdown möglich, Strg+Enter zum Senden)",
       "answerSend": "Antworten",
+      "openQuestion": "Offene Rückfrage",
       "cheerAnswered": "Rückfrage beantwortet — die Routine übernimmt ab hier.",
-      "cheerReplied": "Notiert! Weiter geht's.",
       "allDoneTitle": "Alles abgearbeitet",
-      "allDoneHint": "Keine offenen Rückfragen, keine neuen Themen. Schau dir an, was du geschafft hast.",
+      "allDoneHint": "Keine offenen Rückfragen. Deine ToDos liegen bei der Routine — sie kommen hier rein, sobald sie etwas von dir braucht.",
       "kind": {
         "question": "Rückfrage",
         "new": "ToDo"
-      }
+      },
+      "scope": {
+        "label": "Auswahl",
+        "mine": "Meine",
+        "others": "Andere Admins",
+        "all": "Alle",
+        "showAll": "Alle anzeigen"
+      },
+      "scopeEmptyTitle": "In dieser Auswahl ist nichts offen",
+      "scopeEmptyHint": "{{count}} Thema/Themen liegen in einer anderen Auswahl.",
+      "cheerReplied": "Notiert! Weiter geht's."
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",
@@ -1228,7 +1321,69 @@
       "answered": "Rückfragen beantwortet",
       "shippedShare": "geshipped",
       "donutLabel": "{{label}}: {{pct}} % geshipped",
-      "note": "Jeder Wert zählt nach seinem eigenen Zeitstempel: geshipped nach Ship-Datum, ToDo nach Erstellung, Rückfragen nach Antwortdatum. Beantwortete Rückfragen zählen als ToDo — die Routine muss sie noch aufgreifen."
+      "note": "Jeder Wert zählt nach seinem eigenen Zeitstempel: geshipped nach Ship-Datum, ToDo nach Erstellung, Rückfragen nach Antwortdatum. Beantwortete Rückfragen zählen als ToDo — die Routine muss sie noch aufgreifen.",
+      "paceMedian": "Median bis Ship",
+      "paceQuestions": "Rückfragen-Quote",
+      "paceQuestionsHint": "{{questioned}} von {{raised}} Themen",
+      "noneShort": "—",
+      "underHour": "< 1 Std.",
+      "unitHours": "{{value}} Std.",
+      "unitDays": "{{value}} Tage",
+      "throughputTitle": "Durchsatz",
+      "throughputSub": "Ships pro Woche · letzte {{weeks}} Wochen",
+      "throughputFrom": "vor {{weeks}} Wochen",
+      "throughputNow": "diese Woche",
+      "throughputWeek": "Woche ab {{date}}: {{count}} Ships",
+      "throughputAria": "Ships pro Woche über die letzten {{weeks}} Wochen: {{total}} insgesamt, stärkste Woche {{max}}, diese Woche {{current}}.",
+      "lifecycleTitle": "Lebenszyklus",
+      "lifecycleIntro": "Welche Stufen ein Thema durchläuft und welche Abzweigungen es nehmen kann — mit dem aktuellen Stand je Stufe.",
+      "lifecycleSide": "Abzweigungen & Endstationen",
+      "lifecycleNote": "Die Zahlen zeigen, wie viele Themen aktuell in einer Stufe stehen — es gibt keine Übergangs-Historie, also keinen Durchlauf-Zähler.",
+      "stageNow": "Themen aktuell in dieser Stufe",
+      "flow": {
+        "pickup": "Routine greift das älteste Thema auf",
+        "green": "Build + Tests grün, PR gemergt",
+        "question": "Entscheidung nötig — Routine fragt im Thread nach",
+        "answered": "Du antwortest im Thread",
+        "reaper": "Claim verwaist (> 30 Min. ohne PR) — Reaper öffnet neu",
+        "hold": "Rot oder sensibel (Auth, RLS, Secrets, destruktive Migration)",
+        "holdTarget": "PR wartet auf Review",
+        "continue": "Du antwortest nach dem Ship — Fortsetzung"
+      },
+      "fact": {
+        "oldest": "ältestes offenes Thema: {{days}} Tage",
+        "answered": "davon {{count}} beantwortete Rückfrage(n)",
+        "continuation": "davon {{count}} Fortsetzung(en) nach dem Ship",
+        "reopened": "davon {{count}} vom Reaper neu geöffnet",
+        "working": "{{count}} aktiv in Arbeit (noch kein PR)",
+        "hold": "{{count}} Review-Hold — PR wartet auf deinen Merge",
+        "terminalAtRest": "Endstation im Ruhezustand — deine Antwort startet eine neue Runde",
+        "pendingContinuation": "{{count}} mit frischer Antwort — wird wieder aufgegriffen",
+        "awaiting": "wartet auf deine Antwort",
+        "issueTerminal": "Endstation — du hängst das Thema an ein GitHub-Issue; die Routine fasst es nie wieder an",
+        "rejectedLegacy": "Endstation (Alt-Status) — die Routine setzt ihn nie"
+      }
+    },
+    "userTopic": {
+      "badge": "Nutzer-Feedback",
+      "untriaged": "Nicht freigegeben",
+      "release": "Für die Routine freigeben",
+      "channelTitle": "Kanal zum Autor",
+      "channelHint": "Alles hier ist für den Absender sichtbar. Der Verlauf oben (Admin ↔ Routine) ist es nicht.",
+      "seesStatus": "Der Absender sieht:",
+      "asQuestion": "Als Rückfrage an den Absender senden (parkt das Thema, bis er antwortet)",
+      "messagePlaceholder": "Nachricht an den Absender…",
+      "messageSend": "An Absender senden",
+      "questionBadge": "Rückfrage",
+      "fromTeam": "Team",
+      "fromAuthor": "Absender"
+    },
+    "decline": {
+      "mark": "Nicht umsetzen & löschen",
+      "placeholder": "Warum wird das nicht umgesetzt? Der Absender liest diesen Text.",
+      "confirm": "Nicht umsetzen",
+      "cancel": "Abbrechen",
+      "noteRequired": "Bitte eine Begründung angeben – der Absender bekommt sie zu lesen."
     }
   },
   "feedbackFab": {
@@ -1313,6 +1468,106 @@
       "cta": "Codex öffnen"
     }
   },
+  "extension": {
+    "promo": {
+      "text": "Flotte schon gekauft? Eine Browser-Erweiterung importiert deine Schiffe direkt aus deinem RSI-Hangar.",
+      "cta": "So funktioniert's",
+      "dismiss": "Hinweis ausblenden"
+    },
+    "privacy": {
+      "gameContentOnly": "Die Erweiterung liest ausschließlich personalisierte Spielinhalte — die Schiffsnamen auf deiner eigenen RSI-Hangarseite. Es werden keine persönlichen Daten erfasst.",
+      "noCredentials": "Keine Zugangsdaten, Cookies oder Session-Tokens werden gelesen.",
+      "noPersonalData": "Kein Accountname, keine E-Mail-Adresse, kein Pledge-Wert, keine Bestelldaten.",
+      "noUpload": "Es wird nichts an einen Server gesendet. Die Schiffsliste wird innerhalb deines Browsers an diese App übergeben und landet erst in deinem Account, wenn du sie bestätigst.",
+      "scopeLimited": "Die Erweiterung ist nur auf deiner eigenen RSI-Hangarseite und auf Star Citizen Companion aktiv — sonst nirgends.",
+      "localOnly": "Gespeichert werden nur eine Prüfsumme deiner Flotte und der Zeitpunkt des letzten Imports, lokal in deinem Browser."
+    },
+    "install": {
+      "title": "Hangar-Import — Browser-Erweiterung",
+      "subtitle": "Star Citizen Companion kann robertsspaceindustries.com nicht selbst auslesen: Browser verbieten es einer Seite, eine andere zu lesen. Eine kleine Browser-Erweiterung darf die Hangarseite lesen, die du ohnehin gerade offen hast — und die Schiffsliste hierher übergeben.",
+      "detected": {
+        "title": "Erweiterung erkannt",
+        "text": "Die Erweiterung ist in diesem Browser installiert. Öffne deinen Hangar bei RSI, während du eingeloggt bist — sie bietet den Import an, sobald deine Flotte neu ist oder sich geändert hat.",
+        "openHangar": "Meinen RSI-Hangar öffnen"
+      },
+      "what": {
+        "title": "Was sie macht",
+        "text": "Drei Schritte — den letzten bestätigst du.",
+        "open": {
+          "title": "Du öffnest deinen eigenen Hangar bei RSI",
+          "text": "Eingeloggt, auf deiner Pledges-Seite. Überall sonst tut die Erweiterung nichts."
+        },
+        "offer": {
+          "title": "Sie bietet den Import an — nur wenn es etwas Neues gibt",
+          "text": "Deine Flotte wird auf eine Prüfsumme reduziert. Unveränderter Hangar, keine Meldung. Neues Schiff gekauft oder geschenkt bekommen? Dann kommt das Angebot von allein zurück."
+        },
+        "confirm": {
+          "title": "Du bestätigst hier",
+          "text": "Die Schiffsliste öffnet sich in Star Citizen Companion, jeder Eintrag sichtbar. Nur die von dir angehakten Zeilen landen in deinem Hangar."
+        }
+      },
+      "privacy": {
+        "title": "Was gelesen wird — und was nicht",
+        "openSource": "Die Erweiterung ist Teil des offenen Repositories dieses Projekts: Jede Zeile, die sie ausführt, kannst du vor der Installation nachlesen.",
+        "sourceLink": "Quellcode der Erweiterung auf GitHub",
+        "appPrivacyLink": "Datenschutzerklärung dieser App"
+      },
+      "how": {
+        "title": "Installation",
+        "storeNote": "Der Eintrag im Chrome Web Store ist noch in Prüfung, deshalb wird die Erweiterung vorerst aus dem Quellcode installiert. Chrome, Edge, Brave und Opera unterstützen das alle.",
+        "download": {
+          "title": "Repository herunterladen",
+          "text": "ZIP laden und entpacken. Gebraucht wird daraus nur der Ordner browser-extension."
+        },
+        "devmode": {
+          "title": "chrome://extensions öffnen und den Entwicklermodus aktivieren",
+          "text": "Der Schalter sitzt oben rechts auf der Erweiterungsseite."
+        },
+        "load": {
+          "title": "Entpackte Erweiterung laden",
+          "text": "Auf \"Entpackte Erweiterung laden\" klicken und den Ordner browser-extension auswählen."
+        },
+        "use": {
+          "title": "RSI-Hangar öffnen",
+          "text": "Bei RSI einloggen und die Pledges-Seite öffnen — das Import-Angebot erscheint unten rechts."
+        },
+        "downloadCta": "Herunterladen (ZIP)",
+        "browseCta": "Quellcode ansehen",
+        "browsers": "Vorerst nur Chromium-Browser (Chrome, Edge, Brave, Opera, Vivaldi). Eine Firefox-Version kann folgen."
+      },
+      "alt": {
+        "title": "Keine Erweiterung? Dann per Datei",
+        "text": "Deine Hangarseite nimmt auch einen JSON-Export im Hangar-Transfer-Format an, den du selbst erzeugst. Gleiche Prüfansicht, gleiche Regeln.",
+        "cta": "Zu meinem Hangar"
+      },
+      "disclaimer": "Star Citizen Companion ist ein inoffizielles Fanprojekt und steht in keiner Verbindung zur Cloud-Imperium-Unternehmensgruppe. Die Erweiterung ist nicht von RSI unterstützt."
+    },
+    "importPage": {
+      "title": "Schiffe aus deinem RSI-Hangar importieren",
+      "subtitle": "Die Browser-Erweiterung hat die Schiffsliste auf deiner Hangarseite gelesen. Prüfe sie unten — vor deiner Bestätigung wird nichts in deinen Hangar geschrieben.",
+      "waiting": "Warte auf die Browser-Erweiterung…",
+      "review": "Prüfen und bestätigen",
+      "cancel": "Abbrechen und Liste verwerfen",
+      "meta": {
+        "source": "Quelle",
+        "sourceValue": "Deine RSI-Hangarseite (in deinem Browser gelesen)",
+        "ships": "Gefundene Schiffe",
+        "captured": "Gelesen am"
+      },
+      "empty": {
+        "title": "Keine Schiffsliste vorhanden",
+        "text": "Diese Seite wird von der Hangar-Import-Erweiterung geöffnet. Entweder ist die Erweiterung nicht installiert, oder ihre Liste wurde bereits verwendet bzw. ist abgelaufen. Öffne deinen RSI-Hangar erneut, um einen neuen Import zu starten.",
+        "installLink": "Über die Erweiterung",
+        "hangarLink": "Zu meinem Hangar"
+      },
+      "done": {
+        "title": "{{count}} Schiffe importiert",
+        "text": "Die Erweiterung kennt diesen Stand jetzt und bleibt still, bis sich dein Hangar wirklich wieder ändert.",
+        "hangarLink": "Meinen Hangar öffnen"
+      }
+    },
+    "hangarHint": "Keine Lust auf Dateien? Die Browser-Erweiterung importiert direkt aus deinem RSI-Hangar →"
+  },
   "consent": {
     "banner": {
       "title": "Browser-Speicher",
@@ -1354,6 +1609,39 @@
     "appTitle": "Desktop-Wallpaper-App",
     "appDesc": "Dein Desktop rotiert durch Starscape — winzige Tray-App mit Vorladen, Überblendung und Autostart per Klick.",
     "appDownload": "Für Windows herunterladen",
-    "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)"
+    "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)",
+    "appRingLock": "Der Kanal wird mit dem Download festgelegt und lässt sich in der App nicht umstellen — für einen anderen Kanal einfach den passenden Download hier erneut holen.",
+    "appAutoUpdate": "Aktualisiert sich still im Hintergrund; der Versionsstand steht im Tray-Menü."
+  },
+  "userFeedback": {
+    "title": "Feedback",
+    "open": "Feedback senden",
+    "intro": "Was fehlt dir, was nervt dich, was würdest du anders machen? Schreib es hier rein – es landet direkt beim Team.",
+    "placeholder": "Dein Feedback… (Markdown und Screenshots möglich)",
+    "send": "Feedback senden",
+    "sent": "Danke! Dein Feedback ist angekommen.",
+    "privacyHint": "Dein Name ist für das Team sichtbar. Du siehst hier später, was daraus geworden ist.",
+    "errorTitle": "Fehler",
+    "uploadError": "Bild konnte nicht hochgeladen werden.",
+    "rateLimit": "Du hast in der letzten Stunde schon viel geschickt – probiere es später noch einmal.",
+    "loading": "Wird geladen…",
+    "empty": "Du hast noch kein Feedback gesendet.",
+    "team": "Team",
+    "you": "Du",
+    "questionBadge": "Rückfrage",
+    "questionsPending": "Es wartet eine Rückfrage auf deine Antwort",
+    "answerPlaceholder": "Deine Antwort…",
+    "answer": "Antworten",
+    "declinedTitle": "Warum das nicht umgesetzt wird",
+    "tab": {
+      "compose": "Feedback senden",
+      "mine": "Mein Feedback"
+    },
+    "status": {
+      "in_progress": "In Bearbeitung",
+      "question": "Rückfrage an dich",
+      "done": "Umgesetzt",
+      "declined": "Nicht umgesetzt"
+    }
   }
 }

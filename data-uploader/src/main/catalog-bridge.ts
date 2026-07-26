@@ -66,6 +66,18 @@ export interface CatalogUploadResult {
 }
 
 /**
+ * Either a fixed bearer token, or a getter that returns a FRESH one on demand.
+ *
+ * A catalog upload is hundreds of sequential requests over what can be *hours*
+ * for a full extract. A Supabase access token lives ~1h, so a single token
+ * captured at the start goes stale mid-run and every later request 401s ("logs
+ * itself out every hour"). Passing a getter — wired in main to
+ * `ensureAccessToken`, which silently refreshes near expiry — keeps the
+ * Authorization header valid for the whole run regardless of the token TTL.
+ */
+export type CatalogToken = string | (() => string | Promise<string>);
+
+/**
  * Resume + pause wiring. All optional: omitting `hooks` entirely reproduces the
  * original one-shot behaviour, so callers that don't care (and the existing
  * tests) are unaffected.
@@ -111,7 +123,7 @@ async function readJsonDir(outDir: string, sub: string): Promise<Record<string, 
  * Best-effort per op with a hard failure surfaced as { ok:false, error }.
  */
 export async function uploadCatalog(
-  accessToken: string,
+  accessToken: CatalogToken,
   outDir: string,
   onProgress: CatalogProgressCb,
   hooks: CatalogHooks = {},
@@ -132,16 +144,19 @@ export async function uploadCatalog(
     );
   };
 
-  const headers = {
-    'content-type': 'application/json',
-    authorization: `Bearer ${accessToken}`,
-    'x-sc-release-token': RELEASE_TOKEN,
-  };
+  // Resolved per request, not once: a getter re-reads (and, near expiry,
+  // refreshes) the token so a multi-hour run never sends a dead JWT.
+  const resolveToken = typeof accessToken === 'function' ? accessToken : (): string => accessToken;
 
   const post = async (op: string, extra: Record<string, unknown>): Promise<Record<string, unknown>> => {
+    const token = await resolveToken();
     const res = await fetch(endpoint(), {
       method: 'POST',
-      headers,
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${token}`,
+        'x-sc-release-token': RELEASE_TOKEN,
+      },
       body: JSON.stringify({ op, ...extra }),
     });
     const j = (await res.json().catch(() => ({}))) as Record<string, unknown>;

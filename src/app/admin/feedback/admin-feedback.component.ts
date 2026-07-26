@@ -24,14 +24,31 @@ import {
   FeedbackBucket,
   FeedbackMessage,
   FeedbackRow,
+  FeedbackSearchHit,
   FeedbackStatus,
+  WorkflowScope,
+  awaitsTriage,
   buildWorkflowQueue,
   bucketLabelStatus,
   feedbackBucket,
+  filterWorkflowScope,
   isArchived,
+  isContinuedAfterShip,
+  isUserSubmitted,
   refKind,
+  searchFeedback,
+  searchTokens,
   topicTitle,
+  workflowScopeCounts,
 } from './feedback.types';
+import { buildFeedbackBody, uploadFeedbackImages } from '../../feedback/feedback-images.util';
+import {
+  AuthorFeedbackMessage,
+  AuthorFeedbackStatus,
+  AuthorThreadMap,
+  coarseAuthorStatus,
+  groupAuthorMessages,
+} from '../../feedback/user-feedback.types';
 
 /** The board's three modes: scan the list, work the queue, read the numbers. */
 export type FeedbackView = 'overview' | 'workflow' | 'progress';
@@ -66,8 +83,23 @@ interface FeedbackGroup {
 const DRAFT_KEY = 'sc.adminFeedback.draft';
 /** localStorage key remembering the last selected board view. */
 const VIEW_KEY = 'sc.adminFeedback.view';
+/**
+ * View the board opens in when nothing is remembered (feedback fda4e3ea): the
+ * processing mode, docked, maximized and on the full page alike. An explicit
+ * pick via the view switch still wins on the next open.
+ */
+const DEFAULT_VIEW: FeedbackView = 'workflow';
 /** localStorage key holding the processing mode's ticked-off topics. */
 const HANDLED_KEY = 'sc.adminFeedback.handled';
+/** localStorage key remembering the processing mode's scope. */
+const WORKFLOW_SCOPE_KEY = 'sc.adminFeedback.workflowScope';
+/**
+ * Scope the processing mode opens in (feedback abfa97c6): your own topics.
+ * Working the queue means answering Rückfragen, and those you can only answer
+ * on topics you raised — another admin's topic is theirs to steer. The switch
+ * (with its counts) makes the other two scopes one click away.
+ */
+const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
 
 @Component({
   selector: 'sc-admin-feedback',
@@ -160,8 +192,11 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
             [selfId]="selfId()"
             [busy]="busy()"
             [compact]="embedded()"
+            [scope]="workflowScope()"
+            [scopeCounts]="workflowScopeCounts()"
             [reply]="workflowReplyBound"
             (markHandled)="markHandled($event)"
+            (scopeChange)="setWorkflowScope($event)"
             (showProgress)="setView('progress')" />
         </div>
       } @else if (view() === 'progress') {
@@ -179,6 +214,33 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
              TOC scroll strip). Per-chip counts are gone; the single motivating
              totals line below carries the numbers instead. -->
         <div class="board-toolbar">
+          <!-- Fuzzy search across the whole conversation — topic body, processing
+               note, author and every thread reply (feedback 12476cec). Typing
+               narrows both tabs and re-orders the hits by relevance; the day
+               headings step aside for a single "N Treffer" heading while a query
+               is active, because relevance and date order contradict each other. -->
+          <div class="search-box">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input
+              #searchInput
+              type="search"
+              autocomplete="off"
+              [value]="searchQuery()"
+              (input)="setSearch($any($event.target).value)"
+              (keydown.escape)="clearSearch()"
+              [attr.placeholder]="'adminFeedback.search.placeholder' | translate"
+              [attr.aria-label]="'adminFeedback.search.label' | translate" />
+            <!-- Shown for any non-empty input, not just a *usable* query: a
+                 whitespace-only field has to be clearable too. -->
+            @if (searchQuery().length > 0) {
+              <button
+                type="button"
+                (click)="clearSearch(); searchInput.focus()"
+                [attr.aria-label]="'adminFeedback.search.clear' | translate">
+                ×
+              </button>
+            }
+          </div>
           <div class="filters">
             <!-- Active ↔ Archive tabs inside the overview (feedback eeba60e7).
                  Active holds the working set (open / in Arbeit / Rückfrage);
@@ -233,6 +295,17 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                     {{ 'adminFeedback.status.open' | translate }}
                   </button>
                 }
+                <!-- The mirror image of the Rückfrage chip: topics where the
+                     admin asked the person who filed them (feedback 5920cf8c). -->
+                @if (bucketCounts().awaiting_author > 0) {
+                  <button
+                    type="button"
+                    class="status-chip needs_input_author"
+                    [class.active]="statusFilter() === 'awaiting_author'"
+                    (click)="setStatusFilter('awaiting_author')">
+                    {{ 'adminFeedback.status.needs_input_author' | translate }}
+                  </button>
+                }
                 @if (bucketCounts().in_progress > 0) {
                   <button
                     type="button"
@@ -259,6 +332,15 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                     [class.active]="statusFilter() === 'issue_created'"
                     (click)="setStatusFilter('issue_created')">
                     {{ 'adminFeedback.status.issue_created' | translate }}
+                  </button>
+                }
+                @if (bucketCounts().declined > 0) {
+                  <button
+                    type="button"
+                    class="status-chip declined"
+                    [class.active]="statusFilter() === 'declined'"
+                    (click)="setStatusFilter('declined')">
+                    {{ 'adminFeedback.status.declined' | translate }}
                   </button>
                 }
                 @if (bucketCounts().rejected > 0) {
@@ -330,7 +412,10 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
           <!-- Active topics grouped under a non-interactive day heading (Today /
                Yesterday / date) so the list reads as a dated timeline. -->
           @if (activeMessages().length === 0) {
-            <div class="sc-card empty">{{ 'adminFeedback.emptyActive' | translate }}</div>
+            <div class="sc-card empty">
+              {{ (searchActive() ? 'adminFeedback.search.empty' : 'adminFeedback.emptyActive')
+                  | translate: { query: searchQuery() } }}
+            </div>
           }
           @for (g of activeGroups(); track g.key) {
             <div class="date-group">{{ g.label }}</div>
@@ -342,8 +427,16 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
           <!-- Archive: everything terminal (shipped + issue-created + legacy
                rejected), newest first and paged. Each row carries its link. -->
           @if (archiveMessages().length === 0) {
-            <div class="sc-card empty">{{ 'adminFeedback.emptyArchive' | translate }}</div>
+            <div class="sc-card empty">
+              {{ (searchActive() ? 'adminFeedback.search.empty' : 'adminFeedback.emptyArchive')
+                  | translate: { query: searchQuery() } }}
+            </div>
           } @else {
+            @if (searchActive()) {
+              <div class="date-group">
+                {{ 'adminFeedback.search.results' | translate: { count: archiveMessages().length } }}
+              </div>
+            }
             <div class="archive-list">
               @for (m of archiveVisibleMessages(); track m.id) {
                 <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
@@ -365,8 +458,24 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
            next to it, which says who acted last (feedback 34c44134). -->
       <ng-template #pills let-m>
         <span class="status-pill" [class]="bucketLabel(m)">{{ ('adminFeedback.status.' + bucketLabel(m)) | translate }}</span>
+        <!-- Filed by a viewer/collaborator through their own FAB (feedback
+             5920cf8c), and — until released — still held back from the routine. -->
+        @if (fromUser(m)) {
+          <span class="status-pill from-user">{{ 'adminFeedback.userTopic.badge' | translate }}</span>
+          @if (untriaged(m)) {
+            <span class="status-pill untriaged">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span>
+          }
+        }
         @if (isAnsweredAwaitingRoutine(m)) {
           <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
+        }
+        @if (continuedAfterShip(m)) {
+          <span class="status-pill continued">↻ {{ 'adminFeedback.status.continued' | translate }}</span>
+        }
+        <!-- Why this row is in the result list even though its title looks
+             unrelated: the query matched further down the thread. -->
+        @if (threadOnlyHit(m)) {
+          <span class="status-pill">{{ 'adminFeedback.search.inThread' | translate }}</span>
         }
       </ng-template>
 
@@ -474,6 +583,55 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                 [onSubmit]="replySubmitFor(m.id)" />
             </div>
 
+            <!-- AUTHOR CHANNEL — only for topics a non-admin filed. Everything
+                 in this block is visible to that person; the thread above (the
+                 admin <-> Claude conversation) never is. Keeping the two
+                 visually apart is the whole point of the framed section. -->
+            @if (fromUser(m)) {
+              <section class="author-channel">
+                <header class="ac-head">
+                  <span class="ac-title">{{ 'adminFeedback.userTopic.channelTitle' | translate }}</span>
+                  <span class="ac-status">
+                    {{ 'adminFeedback.userTopic.seesStatus' | translate }}
+                    <strong>{{ ('userFeedback.status.' + authorFacingStatus(m)) | translate }}</strong>
+                  </span>
+                </header>
+                <p class="ac-hint">{{ 'adminFeedback.userTopic.channelHint' | translate }}</p>
+
+                @if (authorMessagesFor(m.id).length > 0) {
+                  <div class="ac-thread">
+                    @for (am of authorMessagesFor(m.id); track am.id) {
+                      <div class="reply" [class.is-self]="am.from_admin">
+                        <div class="reply-head">
+                          <span class="reply-author">
+                            {{ (am.from_admin ? 'adminFeedback.userTopic.fromTeam' : 'adminFeedback.userTopic.fromAuthor') | translate }}
+                          </span>
+                          @if (am.is_question) {
+                            <span class="reply-badge">{{ 'adminFeedback.userTopic.questionBadge' | translate }}</span>
+                          }
+                          <span class="reply-ts">{{ am.created_at | date: 'short' }}</span>
+                        </div>
+                        <div class="reply-body" [innerHTML]="render(am.body)"></div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (!archived(m)) {
+                  <label class="ac-ask">
+                    <input type="checkbox" [checked]="askAuthor()" (change)="toggleAskAuthor()" />
+                    {{ 'adminFeedback.userTopic.asQuestion' | translate }}
+                  </label>
+                  <sc-feedback-composer
+                    [compact]="true"
+                    [busy]="busy()"
+                    placeholder="adminFeedback.userTopic.messagePlaceholder"
+                    sendLabel="adminFeedback.userTopic.messageSend"
+                    [onSubmit]="authorReplySubmitFor(m.id)" />
+                }
+              </section>
+            }
+
             <!-- Any admin may delete any topic (board is admin-only) — clears a
                  topic once its handling/rejection is accepted. Active topics can
                  additionally be archived as "issue created" by pasting the
@@ -502,10 +660,49 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                     {{ 'adminFeedback.issue.mark' | translate }}
                   </button>
                 }
+                <!-- A user topic is held back from the autonomous routine until
+                     an admin has read it and releases it (feedback 5920cf8c). -->
+                @if (untriaged(m)) {
+                  <button class="sc-btn micro" (click)="releaseToRoutine(m)" [disabled]="busy()">
+                    {{ 'adminFeedback.userTopic.release' | translate }}
+                  </button>
+                }
               }
-              <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
-                {{ 'adminFeedback.delete' | translate }}
-              </button>
+
+              <!-- A user-submitted topic is never hard-deleted: the author has
+                   to keep seeing "nicht umgesetzt" plus the reason, so the
+                   delete button becomes "nicht umsetzen & löschen" with a
+                   mandatory comment (feedback 5920cf8c, point 4). -->
+              @if (fromUser(m) && !archived(m)) {
+                @if (declineFormFor() === m.id) {
+                  <form class="decline-form" (submit)="declineTopic(m, $event)">
+                    <textarea
+                      class="decline-input"
+                      rows="3"
+                      required
+                      [value]="declineNote()"
+                      (input)="declineNote.set($any($event.target).value)"
+                      [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
+                      [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
+                    <div class="decline-actions">
+                      <button class="sc-btn micro danger" type="submit" [disabled]="busy()">
+                        {{ 'adminFeedback.decline.confirm' | translate }}
+                      </button>
+                      <button class="sc-btn micro" type="button" (click)="cancelDeclineForm()">
+                        {{ 'adminFeedback.decline.cancel' | translate }}
+                      </button>
+                    </div>
+                  </form>
+                } @else {
+                  <button class="sc-btn micro danger" (click)="openDeclineForm(m)" [disabled]="busy()">
+                    {{ 'adminFeedback.decline.mark' | translate }}
+                  </button>
+                }
+              } @else {
+                <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
+                  {{ 'adminFeedback.delete' | translate }}
+                </button>
+              }
             </div>
            </div>
           }
@@ -689,36 +886,38 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
       .ship-cheer { animation: none; }
     }
 
-    /* Quick-access author filter: chip row that scopes the board to one creator. */
+    /* Quick-access author filter: chip row that scopes the board to one creator.
+       The chips themselves share their look with the status chips below. */
     .author-filter { display: flex; flex-wrap: wrap; gap: 6px; }
-    .author-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      background: var(--sc-bg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 999px;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: 0.74rem;
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-    .author-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .author-chip.active {
-      color: var(--sc-accent);
-      border-color: var(--sc-accent);
-      background: rgba(0, 212, 255, 0.12);
-    }
-    .author-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     /* Board toolbar: filters (status + author) on the left, expand-all right. */
     .board-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+    /* Search field: its own full-width row above the filters, so it works in the
+       narrow docked panel and on the wide board alike (feedback 12476cec). The
+       UA's built-in clear cross is dropped for our own labelled button. */
+    .search-box {
+      flex: 1 0 100%; display: flex; align-items: center; gap: 6px;
+      padding: 0 10px; border-radius: 999px;
+      background: var(--sc-bg-2); border: 1px solid var(--sc-border);
+      &:focus-within { border-color: var(--sc-accent); }
+      .search-icon, button { color: var(--sc-fg-2); }
+      input {
+        flex: 1 1 auto; min-width: 0; padding: 6px 0; font: inherit; font-size: 0.8rem;
+        background: transparent; border: 0; color: var(--sc-fg-0);
+        &:focus { outline: none; }
+        &::placeholder { color: var(--sc-fg-2); }
+        &::-webkit-search-cancel-button { display: none; }
+      }
+      button { padding: 0 4px; background: transparent; border: 0; font: inherit; cursor: pointer; }
+      button:hover { color: var(--sc-fg-0); }
+    }
     /* Status + author chip groups now share one wrapping row (feedback 605d317d);
        the wider column gap keeps the two groups visually distinct. */
     .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
     .status-filter { display: flex; flex-wrap: wrap; gap: 6px; }
-    .status-chip {
+    /* Status and author chips are the same control with a different scope, so
+       they share one base look; only the per-status accents below differ. */
+    .status-chip, .author-chip {
       display: inline-flex;
       align-items: center;
       gap: 5px;
@@ -732,11 +931,14 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
       cursor: pointer;
       transition: all 0.16s ease;
     }
-    .status-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .status-chip.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
-    .status-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
+    .status-chip:hover, .author-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .status-chip.active, .author-chip.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
+    .status-chip:focus-visible, .author-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     /* The needs_input filter carries the same violet accent as its status pill. */
     .status-chip.needs_input.active { color: #a78bfa; border-color: #a78bfa; background: rgba(167, 139, 250, 0.14); }
+    /* "Rückfrage an Absender" — same rosé as its pill, so the two directions of
+       Rückfrage stay distinguishable in the filter row too. */
+    .status-chip.needs_input_author.active { color: #f472b6; border-color: #f472b6; background: rgba(244, 114, 182, 0.14); }
     /* Archive chips echo their status pills: shipped green, issue indigo. */
     .status-chip.shipped.active { color: var(--sc-success); border-color: var(--sc-success); background: rgba(74, 222, 128, 0.14); }
     .status-chip.issue_created.active { color: #818cf8; border-color: #818cf8; background: rgba(129, 140, 248, 0.14); }
@@ -874,9 +1076,15 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
       /* Handed off to a GitHub issue — terminal like shipped, but distinct. */
       &.issue_created { background: rgba(129, 140, 248, 0.2); color: #818cf8; }
       &.needs_input { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
+      /* The mirror image: the admin asked the topic's AUTHOR and waits on them.
+         Rosé rather than violet, so the two Rückfrage directions never read the
+         same at a glance (feedback 5920cf8c). */
+      &.needs_input_author { background: rgba(244, 114, 182, 0.2); color: #f472b6; }
       /* Admin answered a Rückfrage → awaiting the routine (distinct from a
          needs_input topic still waiting on the admin). */
       &.answered { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; }
+      /* Shipped topic reopened by the admin's post-ship reply (review loop). */
+      &.continued { background: rgba(74, 222, 128, 0.2); color: var(--sc-success); }
     }
     /* A second pill (the "beantwortet" marker) trails the bucket pill instead of
        being pushed to the far edge by another margin-left: auto. */
@@ -987,6 +1195,39 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
     .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
     .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
 
+    /* ---- User-submitted topics (feedback 5920cf8c) ----
+       The author channel is framed and tinted so it is never confused with the
+       admin <-> routine thread above it: everything inside is readable by the
+       person who filed the topic. The decline form's comment is mandatory —
+       it is the explanation that author gets to read. */
+    .author-channel, .ac-thread, .decline-form { display: flex; flex-direction: column; gap: 8px; }
+    .author-channel {
+      margin-top: 6px; padding: 10px; border-radius: 8px;
+      border: 1px dashed var(--sc-accent);
+      background: color-mix(in srgb, var(--sc-accent) 6%, transparent);
+    }
+    .ac-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ac-title {
+      font-size: 0.72rem; text-transform: uppercase;
+      letter-spacing: 0.08em; font-weight: 600; color: var(--sc-accent);
+    }
+    .ac-status { margin-left: auto; font-size: 0.72rem; color: var(--sc-fg-2); }
+    .ac-status strong { color: var(--sc-fg-1); }
+    .ac-hint { margin: 0; font-size: 0.72rem; color: var(--sc-fg-2); }
+    .ac-ask { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--sc-fg-2); }
+
+    .status-pill.from-user { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .status-pill.untriaged { border-color: var(--sc-accent-hot); color: var(--sc-accent-hot); }
+
+    .decline-form { gap: 6px; flex: 1 1 260px; }
+    .decline-input {
+      width: 100%; box-sizing: border-box; padding: 6px 8px; resize: vertical;
+      background: var(--sc-bg-2); border: 1px solid var(--sc-danger);
+      border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: 0.78rem;
+    }
+    .decline-input:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
+    .decline-actions { display: flex; gap: 6px; }
+
     @media (max-width: 640px) {
       .main-composer { position: static; }
       .status-pill { margin-left: 0; }
@@ -1039,6 +1280,12 @@ export class AdminFeedbackComponent implements OnInit {
     }
   }
 
+  /**
+   * The remembered view wins; without one the panel opens in the processing
+   * mode (feedback fda4e3ea). Opening the board is nearly always "what do I
+   * have to answer", not "let me browse the archive" — and the queue's own
+   * empty state hands the admin on to the numbers when there is nothing to do.
+   */
   private readView(): FeedbackView {
     try {
       const raw = localStorage.getItem(VIEW_KEY);
@@ -1046,7 +1293,7 @@ export class AdminFeedbackComponent implements OnInit {
     } catch {
       /* ignore */
     }
-    return 'overview';
+    return DEFAULT_VIEW;
   }
 
   /**
@@ -1091,9 +1338,50 @@ export class AdminFeedbackComponent implements OnInit {
     }
   }
 
-  /** The guided processing queue: open Rückfragen first, then new topics. */
-  readonly workflowQueue = computed(() =>
+  /**
+   * Whose topics the processing mode walks through (feedback abfa97c6).
+   * Persisted behind the preferences consent like the view itself, so the pick
+   * survives reopening the panel.
+   */
+  readonly workflowScope = signal<WorkflowScope>(this.readWorkflowScope());
+
+  setWorkflowScope(scope: WorkflowScope): void {
+    this.workflowScope.set(scope);
+    if (!this.consent.preferencesAllowed()) return;
+    try {
+      localStorage.setItem(WORKFLOW_SCOPE_KEY, scope);
+    } catch {
+      /* private mode / quota — the in-memory signal still works */
+    }
+  }
+
+  private readWorkflowScope(): WorkflowScope {
+    try {
+      const raw = localStorage.getItem(WORKFLOW_SCOPE_KEY);
+      if (raw === 'mine' || raw === 'others' || raw === 'all') return raw;
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_WORKFLOW_SCOPE;
+  }
+
+  /** The full processing queue: the open Rückfragen, oldest first. */
+  private readonly workflowQueueAll = computed(() =>
     buildWorkflowQueue(this.messages(), this.threads(), this.handled()),
+  );
+
+  /** Queue size per scope — the KPI counts on the mode's scope switch. */
+  readonly workflowScopeCounts = computed(() =>
+    workflowScopeCounts(this.workflowQueueAll(), this.selfId()),
+  );
+
+  /**
+   * The queue as the processing mode shows it — narrowed to the chosen scope.
+   * The view switch's badge reads from here too, so it promises exactly what
+   * the mode will hand over.
+   */
+  readonly workflowQueue = computed(() =>
+    filterWorkflowScope(this.workflowQueueAll(), this.workflowScope(), this.selfId()),
   );
 
   /** Stable reply handler handed to the processing mode's inline composer. */
@@ -1152,6 +1440,16 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /**
+   * True when a shipped topic was reopened by the admin's post-ship reply (the
+   * routine's review loop). Like the "beantwortet" marker, it trails the ToDo
+   * pill — the topic is back on the routine's pile, the marker records that it is
+   * a continuation of an already-shipped change rather than a brand-new item.
+   */
+  continuedAfterShip(m: FeedbackRow): boolean {
+    return isContinuedAfterShip(m, this.threads().get(m.id));
+  }
+
+  /**
    * Which half of the overview list is shown (feedback eeba60e7): the working
    * set or the Archive of terminal topics (shipped + issue-created + legacy
    * rejected). Replaces the old collapsible "shipped" stack — done work now has
@@ -1161,7 +1459,7 @@ export class AdminFeedbackComponent implements OnInit {
 
   /** Template-side alias for the shared {@link isArchived} rule. */
   archived(m: FeedbackRow): boolean {
-    return isArchived(m);
+    return isArchived(m, this.threads().get(m.id));
   }
 
   /** Template-side alias for the shared {@link refKind} rule. */
@@ -1209,6 +1507,58 @@ export class AdminFeedbackComponent implements OnInit {
     this.authorFilter.update((cur) => (cur === id ? null : id));
   }
 
+  // ---- Search -------------------------------------------------------------
+
+  /** Raw search input. Blank (or punctuation-only) means "no search active". */
+  readonly searchQuery = signal('');
+
+  /** True once the query holds at least one usable term. */
+  readonly searchActive = computed(() => searchTokens(this.searchQuery()).length > 0);
+
+  /**
+   * The scored hits for the current query, keyed by topic id — computed once for
+   * the whole board so both tabs, the counts and the chips read the same result
+   * set instead of re-scoring per view. Empty while no search is active, which is
+   * exactly what {@link matchesSearch} treats as "everything passes".
+   */
+  private readonly searchHits = computed<ReadonlyMap<string, FeedbackSearchHit>>(() => {
+    const query = this.searchQuery();
+    if (!this.searchActive()) return new Map();
+    const hits = new Map<string, FeedbackSearchHit>();
+    for (const hit of searchFeedback(this.messages(), this.threads(), query)) {
+      hits.set(hit.row.id, hit);
+    }
+    return hits;
+  });
+
+  private matchesSearch(m: FeedbackRow): boolean {
+    return !this.searchActive() || this.searchHits().has(m.id);
+  }
+
+  /** Relevance of a topic for the current query; 0 when it is not a hit. */
+  private searchScore(m: FeedbackRow): number {
+    return this.searchHits().get(m.id)?.score ?? 0;
+  }
+
+  /** A hit that only matched inside the thread — worth flagging in the row. */
+  threadOnlyHit(m: FeedbackRow): boolean {
+    const hit = this.searchHits().get(m.id);
+    return !!hit && hit.inThread && !hit.inBody;
+  }
+
+  /**
+   * Update the query. Also rewinds the archive paging, so a fresh search always
+   * starts at its most relevant page instead of an offset from the last one.
+   */
+  setSearch(value: string): void {
+    this.searchQuery.set(value);
+    this.archiveVisible.set(AdminFeedbackComponent.ARCHIVE_PAGE);
+  }
+
+  clearSearch(): void {
+    this.setSearch('');
+  }
+
   /**
    * Status quick-filter: narrow the active board to a single presentation bucket
    * (or null for all active topics). Pairs with the author filter — both
@@ -1233,13 +1583,15 @@ export class AdminFeedbackComponent implements OnInit {
     const counts: Record<FeedbackBucket, number> = {
       todo: 0,
       awaiting_admin: 0,
+      awaiting_author: 0,
       in_progress: 0,
       shipped: 0,
       issue_created: 0,
       rejected: 0,
+      declined: 0,
     };
     for (const m of this.messages()) {
-      if (this.matchesAuthor(m)) counts[this.bucketOf(m)]++;
+      if (this.matchesAuthor(m) && this.matchesSearch(m)) counts[this.bucketOf(m)]++;
     }
     return counts;
   });
@@ -1283,24 +1635,56 @@ export class AdminFeedbackComponent implements OnInit {
     return max;
   }
 
-  /** Active (non-terminal) topics, author- and status-filtered, newest activity first. */
+  /**
+   * Active (non-terminal) topics, author-, status- and search-filtered. Ordered
+   * newest activity first — except while a search is active, where relevance
+   * wins and recency only breaks ties (feedback 12476cec).
+   */
   readonly activeMessages = computed(() =>
     this.messages()
-      .filter((m) => !isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m))
-      .sort((a, b) => this.recencyTime(b) - this.recencyTime(a)),
+      .filter(
+        (m) =>
+          !isArchived(m, this.threads().get(m.id)) &&
+          this.matchesAuthor(m) &&
+          this.matchesStatus(m) &&
+          this.matchesSearch(m),
+      )
+      .sort(this.boardOrder()),
   );
+
+  /**
+   * The comparator both tabs sort by: relevance-first while searching, plain
+   * recency otherwise. `recent` supplies the per-tab notion of "newest" (last
+   * activity on the active board, completion time in the archive).
+   */
+  private boardOrder(
+    recent: (m: FeedbackRow) => number = (m) => this.recencyTime(m),
+  ): (a: FeedbackRow, b: FeedbackRow) => number {
+    if (!this.searchActive()) return (a, b) => recent(b) - recent(a);
+    return (a, b) => this.searchScore(b) - this.searchScore(a) || recent(b) - recent(a);
+  }
 
   /** Topics rendered in the current tab — backs the expand-all control. */
   readonly visibleMessages = computed(() =>
     this.boardTab() === 'active' ? this.activeMessages() : this.archiveVisibleMessages(),
   );
 
-  /** Tab badge: how many topics live in each half (author-filtered, chip-independent). */
+  /**
+   * Tab badge: how many topics live in each half (author- and search-filtered,
+   * chip-independent). Counting the search in is what tells the admin that the
+   * thing they are looking for sits in the *other* tab.
+   */
   readonly activeCount = computed(
-    () => this.messages().filter((m) => !isArchived(m) && this.matchesAuthor(m)).length,
+    () =>
+      this.messages().filter(
+        (m) => !isArchived(m, this.threads().get(m.id)) && this.matchesAuthor(m) && this.matchesSearch(m),
+      ).length,
   );
   readonly archiveCount = computed(
-    () => this.messages().filter((m) => isArchived(m) && this.matchesAuthor(m)).length,
+    () =>
+      this.messages().filter(
+        (m) => isArchived(m, this.threads().get(m.id)) && this.matchesAuthor(m) && this.matchesSearch(m),
+      ).length,
   );
 
   /**
@@ -1310,9 +1694,24 @@ export class AdminFeedbackComponent implements OnInit {
    * heading before each run.
    */
   readonly activeGroups = computed<FeedbackGroup[]>(() => {
+    const items = this.activeMessages();
+    // While searching, the list is ordered by relevance — day headings would cut
+    // it into meaningless one-row slices, so it collapses into a single result
+    // heading instead (feedback 12476cec).
+    if (this.searchActive()) {
+      if (!items.length) return [];
+      return [
+        {
+          key: 'search',
+          label: this.translate.instant('adminFeedback.search.results', { count: items.length }),
+          items,
+        },
+      ];
+    }
+
     const groups: FeedbackGroup[] = [];
     let current: FeedbackGroup | null = null;
-    for (const m of this.activeMessages()) {
+    for (const m of items) {
       const t = this.recencyTime(m);
       const key = this.dayKey(t);
       if (!current || current.key !== key) {
@@ -1446,8 +1845,14 @@ export class AdminFeedbackComponent implements OnInit {
    */
   readonly archiveMessages = computed(() =>
     this.messages()
-      .filter((m) => isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m))
-      .sort((a, b) => this.archiveTime(b) - this.archiveTime(a)),
+      .filter(
+        (m) =>
+          isArchived(m, this.threads().get(m.id)) &&
+          this.matchesAuthor(m) &&
+          this.matchesStatus(m) &&
+          this.matchesSearch(m),
+      )
+      .sort(this.boardOrder((m) => this.archiveTime(m))),
   );
   /** The current archive page (first N of the sorted history). */
   readonly archiveVisibleMessages = computed(() =>
@@ -1621,7 +2026,7 @@ export class AdminFeedbackComponent implements OnInit {
     this.errorMsg.set(null);
     const { data, error } = await this.sb.client
       .from('admin_feedback')
-      .select('id, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, author:profiles(display_name, username)')
+      .select('id, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, source, triaged, decision_note, author:profiles(display_name, username)')
       .order('created_at', { ascending: true });
     if (error) {
       this.errorMsg.set(error.message);
@@ -1631,6 +2036,7 @@ export class AdminFeedbackComponent implements OnInit {
       // Threads first: the guided auto-expand needs each topic's replies to tell
       // an unanswered Rückfrage from one already answered (awaiting the routine).
       await this.loadThreads(rows.map((r) => r.id));
+      await this.loadAuthorThreads(rows.filter(isUserSubmitted).map((r) => r.id));
       this.autoExpandFirstQuestion();
       this.detectShipped(rows);
     }
@@ -1661,6 +2067,58 @@ export class AdminFeedbackComponent implements OnInit {
     this.threads.set(grouped);
   }
 
+  // ---- Author channel (user-submitted topics) ------------------------------
+
+  /**
+   * The AUTHOR-VISIBLE messages per topic (feedback 5920cf8c). Kept strictly
+   * apart from {@link threads}: that one is the admin <-> routine conversation
+   * and must never reach the person who filed the topic, this one is the only
+   * thing they do see besides their own text and the coarse status.
+   */
+  readonly authorThreads = signal<AuthorThreadMap>(new Map());
+
+  private async loadAuthorThreads(ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      this.authorThreads.set(new Map());
+      return;
+    }
+    const { data, error } = await this.sb.client
+      .from('feedback_author_messages')
+      .select('id, feedback_id, author_id, from_admin, is_question, body, created_at')
+      .in('feedback_id', ids)
+      .order('created_at', { ascending: true });
+    // Additive — a load failure must not blank the board.
+    if (error) return;
+    this.authorThreads.set(
+      groupAuthorMessages((data ?? []) as unknown as AuthorFeedbackMessage[]),
+    );
+  }
+
+  authorMessagesFor(id: string): AuthorFeedbackMessage[] {
+    return this.authorThreads().get(id) ?? [];
+  }
+
+  /** Template alias: was this topic filed by a non-admin through the user FAB? */
+  fromUser(m: FeedbackRow): boolean {
+    return isUserSubmitted(m);
+  }
+
+  /** Template alias: does this user topic still wait to be released to the routine? */
+  untriaged(m: FeedbackRow): boolean {
+    return awaitsTriage(m);
+  }
+
+  /**
+   * What the FEEDBACK AUTHOR currently sees for this topic — the same coarse
+   * mapping the `public.my_feedback` view applies, so the admin can tell at a
+   * glance that a `needs_input` Rückfrage to the routine reads as plain
+   * "in Bearbeitung" on the other side, while only `needs_input_author` shows up
+   * there as a question.
+   */
+  authorFacingStatus(m: FeedbackRow): AuthorFeedbackStatus {
+    return coarseAuthorStatus(m.status);
+  }
+
   authorLabelFor(msg: FeedbackMessage): string {
     if (msg.is_system) return this.translate.instant('adminFeedback.thread.routine');
     if (msg.author_id && msg.author_id === this.selfId()) {
@@ -1673,54 +2131,17 @@ export class AdminFeedbackComponent implements OnInit {
 
   // ---- Composer submit handlers ------------------------------------------
 
-  /** Storage bucket backing feedback screenshot attachments. */
-  private static readonly IMAGES_BUCKET = 'feedback-images';
-
   /**
-   * Upload the composer's queued images to Storage and return their public URLs
-   * (in order). Images are uploaded rather than inlined as base64 because a
-   * single compressed screenshot exceeds the message body's 20 000-char check
-   * constraint. Throws on the first upload failure so the caller keeps the draft.
+   * Upload the composer's queued images and compose the stored body. The
+   * implementation moved to `feedback/feedback-images.util.ts` so the non-admin
+   * panel (feedback 5920cf8c) attaches screenshots through the exact same path.
    */
-  private async uploadImages(images: PendingImage[]): Promise<string[]> {
-    const uid = this.selfId();
-    if (!uid || images.length === 0) return [];
-    const bucket = this.sb.client.storage.from(AdminFeedbackComponent.IMAGES_BUCKET);
-    const urls: string[] = [];
-    for (const img of images) {
-      const blob = this.dataUrlToBlob(img.dataUrl);
-      const path = `${uid}/${crypto.randomUUID()}.${this.extForType(blob.type)}`;
-      const { error } = await bucket.upload(path, blob, { contentType: blob.type, upsert: false });
-      if (error) throw new Error(error.message);
-      urls.push(bucket.getPublicUrl(path).data.publicUrl);
-    }
-    return urls;
+  private uploadImages(images: PendingImage[]): Promise<string[]> {
+    return uploadFeedbackImages(this.sb.client, this.selfId(), images);
   }
 
-  /** File extension for a known image MIME type (JPEG is the compressed default). */
-  private extForType(mime: string): string {
-    switch (mime) {
-      case 'image/png': return 'png';
-      case 'image/gif': return 'gif';
-      case 'image/webp': return 'webp';
-      default: return 'jpg';
-    }
-  }
-
-  /** Decode a `data:<mime>;base64,<data>` URI into a Blob for upload. */
-  private dataUrlToBlob(dataUrl: string): Blob {
-    const comma = dataUrl.indexOf(',');
-    const mime = /^data:([^;]+)/.exec(dataUrl)?.[1] ?? 'image/jpeg';
-    const bin = atob(dataUrl.slice(comma + 1));
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new Blob([bytes], { type: mime });
-  }
-
-  /** Compose the stored body: text with any uploaded images appended as markdown. */
   private buildBody(text: string, images: PendingImage[], urls: string[]): string {
-    const imgMd = urls.map((url, i) => `![${images[i].name}](${url})`).join('\n\n');
-    return [text, imgMd].filter((s) => s.length > 0).join('\n\n');
+    return buildFeedbackBody(text, images, urls);
   }
 
   /** Stable handler reference for the new-topic composer. */
@@ -1839,6 +2260,146 @@ export class AdminFeedbackComponent implements OnInit {
       return;
     }
     this.cancelIssueForm();
+    await this.refresh();
+  }
+
+  // ---- User-submitted topics: triage, ask the author, decline ---------------
+
+  /**
+   * Release a user-submitted topic to the autonomous routine. Until an admin
+   * does this the topic sits `triaged=false` and the routine skips it — a
+   * stranger must not be able to drive an agent that implements and ships on
+   * its own straight from a feedback box.
+   */
+  async releaseToRoutine(m: FeedbackRow): Promise<void> {
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const { error } = await this.sb.client
+      .from('admin_feedback')
+      .update({ triaged: true })
+      .eq('id', m.id);
+    if (error) {
+      this.errorMsg.set(error.message);
+      this.busy.set(false);
+      return;
+    }
+    await this.refresh();
+  }
+
+  /**
+   * Whether the next author-channel message is sent as a QUESTION. Opt-in per
+   * the admin's decision (feedback 5920cf8c, point 3): an ordinary note keeps
+   * the topic reading "in Bearbeitung" on the author's side, only a question
+   * surfaces there as its own "Rückfrage an dich" status.
+   */
+  readonly askAuthor = signal(false);
+
+  toggleAskAuthor(): void {
+    this.askAuthor.update((v) => !v);
+  }
+
+  private readonly authorReplySubmitters =
+    new Map<string, (p: ComposerPayload) => Promise<boolean>>();
+
+  authorReplySubmitFor(feedbackId: string): (p: ComposerPayload) => Promise<boolean> {
+    let fn = this.authorReplySubmitters.get(feedbackId);
+    if (!fn) {
+      fn = (p: ComposerPayload) => this.sendAuthorMessage(feedbackId, p);
+      this.authorReplySubmitters.set(feedbackId, fn);
+    }
+    return fn;
+  }
+
+  /** Post an admin message into a topic's author-visible channel. */
+  async sendAuthorMessage(feedbackId: string, payload: ComposerPayload): Promise<boolean> {
+    const uid = this.selfId();
+    if (!uid) return false;
+    this.errorMsg.set(null);
+    let body: string;
+    try {
+      body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
+    } catch {
+      this.errorMsg.set(this.translate.instant('adminFeedback.compose.uploadError'));
+      return false;
+    }
+    if (!body) return false;
+    const { error } = await this.sb.client.from('feedback_author_messages').insert({
+      feedback_id: feedbackId,
+      author_id: uid,
+      from_admin: true,
+      is_question: this.askAuthor(),
+      body,
+    });
+    if (error) {
+      this.errorMsg.set(error.message);
+      return false;
+    }
+    this.askAuthor.set(false);
+    await this.refresh();
+    return true;
+  }
+
+  /** Topic id whose inline "nicht umsetzen" comment form is open (null = none). */
+  readonly declineFormFor = signal<string | null>(null);
+  /** Draft explanation in that form — mandatory, the author gets to read it. */
+  readonly declineNote = signal('');
+
+  openDeclineForm(m: FeedbackRow): void {
+    this.declineNote.set('');
+    this.declineFormFor.set(m.id);
+  }
+
+  cancelDeclineForm(): void {
+    this.declineFormFor.set(null);
+    this.declineNote.set('');
+  }
+
+  /**
+   * "Nicht umsetzen & löschen" for a user-submitted topic (feedback 5920cf8c,
+   * point 4): the admin's comment is mandatory, it is posted into the
+   * author-visible channel AND stored on the row as `decision_note`, and the
+   * topic moves to the terminal `declined` status.
+   *
+   * Deliberately a soft close rather than a `DELETE`. A hard delete cascades
+   * the author's own thread away and leaves them with a topic that silently
+   * vanished — the exact opposite of "the author gets a proper explanation".
+   * The topic leaves the admins' active board either way (Archive tab).
+   */
+  async declineTopic(m: FeedbackRow, ev: Event): Promise<void> {
+    ev.preventDefault();
+    const note = this.declineNote().trim();
+    if (!note) {
+      this.errorMsg.set(this.translate.instant('adminFeedback.decline.noteRequired'));
+      return;
+    }
+    const uid = this.selfId();
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const { error } = await this.sb.client
+      .from('admin_feedback')
+      .update({
+        status: 'declined',
+        decision_note: note,
+        processed_at: new Date().toISOString(),
+      })
+      .eq('id', m.id);
+    if (error) {
+      this.errorMsg.set(error.message);
+      this.busy.set(false);
+      return;
+    }
+    // Also drop it into the channel so the author sees the reason as a message,
+    // not only as a field on a card they may never expand.
+    if (uid) {
+      await this.sb.client.from('feedback_author_messages').insert({
+        feedback_id: m.id,
+        author_id: uid,
+        from_admin: true,
+        is_question: false,
+        body: note,
+      });
+    }
+    this.cancelDeclineForm();
     await this.refresh();
   }
 

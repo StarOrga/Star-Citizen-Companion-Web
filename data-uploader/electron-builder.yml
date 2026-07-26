@@ -22,6 +22,16 @@ files:
   - package.json
 
 extraResources:
+  # Runtime icons. These live under `build/` (a buildResources dir, NOT bundled
+  # into the app by default), yet the main process loads them at runtime — the
+  # tray from `tray.png`, the BrowserWindow from `icon.png`. Without copying them
+  # into `resources/`, `nativeImage.createFromPath` finds nothing in the packaged
+  # app and the tray falls back to `createEmpty()` — i.e. an INVISIBLE/transparent
+  # tray icon. Copy them so `process.resourcesPath` resolves them at runtime.
+  - from: build/tray.png
+    to: tray.png
+  - from: build/icon.png
+    to: icon.png
   # Embedded Python interpreter + sc_extract package (Phase 2 § A1 + § B1).
   # Produced by `node scripts/fetch-embedded-python.js` — must run before
   # `electron-builder`. The packaged app spawns

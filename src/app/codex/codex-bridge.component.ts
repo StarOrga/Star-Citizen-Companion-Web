@@ -16,6 +16,7 @@ import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
+import { ExtensionPromoComponent } from './extension-promo.component';
 import { HangarService } from '../hangar/hangar.service';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -70,6 +71,7 @@ interface Lane {
     CodexCompareTrayComponent,
     CodexCategoryIconComponent,
     CodexStatusBannerComponent,
+    ExtensionPromoComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -88,12 +90,16 @@ interface Lane {
                     [attr.aria-label]="'codex.search.clear' | translate">×</button>
           }
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>
+          <a class="index-link" routerLink="/codex/fps">{{ 'fps.bridgeLink' | translate }}</a>
           <a class="index-link" routerLink="/codex/upcoming">{{ 'codex.upcoming.title' | translate }}</a>
           <a class="index-link" routerLink="/codex/keybinds">{{ 'codex.bridge.keybinds' | translate }}</a>
           <a class="index-link" routerLink="/hangar">{{ 'codex.bridge.hangar' | translate }}</a>
         </div>
         <sc-codex-status-banner />
       </div>
+
+      <!-- Hangar-import extension pitch — self-hiding once installed/dismissed -->
+      <sc-extension-promo />
 
       @if (error(); as err) {
         <div class="sc-card err">

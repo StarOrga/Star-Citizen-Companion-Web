@@ -11,9 +11,11 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   AmmunitionPayload,
   BaseEntityPayload,
+  CodexBlueprintIngredient,
   CodexItemPort,
   ComponentPayload,
   Dimensions,
+  ItemPayload,
   Lang,
   LoadoutEntry,
   ShipPayload,
@@ -58,6 +60,15 @@ import {
   summarizePorts,
   unescapeText,
 } from './codex-format';
+import {
+  ammoClassNameFor,
+  ammoClassNamesFor,
+  damageChannelsOf,
+  equippedStats,
+  equippedTypeLabel,
+  isWeaponMountPort,
+  weaponStatsUnavailable,
+} from './codex-equipped-stats';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexHardpointLayoutComponent, LayoutGroup, LayoutSlot } from './codex-hardpoint-layout.component';
 import { CodexSwapDockComponent } from './codex-swap-dock.component';
@@ -109,6 +120,13 @@ interface LoadoutItem {
 interface LoadoutGroup {
   category: HardpointCategory;
   items: LoadoutItem[];
+}
+
+// The recipe that PRODUCES this entity (#187: "which materials do I need").
+interface GearRecipe {
+  classNameSlug: string;
+  craftTimeSec: number | null;
+  ingredients: CodexBlueprintIngredient[];
 }
 
 @Component({
@@ -278,6 +296,19 @@ interface LoadoutGroup {
           </div>
         </header>
 
+        <!-- ── Ship liveries — always-on 3D view at hero level (#137 part 2) ──
+             Moved directly beneath the hero so the interactive 3D model stays
+             on-screen (RSI-site feel) instead of being buried below the spec
+             sheet. The viewer itself keeps its deliberate lazy-load: expanded
+             by default on desktop (the ~3 MB glb loads immediately), collapsed
+             by default on mobile (opened on demand to spare cellular data).
+             Comparison is intentionally NOT duplicated here — the existing
+             floating compare tray (<sc-codex-compare-tray/>, pinned via the hero
+             ★ action) is the single comparison surface. -->
+        @if (shipClassName(); as cls) {
+          <sc-ship-skin-viewer [shipId]="cls" />
+        }
+
         <!-- ── Description ───────────────────────────────────────── -->
         @if (description(); as d) {
           <section class="sc-card block">
@@ -325,6 +356,23 @@ interface LoadoutGroup {
             <h2>{{ 'codex.detail.weaponParams' | translate }}</h2>
             @for (g of weaponParamGroups(); track g.purpose) {
               @if (showStatGroupHeaders(weaponParamGroups())) {
+                <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
+              }
+              <div class="stat-grid">
+                @for (s of g.rows; track s.key) {
+                  <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        <!-- ── Armor / undersuit stats, grouped by purpose ───────── -->
+        @if (armorStatGroups().length > 0) {
+          <section class="sc-card block">
+            <h2>{{ 'codex.detail.armorStats' | translate }}</h2>
+            @for (g of armorStatGroups(); track g.purpose) {
+              @if (showStatGroupHeaders(armorStatGroups())) {
                 <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
               }
               <div class="stat-grid">
@@ -401,19 +449,56 @@ interface LoadoutGroup {
             <h2>
               {{ 'codex.detail.loadout' | translate }}
               <span class="ct">{{ installedCount() }}</span>
-              @if (emptyLoadoutCount() > 0) {
+              @if (hiddenEmptyCount() > 0) {
                 <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
-                  {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: emptyLoadoutCount() } }}
+                  {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
                 </button>
               }
             </h2>
+            <!-- "What even IS a hardpoint?" — answered up front, once. -->
+            <p class="hint">{{ 'codex.detail.hardpointExplainer' | translate }}</p>
             <p class="hint">{{ 'codex.detail.layoutHint' | translate }}</p>
+            @if (emptyWeaponMounts() > 0) {
+              <p class="hint warn">
+                {{ 'codex.equipped.armamentMissing' | translate: { count: emptyWeaponMounts() } }}
+              </p>
+            }
             <sc-codex-hardpoint-layout
               [groups]="layoutGroups()"
               (swapRequested)="openSwapDock($event)" />
             @if (swapSlot()) {
               <sc-codex-swap-dock class="swap-host" [slot]="swapSlot()" (closed)="swapSlot.set(null)" />
             }
+          </section>
+        }
+
+        <!-- ── Crafting recipe: what this item costs to make (#187) ─ -->
+        @if (recipe(); as r) {
+          <section class="sc-card block">
+            <h2>
+              {{ 'codex.detail.craftedFrom' | translate }}
+              @if (r.craftTimeSec != null) { <span class="ct">{{ fmtCraft(r.craftTimeSec) }}</span> }
+            </h2>
+            <p class="hint">{{ 'codex.detail.craftedFromHint' | translate }}</p>
+            @if (r.ingredients.length > 0) {
+              <ul class="compat-list">
+                @for (i of r.ingredients; track i.ingredientIndex) {
+                  <li>
+                    <span class="compat-link plain">{{ ingredientName(i) }}</span>
+                    <span class="compat-meta">
+                      @if (i.role) { <span class="chip subtle">{{ i.role }}</span> }
+                      @if (i.quantity != null) { <span class="chip">{{ fmt(i.quantity) }} SCU</span> }
+                      @if (i.minQuality) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: i.minQuality } }}</span> }
+                    </span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="muted">{{ 'codex.detail.noIngredients' | translate }}</p>
+            }
+            <a class="compat-link" [routerLink]="['/codex', 'blueprint', r.classNameSlug]">
+              {{ 'codex.detail.openBlueprint' | translate }}
+            </a>
           </section>
         }
 
@@ -436,11 +521,6 @@ interface LoadoutGroup {
               }
             </ul>
           </section>
-        }
-
-        <!-- ── Ship liveries — 3D skin selector (P4K assets) ─────── -->
-        @if (shipClassName(); as cls) {
-          <sc-ship-skin-viewer [shipId]="cls" />
         }
 
         <!-- ── Full spec sheet (Manifest, collapsed) + raw payload ── -->
@@ -611,12 +691,21 @@ interface LoadoutGroup {
     .chip { font-size: 0.62rem; padding: 1px 6px; border-radius: 999px; background: var(--sc-bg-2); color: var(--sc-fg-2); border: 1px solid var(--sc-border); white-space: nowrap; }
     .muted { color: var(--sc-fg-2); margin: 0; font-size: 0.82rem; }
     .hint { color: var(--sc-fg-2); margin: 0 0 12px; font-size: 0.74rem; }
+    /* Data-gap disclosure: visible enough to be read, quiet enough not to
+       look like an app error — the data is missing, nothing is broken. */
+    .hint.warn { border-left: 2px solid color-mix(in srgb, var(--sc-warn, #e8a33d) 60%, transparent);
+      padding-left: 8px; }
     .err-inline { color: var(--sc-danger); font-size: 0.8rem; }
     .compat-head { color: var(--sc-fg-2); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin: 4px 0 8px; }
     .compat-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
     .compat-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 4px; background: var(--sc-bg-1); }
     .compat-link { color: var(--sc-accent); text-decoration: none; font-size: 0.8rem; overflow-wrap: anywhere; }
     .compat-link:hover { text-decoration: underline; }
+    /* A raw resource has no codex page of its own, so it is listed as plain
+       text — a dead link would be worse than no link. */
+    .compat-link.plain { color: var(--sc-fg-0); }
+    .compat-link.plain:hover { text-decoration: none; }
+    .chip.subtle { background: transparent; }
     .compat-meta { display: inline-flex; gap: 4px; flex-shrink: 0; }
 
     .ghost-toggle { margin-left: auto; padding: 3px 10px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border);
@@ -702,6 +791,11 @@ export class CodexDetailComponent implements OnInit {
   // Reverse ingredient lookup: crafting blueprints that consume this entity.
   readonly usedInBlueprints = signal<BlueprintRef[]>([]);
 
+  // Forward crafting lookup (#187): the recipe that PRODUCES this item, so the
+  // codex can answer "which materials does this cost". Null for the vast
+  // majority of catalog entries, which are not craftable.
+  readonly recipe = signal<GearRecipe | null>(null);
+
   // Hardpoint slot-compatibility: which port is expanded + its lazy item list.
   readonly expandedPort = signal<number | null>(null);
   private readonly compatMap = signal<Map<number, PortCompat>>(new Map());
@@ -711,6 +805,14 @@ export class CodexDetailComponent implements OnInit {
 
   // Resolved deep-link target + display fields for default-loadout entries.
   private readonly loadoutEntities = signal<Map<string, ResolvedEntity>>(new Map());
+
+  // Full payloads of the stock-loadout occupants, plus the `<class>_AMMO`
+  // projectile payloads for the guns among them. Together these back the
+  // per-hardpoint stat readout (damage/velocity/range, shield HP/regen, …).
+  private readonly loadoutPayloads = signal<Map<string, { kind: CodexKind; payload: unknown }>>(
+    new Map(),
+  );
+  private readonly ammoPayloads = signal<Map<string, unknown>>(new Map());
 
   // Ship tech stats derived from the stock loadout's component payloads (#137):
   // quantum range/speed + fuel capacities. Best-effort — null when unresolvable.
@@ -746,8 +848,11 @@ export class CodexDetailComponent implements OnInit {
     this.compatMap.set(new Map());
     this.localeMap.set(new Map());
     this.techStats.set(null);
+    this.loadoutPayloads.set(new Map());
+    this.ammoPayloads.set(new Map());
     this.showEmptyLoadout.set(false);
     this.usedInBlueprints.set([]);
+    this.recipe.set(null);
     this.artBroken.set(false);
     this.swapSlot.set(null);
     this.showLinkForm.set(false);
@@ -765,6 +870,8 @@ export class CodexDetailComponent implements OnInit {
         ]);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
         if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug);
+        // Ships are not craftable either, so skip the forward lookup as well.
+        if (kind !== 'ship') void this.loadRecipe(d.classNameSlug);
         // Ship pages: hangar membership backs the add-to-hangar action.
         if (kind === 'ship' && this.hangar.ships().length === 0) void this.hangar.loadAll();
         // Ship pages: resolve the pinned pledge link (own > global). Best
@@ -848,6 +955,10 @@ export class CodexDetailComponent implements OnInit {
     if (classNames.length === 0) return;
     try {
       const payloads = await this.svc.getEntityPayloads(classNames);
+      // Publish the payloads first: the per-hardpoint stat readout depends only
+      // on them, so it must survive a failure in the aggregate tech math below.
+      this.loadoutPayloads.set(payloads);
+      await this.resolveLoadoutAmmo(payloads);
       const lines: ResolvedLoadoutLine[] = [];
       for (const e of entries) {
         if (!e.entityClassName) continue;
@@ -892,6 +1003,27 @@ export class CodexDetailComponent implements OnInit {
     }
   }
 
+  /**
+   * Resolve the projectile ("ammo") payloads for the guns in a stock loadout.
+   * The extract leaves every weapon's ammoContainerRecord null, so the only
+   * link is the `<weaponClass>_AMMO` name convention — one batched query, and
+   * whatever does not exist simply yields no projectile stats.
+   */
+  private async resolveLoadoutAmmo(
+    payloads: Map<string, { kind: CodexKind; payload: unknown }>,
+  ): Promise<void> {
+    const weaponClasses = [...payloads.entries()]
+      .filter(([, v]) => (v.payload as { entityKind?: string } | null)?.entityKind === 'weapon')
+      .map(([className]) => className);
+    const ammoNames = ammoClassNamesFor(weaponClasses);
+    if (ammoNames.length === 0) return;
+    try {
+      this.ammoPayloads.set(await this.svc.getAmmoPayloads(ammoNames));
+    } catch {
+      // projectile stats are a bonus — a failed lookup just hides those rows
+    }
+  }
+
   /** Reverse lookup: crafting blueprints that consume this entity as an ingredient. */
   private async loadUsedInBlueprints(className: string): Promise<void> {
     try {
@@ -899,6 +1031,28 @@ export class CodexDetailComponent implements OnInit {
     } catch {
       this.usedInBlueprints.set([]);
     }
+  }
+
+  /** Forward lookup: the recipe that produces this entity, with its materials. */
+  private async loadRecipe(className: string): Promise<void> {
+    try {
+      const bp = await this.svc.getCraftingRecipe(className);
+      this.recipe.set(bp ? {
+        classNameSlug: bp.classNameSlug,
+        craftTimeSec: (bp.row['craft_time_seconds'] as number | null) ?? null,
+        ingredients: bp.ingredients,
+      } : null);
+    } catch {
+      // Crafting data is supplementary — a failed lookup just hides the panel.
+      this.recipe.set(null);
+    }
+  }
+
+  /** Ingredient display name — falls back to a humanized resource class name. */
+  ingredientName(i: CodexBlueprintIngredient): string {
+    return cleanLocaleValue(i.nameLocalized)
+      || humanizeClassName(i.ingredientClassName ?? '')
+      || (i.ingredientClassName ?? '');
   }
 
   // ── derived views ──────────────────────────────────────────────────────────
@@ -1055,9 +1209,18 @@ export class CodexDetailComponent implements OnInit {
     return meaningfulRows((d.payload as WeaponPayload | undefined)?.weaponParams);
   });
 
+  // Personal FPS armor / undersuit pieces carry an SCItem*Params stat block in
+  // the same heterogeneous shape as components — reuse the exact same curation.
+  readonly armorStats = computed<StatRow[]>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'item') return [];
+    return curateComponentStats((d.payload as ItemPayload | undefined)?.stats);
+  });
+
   // Decision stats grouped by what the thing is FOR (Slice 3) — not a flat dump.
   readonly componentStatGroups = computed<StatGroup[]>(() => groupStatRows(this.componentStats()));
   readonly weaponParamGroups = computed<StatGroup[]>(() => groupStatRows(this.weaponParams()));
+  readonly armorStatGroups = computed<StatGroup[]>(() => groupStatRows(this.armorStats()));
 
   /** Group headers only help once the stats span ≥2 buckets. */
   showStatGroupHeaders(groups: StatGroup[]): boolean {
@@ -1088,19 +1251,50 @@ export class CodexDetailComponent implements OnInit {
       tech?.quantumDriveClassName && tech.quantum.jumpRangeMm != null
         ? this.fmtGm(tech.quantum.jumpRangeMm)
         : null;
+    const payloads = this.loadoutPayloads();
+    const ammo = this.ammoPayloads();
     return this.loadoutGroups().map((g) => ({
       category: g.category,
-      slots: g.items.map((l) => ({
-        port: this.humanizePort(l.port),
-        className: l.className,
-        kind: l.kind,
-        name: l.name,
-        size: l.size,
-        grade: l.grade,
-        manufacturerCode: l.manufacturerCode,
-        statChip: qdChip && l.className === tech!.quantumDriveClassName ? qdChip : null,
-      })),
+      slots: g.items.map((l) => {
+        // What is installed here decides WHICH stats show: a gun gets
+        // damage/velocity/range, a shield HP/regen, a cooler only durability.
+        const hit = l.className ? payloads.get(l.className) : undefined;
+        const item = {
+          kind: hit?.kind ?? l.kind,
+          payload: hit?.payload ?? null,
+          ammoPayload: l.className
+            ? ammo.get(ammoClassNameFor(l.className) ?? '')
+            : undefined,
+        };
+        return {
+          port: this.humanizePort(l.port),
+          className: l.className,
+          kind: l.kind,
+          name: l.name,
+          size: l.size,
+          grade: l.grade,
+          manufacturerCode: l.manufacturerCode,
+          statChip: qdChip && l.className === tech!.quantumDriveClassName ? qdChip : null,
+          typeLabel: equippedTypeLabel(item),
+          damageChannels: damageChannelsOf(item.payload, item.ammoPayload),
+          stats: equippedStats(item),
+          statsMissing: weaponStatsUnavailable(item),
+        };
+      }),
     }));
+  });
+
+  /**
+   * How many of the ship's weapon mounts have NO stock item in this extract.
+   * Almost always > 0 today: CIG keeps default weapon fits in a separate
+   * loadout record our P4K extractor does not resolve yet, so only a handful of
+   * ships carry guns in `defaultLoadout`. Naming the gap beats letting a pilot
+   * conclude the ship is unarmed.
+   */
+  readonly emptyWeaponMounts = computed<number>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return 0;
+    return this.loadoutAll().filter((l) => isWeaponMountPort(l.port) && !l.className).length;
   });
 
   /** jumpRange comes in metres → giga-metre display (Gm), same as the hangar. */
@@ -1173,11 +1367,27 @@ export class CodexDetailComponent implements OnInit {
   readonly installedCount = computed(() => this.loadoutAll().filter((l) => l.className).length);
   readonly emptyLoadoutCount = computed(() => this.loadoutAll().filter((l) => !l.className).length);
 
-  /** Default loadout grouped by category; empty stock ports hidden by default. */
+  /**
+   * Empty ports the toggle would reveal. Empty WEAPON mounts are always shown
+   * (see loadoutGroups), so counting them here would promise rows the toggle
+   * does not actually add.
+   */
+  readonly hiddenEmptyCount = computed(
+    () => this.loadoutAll().filter((l) => !l.className && !isWeaponMountPort(l.port)).length,
+  );
+
+  /**
+   * Default loadout grouped by category. Empty stock ports are hidden behind
+   * the toggle — EXCEPT empty weapon mounts: "this ship has three size-3 gun
+   * mounts and the extract knows no stock gun for them" is the answer to the
+   * pilot's question, not noise to fold away.
+   */
   readonly loadoutGroups = computed<LoadoutGroup[]>(() => {
     const all = this.loadoutAll();
     if (all.length === 0) return [];
-    const visible = this.showEmptyLoadout() ? all : all.filter((l) => l.className);
+    const visible = this.showEmptyLoadout()
+      ? all
+      : all.filter((l) => l.className || isWeaponMountPort(l.port));
     const buckets = new Map<HardpointCategory, LoadoutItem[]>();
     for (const item of visible) {
       const cat = categorizePort([], item.port);

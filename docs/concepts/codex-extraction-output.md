@@ -17,6 +17,44 @@
 | Ammo `Ammunition.{Speed,Range,Size,Capacity}` + 6-ch damage | `AmmoParams` carries `speed/lifetime/size` directly; damage is nested under projectile params, not a flat `damage` block | ammo keeps a `raw` blob with everything; typed fields are best-effort |
 | ~180 ships, ~250 weapons, ~600 components | **920 ships/vehicles, 1326 weapons, 2145 components, 21033 items, 1124 manufacturers, 235 ammo** (includes AI variants/templates) | counts are much higher; Wave 2 should expect variant rows (filter `*_PU_AI_*`, `*_Template`, `MASTER_*` for the "buyable" view) |
 
+## 0b. Confirmed gaps in the 4.9.0 catalog (audited 2026-07-26)
+
+Measured against the live `codex_*` tables, not assumed. Each of these makes a
+stat the web app **cannot** display; closing them is extractor work.
+
+| Gap | Evidence | Consequence in the app |
+|---|---|---|
+| `weaponParams.fireRate` is `0` on **all 430** ship weapons that carry the struct (likewise `projectilesPerShot`, `heatPerShot` mostly) | fire actions / `SWeaponActionFireParams` are not resolved | **no DPS and no fire-rate row anywhere.** `damagePerSecond()` in `codex-equipped-stats.ts` is implemented and starts working by itself once fireRate is real |
+| `weaponParams.ammoContainerRecord` is `null` on **all 430** | ammo container record not resolved | **no magazine / max-ammo count.** Also forces the gun→projectile link to go through the `<weaponClass>_AMMO` name convention instead of the record reference |
+| Ship weapon hardpoints are stock-**empty**: only **4 of 314** ships have any `subType=Gun` in `defaultLoadout`; 145 ships have weapon ports that are all empty | CIG keeps default weapon fits in a separate loadout record the extractor does not follow (ship `itemPorts` are structural only — the Nomad exposes 5, none of them weapons) | the codex cannot show a ship's stock armament (e.g. the Nomad's 3× S3). The UI discloses this per ship instead of implying the ship is unarmed |
+| Coolers carry no cooling rate, power plants no power output | neither has a dedicated `SCItem*Params` struct (already noted above) | those hardpoints show durability only |
+| **Purchase price and shop location are not in the P4K at all** (audited 2026-07-26 against the LIVE archive) | Items do carry `SCItemPurchasableParams` (10 548 records), but it holds only display/interaction fields — `displayName`, `displayThumbnail`, `allowTryOn`, `allowQuickBuy`, `interactionPoints`, … — and **no price**. `Data/Scripts/ShopInventories/Inv_<Shop>_<Location>.json` (118 files) *does* carry `BuyPrice`/`SellPrice` per item id, but **0 of 6317** of those ids resolve against `Data/Game2.dcb` — they are pre-4.0 entitlement ids, and the file set still contains 2018/2019 anniversary-sale inventories. Modern shop inventories are served from CIG's backend, not shipped in the client. | **"Where can I buy it" cannot be answered by datamining** — for FPS gear or anything else. The codex omits the section rather than showing a wrong or empty price. Community-sourced pricing (or an RSI/third-party API) would be a separate, non-extractor feature. |
+| Armour damage-resistance **multipliers** are still unresolved | `SCItemSuitArmorParams.damageResistance` is a record *reference*, and `record_to_dict` does not follow references — so the generic stat dump yields the macro name (`DamageResistanceMacro.LightArmor`) but no numbers. `protectedBodyParts` (a list of references) and storage capacity (behind `containerParams`) drop out for the same reason. | the armour stat panel added in #273 shows the fields that ARE flat (temperature range, radiation, g-force, helmet optics) but no actual protection values, body coverage or SCU capacity. Fix is an explicit `record_by_id` hop — tracked as a follow-up. |
+
+Crafting, by contrast, IS fully reachable — and was silently broken until this
+change. A `CraftingBlueprintRecord` nests everything under a `blueprint` node
+(`category` → `BlueprintCategoryRecord.*`, `processSpecificData.entityClass` →
+the crafted entity, `tiers[].recipe.costs.{craftTime,mandatoryCost,
+optionalCosts}` → a `CraftingCost_Select` tree whose `CraftingCost_Resource`
+leaves name the material, its quantity — `SStandardCargoUnit.standardCargoUnits`
+or `SMicroCargoUnit.microSCU` — and its minimum quality). The extractor read only
+the record top level, so category, output class and ingredients came back null
+for **all 1595** live blueprints. With the nested read: **1588 resolved output
+classes and 1594 with ingredients, of which 916 are `FPSArmours` and 210
+`FPSWeapons`** — i.e. most of the crafting system is FPS gear. Note the
+`TimeValue_Partitioned` fields are BARE (`days`/`hours`/`minutes`/`seconds`), not
+`@`-prefixed.
+
+`codex_blueprints.output_class_name` is what makes the forward question ("which
+materials does this item cost") answerable; it is indexed as of
+`20260726120000_codex_fps_equipment.sql`.
+
+Projectile stats that ARE reachable: ammunition rows carry `speed`, `lifetime`
+and per-channel `impactDamage`, so alpha damage, projectile speed and range
+(`speed × lifetime`) are real for ~71% of `subType=Gun` weapons. Spot-checked
+against erkul.games: `KLWE_LaserRepeater_S3` → 43.65 dmg / 1480 m/s / 1924 m,
+all three exact.
+
 ## 1. Output directory layout
 
 ```

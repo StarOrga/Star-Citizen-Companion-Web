@@ -208,7 +208,28 @@
       "search": "Search keybindings",
       "searchPlaceholder": "Search action or key…",
       "count": "{{shown}} of {{total}} actions",
-      "unbound": "—"
+      "unbound": "—",
+      "rawKey": "Internal action key",
+      "contexts": {
+        "vehicle": "Vehicle",
+        "spectator": "Spectator",
+        "interface": "Interface",
+        "interaction": "Interaction",
+        "emote": "Emote",
+        "camera": "Camera",
+        "character": "Character",
+        "turret": "Turret",
+        "eva": "EVA",
+        "hacking": "Hacking",
+        "remote": "Remote",
+        "tractor": "Tractor beam",
+        "melee": "Melee",
+        "hmd": "HMD",
+        "visor": "Visor",
+        "headtracking": "Head tracking",
+        "shop": "Shop",
+        "debug": "Debug"
+      }
     },
     "provenance": {
       "label": "Source",
@@ -267,6 +288,7 @@
       "hideRaw": "Hide raw data",
       "naValue": "n/a",
       "keyStats": "Key stats",
+      "armorStats": "Armor stats",
       "showEmptyPorts": "Show {{count}} empty ports",
       "hideEmptyPorts": "Hide empty ports",
       "equipment": "Equipment",
@@ -277,7 +299,13 @@
       "quantumRange": "Quantum range",
       "quantumSpeed": "Quantum speed",
       "quantumFuel": "Quantum fuel",
-      "fuelCapacity": "Hydrogen fuel"
+      "fuelCapacity": "Hydrogen fuel",
+      "hardpointExplainer": "A hardpoint is a mounting point on the hull: every weapon, shield, cooler, thruster or quantum drive sits on one, and can be swapped for another item of the same type and size. Below is what the ship carries as delivered.",
+      "craftedFrom": "Crafting materials",
+      "craftedFromHint": "What it costs to manufacture this item, from the game's crafting data.",
+      "noIngredients": "This blueprint lists no materials in this build.",
+      "openBlueprint": "Open the full blueprint",
+      "minQuality": "min. quality {{value}}"
     },
     "swap": {
       "title": "What fits here",
@@ -350,6 +378,30 @@
       "collapse": "Collapse 3D view",
       "expand": "Expand 3D view"
     },
+    "equipped": {
+      "alphaDamage": "Alpha damage",
+      "dps": "DPS",
+      "fireRate": "Fire rate",
+      "projectileSpeed": "Projectile speed",
+      "range": "Range",
+      "penetration": "Penetration",
+      "shieldHp": "Shield HP",
+      "shieldRegen": "Regeneration",
+      "regenDelay": "Regen delay",
+      "downedDelay": "Downed delay",
+      "jumpRange": "Jump range",
+      "driveSpeed": "Drive speed",
+      "spoolTime": "Spool-up",
+      "cooldown": "Cooldown",
+      "thrust": "Thrust",
+      "fuelCapacity": "Fuel capacity",
+      "fuelRate": "Fuel rate",
+      "health": "Durability",
+      "distortion": "Distortion capacity",
+      "derivedHint": "Derived value, calculated from other extracted stats.",
+      "noStats": "No stats for this weapon in the current extract.",
+      "armamentMissing": "{{count}} weapon mounts carry no stock weapon in this extract — the game keeps default weapon fits in a separate record that our P4K extractor does not resolve yet."
+    },
     "shipLink": {
       "add": "Add pledge link",
       "edit": "Edit pledge link",
@@ -418,6 +470,25 @@
       "primary": "Primary",
       "usedIn": "Used in blueprints",
       "usedInCount": "Used in {{count}} blueprint(s)"
+    }
+  },
+  "fps": {
+    "title": "FPS Equipment",
+    "subtitle": "On-foot gear — weapons and armor, datamined from the live build.",
+    "bridgeLink": "FPS Gear",
+    "categoriesAria": "FPS equipment categories",
+    "category": {
+      "weapon": "Weapons",
+      "armor": "Armor"
+    },
+    "filters": {
+      "weaponType": "Weapon type",
+      "armorSlot": "Armor slot"
+    },
+    "armorStatsHint": "Armor has no detailed stat block in this build yet — name, grade, size and manufacturer only.",
+    "empty": {
+      "weapon": "No FPS weapons in this build.",
+      "armor": "No armor in this build."
     }
   },
   "news": {
@@ -1133,6 +1204,14 @@
       "label": "Filter by status",
       "all": "All"
     },
+    "search": {
+      "label": "Search feedback",
+      "placeholder": "Search … topic and whole thread",
+      "clear": "Clear search",
+      "results": "{{count}} results · by relevance",
+      "empty": "No results for “{{query}}”.",
+      "inThread": "in thread"
+    },
     "tab": {
       "label": "Switch between active topics and the archive",
       "active": "Active",
@@ -1169,7 +1248,10 @@
       "rejected": "Rejected",
       "needs_input": "Needs input",
       "issue_created": "Issue created",
-      "answered": "Answered"
+      "answered": "Answered",
+      "continued": "Continued",
+      "needs_input_author": "Asked the sender",
+      "declined": "Not implemented"
     },
     "thread": {
       "routine": "Routine",
@@ -1209,16 +1291,27 @@
       "progress": "{{current}} of {{total}}",
       "next": "Next",
       "done": "Done",
+      "advanced": "Done – on to {{current}} of {{total}}",
       "answerPlaceholder": "Write an answer… (Markdown supported, Ctrl+Enter to send)",
       "answerSend": "Answer",
+      "openQuestion": "Open question",
       "cheerAnswered": "Question answered — the routine takes it from here.",
-      "cheerReplied": "Noted! On to the next one.",
       "allDoneTitle": "All caught up",
-      "allDoneHint": "No open questions, no new topics. Take a look at what you got done.",
+      "allDoneHint": "No open questions. Your ToDos sit with the routine — they land here as soon as it needs something from you.",
       "kind": {
         "question": "Question",
         "new": "ToDo"
-      }
+      },
+      "scope": {
+        "label": "Scope",
+        "mine": "Mine",
+        "others": "Other admins",
+        "all": "All",
+        "showAll": "Show all"
+      },
+      "scopeEmptyTitle": "Nothing open in this scope",
+      "scopeEmptyHint": "{{count}} topic(s) sit in another scope.",
+      "cheerReplied": "Noted! On to the next one."
     },
     "dashboard": {
       "thisMonth": "This month",
@@ -1228,7 +1321,69 @@
       "answered": "Questions answered",
       "shippedShare": "shipped",
       "donutLabel": "{{label}}: {{pct}}% shipped",
-      "note": "Every metric is attributed by its own timestamp: shipped by ship date, ToDo by creation date, questions by answer date. An answered question counts as ToDo — the routine still has to pick it up."
+      "note": "Every metric is attributed by its own timestamp: shipped by ship date, ToDo by creation date, questions by answer date. An answered question counts as ToDo — the routine still has to pick it up.",
+      "paceMedian": "Median to ship",
+      "paceQuestions": "Question rate",
+      "paceQuestionsHint": "{{questioned}} of {{raised}} topics",
+      "noneShort": "—",
+      "underHour": "< 1 hr",
+      "unitHours": "{{value}} hrs",
+      "unitDays": "{{value}} days",
+      "throughputTitle": "Throughput",
+      "throughputSub": "Ships per week · last {{weeks}} weeks",
+      "throughputFrom": "{{weeks}} weeks ago",
+      "throughputNow": "this week",
+      "throughputWeek": "Week of {{date}}: {{count}} ships",
+      "throughputAria": "Ships per week over the last {{weeks}} weeks: {{total}} in total, best week {{max}}, this week {{current}}.",
+      "lifecycleTitle": "Lifecycle",
+      "lifecycleIntro": "Which stages a topic moves through and which branches it can take — with the live count per stage.",
+      "lifecycleSide": "Branches & terminal stages",
+      "lifecycleNote": "The numbers show how many topics sit in a stage right now — there is no transition history, so no pass-through counter.",
+      "stageNow": "topics currently in this stage",
+      "flow": {
+        "pickup": "The routine picks up the oldest topic",
+        "green": "Build + tests green, PR merged",
+        "question": "Needs a decision — the routine asks in the thread",
+        "answered": "You answer in the thread",
+        "reaper": "Claim went stale (> 30 min without a PR) — the reaper reopens it",
+        "hold": "Red or sensitive (auth, RLS, secrets, destructive migration)",
+        "holdTarget": "PR waits for review",
+        "continue": "You reply after the ship — continuation"
+      },
+      "fact": {
+        "oldest": "oldest open topic: {{days}} days",
+        "answered": "of those {{count}} answered question(s)",
+        "continuation": "of those {{count}} post-ship continuation(s)",
+        "reopened": "of those {{count}} reopened by the reaper",
+        "working": "{{count}} actively being implemented (no PR yet)",
+        "hold": "{{count}} review hold — the PR waits for your merge",
+        "terminalAtRest": "Terminal at rest — your reply starts another round",
+        "pendingContinuation": "{{count}} with a fresh reply — will be picked up again",
+        "awaiting": "waiting for your answer",
+        "issueTerminal": "Terminal — you file the topic against a GitHub issue; the routine never touches it again",
+        "rejectedLegacy": "Terminal (legacy status) — the routine never sets it"
+      }
+    },
+    "userTopic": {
+      "badge": "User feedback",
+      "untriaged": "Not released",
+      "release": "Release to the routine",
+      "channelTitle": "Channel to the author",
+      "channelHint": "Everything here is visible to the sender. The thread above (admin ↔ routine) is not.",
+      "seesStatus": "The sender sees:",
+      "asQuestion": "Send as a question to the sender (parks the topic until they answer)",
+      "messagePlaceholder": "Message to the sender…",
+      "messageSend": "Send to author",
+      "questionBadge": "Question",
+      "fromTeam": "Team",
+      "fromAuthor": "Sender"
+    },
+    "decline": {
+      "mark": "Decline & remove",
+      "placeholder": "Why is this not going to happen? The sender will read this.",
+      "confirm": "Decline",
+      "cancel": "Cancel",
+      "noteRequired": "Please give a reason — the sender gets to read it."
     }
   },
   "feedbackFab": {
@@ -1313,6 +1468,106 @@
       "cta": "Open Codex"
     }
   },
+  "extension": {
+    "promo": {
+      "text": "Own your fleet already? A browser extension can import your ships straight from your RSI hangar.",
+      "cta": "How it works",
+      "dismiss": "Hide this note"
+    },
+    "privacy": {
+      "gameContentOnly": "The extension reads personalised game content only — the ship names on your own RSI hangar page. No personal data is collected.",
+      "noCredentials": "No credentials, cookies or session tokens are read.",
+      "noPersonalData": "No account name, e-mail address, pledge value or order data is read.",
+      "noUpload": "Nothing is sent to any server. The ship list is handed to this app inside your browser and only reaches your account after you confirm it.",
+      "scopeLimited": "The extension is active on your own RSI hangar page and on Star Citizen Companion — nowhere else.",
+      "localOnly": "Only a checksum of your fleet and the time of the last import are stored, locally in your browser."
+    },
+    "install": {
+      "title": "Hangar import — browser extension",
+      "subtitle": "Star Citizen Companion cannot read robertsspaceindustries.com by itself: browsers forbid one site from reading another. A small browser extension can read the hangar page you are already looking at — and hand the ship list to your hangar here.",
+      "detected": {
+        "title": "Extension detected",
+        "text": "The extension is installed on this browser. Open your hangar at RSI while signed in and it will offer the import when your fleet is new or has changed.",
+        "openHangar": "Open my RSI hangar"
+      },
+      "what": {
+        "title": "What it does",
+        "text": "Three steps, and you confirm the last one.",
+        "open": {
+          "title": "You open your own hangar at RSI",
+          "text": "Signed in, on your pledges page. The extension does nothing anywhere else."
+        },
+        "offer": {
+          "title": "It offers an import — only when there is something new",
+          "text": "Your fleet is reduced to a checksum. Unchanged hangar, no message. Bought or gifted a ship? The offer comes back on its own."
+        },
+        "confirm": {
+          "title": "You confirm here",
+          "text": "The ship list opens in Star Citizen Companion with every entry visible. Only the rows you tick are written to your hangar."
+        }
+      },
+      "privacy": {
+        "title": "What is read — and what is not",
+        "openSource": "The extension is part of this project's open repository: every line it runs can be read before you install it.",
+        "sourceLink": "Extension source code on GitHub",
+        "appPrivacyLink": "Privacy policy of this app"
+      },
+      "how": {
+        "title": "Install it",
+        "storeNote": "The Chrome Web Store listing is still in review, so for now the extension is installed from source. Chrome, Edge, Brave and Opera all support this.",
+        "download": {
+          "title": "Download the repository",
+          "text": "Grab the ZIP and unpack it. You only need the browser-extension folder inside it."
+        },
+        "devmode": {
+          "title": "Open chrome://extensions and enable developer mode",
+          "text": "The toggle sits in the top right corner of the extensions page."
+        },
+        "load": {
+          "title": "Load unpacked",
+          "text": "Click \"Load unpacked\" and select the browser-extension folder."
+        },
+        "use": {
+          "title": "Open your RSI hangar",
+          "text": "Sign in at RSI and open your pledges page — the import offer appears at the bottom right."
+        },
+        "downloadCta": "Download (ZIP)",
+        "browseCta": "View the source",
+        "browsers": "Chromium-based browsers only for now (Chrome, Edge, Brave, Opera, Vivaldi). A Firefox build may follow."
+      },
+      "alt": {
+        "title": "No extension? Import a file instead",
+        "text": "Your hangar page also accepts a JSON export in the Hangar Transfer Format, which you produce yourself. Same review screen, same rules.",
+        "cta": "To my hangar"
+      },
+      "disclaimer": "Star Citizen Companion is an unofficial fan project and is not affiliated with the Cloud Imperium group of companies. The extension is not endorsed by RSI."
+    },
+    "importPage": {
+      "title": "Import ships from your RSI hangar",
+      "subtitle": "The browser extension read the ship list on your hangar page. Check it below — nothing is written to your hangar before you confirm.",
+      "waiting": "Waiting for the browser extension…",
+      "review": "Review and confirm",
+      "cancel": "Cancel and discard the list",
+      "meta": {
+        "source": "Source",
+        "sourceValue": "Your RSI hangar page (read in your browser)",
+        "ships": "Ships found",
+        "captured": "Read at"
+      },
+      "empty": {
+        "title": "No ship list waiting",
+        "text": "This page is opened by the hangar-import browser extension. Either the extension is not installed, or its list has already been used or expired. Open your RSI hangar again to start a new import.",
+        "installLink": "About the extension",
+        "hangarLink": "To my hangar"
+      },
+      "done": {
+        "title": "{{count}} ships imported",
+        "text": "The extension has been told about this state, so it will stay quiet until your hangar actually changes again.",
+        "hangarLink": "Open my hangar"
+      }
+    },
+    "hangarHint": "Rather not fiddle with files? The browser extension imports straight from your RSI hangar →"
+  },
   "consent": {
     "banner": {
       "title": "Browser storage",
@@ -1354,6 +1609,39 @@
     "appTitle": "Desktop Wallpaper App",
     "appDesc": "Rotate your desktop through Starscape — a tiny tray app with prefetch, crossfade and one-click autostart.",
     "appDownload": "Download for Windows",
-    "appNote": "Windows only · ~0.3 MB · unsigned (SmartScreen: More info → Run anyway)"
+    "appNote": "Windows only · ~0.3 MB · unsigned (SmartScreen: More info → Run anyway)",
+    "appRingLock": "The channel is fixed by the download and cannot be switched inside the app — to change it, just grab the other download here again.",
+    "appAutoUpdate": "Updates itself silently in the background; the version state lives in the tray menu."
+  },
+  "userFeedback": {
+    "title": "Feedback",
+    "open": "Send feedback",
+    "intro": "What is missing, what annoys you, what would you do differently? Write it here — it goes straight to the team.",
+    "placeholder": "Your feedback… (markdown and screenshots welcome)",
+    "send": "Send feedback",
+    "sent": "Thanks! Your feedback arrived.",
+    "privacyHint": "Your name is visible to the team. You can follow what came of it right here.",
+    "errorTitle": "Error",
+    "uploadError": "The image could not be uploaded.",
+    "rateLimit": "You have sent a lot in the past hour — please try again later.",
+    "loading": "Loading…",
+    "empty": "You have not sent any feedback yet.",
+    "team": "Team",
+    "you": "You",
+    "questionBadge": "Question",
+    "questionsPending": "A question is waiting for your answer",
+    "answerPlaceholder": "Your answer…",
+    "answer": "Reply",
+    "declinedTitle": "Why this is not being implemented",
+    "tab": {
+      "compose": "Send feedback",
+      "mine": "My feedback"
+    },
+    "status": {
+      "in_progress": "In progress",
+      "question": "Question for you",
+      "done": "Implemented",
+      "declined": "Not implemented"
+    }
   }
 }

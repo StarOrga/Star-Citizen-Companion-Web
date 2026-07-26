@@ -72,6 +72,15 @@ export const routes: Routes = [
           import('./codex/blueprint-detail.component').then((m) => m.BlueprintDetailComponent),
       },
       {
+        // FPS / on-foot equipment Codex section (#251) — curated weapons +
+        // armor, each linking to the EXISTING codex/:kind/:className detail.
+        // Static segment placed BEFORE codex/:kind/:className so it is never
+        // consumed by the :kind wildcard.
+        path: 'codex/fps',
+        loadComponent: () =>
+          import('./codex/fps-list.component').then((m) => m.FpsListComponent),
+      },
+      {
         // Keybindings reference — the complete default action profile for the
         // current build. Public; static segment placed BEFORE codex/:kind so it
         // is not consumed by the :kind wildcard.
@@ -102,6 +111,16 @@ export const routes: Routes = [
         canActivate: [publicOrApprovedGuard],
         loadComponent: () =>
           import('./hangar/hangar-dashboard.component').then((m) => m.HangarDashboardComponent),
+      },
+      {
+        // Review/confirm screen for the browser-extension hangar handover
+        // (browser-extension/). Static segment placed BEFORE hangar/ship/:id
+        // for clarity; the payload arrives via postMessage from the
+        // extension's content script, never over the network.
+        path: 'hangar/import',
+        canActivate: [...PRIVATE],
+        loadComponent: () =>
+          import('./hangar/hangar-import-page.component').then((m) => m.HangarImportPageComponent),
       },
       {
         path: 'hangar/ship/:id',
@@ -200,6 +219,13 @@ export const routes: Routes = [
         path: 'tools/3d-print',
         loadComponent: () =>
           import('./tools/print-guide.component').then((m) => m.PrintGuideComponent),
+      },
+      {
+        // Install + privacy page for the hangar-import browser extension.
+        // Public: the privacy notice has to be readable BEFORE installing.
+        path: 'tools/extension',
+        loadComponent: () =>
+          import('./tools/extension-install.component').then((m) => m.ExtensionInstallComponent),
       },
       {
         // "What's New" — release notes from CHANGELOG.md. Static build asset,

@@ -1,6 +1,6 @@
 # SC Companion
 
-**Version: 0.46.6**
+**Version: 0.48.0**
 
 > Star Citizen companion — Verse News, P4K analyzer, and more.
 > Built with Angular 21 PWA · Supabase (Auth + Postgres + Storage + Edge Functions) · Vercel.
@@ -62,7 +62,19 @@ public/i18n/       en.json, de.json — ngx-translate
 supabase/
   migrations/      00001_init_schema.sql, 00002_storage_bucket_p4k.sql
   functions/       fetch-verse-news/, process-p4k/
+browser-extension/ Chrome MV3 hangar import (no bundler, no npm deps)
 ```
+
+### Hangar import via browser extension
+
+The web app cannot read robertsspaceindustries.com — the same-origin policy
+forbids it and RSI publishes no hangar API. [`browser-extension/`](browser-extension/README.md)
+closes that gap: it reads the ship list on the user's own hangar page, offers
+the import only when the fleet's fingerprint changed (no daily nagging), and
+hands the list to `/hangar/import` through `chrome.storage.local` +
+`postMessage`. No new endpoint, no token, no RLS change — the confirmed ships
+are written by the user's own Supabase session. Install and privacy details
+live in-app at `/tools/extension`.
 
 ### Key rules
 
@@ -71,6 +83,15 @@ supabase/
 - Third-party APIs go through Edge Functions (`fetch-verse-news` proxies `api.star-citizen.wiki`). Keys never enter the client bundle.
 - `authGuard` waits for `auth.ready()` before deciding, to avoid a flash-of-login on hard refresh.
 - Service worker: network-first for JS/CSS, lazy assets, 15-min data cache on `fetch-verse-news`.
+
+## Documentation
+
+- **Public docs site:** <https://star-citizen-companion.readme.io> — authored in
+  [`docs/readme-io/pages/`](docs/readme-io/pages) and published by ReadMe's Git
+  Sync via a mirror repository. Never edit it in ReadMe's web editor; see
+  [docs/readme-io/README.md](docs/readme-io/README.md) and
+  [GIT-SYNC-SETUP.md](docs/readme-io/GIT-SYNC-SETUP.md).
+- **API reference:** `GET /openapi.json` on the public API, rendered at `/docs`.
 
 ## Roadmap
 

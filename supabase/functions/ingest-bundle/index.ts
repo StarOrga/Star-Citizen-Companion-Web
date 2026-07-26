@@ -89,10 +89,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // silently break one path. The query `error` is surfaced as a 500 instead of
   // being swallowed: swallowing it once turned a dropped column into a
   // misleading `unknown_release_token` (see the is_current regression).
+  // Scope to product='uploader': `desktop_releases` is multi-product, and the
+  // Starscape tray app now also ships a baked release token in a PUBLIC,
+  // unsigned binary — `strings` recovers it. Without this filter that token
+  // would be a valid "known release token" here, degrading the second factor to
+  // a public string. Starscape never uploads bundles, so this only narrows.
   const { data: release, error: relErr } = await adminClient
     .from('desktop_releases')
     .select('id, version, token_revoked')
     .eq('release_token', releaseToken)
+    .eq('product', 'uploader')
     .maybeSingle();
   if (relErr) return json({ error: 'server_misconfigured', message: relErr.message }, 500);
   if (!release) return json({ error: 'unknown_release_token' }, 403);

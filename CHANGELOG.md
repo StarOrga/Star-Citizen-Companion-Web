@@ -4,6 +4,171 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.0] - 2026-07-26
+
+### Added
+
+- **Feedback for everyone — viewers and collaborators get their own feedback
+  panel.** Non-admins deliberately never see the admin board, which also meant
+  they had no way to send feedback at all. They now have their own FAB: write
+  feedback (markdown + screenshots, same composer as the admin board) and follow
+  what became of it under "Mein Feedback". Each submission lands as a normal
+  topic on the admins' board, attributed to its author, so the existing workflow
+  handles it unchanged. The author sees a deliberately coarse state — *In
+  Bearbeitung*, *Rückfrage an dich*, *Umgesetzt*, *Nicht umgesetzt* — and never
+  anything from the internal admin conversation, which stays admin-only in the
+  database. An admin can reply to the author directly (optionally as a question,
+  which parks the topic until they answer) and, instead of plainly deleting a
+  topic, can decline it with a mandatory explanation the author gets to read.
+
+## [0.47.7] - 2026-07-26
+
+### Changed
+
+- **Admin feedback — the processing mode only holds what waits on you.** The
+  "Abarbeiten" queue used to list untouched ToDo topics after the Rückfragen,
+  which read as a backlog to work off. But a ToDo is a topic *you* wrote that now
+  waits on the routine — there is nothing to answer there. The queue is now the
+  open Rückfragen alone, oldest first; a topic enters it the moment the routine
+  asks something back and leaves it when you answer. ToDos stay fully visible in
+  the Übersicht list and in the dashboard's ToDo counter. The view-switch badge
+  and the scope counts follow the narrowed queue, so they promise what the mode
+  shows. Feedback b0cc6efc.
+
+## [0.47.6] - 2026-07-26
+
+### Fixed
+
+- **Crafting data was empty for every blueprint (part of #187).** A
+  `CraftingBlueprintRecord` nests everything under a `blueprint` node, but the
+  extractor only ever read the record's top level — so category, crafted item and
+  ingredient list came back empty for **all 1595** blueprints in the live build.
+  Reading the nested node resolves **1588 crafted items and 1594 ingredient
+  lists** (916 of them FPS armour, 210 FPS weapons), including per-material
+  quantities, recipe slot names and craft times.
+
+### Added
+
+- **Codex — "crafting materials" on item detail.** Items now show what it costs
+  to manufacture them (materials, quantities, minimum quality, craft time). The
+  existing panel only showed the inverse — what an item can be used to build.
+
+### Notes
+
+- **"Where can I buy it" is not datamineable.** Audited against the live archive:
+  item records carry no price, and the shop-inventory files that do carry prices
+  use a pre-4.0 id space where **none of the 6317 ids** resolve against current
+  game data. The codex omits purchase locations rather than showing something
+  wrong; see `docs/concepts/codex-extraction-output.md` §0b.
+- The new crafting panel fills in once a catalog is re-extracted and ingested with
+  the updated uploader.
+
+## [0.47.5] - 2026-07-26
+
+### Added
+
+- **Codex — FPS armor stat block (#253, part of #187).** Personal-armor items
+  (`Char_Armor_*` slots) now carry a stat block: the extractor routes them
+  through the same generic component-stat dump ship components use, so
+  `SCItemSuitArmorParams` / `SCItemClothingParams` values (resistances,
+  temperature ratings, capacity) surface on the item detail. Renders when
+  present, graceful empty otherwise. *Note:* the values light up in the live app
+  only after a new uploader-binary release carrying this extractor and a fresh
+  P4K re-extract + upload — the current build predates the change.
+
+## [0.47.4] - 2026-07-26
+
+### Added
+
+- **Admin feedback — the Fortschritt view now maps the lifecycle and shows the
+  routine's pace.** A live **Lebenszyklus** map draws the status machine from
+  `docs/feedback-routine.md`: every stage a topic can be in (ToDo → In Arbeit →
+  Geshipped, plus the Rückfrage branch and the terminal issue/legacy stages) and
+  every branch it can take — the routine's question and the answer back, the
+  reaper reopening a stale claim, the review hold, the post-ship continuation
+  loop — each annotated with how many topics sit there right now. Next to it:
+  a **Durchsatz** sparkline (ships per week over the last 12 weeks) and, per
+  window, the **median time-to-ship** and the **Rückfrage rate**. Everything is
+  always-on and read-only — the view deliberately has no filters or toggles.
+
+## [0.47.3] - 2026-07-26
+
+### Added
+
+- **Admin feedback — post-ship continuations surface on the active board.** The
+  20-min routine now posts a review reply after every ship and reopens a shipped
+  topic when the admin replies to it (review & continue loop). The panel now
+  recognises that reply immediately: a shipped topic whose newest thread message
+  is the admin's — posted after the ship — reads as **ToDo** on the Active tab
+  (with a small "Fortgesetzt/Continued" pill), instead of sitting unnoticed in
+  the Archive until the routine picks it up. Purely derived from `shipped_at` +
+  message timestamps; no schema change.
+
+## [0.47.2] - 2026-07-26
+
+### Added
+
+- **Codex — dedicated FPS equipment section (#251, part of #187).** A new
+  `codex/fps` section curates on-foot gear analogous to the ship/blueprint
+  codex: FPS weapons (with sub-type, manufacturer, size and grade facets) and
+  personal armor (filtered by equip slot — Helmet / Torso / Arms / Legs /
+  Undersuit / Backpack). Each item links to the existing detail view, which
+  already renders the weapon stat block and crafting usage. Armor has no rich
+  stat block in the current extract yet (tracked as #253); those cards degrade
+  gracefully to name / grade / size / slot / manufacturer.
+
+### Fixed
+
+- **Codex — untranslated item names no longer leak Star Citizen's raw
+  placeholder.** Entities whose localized name ships as the game's
+  "! … TRANSLATION NOT FOUND FOR LOCID … !" marker now fall back to the English
+  name (or a humanized class name) across the whole codex, instead of printing
+  the marker.
+
+## [0.47.1] - 2026-07-26
+
+### Changed
+
+- **Codex ship detail — always-on 3D view at hero level (#252, part of #137).**
+  The interactive 3D livery/skin viewer now renders directly beneath the hero
+  instead of near the bottom of the page below the spec sheet, so the ship's 3D
+  model stays on-screen (closer to the RSI site's layout). It keeps its
+  deliberate lazy-load: expanded by default on desktop (the ~3 MB glb loads
+  immediately), collapsed by default on mobile (opened on demand to spare
+  cellular data). Ship comparison stays on the existing floating compare tray —
+  no duplicate comparison surface was added.
+
+## [0.47.0] - 2026-07-26
+
+### Fixed
+
+- **Data Uploader — no more hourly sign-out during multi-hour uploads.** A full
+  extract can take up to ~8h to upload, but the catalog and skin upload stages
+  captured one access token at stage start and reused it for the entire run.
+  Past the ~1h Supabase JWT lifetime every remaining request returned 401, so a
+  long upload "logged itself out every hour". The upload stages now resolve a
+  **fresh token per request** (wired to the session refresh that rotates the
+  token silently near expiry), so a run stays authorised from start to finish
+  regardless of the token TTL.
+- **Data Uploader — tray icon was invisible/transparent in the installed app.**
+  The tray (and window) icon file was never bundled into the package, so
+  `nativeImage` fell back to an empty image — a blank tray slot. On top of that
+  the near-black brand icon vanished against the dark Windows taskbar. Ships a
+  dedicated bright, transparent-background tray icon, bundled as an app resource
+  and loaded from the packaged resources path.
+
+### Added
+
+- **Data Uploader — sign in on every launch.** Opening the app now requires a
+  fresh login instead of silently reusing the stored session, giving each run a
+  token that lasts the whole upload. The unattended auto-start path keeps using
+  the saved session so scheduled auto-runs are unaffected.
+- **Data Uploader — "back" now warns before discarding progress.** Pressing back
+  during a running extraction or an in-flight/resumable upload opens an
+  SCC-styled confirmation overlay; only on confirm is the extraction aborted or
+  the upload paused (it stays resumable), so a stray click can't throw away
+  hours of work.
+
 ## [0.46.6] - 2026-07-24
 
 ### Fixed

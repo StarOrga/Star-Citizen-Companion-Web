@@ -37,6 +37,8 @@ interface ToolEnv {
   webBase: string;
   releaseTokenFingerprint: string;
   platform: string;
+  /** True only for the unattended `--hidden` autostart launch. */
+  startedHidden: boolean;
 }
 
 interface AuthResult {

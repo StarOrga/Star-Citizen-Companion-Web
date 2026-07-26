@@ -30,6 +30,13 @@ export function cleanLocaleValue(
   if (!s || s.startsWith('@') || s === '@LOC_EMPTY' || s === '@LOC_PLACEHOLDER') {
     return fallback;
   }
+  // Star-Citizen's localization system emits a literal placeholder string for
+  // untranslated LOCIDs, e.g. `! GERMAN_(GERMANY) TRANSLATION NOT FOUND FOR
+  // LOCID: item_Namexxx !`. That marker ships in the extract as the "localized"
+  // value for many items — never show it; fall back to a humanized class name.
+  if (/translation not found/i.test(s)) {
+    return fallback;
+  }
   return s;
 }
 
@@ -369,6 +376,22 @@ const TYPE_CATEGORY: Record<string, HardpointCategory> = {
   LightController: 'systems',
 };
 
+// Port names that must NOT be read by the generic keyword rules below, because
+// the generic rules put them in the wrong cluster and make the ship look armed
+// with things that cannot shoot:
+//   * `hardpoint_controller_weapon` installs `Controller_Weapon` — an avionics
+//     module that assigns fire groups, not a gun mount. Every `controller_*`
+//     port is such a module, so they all cluster under avionics instead of
+//     being scattered across weapons / defense / power by what they control.
+//   * `hardpoint_weapon_rack_*` is the interior rack that stores the crew's
+//     personal FPS weapons — furniture, not ship armament.
+// Checked before the accepted-`types` lookup so a ship's structural ports and
+// its loadout entries always land in the same cluster.
+const PORT_NAME_OVERRIDES: [RegExp, HardpointCategory][] = [
+  [/weapon_?rack/i, 'systems'],
+  [/(^|_)controller(_|$)/i, 'avionics'],
+];
+
 // Fallback: classify by keywords in the port NAME (loadout has no `types`).
 const NAME_KEYWORDS: [RegExp, HardpointCategory][] = [
   [/weapon|gun|turret|gimbal|mount|tractor/i, 'weapons'],
@@ -381,8 +404,14 @@ const NAME_KEYWORDS: [RegExp, HardpointCategory][] = [
   [/seat|door|light|life|grav|landing|dock|atc|self_?destruct|ladder|interior|room/i, 'systems'],
 ];
 
-/** Classify a hardpoint by its accepted types (preferred) then its name. */
+/**
+ * Classify a hardpoint: explicit port-name overrides first (see
+ * PORT_NAME_OVERRIDES), then its accepted types, then name keywords.
+ */
 export function categorizePort(types: string[], portName: string | null): HardpointCategory {
+  if (portName) {
+    for (const [re, cat] of PORT_NAME_OVERRIDES) if (re.test(portName)) return cat;
+  }
   for (const t of types) {
     const c = TYPE_CATEGORY[t];
     if (c) return c;

@@ -868,16 +868,19 @@ export type Database = {
       desktop_channels: {
         Row: {
           channel: string
+          product: string
           release_id: string
           updated_at: string
         }
         Insert: {
           channel: string
+          product?: string
           release_id: string
           updated_at?: string
         }
         Update: {
           channel?: string
+          product?: string
           release_id?: string
           updated_at?: string
         }

@@ -25,15 +25,46 @@ open ──pick up──▶ in_progress ──green build+tests──▶ shipped
                                        ▼
         admin answers in the thread ──▶ picked up again next run
 
+  shipped ──admin replies in the thread (query (d))──▶ reopened as a continuation
+     ▲                                                          │
+     │                                                          ▼
+     └── re-ship + fresh review reply ◀── in_progress (new -<msg> branch, STEP 3–4)
+
   rejected      ← the ADMIN decides this alone (by deleting the topic); the
                   routine NEVER sets it.
   issue_created ← the ADMIN archives a topic against a GitHub issue
                   (ship_ref = issue url); terminal, the routine NEVER sets it.
+  declined      ← the ADMIN declines a USER-submitted topic ("nicht umsetzen &
+                  löschen", decision_note = the explanation the author reads);
+                  terminal, the routine NEVER sets it.
+  needs_input_author
+                ← the ADMIN asked the topic's AUTHOR something. Active but NOT
+                  `open`, so it is parked out of the queue; the author's answer
+                  flips it back to `open` (DB trigger). The routine NEVER sets it.
 ```
 
-`shipped`, `issue_created` and legacy `rejected` are **terminal** — together
-they form the panel's Archive tab (see "Active vs. Archive" below). The routine
-only ever works the active half (`open` / `in_progress` / `needs_input`).
+`issue_created`, `declined` and legacy `rejected` are **terminal** — nothing ever
+picks them up again. `shipped` is terminal **at rest**, but it is deliberately
+*not* a dead end: an admin reply on a shipped topic reopens it as a
+**continuation** (the post-ship review loop — see "Post-ship review & continue"
+below), so the admin can look at the change live and keep iterating in the same
+thread. Together the four form the panel's Archive tab (see "Active vs. Archive"
+below); a shipped topic the admin has replied to flips back into the active half
+the moment the routine claims it. The routine works the active half (`open` /
+`in_progress` / `needs_input`) plus these shipped-with-a-fresh-reply
+continuations. `needs_input_author` is active too, but it belongs to the admin and
+the author, never to the routine.
+
+**The queue is additionally gated on `triaged`.** A topic filed by a non-admin
+through the user feedback FAB (`source = 'user'`) enters `triaged = false` and
+is **not** work for the routine until an admin releases it — see "User-submitted
+feedback" below. The routine's work-queue read is therefore:
+
+```sql
+select * from public.admin_feedback
+where status = 'open' and triaged
+order by created_at;
+```
 
 **The routine never rejects — the admin alone decides what to discard.** Every
 item the routine cannot ship right now goes to `needs_input` with a system
@@ -349,6 +380,120 @@ do" while a hold is open. Report each hold — PR link, `processing_note`, age �
 instead of taking the silent "No open feedback." stop, so a parked PR the routine
 can't merge itself still nudges the admin to review/merge it.
 
+## Post-ship review & continue (the review step)
+
+Shipping is **not** the end of the conversation. The moment a topic ships the
+admin usually wants to **look at the change live**, and often has a follow-up
+("close, but move it left"; "now do the same for X"). Two mechanisms make that a
+first-class step of the routine instead of a dead end — and the loop is built to
+**converge** (it never re-fires on the routine's own messages) and to **self-heal**
+(an interrupted continuation is reaped and redone without ever double-shipping).
+
+### 1) On every ship, post a review reply (per-item procedure step 5b)
+
+Immediately after the ship UPDATE — for a fresh ship **and** for a continuation
+re-ship, and also when marking an already-merged PR shipped — insert a
+`is_system=true` reply that (a) links the PR, (b) says in one line what changed,
+(c) points at where to see it **live**, and (d) invites the admin to reply
+in-thread to continue. The live pointer depends on the area:
+
+- **web** (`src/`, `public/`) → `https://sc-companion.vercel.app` + the exact
+  route/view the change touches (e.g. `/hangar`, the admin feedback panel). Note
+  Vercel needs ~1 min after the merge to redeploy.
+- **migration / edge function** → it is live once `db push` / `functions deploy`
+  ran; name where its effect shows.
+- **desktop** (uploader / Starscape) → live only after the CI build + the
+  `desktop_releases` row; point at the release/channel to update.
+
+```sql
+-- step 5b: post the review reply right after the ship UPDATE (service_role)
+insert into public.admin_feedback_messages (feedback_id, is_system, body)
+values ('<id>', true, '<review reply, markdown — PR link + what changed + live URL + invite>');
+```
+
+Example (German — the admin's language; the routine's system replies address the
+admin directly):
+
+> ✅ Geshipped in <PR-Link>. Geändert: <ein Satz>.
+> Live ansehen: `https://sc-companion.vercel.app/<route>` (Vercel braucht nach dem
+> Merge ~1 Min). Passt etwas nicht, oder willst du weiter dran arbeiten? Antworte
+> einfach hier im Thread — die Routine nimmt das Thema dann automatisch wieder auf.
+
+### 2) An admin reply to a shipped topic reopens it as a continuation
+
+The queue read gains a fourth query, **(d)**: shipped topics whose newest thread
+message is a **human** reply posted **after** `shipped_at`.
+
+```sql
+-- (d) continue-after-ship: shipped topics the admin replied to after the ship
+select f.id, f.body, f.shipped_at, f.ship_ref
+from public.admin_feedback f
+join lateral (
+  select is_system, created_at
+  from public.admin_feedback_messages m
+  where m.feedback_id = f.id
+  order by m.created_at desc
+  limit 1
+) last on true
+where f.status = 'shipped'
+  and last.is_system = false
+  and last.created_at > coalesce(f.shipped_at, f.processed_at, f.created_at)
+order by f.created_at asc;
+```
+
+Because the routine's own review reply is `is_system=true`, a shipped topic
+re-enters the queue **only** when a *human* posts after the ship — so the loop
+converges: ship → review reply → quiet; admin replies → reopened → ship → review
+reply → quiet.
+
+### How a continuation is worked (the robust part)
+
+A continuation is the same per-item procedure with three deltas, chosen so an
+interrupted continuation self-heals exactly like a first-time item and **never
+double-ships**:
+
+- **Claiming clears `ship_ref`.**
+  `update admin_feedback set status='in_progress', ship_ref=null, processed_at=now()
+  where id=<id> and status='shipped'` (atomic single-flight; zero rows → another run
+  took it, skip). Clearing `ship_ref` is load-bearing: it keeps the stale-claim
+  reaper correct. A continuation in flight then looks exactly like any other
+  interrupted claim (`in_progress`, `ship_ref IS NULL`), so if the run dies the
+  reaper reopens it on a later tick — a bare `in_progress` is *never* misread as a
+  review-hold and stranded. The previous PR link is not lost: it still lives in the
+  thread's review reply. Claiming also flips the topic out of the Archive tab back
+  into Active (`in_progress` = "In Arbeit"), so the admin sees the routine is on it.
+
+- **Deterministic per-round branch** `feat/feedback-<short-id>-<trigger-msg-short>`,
+  where `<trigger-msg-short>` is the first 8 chars of the id of the **triggering
+  message** (the newest human reply newer than `shipped_at`). This is deterministic
+  — a reaped redo recomputes the same branch and the STEP 3 idempotency check
+  reconciles any PR the interrupted run already opened, unchanged — yet **distinct
+  from the already-merged base branch** `feat/feedback-<short-id>`, so the base PR
+  can never false-positive the "merged PR → mark shipped" short-circuit and skip the
+  follow-up work. Each further round has a newer triggering message → a fresh branch,
+  so multi-round back-and-forth stays clean.
+
+- **Re-ship bumps `shipped_at`.** The green ship UPDATE sets `shipped_at=now()` and
+  the new `ship_ref`, then posts a fresh review reply (step 5b). That pushes
+  `shipped_at` past the triggering message, so query (d) no longer matches — unless
+  the admin replied again meanwhile, which correctly starts the next round.
+
+A continuation is otherwise a normal item: park it `needs_input` if the follow-up
+needs a decision, hold it as a review-PR if it is sensitive/red, and count it toward
+the batch cap and area-disjointness like any web item (its area is whatever files
+the follow-up touches — usually the same subtree as the original, so two
+continuations of the same feature serialise).
+
+### Recognising a reaped continuation
+
+After the reaper reopens a stranded continuation it is `status='open'` (not
+`shipped`), so query (a) picks it up, not (d). It is still recognisable as a
+continuation — and worked as one — by the same signal: **`shipped_at IS NOT NULL`
+and a human message newer than `shipped_at`**. STEP 3's implementation therefore
+checks that signal first: a continuation uses the continuation branch and does
+**not** treat the already-merged base PR as "done"; a first-time `open` item
+(`shipped_at IS NULL`) is unaffected.
+
 ## Per-item procedure
 
 This runs **once per admitted batch item** — for a batch of one, inline; for a
@@ -378,16 +523,23 @@ For each admitted `open` row (process independently, most-recent context wins):
      `status='needs_input'`, `processed_at=now()`; continue. Discarding is the
      admin's call, made by deleting the topic — not the routine's.
    - **Actionable now** → implement (step 3).
-3. **Implement.** *First, an idempotency check* — a reaped item may already
-   carry a branch/PR from the interrupted run (see the abort-window note above).
-   Since `feat/feedback-<id-short>` is deterministic, `gh pr list --state all
-   --head feat/feedback-<id-short>` (+ `git ls-remote --heads origin
-   feat/feedback-<id-short>`) first, and reconcile: **merged PR** → mark
-   `shipped` from its `mergedAt`/url, no rebuild; **open PR** → resume + verify
-   on that branch, no second PR; **stale branch, no PR** → delete it, rebuild;
-   **nothing** → fresh branch off `main`. Then implement, following repo
-   conventions (CLAUDE.md): standalone components, signals, OnPush,
-   ngx-translate for all strings, no keys in the bundle.
+3. **Implement.** *First, decide the branch — continuation or first-time.* The
+   item is a **continuation** iff `shipped_at IS NOT NULL` **and** a human message
+   is newer than `shipped_at` (true for a query-(d) pickup, and still true for a
+   reaped continuation that came back as `open`). A continuation's branch is
+   `feat/feedback-<id-short>-<trigger-msg-short>` (first 8 chars of the triggering
+   message's id); a first-time item's branch is the base `feat/feedback-<id-short>`.
+   *Then an idempotency check on that branch* — a reaped item may already carry a
+   branch/PR from the interrupted run (see the abort-window note above). The branch
+   name is deterministic, so `gh pr list --state all --head <branch>` (+ `git
+   ls-remote --heads origin <branch>`) first, and reconcile: **merged PR** → mark
+   `shipped` from its `mergedAt`/url + post the review reply, no rebuild; **open
+   PR** → resume + verify on that branch, no second PR; **stale branch, no PR** →
+   delete it, rebuild; **nothing** → fresh branch off `main`. For a continuation,
+   the already-merged **base** PR is *not* a match (the branch differs), so it never
+   short-circuits the follow-up. Then implement, following repo conventions
+   (CLAUDE.md): standalone components, signals, OnPush, ngx-translate for all
+   strings, no keys in the bundle.
 4. **Verify (the safety net).** Run the verify path(s) for the **area(s) the
    change touches** (see the Scope table) — not just root npm. A web change is
    `npm run typecheck && npm run build && npm test`; a data-uploader change also
@@ -407,6 +559,10 @@ For each admitted `open` row (process independently, most-recent context wins):
      does this end-to-end). Only once the deploy is done:
      `update admin_feedback set status='shipped', shipped_at=now(),
      ship_ref='<PR url>', processed_at=now(), processing_note=null where id=<id>`.
+     **Then, step 5b — post the review reply** (see "Post-ship review & continue"):
+     insert a `is_system=true` reply with the PR link, one line on what changed, the
+     **live URL** for the area, and the invite to reply in-thread to continue. This
+     runs on every ship, including a continuation re-ship and a mark-already-merged.
      If the rebase hits a real conflict (areas overlapped after all), don't force
      it — leave the item `open` for the next run (or hold it as a review-PR), and
      merge the remaining batch branches.
@@ -416,8 +572,10 @@ For each admitted `open` row (process independently, most-recent context wins):
      `ship_ref='<PR url>'` + a `processing_note`. `in_progress` is only ever valid
      **with** a `ship_ref` (a real review-hold) — never leave a bare `in_progress`
      (it jams the reaper + the oldest-first queue; see the reaper section).
-6. Never touch rows in a terminal status — `shipped`, `issue_created` or
-   `rejected`.
+6. Never touch rows in a terminal status — `issue_created` or `rejected`, and a
+   `shipped` row **except** the one sanctioned re-entry: an admin reply after the
+   ship reopens it as a continuation (query (d) / step 5b's invite). Never
+   re-implement a `shipped` topic that has no fresh human reply.
 
 ## Non-verifiable / decision-needed items → `needs_input`, never a bare `in_progress`
 
@@ -497,6 +655,139 @@ ship, `status='shipped'`), ask a follow-up (post another system reply, stay
 `rejected`. The stale-claim reaper never touches `needs_input` (it filters on
 `status='in_progress'`), so a parked topic waits patiently for the answer.
 
+## User-submitted feedback (viewers & collaborators) — feedback `5920cf8c`
+
+Non-admins never see the admin panel, so until now they had no way to send
+feedback at all. They now have their own FAB (`sc-user-feedback-fab` →
+`sc-user-feedback-panel`, `src/app/feedback/`) that files a topic **on this very
+board**: same table, same queue, same workflow — just `source = 'user'` and
+attributed to that person, exactly as if the admin had posted it himself.
+
+**Schema decision** (the admin never answered the question, so this is the
+routine's own recommendation, applied deliberately): reuse `admin_feedback`
+rather than add a parallel user-feedback table. One board, one status machine,
+one search/queue/dashboard implementation. The non-admin half is carved out by
+three additive columns (`source`, `triaged`, `decision_note`), a separate
+message table and one restricted view.
+
+### The privacy rule (hard, non-negotiable)
+
+- **`admin_feedback_messages` is admins-only, always.** That is the admin ↔
+  routine conversation. No policy in this feature grants a non-admin anything on
+  it; its only SELECT policy is `public.is_admin()`.
+- **Non-admins never read `admin_feedback` either.** They have an INSERT policy
+  and nothing else. Their single read path is the security-definer view
+  `public.my_feedback`, which projects only `id`, `body`, timestamps,
+  `decision_note` and a **coarse** `author_status`, and hard-filters
+  `author_id = auth.uid() and source = 'user'` inside its own body. So `status`,
+  `processing_note`, `ship_ref`, `processed_at` never leave the admin side.
+- **The author-visible channel is its own table**,
+  `public.feedback_author_messages` — everything in it is readable by the topic's
+  author by design. Splitting the two conversations by table (instead of by a
+  flag inside one table) is what makes the rule structural rather than a matter
+  of getting one policy predicate right.
+- **The routine must therefore never write into `feedback_author_messages`.**
+  Its voice is `admin_feedback_messages` (`is_system = true`). Anything an author
+  should read is the admin's own message.
+
+### What the author sees (coarse status)
+
+| `author_status` in `my_feedback` | Raw statuses behind it | Label (DE/EN) |
+|---|---|---|
+| `in_progress` | `open`, `in_progress`, `needs_input`, `issue_created` | In Bearbeitung / In progress |
+| `question` | `needs_input_author` | Rückfrage an dich / Question for you |
+| `done` | `shipped` | Umgesetzt / Implemented |
+| `declined` | `declined`, legacy `rejected` | Nicht umgesetzt / Not implemented (+ `decision_note`) |
+
+`needs_input` folding into "in Bearbeitung" is deliberate and confirmed by the
+admin: it means the routine is asking *the admin* — a conversation the author
+must not even be able to detect. The client mirror of this mapping is
+`coarseAuthorStatus()` in `src/app/feedback/user-feedback.types.ts`, unit-tested
+in its spec.
+
+### The two "needs input" flavours
+
+| Status | Who asks whom | Where the question lives | Author sees it? | Routine queue |
+|---|---|---|---|---|
+| `needs_input` | routine → admin | `admin_feedback_messages` | **no** (reads as "in Bearbeitung") | resumed once the admin answers |
+| `needs_input_author` | admin → topic author | `feedback_author_messages` (`is_question = true`) | **yes** | parked — not `open`, so out of the queue; the answer restores the previous status and re-arms the triage gate |
+
+`needs_input_author` is maintained by a trigger on the author channel, never by
+hand, and it works as a **parenthesis** rather than a reset:
+
+- an admin question memorises the topic's current status in
+  `status_before_author_question` and parks it at `needs_input_author` (only on a
+  `source='user'` topic, never on a terminal one);
+- the author's answer **restores** that status (default `open`) and clears the
+  memo. That matters for the canonical case — the routine parks a user topic as
+  `needs_input` ("what did the author mean?"), the admin passes the question on,
+  and the answer must not throw the routine's own open question away;
+- the answer also sets **`triaged = false`** again: it is fresh, unreviewed text
+  from outside, and what waits behind `status='open'` is an agent that implements
+  and merges on its own. So the admin releases it a second time. This is the only
+  place a non-admin action touches `triaged`, and it can only ever move it towards
+  *more* review.
+
+The author may only write into the channel **while a question to them is open**
+(`public.feedback_awaits_author()` gates the insert policy) — it is a channel for
+answering, not an unsolicited chat with the admins. In the panel the status is its
+own bucket, `awaiting_author` ("Rückfrage an Absender"), deliberately kept out of
+the Abarbeiten queue: the ball is with the author, not the admin.
+
+### Triage gate: `triaged`
+
+A user topic enters `triaged = false`. **The routine must skip it** (queue read:
+`status = 'open' and triaged`) until an admin presses "Für die Routine
+freigeben". Rationale: an autonomous agent that implements and ships on its own
+must not be drivable straight from a public feedback box by anyone with an
+account. Every pre-existing (admin-authored) row defaults to `triaged = true`, so
+the routine's behaviour on the existing board is unchanged.
+
+The gate is enforced by the table, not by a client: a BEFORE-INSERT trigger forces
+`triaged = false` on every `source='user'` row (a WITH CHECK alone would have made
+any caller that omits the column fail with a bare permission error), pins the
+insert's `created_at`/`updated_at` to `now()` (they drive the oldest-first queues,
+so an unpinned `created_at` was a free "always first in line"), and rate-limits an
+author to **10 topics per hour**. An author's answer re-opens the gate rather than
+bypassing it (see above).
+
+### What non-admins are granted, and why the grants are load-bearing
+
+Supabase's default privileges grant **ALL** on everything new in `public` to
+`anon` + `authenticated`. `public.my_feedback` is also *auto-updatable* and runs
+with owner rights (`security_invoker = false`), so `grant select` on its own left
+a write-through path around every RLS policy on `admin_feedback`: a signed-in
+viewer could insert a topic that defaulted to `source='admin', triaged=true`
+(landing **directly** in the routine's queue), rewrite a topic's body after the
+admin had released it, or delete a topic and cascade the admin thread with it. The
+migration therefore does an explicit `revoke all ... from public, anon,
+authenticated` before every `grant`, on the view, on
+`feedback_author_messages` and on both helper functions. **Keep that pattern for
+anything new here** — it was a real, verified hole, not a theoretical one.
+
+### One thing that is NOT secret: attachments
+
+Screenshots go to the **public** `feedback-images` bucket (migration
+`20260713000000`), shared by the admin composer and the author channel. Public
+bucket objects are downloadable by URL and the bucket-wide read policy makes them
+listable, so image attachments — including those in admin replies — are not
+covered by the secrecy rule, which is about message *text*. Pre-existing, not
+introduced by the user channel, and worth its own item.
+
+### "Nicht umsetzen & löschen" (declining a user topic)
+
+For a user-submitted topic the admin's delete button becomes **"Nicht umsetzen &
+löschen"** with a **mandatory comment**. It writes `status = 'declined'` +
+`decision_note` and also posts the comment into the author channel, so the author
+gets "Nicht umgesetzt" **plus the reason** instead of a topic that silently
+vanished. It is a soft close on purpose: a hard `DELETE` would cascade the
+author's own thread away. Admin-authored topics keep the plain delete button, and
+so does an **already archived** user topic — once it is declined/shipped and the
+author has the outcome, an admin can still purge the row from the Archive.
+
+**The routine never sets `declined`** — like `rejected` and `issue_created`, that
+call belongs to the admin alone.
+
 ## The admin side: the feedback panel's three views
 
 The routine's counterpart is the admins-only panel (`sc-feedback-fab` →
@@ -506,13 +797,55 @@ panel and on the full board page alike:
 
 | View | Component | What it is for |
 |------|-----------|----------------|
-| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list, status/author filters, new-topic composer |
-| **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin first (oldest first), then untouched `open` topics. Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
-| **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen |
+| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list, fuzzy search (see below), status/author filters, new-topic composer |
+| **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin, oldest first — **and nothing else** (feedback b0cc6efc). Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
+| **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen, plus pace, throughput and the live lifecycle map (see below) |
 
-Queue and aggregation rules live as pure functions in `feedback.types.ts`
-(`buildWorkflowQueue`, `computeStats`, `isArchived`, `refKind`,
-`feedbackBucket`), unit-tested in `feedback.types.spec.ts`. All three views
+**Abarbeiten is the default view** (feedback fda4e3ea). The panel opens in the
+processing mode in all three shells — docked, maximized and full page — because
+opening the board almost always means "what do I have to answer". The choice is
+remembered per browser under `sc.adminFeedback.view` (behind the preferences
+consent), so picking Übersicht or Fortschritt from the view switch still wins on
+the next open; only the fallback changed. With an empty queue the mode shows its
+"Alles abgearbeitet" screen, one click away from Fortschritt.
+
+**The queue holds only what waits on the admin** (feedback b0cc6efc). It used to
+append untouched `open` ToDos after the Rückfragen, which made the mode read as a
+backlog to work off — but an `open` topic is one the admin already wrote and that
+now waits on the *routine*; there is nothing to answer there. A topic enters the
+queue the moment the routine asks something back (`needs_input` with the routine's
+message last = the `awaiting_admin` bucket) and leaves it the moment the admin
+answers. ToDos stay fully visible in the Übersicht list and in the dashboard's
+ToDo counter — the processing mode is the admin's *inbox*, not the board.
+
+Three things the processing mode does so a Rückfrage never has to be hunted for
+and no step goes unnoticed:
+
+- **It scrolls to the open Rückfrage.** The thread box opens at the message the
+  admin is expected to react to — `workflowFocusIndex` in `feedback.types.ts`
+  picks the *first* message of the trailing routine run (so a long question is
+  read from its beginning, not its tail) and falls back to the thread end when
+  the admin had the last word. That message is marked "Offene Rückfrage".
+  Scrolling animates unless `prefers-reduced-motion: reduce` is set, and it
+  happens once per message, so the board's polling refresh never yanks the
+  thread back while it is being read.
+- **The answer panel is pinned.** Composer and the Weiter/Erledigt controls sit
+  in a sticky footer at the bottom edge of the scrollport, so however long the
+  topic and its thread are, the reply box is always on screen.
+- **Moving on is visible** (feedback 96872872). "Erledigt" pulls the topic out
+  of the queue, so the card refills with the next topic in place — previously
+  only the "3 von 7" counter moved and the admin could miss that a new topic was
+  open. The next card now slides in (~380 ms), wears a short accent ring and a
+  `role="status"` line names the step ("Erledigt – weiter mit 2 von 6"). Under
+  `prefers-reduced-motion: reduce` the slide is dropped; ring and line stay, so
+  the advance is still perceivable. Weiter uses the same slide (without the
+  line — the click itself is the explanation). Draining the last topic reports
+  itself through the "Alles abgearbeitet" screen instead.
+
+Queue, aggregation and search rules live as pure functions in `feedback.types.ts`
+(`buildWorkflowQueue`, `workflowFocusIndex`, `computeStats`, `computePace`,
+`shippedPerWeek`, `lifecycleSnapshot`, `neededInput`, `isArchived`, `refKind`,
+`feedbackBucket`, `searchFeedback`), unit-tested in `feedback.types.spec.ts`. All three views
 share that vocabulary: a terminal topic is out of the processing queue, out of
 the dashboard's ToDo bucket and in the overview's Archive tab, from the one
 `isArchived` rule.
@@ -524,8 +857,9 @@ the dashboard's ToDo bucket and in the overview's Archive tab, from the one
 |--------|---------------|------------|
 | `todo` | **ToDo** | `status='open'` **and** a `needs_input` topic whose newest thread message is the admin's answer — the routine still has to pick it up, so it is ToDo, not "done" |
 | `awaiting_admin` | Rückfrage / Needs input | `needs_input` whose newest message is the routine's (or none yet) — the ball is with the admin |
+| `awaiting_author` | Rückfrage an Absender / Asked the sender | `needs_input_author` — the admin asked a user topic's author and waits on them |
 | `in_progress` | In Arbeit / In progress | `status='in_progress'` |
-| `shipped` / `issue_created` / `rejected` | as before | terminal → Archive tab |
+| `shipped` / `issue_created` / `declined` / `rejected` | as before | terminal → Archive tab |
 
 The status filter chips, the day-grouped list and the dashboard's ToDo counter
 all resolve through that one rule. An answered Rückfrage keeps a small
@@ -533,6 +867,65 @@ all resolve through that one rule. An answered Rückfrage keeps a small
 done) but is otherwise counted and filtered as ToDo. The "offen"/"Open" label
 is gone from the UI — it reads **ToDo** everywhere (feedback 34c44134); the
 status value on the wire is still `open`.
+
+### What the Fortschritt view shows (feedback ef15ea67)
+
+The dashboard is **read-only and always-on by design — no filters, pickers or
+toggles**: the admin asked for a view that is informative the second it opens.
+The "Diesen Monat / All-time" pair is a side-by-side layout, not a control. Three
+blocks, all hand-rolled SVG/CSS on the existing tokens (no charting dependency):
+
+1. **Windows** — the donut (shipped share) + the shipped / ToDo / answered bars,
+   now with a **pace** footer per window: the **median time-to-ship**
+   (`created_at → shipped_at`, measured only on rows that carry a real ship
+   stamp) and the **Rückfrage rate** (share of topics raised in the window the
+   routine had to ask about). Volume alone never showed whether the routine is
+   getting faster or asking more; these two do.
+2. **Durchsatz** — ships per calendar week over the last 12 weeks, the running
+   week highlighted. A stalled or accelerating routine is a trend, not a number.
+   A continuation counts once, in the week of its latest ship (`shipped_at` is
+   bumped at each re-ship).
+3. **Lebenszyklus** — this document's "Contract" diagram rendered **live**. The
+   spine is the happy path (ToDo → In Arbeit → Geshipped); every branch is
+   labelled with what triggers it: the routine's Rückfrage and the admin's answer
+   back into ToDo, the reaper reopening a stale claim (`in_progress → open`), the
+   review hold (`in_progress` **with** a `ship_ref`, waiting on a human merge),
+   the post-ship continuation loop back into In Arbeit, and the terminal
+   `issue_created` / legacy `rejected` stages. Each node carries its **current**
+   occupancy plus the annotations that matter operationally — oldest active topic
+   in days, how many ToDo items are answered Rückfragen / continuations /
+   reaper-reopened, and how many `in_progress` rows are review holds rather than
+   active work (the holds that this doc's "Surfacing open review-holds" section
+   warns can rot unnoticed).
+
+There is **no transition history** in the schema, so the map annotates occupancy,
+never pass-through counts — `lifecycleSnapshot` derives everything from the rows
+and threads the board already holds. The map is a plain `<ol>`/`<ul>`, so it
+reads as text for assistive tech (dots, spine and meters are `aria-hidden`), and
+it is a vertical spine rather than a horizontal flow chart precisely so it never
+scrolls sideways in the docked panel.
+
+### Searching the board (feedback 12476cec)
+
+The Übersicht carries a search field above the filter row (docked panel,
+maximized panel and full board alike). It is dependency-free and lives in
+`searchFeedback` / `scoreFeedbackRow` in `feedback.types.ts`:
+
+- **What is searched** — the topic body, its `processing_note`, the author names
+  **and every `admin_feedback_messages` reply**. A topic whose only match sits
+  three replies down is a hit and is marked "im Thread" in its row.
+- **How it matches** — text is normalized (lowercase, diacritics stripped, `ß` →
+  `ss`, markdown punctuation dropped), then each term is matched per word:
+  exact › prefix › infix › Damerau-Levenshtein typo (1 edit from 4 characters,
+  2 from 7) › subsequence. Every term has to match *somewhere* (AND), so adding a
+  word always narrows.
+- **How results are ranked** — mean term quality × field weight (body `1.0` ›
+  note `0.55` › thread `0.5` › author `0.35`), a density bonus for repeated hits,
+  a bonus when the query appears verbatim, and topic recency as the tiebreaker.
+- **How it interacts with the rest** — search narrows both tabs, the tab counts
+  and the status chips. While a query is active the list is ordered by relevance,
+  so the day headings collapse into one "N Treffer" heading; clearing the query
+  restores the dated timeline.
 
 Two things the routine should be aware of:
 
@@ -581,11 +974,15 @@ Animations API, no dependency). All of it is suppressed under
 
 | column           | meaning                                                    |
 |------------------|------------------------------------------------------------|
-| `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `issue_created` = admin-driven hand-off to a GitHub issue · `rejected` = legacy/admin-only, never set by the routine |
+| `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `issue_created` = admin-driven hand-off to a GitHub issue · `declined` + `needs_input_author` = admin-driven, user topics only · `rejected` = legacy/admin-only, never set by the routine |
 | `ship_ref`       | link that closed the topic: PR/commit URL for `shipped`, GitHub issue URL for `issue_created` (also set on a review-hold `in_progress` row) |
-| `processing_note`| routine's note (reject reason / red-build hint)            |
-| `shipped_at`     | set when merged to `main`                                  |
+| `processing_note`| routine's note (reject reason / red-build hint) — **admin-only**, never shown to a feedback author |
+| `shipped_at`     | set (and re-set) at each merge to `main`; the review loop's query (d) compares the newest reply against it to detect an admin's post-ship continuation |
 | `processed_at`   | last time the routine acted on the row                     |
+| `source`         | `admin` (default, all legacy rows) \| `user` = filed through the non-admin FAB (feedback `5920cf8c`) |
+| `triaged`        | routine release gate; `true` for every admin row, `false` on a fresh user topic and again after its author answered, until an admin releases it |
+| `decision_note`  | the admin's explanation on a `declined` user topic — **author-visible** (only while the topic is declined) |
+| `status_before_author_question` | admin-only memo: the status a topic had when an admin asked its author something, restored by the answer |
 
 ### Active vs. Archive (`issue_created`)
 
@@ -593,19 +990,27 @@ Statuses split into two halves, which is exactly what the admin panel's
 Active/Archive toggle inside the **overview** mode renders (migration
 `20260724220000_admin_feedback_issue_created_status.sql`):
 
-- **Active** — `open`, `in_progress`, `needs_input`. The board the routine and
-  the admin work on.
-- **Archive** (terminal) — `shipped`, `issue_created`, and legacy `rejected`.
-  Nothing here is ever picked up again. Each row renders its `ship_ref` as a
+- **Active** — `open`, `in_progress`, `needs_input`, `needs_input_author`. The
+  board the routine and the admin work on.
+- **Archive** (terminal) — `shipped`, `issue_created`, `declined`, and legacy
+  `rejected`. `issue_created`, `declined` and `rejected` are never picked up
+  again. `shipped` is terminal **until the admin replies**: a reply on a shipped
+  topic reopens it as a continuation (see "Post-ship review & continue"), and the
+  routine flips it back to `in_progress` (Active) on its next run — so a shipped
+  topic the admin is still iterating on does not rot in the Archive. Each row
+  renders its `ship_ref` as a
   link, labelled "View change" for a shipped PR and "View issue" for an issue.
+  (During an in-flight continuation `ship_ref` is briefly cleared; the shipping PR
+  stays linked in the thread's review reply.)
 
 `issue_created` is a **terminal, admin-set** status: the admin archives a topic
 by pasting its GitHub issue URL in the panel (button "Issue created"), which
 writes `status='issue_created'` + `ship_ref=<issue url>` + `processed_at=now()`.
 Its purpose is the "tracked elsewhere, done here" case — the topic leaves the
 active queue without being deleted and without pretending it shipped. **The
-routine never sets it** and, like `shipped`, never touches a row that carries
-it. Legacy `rejected` rows are archived rather than hidden so they stay
+routine never sets `issue_created` and never touches a row that carries it** —
+unlike `shipped`, which the post-ship review loop can reopen when the admin
+replies. Legacy `rejected` rows are archived rather than hidden so they stay
 reachable instead of being orphaned in a view nobody opens.
 
 Per-topic replies live in `public.admin_feedback_messages` (see migration
@@ -621,4 +1026,20 @@ Per-topic replies live in `public.admin_feedback_messages` (see migration
 
 The routine authenticates as `service_role` and therefore bypasses RLS (so it
 can insert `is_system=true` replies, which the RLS insert policy forbids for
-regular admins).
+regular admins). **Bypassing RLS is exactly why the routine must respect the
+privacy rule by discipline:** it may read everything, but it writes its replies
+only into `admin_feedback_messages` — never into the author-visible
+`feedback_author_messages` (see "User-submitted feedback" above).
+
+The author-visible channel for user-submitted topics lives in
+`public.feedback_author_messages` (migration
+`20260726170000_user_feedback_channel.sql`):
+
+| column        | meaning                                                       |
+|---------------|--------------------------------------------------------------|
+| `feedback_id` | FK → `admin_feedback.id` (cascade delete)                    |
+| `author_id`   | FK → `profiles.id`; who wrote the message                    |
+| `from_admin`  | `true` = admin → author, `false` = the author's own reply (only while a question is open) |
+| `is_question` | `true` only on an admin message that asks the author something → sets `status='needs_input_author'` |
+| `body`        | markdown message (author-visible!)                           |
+| `created_at`  | thread order                                                 |
