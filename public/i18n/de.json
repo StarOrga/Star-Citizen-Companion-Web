@@ -1222,6 +1222,7 @@
     "setStatus": "Status ändern",
     "loadMore": "Weitere {{count}} laden",
     "toggleDetails": "Eintrag aus- oder einklappen",
+    "topicNumber": "Thema #{{n}} — feste Nummer, auf die du dich beziehen kannst",
     "showMore": "mehr",
     "showLess": "Weniger anzeigen",
     "filter": {
@@ -1235,7 +1236,7 @@
     },
     "search": {
       "label": "Feedback durchsuchen",
-      "placeholder": "Suchen … Thema und ganzer Thread",
+      "placeholder": "Suchen … Thema, ganzer Thread oder #Nummer",
       "clear": "Suche löschen",
       "results": "{{count}} Treffer · nach Relevanz",
       "empty": "Keine Treffer für „{{query}}“.",

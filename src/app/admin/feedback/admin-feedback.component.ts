@@ -38,6 +38,7 @@ import {
   refKind,
   searchFeedback,
   searchTokens,
+  topicNumber,
   topicTitle,
   workflowScopeCounts,
 } from './feedback.types';
@@ -525,12 +526,25 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
               [attr.aria-expanded]="isExpanded(m.id)"
               [attr.aria-label]="'adminFeedback.toggleDetails' | translate">
               <span class="chev" [class.open]="isExpanded(m.id)">▸</span>
+              <!-- Stable reference number (feedback 21587480) — deliberately
+                   quiet and ahead of the title, so it reads as a handle for the
+                   topic rather than as part of it. -->
+              @if (topicNo(m); as no) {
+                <span
+                  class="topic-no"
+                  [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
+              }
               <span class="topic-title">{{ topicTitle(m.body) }}</span>
               <span class="row-author">{{ authorLabel(m) }}</span>
               <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
             </button>
           } @else {
             <div class="msg-head">
+              @if (topicNo(m); as no) {
+                <span
+                  class="topic-no"
+                  [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
+              }
               <span class="author">{{ authorLabel(m) }}</span>
               <span class="ts">{{ m.created_at | date:'short' }}</span>
               <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
@@ -853,6 +867,18 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       font-size: 0.72rem;
     }
     .msg-head.one-liner:hover .topic-title { color: var(--sc-accent); }
+    /* Reference number (feedback 21587480): monospaced digits so a column of
+       them lines up, and dim enough that the topic text stays the thing you
+       read. It is a handle, not a headline. */
+    .topic-no {
+      flex: 0 0 auto;
+      color: var(--sc-fg-2);
+      font-size: 0.72rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+      user-select: all;
+    }
     .msg-head.one-liner:focus-visible {
       outline: none;
       border-radius: 6px;
@@ -1888,6 +1914,17 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /**
+   * The topic's stable reference number, or `null` when it has none (feedback
+   * 21587480). Rendered as a quiet "#42" next to the title in both row layouts
+   * so a topic can be named by number in a conversation. Comes straight from
+   * `admin_feedback.seq` — never from the row's position in the list, which
+   * would change with every filter, search and deletion.
+   */
+  topicNo(m: FeedbackRow): number | null {
+    return topicNumber(m);
+  }
+
+  /**
    * Quick-access table of contents for the active board: one entry per visible
    * topic (short label + status) so the admin can jump straight to a thread
    * (feedback 69f3f015). Topics still awaiting the admin's answer are flagged so
@@ -2157,7 +2194,7 @@ export class AdminFeedbackComponent implements OnInit {
     this.errorMsg.set(null);
     const { data, error } = await this.sb.client
       .from('admin_feedback')
-      .select('id, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, source, triaged, decision_note, author:profiles(display_name, username)')
+      .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, source, triaged, decision_note, author:profiles(display_name, username)')
       .order('created_at', { ascending: true });
     if (error) {
       this.errorMsg.set(error.message);
