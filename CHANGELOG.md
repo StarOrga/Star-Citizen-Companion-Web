@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.50.0] - 2026-07-27
+
+### Added
+
+- **Codex — hardpoint positions on the hull (#137 part 3).** A ship's loadout
+  list can now be *located*: pointing at a hardpoint row highlights a marker in
+  a top-down and a side schematic of the hull, and pointing at a marker
+  highlights its row. Collapsed rows ("3× S3") light up all three of their
+  mounts. The coordinates come from the ship's own `.cga` mesh in `Data.p4k` —
+  the desktop uploader now reads the mesh's helper-node transforms and joins
+  them to the item ports and default-loadout mounts by exact node name, so a
+  marker is either the real mount point or absent. Additive migration
+  (`codex_item_ports.helper_name/position/rotation`) plus a ship-level map in
+  the payload; ingest accepts both the new and the old shape.
+  _Ships already in the catalog show no positions until the admin re-runs the
+  uploader — the previous category-grouped list is exactly what they keep.
+  The deck / interior view (#137 part 4) is not part of this._
+
 ## [0.49.2] - 2026-07-27
 
 ### Changed

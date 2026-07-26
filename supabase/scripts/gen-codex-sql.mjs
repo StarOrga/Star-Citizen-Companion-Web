@@ -121,13 +121,23 @@ on conflict (channel, patch_version, build_number) do update
       }
     }
   };
+  // A finite numeric tuple as a jsonb literal, else NULL. Hardpoint coordinates
+  // (#137 part 3) exist only for ports the extractor matched to a hull helper
+  // node; anything malformed is stored as "unknown", never as a coordinate.
+  const vecJson = (value, length) =>
+    Array.isArray(value) &&
+    value.length === length &&
+    value.every((v) => typeof v === 'number' && Number.isFinite(v))
+      ? jsonb(value)
+      : 'null';
   const addPorts = (cn, kind, ip) => {
     if (!Array.isArray(ip)) return;
-    ip.forEach((p, idx) =>
+    ip.forEach((p, idx) => {
+      const pos = vecJson(p.position, 3);
       ports.push(
-        `(${BID}, ${NK}, ${q(cn)}, ${q(kind)}, ${q(p.portName)}, ${num(p.minSize)}, ${num(p.maxSize)}, ${arr(p.types)}, ${arr(p.flags)}, ${idx})`,
-      ),
-    );
+        `(${BID}, ${NK}, ${q(cn)}, ${q(kind)}, ${q(p.portName)}, ${num(p.minSize)}, ${num(p.maxSize)}, ${arr(p.types)}, ${arr(p.flags)}, ${idx}, ${q(p.helperName)}, ${pos}, ${pos === 'null' ? 'null' : vecJson(p.rotation, 4)})`,
+      );
+    });
   };
 
   // manufacturers
@@ -203,7 +213,7 @@ on conflict (channel, patch_version, build_number) do update
   }
   // ports
   {
-    const hdr = `insert into public.codex_item_ports (build_id, channel, patch_version, build_number, parent_class_name, parent_kind, port_name, min_size, max_size, types, flags, port_index) values`;
+    const hdr = `insert into public.codex_item_ports (build_id, channel, patch_version, build_number, parent_class_name, parent_kind, port_name, min_size, max_size, types, flags, port_index, helper_name, position, rotation) values`;
     const stmts = [];
     for (let i = 0; i < ports.length; i += BATCH) stmts.push(`${hdr}\n${ports.slice(i, i + BATCH).join(',\n')};`);
     files.push(...emit('80_ports', stmts, DEST));

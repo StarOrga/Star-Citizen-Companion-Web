@@ -222,6 +222,9 @@ class CodexExtractor:
             except Exception as exc:  # noqa: BLE001
                 on_log("warn", f"asset extractor unavailable: {exc}")
         self._dim_cache: Dict[str, Optional[Dict[str, Any]]] = {}
+        # mesh path -> named helper-node transforms (hardpoint positions). Same
+        # .cga as the dimensions, parsed once per hull and shared by variants.
+        self._helper_cache: Dict[str, Dict[str, Any]] = {}
         # guid -> manufacturer code, built lazily
         self._manu_cache: Dict[str, Dict[str, Any]] = {}
         # Ship-skin (livery) catalog discovery — built lazily on the first ship,
@@ -924,6 +927,65 @@ class CodexExtractor:
         self._dim_cache[key] = dims
         return dims
 
+    def _helper_nodes(self, comps) -> Dict[str, Dict[str, Any]]:
+        """Named node transforms of this entity's hull mesh (cached per mesh).
+
+        Same ``.cga`` the dimensions come from, so hardpoint positions and the
+        bounding box share one coordinate space. Cached by mesh path because
+        variants of a ship reuse the same hull, and each parse walks a few
+        hundred node records. Best-effort: any failure means "no positions",
+        never an aborted ship.
+        """
+        if self.p4k is None:
+            return {}
+        from .geometry import helpers_from_cga_bytes
+        key = self._hull_path(comps)
+        if not key:
+            return {}
+        cached = self._helper_cache.get(key)
+        if cached is not None:
+            return cached
+        helpers: Dict[str, Dict[str, Any]] = {}
+        try:
+            if not hasattr(self, "_p4k_lower"):
+                self._p4k_lower = {n.lower(): n for n in self.p4k.namelist()}
+            entry = self._p4k_lower.get(key.lower())
+            if entry:
+                with self.p4k.open(self.p4k.getinfo(entry)) as f:
+                    helpers = helpers_from_cga_bytes(f.read())
+        except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
+            self.on_log("warn", f"helper nodes failed for {key}: {exc}")
+            helpers = {}
+        self._helper_cache[key] = helpers
+        return helpers
+
+    def _hardpoint_positions(
+        self, comps, item_ports: List[Dict[str, Any]],
+        loadout: List[Dict[str, Any]], dims: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """``{transforms, frame}`` — where each of this ship's ports sits on the hull.
+
+        Joins the projected item ports + default-loadout port names against the
+        hull mesh's helper nodes (see :mod:`sc_extract.hardpoints`). Ships only:
+        every lookup costs one mesh parse, and the hull is the only mesh whose
+        hardpoint layout a player reads. Returns empty dicts when the mesh has no
+        readable node table — the consumer then shows no positions at all rather
+        than approximations.
+        """
+        from .hardpoints import hardpoint_frame, resolve_hardpoint_transforms
+        helpers = self._helper_nodes(comps)
+        if not helpers:
+            return {"transforms": {}, "frame": None}
+        transforms = resolve_hardpoint_transforms(
+            helpers,
+            item_ports=item_ports,
+            loadout_port_names=[e.get("itemPortName") for e in loadout],
+        )
+        if not transforms:
+            return {"transforms": {}, "frame": None}
+        frame = hardpoint_frame([t["position"] for t in transforms.values()], dims)
+        return {"transforms": transforms, "frame": frame}
+
     def _skin_catalog(self, class_name: str, comps) -> List[Dict[str, Any]]:
         """Liveries (paint skins) for a ship, as a sub-property of its record.
 
@@ -1024,18 +1086,39 @@ class CodexExtractor:
         vcp = _find_component(comps, "VehicleComponentParams") or {}
         skins = self._skin_catalog(base["className"], comps)
         self._skins_total += len(skins)
+        dims = self._dimensions(comps)
+        item_ports = self._item_ports(comps)
+        loadout = self._default_loadout(comps)
+        # WHERE each port sits on the hull, from the mesh's helper nodes. Filled
+        # in on the ports themselves (so the codex_item_ports rows carry it) and
+        # as one ship-level map, because a ship's weapon/shield mounts usually
+        # appear only as default-loadout port names, not as item ports.
+        hp = self._hardpoint_positions(comps, item_ports, loadout, dims)
+        transforms = hp["transforms"]
+        for port in item_ports:
+            t = transforms.get(port.get("portName"))
+            if t:
+                port["helperName"] = t["helper"]
+                port["position"] = t["position"]
+                port["rotation"] = t["rotation"]
         base.update({
             "entityKind": "ship",
             "role": vcp.get("vehicleRole"),
             "crew": {"size": vcp.get("crewSize")},
             "vehicleName": self._localized(vcp.get("vehicleName")),
             # real-world bounding-box dimensions (metres) parsed from the .cga mesh
-            "dimensions": self._dimensions(comps),
+            "dimensions": dims,
             # flight stats: resolved generically from the IFCS / vehicle
             # flight-controller struct wherever it sits in the resolved graph.
             "flight": self._flight_stats(resolved, comps),
-            "itemPorts": self._item_ports(comps),
-            "defaultLoadout": self._default_loadout(comps),
+            "itemPorts": item_ports,
+            "defaultLoadout": loadout,
+            # portName -> {position, rotation, helper, source}; model-space metres
+            # in CryEngine axes (+X right, +Y nose, +Z up) — see hardpoints.py.
+            "hardpointTransforms": transforms,
+            # The box those positions live in, so a consumer can normalise them
+            # without knowing the hull. None when no position resolved.
+            "hardpointFrame": hp["frame"],
             # liveries (paint skins) as a sub-property of the ship — catalog only
             # (names + icons); the 3D glb build is a separate cached step.
             "skins": skins,
@@ -1220,6 +1303,7 @@ class CodexExtractor:
         ports = ipc.get("Ports")
         if not isinstance(ports, list):
             return []
+        from .hardpoints import port_helper_name
         out = []
         for p in ports:
             if not isinstance(p, dict):
@@ -1230,6 +1314,10 @@ class CodexExtractor:
                 "maxSize": _to_int(p.get("MaxSize")),
                 "types": _port_types(p),
                 "flags": _as_list(p.get("Flags")),
+                # Mesh helper node this port attaches to. On its own it is just a
+                # name; _hardpoint_positions turns it into a coordinate when the
+                # node actually exists in the hull mesh.
+                "helperName": port_helper_name(p),
             })
         return out
 

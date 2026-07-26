@@ -71,6 +71,32 @@ Findings worth not re-deriving — all measured, not assumed:
 - **Crafting is in the P4K**, under `CraftingBlueprintRecord.blueprint.*` — see
   `docs/concepts/codex-extraction-output.md` §0b for the exact nesting.
 
+## Ivo geometry chunks — hardpoint positions (reverse-engineered 2026-07-26)
+
+`scdatatools` 1.0.4 cannot parse SC 4.x Ivo *geometry* chunks, so
+`sc_extract/geometry.py` reads them directly. Verified layout (`#ivo` v0x900:
+16-byte file header, then a 16-byte-per-chunk header table of `type u32`,
+`version u32`, `offset u64`; a chunk runs to the next chunk's offset):
+
+| chunk type   | what it holds | how it is read |
+| ------------ | ------------- | -------------- |
+| `0x92914444` | AABB (ship L/W/H) | first plausible `(min,max)` float-triple pair, byte offset 24 |
+| `0xc201973c` | NAME table | `count` at 0, 16-byte entries at 48 (`crc32(name)` … `u16 node_index`), then a NUL-separated string blob; a name belongs to a node when its CRC-32 is in the table |
+| `0x70697fda` | NODE table | count in the 2nd u32, records from offset **64** at a **208-byte** stride, each starting with two row-major `Matrix34` (model-space, then parent-relative) |
+
+Verified against `AEGS_Gladius` (273/273 names resolved) and
+`DRAK_Cutlass_Black` (209/209); every rotation block orthonormal. Both readers
+self-validate (the node walk re-derives the stride by requiring EVERY rotation
+block to be orthonormal) and return nothing rather than a fabricated coordinate.
+
+This is the **only** place a hardpoint's position on the hull exists — the
+DataCore stores just the helper node's NAME
+(`SItemPortDef.AttachmentImplementation.Helper.Helper.Name`) plus a relative
+offset. `sc_extract/hardpoints.py` joins the two by **exact** node-name match
+(helper name, else the port name itself); a near-miss yields no position.
+Coordinates are metres in the hull mesh's model space, CryEngine axes
+(`+X` starboard, `+Y` nose, `+Z` up), never rescaled.
+
 Opening `Data.p4k` costs ~24 s and reading/decompressing `Data/Game2.dcb`
 (330 MB) another ~2 min; cache the raw `.dcb` bytes to disk when iterating on
 extraction logic instead of re-reading the archive.
