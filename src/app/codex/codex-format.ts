@@ -30,6 +30,13 @@ export function cleanLocaleValue(
   if (!s || s.startsWith('@') || s === '@LOC_EMPTY' || s === '@LOC_PLACEHOLDER') {
     return fallback;
   }
+  // Star-Citizen's localization system emits a literal placeholder string for
+  // untranslated LOCIDs, e.g. `! GERMAN_(GERMANY) TRANSLATION NOT FOUND FOR
+  // LOCID: item_Namexxx !`. That marker ships in the extract as the "localized"
+  // value for many items — never show it; fall back to a humanized class name.
+  if (/translation not found/i.test(s)) {
+    return fallback;
+  }
   return s;
 }
 

@@ -1,7 +1,33 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.47.1",
+  "current": "0.47.2",
   "releases": [
+    {
+      "version": "0.47.2",
+      "date": "2026-07-26",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex — dedicated FPS equipment section (#251, part of #187).",
+              "text": "A new codex/fps section curates on-foot gear analogous to the ship/blueprint codex: FPS weapons (with sub-type, manufacturer, size and grade facets) and personal armor (filtered by equip slot — Helmet / Torso / Arms / Legs / Undersuit / Backpack). Each item links to the existing detail view, which already renders the weapon stat block and crafting usage. Armor has no rich stat block in the current extract yet (tracked as #253); those cards degrade gracefully to name / grade / size / slot / manufacturer."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex — untranslated item names no longer leak Star Citizen's raw placeholder.",
+              "text": "Entities whose localized name ships as the game's \"! … TRANSLATION NOT FOUND FOR LOCID … !\" marker now fall back to the English name (or a humanized class name) across the whole codex, instead of printing the marker."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.47.1",
       "date": "2026-07-26",

@@ -56,6 +56,7 @@ export interface CodexListRow {
   weaponClass: string | null;
   componentKind: string | null;
   subType: string | null;
+  attachType: string | null;
   speed: number | null;
   isVariant: boolean;
   payload: unknown;
@@ -77,6 +78,15 @@ export interface CodexListFilters {
   grade?: string;
   componentKind?: string;
   weaponClass?: string;
+  // sub_type facet — shared column across weapon/component/item (e.g. FPS
+  // weapon sub_type Rifle/Pistol/…, armor item sub_type Helmet/Undersuit/…).
+  subType?: string;
+  // attach_type facet — used to scope `item` rows to a single category / slot
+  // (e.g. a specific personal-armor slot 'Char_Armor_Helmet').
+  attachType?: string;
+  // attach_type set — scope `item` rows to several categories at once, e.g. all
+  // personal-armor slots (Char_Armor_Helmet/Torso/Arms/Legs/Undersuit/Backpack).
+  attachTypeIn?: string[];
   // include AI/template variants (default: buyable-only)
   includeVariants?: boolean;
   limit?: number;
@@ -293,6 +303,10 @@ export class CodexService {
       query = query.eq('kind', filters.componentKind);
     if (filters.weaponClass && kind === 'weapon')
       query = query.eq('weapon_class', filters.weaponClass);
+    if (filters.subType) query = query.eq('sub_type', filters.subType);
+    if (filters.attachType && kind === 'item') query = query.eq('attach_type', filters.attachType);
+    if (filters.attachTypeIn?.length && kind === 'item')
+      query = query.in('attach_type', filters.attachTypeIn);
 
     const q = filters.search?.trim();
     if (q) {
@@ -324,6 +338,29 @@ export class CodexService {
   async listBridgeShips(limit = 24): Promise<CodexListRow[]> {
     const res = await this.listByKind('ship', { limit, offset: 0 });
     return res.rows;
+  }
+
+  /**
+   * FPS Codex section (#251): on-foot weapons — `codex_weapons` scoped to
+   * `weapon_class = 'FPS'`. Reuses the same buyable-only / variant filtering
+   * as every other kind (is_variant = false by default), which is also what
+   * drops the huge pile of `@LOC_PLACEHOLDER` / NPC test rows in this table.
+   */
+  async listFpsWeapons(filters: Omit<CodexListFilters, 'weaponClass'> = {}): Promise<CodexListResult> {
+    return this.listByKind('weapon', { ...filters, weaponClass: 'FPS' });
+  }
+
+  /**
+   * FPS Codex section (#251): on-foot / CHARACTER armor — `codex_items` scoped
+   * to the personal-armor slots (`Char_Armor_*`). NB: `attach_type = 'Armor'`
+   * (no `Char_` prefix) is SHIP hull armor (ARMR_* classes) — a different thing
+   * entirely; do not confuse the two. Personal armor carries no rich stat block
+   * in the extract yet (tracked separately, blocked issue #253); the list/detail
+   * degrade gracefully to name/grade/size/slot/manufacturer only. A caller may
+   * additionally pass `attachType` to narrow to one slot (e.g. Char_Armor_Helmet).
+   */
+  async listFpsArmor(filters: Omit<CodexListFilters, 'attachTypeIn'> = {}): Promise<CodexListResult> {
+    return this.listByKind('item', { ...filters, attachTypeIn: [...FPS_ARMOR_ATTACH_TYPES] });
   }
 
   /** Entity row + its hardpoints + its localized strings, for the detail view. */
@@ -802,6 +839,7 @@ function mapListRow(kind: CodexKind, r: Record<string, unknown>): CodexListRow {
     weaponClass: (r['weapon_class'] as string | null) ?? null,
     componentKind: (r['kind'] as string | null) ?? null,
     subType: (r['sub_type'] as string | null) ?? null,
+    attachType: (r['attach_type'] as string | null) ?? null,
     speed: (r['speed'] as number | null) ?? null,
     isVariant: (r['is_variant'] as boolean) ?? false,
     payload: r['payload'],
@@ -854,6 +892,30 @@ function mapIngredient(i: Record<string, unknown>): CodexBlueprintIngredient {
   };
 }
 
+/**
+ * The personal-armor `attach_type` values that make up the FPS armor section.
+ * (`attach_type = 'Armor'` — no prefix — is SHIP hull armor, deliberately excluded.)
+ */
+export const FPS_ARMOR_ATTACH_TYPES = [
+  'Char_Armor_Helmet',
+  'Char_Armor_Torso',
+  'Char_Armor_Arms',
+  'Char_Armor_Legs',
+  'Char_Armor_Undersuit',
+  'Char_Armor_Backpack',
+] as const;
+
+/** Human slot token for a personal-armor attach_type ('Char_Armor_Helmet' → 'Helmet'). */
+export function fpsArmorSlot(attachType: string | null | undefined): string | null {
+  if (!attachType) return null;
+  return attachType.startsWith('Char_Armor_') ? attachType.slice('Char_Armor_'.length) : attachType;
+}
+
+/** Reverse of fpsArmorSlot: a slot token back to its attach_type ('Helmet' → 'Char_Armor_Helmet'). */
+export function fpsArmorAttachType(slot: string | null | undefined): string | null {
+  return slot ? `Char_Armor_${slot}` : null;
+}
+
 /** Pick the active-language string out of a LocalizedText, with fallbacks. */
 export function pickLocalized(
   text: LocalizedText | null | undefined,
@@ -865,7 +927,9 @@ export function pickLocalized(
   // back to the other language or the caller's fallback, never a raw key.
   const clean = (v: string | undefined): string => {
     const s = (v ?? '').trim();
-    return s && !s.startsWith('@') ? s : '';
+    // Drop unresolved '@'-keys AND Star-Citizen's untranslated-LOCID marker
+    // ("! … TRANSLATION NOT FOUND FOR LOCID: … !"), which ships as a real value.
+    return s && !s.startsWith('@') && !/translation not found/i.test(s) ? s : '';
   };
   const primary = lang === 'de' ? clean(text.de) : clean(text.en);
   return primary || clean(text.en) || clean(text.de) || fallback;
@@ -886,7 +950,9 @@ export function pickLocalizedDistinct(
   if (!text) return fallback;
   const clean = (v: string | undefined): string => {
     const s = (v ?? '').trim();
-    return s && !s.startsWith('@') ? s : '';
+    // Drop unresolved '@'-keys AND Star-Citizen's untranslated-LOCID marker
+    // ("! … TRANSLATION NOT FOUND FOR LOCID: … !"), which ships as a real value.
+    return s && !s.startsWith('@') && !/translation not found/i.test(s) ? s : '';
   };
   const en = clean(text.en);
   if (lang !== 'en') {

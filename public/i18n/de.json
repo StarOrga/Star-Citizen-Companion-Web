@@ -423,6 +423,25 @@
       "usedInCount": "In {{count}} Bauplan/Bauplänen verwendet"
     }
   },
+  "fps": {
+    "title": "FPS-Ausrüstung",
+    "subtitle": "Ausrüstung zu Fuß — Waffen und Rüstung, datamined aus dem Live-Build.",
+    "bridgeLink": "FPS-Ausrüstung",
+    "categoriesAria": "FPS-Ausrüstungskategorien",
+    "category": {
+      "weapon": "Waffen",
+      "armor": "Rüstung"
+    },
+    "filters": {
+      "weaponType": "Waffentyp",
+      "armorSlot": "Rüstungsslot"
+    },
+    "armorStatsHint": "Rüstung hat in diesem Build noch keinen detaillierten Statistikblock — nur Name, Grad, Größe und Hersteller.",
+    "empty": {
+      "weapon": "Keine FPS-Waffen in diesem Build.",
+      "armor": "Keine Rüstung in diesem Build."
+    }
+  },
   "news": {
     "title": "Verse News",
     "subtitle": "Live Comm-Link, Spectrum, YouTube & Patches — automatisch alle 5 Min.",
