@@ -1221,6 +1221,7 @@
       "done": "Erledigt",
       "answerPlaceholder": "Antwort schreiben… (Markdown möglich, Strg+Enter zum Senden)",
       "answerSend": "Antworten",
+      "openQuestion": "Offene Rückfrage",
       "cheerAnswered": "Rückfrage beantwortet — die Routine übernimmt ab hier.",
       "cheerReplied": "Notiert! Weiter geht's.",
       "allDoneTitle": "Alles abgearbeitet",
