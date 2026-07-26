@@ -8,7 +8,11 @@ import {
   feedbackBucket,
   isArchived,
   isAwaitingAdmin,
+  normalizeSearchText,
+  rankFeedbackSearch,
   refKind,
+  searchFeedback,
+  searchTokens,
   startOfMonth,
   topicTitle,
 } from './feedback.types';
@@ -270,6 +274,119 @@ describe('computeStats', () => {
       ship_ref: 'https://github.com/o/r/issues/9',
     });
     expect(computeStats([filed], new Map(), null)).toEqual({ shipped: 0, open: 0, answered: 0 });
+  });
+});
+
+describe('normalizeSearchText', () => {
+  it('folds case, diacritics and the German sharp s', () => {
+    expect(normalizeSearchText('Übersicht GRÖSSE straße')).toBe('ubersicht grosse strasse');
+  });
+
+  it('collapses markdown punctuation into word separators', () => {
+    expect(normalizeSearchText('**Fix** the `admin-panel`, bitte!')).toBe('fix the admin panel bitte');
+  });
+
+  it('is empty for blank or punctuation-only input', () => {
+    expect(normalizeSearchText('   ')).toBe('');
+    expect(normalizeSearchText('...')).toBe('');
+  });
+});
+
+describe('searchTokens', () => {
+  it('splits into distinct normalized terms', () => {
+    expect(searchTokens('Suche  im   PANEL suche')).toEqual(['suche', 'im', 'panel']);
+  });
+
+  it('is empty for a blank query', () => {
+    expect(searchTokens('')).toEqual([]);
+    expect(searchTokens('  —  ')).toEqual([]);
+  });
+});
+
+describe('searchFeedback', () => {
+  const at = '2026-07-01T10:00:00Z';
+
+  function topic(id: string, body: string, extra: Partial<FeedbackRow> = {}): FeedbackRow {
+    return row(id, 'open', at, { body, ...extra });
+  }
+
+  function reply(id: string, feedbackId: string, body: string): FeedbackMessage {
+    return { ...msg(id, feedbackId, true, at), body };
+  }
+
+  const exact = topic('exact', 'Implementiere eine Suche im Feedback-Panel');
+  const prefix = topic('prefix', 'Wir suchen noch eine Lösung für die Übersicht');
+  const threadOnly = topic('thread', 'Ganz anderes Thema ohne Bezug');
+  const rows = [threadOnly, exact, prefix];
+  const threads = new Map<string, FeedbackMessage[]>([
+    ['thread', [reply('r1', 'thread', 'Die Suche liefert eine Regression im Panel')]],
+  ]);
+
+  it('finds an exact term in the topic body', () => {
+    const ids = searchFeedback(rows, threads, 'Suche').map((h) => h.row.id);
+    expect(ids).toContain('exact');
+  });
+
+  it('still hits through a typo (transposition and substitution)', () => {
+    expect(searchFeedback(rows, threads, 'Panle').map((h) => h.row.id)).toContain('exact');
+    expect(searchFeedback(rows, threads, 'Sucje').map((h) => h.row.id)).toContain('exact');
+  });
+
+  it('ignores diacritics and case', () => {
+    expect(searchFeedback(rows, threads, 'ubersicht').map((h) => h.row.id)).toEqual(['prefix']);
+  });
+
+  it('matches a term that only ever appears in a thread reply', () => {
+    const hits = searchFeedback(rows, threads, 'Regression');
+    expect(hits.map((h) => h.row.id)).toEqual(['thread']);
+    expect(hits[0].inThread).toBeTrue();
+    expect(hits[0].inBody).toBeFalse();
+  });
+
+  it('ranks exact body > prefix body > thread-only', () => {
+    const hits = searchFeedback(rows, threads, 'Suche');
+    expect(hits.map((h) => h.row.id)).toEqual(['exact', 'prefix', 'thread']);
+    expect(hits[0].score).toBeGreaterThan(hits[1].score);
+    expect(hits[1].score).toBeGreaterThan(hits[2].score);
+  });
+
+  it('requires every term to match somewhere (AND, not OR)', () => {
+    expect(searchFeedback(rows, threads, 'Suche Triebwerkskrümmer')).toEqual([]);
+  });
+
+  it('rewards the verbatim phrase over the same words scattered apart', () => {
+    const phrase = topic('phrase', 'Die Suche im Panel ist kaputt');
+    const scattered = topic('scattered', 'Im Panel ist der Rest ok, aber die Suche fehlt komplett');
+    const hits = searchFeedback([scattered, phrase], new Map(), 'Suche im Panel');
+    expect(hits.map((h) => h.row.id)).toEqual(['phrase', 'scattered']);
+  });
+
+  it('breaks a score tie by recency', () => {
+    const older = topic('older', 'Suche kaputt', { updated_at: '2026-07-01T10:00:00Z' });
+    const newer = topic('newer', 'Suche kaputt', { updated_at: '2026-07-09T10:00:00Z' });
+    expect(searchFeedback([older, newer], new Map(), 'Suche').map((h) => h.row.id)).toEqual([
+      'newer',
+      'older',
+    ]);
+  });
+
+  it('yields nothing for a blank query', () => {
+    expect(searchFeedback(rows, threads, '   ')).toEqual([]);
+  });
+});
+
+describe('rankFeedbackSearch', () => {
+  const at = '2026-07-01T10:00:00Z';
+  const a = row('a', 'open', at, { body: 'Suche im Panel' });
+  const b = row('b', 'open', at, { body: 'Ganz anderes Thema' });
+
+  it('leaves the list untouched for an empty query', () => {
+    expect(rankFeedbackSearch([a, b], new Map(), '')).toEqual([a, b]);
+    expect(rankFeedbackSearch([a, b], new Map(), '   ')).toEqual([a, b]);
+  });
+
+  it('narrows and reorders once a query is typed', () => {
+    expect(rankFeedbackSearch([b, a], new Map(), 'Panel').map((r) => r.id)).toEqual(['a']);
   });
 });
 

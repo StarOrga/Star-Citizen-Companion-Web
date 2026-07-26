@@ -1111,6 +1111,14 @@
       "label": "Nach Status filtern",
       "all": "Alle"
     },
+    "search": {
+      "label": "Feedback durchsuchen",
+      "placeholder": "Suchen … Thema und ganzer Thread",
+      "clear": "Suche löschen",
+      "results": "{{count}} Treffer · nach Relevanz",
+      "empty": "Keine Treffer für „{{query}}“.",
+      "inThread": "im Thread"
+    },
     "tab": {
       "label": "Zwischen aktiven Themen und Archiv wechseln",
       "active": "Aktiv",

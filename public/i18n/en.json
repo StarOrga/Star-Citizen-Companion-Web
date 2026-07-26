@@ -1111,6 +1111,14 @@
       "label": "Filter by status",
       "all": "All"
     },
+    "search": {
+      "label": "Search feedback",
+      "placeholder": "Search … topic and whole thread",
+      "clear": "Clear search",
+      "results": "{{count}} results · by relevance",
+      "empty": "No results for “{{query}}”.",
+      "inThread": "in thread"
+    },
     "tab": {
       "label": "Switch between active topics and the archive",
       "active": "Active",
