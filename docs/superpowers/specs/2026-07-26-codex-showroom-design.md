@@ -44,6 +44,19 @@ looking empty or broken.
   in-fiction ASOP/viVid aesthetic), applied in the Showroom viewer and built
   **reusable** so the personal Hangar can later adopt the same 3D look.
 
+## Data Provenance — hard guardrail
+
+**All livery/skin data flows exclusively through the data-uploader →
+`ingest-skins` pipeline, build-scoped.** No manual seeding, no one-off inserts via
+Claude Code / the Management API, no hardcoded ship or livery counts anywhere. Every
+number the Showroom shows (livery count, ships covered, "newly modeled") is
+**derived at read time** from whatever the uploader has populated for the current
+LIVE build. This keeps the catalog version-accurate patch over patch: when the
+uploader ingests a new build, the Showroom reflects it automatically with zero code
+or data changes. The only data-shaping code we touch is *inside the uploader itself*
+(U1/U2), which runs at extract time — never a direct DB write from this app or this
+session.
+
 ## Core Reframe (from the rethink)
 
 Four independent code-blind lenses (product-value, ux-design, enduser-feel,
