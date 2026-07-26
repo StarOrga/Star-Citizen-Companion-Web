@@ -11,6 +11,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   AmmunitionPayload,
   BaseEntityPayload,
+  CodexBlueprintIngredient,
   CodexItemPort,
   ComponentPayload,
   Dimensions,
@@ -116,6 +117,13 @@ interface LoadoutItem {
 interface LoadoutGroup {
   category: HardpointCategory;
   items: LoadoutItem[];
+}
+
+// The recipe that PRODUCES this entity (#187: "which materials do I need").
+interface GearRecipe {
+  classNameSlug: string;
+  craftTimeSec: number | null;
+  ingredients: CodexBlueprintIngredient[];
 }
 
 @Component({
@@ -388,6 +396,36 @@ interface LoadoutGroup {
           </section>
         }
 
+        <!-- ── Crafting recipe: what this item costs to make (#187) ─ -->
+        @if (recipe(); as r) {
+          <section class="sc-card block">
+            <h2>
+              {{ 'codex.detail.craftedFrom' | translate }}
+              @if (r.craftTimeSec != null) { <span class="ct">{{ fmtCraft(r.craftTimeSec) }}</span> }
+            </h2>
+            <p class="hint">{{ 'codex.detail.craftedFromHint' | translate }}</p>
+            @if (r.ingredients.length > 0) {
+              <ul class="compat-list">
+                @for (i of r.ingredients; track i.ingredientIndex) {
+                  <li>
+                    <span class="compat-link plain">{{ ingredientName(i) }}</span>
+                    <span class="compat-meta">
+                      @if (i.role) { <span class="chip subtle">{{ i.role }}</span> }
+                      @if (i.quantity != null) { <span class="chip">{{ fmt(i.quantity) }} SCU</span> }
+                      @if (i.minQuality) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: i.minQuality } }}</span> }
+                    </span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="muted">{{ 'codex.detail.noIngredients' | translate }}</p>
+            }
+            <a class="compat-link" [routerLink]="['/codex', 'blueprint', r.classNameSlug]">
+              {{ 'codex.detail.openBlueprint' | translate }}
+            </a>
+          </section>
+        }
+
         <!-- ── Used in crafting blueprints (reverse ingredient lookup) ─ -->
         @if (usedInBlueprints().length > 0) {
           <section class="sc-card block">
@@ -575,6 +613,11 @@ interface LoadoutGroup {
     .compat-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 4px; background: var(--sc-bg-1); }
     .compat-link { color: var(--sc-accent); text-decoration: none; font-size: 0.8rem; overflow-wrap: anywhere; }
     .compat-link:hover { text-decoration: underline; }
+    /* A raw resource has no codex page of its own, so it is listed as plain
+       text — a dead link would be worse than no link. */
+    .compat-link.plain { color: var(--sc-fg-0); }
+    .compat-link.plain:hover { text-decoration: none; }
+    .chip.subtle { background: transparent; }
     .compat-meta { display: inline-flex; gap: 4px; flex-shrink: 0; }
 
     .ghost-toggle { margin-left: auto; padding: 3px 10px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border);
@@ -634,6 +677,11 @@ export class CodexDetailComponent implements OnInit {
   // Reverse ingredient lookup: crafting blueprints that consume this entity.
   readonly usedInBlueprints = signal<BlueprintRef[]>([]);
 
+  // Forward crafting lookup (#187): the recipe that PRODUCES this item, so the
+  // codex can answer "which materials does this cost". Null for the vast
+  // majority of catalog entries, which are not craftable.
+  readonly recipe = signal<GearRecipe | null>(null);
+
   // Hardpoint slot-compatibility: which port is expanded + its lazy item list.
   readonly expandedPort = signal<number | null>(null);
   private readonly compatMap = signal<Map<number, PortCompat>>(new Map());
@@ -690,6 +738,7 @@ export class CodexDetailComponent implements OnInit {
     this.ammoPayloads.set(new Map());
     this.showEmptyLoadout.set(false);
     this.usedInBlueprints.set([]);
+    this.recipe.set(null);
     this.artBroken.set(false);
     this.swapSlot.set(null);
     try {
@@ -703,6 +752,8 @@ export class CodexDetailComponent implements OnInit {
         ]);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
         if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug);
+        // Ships are not craftable either, so skip the forward lookup as well.
+        if (kind !== 'ship') void this.loadRecipe(d.classNameSlug);
         // Ship pages: hangar membership backs the add-to-hangar action.
         if (kind === 'ship' && this.hangar.ships().length === 0) void this.hangar.loadAll();
       }
@@ -859,6 +910,28 @@ export class CodexDetailComponent implements OnInit {
     } catch {
       this.usedInBlueprints.set([]);
     }
+  }
+
+  /** Forward lookup: the recipe that produces this entity, with its materials. */
+  private async loadRecipe(className: string): Promise<void> {
+    try {
+      const bp = await this.svc.getCraftingRecipe(className);
+      this.recipe.set(bp ? {
+        classNameSlug: bp.classNameSlug,
+        craftTimeSec: (bp.row['craft_time_seconds'] as number | null) ?? null,
+        ingredients: bp.ingredients,
+      } : null);
+    } catch {
+      // Crafting data is supplementary — a failed lookup just hides the panel.
+      this.recipe.set(null);
+    }
+  }
+
+  /** Ingredient display name — falls back to a humanized resource class name. */
+  ingredientName(i: CodexBlueprintIngredient): string {
+    return cleanLocaleValue(i.nameLocalized)
+      || humanizeClassName(i.ingredientClassName ?? '')
+      || (i.ingredientClassName ?? '');
   }
 
   // ── derived views ──────────────────────────────────────────────────────────

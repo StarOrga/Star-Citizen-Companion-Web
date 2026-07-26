@@ -300,7 +300,12 @@
       "quantumSpeed": "Quantum speed",
       "quantumFuel": "Quantum fuel",
       "fuelCapacity": "Hydrogen fuel",
-      "hardpointExplainer": "A hardpoint is a mounting point on the hull: every weapon, shield, cooler, thruster or quantum drive sits on one, and can be swapped for another item of the same type and size. Below is what the ship carries as delivered."
+      "hardpointExplainer": "A hardpoint is a mounting point on the hull: every weapon, shield, cooler, thruster or quantum drive sits on one, and can be swapped for another item of the same type and size. Below is what the ship carries as delivered.",
+      "craftedFrom": "Crafting materials",
+      "craftedFromHint": "What it costs to manufacture this item, from the game's crafting data.",
+      "noIngredients": "This blueprint lists no materials in this build.",
+      "openBlueprint": "Open the full blueprint",
+      "minQuality": "min. quality {{value}}"
     },
     "swap": {
       "title": "What fits here",

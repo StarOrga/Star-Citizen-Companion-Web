@@ -40,9 +40,12 @@ from .localization import Localizer
 _BP_INGREDIENTS_FIELDS = ("ingredients", "resources", "entries", "inputs",
                           "craftingIngredients", "items")
 
-# Output item ref field names (the thing you craft):
-_BP_OUTPUT_FIELDS = ("outputItem", "output", "result", "craftingResult",
-                     "item", "resultItem")
+# Output item ref field names (the thing you craft). `entityClass` is the
+# VERIFIED live name, found on blueprint.processSpecificData (struct
+# CraftingProcess_Creation); the rest are the older hypotheses, kept as
+# fallbacks in case the layout changes again.
+_BP_OUTPUT_FIELDS = ("entityClass", "outputItem", "output", "result",
+                     "craftingResult", "item", "resultItem")
 
 # Quantity scalar names (on ingredient entries):
 _BP_QTY_FIELDS = ("quantity", "count", "amount", "qty", "requiredCount")
@@ -498,6 +501,79 @@ class CodexExtractor:
             # Also try a flat TimeValue_Partitioned directly on the record
             return _normalize_time(rv)
 
+        def _cost_quantity(node: Any) -> Optional[float]:
+            """Quantity off a CraftingCost_Resource `quantity` struct.
+
+            VERIFIED shapes: ``SStandardCargoUnit{standardCargoUnits}`` (SCU)
+            and ``SMicroCargoUnit{microSCU}``; a bare number is also accepted.
+            """
+            if isinstance(node, (int, float)) and not isinstance(node, bool):
+                return float(node)
+            if not isinstance(node, dict):
+                return None
+            scu = _to_float(node.get("standardCargoUnits"))
+            if scu is not None:
+                return scu
+            micro = _to_float(node.get("microSCU"))
+            if micro is not None:
+                return micro / 1_000_000.0
+            return _to_float(_pick(node, _BP_QTY_FIELDS))
+
+        def _walk_costs(node: Any, slot: Optional[str], out: List[Dict[str, Any]],
+                        depth: int = 0) -> None:
+            """Collect CraftingCost_Resource leaves out of a cost tree.
+
+            VERIFIED live structure (SC 4.x): a recipe's ``mandatoryCost`` is a
+            ``CraftingCost_Select`` whose ``options`` hold either further
+            ``CraftingCost_Select`` nodes (recipe slots, named via
+            ``nameInfo.debugName`` / ``nameInfo.displayName``) or the
+            ``CraftingCost_Resource`` leaves that name the actual material
+            (``resource`` → ``ResourceType.<Material>``) plus ``quantity`` and
+            ``minQuality``. Recursion is depth-capped so a cyclic/degenerate
+            tree can never hang an extract.
+            """
+            if depth > 8 or not isinstance(node, dict):
+                return
+            struct = str(node.get("_Type_") or "")
+            info = node.get("nameInfo")
+            if isinstance(info, dict):
+                label = info.get("debugName") or info.get("displayName")
+                if isinstance(label, str) and label:
+                    slot = label
+            if struct == "CraftingCost_Resource" or "resource" in node:
+                ref = _ref_stub(node.get("resource"))
+                if ref["className"] or ref["guid"]:
+                    out.append({
+                        "className": ref["className"],
+                        "guid": ref["guid"],
+                        "name": None,
+                        "quantity": _cost_quantity(node.get("quantity")),
+                        "minQuality": _to_float(node.get("minQuality")),
+                        "role": slot,
+                        "raw": node,
+                    })
+                return
+            for child in (node.get("options") or []):
+                _walk_costs(child, slot, out, depth + 1)
+
+        def _verified_ingredients(bp: Dict[str, Any]) -> List[Dict[str, Any]]:
+            """Ingredients off the VERIFIED tiers[].recipe.costs cost tree."""
+            out: List[Dict[str, Any]] = []
+            tiers = bp.get("tiers")
+            if not isinstance(tiers, list):
+                return out
+            for tier in tiers:
+                if not isinstance(tier, dict):
+                    continue
+                recipe = tier.get("recipe")
+                costs = recipe.get("costs") if isinstance(recipe, dict) else None
+                if not isinstance(costs, dict):
+                    continue
+                _walk_costs(costs.get("mandatoryCost"), None, out)
+                for opt in (costs.get("optionalCosts") or []):
+                    _walk_costs(opt, None, out)
+            return out
+
         def _project_ingredients(rv: Dict[str, Any],
                                   dangling_warn: list) -> List[Dict[str, Any]]:
             """Resolve ingredient list from any candidate field.
@@ -546,17 +622,31 @@ class CodexExtractor:
                 continue
             resolved = self.df.record_to_dict(r, max_depth=16)
             rv = resolved.get("_RecordValue_", {})
+            # VERIFIED live: a CraftingBlueprintRecord carries EVERYTHING under a
+            # single `blueprint` node (`CraftingBlueprint` for fabrication,
+            # `GenericCraftingBlueprint` for the global dismantle record) —
+            # category / blueprintName / processSpecificData / tiers all live
+            # there, not at the record top level. This code read the top level
+            # only, so category, output class and ingredients came back null for
+            # every one of the 1595 live blueprints. Search the inner node first,
+            # then fall back to the top level so an older layout still resolves.
+            bp_node = rv.get("blueprint") if isinstance(rv.get("blueprint"), dict) else {}
+
+            def _pick2(fields: tuple) -> Any:
+                """First candidate hit in the blueprint node, then the record."""
+                return _pick(bp_node, fields) if _pick(bp_node, fields) is not None \
+                    else _pick(rv, fields)
 
             # name / description localization keys
-            name_key = (_pick(rv, _BP_NAME_FIELDS)
+            name_key = (_pick2(_BP_NAME_FIELDS)
                         or _pick(rv.get("Localization") if isinstance(
                             rv.get("Localization"), dict) else {}, _BP_NAME_FIELDS))
-            desc_key = (_pick(rv, _BP_DESC_FIELDS)
+            desc_key = (_pick2(_BP_DESC_FIELDS)
                         or _pick(rv.get("Localization") if isinstance(
                             rv.get("Localization"), dict) else {}, _BP_DESC_FIELDS))
 
             # category ref → className string + localized label (§6)
-            cat_node = _pick(rv, _BP_CATEGORY_FIELDS)
+            cat_node = _pick2(_BP_CATEGORY_FIELDS)
             category = None
             category_label = None
             if isinstance(cat_node, dict):
@@ -567,9 +657,15 @@ class CodexExtractor:
             elif isinstance(cat_node, str):
                 category = cat_node
 
-            # output item ref(s) → outputs[] array (§6)
-            out_node = _pick(rv, _BP_OUTPUT_FIELDS)
-            output_qty = _to_float(_pick(rv, _BP_OUTPUT_QTY_FIELDS))
+            # output item ref(s) → outputs[] array (§6).
+            # VERIFIED: the crafted entity is
+            # blueprint.processSpecificData.entityClass (struct
+            # CraftingProcess_Creation) — checked before the older candidates.
+            psd = bp_node.get("processSpecificData")
+            out_node = _pick(psd, _BP_OUTPUT_FIELDS) if isinstance(psd, dict) else None
+            if out_node is None:
+                out_node = _pick2(_BP_OUTPUT_FIELDS)
+            output_qty = _to_float(_pick2(_BP_OUTPUT_QTY_FIELDS))
             outputs: List[Dict[str, Any]] = []
             for on in (out_node if isinstance(out_node, list) else [out_node]):
                 if not isinstance(on, dict):
@@ -586,14 +682,19 @@ class CodexExtractor:
                 outputs.append({"className": None, "guid": None,
                                 "name": None, "quantity": output_qty, "raw": {}})
 
-            # craft / dismantle times + dismantle efficiency: scan processes generically.
-            # Fabrication struct name UNCONFIRMED (R2); GenericCraftingProcess_Dismantle
-            # is the only VERIFIED one. Dismantle identified by "_Type_" containing
-            # "dismantle"; everything else treated as fabrication.
+            # craft / dismantle times + dismantle efficiency.
+            # VERIFIED: fabrication = CraftingProcess_Creation with the craft time
+            # on tiers[].recipe.costs.craftTime (TimeValue_Partitioned, BARE field
+            # names days/hours/minutes/seconds — no '@' prefix); dismantle =
+            # GenericCraftingProcess_Dismantle with efficiency + dismantleTime
+            # inline. Dismantle is still identified by "_Type_" containing
+            # "dismantle"; everything else is fabrication.
             craft_time: Optional[float] = None
             dismantle_time: Optional[float] = None
             dismantle_eff: Optional[float] = None
-            proc_data = rv.get("processSpecificData") or rv.get("processData") or []
+            proc_data = (bp_node.get("processSpecificData")
+                         or rv.get("processSpecificData")
+                         or rv.get("processData") or [])
             for proc in (proc_data if isinstance(proc_data, list) else [proc_data]):
                 if not isinstance(proc, dict):
                     continue
@@ -608,11 +709,15 @@ class CodexExtractor:
                     craft_time = t
             # Fallback: any TimeValue_Partitioned anywhere on the record
             if craft_time is None and dismantle_time is None:
-                craft_time = _craft_time(rv)
+                craft_time = _craft_time(bp_node) or _craft_time(rv)
 
-            # ingredients (flattened; DB child table is Wave-1b's job)
+            # ingredients (flattened into codex_blueprint_ingredients rows by the
+            # uploader). VERIFIED cost tree first, legacy candidate-field scan as
+            # the fallback.
             dangling: list = []
-            ingredients = _project_ingredients(rv, dangling)
+            ingredients = _verified_ingredients(bp_node)
+            if not ingredients:
+                ingredients = _project_ingredients(rv, dangling)
             total_dangling += len(dangling)
 
             # quality refs (v1: store className refs only; simulator deferred — R3)
