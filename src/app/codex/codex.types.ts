@@ -136,6 +136,10 @@ export interface ItemPayload extends BaseEntityPayload {
   subType: string | null;
   size: number | null;
   grade: string | null;
+  // Personal FPS armor / clothing pieces carry a heterogeneous stat block,
+  // keyed by the LIVE component-params struct name (e.g. SCItemSuitArmorParams,
+  // SCItemClothingParams). Absent for stat-less items.
+  stats?: Record<string, Record<string, string | number | boolean | null>>;
 }
 
 export interface DamageSet {

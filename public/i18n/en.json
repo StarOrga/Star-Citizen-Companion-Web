@@ -288,6 +288,7 @@
       "hideRaw": "Hide raw data",
       "naValue": "n/a",
       "keyStats": "Key stats",
+      "armorStats": "Armor stats",
       "showEmptyPorts": "Show {{count}} empty ports",
       "hideEmptyPorts": "Hide empty ports",
       "equipment": "Equipment",

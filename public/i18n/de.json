@@ -288,6 +288,7 @@
       "hideRaw": "Rohdaten ausblenden",
       "naValue": "k. A.",
       "keyStats": "Kernwerte",
+      "armorStats": "Rüstungswerte",
       "showEmptyPorts": "{{count}} leere Ports anzeigen",
       "hideEmptyPorts": "Leere Ports ausblenden",
       "equipment": "Ausrüstung",
