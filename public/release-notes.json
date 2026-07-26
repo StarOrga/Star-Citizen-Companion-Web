@@ -1,7 +1,57 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.46.5",
+  "current": "0.47.0",
   "releases": [
+    {
+      "version": "0.47.0",
+      "date": "2026-07-26",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader — no more hourly sign-out during multi-hour uploads.",
+              "text": "A full extract can take up to ~8h to upload, but the catalog and skin upload stages captured one access token at stage start and reused it for the entire run. Past the ~1h Supabase JWT lifetime every remaining request returned 401, so a long upload \"logged itself out every hour\". The upload stages now resolve a fresh token per request (wired to the session refresh that rotates the token silently near expiry), so a run stays authorised from start to finish regardless of the token TTL."
+            },
+            {
+              "title": "Data Uploader — tray icon was invisible/transparent in the installed app.",
+              "text": "The tray (and window) icon file was never bundled into the package, so nativeImage fell back to an empty image — a blank tray slot. On top of that the near-black brand icon vanished against the dark Windows taskbar. Ships a dedicated bright, transparent-background tray icon, bundled as an app resource and loaded from the packaged resources path."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader — sign in on every launch.",
+              "text": "Opening the app now requires a fresh login instead of silently reusing the stored session, giving each run a token that lasts the whole upload. The unattended auto-start path keeps using the saved session so scheduled auto-runs are unaffected."
+            },
+            {
+              "title": "Data Uploader — \"back\" now warns before discarding progress.",
+              "text": "Pressing back during a running extraction or an in-flight/resumable upload opens an SCC-styled confirmation overlay; only on confirm is the extraction aborted or the upload paused (it stays resumable), so a stray click can't throw away hours of work."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.46.6",
+      "date": "2026-07-24",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex ship detail — redundant, over-tall ship render under Standard Loadout (481fc015).",
+              "text": "The read-only hardpoint layout drew the ship art a second time in a center column between the slot clusters. That figure was align-self: stretch, so on ships with many hardpoints its frame grew to the full height of the tallest cluster column — a very tall, mostly empty panel showing exactly the image the detail hero already shows top-left. No hardpoint markers were positioned on it (clusters dock in their own grid columns, grouped by functional category, because the extract carries no positional port data), so the render was purely decorative. Removed it and collapsed the layout to two cluster columns."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.46.5",
       "date": "2026-07-24",
