@@ -1,8 +1,5 @@
 ---
-slug: recipes
 title: Recipes
-category: documentation
-position: 6
 excerpt: Copy-paste clients for curl, JavaScript/TypeScript, and Python — including retry and caching.
 ---
 
