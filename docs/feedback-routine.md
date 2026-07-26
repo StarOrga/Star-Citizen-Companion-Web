@@ -25,15 +25,26 @@ open ──pick up──▶ in_progress ──green build+tests──▶ shipped
                                        ▼
         admin answers in the thread ──▶ picked up again next run
 
+  shipped ──admin replies in the thread (query (d))──▶ reopened as a continuation
+     ▲                                                          │
+     │                                                          ▼
+     └── re-ship + fresh review reply ◀── in_progress (new -<msg> branch, STEP 3–4)
+
   rejected      ← the ADMIN decides this alone (by deleting the topic); the
                   routine NEVER sets it.
   issue_created ← the ADMIN archives a topic against a GitHub issue
                   (ship_ref = issue url); terminal, the routine NEVER sets it.
 ```
 
-`shipped`, `issue_created` and legacy `rejected` are **terminal** — together
-they form the panel's Archive tab (see "Active vs. Archive" below). The routine
-only ever works the active half (`open` / `in_progress` / `needs_input`).
+`issue_created` and legacy `rejected` are **terminal** — nothing ever picks them
+up again. `shipped` is terminal **at rest**, but it is deliberately *not* a dead
+end: an admin reply on a shipped topic reopens it as a **continuation** (the
+post-ship review loop — see "Post-ship review & continue" below), so the admin can
+look at the change live and keep iterating in the same thread. Together the three
+form the panel's Archive tab (see "Active vs. Archive" below); a shipped topic the
+admin has replied to flips back into the active half the moment the routine claims
+it. The routine works the active half (`open` / `in_progress` / `needs_input`) plus
+these shipped-with-a-fresh-reply continuations.
 
 **The routine never rejects — the admin alone decides what to discard.** Every
 item the routine cannot ship right now goes to `needs_input` with a system
@@ -349,6 +360,120 @@ do" while a hold is open. Report each hold — PR link, `processing_note`, age �
 instead of taking the silent "No open feedback." stop, so a parked PR the routine
 can't merge itself still nudges the admin to review/merge it.
 
+## Post-ship review & continue (the review step)
+
+Shipping is **not** the end of the conversation. The moment a topic ships the
+admin usually wants to **look at the change live**, and often has a follow-up
+("close, but move it left"; "now do the same for X"). Two mechanisms make that a
+first-class step of the routine instead of a dead end — and the loop is built to
+**converge** (it never re-fires on the routine's own messages) and to **self-heal**
+(an interrupted continuation is reaped and redone without ever double-shipping).
+
+### 1) On every ship, post a review reply (per-item procedure step 5b)
+
+Immediately after the ship UPDATE — for a fresh ship **and** for a continuation
+re-ship, and also when marking an already-merged PR shipped — insert a
+`is_system=true` reply that (a) links the PR, (b) says in one line what changed,
+(c) points at where to see it **live**, and (d) invites the admin to reply
+in-thread to continue. The live pointer depends on the area:
+
+- **web** (`src/`, `public/`) → `https://sc-companion.vercel.app` + the exact
+  route/view the change touches (e.g. `/hangar`, the admin feedback panel). Note
+  Vercel needs ~1 min after the merge to redeploy.
+- **migration / edge function** → it is live once `db push` / `functions deploy`
+  ran; name where its effect shows.
+- **desktop** (uploader / Starscape) → live only after the CI build + the
+  `desktop_releases` row; point at the release/channel to update.
+
+```sql
+-- step 5b: post the review reply right after the ship UPDATE (service_role)
+insert into public.admin_feedback_messages (feedback_id, is_system, body)
+values ('<id>', true, '<review reply, markdown — PR link + what changed + live URL + invite>');
+```
+
+Example (German — the admin's language; the routine's system replies address the
+admin directly):
+
+> ✅ Geshipped in <PR-Link>. Geändert: <ein Satz>.
+> Live ansehen: `https://sc-companion.vercel.app/<route>` (Vercel braucht nach dem
+> Merge ~1 Min). Passt etwas nicht, oder willst du weiter dran arbeiten? Antworte
+> einfach hier im Thread — die Routine nimmt das Thema dann automatisch wieder auf.
+
+### 2) An admin reply to a shipped topic reopens it as a continuation
+
+The queue read gains a fourth query, **(d)**: shipped topics whose newest thread
+message is a **human** reply posted **after** `shipped_at`.
+
+```sql
+-- (d) continue-after-ship: shipped topics the admin replied to after the ship
+select f.id, f.body, f.shipped_at, f.ship_ref
+from public.admin_feedback f
+join lateral (
+  select is_system, created_at
+  from public.admin_feedback_messages m
+  where m.feedback_id = f.id
+  order by m.created_at desc
+  limit 1
+) last on true
+where f.status = 'shipped'
+  and last.is_system = false
+  and last.created_at > coalesce(f.shipped_at, f.processed_at, f.created_at)
+order by f.created_at asc;
+```
+
+Because the routine's own review reply is `is_system=true`, a shipped topic
+re-enters the queue **only** when a *human* posts after the ship — so the loop
+converges: ship → review reply → quiet; admin replies → reopened → ship → review
+reply → quiet.
+
+### How a continuation is worked (the robust part)
+
+A continuation is the same per-item procedure with three deltas, chosen so an
+interrupted continuation self-heals exactly like a first-time item and **never
+double-ships**:
+
+- **Claiming clears `ship_ref`.**
+  `update admin_feedback set status='in_progress', ship_ref=null, processed_at=now()
+  where id=<id> and status='shipped'` (atomic single-flight; zero rows → another run
+  took it, skip). Clearing `ship_ref` is load-bearing: it keeps the stale-claim
+  reaper correct. A continuation in flight then looks exactly like any other
+  interrupted claim (`in_progress`, `ship_ref IS NULL`), so if the run dies the
+  reaper reopens it on a later tick — a bare `in_progress` is *never* misread as a
+  review-hold and stranded. The previous PR link is not lost: it still lives in the
+  thread's review reply. Claiming also flips the topic out of the Archive tab back
+  into Active (`in_progress` = "In Arbeit"), so the admin sees the routine is on it.
+
+- **Deterministic per-round branch** `feat/feedback-<short-id>-<trigger-msg-short>`,
+  where `<trigger-msg-short>` is the first 8 chars of the id of the **triggering
+  message** (the newest human reply newer than `shipped_at`). This is deterministic
+  — a reaped redo recomputes the same branch and the STEP 3 idempotency check
+  reconciles any PR the interrupted run already opened, unchanged — yet **distinct
+  from the already-merged base branch** `feat/feedback-<short-id>`, so the base PR
+  can never false-positive the "merged PR → mark shipped" short-circuit and skip the
+  follow-up work. Each further round has a newer triggering message → a fresh branch,
+  so multi-round back-and-forth stays clean.
+
+- **Re-ship bumps `shipped_at`.** The green ship UPDATE sets `shipped_at=now()` and
+  the new `ship_ref`, then posts a fresh review reply (step 5b). That pushes
+  `shipped_at` past the triggering message, so query (d) no longer matches — unless
+  the admin replied again meanwhile, which correctly starts the next round.
+
+A continuation is otherwise a normal item: park it `needs_input` if the follow-up
+needs a decision, hold it as a review-PR if it is sensitive/red, and count it toward
+the batch cap and area-disjointness like any web item (its area is whatever files
+the follow-up touches — usually the same subtree as the original, so two
+continuations of the same feature serialise).
+
+### Recognising a reaped continuation
+
+After the reaper reopens a stranded continuation it is `status='open'` (not
+`shipped`), so query (a) picks it up, not (d). It is still recognisable as a
+continuation — and worked as one — by the same signal: **`shipped_at IS NOT NULL`
+and a human message newer than `shipped_at`**. STEP 3's implementation therefore
+checks that signal first: a continuation uses the continuation branch and does
+**not** treat the already-merged base PR as "done"; a first-time `open` item
+(`shipped_at IS NULL`) is unaffected.
+
 ## Per-item procedure
 
 This runs **once per admitted batch item** — for a batch of one, inline; for a
@@ -378,16 +503,23 @@ For each admitted `open` row (process independently, most-recent context wins):
      `status='needs_input'`, `processed_at=now()`; continue. Discarding is the
      admin's call, made by deleting the topic — not the routine's.
    - **Actionable now** → implement (step 3).
-3. **Implement.** *First, an idempotency check* — a reaped item may already
-   carry a branch/PR from the interrupted run (see the abort-window note above).
-   Since `feat/feedback-<id-short>` is deterministic, `gh pr list --state all
-   --head feat/feedback-<id-short>` (+ `git ls-remote --heads origin
-   feat/feedback-<id-short>`) first, and reconcile: **merged PR** → mark
-   `shipped` from its `mergedAt`/url, no rebuild; **open PR** → resume + verify
-   on that branch, no second PR; **stale branch, no PR** → delete it, rebuild;
-   **nothing** → fresh branch off `main`. Then implement, following repo
-   conventions (CLAUDE.md): standalone components, signals, OnPush,
-   ngx-translate for all strings, no keys in the bundle.
+3. **Implement.** *First, decide the branch — continuation or first-time.* The
+   item is a **continuation** iff `shipped_at IS NOT NULL` **and** a human message
+   is newer than `shipped_at` (true for a query-(d) pickup, and still true for a
+   reaped continuation that came back as `open`). A continuation's branch is
+   `feat/feedback-<id-short>-<trigger-msg-short>` (first 8 chars of the triggering
+   message's id); a first-time item's branch is the base `feat/feedback-<id-short>`.
+   *Then an idempotency check on that branch* — a reaped item may already carry a
+   branch/PR from the interrupted run (see the abort-window note above). The branch
+   name is deterministic, so `gh pr list --state all --head <branch>` (+ `git
+   ls-remote --heads origin <branch>`) first, and reconcile: **merged PR** → mark
+   `shipped` from its `mergedAt`/url + post the review reply, no rebuild; **open
+   PR** → resume + verify on that branch, no second PR; **stale branch, no PR** →
+   delete it, rebuild; **nothing** → fresh branch off `main`. For a continuation,
+   the already-merged **base** PR is *not* a match (the branch differs), so it never
+   short-circuits the follow-up. Then implement, following repo conventions
+   (CLAUDE.md): standalone components, signals, OnPush, ngx-translate for all
+   strings, no keys in the bundle.
 4. **Verify (the safety net).** Run the verify path(s) for the **area(s) the
    change touches** (see the Scope table) — not just root npm. A web change is
    `npm run typecheck && npm run build && npm test`; a data-uploader change also
@@ -407,6 +539,10 @@ For each admitted `open` row (process independently, most-recent context wins):
      does this end-to-end). Only once the deploy is done:
      `update admin_feedback set status='shipped', shipped_at=now(),
      ship_ref='<PR url>', processed_at=now(), processing_note=null where id=<id>`.
+     **Then, step 5b — post the review reply** (see "Post-ship review & continue"):
+     insert a `is_system=true` reply with the PR link, one line on what changed, the
+     **live URL** for the area, and the invite to reply in-thread to continue. This
+     runs on every ship, including a continuation re-ship and a mark-already-merged.
      If the rebase hits a real conflict (areas overlapped after all), don't force
      it — leave the item `open` for the next run (or hold it as a review-PR), and
      merge the remaining batch branches.
@@ -416,8 +552,10 @@ For each admitted `open` row (process independently, most-recent context wins):
      `ship_ref='<PR url>'` + a `processing_note`. `in_progress` is only ever valid
      **with** a `ship_ref` (a real review-hold) — never leave a bare `in_progress`
      (it jams the reaper + the oldest-first queue; see the reaper section).
-6. Never touch rows in a terminal status — `shipped`, `issue_created` or
-   `rejected`.
+6. Never touch rows in a terminal status — `issue_created` or `rejected`, and a
+   `shipped` row **except** the one sanctioned re-entry: an admin reply after the
+   ship reopens it as a continuation (query (d) / step 5b's invite). Never
+   re-implement a `shipped` topic that has no fresh human reply.
 
 ## Non-verifiable / decision-needed items → `needs_input`, never a bare `in_progress`
 
@@ -606,7 +744,7 @@ Animations API, no dependency). All of it is suppressed under
 | `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `issue_created` = admin-driven hand-off to a GitHub issue · `rejected` = legacy/admin-only, never set by the routine |
 | `ship_ref`       | link that closed the topic: PR/commit URL for `shipped`, GitHub issue URL for `issue_created` (also set on a review-hold `in_progress` row) |
 | `processing_note`| routine's note (reject reason / red-build hint)            |
-| `shipped_at`     | set when merged to `main`                                  |
+| `shipped_at`     | set (and re-set) at each merge to `main`; the review loop's query (d) compares the newest reply against it to detect an admin's post-ship continuation |
 | `processed_at`   | last time the routine acted on the row                     |
 
 ### Active vs. Archive (`issue_created`)
@@ -618,16 +756,23 @@ Active/Archive toggle inside the **overview** mode renders (migration
 - **Active** — `open`, `in_progress`, `needs_input`. The board the routine and
   the admin work on.
 - **Archive** (terminal) — `shipped`, `issue_created`, and legacy `rejected`.
-  Nothing here is ever picked up again. Each row renders its `ship_ref` as a
+  `issue_created` and `rejected` are never picked up again. `shipped` is terminal
+  **until the admin replies**: a reply on a shipped topic reopens it as a
+  continuation (see "Post-ship review & continue"), and the routine flips it back
+  to `in_progress` (Active) on its next run — so a shipped topic the admin is still
+  iterating on does not rot in the Archive. Each row renders its `ship_ref` as a
   link, labelled "View change" for a shipped PR and "View issue" for an issue.
+  (During an in-flight continuation `ship_ref` is briefly cleared; the shipping PR
+  stays linked in the thread's review reply.)
 
 `issue_created` is a **terminal, admin-set** status: the admin archives a topic
 by pasting its GitHub issue URL in the panel (button "Issue created"), which
 writes `status='issue_created'` + `ship_ref=<issue url>` + `processed_at=now()`.
 Its purpose is the "tracked elsewhere, done here" case — the topic leaves the
 active queue without being deleted and without pretending it shipped. **The
-routine never sets it** and, like `shipped`, never touches a row that carries
-it. Legacy `rejected` rows are archived rather than hidden so they stay
+routine never sets `issue_created` and never touches a row that carries it** —
+unlike `shipped`, which the post-ship review loop can reopen when the admin
+replies. Legacy `rejected` rows are archived rather than hidden so they stay
 reachable instead of being orphaned in a view nobody opens.
 
 Per-topic replies live in `public.admin_feedback_messages` (see migration
