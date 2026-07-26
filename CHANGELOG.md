@@ -21,6 +21,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which parks the topic until they answer) and, instead of plainly deleting a
   topic, can decline it with a mandatory explanation the author gets to read.
 
+## [0.47.6] - 2026-07-26
+
+### Fixed
+
+- **Crafting data was empty for every blueprint (part of #187).** A
+  `CraftingBlueprintRecord` nests everything under a `blueprint` node, but the
+  extractor only ever read the record's top level — so category, crafted item and
+  ingredient list came back empty for **all 1595** blueprints in the live build.
+  Reading the nested node resolves **1588 crafted items and 1594 ingredient
+  lists** (916 of them FPS armour, 210 FPS weapons), including per-material
+  quantities, recipe slot names and craft times.
+
+### Added
+
+- **Codex — "crafting materials" on item detail.** Items now show what it costs
+  to manufacture them (materials, quantities, minimum quality, craft time). The
+  existing panel only showed the inverse — what an item can be used to build.
+
+### Notes
+
+- **"Where can I buy it" is not datamineable.** Audited against the live archive:
+  item records carry no price, and the shop-inventory files that do carry prices
+  use a pre-4.0 id space where **none of the 6317 ids** resolve against current
+  game data. The codex omits purchase locations rather than showing something
+  wrong; see `docs/concepts/codex-extraction-output.md` §0b.
+- The new crafting panel fills in once a catalog is re-extracted and ingested with
+  the updated uploader.
+
+## [0.47.5] - 2026-07-26
+
+### Added
+
+- **Codex — FPS armor stat block (#253, part of #187).** Personal-armor items
+  (`Char_Armor_*` slots) now carry a stat block: the extractor routes them
+  through the same generic component-stat dump ship components use, so
+  `SCItemSuitArmorParams` / `SCItemClothingParams` values (resistances,
+  temperature ratings, capacity) surface on the item detail. Renders when
+  present, graceful empty otherwise. *Note:* the values light up in the live app
+  only after a new uploader-binary release carrying this extractor and a fresh
+  P4K re-extract + upload — the current build predates the change.
+
+## [0.47.4] - 2026-07-26
+
+### Added
+
+- **Admin feedback — the Fortschritt view now maps the lifecycle and shows the
+  routine's pace.** A live **Lebenszyklus** map draws the status machine from
+  `docs/feedback-routine.md`: every stage a topic can be in (ToDo → In Arbeit →
+  Geshipped, plus the Rückfrage branch and the terminal issue/legacy stages) and
+  every branch it can take — the routine's question and the answer back, the
+  reaper reopening a stale claim, the review hold, the post-ship continuation
+  loop — each annotated with how many topics sit there right now. Next to it:
+  a **Durchsatz** sparkline (ships per week over the last 12 weeks) and, per
+  window, the **median time-to-ship** and the **Rückfrage rate**. Everything is
+  always-on and read-only — the view deliberately has no filters or toggles.
+
+## [0.47.3] - 2026-07-26
+
+### Added
+
+- **Admin feedback — post-ship continuations surface on the active board.** The
+  20-min routine now posts a review reply after every ship and reopens a shipped
+  topic when the admin replies to it (review & continue loop). The panel now
+  recognises that reply immediately: a shipped topic whose newest thread message
+  is the admin's — posted after the ship — reads as **ToDo** on the Active tab
+  (with a small "Fortgesetzt/Continued" pill), instead of sitting unnoticed in
+  the Archive until the routine picks it up. Purely derived from `shipped_at` +
+  message timestamps; no schema change.
+
 ## [0.47.2] - 2026-07-26
 
 ### Added

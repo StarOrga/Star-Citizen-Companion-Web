@@ -32,10 +32,14 @@ A data-uploader release is not visible to users until ALL of:
          INSERT INTO public.desktop_releases (version, release_token, platforms, notes)
          VALUES (...) RETURNING id
        )
-       INSERT INTO public.desktop_channels (channel, release_id)
-       SELECT 'alpha', id FROM new_rel
-       ON CONFLICT (channel) DO UPDATE
+       INSERT INTO public.desktop_channels (product, channel, release_id)
+       SELECT 'uploader', 'alpha', id FROM new_rel
+       ON CONFLICT (product, channel) DO UPDATE
          SET release_id = EXCLUDED.release_id, updated_at = now();
+
+   `desktop_channels` is keyed **`(product, channel)`** since 2026-07-26 (Starscape
+   got its own rings). Naming `product` in the conflict target is not optional: the
+   old single-column constraint is gone, so `ON CONFLICT (channel)` now errors out.
 
    The `/desktop` web page AND the in-app updater resolve the release through the
    channel pointer (role-clamped: admin→alpha, collaborator→beta, viewer→stable),

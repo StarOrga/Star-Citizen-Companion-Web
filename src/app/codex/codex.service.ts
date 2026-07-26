@@ -767,6 +767,49 @@ export class CodexService {
   }
 
   /**
+   * Forward query: HOW is this item crafted? Resolves the blueprint that
+   * PRODUCES `outputClassName` and returns it with its ordered ingredients.
+   *
+   * This is the complement of `blueprintsUsingIngredient` (which answers "what
+   * can I build WITH this"). The FPS codex needs the forward direction — "which
+   * materials does this helmet cost" — which is what issue #187 asks for.
+   * Returns null when no blueprint produces the class (most catalog items are
+   * not craftable).
+   */
+  async getCraftingRecipe(outputClassName: string): Promise<BlueprintDetail | null> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return null;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = this.sb.client as any;
+    const { data, error } = await sb
+      .from('codex_blueprints')
+      .select('*')
+      .eq('build_id', build.id)
+      .eq('output_class_name', outputClassName)
+      .order('tier', { ascending: true, nullsFirst: true })
+      .limit(1);
+    if (error || !data?.length) return null;
+
+    const row = data[0] as Record<string, unknown>;
+    const className = row['class_name'] as string;
+    const { data: ingRows } = await sb
+      .from('codex_blueprint_ingredients')
+      .select('*')
+      .eq('build_id', build.id)
+      .eq('blueprint_class_name', className)
+      .order('ingredient_index', { ascending: true });
+
+    return {
+      classNameSlug: className,
+      row,
+      ingredients: ((ingRows ?? []) as unknown[]).map((i) =>
+        mapIngredient(i as Record<string, unknown>),
+      ),
+    };
+  }
+
+  /**
    * Reverse query: which blueprints use a given resource/item as an ingredient?
    * Used to surface a "used in N blueprints" panel on item detail pages.
    * Returns slim blueprint refs, ordered by name.

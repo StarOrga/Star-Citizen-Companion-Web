@@ -26,16 +26,20 @@ import {
   FeedbackRow,
   FeedbackSearchHit,
   FeedbackStatus,
+  WorkflowScope,
   awaitsTriage,
   buildWorkflowQueue,
   bucketLabelStatus,
   feedbackBucket,
+  filterWorkflowScope,
   isArchived,
+  isContinuedAfterShip,
   isUserSubmitted,
   refKind,
   searchFeedback,
   searchTokens,
   topicTitle,
+  workflowScopeCounts,
 } from './feedback.types';
 import { buildFeedbackBody, uploadFeedbackImages } from '../../feedback/feedback-images.util';
 import {
@@ -87,6 +91,15 @@ const VIEW_KEY = 'sc.adminFeedback.view';
 const DEFAULT_VIEW: FeedbackView = 'workflow';
 /** localStorage key holding the processing mode's ticked-off topics. */
 const HANDLED_KEY = 'sc.adminFeedback.handled';
+/** localStorage key remembering the processing mode's scope. */
+const WORKFLOW_SCOPE_KEY = 'sc.adminFeedback.workflowScope';
+/**
+ * Scope the processing mode opens in (feedback abfa97c6): your own topics.
+ * Working the queue means answering Rückfragen, and those you can only answer
+ * on topics you raised — another admin's topic is theirs to steer. The switch
+ * (with its counts) makes the other two scopes one click away.
+ */
+const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
 
 @Component({
   selector: 'sc-admin-feedback',
@@ -179,8 +192,11 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
             [selfId]="selfId()"
             [busy]="busy()"
             [compact]="embedded()"
+            [scope]="workflowScope()"
+            [scopeCounts]="workflowScopeCounts()"
             [reply]="workflowReplyBound"
             (markHandled)="markHandled($event)"
+            (scopeChange)="setWorkflowScope($event)"
             (showProgress)="setView('progress')" />
         </div>
       } @else if (view() === 'progress') {
@@ -452,6 +468,9 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
         }
         @if (isAnsweredAwaitingRoutine(m)) {
           <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
+        }
+        @if (continuedAfterShip(m)) {
+          <span class="status-pill continued">↻ {{ 'adminFeedback.status.continued' | translate }}</span>
         }
         <!-- Why this row is in the result list even though its title looks
              unrelated: the query matched further down the thread. -->
@@ -1064,6 +1083,8 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
       /* Admin answered a Rückfrage → awaiting the routine (distinct from a
          needs_input topic still waiting on the admin). */
       &.answered { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; }
+      /* Shipped topic reopened by the admin's post-ship reply (review loop). */
+      &.continued { background: rgba(74, 222, 128, 0.2); color: var(--sc-success); }
     }
     /* A second pill (the "beantwortet" marker) trails the bucket pill instead of
        being pushed to the far edge by another margin-left: auto. */
@@ -1317,9 +1338,50 @@ export class AdminFeedbackComponent implements OnInit {
     }
   }
 
-  /** The guided processing queue: open Rückfragen first, then new topics. */
-  readonly workflowQueue = computed(() =>
+  /**
+   * Whose topics the processing mode walks through (feedback abfa97c6).
+   * Persisted behind the preferences consent like the view itself, so the pick
+   * survives reopening the panel.
+   */
+  readonly workflowScope = signal<WorkflowScope>(this.readWorkflowScope());
+
+  setWorkflowScope(scope: WorkflowScope): void {
+    this.workflowScope.set(scope);
+    if (!this.consent.preferencesAllowed()) return;
+    try {
+      localStorage.setItem(WORKFLOW_SCOPE_KEY, scope);
+    } catch {
+      /* private mode / quota — the in-memory signal still works */
+    }
+  }
+
+  private readWorkflowScope(): WorkflowScope {
+    try {
+      const raw = localStorage.getItem(WORKFLOW_SCOPE_KEY);
+      if (raw === 'mine' || raw === 'others' || raw === 'all') return raw;
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_WORKFLOW_SCOPE;
+  }
+
+  /** The full processing queue: open Rückfragen first, then new topics. */
+  private readonly workflowQueueAll = computed(() =>
     buildWorkflowQueue(this.messages(), this.threads(), this.handled()),
+  );
+
+  /** Queue size per scope — the KPI counts on the mode's scope switch. */
+  readonly workflowScopeCounts = computed(() =>
+    workflowScopeCounts(this.workflowQueueAll(), this.selfId()),
+  );
+
+  /**
+   * The queue as the processing mode shows it — narrowed to the chosen scope.
+   * The view switch's badge reads from here too, so it promises exactly what
+   * the mode will hand over.
+   */
+  readonly workflowQueue = computed(() =>
+    filterWorkflowScope(this.workflowQueueAll(), this.workflowScope(), this.selfId()),
   );
 
   /** Stable reply handler handed to the processing mode's inline composer. */
@@ -1378,6 +1440,16 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /**
+   * True when a shipped topic was reopened by the admin's post-ship reply (the
+   * routine's review loop). Like the "beantwortet" marker, it trails the ToDo
+   * pill — the topic is back on the routine's pile, the marker records that it is
+   * a continuation of an already-shipped change rather than a brand-new item.
+   */
+  continuedAfterShip(m: FeedbackRow): boolean {
+    return isContinuedAfterShip(m, this.threads().get(m.id));
+  }
+
+  /**
    * Which half of the overview list is shown (feedback eeba60e7): the working
    * set or the Archive of terminal topics (shipped + issue-created + legacy
    * rejected). Replaces the old collapsible "shipped" stack — done work now has
@@ -1387,7 +1459,7 @@ export class AdminFeedbackComponent implements OnInit {
 
   /** Template-side alias for the shared {@link isArchived} rule. */
   archived(m: FeedbackRow): boolean {
-    return isArchived(m);
+    return isArchived(m, this.threads().get(m.id));
   }
 
   /** Template-side alias for the shared {@link refKind} rule. */
@@ -1571,7 +1643,11 @@ export class AdminFeedbackComponent implements OnInit {
   readonly activeMessages = computed(() =>
     this.messages()
       .filter(
-        (m) => !isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m) && this.matchesSearch(m),
+        (m) =>
+          !isArchived(m, this.threads().get(m.id)) &&
+          this.matchesAuthor(m) &&
+          this.matchesStatus(m) &&
+          this.matchesSearch(m),
       )
       .sort(this.boardOrder()),
   );
@@ -1600,13 +1676,15 @@ export class AdminFeedbackComponent implements OnInit {
    */
   readonly activeCount = computed(
     () =>
-      this.messages().filter((m) => !isArchived(m) && this.matchesAuthor(m) && this.matchesSearch(m))
-        .length,
+      this.messages().filter(
+        (m) => !isArchived(m, this.threads().get(m.id)) && this.matchesAuthor(m) && this.matchesSearch(m),
+      ).length,
   );
   readonly archiveCount = computed(
     () =>
-      this.messages().filter((m) => isArchived(m) && this.matchesAuthor(m) && this.matchesSearch(m))
-        .length,
+      this.messages().filter(
+        (m) => isArchived(m, this.threads().get(m.id)) && this.matchesAuthor(m) && this.matchesSearch(m),
+      ).length,
   );
 
   /**
@@ -1768,7 +1846,11 @@ export class AdminFeedbackComponent implements OnInit {
   readonly archiveMessages = computed(() =>
     this.messages()
       .filter(
-        (m) => isArchived(m) && this.matchesAuthor(m) && this.matchesStatus(m) && this.matchesSearch(m),
+        (m) =>
+          isArchived(m, this.threads().get(m.id)) &&
+          this.matchesAuthor(m) &&
+          this.matchesStatus(m) &&
+          this.matchesSearch(m),
       )
       .sort(this.boardOrder((m) => this.archiveTime(m))),
   );

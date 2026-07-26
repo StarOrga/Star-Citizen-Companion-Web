@@ -208,7 +208,28 @@
       "search": "Keybindings durchsuchen",
       "searchPlaceholder": "Aktion oder Taste suchen…",
       "count": "{{shown}} von {{total}} Aktionen",
-      "unbound": "—"
+      "unbound": "—",
+      "rawKey": "Interner Aktionsschlüssel",
+      "contexts": {
+        "vehicle": "Fahrzeug",
+        "spectator": "Zuschauer",
+        "interface": "Interface",
+        "interaction": "Interaktion",
+        "emote": "Emote",
+        "camera": "Kamera",
+        "character": "Charakter",
+        "turret": "Geschützturm",
+        "eva": "EVA",
+        "hacking": "Hacking",
+        "remote": "Fernsteuerung",
+        "tractor": "Traktorstrahl",
+        "melee": "Nahkampf",
+        "hmd": "HMD",
+        "visor": "Visier",
+        "headtracking": "Head-Tracking",
+        "shop": "Shop",
+        "debug": "Debug"
+      }
     },
     "provenance": {
       "label": "Quelle",
@@ -267,6 +288,7 @@
       "hideRaw": "Rohdaten ausblenden",
       "naValue": "k. A.",
       "keyStats": "Kernwerte",
+      "armorStats": "Rüstungswerte",
       "showEmptyPorts": "{{count}} leere Ports anzeigen",
       "hideEmptyPorts": "Leere Ports ausblenden",
       "equipment": "Ausrüstung",
@@ -278,7 +300,12 @@
       "quantumSpeed": "Quantum-Geschwindigkeit",
       "quantumFuel": "Quantum-Treibstoff",
       "fuelCapacity": "Wasserstoff-Treibstoff",
-      "hardpointExplainer": "Ein Hardpoint ist ein Montagepunkt an der Hülle: Jede Waffe, jeder Schild, Kühler, Triebwerk oder Quantenantrieb sitzt auf einem und lässt sich gegen ein anderes Item gleichen Typs und gleicher Größe tauschen. Unten steht, was das Schiff ab Werk mitbringt."
+      "hardpointExplainer": "Ein Hardpoint ist ein Montagepunkt an der Hülle: Jede Waffe, jeder Schild, Kühler, Triebwerk oder Quantenantrieb sitzt auf einem und lässt sich gegen ein anderes Item gleichen Typs und gleicher Größe tauschen. Unten steht, was das Schiff ab Werk mitbringt.",
+      "craftedFrom": "Herstellungsmaterialien",
+      "craftedFromHint": "Was die Herstellung dieses Gegenstands kostet — aus den Crafting-Daten des Spiels.",
+      "noIngredients": "Dieser Bauplan nennt in diesem Build keine Materialien.",
+      "openBlueprint": "Vollständigen Bauplan öffnen",
+      "minQuality": "min. Qualität {{value}}"
     },
     "swap": {
       "title": "Was passt hier?",
@@ -357,6 +384,7 @@
       "fireRate": "Feuerrate",
       "projectileSpeed": "Geschossgeschwindigkeit",
       "range": "Reichweite",
+      "penetration": "Durchschlag",
       "shieldHp": "Schild-HP",
       "shieldRegen": "Regeneration",
       "regenDelay": "Regen-Verzögerung",
@@ -1197,9 +1225,10 @@
       "shipped": "Geshipped",
       "rejected": "Abgelehnt",
       "needs_input": "Rückfrage",
-      "needs_input_author": "Rückfrage an Absender",
       "issue_created": "Issue erstellt",
       "answered": "Beantwortet",
+      "continued": "Fortgesetzt",
+      "needs_input_author": "Rückfrage an Absender",
       "declined": "Nicht umgesetzt"
     },
     "thread": {
@@ -1240,6 +1269,7 @@
       "progress": "{{current}} von {{total}}",
       "next": "Weiter",
       "done": "Erledigt",
+      "advanced": "Erledigt – weiter mit {{current}} von {{total}}",
       "answerPlaceholder": "Antwort schreiben… (Markdown möglich, Strg+Enter zum Senden)",
       "answerSend": "Antworten",
       "openQuestion": "Offene Rückfrage",
@@ -1250,7 +1280,16 @@
       "kind": {
         "question": "Rückfrage",
         "new": "ToDo"
-      }
+      },
+      "scope": {
+        "label": "Auswahl",
+        "mine": "Meine",
+        "others": "Andere Admins",
+        "all": "Alle",
+        "showAll": "Alle anzeigen"
+      },
+      "scopeEmptyTitle": "In dieser Auswahl ist nichts offen",
+      "scopeEmptyHint": "{{count}} Thema/Themen liegen in einer anderen Auswahl."
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",
@@ -1260,7 +1299,48 @@
       "answered": "Rückfragen beantwortet",
       "shippedShare": "geshipped",
       "donutLabel": "{{label}}: {{pct}} % geshipped",
-      "note": "Jeder Wert zählt nach seinem eigenen Zeitstempel: geshipped nach Ship-Datum, ToDo nach Erstellung, Rückfragen nach Antwortdatum. Beantwortete Rückfragen zählen als ToDo — die Routine muss sie noch aufgreifen."
+      "note": "Jeder Wert zählt nach seinem eigenen Zeitstempel: geshipped nach Ship-Datum, ToDo nach Erstellung, Rückfragen nach Antwortdatum. Beantwortete Rückfragen zählen als ToDo — die Routine muss sie noch aufgreifen.",
+      "paceMedian": "Median bis Ship",
+      "paceQuestions": "Rückfragen-Quote",
+      "paceQuestionsHint": "{{questioned}} von {{raised}} Themen",
+      "noneShort": "—",
+      "underHour": "< 1 Std.",
+      "unitHours": "{{value}} Std.",
+      "unitDays": "{{value}} Tage",
+      "throughputTitle": "Durchsatz",
+      "throughputSub": "Ships pro Woche · letzte {{weeks}} Wochen",
+      "throughputFrom": "vor {{weeks}} Wochen",
+      "throughputNow": "diese Woche",
+      "throughputWeek": "Woche ab {{date}}: {{count}} Ships",
+      "throughputAria": "Ships pro Woche über die letzten {{weeks}} Wochen: {{total}} insgesamt, stärkste Woche {{max}}, diese Woche {{current}}.",
+      "lifecycleTitle": "Lebenszyklus",
+      "lifecycleIntro": "Welche Stufen ein Thema durchläuft und welche Abzweigungen es nehmen kann — mit dem aktuellen Stand je Stufe.",
+      "lifecycleSide": "Abzweigungen & Endstationen",
+      "lifecycleNote": "Die Zahlen zeigen, wie viele Themen aktuell in einer Stufe stehen — es gibt keine Übergangs-Historie, also keinen Durchlauf-Zähler.",
+      "stageNow": "Themen aktuell in dieser Stufe",
+      "flow": {
+        "pickup": "Routine greift das älteste Thema auf",
+        "green": "Build + Tests grün, PR gemergt",
+        "question": "Entscheidung nötig — Routine fragt im Thread nach",
+        "answered": "Du antwortest im Thread",
+        "reaper": "Claim verwaist (> 30 Min. ohne PR) — Reaper öffnet neu",
+        "hold": "Rot oder sensibel (Auth, RLS, Secrets, destruktive Migration)",
+        "holdTarget": "PR wartet auf Review",
+        "continue": "Du antwortest nach dem Ship — Fortsetzung"
+      },
+      "fact": {
+        "oldest": "ältestes offenes Thema: {{days}} Tage",
+        "answered": "davon {{count}} beantwortete Rückfrage(n)",
+        "continuation": "davon {{count}} Fortsetzung(en) nach dem Ship",
+        "reopened": "davon {{count}} vom Reaper neu geöffnet",
+        "working": "{{count}} aktiv in Arbeit (noch kein PR)",
+        "hold": "{{count}} Review-Hold — PR wartet auf deinen Merge",
+        "terminalAtRest": "Endstation im Ruhezustand — deine Antwort startet eine neue Runde",
+        "pendingContinuation": "{{count}} mit frischer Antwort — wird wieder aufgegriffen",
+        "awaiting": "wartet auf deine Antwort",
+        "issueTerminal": "Endstation — du hängst das Thema an ein GitHub-Issue; die Routine fasst es nie wieder an",
+        "rejectedLegacy": "Endstation (Alt-Status) — die Routine setzt ihn nie"
+      }
     },
     "userTopic": {
       "badge": "Nutzer-Feedback",
@@ -1507,7 +1587,9 @@
     "appTitle": "Desktop-Wallpaper-App",
     "appDesc": "Dein Desktop rotiert durch Starscape — winzige Tray-App mit Vorladen, Überblendung und Autostart per Klick.",
     "appDownload": "Für Windows herunterladen",
-    "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)"
+    "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)",
+    "appRingLock": "Der Kanal wird mit dem Download festgelegt und lässt sich in der App nicht umstellen — für einen anderen Kanal einfach den passenden Download hier erneut holen.",
+    "appAutoUpdate": "Aktualisiert sich still im Hintergrund; der Versionsstand steht im Tray-Menü."
   },
   "userFeedback": {
     "title": "Feedback",

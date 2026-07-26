@@ -799,7 +799,7 @@ panel and on the full board page alike:
 |------|-----------|----------------|
 | **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list, fuzzy search (see below), status/author filters, new-topic composer |
 | **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin first (oldest first), then untouched `open` topics. Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
-| **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen |
+| **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen, plus pace, throughput and the live lifecycle map (see below) |
 
 **Abarbeiten is the default view** (feedback fda4e3ea). The panel opens in the
 processing mode in all three shells — docked, maximized and full page — because
@@ -809,7 +809,8 @@ consent), so picking Übersicht or Fortschritt from the view switch still wins o
 the next open; only the fallback changed. With an empty queue the mode shows its
 "Alles abgearbeitet" screen, one click away from Fortschritt.
 
-Two things the processing mode does so a Rückfrage never has to be hunted for:
+Three things the processing mode does so a Rückfrage never has to be hunted for
+and no step goes unnoticed:
 
 - **It scrolls to the open Rückfrage.** The thread box opens at the message the
   admin is expected to react to — `workflowFocusIndex` in `feedback.types.ts`
@@ -822,9 +823,19 @@ Two things the processing mode does so a Rückfrage never has to be hunted for:
 - **The answer panel is pinned.** Composer and the Weiter/Erledigt controls sit
   in a sticky footer at the bottom edge of the scrollport, so however long the
   topic and its thread are, the reply box is always on screen.
+- **Moving on is visible** (feedback 96872872). "Erledigt" pulls the topic out
+  of the queue, so the card refills with the next topic in place — previously
+  only the "3 von 7" counter moved and the admin could miss that a new topic was
+  open. The next card now slides in (~380 ms), wears a short accent ring and a
+  `role="status"` line names the step ("Erledigt – weiter mit 2 von 6"). Under
+  `prefers-reduced-motion: reduce` the slide is dropped; ring and line stay, so
+  the advance is still perceivable. Weiter uses the same slide (without the
+  line — the click itself is the explanation). Draining the last topic reports
+  itself through the "Alles abgearbeitet" screen instead.
 
 Queue, aggregation and search rules live as pure functions in `feedback.types.ts`
-(`buildWorkflowQueue`, `workflowFocusIndex`, `computeStats`, `isArchived`, `refKind`,
+(`buildWorkflowQueue`, `workflowFocusIndex`, `computeStats`, `computePace`,
+`shippedPerWeek`, `lifecycleSnapshot`, `neededInput`, `isArchived`, `refKind`,
 `feedbackBucket`, `searchFeedback`), unit-tested in `feedback.types.spec.ts`. All three views
 share that vocabulary: a terminal topic is out of the processing queue, out of
 the dashboard's ToDo bucket and in the overview's Archive tab, from the one
@@ -847,6 +858,43 @@ all resolve through that one rule. An answered Rückfrage keeps a small
 done) but is otherwise counted and filtered as ToDo. The "offen"/"Open" label
 is gone from the UI — it reads **ToDo** everywhere (feedback 34c44134); the
 status value on the wire is still `open`.
+
+### What the Fortschritt view shows (feedback ef15ea67)
+
+The dashboard is **read-only and always-on by design — no filters, pickers or
+toggles**: the admin asked for a view that is informative the second it opens.
+The "Diesen Monat / All-time" pair is a side-by-side layout, not a control. Three
+blocks, all hand-rolled SVG/CSS on the existing tokens (no charting dependency):
+
+1. **Windows** — the donut (shipped share) + the shipped / ToDo / answered bars,
+   now with a **pace** footer per window: the **median time-to-ship**
+   (`created_at → shipped_at`, measured only on rows that carry a real ship
+   stamp) and the **Rückfrage rate** (share of topics raised in the window the
+   routine had to ask about). Volume alone never showed whether the routine is
+   getting faster or asking more; these two do.
+2. **Durchsatz** — ships per calendar week over the last 12 weeks, the running
+   week highlighted. A stalled or accelerating routine is a trend, not a number.
+   A continuation counts once, in the week of its latest ship (`shipped_at` is
+   bumped at each re-ship).
+3. **Lebenszyklus** — this document's "Contract" diagram rendered **live**. The
+   spine is the happy path (ToDo → In Arbeit → Geshipped); every branch is
+   labelled with what triggers it: the routine's Rückfrage and the admin's answer
+   back into ToDo, the reaper reopening a stale claim (`in_progress → open`), the
+   review hold (`in_progress` **with** a `ship_ref`, waiting on a human merge),
+   the post-ship continuation loop back into In Arbeit, and the terminal
+   `issue_created` / legacy `rejected` stages. Each node carries its **current**
+   occupancy plus the annotations that matter operationally — oldest active topic
+   in days, how many ToDo items are answered Rückfragen / continuations /
+   reaper-reopened, and how many `in_progress` rows are review holds rather than
+   active work (the holds that this doc's "Surfacing open review-holds" section
+   warns can rot unnoticed).
+
+There is **no transition history** in the schema, so the map annotates occupancy,
+never pass-through counts — `lifecycleSnapshot` derives everything from the rows
+and threads the board already holds. The map is a plain `<ol>`/`<ul>`, so it
+reads as text for assistive tech (dots, spine and meters are `aria-hidden`), and
+it is a vertical spine rather than a horizontal flow chart precisely so it never
+scrolls sideways in the docked panel.
 
 ### Searching the board (feedback 12476cec)
 
@@ -976,7 +1024,7 @@ only into `admin_feedback_messages` — never into the author-visible
 
 The author-visible channel for user-submitted topics lives in
 `public.feedback_author_messages` (migration
-`20260726120000_user_feedback_channel.sql`):
+`20260726170000_user_feedback_channel.sql`):
 
 | column        | meaning                                                       |
 |---------------|--------------------------------------------------------------|

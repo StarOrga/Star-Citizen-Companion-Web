@@ -36,10 +36,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // known + non-revoked token (mirrors desktop-latest / ingest-bundle). Separate
   // the query error from "no such token" so a schema drift surfaces as a 500
   // instead of masquerading as unknown_token.
+  // Scoped to product='uploader'. This endpoint has no auth of its own, so it is
+  // an oracle: anyone can ask it whether a token is valid. The Starscape tray app
+  // bakes a release token into a PUBLIC, unsigned binary (recoverable with
+  // `strings`), and confirming that token as valid here would suggest it carries
+  // upload authority it does not have. `ingest-*` is the only caller, and it only
+  // ever presents uploader tokens.
   const { data, error } = await supabase
     .from('desktop_releases')
     .select('id, version, token_revoked')
     .eq('release_token', body.token)
+    .eq('product', 'uploader')
     .maybeSingle();
 
   if (error) {

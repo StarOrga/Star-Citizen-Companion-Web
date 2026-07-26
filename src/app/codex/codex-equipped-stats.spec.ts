@@ -3,12 +3,16 @@ import {
   ammoClassNameFor,
   ammoClassNamesFor,
   commonPortLabel,
+  damageChannelsOf,
   damagePerSecond,
   equippedStats,
+  equippedTypeLabel,
   formatEquippedStat,
   groupIdenticalSlots,
   impactDamageChannels,
   isWeaponMountPort,
+  MAX_STATS_PER_SLOT,
+  penetrationDistance,
   projectileRange,
   sizeBadge,
   weaponStatsUnavailable,
@@ -23,6 +27,7 @@ const PANTHER_WEAPON = {
   entityKind: 'weapon',
   className: 'KLWE_LaserRepeater_S3',
   subType: 'Gun',
+  attachType: 'WeaponGun',
   size: 3,
   // Every ship weapon in 4.9.0 ships these as zero/null — the extractor does
   // not resolve fire actions yet.
@@ -47,6 +52,13 @@ const PANTHER_AMMO = {
     thermal: null,
     biochemical: null,
     stun: null,
+  },
+  // The extractor promotes speed/lifetime/damage but leaves everything else in
+  // `raw` — armour penetration only exists down there.
+  raw: {
+    projectileParams: {
+      penetrationParams: { farRadius: 0, nearRadius: 0, basePenetrationDistance: 0.085 },
+    },
   },
 };
 
@@ -130,6 +142,82 @@ describe('codex-equipped-stats', () => {
     });
   });
 
+  describe('penetrationDistance', () => {
+    it('digs armour penetration out of the untouched raw projectile params', () => {
+      expect(penetrationDistance(PANTHER_AMMO)).toBeCloseTo(0.085, 6);
+    });
+    it('is null when there is no ammo or no penetration block', () => {
+      expect(penetrationDistance(undefined)).toBeNull();
+      expect(penetrationDistance({ raw: { projectileParams: {} } })).toBeNull();
+      expect(
+        penetrationDistance({
+          raw: { projectileParams: { penetrationParams: { basePenetrationDistance: 0 } } },
+        }),
+      ).toBeNull();
+    });
+  });
+
+  describe('damageChannelsOf', () => {
+    it('names the projectile damage type, strongest channel first', () => {
+      expect(damageChannelsOf(PANTHER_WEAPON, PANTHER_AMMO)).toEqual(['energy']);
+      expect(
+        damageChannelsOf(null, { impactDamage: { energy: 10, distortion: 90 } }),
+      ).toEqual(['distortion', 'energy']);
+    });
+
+    it('falls back to a weapon that carries its own impact damage', () => {
+      expect(damageChannelsOf({ impactDamage: { physical: 12 } }, undefined)).toEqual(['physical']);
+    });
+
+    it('stays empty for mounts and unresolved occupants', () => {
+      expect(damageChannelsOf({ entityKind: 'weapon', subType: 'GunTurret' }, undefined)).toEqual([]);
+      expect(damageChannelsOf(null, null)).toEqual([]);
+    });
+  });
+
+  describe('equippedTypeLabel', () => {
+    it('says what a weapon is, readably', () => {
+      expect(equippedTypeLabel({ kind: 'weapon', payload: PANTHER_WEAPON })).toBe('Gun');
+      expect(
+        equippedTypeLabel({
+          kind: 'weapon',
+          payload: { entityKind: 'weapon', subType: 'CountermeasureLauncher' },
+        }),
+      ).toBe('Countermeasure Launcher');
+    });
+
+    it('prefers a component kind over its subType', () => {
+      expect(
+        equippedTypeLabel({
+          kind: 'component',
+          payload: { entityKind: 'component', kind: 'QuantumDrive', subType: 'UNDEFINED' },
+        }),
+      ).toBe('Quantum Drive');
+    });
+
+    it('falls back to attachType when the subType is the UNDEFINED placeholder', () => {
+      expect(
+        equippedTypeLabel({
+          kind: 'item',
+          payload: { entityKind: 'item', subType: 'UNDEFINED', attachType: 'Radar' },
+        }),
+      ).toBe('Radar');
+      expect(
+        equippedTypeLabel({
+          kind: 'item',
+          payload: { entityKind: 'item', subType: 'MidRangeRadar' },
+        }),
+      ).toBe('Mid Range Radar');
+    });
+
+    it('returns null rather than a placeholder when nothing identifies the item', () => {
+      expect(
+        equippedTypeLabel({ kind: 'item', payload: { entityKind: 'item', subType: 'UNDEFINED' } }),
+      ).toBeNull();
+      expect(equippedTypeLabel({ kind: null, payload: null })).toBeNull();
+    });
+  });
+
   describe('equippedStats — weapons', () => {
     it('shows the projectile stats we really have and omits the ones we do not', () => {
       const rows = equippedStats({
@@ -141,6 +229,7 @@ describe('codex-equipped-stats', () => {
       expect(byKey.get('codex.equipped.alphaDamage')?.value).toBeCloseTo(43.65, 6);
       expect(byKey.get('codex.equipped.projectileSpeed')?.value).toBe(1480);
       expect(byKey.get('codex.equipped.range')?.value).toBeCloseTo(1924, 6);
+      expect(byKey.get('codex.equipped.penetration')?.value).toBeCloseTo(0.085, 6);
       // fireRate is 0 in the extract → neither a fire-rate nor a DPS row.
       expect(byKey.has('codex.equipped.fireRate')).toBe(false);
       expect(byKey.has('codex.equipped.dps')).toBe(false);
@@ -228,7 +317,12 @@ describe('codex-equipped-stats', () => {
     });
 
     it('caps the rows so a hardpoint row stays readable', () => {
-      expect(equippedStats({ kind: 'component', payload: SHIELD }).length).toBeLessThanOrEqual(5);
+      expect(equippedStats({ kind: 'component', payload: SHIELD }).length).toBeLessThanOrEqual(
+        MAX_STATS_PER_SLOT,
+      );
+      expect(
+        equippedStats({ kind: 'weapon', payload: PANTHER_WEAPON, ammoPayload: PANTHER_AMMO }).length,
+      ).toBeLessThanOrEqual(MAX_STATS_PER_SLOT);
     });
   });
 
@@ -242,6 +336,7 @@ describe('codex-equipped-stats', () => {
       expect(fmt('perSec', 14256)).toBe('14,256/s');
       expect(fmt('seconds', 5.55)).toBe('5.55 s');
       expect(fmt('metres', 1924)).toBe('1,924 m');
+      expect(fmt('metresDec', 0.085)).toBe('0.09 m'); // would round to "0 m" as 'metres'
       expect(fmt('mps', 1480)).toBe('1,480 m/s');
       expect(fmt('scu', 1.6)).toBe('1.6 SCU');
       expect(fmt('percent', 0.25)).toBe('25 %');

@@ -1,5 +1,5 @@
 -- ============================================================
--- 20260726120000_user_feedback_channel.sql
+-- 20260726170000_user_feedback_channel.sql
 -- Feedback channel for non-admin users (viewer / collaborator).
 --
 -- WHY

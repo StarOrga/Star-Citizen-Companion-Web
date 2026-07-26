@@ -6,12 +6,18 @@
 //! A background thread prefetches the next few images to disk so a switch never
 //! stalls on a download.
 
-#![windows_subsystem = "windows"]
+// No console for the app itself; the test harness keeps the console subsystem so
+// `cargo test` output is never swallowed.
+#![cfg_attr(not(test), windows_subsystem = "windows")]
 
+mod auth;
+mod crypto;
 mod gfx;
 mod log;
 mod net;
 mod screensaver;
+mod session;
+mod update;
 mod util;
 
 use std::collections::VecDeque;
@@ -19,9 +25,9 @@ use std::ffi::c_void;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Duration;
 
-use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, WPARAM};
-use windows_sys::Win32::Globalization::GetUserDefaultUILanguage;
+use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, HWND, LPARAM, LRESULT, POINT, WPARAM};
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::System::SystemInformation::GetTickCount;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
@@ -30,23 +36,34 @@ use windows_sys::Win32::UI::Shell::{
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     AppendMenuW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyMenu, DestroyWindow,
-    DispatchMessageW, GetCursorPos, GetMessageW, GetSystemMetrics, LoadIconW, MF_POPUP,
+    DispatchMessageW, GetCursorPos, GetMessageW, GetSystemMetrics, LoadIconW, MF_GRAYED, MF_POPUP,
     PostMessageW, PostQuitMessage, RegisterClassW, SetForegroundWindow, SetTimer, TrackPopupMenu,
     TranslateMessage, HICON, IDI_APPLICATION, MF_CHECKED, MF_SEPARATOR, MF_STRING, MSG,
     SM_CXSCREEN, SM_CYSCREEN, TPM_NONOTIFY, TPM_RETURNCMD, TPM_RIGHTBUTTON, WM_APP, WM_DESTROY,
     WM_LBUTTONDBLCLK, WM_RBUTTONUP, WM_TIMER, WNDCLASSW, WS_OVERLAPPED,
 };
 
-use util::{Config, Mode};
+use util::{Channel, Config, Mode};
 
 // ---- messages / ids ----
 const WM_TRAY: u32 = WM_APP + 1;
 const WM_IMG_READY: u32 = WM_APP + 2;
 const WM_SUMMARY_READY: u32 = WM_APP + 3;
+/// A verified update was written over the running exe → relaunch into it.
+const WM_UPDATE_RESTART: u32 = WM_APP + 4;
+/// The website sign-in completed → bring the app forward and open the tray menu.
+const WM_UPDATE_FOREGROUND: u32 = WM_APP + 5;
 const TIMER_ROTATE: usize = 1;
 const TIMER_IDLE: usize = 2;
 const IDLE_POLL_MS: u32 = 2_000;
 const TRAY_UID: u32 = 1;
+
+/// Let the desktop settle before the first update check — the wallpaper matters
+/// more at startup than the version does.
+const UPDATE_FIRST_DELAY_SECS: u64 = 20;
+/// Re-check cadence. Matches the data-uploader's `UPDATE_POLL_MS` (6 h): a
+/// restart-gated native updater need not be as eager as the web app's poll.
+const UPDATE_POLL_SECS: u64 = 6 * 60 * 60;
 
 const ID_NEXT: usize = 1;
 const ID_PAUSE: usize = 2;
@@ -64,6 +81,7 @@ const ID_DELAY_30: usize = 13;
 const ID_DELAY_60: usize = 14;
 const ID_SUMMARY_ON_BOOT: usize = 15;
 const ID_SUMMARY_NOW: usize = 16;
+const ID_UPDATE: usize = 17;
 
 const STARSCAPE_URL: &str = "https://sc-companion.vercel.app/starscape";
 /// Filename of the fetched weekly Verse-News summary image inside the cache dir.
@@ -76,6 +94,20 @@ struct Ui {
 
 static UI: OnceLock<Mutex<Ui>> = OnceLock::new();
 static QUEUE: OnceLock<Arc<Mutex<VecDeque<PathBuf>>>> = OnceLock::new();
+/// The single-instance mutex handle, kept so a self-update can release it before
+/// launching the replacement (the successor would otherwise see the name taken
+/// and exit immediately). Stored as `isize` because a raw HANDLE is not `Sync`.
+static SINGLETON: OnceLock<isize> = OnceLock::new();
+/// True while the tray popup menu owns the UI thread. `TrackPopupMenu` runs its
+/// own modal message loop that DISPATCHES to this window, so a posted
+/// `WM_UPDATE_RESTART` can arrive mid-popup — and destroying the window under an
+/// active popup is undefined. The relaunch is simply deferred instead: the new
+/// build is already on disk, so it takes effect on the next start either way.
+static MENU_OPEN: AtomicBool = AtomicBool::new(false);
+/// Set when a relaunch arrived while [`MENU_OPEN`] — replayed as soon as the
+/// popup closes, so the interactive path (click → sign in → menu → download
+/// finishes) still relaunches immediately instead of waiting for the next start.
+static RESTART_PENDING: AtomicBool = AtomicBool::new(false);
 
 fn ui() -> &'static Mutex<Ui> {
     UI.get().expect("UI not initialised")
@@ -86,8 +118,7 @@ fn queue() -> &'static Arc<Mutex<VecDeque<PathBuf>>> {
 
 /// Pick a localized label (DE for German UI language, EN otherwise).
 fn t(de: &str, en: &str) -> String {
-    let lang = (unsafe { GetUserDefaultUILanguage() } as u32) & 0x3ff;
-    if lang == 0x07 { de } else { en }.to_string()
+    util::t(de, en)
 }
 
 fn main() {
@@ -97,10 +128,16 @@ fn main() {
     log::line("startup: launching");
 
     // One instance only (autostart + a manual launch must not double up).
-    if util::acquire_single_instance().is_none() {
+    let Some(singleton) = util::acquire_single_instance() else {
         log::line("startup: another instance already running — exiting");
         return;
-    }
+    };
+    let _ = SINGLETON.set(singleton as isize);
+
+    // Drop the previous build if we just relaunched into a self-update. Safe to
+    // do here: the old image is no longer mapped by this process.
+    update::cleanup_backup();
+
     let token = gfx::startup();
     util::set_fill_style();
     let (mut cfg, existed) = Config::load();
@@ -117,6 +154,19 @@ fn main() {
         cfg.autostart_initialized = true;
         cfg.save();
         log::line("startup: existing install migrated — autostart choice preserved");
+    }
+
+    // Channel lock: the update ring is decided by the DOWNLOAD, never in the app
+    // (see `update::resolve_channel` for the precedence and why). An unmarked
+    // copy — the `latest` alias, a user rename, a self-updated exe — keeps the
+    // ring already on file; only a fresh per-ring download re-locks it.
+    let stored = if cfg.channel_locked { Some(cfg.channel) } else { None };
+    let resolved = update::resolve_channel(stored);
+    if !cfg.channel_locked || resolved != cfg.channel {
+        cfg.channel = resolved;
+        cfg.channel_locked = true;
+        cfg.save();
+        log::line(&format!("startup: update ring locked to {}", cfg.channel.as_str()));
     }
 
     QUEUE.get_or_init(|| Arc::new(Mutex::new(VecDeque::new())));
@@ -189,6 +239,11 @@ unsafe fn run(cfg: Config) {
     // Background prefetch thread.
     let q = Arc::clone(queue());
     std::thread::spawn(move || prefetch_loop(hwnd_isize, q));
+
+    // Background update thread — silent by design: it never opens a browser and
+    // never shows a notification. Its only visible effect is the tray-menu
+    // readout, plus a seamless relaunch when a verified newer build lands.
+    spawn_update_loop(hwnd_isize, cfg.channel);
 
     // Message loop.
     let mut msg: MSG = std::mem::zeroed();
@@ -268,6 +323,36 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
                 } else {
                     log::line("summary: on-demand fetch failed — wallpaper unchanged");
                 }
+                0
+            }
+            WM_UPDATE_FOREGROUND => {
+                // The website sign-in just finished. Bring the app forward and
+                // open the tray menu, so the user lands back where they started
+                // instead of hunting for the tray icon. This is the ONLY unasked
+                // surface the updater ever shows, and it is a direct reply to the
+                // user's own tray click — the periodic poll never gets here.
+                util::force_foreground(hwnd);
+                if !MENU_OPEN.load(Ordering::SeqCst) {
+                    show_menu(hwnd);
+                }
+                0
+            }
+            WM_UPDATE_RESTART => {
+                if screensaver::is_active() {
+                    // Never yank a fullscreen slideshow away. The new exe is
+                    // already on disk, so it takes effect on the next start.
+                    log::line("update: screensaver on screen — relaunch deferred to next start");
+                    return 0;
+                }
+                if MENU_OPEN.load(Ordering::SeqCst) {
+                    // Dispatched from inside TrackPopupMenu's modal loop —
+                    // tearing the window down here would destroy the window the
+                    // popup is tracking. See MENU_OPEN / RESTART_PENDING.
+                    RESTART_PENDING.store(true, Ordering::SeqCst);
+                    log::line("update: tray menu open — relaunch queued until it closes");
+                    return 0;
+                }
+                restart_into_update(hwnd);
                 0
             }
             WM_TIMER => {
@@ -359,6 +444,55 @@ fn spawn_summary_fetch(hwnd_isize: isize, boot_flow: bool) {
     }
 }
 
+// ---------------- Self-update ----------------
+
+/// Periodic, entirely silent update poll on its own thread.
+fn spawn_update_loop(hwnd_isize: isize, channel: Channel) {
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_secs(UPDATE_FIRST_DELAY_SECS));
+        loop {
+            run_update_cycle(hwnd_isize, false, channel);
+            std::thread::sleep(Duration::from_secs(UPDATE_POLL_SECS));
+        }
+    });
+}
+
+/// Run one check/install cycle and post the UI-thread follow-ups it asks for.
+/// `interactive` (tray click only) additionally permits a browser sign-in.
+fn run_update_cycle(hwnd_isize: isize, interactive: bool, channel: Channel) {
+    let hwnd = hwnd_isize as *mut c_void;
+    let signed_in = || unsafe {
+        PostMessageW(hwnd, WM_UPDATE_FOREGROUND, 0, 0);
+    };
+    if update::run_cycle(interactive, channel, &signed_in) {
+        unsafe {
+            PostMessageW(hwnd, WM_UPDATE_RESTART, 0, 0);
+        }
+    }
+}
+
+/// Relaunch into the freshly written executable.
+///
+/// Order matters: drop the tray icon (so no ghost is left in the notification
+/// area), release the single-instance mutex (or the successor exits on sight of
+/// it), then spawn and tear this instance down.
+unsafe fn restart_into_update(hwnd: HWND) {
+    remove_tray_icon(hwnd);
+    if let Some(&h) = SINGLETON.get() {
+        if h != 0 {
+            CloseHandle(h as HANDLE);
+        }
+    }
+    match std::env::current_exe().map(std::process::Command::new) {
+        Ok(mut cmd) => match cmd.spawn() {
+            Ok(_) => log::line("update: relaunched into the new build"),
+            Err(e) => log::line(&format!("update: relaunch failed ({e}) — new build starts next time")),
+        },
+        Err(e) => log::line(&format!("update: current_exe() failed ({e}) — cannot relaunch")),
+    }
+    DestroyWindow(hwnd);
+}
+
 /// Pop the next ready image and apply it (crossfade if enabled).
 fn apply_next() {
     let path = queue().lock().unwrap().pop_front();
@@ -372,9 +506,16 @@ fn apply_next() {
 }
 
 unsafe fn show_menu(hwnd: HWND) {
-    let (paused, fade, mode, delay, summary_on_boot) = {
+    let (paused, fade, mode, delay, summary_on_boot, channel) = {
         let u = ui().lock().unwrap();
-        (u.cfg.paused, u.cfg.fade, u.cfg.mode, u.cfg.screensaver_after_min, u.cfg.summary_on_boot)
+        (
+            u.cfg.paused,
+            u.cfg.fade,
+            u.cfg.mode,
+            u.cfg.screensaver_after_min,
+            u.cfg.summary_on_boot,
+            u.cfg.channel,
+        )
     };
     let autostart = util::autostart_enabled();
     let chk = |on: bool| MF_STRING | if on { MF_CHECKED } else { 0 };
@@ -412,7 +553,15 @@ unsafe fn show_menu(hwnd: HWND) {
     let l_star = util::wide(&t("Starscape Website öffnen", "Open Starscape website"));
     let l_quit = util::wide(&t("Beenden", "Quit"));
 
+    // Version readout, always first: "aktuell" when we are, "Update verfügbar"
+    // only when there really is one. Greyed unless clicking it does something —
+    // the tray menu is the updater's ONLY surface, no balloons, no toasts.
+    let l_update = util::wide(&update::tray_label(channel));
+    let update_flags = MF_STRING | if update::is_actionable() { 0 } else { MF_GRAYED };
+
     let menu = CreatePopupMenu();
+    AppendMenuW(menu, update_flags, ID_UPDATE, l_update.as_ptr());
+    AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
     AppendMenuW(menu, MF_STRING, ID_NEXT, l_next.as_ptr());
     AppendMenuW(menu, chk(paused), ID_PAUSE, l_pause.as_ptr());
     AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
@@ -429,6 +578,9 @@ unsafe fn show_menu(hwnd: HWND) {
     let mut pt: POINT = std::mem::zeroed();
     GetCursorPos(&mut pt);
     SetForegroundWindow(hwnd); // required so the menu closes on click-away
+    // Guard the modal loop: it dispatches to this window, so anything that would
+    // destroy the window (WM_UPDATE_RESTART) must stand down until we are out.
+    MENU_OPEN.store(true, Ordering::SeqCst);
     let cmd = TrackPopupMenu(
         menu,
         TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY,
@@ -438,6 +590,7 @@ unsafe fn show_menu(hwnd: HWND) {
         hwnd,
         std::ptr::null(),
     );
+    MENU_OPEN.store(false, Ordering::SeqCst);
     // DestroyMenu recursively destroys attached popup submenus too.
     DestroyMenu(menu);
     PostMessageW(hwnd, 0 /* WM_NULL */, 0, 0);
@@ -462,11 +615,27 @@ unsafe fn show_menu(hwnd: HWND) {
             log::line("summary: on-demand fetch requested from tray");
             spawn_summary_fetch(hwnd as isize, false);
         }
+        ID_UPDATE => {
+            // Interactive cycle: may open the website sign-in when the locked
+            // ring is above the anonymous tier, then install straight away.
+            log::line("update: tray entry clicked");
+            let hwnd_isize = hwnd as isize;
+            std::thread::spawn(move || run_update_cycle(hwnd_isize, true, channel));
+        }
         ID_STARSCAPE => util::open_url(STARSCAPE_URL),
         ID_QUIT => {
             DestroyWindow(hwnd);
+            return;
         }
         _ => {}
+    }
+
+    // An update finished installing while this menu was up (the common case on
+    // the interactive path: click → sign in → menu opens → download completes).
+    // The restart was postponed rather than dropped — run it now that the modal
+    // loop is gone.
+    if RESTART_PENDING.swap(false, Ordering::SeqCst) {
+        PostMessageW(hwnd, WM_UPDATE_RESTART, 0, 0);
     }
 }
 

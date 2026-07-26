@@ -208,7 +208,28 @@
       "search": "Search keybindings",
       "searchPlaceholder": "Search action or key…",
       "count": "{{shown}} of {{total}} actions",
-      "unbound": "—"
+      "unbound": "—",
+      "rawKey": "Internal action key",
+      "contexts": {
+        "vehicle": "Vehicle",
+        "spectator": "Spectator",
+        "interface": "Interface",
+        "interaction": "Interaction",
+        "emote": "Emote",
+        "camera": "Camera",
+        "character": "Character",
+        "turret": "Turret",
+        "eva": "EVA",
+        "hacking": "Hacking",
+        "remote": "Remote",
+        "tractor": "Tractor beam",
+        "melee": "Melee",
+        "hmd": "HMD",
+        "visor": "Visor",
+        "headtracking": "Head tracking",
+        "shop": "Shop",
+        "debug": "Debug"
+      }
     },
     "provenance": {
       "label": "Source",
@@ -267,6 +288,7 @@
       "hideRaw": "Hide raw data",
       "naValue": "n/a",
       "keyStats": "Key stats",
+      "armorStats": "Armor stats",
       "showEmptyPorts": "Show {{count}} empty ports",
       "hideEmptyPorts": "Hide empty ports",
       "equipment": "Equipment",
@@ -278,7 +300,12 @@
       "quantumSpeed": "Quantum speed",
       "quantumFuel": "Quantum fuel",
       "fuelCapacity": "Hydrogen fuel",
-      "hardpointExplainer": "A hardpoint is a mounting point on the hull: every weapon, shield, cooler, thruster or quantum drive sits on one, and can be swapped for another item of the same type and size. Below is what the ship carries as delivered."
+      "hardpointExplainer": "A hardpoint is a mounting point on the hull: every weapon, shield, cooler, thruster or quantum drive sits on one, and can be swapped for another item of the same type and size. Below is what the ship carries as delivered.",
+      "craftedFrom": "Crafting materials",
+      "craftedFromHint": "What it costs to manufacture this item, from the game's crafting data.",
+      "noIngredients": "This blueprint lists no materials in this build.",
+      "openBlueprint": "Open the full blueprint",
+      "minQuality": "min. quality {{value}}"
     },
     "swap": {
       "title": "What fits here",
@@ -357,6 +384,7 @@
       "fireRate": "Fire rate",
       "projectileSpeed": "Projectile speed",
       "range": "Range",
+      "penetration": "Penetration",
       "shieldHp": "Shield HP",
       "shieldRegen": "Regeneration",
       "regenDelay": "Regen delay",
@@ -1197,9 +1225,10 @@
       "shipped": "Shipped",
       "rejected": "Rejected",
       "needs_input": "Needs input",
-      "needs_input_author": "Asked the sender",
       "issue_created": "Issue created",
       "answered": "Answered",
+      "continued": "Continued",
+      "needs_input_author": "Asked the sender",
       "declined": "Not implemented"
     },
     "thread": {
@@ -1240,6 +1269,7 @@
       "progress": "{{current}} of {{total}}",
       "next": "Next",
       "done": "Done",
+      "advanced": "Done – on to {{current}} of {{total}}",
       "answerPlaceholder": "Write an answer… (Markdown supported, Ctrl+Enter to send)",
       "answerSend": "Answer",
       "openQuestion": "Open question",
@@ -1250,7 +1280,16 @@
       "kind": {
         "question": "Question",
         "new": "ToDo"
-      }
+      },
+      "scope": {
+        "label": "Scope",
+        "mine": "Mine",
+        "others": "Other admins",
+        "all": "All",
+        "showAll": "Show all"
+      },
+      "scopeEmptyTitle": "Nothing open in this scope",
+      "scopeEmptyHint": "{{count}} topic(s) sit in another scope."
     },
     "dashboard": {
       "thisMonth": "This month",
@@ -1260,7 +1299,48 @@
       "answered": "Questions answered",
       "shippedShare": "shipped",
       "donutLabel": "{{label}}: {{pct}}% shipped",
-      "note": "Every metric is attributed by its own timestamp: shipped by ship date, ToDo by creation date, questions by answer date. An answered question counts as ToDo — the routine still has to pick it up."
+      "note": "Every metric is attributed by its own timestamp: shipped by ship date, ToDo by creation date, questions by answer date. An answered question counts as ToDo — the routine still has to pick it up.",
+      "paceMedian": "Median to ship",
+      "paceQuestions": "Question rate",
+      "paceQuestionsHint": "{{questioned}} of {{raised}} topics",
+      "noneShort": "—",
+      "underHour": "< 1 hr",
+      "unitHours": "{{value}} hrs",
+      "unitDays": "{{value}} days",
+      "throughputTitle": "Throughput",
+      "throughputSub": "Ships per week · last {{weeks}} weeks",
+      "throughputFrom": "{{weeks}} weeks ago",
+      "throughputNow": "this week",
+      "throughputWeek": "Week of {{date}}: {{count}} ships",
+      "throughputAria": "Ships per week over the last {{weeks}} weeks: {{total}} in total, best week {{max}}, this week {{current}}.",
+      "lifecycleTitle": "Lifecycle",
+      "lifecycleIntro": "Which stages a topic moves through and which branches it can take — with the live count per stage.",
+      "lifecycleSide": "Branches & terminal stages",
+      "lifecycleNote": "The numbers show how many topics sit in a stage right now — there is no transition history, so no pass-through counter.",
+      "stageNow": "topics currently in this stage",
+      "flow": {
+        "pickup": "The routine picks up the oldest topic",
+        "green": "Build + tests green, PR merged",
+        "question": "Needs a decision — the routine asks in the thread",
+        "answered": "You answer in the thread",
+        "reaper": "Claim went stale (> 30 min without a PR) — the reaper reopens it",
+        "hold": "Red or sensitive (auth, RLS, secrets, destructive migration)",
+        "holdTarget": "PR waits for review",
+        "continue": "You reply after the ship — continuation"
+      },
+      "fact": {
+        "oldest": "oldest open topic: {{days}} days",
+        "answered": "of those {{count}} answered question(s)",
+        "continuation": "of those {{count}} post-ship continuation(s)",
+        "reopened": "of those {{count}} reopened by the reaper",
+        "working": "{{count}} actively being implemented (no PR yet)",
+        "hold": "{{count}} review hold — the PR waits for your merge",
+        "terminalAtRest": "Terminal at rest — your reply starts another round",
+        "pendingContinuation": "{{count}} with a fresh reply — will be picked up again",
+        "awaiting": "waiting for your answer",
+        "issueTerminal": "Terminal — you file the topic against a GitHub issue; the routine never touches it again",
+        "rejectedLegacy": "Terminal (legacy status) — the routine never sets it"
+      }
     },
     "userTopic": {
       "badge": "User feedback",
@@ -1507,7 +1587,9 @@
     "appTitle": "Desktop Wallpaper App",
     "appDesc": "Rotate your desktop through Starscape — a tiny tray app with prefetch, crossfade and one-click autostart.",
     "appDownload": "Download for Windows",
-    "appNote": "Windows only · ~0.3 MB · unsigned (SmartScreen: More info → Run anyway)"
+    "appNote": "Windows only · ~0.3 MB · unsigned (SmartScreen: More info → Run anyway)",
+    "appRingLock": "The channel is fixed by the download and cannot be switched inside the app — to change it, just grab the other download here again.",
+    "appAutoUpdate": "Updates itself silently in the background; the version state lives in the tray menu."
   },
   "userFeedback": {
     "title": "Feedback",

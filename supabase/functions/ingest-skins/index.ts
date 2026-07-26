@@ -107,6 +107,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .from('desktop_releases')
     .select('id, token_revoked')
     .eq('release_token', releaseToken)
+    // product='uploader' only — the Starscape tray app bakes a release token into
+    // a public, unsigned binary, so an unscoped match would accept it here too.
+    .eq('product', 'uploader')
     .maybeSingle();
   if (relErr) return json({ error: 'server_misconfigured', message: relErr.message }, 500);
   if (!release) return json({ error: 'unknown_release_token' }, 403);

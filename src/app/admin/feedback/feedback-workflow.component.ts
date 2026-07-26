@@ -3,6 +3,8 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  Injector,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -19,12 +21,20 @@ import { CelebrationService } from './celebration.service';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
 import {
   FeedbackMessage,
+  WORKFLOW_SCOPES,
   WorkflowItem,
+  WorkflowScope,
+  WorkflowScopeCounts,
   awaitsTriage,
   isUserSubmitted,
   topicTitle,
   workflowFocusIndex,
 } from './feedback.types';
+
+/** How long the "moved on to the next topic" line and the arrival ring stay. */
+const ADVANCE_NOTICE_MS = 2200;
+/** Slide-in of the topic that took the finished one's place. */
+const ADVANCE_SLIDE_MS = 380;
 
 /**
  * Guided processing mode ("Abarbeitungsmodus") for the admin feedback board.
@@ -46,6 +56,24 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="wf" [class.compact]="compact()">
+      <!-- Whose queue is being worked (feedback abfa97c6). Sits outside the
+           card so it is reachable on the drained screen too — otherwise an
+           empty "Meine" scope would trap the admin with no way to look at the
+           others. Each chip carries its own count as the KPI. -->
+      <div class="wf-scope" role="group" [attr.aria-label]="'adminFeedback.workflow.scope.label' | translate">
+        @for (opt of scopeOptions(); track opt.key) {
+          <button
+            type="button"
+            class="scope-chip"
+            [class.active]="scope() === opt.key"
+            [attr.aria-pressed]="scope() === opt.key"
+            (click)="pickScope(opt.key)">
+            {{ ('adminFeedback.workflow.scope.' + opt.key) | translate }}
+            <span class="scope-count">{{ opt.count }}</span>
+          </button>
+        }
+      </div>
+
       @if (current(); as item) {
         <!-- Progress: "3 von 7" plus a filling rail, so the run has a visible end. -->
         <div class="wf-progress">
@@ -62,7 +90,19 @@ import {
           </div>
         </div>
 
-        <article #card class="wf-card sc-card" [class.celebrate]="celebrating()">
+        <!-- Ticking a topic off swaps the card's content in place — this line
+             (plus the card's slide-in) says out loud that the queue moved on. -->
+        @if (advanced(); as adv) {
+          <p class="wf-advance" role="status">
+            ✓ {{ 'adminFeedback.workflow.advanced' | translate: adv }}
+          </p>
+        }
+
+        <article
+          #card
+          class="wf-card sc-card"
+          [class.celebrate]="celebrating()"
+          [class.arrived]="advanced() !== null">
           <header class="wf-head">
             <span class="kind" [class]="item.kind">
               {{ ('adminFeedback.workflow.kind.' + item.kind) | translate }}
@@ -144,20 +184,70 @@ import {
           </div>
         </article>
       } @else {
-        <!-- Queue drained: the reward screen, with the dashboard one click away. -->
+        <!-- Queue drained: the reward screen, with the dashboard one click away.
+             Unless the scope is hiding work — then this is not "done", it is
+             "done here", and the way on is the other scope, not the numbers. -->
         <div class="wf-empty sc-card">
-          <div class="wf-empty-icon" aria-hidden="true">🎉</div>
-          <h3>{{ 'adminFeedback.workflow.allDoneTitle' | translate }}</h3>
-          <p>{{ 'adminFeedback.workflow.allDoneHint' | translate }}</p>
-          <button type="button" class="sc-btn" (click)="showProgress.emit()">
-            {{ 'adminFeedback.view.progress' | translate }}
-          </button>
+          @if (hiddenByScope() > 0) {
+            <div class="wf-empty-icon" aria-hidden="true">🗂️</div>
+            <h3>{{ 'adminFeedback.workflow.scopeEmptyTitle' | translate }}</h3>
+            <p>{{ 'adminFeedback.workflow.scopeEmptyHint' | translate: { count: hiddenByScope() } }}</p>
+            <button type="button" class="sc-btn" (click)="pickScope('all')">
+              {{ 'adminFeedback.workflow.scope.showAll' | translate }}
+            </button>
+          } @else {
+            <div class="wf-empty-icon" aria-hidden="true">🎉</div>
+            <h3>{{ 'adminFeedback.workflow.allDoneTitle' | translate }}</h3>
+            <p>{{ 'adminFeedback.workflow.allDoneHint' | translate }}</p>
+            <button type="button" class="sc-btn" (click)="showProgress.emit()">
+              {{ 'adminFeedback.view.progress' | translate }}
+            </button>
+          }
         </div>
       }
     </section>
   `,
   styles: [`
     .wf { display: flex; flex-direction: column; gap: 12px; }
+
+    /* ---- Scope switch (whose topics are being worked) ---- */
+    .wf-scope { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .scope-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .scope-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
+    .scope-chip.active {
+      color: var(--sc-accent);
+      border-color: var(--sc-accent);
+      background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
+    }
+    .scope-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
+    /* The KPI: how many topics the scope holds right now. */
+    .scope-count {
+      min-width: 1.2em;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: var(--sc-bg-2);
+      font-size: 0.66rem;
+      font-weight: 700;
+      text-align: center;
+    }
+    .scope-chip.active .scope-count {
+      background: color-mix(in srgb, var(--sc-accent) 25%, transparent);
+      color: var(--sc-accent);
+    }
 
     /* ---- Progress rail ---- */
     .wf-progress { display: flex; align-items: center; gap: 10px; }
@@ -184,8 +274,31 @@ import {
       transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
+    /* ---- Advance cue (a topic was ticked off) ----
+       "Erledigt" pulls the topic out of the queue, so the card silently fills
+       with the next one and only the "3 von 7" counter moves. This line names
+       the step and, as a status role, is announced rather than just drawn
+       (feedback 96872872). It stays put under reduced motion — only its rise
+       and the card's slide-in are dropped there. */
+    .wf-advance {
+      margin: 0;
+      font-size: 0.76rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--sc-success);
+      animation: wf-rise 0.35s ease-out;
+    }
+
     /* ---- The one card in focus ---- */
-    .wf-card { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; }
+    .wf-card {
+      display: flex; flex-direction: column; gap: 10px; padding: 14px 16px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    /* The just-arrived topic, held for the length of the advance notice. */
+    .wf-card.arrived {
+      border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-accent) 30%, transparent);
+    }
     .wf-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .kind {
       padding: 2px 8px;
@@ -320,11 +433,13 @@ import {
       50% { transform: translateY(-8px); }
     }
 
-    /* Respect the OS motion preference — no pop, no bounce, no rise.
-       (The confetti burst is suppressed in CelebrationService.) */
+    /* Respect the OS motion preference — no pop, no bounce, no rise, and no
+       slide-in for the next topic (suppressed in playSlideIn). The advance
+       notice and the card's arrival ring stay: the step must remain visible
+       without motion. (The confetti burst is suppressed in CelebrationService.) */
     @media (prefers-reduced-motion: reduce) {
       .rail-fill { transition: none; }
-      .wf-card.celebrate, .wf-cheer, .wf-empty-icon { animation: none; }
+      .wf-card.celebrate, .wf-cheer, .wf-advance, .wf-empty-icon { animation: none; }
     }
 
     /* Docked panel: tighter thread window so the composer stays reachable. */
@@ -336,6 +451,7 @@ import {
 export class FeedbackWorkflowComponent {
   private readonly translate = inject(TranslateService);
   private readonly celebration = inject(CelebrationService);
+  private readonly injector = inject(Injector);
 
   /** The processing queue, in working order — owned by the parent board. */
   readonly queue = input.required<WorkflowItem[]>();
@@ -345,11 +461,17 @@ export class FeedbackWorkflowComponent {
   readonly busy = input(false);
   /** Rendering inside the docked FAB panel rather than the full page. */
   readonly compact = input(false);
+  /** Which scope the (already filtered) queue was built for — owned by the parent. */
+  readonly scope = input<WorkflowScope>('all');
+  /** Queue size per scope, rendered as the switch's KPI counts. */
+  readonly scopeCounts = input<WorkflowScopeCounts>({ mine: 0, others: 0, all: 0 });
   /** Posts a reply into a topic's thread; resolves true once persisted. */
   readonly reply = input.required<(feedbackId: string, payload: ComposerPayload) => Promise<boolean>>();
 
   /** The admin ticked an item off — the parent removes it from the queue. */
   readonly markHandled = output<string>();
+  /** The admin picked another scope — the parent re-filters and remembers it. */
+  readonly scopeChange = output<WorkflowScope>();
   /** "Show me the numbers" from the drained-queue screen. */
   readonly showProgress = output<void>();
 
@@ -367,6 +489,19 @@ export class FeedbackWorkflowComponent {
     return Math.min(this.cursor(), total - 1);
   });
   readonly current = computed<WorkflowItem | null>(() => this.queue()[this.position()] ?? null);
+
+  /** The scope switch, in fixed order, each with its KPI count. */
+  readonly scopeOptions = computed(() => {
+    const counts = this.scopeCounts();
+    return WORKFLOW_SCOPES.map((key) => ({ key, count: counts[key] }));
+  });
+
+  /**
+   * How many queue items the current scope is hiding. Non-zero on a drained
+   * queue means "nothing left *here*" rather than "nothing left" — the empty
+   * screen then points at the other scope instead of celebrating.
+   */
+  readonly hiddenByScope = computed(() => this.scopeCounts().all - this.total());
   readonly railPct = computed(() => {
     const total = this.total();
     return total === 0 ? 100 : ((this.position() + 1) / total) * 100;
@@ -384,15 +519,35 @@ export class FeedbackWorkflowComponent {
   readonly cheer = signal('');
   private cheerTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /**
+   * Where the run stands right after a topic was ticked off — `null` while no
+   * step is being reported. Drives the advance notice and the card's arrival
+   * ring; the shape doubles as the translation params for the notice.
+   */
+  readonly advanced = signal<{ current: number; total: number } | null>(null);
+  private advanceTimer: ReturnType<typeof setTimeout> | null = null;
+
   /** `topicId:messageId` the thread was last scrolled to — guards re-scrolls. */
   private focusedKey: string | null = null;
 
   constructor() {
     // Queue drained after actually working through it → one closing burst.
-    // Mounting on an already-empty queue must stay silent, hence the latch.
+    // Mounting on an already-empty queue must stay silent, hence the latch —
+    // and so must switching to a scope that happens to be empty, which is a
+    // change of view, not an achievement (hence the scope check).
     let sawWork = false;
+    let lastScope = this.scope();
     effect(() => {
+      const scope = this.scope();
       const total = this.total();
+      if (scope !== lastScope) {
+        lastScope = scope;
+        // Re-arm against the new scope's queue instead of celebrating it.
+        sawWork = total > 0;
+        // A different queue starts at its head.
+        this.cursor.set(0);
+        return;
+      }
       if (total > 0) {
         sawWork = true;
         return;
@@ -425,7 +580,19 @@ export class FeedbackWorkflowComponent {
 
     inject(DestroyRef).onDestroy(() => {
       if (this.cheerTimer) clearTimeout(this.cheerTimer);
+      if (this.advanceTimer) clearTimeout(this.advanceTimer);
     });
+  }
+
+  /**
+   * Switch the queue's scope. The parent owns (and remembers) the choice and
+   * hands back a re-filtered queue; the cursor is reset by the effect above so
+   * the new scope starts at its own head.
+   */
+  pickScope(scope: WorkflowScope): void {
+    if (scope === this.scope()) return;
+    this.clearAdvance();
+    this.scopeChange.emit(scope);
   }
 
   /** True for the one thread message the view scrolled to, if it is a Rückfrage. */
@@ -483,16 +650,68 @@ export class FeedbackWorkflowComponent {
   next(): void {
     const total = this.total();
     if (total < 2) return;
+    this.clearAdvance();
     this.cursor.set((this.position() + 1) % total);
+    // Stepping on purpose needs no explanation, but the card still swaps in
+    // place — the same slide keeps the two ways of moving on consistent.
+    this.playSlideIn();
   }
 
   /**
    * Tick the current item off. The status stays untouched — the nightly routine
    * owns the state machine — so this only takes the topic out of the admin's
    * working queue until the routine touches it again.
+   *
+   * The topic leaves the queue synchronously, which means the card is refilled
+   * with the next topic without anything moving — the admin could not tell the
+   * view had changed (feedback 96872872). So the step is reported: the next
+   * card slides in, wears an arrival ring and a status line names where the run
+   * now stands.
    */
   finish(item: WorkflowItem): void {
     this.markHandled.emit(item.row.id);
+    // The parent drops the topic while emitting, so the queue signals already
+    // describe the topic that took its place.
+    const total = this.total();
+    // Queue drained: the "Alles abgearbeitet" screen is change enough.
+    if (total === 0) return;
+    this.announceAdvance(total);
+    this.playSlideIn();
+  }
+
+  /** Show "weiter mit x von y" for a moment, then fall back to the plain card. */
+  private announceAdvance(total: number): void {
+    this.advanced.set({ current: this.position() + 1, total });
+    if (this.advanceTimer) clearTimeout(this.advanceTimer);
+    this.advanceTimer = setTimeout(() => this.advanced.set(null), ADVANCE_NOTICE_MS);
+  }
+
+  private clearAdvance(): void {
+    if (this.advanceTimer) clearTimeout(this.advanceTimer);
+    this.advanceTimer = null;
+    this.advanced.set(null);
+  }
+
+  /**
+   * Slide the card that now holds the next topic in from the right. Runs on the
+   * refilled DOM (hence `afterNextRender`) and is skipped under
+   * `prefers-reduced-motion` — the notice and the arrival ring carry the step
+   * there.
+   */
+  private playSlideIn(): void {
+    if (this.celebration.reducedMotion) return;
+    afterNextRender(
+      () => {
+        this.cardEl()?.nativeElement.animate?.(
+          [
+            { opacity: 0.2, transform: 'translate3d(22px, 0, 0)' },
+            { opacity: 1, transform: 'none' },
+          ],
+          { duration: ADVANCE_SLIDE_MS, easing: 'cubic-bezier(0.2, 0.85, 0.25, 1)' },
+        );
+      },
+      { injector: this.injector },
+    );
   }
 
   /**
@@ -514,6 +733,8 @@ export class FeedbackWorkflowComponent {
       ? 'adminFeedback.workflow.cheerAnswered'
       : 'adminFeedback.workflow.cheerReplied';
     this.cheer.set(this.translate.instant(key));
+    // The answer is the news now — drop a still-running advance notice.
+    this.clearAdvance();
     this.celebrating.set(true);
     this.celebration.burstFrom(this.cardEl()?.nativeElement);
     if (this.cheerTimer) clearTimeout(this.cheerTimer);

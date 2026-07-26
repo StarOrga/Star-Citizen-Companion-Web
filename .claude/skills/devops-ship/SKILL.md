@@ -86,11 +86,12 @@ Plugin defaults still apply; only the rules below override or add.
    3. register the build in the catalog + point the **alpha** channel at it in
       one statement: `WITH new_rel AS (INSERT INTO public.desktop_releases
       (version, release_token, platforms, notes) VALUES (...) RETURNING id)
-      INSERT INTO public.desktop_channels (channel, release_id) SELECT 'alpha',
-      id FROM new_rel ON CONFLICT (channel) DO UPDATE SET release_id =
-      EXCLUDED.release_id, updated_at = now();`. `desktop_releases` is an
-      immutable build catalog; `desktop_channels` (alpha/beta/stable →
-      release_id) picks which build each ring serves. New releases default to the
+      INSERT INTO public.desktop_channels (product, channel, release_id) SELECT
+      'uploader', 'alpha', id FROM new_rel ON CONFLICT (product, channel) DO
+      UPDATE SET release_id = EXCLUDED.release_id, updated_at = now();`.
+      `desktop_releases` is an immutable build catalog; `desktop_channels`
+      (**keyed `(product, channel)`** since Starscape got its own rings —
+      `ON CONFLICT (channel)` alone now errors) picks which build each ring serves. New releases default to the
       **alpha** ring; promotion to beta/stable is a deliberate later step via the
       `/admin/desktop-releases` panel or `promote_desktop_channel(version,
       channel)` — never auto-promote on ship. The CI "Print catalog-register SQL"

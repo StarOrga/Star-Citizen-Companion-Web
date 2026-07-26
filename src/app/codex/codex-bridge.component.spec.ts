@@ -19,6 +19,7 @@ function shipRow(over: Partial<CodexListRow> & { classNameSlug: string }): Codex
     weaponClass: null,
     componentKind: null,
     subType: null,
+    attachType: null,
     speed: null,
     isVariant: false,
     // Required since the FPS section added it to CodexListRow (#251); a ship row
