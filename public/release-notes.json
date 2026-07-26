@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.51.0",
+  "current": "0.52.0",
   "releases": [
+    {
+      "version": "0.52.0",
+      "date": "2026-07-27",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Replying to an archived feedback topic reopens it.",
+              "text": "Answering in the thread of an archived topic now brings it back onto the active board as ToDo, so the autonomous routine picks it up again — the natural \"let's keep going here\" gesture that already worked for shipped topics now works for the whole Archive. issue_created, declined and legacy rejected are flipped straight back to open by a database trigger the moment an admin replies (clearing the issue link and the decline reason); shipped keeps its existing post-ship continuation. A hint above the composer on archived topics says as much before you type."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.51.0",
       "date": "2026-07-27",

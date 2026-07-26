@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.52.0] - 2026-07-27
+
+### Added
+
+- **Replying to an archived feedback topic reopens it.** Answering in the thread
+  of an archived topic now brings it back onto the active board as ToDo, so the
+  autonomous routine picks it up again — the natural "let's keep going here"
+  gesture that already worked for shipped topics now works for the whole Archive.
+  `issue_created`, `declined` and legacy `rejected` are flipped straight back to
+  `open` by a database trigger the moment an admin replies (clearing the issue
+  link and the decline reason); `shipped` keeps its existing post-ship
+  continuation. A hint above the composer on archived topics says as much before
+  you type.
+
 ## [0.51.0] - 2026-07-27
 
 ### Added
