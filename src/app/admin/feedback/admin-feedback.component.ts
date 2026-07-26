@@ -42,7 +42,7 @@ import {
   AuthorFeedbackMessage,
   AuthorFeedbackStatus,
   AuthorThreadMap,
-  authorStatusOf,
+  coarseAuthorStatus,
   groupAuthorMessages,
 } from '../../feedback/user-feedback.types';
 
@@ -271,6 +271,17 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                     [class.active]="statusFilter() === 'todo'"
                     (click)="setStatusFilter('todo')">
                     {{ 'adminFeedback.status.open' | translate }}
+                  </button>
+                }
+                <!-- The mirror image of the Rückfrage chip: topics where the
+                     admin asked the person who filed them (feedback 5920cf8c). -->
+                @if (bucketCounts().awaiting_author > 0) {
+                  <button
+                    type="button"
+                    class="status-chip needs_input_author"
+                    [class.active]="statusFilter() === 'awaiting_author'"
+                    (click)="setStatusFilter('awaiting_author')">
+                    {{ 'adminFeedback.status.needs_input_author' | translate }}
                   </button>
                 }
                 @if (bucketCounts().in_progress > 0) {
@@ -900,6 +911,9 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
     .status-chip:focus-visible, .author-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     /* The needs_input filter carries the same violet accent as its status pill. */
     .status-chip.needs_input.active { color: #a78bfa; border-color: #a78bfa; background: rgba(167, 139, 250, 0.14); }
+    /* "Rückfrage an Absender" — same rosé as its pill, so the two directions of
+       Rückfrage stay distinguishable in the filter row too. */
+    .status-chip.needs_input_author.active { color: #f472b6; border-color: #f472b6; background: rgba(244, 114, 182, 0.14); }
     /* Archive chips echo their status pills: shipped green, issue indigo. */
     .status-chip.shipped.active { color: var(--sc-success); border-color: var(--sc-success); background: rgba(74, 222, 128, 0.14); }
     .status-chip.issue_created.active { color: #818cf8; border-color: #818cf8; background: rgba(129, 140, 248, 0.14); }
@@ -1037,6 +1051,10 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
       /* Handed off to a GitHub issue — terminal like shipped, but distinct. */
       &.issue_created { background: rgba(129, 140, 248, 0.2); color: #818cf8; }
       &.needs_input { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
+      /* The mirror image: the admin asked the topic's AUTHOR and waits on them.
+         Rosé rather than violet, so the two Rückfrage directions never read the
+         same at a glance (feedback 5920cf8c). */
+      &.needs_input_author { background: rgba(244, 114, 182, 0.2); color: #f472b6; }
       /* Admin answered a Rückfrage → awaiting the routine (distinct from a
          needs_input topic still waiting on the admin). */
       &.answered { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; }
@@ -1481,6 +1499,7 @@ export class AdminFeedbackComponent implements OnInit {
     const counts: Record<FeedbackBucket, number> = {
       todo: 0,
       awaiting_admin: 0,
+      awaiting_author: 0,
       in_progress: 0,
       shipped: 0,
       issue_created: 0,
@@ -1999,10 +2018,11 @@ export class AdminFeedbackComponent implements OnInit {
    * What the FEEDBACK AUTHOR currently sees for this topic — the same coarse
    * mapping the `public.my_feedback` view applies, so the admin can tell at a
    * glance that a `needs_input` Rückfrage to the routine reads as plain
-   * "in Bearbeitung" on the other side.
+   * "in Bearbeitung" on the other side, while only `needs_input_author` shows up
+   * there as a question.
    */
   authorFacingStatus(m: FeedbackRow): AuthorFeedbackStatus {
-    return authorStatusOf(m.status, this.authorThreads().get(m.id));
+    return coarseAuthorStatus(m.status);
   }
 
   authorLabelFor(msg: FeedbackMessage): string {

@@ -1178,6 +1178,7 @@
       "shipped": "Shipped",
       "rejected": "Rejected",
       "needs_input": "Needs input",
+      "needs_input_author": "Asked the sender",
       "issue_created": "Issue created",
       "answered": "Answered",
       "declined": "Not implemented"
@@ -1248,7 +1249,7 @@
       "channelTitle": "Channel to the author",
       "channelHint": "Everything here is visible to the sender. The thread above (admin ↔ routine) is not.",
       "seesStatus": "The sender sees:",
-      "asQuestion": "Send as a question to the sender",
+      "asQuestion": "Send as a question to the sender (parks the topic until they answer)",
       "messagePlaceholder": "Message to the sender…",
       "messageSend": "Send to author",
       "questionBadge": "Question",

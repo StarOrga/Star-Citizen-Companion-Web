@@ -9,12 +9,23 @@
  * and unit-tested in `feedback.types.spec.ts`.
  */
 
+/**
+ * The raw DB status vocabulary. Note the two "needs input" flavours, which mean
+ * opposite things and have opposite visibility (feedback 5920cf8c):
+ *
+ * - `needs_input` — the ROUTINE asked the ADMIN. Admin-only; the feedback author
+ *   of a user-submitted topic never learns it exists (it folds into their
+ *   "in Bearbeitung").
+ * - `needs_input_author` — the ADMIN asked the AUTHOR. Author-facing, and parked
+ *   out of the routine's `open` queue until the answer arrives.
+ */
 export type FeedbackStatus =
   | 'open'
   | 'in_progress'
   | 'shipped'
   | 'rejected'
   | 'needs_input'
+  | 'needs_input_author'
   | 'issue_created'
   | 'declined';
 
@@ -160,6 +171,9 @@ export function isAwaitingAdmin(row: FeedbackRow, replies: readonly FeedbackMess
  *
  * - `awaiting_admin` — a Rückfrage the routine asked and nobody answered yet:
  *   the ball is with the admin.
+ * - `awaiting_author` — the mirror image (feedback 5920cf8c): the admin asked the
+ *   person who filed a user topic and waits on them. Active, but nothing for the
+ *   admin or the routine to do — hence its own bucket rather than ToDo.
  * - `todo` — everything the *routine* still has to pick up. That is every
  *   untouched `open` topic **and** an already-answered Rückfrage (feedback
  *   34c44134): once the admin replied, the topic is back on the routine's pile,
@@ -174,6 +188,7 @@ export function isAwaitingAdmin(row: FeedbackRow, replies: readonly FeedbackMess
  */
 export type FeedbackBucket =
   | 'awaiting_admin'
+  | 'awaiting_author'
   | 'todo'
   | 'in_progress'
   | 'shipped'
@@ -182,7 +197,12 @@ export type FeedbackBucket =
   | 'declined';
 
 /** Buckets that are still on the board's working set (the Active tab). */
-export const ACTIVE_BUCKETS: readonly FeedbackBucket[] = ['awaiting_admin', 'todo', 'in_progress'];
+export const ACTIVE_BUCKETS: readonly FeedbackBucket[] = [
+  'awaiting_admin',
+  'awaiting_author',
+  'todo',
+  'in_progress',
+];
 
 /**
  * The single bucketing rule for the whole board: status filter, day-grouped
@@ -201,6 +221,12 @@ export function feedbackBucket(
       return row.status;
     case 'in_progress':
       return 'in_progress';
+    case 'needs_input_author':
+      // The admin asked the topic's author and waits on them. There is no
+      // "answered" half to split off here: the author's reply flips the row back
+      // to `open` in the database (trigger on the author channel), so this
+      // status always means "waiting on the author".
+      return 'awaiting_author';
     case 'needs_input':
       // Answered → back on the routine's pile → ToDo. Still unanswered → the
       // admin owes the answer and keeps the distinct Rückfrage presentation.
@@ -213,11 +239,13 @@ export function feedbackBucket(
 /**
  * The status vocabulary a bucket is labelled with, so the UI can keep using the
  * existing `adminFeedback.status.*` translation keys: `todo` reads as the
- * (renamed) `open` label "ToDo", `awaiting_admin` as "Rückfrage".
+ * (renamed) `open` label "ToDo", `awaiting_admin` as "Rückfrage",
+ * `awaiting_author` as "Rückfrage an Absender".
  */
 export function bucketLabelStatus(bucket: FeedbackBucket): FeedbackStatus {
   if (bucket === 'todo') return 'open';
   if (bucket === 'awaiting_admin') return 'needs_input';
+  if (bucket === 'awaiting_author') return 'needs_input_author';
   return bucket;
 }
 
@@ -273,7 +301,9 @@ export function buildWorkflowQueue(
     if (bucket === 'awaiting_admin') questions.push({ row, replies, kind: 'question' });
     // Only *untouched* ToDo topics are work for the admin. An already-answered
     // Rückfrage shares the ToDo bucket in the board views, but the admin is done
-    // with it — it waits on the routine, so it stays out of this queue.
+    // with it — it waits on the routine, so it stays out of this queue. So does
+    // `awaiting_author`: the ball is with the topic's author, and their answer
+    // returns the row to `open`, which re-enters it here on its own.
     else if (bucket === 'todo' && row.status === 'open') fresh.push({ row, replies, kind: 'new' });
   }
 

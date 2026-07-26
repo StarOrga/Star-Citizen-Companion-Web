@@ -328,7 +328,9 @@ export class UserFeedbackPanelComponent implements OnInit {
   );
 
   async ngOnInit(): Promise<void> {
-    await this.feedback.refresh();
+    // The FAB already loads the topics up front (it needs the badge count), so
+    // only a cold open actually fetches here.
+    if (!this.feedback.loaded()) await this.feedback.refresh();
   }
 
   selectMine(): void {

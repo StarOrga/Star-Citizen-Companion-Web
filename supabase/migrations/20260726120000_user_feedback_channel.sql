@@ -35,13 +35,24 @@
 --                                  row, forced false on a non-admin insert
 --   admin_feedback.decision_note — the admin's explanation when a user topic is
 --                                  declined ("nicht umsetzen"), shown to the author
---   admin_feedback.status        — CHECK vocabulary widened by 'declined'
+--   admin_feedback.status        — CHECK vocabulary widened by 'declined' and
+--                                  'needs_input_author'
 --   feedback_author_messages     — the AUTHOR-VISIBLE message channel (admin <->
 --                                  feedback author). Separate table on purpose:
 --                                  it is the only way `admin_feedback_messages`
 --                                  can stay categorically admin-only.
 --   public.owns_feedback(uuid)   — security-definer ownership probe
 --   public.my_feedback           — the author-facing coarse-status projection
+--
+-- TWO FLAVOURS OF "NEEDS INPUT" (feedback 5920cf8c, question (3), confirmed by
+-- the admin — the distinction is the whole point):
+--   needs_input        — the ROUTINE asks the ADMIN. Admin-only in every sense:
+--                        the question lives in `admin_feedback_messages`, and the
+--                        author sees the topic as plain "in Bearbeitung".
+--   needs_input_author — the ADMIN asks the AUTHOR. Author-facing: it is set from
+--                        the author channel, surfaces in `my_feedback` as
+--                        'question', and parks the topic out of the routine's
+--                        `status = 'open'` queue while the answer is pending.
 --
 -- IDEMPOTENT: safe to re-run (if-not-exists / or-replace / drop-if-exists).
 -- ============================================================
@@ -91,11 +102,18 @@ comment on column public.admin_feedback.decision_note is
 -- rather than a DELETE precisely because the author still has to be able to see
 -- "nicht umgesetzt" + the reason; a hard delete would cascade the author's own
 -- thread away and leave them with a silently vanished topic.
+--
+-- 'needs_input_author' = the ADMIN asked the AUTHOR something and waits on the
+-- answer. Active (not terminal), but deliberately NOT 'open', so the autonomous
+-- routine — whose queue is `status = 'open'` — leaves the topic alone while the
+-- question is pending. Maintained by the trigger in section 3b, never by hand.
+-- Not to be confused with 'needs_input' (the routine asking the admin), which
+-- stays invisible to the author.
 alter table public.admin_feedback drop constraint if exists admin_feedback_status_check;
 alter table public.admin_feedback
   add constraint admin_feedback_status_check
   check (status in ('open', 'in_progress', 'shipped', 'rejected', 'needs_input',
-                    'issue_created', 'declined'));
+                    'issue_created', 'declined', 'needs_input_author'));
 
 -- The author's own "my feedback" read (via public.my_feedback).
 create index if not exists admin_feedback_author_source_idx
@@ -213,6 +231,63 @@ revoke all on public.feedback_author_messages from anon;
 grant select, insert, delete on public.feedback_author_messages to authenticated;
 
 -- ============================================================
+-- 3b) The author-question status, maintained by the channel itself
+--
+-- The admin's decision (feedback 5920cf8c, question (3)): asking the AUTHOR
+-- something needs its own status, and unlike `needs_input` it IS visible to the
+-- author. Deriving it from "is the last channel message an unanswered admin
+-- question?" would have left the routine's `status = 'open'` queue free to pick
+-- the topic up and ship it while the admin is still waiting for an answer — so
+-- it is a real status value, and this trigger is what sets and clears it:
+--
+--   admin asks (from_admin and is_question) -> status = 'needs_input_author'
+--       (never on a terminal topic — a shipped/declined row stays closed)
+--   author answers (not from_admin)         -> status back to 'open'
+--       (only from 'needs_input_author'; an in_progress or needs_input topic is
+--        the routine's/admin's business and is left exactly as it is)
+--
+-- SECURITY DEFINER is required, not convenience: the author who inserts the
+-- answering message has no UPDATE policy on admin_feedback at all (by design),
+-- so the status flip has to happen with the definer's rights. The function is
+-- deliberately narrow — it writes one column, on one row, only in the two
+-- transitions above, and it never touches `triaged`, so an author can never
+-- release their own topic to the autonomous routine by replying.
+-- ============================================================
+
+create or replace function public.feedback_author_channel_sync_status()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.from_admin and new.is_question then
+    update public.admin_feedback
+       set status = 'needs_input_author'
+     where id = new.feedback_id
+       and status not in ('shipped', 'issue_created', 'rejected', 'declined');
+  elsif not new.from_admin then
+    update public.admin_feedback
+       set status = 'open'
+     where id = new.feedback_id
+       and status = 'needs_input_author';
+  end if;
+  return null;
+end;
+$$;
+
+comment on function public.feedback_author_channel_sync_status() is
+  'Keeps admin_feedback.status in sync with the author channel: an admin question '
+  'parks the topic as needs_input_author (author-visible, out of the routine''s '
+  'open queue), the author''s answer returns it to open. Security definer because '
+  'the answering author has no UPDATE right on admin_feedback.';
+
+drop trigger if exists feedback_author_messages_sync_status on public.feedback_author_messages;
+create trigger feedback_author_messages_sync_status
+  after insert on public.feedback_author_messages
+  for each row execute function public.feedback_author_channel_sync_status();
+
+-- ============================================================
 -- 4) admin_feedback: let a non-admin file a topic
 --
 -- INSERT only. No SELECT / UPDATE / DELETE policy is added for non-admins, so
@@ -255,9 +330,16 @@ create policy admin_feedback_insert_author on public.admin_feedback
 --       -- note: `needs_input` means the ROUTINE is asking the ADMIN. That
 --          conversation is invisible to the author, so it must read as plain
 --          "in Bearbeitung" and must NOT look like a question to them.
---   unanswered admin question in the author channel -> 'question'   ("Rückfrage an dich")
+--   needs_input_author                              -> 'question'   ("Rückfrage an dich")
+--       -- the ONLY question flavour the author ever sees: an admin explicitly
+--          asked THEM. Set/cleared by the trigger in 3b, so the author's answer
+--          takes the topic back to "in Bearbeitung" on its own.
 --   shipped                                         -> 'done'       ("Umgesetzt")
 --   declined | legacy rejected                      -> 'declined'   ("Nicht umgesetzt" + decision_note)
+--
+-- The mapping is intentionally driven by `status` alone (no peek into the
+-- channel): one source of truth, and the client's `coarseAuthorStatus()` in
+-- `user-feedback.types.ts` mirrors this CASE one-to-one.
 -- ============================================================
 
 drop view if exists public.my_feedback;
@@ -272,20 +354,10 @@ select
   case
     when f.status in ('declined', 'rejected') then 'declined'
     when f.status = 'shipped'                 then 'done'
-    when q.pending                            then 'question'
+    when f.status = 'needs_input_author'      then 'question'
     else 'in_progress'
   end as author_status
 from public.admin_feedback f
-left join lateral (
-  -- The newest message in the author channel: it is a pending question only
-  -- while the admin's question is still the last word (the author's reply
-  -- silently takes the topic back to "in Bearbeitung").
-  select (m.from_admin and m.is_question) as pending
-  from public.feedback_author_messages m
-  where m.feedback_id = f.id
-  order by m.created_at desc, m.id desc
-  limit 1
-) q on true
 where f.source = 'user'
   and f.author_id = auth.uid();
 

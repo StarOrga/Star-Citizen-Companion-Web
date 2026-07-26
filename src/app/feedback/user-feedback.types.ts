@@ -9,9 +9,9 @@
  *   status, processing notes, ship refs, the admin <-> routine thread.
  * - The author side sees a deliberately *coarse* status and nothing else. In
  *   particular `needs_input` — the routine asking the ADMIN something — is
- *   invisible to the author and reads as plain "in Bearbeitung". Only a
- *   question an admin explicitly addressed to the author surfaces as its own
- *   status.
+ *   invisible to the author and reads as plain "in Bearbeitung". Only
+ *   `needs_input_author`, the status set when an admin explicitly asks the
+ *   author something, surfaces to them as a question.
  *
  * {@link coarseAuthorStatus} mirrors the `public.my_feedback` view's CASE
  * expression one-to-one, so the admin panel can render "this is what the author
@@ -58,45 +58,20 @@ export interface AuthorFeedbackRow {
 }
 
 /**
- * True while an admin's question to the author is still the last word in the
- * channel. The author's own reply silently takes the topic back to
- * "in Bearbeitung" — there is no separate "answered" state on their side.
- */
-export function hasPendingAuthorQuestion(
-  messages: readonly AuthorFeedbackMessage[] | undefined,
-): boolean {
-  if (!messages || messages.length === 0) return false;
-  const last = messages[messages.length - 1];
-  return last.from_admin && last.is_question;
-}
-
-/**
- * The coarse status an author is shown for a topic — the client-side twin of
- * the `public.my_feedback` CASE expression.
+ * The coarse status an author is shown for a topic — the client-side twin of the
+ * `public.my_feedback` CASE expression, and the reason that mapping is unit
+ * tested here even though the database is the source of truth.
  *
- * Terminal states win over a pending question: once a topic shipped or was
- * declined, an old unanswered question is moot.
+ * Driven by `status` alone. The two "needs input" flavours are the crux:
+ * `needs_input_author` (an admin asked THIS author) is the only one that reads
+ * as a question, while `needs_input` (the routine asking the admin) deliberately
+ * folds into "in Bearbeitung" — that conversation does not exist for the author.
  */
-export function coarseAuthorStatus(
-  status: FeedbackStatus,
-  pendingQuestion: boolean,
-): AuthorFeedbackStatus {
+export function coarseAuthorStatus(status: FeedbackStatus): AuthorFeedbackStatus {
   if (status === 'declined' || status === 'rejected') return 'declined';
   if (status === 'shipped') return 'done';
-  // `needs_input` lands here on purpose: that is the routine asking the ADMIN,
-  // a conversation the author never sees, so it must read as "in Bearbeitung".
-  return pendingQuestion ? 'question' : 'in_progress';
-}
-
-/**
- * Convenience overload for the admin panel: what does the author currently see
- * for this topic, given the author channel we already loaded?
- */
-export function authorStatusOf(
-  status: FeedbackStatus,
-  messages: readonly AuthorFeedbackMessage[] | undefined,
-): AuthorFeedbackStatus {
-  return coarseAuthorStatus(status, hasPendingAuthorQuestion(messages));
+  if (status === 'needs_input_author') return 'question';
+  return 'in_progress';
 }
 
 /** Author-visible messages grouped by topic id. */

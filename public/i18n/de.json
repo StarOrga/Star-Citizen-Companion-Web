@@ -1178,6 +1178,7 @@
       "shipped": "Geshipped",
       "rejected": "Abgelehnt",
       "needs_input": "Rückfrage",
+      "needs_input_author": "Rückfrage an Absender",
       "issue_created": "Issue erstellt",
       "answered": "Beantwortet",
       "declined": "Nicht umgesetzt"
@@ -1248,7 +1249,7 @@
       "channelTitle": "Kanal zum Autor",
       "channelHint": "Alles hier ist für den Absender sichtbar. Der Verlauf oben (Admin ↔ Routine) ist es nicht.",
       "seesStatus": "Der Absender sieht:",
-      "asQuestion": "Als Rückfrage an den Absender senden",
+      "asQuestion": "Als Rückfrage an den Absender senden (parkt das Thema, bis er antwortet)",
       "messagePlaceholder": "Nachricht an den Absender…",
       "messageSend": "An Absender senden",
       "questionBadge": "Rückfrage",

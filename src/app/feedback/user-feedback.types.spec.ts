@@ -1,9 +1,7 @@
 import {
   AuthorFeedbackMessage,
-  authorStatusOf,
   coarseAuthorStatus,
   groupAuthorMessages,
-  hasPendingAuthorQuestion,
 } from './user-feedback.types';
 
 function msg(
@@ -22,72 +20,49 @@ function msg(
   };
 }
 
-describe('hasPendingAuthorQuestion', () => {
-  it('is false without any messages', () => {
-    expect(hasPendingAuthorQuestion(undefined)).toBe(false);
-    expect(hasPendingAuthorQuestion([])).toBe(false);
-  });
-
-  it('is true while an admin question is the last word', () => {
-    const thread = [
-      msg('m1', '2026-07-01T09:00:00Z', { from_admin: true }),
-      msg('m2', '2026-07-02T09:00:00Z', { from_admin: true, is_question: true }),
-    ];
-    expect(hasPendingAuthorQuestion(thread)).toBe(true);
-  });
-
-  it('falls back once the author answered', () => {
-    const thread = [
-      msg('m1', '2026-07-02T09:00:00Z', { from_admin: true, is_question: true }),
-      msg('m2', '2026-07-02T10:00:00Z', { from_admin: false }),
-    ];
-    expect(hasPendingAuthorQuestion(thread)).toBe(false);
-  });
-
-  it('ignores a plain admin note that is not a question', () => {
-    const thread = [msg('m1', '2026-07-02T09:00:00Z', { from_admin: true, is_question: false })];
-    expect(hasPendingAuthorQuestion(thread)).toBe(false);
-  });
-});
-
 describe('coarseAuthorStatus', () => {
   it('hides the routine’s needs_input behind "in Bearbeitung"', () => {
     // The admin insisted on this one: needs_input is the routine asking the
-    // ADMIN. The feedback author must never see it as a question aimed at them.
-    expect(coarseAuthorStatus('needs_input', false)).toBe('in_progress');
+    // ADMIN. The feedback author must never see it as a question aimed at them,
+    // and must not even be able to tell it apart from ordinary progress.
+    expect(coarseAuthorStatus('needs_input')).toBe('in_progress');
   });
 
-  it('maps every active status to in_progress', () => {
+  it('surfaces only the author-directed question flavour', () => {
+    expect(coarseAuthorStatus('needs_input_author')).toBe('question');
+  });
+
+  it('maps every other active status to in_progress', () => {
     for (const s of ['open', 'in_progress', 'needs_input', 'issue_created'] as const) {
-      expect(coarseAuthorStatus(s, false)).toBe('in_progress');
+      expect(coarseAuthorStatus(s)).toBe('in_progress');
     }
   });
 
-  it('surfaces only an admin question to the author', () => {
-    expect(coarseAuthorStatus('open', true)).toBe('question');
-    expect(coarseAuthorStatus('needs_input', true)).toBe('question');
-  });
-
   it('maps shipped to done', () => {
-    expect(coarseAuthorStatus('shipped', false)).toBe('done');
+    expect(coarseAuthorStatus('shipped')).toBe('done');
   });
 
   it('maps declined and legacy rejected to declined', () => {
-    expect(coarseAuthorStatus('declined', false)).toBe('declined');
-    expect(coarseAuthorStatus('rejected', false)).toBe('declined');
+    expect(coarseAuthorStatus('declined')).toBe('declined');
+    expect(coarseAuthorStatus('rejected')).toBe('declined');
   });
 
-  it('lets a terminal status win over a stale unanswered question', () => {
-    expect(coarseAuthorStatus('shipped', true)).toBe('done');
-    expect(coarseAuthorStatus('declined', true)).toBe('declined');
-  });
-});
-
-describe('authorStatusOf', () => {
-  it('derives the pending question from the channel', () => {
-    const pending = [msg('m1', '2026-07-02T09:00:00Z', { from_admin: true, is_question: true })];
-    expect(authorStatusOf('in_progress', pending)).toBe('question');
-    expect(authorStatusOf('in_progress', [])).toBe('in_progress');
+  it('mirrors the my_feedback view: exactly four author-visible states', () => {
+    // Whatever the admin board's vocabulary grows to, the author side must stay
+    // at four coarse states — that is the privacy contract.
+    const all = (
+      [
+        'open',
+        'in_progress',
+        'needs_input',
+        'needs_input_author',
+        'issue_created',
+        'shipped',
+        'rejected',
+        'declined',
+      ] as const
+    ).map(coarseAuthorStatus);
+    expect(new Set(all)).toEqual(new Set(['in_progress', 'question', 'done', 'declined']));
   });
 });
 
@@ -101,5 +76,13 @@ describe('groupAuthorMessages', () => {
     expect(grouped.get('f1')?.map((m) => m.id)).toEqual(['a', 'c']);
     expect(grouped.get('f2')?.map((m) => m.id)).toEqual(['b']);
     expect(grouped.get('nope')).toBeUndefined();
+  });
+
+  it('keeps an admin question and the author’s answer in one thread', () => {
+    const grouped = groupAuthorMessages([
+      msg('q', '2026-07-01T09:00:00Z', { from_admin: true, is_question: true }),
+      msg('a', '2026-07-01T10:00:00Z'),
+    ]);
+    expect(grouped.get('f1')?.map((m) => m.is_question)).toEqual([true, false]);
   });
 });

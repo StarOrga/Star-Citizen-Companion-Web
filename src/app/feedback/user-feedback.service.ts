@@ -8,7 +8,6 @@ import {
   AuthorFeedbackRow,
   AuthorThreadMap,
   groupAuthorMessages,
-  hasPendingAuthorQuestion,
 } from './user-feedback.types';
 
 /**
@@ -99,9 +98,13 @@ export class UserFeedbackService {
     return this._threads().get(id) ?? [];
   }
 
-  /** True while the admin's question on this topic still awaits the author's answer. */
+  /**
+   * True while an admin's question on this topic awaits the author's answer.
+   * Read from the projected status, not from the channel: the database flips
+   * the topic back to "in Bearbeitung" the moment the author replies.
+   */
   awaitsAnswer(id: string): boolean {
-    return hasPendingAuthorQuestion(this._threads().get(id));
+    return this._topics().find((t) => t.id === id)?.author_status === 'question';
   }
 
   /**
