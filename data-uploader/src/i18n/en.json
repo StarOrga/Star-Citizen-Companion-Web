@@ -6,6 +6,16 @@
     "ok": "OK",
     "dismiss": "Dismiss"
   },
+  "confirm": {
+    "leave": {
+      "title": "Discard progress?",
+      "confirm": "Discard & go back",
+      "cancel": "Stay here",
+      "extract": "Extraction is still running. Going back aborts it and loses the progress.",
+      "upload": "Upload is still running. Going back interrupts it — you can resume it later.",
+      "uploadResumable": "There's a resumable upload. Going back loses your entry point to continue it here."
+    }
+  },
   "discover": {
     "title": "Find Star Citizen installs",
     "subtitle": "Runs automatically on launch: RSI launcher → filesystem scan. Add more folders by hand below.",

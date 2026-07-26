@@ -4,6 +4,37 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.0] - 2026-07-26
+
+### Fixed
+
+- **Data Uploader — no more hourly sign-out during multi-hour uploads.** A full
+  extract can take up to ~8h to upload, but the catalog and skin upload stages
+  captured one access token at stage start and reused it for the entire run.
+  Past the ~1h Supabase JWT lifetime every remaining request returned 401, so a
+  long upload "logged itself out every hour". The upload stages now resolve a
+  **fresh token per request** (wired to the session refresh that rotates the
+  token silently near expiry), so a run stays authorised from start to finish
+  regardless of the token TTL.
+- **Data Uploader — tray icon was invisible/transparent in the installed app.**
+  The tray (and window) icon file was never bundled into the package, so
+  `nativeImage` fell back to an empty image — a blank tray slot. On top of that
+  the near-black brand icon vanished against the dark Windows taskbar. Ships a
+  dedicated bright, transparent-background tray icon, bundled as an app resource
+  and loaded from the packaged resources path.
+
+### Added
+
+- **Data Uploader — sign in on every launch.** Opening the app now requires a
+  fresh login instead of silently reusing the stored session, giving each run a
+  token that lasts the whole upload. The unattended auto-start path keeps using
+  the saved session so scheduled auto-runs are unaffected.
+- **Data Uploader — "back" now warns before discarding progress.** Pressing back
+  during a running extraction or an in-flight/resumable upload opens an
+  SCC-styled confirmation overlay; only on confirm is the extraction aborted or
+  the upload paused (it stays resumable), so a stray click can't throw away
+  hours of work.
+
 ## [0.46.6] - 2026-07-24
 
 ### Fixed

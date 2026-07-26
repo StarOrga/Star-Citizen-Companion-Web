@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, ipcMain, dialog, shell, clipboard } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { exec } from 'node:child_process';
 import log from 'electron-log';
 import { initLogging, logFromRenderer } from './logging.js';
@@ -66,6 +67,20 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let mainWindow: BrowserWindow | null = null;
 
+/**
+ * Resolve a runtime icon that ships under `build/` in dev but is copied to
+ * `<resources>/` in the packaged app (electron-builder extraResources). Same
+ * two-layout problem the tray solves — kept here so the BrowserWindow icon is
+ * never a dead path in production.
+ */
+function runtimeIcon(name: string): string {
+  const candidates = [
+    join(process.resourcesPath ?? '', name),
+    join(__dirname, '../../build', name),
+  ];
+  return candidates.find((p) => p && existsSync(p)) ?? candidates[candidates.length - 1]!;
+}
+
 // Main's own copy of pipeline progress — the tray renders from this, and must
 // keep working while the window is hidden (i.e. with no renderer listening).
 const hub = new ProgressHub();
@@ -119,7 +134,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     backgroundColor: '#050810',
     title: 'Star Citizen Companion - Data Uploader',
-    icon: join(__dirname, '../../build/icon.png'),
+    icon: runtimeIcon('icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
       sandbox: true,
@@ -186,7 +201,27 @@ ipcMain.handle('sc:env', () => ({
   webBase: WEB_BASE,
   releaseTokenFingerprint: RELEASE_TOKEN.slice(0, 8) + '…',
   platform: process.platform,
+  // True only for the unattended autostart launch (`--hidden`). The renderer
+  // uses this to require a fresh interactive login on a normal (foreground)
+  // start, while letting the unattended auto-run reuse the persisted session.
+  startedHidden: process.argv.includes('--hidden'),
 }));
+
+/**
+ * A bearer token that is guaranteed fresh at call time. `ensureAccessToken`
+ * silently refreshes a near-expiry session via the stored refresh token, so a
+ * multi-hour upload keeps authorising instead of dying ~1h in. Falls back to the
+ * token the renderer captured at stage start if the session store is somehow
+ * unavailable.
+ */
+async function freshToken(fallback: string): Promise<string> {
+  try {
+    const r = await ensureAccessToken();
+    return r.token ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 // ============= Settings / Telemetry IPC =============
 
@@ -462,7 +497,12 @@ ipcMain.handle('sc:upload', async (_e, payload: UploadPayload) => {
   uploadJob.update((s) => ({ ...s, bundle: { ...s.bundle, status: 'running', attempted: true } }));
   hub.start('upload');
   hub.update('upload', 'bundle', null);
-  const result = await uploadBundle(API_BASE, payload);
+  // Refresh the token right before the POST — a resume can fire this long after
+  // the renderer captured its token.
+  const result = await uploadBundle(API_BASE, {
+    ...payload,
+    accessToken: await freshToken(payload.accessToken),
+  });
   if (result.ok) {
     uploadJob.update((s) => ({
       ...s,
@@ -693,7 +733,9 @@ ipcMain.handle(
   async (event, accessToken: string, ships: { shipId: string; dir: string }[]): Promise<SkinUploadResult[]> => {
     try {
       const results = await uploadSkins(
-        accessToken,
+        // Getter, not a static token: multi-GB ships take long enough that the
+        // captured JWT would expire; re-read a fresh one per ingest call.
+        () => freshToken(accessToken),
         ships,
         (message, level) =>
           event.sender.send('sc:skin:event', { jobId: 'upload', type: 'log', message, level: level ?? 'info' }),
@@ -723,7 +765,9 @@ ipcMain.handle(
   async (event, accessToken: string, outDir: string): Promise<CatalogUploadResult> => {
     try {
       const result = await uploadCatalog(
-        accessToken,
+        // Getter, not a static token: the catalog stage runs for hours, so each
+        // chunk request re-reads a fresh (auto-refreshed) JWT.
+        () => freshToken(accessToken),
         outDir,
         (p) => {
           // Two-tier: the overall publish step drives the tray's percentage,

@@ -47,10 +47,16 @@ let deps: TrayDeps | null = null;
 let lastState: HubState | null = null;
 
 function iconPath(): string {
-  // Packaged and dev layouts differ; fall back to the build icon either way.
+  // A dedicated tray asset (bright/transparent, `tray.png`) — the app icon is a
+  // near-black square that vanishes on the dark taskbar. Packaged and dev layouts
+  // differ: packaged copies it to `<resources>/tray.png` (electron-builder
+  // extraResources), dev reads it straight from `build/`. Fall through to the
+  // app icon only if the tray asset is somehow absent.
   const candidates = [
+    join(process.resourcesPath ?? '', 'tray.png'),
+    join(__dirname, '../../build/tray.png'),
+    join(process.resourcesPath ?? '', 'icon.png'),
     join(__dirname, '../../build/icon.png'),
-    join(process.resourcesPath ?? '', 'build', 'icon.png'),
   ];
   return candidates.find((p) => p && existsSync(p)) ?? candidates[0]!;
 }

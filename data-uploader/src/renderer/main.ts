@@ -196,6 +196,13 @@ async function init(): Promise<void> {
   const env = await window.sc.env();
   paintEnv(env);
 
+  // "Require a login every time the app is opened": a normal (foreground) launch
+  // must not silently reuse the persisted session — the operator signs in fresh,
+  // which also mints a token good for the whole run. The unattended `--hidden`
+  // autostart is exempt: it has no one to click "connect", so it keeps using the
+  // stored session to drive the auto-run.
+  requireFreshLogin = !env.startedHidden;
+
   const select = $('#lang-select') as HTMLSelectElement | null;
   if (select) {
     select.value = getLocale();
@@ -364,6 +371,11 @@ const conn = {
   resolved: false,
 };
 
+// Set true on a foreground launch (see init): the operator must sign in fresh
+// this session before any silent/persisted token is used. Cleared the moment an
+// interactive login succeeds.
+let requireFreshLogin = false;
+
 async function initConnectionTile(): Promise<void> {
   // 1. Instant paint from the remembered snapshot — no network ("Fortschritt gemerkt").
   try {
@@ -382,7 +394,18 @@ async function initConnectionTile(): Promise<void> {
     paintConnection();
   });
 
-  // 3. Resolve session + auto-connect/sync without user interaction.
+  // 3. A foreground launch requires a fresh login: DON'T auto-connect from the
+  // persisted session — show the disconnected tile so the operator signs in
+  // deliberately. (`connectNow`/`ensureUploadToken` then run the interactive
+  // browser flow.) The unattended `--hidden` autostart still auto-connects.
+  if (requireFreshLogin) {
+    conn.status = { connected: false, email: null, expiresAt: null, canPersist: true, needsReconnect: false };
+    conn.resolved = true;
+    paintConnection();
+    return;
+  }
+
+  // 4. Unattended: resolve session + auto-connect/sync without user interaction.
   await refreshConnection();
 }
 
@@ -450,6 +473,10 @@ let lastSessionRevalidateAt = 0;
 
 async function revalidateSession(force = false): Promise<void> {
   if (!conn.resolved) return; // initial resolve owns the first status fetch
+  // While a fresh login is still required (foreground launch, not signed in
+  // yet), don't probe the persisted session — that would silently flip the pill
+  // to "connected" and undermine the sign-in-on-every-start guarantee.
+  if (requireFreshLogin) return;
   const now = Date.now();
   if (!force && now - lastSessionRevalidateAt < SESSION_REVALIDATE_THROTTLE_MS) return;
   lastSessionRevalidateAt = now;
@@ -475,6 +502,7 @@ async function connectNow(): Promise<void> {
     const r = await window.sc.authenticate();
     if (r.ok && r.accessToken) {
       state.authToken = r.accessToken;
+      requireFreshLogin = false; // signed in this session
       await refreshConnection();
     } else {
       conn.error = r.error ?? (t('session.connectFailed', {}) || 'Anmeldung fehlgeschlagen');
@@ -504,19 +532,27 @@ async function signOutNow(): Promise<void> {
 
 // Prefer the persisted/refreshed session token (no re-login); fall back to an
 // interactive browser login only when there is no usable session.
+//
+// Exception: on a foreground launch (`requireFreshLogin`) the operator has not
+// yet signed in THIS session, so skip the silent/persisted token entirely and go
+// straight to the interactive browser login — otherwise "log in on every start"
+// would be silently defeated by the stored session.
 async function ensureUploadToken(): Promise<string | null> {
-  try {
-    const tok = await window.sc.session.token();
-    if (tok.token) {
-      state.authToken = tok.token;
-      return tok.token;
+  if (!requireFreshLogin) {
+    try {
+      const tok = await window.sc.session.token();
+      if (tok.token) {
+        state.authToken = tok.token;
+        return tok.token;
+      }
+    } catch {
+      /* fall through to interactive login */
     }
-  } catch {
-    /* fall through to interactive login */
   }
   const r = await window.sc.authenticate();
   if (r.ok && r.accessToken) {
     state.authToken = r.accessToken;
+    requireFreshLogin = false; // signed in this session
     void refreshConnection();
     return r.accessToken;
   }
@@ -1196,8 +1232,24 @@ function markBundleReady(): void {
 
 function wireRun(): void {
   $('#btn-back-configure')?.addEventListener('click', () => {
-    state.view = 'configure';
-    render();
+    void (async () => {
+      const ok = await confirmLeave(
+        extractRunning,
+        'confirm.leave.extract',
+        'Die Extraktion läuft noch. Gehst du zurück, wird sie abgebrochen und der Fortschritt geht verloren.',
+      );
+      if (!ok) return;
+      // Actually abort the sidecar so it isn't orphaned running in the background.
+      if (currentExtractJobId) {
+        try {
+          await window.sc.extract.cancel(currentExtractJobId);
+        } catch {
+          /* best-effort — navigate away regardless */
+        }
+      }
+      state.view = 'configure';
+      render();
+    })();
   });
   $('#btn-to-upload')?.addEventListener('click', () => {
     state.view = 'auth-upload';
@@ -1265,6 +1317,7 @@ async function runRealExtract(): Promise<void> {
   appendLog(`output → ${outDir}`);
 
   const unsubscribe = window.sc.extract.onEvent((ev) => {
+    currentExtractJobId = ev.jobId; // stable for the run; lets "back" abort it
     switch (ev.type) {
       case 'phase': {
         const label = phaseLabel(ev.phase ?? 'unknown');
@@ -1322,6 +1375,7 @@ async function runRealExtract(): Promise<void> {
     }
   });
 
+  extractRunning = true;
   try {
     const final = await window.sc.extract.start({
       p4kPath: channel.dataP4kPath,
@@ -1369,6 +1423,8 @@ async function runRealExtract(): Promise<void> {
       appendLog(final.error ?? 'unknown extraction failure', 'error');
     }
   } finally {
+    extractRunning = false;
+    currentExtractJobId = null;
     unsubscribe();
     progress.stop();
     progress.update({ indeterminate: false });
@@ -1484,8 +1540,30 @@ function wireAuthUpload(): void {
     stepLabel: stepCounterLabel,
   });
   $('#btn-back-run')?.addEventListener('click', () => {
-    state.view = 'run';
-    render();
+    void (async () => {
+      // An in-flight upload, or a resumable job on disk, is real progress the
+      // back navigation would walk away from — confirm before leaving.
+      const risk = uploadRunning || !!state.resumableJob?.resumable;
+      const ok = await confirmLeave(
+        risk,
+        uploadRunning ? 'confirm.leave.upload' : 'confirm.leave.uploadResumable',
+        uploadRunning
+          ? 'Der Upload läuft noch. Gehst du zurück, wird er unterbrochen.'
+          : 'Es gibt einen fortsetzbaren Upload. Gehst du zurück, verlierst du den Einstiegspunkt hier.',
+      );
+      if (!ok) return;
+      // Cleanly pause an in-flight upload so it unwinds at the next checkpoint
+      // and stays resumable — matches the "you can continue later" wording.
+      if (uploadRunning) {
+        try {
+          await window.sc.uploadJob.pause();
+        } catch {
+          /* best-effort — navigate away regardless */
+        }
+      }
+      state.view = 'run';
+      render();
+    })();
   });
   $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
   $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
@@ -1595,6 +1673,88 @@ function paintJobNotice(): void {
 
 /** True while this renderer is actively driving the stages. */
 let uploadRunning = false;
+
+/** True while a local P4K extraction is in flight (Run view). */
+let extractRunning = false;
+/** Job id of the in-flight extraction, so "back" can actually abort it. */
+let currentExtractJobId: string | null = null;
+
+interface ConfirmOptions {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel: string;
+}
+
+/**
+ * SCC-styled confirmation overlay. Resolves true if the operator confirms the
+ * (destructive) action, false on cancel / Escape / backdrop click. Used to guard
+ * a "back" navigation that would throw away a running extraction or upload
+ * progress. Dynamic text is set via textContent (never innerHTML) so a channel
+ * name or filename can't inject markup.
+ */
+function confirmDiscard(opts: ConfirmOptions): Promise<boolean> {
+  return new Promise((resolve) => {
+    document.getElementById('sc-modal-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sc-modal-overlay';
+    overlay.className = 'sc-modal-overlay';
+    overlay.innerHTML = `
+      <div class="sc-modal" role="alertdialog" aria-modal="true" aria-labelledby="sc-modal-title" aria-describedby="sc-modal-msg">
+        <h2 class="sc-modal-title" id="sc-modal-title"></h2>
+        <p class="sc-modal-msg" id="sc-modal-msg"></p>
+        <div class="sc-modal-actions">
+          <button type="button" class="btn sc-modal-cancel"></button>
+          <button type="button" class="btn btn-danger sc-modal-confirm"></button>
+        </div>
+      </div>`;
+    const q = <T extends HTMLElement>(sel: string): T => overlay.querySelector(sel) as T;
+    q('#sc-modal-title').textContent = opts.title;
+    q('#sc-modal-msg').textContent = opts.message;
+    const cancelBtn = q<HTMLButtonElement>('.sc-modal-cancel');
+    const confirmBtn = q<HTMLButtonElement>('.sc-modal-confirm');
+    cancelBtn.textContent = opts.cancelLabel;
+    confirmBtn.textContent = opts.confirmLabel;
+
+    const close = (result: boolean): void => {
+      document.removeEventListener('keydown', onKey, true);
+      overlay.remove();
+      resolve(result);
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close(false);
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close(false);
+    });
+    cancelBtn.addEventListener('click', () => close(false));
+    confirmBtn.addEventListener('click', () => close(true));
+
+    document.body.appendChild(overlay);
+    // Focus the SAFE default (cancel), so a stray Enter doesn't discard work.
+    cancelBtn.focus();
+  });
+}
+
+/**
+ * Guard a "back" navigation. When leaving the view would forfeit in-flight work,
+ * ask first via the SCC overlay; otherwise navigate straight away. `risk` is the
+ * caller's judgement of whether anything is actually at stake.
+ */
+async function confirmLeave(risk: boolean, messageKey: string, fallbackMsg: string): Promise<boolean> {
+  if (!risk) return true;
+  return confirmDiscard({
+    title: t('confirm.leave.title', {}) || 'Fortschritt verwerfen?',
+    message: t(messageKey, {}) || fallbackMsg,
+    confirmLabel: t('confirm.leave.confirm', {}) || 'Verwerfen & zurück',
+    cancelLabel: t('confirm.leave.cancel', {}) || 'Weiter hier bleiben',
+  });
+}
 
 async function doPauseUpload(): Promise<void> {
   // Only signals intent — the stages unwind at their next chunk boundary, and
