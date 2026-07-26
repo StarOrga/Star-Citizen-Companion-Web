@@ -6,6 +6,16 @@
     "ok": "OK",
     "dismiss": "Schließen"
   },
+  "confirm": {
+    "leave": {
+      "title": "Fortschritt verwerfen?",
+      "confirm": "Verwerfen & zurück",
+      "cancel": "Weiter hier bleiben",
+      "extract": "Die Extraktion läuft noch. Gehst du zurück, wird sie abgebrochen und der Fortschritt geht verloren.",
+      "upload": "Der Upload läuft noch. Gehst du zurück, wird er unterbrochen — du kannst ihn später fortsetzen.",
+      "uploadResumable": "Es gibt einen fortsetzbaren Upload. Gehst du zurück, verlierst du hier den Einstiegspunkt zum Fortsetzen."
+    }
+  },
   "discover": {
     "title": "Star-Citizen-Installations finden",
     "subtitle": "Läuft automatisch beim Start: RSI-Launcher → Filesystem-Scan. Weitere Ordner kannst du unten manuell hinzufügen.",

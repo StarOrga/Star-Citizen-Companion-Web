@@ -40,6 +40,14 @@ export interface SkinUploadResult {
 type LogFn = (message: string, level?: 'info' | 'warn' | 'error') => void;
 
 /**
+ * Either a fixed bearer token or a getter for a FRESH one. Skin uploads move
+ * multi-GB models per ship and can run for hours, so — exactly like the catalog
+ * upload — a token captured once goes stale mid-run. A getter (wired in main to
+ * `ensureAccessToken`) keeps every `ingest-skins` call authorised.
+ */
+export type SkinToken = string | (() => string | Promise<string>);
+
+/**
  * Resume + pause wiring. All optional — omitting `hooks` keeps the original
  * one-shot behaviour.
  */
@@ -61,9 +69,10 @@ interface SignedUpload {
 }
 
 async function callIngest(
-  accessToken: string,
+  getToken: () => string | Promise<string>,
   body: unknown,
 ): Promise<{ ok: boolean; json: Record<string, unknown>; error?: string }> {
+  const accessToken = await getToken();
   const res = await fetch(fnUrl('ingest-skins'), {
     method: 'POST',
     headers: {
@@ -95,13 +104,16 @@ async function putSigned(u: SignedUpload | undefined, file: string, contentType:
 
 /** Upload every exported ship (one <out>/<ship_id> dir each) to Supabase. */
 export async function uploadSkins(
-  accessToken: string,
+  accessToken: SkinToken,
   ships: { shipId: string; dir: string }[],
   onLog: LogFn,
   hooks: SkinUploadHooks = {},
 ): Promise<SkinUploadResult[]> {
   const out: SkinUploadResult[] = [];
   const done = new Set(hooks.doneShips ?? []);
+  // Resolved per call so a multi-hour run refreshes the JWT instead of reusing
+  // the one captured at stage start.
+  const getToken = typeof accessToken === 'function' ? accessToken : (): string => accessToken;
   for (const { shipId, dir } of ships) {
     try {
       // Safe boundary between ships — a pause here costs nothing to replay.
@@ -135,7 +147,7 @@ export async function uploadSkins(
         objects.push({ skin_id: s.id, ext: 'glb' });
         if (s.icon) objects.push({ skin_id: s.id, ext: 'webp' });
       }
-      const signed = await callIngest(accessToken, { action: 'sign', ship_id: cat.ship, objects });
+      const signed = await callIngest(getToken, { action: 'sign', ship_id: cat.ship, objects });
       if (!signed.ok) {
         out.push({ ok: false, ship_id: shipId, error: signed.error });
         continue;
@@ -169,7 +181,7 @@ export async function uploadSkins(
         has_icon: !!s.icon,
         model_bytes: s.model_mb ? Math.round(s.model_mb * 1e6) : null,
       }));
-      const committed = await callIngest(accessToken, { action: 'commit', ship_id: cat.ship, skins });
+      const committed = await callIngest(getToken, { action: 'commit', ship_id: cat.ship, skins });
       if (!committed.ok) {
         out.push({ ok: false, ship_id: shipId, uploaded: n, error: committed.error });
         continue;

@@ -7,6 +7,10 @@
  * Emits:
  *   - `build/icon.ico` — electron-builder's Windows taskbar / exe icon.
  *   - `build/icon.png` — the runtime BrowserWindow icon (main/index.ts).
+ *   - `build/tray.png` — the system-tray icon (main/tray.ts). Rendered from a
+ *     SEPARATE source (`public/icons/scc-tray.svg`): the app icon's near-black
+ *     square disappears on the dark Windows taskbar, so the tray needs a
+ *     transparent-background, bright-cyan variant to stay visible.
  *
  * Pipeline: resvg-js renders the SVG at multiple resolutions → png-to-ico packs
  * them into a single multi-resolution .ico. Sizes follow Windows conventions
@@ -24,9 +28,11 @@ import pngToIco from 'png-to-ico';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const SVG_PATH = resolve(ROOT, '../public/icons/scc-favicon.svg');
+const TRAY_SVG_PATH = resolve(ROOT, '../public/icons/scc-tray.svg');
 const OUT_DIR = resolve(ROOT, 'build');
 const OUT_ICO = resolve(OUT_DIR, 'icon.ico');
 const OUT_PNG = resolve(OUT_DIR, 'icon.png');
+const OUT_TRAY = resolve(OUT_DIR, 'tray.png');
 
 const SIZES = [16, 24, 32, 48, 64, 128, 256];
 
@@ -52,6 +58,12 @@ async function main() {
   // 256px PNG for the BrowserWindow runtime icon (titlebar / alt-tab).
   writeFileSync(OUT_PNG, pngs[pngs.length - 1]);
   console.log(`wrote ${OUT_PNG} (${pngs[pngs.length - 1].length} bytes, 256px)`);
+
+  // Tray icon from its own bright/transparent source, so it stays visible on the
+  // dark Windows taskbar. 256px transparent PNG; Electron downsamples per DPI.
+  const trayPng = renderPng(readFileSync(TRAY_SVG_PATH, 'utf-8'), 256);
+  writeFileSync(OUT_TRAY, trayPng);
+  console.log(`wrote ${OUT_TRAY} (${trayPng.length} bytes, 256px, transparent)`);
 }
 
 main().catch((err) => {
