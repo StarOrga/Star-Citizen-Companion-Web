@@ -13,14 +13,23 @@
 //   - `Authorization: Bearer <jwt>` → user role must be admin/collaborator
 //   Token check first; JWT only if no token header was sent.
 //
+// Products: `?product=uploader` (default) or `?product=starscape`. Starscape is
+// the native Rust tray app, which shares this feed but is public-by-design:
+//   - its binaries are public GitHub-mirror assets,
+//   - so ANY signed-in role may read it (the SQL resolver clamps the channel to
+//     the caller's tier anyway), and an unauthenticated request is served as
+//     'viewer' → stable. That lets a fresh install see a stable update before
+//     the user has ever signed in, without weakening the uploader's gate.
+//
 // Deploy with --no-verify-jwt because release-token requests have no JWT.
 //
 // Input:  GET
 //         Accept: application/yaml → electron-updater-format (default for Tool)
-//         Accept: application/json → human-readable (default for UI)
+//         Accept: application/json → human-readable (default for UI, and the
+//                 format the Starscape Rust updater parses)
 // Output: 200 (yaml or json based on Accept)
 //         401 unauthorized
-//         403 forbidden — not collaborator+ (JWT path only)
+//         403 forbidden — not collaborator+ (uploader JWT path only)
 //         404 no_release
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
@@ -32,6 +41,7 @@ const CORS = {
 };
 
 const CHANNELS = new Set(['alpha', 'beta', 'stable']);
+const PRODUCTS = new Set(['uploader', 'starscape']);
 
 /** Resolve the requested release channel from path suffix or ?channel=. */
 function resolveChannel(req: Request): string {
@@ -42,6 +52,17 @@ function resolveChannel(req: Request): string {
   const last = url.pathname.split('/').pop() ?? '';
   const stem = last.replace(/\.ya?ml$/i, '');
   return CHANNELS.has(stem) ? stem : 'stable';
+}
+
+/**
+ * Which product's rings to resolve. Defaults to 'uploader' so every existing
+ * electron-updater client keeps its exact behaviour — `desktop_channels` is
+ * keyed `(product, channel)` since the Starscape-channels migration, and an
+ * unfiltered channel lookup would now match more than one row.
+ */
+function resolveProduct(req: Request): string {
+  const q = new URL(req.url).searchParams.get('product') ?? '';
+  return PRODUCTS.has(q) ? q : 'uploader';
 }
 
 interface ReleaseRow {
@@ -59,6 +80,13 @@ interface ReleaseRow {
   >;
   notes: string | null;
   created_at: string;
+  /**
+   * The channel the row was actually resolved on. Both `*_release_for_channel`
+   * RPCs return it, and it is the CLAMPED ring, not the requested one — that
+   * difference is the whole point (see `respondForChannel`). Absent on the
+   * release-token path, which reads the pointer table directly.
+   */
+  channel?: string;
 }
 
 function jsonResp(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
@@ -122,6 +150,36 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const releaseToken = req.headers.get('x-sc-release-token');
   const authHeader = req.headers.get('authorization');
+  const product = resolveProduct(req);
+
+  // --- Starscape: the role clamp is ALWAYS authoritative ---------------------
+  // Starscape's ring is locked at download time and cannot be changed in-app, so
+  // the ONLY thing keeping a viewer off beta/alpha is the SQL clamp. The release
+  // token therefore must not act as a channel bypass the way it does for the
+  // uploader (where the ring is a user-chosen, role-gated setting): here it is
+  // only proof of a known, non-revoked build, plus the kill switch for a leaked
+  // one. Whatever auth is present decides the tier; none at all means viewer.
+  if (product === 'starscape') {
+    if (releaseToken) {
+      if (!serviceKey) return jsonResp({ error: 'service_misconfigured' }, 500);
+      const adminClient = createClient(supabaseUrl, serviceKey);
+      const { data: tokenRow } = await adminClient
+        .from('desktop_releases')
+        .select('id')
+        .eq('release_token', releaseToken)
+        .eq('product', 'starscape')
+        .eq('token_revoked', false)
+        .maybeSingle();
+      if (!tokenRow) return jsonResp({ error: 'invalid_or_revoked_release_token' }, 401);
+    }
+    // An Authorization header that does not resolve to a user is not fatal —
+    // an expired JWT simply degrades to the anonymous (stable) view instead of
+    // failing the silent background check with a 401.
+    const client = authHeader
+      ? createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } })
+      : createClient(supabaseUrl, anonKey);
+    return await respondForChannel(client, req, resolveChannel(req), true, 'starscape');
+  }
 
   // --- Auth path 1: release-token (Tool, pre-login) ---
   if (releaseToken) {
@@ -135,17 +193,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // release token and then serve the CURRENT release below. token_revoked is
     // the explicit kill-switch for a leaked token (preserves the intent of the
     // Codex 2026-05-24 HIGH 1 finding) without self-defeating the updater.
+    // Scope the token to its own product: a Starscape token must not unlock the
+    // uploader's rings (and vice versa) now that both share this feed.
     const { data: tokenRow } = await adminClient
       .from('desktop_releases')
       .select('id')
       .eq('release_token', releaseToken)
+      .eq('product', product)
       .eq('token_revoked', false)
       .maybeSingle();
     if (!tokenRow) return jsonResp({ error: 'invalid_or_revoked_release_token' }, 401);
     // Token valid → serve the requested channel's pointer. No server-side role
     // clamp on the token path: binaries are public (GitHub mirror) and the
     // channel picker is UI-gated per role; the token only proves "a known build".
-    return await respondForChannel(adminClient, req, resolveChannel(req), false);
+    return await respondForChannel(adminClient, req, resolveChannel(req), false, product);
   }
 
   // --- Auth path 2: JWT + role (Web UI) ---
@@ -169,7 +230,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   // Role known here → clamp the requested channel to the caller's tier.
-  return await respondForChannel(userClient, req, resolveChannel(req), true);
+  return await respondForChannel(userClient, req, resolveChannel(req), true, product);
 });
 
 async function respondForChannel(
@@ -177,24 +238,38 @@ async function respondForChannel(
   req: Request,
   channel: string,
   clamp: boolean,
+  product: string,
 ): Promise<Response> {
   let release: ReleaseRow | null = null;
   if (clamp) {
     // Role-clamped resolver (security-definer RPC decides the effective channel).
-    const { data, error } = await client.rpc('desktop_release_for_channel', { p_channel: channel });
+    const rpc = product === 'starscape' ? 'starscape_release_for_channel' : 'desktop_release_for_channel';
+    const { data, error } = await client.rpc(rpc, { p_channel: channel });
     if (error) return jsonResp({ error: 'query_failed', message: error.message }, 500);
     release = ((Array.isArray(data) ? data[0] : data) as unknown as ReleaseRow) ?? null;
   } else {
-    // Service client (token path) — read the channel pointer directly.
+    // Service client (token path) — read the channel pointer directly. The
+    // product filter is REQUIRED: `desktop_channels` is keyed (product, channel),
+    // so an unfiltered lookup matches one row per product and maybeSingle() errors.
     const { data, error } = await client
       .from('desktop_channels')
       .select('desktop_releases!inner(id, version, platforms, notes, created_at)')
       .eq('channel', channel)
+      .eq('product', product)
       .maybeSingle();
     if (error) return jsonResp({ error: 'query_failed', message: error.message }, 500);
     release = (data as { desktop_releases?: ReleaseRow } | null)?.desktop_releases ?? null;
   }
   if (!release) return jsonResp({ error: 'no_release' }, 404);
+
+  // Report the EFFECTIVE channel, never the requested one. The clamping RPC
+  // answers a viewer's `beta` request with the stable row, and echoing "beta"
+  // back would tell the caller its request was honoured — Starscape's whole
+  // "never install across rings" guard is a comparison against this field, so
+  // echoing the request silently disabled it (and with it the sign-in prompt).
+  // The token path has no clamp and no `channel` column, so it keeps the
+  // requested value, which there IS the served one.
+  const servedChannel = release.channel ?? channel;
 
   const accept = (req.headers.get('accept') ?? '').toLowerCase();
   if (accept.includes('yaml') || accept.includes('yml')) {
@@ -218,7 +293,8 @@ async function respondForChannel(
       notes: release.notes,
       releaseDate: release.created_at,
       platforms: release.platforms,
-      channel,
+      channel: servedChannel,
+      product,
     },
     200,
     { 'cache-control': 'private, max-age=60' },

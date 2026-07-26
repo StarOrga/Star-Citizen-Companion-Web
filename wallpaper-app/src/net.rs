@@ -1,6 +1,8 @@
-//! Minimal HTTPS via WinHTTP (native TLS, no crates). Two jobs:
+//! Minimal HTTPS via WinHTTP (native TLS, no crates). Jobs:
 //!   1. fetch the Starscape wallpaper list (Supabase PostgREST, publishable key)
 //!   2. download an original-resolution image from the RSI media CDN
+//!   3. talk to the update feed / auth API (GET + POST, see [`https_text`])
+//!   4. download the update binary from the public binaries mirror
 //! Everything is best-effort: any failure returns None and the caller retries.
 
 use std::ffi::c_void;
@@ -27,6 +29,32 @@ const LIST_PATH: &str =
 const MEDIA_HOST: &str = "media.robertsspaceindustries.com";
 const RSI_REFERER: &str = "https://robertsspaceindustries.com/";
 
+/// The Supabase project host, reused by the updater and the session refresh.
+pub const API_HOST: &str = SUPA_HOST;
+/// The publishable (anon) key — the same one the web bundle ships. RLS still
+/// governs access, so this is not a secret.
+pub const API_KEY: &str = SUPA_KEY;
+
+/// The ONLY prefix an update binary may be requested from.
+///
+/// A bare host allowlist would not pin anything: `github.com` hosts release
+/// assets for every account on the platform, so `https://github.com/<anyone>/
+/// <repo>/releases/download/…` would have passed. The owner and repository are
+/// therefore part of the pin, and it is matched as a literal prefix of the whole
+/// URL rather than as a parsed host.
+///
+/// GitHub answers with a 302 into its object store; WinHTTP follows that itself
+/// and its default redirect policy refuses an https→http downgrade. The redirect
+/// target is deliberately NOT pinned — the downloaded bytes are hash-checked
+/// against the catalog before installation regardless of where it landed, so it
+/// is not a trusted input.
+const BINARY_URL_PREFIX: &str =
+    "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/";
+
+/// Upper bound for an update download. Starscape is ~0.3 MB; 32 MB is a wide
+/// margin that still refuses a runaway response.
+const MAX_BINARY_BYTES: usize = 32 * 1024 * 1024;
+
 /// A fully-received HTTP response. `content_length` is the server-advertised
 /// body size when present (used to detect a short/truncated read).
 struct Response {
@@ -40,8 +68,20 @@ struct Response {
 /// handed back, because that is exactly how a corrupt "krisselig" wallpaper used
 /// to slip through.
 fn https_get(host: &str, path: &str, headers: &[String]) -> Option<Response> {
+    https_request("GET", host, path, headers, None)
+}
+
+/// GET/POST `https://{host}{path}`. `body` is sent verbatim (the caller supplies
+/// its own `Content-Type` header). Same all-or-nothing contract as [`https_get`].
+fn https_request(
+    method: &str,
+    host: &str,
+    path: &str,
+    headers: &[String],
+    body: Option<&[u8]>,
+) -> Option<Response> {
     unsafe {
-        let agent = wide("StarscapeWallpaper/0.1");
+        let agent = wide(&format!("StarscapeWallpaper/{}", env!("CARGO_PKG_VERSION")));
         let session = WinHttpOpen(
             agent.as_ptr(),
             WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
@@ -58,7 +98,7 @@ fn https_get(host: &str, path: &str, headers: &[String]) -> Option<Response> {
             WinHttpCloseHandle(session);
             return None;
         }
-        let verb = wide("GET");
+        let verb = wide(method);
         let path_w = wide(path);
         let request = WinHttpOpenRequest(
             connect,
@@ -85,7 +125,13 @@ fn https_get(host: &str, path: &str, headers: &[String]) -> Option<Response> {
             );
         }
 
-        let ok = WinHttpSendRequest(request, std::ptr::null(), 0, std::ptr::null(), 0, 0, 0) != 0
+        let (body_ptr, body_len) = match body {
+            Some(b) if !b.is_empty() => (b.as_ptr() as *const c_void, b.len() as u32),
+            _ => (std::ptr::null(), 0u32),
+        };
+        // dwTotalLength == dwOptionalLength → WinHTTP emits Content-Length itself.
+        let ok = WinHttpSendRequest(request, std::ptr::null(), 0, body_ptr, body_len, body_len, 0)
+            != 0
             && WinHttpReceiveResponse(request, std::ptr::null_mut()) != 0;
 
         let result = if ok {
@@ -144,9 +190,14 @@ unsafe fn query_content_length(request: *mut c_void) -> Option<u64> {
     }
 }
 
-/// Read the response body. Returns `None` if the stream fails part-way through
-/// (so the caller can distinguish "complete" from "truncated"); `Some(bytes)`
-/// only on a clean end-of-response.
+/// Read the response body. Returns `None` if the stream fails part-way through,
+/// so the caller can distinguish "complete" from "truncated".
+///
+/// One caveat, deliberately: the ~40 MB runaway guard below `break`s out and
+/// therefore returns `Some` with a TRUNCATED body. Callers must not treat `Some`
+/// as "the whole body" on its own — both current consumers cross-check the length
+/// (`download_image` against `content_length`, `download_release_binary` against
+/// `content_length` *and* the catalog's `size_bytes` *and* a SHA-256).
 unsafe fn read_body(request: *mut c_void) -> Option<Vec<u8>> {
     let mut out = Vec::new();
     loop {
@@ -435,6 +486,128 @@ fn split_url(url: &str) -> Option<(&str, String)> {
     }
 }
 
+// ---------------- Update / auth transport ----------------
+
+/// Text request (`GET` or `POST`) against `host` → `(status, body)`.
+/// The caller supplies every header, including `Content-Type` for a POST.
+/// `None` means the request never completed cleanly — never a partial body.
+pub fn https_text(
+    method: &str,
+    host: &str,
+    path: &str,
+    headers: &[String],
+    body: Option<&[u8]>,
+) -> Option<(u16, String)> {
+    let resp = https_request(method, host, path, headers, body)?;
+    Some((resp.status, String::from_utf8_lossy(&resp.body).into_owned()))
+}
+
+/// True only for a URL inside [`BINARY_URL_PREFIX`].
+///
+/// Rejects the two ways a literal prefix check can be walked out of: a `..`
+/// segment (which the server would resolve back up out of the release path) and a
+/// backslash (which some resolvers treat as a separator). Everything else is a
+/// path under the pinned owner/repo, so it can only ever be one of that
+/// repository's release assets.
+fn is_pinned_binary_url(url: &str) -> bool {
+    url.starts_with(BINARY_URL_PREFIX) && !url.contains("..") && !url.contains('\\')
+}
+
+/// Download an update binary from the allowlisted binaries mirror, returning the
+/// bytes **in memory** so the caller can verify the SHA-256 before anything
+/// touches disk. `None` for a refused host, a non-200, a truncated stream, or an
+/// implausible size.
+pub fn download_release_binary(url: &str) -> Option<Vec<u8>> {
+    if !is_pinned_binary_url(url) {
+        log::line("update: refused a download URL outside the pinned binaries mirror");
+        return None;
+    }
+    let (host, path) = split_url(url)?;
+    let resp = https_request("GET", host, &path, &[], None)?;
+    if resp.status != 200 {
+        log::line(&format!("update: HTTP {} downloading {url}", resp.status));
+        return None;
+    }
+    if let Some(expected) = resp.content_length {
+        if (resp.body.len() as u64) < expected {
+            log::line(&format!(
+                "update: truncated {}/{} bytes for {url}",
+                resp.body.len(),
+                expected
+            ));
+            return None;
+        }
+    }
+    if resp.body.len() < 50_000 || resp.body.len() > MAX_BINARY_BYTES {
+        log::line(&format!("update: implausible size ({} bytes) for {url}", resp.body.len()));
+        return None;
+    }
+    Some(resp.body)
+}
+
+/// Extract a JSON string value for `key` from a flat-ish payload. Same tiny-scan
+/// approach as [`parse_source_urls`] — the update feed is a controlled shape and
+/// a JSON crate would dwarf the whole binary.
+pub fn json_str(json: &str, key: &str) -> Option<String> {
+    let needle = format!("\"{key}\":");
+    let i = json.find(&needle)? + needle.len();
+    let rest = json[i..].trim_start();
+    let rest = rest.strip_prefix('"')?;
+    // Values in this feed are urls / hex / semver — no escape sequences to unwrap.
+    let end = rest.find('"')?;
+    Some(rest[..end].to_string())
+}
+
+/// Extract a JSON number value for `key`.
+pub fn json_u64(json: &str, key: &str) -> Option<u64> {
+    let needle = format!("\"{key}\":");
+    let i = json.find(&needle)? + needle.len();
+    let rest = json[i..].trim_start();
+    let end = rest.find(|c: char| !c.is_ascii_digit()).unwrap_or(rest.len());
+    if end == 0 {
+        return None;
+    }
+    rest[..end].parse::<u64>().ok()
+}
+
+/// Narrow `json` to the object stored under `"key": { … }`, so a later
+/// [`json_str`] cannot accidentally read a sibling object's field. Returns the
+/// slice **including** the braces.
+pub fn json_object<'a>(json: &'a str, key: &str) -> Option<&'a str> {
+    let needle = format!("\"{key}\":");
+    let start = json.find(&needle)? + needle.len();
+    let rest = &json[start..];
+    let open = rest.find('{')?;
+    let bytes = rest.as_bytes();
+    let mut depth = 0usize;
+    let mut in_str = false;
+    let mut escaped = false;
+    for (i, &b) in bytes.iter().enumerate().skip(open) {
+        if in_str {
+            if escaped {
+                escaped = false;
+            } else if b == b'\\' {
+                escaped = true;
+            } else if b == b'"' {
+                in_str = false;
+            }
+            continue;
+        }
+        match b {
+            b'"' => in_str = true,
+            b'{' => depth += 1,
+            b'}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(&rest[open..=i]);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -478,6 +651,75 @@ mod tests {
     fn unknown_format_reports_no_size() {
         assert_eq!(image_dimensions(&[0x00, 0x01, 0x02, 0x03, 0x04, 0x05]), None);
         assert_eq!(image_dimensions(&[]), None);
+    }
+
+    /// A realistic `desktop-latest?product=starscape` body.
+    const FEED: &str = r#"{"version":"0.4.0","notes":"Starscape 0.4.0","releaseDate":"2026-07-26T10:00:00Z",
+      "platforms":{"win-x64":{"url":"https://github.com/o/r/releases/download/t/a.exe","kind":"exe","sha256":"aabb","size_bytes":312320},
+      "win-x64-beta":{"url":"https://github.com/o/r/releases/download/t/a-beta.exe","kind":"exe","sha256":"ccdd","size_bytes":312321}},
+      "channel":"beta","product":"starscape"}"#;
+
+    #[test]
+    fn the_binary_pin_covers_owner_and_repo_not_just_the_host() {
+        assert!(is_pinned_binary_url(
+            "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/wallpaper-app-v0.4.0/starscape-wallpaper-0.4.0-beta.exe"
+        ));
+        // The finding this test exists for: any GitHub account can host a release
+        // asset, so a host-only allowlist pins nothing.
+        assert!(!is_pinned_binary_url(
+            "https://github.com/attacker/evil/releases/download/x/starscape-wallpaper.exe"
+        ));
+        assert!(!is_pinned_binary_url(
+            "https://github.com/StarOrga/Star-Citizen-Companion-Web/releases/download/x/a.exe"
+        ));
+        // Prefix-walking, scheme downgrade, and lookalike hosts.
+        assert!(!is_pinned_binary_url(
+            "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/../../../attacker/evil/releases/download/x/a.exe"
+        ));
+        assert!(!is_pinned_binary_url(
+            "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/x\\..\\a.exe"
+        ));
+        assert!(!is_pinned_binary_url(
+            "http://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/x/a.exe"
+        ));
+        assert!(!is_pinned_binary_url(
+            "https://github.com.attacker.test/StarOrga/Star-Citizen-Companion-Binaries/releases/download/x/a.exe"
+        ));
+        assert!(!is_pinned_binary_url("https://objects.githubusercontent.com/whatever"));
+        assert!(!is_pinned_binary_url(""));
+    }
+
+    #[test]
+    fn json_str_reads_scalar_fields() {
+        assert_eq!(json_str(FEED, "version").as_deref(), Some("0.4.0"));
+        assert_eq!(json_str(FEED, "channel").as_deref(), Some("beta"));
+        assert_eq!(json_str(FEED, "missing"), None);
+    }
+
+    #[test]
+    fn json_u64_reads_numbers() {
+        assert_eq!(json_u64(FEED, "size_bytes"), Some(312320));
+        assert_eq!(json_u64(FEED, "version"), None); // string, not a number
+        assert_eq!(json_u64(FEED, "missing"), None);
+    }
+
+    #[test]
+    fn json_object_scopes_the_right_platform() {
+        let beta = json_object(FEED, "win-x64-beta").expect("beta asset");
+        assert_eq!(json_str(beta, "sha256").as_deref(), Some("ccdd"));
+        assert_eq!(json_u64(beta, "size_bytes"), Some(312321));
+        assert!(beta.ends_with('}'));
+
+        // The generic key must not bleed into the "-beta" sibling.
+        let base = json_object(FEED, "win-x64").expect("base asset");
+        assert_eq!(json_str(base, "sha256").as_deref(), Some("aabb"));
+    }
+
+    #[test]
+    fn json_object_handles_nesting_and_missing_keys() {
+        let nested = r#"{"a":{"b":{"c":1},"d":"}"},"e":2}"#;
+        assert_eq!(json_object(nested, "a"), Some(r#"{"b":{"c":1},"d":"}"}"#));
+        assert_eq!(json_object(nested, "zzz"), None);
     }
 
     #[test]

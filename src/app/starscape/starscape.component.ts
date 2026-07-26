@@ -4,13 +4,15 @@ import {
   HostListener,
   OnInit,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
-import { StarscapeService, Wallpaper } from './starscape.service';
+import { StarscapeService, StarscapeRing, Wallpaper, ringsForRole } from './starscape.service';
 import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
+import { RoleService } from '../auth/role.service';
 
 // Believable, varied masonry-tile heights (px) for the loading skeletons. The
 // gallery rows carry no dimension metadata, so a fixed cycle of plausible
@@ -40,20 +42,52 @@ const EAGER_TILES = 8;
           <h1>{{ 'starscape.title' | translate }}</h1>
           <p class="hint">{{ 'starscape.subtitle' | translate }}</p>
         </div>
-        <a
-          class="app-cta"
-          [href]="downloadUrl()"
-          target="_blank"
-          rel="noopener noreferrer"
-          download>
+        <!-- Desktop-only: a Windows tray app cannot be installed from a phone,
+             so the whole panel is hidden on small screens (admin feedback
+             52a5ef4c) — there, only the gallery matters. -->
+        <div class="app-cta">
           <span class="app-cta-title">🖥️ {{ 'starscape.appTitle' | translate }}</span>
           <span class="app-cta-desc">{{ 'starscape.appDesc' | translate }}</span>
-          <span class="app-cta-dl">
-            ↓ {{ 'starscape.appDownload' | translate }}
-            @if (appVersion(); as v) { <span class="app-cta-ver">v{{ v }}</span> }
-          </span>
+
+          @if (rings().length > 0) {
+            <!-- One link per ring the visitor's role may take. The ring is
+                 chosen HERE, before the download: the app reads it off the
+                 downloaded filename and locks to it, with no in-app switch. -->
+            <div class="app-cta-rings">
+              @for (r of rings(); track r.ring) {
+                <a
+                  class="app-cta-dl"
+                  [class.secondary]="r.ring !== 'stable'"
+                  [href]="r.downloadUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download>
+                  ↓ {{ 'desktop.channel.' + r.ring | translate }}
+                  <span class="app-cta-ver">v{{ r.version }}</span>
+                </a>
+              }
+            </div>
+            @if (rings().length > 1) {
+              <span class="app-cta-note">{{ 'starscape.appRingLock' | translate }}</span>
+            }
+          } @else {
+            <!-- No ring pointer registered yet → the never-stale alias link. -->
+            <div class="app-cta-rings">
+              <a
+                class="app-cta-dl"
+                [href]="downloadUrl()"
+                target="_blank"
+                rel="noopener noreferrer"
+                download>
+                ↓ {{ 'starscape.appDownload' | translate }}
+                @if (appVersion(); as v) { <span class="app-cta-ver">v{{ v }}</span> }
+              </a>
+            </div>
+          }
+
           <span class="app-cta-note">{{ 'starscape.appNote' | translate }}</span>
-        </a>
+          <span class="app-cta-note">{{ 'starscape.appAutoUpdate' | translate }}</span>
+        </div>
       </header>
 
       @if (svc.seriesOptions().length > 0) {
@@ -188,12 +222,17 @@ const EAGER_TILES = 8;
     }
     .app-cta-title { font-family: var(--sc-font-display); font-size: 0.9rem; color: var(--sc-fg-0); }
     .app-cta-desc { font-size: 0.74rem; color: var(--sc-fg-2); line-height: 1.35; }
+    .app-cta-rings { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .app-cta-dl {
-      margin-top: 4px; align-self: flex-start;
       padding: 3px 10px; border-radius: 999px; font-size: 0.74rem;
       color: var(--sc-accent); border: 1px solid var(--sc-accent);
+      text-decoration: none; white-space: nowrap;
     }
-    .app-cta:hover .app-cta-dl { background: var(--sc-accent); color: var(--sc-bg-0); }
+    .app-cta-dl:hover { background: var(--sc-accent); color: var(--sc-bg-0); }
+    /* Pre-release rings stay visually quieter than stable — the safe default
+       should read as the primary action even for an admin who sees all three. */
+    .app-cta-dl.secondary { color: var(--sc-fg-2); border-color: var(--sc-border); }
+    .app-cta-dl.secondary:hover { background: var(--sc-bg-2); color: var(--sc-fg-0); border-color: var(--sc-accent); }
     /* Registered build version, shown as a subtle badge inside the download pill. */
     .app-cta-ver { margin-left: 6px; opacity: 0.85; font-variant-numeric: tabular-nums; }
     .app-cta-note { font-size: 0.62rem; color: var(--sc-fg-2); opacity: 0.8; margin-top: 2px; }
@@ -304,14 +343,30 @@ const EAGER_TILES = 8;
     @media (max-width: 640px) {
       .wall { columns: 2 150px; }
       .lightbox { padding: 8px; }
-      /* The desktop wallpaper-app download is useless on a phone — hide it so the
-         header is just the gallery title (admin feedback 32cbf3ad). */
+    }
+
+    /* A Windows tray app cannot be installed from a phone or tablet, so the
+       download panel is dropped entirely below the desktop breakpoint — there,
+       only the images matter (admin feedback 52a5ef4c, widening the 640px rule
+       from 32cbf3ad which still showed it in landscape and on small tablets).
+       display:none also takes it out of the tab order and the a11y tree. */
+    @media (max-width: 900px) {
       .app-cta { display: none; }
     }
   `],
 })
 export class StarscapeComponent implements OnInit {
   readonly svc = inject(StarscapeService);
+  private readonly roles = inject(RoleService);
+
+  /**
+   * Rings this visitor may download, clamped by role (viewer → stable,
+   * collaborator → +beta, admin → +alpha). Anonymous visitors read as viewer.
+   */
+  readonly allowedRings = computed<readonly StarscapeRing[]>(() => ringsForRole(this.roles.role()));
+
+  /** Ring builds that actually resolved — see `StarscapeService.loadRingReleases`. */
+  readonly rings = this.svc.ringReleases;
 
   /**
    * Fixed fallback download: the stable `wallpaper-app-latest` alias release (a
@@ -336,6 +391,14 @@ export class StarscapeComponent implements OnInit {
   // Template constants for the loading skeletons.
   readonly skeletonSlots = Array.from({ length: SKELETON_SLOTS }, (_, i) => i);
   readonly eagerTiles = EAGER_TILES;
+
+  constructor() {
+    // Re-resolve the ring links whenever the role settles (it arrives after the
+    // profile fetch, so a collaborator's beta link appears once it does).
+    effect(() => {
+      void this.svc.loadRingReleases(this.allowedRings());
+    });
+  }
 
   async ngOnInit(): Promise<void> {
     void this.svc.loadDesktopRelease();

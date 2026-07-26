@@ -1564,6 +1564,8 @@
     "appTitle": "Desktop-Wallpaper-App",
     "appDesc": "Dein Desktop rotiert durch Starscape — winzige Tray-App mit Vorladen, Überblendung und Autostart per Klick.",
     "appDownload": "Für Windows herunterladen",
-    "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)"
+    "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)",
+    "appRingLock": "Der Kanal wird mit dem Download festgelegt und lässt sich in der App nicht umstellen — für einen anderen Kanal einfach den passenden Download hier erneut holen.",
+    "appAutoUpdate": "Aktualisiert sich still im Hintergrund; der Versionsstand steht im Tray-Menü."
   }
 }
