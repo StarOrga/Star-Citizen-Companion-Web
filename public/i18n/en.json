@@ -1179,7 +1179,8 @@
       "rejected": "Rejected",
       "needs_input": "Needs input",
       "issue_created": "Issue created",
-      "answered": "Answered"
+      "answered": "Answered",
+      "declined": "Not implemented"
     },
     "thread": {
       "routine": "Routine",
@@ -1239,6 +1240,27 @@
       "shippedShare": "shipped",
       "donutLabel": "{{label}}: {{pct}}% shipped",
       "note": "Every metric is attributed by its own timestamp: shipped by ship date, ToDo by creation date, questions by answer date. An answered question counts as ToDo — the routine still has to pick it up."
+    },
+    "userTopic": {
+      "badge": "User feedback",
+      "untriaged": "New – not released",
+      "release": "Release to the routine",
+      "channelTitle": "Channel to the author",
+      "channelHint": "Everything here is visible to the sender. The thread above (admin ↔ routine) is not.",
+      "seesStatus": "The sender sees:",
+      "asQuestion": "Send as a question to the sender",
+      "messagePlaceholder": "Message to the sender…",
+      "messageSend": "Send to author",
+      "questionBadge": "Question",
+      "fromTeam": "Team",
+      "fromAuthor": "Sender"
+    },
+    "decline": {
+      "mark": "Decline & remove",
+      "placeholder": "Why is this not going to happen? The sender will read this.",
+      "confirm": "Decline",
+      "cancel": "Cancel",
+      "noteRequired": "Please give a reason — the sender gets to read it."
     }
   },
   "feedbackFab": {
@@ -1465,5 +1487,35 @@
     "appDesc": "Rotate your desktop through Starscape — a tiny tray app with prefetch, crossfade and one-click autostart.",
     "appDownload": "Download for Windows",
     "appNote": "Windows only · ~0.3 MB · unsigned (SmartScreen: More info → Run anyway)"
+  },
+  "userFeedback": {
+    "title": "Feedback",
+    "open": "Send feedback",
+    "intro": "What is missing, what annoys you, what would you do differently? Write it here — it goes straight to the team.",
+    "placeholder": "Your feedback… (markdown and screenshots welcome)",
+    "send": "Send feedback",
+    "sent": "Thanks! Your feedback arrived.",
+    "privacyHint": "Your name is visible to the team. You can follow what came of it right here.",
+    "errorTitle": "Error",
+    "uploadError": "The image could not be uploaded.",
+    "loading": "Loading…",
+    "empty": "You have not sent any feedback yet.",
+    "team": "Team",
+    "you": "You",
+    "questionBadge": "Question",
+    "questionsPending": "A question is waiting for your answer",
+    "answerPlaceholder": "Your answer…",
+    "answer": "Reply",
+    "declinedTitle": "Why this is not being implemented",
+    "tab": {
+      "compose": "Send feedback",
+      "mine": "My feedback"
+    },
+    "status": {
+      "in_progress": "In progress",
+      "question": "Question for you",
+      "done": "Implemented",
+      "declined": "Not implemented"
+    }
   }
 }

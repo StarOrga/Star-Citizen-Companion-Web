@@ -26,15 +26,25 @@ import {
   FeedbackRow,
   FeedbackSearchHit,
   FeedbackStatus,
+  awaitsTriage,
   buildWorkflowQueue,
   bucketLabelStatus,
   feedbackBucket,
   isArchived,
+  isUserSubmitted,
   refKind,
   searchFeedback,
   searchTokens,
   topicTitle,
 } from './feedback.types';
+import { buildFeedbackBody, uploadFeedbackImages } from '../../feedback/feedback-images.util';
+import {
+  AuthorFeedbackMessage,
+  AuthorFeedbackStatus,
+  AuthorThreadMap,
+  authorStatusOf,
+  groupAuthorMessages,
+} from '../../feedback/user-feedback.types';
 
 /** The board's three modes: scan the list, work the queue, read the numbers. */
 export type FeedbackView = 'overview' | 'workflow' | 'progress';
@@ -291,6 +301,15 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                     {{ 'adminFeedback.status.issue_created' | translate }}
                   </button>
                 }
+                @if (bucketCounts().declined > 0) {
+                  <button
+                    type="button"
+                    class="status-chip declined"
+                    [class.active]="statusFilter() === 'declined'"
+                    (click)="setStatusFilter('declined')">
+                    {{ 'adminFeedback.status.declined' | translate }}
+                  </button>
+                }
                 @if (bucketCounts().rejected > 0) {
                   <button
                     type="button"
@@ -406,6 +425,14 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
            next to it, which says who acted last (feedback 34c44134). -->
       <ng-template #pills let-m>
         <span class="status-pill" [class]="bucketLabel(m)">{{ ('adminFeedback.status.' + bucketLabel(m)) | translate }}</span>
+        <!-- Filed by a viewer/collaborator through their own FAB (feedback
+             5920cf8c), and — until released — still held back from the routine. -->
+        @if (fromUser(m)) {
+          <span class="status-pill from-user">{{ 'adminFeedback.userTopic.badge' | translate }}</span>
+          @if (untriaged(m)) {
+            <span class="status-pill untriaged">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span>
+          }
+        }
         @if (isAnsweredAwaitingRoutine(m)) {
           <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
         }
@@ -520,6 +547,55 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                 [onSubmit]="replySubmitFor(m.id)" />
             </div>
 
+            <!-- AUTHOR CHANNEL — only for topics a non-admin filed. Everything
+                 in this block is visible to that person; the thread above (the
+                 admin <-> Claude conversation) never is. Keeping the two
+                 visually apart is the whole point of the framed section. -->
+            @if (fromUser(m)) {
+              <section class="author-channel">
+                <header class="ac-head">
+                  <span class="ac-title">{{ 'adminFeedback.userTopic.channelTitle' | translate }}</span>
+                  <span class="ac-status">
+                    {{ 'adminFeedback.userTopic.seesStatus' | translate }}
+                    <strong>{{ ('userFeedback.status.' + authorFacingStatus(m)) | translate }}</strong>
+                  </span>
+                </header>
+                <p class="ac-hint">{{ 'adminFeedback.userTopic.channelHint' | translate }}</p>
+
+                @if (authorMessagesFor(m.id).length > 0) {
+                  <div class="ac-thread">
+                    @for (am of authorMessagesFor(m.id); track am.id) {
+                      <div class="reply" [class.is-self]="am.from_admin">
+                        <div class="reply-head">
+                          <span class="reply-author">
+                            {{ (am.from_admin ? 'adminFeedback.userTopic.fromTeam' : 'adminFeedback.userTopic.fromAuthor') | translate }}
+                          </span>
+                          @if (am.is_question) {
+                            <span class="reply-badge">{{ 'adminFeedback.userTopic.questionBadge' | translate }}</span>
+                          }
+                          <span class="reply-ts">{{ am.created_at | date: 'short' }}</span>
+                        </div>
+                        <div class="reply-body" [innerHTML]="render(am.body)"></div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (!archived(m)) {
+                  <label class="ac-ask">
+                    <input type="checkbox" [checked]="askAuthor()" (change)="toggleAskAuthor()" />
+                    {{ 'adminFeedback.userTopic.asQuestion' | translate }}
+                  </label>
+                  <sc-feedback-composer
+                    [compact]="true"
+                    [busy]="busy()"
+                    placeholder="adminFeedback.userTopic.messagePlaceholder"
+                    sendLabel="adminFeedback.userTopic.messageSend"
+                    [onSubmit]="authorReplySubmitFor(m.id)" />
+                }
+              </section>
+            }
+
             <!-- Any admin may delete any topic (board is admin-only) — clears a
                  topic once its handling/rejection is accepted. Active topics can
                  additionally be archived as "issue created" by pasting the
@@ -548,10 +624,49 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
                     {{ 'adminFeedback.issue.mark' | translate }}
                   </button>
                 }
+                <!-- A user topic is held back from the autonomous routine until
+                     an admin has read it and releases it (feedback 5920cf8c). -->
+                @if (untriaged(m)) {
+                  <button class="sc-btn micro" (click)="releaseToRoutine(m)" [disabled]="busy()">
+                    {{ 'adminFeedback.userTopic.release' | translate }}
+                  </button>
+                }
               }
-              <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
-                {{ 'adminFeedback.delete' | translate }}
-              </button>
+
+              <!-- A user-submitted topic is never hard-deleted: the author has
+                   to keep seeing "nicht umgesetzt" plus the reason, so the
+                   delete button becomes "nicht umsetzen & löschen" with a
+                   mandatory comment (feedback 5920cf8c, point 4). -->
+              @if (fromUser(m) && !archived(m)) {
+                @if (declineFormFor() === m.id) {
+                  <form class="decline-form" (submit)="declineTopic(m, $event)">
+                    <textarea
+                      class="decline-input"
+                      rows="3"
+                      required
+                      [value]="declineNote()"
+                      (input)="declineNote.set($any($event.target).value)"
+                      [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
+                      [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
+                    <div class="decline-actions">
+                      <button class="sc-btn micro danger" type="submit" [disabled]="busy()">
+                        {{ 'adminFeedback.decline.confirm' | translate }}
+                      </button>
+                      <button class="sc-btn micro" type="button" (click)="cancelDeclineForm()">
+                        {{ 'adminFeedback.decline.cancel' | translate }}
+                      </button>
+                    </div>
+                  </form>
+                } @else {
+                  <button class="sc-btn micro danger" (click)="openDeclineForm(m)" [disabled]="busy()">
+                    {{ 'adminFeedback.decline.mark' | translate }}
+                  </button>
+                }
+              } @else {
+                <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
+                  {{ 'adminFeedback.delete' | translate }}
+                </button>
+              }
             </div>
            </div>
           }
@@ -1035,6 +1150,39 @@ const HANDLED_KEY = 'sc.adminFeedback.handled';
     .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
     .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
 
+    /* ---- User-submitted topics (feedback 5920cf8c) ----
+       The author channel is framed and tinted so it is never confused with the
+       admin <-> routine thread above it: everything inside is readable by the
+       person who filed the topic. The decline form's comment is mandatory —
+       it is the explanation that author gets to read. */
+    .author-channel, .ac-thread, .decline-form { display: flex; flex-direction: column; gap: 8px; }
+    .author-channel {
+      margin-top: 6px; padding: 10px; border-radius: 8px;
+      border: 1px dashed var(--sc-accent);
+      background: color-mix(in srgb, var(--sc-accent) 6%, transparent);
+    }
+    .ac-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ac-title {
+      font-size: 0.72rem; text-transform: uppercase;
+      letter-spacing: 0.08em; font-weight: 600; color: var(--sc-accent);
+    }
+    .ac-status { margin-left: auto; font-size: 0.72rem; color: var(--sc-fg-2); }
+    .ac-status strong { color: var(--sc-fg-1); }
+    .ac-hint { margin: 0; font-size: 0.72rem; color: var(--sc-fg-2); }
+    .ac-ask { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--sc-fg-2); }
+
+    .status-pill.from-user { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .status-pill.untriaged { border-color: var(--sc-accent-hot); color: var(--sc-accent-hot); }
+
+    .decline-form { gap: 6px; flex: 1 1 260px; }
+    .decline-input {
+      width: 100%; box-sizing: border-box; padding: 6px 8px; resize: vertical;
+      background: var(--sc-bg-2); border: 1px solid var(--sc-danger);
+      border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: 0.78rem;
+    }
+    .decline-input:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
+    .decline-actions { display: flex; gap: 6px; }
+
     @media (max-width: 640px) {
       .main-composer { position: static; }
       .status-pill { margin-left: 0; }
@@ -1337,6 +1485,7 @@ export class AdminFeedbackComponent implements OnInit {
       shipped: 0,
       issue_created: 0,
       rejected: 0,
+      declined: 0,
     };
     for (const m of this.messages()) {
       if (this.matchesAuthor(m) && this.matchesSearch(m)) counts[this.bucketOf(m)]++;
@@ -1764,7 +1913,7 @@ export class AdminFeedbackComponent implements OnInit {
     this.errorMsg.set(null);
     const { data, error } = await this.sb.client
       .from('admin_feedback')
-      .select('id, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, author:profiles(display_name, username)')
+      .select('id, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, source, triaged, decision_note, author:profiles(display_name, username)')
       .order('created_at', { ascending: true });
     if (error) {
       this.errorMsg.set(error.message);
@@ -1774,6 +1923,7 @@ export class AdminFeedbackComponent implements OnInit {
       // Threads first: the guided auto-expand needs each topic's replies to tell
       // an unanswered Rückfrage from one already answered (awaiting the routine).
       await this.loadThreads(rows.map((r) => r.id));
+      await this.loadAuthorThreads(rows.filter(isUserSubmitted).map((r) => r.id));
       this.autoExpandFirstQuestion();
       this.detectShipped(rows);
     }
@@ -1804,6 +1954,57 @@ export class AdminFeedbackComponent implements OnInit {
     this.threads.set(grouped);
   }
 
+  // ---- Author channel (user-submitted topics) ------------------------------
+
+  /**
+   * The AUTHOR-VISIBLE messages per topic (feedback 5920cf8c). Kept strictly
+   * apart from {@link threads}: that one is the admin <-> routine conversation
+   * and must never reach the person who filed the topic, this one is the only
+   * thing they do see besides their own text and the coarse status.
+   */
+  readonly authorThreads = signal<AuthorThreadMap>(new Map());
+
+  private async loadAuthorThreads(ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      this.authorThreads.set(new Map());
+      return;
+    }
+    const { data, error } = await this.sb.client
+      .from('feedback_author_messages')
+      .select('id, feedback_id, author_id, from_admin, is_question, body, created_at')
+      .in('feedback_id', ids)
+      .order('created_at', { ascending: true });
+    // Additive — a load failure must not blank the board.
+    if (error) return;
+    this.authorThreads.set(
+      groupAuthorMessages((data ?? []) as unknown as AuthorFeedbackMessage[]),
+    );
+  }
+
+  authorMessagesFor(id: string): AuthorFeedbackMessage[] {
+    return this.authorThreads().get(id) ?? [];
+  }
+
+  /** Template alias: was this topic filed by a non-admin through the user FAB? */
+  fromUser(m: FeedbackRow): boolean {
+    return isUserSubmitted(m);
+  }
+
+  /** Template alias: does this user topic still wait to be released to the routine? */
+  untriaged(m: FeedbackRow): boolean {
+    return awaitsTriage(m);
+  }
+
+  /**
+   * What the FEEDBACK AUTHOR currently sees for this topic — the same coarse
+   * mapping the `public.my_feedback` view applies, so the admin can tell at a
+   * glance that a `needs_input` Rückfrage to the routine reads as plain
+   * "in Bearbeitung" on the other side.
+   */
+  authorFacingStatus(m: FeedbackRow): AuthorFeedbackStatus {
+    return authorStatusOf(m.status, this.authorThreads().get(m.id));
+  }
+
   authorLabelFor(msg: FeedbackMessage): string {
     if (msg.is_system) return this.translate.instant('adminFeedback.thread.routine');
     if (msg.author_id && msg.author_id === this.selfId()) {
@@ -1816,54 +2017,17 @@ export class AdminFeedbackComponent implements OnInit {
 
   // ---- Composer submit handlers ------------------------------------------
 
-  /** Storage bucket backing feedback screenshot attachments. */
-  private static readonly IMAGES_BUCKET = 'feedback-images';
-
   /**
-   * Upload the composer's queued images to Storage and return their public URLs
-   * (in order). Images are uploaded rather than inlined as base64 because a
-   * single compressed screenshot exceeds the message body's 20 000-char check
-   * constraint. Throws on the first upload failure so the caller keeps the draft.
+   * Upload the composer's queued images and compose the stored body. The
+   * implementation moved to `feedback/feedback-images.util.ts` so the non-admin
+   * panel (feedback 5920cf8c) attaches screenshots through the exact same path.
    */
-  private async uploadImages(images: PendingImage[]): Promise<string[]> {
-    const uid = this.selfId();
-    if (!uid || images.length === 0) return [];
-    const bucket = this.sb.client.storage.from(AdminFeedbackComponent.IMAGES_BUCKET);
-    const urls: string[] = [];
-    for (const img of images) {
-      const blob = this.dataUrlToBlob(img.dataUrl);
-      const path = `${uid}/${crypto.randomUUID()}.${this.extForType(blob.type)}`;
-      const { error } = await bucket.upload(path, blob, { contentType: blob.type, upsert: false });
-      if (error) throw new Error(error.message);
-      urls.push(bucket.getPublicUrl(path).data.publicUrl);
-    }
-    return urls;
+  private uploadImages(images: PendingImage[]): Promise<string[]> {
+    return uploadFeedbackImages(this.sb.client, this.selfId(), images);
   }
 
-  /** File extension for a known image MIME type (JPEG is the compressed default). */
-  private extForType(mime: string): string {
-    switch (mime) {
-      case 'image/png': return 'png';
-      case 'image/gif': return 'gif';
-      case 'image/webp': return 'webp';
-      default: return 'jpg';
-    }
-  }
-
-  /** Decode a `data:<mime>;base64,<data>` URI into a Blob for upload. */
-  private dataUrlToBlob(dataUrl: string): Blob {
-    const comma = dataUrl.indexOf(',');
-    const mime = /^data:([^;]+)/.exec(dataUrl)?.[1] ?? 'image/jpeg';
-    const bin = atob(dataUrl.slice(comma + 1));
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new Blob([bytes], { type: mime });
-  }
-
-  /** Compose the stored body: text with any uploaded images appended as markdown. */
   private buildBody(text: string, images: PendingImage[], urls: string[]): string {
-    const imgMd = urls.map((url, i) => `![${images[i].name}](${url})`).join('\n\n');
-    return [text, imgMd].filter((s) => s.length > 0).join('\n\n');
+    return buildFeedbackBody(text, images, urls);
   }
 
   /** Stable handler reference for the new-topic composer. */
@@ -1982,6 +2146,146 @@ export class AdminFeedbackComponent implements OnInit {
       return;
     }
     this.cancelIssueForm();
+    await this.refresh();
+  }
+
+  // ---- User-submitted topics: triage, ask the author, decline ---------------
+
+  /**
+   * Release a user-submitted topic to the autonomous routine. Until an admin
+   * does this the topic sits `triaged=false` and the routine skips it — a
+   * stranger must not be able to drive an agent that implements and ships on
+   * its own straight from a feedback box.
+   */
+  async releaseToRoutine(m: FeedbackRow): Promise<void> {
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const { error } = await this.sb.client
+      .from('admin_feedback')
+      .update({ triaged: true })
+      .eq('id', m.id);
+    if (error) {
+      this.errorMsg.set(error.message);
+      this.busy.set(false);
+      return;
+    }
+    await this.refresh();
+  }
+
+  /**
+   * Whether the next author-channel message is sent as a QUESTION. Opt-in per
+   * the admin's decision (feedback 5920cf8c, point 3): an ordinary note keeps
+   * the topic reading "in Bearbeitung" on the author's side, only a question
+   * surfaces there as its own "Rückfrage an dich" status.
+   */
+  readonly askAuthor = signal(false);
+
+  toggleAskAuthor(): void {
+    this.askAuthor.update((v) => !v);
+  }
+
+  private readonly authorReplySubmitters =
+    new Map<string, (p: ComposerPayload) => Promise<boolean>>();
+
+  authorReplySubmitFor(feedbackId: string): (p: ComposerPayload) => Promise<boolean> {
+    let fn = this.authorReplySubmitters.get(feedbackId);
+    if (!fn) {
+      fn = (p: ComposerPayload) => this.sendAuthorMessage(feedbackId, p);
+      this.authorReplySubmitters.set(feedbackId, fn);
+    }
+    return fn;
+  }
+
+  /** Post an admin message into a topic's author-visible channel. */
+  async sendAuthorMessage(feedbackId: string, payload: ComposerPayload): Promise<boolean> {
+    const uid = this.selfId();
+    if (!uid) return false;
+    this.errorMsg.set(null);
+    let body: string;
+    try {
+      body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
+    } catch {
+      this.errorMsg.set(this.translate.instant('adminFeedback.compose.uploadError'));
+      return false;
+    }
+    if (!body) return false;
+    const { error } = await this.sb.client.from('feedback_author_messages').insert({
+      feedback_id: feedbackId,
+      author_id: uid,
+      from_admin: true,
+      is_question: this.askAuthor(),
+      body,
+    });
+    if (error) {
+      this.errorMsg.set(error.message);
+      return false;
+    }
+    this.askAuthor.set(false);
+    await this.refresh();
+    return true;
+  }
+
+  /** Topic id whose inline "nicht umsetzen" comment form is open (null = none). */
+  readonly declineFormFor = signal<string | null>(null);
+  /** Draft explanation in that form — mandatory, the author gets to read it. */
+  readonly declineNote = signal('');
+
+  openDeclineForm(m: FeedbackRow): void {
+    this.declineNote.set('');
+    this.declineFormFor.set(m.id);
+  }
+
+  cancelDeclineForm(): void {
+    this.declineFormFor.set(null);
+    this.declineNote.set('');
+  }
+
+  /**
+   * "Nicht umsetzen & löschen" for a user-submitted topic (feedback 5920cf8c,
+   * point 4): the admin's comment is mandatory, it is posted into the
+   * author-visible channel AND stored on the row as `decision_note`, and the
+   * topic moves to the terminal `declined` status.
+   *
+   * Deliberately a soft close rather than a `DELETE`. A hard delete cascades
+   * the author's own thread away and leaves them with a topic that silently
+   * vanished — the exact opposite of "the author gets a proper explanation".
+   * The topic leaves the admins' active board either way (Archive tab).
+   */
+  async declineTopic(m: FeedbackRow, ev: Event): Promise<void> {
+    ev.preventDefault();
+    const note = this.declineNote().trim();
+    if (!note) {
+      this.errorMsg.set(this.translate.instant('adminFeedback.decline.noteRequired'));
+      return;
+    }
+    const uid = this.selfId();
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const { error } = await this.sb.client
+      .from('admin_feedback')
+      .update({
+        status: 'declined',
+        decision_note: note,
+        processed_at: new Date().toISOString(),
+      })
+      .eq('id', m.id);
+    if (error) {
+      this.errorMsg.set(error.message);
+      this.busy.set(false);
+      return;
+    }
+    // Also drop it into the channel so the author sees the reason as a message,
+    // not only as a field on a card they may never expand.
+    if (uid) {
+      await this.sb.client.from('feedback_author_messages').insert({
+        feedback_id: m.id,
+        author_id: uid,
+        from_admin: true,
+        is_question: false,
+        body: note,
+      });
+    }
+    this.cancelDeclineForm();
     await this.refresh();
   }
 

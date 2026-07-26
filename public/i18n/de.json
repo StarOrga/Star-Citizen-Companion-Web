@@ -1179,7 +1179,8 @@
       "rejected": "Abgelehnt",
       "needs_input": "Rückfrage",
       "issue_created": "Issue erstellt",
-      "answered": "Beantwortet"
+      "answered": "Beantwortet",
+      "declined": "Nicht umgesetzt"
     },
     "thread": {
       "routine": "Routine",
@@ -1239,6 +1240,27 @@
       "shippedShare": "geshipped",
       "donutLabel": "{{label}}: {{pct}} % geshipped",
       "note": "Jeder Wert zählt nach seinem eigenen Zeitstempel: geshipped nach Ship-Datum, ToDo nach Erstellung, Rückfragen nach Antwortdatum. Beantwortete Rückfragen zählen als ToDo — die Routine muss sie noch aufgreifen."
+    },
+    "userTopic": {
+      "badge": "Nutzer-Feedback",
+      "untriaged": "Neu – nicht freigegeben",
+      "release": "Für die Routine freigeben",
+      "channelTitle": "Kanal zum Autor",
+      "channelHint": "Alles hier ist für den Absender sichtbar. Der Verlauf oben (Admin ↔ Routine) ist es nicht.",
+      "seesStatus": "Der Absender sieht:",
+      "asQuestion": "Als Rückfrage an den Absender senden",
+      "messagePlaceholder": "Nachricht an den Absender…",
+      "messageSend": "An Absender senden",
+      "questionBadge": "Rückfrage",
+      "fromTeam": "Team",
+      "fromAuthor": "Absender"
+    },
+    "decline": {
+      "mark": "Nicht umsetzen & löschen",
+      "placeholder": "Warum wird das nicht umgesetzt? Der Absender liest diesen Text.",
+      "confirm": "Nicht umsetzen",
+      "cancel": "Abbrechen",
+      "noteRequired": "Bitte eine Begründung angeben – der Absender bekommt sie zu lesen."
     }
   },
   "feedbackFab": {
@@ -1465,5 +1487,35 @@
     "appDesc": "Dein Desktop rotiert durch Starscape — winzige Tray-App mit Vorladen, Überblendung und Autostart per Klick.",
     "appDownload": "Für Windows herunterladen",
     "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)"
+  },
+  "userFeedback": {
+    "title": "Feedback",
+    "open": "Feedback senden",
+    "intro": "Was fehlt dir, was nervt dich, was würdest du anders machen? Schreib es hier rein – es landet direkt beim Team.",
+    "placeholder": "Dein Feedback… (Markdown und Screenshots möglich)",
+    "send": "Feedback senden",
+    "sent": "Danke! Dein Feedback ist angekommen.",
+    "privacyHint": "Dein Name ist für das Team sichtbar. Du siehst hier später, was daraus geworden ist.",
+    "errorTitle": "Fehler",
+    "uploadError": "Bild konnte nicht hochgeladen werden.",
+    "loading": "Wird geladen…",
+    "empty": "Du hast noch kein Feedback gesendet.",
+    "team": "Team",
+    "you": "Du",
+    "questionBadge": "Rückfrage",
+    "questionsPending": "Es wartet eine Rückfrage auf deine Antwort",
+    "answerPlaceholder": "Deine Antwort…",
+    "answer": "Antworten",
+    "declinedTitle": "Warum das nicht umgesetzt wird",
+    "tab": {
+      "compose": "Feedback senden",
+      "mine": "Mein Feedback"
+    },
+    "status": {
+      "in_progress": "In Bearbeitung",
+      "question": "Rückfrage an dich",
+      "done": "Umgesetzt",
+      "declined": "Nicht umgesetzt"
+    }
   }
 }

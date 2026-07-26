@@ -15,17 +15,25 @@ export type FeedbackStatus =
   | 'shipped'
   | 'rejected'
   | 'needs_input'
-  | 'issue_created';
+  | 'issue_created'
+  | 'declined';
 
 /**
  * Terminal statuses — a topic that reached one of these is done and lives in
  * the board's Archive tab (feedback eeba60e7). A topic ends either because it
- * shipped (`ship_ref` = PR url) or because it was handed off to a GitHub issue
- * (`ship_ref` = issue url). Legacy `rejected` rows are archived too: the
- * routine never sets that status any more, but old rows carry it and would
- * otherwise be orphaned in a view nobody opens.
+ * shipped (`ship_ref` = PR url), because it was handed off to a GitHub issue
+ * (`ship_ref` = issue url), or because the admin decided against implementing a
+ * user-submitted topic (`declined`, `decision_note` = the explanation the
+ * author is shown — feedback 5920cf8c). Legacy `rejected` rows are archived
+ * too: the routine never sets that status any more, but old rows carry it and
+ * would otherwise be orphaned in a view nobody opens.
  */
-export const ARCHIVE_STATUSES: readonly FeedbackStatus[] = ['shipped', 'issue_created', 'rejected'];
+export const ARCHIVE_STATUSES: readonly FeedbackStatus[] = [
+  'shipped',
+  'issue_created',
+  'rejected',
+  'declined',
+];
 
 /** True when a topic reached a terminal status (→ Archive, never worked again). */
 export function isArchived(row: FeedbackRow): boolean {
@@ -71,6 +79,35 @@ export interface FeedbackRow {
   shipped_at: string | null;
   processed_at: string | null;
   author: FeedbackAuthor | null;
+  /**
+   * Who filed the topic (feedback 5920cf8c): `admin` = posted on the internal
+   * board, `user` = submitted through the non-admin FAB by a viewer or
+   * collaborator. Optional so the many test/fixture rows in the specs keep
+   * compiling; absent means `admin`.
+   */
+  source?: 'admin' | 'user';
+  /**
+   * Release gate for the autonomous routine. A user-submitted topic enters
+   * untriaged so an admin reads it before Claude may implement and ship it;
+   * admin-authored rows are triaged by definition.
+   */
+  triaged?: boolean;
+  /** The admin's explanation on a `declined` topic — shown to the author. */
+  decision_note?: string | null;
+}
+
+/** True for a topic a non-admin filed through the user feedback FAB. */
+export function isUserSubmitted(row: FeedbackRow): boolean {
+  return row.source === 'user';
+}
+
+/**
+ * True while a user-submitted topic still waits for an admin to release it to
+ * the routine. Admin-authored topics (and every row from before feedback
+ * 5920cf8c) are never gated.
+ */
+export function awaitsTriage(row: FeedbackRow): boolean {
+  return isUserSubmitted(row) && row.triaged === false;
 }
 
 /** Replies grouped by topic id, oldest first — the board's thread cache. */
@@ -128,7 +165,9 @@ export function isAwaitingAdmin(row: FeedbackRow, replies: readonly FeedbackMess
  *   34c44134): once the admin replied, the topic is back on the routine's pile,
  *   so it belongs to the ToDo bucket rather than into its own "answered" corner.
  * - `in_progress` — the routine is working on it right now.
- * - `shipped` / `issue_created` / `rejected` — terminal, mirrors the status.
+ * - `shipped` / `issue_created` / `rejected` / `declined` — terminal, mirrors
+ *   the status. `declined` is the admin's "nicht umsetzen" on a user-submitted
+ *   topic (feedback 5920cf8c).
  *
  * The DB status value is never touched by this — `open` stays `open` on the
  * wire, "ToDo" is purely the label the UI puts on the bucket.
@@ -139,7 +178,8 @@ export type FeedbackBucket =
   | 'in_progress'
   | 'shipped'
   | 'issue_created'
-  | 'rejected';
+  | 'rejected'
+  | 'declined';
 
 /** Buckets that are still on the board's working set (the Active tab). */
 export const ACTIVE_BUCKETS: readonly FeedbackBucket[] = ['awaiting_admin', 'todo', 'in_progress'];
@@ -157,6 +197,7 @@ export function feedbackBucket(
     case 'shipped':
     case 'issue_created':
     case 'rejected':
+    case 'declined':
       return row.status;
     case 'in_progress':
       return 'in_progress';

@@ -29,11 +29,26 @@ open ──pick up──▶ in_progress ──green build+tests──▶ shipped
                   routine NEVER sets it.
   issue_created ← the ADMIN archives a topic against a GitHub issue
                   (ship_ref = issue url); terminal, the routine NEVER sets it.
+  declined      ← the ADMIN declines a USER-submitted topic ("nicht umsetzen &
+                  löschen", decision_note = the explanation the author reads);
+                  terminal, the routine NEVER sets it.
 ```
 
-`shipped`, `issue_created` and legacy `rejected` are **terminal** — together
-they form the panel's Archive tab (see "Active vs. Archive" below). The routine
-only ever works the active half (`open` / `in_progress` / `needs_input`).
+`shipped`, `issue_created`, `declined` and legacy `rejected` are **terminal** —
+together they form the panel's Archive tab (see "Active vs. Archive" below). The
+routine only ever works the active half (`open` / `in_progress` /
+`needs_input`).
+
+**The queue is additionally gated on `triaged`.** A topic filed by a non-admin
+through the user feedback FAB (`source = 'user'`) enters `triaged = false` and
+is **not** work for the routine until an admin releases it — see "User-submitted
+feedback" below. The routine's work-queue read is therefore:
+
+```sql
+select * from public.admin_feedback
+where status = 'open' and triaged
+order by created_at;
+```
 
 **The routine never rejects — the admin alone decides what to discard.** Every
 item the routine cannot ship right now goes to `needs_input` with a system
