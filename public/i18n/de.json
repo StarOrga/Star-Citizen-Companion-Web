@@ -1260,9 +1260,9 @@
       "replyPlaceholder": "Antwort schreiben… (Markdown möglich)"
     },
     "compose": {
-      "placeholder": "Was könnte besser sein? Markdown möglich — Enter für neue Zeile, Strg+Enter zum Senden.",
+      "placeholder": "Was könnte besser sein? Markdown möglich — Enter zum Senden, Shift+Enter für eine neue Zeile.",
       "send": "Senden",
-      "sendHint": "Enter = neue Zeile · Strg+Enter = senden",
+      "sendHint": "Enter = senden · Shift+Enter = neue Zeile",
       "bold": "Fett",
       "bullet": "Aufzählung",
       "numbered": "Nummerierte Liste",
@@ -1292,7 +1292,7 @@
       "next": "Weiter",
       "done": "Erledigt",
       "advanced": "Erledigt – weiter mit {{current}} von {{total}}",
-      "answerPlaceholder": "Antwort schreiben… (Markdown möglich, Strg+Enter zum Senden)",
+      "answerPlaceholder": "Antwort schreiben… (Markdown möglich, Enter zum Senden)",
       "answerSend": "Antworten",
       "openQuestion": "Offene Rückfrage",
       "cheerAnswered": "Rückfrage beantwortet — die Routine übernimmt ab hier.",

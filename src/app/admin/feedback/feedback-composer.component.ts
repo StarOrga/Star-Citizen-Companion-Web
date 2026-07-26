@@ -36,8 +36,14 @@ const MAX_ATTACHMENTS = 10;
  * Rich markdown composer shared by the new-topic box and every thread reply.
  *
  * Extracted so the reply line gains full parity with the main input (feedback
- * 73dfa165): formatting toolbar, Ctrl/Cmd+Enter to send, automatic list
- * continuation, and image insert via picker / paste / drag-and-drop.
+ * 73dfa165): formatting toolbar, automatic list continuation, and image insert
+ * via picker / paste / drag-and-drop.
+ *
+ * Keyboard mapping (feedback aa8d5b18) is the conventional chat one and is
+ * identical in every usage — new topic, thread reply, processing answer:
+ * - `Enter` sends
+ * - `Shift+Enter` inserts a newline, continuing a bullet/numbered list
+ * - `Ctrl/Cmd+Enter` also sends (kept from the 73dfa165 build)
  *
  * The parent supplies an `onSubmit` handler that returns `true` once the
  * message is persisted; the composer only clears itself on success, so a failed
@@ -117,7 +123,10 @@ const MAX_ATTACHMENTS = 10;
       }
 
       <div class="foot">
-        <span class="hint">{{ 'adminFeedback.compose.attachHint' | translate }}</span>
+        <span class="hint">
+          {{ 'adminFeedback.compose.sendHint' | translate }}
+          · {{ 'adminFeedback.compose.attachHint' | translate }}
+        </span>
         <button
           class="sc-btn"
           [class.sc-btn-primary]="!compact()"
@@ -354,21 +363,32 @@ export class FeedbackComposerComponent implements OnInit {
 
   // ---- Keyboard behaviour ------------------------------------------------
 
+  /**
+   * Chat mapping: plain Enter sends, Shift+Enter breaks the line.
+   *
+   * Feedback 73dfa165 had briefly moved sending to Ctrl/Cmd+Enter, which read as
+   * "Enter is broken" to everyone typing in the board (feedback aa8d5b18). Enter
+   * is the send key again; Ctrl/Cmd+Enter stays wired for muscle memory.
+   */
   onKeydown(e: KeyboardEvent): void {
-    // Ctrl/Cmd+Enter → send.
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      void this.submit();
+    if (e.key !== 'Enter') return;
+    // Mid-IME-composition Enter commits the candidate — never a send.
+    if (e.isComposing) return;
+
+    // Shift+Enter → newline, and the newline that continues an active list.
+    if (e.shiftKey) {
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) this.handleListContinuation(e);
       return;
     }
-    // Plain Enter → continue an active list; otherwise default newline.
-    if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
-      this.handleListContinuation(e);
-    }
+    // Alt+Enter is not ours — leave it to the browser/OS.
+    if (e.altKey) return;
+
+    e.preventDefault();
+    void this.submit();
   }
 
   /**
-   * When Enter is pressed inside a bullet/numbered line, insert the next
+   * When Shift+Enter is pressed inside a bullet/numbered line, insert the next
    * marker automatically. An empty marker line exits the list instead.
    */
   private handleListContinuation(e: KeyboardEvent): void {

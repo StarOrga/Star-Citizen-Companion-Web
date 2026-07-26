@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.1] - 2026-07-26
+
+### Fixed
+
+- **Enter sends again in the feedback chat.** The formatting-toolbar release had
+  moved sending to Ctrl/Cmd+Enter and given plain Enter to list continuation, so
+  pressing Enter simply swallowed the message. Enter is the send key again in
+  every composer (new topic, thread reply, processing answer); **Shift+Enter**
+  inserts the newline and continues a bullet/numbered list; **Ctrl/Cmd+Enter**
+  keeps sending as well. Empty drafts are still never sent, and Enter mid-IME
+  composition commits the candidate instead of sending. Feedback aa8d5b18.
+
 ## [0.48.0] - 2026-07-26
 
 ### Added
