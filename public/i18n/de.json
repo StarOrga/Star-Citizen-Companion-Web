@@ -378,6 +378,7 @@
       "fireRate": "Feuerrate",
       "projectileSpeed": "Geschossgeschwindigkeit",
       "range": "Reichweite",
+      "penetration": "Durchschlag",
       "shieldHp": "Schild-HP",
       "shieldRegen": "Regeneration",
       "regenDelay": "Regen-Verzögerung",

@@ -378,6 +378,7 @@
       "fireRate": "Fire rate",
       "projectileSpeed": "Projectile speed",
       "range": "Range",
+      "penetration": "Penetration",
       "shieldHp": "Shield HP",
       "shieldRegen": "Regeneration",
       "regenDelay": "Regen delay",
