@@ -103,4 +103,53 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
     cmp.next();
     expect(cmp.advanced()).toBeNull();
   });
+
+  // ---- Scope switch (feedback abfa97c6) ----
+
+  it('emits the picked scope and ignores a click on the active one', async () => {
+    const cmp = await setup(['a', 'b']);
+    const picked: string[] = [];
+    cmp.scopeChange.subscribe((s: string) => picked.push(s));
+
+    cmp.pickScope('all'); // already the default input value
+    cmp.pickScope('mine');
+    expect(picked).toEqual(['mine']);
+  });
+
+  it('exposes the switch options with their counts', async () => {
+    const cmp = await setup(['a', 'b']);
+    fixture.componentRef.setInput('scopeCounts', { mine: 2, others: 3, all: 5 });
+    fixture.detectChanges();
+
+    expect(cmp.scopeOptions()).toEqual([
+      { key: 'mine', count: 2 },
+      { key: 'others', count: 3 },
+      { key: 'all', count: 5 },
+    ]);
+    // Two of the five are on screen — the rest are hidden by the scope.
+    expect(cmp.hiddenByScope()).toBe(3);
+  });
+
+  it('restarts at the head of a newly scoped queue', async () => {
+    const cmp = await setup(['a', 'b', 'c']);
+    cmp.next();
+    expect(cmp.position()).toBe(1);
+
+    fixture.componentRef.setInput('queue', [item('x'), item('y')]);
+    fixture.componentRef.setInput('scope', 'mine');
+    fixture.detectChanges();
+
+    expect(cmp.position()).toBe(0);
+    expect(cmp.current()!.row.id).toBe('x');
+  });
+
+  it('does not celebrate a scope that merely happens to be empty', async () => {
+    const cmp = await setup(['a', 'b']);
+    fixture.componentRef.setInput('queue', []);
+    fixture.componentRef.setInput('scope', 'mine');
+    fixture.detectChanges();
+
+    expect(cmp.current()).toBeNull();
+    expect(celebration.burst).not.toHaveBeenCalled();
+  });
 });

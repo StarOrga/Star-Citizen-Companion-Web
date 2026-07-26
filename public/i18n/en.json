@@ -1272,7 +1272,16 @@
       "kind": {
         "question": "Question",
         "new": "ToDo"
-      }
+      },
+      "scope": {
+        "label": "Scope",
+        "mine": "Mine",
+        "others": "Other admins",
+        "all": "All",
+        "showAll": "Show all"
+      },
+      "scopeEmptyTitle": "Nothing open in this scope",
+      "scopeEmptyHint": "{{count}} topic(s) sit in another scope."
     },
     "dashboard": {
       "thisMonth": "This month",

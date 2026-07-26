@@ -276,6 +276,59 @@ export function buildWorkflowQueue(
 }
 
 /**
+ * Whose topics the processing mode walks through (feedback abfa97c6). The board
+ * is shared by several admins, and working the queue is a personal chore: the
+ * topics *you* raised are the ones you can answer without guessing. So the mode
+ * runs on `mine` by default and the other two scopes are one click away.
+ */
+export type WorkflowScope = 'mine' | 'others' | 'all';
+
+/** The three scopes in switch order — `mine` first, because it is the default. */
+export const WORKFLOW_SCOPES: readonly WorkflowScope[] = ['mine', 'others', 'all'];
+
+/** How many queue items each scope holds — the KPIs on the scope switch. */
+export interface WorkflowScopeCounts {
+  mine: number;
+  others: number;
+  all: number;
+}
+
+/**
+ * True when a topic was raised by the current admin. A topic without an author
+ * (orphaned / routine-created) is never "mine", so it surfaces under `others`
+ * rather than disappearing from every scope.
+ */
+export function isOwnTopic(row: FeedbackRow, selfId: string | null | undefined): boolean {
+  return !!selfId && row.author_id === selfId;
+}
+
+/**
+ * Narrow an already-built queue to one scope. Without a known `selfId` (auth not
+ * settled yet) ownership is unknowable, so the full queue is returned rather than
+ * an empty one — a signed-in admin never stares at a blank mode because the user
+ * object arrived a tick late.
+ */
+export function filterWorkflowScope(
+  items: readonly WorkflowItem[],
+  scope: WorkflowScope,
+  selfId: string | null | undefined,
+): WorkflowItem[] {
+  if (scope === 'all' || !selfId) return [...items];
+  const wantOwn = scope === 'mine';
+  return items.filter((item) => isOwnTopic(item.row, selfId) === wantOwn);
+}
+
+/** Queue sizes per scope, for the switch's counts. `all` is the untouched total. */
+export function workflowScopeCounts(
+  items: readonly WorkflowItem[],
+  selfId: string | null | undefined,
+): WorkflowScopeCounts {
+  let mine = 0;
+  for (const item of items) if (isOwnTopic(item.row, selfId)) mine++;
+  return { mine, others: items.length - mine, all: items.length };
+}
+
+/**
  * Which thread message the processing mode should put in front of the admin
  * (feedback fda4e3ea) — nobody should have to hunt for the open Rückfrage in a
  * long thread.

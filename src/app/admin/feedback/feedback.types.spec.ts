@@ -6,9 +6,11 @@ import {
   bucketLabelStatus,
   computeStats,
   feedbackBucket,
+  filterWorkflowScope,
   isArchived,
   isAwaitingAdmin,
   isContinuedAfterShip,
+  isOwnTopic,
   normalizeSearchText,
   rankFeedbackSearch,
   refKind,
@@ -17,6 +19,7 @@ import {
   startOfMonth,
   topicTitle,
   workflowFocusIndex,
+  workflowScopeCounts,
 } from './feedback.types';
 
 function row(id: string, status: FeedbackStatus, created: string, extra: Partial<FeedbackRow> = {}): FeedbackRow {
@@ -292,6 +295,48 @@ describe('buildWorkflowQueue', () => {
   it('attaches each topic its own replies', () => {
     const queue = buildWorkflowQueue([q1], threads);
     expect(queue[0].replies.map((m) => m.id)).toEqual(['m1']);
+  });
+});
+
+describe('workflow scope (feedback abfa97c6)', () => {
+  const mine1 = row('m1', 'open', '2026-07-05T10:00:00Z', { author_id: 'me' });
+  const mine2 = row('m2', 'open', '2026-07-06T10:00:00Z', { author_id: 'me' });
+  const theirs = row('t1', 'open', '2026-07-07T10:00:00Z', { author_id: 'you' });
+  const orphan = row('n1', 'open', '2026-07-08T10:00:00Z', { author_id: null });
+  const queue = buildWorkflowQueue([mine1, mine2, theirs, orphan], new Map());
+
+  it('counts each scope, with authorless topics landing under "others"', () => {
+    expect(workflowScopeCounts(queue, 'me')).toEqual({ mine: 2, others: 2, all: 4 });
+  });
+
+  it('narrows the queue to the admin\'s own topics', () => {
+    expect(filterWorkflowScope(queue, 'mine', 'me').map((i) => i.row.id)).toEqual(['m1', 'm2']);
+  });
+
+  it('narrows to everyone else, keeping authorless topics visible', () => {
+    expect(filterWorkflowScope(queue, 'others', 'me').map((i) => i.row.id)).toEqual(['t1', 'n1']);
+  });
+
+  it('keeps the whole queue for "all"', () => {
+    expect(filterWorkflowScope(queue, 'all', 'me').length).toBe(4);
+  });
+
+  it('falls back to the full queue while the user id is unknown', () => {
+    // Auth not settled yet — a blank mode would look like an empty backlog.
+    expect(filterWorkflowScope(queue, 'mine', null).length).toBe(4);
+    expect(workflowScopeCounts(queue, null)).toEqual({ mine: 0, others: 4, all: 4 });
+  });
+
+  it('preserves the queue order inside a scope', () => {
+    const q = buildWorkflowQueue([mine2, theirs, mine1], new Map());
+    expect(filterWorkflowScope(q, 'mine', 'me').map((i) => i.row.id)).toEqual(['m1', 'm2']);
+  });
+
+  it('recognises ownership only for a matching author id', () => {
+    expect(isOwnTopic(mine1, 'me')).toBeTrue();
+    expect(isOwnTopic(theirs, 'me')).toBeFalse();
+    expect(isOwnTopic(orphan, 'me')).toBeFalse();
+    expect(isOwnTopic(mine1, null)).toBeFalse();
   });
 });
 

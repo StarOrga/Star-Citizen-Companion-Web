@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.47.2",
+  "current": "0.47.3",
   "releases": [
+    {
+      "version": "0.47.3",
+      "date": "2026-07-26",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Admin feedback — post-ship continuations surface on the active board.",
+              "text": "The 20-min routine now posts a review reply after every ship and reopens a shipped topic when the admin replies to it (review & continue loop). The panel now recognises that reply immediately: a shipped topic whose newest thread message is the admin's — posted after the ship — reads as ToDo on the Active tab (with a small \"Fortgesetzt/Continued\" pill), instead of sitting unnoticed in the Archive until the routine picks it up. Purely derived from shipped_at + message timestamps; no schema change."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.47.2",
       "date": "2026-07-26",
