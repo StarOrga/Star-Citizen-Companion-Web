@@ -79,7 +79,11 @@ type UserFeedbackTab = 'compose' | 'mine';
       @if (feedback.error(); as err) {
         <div class="err">
           <strong>{{ 'userFeedback.errorTitle' | translate }}:</strong>
-          {{ err === 'upload' ? ('userFeedback.uploadError' | translate) : err }}
+          @switch (err) {
+            @case ('upload') { {{ 'userFeedback.uploadError' | translate }} }
+            @case ('rate') { {{ 'userFeedback.rateLimit' | translate }} }
+            @default { {{ err }} }
+          }
         </div>
       }
 

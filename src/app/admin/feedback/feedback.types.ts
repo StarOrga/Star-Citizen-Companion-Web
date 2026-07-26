@@ -113,9 +113,11 @@ export function isUserSubmitted(row: FeedbackRow): boolean {
 }
 
 /**
- * True while a user-submitted topic still waits for an admin to release it to
- * the routine. Admin-authored topics (and every row from before feedback
- * 5920cf8c) are never gated.
+ * True while a user-submitted topic waits for an admin to release it to the
+ * routine — on first submission, and again after its author answered a question
+ * (their answer is fresh outside text, so it gets re-read before an agent that
+ * ships on its own acts on it). Admin-authored topics (and every row from before
+ * feedback 5920cf8c) are never gated.
  */
 export function awaitsTriage(row: FeedbackRow): boolean {
   return isUserSubmitted(row) && row.triaged === false;
@@ -223,9 +225,9 @@ export function feedbackBucket(
       return 'in_progress';
     case 'needs_input_author':
       // The admin asked the topic's author and waits on them. There is no
-      // "answered" half to split off here: the author's reply flips the row back
-      // to `open` in the database (trigger on the author channel), so this
-      // status always means "waiting on the author".
+      // "answered" half to split off here: the author's reply restores the status
+      // the topic had before the question (database trigger on the author
+      // channel), so this status always means "waiting on the author".
       return 'awaiting_author';
     case 'needs_input':
       // Answered → back on the routine's pile → ToDo. Still unanswered → the

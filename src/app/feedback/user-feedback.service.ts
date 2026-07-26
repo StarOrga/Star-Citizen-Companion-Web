@@ -99,15 +99,6 @@ export class UserFeedbackService {
   }
 
   /**
-   * True while an admin's question on this topic awaits the author's answer.
-   * Read from the projected status, not from the channel: the database flips
-   * the topic back to "in Bearbeitung" the moment the author replies.
-   */
-  awaitsAnswer(id: string): boolean {
-    return this._topics().find((t) => t.id === id)?.author_status === 'question';
-  }
-
-  /**
    * File a new feedback topic. It enters the admins' board as `source='user'`,
    * `status='open'` and `triaged=false` — untriaged so an admin reads it before
    * the autonomous routine may implement and ship it. Those three values are
@@ -136,14 +127,22 @@ export class UserFeedbackService {
       triaged: false,
     });
     if (error) {
-      this._error.set(error.message);
+      // 54000 = the per-author hourly topic cap raised by the DB guard. Worth its
+      // own message: "rate limit reached" is actionable, a raw SQL error is not.
+      this._error.set(error.code === '54000' ? 'rate' : error.message);
       return false;
     }
     await this.refresh();
     return true;
   }
 
-  /** Answer an admin's question in the author-visible channel of one topic. */
+  /**
+   * Answer an admin's question in the author-visible channel of one topic. Only
+   * possible while that question is open — the database gates the insert on
+   * `status = 'needs_input_author'`, which is exactly when the panel offers the
+   * box. Once the answer lands, the topic silently goes back to "in Bearbeitung"
+   * (the status the admin's question interrupted is restored server-side).
+   */
   async reply(feedbackId: string, payload: ComposerPayload): Promise<boolean> {
     const uid = this.uid;
     if (!uid) return false;

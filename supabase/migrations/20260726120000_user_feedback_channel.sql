@@ -15,7 +15,7 @@
 --   table. One board, one status machine, one workflow/queue/search
 --   implementation; a second table would have forked all of it and every admin
 --   view would have had to union two shapes. The non-admin half is carved out
---   by three additive columns plus a restricted, column-projecting VIEW —
+--   by four additive columns plus a restricted, column-projecting VIEW —
 --   `public.my_feedback` — which is the only thing a non-admin may read.
 --
 -- HARD PRIVACY RULE (feedback 5920cf8c, question (2), confirmed by the admin):
@@ -27,6 +27,20 @@
 --   applies to them) — they see the projection in `public.my_feedback` and
 --   nothing else, so `processing_note`, `ship_ref`, `processed_at` and the raw
 --   `status` never leave the admin side.
+--   The one non-obvious part of that guarantee is the GRANTS: Supabase grants ALL
+--   on everything new in `public` to anon + authenticated by default, and this
+--   view is auto-updatable AND runs with owner rights. Every `grant` in this file
+--   is therefore preceded by an explicit `revoke ... from public, anon,
+--   authenticated` — a `grant select` on its own leaves a write-through bypass of
+--   admin_feedback's RLS wide open (found by the red-team pass on this file).
+--
+-- KNOWN, PRE-EXISTING GAP (not introduced here, do not assume otherwise):
+--   Screenshot attachments live in the PUBLIC `feedback-images` bucket
+--   (20260713000000). Public-bucket objects are downloadable by URL and the
+--   bucket-wide read policy makes them listable, so attachments in ADMIN replies
+--   are not secret today either. This feature adds non-admins as writers to the
+--   same bucket; it does not widen the read side, but the secrecy rule above
+--   covers message TEXT, not attachment bytes. Worth its own item.
 --
 -- WHAT THIS CREATES / CHANGES (purely additive — nothing is dropped or renamed,
 -- no row is modified):
@@ -37,12 +51,20 @@
 --                                  declined ("nicht umsetzen"), shown to the author
 --   admin_feedback.status        — CHECK vocabulary widened by 'declined' and
 --                                  'needs_input_author'
+--   admin_feedback.status_before_author_question
+--                                — admin-only memo so an author question is a
+--                                  parenthesis, not a reset
 --   feedback_author_messages     — the AUTHOR-VISIBLE message channel (admin <->
 --                                  feedback author). Separate table on purpose:
 --                                  it is the only way `admin_feedback_messages`
 --                                  can stay categorically admin-only.
 --   public.owns_feedback(uuid)   — security-definer ownership probe
+--   public.feedback_awaits_author(uuid)
+--                                — ownership + "a question to you is open"
 --   public.my_feedback           — the author-facing coarse-status projection
+--   3 triggers                   — status sync from the author channel, and two
+--                                  BEFORE-INSERT guards (untriaged + pinned
+--                                  timestamps + rate limit)
 --
 -- TWO FLAVOURS OF "NEEDS INPUT" (feedback 5920cf8c, question (3), confirmed by
 -- the admin — the distinction is the whole point):
@@ -96,6 +118,21 @@ comment on column public.admin_feedback.decision_note is
   'Admin-written explanation shown to the FEEDBACK AUTHOR when a user topic is '
   'declined (status = ''declined''). Author-visible — unlike processing_note.';
 
+-- An admin question to the author is a *parenthesis* around whatever the topic
+-- was doing, not a reset: this remembers the status the topic had when the
+-- question was asked, so the author's answer restores it instead of flattening
+-- everything to 'open'. Without it, asking the author while the ROUTINE had its
+-- own question open (status = 'needs_input' — the canonical case: the routine
+-- asks the admin what the author meant, the admin asks the author) would have
+-- silently dropped the routine's open question.
+alter table public.admin_feedback
+  add column if not exists status_before_author_question text;
+
+comment on column public.admin_feedback.status_before_author_question is
+  'Admin-only. The status a topic had when an admin asked its author something '
+  '(status -> needs_input_author); the author''s answer restores it and clears '
+  'this column. Never projected into public.my_feedback.';
+
 -- 'declined' = the admin decided not to implement a user-submitted topic and
 -- cleared it off the active board, leaving decision_note as the explanation.
 -- Terminal, like shipped / issue_created / legacy rejected. It is a soft close
@@ -146,13 +183,42 @@ as $$
   );
 $$;
 
+-- The stricter sibling: the caller owns the topic AND an admin's question to
+-- them is currently open. The author channel is for *answering*, not a general
+-- chat with the admins — without this an author could post unlimited messages
+-- into their own topic (each one triggering a status write), and the admin would
+-- have a spam channel he never opened.
+create or replace function public.feedback_awaits_author(fid uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.admin_feedback f
+    where f.id = fid
+      and f.source = 'user'
+      and f.author_id = auth.uid()
+      and f.status = 'needs_input_author'
+  );
+$$;
+
+comment on function public.feedback_awaits_author(uuid) is
+  'True when the calling user is the author of the given user-submitted topic AND '
+  'an admin question to them is open (status = needs_input_author). Gates the '
+  'author''s insert into feedback_author_messages to actual answers.';
+
 comment on function public.owns_feedback(uuid) is
   'True when the calling user is the author of the given USER-submitted feedback '
   'topic. Security definer so RLS policies can probe admin_feedback ownership '
   'without granting the caller any read access to that table.';
 
-revoke all on function public.owns_feedback(uuid) from public;
+revoke all on function public.owns_feedback(uuid) from public, anon, authenticated;
 grant execute on function public.owns_feedback(uuid) to authenticated;
+revoke all on function public.feedback_awaits_author(uuid) from public, anon, authenticated;
+grant execute on function public.feedback_awaits_author(uuid) to authenticated;
 
 -- ============================================================
 -- 3) The author-visible message channel
@@ -198,7 +264,10 @@ create policy feedback_author_messages_read on public.feedback_author_messages
   for select to authenticated
   using (public.is_admin() or public.owns_feedback(feedback_id));
 
--- An admin writes into the channel as themselves; only an admin may ask.
+-- An admin writes into the channel as themselves; only an admin may ask. The
+-- `user_topic` probe is not redundant: a channel message on an ADMIN-authored
+-- topic has nobody to reach, and asking there would park the topic on
+-- `needs_input_author` forever (no author exists who could answer it).
 drop policy if exists feedback_author_messages_insert_admin on public.feedback_author_messages;
 create policy feedback_author_messages_insert_admin on public.feedback_author_messages
   for insert to authenticated
@@ -206,10 +275,16 @@ create policy feedback_author_messages_insert_admin on public.feedback_author_me
     public.is_admin()
     and from_admin = true
     and author_id = auth.uid()
+    and exists (
+      select 1 from public.admin_feedback f
+      where f.id = feedback_id and f.source = 'user'
+    )
   );
 
 -- The author answers in their own topic's channel and can never impersonate an
--- admin message (from_admin/is_question forced false).
+-- admin message (from_admin/is_question forced false). `feedback_awaits_author`
+-- also requires that a question is actually open, so the channel cannot be used
+-- as an unsolicited chat.
 drop policy if exists feedback_author_messages_insert_author on public.feedback_author_messages;
 create policy feedback_author_messages_insert_author on public.feedback_author_messages
   for insert to authenticated
@@ -218,7 +293,7 @@ create policy feedback_author_messages_insert_author on public.feedback_author_m
     and from_admin = false
     and is_question = false
     and author_id = auth.uid()
-    and public.owns_feedback(feedback_id)
+    and public.feedback_awaits_author(feedback_id)
   );
 
 -- Only admins prune the channel (a topic delete cascades anyway).
@@ -227,7 +302,11 @@ create policy feedback_author_messages_delete on public.feedback_author_messages
   for delete to authenticated
   using (public.is_admin());
 
-revoke all on public.feedback_author_messages from anon;
+-- Same reasoning as for the view: revoke Supabase's default ALL from both roles
+-- and hand back only what the policies above are written for. UPDATE in
+-- particular has no policy at all (a message is immutable once sent) and TRUNCATE
+-- is not even subject to RLS, so neither may stay granted.
+revoke all on public.feedback_author_messages from public, anon, authenticated;
 grant select, insert, delete on public.feedback_author_messages to authenticated;
 
 -- ============================================================
@@ -240,18 +319,30 @@ grant select, insert, delete on public.feedback_author_messages to authenticated
 -- the topic up and ship it while the admin is still waiting for an answer — so
 -- it is a real status value, and this trigger is what sets and clears it:
 --
---   admin asks (from_admin and is_question) -> status = 'needs_input_author'
---       (never on a terminal topic — a shipped/declined row stays closed)
---   author answers (not from_admin)         -> status back to 'open'
---       (only from 'needs_input_author'; an in_progress or needs_input topic is
---        the routine's/admin's business and is left exactly as it is)
+--   admin asks (from_admin and is_question) -> remember the current status in
+--       `status_before_author_question`, then park at 'needs_input_author'
+--       (only on a USER topic, never on a terminal one — a shipped/declined row
+--        stays closed, and an admin-authored topic has no author to ask)
+--   author answers (not from_admin)         -> restore the remembered status
+--       (default 'open') and force `triaged = false`
+--
+-- Why the restore instead of a flat 'open': asking the author is a parenthesis
+-- around whatever the topic was doing. The canonical case is the routine parking
+-- a user topic as `needs_input` ("what did the author mean?"), the admin passing
+-- that on to the author, and the answer coming back — a flat 'open' would have
+-- thrown the routine's own open question away.
+--
+-- Why `triaged = false` on the way back: the answer is fresh, unreviewed text
+-- from outside, and the thing waiting behind `status = 'open'` is an agent that
+-- implements and merges on its own. So the admin releases it again, exactly like
+-- for the first submission. This is the one place where a non-admin action moves
+-- `triaged` at all — and it can only ever move it towards *more* review.
 --
 -- SECURITY DEFINER is required, not convenience: the author who inserts the
 -- answering message has no UPDATE policy on admin_feedback at all (by design),
--- so the status flip has to happen with the definer's rights. The function is
--- deliberately narrow — it writes one column, on one row, only in the two
--- transitions above, and it never touches `triaged`, so an author can never
--- release their own topic to the autonomous routine by replying.
+-- so the status flip has to happen with the definer's rights. The function stays
+-- deliberately narrow — one row, the two transitions above, and no column an
+-- author could turn to their advantage.
 -- ============================================================
 
 create or replace function public.feedback_author_channel_sync_status()
@@ -263,12 +354,21 @@ as $$
 begin
   if new.from_admin and new.is_question then
     update public.admin_feedback
-       set status = 'needs_input_author'
+       set status_before_author_question =
+             case
+               -- Don't overwrite the memo on a follow-up question.
+               when status = 'needs_input_author' then status_before_author_question
+               else status
+             end,
+           status = 'needs_input_author'
      where id = new.feedback_id
+       and source = 'user'
        and status not in ('shipped', 'issue_created', 'rejected', 'declined');
   elsif not new.from_admin then
     update public.admin_feedback
-       set status = 'open'
+       set status = coalesce(status_before_author_question, 'open'),
+           status_before_author_question = null,
+           triaged = false
      where id = new.feedback_id
        and status = 'needs_input_author';
   end if;
@@ -278,14 +378,38 @@ $$;
 
 comment on function public.feedback_author_channel_sync_status() is
   'Keeps admin_feedback.status in sync with the author channel: an admin question '
-  'parks the topic as needs_input_author (author-visible, out of the routine''s '
-  'open queue), the author''s answer returns it to open. Security definer because '
-  'the answering author has no UPDATE right on admin_feedback.';
+  'parks a USER topic as needs_input_author (author-visible, out of the routine''s '
+  'open queue) after memorising its previous status; the author''s answer restores '
+  'that status and sets triaged = false so an admin re-reads before the routine '
+  'acts on outside text. Security definer because the answering author has no '
+  'UPDATE right on admin_feedback.';
 
 drop trigger if exists feedback_author_messages_sync_status on public.feedback_author_messages;
 create trigger feedback_author_messages_sync_status
   after insert on public.feedback_author_messages
   for each row execute function public.feedback_author_channel_sync_status();
+
+-- The channel is rendered in insert order, so a client-supplied `created_at`
+-- would let an author sort their answer *above* the question it answers. Pin it
+-- for API inserts (a migration running as postgres keeps control).
+create or replace function public.feedback_author_messages_pin_created_at()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if nullif(current_setting('request.jwt.claims', true), '') is not null then
+    new.created_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists feedback_author_messages_pin_created_at on public.feedback_author_messages;
+create trigger feedback_author_messages_pin_created_at
+  before insert on public.feedback_author_messages
+  for each row execute function public.feedback_author_messages_pin_created_at();
 
 -- ============================================================
 -- 4) admin_feedback: let a non-admin file a topic
@@ -309,9 +433,69 @@ create policy admin_feedback_insert_author on public.admin_feedback
     and ship_ref is null
     and processing_note is null
     and decision_note is null
+    and status_before_author_question is null
     and shipped_at is null
     and processed_at is null
   );
+
+-- ------------------------------------------------------------
+-- 4b) …and the two things a WITH CHECK cannot express
+--
+-- (a) `triaged` DEFAULTS to true (so every legacy admin row keeps working), while
+--     the policy above demands false. A caller that simply omits the column would
+--     therefore fail with a bare 42501 that reads like "you may not post at all".
+--     Forcing it here makes "a user topic starts untriaged" an invariant of the
+--     table instead of a courtesy of one client.
+-- (b) The timestamps were unpinned: `created_at` is what the routine's queue and
+--     the board order by (oldest first), so a hand-crafted insert with
+--     `created_at = '1970-01-01'` would have nailed a topic to the head of both
+--     queues for good.
+-- Plus a cheap rate limit — the board is a shared surface and a 20 000-character
+-- topic is one request away for anyone with an account.
+-- ------------------------------------------------------------
+
+create or replace function public.admin_feedback_normalize_user_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  -- Only normalise requests that came through the API (PostgREST sets the JWT
+  -- claims GUC). A migration or backfill running as postgres keeps full control.
+  via_api boolean := nullif(current_setting('request.jwt.claims', true), '') is not null;
+  recent  integer;
+begin
+  if new.source <> 'user' then
+    return new;
+  end if;
+  new.triaged := false;
+  if via_api then
+    new.created_at := now();
+    new.updated_at := now();
+    select count(*) into recent
+      from public.admin_feedback f
+     where f.source = 'user'
+       and f.author_id = new.author_id
+       and f.created_at > now() - interval '1 hour';
+    if recent >= 10 then
+      raise exception 'feedback rate limit reached: at most 10 topics per hour'
+        using errcode = '54000';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+comment on function public.admin_feedback_normalize_user_insert() is
+  'BEFORE INSERT guard for user-submitted feedback: forces triaged = false, pins '
+  'the timestamps of API inserts to now() (they drive the oldest-first queues) and '
+  'rate-limits an author to 10 topics per hour. Admin/routine inserts pass through.';
+
+drop trigger if exists admin_feedback_normalize_user_insert on public.admin_feedback;
+create trigger admin_feedback_normalize_user_insert
+  before insert on public.admin_feedback
+  for each row execute function public.admin_feedback_normalize_user_insert();
 
 -- ============================================================
 -- 5) public.my_feedback — the author-facing projection
@@ -324,6 +508,21 @@ create policy admin_feedback_insert_author on public.admin_feedback
 -- once: it selects only author-safe columns and hard-filters
 -- `author_id = auth.uid() and source = 'user'` inside its own definition, which
 -- a caller cannot switch off.
+--
+-- !! THE GRANTS BELOW ARE LOAD-BEARING, NOT COSMETIC !!
+-- This view is *auto-updatable* (single FROM entry, no aggregate/DISTINCT), and
+-- Supabase's default privileges grant ALL on new tables/views in `public` to
+-- anon + authenticated. Combined with security_invoker = false that made the
+-- view a write-through hole straight past every RLS policy on admin_feedback:
+-- a signed-in viewer could INSERT a topic that defaulted to source='admin',
+-- triaged=true (landing directly in the autonomous routine's queue), UPDATE a
+-- topic's body after an admin had released it, or DELETE a topic and cascade the
+-- admin thread with it. Verified exploitable before the revoke below was added
+-- (2026-07-26, red-team pass on this migration). `grant select` alone does NOT
+-- take the default privileges away — only an explicit REVOKE from BOTH roles
+-- does, so keep the revoke/grant pair exactly as it is.
+-- security_barrier additionally stops a leaky operator/function in a caller's
+-- WHERE from being evaluated before the view's own author filter.
 --
 -- Coarse status mapping (feedback 5920cf8c, question (3), confirmed):
 --   open | in_progress | needs_input | issue_created -> 'in_progress'  ("In Bearbeitung")
@@ -344,13 +543,15 @@ create policy admin_feedback_insert_author on public.admin_feedback
 
 drop view if exists public.my_feedback;
 create view public.my_feedback
-with (security_invoker = false) as
+with (security_invoker = false, security_barrier = true) as
 select
   f.id,
   f.body,
   f.created_at,
   f.updated_at,
-  f.decision_note,
+  -- Only ever populated on a declined topic, and only shown there: an admin who
+  -- drafts a note before deciding must not have it leak early.
+  case when f.status in ('declined', 'rejected') then f.decision_note end as decision_note,
   case
     when f.status in ('declined', 'rejected') then 'declined'
     when f.status = 'shipped'                 then 'done'
@@ -367,9 +568,15 @@ comment on view public.my_feedback is
   'admin decision note. Deliberately security_invoker = false — running as the view '
   'owner is what makes the column projection enforceable; the row filter '
   '(author_id = auth.uid()) is baked into the view body and cannot be bypassed. '
-  'Raw status, processing_note, ship_ref and processed_at never leave the admin side.';
+  'Raw status, processing_note, ship_ref and processed_at never leave the admin side. '
+  'READ-ONLY BY GRANT: the view is auto-updatable and runs with owner rights, so '
+  'INSERT/UPDATE/DELETE must stay revoked from anon AND authenticated — otherwise it '
+  'is a write-through bypass of every RLS policy on admin_feedback.';
 
-revoke all on public.my_feedback from anon;
+-- Strip Supabase's default ALL grant (anon AND authenticated), then hand back
+-- read only. Order matters; `grant select` on its own would leave the write
+-- privileges in place. See the block comment above.
+revoke all on public.my_feedback from public, anon, authenticated;
 grant select on public.my_feedback to authenticated;
 
 -- ============================================================

@@ -572,14 +572,29 @@ in its spec.
 | Status | Who asks whom | Where the question lives | Author sees it? | Routine queue |
 |---|---|---|---|---|
 | `needs_input` | routine → admin | `admin_feedback_messages` | **no** (reads as "in Bearbeitung") | resumed once the admin answers |
-| `needs_input_author` | admin → topic author | `feedback_author_messages` (`is_question = true`) | **yes** | parked — not `open`, so out of the queue |
+| `needs_input_author` | admin → topic author | `feedback_author_messages` (`is_question = true`) | **yes** | parked — not `open`, so out of the queue; the answer restores the previous status and re-arms the triage gate |
 
 `needs_input_author` is maintained by a trigger on the author channel, never by
-hand: an admin question sets it (unless the topic is already terminal), the
-author's answer returns the row to `open`, which puts it back in front of the
-routine. In the panel it is its own bucket, `awaiting_author` ("Rückfrage an
-Absender"), and it is deliberately kept out of the Abarbeiten queue — the ball is
-with the author, not the admin.
+hand, and it works as a **parenthesis** rather than a reset:
+
+- an admin question memorises the topic's current status in
+  `status_before_author_question` and parks it at `needs_input_author` (only on a
+  `source='user'` topic, never on a terminal one);
+- the author's answer **restores** that status (default `open`) and clears the
+  memo. That matters for the canonical case — the routine parks a user topic as
+  `needs_input` ("what did the author mean?"), the admin passes the question on,
+  and the answer must not throw the routine's own open question away;
+- the answer also sets **`triaged = false`** again: it is fresh, unreviewed text
+  from outside, and what waits behind `status='open'` is an agent that implements
+  and merges on its own. So the admin releases it a second time. This is the only
+  place a non-admin action touches `triaged`, and it can only ever move it towards
+  *more* review.
+
+The author may only write into the channel **while a question to them is open**
+(`public.feedback_awaits_author()` gates the insert policy) — it is a channel for
+answering, not an unsolicited chat with the admins. In the panel the status is its
+own bucket, `awaiting_author` ("Rückfrage an Absender"), deliberately kept out of
+the Abarbeiten queue: the ball is with the author, not the admin.
 
 ### Triage gate: `triaged`
 
@@ -587,10 +602,39 @@ A user topic enters `triaged = false`. **The routine must skip it** (queue read:
 `status = 'open' and triaged`) until an admin presses "Für die Routine
 freigeben". Rationale: an autonomous agent that implements and ships on its own
 must not be drivable straight from a public feedback box by anyone with an
-account. Every pre-existing (admin-authored) row defaults to `triaged = true`,
-so the routine's behaviour on the existing board is unchanged. Nothing a
-non-admin can do ever changes `triaged` — the author's reply trigger touches
-`status` only.
+account. Every pre-existing (admin-authored) row defaults to `triaged = true`, so
+the routine's behaviour on the existing board is unchanged.
+
+The gate is enforced by the table, not by a client: a BEFORE-INSERT trigger forces
+`triaged = false` on every `source='user'` row (a WITH CHECK alone would have made
+any caller that omits the column fail with a bare permission error), pins the
+insert's `created_at`/`updated_at` to `now()` (they drive the oldest-first queues,
+so an unpinned `created_at` was a free "always first in line"), and rate-limits an
+author to **10 topics per hour**. An author's answer re-opens the gate rather than
+bypassing it (see above).
+
+### What non-admins are granted, and why the grants are load-bearing
+
+Supabase's default privileges grant **ALL** on everything new in `public` to
+`anon` + `authenticated`. `public.my_feedback` is also *auto-updatable* and runs
+with owner rights (`security_invoker = false`), so `grant select` on its own left
+a write-through path around every RLS policy on `admin_feedback`: a signed-in
+viewer could insert a topic that defaulted to `source='admin', triaged=true`
+(landing **directly** in the routine's queue), rewrite a topic's body after the
+admin had released it, or delete a topic and cascade the admin thread with it. The
+migration therefore does an explicit `revoke all ... from public, anon,
+authenticated` before every `grant`, on the view, on
+`feedback_author_messages` and on both helper functions. **Keep that pattern for
+anything new here** — it was a real, verified hole, not a theoretical one.
+
+### One thing that is NOT secret: attachments
+
+Screenshots go to the **public** `feedback-images` bucket (migration
+`20260713000000`), shared by the admin composer and the author channel. Public
+bucket objects are downloadable by URL and the bucket-wide read policy makes them
+listable, so image attachments — including those in admin replies — are not
+covered by the secrecy rule, which is about message *text*. Pre-existing, not
+introduced by the user channel, and worth its own item.
 
 ### "Nicht umsetzen & löschen" (declining a user topic)
 
@@ -599,7 +643,9 @@ löschen"** with a **mandatory comment**. It writes `status = 'declined'` +
 `decision_note` and also posts the comment into the author channel, so the author
 gets "Nicht umgesetzt" **plus the reason** instead of a topic that silently
 vanished. It is a soft close on purpose: a hard `DELETE` would cascade the
-author's own thread away. Admin-authored topics keep the plain delete button.
+author's own thread away. Admin-authored topics keep the plain delete button, and
+so does an **already archived** user topic — once it is declined/shipped and the
+author has the outcome, an admin can still purge the row from the Archive.
 
 **The routine never sets `declined`** — like `rejected` and `issue_created`, that
 call belongs to the admin alone.
@@ -717,8 +763,9 @@ Animations API, no dependency). All of it is suppressed under
 | `shipped_at`     | set when merged to `main`                                  |
 | `processed_at`   | last time the routine acted on the row                     |
 | `source`         | `admin` (default, all legacy rows) \| `user` = filed through the non-admin FAB (feedback `5920cf8c`) |
-| `triaged`        | routine release gate; `true` for every admin row, `false` on a fresh user topic until an admin releases it |
-| `decision_note`  | the admin's explanation on a `declined` user topic — **author-visible** (unlike `processing_note`) |
+| `triaged`        | routine release gate; `true` for every admin row, `false` on a fresh user topic and again after its author answered, until an admin releases it |
+| `decision_note`  | the admin's explanation on a `declined` user topic — **author-visible** (only while the topic is declined) |
+| `status_before_author_question` | admin-only memo: the status a topic had when an admin asked its author something, restored by the answer |
 
 ### Active vs. Archive (`issue_created`)
 
@@ -768,7 +815,7 @@ The author-visible channel for user-submitted topics lives in
 |---------------|--------------------------------------------------------------|
 | `feedback_id` | FK → `admin_feedback.id` (cascade delete)                    |
 | `author_id`   | FK → `profiles.id`; who wrote the message                    |
-| `from_admin`  | `true` = admin → author, `false` = the author's own reply     |
+| `from_admin`  | `true` = admin → author, `false` = the author's own reply (only while a question is open) |
 | `is_question` | `true` only on an admin message that asks the author something → sets `status='needs_input_author'` |
 | `body`        | markdown message (author-visible!)                           |
 | `created_at`  | thread order                                                 |

@@ -1244,7 +1244,7 @@
     },
     "userTopic": {
       "badge": "Nutzer-Feedback",
-      "untriaged": "Neu – nicht freigegeben",
+      "untriaged": "Nicht freigegeben",
       "release": "Für die Routine freigeben",
       "channelTitle": "Kanal zum Autor",
       "channelHint": "Alles hier ist für den Absender sichtbar. Der Verlauf oben (Admin ↔ Routine) ist es nicht.",
@@ -1499,6 +1499,7 @@
     "privacyHint": "Dein Name ist für das Team sichtbar. Du siehst hier später, was daraus geworden ist.",
     "errorTitle": "Fehler",
     "uploadError": "Bild konnte nicht hochgeladen werden.",
+    "rateLimit": "Du hast in der letzten Stunde schon viel geschickt – probiere es später noch einmal.",
     "loading": "Wird geladen…",
     "empty": "Du hast noch kein Feedback gesendet.",
     "team": "Team",

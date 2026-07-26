@@ -1244,7 +1244,7 @@
     },
     "userTopic": {
       "badge": "User feedback",
-      "untriaged": "New – not released",
+      "untriaged": "Not released",
       "release": "Release to the routine",
       "channelTitle": "Channel to the author",
       "channelHint": "Everything here is visible to the sender. The thread above (admin ↔ routine) is not.",
@@ -1499,6 +1499,7 @@
     "privacyHint": "Your name is visible to the team. You can follow what came of it right here.",
     "errorTitle": "Error",
     "uploadError": "The image could not be uploaded.",
+    "rateLimit": "You have sent a lot in the past hour — please try again later.",
     "loading": "Loading…",
     "empty": "You have not sent any feedback yet.",
     "team": "Team",
