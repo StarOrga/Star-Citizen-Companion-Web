@@ -4,6 +4,34 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.6] - 2026-07-26
+
+### Fixed
+
+- **Crafting data was empty for every blueprint (part of #187).** A
+  `CraftingBlueprintRecord` nests everything under a `blueprint` node, but the
+  extractor only ever read the record's top level — so category, crafted item and
+  ingredient list came back empty for **all 1595** blueprints in the live build.
+  Reading the nested node resolves **1588 crafted items and 1594 ingredient
+  lists** (916 of them FPS armour, 210 FPS weapons), including per-material
+  quantities, recipe slot names and craft times.
+
+### Added
+
+- **Codex — "crafting materials" on item detail.** Items now show what it costs
+  to manufacture them (materials, quantities, minimum quality, craft time). The
+  existing panel only showed the inverse — what an item can be used to build.
+
+### Notes
+
+- **"Where can I buy it" is not datamineable.** Audited against the live archive:
+  item records carry no price, and the shop-inventory files that do carry prices
+  use a pre-4.0 id space where **none of the 6317 ids** resolve against current
+  game data. The codex omits purchase locations rather than showing something
+  wrong; see `docs/concepts/codex-extraction-output.md` §0b.
+- The new crafting panel fills in once a catalog is re-extracted and ingested with
+  the updated uploader.
+
 ## [0.47.5] - 2026-07-26
 
 ### Added

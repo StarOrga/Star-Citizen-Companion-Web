@@ -300,7 +300,12 @@
       "quantumSpeed": "Quantum-Geschwindigkeit",
       "quantumFuel": "Quantum-Treibstoff",
       "fuelCapacity": "Wasserstoff-Treibstoff",
-      "hardpointExplainer": "Ein Hardpoint ist ein Montagepunkt an der Hülle: Jede Waffe, jeder Schild, Kühler, Triebwerk oder Quantenantrieb sitzt auf einem und lässt sich gegen ein anderes Item gleichen Typs und gleicher Größe tauschen. Unten steht, was das Schiff ab Werk mitbringt."
+      "hardpointExplainer": "Ein Hardpoint ist ein Montagepunkt an der Hülle: Jede Waffe, jeder Schild, Kühler, Triebwerk oder Quantenantrieb sitzt auf einem und lässt sich gegen ein anderes Item gleichen Typs und gleicher Größe tauschen. Unten steht, was das Schiff ab Werk mitbringt.",
+      "craftedFrom": "Herstellungsmaterialien",
+      "craftedFromHint": "Was die Herstellung dieses Gegenstands kostet — aus den Crafting-Daten des Spiels.",
+      "noIngredients": "Dieser Bauplan nennt in diesem Build keine Materialien.",
+      "openBlueprint": "Vollständigen Bauplan öffnen",
+      "minQuality": "min. Qualität {{value}}"
     },
     "swap": {
       "title": "Was passt hier?",
