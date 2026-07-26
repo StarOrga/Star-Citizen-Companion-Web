@@ -208,7 +208,28 @@
       "search": "Search keybindings",
       "searchPlaceholder": "Search action or key…",
       "count": "{{shown}} of {{total}} actions",
-      "unbound": "—"
+      "unbound": "—",
+      "rawKey": "Internal action key",
+      "contexts": {
+        "vehicle": "Vehicle",
+        "spectator": "Spectator",
+        "interface": "Interface",
+        "interaction": "Interaction",
+        "emote": "Emote",
+        "camera": "Camera",
+        "character": "Character",
+        "turret": "Turret",
+        "eva": "EVA",
+        "hacking": "Hacking",
+        "remote": "Remote",
+        "tractor": "Tractor beam",
+        "melee": "Melee",
+        "hmd": "HMD",
+        "visor": "Visor",
+        "headtracking": "Head tracking",
+        "shop": "Shop",
+        "debug": "Debug"
+      }
     },
     "provenance": {
       "label": "Source",
