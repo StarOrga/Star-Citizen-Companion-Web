@@ -401,6 +401,27 @@
       "derivedHint": "Abgeleiteter Wert, aus anderen extrahierten Werten berechnet.",
       "noStats": "Für diese Waffe liegen im aktuellen Extract keine Werte vor.",
       "armamentMissing": "{{count}} Waffenaufhängungen führen in diesem Extract keine Standardwaffe — das Spiel hinterlegt Standard-Bewaffnung in einem separaten Datensatz, den unser P4K-Extractor noch nicht auflöst."
+    },
+    "shipLink": {
+      "add": "Pledge-Link hinzufügen",
+      "edit": "Pledge-Link bearbeiten",
+      "label": "Offizieller RSI-Pledge-Link",
+      "hint": "Unser Katalog hat nicht für jedes Schiff einen verlässlichen RSI-Store-Slug. Füge die offizielle Pledge-Seite ein — sie ersetzt den allgemeinen RSI-Link, nur für dich.",
+      "placeholder": "https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad",
+      "save": "Link speichern",
+      "remove": "Entfernen",
+      "cancel": "Abbrechen",
+      "saved": "Gespeichert. Nur du siehst diesen Link.",
+      "error": {
+        "invalidUrl": "Es werden nur offizielle RSI-Pledge-Schiffslinks akzeptiert, z. B. https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad",
+        "rateLimited": "Zu viele Änderungen in kurzer Zeit. Bitte in ein paar Minuten erneut versuchen.",
+        "forbidden": "Dazu hast du keine Berechtigung.",
+        "saveFailed": "Der Link konnte nicht gespeichert werden. Bitte erneut versuchen."
+      },
+      "adminTitle": "Admin",
+      "promote": "Für alle veröffentlichen",
+      "unpromote": "Globalen Link zurückziehen",
+      "adminHint": "Veröffentlichen macht den Link oben für alle Nutzer sichtbar. Nutzer-Links werden nie automatisch veröffentlicht."
     }
   },
   "blueprint": {
@@ -1057,7 +1078,8 @@
       "empty": "Noch keine Concept-Schiffe auf deiner Wunschliste.",
       "preliminary": "Concept — vorläufig",
       "pledgeLink": "Pledge-Seite",
-      "remove": "Entfernen"
+      "remove": "Entfernen",
+      "urlError": "Bitte einen offiziellen RSI-Pledge-Schiffslink verwenden, z. B. https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad — oder das Feld leer lassen."
     },
     "import": {
       "open": "Importieren…",
@@ -1277,7 +1299,8 @@
       "allDoneTitle": "Alles abgearbeitet",
       "allDoneHint": "Keine offenen Rückfragen. Deine ToDos liegen bei der Routine — sie kommen hier rein, sobald sie etwas von dir braucht.",
       "kind": {
-        "question": "Rückfrage"
+        "question": "Rückfrage",
+        "new": "ToDo"
       },
       "scope": {
         "label": "Auswahl",
@@ -1287,7 +1310,8 @@
         "showAll": "Alle anzeigen"
       },
       "scopeEmptyTitle": "In dieser Auswahl ist nichts offen",
-      "scopeEmptyHint": "{{count}} Thema/Themen liegen in einer anderen Auswahl."
+      "scopeEmptyHint": "{{count}} Thema/Themen liegen in einer anderen Auswahl.",
+      "cheerReplied": "Notiert! Weiter geht's."
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",

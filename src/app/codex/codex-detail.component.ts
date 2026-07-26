@@ -74,6 +74,9 @@ import { CodexHardpointLayoutComponent, LayoutGroup, LayoutSlot } from './codex-
 import { CodexSwapDockComponent } from './codex-swap-dock.component';
 import { ShipSkinViewerComponent } from './ship-skin-viewer.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { ShipLinkService } from './ship-link.service';
+import { AuthService } from '../auth/auth.service';
+import { RoleService } from '../auth/role.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 // Lazy-loaded compatible-items state per hardpoint (keyed by port_index).
@@ -194,16 +197,35 @@ interface GearRecipe {
                   </button>
                 }
                 <!-- Deep-link out to the official RSI site. We have no reliable
-                     per-ship RSI slug (our classNameSlug ≠ RSI URL slug), so this
-                     lands on the official ships listing (admin-chosen target:
-                     name-sorted) rather than 404-ing on a guessed deeplink. -->
-                <a
-                  class="pin rsi-link"
-                  href="https://robertsspaceindustries.com/en/pledge/ships?sortField=name&sortDirection=asc"
-                  target="_blank"
-                  rel="noopener noreferrer">
-                  {{ 'codex.detail.viewOnRsi' | translate }} ↗
-                </a>
+                     per-ship RSI slug (our classNameSlug ≠ RSI URL slug), so
+                     without a pinned link this lands on the official ships
+                     listing (admin-chosen target: name-sorted) rather than
+                     404-ing on a guessed deeplink. Users can pin the real
+                     pledge page themselves (feedback f7d3bd9a) — that value is
+                     attacker-controlled, so it is bound with [href] on a plain
+                     anchor and nothing else: no innerHTML, no LLM prompt. -->
+                @if (pledgeLink(); as pledge) {
+                  <a
+                    class="pin rsi-link"
+                    [href]="pledge"
+                    target="_blank"
+                    rel="noopener noreferrer nofollow">
+                    {{ 'codex.detail.viewOnRsi' | translate }} ↗
+                  </a>
+                } @else {
+                  <a
+                    class="pin rsi-link"
+                    href="https://robertsspaceindustries.com/en/pledge/ships?sortField=name&sortDirection=asc"
+                    target="_blank"
+                    rel="noopener noreferrer">
+                    {{ 'codex.detail.viewOnRsi' | translate }} ↗
+                  </a>
+                }
+                @if (auth.user()) {
+                  <button type="button" class="raw-toggle" (click)="toggleLinkForm()">
+                    {{ (myPledgeLink() ? 'codex.shipLink.edit' : 'codex.shipLink.add') | translate }}
+                  </button>
+                }
                 <!-- 3D-print guide lives here in the codex (ship context: the
                      guide scales prints by these very dimensions) instead of
                      the global footer. -->
@@ -217,6 +239,60 @@ interface GearRecipe {
                 </span>
               }
             </div>
+
+            <!-- Pin your own RSI pledge link (feedback f7d3bd9a). Private to
+                 you; an admin can publish one for everyone, never automatic. -->
+            @if (kind() === 'ship' && showLinkForm()) {
+              <form class="ship-link-form" (submit)="saveShipLink($event)">
+                <p class="sl-hint">{{ 'codex.shipLink.hint' | translate }}</p>
+                <div class="sl-row">
+                  <input
+                    type="url"
+                    class="sl-input"
+                    [value]="shipLinkInput()"
+                    (input)="onShipLinkInput($event)"
+                    [attr.placeholder]="'codex.shipLink.placeholder' | translate"
+                    [attr.aria-label]="'codex.shipLink.label' | translate"
+                    [attr.aria-invalid]="shipLinkError() ? 'true' : null" />
+                  <button type="submit" class="pin" [disabled]="shipLinks.saving()">
+                    {{ 'codex.shipLink.save' | translate }}
+                  </button>
+                  @if (myPledgeLink()) {
+                    <button type="button" class="raw-toggle" [disabled]="shipLinks.saving()"
+                            (click)="removeShipLink()">
+                      {{ 'codex.shipLink.remove' | translate }}
+                    </button>
+                  }
+                  <button type="button" class="raw-toggle" (click)="toggleLinkForm()">
+                    {{ 'codex.shipLink.cancel' | translate }}
+                  </button>
+                </div>
+                @if (shipLinkError(); as errKey) {
+                  <p class="sl-error" role="alert">
+                    {{ ('codex.shipLink.error.' + errKey) | translate }}
+                  </p>
+                }
+                @if (shipLinkSaved()) {
+                  <p class="sl-ok" role="status">{{ 'codex.shipLink.saved' | translate }}</p>
+                }
+                @if (role.isAdmin()) {
+                  <div class="sl-admin">
+                    <span class="sl-admin-tag">{{ 'codex.shipLink.adminTitle' | translate }}</span>
+                    <button type="button" class="raw-toggle" [disabled]="shipLinks.saving()"
+                            (click)="promoteShipLink()">
+                      {{ 'codex.shipLink.promote' | translate }}
+                    </button>
+                    @if (globalPledgeLink()) {
+                      <button type="button" class="raw-toggle" [disabled]="shipLinks.saving()"
+                              (click)="unpromoteShipLink()">
+                        {{ 'codex.shipLink.unpromote' | translate }}
+                      </button>
+                    }
+                    <span class="sl-admin-hint">{{ 'codex.shipLink.adminHint' | translate }}</span>
+                  </div>
+                }
+              </form>
+            }
           </div>
         </header>
 
@@ -541,6 +617,18 @@ interface GearRecipe {
     .pin:hover, .pin.pinned { color: var(--sc-accent); border-color: var(--sc-accent); }
     .add-hangar { color: var(--sc-accent); }
     a.rsi-link { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
+
+    .ship-link-form { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
+    .sl-hint { margin: 0 0 8px; font-size: 0.76rem; color: var(--sc-fg-2); }
+    .sl-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .sl-input { flex: 1 1 320px; min-width: 0; padding: 8px 12px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.82rem; }
+    .sl-input:focus { outline: none; border-color: var(--sc-accent); }
+    .sl-input[aria-invalid='true'] { border-color: var(--sc-danger); }
+    .sl-error { margin: 8px 0 0; font-size: 0.76rem; color: var(--sc-danger); }
+    .sl-ok { margin: 8px 0 0; font-size: 0.76rem; color: var(--sc-accent); }
+    .sl-admin { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--sc-border); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .sl-admin-tag { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .sl-admin-hint { font-size: 0.72rem; color: var(--sc-fg-2); flex: 1 1 220px; }
     .in-hangar { font-size: 0.74rem; color: var(--sc-fg-2); font-style: italic; }
     .prov { font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
 
@@ -661,6 +749,11 @@ export class CodexDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
+  // User-supplied RSI pledge links (feedback f7d3bd9a) — public members because
+  // the template reads `saving()` / `isAdmin()` / the signed-in user directly.
+  readonly shipLinks = inject(ShipLinkService);
+  readonly role = inject(RoleService);
+  readonly auth = inject(AuthService);
 
   readonly detail = signal<CodexDetail | null>(null);
   readonly kind = computed(() => this.detail()?.kind ?? null);
@@ -673,6 +766,27 @@ export class CodexDetailComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly showRaw = signal(false);
   readonly showEmptyLoadout = signal(false);
+
+  // ── user-supplied RSI pledge link (feedback f7d3bd9a) ───────────────────────
+  // The catalog has no dependable per-ship RSI store slug, so the user may pin
+  // the real pledge page. Their link is PRIVATE (owner-only RLS); a globally
+  // promoted link is admin-curated. Own link wins so a user's correction always
+  // beats the catalog-wide one.
+  readonly showLinkForm = signal(false);
+  readonly shipLinkInput = signal('');
+  /** i18n key suffix under `codex.shipLink.error.*`, or null. */
+  readonly shipLinkError = signal<string | null>(null);
+  readonly shipLinkSaved = signal(false);
+
+  readonly myPledgeLink = computed(() => {
+    const d = this.detail();
+    return d ? (this.shipLinks.myLinks().get(d.classNameSlug) ?? null) : null;
+  });
+  readonly globalPledgeLink = computed(() => {
+    const d = this.detail();
+    return d ? (this.shipLinks.globalLinks().get(d.classNameSlug) ?? null) : null;
+  });
+  readonly pledgeLink = computed(() => this.myPledgeLink() ?? this.globalPledgeLink());
 
   // Reverse ingredient lookup: crafting blueprints that consume this entity.
   readonly usedInBlueprints = signal<BlueprintRef[]>([]);
@@ -741,6 +855,10 @@ export class CodexDetailComponent implements OnInit {
     this.recipe.set(null);
     this.artBroken.set(false);
     this.swapSlot.set(null);
+    this.showLinkForm.set(false);
+    this.shipLinkInput.set('');
+    this.shipLinkError.set(null);
+    this.shipLinkSaved.set(false);
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
@@ -756,6 +874,9 @@ export class CodexDetailComponent implements OnInit {
         if (kind !== 'ship') void this.loadRecipe(d.classNameSlug);
         // Ship pages: hangar membership backs the add-to-hangar action.
         if (kind === 'ship' && this.hangar.ships().length === 0) void this.hangar.loadAll();
+        // Ship pages: resolve the pinned pledge link (own > global). Best
+        // effort — a missing link just falls back to the RSI ships listing.
+        if (kind === 'ship') void this.shipLinks.loadForShip(d.classNameSlug);
       }
     } catch (err) {
       this.error.set((err as Error).message ?? 'Unknown error');
@@ -1308,6 +1429,65 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     if (d) this.svc.togglePin(d.kind, d.classNameSlug);
   }
+  // ── user-supplied RSI pledge link (feedback f7d3bd9a) ───────────────────────
+  // The typed value is validated client-side for a fast, friendly error, but
+  // the `ship-link` edge function is the authority and re-validates everything.
+
+  toggleLinkForm(): void {
+    const next = !this.showLinkForm();
+    this.showLinkForm.set(next);
+    if (next) {
+      this.shipLinkInput.set(this.myPledgeLink() ?? '');
+      this.shipLinkError.set(null);
+      this.shipLinkSaved.set(false);
+    }
+  }
+
+  onShipLinkInput(e: Event): void {
+    this.shipLinkInput.set((e.target as HTMLInputElement).value);
+    if (this.shipLinkError()) this.shipLinkError.set(null);
+    if (this.shipLinkSaved()) this.shipLinkSaved.set(false);
+  }
+
+  async saveShipLink(e: Event): Promise<void> {
+    e.preventDefault();
+    const slug = this.shipSlug();
+    if (!slug) return;
+    this.applyLinkResult(await this.shipLinks.setMyLink(slug, this.shipLinkInput()));
+  }
+
+  async removeShipLink(): Promise<void> {
+    const slug = this.shipSlug();
+    if (!slug) return;
+    const err = await this.shipLinks.removeMyLink(slug);
+    this.applyLinkResult(err);
+    if (!err) this.shipLinkInput.set('');
+  }
+
+  /** ADMIN ONLY — publish the typed link for everyone. Server re-checks role. */
+  async promoteShipLink(): Promise<void> {
+    const slug = this.shipSlug();
+    if (!slug) return;
+    this.applyLinkResult(await this.shipLinks.promote(slug, this.shipLinkInput()));
+  }
+
+  /** ADMIN ONLY — withdraw the globally visible link. */
+  async unpromoteShipLink(): Promise<void> {
+    const slug = this.shipSlug();
+    if (!slug) return;
+    this.applyLinkResult(await this.shipLinks.unpromote(slug));
+  }
+
+  private shipSlug(): string | null {
+    const d = this.detail();
+    return d?.kind === 'ship' ? d.classNameSlug : null;
+  }
+
+  private applyLinkResult(err: string | null): void {
+    this.shipLinkError.set(err);
+    this.shipLinkSaved.set(err === null);
+  }
+
   async addToHangar(): Promise<void> {
     const d = this.detail();
     if (d?.kind !== 'ship') return;

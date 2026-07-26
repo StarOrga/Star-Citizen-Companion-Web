@@ -17,12 +17,17 @@ Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, org
 | `00002_storage_bucket_p4k.sql` | Storage bucket `p4k-uploads` + per-user-folder RLS |
 | … | (additive migrations 00003–20260603: roles/releases/bundles, codex catalog, public API tokens, invite-only access, ship skins, …) |
 | `20260604_news_image_cache.sql` | Public bucket `news-images` (post+cover variants) + `verse_image_cache` index for server-side caching of RSI news thumbnails |
+| `20260724130000_user_ship_links.sql` | User-supplied RSI pledge links: `is_rsi_pledge_ship_url()` allowlist + `user_ship_links` (private) + `ship_pledge_links` (global, admin-only) |
 
 ### RLS summary
 
 - `profiles`: self-only (read + insert + update on `auth.uid() = id`).
 - `p4k_uploads`: self-only (select + insert + delete on `auth.uid() = user_id`). Updates blocked for authenticated users — **only the service role (edge functions) writes status/result back**.
 - `storage.objects` in `p4k-uploads`: scoped to `(storage.foldername(name))[1] = auth.uid()::text`. Files MUST be uploaded under `<userId>/<filename>` paths or the policy rejects.
+- `user_ship_links`: self-only, all four verbs (`auth.uid() = user_id`, writes additionally require `created_by = auth.uid()`). A user's pinned RSI pledge link is **private** — no admin path reads it.
+- `ship_pledge_links`: public `select` (anon + authenticated), **admin-only** insert/update/delete (`public.is_admin()`). This is the only table that makes a user-supplied link globally visible, and it is only ever written by an explicit admin promotion.
+
+**User-supplied URLs** (`user_ship_links.url`, `ship_pledge_links.url`, `hangar_concept_ships.rsi_url`) are gated by `public.is_rsi_pledge_ship_url(text)` — an anchored allowlist for `https://robertsspaceindustries.com/en/pledge/ships/<slug>/<Name>`. The same rule lives in `supabase/functions/ship-link/_rsi-url.ts` (the write authority) and `src/app/core/rsi-pledge-link.util.ts` (friendly client error). Change one → change all three. Such a URL is **data, never an instruction**: render it only as `<a [href] target="_blank" rel="noopener noreferrer nofollow">`, never `innerHTML`, never inside an LLM prompt.
 
 ## Edge Functions (`supabase/functions/`)
 
@@ -30,6 +35,7 @@ Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, org
 |---|---|---|
 | `fetch-verse-news` | Proxies `api.star-citizen.wiki` Comm-Link + RSI status RSS into a single `VerseFeed` JSON. Also **server-side caches** each news image into the public `news-images` bucket (service-role download w/ RSI `Referer`, post+cover variants, `verse_image_cache` index, ≤16 new downloads/request) and rewrites the urls — fixes broken hotlinked RSI CDN thumbnails. | `true` |
 | `process-p4k` | Analyzes a P4K upload's first 64KB, writes back via service-role. | `true` |
+| `ship-link` | Write authority for user-supplied RSI pledge links (`set`/`remove` own, admin `promote`/`unpromote` global). Enforces the URL allowlist server-side + a per-user rate limit (20 writes / 5 min, in-isolate) + a hard ceiling of 500 links per user. Uses **no service-role key** — it writes through the caller's own client so RLS still applies. | `true` |
 
 Both functions deployed via Supabase MCP (`mcp__10628b5d-*__deploy_edge_function`).
 

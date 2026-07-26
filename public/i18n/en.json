@@ -401,6 +401,27 @@
       "derivedHint": "Derived value, calculated from other extracted stats.",
       "noStats": "No stats for this weapon in the current extract.",
       "armamentMissing": "{{count}} weapon mounts carry no stock weapon in this extract — the game keeps default weapon fits in a separate record that our P4K extractor does not resolve yet."
+    },
+    "shipLink": {
+      "add": "Add pledge link",
+      "edit": "Edit pledge link",
+      "label": "Official RSI pledge link",
+      "hint": "Our catalog has no reliable RSI store slug for every ship. Paste the official pledge page and it will replace the generic RSI link — for you only.",
+      "placeholder": "https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad",
+      "save": "Save link",
+      "remove": "Remove",
+      "cancel": "Cancel",
+      "saved": "Saved. Only you can see this link.",
+      "error": {
+        "invalidUrl": "Only official RSI pledge-ship links are accepted, e.g. https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad",
+        "rateLimited": "Too many changes in a short time. Please try again in a few minutes.",
+        "forbidden": "You are not allowed to do this.",
+        "saveFailed": "Could not save the link. Please try again."
+      },
+      "adminTitle": "Admin",
+      "promote": "Publish for everyone",
+      "unpromote": "Withdraw global link",
+      "adminHint": "Publishing makes the link above visible to all users. User links are never published automatically."
     }
   },
   "blueprint": {
@@ -1057,7 +1078,8 @@
       "empty": "No concept ships on your wishlist yet.",
       "preliminary": "Concept — preliminary",
       "pledgeLink": "Pledge page",
-      "remove": "Remove"
+      "remove": "Remove",
+      "urlError": "Please use an official RSI pledge-ship link, e.g. https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad — or leave the field empty."
     },
     "import": {
       "open": "Import…",
@@ -1277,7 +1299,8 @@
       "allDoneTitle": "All caught up",
       "allDoneHint": "No open questions. Your ToDos sit with the routine — they land here as soon as it needs something from you.",
       "kind": {
-        "question": "Question"
+        "question": "Question",
+        "new": "ToDo"
       },
       "scope": {
         "label": "Scope",
@@ -1287,7 +1310,8 @@
         "showAll": "Show all"
       },
       "scopeEmptyTitle": "Nothing open in this scope",
-      "scopeEmptyHint": "{{count}} topic(s) sit in another scope."
+      "scopeEmptyHint": "{{count}} topic(s) sit in another scope.",
+      "cheerReplied": "Noted! On to the next one."
     },
     "dashboard": {
       "thisMonth": "This month",
