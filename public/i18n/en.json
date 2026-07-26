@@ -1141,7 +1141,7 @@
       "invalidUrl": "Please enter a valid issue URL (http/https)."
     },
     "status": {
-      "open": "Open",
+      "open": "ToDo",
       "in_progress": "In progress",
       "shipped": "Shipped",
       "rejected": "Rejected",
@@ -1195,18 +1195,18 @@
       "allDoneHint": "No open questions, no new topics. Take a look at what you got done.",
       "kind": {
         "question": "Question",
-        "new": "New"
+        "new": "ToDo"
       }
     },
     "dashboard": {
       "thisMonth": "This month",
       "allTime": "All-time",
       "shipped": "Shipped",
-      "open": "Open",
+      "open": "ToDo",
       "answered": "Questions answered",
       "shippedShare": "shipped",
       "donutLabel": "{{label}}: {{pct}}% shipped",
-      "note": "Every metric is attributed by its own timestamp: shipped by ship date, open by creation date, questions by answer date."
+      "note": "Every metric is attributed by its own timestamp: shipped by ship date, ToDo by creation date, questions by answer date. An answered question counts as ToDo — the routine still has to pick it up."
     }
   },
   "feedbackFab": {

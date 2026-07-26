@@ -1141,7 +1141,7 @@
       "invalidUrl": "Bitte eine gültige Issue-URL angeben (http/https)."
     },
     "status": {
-      "open": "Offen",
+      "open": "ToDo",
       "in_progress": "In Arbeit",
       "shipped": "Geshipped",
       "rejected": "Abgelehnt",
@@ -1195,18 +1195,18 @@
       "allDoneHint": "Keine offenen Rückfragen, keine neuen Themen. Schau dir an, was du geschafft hast.",
       "kind": {
         "question": "Rückfrage",
-        "new": "Neu"
+        "new": "ToDo"
       }
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",
       "allTime": "All-time",
       "shipped": "Geshipped",
-      "open": "Offen",
+      "open": "ToDo",
       "answered": "Rückfragen beantwortet",
       "shippedShare": "geshipped",
       "donutLabel": "{{label}}: {{pct}} % geshipped",
-      "note": "Jeder Wert zählt nach seinem eigenen Zeitstempel: geshipped nach Ship-Datum, offen nach Erstellung, Rückfragen nach Antwortdatum."
+      "note": "Jeder Wert zählt nach seinem eigenen Zeitstempel: geshipped nach Ship-Datum, ToDo nach Erstellung, Rückfragen nach Antwortdatum. Beantwortete Rückfragen zählen als ToDo — die Routine muss sie noch aufgreifen."
     }
   },
   "feedbackFab": {

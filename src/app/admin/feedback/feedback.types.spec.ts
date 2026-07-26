@@ -3,7 +3,9 @@ import {
   FeedbackRow,
   FeedbackStatus,
   buildWorkflowQueue,
+  bucketLabelStatus,
   computeStats,
+  feedbackBucket,
   isArchived,
   isAwaitingAdmin,
   refKind,
@@ -78,6 +80,57 @@ describe('isAwaitingAdmin', () => {
 
   it('only ever applies to needs_input topics', () => {
     expect(isAwaitingAdmin(row('b', 'open', '2026-07-01T10:00:00Z'), [])).toBeFalse();
+  });
+});
+
+describe('feedbackBucket', () => {
+  const at = '2026-07-01T10:00:00Z';
+  const question = row('q', 'needs_input', at);
+
+  it('buckets an answered Rückfrage as ToDo — the routine has to pick it up', () => {
+    const replies = [
+      msg('m1', 'q', true, '2026-07-01T11:00:00Z'),
+      msg('m2', 'q', false, '2026-07-01T12:00:00Z'),
+    ];
+    expect(feedbackBucket(question, replies)).toBe('todo');
+  });
+
+  it('keeps a Rückfrage the routine asked last as awaiting the admin', () => {
+    expect(feedbackBucket(question, [msg('m1', 'q', true, '2026-07-01T11:00:00Z')])).toBe('awaiting_admin');
+  });
+
+  it('treats an unanswered Rückfrage without any reply as awaiting the admin', () => {
+    expect(feedbackBucket(question, [])).toBe('awaiting_admin');
+    expect(feedbackBucket(question)).toBe('awaiting_admin');
+  });
+
+  it('buckets a plain open topic as ToDo, replies or not', () => {
+    const open = row('o', 'open', at);
+    expect(feedbackBucket(open, [])).toBe('todo');
+    expect(feedbackBucket(open, [msg('m1', 'o', false, '2026-07-01T11:00:00Z')])).toBe('todo');
+  });
+
+  it('leaves in_progress and every terminal status on their own bucket', () => {
+    expect(feedbackBucket(row('p', 'in_progress', at), [])).toBe('in_progress');
+    for (const s of ['shipped', 'issue_created', 'rejected'] as const) {
+      expect(feedbackBucket(row('t', s, at), [msg('m1', 't', false, at)])).toBe(s);
+    }
+  });
+});
+
+describe('bucketLabelStatus', () => {
+  it('labels the ToDo bucket with the (renamed) open vocabulary', () => {
+    expect(bucketLabelStatus('todo')).toBe('open');
+  });
+
+  it('labels the awaiting-admin bucket as a Rückfrage', () => {
+    expect(bucketLabelStatus('awaiting_admin')).toBe('needs_input');
+  });
+
+  it('passes every other bucket through unchanged', () => {
+    for (const b of ['in_progress', 'shipped', 'issue_created', 'rejected'] as const) {
+      expect(bucketLabelStatus(b)).toBe(b);
+    }
   });
 });
 
@@ -199,6 +252,17 @@ describe('computeStats', () => {
 
   it('handles an empty board', () => {
     expect(computeStats([], new Map(), null)).toEqual({ shipped: 0, open: 0, answered: 0 });
+  });
+
+  it('counts an answered Rückfrage as still open (its ToDo bucket)', () => {
+    const answered = row('q9', 'needs_input', '2026-07-02T10:00:00Z');
+    const thread = new Map<string, FeedbackMessage[]>([
+      ['q9', [
+        msg('s1', 'q9', true, '2026-07-02T11:00:00Z'),
+        msg('h1', 'q9', false, '2026-07-02T12:00:00Z'),
+      ]],
+    ]);
+    expect(computeStats([answered], thread, null)).toEqual({ shipped: 0, open: 1, answered: 1 });
   });
 
   it('does not count an issue hand-off as still open', () => {

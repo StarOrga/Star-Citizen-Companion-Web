@@ -508,13 +508,31 @@ panel and on the full board page alike:
 |------|-----------|----------------|
 | **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list, status/author filters, new-topic composer |
 | **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin first (oldest first), then untouched `open` topics. Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
-| **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / offen / beantwortete Rückfragen |
+| **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen |
 
 Queue and aggregation rules live as pure functions in `feedback.types.ts`
-(`buildWorkflowQueue`, `computeStats`, `isArchived`, `refKind`), unit-tested in
-`feedback.types.spec.ts`. All three views share that vocabulary: a terminal
-topic is out of the processing queue, out of the dashboard's "offen" bucket and
-in the overview's Archive tab, from the one `isArchived` rule.
+(`buildWorkflowQueue`, `computeStats`, `isArchived`, `refKind`,
+`feedbackBucket`), unit-tested in `feedback.types.spec.ts`. All three views
+share that vocabulary: a terminal topic is out of the processing queue, out of
+the dashboard's ToDo bucket and in the overview's Archive tab, from the one
+`isArchived` rule.
+
+**Presentation buckets ≠ DB status.** What the panel shows is a topic's
+*bucket* (`feedbackBucket`), not its raw status — the DB values are untouched:
+
+| Bucket | Label (DE/EN) | Which rows |
+|--------|---------------|------------|
+| `todo` | **ToDo** | `status='open'` **and** a `needs_input` topic whose newest thread message is the admin's answer — the routine still has to pick it up, so it is ToDo, not "done" |
+| `awaiting_admin` | Rückfrage / Needs input | `needs_input` whose newest message is the routine's (or none yet) — the ball is with the admin |
+| `in_progress` | In Arbeit / In progress | `status='in_progress'` |
+| `shipped` / `issue_created` / `rejected` | as before | terminal → Archive tab |
+
+The status filter chips, the day-grouped list and the dashboard's ToDo counter
+all resolve through that one rule. An answered Rückfrage keeps a small
+"beantwortet" marker next to its ToDo pill (it records that the admin's part is
+done) but is otherwise counted and filtered as ToDo. The "offen"/"Open" label
+is gone from the UI — it reads **ToDo** everywhere (feedback 34c44134); the
+status value on the wire is still `open`.
 
 Two things the routine should be aware of:
 
