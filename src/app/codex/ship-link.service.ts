@@ -20,6 +20,28 @@ import { normalizeRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
  * friendly message. The stored value is pure data: it is bound with
  * `[href]` on a plain anchor and never touches innerHTML or any LLM prompt.
  */
+interface ErrorPayload {
+  ok?: boolean;
+  error?: string;
+  message?: string;
+}
+
+/**
+ * Pull our JSON error body off a FunctionsHttpError. `error.context` is the raw
+ * `Response`; anything else (network error, relay error) yields an empty payload
+ * so the caller falls back to the generic message.
+ */
+async function readErrorBody(error: unknown): Promise<ErrorPayload> {
+  const ctx = (error as { context?: unknown } | null)?.context;
+  if (!(ctx instanceof Response)) return {};
+  try {
+    const parsed: unknown = await ctx.clone().json();
+    return parsed && typeof parsed === 'object' ? (parsed as ErrorPayload) : {};
+  } catch {
+    return {};
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class ShipLinkService {
   private readonly sb = inject(SupabaseClientProvider);
@@ -145,7 +167,12 @@ export class ShipLinkService {
   /** Returns null on success, or an i18n key suffix on failure. */
   private async invoke(body: Record<string, unknown>): Promise<string | null> {
     const { data, error } = await this.sb.client.functions.invoke('ship-link', { body });
-    const payload = (data ?? {}) as { ok?: boolean; error?: string; message?: string };
+    let payload = (data ?? {}) as ErrorPayload;
+    // `functions.invoke` surfaces a non-2xx as a FunctionsHttpError and leaves
+    // `data` null — the JSON body (our error code) only lives on the attached
+    // Response. Without this, every server-side rejection would collapse into
+    // the generic "could not save" message.
+    if (error && !payload.error) payload = await readErrorBody(error);
     if (error || payload.error) {
       const code = payload.error ?? 'unknown';
       this.error.set(payload.message ?? error?.message ?? code);
@@ -157,8 +184,10 @@ export class ShipLinkService {
   private errorKey(code: string): string {
     switch (code) {
       case 'invalid_url':
+      case 'invalid_slug':
         return 'invalidUrl';
       case 'rate_limited':
+      case 'quota_exceeded':
         return 'rateLimited';
       case 'unauthorized':
       case 'forbidden':

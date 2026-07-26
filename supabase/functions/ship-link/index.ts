@@ -28,7 +28,7 @@
 //
 // Status codes: 200 ok · 400 invalid_body/invalid_url/invalid_slug ·
 //   401 unauthorized · 403 forbidden · 405 method_not_allowed ·
-//   429 rate_limited · 500 server_misconfigured/db_error
+//   429 rate_limited/quota_exceeded · 500 server_misconfigured/db_error
 //
 // verify_jwt: TRUE (see supabase/config.toml) — every action needs a real user.
 
@@ -56,6 +56,12 @@ function json(body: unknown, status = 200): Response {
 const RATE_LIMIT_WINDOW_MS = 5 * 60_000;
 const RATE_LIMIT_MAX_WRITES = 20;
 const writeLog = new Map<string, number[]>();
+
+// The sliding window only slows churn down; it does not bound TOTAL rows, and a
+// patient account could otherwise grow the table without limit (one row per
+// invented ship_slug). A hard per-user ceiling closes that: far above any real
+// hangar, far below anything that matters for storage.
+const MAX_LINKS_PER_USER = 500;
 
 function rateLimited(userId: string): boolean {
   const now = Date.now();
@@ -127,6 +133,25 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (action === 'set') {
     const url = normalizeRsiPledgeShipUrl(body.url);
     if (!url) return json({ error: 'invalid_url' }, 400);
+
+    // Quota check before the upsert. Counting through the caller's own client
+    // means RLS scopes the count to their own rows for free. Updating an
+    // existing row must stay possible once the ceiling is reached, so only a
+    // NEW slug is refused.
+    const { count, error: countErr } = await userClient
+      .from('user_ship_links')
+      .select('ship_slug', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+    if (countErr) return json({ error: 'db_error', message: countErr.message }, 500);
+    if ((count ?? 0) >= MAX_LINKS_PER_USER) {
+      const { data: existing } = await userClient
+        .from('user_ship_links')
+        .select('ship_slug')
+        .eq('user_id', user.id)
+        .eq('ship_slug', shipSlug)
+        .maybeSingle();
+      if (!existing) return json({ error: 'quota_exceeded' }, 429);
+    }
 
     const { data, error } = await userClient
       .from('user_ship_links')

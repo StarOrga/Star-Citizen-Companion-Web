@@ -35,7 +35,7 @@ Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, org
 |---|---|---|
 | `fetch-verse-news` | Proxies `api.star-citizen.wiki` Comm-Link + RSI status RSS into a single `VerseFeed` JSON. Also **server-side caches** each news image into the public `news-images` bucket (service-role download w/ RSI `Referer`, post+cover variants, `verse_image_cache` index, ≤16 new downloads/request) and rewrites the urls — fixes broken hotlinked RSI CDN thumbnails. | `true` |
 | `process-p4k` | Analyzes a P4K upload's first 64KB, writes back via service-role. | `true` |
-| `ship-link` | Write authority for user-supplied RSI pledge links (`set`/`remove` own, admin `promote`/`unpromote` global). Enforces the URL allowlist server-side + a per-user rate limit. Uses **no service-role key** — it writes through the caller's own client so RLS still applies. | `true` |
+| `ship-link` | Write authority for user-supplied RSI pledge links (`set`/`remove` own, admin `promote`/`unpromote` global). Enforces the URL allowlist server-side + a per-user rate limit (20 writes / 5 min, in-isolate) + a hard ceiling of 500 links per user. Uses **no service-role key** — it writes through the caller's own client so RLS still applies. | `true` |
 
 Both functions deployed via Supabase MCP (`mcp__10628b5d-*__deploy_edge_function`).
 

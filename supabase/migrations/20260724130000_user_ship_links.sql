@@ -54,6 +54,7 @@ create or replace function public.is_rsi_pledge_ship_url(url text)
 returns boolean
 language sql
 immutable
+set search_path = public
 returns null on null input
 as $$
   select url ~ '^https://robertsspaceindustries\.com/en/pledge/ships/[a-z0-9-]+/[A-Za-z0-9-]+$'
@@ -126,6 +127,10 @@ create policy user_ship_links_self_update on public.user_ship_links
 drop policy if exists user_ship_links_self_delete on public.user_ship_links;
 create policy user_ship_links_self_delete on public.user_ship_links
   for delete to authenticated using (auth.uid() = user_id);
+
+-- Explicit table privileges (RLS narrows them to the owner). Stated rather than
+-- inherited from Supabase's default privileges, like admin_feedback does.
+grant select, insert, update, delete on public.user_ship_links to authenticated;
 
 -- Signed-out visitors never touch user-owned link data.
 revoke all on public.user_ship_links from anon;
