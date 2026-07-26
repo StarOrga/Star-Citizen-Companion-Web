@@ -225,13 +225,9 @@ export function timeOf(iso: string | null | undefined): number {
 
 // ---- Processing-mode queue ------------------------------------------------
 
-/** Why an item is in the processing queue — drives its badge and copy. */
-export type WorkflowKind = 'question' | 'new';
-
 export interface WorkflowItem {
   row: FeedbackRow;
   replies: FeedbackMessage[];
-  kind: WorkflowKind;
 }
 
 /**
@@ -242,37 +238,37 @@ export interface WorkflowItem {
 export type HandledMap = ReadonlyMap<string, string>;
 
 /**
- * The guided processing queue: first every Rückfrage still waiting on the
- * admin's answer, then untouched `open` topics — each group oldest first, so
- * the backlog is worked front to back.
+ * The guided processing queue: every Rückfrage still waiting on the admin's
+ * answer, oldest first, so the backlog is worked front to back.
  *
- * `in_progress` topics are deliberately excluded: the routine owns them and
- * there is nothing for the admin to do while it works.
+ * **Only topics that need the admin are in it** (feedback b0cc6efc). The mode
+ * used to append untouched `open` ToDos after the questions, which read as a
+ * backlog to work off — but an `open` topic is one the admin already wrote and
+ * that now waits on the *routine*: there is nothing to answer there. It enters
+ * the queue the moment the routine asks something back (→ `awaiting_admin`),
+ * which is exactly when the admin can act on it.
+ *
+ * `todo` and `in_progress` topics are excluded for the same reason: the ball is
+ * with the routine, not with the admin. They stay visible in the overview list
+ * and count toward the dashboard's ToDo bucket — this queue is the admin's
+ * inbox, not the board.
  */
 export function buildWorkflowQueue(
   rows: readonly FeedbackRow[],
   threads: ThreadMap,
   handled: HandledMap = new Map(),
 ): WorkflowItem[] {
-  const oldestFirst = (a: WorkflowItem, b: WorkflowItem) =>
-    timeOf(a.row.created_at) - timeOf(b.row.created_at);
-
   const questions: WorkflowItem[] = [];
-  const fresh: WorkflowItem[] = [];
 
   for (const row of rows) {
     // Ticked off and untouched since → stays out of the queue.
     if (handled.get(row.id) === row.updated_at) continue;
     const replies = threads.get(row.id) ?? [];
-    const bucket = feedbackBucket(row, replies);
-    if (bucket === 'awaiting_admin') questions.push({ row, replies, kind: 'question' });
-    // Only *untouched* ToDo topics are work for the admin. An already-answered
-    // Rückfrage shares the ToDo bucket in the board views, but the admin is done
-    // with it — it waits on the routine, so it stays out of this queue.
-    else if (bucket === 'todo' && row.status === 'open') fresh.push({ row, replies, kind: 'new' });
+    if (feedbackBucket(row, replies) !== 'awaiting_admin') continue;
+    questions.push({ row, replies });
   }
 
-  return [...questions.sort(oldestFirst), ...fresh.sort(oldestFirst)];
+  return questions.sort((a, b) => timeOf(a.row.created_at) - timeOf(b.row.created_at));
 }
 
 /**

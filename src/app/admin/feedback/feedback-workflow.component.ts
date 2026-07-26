@@ -38,10 +38,12 @@ const ADVANCE_SLIDE_MS = 380;
  * Guided processing mode ("Abarbeitungsmodus") for the admin feedback board.
  *
  * Instead of scanning the whole board, the admin is walked through the queue
- * one topic at a time: first every Rückfrage the routine is waiting on, then
- * untouched new topics (see `buildWorkflowQueue`). Each step shows the topic,
- * its full thread and an inline composer; answering fires a short celebration
- * and the queue moves on by itself once the topic leaves it.
+ * one topic at a time — every Rückfrage the routine is waiting on, oldest
+ * first (see `buildWorkflowQueue`). Topics that wait on the *routine* are not
+ * in it: the mode is the admin's inbox, not the board (feedback b0cc6efc).
+ * Each step shows the topic, its full thread and an inline composer; answering
+ * fires a short celebration and the queue moves on by itself once the topic
+ * leaves it.
  *
  * The queue itself is owned by the parent board (it holds the data and the
  * "ticked off" state) — this component is a pure presentation of it plus a
@@ -102,9 +104,9 @@ const ADVANCE_SLIDE_MS = 380;
           [class.celebrate]="celebrating()"
           [class.arrived]="advanced() !== null">
           <header class="wf-head">
-            <span class="kind" [class]="item.kind">
-              {{ ('adminFeedback.workflow.kind.' + item.kind) | translate }}
-            </span>
+            <!-- Every queue item is an open Rückfrage now (feedback b0cc6efc),
+                 so the badge names the one kind instead of switching. -->
+            <span class="kind question">{{ 'adminFeedback.workflow.kind.question' | translate }}</span>
             <span class="wf-title">{{ title(item) }}</span>
             <span class="wf-ts">{{ item.row.created_at | date: 'shortDate' }}</span>
           </header>
@@ -297,7 +299,6 @@ const ADVANCE_SLIDE_MS = 380;
       letter-spacing: 0.07em;
     }
     .kind.question { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
-    .kind.new { background: rgba(0, 212, 255, 0.16); color: var(--sc-accent); }
     .wf-title {
       flex: 1 1 auto;
       min-width: 0;
@@ -692,23 +693,20 @@ export class FeedbackWorkflowComponent {
 
   /**
    * Composer handler: posts the answer via the parent, then celebrates. The
-   * cursor is deliberately left where it is — an answered Rückfrage drops out
-   * of the queue on the next refresh (so the same index shows the next item),
-   * while an answered `open` topic stays put and can be ticked off explicitly.
+   * cursor is deliberately left where it is — the answered Rückfrage drops out
+   * of the queue on the next refresh, so the same index already shows the next
+   * item.
    */
   readonly submit = async (payload: ComposerPayload): Promise<boolean> => {
     const item = this.current();
     if (!item) return false;
     const ok = await this.reply()(item.row.id, payload);
-    if (ok) this.celebrate(item);
+    if (ok) this.celebrate();
     return ok;
   };
 
-  private celebrate(item: WorkflowItem): void {
-    const key = item.kind === 'question'
-      ? 'adminFeedback.workflow.cheerAnswered'
-      : 'adminFeedback.workflow.cheerReplied';
-    this.cheer.set(this.translate.instant(key));
+  private celebrate(): void {
+    this.cheer.set(this.translate.instant('adminFeedback.workflow.cheerAnswered'));
     // The answer is the news now — drop a still-running advance notice.
     this.clearAdvance();
     this.celebrating.set(true);
