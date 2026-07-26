@@ -12,6 +12,10 @@
 fn main() {
     println!("cargo:rerun-if-changed=assets/scc.ico");
     println!("cargo:rerun-if-changed=build.rs");
+    // src/update.rs bakes the per-release token in via `option_env!`, which is
+    // resolved at compile time. Without this, a cached build would keep an older
+    // (or absent) token when CI rotates it.
+    println!("cargo:rerun-if-env-changed=SC_RELEASE_TOKEN");
 
     // The resource compiler only exists for Windows targets; skip elsewhere so a
     // non-Windows toolchain (e.g. a docs/lint job) can still build the crate.

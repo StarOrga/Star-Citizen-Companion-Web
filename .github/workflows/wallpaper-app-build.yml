@@ -45,6 +45,43 @@ jobs:
         with:
           arch: x64
 
+      # Unit tests (version compare, JSON scanning, form/percent decoding, CNG
+      # SHA-256 vectors, DPAPI round-trip). These are the parts of the updater
+      # whose failure modes are silent, so they are a hard gate, not optional.
+      - name: Test
+        run: cargo test --locked
+
+      # Per-release bearer token, mirroring the data-uploader's SC_RELEASE_TOKEN
+      # build define. Only tagged builds get one: it must exist as a
+      # desktop_releases row to be accepted, and a PR build has no such row.
+      # The full UUID is masked from the log; only the 8-char fingerprint may be
+      # printed. Subsequent steps read it from the environment, so `option_env!`
+      # in src/update.rs bakes it into the binary.
+      - name: Generate release token
+        id: token
+        if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
+        shell: pwsh
+        run: |
+          $token = [guid]::NewGuid().ToString()
+          Write-Host "::add-mask::$token"
+          "SC_RELEASE_TOKEN=$token" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "fingerprint=$($token.Substring(0,8))" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Persist full token as a private artefact
+        if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
+        shell: pwsh
+        env:
+          SC_RELEASE_TOKEN: ${{ env.SC_RELEASE_TOKEN }}
+        run: '"$env:SC_RELEASE_TOKEN" | Out-File -FilePath release-token.txt -Encoding utf8 -NoNewline'
+
+      - name: Upload full token artefact (repo collaborators only)
+        if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-token
+          path: wallpaper-app/release-token.txt
+          retention-days: 7
+
       - name: Build (release)
         run: cargo build --release
 
@@ -59,17 +96,28 @@ jobs:
             throw "Version resource missing/incorrect (FileDescription='$($vi.FileDescription)') — winresource could not embed it."
           }
 
-      - name: Stage tagged artifact
+      # One build, four names. A release ring is a promotion POINTER, not a
+      # separate build, so the ring cannot be baked into the binary — but the
+      # app must still know which ring it was downloaded from. The filename is
+      # the only signal that survives a plain single-file download, so each ring
+      # gets its own identically-byte-for-byte asset name and the app reads its
+      # ring off its own filename on first start (src/update.rs).
+      - name: Stage tagged artifacts (canonical + one name per ring)
         if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
         shell: pwsh
         run: |
           $v = "${{ github.ref_name }}" -replace '^wallpaper-app-v', ''
-          Copy-Item target/release/starscape-wallpaper.exe "starscape-wallpaper-$v.exe"
-          # Version-less alias for the stable 'latest' download URL used by the website.
-          Copy-Item target/release/starscape-wallpaper.exe "starscape-wallpaper.exe"
+          $src = "target/release/starscape-wallpaper.exe"
+          Copy-Item $src "starscape-wallpaper-$v.exe"
+          foreach ($ring in 'stable','beta','alpha') {
+            Copy-Item $src "starscape-wallpaper-$v-$ring.exe"
+          }
+          # Version-less alias for the never-stale 'latest' download URL.
+          Copy-Item $src "starscape-wallpaper.exe"
           $sha = (Get-FileHash -Algorithm SHA256 "starscape-wallpaper-$v.exe").Hash.ToLower()
           $size = (Get-Item "starscape-wallpaper-$v.exe").Length
           Write-Host "asset: starscape-wallpaper-$v.exe  size=$size  sha256=$sha"
+          Write-Host "ring aliases: starscape-wallpaper-$v-{stable,beta,alpha}.exe (identical bytes)"
 
       - name: Publish to PUBLIC binaries-mirror release (end-user download)
         if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
@@ -112,12 +160,12 @@ jobs:
             Unsigned (Phase-2 limitation) — Windows SmartScreen will warn on first
             run: choose **More info → Run anyway**.
 
-      # Registers the build in Supabase `desktop_releases` (product='starscape').
-      # The routine env's Supabase MCP is authenticated, so copy this SQL into the
-      # MCP/SQL editor after the release — the Starscape gallery page then shows the
-      # version + a hash-verified download via the starscape_latest_release() RPC.
-      # Unlike the data-uploader there is no channel pointer and no release-token
-      # baked into the binary: Starscape has no in-app updater, so newest-by-date wins.
+      # Registers the build in Supabase `desktop_releases` (product='starscape')
+      # AND points the ALPHA ring at it — same promotion model as the uploader
+      # (alpha → beta → stable via promote_starscape_channel). The routine env's
+      # Supabase MCP is authenticated, so copy this SQL into the MCP/SQL editor
+      # after the release. The full release token is a masked secret and is NEVER
+      # printed: download the `release-token` workflow artefact for it.
       - name: Print Starscape desktop_releases register SQL
         if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
         shell: pwsh
@@ -126,10 +174,21 @@ jobs:
           $exe = "starscape-wallpaper-$v.exe"
           $sha = (Get-FileHash -Algorithm SHA256 $exe).Hash.ToLower()
           $size = (Get-Item $exe).Length
-          $url = "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/${{ github.ref_name }}/$exe"
-          Write-Host "=== Register this Starscape build in desktop_releases (Supabase SQL editor / MCP) ==="
-          Write-Host "INSERT INTO public.desktop_releases (product, version, platforms, notes)"
-          Write-Host "VALUES ('starscape', '$v', jsonb_build_object("
-          Write-Host "  'win-x64', jsonb_build_object('url','$url','kind','exe','sha256','$sha','size_bytes',$size)"
-          Write-Host "), 'Starscape wallpaper $v');"
-          Write-Host "=== The public Starscape gallery page reads this via starscape_latest_release() ==="
+          $base = "https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/${{ github.ref_name }}"
+          $asset = { param($n) "jsonb_build_object('url','$base/$n','kind','exe','sha256','$sha','size_bytes',$size)" }
+          Write-Host "=== Release token fingerprint: ${{ steps.token.outputs.fingerprint }}… (full UUID = `release-token` artefact) ==="
+          Write-Host "=== Register this Starscape build + point ALPHA at it (Supabase SQL editor / MCP) ==="
+          Write-Host "WITH new_rel AS ("
+          Write-Host "  INSERT INTO public.desktop_releases (product, version, release_token, platforms, notes)"
+          Write-Host "  VALUES ('starscape', '$v', '<full-release-token-uuid>', jsonb_build_object("
+          Write-Host "    'win-x64',        $(& $asset $exe),"
+          Write-Host "    'win-x64-stable', $(& $asset "starscape-wallpaper-$v-stable.exe"),"
+          Write-Host "    'win-x64-beta',   $(& $asset "starscape-wallpaper-$v-beta.exe"),"
+          Write-Host "    'win-x64-alpha',  $(& $asset "starscape-wallpaper-$v-alpha.exe")"
+          Write-Host "  ), 'Starscape wallpaper $v') RETURNING id"
+          Write-Host ")"
+          Write-Host "INSERT INTO public.desktop_channels (product, channel, release_id)"
+          Write-Host "SELECT 'starscape', 'alpha', id FROM new_rel"
+          Write-Host "ON CONFLICT (product, channel) DO UPDATE"
+          Write-Host "  SET release_id = EXCLUDED.release_id, updated_at = now();"
+          Write-Host "=== Then promote:  select promote_starscape_channel('$v','beta');  … ('$v','stable'); ==="

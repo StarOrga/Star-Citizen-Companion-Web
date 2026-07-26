@@ -5,19 +5,31 @@ use std::ffi::c_void;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use windows_sys::Win32::Foundation::{ERROR_SUCCESS, HANDLE};
+use windows_sys::Win32::Foundation::{ERROR_SUCCESS, HANDLE, HWND};
+use windows_sys::Win32::Globalization::GetUserDefaultUILanguage;
 use windows_sys::Win32::System::Registry::{
     RegCloseKey, RegCreateKeyExW, RegDeleteValueW, RegQueryValueExW, RegSetValueExW, HKEY,
     HKEY_CURRENT_USER, KEY_READ, KEY_WRITE, REG_OPTION_NON_VOLATILE, REG_SZ,
 };
+use windows_sys::Win32::System::Threading::GetCurrentThreadId;
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::SetFocus;
 use windows_sys::Win32::UI::Shell::ShellExecuteW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    SystemParametersInfoW, SPIF_SENDCHANGE, SPIF_UPDATEINIFILE, SPI_SETDESKWALLPAPER, SW_SHOWNORMAL,
+    AttachThreadInput, BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId,
+    SetForegroundWindow, SystemParametersInfoW, SPIF_SENDCHANGE, SPIF_UPDATEINIFILE,
+    SPI_SETDESKWALLPAPER, SW_SHOWNORMAL,
 };
 
 /// Null-terminated UTF-16 for Win32 `*W` APIs.
 pub fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(std::iter::once(0)).collect()
+}
+
+/// Pick a localized label (DE for a German UI language, EN otherwise). The app
+/// ships no resource strings — two languages, one helper.
+pub fn t(de: &str, en: &str) -> String {
+    let lang = (unsafe { GetUserDefaultUILanguage() } as u32) & 0x3ff;
+    if lang == 0x07 { de } else { en }.to_string()
 }
 
 fn wide_path(p: &Path) -> Vec<u16> {
@@ -82,6 +94,49 @@ impl Mode {
     }
 }
 
+/// Release ring the in-app updater follows.
+///
+/// Chosen ONCE — on the website, before the download — and then locked: the
+/// download link for each ring carries the ring in its filename, the app reads
+/// it on first start and writes it to the config. There is deliberately no
+/// in-app switch, which is what makes this different from the data-uploader's
+/// runtime channel picker.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Channel {
+    Stable,
+    Beta,
+    Alpha,
+}
+
+impl Channel {
+    /// Wire/config value (`stable` | `beta` | `alpha`).
+    pub fn as_key(self) -> &'static str {
+        match self {
+            Channel::Stable => "stable",
+            Channel::Beta => "beta",
+            Channel::Alpha => "alpha",
+        }
+    }
+
+    /// Human label for the tray readout.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Channel::Stable => "Stable",
+            Channel::Beta => "Beta",
+            Channel::Alpha => "Alpha",
+        }
+    }
+
+    pub fn from_key(s: &str) -> Option<Channel> {
+        match s {
+            "stable" => Some(Channel::Stable),
+            "beta" => Some(Channel::Beta),
+            "alpha" => Some(Channel::Alpha),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Config {
     pub interval_min: u32,
@@ -93,6 +148,12 @@ pub struct Config {
     pub summary_on_boot: bool,
     /// yyyymmdd of the last day the boot summary was shown; 0 = never.
     pub summary_last_shown: u32,
+    /// The locked update ring.
+    pub channel: Channel,
+    /// True once the ring has been derived from the downloaded filename. Guards
+    /// the derivation so a later rename of the exe can never move an install to
+    /// another ring.
+    pub channel_locked: bool,
 }
 
 impl Default for Config {
@@ -106,6 +167,8 @@ impl Default for Config {
             autostart_initialized: false,
             summary_on_boot: true,
             summary_last_shown: 0,
+            channel: Channel::Stable,
+            channel_locked: false,
         }
     }
 }
@@ -162,6 +225,14 @@ impl Config {
                             cfg.summary_last_shown = n;
                         }
                     }
+                    "channel" => {
+                        if let Some(c) = Channel::from_key(v) {
+                            cfg.channel = c;
+                        }
+                    }
+                    "channel_locked" => {
+                        cfg.channel_locked = v == "1" || v.eq_ignore_ascii_case("true");
+                    }
                     _ => {}
                 }
             }
@@ -171,7 +242,7 @@ impl Config {
 
     pub fn save(&self) {
         let text = format!(
-            "interval_min={}\nfade={}\npaused={}\nmode={}\nscreensaver_after_min={}\nautostart_initialized={}\nsummary_on_boot={}\nsummary_last_shown={}\n",
+            "interval_min={}\nfade={}\npaused={}\nmode={}\nscreensaver_after_min={}\nautostart_initialized={}\nsummary_on_boot={}\nsummary_last_shown={}\nchannel={}\nchannel_locked={}\n",
             self.interval_min,
             self.fade as u8,
             self.paused as u8,
@@ -180,8 +251,44 @@ impl Config {
             self.autostart_initialized as u8,
             self.summary_on_boot as u8,
             self.summary_last_shown,
+            self.channel.as_key(),
+            self.channel_locked as u8,
         );
         let _ = fs::write(Config::path(), text);
+    }
+}
+
+// ---------------- Foreground ----------------
+
+/// Force `hwnd` to the foreground.
+///
+/// Windows only lets the process that currently owns the foreground hand it over,
+/// so a plain `SetForegroundWindow` from a background app is ignored. The
+/// standard workaround is to attach our input queue to the foreground thread's
+/// for the duration of the call, which makes the two threads share a foreground
+/// state. Used after the website sign-in, so the tray menu can be popped where
+/// the user is actually looking.
+///
+/// Note this never calls `ShowWindow`: Starscape's host window is a 0×0
+/// never-shown message window, and showing it would put a stray button on the
+/// taskbar. We only need the foreground *rights*, so the popup menu opens over
+/// the browser the user was just in.
+pub fn force_foreground(hwnd: HWND) {
+    unsafe {
+        if hwnd.is_null() {
+            return;
+        }
+        let fg = GetForegroundWindow();
+        let target = GetCurrentThreadId();
+        let source =
+            if fg.is_null() { 0 } else { GetWindowThreadProcessId(fg, std::ptr::null_mut()) };
+        let attached = source != 0 && source != target && AttachThreadInput(source, target, 1) != 0;
+        BringWindowToTop(hwnd);
+        SetForegroundWindow(hwnd);
+        SetFocus(hwnd);
+        if attached {
+            AttachThreadInput(source, target, 0);
+        }
     }
 }
 
@@ -336,6 +443,32 @@ fn delete_hkcu_value(sub: &str, name: &str) -> bool {
     unsafe { RegCloseKey(hkey) };
     // Deleting an absent value is still "disabled" → treat as success.
     rc == ERROR_SUCCESS || rc == 2 /* ERROR_FILE_NOT_FOUND */
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn channel_keys_round_trip() {
+        for c in [Channel::Stable, Channel::Beta, Channel::Alpha] {
+            assert_eq!(Channel::from_key(c.as_key()), Some(c));
+        }
+    }
+
+    #[test]
+    fn unknown_channel_keys_are_rejected() {
+        assert_eq!(Channel::from_key("nightly"), None);
+        assert_eq!(Channel::from_key("Stable"), None); // case-sensitive on purpose
+        assert_eq!(Channel::from_key(""), None);
+    }
+
+    #[test]
+    fn default_config_is_stable_and_unlocked() {
+        let c = Config::default();
+        assert_eq!(c.channel, Channel::Stable);
+        assert!(!c.channel_locked);
+    }
 }
 
 // Prevent a second instance (autostart + manual launch). Returns a handle we
