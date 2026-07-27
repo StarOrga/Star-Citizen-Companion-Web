@@ -428,7 +428,8 @@
       "collapse": "Collapse 3D view",
       "expand": "Expand 3D view",
       "holoReady": "Holo-Ready — interactive 3D liveries available",
-      "holoReadyShort": "3D"
+      "holoReadyShort": "3D",
+      "hardpointHint": "{{count}} hardpoints marked on the model — point at a marker or a row below and both light up."
     },
     "equipped": {
       "alphaDamage": "Alpha damage",
