@@ -383,6 +383,23 @@
       "nose": "Bug",
       "readoutIdle": "Kein Hardpoint ausgewählt"
     },
+    "showroom": {
+      "title": "Showroom",
+      "subtitle": "Echte Schiffs-Lackierungen in interaktivem 3D betrachten — datamined Hülle und Texturen aus dem aktuellen Build.",
+      "count": "{{liveries}} Lackierungen in 3D über {{ships}} Schiff(e)",
+      "spotlight": "Jetzt im Showroom",
+      "gallery": "Alle Lackierungen",
+      "liveryCount": "{{count}} Lackierungen",
+      "billboard": {
+        "eyebrow": "Neu",
+        "title": "Echte Schiffs-Lackierungen in 3D drehen — {{count}} verfügbar",
+        "cta": "Zum Showroom"
+      },
+      "empty": {
+        "title": "Noch keine 3D-Lackierungen",
+        "body": "3D-Lackierungen werden pro Spiel-Build extrahiert und erscheinen hier, sobald sie vorliegen."
+      }
+    },
     "skins": {
       "title": "Lackierungen",
       "source": "Aus Data.p4k · echtes Hull + echte Texturen",
@@ -395,7 +412,9 @@
       "loadCatalogError": "Lackierungen konnten nicht geladen werden.",
       "retry": "Erneut versuchen",
       "collapse": "3D-Ansicht einklappen",
-      "expand": "3D-Ansicht ausklappen"
+      "expand": "3D-Ansicht ausklappen",
+      "holoReady": "Holo-Ready — interaktive 3D-Lackierungen verfügbar",
+      "holoReadyShort": "3D"
     },
     "equipped": {
       "alphaDamage": "Alpha-Schaden",
