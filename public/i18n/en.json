@@ -1784,6 +1784,13 @@
       "declined": "Not implemented"
     }
   },
+  "feedbackAttachments": {
+    "label": "Attachments",
+    "image": "Attachment",
+    "enlarge": "Enlarge image",
+    "enlargeNamed": "Enlarge image: {{name}}",
+    "close": "Close image"
+  },
   "appPanel": {
     "version": "Currently published version",
     "details": "Show details, notes and release notes"

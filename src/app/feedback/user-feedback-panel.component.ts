@@ -16,7 +16,8 @@ import {
   ComposerPayload,
   FeedbackComposerComponent,
 } from '../admin/feedback/feedback-composer.component';
-import { renderMarkdown } from '../admin/feedback/markdown.util';
+import { FeedbackAttachmentsComponent } from '../admin/feedback/feedback-attachments.component';
+import { RenderedFeedbackBody, renderFeedbackBody } from '../admin/feedback/markdown.util';
 import { UserFeedbackService } from './user-feedback.service';
 import { AuthorFeedbackRow } from './user-feedback.types';
 
@@ -45,7 +46,7 @@ type UserFeedbackTab = 'compose' | 'mine';
 @Component({
   selector: 'sc-user-feedback-panel',
   standalone: true,
-  imports: [DatePipe, TranslateModule, FeedbackComposerComponent],
+  imports: [DatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="panel-root">
@@ -125,7 +126,9 @@ type UserFeedbackTab = 'compose' | 'mine';
                 @if (isOpen(t.id)) {
                   <div class="topic-detail">
                     <span class="ts">{{ t.created_at | date: 'short' }}</span>
-                    <div class="body" [innerHTML]="render(t.body)"></div>
+                    @let topicBody = render(t.body);
+                    <div class="body" [innerHTML]="topicBody.html"></div>
+                    <sc-feedback-attachments [images]="topicBody.images" />
 
                     @if (t.author_status === 'declined' && t.decision_note) {
                       <div class="decision">
@@ -147,7 +150,9 @@ type UserFeedbackTab = 'compose' | 'mine';
                               }
                               <span class="reply-ts">{{ msg.created_at | date: 'short' }}</span>
                             </div>
-                            <div class="reply-body" [innerHTML]="render(msg.body)"></div>
+                            @let replyBody = render(msg.body);
+                            <div class="reply-body" [innerHTML]="replyBody.html"></div>
+                            <sc-feedback-attachments [images]="replyBody.images" />
                           </div>
                         }
                       </div>
@@ -274,14 +279,7 @@ type UserFeedbackTab = 'compose' | 'mine';
 
     .topic-detail { display: flex; flex-direction: column; gap: 8px; }
     .body, .reply-body { font-size: 0.84rem; line-height: 1.5; color: var(--sc-fg-1); }
-    .body img, .reply-body img {
-      display: block;
-      max-width: 100%;
-      height: auto;
-      margin: 6px 0;
-      border: 1px solid var(--sc-border);
-      border-radius: 6px;
-    }
+    /* Screenshots are not part of the body flow — see sc-feedback-attachments. */
 
     .decision {
       padding: 8px 10px;
@@ -342,8 +340,8 @@ export class UserFeedbackPanelComponent implements OnInit {
     void this.feedback.refresh();
   }
 
-  render(body: string): string {
-    return renderMarkdown(body);
+  render(body: string): RenderedFeedbackBody {
+    return renderFeedbackBody(body);
   }
 
   /** One-line title derived from the body — the author never typed a subject. */

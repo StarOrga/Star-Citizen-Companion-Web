@@ -15,7 +15,8 @@ import { SupabaseClientProvider } from '../../core/supabase.client';
 import { useAutoRefresh } from '../../core/auto-refresh';
 import { AuthService } from '../../auth/auth.service';
 import { ConsentService } from '../../core/consent.service';
-import { renderMarkdown } from './markdown.util';
+import { RenderedFeedbackBody, renderFeedbackBody } from './markdown.util';
+import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import { ComposerPayload, FeedbackComposerComponent, PendingImage } from './feedback-composer.component';
 import { CelebrationService } from './celebration.service';
 import { FeedbackDashboardComponent } from './feedback-dashboard.component';
@@ -109,6 +110,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     DatePipe,
     NgTemplateOutlet,
     TranslateModule,
+    FeedbackAttachmentsComponent,
     FeedbackComposerComponent,
     FeedbackWorkflowComponent,
     FeedbackDashboardComponent,
@@ -558,20 +560,24 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
             <!-- Long bodies are clamped to their first two sentences on the full
                  board (feedback 73dfa165) so the list stays scannable; expand to
                  read the rest. In the compact FAB panel the whole card already
-                 collapses, so the body is shown in full when opened there. -->
+                 collapses, so the body is shown in full when opened there.
+                 Screenshots ride along as thumbnails in both states — they are
+                 attachments now, not part of the text (feedback a660536a). -->
+            @let body = render(m.body);
             @if (!embedded()) {
               @let bp = bodyPreview(m.body);
               @if (bp.truncated && !isBodyExpanded(m.id)) {
                 <div class="msg-body clamped">{{ bp.text }}<button type="button" class="body-toggle" (click)="toggleBody(m.id)">… {{ 'adminFeedback.showMore' | translate }}</button></div>
               } @else {
-                <div class="msg-body" [innerHTML]="render(m.body)"></div>
+                <div class="msg-body" [innerHTML]="body.html"></div>
                 @if (bp.truncated) {
                   <button type="button" class="body-toggle" (click)="toggleBody(m.id)">{{ 'adminFeedback.showLess' | translate }}</button>
                 }
               }
             } @else {
-              <div class="msg-body" [innerHTML]="render(m.body)"></div>
+              <div class="msg-body" [innerHTML]="body.html"></div>
             }
+            <sc-feedback-attachments [images]="body.images" />
 
             <!-- ship_ref holds either the PR that shipped the topic or the
                  GitHub issue it was handed off to — label the link accordingly
@@ -600,19 +606,21 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                       @if (msg.is_system) { <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span> }
                       <span class="reply-ts">{{ msg.created_at | date: (embedded() ? 'shortDate' : 'short') }}</span>
                     </div>
+                    @let reply = render(msg.body);
                     @if (!embedded()) {
                       @let rp = bodyPreview(msg.body);
                       @if (rp.truncated && !isBodyExpanded(msg.id)) {
                         <div class="reply-body clamped">{{ rp.text }}<button type="button" class="body-toggle" (click)="toggleBody(msg.id)">… {{ 'adminFeedback.showMore' | translate }}</button></div>
                       } @else {
-                        <div class="reply-body" [innerHTML]="render(msg.body)"></div>
+                        <div class="reply-body" [innerHTML]="reply.html"></div>
                         @if (rp.truncated) {
                           <button type="button" class="body-toggle" (click)="toggleBody(msg.id)">{{ 'adminFeedback.showLess' | translate }}</button>
                         }
                       }
                     } @else {
-                      <div class="reply-body" [innerHTML]="render(msg.body)"></div>
+                      <div class="reply-body" [innerHTML]="reply.html"></div>
                     }
+                    <sc-feedback-attachments [images]="reply.images" />
                   </div>
                 }
               </div>
@@ -664,7 +672,9 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                           }
                           <span class="reply-ts">{{ am.created_at | date: 'short' }}</span>
                         </div>
-                        <div class="reply-body" [innerHTML]="render(am.body)"></div>
+                        @let authorReply = render(am.body);
+                        <div class="reply-body" [innerHTML]="authorReply.html"></div>
+                        <sc-feedback-attachments [images]="authorReply.images" />
                       </div>
                     }
                   </div>
@@ -1275,14 +1285,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 3px;
     }
     .msg-body a { color: var(--sc-accent); }
-    .msg-body img {
-      display: block;
-      max-width: 100%;
-      height: auto;
-      margin: 6px 0;
-      border: 1px solid var(--sc-border);
-      border-radius: 6px;
-    }
+    /* Screenshots are not part of the body flow — see sc-feedback-attachments. */
     .msg-body blockquote {
       margin: 0 0 8px;
       padding: 4px 12px;
@@ -1335,7 +1338,6 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .reply-body p { margin: 0 0 6px; }
     .reply-body a { color: var(--sc-accent); }
     .reply-body code { font-family: monospace; font-size: 0.85em; background: var(--sc-bg-1); padding: 1px 5px; border-radius: 3px; }
-    .reply-body img { display: block; max-width: 100%; height: auto; margin: 6px 0; border: 1px solid var(--sc-border); border-radius: 6px; }
 
     .reply-compose { margin-top: 4px; }
     /* Archived topics: a reply reopens them, so say so above the composer. */
@@ -2153,12 +2155,12 @@ export class AdminFeedbackComponent implements OnInit {
   /**
    * First-two-sentences preview of a markdown body plus whether anything was cut
    * — backs the collapse-by-default clamp on the full board. Images and markup
-   * are stripped for the plain preview; their presence still marks the body as
-   * truncatable so the reader can expand to the rich render.
+   * are stripped for the plain preview; the images themselves ride along as
+   * attachment thumbnails in every state (feedback a660536a), so they no longer
+   * make a short body "expandable".
    */
   bodyPreview(body: string): { text: string; truncated: boolean } {
     const raw = body ?? '';
-    const hasImage = /!\[[^\]]*\]\([^)]*\)/.test(raw);
     const plain = raw
       .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
       .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
@@ -2167,7 +2169,7 @@ export class AdminFeedbackComponent implements OnInit {
       .trim();
     const parts = plain ? plain.split(/(?<=[.!?])\s+/) : [];
     let text = parts.slice(0, 2).join(' ').trim();
-    let truncated = hasImage || parts.length > 2 || text.length < plain.length;
+    let truncated = parts.length > 2 || text.length < plain.length;
     const CAP = 300;
     if (text.length > CAP) {
       text = text.slice(0, CAP).trimEnd();
@@ -2187,8 +2189,8 @@ export class AdminFeedbackComponent implements OnInit {
     await this.refresh();
   }
 
-  render(body: string): string {
-    return renderMarkdown(body);
+  render(body: string): RenderedFeedbackBody {
+    return renderFeedbackBody(body);
   }
 
   authorLabel(m: FeedbackRow): string {
