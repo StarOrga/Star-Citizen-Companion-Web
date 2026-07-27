@@ -390,6 +390,9 @@ def patch_glb_materials(glb: Path, submats: Dict[str, SubMaterial],
     stats dict (also useful as a regression assertion in tests).
     """
     gltf, binary = read_glb(glb)
+    # Idempotent safety net: `hull3d._unrig_hull` already ran this as its own
+    # step (so a broken .mtl cannot cost us the geometry fix), but a caller that
+    # only reaches for the material pass must not silently ship a collapsed hull.
     skins = strip_noop_skins(gltf, binary, on_log)
     stripped = _strip_spec_gloss(gltf)
 

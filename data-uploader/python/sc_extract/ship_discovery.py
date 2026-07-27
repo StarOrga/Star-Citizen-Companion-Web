@@ -218,14 +218,39 @@ class ShipDiscovery:
             return self._loc_names[best_key], self._loc_descs.get(best_key, "")
         return None, ""
 
+    def find_base_mtl(self, ref: ShipRef, mtls: List[str], hull_cga: str = "") -> Optional[str]:
+        """The ship's factory-finish .mtl.
+
+        Exact `<ShipId>.mtl` is the convention and wins. It is NOT universal
+        though — plenty of hulls name the base material after the *folder* or
+        after the mesh rather than the entity id, and a ship whose base material
+        we fail to resolve produces no `standard` livery at all, which used to
+        drop the whole ship out of a catalog-wide build. So fall back, in order:
+        the .mtl sitting next to the hull mesh with the mesh's own stem, then the
+        shortest remaining candidate (the base name is always a prefix of its
+        `_pirate` / `_camo_digi` livery siblings).
+        """
+        by_stem = {Path(m).stem.lower(): m for m in mtls}
+        exact = by_stem.get(ref.ship_id.lower())
+        if exact:
+            return exact
+        if hull_cga:
+            mesh_stem = Path(hull_cga.replace("\\", "/")).stem.lower()
+            sibling = by_stem.get(mesh_stem)
+            if sibling:
+                return sibling
+        if not mtls:
+            return None
+        return min(mtls, key=lambda m: (len(Path(m).stem), m.lower()))
+
     def discover(self, ref: ShipRef) -> ShipSpec:
         hull = self.find_hull(ref)
         mtls = self._ship_mtls(ref)
         icons = self.find_paint_icons(ref)
         paints: List[Paint] = []
 
-        # standard paint = the base hull .mtl (no paint suffix), if present
-        std_mtl = next((m for m in mtls if Path(m).stem.lower() == ref.ship_id.lower()), None)
+        # standard paint = the base hull .mtl (no paint suffix), if resolvable
+        std_mtl = self.find_base_mtl(ref, mtls, hull or "")
         if std_mtl:
             paints.append(Paint(mtl=std_mtl, id="standard",
                                 name=f"{ref.ship.replace('_',' ')} (Standard)",
@@ -259,7 +284,7 @@ class ShipDiscovery:
         """
         mtls = self._ship_mtls(ref)
         icons = self.find_paint_icons(ref)
-        std_mtl = next((m for m in mtls if Path(m).stem.lower() == ref.ship_id.lower()), None)
+        std_mtl = self.find_base_mtl(ref, mtls, hull_cga)
 
         out: List[Dict[str, str]] = []
         # Every flyable hull has its factory finish — list it as the base livery.

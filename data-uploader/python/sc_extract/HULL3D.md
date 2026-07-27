@@ -166,10 +166,25 @@ down a quality ladder — texture halves, `simplify_error` doubles — until it 
 How big is "the whole catalog"? Measured against the live `codex_ships` rows of
 the current build (`payload->'skins'`), not estimated: **314 ships, 302 of them
 with at least one livery, 1729 liveries listed, 391 of those material-backed**
-— i.e. ~391 glbs is a full build. At the pre-repair 3.0 MB/skin that is ~1.2 GB,
-which cannot fit the free plan's 1 GB *total* file storage under any budget; at
-the measured post-repair ~0.6 MB it is ~235 MB. See the PR of feedback d7f44a41
-for the bucket-by-bucket figures.
+— i.e. ~391 glbs is a full build.
+
+The Supabase free plan gives 1 GB of file storage *in total*, and the other
+buckets already hold ~831 MB (news-images 809 MB, codex-previews 2.1 MB,
+feedback-images 0.3 MB), so **ship-skins has ~150 MB to work with**:
+
+| per-skin glb | full catalog (391 skins) | fits ~150 MB? |
+| --- | --- | --- |
+| 3.01 MB — shipped, 1024 px, spec-gloss kept | ~1.18 GB | no, by 8× |
+| 2.11 MB — after the spec-gloss strip alone | ~825 MB | no |
+| 0.64 MB — + 512 px + interior strip | ~250 MB | no |
+| **0.39 MB — + the 256 px ladder step (current default)** | **~151 MB** | **yes** |
+
+All four rows are measured on the LIVE `DRAK_Cutlass_Black` standard finish, not
+modelled. The quality cost of the last row is texture resolution (256 px) and
+~51 k triangles instead of 273 k — acceptable for a 320 px-tall viewer stage,
+and the ladder still lets a light ship keep 512 px.
+
+Icons are noise by comparison (~11 kB WebP each, ~4 MB for the catalog).
 
 Most skins pass at step 0, so **only the heavy ones lose fidelity** rather than
 the whole catalog being exported at a blanket-low resolution. If even the last

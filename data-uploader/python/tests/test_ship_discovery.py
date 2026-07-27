@@ -154,6 +154,53 @@ def test_catalog_matches_discover_with_index():
     assert coalfire["name"] == "Cutlass Coalfire Livery"
 
 
+def test_base_mtl_prefers_the_exact_ship_id_match():
+    d = make_disco()
+    mtls = d._ship_mtls(REF)
+    assert d.find_base_mtl(REF, mtls, f"{CUT}/DRAK_Cutlass_Black.cga") == \
+        f"{CUT}/Cutlass_Black/DRAK_Cutlass_Black.mtl"
+
+
+def test_base_mtl_falls_back_to_the_hull_mesh_stem():
+    """A ship whose base material is named after the MESH, not the entity id.
+
+    Without a fallback such a ship gets no `standard` livery and drops out of a
+    catalog-wide build entirely — the "only the Cutlass has liveries" symptom.
+    """
+    base = "Data/Objects/Spaceships/Ships/AEGS/Gladius"
+    infos = [
+        FakeInfo(f"{base}/AEGS_Gladius_Mesh.cga", size=9_000_000),
+        FakeInfo(f"{base}/AEGS_Gladius_Mesh.mtl"),
+        FakeInfo(f"{base}/AEGS_Gladius_Mesh_pirate.mtl"),
+    ]
+    d = ShipDiscovery(FakeP4K(infos))
+    ref = ShipRef("AEGS_Gladius", "AEGS", "Gladius", "Gladius")
+    spec = d.discover(ref)
+    assert spec.hull_cga == f"{base}/AEGS_Gladius_Mesh.cga"
+    std = next(p for p in spec.paints if p.id == "standard")
+    assert std.mtl == f"{base}/AEGS_Gladius_Mesh.mtl"
+    assert std.source == "factory"
+
+
+def test_base_mtl_falls_back_to_the_shortest_candidate():
+    """No id match and no mesh-stem match: the base name is always a prefix of
+    its livery siblings, so the shortest stem is the factory finish."""
+    base = "Data/Objects/Spaceships/Ships/RSI/Aurora"
+    infos = [
+        FakeInfo(f"{base}/aurora_body_camo_digi.mtl"),
+        FakeInfo(f"{base}/aurora_body.mtl"),
+    ]
+    d = ShipDiscovery(FakeP4K(infos))
+    ref = ShipRef("RSI_Aurora_MR", "RSI", "Aurora", "Aurora")
+    assert d.find_base_mtl(ref, d._ship_mtls(ref)) == f"{base}/aurora_body.mtl"
+
+
+def test_base_mtl_is_none_when_the_ship_has_no_materials():
+    d = ShipDiscovery(FakeP4K([]))
+    ref = ShipRef("X_Y", "X", "Y", "Y")
+    assert d.find_base_mtl(ref, []) is None
+
+
 def test_build_index_matches_full_scan_icons_and_mtls():
     scan = make_disco()
     idx = make_disco()
