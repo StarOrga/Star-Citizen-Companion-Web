@@ -11,6 +11,16 @@ import { PNG } from 'npm:pngjs@7.0.0';
 import { scoreWallpaper } from './wallpaper-quality.ts';
 import { isCommLinkArticleUrl } from './comm-link-url.ts';
 import { isWithinVideoRetention, videoRetentionCutoff } from './video-retention.ts';
+import {
+  MAX_PASSTHROUGH_BYTES,
+  OPAQUE_WIDTH,
+  VARIANT_CACHE_CONTROL,
+  buildVariants,
+  readImageSize,
+  totalVariantBytes,
+  variantPath,
+} from './image-variants.ts';
+import { edgeCodecs } from './image-codecs.ts';
 
 type Channel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 
@@ -472,20 +482,34 @@ async function fetchStatus(): Promise<VerseStatus | null> {
 // RSI's signed `/i/<sha1>/…` proxy urls expire and cross-origin hotlinking of the
 // CDN is referer/rate limited, so client-rendered cards kept losing their images.
 // We download each image once into the public `news-images` bucket and hand the
-// client our own durable url instead. Two variants are stored per source so the
-// client's responsive srcset (post≤500w / cover≤1140w) keeps working.
+// client our own durable url instead.
+//
+// What we store has changed (news-images footprint, 2026-07-27). The first
+// generation mirrored the upstream bytes verbatim under two names — `post.<ext>`
+// and `cover.<ext>` — which for most sources were the SAME file at full RSI
+// resolution, so the bucket grew a byte-identical twin of every multi-MB PNG and
+// reached 809 MB of the 1 GB quota. Now each source is decoded once and stored as
+// a ladder of genuinely different sizes (`w400`/`w800`/`w<top>`, see
+// image-variants.ts) — no twins, nothing wider than the app ever paints.
 
 const IMG_BUCKET = 'news-images';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const PUBLIC_BASE = `${SUPABASE_URL}/storage/v1/object/public/${IMG_BUCKET}`;
-// Cap synchronous downloads per request so a cold cache can't blow the function
-// timeout; the cache warms over a few request cycles, raw urls serve meanwhile.
-const MAX_CACHE_PER_REQUEST = 16;
+// Cap work per request so a cold cache can't blow the function timeout; the
+// cache warms over a few request cycles, raw urls serve meanwhile. Much lower
+// than the pre-compaction 16 because each miss now decodes, rescales and
+// re-encodes instead of just streaming bytes through — and misses are processed
+// SEQUENTIALLY (see cacheImages): an RSI original decodes to tens of MB of RGBA,
+// so running several at once is how you OOM the worker and take the whole news
+// feed down. In steady state only a handful of genuinely new images arrive per
+// day, so the cap is never the bottleneck.
+const MAX_CACHE_PER_REQUEST = 4;
 const IMG_FETCH_TIMEOUT_MS = 8000;
 
-// Swap the variant segment of an RSI **media** CDN url (mirrors the client's
-// rsiVariant). Other urls (signed proxy, ytimg, …) have no variant → unchanged.
+// Swap the variant segment of an RSI **media** CDN url. Ingest only ever asks for
+// `cover` (the ≤1140w variant we resize down from); other urls (signed proxy,
+// ytimg, theverse uploads, …) have no variant segment → returned unchanged.
 function mediaVariant(url: string, target: 'post' | 'cover'): string {
   const m = /^(https:\/\/media\.robertsspaceindustries\.com\/[^/]+\/)[^/.]+(\.[a-zA-Z0-9]+)$/.exec(url);
   return m ? `${m[1]}${target}${m[2]}` : url;
@@ -528,28 +552,63 @@ async function fetchImage(url: string, ext: string): Promise<{ bytes: Uint8Array
   }
 }
 
-// Download + store both variants of one source image. Returns true on success.
-async function cacheOne(admin: SupabaseClient, hash: string, ext: string, sample: string): Promise<boolean> {
-  const postSrc = mediaVariant(sample, 'post');
-  const coverSrc = mediaVariant(sample, 'cover');
-  let post = await fetchImage(postSrc, ext);
-  // Non-media urls have one variant; reuse it for both keys.
-  let cover = postSrc === coverSrc ? post : await fetchImage(coverSrc, ext);
-  post = post ?? cover;
-  cover = cover ?? post;
-  if (!post || !cover) return false;
-
-  const up = (variant: 'post' | 'cover', d: { bytes: Uint8Array; ct: string }) =>
-    admin.storage.from(IMG_BUCKET).upload(`${hash}/${variant}.${ext}`, d.bytes, {
-      contentType: d.ct,
-      upsert: true,
-      cacheControl: '31536000',
-    });
-  const [r1, r2] = await Promise.all([up('post', post), up('cover', cover)]);
-  return !r1.error && !r2.error;
+// One `verse_image_cache` row. `top_width === null` marks a first-generation row
+// whose objects are still the legacy `post`/`cover` pair — those keep resolving
+// to the old url until scripts/news-image-compact.mjs has rewritten them, so the
+// feed never points at an object that does not exist yet.
+interface CacheRow {
+  source_key: string;
+  ext: string;
+  top_width: number | null;
+  bytes?: number | null;
 }
 
-// Rewrite every item's image urls to our cached cover url where available.
+/** Public url of the largest stored variant; the client derives the rest of the ladder. */
+function cachedUrl(row: CacheRow): string {
+  return row.top_width == null
+    ? `${PUBLIC_BASE}/${row.source_key}/cover.${row.ext}`
+    : `${PUBLIC_BASE}/${variantPath(row.source_key, row.top_width, row.ext)}`;
+}
+
+/**
+ * Download one source image and store its whole variant ladder.
+ *
+ * Only ONE upstream request is made (the `cover` variant for RSI media urls —
+ * ≤1140w, which is already the widest the app ever paints, and half the ingest
+ * bandwidth of the old post+cover pair). Every stored size is derived from it.
+ */
+async function cacheOne(admin: SupabaseClient, hash: string, ext: string, sample: string): Promise<CacheRow | null> {
+  const src = mediaVariant(sample, 'cover');
+  const fetched = (await fetchImage(src, ext)) ?? (src === sample ? null : await fetchImage(sample, ext));
+  if (!fetched) return null;
+
+  const upload = (path: string, bytes: Uint8Array, contentType: string) =>
+    admin.storage.from(IMG_BUCKET).upload(path, bytes, {
+      contentType,
+      upsert: true,
+      cacheControl: VARIANT_CACHE_CONTROL,
+    });
+
+  const variants = buildVariants(fetched.bytes, ext, edgeCodecs);
+  if (!variants) {
+    // Undecodable (GIF/SVG/WebP or a corrupt payload). Small ones are mirrored
+    // verbatim as the single `w0` object so the card keeps a durable url; large
+    // ones are skipped entirely — parking a multi-MB blob is what we are fixing.
+    if (fetched.bytes.length > MAX_PASSTHROUGH_BYTES) return null;
+    const path = variantPath(hash, OPAQUE_WIDTH, ext);
+    const { error } = await upload(path, fetched.bytes, fetched.ct);
+    return error ? null : { source_key: hash, ext, top_width: OPAQUE_WIDTH, bytes: fetched.bytes.length };
+  }
+
+  const results = await Promise.all(
+    variants.map((v) => upload(variantPath(hash, v.width, v.ext), v.bytes, v.contentType)),
+  );
+  if (results.some((r) => r.error)) return null;
+  const top = variants[variants.length - 1];
+  return { source_key: hash, ext: top.ext, top_width: top.width, bytes: totalVariantBytes(variants) };
+}
+
+// Rewrite every item's image urls to our cached copy where available.
 // Misses (over the per-request cap or failed download) keep their raw RSI url so
 // the card still has a chance to render and gets cached next cycle.
 async function cacheImages(items: VerseNewsItem[]): Promise<void> {
@@ -572,39 +631,45 @@ async function cacheImages(items: VerseNewsItem[]): Promise<void> {
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-  // Batch "already cached?" check.
-  const cached = new Set<string>();
+  // Batch "already cached?" check. `ext`/`top_width` come from the row, not from
+  // the source url, so a PNG that was re-encoded to JPEG resolves correctly.
+  const cached = new Map<string, CacheRow>();
   const { data, error } = await admin
     .from('verse_image_cache')
-    .select('source_key')
+    .select('source_key, ext, top_width')
     .in('source_key', entries.map((e) => e.hash));
   if (error) {
     console.error('verse_image_cache lookup failed:', error.message);
     return; // index unreachable → leave raw urls, don't risk partial rewrites
   }
-  for (const r of data ?? []) cached.add(r.source_key as string);
+  for (const r of (data ?? []) as CacheRow[]) cached.set(r.source_key, r);
 
-  // Download misses, bounded.
+  // Download misses, bounded and one at a time — see MAX_CACHE_PER_REQUEST.
   const misses = entries.filter((e) => !cached.has(e.hash)).slice(0, MAX_CACHE_PER_REQUEST);
-  const freshlyCached: { source_key: string; ext: string }[] = [];
-  await Promise.allSettled(
-    misses.map(async (e) => {
-      if (await cacheOne(admin, e.hash, e.ext, e.sample)) {
-        cached.add(e.hash);
-        freshlyCached.push({ source_key: e.hash, ext: e.ext });
+  const freshlyCached: CacheRow[] = [];
+  for (const e of misses) {
+    try {
+      const row = await cacheOne(admin, e.hash, e.ext, e.sample);
+      if (row) {
+        cached.set(e.hash, row);
+        freshlyCached.push(row);
       }
-    }),
-  );
+    } catch (err) {
+      // One bad image must never cost the whole feed its cached urls.
+      console.error(`cacheOne failed for ${e.hash}:`, err);
+    }
+  }
   if (freshlyCached.length) {
     await admin.from('verse_image_cache').upsert(freshlyCached, { onConflict: 'source_key' });
   }
 
-  // Rewrite to cached cover urls; thumbnail tracks images[0].
+  // Rewrite to cached urls; thumbnail tracks images[0].
   for (const it of items) {
     if (!it.images) continue;
     it.images = it.images.map((url) => {
       const ent = entByBase.get(imageIdentity(url).base);
-      return ent && cached.has(ent.hash) ? `${PUBLIC_BASE}/${ent.hash}/cover.${ent.ext}` : url;
+      const row = ent ? cached.get(ent.hash) : undefined;
+      return row ? cachedUrl(row) : url;
     });
     it.thumbnail = it.images[0] ?? it.thumbnail;
   }
@@ -701,50 +766,14 @@ function totalSize(res: Response): number {
   return Number(res.headers.get('content-length') ?? '0');
 }
 
+// Header-only size read (no decode) — shared with the variant pipeline, which
+// uses it to refuse an image that is too large to decode safely.
 function safeImageDimensions(b: Uint8Array): { w: number; h: number } | null {
   try {
-    return imageDimensions(b);
+    return readImageSize(b);
   } catch {
     return null;
   }
-}
-
-// Read pixel width/height from the file header only (no decode). Supports PNG and
-// JPEG; returns null for WEBP/unknown so the size/type gate stays authoritative.
-function imageDimensions(b: Uint8Array): { w: number; h: number } | null {
-  // PNG: 8-byte signature, then IHDR — width/height big-endian at offset 16/20.
-  if (b.length >= 24 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
-    const w = (b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19];
-    const h = (b[20] << 24) | (b[21] << 16) | (b[22] << 8) | b[23];
-    return w > 0 && h > 0 ? { w, h } : null;
-  }
-  // JPEG: walk marker segments to the Start-Of-Frame (SOFn) that carries the size.
-  if (b.length >= 4 && b[0] === 0xff && b[1] === 0xd8) {
-    let p = 2;
-    while (p + 9 < b.length) {
-      if (b[p] !== 0xff) {
-        p++;
-        continue;
-      }
-      let marker = b[p + 1];
-      while (marker === 0xff && p + 1 < b.length) {
-        p++;
-        marker = b[p + 1];
-      }
-      const len = (b[p + 2] << 8) | b[p + 3];
-      // SOF0..SOF15 hold the frame dimensions (DHT/DAC/RSTn are not frame headers).
-      const isSof =
-        marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
-      if (isSof) {
-        const h = (b[p + 5] << 8) | b[p + 6];
-        const w = (b[p + 7] << 8) | b[p + 8];
-        return w > 0 && h > 0 ? { w, h } : null;
-      }
-      if (len <= 0) break;
-      p += 2 + len;
-    }
-  }
-  return null;
 }
 
 // Header checks (above) catch wrong format/size/aspect, but let through images
