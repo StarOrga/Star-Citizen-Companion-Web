@@ -60,11 +60,11 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
         <!-- Hangar is intentionally NOT a top-level nav entry: it lives under the
              Codex Bridge as a sub-link (see codex-bridge.component). Admin call
              (feedback f0363cef) — declutter the nav bar, route Hangar via Codex. -->
-        @if (roles.isCollaborator()) {
-          <!-- Restricted (collaborator+admin) area — flagged red like the
-               admin-only links so privileged sections stand out from public. -->
-          <a routerLink="/uploader" routerLinkActive="active" class="admin-link mobile-hidden">{{ 'nav.desktop' | translate }}</a>
-        }
+        <!-- Data Upload is intentionally NOT a top-level nav entry (admin
+             feedback eb9c6ec3): a whole menu slot for a tool only collaborators
+             and admins ever open. It now lives as the collapsible
+             sc-uploader-access line on the Codex Bridge — the Codex is what it
+             feeds — with /uploader still reachable behind it. -->
         @if (roles.isAdmin()) {
           <a
             routerLink="/admin"

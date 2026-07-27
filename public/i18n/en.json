@@ -847,6 +847,15 @@
     "promote": {
       "label": "Promote this version to",
       "action": "Promote"
+    },
+    "appTitle": "Data Uploader",
+    "appDesc": "Reads your local Star Citizen install and uploads the Codex bundles from it.",
+    "close": "Close",
+    "access": {
+      "title": "Data Uploader",
+      "hint": "The Codex data source — collaborators & admins",
+      "fullPage": "Full Data Upload page",
+      "note": "Windows only · signs in with your SCC account · uploads data, never code."
     }
   },
   "download": {
@@ -1665,7 +1674,15 @@
     "appDownload": "Download for Windows",
     "appNote": "Windows only · ~0.3 MB · unsigned (SmartScreen: More info → Run anyway)",
     "appRingLock": "The channel is fixed by the download and cannot be switched inside the app — to change it, just grab the other download here again.",
-    "appAutoUpdate": "Updates itself silently in the background; the version state lives in the tray menu."
+    "appAutoUpdate": "Updates itself silently in the background; the version state lives in the tray menu.",
+    "promo": {
+      "eyebrow": "Starscape for the desktop",
+      "title": "Your desktop, live from the verse",
+      "desc": "The tiny tray app rotates exactly these wallpapers on your desktop — soft crossfade and autostart included.",
+      "cta": "Get it for Windows",
+      "note": "Windows only · ~0.3 MB · quit any time from the tray menu",
+      "dismiss": "Don't show again"
+    }
   },
   "userFeedback": {
     "title": "Feedback",
@@ -1697,5 +1714,9 @@
       "done": "Implemented",
       "declined": "Not implemented"
     }
+  },
+  "appPanel": {
+    "version": "Currently published version",
+    "details": "Show details, notes and release notes"
   }
 }

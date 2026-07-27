@@ -4,6 +4,37 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.54.0] - 2026-07-27
+
+### Changed
+
+- **Both desktop apps now present themselves through one download panel.**
+  Starscape and the Data Uploader had grown separate download blocks — a tinted
+  CTA card in the Starscape header vs. a full-width release table on the Data
+  Upload page — so the two never read as parts of the same product family. Both
+  (and the viewer-facing `/download` page) now render the same minimal
+  `sc-app-download-panel`: icon, name, version and the download button(s) are all
+  that stays visible, while size and hash move into each button's tooltip and the
+  platform caveats, ring-lock warning and release notes move behind a single ⓘ
+  toggle.
+- **The Data Uploader gave up its top-level nav entry.** A permanent menu slot
+  for a tool only collaborators and admins can open was too much room. Its
+  everyday entrance is now a single collapsed line on the Codex Bridge — the
+  Codex is what the uploader feeds — which expands into the shared download panel
+  for exactly those roles, and renders nothing at all for everyone else. The
+  bundle history opens from there as a popup instead of stretching the page, and
+  `/uploader` remains reachable as the full-size surface behind it.
+
+### Added
+
+- **A Starscape download pitch that shows the product instead of describing it.**
+  Three seconds after landing on Starscape, a small poster slides in whose mock
+  desktop crossfades through real gallery wallpapers — which is precisely what
+  the tray app does. It appears at most once per browser session and only on a
+  desktop-sized viewport (a Windows tray app cannot be installed from a phone);
+  the ✕ opts out permanently, while any other dismissal simply lets it return on
+  the next visit. The Data Uploader deliberately gets no such pitch.
+
 ## [0.53.0] - 2026-07-27
 
 ### Added
