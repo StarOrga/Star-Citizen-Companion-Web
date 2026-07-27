@@ -1032,6 +1032,13 @@ and clicking one opens it full size in a CDK overlay (ESC / backdrop to close).
 The board, the workflow view and the author-facing panel all go through that one
 path; a new surface that renders a feedback body should too.
 
+The composer joins them (feedback 99723afc): its pending-image strip is the same
+`sc-feedback-attachments` row with `removable` set, so the 72 px chip is defined
+in exactly one place and an image looks identical from the moment it is pasted to
+every later re-read of the thread. The row keeps the composer's own aria-label
+via `labelKey`, and the enlarged view pages through a message's screenshots with
+‹ › or the arrow keys instead of closing and reopening per image.
+
 ### "Nicht umsetzen & löschen" (declining a user topic)
 
 For a user-submitted topic the admin's delete button becomes **"Nicht umsetzen &
