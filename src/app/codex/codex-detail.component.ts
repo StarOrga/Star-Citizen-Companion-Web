@@ -102,7 +102,7 @@ import {
   readHardpointFrame,
   readHardpointTransforms,
 } from './hardpoint-map';
-import { ShipSkinViewerComponent } from './ship-skin-viewer.component';
+import { HardpointPortRef, ShipSkinViewerComponent } from './ship-skin-viewer.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { ShipLinkService } from './ship-link.service';
 import { AuthService } from '../auth/auth.service';
@@ -345,7 +345,12 @@ interface GearRecipe {
              floating compare tray (<sc-codex-compare-tray/>, pinned via the hero
              ★ action) is the single comparison surface. -->
         @if (shipClassName(); as cls) {
-          <sc-ship-skin-viewer [shipId]="cls" />
+          <sc-ship-skin-viewer
+            [shipId]="cls"
+            [hardpointPorts]="hardpointPortRefs()"
+            [activePorts]="activePorts()"
+            (hovered)="setActivePorts($event)"
+            (locatable)="glbLocatablePorts.set($event)" />
         }
 
         <!-- ── Description ───────────────────────────────────────── -->
@@ -1571,10 +1576,44 @@ export class CodexDetailComponent implements OnInit {
     this.hardpointMarkers().length > 0 ? this.rawHardpointFrame() : null,
   );
 
-  /** Raw port names the map can actually locate — drives the row affordance. */
-  readonly locatablePorts = computed<string[]>(() =>
-    this.hardpointMarkers().map((m) => m.port),
-  );
+  /**
+   * Every port the loadout list shows a row for, in row order (#256).
+   *
+   * Unlike `hardpointMarkers` this does NOT require the extract to carry
+   * coordinates — the 3D viewer resolves these names against the model's own
+   * locator nodes, which is a second, independent way to answer "where is it".
+   * A ship whose glb has no matching locator simply gets no marker.
+   */
+  readonly hardpointPortRefs = computed<HardpointPortRef[]>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return [];
+    const refs: HardpointPortRef[] = [];
+    const seen = new Set<string>();
+    const add = (rawPort: string | null | undefined, itemName: string | null) => {
+      if (!rawPort || seen.has(rawPort)) return;
+      seen.add(rawPort);
+      refs.push({ port: rawPort, label: this.humanizePort(rawPort), itemName });
+    };
+    for (const item of this.loadoutAll()) add(item.port, item.className ? item.name : null);
+    for (const port of d.ports) add(port.portName, null);
+    return refs;
+  });
+
+  /** Ports the 3D model could locate — reported back by the skin viewer. */
+  readonly glbLocatablePorts = signal<string[]>([]);
+
+  /**
+   * Raw port names SOME hardpoint view can locate — drives the row affordance.
+   *
+   * The union of the two independent sources: the extract's coordinates (2D
+   * hull map) and the glb's locator nodes (3D viewer). A row is offered as
+   * locatable when at least one of them can actually show it.
+   */
+  readonly locatablePorts = computed<string[]>(() => {
+    const ports = new Set(this.hardpointMarkers().map((m) => m.port));
+    for (const port of this.glbLocatablePorts()) ports.add(port);
+    return [...ports];
+  });
 
   /** Whether the modules card renders (it hosts the hull map when it does). */
   readonly hasLoadoutSection = computed(() => this.moduleSections().length > 0);

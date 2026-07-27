@@ -6,10 +6,17 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { ShipSkin, ShipSkinsService } from './ship-skins.service';
+import {
+  Vec3,
+  hotspotPosition,
+  parseGlbNodePositions,
+  resolveAnchors,
+} from './glb-hardpoints';
 
 // Side-effect import registers the <model-viewer> custom element. Because this
 // component is lazy-loaded inside the ship detail route, model-viewer (~1 MB)
@@ -17,6 +24,30 @@ import { ShipSkin, ShipSkinsService } from './ship-skins.service';
 import '@google/model-viewer';
 
 type ViewMode = '3d' | 'paint';
+
+/** A port the detail view wants located on the model. */
+export interface HardpointPortRef {
+  /** Raw port name — the key every hardpoint view highlights by. */
+  port: string;
+  label: string;
+  itemName: string | null;
+}
+
+/** One resolved hotspot, ready to hand to `<model-viewer>`. */
+interface HotspotView {
+  port: string;
+  label: string;
+  itemName: string | null;
+  /** `slot` attribute; must be unique per model-viewer and start with `hotspot-`. */
+  slot: string;
+  /** `data-position` — model-space coordinates as a "x y z" string. */
+  position: string;
+}
+
+// Only the head of a glb is needed: node transforms live in the JSON chunk,
+// which precedes the (draco-compressed) binary payload. One ranged request
+// keeps this off the ~3 MB the viewer itself streams.
+const GLB_HEAD_BYTES = 1_048_576;
 
 /**
  * Per-ship skin selector with a lazy-loaded 3D <model-viewer>.
@@ -73,21 +104,53 @@ type ViewMode = '3d' | 'paint';
                 <model-viewer
                   [attr.src]="modelUrl()"
                   camera-controls
-                  auto-rotate
+                  [attr.auto-rotate]="hotspots().length && activePorts().length ? null : ''"
                   shadow-intensity="1"
                   exposure="1.0"
                   environment-image="neutral"
                   camera-orbit="35deg 75deg 105%"
                   interaction-prompt="none"
+                  data-visibility-attribute="visible"
                   (load)="onModelLoad()"
                   (error)="onModelError()"
-                ></model-viewer>
+                >
+                  <!-- Component hover -> position on the hull (#256). The
+                       markers come out of the model's OWN locator nodes, so a
+                       ship whose glb carries none simply shows no markers. -->
+                  @for (h of hotspots(); track h.port) {
+                    <button
+                      type="button"
+                      class="hp-dot"
+                      [class.on]="isActive(h.port)"
+                      [attr.slot]="h.slot"
+                      [attr.data-position]="h.position"
+                      data-normal="0 1 0"
+                      [attr.aria-label]="h.itemName ? h.label + ' — ' + h.itemName : h.label"
+                      (mouseenter)="hovered.emit([h.port])"
+                      (mouseleave)="hovered.emit(null)"
+                      (focus)="hovered.emit([h.port])"
+                      (blur)="hovered.emit(null)"
+                    >
+                      <span class="hp-tip">
+                        {{ h.label }}
+                        @if (h.itemName) {
+                          <em>{{ h.itemName }}</em>
+                        }
+                      </span>
+                    </button>
+                  }
+                </model-viewer>
               }
               @if (modelLoading()) {
                 <div class="overlay" role="status">
                   <span class="spinner" aria-hidden="true"></span>
                   {{ 'codex.skins.loading' | translate }}
                 </div>
+              }
+              @if (hotspots().length > 0) {
+                <p class="hp-hint">
+                  {{ 'codex.skins.hardpointHint' | translate: { count: hotspots().length } }}
+                </p>
               }
             } @else if (mode() === '3d' && modelError()) {
               <div class="empty error">{{ 'codex.skins.loadError' | translate }}</div>
@@ -408,11 +471,92 @@ type ViewMode = '3d' | 'paint';
         background: #1c2330;
         color: #8fb0e0;
       }
+
+      .hp-hint {
+        position: absolute;
+        left: 0.6rem;
+        bottom: 0.5rem;
+        margin: 0;
+        max-width: 60%;
+        font-size: 0.64rem;
+        line-height: 1.3;
+        color: #7f92ab;
+        pointer-events: none;
+      }
+
+      /* ── Hardpoint markers on the hull (#256) ───────────────────────
+         model-viewer positions these itself via the slot/data-position
+         pair; everything here is only what the dot looks like. The
+         occluded state comes from data-visibility-attribute="visible",
+         so a marker on the far side of the hull fades instead of
+         floating in front of it. */
+      .hp-dot {
+        position: relative; /* anchors .hp-tip */
+        width: 14px;
+        height: 14px;
+        padding: 0;
+        border-radius: 50%;
+        border: 2px solid var(--sc-accent, #4da3ff);
+        background: rgba(10, 14, 20, 0.75);
+        cursor: pointer;
+        transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease;
+      }
+      .hp-dot:not([data-visible]) {
+        opacity: 0.25;
+        pointer-events: none;
+      }
+      .hp-dot:hover,
+      .hp-dot:focus-visible,
+      .hp-dot.on {
+        background: var(--sc-accent, #4da3ff);
+        transform: scale(1.45);
+        outline: none;
+      }
+      .hp-tip {
+        position: absolute;
+        left: 50%;
+        bottom: calc(100% + 6px);
+        transform: translateX(-50%);
+        display: none;
+        white-space: nowrap;
+        padding: 0.2rem 0.45rem;
+        border-radius: 6px;
+        background: rgba(8, 11, 16, 0.94);
+        border: 1px solid #2a3444;
+        color: #dce6f5;
+        font-size: 0.66rem;
+        pointer-events: none;
+      }
+      .hp-tip em {
+        display: block;
+        font-style: normal;
+        color: #8fb0e0;
+      }
+      .hp-dot:hover .hp-tip,
+      .hp-dot:focus-visible .hp-tip,
+      .hp-dot.on .hp-tip {
+        display: block;
+      }
     `,
   ],
 })
 export class ShipSkinViewerComponent {
   readonly shipId = input.required<string>();
+
+  /**
+   * Ports the detail view would like located on the hull (#256).
+   *
+   * The viewer resolves them against the loaded model's own locator nodes and
+   * emits back the subset it could place, so the list rows only advertise a
+   * marker that actually exists.
+   */
+  readonly hardpointPorts = input<readonly HardpointPortRef[]>([]);
+  /** Raw port names currently highlighted anywhere in the detail view. */
+  readonly activePorts = input<readonly string[]>([]);
+  /** A marker was hovered/focused: its raw port name, or `null` on leave. */
+  readonly hovered = output<string[] | null>();
+  /** Ports this model can locate — drives the row affordance in the list. */
+  readonly locatable = output<string[]>();
 
   // Persist the collapsed/expanded state of the whole viewer (#137 part 2).
   // Default when the user never toggled it: expanded on desktop, collapsed on
@@ -435,14 +579,71 @@ export class ShipSkinViewerComponent {
   readonly modelUrl = computed(() => this.service.assetUrl(this.current()?.modelPath));
   readonly iconUrl = computed(() => this.service.assetUrl(this.current()?.iconPath));
 
+  // Locator nodes of the currently loaded glb: node name -> model-space
+  // position. Empty until the model's head has been read, and for any model
+  // that carries no named locators at all.
+  private readonly nodePositions = signal<Map<string, Vec3>>(new Map());
+
+  /** The markers to draw, in the order the detail view listed its ports. */
+  readonly hotspots = computed<HotspotView[]>(() => {
+    const positions = this.nodePositions();
+    if (positions.size === 0) return [];
+    return resolveAnchors(positions, this.hardpointPorts()).map((a, i) => ({
+      port: a.port,
+      label: a.label,
+      itemName: a.itemName,
+      // Slot names are attribute values and must be unique: the index keeps
+      // them so even if two ports sanitize to the same string.
+      slot: `hotspot-${i}-${a.port.replace(/[^a-zA-Z0-9_-]/g, '')}`,
+      position: hotspotPosition(a.position),
+    }));
+  });
+
+  isActive(port: string): boolean {
+    return this.activePorts().includes(port);
+  }
+
   // Monotonic request token: guards against a slow listSkins() for a previous
   // ship resolving after the user has already navigated to another ship.
   private reqSeq = 0;
+  // Same guard for the glb head reads, which race the same way.
+  private headSeq = 0;
 
   constructor() {
     // React to shipId changes (router navigation between ships reuses this
     // component, so the input value changes without a new constructor call).
     effect(() => this.load(this.shipId()));
+    // Locators come from whichever glb is on screen. Skins of one ship share a
+    // hull, but re-reading per skin costs one cached ranged request and keeps
+    // this correct if a skin ever ships its own geometry.
+    effect(() => this.readLocators(this.modelUrl()));
+    // Publish what the model can locate, so the list rows can offer the
+    // affordance only for ports that really have a marker.
+    effect(() => this.locatable.emit(this.hotspots().map((h) => h.port)));
+  }
+
+  /**
+   * Read the loaded model's locator nodes.
+   *
+   * Only the head of the file is requested — node transforms live in the glb's
+   * JSON chunk, ahead of the compressed geometry. A server that ignores the
+   * Range header simply returns more than asked for, which parses the same.
+   * Every failure path (no url, network error, unparsable container, a JSON
+   * chunk larger than the window) ends in an empty map, i.e. no markers.
+   */
+  private readLocators(url: string | null): void {
+    const seq = ++this.headSeq;
+    this.nodePositions.set(new Map());
+    if (!url) return;
+    void fetch(url, { headers: { Range: `bytes=0-${GLB_HEAD_BYTES - 1}` } })
+      .then((res) => (res.ok ? res.arrayBuffer() : null))
+      .then((buf) => {
+        if (seq !== this.headSeq || !buf) return; // stale — a newer model won
+        this.nodePositions.set(parseGlbNodePositions(buf));
+      })
+      .catch(() => {
+        /* markers are a bonus: a failed head read just means no markers */
+      });
   }
 
   private load(id: string): void {

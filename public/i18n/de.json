@@ -428,7 +428,8 @@
       "collapse": "3D-Ansicht einklappen",
       "expand": "3D-Ansicht ausklappen",
       "holoReady": "Holo-Ready — interaktive 3D-Lackierungen verfügbar",
-      "holoReadyShort": "3D"
+      "holoReadyShort": "3D",
+      "hardpointHint": "{{count}} Hardpoints am Modell markiert — Zeiger auf einen Marker oder eine Zeile unten, beide leuchten gemeinsam."
     },
     "equipped": {
       "alphaDamage": "Alpha-Schaden",
