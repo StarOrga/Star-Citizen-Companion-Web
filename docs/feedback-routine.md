@@ -121,6 +121,29 @@ parked as a bare "no cargo toolchain" review-PR instead of being built by CI.
 live just because the PR merged — `db push` / `functions deploy` run separately
 (the ship pre-flight flags these paths). Finish the deploy, then mark `shipped`.
 
+### Migration version collisions are silent — check the prefix before every merge
+
+Supabase's migration ledger keys on the **version prefix**, not the filename. Two
+files sharing `20260726120000` are the *same* migration to `db push`: the first
+applies, and every later one is treated as already applied and **silently skipped
+while the push reports success**.
+
+Parallel autonomous runs produce this by construction — each rounds "now" to the
+same timestamp. On 2026-07-26 three files carried `20260726120000`
+(`…_codex_fps_equipment.sql`, `…_starscape_channels.sql`,
+`…_user_feedback_channel.sql`) across `main` and two open PRs. The codex one
+merged first; without renaming, the Starscape channel tables and the entire
+public-feedback RLS set would never have run — and nothing would have reported an
+error. They were moved to `…160000` / `…170000` before merging.
+
+**How to apply:** before merging any PR that carries a migration, check the
+prefix against current `origin/main` — `ls supabase/migrations | grep <prefix>` —
+and rename on collision (also fix the filename echoed in the file's own header
+comment and in any docs referencing it). After each `db push`, **read which files
+it names**: silence about a file you expected is the symptom. A related but
+*loud* failure is an out-of-order version (older than the newest applied one):
+`db push` refuses it and demands `--include-all`.
+
 ## Bias to action — don't park what you can sensibly default
 
 `needs_input` is expensive: it bounces the topic back to the admin and stalls it
@@ -238,6 +261,38 @@ workers run: each worker gets a fresh `git worktree add <sibling> feat/feedback-
 and every worker **commits and pushes its branch before returning** so its work
 is persisted remotely before the serial merge phase begins.
 
+**Edit-hook hazard — `cd` the shell into the worktree before the first edit.**
+The devops `pre.edit.branch.js` guard resolves "the current branch" from the
+**persisted Bash shell cwd**, not from the path of the file being edited (the
+Edit/Write tools carry no cwd). A worktree file on a feature branch plus a shell
+still parked in the primary checkout (which sits on `main`) is therefore blocked
+as "editing main" — a false positive that cost three blocks on 2026-07-24. Run
+one `cd "<worktree path>"` before the first Edit/Write of a thread, and `cd` back
+in only for deliberate `git worktree` administration.
+
+### The atomic claim does not guard against a parallel *issue* runner
+
+`admin_feedback`'s claim only serialises **runs that read that table**. A
+parallel run working GitHub *issues* — branches like `feat/codex-fps-frontend`,
+PR titles referencing `(#251)` — never touches `admin_feedback`, so it can ship
+the exact scope a feedback item is claimed for, and the claim-holder finds out
+only when its PR comes back `CONFLICTING`.
+
+Observed 2026-07-26 on item `5e9032cf` (FPS-equipment codex), twice inside one
+run: **PR #265** merged issue #251 mid-flight, the worker was re-scoped onto the
+deferred #253 — and while it did that, **PR #273** merged #253 as well, so PR
+#274 opened `DIRTY / CONFLICTING`. `origin/main` moved seven times inside that
+single routine cycle.
+
+**How to apply:** before claiming a feedback item that maps to a GitHub issue
+(the `processing_note` often names one, e.g. "issue #187 created"), check that
+issue **and its sub-issues** for open/merged PRs — `gh issue view <n>`,
+`gh pr list --search "<n> in:title" --state all` — not just the deterministic
+`feat/feedback-<short-id>` branch that STEP 3a's idempotency check already
+covers. Re-check `origin/main` immediately before the serial merge; on a
+conflict, reconcile *toward what already shipped* and keep only the unique
+delta rather than forcing the merge through.
+
 ## Resuming interrupted work (stale-claim reaper)
 
 The routine's queue is `status = 'open'` only. That means a run which claims
@@ -291,12 +346,42 @@ Why the two guards:
   An orphaned claim never got as far as opening a PR, so `ship_ref` is null.
 - **`processed_at < now() - interval '30 minutes'`** protects a *currently
   overlapping run* that legitimately claimed the item and is still
-  implementing/building — 30 min comfortably exceeds a normal single-item
-  cycle while the ~20-min cadence keeps resumption prompt. Worst case if a
-  genuine build outruns 30 min: the item is reopened and re-done on a fresh
-  branch+PR — wasted effort, never data corruption (the atomic claim still
-  prevents two runs acting on it at the same instant, and each item ships via
-  its own independent PR).
+  implementing/building — 30 min is meant to exceed a normal single-item cycle
+  while the ~20-min cadence keeps resumption prompt.
+
+### The 30-minute window is too short — and the collateral damage is silent
+
+The guard above assumes 30 min exceeds a real item. It does not always: a codex
+item (`2c88a788`) needed ~40 min of worker time on 2026-07-26, so an
+**overlapping run's reaper reset it to `open` while the work was still in flight
+and already merging**. This is not merely "wasted effort" — it corrupts the
+owning run's bookkeeping, silently:
+
+- The owner's terminal update is written `... set status='shipped' ... where
+  id=<id> and status='in_progress'`. Once a foreign reaper flipped the row to
+  `open`, that UPDATE matches **zero rows and reports no error**. The PR merges,
+  `main` moves, and the DB still shows unshipped work — so the next run
+  re-implements something that already landed. Two further rows in that run
+  (`8acd4198`, `f7d3bd9a`) were hit the same way.
+- The mirror image happened 90 minutes later: *this* routine's reaper reopened
+  three claims of a live run (`5e9032cf`, `52a5ef4c`, `5920cf8c`) that had been
+  working them for >30 min without re-stamping `processed_at`.
+
+**Two rules follow, and both are mandatory.**
+
+1. **Never trust a status-guarded UPDATE to have happened — always `returning`,
+   always check exactly one row came back.** On zero rows, re-read the row and
+   reconcile against *reality*, not against the status you assumed: a merged PR
+   always wins, so mark it `shipped` guarded on `status <> 'shipped'` instead.
+   Re-read the queue right before writing the STEP 5 report, because a parallel
+   run may have shipped or parked items you thought you owned.
+2. **Before implementing any reaped item, check whether its work is still hot.**
+   `git log -1 --format=%ci origin/feat/feedback-<short-id>`, `gh pr list --limit 5
+   --json updatedAt`, and file mtimes in `scfb-<short-id>`. Activity in the last
+   few minutes ⇒ a **live owner**: leave the row `in_progress` with a *fresh*
+   `processed_at` — that re-stamp protects the owner for another 30 min and keeps
+   its `where status='in_progress'` ship-update valid — set a truthful
+   `processing_note`, and pick a different item instead.
 
 ### Answered-but-stranded resumes are covered by the same guard
 
@@ -326,12 +411,38 @@ continue it right away. Two things follow from the reaper's guards:
   to ~1.5 cadence cycles before it is picked up again. That delay is intended
   (it protects a legitimately overlapping in-flight run) — it is not a bug, but
   it does mean "stuck for half an hour" is expected, not lost.
-- **Resumption is a full redo, not a continuation.** The reaper reopens the row
-  to `open`; the next run re-implements it from scratch on a fresh branch+PR. No
-  partial progress (a half-written branch, an un-pushed commit) is recovered —
-  only the *item* resumes, from the beginning. This is safe (each item ships via
-  its own PR, the atomic claim still serialises access) but means wasted work if
-  the abort happened late in an item.
+- **Resumption re-enters at the item level — but it is *not* automatically a
+  from-scratch rebuild.** The reaper reopens the row to `open` and the next run
+  re-enters the per-item procedure; what it must *not* do is assume the previous
+  attempt left nothing behind. See the next section.
+
+### A reaped item usually still has recoverable work
+
+The reaper reasons only about DB state (`ship_ref IS NULL`), which cannot see a
+pushed branch, a CI verdict, or a dirty worktree — and every run works in a
+**per-item worktree that survives the interruption**. Treating a reaped item as a
+blank redo therefore throws away real, often already-certified work:
+
+- **`52a5ef4c` (Starscape self-update), 2026-07-26:** `feat/feedback-52a5ef4c`
+  was already pushed with 3 commits and a **green `wallpaper-app` CI run** — the
+  killed run died between "CI green" and `gh pr create`. A rebuild would have
+  discarded a ~2200-line Rust/web change plus the CI cycle that certified it.
+- **`5920cf8c` (public feedback FAB), same run:** no branch pushed, but
+  `scfb-5920cf8c` still held the entire in-flight change **uncommitted** (a new
+  `src/app/feedback/`, the FAB component, an RLS migration).
+
+**How to apply — inspect before rebuilding.** On every reaped item, in addition
+to the STEP 3a PR/branch idempotency check:
+
+```bash
+git worktree list | grep scfb-<short-id>     # a per-item worktree left behind?
+git -C <that worktree> status                # uncommitted work in it?
+git ls-remote --heads origin feat/feedback-<short-id>
+gh run list --branch feat/feedback-<short-id>   # already-green CI?
+```
+
+Resume from whatever exists — commit the dirty tree first, then rebase onto
+`origin/main`. Only delete-and-rebuild when the leftover work is genuinely wrong.
 
 ### The one abort window the `ship_ref IS NULL` guard can't see — and how the redo stays idempotent
 
