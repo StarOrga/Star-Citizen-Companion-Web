@@ -85,12 +85,13 @@ import {
   LayoutChild,
   LayoutSection,
   LayoutSlot,
+  LayoutTarget,
 } from './codex-hardpoint-layout.component';
 import {
   CodexComponentModalComponent,
   ComponentInspectEntry,
 } from './codex-component-modal.component';
-import { CodexSwapDockComponent } from './codex-swap-dock.component';
+import { CodexSwapPickerComponent, SwapTarget } from './codex-swap-picker.component';
 import { ShipHardpointMapComponent } from './ship-hardpoint-map.component';
 import {
   HardpointFrame,
@@ -170,7 +171,7 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapDockComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
+  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -554,10 +555,7 @@ interface GearRecipe {
               [activePorts]="activePorts()"
               (hovered)="setActivePorts($event)"
               (inspected)="openInspect($event)"
-              (swapRequested)="openSwapDock($event)" />
-            @if (swapSlot()) {
-              <sc-codex-swap-dock class="swap-host" [slot]="swapSlot()" (closed)="swapSlot.set(null)" />
-            }
+              (swapRequested)="openSwapPicker($event)" />
           </section>
         }
 
@@ -724,6 +722,7 @@ interface GearRecipe {
       <!-- Full stat sheet for one clicked module (461288f9). Rendered last so
            its fixed-position backdrop sits above everything on the page. -->
       <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
+      <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" />
     </section>
   `,
   styles: [`
@@ -932,7 +931,6 @@ interface GearRecipe {
     .spec-prov { margin: 10px 0 0; font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
     .raw { margin: 12px 0 0; padding: 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-size: 0.74rem; overflow: auto; max-height: 460px; }
 
-    .swap-host { display: block; margin-top: 12px; }
     .skel-card { height: 260px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
     @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     .err { color: var(--sc-danger); padding: 16px; }
@@ -1070,7 +1068,7 @@ export class CodexDetailComponent implements OnInit {
     this.usedInBlueprints.set([]);
     this.recipe.set(null);
     this.artBroken.set(false);
-    this.swapSlot.set(null);
+    this.swapTarget.set(null);
     this.showLinkForm.set(false);
     this.shipLinkInput.set('');
     this.shipLinkError.set(null);
@@ -1490,10 +1488,25 @@ export class CodexDetailComponent implements OnInit {
     this.showSpec.update((v) => !v);
   }
 
-  // Swap-preview dock (Rung 2): the filled slot currently being explored.
-  readonly swapSlot = signal<LayoutSlot | null>(null);
-  openSwapDock(slot: LayoutSlot): void {
-    this.swapSlot.set(this.swapSlot()?.port === slot.port ? null : slot);
+  // Swap picker (Rung 2): the hardpoint currently being explored, or null.
+  readonly swapTarget = signal<SwapTarget | null>(null);
+
+  /**
+   * Open the "what else fits here" table for a clicked module. A sub-slot click
+   * targets the CHILD (the gun inside the gimbal), because that is the thing a
+   * pilot swaps — the mount itself stays put.
+   */
+  openSwapPicker(ev: LayoutTarget): void {
+    const src = ev.child ?? ev.slot;
+    if (!src.className) return;
+    this.swapTarget.set({
+      port: ev.child ? ev.child.port : ev.slot.port,
+      count: ev.count,
+      className: src.className,
+      kind: src.kind,
+      name: src.name,
+      size: src.size,
+    });
   }
 
   // ── hardpoint positions on the hull (#137 part 3) ───────────────────────────
@@ -1782,7 +1795,7 @@ export class CodexDetailComponent implements OnInit {
    * it has no stats to show, so it stays inert rather than opening an empty
    * window.
    */
-  openInspect(ev: { slot: LayoutSlot; count: number; child: LayoutChild | null }): void {
+  openInspect(ev: LayoutTarget): void {
     const source = ev.child
       ? {
           className: ev.child.className,

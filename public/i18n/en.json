@@ -316,15 +316,29 @@
       "moduleOrderHint": "Configurable modules come first — weapons and their mounts, turrets, ordnance, pods, shields, power plant, quantum drive, radar, coolers, life support. Everything fixed sits below. Click any module for its full stat table."
     },
     "swap": {
-      "title": "What fits here",
+      "pickerTitle": "Swap module",
       "installed": "Installed",
+      "equipped": "Equipped",
       "previewHint": "Preview only — nothing is saved.",
       "loading": "Scanning compatible items…",
+      "failed": "Could not load the compatible items.",
       "none": "No compatible alternatives in this build.",
+      "noMatch": "No item matches these filters.",
       "delta": "Change vs. installed",
       "noDelta": "No comparable stat changes.",
-      "openDetail": "Open detail",
-      "close": "Close"
+      "close": "Close",
+      "cancel": "Cancel",
+      "searchLabel": "Search compatible items",
+      "searchPlaceholder": "Search by name, manufacturer or type…",
+      "damageFilter": "Damage type",
+      "typeFilter": "Item type",
+      "filterAll": "All",
+      "colName": "Name",
+      "appliesToOne": "Applies to the {{port}} hardpoint",
+      "appliesToMany": "Applies to all {{count}} identical hardpoints",
+      "matched": "{{shown}} of {{total}} compatible items",
+      "sortHint": "Click a column to sort, Ctrl-click to add a secondary sort.",
+      "missingColumns": "Not in this data extract, so not shown as a column: {{fields}}."
     },
     "statGroup": {
       "identity": "Identity",
@@ -528,7 +542,8 @@
       "general": "General",
       "projectile": "Projectile",
       "noStats": "The current extract carries no values for this item.",
-      "openDetail": "Open full catalog entry"
+      "openDetail": "Open full catalog entry",
+      "openStats": "Show all values"
     }
   },
   "blueprint": {

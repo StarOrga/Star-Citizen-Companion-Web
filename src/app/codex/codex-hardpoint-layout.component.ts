@@ -77,6 +77,16 @@ export interface LayoutSlot {
   variantKey?: string | null;
 }
 
+/**
+ * What a click on a module row refers to: the row itself, how many identical
+ * hardpoints it stands for, and — when a sub-slot was clicked — which child.
+ */
+export interface LayoutTarget {
+  slot: LayoutSlot;
+  count: number;
+  child: LayoutChild | null;
+}
+
 /** One block of the ship-modules view — see `ship-module-sections.ts`. */
 export interface LayoutSection {
   section: ShipModuleSection;
@@ -104,8 +114,12 @@ interface RenderSection {
  * sits INSIDE it ("3× S3 CF-337 Panther Repeater", or a "—" placeholder when
  * the extract has no stock weapon) chained to its right.
  *
- * Clicking any card opens the component overlay (`inspect`); the ⇄ button still
- * opens the swap-preview dock. Since #137 part 3 a row can also be LOCATED:
+ * Clicking a card in a CONFIGURABLE block opens the swap picker — that block is
+ * exactly the set of things a pilot can change, so "click the weapon" answering
+ * "what else fits here" is what the request asked for (461288f9). Blocks that
+ * cannot be configured (thrusters, seats, doors) have nothing to swap, so their
+ * cards open the read-only stat sheet instead; configurable rows reach the same
+ * sheet through their ⓘ button. Since #137 part 3 a row can also be LOCATED:
  * hovering it emits its raw port name(s) for the hull map above.
  */
 @Component({
@@ -132,7 +146,7 @@ interface RenderSection {
                   (focusin)="emitHover(row)" (focusout)="hovered.emit(null)">
                 <div class="duo">
                   @if (row.slot.className) {
-                    <button type="button" class="slot-btn linked" (click)="openSlot(row)"
+                    <button type="button" class="slot-btn linked" (click)="openSlot(row, sec.configurable)"
                             [attr.title]="portTitle(row)">
                       <span class="slot-head">
                         @if (badge(row); as b) { <span class="size-tag">{{ b }}</span> }
@@ -188,7 +202,8 @@ interface RenderSection {
                       @for (kid of row.slot.children; track kid.port) {
                         <li class="kid" [class.empty]="!kid.className">
                           @if (kid.className) {
-                            <button type="button" class="kid-btn linked" (click)="openChild(row, kid)">
+                            <button type="button" class="kid-btn linked"
+                                    (click)="openChild(row, kid, sec.configurable)">
                               <span class="slot-head">
                                 @if (kidBadge(row, kid); as b) { <span class="size-tag">{{ b }}</span> }
                                 <span class="slot-ident">
@@ -219,10 +234,13 @@ interface RenderSection {
                     </ul>
                   }
 
-                  @if (row.slot.className && row.slot.kind) {
-                    <button type="button" class="slot-swap" (click)="swapRequested.emit(row.slot)"
-                            [attr.aria-label]="'codex.swap.title' | translate"
-                            [attr.title]="'codex.swap.title' | translate">⇄</button>
+                  <!-- On a configurable row the card itself is the swap action,
+                       so the side button is the way BACK to the full stat sheet
+                       shipped in the first pass. -->
+                  @if (row.slot.className && sec.configurable) {
+                    <button type="button" class="slot-swap" (click)="inspectRow(row)"
+                            [attr.aria-label]="'codex.inspect.openStats' | translate"
+                            [attr.title]="'codex.inspect.openStats' | translate">ⓘ</button>
                   }
                 </div>
               </li>
@@ -334,13 +352,17 @@ interface RenderSection {
 export class CodexHardpointLayoutComponent {
   /** Loadout slots grouped into ship-module sections (display order applied here). */
   readonly sections = input.required<LayoutSection[]>();
-  /** A filled slot's ⇄ was clicked — the parent opens the swap-preview dock. */
-  readonly swapRequested = output<LayoutSlot>();
+  /**
+   * A configurable module was clicked — the parent opens the swap picker. Emits
+   * the row plus, for a sub-slot click, which child was picked (so the gun
+   * inside a gimbal mount opens the picker for the GUN, not for the mount).
+   */
+  readonly swapRequested = output<LayoutTarget>();
   /**
    * A card was clicked — the parent opens the component overlay. Emits the row
    * plus, for a sub-slot click, which child was picked.
    */
-  readonly inspected = output<{ slot: LayoutSlot; count: number; child: LayoutChild | null }>();
+  readonly inspected = output<LayoutTarget>();
   /**
    * Raw port names whose hull position is known. A row is only marked as
    * locatable when its port is in here, so the affordance never promises a
@@ -373,12 +395,24 @@ export class CodexHardpointLayoutComponent {
     return active.length > 0 && this.rawPorts(row).some((p) => active.includes(p));
   }
 
-  openSlot(row: GroupedSlot<LayoutSlot>): void {
-    this.inspected.emit({ slot: row.slot, count: row.count, child: null });
+  /**
+   * A module card was clicked. In a configurable block that means "show me what
+   * else fits here"; in a fixed block there is nothing to swap, so the click
+   * falls back to the read-only stat sheet.
+   */
+  openSlot(row: GroupedSlot<LayoutSlot>, configurable: boolean): void {
+    const target = { slot: row.slot, count: row.count, child: null };
+    (configurable ? this.swapRequested : this.inspected).emit(target);
   }
 
-  openChild(row: GroupedSlot<LayoutSlot>, child: LayoutChild): void {
-    this.inspected.emit({ slot: row.slot, count: row.count * child.count, child });
+  openChild(row: GroupedSlot<LayoutSlot>, child: LayoutChild, configurable: boolean): void {
+    const target = { slot: row.slot, count: row.count * child.count, child };
+    (configurable && child.className ? this.swapRequested : this.inspected).emit(target);
+  }
+
+  /** The ⓘ side button: always the full stat sheet for the mount itself. */
+  inspectRow(row: GroupedSlot<LayoutSlot>): void {
+    this.inspected.emit({ slot: row.slot, count: row.count, child: null });
   }
 
   private ordered = computed<RenderSection[]>(() =>

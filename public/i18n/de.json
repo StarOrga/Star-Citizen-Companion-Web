@@ -316,15 +316,29 @@
       "moduleOrderHint": "Zuerst kommen die konfigurierbaren Module — Waffen samt Aufhängung, Türme, Raketen, Pods, Schilde, Generator, Quantenantrieb, Radar, Kühler, Lebenserhaltung. Alles Feste steht darunter. Ein Klick auf ein Modul öffnet seine vollständige Werte-Tabelle."
     },
     "swap": {
-      "title": "Was passt hier?",
+      "pickerTitle": "Modul tauschen",
       "installed": "Verbaut",
+      "equipped": "Verbaut",
       "previewHint": "Nur Vorschau — nichts wird gespeichert.",
       "loading": "Kompatible Items werden gesucht…",
+      "failed": "Die kompatiblen Teile konnten nicht geladen werden.",
       "none": "Keine kompatiblen Alternativen in diesem Build.",
+      "noMatch": "Kein Teil passt zu diesen Filtern.",
       "delta": "Änderung ggü. verbaut",
       "noDelta": "Keine vergleichbaren Wert-Änderungen.",
-      "openDetail": "Detail öffnen",
-      "close": "Schließen"
+      "close": "Schließen",
+      "cancel": "Abbrechen",
+      "searchLabel": "Kompatible Teile durchsuchen",
+      "searchPlaceholder": "Nach Name, Hersteller oder Typ suchen…",
+      "damageFilter": "Schadensart",
+      "typeFilter": "Teiletyp",
+      "filterAll": "Alle",
+      "colName": "Name",
+      "appliesToOne": "Gilt für den Hardpoint {{port}}",
+      "appliesToMany": "Gilt für alle {{count}} identischen Hardpoints",
+      "matched": "{{shown}} von {{total}} kompatiblen Teilen",
+      "sortHint": "Spalte anklicken zum Sortieren, Strg-Klick für eine zweite Sortierung.",
+      "missingColumns": "Nicht in diesem Daten-Extract enthalten und deshalb ohne Spalte: {{fields}}."
     },
     "statGroup": {
       "identity": "Identität",
@@ -528,7 +542,8 @@
       "general": "Allgemein",
       "projectile": "Projektil",
       "noStats": "Der aktuelle Extract enthält für dieses Teil keine Werte.",
-      "openDetail": "Vollständigen Katalogeintrag öffnen"
+      "openDetail": "Vollständigen Katalogeintrag öffnen",
+      "openStats": "Alle Werte anzeigen"
     }
   },
   "blueprint": {
