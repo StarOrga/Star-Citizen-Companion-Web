@@ -3,6 +3,7 @@ import {
   afterNextRender, computed, effect, inject, input, linkedSignal, output,
 } from '@angular/core';
 import { NewsChannel } from './news.service';
+import { newsDefaultSrc, newsSrcset } from './news-image-variants';
 import { environment } from '../../environments/environment';
 
 /**
@@ -38,38 +39,26 @@ const SLOT_RATIO_REGULAR = 16 / 9;
 const SLOT_RATIO_FEATURED = 21 / 9;
 
 // `sizes` hints for the responsive srcset. The browser uses these (before layout)
-// to pick the smallest variant that still covers the rendered tile, so we keep them
-// close to the real CSS widths (featured tiles are ~1.6fr of a 3-col grid, regular
-// tiles are auto-fill minmax(280px)). Featured tops out at `cover` (1140w), regular
-// stays on `post` (500w) on typical viewports.
+// to pick the smallest candidate that still covers the rendered tile, so we keep
+// them close to the real CSS widths (featured tiles are ~1.6fr of a 3-col grid,
+// regular tiles are auto-fill minmax(280px)).
+//
+// These only became load-bearing once the candidates were real: the cache used to
+// advertise `post 500w / cover 1140w` over two copies of the SAME full-resolution
+// file, so no `sizes` value could keep a 320 px tile from downloading ~880 KB.
+// With the w400/w800/w<top> ladder a 320 px slot now genuinely resolves to w400 at
+// DPR 1 and w800 at DPR 2.
 const SIZES_FEATURED = '(max-width: 800px) 100vw, 60vw';
 // On phones the regular cards are full-width, but they are secondary thumbnails —
-// under-declaring the slot width biases the srcset toward the light `post` (500w)
-// variant there, so the grid paints fast on mobile networks instead of pulling a
-// 1140w `cover` per card (admin feedback 32cbf3ad: "images too slow on mobile,
-// load a smaller resolution first"). The featured hero keeps its crisp `cover`.
+// under-declaring the slot width biases the srcset toward the light variant there,
+// so the grid paints fast on mobile networks instead of pulling the widest one per
+// card (admin feedback 32cbf3ad: "images too slow on mobile, load a smaller
+// resolution first"). The featured hero keeps its crisp top variant.
 const SIZES_REGULAR = '(max-width: 800px) 62vw, 320px';
 
-/**
- * Swap the variant segment of an image url to a tile-sized one.
- *
- * Two url shapes are rewritable, both ending in `<dir>/<variant>.<ext>`:
- *  - RSI media CDN `https://media.robertsspaceindustries.com/<id>/<variant>.<ext>`
- *    — variants `post` (≤500w) / `cover` (≤1140w) preserve aspect ratio.
- *  - Our own `news-images` cache `…/<hash>/{post,cover}.<ext>`, where the edge
- *    function stored both variants under the same folder.
- * The original extension MUST be kept (a PNG source 404s as `.jpg`).
- *
- * Any other url — notably the signed `https://robertsspaceindustries.com/i/<sha1>/…`
- * proxy (already tile-sized, returns 400 if rewritten) — is returned unchanged.
- */
-export function rsiVariant(url: string, target: 'post' | 'cover'): string {
-  const media = /^(https:\/\/media\.robertsspaceindustries\.com\/[^/]+\/)[^/.]+(\.[a-zA-Z0-9]+)$/.exec(url);
-  if (media) return `${media[1]}${target}${media[2]}`;
-  const cached = /^(https?:\/\/.+\/)(?:post|cover)(\.[a-zA-Z0-9]+)$/.exec(url);
-  if (cached) return `${cached[1]}${target}${cached[2]}`;
-  return url;
-}
+// Responsive-source selection lives in ./news-image-variants — re-exported here
+// because `rsiVariant` was this module's public surface (starscape imports it).
+export { rsiVariant } from './news-image-variants';
 
 /* ------------------------------------------------------------------ *
  * Baked-in frame trimming
@@ -231,8 +220,8 @@ export function frameZoom(inset: FrameInset, imageRatio: number, slotRatio: numb
  * trip (failed load → retry without the attribute). So this list is exact hosts,
  * NOT a domain suffix — each one was verified to answer `ACAO: *`:
  *  - our own `news-images` bucket, which serves the majority of thumbnails once
- *    `fetch-verse-news` has mirrored them (it caps at 16 downloads per run, so
- *    raw upstream urls still reach the client while the cache warms),
+ *    `fetch-verse-news` has mirrored them (it caps at a handful of downloads per
+ *    run, so raw upstream urls still reach the client while the cache warms),
  *  - `media.robertsspaceindustries.com` — the comm-link / patch media CDN,
  *  - `theverse.robertsspaceindustries.com` — Spectrum's upload host, which is
  *    where the launcher release-note screenshots from feedback db5eba1e live.
@@ -504,14 +493,20 @@ export class NewsThumbComponent implements OnDestroy {
     });
   }
 
-  /** Responsive sources: tile-sized `post` (500w) and crisp `cover` (1140w). */
+  /**
+   * Responsive sources. For our own cached art this is the real w400/w800/w<top>
+   * ladder with truthful width descriptors; anything still on an upstream RSI url
+   * keeps the historic post/cover pair. Empty for a single opaque object.
+   */
   srcsetFor(url: string): string {
-    return `${rsiVariant(url, 'post')} 500w, ${rsiVariant(url, 'cover')} 1140w`;
+    // '' is deliberate for the opaque case: a srcset that parses to zero
+    // candidates makes the browser fall back to `src`, which is exactly right.
+    return newsSrcset(url);
   }
 
   /** Fallback `src` for browsers ignoring srcset — never the multi-MB original. */
   defaultSrcFor(url: string): string {
-    return rsiVariant(url, this.featured() ? 'cover' : 'post');
+    return newsDefaultSrc(url, this.featured());
   }
 
   /** Whether this url has decoded at least once — gates its blur-up reveal. */
