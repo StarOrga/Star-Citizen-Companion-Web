@@ -1024,6 +1024,14 @@ listable, so image attachments — including those in admin replies — are not
 covered by the secrecy rule, which is about message *text*. Pre-existing, not
 introduced by the user channel, and worth its own item.
 
+How they *render* (feedback a660536a): `renderFeedbackBody()` lifts every
+`![alt](src)` **out** of the markdown and returns it separately, so a body's HTML
+never contains an `<img>`. `sc-feedback-attachments` puts those images at the end
+of the message as a wrapping row of ~72 px thumbnails — chat-attachment style —
+and clicking one opens it full size in a CDK overlay (ESC / backdrop to close).
+The board, the workflow view and the author-facing panel all go through that one
+path; a new surface that renders a feedback body should too.
+
 ### "Nicht umsetzen & löschen" (declining a user topic)
 
 For a user-submitted topic the admin's delete button becomes **"Nicht umsetzen &

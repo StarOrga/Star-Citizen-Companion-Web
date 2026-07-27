@@ -16,8 +16,9 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { renderMarkdown } from './markdown.util';
+import { RenderedFeedbackBody, renderFeedbackBody } from './markdown.util';
 import { CelebrationService } from './celebration.service';
+import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
 import {
   FeedbackMessage,
@@ -55,7 +56,7 @@ const ADVANCE_SLIDE_MS = 380;
 @Component({
   selector: 'sc-feedback-workflow',
   standalone: true,
-  imports: [DatePipe, TranslateModule, FeedbackComposerComponent],
+  imports: [DatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="wf" [class.compact]="compact()">
@@ -131,7 +132,9 @@ const ADVANCE_SLIDE_MS = 380;
             <span class="wf-ts">{{ item.row.created_at | date: 'shortDate' }}</span>
           </header>
 
-          <div class="wf-body" [innerHTML]="render(item.row.body)"></div>
+          @let body = render(item.row.body);
+          <div class="wf-body" [innerHTML]="body.html"></div>
+          <sc-feedback-attachments [images]="body.images" />
 
           @if (item.row.processing_note) {
             <p class="proc-note">{{ item.row.processing_note }}</p>
@@ -160,7 +163,9 @@ const ADVANCE_SLIDE_MS = 380;
                     }
                     <span class="reply-ts">{{ msg.created_at | date: 'short' }}</span>
                   </div>
-                  <div class="reply-body" [innerHTML]="render(msg.body)"></div>
+                  @let reply = render(msg.body);
+                  <div class="reply-body" [innerHTML]="reply.html"></div>
+                  <sc-feedback-attachments [images]="reply.images" />
                 </div>
               }
             </div>
@@ -353,10 +358,7 @@ const ADVANCE_SLIDE_MS = 380;
       font-family: monospace; font-size: 0.85em;
       background: var(--sc-bg-2); padding: 1px 5px; border-radius: 3px;
     }
-    .wf-body img {
-      display: block; max-width: 100%; height: auto; margin: 6px 0;
-      border: 1px solid var(--sc-border); border-radius: 6px;
-    }
+    /* Screenshots are not part of the body flow — see sc-feedback-attachments. */
     .proc-note { margin: 0; font-size: 0.8rem; color: var(--sc-fg-2); font-style: italic; }
 
     .thread {
@@ -390,7 +392,6 @@ const ADVANCE_SLIDE_MS = 380;
     .reply-body :last-child { margin-bottom: 0; }
     .reply-body p { margin: 0 0 6px; }
     .reply-body a { color: var(--sc-accent); }
-    .reply-body img { display: block; max-width: 100%; height: auto; margin: 6px 0; border-radius: 6px; }
 
     /* ---- Always-visible answer panel ----
        Sticks to the bottom edge of whichever scrollport the board runs in — the
@@ -659,8 +660,8 @@ export class FeedbackWorkflowComponent {
     return awaitsTriage(item.row);
   }
 
-  render(body: string): string {
-    return renderMarkdown(body);
+  render(body: string): RenderedFeedbackBody {
+    return renderFeedbackBody(body);
   }
 
   authorLabelFor(msg: FeedbackMessage): string {

@@ -1784,6 +1784,13 @@
       "declined": "Nicht umgesetzt"
     }
   },
+  "feedbackAttachments": {
+    "label": "Anhänge",
+    "image": "Anhang",
+    "enlarge": "Bild vergrößern",
+    "enlargeNamed": "Bild vergrößern: {{name}}",
+    "close": "Bild schließen"
+  },
   "appPanel": {
     "version": "Aktuell veröffentlichte Version",
     "details": "Details, Hinweise und Release-Notes anzeigen"
