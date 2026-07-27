@@ -10,6 +10,7 @@ import jpeg from 'npm:jpeg-js@0.4.4';
 import { PNG } from 'npm:pngjs@7.0.0';
 import { scoreWallpaper } from './wallpaper-quality.ts';
 import { isCommLinkArticleUrl } from './comm-link-url.ts';
+import { isWithinVideoRetention, videoRetentionCutoff } from './video-retention.ts';
 
 type Channel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 
@@ -256,7 +257,8 @@ async function fetchYouTube(): Promise<VerseNewsItem[]> {
     if (!res.ok) throw new Error(`youtube HTTP ${res.status}`);
     const xml = await res.text();
     const entries = Array.from(xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)).slice(0, 15);
-    return entries.map((m) => {
+    const now = Date.now();
+    const videos = entries.map((m) => {
       const body = m[1];
       const id = body.match(/<yt:videoId>([\s\S]*?)<\/yt:videoId>/)?.[1] ?? crypto.randomUUID();
       const title = cleanXml(body.match(/<title>([\s\S]*?)<\/title>/)?.[1] ?? 'Video');
@@ -276,6 +278,12 @@ async function fetchYouTube(): Promise<VerseNewsItem[]> {
         source: 'youtube',
       } satisfies VerseNewsItem;
     });
+    // Retention (feedback e7082310): a video outside the today/this-week/
+    // this-month window is dropped here, BEFORE captureWallpapers/cacheImages
+    // run — so an aged-out clip never gets a thumbnail written to storage in
+    // the first place. `enforceVideoRetention` below cleans up the ones that
+    // were cached while they were still fresh.
+    return videos.filter((v) => isWithinVideoRetention(v.publishedAt, now));
   } catch (err) {
     console.error('fetchYouTube failed:', err);
     return [];
@@ -870,6 +878,119 @@ async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
   }
 }
 
+// --------------------- Video retention sweep (feedback e7082310) ---------------------
+// The feed itself is already trimmed in fetchYouTube(); this is the storage
+// side of the same rule — the `news-images` bucket must not keep growing with
+// thumbnails of videos nobody can see any more.
+//
+// Two halves, both best-effort and both scoped to VIDEOS only:
+//   1. tagVideoImages  — stamps the cache row of every live video thumbnail
+//      with that video's publish date. Without the stamp there is no way to
+//      tell a video thumbnail from comm-link artwork (the cache key is a SHA-1
+//      of the source url, which cannot be reversed), and article artwork must
+//      never be deleted by this sweep.
+//   2. pruneVideoImages — removes the stored objects + cache row of every
+//      stamped image whose video has aged out of the window.
+//
+// Rows cached before this shipped carry no stamp: those still in the feed get
+// one on the next run, the rest stay (a bounded, one-time residue of ~30 KB
+// YouTube thumbnails — not worth a risky heuristic that could delete article art).
+
+const VIDEO_PRUNE_LIMIT = 40; // bound the per-request delete work
+
+/** Cache key (storage folder) → publish date, for every video thumbnail in the feed. */
+async function videoImageKeys(items: VerseNewsItem[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (const it of items) {
+    if (it.source !== 'youtube') continue;
+    if (!Number.isFinite(Date.parse(it.publishedAt))) continue;
+    for (const url of it.images ?? []) {
+      // cacheImages() may already have rewritten the url to our public copy, in
+      // which case the key is the first path segment; otherwise it is still the
+      // upstream url and the key is derived the same way cacheImages derives it.
+      const key = url.startsWith(`${PUBLIC_BASE}/`)
+        ? url.slice(PUBLIC_BASE.length + 1).split('/')[0]
+        : await sha1Hex(imageIdentity(url).base);
+      if (key) out.set(key, it.publishedAt);
+    }
+  }
+  return out;
+}
+
+async function tagVideoImages(admin: SupabaseClient, items: VerseNewsItem[]): Promise<void> {
+  const keys = await videoImageKeys(items);
+  if (!keys.size) return;
+  const { data, error } = await admin
+    .from('verse_image_cache')
+    .select('source_key, video_published_at')
+    .in('source_key', [...keys.keys()]);
+  if (error) {
+    console.error('tagVideoImages lookup failed:', error.message);
+    return;
+  }
+  const stale = (data ?? []).filter((row) => {
+    const want = keys.get(row.source_key as string);
+    const have = row.video_published_at as string | null;
+    return want && (!have || Date.parse(have) !== Date.parse(want));
+  });
+  if (!stale.length) return;
+  await Promise.allSettled(stale.map((row) =>
+    admin
+      .from('verse_image_cache')
+      .update({ video_published_at: keys.get(row.source_key as string) })
+      .eq('source_key', row.source_key),
+  ));
+}
+
+async function pruneVideoImages(admin: SupabaseClient): Promise<void> {
+  const cutoff = new Date(videoRetentionCutoff()).toISOString();
+  // `lt` never matches NULL, so untagged rows (all article artwork + pre-stamp
+  // legacy rows) are structurally out of reach of this delete.
+  const { data, error } = await admin
+    .from('verse_image_cache')
+    .select('source_key')
+    .lt('video_published_at', cutoff)
+    .limit(VIDEO_PRUNE_LIMIT);
+  if (error) {
+    console.error('pruneVideoImages lookup failed:', error.message);
+    return;
+  }
+  const keys = (data ?? []).map((r) => r.source_key as string).filter(Boolean);
+  if (!keys.length) return;
+
+  // List the folder instead of assuming file names: the stored variant set has
+  // changed before and a hardcoded name would silently orphan the real objects.
+  const removed: string[] = [];
+  await Promise.allSettled(keys.map(async (key) => {
+    const { data: files, error: listErr } = await admin.storage.from(IMG_BUCKET).list(key);
+    if (listErr) throw new Error(listErr.message);
+    const paths = (files ?? []).map((f) => `${key}/${f.name}`);
+    if (paths.length) {
+      const { error: rmErr } = await admin.storage.from(IMG_BUCKET).remove(paths);
+      // Keep the row when the objects survive — the row is the ONLY handle on
+      // them, so dropping it first would orphan the bytes forever. Retry next run.
+      if (rmErr) throw new Error(rmErr.message);
+    }
+    removed.push(key);
+  }));
+  if (!removed.length) return;
+  const { error: delErr } = await admin.from('verse_image_cache').delete().in('source_key', removed);
+  if (delErr) console.error('pruneVideoImages row delete failed:', delErr.message);
+  else console.log(`pruneVideoImages: dropped ${removed.length} expired video image(s)`);
+}
+
+async function enforceVideoRetention(items: VerseNewsItem[]): Promise<void> {
+  if (!SUPABASE_URL || !SERVICE_KEY) return; // misconfigured → skip silently
+  try {
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    await tagVideoImages(admin, items);
+    await pruneVideoImages(admin);
+  } catch (err) {
+    // Housekeeping must never take the news feed down with it.
+    console.error('enforceVideoRetention failed:', err);
+  }
+}
+
 // --------------------- Server ---------------------
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
@@ -890,6 +1011,10 @@ Deno.serve(async (req: Request) => {
 
   // Replace upstream RSI image urls with our durable cached copies (best-effort).
   await cacheImages(news);
+
+  // Storage side of the video retention rule (e7082310): stamp the thumbnails of
+  // the videos we just served and delete the ones that aged out (best-effort).
+  await enforceVideoRetention(news);
 
   const payload = {
     status,
