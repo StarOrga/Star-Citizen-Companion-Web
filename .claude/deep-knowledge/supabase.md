@@ -16,7 +16,8 @@ Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, org
 | `00001_init_schema.sql` | `profiles` (auto-created on signup), `p4k_uploads`, enum types, RLS policies, `handle_new_user` trigger |
 | `00002_storage_bucket_p4k.sql` | Storage bucket `p4k-uploads` + per-user-folder RLS |
 | … | (additive migrations 00003–20260603: roles/releases/bundles, codex catalog, public API tokens, invite-only access, ship skins, …) |
-| `20260604_news_image_cache.sql` | Public bucket `news-images` (post+cover variants) + `verse_image_cache` index for server-side caching of RSI news thumbnails |
+| `20260604_news_image_cache.sql` | Public bucket `news-images` + `verse_image_cache` index for server-side caching of RSI news thumbnails |
+| `20260727170000_news_image_variants.sql` | `verse_image_cache.top_width` / `.bytes` — the compacted variant ladder (see **News-image storage** below). `top_width IS NULL` = not yet migrated |
 | `20260724130000_user_ship_links.sql` | User-supplied RSI pledge links: `is_rsi_pledge_ship_url()` allowlist + `user_ship_links` (private) + `ship_pledge_links` (global, admin-only) |
 | `20260726170000_user_feedback_channel.sql` | Non-admin feedback channel on the shared `admin_feedback` board: `source`/`triaged`/`decision_note` columns, `feedback_author_messages`, the author-facing `public.my_feedback` view (**its `revoke all … / grant select` pair is load-bearing**) |
 | `20260726220000_ship_hardpoint_transforms.sql` | `codex_item_ports.helper_name` / `.position` / `.rotation` — where a hardpoint sits on the hull. All nullable; NULL = position unknown (the state of every row until the uploader re-runs). Coordinates are metres in hull model space, CryEngine axes (`+X` starboard, `+Y` nose, `+Z` up). The ship-level map incl. default-loadout mounts rides in `codex_ships.payload.hardpointTransforms` + `.hardpointFrame`. |
@@ -36,11 +37,51 @@ Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, org
 
 | Function | Purpose | `verify_jwt` |
 |---|---|---|
-| `fetch-verse-news` | Proxies `api.star-citizen.wiki` Comm-Link + RSI status RSS into a single `VerseFeed` JSON. Also **server-side caches** each news image into the public `news-images` bucket (service-role download w/ RSI `Referer`, post+cover variants, `verse_image_cache` index, ≤16 new downloads/request) and rewrites the urls — fixes broken hotlinked RSI CDN thumbnails. | `true` |
+| `fetch-verse-news` | Proxies `api.star-citizen.wiki` Comm-Link + RSI status RSS into a single `VerseFeed` JSON. Also **server-side caches** each news image into the public `news-images` bucket (service-role download w/ RSI `Referer`, re-encoded variant ladder, `verse_image_cache` index, ≤4 new images/request, processed sequentially) and rewrites the urls — fixes broken hotlinked RSI CDN thumbnails. | `true` |
 | `process-p4k` | Analyzes a P4K upload's first 64KB, writes back via service-role. | `true` |
 | `ship-link` | Write authority for user-supplied RSI pledge links (`set`/`remove` own, admin `promote`/`unpromote` global). Enforces the URL allowlist server-side + a per-user rate limit (20 writes / 5 min, in-isolate) + a hard ceiling of 500 links per user. Uses **no service-role key** — it writes through the caller's own client so RLS still applies. | `true` |
 
 Both functions deployed via Supabase MCP (`mcp__10628b5d-*__deploy_edge_function`).
+
+## News-image storage (`news-images` bucket)
+
+The free plan gives **1 GB of storage in total**, and this bucket was 809 MB of it
+(496 objects) before 2026-07-27 — the single biggest quota risk in the project.
+Two causes, both fixed:
+
+1. Every source was written **twice**, as `<hash>/post.<ext>` and
+   `<hash>/cover.<ext>`, and for most sources both downloads returned the *same*
+   file → a byte-identical twin of everything.
+2. The bytes were stored **verbatim at RSI resolution** — PNGs up to 9.2 MB, 8K
+   originals — to serve tiles that render at ~320 CSS px.
+
+**Current scheme.** `<hash>/w<width>.<ext>`, one object per real pixel width,
+re-encoded (JPEG, or PNG when the source has real alpha), `cache-control:
+max-age=31536000, immutable`. The ladder is
+`[400, 800].filter(w => w < top).concat(top)` where `top` = source width capped at
+1600 — so the *whole ladder is derivable from the top url alone*, which is the one
+the feed returns. `w0` is the reserved "single object, unknown width" case for a
+source we cannot decode.
+
+- Sizing/quality/naming: `supabase/functions/fetch-verse-news/image-variants.ts`
+  (shared, pure). Codec bindings: `image-codecs.ts` (Deno) and
+  `scripts/lib/node-image-codecs.mjs` (Node) — both jpeg-js + pngjs, pure JS.
+- Client side: `src/app/news/news-image-variants.ts` mirrors the ladder constants
+  and builds the truthful `srcset`. Change one → change both (a spec pins it).
+- **WebP/AVIF output was rejected on purpose**: no lightweight pure-JS encoder
+  exists, and a wasm codec in a request-scoped function that serves the whole news
+  page is a bad trade for the last ~35 %. The order-of-magnitude win is resizing +
+  de-duplication. WebP *sources* are consequently undecodable for us and end up as
+  a single `w0` passthrough.
+
+**Backfill:** `npm run news:compact` (`scripts/news-image-compact.mjs`). Dry run by
+default; `--apply` writes. Needs `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` from
+the environment. Idempotent and resumable — it recomputes the plan from bucket + DB
+state, never deletes before verifying the replacement exists, and refuses to delete
+anything the surviving `verse_image_cache` row still references. `--prune-orphans`
+additionally removes objects with no cache row (only when older than `--orphan-age`
+hours, default 24, because live ingest uploads objects seconds before it writes the
+row).
 
 ## MCP access
 
