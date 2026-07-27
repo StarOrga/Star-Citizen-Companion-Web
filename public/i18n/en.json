@@ -850,10 +850,21 @@
       "failed": "Delete failed"
     },
     "tokens": {
-      "navLink": "External API",
+      "navLink": "Integrations",
       "docsLink": "API documentation ↗",
-      "title": "Admin · External API",
-      "subtitle": "Issue bearer tokens for the public /v1 API. Tokens are shown ONCE in plaintext — store them in your secrets manager.",
+      "title": "Integrations",
+      "subtitle": "Manage your account's connections to external apps and services.",
+      "sectionTitle": "API tokens",
+      "sectionHint": "Issue bearer tokens for the public /v1 API. Tokens are shown ONCE in plaintext — store them in your secrets manager.",
+      "connections": {
+        "title": "Connections",
+        "comingSoon": "Coming soon",
+        "mockNote": "Preview: linking with the SC app is not implemented yet. The status above is a placeholder, not an existing connection.",
+        "scApp": {
+          "name": "Star Citizen Companion App",
+          "desc": "Link the desktop app straight to your account so uploads and data are attributed automatically."
+        }
+      },
       "refresh": "Refresh",
       "newToken": "New token",
       "loading": "Loading tokens…",

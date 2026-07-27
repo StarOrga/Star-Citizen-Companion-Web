@@ -43,7 +43,7 @@ Admin-only surfaces, listed here so the map is complete:
 | Route | Purpose |
 |---|---|
 | `/admin` | User management and invitations |
-| `/admin/api-tokens` | Issue, list and revoke [Public API](doc:authentication) tokens |
+| `/admin/api-tokens` | **Integrations** — app connections plus issuing, listing and revoking [Public API](doc:authentication) tokens. Reached from the profile (avatar) menu, not the main nav. |
 | `/admin/telemetry` | Uploader and app telemetry dashboard |
 | `/admin/feedback` | Feedback triage queue |
 
