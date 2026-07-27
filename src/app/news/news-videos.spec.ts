@@ -1,6 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
-import { NewsService, VerseNewsItem, NewsChannel, pickRecentVideos } from './news.service';
+import {
+  NewsService,
+  VerseNewsItem,
+  NewsChannel,
+  pickRecentVideos,
+  pruneExpiredVideos,
+  VIDEO_RETENTION_DAYS,
+} from './news.service';
 import { ConsentService } from '../core/consent.service';
 
 function item(id: string, channel: NewsChannel, publishedAt: string): VerseNewsItem {
@@ -54,6 +61,45 @@ describe('pickRecentVideos (#146)', () => {
 
   it('returns an empty list when there are no videos at all', () => {
     expect(pickRecentVideos([], new Set(), 5)).toEqual([]);
+  });
+});
+
+describe('pruneExpiredVideos — video retention window (e7082310)', () => {
+  const NOW = Date.parse('2026-07-28T12:00:00.000Z');
+  const DAY = 24 * 60 * 60 * 1000;
+  const ago = (days: number) => new Date(NOW - days * DAY).toISOString();
+
+  it('keeps videos from today, this week and this month', () => {
+    const kept = pruneExpiredVideos(
+      [
+        item('today', 'youtube', ago(0)),
+        item('week', 'youtube', ago(4)),
+        item('month', 'youtube', ago(28)),
+      ],
+      NOW,
+    );
+    expect(kept.map((v) => v.id)).toEqual(['today', 'week', 'month']);
+  });
+
+  it('drops videos older than the retention window', () => {
+    const kept = pruneExpiredVideos(
+      [item('fresh', 'youtube', ago(1)), item('ancient', 'youtube', ago(VIDEO_RETENTION_DAYS + 2))],
+      NOW,
+    );
+    expect(kept.map((v) => v.id)).toEqual(['fresh']);
+  });
+
+  it('never touches non-video news, however old', () => {
+    const old = [
+      item('c-old', 'comm-link', ago(400)),
+      item('s-old', 'spectrum', ago(400)),
+      item('p-old', 'patch', ago(400)),
+    ];
+    expect(pruneExpiredVideos(old, NOW).map((n) => n.id)).toEqual(['c-old', 's-old', 'p-old']);
+  });
+
+  it('drops a video with an unparseable publish date', () => {
+    expect(pruneExpiredVideos([item('broken', 'youtube', 'not-a-date')], NOW)).toEqual([]);
   });
 });
 

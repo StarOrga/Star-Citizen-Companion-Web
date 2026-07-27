@@ -21,6 +21,18 @@ Use the channel filter to narrow the feed, or **Show all** to clear it. Posts
 are bucketed into **Today**, **This week** and **Older**, with the older bucket
 collapsed until you expand it.
 
+## Videos
+
+The newest clips from the official YouTube channel get their own rail above the
+stream, so they are not buried between articles. Videos you have already opened
+(or hovered long enough to count as seen) drop out of the rail on the next load.
+
+Videos are kept for **31 days** — today, this week and this month. Older clips
+leave the feed and their cached thumbnails are deleted, because SC Companion
+only has so much online storage and a video that old is no longer news. The
+articles themselves are unaffected: only videos age out, and every video is
+still one click away on YouTube.
+
 ## Live service status
 
 The **Star Citizen Live** widget mirrors RSI's own status page: *Playable*,

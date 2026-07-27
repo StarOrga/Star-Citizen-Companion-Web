@@ -18,7 +18,7 @@ import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { NewsService, NewsChannel, VerseNewsItem, VerseStatus, StatusLevel, effectivePlayability, pickRecentVideos } from './news.service';
+import { NewsService, NewsChannel, VerseNewsItem, VerseStatus, StatusLevel, effectivePlayability, pickRecentVideos, VIDEO_RETENTION_DAYS } from './news.service';
 import { NewsThumbComponent } from './news-thumb.component';
 import { UpcomingShipsNoticeComponent } from './upcoming-ships-notice.component';
 
@@ -135,6 +135,9 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
             <div class="bucket-head">
               <h2>{{ 'news.videos.title' | translate }}</h2>
               <span class="bucket-ct">{{ recentVideos().length }}</span>
+              <!-- Videos age out after the retention window (e7082310); say so,
+                   otherwise the shrinking video list reads as a bug. -->
+              <span class="rail-note">{{ 'news.videos.retention' | translate:{ days: videoRetentionDays } }}</span>
             </div>
             <div class="rail-track">
               @for (vid of recentVideos(); track vid.id) {
@@ -594,6 +597,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
 
     /* ---------- Recent videos rail (#146) ---------- */
     .video-rail { display: flex; flex-direction: column; gap: 10px; }
+    .rail-note { font-size: 0.7rem; color: var(--sc-fg-2); margin-left: auto; }
     .rail-track {
       display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 78vw);
       gap: 12px; overflow-x: auto; padding: 2px 2px 8px;
@@ -709,6 +713,8 @@ export class NewsListComponent implements OnInit, OnDestroy {
 
   readonly channels = CHANNELS;
   readonly rsiStatusUrl = RSI_STATUS_URL;
+  // Retention window shown next to the video rail head (e7082310).
+  readonly videoRetentionDays = VIDEO_RETENTION_DAYS;
   readonly statusOpen = signal(false);
   readonly olderOpen = signal(false);
   readonly hasFilter = computed(() => this.svc.activeChannels().size > 0);

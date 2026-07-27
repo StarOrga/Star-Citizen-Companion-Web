@@ -78,6 +78,19 @@ const WATCHED_STORAGE_KEY = 'sc-companion.news.watched';
 // How many recent videos the Verse News video rail surfaces at once (#146).
 const VIDEO_RAIL_SIZE = 5;
 
+/**
+ * Retention window for VIDEOS in Verse News (feedback e7082310): only today,
+ * this week and this month are kept. The rule is enforced server-side — the
+ * ingest neither serves nor caches older clips and deletes their cached
+ * thumbnails — and re-applied here on every payload, because the service
+ * worker serves the feed from cache when offline and that copy can be far
+ * older than the window (its thumbnails are already gone from storage).
+ *
+ * Rolling 31 days, mirroring supabase/functions/fetch-verse-news/video-retention.ts
+ * — keep the two in sync.
+ */
+export const VIDEO_RETENTION_DAYS = 31;
+
 const ALL_CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
 
 @Injectable({ providedIn: 'root' })
@@ -155,7 +168,9 @@ export class NewsService {
     try {
       const data = await firstValueFrom(this.http.get<VerseFeed>(this.endpoint));
       if (seq !== this.refreshSeq) return;
-      this.feed.set(data);
+      // Drop videos that fell out of the retention window before anything sees
+      // them, so counts, buckets, the rail and deep-links all agree (e7082310).
+      this.feed.set({ ...data, news: pruneExpiredVideos(data?.news ?? []) });
     } catch (err) {
       if (seq !== this.refreshSeq) return;
       this.error.set((err as Error).message ?? 'Unknown error');
@@ -332,6 +347,21 @@ export function pickRecentVideos(
 ): VerseNewsItem[] {
   const unseen = videos.filter((v) => !watched.has(v.id));
   return (unseen.length > 0 ? unseen : videos).slice(0, limit);
+}
+
+/**
+ * Remove videos older than the retention window (e7082310). Non-video news is
+ * deliberately untouched — the window is a video-storage rule, not a feed rule.
+ * A video with an unparseable date is dropped: it is undatable, so the server
+ * cannot have kept its thumbnail either.
+ */
+export function pruneExpiredVideos(news: VerseNewsItem[], now = Date.now()): VerseNewsItem[] {
+  const cutoff = now - VIDEO_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  return news.filter((n) => {
+    if (n.channel !== 'youtube') return true;
+    const t = Date.parse(n.publishedAt);
+    return Number.isFinite(t) && t >= cutoff;
+  });
 }
 
 function bucketByTime(items: VerseNewsItem[]): BucketedNews {

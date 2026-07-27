@@ -669,7 +669,8 @@
     },
     "videos": {
       "title": "Neue Videos",
-      "watched": "Gesehen"
+      "watched": "Gesehen",
+      "retention": "Nur die letzten {{days}} Tage"
     },
     "detail": {
       "close": "Schließen"
