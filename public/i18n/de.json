@@ -847,6 +847,15 @@
     "promote": {
       "label": "Diese Version heben auf",
       "action": "Promoten"
+    },
+    "appTitle": "Data Uploader",
+    "appDesc": "Liest deinen lokalen Star-Citizen-Install aus und lädt daraus die Codex-Bundles hoch.",
+    "close": "Schließen",
+    "access": {
+      "title": "Data Uploader",
+      "hint": "Datenquelle des Codex — für Collaborator & Admin",
+      "fullPage": "Volle Data-Upload-Seite",
+      "note": "Nur Windows · Anmeldung mit deinem SCC-Konto · lädt Daten hoch, keinen Code."
     }
   },
   "download": {
@@ -1665,7 +1674,15 @@
     "appDownload": "Für Windows herunterladen",
     "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)",
     "appRingLock": "Der Kanal wird mit dem Download festgelegt und lässt sich in der App nicht umstellen — für einen anderen Kanal einfach den passenden Download hier erneut holen.",
-    "appAutoUpdate": "Aktualisiert sich still im Hintergrund; der Versionsstand steht im Tray-Menü."
+    "appAutoUpdate": "Aktualisiert sich still im Hintergrund; der Versionsstand steht im Tray-Menü.",
+    "promo": {
+      "eyebrow": "Starscape für den Desktop",
+      "title": "Dein Desktop, live aus dem Verse",
+      "desc": "Die winzige Tray-App rotiert genau diese Wallpaper auf deinem Desktop — mit weicher Überblendung und Autostart.",
+      "cta": "Für Windows holen",
+      "note": "Nur Windows · ~0,3 MB · jederzeit über das Tray-Menü beendet",
+      "dismiss": "Nicht mehr anzeigen"
+    }
   },
   "userFeedback": {
     "title": "Feedback",
@@ -1697,5 +1714,9 @@
       "done": "Umgesetzt",
       "declined": "Nicht umgesetzt"
     }
+  },
+  "appPanel": {
+    "version": "Aktuell veröffentlichte Version",
+    "details": "Details, Hinweise und Release-Notes anzeigen"
   }
 }

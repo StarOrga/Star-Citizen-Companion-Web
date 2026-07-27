@@ -1,37 +1,40 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { RoleService } from '../auth/role.service';
 import { P4kHistoryComponent } from '../p4k/p4k-history.component';
+import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
 import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
-
-interface PlatformAsset {
-  url: string;
-  size_bytes: number;
-  sha512?: string | null;
-  sha256?: string | null;
-}
-
-interface ReleaseInfo {
-  version: string;
-  platforms: Record<string, PlatformAsset>;
-  notes: string | null;
-  created_at: string;
-}
+import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-release.service';
 
 /**
- * The unified "Data Upload" page. Formerly two visually-separate blocks (the
- * desktop-tool download card and the bundle history) stacked with a hard
- * divider; now merged into ONE cohesive panel (feedback d91725c1) whose two
- * sections — "Aktuelle Version" (this component) and "Bundle-Historie"
- * (embedded `sc-p4k-history`) — share a single card, section-header language and
- * spacing so the page reads as one surface instead of two competing islands.
+ * The Data Upload page (`/uploader`). Since admin feedback eb9c6ec3 it renders
+ * the SHARED `sc-app-download-panel` — the same minimal panel the Starscape
+ * download uses — so the two desktop apps present themselves identically, and
+ * the bundle history it used to stack underneath now opens as a popup instead
+ * of stretching the page. The uploader no longer holds a top-level nav entry
+ * either: its everyday entrance is the collapsible `sc-uploader-access` line on
+ * the Codex Bridge, and this page stays as the full-size surface behind it.
  */
 @Component({
   selector: 'sc-desktop-download',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, TranslateModule, P4kHistoryComponent, ChannelPickerComponent],
+  imports: [
+    DatePipe,
+    TranslateModule,
+    P4kHistoryComponent,
+    AppDownloadPanelComponent,
+    ChannelPickerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="uploader">
@@ -44,80 +47,78 @@ interface ReleaseInfo {
         <div class="err">{{ errorMsg() }}</div>
       }
 
-      <div class="sc-card panel">
-        <!-- Section 1: the current desktop-tool release. -->
-        <div class="sec-head">
-          <span class="t">{{ 'desktop.currentVersion' | translate }}</span>
-          <sc-channel-picker [(channel)]="channel" />
-        </div>
+      <sc-app-download-panel
+        icon="⬆"
+        title="desktop.appTitle"
+        desc="desktop.appDesc"
+        [version]="release()?.version ?? null"
+        [entries]="entries()"
+        [busy]="busy()"
+        [notes]="notes"
+        [releaseNotes]="release()?.notes ?? null">
+        <sc-channel-picker panelActions [(channel)]="channel" />
+      </sc-app-download-panel>
 
+      <div class="meta">
         @if (release(); as r) {
-          <div class="release">
-            <div class="rel-ver">
-              <span class="v">v{{ r.version }}</span>
-              <span class="d">{{ 'desktop.released' | translate }} · {{ r.created_at | date:'mediumDate' }}</span>
-            </div>
-            <div class="rel-dl">
-              @for (entry of platformEntries(r); track entry.key) {
-                <a class="sc-btn sc-btn-primary dl" [href]="entry.value.url" download>
-                  <span class="l">{{ 'desktop.downloadFor' | translate:{ platform: entry.key } }}</span>
-                  <span class="m">
-                    {{ entry.value.size_bytes / 1024 / 1024 | number:'1.0-1' }} MB
-                    @if (hashFingerprint(entry.value); as h) {
-                      · <span class="hash">{{ h }}…</span>
-                    }
-                  </span>
-                </a>
-              }
-            </div>
-          </div>
-          <!-- Admin-only inline promotion (feedback 446c245e): promote the
-               currently-shown version forward to a ring, right where releases
-               are downloaded — no separate admin page. Server-side RPC also
-               enforces admin + monotonicity, so this is a convenience gate. -->
-          @if (roles.isAdmin()) {
-            <div class="promote">
-              <span class="pl">{{ 'desktop.promote.label' | translate }}</span>
-              <select class="psel"
-                      [value]="promoteTarget()"
-                      (change)="onPromoteTarget($event)"
-                      [disabled]="promoting()"
-                      [attr.aria-label]="'desktop.promote.label' | translate">
-                <option value="alpha">{{ 'desktop.channel.alpha' | translate }}</option>
-                <option value="beta">{{ 'desktop.channel.beta' | translate }}</option>
-                <option value="stable">{{ 'desktop.channel.stable' | translate }}</option>
-              </select>
-              <button class="sc-btn micro" [disabled]="promoting()" (click)="promote(r.version)">
-                {{ 'desktop.promote.action' | translate }}
-              </button>
-              @if (promoteMsg(); as m) {
-                <span class="pmsg" [class.err]="m.kind === 'error'">{{ m.text }}</span>
-              }
-            </div>
-          }
-          @if (r.notes) {
-            <div class="rel-notes">
-              <span class="rn-label">{{ 'desktop.notes' | translate }}</span>
-              <pre>{{ r.notes }}</pre>
-            </div>
-          }
-        } @else if (busy()) {
-          <div class="sec-body muted">{{ 'desktop.loading' | translate }}</div>
-        } @else {
-          <div class="sec-body muted">
-            <strong>{{ 'desktop.noRelease' | translate }}</strong>
-            <span>{{ 'desktop.noReleaseHint' | translate }}</span>
-          </div>
+          <span class="rel-when">
+            {{ 'desktop.released' | translate }} · {{ r.created_at | date: 'mediumDate' }}
+          </span>
         }
-
-        <!-- Section 2: bundle history, embedded so it renders inside this same
-             panel (its own <section> supplies the "Bundle-Historie" sec-head). -->
-        <sc-p4k-history [embedded]="true" />
+        <button type="button" class="link" (click)="historyOpen.set(true)">
+          {{ 'desktop.bundleHistory' | translate }}
+        </button>
       </div>
+
+      <!-- Admin-only inline promotion (feedback 446c245e): promote the
+           currently-shown version forward to a ring, right where releases are
+           downloaded — no separate admin page. The server-side RPC also enforces
+           admin + monotonicity, so this is a convenience gate. -->
+      @if (roles.isAdmin()) {
+        @if (release(); as r) {
+        <div class="promote">
+          <span class="pl">{{ 'desktop.promote.label' | translate }}</span>
+          <select class="psel"
+                  [value]="promoteTarget()"
+                  (change)="onPromoteTarget($event)"
+                  [disabled]="promoting()"
+                  [attr.aria-label]="'desktop.promote.label' | translate">
+            <option value="alpha">{{ 'desktop.channel.alpha' | translate }}</option>
+            <option value="beta">{{ 'desktop.channel.beta' | translate }}</option>
+            <option value="stable">{{ 'desktop.channel.stable' | translate }}</option>
+          </select>
+          <button class="sc-btn micro" [disabled]="promoting()" (click)="promote(r.version)">
+            {{ 'desktop.promote.action' | translate }}
+          </button>
+          @if (promoteMsg(); as m) {
+            <span class="pmsg" [class.err]="m.kind === 'error'">{{ m.text }}</span>
+          }
+        </div>
+        }
+      }
     </section>
+
+    @if (historyOpen()) {
+      <div class="hx-back" (click)="historyOpen.set(false)">
+        <div class="hx-dialog"
+             role="dialog"
+             aria-modal="true"
+             [attr.aria-label]="'desktop.bundleHistory' | translate"
+             (click)="$event.stopPropagation()">
+          <div class="hx-head">
+            <span class="hx-t">{{ 'desktop.bundleHistory' | translate }}</span>
+            <button type="button" class="hx-close" (click)="historyOpen.set(false)"
+                    [attr.aria-label]="'desktop.close' | translate">✕</button>
+          </div>
+          <div class="hx-scroll">
+            <sc-p4k-history [embedded]="true" />
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: [`
-    .uploader { display: flex; flex-direction: column; gap: 20px; max-width: 1000px; }
+    .uploader { display: flex; flex-direction: column; gap: 14px; max-width: 720px; }
     .u-head h1 { margin: 0; }
     .u-head .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
     .err {
@@ -128,43 +129,22 @@ interface ReleaseInfo {
       border-radius: 4px;
     }
 
-    /* The single cohesive panel that hosts both sections. */
-    .panel { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
-
-    /* Shared section header (also defined in p4k-history for the embedded half). */
-    .sec-head {
-      display: flex; align-items: center; gap: 12px; justify-content: space-between;
-      padding: 13px 20px;
-      background: var(--sc-bg-2);
-      border-bottom: 1px solid var(--sc-border);
-    }
-    .sec-head .t {
-      font-family: var(--sc-font-display);
-      font-size: 0.82rem; letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--sc-fg-1);
-    }
-
-    /* Compact, inline release row. */
-    .release { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 16px 20px; }
-    .rel-ver { display: flex; flex-direction: column; gap: 2px; min-width: 96px; }
-    .rel-ver .v { font-family: var(--sc-font-display); font-size: 1.5rem; color: var(--sc-accent); line-height: 1; }
-    .rel-ver .d {
+    .meta { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+    .rel-when {
       color: var(--sc-fg-2); font-size: 0.7rem;
       letter-spacing: 0.06em; text-transform: uppercase;
     }
-    .rel-dl { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
-    .dl { flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 16px; }
-    .dl .l { font-size: 0.82rem; }
-    .dl .m {
-      font-size: 0.68rem; opacity: 0.85; text-transform: none; letter-spacing: 0.02em;
+    .link {
+      background: transparent; border: 0; padding: 0; cursor: pointer;
+      font: inherit; font-size: 0.76rem; color: var(--sc-accent);
+      text-decoration: underline; text-underline-offset: 2px;
     }
-    .dl .m .hash { font-family: monospace; }
+    .link:hover { color: var(--sc-accent-hot); }
 
     /* Admin-only inline promote row — compact, low-fanfare (feedback 446c245e). */
     .promote {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-      padding: 10px 20px; border-top: 1px solid var(--sc-border);
-      background: var(--sc-bg-1);
+      padding: 10px 0 0; border-top: 1px solid var(--sc-border);
     }
     .promote .pl {
       color: var(--sc-fg-2); font-size: 0.7rem;
@@ -182,45 +162,68 @@ interface ReleaseInfo {
     .promote .pmsg { font-size: 0.8rem; color: var(--sc-accent); }
     .promote .pmsg.err { color: var(--sc-danger); }
 
-    /* Always-inline, low-key release notes (feedback 2ebe600e): no collapse,
-       no heavy box — a quiet label + muted body that sits under the release. */
-    .rel-notes { border-top: 1px solid var(--sc-border); margin: 0; padding: 12px 20px; }
-    .rel-notes .rn-label {
-      display: block; color: var(--sc-fg-2);
-      font-family: var(--sc-font-display); font-size: 0.7rem;
-      letter-spacing: 0.08em; text-transform: uppercase;
+    /* Bundle history popup — identical shell to the Codex access panel's. */
+    .hx-back {
+      position: fixed; inset: 0; z-index: 1200;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+      background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
     }
-    .rel-notes pre {
-      margin: 8px 0 0; padding: 0;
-      background: none; border: 0; color: var(--sc-fg-2);
-      font-family: inherit; font-size: 0.82rem; line-height: 1.5;
-      white-space: pre-wrap; max-height: 220px; overflow-y: auto;
+    .hx-dialog {
+      display: flex; flex-direction: column;
+      width: min(1100px, 96vw); max-height: 88vh;
+      background: var(--sc-bg-1); border: 1px solid var(--sc-border);
+      border-radius: 10px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
     }
+    .hx-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 12px 16px; background: var(--sc-bg-2);
+      border-bottom: 1px solid var(--sc-border);
+    }
+    .hx-t {
+      font-family: var(--sc-font-display); font-size: 0.82rem;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-1);
+    }
+    .hx-close {
+      background: transparent; border: 0; color: var(--sc-fg-2);
+      font-size: 1rem; cursor: pointer; padding: 4px;
+    }
+    .hx-close:hover { color: var(--sc-fg-0); }
+    .hx-scroll { overflow-y: auto; padding: 0 4px 4px; }
 
-    .sec-body { padding: 20px; color: var(--sc-fg-1); display: flex; flex-direction: column; gap: 4px; }
-    .sec-body.muted { color: var(--sc-fg-2); }
-    .sec-body strong { color: var(--sc-fg-1); }
-
-    @media (max-width: 560px) {
-      .sec-head { padding: 12px 16px; }
-      .release { padding: 14px 16px; }
-      .rel-notes { padding: 10px 16px; }
+    @media (max-width: 640px) {
+      .hx-back { padding: 8px; }
     }
   `],
 })
 export class DesktopDownloadComponent {
   private readonly sb = inject(SupabaseClientProvider);
+  private readonly releases = inject(DesktopReleaseService);
   readonly roles = inject(RoleService);
 
   readonly release = signal<ReleaseInfo | null>(null);
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
   readonly channel = signal<ReleaseChannel>('stable');
+  readonly historyOpen = signal(false);
+
+  /** Platform caveat, kept behind the panel's ⓘ toggle. */
+  readonly notes = ['desktop.access.note'] as const;
 
   // Admin-only inline release promotion (feedback 446c245e).
   readonly promoteTarget = signal<ReleaseChannel>('beta');
   readonly promoting = signal(false);
   readonly promoteMsg = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
+
+  readonly entries = computed<AppDownloadEntry[]>(() =>
+    Object.entries(this.release()?.platforms ?? {}).map(([key, value]) => ({
+      key,
+      label: key,
+      url: value.url,
+      sizeBytes: value.size_bytes,
+      hash: hashFingerprint(value),
+    })),
+  );
 
   constructor() {
     // Re-resolve the download whenever the picked channel changes. The RPC
@@ -233,9 +236,7 @@ export class DesktopDownloadComponent {
   private async load(channel: ReleaseChannel): Promise<void> {
     this.busy.set(true);
     this.errorMsg.set(null);
-    const { data, error } = await this.sb.client.rpc('desktop_release_for_channel', {
-      p_channel: channel,
-    });
+    const { release, error } = await this.releases.forChannel(channel);
     // Latest-wins guard: on first open the parent starts at 'stable' and the
     // channel-picker then re-defaults to the role's top ring (alpha for admin),
     // so two loads race. If a newer channel was picked while this request was in
@@ -243,18 +244,9 @@ export class DesktopDownloadComponent {
     // clobbers the freshly-loaded 'alpha' release and blanks the shown version
     // (feedback e892e715: "channel alpha, aber die Version wird nicht angezeigt").
     if (this.channel() !== channel) return;
-    if (error) this.errorMsg.set(error.message);
-    else this.release.set((data as unknown as ReleaseInfo[])?.[0] ?? null);
+    if (error) this.errorMsg.set(error);
+    else this.release.set(release);
     this.busy.set(false);
-  }
-
-  platformEntries(r: ReleaseInfo): Array<{ key: string; value: PlatformAsset }> {
-    return Object.entries(r.platforms ?? {}).map(([key, value]) => ({ key, value }));
-  }
-
-  hashFingerprint(p: PlatformAsset): string | null {
-    const h = p.sha512 ?? p.sha256 ?? '';
-    return h ? h.slice(0, 12) : null;
   }
 
   onPromoteTarget(ev: Event): void {
@@ -283,5 +275,10 @@ export class DesktopDownloadComponent {
       await this.load(this.channel());
     }
     this.promoting.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.historyOpen()) this.historyOpen.set(false);
   }
 }

@@ -17,6 +17,7 @@ import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { ExtensionPromoComponent } from './extension-promo.component';
+import { UploaderAccessComponent } from '../desktop/uploader-access.component';
 import { HoloReadyBadgeComponent } from './holo-ready-badge.component';
 import { ShowroomService } from './showroom.service';
 import { HangarService } from '../hangar/hangar.service';
@@ -74,6 +75,7 @@ interface Lane {
     CodexCategoryIconComponent,
     CodexStatusBannerComponent,
     ExtensionPromoComponent,
+    UploaderAccessComponent,
     HoloReadyBadgeComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -104,6 +106,10 @@ interface Lane {
 
       <!-- Hangar-import extension pitch — self-hiding once installed/dismissed -->
       <sc-extension-promo />
+
+      <!-- Data Uploader access — one collapsed line, collaborator+ only, and the
+           uploader's replacement for its former top-level nav entry (eb9c6ec3). -->
+      <sc-uploader-access />
 
       <!-- Showroom billboard — the top-level entry to 3D liveries. Poster/text only,
            no live WebGL here (atmosphere-dose rule). Self-hides until coverage exists. -->
