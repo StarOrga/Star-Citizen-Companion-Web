@@ -366,7 +366,9 @@ class Hull3DExporter:
         # skin whose every joint matrix is the identity; the glTF spec makes a
         # renderer ignore a skinned node's transform, so <model-viewer> piled
         # every wing/tail/engine onto the origin — the "kaputtes 3D-Modell" of
-        # feedback d7f44a41. See glb_rigging.py for the measurement.
+        # feedback d7f44a41. Deliberately its OWN step and its own try/except:
+        # a ship whose paint .mtl will not parse must still get a correctly
+        # PLACED hull (white beats collapsed). See HULL3D.md for the numbers.
         self._unrig_hull(paint, raw_glb)
         # 3b. fold the paint's LAYERED material values back in. cgf-converter
         # ignores <MatLayers>, so every HardSurface paint panel comes out of the
@@ -395,8 +397,10 @@ class Hull3DExporter:
         collapsed hull is the exact defect this step exists for.
         """
         try:
-            from . import glb_rigging
-            glb_rigging.strip_noop_skins(raw_glb, self.log)
+            from . import glb_materials
+            gltf, binary = glb_materials.read_glb(raw_glb)
+            if glb_materials.strip_noop_skins(gltf, binary, self.log)["stripped"]:
+                glb_materials.write_glb(raw_glb, gltf, binary)
         except Exception as exc:  # noqa: BLE001 — never lose a model over rigging
             self.log("warn", f"  {paint.id}: un-rigging failed "
                              f"({type(exc).__name__}: {exc}) — hull may render collapsed")

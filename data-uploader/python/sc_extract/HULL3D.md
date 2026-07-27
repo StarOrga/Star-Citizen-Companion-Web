@@ -15,14 +15,94 @@ Data.p4k
         ▼  cgf-converter v2.0.0  -glb -embedtextures -objectdir <root> -mtl <paint>
    textured glb  (~155 MB, full-res)
         │
-        ▼  gltf-transform optimize  (weld · simplify · webp@1024 · draco)
-        ▼  over the per-skin budget? re-optimize at 512, then 256
-   web glb  (≤1 MB)  ──►  <model-viewer> in the Angular app (lazy-loaded route)
+        ▼  glb_materials repair  (no-op skin · paint tints · interior strip)
+        ▼  gltf-transform optimize  (weld · simplify · webp@512 · draco, no palette)
+        ▼  over the per-skin budget? re-optimize at 256
+   web glb  (≤0.6 MB)  ──►  <model-viewer> in the Angular app (lazy-loaded route)
 ```
 
 Plus per skin: the official store **icon** (`Data/UI/SharedAssets/PaintColorLogos/
 Paint_Cutlass_*_Icon.dds` → WebP) and the official **name/description**
 (`Data/Localization/english/global.ini`).
+
+## Post-conversion repair (`glb_materials.py`)
+
+The converter's output is *extracted* correctly but does not **render**
+correctly. Two defects, both invisible in an offline glb dump and both only
+visible in a spec-compliant viewer (three.js / `<model-viewer>`), produced the
+white shapeless blob of admin feedback d7f44a41.
+
+### 1. No-op rigid skin (geometry)
+
+cgf-converter does not export a `.cga` node hierarchy as a node hierarchy — it
+wraps it in a **skin**: every mesh node gets `"skin": 0`, every vertex is rigidly
+bound (weight 1) to the joint that *is* its own node, and that joint's inverse
+bind matrix is the exact inverse of the node's global transform. Every joint
+matrix therefore evaluates to the identity.
+
+glTF 2.0 §3.7.4 requires a renderer to **ignore the transform of a skinned mesh
+node**, so `<model-viewer>` placed every sub-object at the scene origin.
+Measured on the LIVE `DRAK_Cutlass_Black`:
+
+| | world bounding box |
+| --- | --- |
+| node hierarchy (the truth, = the in-game 35.72 × 26.15 × 10.04 m) | 26.15 × 10.04 × 35.72 m |
+| spec-compliant skinning (what the viewer drew) | 18.88 × 9.84 × 23.78 m |
+
+Wings, tail and engines pile into the fuselage; the decal planes stick out as
+detached slivers. The vertex data was never wrong — only its placement.
+`strip_noop_skins` deletes a skin **only** when all 209 joint matrices are the
+identity (i.e. it deforms nothing); a skin with a real bind pose is kept and the
+reason logged. Dropping the skin also unblocks `gltf-transform optimize`, whose
+`flatten`/`join` passes skip skinned meshes.
+
+### 2. Layered paint materials (colour)
+
+A ship's paint is not in texture slots. The painted panels use the `HardSurface`
+shader with an **empty** `<Textures/>` block; the colour lives in `<MatLayers>`
+as a layer `.mtl` plus `TintColor` / `GlossMult`:
+
+```xml
+<Material Name="Paint_Secondary" Shader="HardSurface" Diffuse="1,1,1">
+  <Textures />
+  <MatLayers>
+    <Layer Name="Primary" Path="Materials/.../drak_lf_paintedpanels_a_clean.mtl"
+           TintColor="0.012983,0.012983,0.012983" GlossMult="0.548"/>
+```
+
+cgf-converter ignores `MatLayers` and emits `baseColorFactor = [1,1,1,1]`. On the
+Cutlass those submaterials are **~42 % of the hull triangles**, so the ship came
+out pure white — and `gltf-transform optimize`'s `palette` pass then merged all
+of them into a single untextured `PaletteMaterial001`, cementing it. Hence
+`--palette false` in the optimize flags.
+
+`parse_paint_mtl` + `patch_glb_materials` fold the layer values back in:
+`baseColorFactor` = `Diffuse` × Primary `TintColor`, `roughnessFactor` =
+`1 - GlossMult` (fallback `1 - Shininess/255`), `metallicFactor` = 1 only when
+the layer library is a `*_metalpanels_*` material, alpha from `Opacity`. A
+material the converter textured correctly is never second-guessed.
+
+The pass also drops `KHR_materials_pbrSpecularGlossiness` (archived by Khronos;
+three.js removed support in r165, so `<model-viewer>` 4.x ignores it) after
+promoting its diffuse texture into `pbrMetallicRoughness`. The orphaned
+spec/gloss textures are then pruned by `optimize` — worth ~30 % of the file
+size on its own.
+
+**Known limit:** a livery whose look comes from the runtime tint-palette /
+`$TintPaletteDecal` decal system (e.g. Cutlass "Elysium") is *not* reproducible
+from the `.mtl` — its paint submaterials are byte-identical to the standard
+finish. Such liveries correctly render as the base hull; only liveries that
+differ in `TintColor`/`GlossMult`/layer library (e.g. Gold Scale, Skull and
+Crossbones) differ visually.
+
+### 3. Interior strip
+
+`drop_interior_geometry` removes primitives whose material is an interior one
+(`internal_*`, `Int_*`, `*_INT`, `*interior*`). The Showroom is an exterior
+viewer, so this geometry is never seen — but on the Cutlass it is ~26 % of the
+triangles and the majority of the texture payload (the interior POM/decal
+atlases are the largest images in the file). Set `strip_interior=False` to keep
+it.
 
 ## Why an external geometry converter?
 
@@ -46,13 +126,13 @@ python tools/fetch_tools.py          # downloads cgf-converter-2.exe to ./tools/
 python -m sc_extract.cutlass_pilot \
     --p4k "C:\...\StarCitizen\LIVE\Data.p4k" \
     --out ./out --converter ./tools/cgf-converter-2.exe \
-    --texture-size 1024 [--limit 2]
+    [--texture-size 512] [--limit 2]
 ```
 
 Output:
 ```
 out/DRAK_Cutlass_Black/
-  ├─ models/DRAK_Cutlass_Black_<skin>.glb   (~3 MB each, lazy-load these)
+  ├─ models/DRAK_Cutlass_Black_<skin>.glb   (~0.6 MB each, lazy-load these)
   ├─ icons/<skin>.webp
   └─ skins.json                             (name · desc · source · model · icon)
 ```
@@ -69,19 +149,27 @@ out/DRAK_Cutlass_Black/
 ## Cost / knobs
 
 - ~155 MB intermediate glb per skin (scratch, auto-deleted unless `--keep-work`).
-- `--texture-size` (default 1024) and `simplify_error` (0.002) trade size vs. fidelity.
-- One skin ≈ texture-extract (~2–3 min) + convert + optimize. Runs are serial.
+- `--texture-size` (default 512) and `simplify_error` (0.002) trade size vs. fidelity.
+- One skin ≈ texture-extract (~2–3 min) + convert + repair + optimize, serial.
+  Measured end-to-end on the LIVE `DRAK_Cutlass_Black` standard finish: 189 s.
 
-## Size budget (`--max-model-mb`, default 1.0)
+## Size budget (`--max-model-mb`, default 0.6)
 
-The whole livery catalog (~350 skins) has to fit the Supabase storage quota, so
-each web glb carries a **per-skin size budget**. A skin that lands over budget is
-re-optimized down a quality ladder — texture halves, `simplify_error` doubles —
-until it fits:
+The whole livery catalog has to fit the Supabase storage quota, so each web glb
+carries a **per-skin size budget**. A skin that lands over budget is re-optimized
+down a quality ladder — texture halves, `simplify_error` doubles — until it fits:
 
 ```
-1024 / 0.002  →  512 / 0.004  →  256 / 0.008   (floor: MIN_TEXTURE_SIZE)
+512 / 0.002  →  256 / 0.004   (floor: MIN_TEXTURE_SIZE)
 ```
+
+How big is "the whole catalog"? Measured against the live `codex_ships` rows of
+the current build (`payload->'skins'`), not estimated: **314 ships, 302 of them
+with at least one livery, 1729 liveries listed, 391 of those material-backed**
+— i.e. ~391 glbs is a full build. At the pre-repair 3.0 MB/skin that is ~1.2 GB,
+which cannot fit the free plan's 1 GB *total* file storage under any budget; at
+the measured post-repair ~0.6 MB it is ~235 MB. See the PR of feedback d7f44a41
+for the bucket-by-bucket figures.
 
 Most skins pass at step 0, so **only the heavy ones lose fidelity** rather than
 the whole catalog being exported at a blanket-low resolution. If even the last
