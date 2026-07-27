@@ -1282,19 +1282,25 @@ export type Database = {
       }
       verse_image_cache: {
         Row: {
+          bytes: number | null
           cached_at: string
           ext: string
           source_key: string
+          top_width: number | null
         }
         Insert: {
+          bytes?: number | null
           cached_at?: string
           ext: string
           source_key: string
+          top_width?: number | null
         }
         Update: {
+          bytes?: number | null
           cached_at?: string
           ext?: string
           source_key?: string
+          top_width?: number | null
         }
         Relationships: []
       }
