@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.55.0] - 2026-07-28
+
+### Added
+
+- **Hovering a component now shows where it sits on the 3D ship.** The loadout
+  list, the orthographic hull map and the 3D model are three views of one
+  selection: point at a component row and its marker lights up on the model,
+  point at a marker and its row lights up. The marker positions are read out of
+  the ship's own `.glb` — CryEngine's `hardpoint_*` / `helper_*` locator nodes
+  survive the export pipeline and are named exactly like the codex port names,
+  so nothing has to be re-extracted and no coordinate convention has to be
+  guessed. 96 of the Cutlass Black's 100 ports resolve to a marker; the rest are
+  abstract ports with no physical presence on the hull. Ships whose model
+  carries no locators are unchanged.
+
 ## [0.54.0] - 2026-07-27
 
 ### Changed
