@@ -850,10 +850,21 @@
       "failed": "Löschen fehlgeschlagen"
     },
     "tokens": {
-      "navLink": "Externe API",
+      "navLink": "Integrationen",
       "docsLink": "API-Dokumentation ↗",
-      "title": "Admin · Externe API",
-      "subtitle": "Bearer-Tokens für die öffentliche /v1-API ausstellen. Tokens werden EINMALIG im Klartext angezeigt — sicher im Passwort-Manager ablegen.",
+      "title": "Integrationen",
+      "subtitle": "Verbindungen zu externen Apps und Diensten deines Accounts verwalten.",
+      "sectionTitle": "API-Tokens",
+      "sectionHint": "Bearer-Tokens für die öffentliche /v1-API ausstellen. Tokens werden EINMALIG im Klartext angezeigt — sicher im Passwort-Manager ablegen.",
+      "connections": {
+        "title": "Verbindungen",
+        "comingSoon": "Demnächst",
+        "mockNote": "Vorschau: Die Kopplung mit der SC-App ist noch nicht implementiert. Der Status oben ist eine Platzhalter-Darstellung, keine bestehende Verbindung.",
+        "scApp": {
+          "name": "Star Citizen Companion App",
+          "desc": "Die Desktop-App direkt mit deinem Account verbinden, damit Uploads und Daten automatisch zugeordnet werden."
+        }
+      },
       "refresh": "Aktualisieren",
       "newToken": "Neuen Token erstellen",
       "loading": "Lade Tokens…",

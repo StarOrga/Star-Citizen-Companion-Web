@@ -65,6 +65,10 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
              and admins ever open. It now lives as the collapsible
              sc-uploader-access line on the Codex Bridge — the Codex is what it
              feeds — with /uploader still reachable behind it. -->
+        <!-- Integrations (formerly "External API") is intentionally NOT a
+             top-level nav entry either (admin feedback 85477aaa): a rarely-used
+             account-scoped page doesn't earn a permanent nav slot. It moved into
+             the profile dropdown below; /admin/api-tokens still resolves. -->
         @if (roles.isAdmin()) {
           <a
             routerLink="/admin"
@@ -72,9 +76,6 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
             [routerLinkActiveOptions]="{ exact: true }"
             class="admin-link">
             {{ 'nav.admin' | translate }}
-          </a>
-          <a routerLink="/admin/api-tokens" routerLinkActive="active" class="admin-link mobile-hidden">
-            {{ 'admin.tokens.navLink' | translate }}
           </a>
           <a routerLink="/admin/telemetry" routerLinkActive="active" class="admin-link">
             {{ 'nav.telemetry' | translate }}
@@ -116,6 +117,17 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
                 (click)="closeMenu()">
                 {{ 'nav.settings' | translate }}
               </a>
+              @if (roles.isAdmin()) {
+                <!-- Admin-gated (roleGuard('admin') on the route) — showing it to
+                     everyone would only ever hand out a redirect. -->
+                <a
+                  class="dropdown-item"
+                  role="menuitem"
+                  routerLink="/admin/api-tokens"
+                  (click)="closeMenu()">
+                  {{ 'admin.tokens.navLink' | translate }}
+                </a>
+              }
               <button
                 type="button"
                 class="dropdown-item"
@@ -379,10 +391,6 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
         padding: 2px 16px;
       }
       .nav::-webkit-scrollbar { display: none; }
-      /* Desktop-only workflows (Data Upload, External API) can't be used on a
-         phone — hide them so the mobile nav strip stays short (admin feedback
-         32cbf3ad). Routes still work via deep-link. */
-      .nav a.mobile-hidden { display: none; }
       .nav a { padding: 8px 12px; font-size: 0.72rem; white-space: nowrap; flex: 0 0 auto; }
       .actions { flex: 1; justify-content: flex-end; }
       .content { padding: 20px 16px; }

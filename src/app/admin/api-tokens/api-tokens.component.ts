@@ -36,19 +36,46 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
         <div>
           <h1>{{ 'admin.tokens.title' | translate }}</h1>
           <p class="hint">{{ 'admin.tokens.subtitle' | translate }}</p>
-          <a class="docs-link" [href]="readmeUrl" target="_blank" rel="noopener noreferrer">
-            {{ 'admin.tokens.docsLink' | translate }}
-          </a>
-        </div>
-        <div class="head-actions">
-          <button
-            class="sc-btn sc-btn-primary"
-            (click)="openCreateDialog()"
-            [disabled]="busy() || dialogOpen() || revealedToken() !== null">
-            {{ 'admin.tokens.newToken' | translate }}
-          </button>
         </div>
       </header>
+
+      <!--
+        App connections. There is NO link between this account and the desktop
+        app yet (no table, no handshake, nothing to read a status from), so this
+        block is deliberately a labelled placeholder: it shows the slot and a
+        "coming soon" pill instead of faking a green "connected" state.
+        Admin feedback 85477aaa.
+      -->
+      <section class="block">
+        <h2 class="block-title">{{ 'admin.tokens.connections.title' | translate }}</h2>
+        <div class="sc-card conn-card">
+          <div class="conn-text">
+            <span class="conn-name">{{ 'admin.tokens.connections.scApp.name' | translate }}</span>
+            <span class="conn-desc">{{ 'admin.tokens.connections.scApp.desc' | translate }}</span>
+          </div>
+          <span class="status-pill soon">{{ 'admin.tokens.connections.comingSoon' | translate }}</span>
+        </div>
+        <p class="hint mock-note">{{ 'admin.tokens.connections.mockNote' | translate }}</p>
+      </section>
+
+      <section class="block">
+        <div class="block-head">
+          <div>
+            <h2 class="block-title">{{ 'admin.tokens.sectionTitle' | translate }}</h2>
+            <p class="hint">{{ 'admin.tokens.sectionHint' | translate }}</p>
+            <a class="docs-link" [href]="readmeUrl" target="_blank" rel="noopener noreferrer">
+              {{ 'admin.tokens.docsLink' | translate }}
+            </a>
+          </div>
+          <div class="head-actions">
+            <button
+              class="sc-btn sc-btn-primary"
+              (click)="openCreateDialog()"
+              [disabled]="busy() || dialogOpen() || revealedToken() !== null">
+              {{ 'admin.tokens.newToken' | translate }}
+            </button>
+          </div>
+        </div>
 
       @if (flash(); as f) {
         <div class="flash" [class.error]="f.kind === 'error'" [class.success]="f.kind === 'success'">
@@ -105,6 +132,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
           </tbody>
         </table>
       }
+      </section>
     </section>
 
     @if (dialogOpen()) {
@@ -201,6 +229,53 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
     }
     .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 70ch; }
+
+    .block { display: flex; flex-direction: column; gap: 12px; }
+    .block-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .block-title {
+      margin: 0;
+      font-family: var(--sc-font-display);
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--sc-fg-2);
+    }
+
+    .conn-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 16px 18px;
+    }
+    .conn-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .conn-name { font-weight: 600; color: var(--sc-fg-0); }
+    .conn-desc { color: var(--sc-fg-2); font-size: 0.86rem; max-width: 62ch; }
+    .status-pill {
+      flex: 0 0 auto;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-family: var(--sc-font-display);
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    /* Neutral, not green — nothing is connected, and the pill must not read as
+       a success state at a glance. */
+    .status-pill.soon {
+      background: color-mix(in srgb, var(--sc-fg-2) 14%, transparent);
+      border: 1px dashed var(--sc-border);
+      color: var(--sc-fg-2);
+    }
+    .mock-note { font-size: 0.8rem; margin: 0; }
     .docs-link {
       display: inline-block;
       margin-top: 8px;

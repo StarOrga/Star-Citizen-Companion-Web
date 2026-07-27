@@ -197,11 +197,16 @@ export const routes: Routes = [
         loadComponent: () => import('./admin/admin.component').then((m) => m.AdminComponent),
       },
       {
+        // The page is presented as "Integrations" since admin feedback 85477aaa
+        // (API tokens are just one integration on it). The path stays as-is so
+        // existing links/bookmarks keep resolving; /admin/integrations is the
+        // name-matching alias.
         path: 'admin/api-tokens',
         canActivate: [...PRIVATE, roleGuard('admin')],
         loadComponent: () =>
           import('./admin/api-tokens/api-tokens.component').then((m) => m.ApiTokensComponent),
       },
+      { path: 'admin/integrations', pathMatch: 'full', redirectTo: 'admin/api-tokens' },
       {
         path: 'admin/telemetry',
         canActivate: [...PRIVATE, roleGuard('admin')],
