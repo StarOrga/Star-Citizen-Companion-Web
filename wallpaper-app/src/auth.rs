@@ -130,17 +130,18 @@ fn handle_connection(mut stream: TcpStream, state: &str) -> Option<Session> {
         return None;
     }
 
-    // Defence in depth on top of the CSRF state: a cross-origin form-POST
-    // navigation always carries an `Origin`, so if one is present it must be the
-    // SCC website. A missing header is NOT rejected — the state handshake is the
-    // real gate, and refusing on absence would break the flow on any browser that
-    // omits it (the data-uploader's loopback accepts it the same way).
-    if let Some(origin) = header(&head, "origin") {
-        if origin != WEB_BASE {
-            respond(&mut stream, 403, "text/html; charset=utf-8", page(false, BAD_ORIGIN).as_bytes());
-            log::line(&format!("auth: hand-off from an unexpected origin ({origin}) — rejected"));
-            return None;
-        }
+    // Defence in depth on top of the CSRF state. The single-use `state` is the
+    // real gate (the data-uploader's loopback relies on it alone); this header
+    // check only turns away a plaintext http:// attacker page, which still
+    // carries its real origin.
+    let origin = header(&head, "origin");
+    if !origin_is_acceptable(origin) {
+        respond(&mut stream, 403, "text/html; charset=utf-8", page(false, BAD_ORIGIN).as_bytes());
+        log::line(&format!(
+            "auth: hand-off from an unexpected origin ({}) — rejected",
+            origin.unwrap_or("<none>")
+        ));
+        return None;
     }
 
     let fields = parse_form(&body);
@@ -203,6 +204,25 @@ fn read_request(stream: &mut TcpStream) -> Option<(String, String)> {
 
 fn content_length(head: &str) -> Option<usize> {
     header(head, "content-length").and_then(|v| v.parse::<usize>().ok())
+}
+
+/// Whether the hand-off POST's `Origin` header is acceptable.
+///
+/// Accept when it is absent, the literal `null`, or exactly the SCC website.
+/// `null` is what Chrome actually sends for this hand-off: a top-level form-POST
+/// from the HTTPS website down to the `http://127.0.0.1` loopback is a
+/// cross-origin, secure→non-secure navigation, so under the site's
+/// `strict-origin-when-cross-origin` referrer policy the browser serializes the
+/// origin as `null` rather than leak an HTTPS origin to a plaintext endpoint —
+/// regardless of which site it is. Matching `WEB_BASE` therefore never told a
+/// legitimate hand-off apart from another HTTPS origin; both arrive as `null`.
+/// The single-use CSRF `state` is the real gate. This check still rejects a
+/// plaintext http:// attacker page, which carries its real (non-`null`) origin.
+fn origin_is_acceptable(origin: Option<&str>) -> bool {
+    match origin {
+        None => true,
+        Some(o) => o == "null" || o == WEB_BASE,
+    }
 }
 
 /// First value of `name` (case-insensitive) in a raw request head, trimmed.
@@ -399,6 +419,18 @@ mod tests {
         assert_eq!(header("POST / HTTP/1.1\r\nOrigin:  \r\n\r\n", "origin"), None);
         // A path that looks like a header must never be mistaken for one.
         assert_eq!(header("POST /origin: evil HTTP/1.1\r\nHost: x\r\n\r\n", "origin"), None);
+    }
+
+    #[test]
+    fn origin_null_is_accepted_like_an_absent_header() {
+        // Chrome sends `Origin: null` on the HTTPS→http://127.0.0.1 form-POST
+        // (secure→non-secure cross-origin navigation). This must NOT be rejected.
+        assert!(origin_is_acceptable(Some("null")));
+        assert!(origin_is_acceptable(None));
+        assert!(origin_is_acceptable(Some(WEB_BASE)));
+        // A plaintext attacker page still carries its real origin — reject it.
+        assert!(!origin_is_acceptable(Some("http://evil.example")));
+        assert!(!origin_is_acceptable(Some("https://phish.vercel.app")));
     }
 
     #[test]
