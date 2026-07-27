@@ -107,12 +107,19 @@ class HullExportConfig:
     cgf_converter: Path           # path to cgf-converter(-2).exe
     out_dir: Path                 # where web glbs + catalog land
     work_dir: Path                # scratch (mirrored Data tree, raw glbs)
-    texture_size: int = 1024
+    # 512 (not 1024) is the catalog-wide default: textures are ~70 % of a web
+    # glb, and the Supabase free plan leaves ~150 MB for the whole ship-skins
+    # bucket. See the "Storage budget" section of HULL3D.md for the arithmetic.
+    texture_size: int = 512
     simplify_error: float = 0.002
     # Per-model size budget. A skin over budget is re-optimized down the quality
     # ladder (halve textures, coarsen simplify) until it fits — so only the heavy
     # skins lose fidelity, not the whole catalog. 0 disables the budget.
-    max_model_bytes: int = 1_000_000
+    max_model_bytes: int = 600_000
+    # Drop the ship's interior geometry/textures. The Showroom is an exterior
+    # viewer; the interior is a quarter of the triangles and the bulk of the
+    # texture payload, and is never visible in the viewer.
+    strip_interior: bool = True
     on_log: LogFn = _noop
     keep_work: bool = False       # keep scratch for debugging
 
@@ -213,6 +220,13 @@ class Hull3DExporter:
         flags = ["optimize", str(in_glb.resolve()), str(out_glb.resolve()),
                  "--texture-compress", "webp", "--texture-size", str(ts),
                  "--simplify", "true", "--simplify-error", str(err),
+                 # `palette` merges materials that have no texture into one
+                 # shared palette material. The hull's paint layers are exactly
+                 # that kind of material, so with palette on, every panel colour
+                 # we just resolved from the .mtl collapsed into a single
+                 # `PaletteMaterial001` covering ~42 % of the Cutlass — the white
+                 # blob of feedback d7f44a41. Keep the materials distinct.
+                 "--palette", "false",
                  "--compress", "draco"]
         host_argv = os.environ.get("SC_GLTF_TRANSFORM_ARGV")
         if host_argv:
@@ -348,6 +362,20 @@ class Hull3DExporter:
         mtl_rel = os.path.relpath(mtl_disk, cga_disk.parent).replace("\\", "/")
         raw_glb = mirror / f"{spec.ship_id}_{paint.id}.glb"
         self._cgf_to_glb(cga_disk, objectdir, mtl_rel, raw_glb)
+        # 3a. un-rig the hull. cgf-converter wraps the .cga node hierarchy in a
+        # skin whose every joint matrix is the identity; the glTF spec makes a
+        # renderer ignore a skinned node's transform, so <model-viewer> piled
+        # every wing/tail/engine onto the origin — the "kaputtes 3D-Modell" of
+        # feedback d7f44a41. Deliberately its OWN step and its own try/except:
+        # a ship whose paint .mtl will not parse must still get a correctly
+        # PLACED hull (white beats collapsed). See HULL3D.md for the numbers.
+        self._unrig_hull(paint, raw_glb)
+        # 3b. fold the paint's LAYERED material values back in. cgf-converter
+        # ignores <MatLayers>, so every HardSurface paint panel comes out of the
+        # converter as untextured pure white — on the Cutlass that is ~42 % of
+        # the hull. glb_materials re-derives baseColor/roughness/metallic from
+        # the same .mtl the converter was handed.
+        self._apply_paint_materials(paint, raw_glb)
         # 4. optimize -> web glb (within the per-model size budget)
         web_glb = ship_out / "models" / f"{spec.ship_id}_{paint.id}.glb"
         size_bytes = self._optimize_to_budget(raw_glb, web_glb, paint.id)
@@ -360,6 +388,39 @@ class Hull3DExporter:
                 "source": paint.source, "name_verified": paint.name_verified,
                 "model": f"models/{web_glb.name}", "model_mb": round(size_mb, 2),
                 "icon": icon_rel}
+
+    def _unrig_hull(self, paint: Paint, raw_glb: Path) -> None:
+        """Drop the converter's no-op skin so the hull's parts stay in place.
+
+        Best-effort, like the material pass: a hull we cannot un-rig still ships
+        (a mis-placed model beats no model), but the failure is logged — a
+        collapsed hull is the exact defect this step exists for.
+        """
+        try:
+            from . import glb_materials
+            gltf, binary = glb_materials.read_glb(raw_glb)
+            if glb_materials.strip_noop_skins(gltf, binary, self.log)["stripped"]:
+                glb_materials.write_glb(raw_glb, gltf, binary)
+        except Exception as exc:  # noqa: BLE001 — never lose a model over rigging
+            self.log("warn", f"  {paint.id}: un-rigging failed "
+                             f"({type(exc).__name__}: {exc}) — hull may render collapsed")
+
+    def _apply_paint_materials(self, paint: Paint, raw_glb: Path) -> None:
+        """Re-colour the converted glb from the paint .mtl's <MatLayers>.
+
+        Best-effort: a ship whose .mtl we cannot parse still gets its (white)
+        model rather than no model at all — but the failure is logged loudly,
+        because a silently white hull is the exact defect this step exists for.
+        """
+        try:
+            from . import glb_materials
+            submats = glb_materials.parse_paint_mtl(self._read(paint.mtl))
+            glb_materials.patch_glb_materials(raw_glb, submats, self.log)
+            if self.cfg.strip_interior:
+                glb_materials.drop_interior_geometry(raw_glb, self.log)
+        except Exception as exc:  # noqa: BLE001 — never lose a model over colours
+            self.log("warn", f"  {paint.id}: paint-material resolve failed "
+                             f"({type(exc).__name__}: {exc}) — hull stays untinted")
 
     def _export_icon(self, paint: Paint, ship_out: Path) -> Optional[str]:
         from scdatatools.engine.textures import dds as ddsmod
