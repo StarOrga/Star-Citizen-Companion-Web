@@ -12,6 +12,8 @@ import {
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ComposerPrefsService } from '../../core/composer-prefs.service';
 import { ConsentService } from '../../core/consent.service';
+import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
+import type { FeedbackImage } from './markdown.util';
 
 /** An image queued in the composer, held as a compressed data URI until send. */
 export interface PendingImage {
@@ -58,7 +60,7 @@ const MAX_ATTACHMENTS = 10;
 @Component({
   selector: 'sc-feedback-composer',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, FeedbackAttachmentsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -109,22 +111,14 @@ const MAX_ATTACHMENTS = 10;
                 [attr.aria-label]="placeholder() | translate"
                 [rows]="compact() ? 2 : 4"></textarea>
 
-      @if (attachments().length > 0) {
-        <div class="attachments" [attr.aria-label]="'adminFeedback.compose.attachmentsLabel' | translate">
-          @for (a of attachments(); track a.id) {
-            <figure class="thumb">
-              <img [src]="a.dataUrl" [alt]="a.name" />
-              <button
-                type="button"
-                class="thumb-remove"
-                (click)="removeAttachment(a.id)"
-                [attr.aria-label]="'adminFeedback.compose.removeImage' | translate">
-                ✕
-              </button>
-            </figure>
-          }
-        </div>
-      }
+      <!-- Pending images use the very same chip row the thread renders
+           (feedback 99723afc): one 72px thumbnail size, click to enlarge,
+           from paste through to every later re-read of the message. -->
+      <sc-feedback-attachments
+        [images]="pendingImages()"
+        [removable]="true"
+        labelKey="adminFeedback.compose.attachmentsLabel"
+        (remove)="removeAt($event)" />
 
       <div class="foot">
         <span class="hint">
@@ -220,42 +214,9 @@ const MAX_ATTACHMENTS = 10;
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
     }
 
-    /* Pending-image thumbnails shown between the textarea and the send row. */
-    .attachments { display: flex; flex-wrap: wrap; gap: 8px; }
-    .thumb {
-      position: relative;
-      margin: 0;
-      width: 68px;
-      height: 68px;
-      border: 1px solid var(--sc-border);
-      border-radius: 6px;
-      overflow: hidden;
-      background: var(--sc-bg-1);
-    }
-    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .thumb-remove {
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 18px;
-      height: 18px;
-      padding: 0;
-      border: 0;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
-      font-size: 0.62rem;
-      line-height: 1;
-      cursor: pointer;
-    }
-    .thumb-remove:hover { background: var(--sc-danger); }
-    .thumb-remove:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.5);
-    }
+    /* Pending-image thumbnails sit between the textarea and the send row and
+       are rendered by sc-feedback-attachments — the same chip the thread uses,
+       so the composer carries no size of its own. */
 
     .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     .foot .hint { margin: 0; font-size: 0.76rem; color: var(--sc-fg-2); }
@@ -293,6 +254,13 @@ export class FeedbackComposerComponent implements OnInit {
   readonly draft = signal('');
   readonly draftRestored = signal(false);
   readonly attachments = signal<PendingImage[]>([]);
+  /**
+   * Queued images in the shape the shared attachment row renders: the pending
+   * data URI as source, the file name as alt (so the enlarge label names it).
+   */
+  readonly pendingImages = computed<FeedbackImage[]>(() =>
+    this.attachments().map((a) => ({ src: a.dataUrl, alt: a.name })),
+  );
   readonly dragActive = signal(false);
   readonly sending = signal(false);
   readonly errorMsg = signal<string | null>(null);
@@ -533,6 +501,12 @@ export class FeedbackComposerComponent implements OnInit {
 
   removeAttachment(id: string): void {
     this.attachments.update((list) => list.filter((a) => a.id !== id));
+  }
+
+  /** Drop the queued image behind a chip — the row reports position, not id. */
+  removeAt(index: number): void {
+    const att = this.attachments()[index];
+    if (att) this.removeAttachment(att.id);
   }
 
   /** Accept image files from any source (picker, paste, drop), compressing each. */

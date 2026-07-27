@@ -16,7 +16,7 @@ describe('FeedbackAttachmentsComponent', () => {
   let fixture: ComponentFixture<FeedbackAttachmentsComponent>;
   let cmp: FeedbackAttachmentsComponent;
 
-  async function setup(images: FeedbackImage[] = IMAGES) {
+  async function setup(images: FeedbackImage[] = IMAGES, removable = false) {
     await TestBed.configureTestingModule({
       imports: [FeedbackAttachmentsComponent],
       providers: [provideTranslateService({ fallbackLang: 'en' })],
@@ -32,12 +32,17 @@ describe('FeedbackAttachmentsComponent', () => {
         enlarge: 'Enlarge image',
         enlargeNamed: 'Enlarge image: {{name}}',
         close: 'Close image',
+        remove: 'Remove image',
+        prev: 'Previous image',
+        next: 'Next image',
+        counter: '{{i}} of {{n}}',
       },
     });
     translate.use('en');
 
     fixture = TestBed.createComponent(FeedbackAttachmentsComponent);
     fixture.componentRef.setInput('images', images);
+    fixture.componentRef.setInput('removable', removable);
     fixture.detectChanges();
     cmp = fixture.componentInstance;
     return cmp;
@@ -100,5 +105,65 @@ describe('FeedbackAttachmentsComponent', () => {
     document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     fixture.detectChanges();
     expect(lightbox()).toBeNull();
+  });
+
+  /** Several screenshots on one message read as one gallery (feedback 99723afc). */
+  describe('paging a multi-image message', () => {
+    function press(key: string) {
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+      fixture.detectChanges();
+    }
+
+    it('steps to the next/previous image and wraps at both ends', async () => {
+      await setup();
+      thumbs()[0].click();
+      fixture.detectChanges();
+      expect(lightbox()?.querySelector('.lb-count')?.textContent?.trim()).toBe('1 of 2');
+
+      press('ArrowRight');
+      expect(cmp.current()?.src).toBe('https://a.b/two.png');
+      expect(lightbox()?.querySelector('.lb-img')?.getAttribute('src')).toBe('https://a.b/two.png');
+
+      // Wraps rather than dead-ending on the last image.
+      press('ArrowRight');
+      expect(cmp.current()?.src).toBe('https://a.b/one.png');
+      press('ArrowLeft');
+      expect(cmp.current()?.src).toBe('https://a.b/two.png');
+    });
+
+    it('hides the paging controls for a single image', async () => {
+      await setup([IMAGES[0]]);
+      thumbs()[0].click();
+      fixture.detectChanges();
+      expect(lightbox()?.querySelector('.lb-nav')).toBeNull();
+    });
+  });
+
+  /**
+   * The composer renders its pending images through the same row, so an image
+   * is one 72px chip from paste to re-read (feedback 99723afc).
+   */
+  describe('removable (composer strip)', () => {
+    it('carries no remove badge by default', async () => {
+      await setup();
+      expect(fixture.nativeElement.querySelectorAll('.att-remove').length).toBe(0);
+    });
+
+    it('reports the position of the chip whose badge was pressed', async () => {
+      await setup(IMAGES, true);
+      const removed: number[] = [];
+      cmp.remove.subscribe((i: number) => removed.push(i));
+
+      const badges: HTMLButtonElement[] = Array.from(
+        fixture.nativeElement.querySelectorAll('.att-remove'),
+      );
+      expect(badges.length).toBe(2);
+      expect(badges[1].getAttribute('aria-label')).toBe('Remove image');
+
+      badges[1].click();
+      expect(removed).toEqual([1]);
+      // Removing must not enlarge the image it sits on.
+      expect(lightbox()).toBeNull();
+    });
   });
 });

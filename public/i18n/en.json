@@ -1419,7 +1419,6 @@
       "attach": "Attach image",
       "attachHint": "Add images by pasting (Ctrl+V) or dropping them here",
       "attachmentsLabel": "Attached images",
-      "removeImage": "Remove image",
       "dropHere": "Drop images here",
       "imageError": "Could not process the image.",
       "tooManyImages": "At most {{max}} images per message.",
@@ -1804,7 +1803,11 @@
     "image": "Attachment",
     "enlarge": "Enlarge image",
     "enlargeNamed": "Enlarge image: {{name}}",
-    "close": "Close image"
+    "close": "Close image",
+    "remove": "Remove image",
+    "prev": "Previous image",
+    "next": "Next image",
+    "counter": "{{i}} of {{n}}"
   },
   "appPanel": {
     "version": "Currently published version",
