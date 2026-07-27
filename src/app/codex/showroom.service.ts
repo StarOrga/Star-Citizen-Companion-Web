@@ -49,9 +49,24 @@ export class ShowroomService {
     return { entries, error: false };
   }
 
-  /** Load once into the signal (idempotent-friendly; safe to call from badges). */
+  private loadInFlight: Promise<void> | null = null;
+
+  /**
+   * Load once into the signal. Safe to call from many badge instances mounted in
+   * the same render pass: an already-loaded cache short-circuits, and concurrent
+   * callers share ONE in-flight query instead of each firing its own (the badge
+   * lane renders dozens at once). On failure the in-flight handle is cleared so a
+   * later mount can retry — without re-bursting the whole lane every time.
+   */
   async load(): Promise<void> {
-    const { entries, error } = await this.list();
-    if (!error) this._entries.set(entries);
+    if (this._entries().length > 0) return;
+    if (this.loadInFlight) return this.loadInFlight;
+    this.loadInFlight = (async () => {
+      const { entries, error } = await this.list();
+      if (!error) this._entries.set(entries);
+    })().finally(() => {
+      this.loadInFlight = null;
+    });
+    return this.loadInFlight;
   }
 }

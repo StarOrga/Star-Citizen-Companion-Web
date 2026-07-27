@@ -6,7 +6,7 @@ import { environment } from '../../environments/environment';
 
 /** Fluent mock of the supabase chain used by list(): from().select().order(). */
 function mockProvider(result: { data: unknown; error: unknown }, capture?: (c: any) => void) {
-  const calls: any = { table: '', orderCol: '' };
+  const calls: any = { table: '', orderCol: '', fromCount: 0 };
   const q: any = {
     select: () => q,
     order: (col: string) => {
@@ -16,7 +16,7 @@ function mockProvider(result: { data: unknown; error: unknown }, capture?: (c: a
   };
   capture?.(calls);
   return {
-    client: { from: (t: string) => { calls.table = t; return q; } },
+    client: { from: (t: string) => { calls.table = t; calls.fromCount++; return q; } },
   } as unknown as SupabaseClientProvider;
 }
 
@@ -82,5 +82,24 @@ describe('ShowroomService', () => {
     expect(svc.entries().length).toBe(2);
     expect(svc.modelShipIds().has('DRAK_Cutlass_Black')).toBeTrue();
     expect(svc.modelShipIds().has('NO_MODEL')).toBeFalse();
+  });
+
+  it('load() dedupes a concurrent burst and an already-loaded cache into one query', async () => {
+    let cap: any;
+    const svc = makeService({ data: [ROW], error: null }, (c) => (cap = c));
+    // Many badges mount in the same render pass → all call load() before it resolves.
+    await Promise.all([svc.load(), svc.load(), svc.load()]);
+    expect(cap.fromCount).toBe(1); // shared in-flight query, not one per caller
+    await svc.load(); // already loaded → short-circuits, no re-query
+    expect(cap.fromCount).toBe(1);
+  });
+
+  it('load() clears the in-flight handle on failure so a later call can retry', async () => {
+    let cap: any;
+    const svc = makeService({ data: null, error: { message: 'boom' } }, (c) => (cap = c));
+    await svc.load();
+    expect(svc.entries().length).toBe(0); // error swallowed, cache stays empty
+    await svc.load(); // not loaded + no in-flight → retries
+    expect(cap.fromCount).toBe(2);
   });
 });
