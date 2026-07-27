@@ -6,6 +6,7 @@ import {
   LayoutChild,
   LayoutSection,
   LayoutSlot,
+  LayoutTarget,
 } from './codex-hardpoint-layout.component';
 
 // Renders the real component, so these guard the *structure* the reference
@@ -252,14 +253,74 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(fixed?.classList).toContain('fixed');
   });
 
-  it('emits the clicked occupant so the parent can open its stat sheet', () => {
-    const seen: { slot: LayoutSlot; count: number; child: LayoutChild | null }[] = [];
-    fixture.componentInstance.inspected.subscribe((v) => seen.push(v));
+  it('opens the swap picker when a CONFIGURABLE module is clicked', () => {
+    const swaps: LayoutTarget[] = [];
+    const inspects: LayoutTarget[] = [];
+    fixture.componentInstance.swapRequested.subscribe((v) => swaps.push(v));
+    fixture.componentInstance.inspected.subscribe((v) => inspects.push(v));
     const el = render([{ section: 'weapons', slots: [PANTHER, { ...PANTHER, port: 'B' }] }]);
     (el.querySelector('button.slot-btn') as HTMLButtonElement).click();
-    expect(seen.length).toBe(1);
-    expect(seen[0].slot.className).toBe('KLWE_LaserRepeater_S3');
-    expect(seen[0].count).toBe(2); // the collapsed row stands for both mounts
-    expect(seen[0].child).toBeNull();
+    expect(inspects.length).toBe(0);
+    expect(swaps.length).toBe(1);
+    expect(swaps[0].slot.className).toBe('KLWE_LaserRepeater_S3');
+    expect(swaps[0].count).toBe(2); // the collapsed row stands for both mounts
+    expect(swaps[0].child).toBeNull();
+  });
+
+  it('falls back to the stat sheet for a block that cannot be configured', () => {
+    const swaps: LayoutTarget[] = [];
+    const inspects: LayoutTarget[] = [];
+    fixture.componentInstance.swapRequested.subscribe((v) => swaps.push(v));
+    fixture.componentInstance.inspected.subscribe((v) => inspects.push(v));
+    const thruster = slot({
+      port: 'Hardpoint Thruster',
+      className: 'T',
+      kind: 'component',
+      name: 'T',
+    });
+    const el = render([{ section: 'structure', slots: [thruster] }]);
+    (el.querySelector('button.slot-btn') as HTMLButtonElement).click();
+    expect(swaps.length).toBe(0);
+    expect(inspects.length).toBe(1);
+    // Nothing to swap here, so the row carries no side button either.
+    expect(el.querySelector('.slot-swap')).toBeNull();
+  });
+
+  it('keeps the full stat sheet reachable from a configurable row', () => {
+    const inspects: LayoutTarget[] = [];
+    fixture.componentInstance.inspected.subscribe((v) => inspects.push(v));
+    const el = render([{ section: 'weapons', slots: [PANTHER] }]);
+    (el.querySelector('.slot-swap') as HTMLButtonElement).click();
+    expect(inspects.length).toBe(1);
+    expect(inspects[0].slot.className).toBe('KLWE_LaserRepeater_S3');
+  });
+
+  it('targets the gun INSIDE a mount when its sub-slot is clicked', () => {
+    const swaps: LayoutTarget[] = [];
+    fixture.componentInstance.swapRequested.subscribe((v) => swaps.push(v));
+    const filled = {
+      ...VARIPUCK,
+      children: [
+        child({
+          port: 'Hardpoint Class 3',
+          className: 'KLWE_LaserRepeater_S3',
+          kind: 'weapon' as const,
+          name: 'CF-337 Panther Repeater',
+          size: 3,
+        }),
+      ],
+    };
+    const el = render([{ section: 'weapons', slots: [filled] }]);
+    (el.querySelector('button.kid-btn') as HTMLButtonElement).click();
+    expect(swaps.length).toBe(1);
+    expect(swaps[0].child?.className).toBe('KLWE_LaserRepeater_S3');
+  });
+
+  it('does not open a picker for a sub-slot the extract left empty', () => {
+    const swaps: LayoutTarget[] = [];
+    fixture.componentInstance.swapRequested.subscribe((v) => swaps.push(v));
+    const el = render([{ section: 'weapons', slots: [VARIPUCK] }]);
+    expect(el.querySelector('button.kid-btn')).toBeNull(); // empty seat is inert
+    expect(swaps.length).toBe(0);
   });
 });

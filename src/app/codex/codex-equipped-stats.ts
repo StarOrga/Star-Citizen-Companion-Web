@@ -353,8 +353,12 @@ export interface EquippedItem {
  * The curated headline stats for what is installed on a hardpoint, picked by
  * the occupant's type: a gun never shows a shield row, a shield never shows a
  * DPS row. Returns [] when the extract has nothing worth printing.
+ *
+ * `limit` caps how many rows come back — a hardpoint card only has room for a
+ * handful, while a comparison table wants every column the type can fill, so
+ * that surface passes `Infinity`.
  */
-export function equippedStats(item: EquippedItem): EquippedStat[] {
+export function equippedStats(item: EquippedItem, limit = MAX_STATS_PER_SLOT): EquippedStat[] {
   const { kind, payload, ammoPayload } = item;
   if (!payload || typeof payload !== 'object') return [];
   const entityKind = (payload as { entityKind?: string }).entityKind ?? kind ?? '';
@@ -368,7 +372,7 @@ export function equippedStats(item: EquippedItem): EquippedStat[] {
     // Plain items (controllers, seats, racks…) carry no performance stats.
     rows = [];
   }
-  return rows.slice(0, MAX_STATS_PER_SLOT);
+  return Number.isFinite(limit) ? rows.slice(0, limit) : rows;
 }
 
 // Type discriminators the extract fills in with a placeholder rather than
