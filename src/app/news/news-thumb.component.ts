@@ -3,6 +3,7 @@ import {
   afterNextRender, computed, effect, inject, input, linkedSignal, output,
 } from '@angular/core';
 import { NewsChannel } from './news.service';
+import { environment } from '../../environments/environment';
 
 /**
  * Emits the `<img>` element once it is decoded — including the cache-hit case the
@@ -32,6 +33,9 @@ const MIN_LANDSCAPE_RATIO = 1.2;
 const SLIDE_DWELL_MS = 5000;
 // Hard cap so a 45-image comm-link doesn't spin through everything.
 const MAX_IMAGES = 8;
+// Slot aspect ratios — must mirror the `aspect-ratio` rules on :host below.
+const SLOT_RATIO_REGULAR = 16 / 9;
+const SLOT_RATIO_FEATURED = 21 / 9;
 
 // `sizes` hints for the responsive srcset. The browser uses these (before layout)
 // to pick the smallest variant that still covers the rendered tile, so we keep them
@@ -67,6 +71,191 @@ export function rsiVariant(url: string, target: 'post' | 'cover'): string {
   return url;
 }
 
+/* ------------------------------------------------------------------ *
+ * Baked-in frame trimming
+ *
+ * Some upstream images are not full-bleed art but a subject sitting inside a
+ * wide, flat margin — a launcher/UI screenshot centred on a starfield backdrop
+ * (feedback db5eba1e), or a 4:3 YouTube thumbnail with black bars. `object-fit:
+ * cover` faithfully keeps that margin, so the tile shows a small picture
+ * floating in a dark frame and reads as "wrong proportions" even though nothing
+ * is distorted.
+ *
+ * We therefore measure the decoded image and, when it looks framed, zoom past
+ * the margin. The measurement is edge-activity based rather than colour based:
+ * the offending backdrops are gradients with faint stars, so "border pixels all
+ * share one colour" does not hold — but "the border carries no detail" does.
+ * ------------------------------------------------------------------ */
+
+/** Long edge of the downsampled probe. Big enough to keep UI edges, cheap to scan. */
+const PROBE_MAX = 128;
+/** A row/column counts as margin below this share of the reference activity. */
+const ACTIVITY_THRESHOLD = 0.12;
+/**
+ * Which quantile of the activity profile is the reference "this is content" level.
+ *
+ * Not the maximum: a letterbox bar or a screenshot border is a single razor-sharp
+ * line whose column dwarfs every other, and scaling the threshold off that peak
+ * would declare ordinary detail to be margin and eat into the subject. A high
+ * quantile tracks the body of the distribution instead, so the detector errs
+ * toward trimming too little rather than cropping content.
+ */
+const ACTIVITY_QUANTILE = 0.9;
+/** Opposite margins must match within this to be read as a deliberate frame. */
+const SYMMETRY_TOLERANCE = 0.05;
+/** Margins thinner than this are measurement noise, not a frame. */
+const MIN_PAD = 0.03;
+/** Never claim more than this per side — beyond it we are cropping content. */
+const MAX_PAD = 0.3;
+/** Below this the zoom is not worth the resolution it costs. */
+const MIN_ZOOM = 1.03;
+/** Upper bound so a mis-measure can never blow the thumbnail up into mush. */
+const MAX_ZOOM = 2.2;
+
+/** Per-side margin shares of an image, in the range 0…1. */
+export interface FramePads { left: number; right: number; top: number; bottom: number; }
+/** Symmetric margin shares actually trimmed, per axis. */
+export interface FrameInset { x: number; y: number; }
+
+/** Activity level at `ACTIVITY_QUANTILE` of a per-row/per-column profile. */
+function activityReference(profile: Float32Array): number {
+  const sorted = profile.slice().sort();
+  const i = Math.round((sorted.length - 1) * ACTIVITY_QUANTILE);
+  return sorted[i];
+}
+
+/**
+ * Per-side share of the image that carries no detail.
+ *
+ * Returns `null` when the pixels cannot be read — a cross-origin image without
+ * CORS taints the canvas, which is the expected outcome for hosts we do not
+ * allowlist. Callers treat that as "no trim".
+ */
+export function detectFramePads(img: HTMLImageElement): FramePads | null {
+  const nw = img.naturalWidth, nh = img.naturalHeight;
+  if (!nw || !nh || typeof document === 'undefined') return null;
+
+  const scale = Math.min(1, PROBE_MAX / Math.max(nw, nh));
+  const w = Math.max(8, Math.round(nw * scale));
+  const h = Math.max(8, Math.round(nh * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  let px: Uint8ClampedArray;
+  try {
+    ctx.drawImage(img, 0, 0, w, h);
+    px = ctx.getImageData(0, 0, w, h).data;
+  } catch {
+    return null; // tainted canvas — no pixel access, so no trim
+  }
+
+  // Luminance, then a cheap gradient magnitude per pixel.
+  const lum = new Float32Array(w * h);
+  for (let i = 0, p = 0; p < lum.length; i += 4, p++) {
+    lum[p] = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+  }
+  const cols = new Float32Array(w), rows = new Float32Array(h);
+  for (let y = 1; y < h; y++) {
+    for (let x = 1; x < w; x++) {
+      const g = Math.abs(lum[y * w + x] - lum[y * w + x - 1])
+              + Math.abs(lum[y * w + x] - lum[(y - 1) * w + x]);
+      cols[x] += g / h;
+      rows[y] += g / w;
+    }
+  }
+
+  const colCut = activityReference(cols) * ACTIVITY_THRESHOLD;
+  const rowCut = activityReference(rows) * ACTIVITY_THRESHOLD;
+  let left = 0; while (left < w && cols[left] < colCut) left++;
+  if (left === w) return null; // flat everywhere — nothing to measure
+  let right = w - 1; while (right > left && cols[right] < colCut) right--;
+  let top = 0; while (top < h && rows[top] < rowCut) top++;
+  let bottom = h - 1; while (bottom > top && rows[bottom] < rowCut) bottom--;
+
+  return { left: left / w, right: (w - 1 - right) / w, top: top / h, bottom: (h - 1 - bottom) / h };
+}
+
+/**
+ * Reduce per-side margins to the symmetric inset we dare to crop.
+ *
+ * A deliberate frame pads both sides of an axis equally; a photo that merely
+ * opens on empty sky pads one side only. Requiring symmetry is what keeps us
+ * from eating the sky out of a landscape render. The narrower of the two sides
+ * wins, so we never cut into the subject.
+ */
+export function frameInset(pads: FramePads): FrameInset {
+  const axis = (a: number, b: number): number => {
+    if (Math.abs(a - b) > SYMMETRY_TOLERANCE) return 0;
+    const pad = Math.min(a, b);
+    return pad < MIN_PAD ? 0 : Math.min(pad, MAX_PAD);
+  };
+  return { x: axis(pads.left, pads.right), y: axis(pads.top, pads.bottom) };
+}
+
+/**
+ * Scale factor that makes the framed subject fill a `slotRatio` tile.
+ *
+ * `object-fit: cover` already picks the largest `slotRatio` window of the whole
+ * image; we want the largest one that only covers the subject. Both windows
+ * share the slot ratio, so their width quotient is the zoom — and the image's
+ * pixel width cancels out, leaving pure ratios.
+ *
+ * Portrait and near-square sources are excluded on purpose. Measured against the
+ * live feed, a 743×1050 Spectrum poster reads a real 11% side margin — but width
+ * is the binding axis in a landscape slot, so trimming it costs ~28% of the
+ * height that `cover` had left. Those images are already the compromise case
+ * (that is what the slideshow exists for); spending more of them buys nothing.
+ */
+export function frameZoom(inset: FrameInset, imageRatio: number, slotRatio: number): number {
+  const fw = 1 - 2 * inset.x, fh = 1 - 2 * inset.y;
+  if (!(imageRatio >= MIN_LANDSCAPE_RATIO) || !(slotRatio > 0) || fw <= 0 || fh <= 0) return 1;
+  // Width of the cover window over the full image, in units of the image width.
+  const full = imageRatio >= slotRatio ? slotRatio / imageRatio : 1;
+  // Same, but only covering the subject rectangle.
+  const subjectRatio = imageRatio * fw / fh;
+  const subject = subjectRatio >= slotRatio ? fh * slotRatio / imageRatio : fw;
+  const zoom = full / subject;
+  if (!Number.isFinite(zoom) || zoom < MIN_ZOOM) return 1;
+  return Math.min(zoom, MAX_ZOOM);
+}
+
+/**
+ * Hosts we may request with `crossorigin="anonymous"`.
+ *
+ * Reading pixels needs a CORS-clean image, and asking for CORS from a host that
+ * does not answer with `Access-Control-Allow-Origin` costs a full extra round
+ * trip (failed load → retry without the attribute). So this list is exact hosts,
+ * NOT a domain suffix — each one was verified to answer `ACAO: *`:
+ *  - our own `news-images` bucket, which serves the majority of thumbnails once
+ *    `fetch-verse-news` has mirrored them (it caps at 16 downloads per run, so
+ *    raw upstream urls still reach the client while the cache warms),
+ *  - `media.robertsspaceindustries.com` — the comm-link / patch media CDN,
+ *  - `theverse.robertsspaceindustries.com` — Spectrum's upload host, which is
+ *    where the launcher release-note screenshots from feedback db5eba1e live.
+ *
+ * The apex `robertsspaceindustries.com` (the signed `/i/<sha1>/…` proxy) sends
+ * NO ACAO header, which is exactly why a suffix match would be wrong here.
+ * Anything unlisted loads as before, keeps a tainted canvas, and gets no trim.
+ */
+const PIXEL_READABLE_HOSTS = new Set([
+  'media.robertsspaceindustries.com',
+  'theverse.robertsspaceindustries.com',
+]);
+
+export function isPixelReadable(url: string): boolean {
+  try {
+    const host = new URL(url, typeof location !== 'undefined' ? location.href : undefined).hostname;
+    return host === new URL(environment.supabase.url).hostname
+      || PIXEL_READABLE_HOSTS.has(host);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Thumbnail for a news card.
  *
@@ -97,7 +286,9 @@ export function rsiVariant(url: string, target: 'post' | 'cover'): string {
       @for (url of display(); track url; let i = $index) {
         <img class="layer" [class.show]="i === active() && isDecoded(url)"
              [srcset]="srcsetFor(url)" [src]="defaultSrcFor(url)" [sizes]="sizes()"
+             [style.--sc-thumb-zoom]="zoomFor(url)"
              alt="" decoding="async"
+             [attr.crossorigin]="crossOriginFor(url)"
              [attr.loading]="i === 0 ? 'eager' : 'lazy'"
              [attr.fetchpriority]="i === 0 ? 'high' : null"
              scImgReady (ready)="onReady(url, $event)"
@@ -148,11 +339,15 @@ export function rsiVariant(url: string, target: 'post' | 'cover'): string {
       width: 100%; height: 100%;
       object-fit: cover; object-position: center;
       opacity: 0; filter: blur(8px);
+      /* --sc-thumb-zoom is 1 unless the image was measured as a framed subject
+         (see detectFramePads) — then it scales past the baked-in margin. The
+         crop stays centred and uniform, so the picture is never distorted. */
+      transform: scale(var(--sc-thumb-zoom, 1));
       transition: opacity 0.6s ease, filter 0.6s ease, transform 0.4s ease;
     }
     /* Blur-up reveal: the layer fades in and sharpens the moment it decodes. */
     .layer.show { opacity: 1; filter: blur(0); }
-    :host-context(.card:hover) .layer.show { transform: scale(1.04); }
+    :host-context(.card:hover) .layer.show { transform: scale(calc(var(--sc-thumb-zoom, 1) * 1.04)); }
 
     .ch-pill {
       position: absolute; top: 8px; left: 8px; z-index: 2;
@@ -223,6 +418,22 @@ export class NewsThumbComponent implements OnDestroy {
   // Urls whose image has decoded at least once. Resets when the image set changes,
   // so a fresh card shows the shimmer again instead of a stale "loaded" state.
   private readonly decoded = linkedSignal<string, Set<string>>({
+    source: this.imagesKey,
+    computation: () => new Set<string>(),
+  });
+
+  // Measured symmetric frame insets, keyed by url. Only the inset is stored, not
+  // the zoom, so the same measurement serves both slot ratios (a card tile and
+  // the detail overlay render the same url at different aspect ratios).
+  private readonly insets = linkedSignal<string, Record<string, FrameInset>>({
+    source: this.imagesKey,
+    computation: () => ({}),
+  });
+
+  // Urls whose CORS request failed. Requesting pixel access is a nice-to-have, so
+  // a host that unexpectedly withholds `Access-Control-Allow-Origin` must not cost
+  // us the image: we drop the crossorigin attribute and let the browser refetch.
+  private readonly noCors = linkedSignal<string, Set<string>>({
     source: this.imagesKey,
     computation: () => new Set<string>(),
   });
@@ -308,6 +519,22 @@ export class NewsThumbComponent implements OnDestroy {
     return this.decoded().has(url);
   }
 
+  /** `crossorigin` attribute value, or null to load the image the plain way. */
+  crossOriginFor(url: string): 'anonymous' | null {
+    return isPixelReadable(url) && !this.noCors().has(url) ? 'anonymous' : null;
+  }
+
+  /**
+   * CSS zoom that pushes a baked-in frame out of the tile. `1` for the common
+   * full-bleed image, so untouched thumbnails render byte-for-byte as before.
+   */
+  zoomFor(url: string): string {
+    const inset = this.insets()[url];
+    const ratio = this.ratios()[url];
+    if (!inset || !ratio) return '1';
+    return String(frameZoom(inset, ratio, this.featured() ? SLOT_RATIO_FEATURED : SLOT_RATIO_REGULAR));
+  }
+
   /** Fired by both the native `load` event and the cache-hit recovery directive. */
   onReady(url: string, img: HTMLImageElement): void {
     this.decoded.update((s) => {
@@ -319,15 +546,34 @@ export class NewsThumbComponent implements OnDestroy {
     if (!img.naturalWidth || !img.naturalHeight) return;
     const ratio = img.naturalWidth / img.naturalHeight;
     this.ratios.update((m) => (m[url] === ratio ? m : { ...m, [url]: ratio }));
+    this.measureFrame(url, img);
   }
 
   onError(url: string): void {
+    // First failure on a CORS-requested image: retry it without the attribute
+    // before giving up, so a missing ACAO header costs the trim, not the tile.
+    if (this.crossOriginFor(url) === 'anonymous') {
+      this.noCors.update((s) => {
+        const next = new Set(s);
+        next.add(url);
+        return next;
+      });
+      return;
+    }
     this.errored.update((s) => {
       if (s.has(url)) return s;
       const next = new Set(s);
       next.add(url);
       return next;
     });
+  }
+
+  /** Measure the frame once per url; a `null` reading is recorded as "no frame". */
+  private measureFrame(url: string, img: HTMLImageElement): void {
+    if (url in this.insets()) return;
+    const pads = detectFramePads(img);
+    const inset = pads ? frameInset(pads) : { x: 0, y: 0 };
+    this.insets.update((m) => (url in m ? m : { ...m, [url]: inset }));
   }
 
   ngOnDestroy(): void { this.stop(); }
