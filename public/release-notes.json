@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.52.0",
+  "current": "0.53.0",
   "releases": [
+    {
+      "version": "0.53.0",
+      "date": "2026-07-27",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex Showroom — 3D ship liveries are now a first-class destination.",
+              "text": "A new public gallery at /codex/showroom surfaces the interactive 3D liveries datamined from the current game build: a spotlight for the newest covered ship plus a grid of every ship that has liveries, each linking into its existing ship detail (where the 3D viewer already lives). The Codex Bridge gains a self-hiding billboard and a nav link into the Showroom, and a \"Holo-Ready\" badge now marks ships that have interactive 3D liveries on their cards. Everything is derived at read time from a new ship_skins_index view — the livery and ship counts are dynamic and track whatever the data-uploader has ingested for the current build, so the Showroom stays version-accurate patch over patch with no manual seeding. Discovery-only surface: no multi-MB .glb and no 3D library load on the Showroom route itself. (P1 of the Showroom rethink; viewer elevation, photo/share mode, and uploader-side quality follow in later phases.) _Note: the deep-knowledge supabase.md schema doc does not yet enumerate the ship_skins / ship-skins / ship_skins_index layer (pre-existing gap); tracked for a docs pass._"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.52.0",
       "date": "2026-07-27",
