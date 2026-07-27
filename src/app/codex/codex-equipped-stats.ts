@@ -476,6 +476,12 @@ export interface GroupableSlot {
   className: string | null;
   size: number | null;
   grade: string | null;
+  /**
+   * Extra identity beyond the installed class — set it when two hardpoints can
+   * hold the SAME item and still differ (e.g. two identical gimbal mounts with
+   * different guns inside). Slots that differ here never collapse into one row.
+   */
+  variantKey?: string | null;
 }
 
 /** A run of hardpoints holding the exact same thing, collapsed to one row. */
@@ -500,7 +506,7 @@ export function groupIdenticalSlots<T extends GroupableSlot>(slots: T[]): Groupe
   const out: GroupedSlot<T>[] = [];
   const index = new Map<string, GroupedSlot<T>>();
   for (const slot of slots) {
-    const key = `${slot.className ?? ' empty'}|${slot.size ?? ''}|${slot.grade ?? ''}`;
+    const key = `${slot.className ?? ' empty'}|${slot.size ?? ''}|${slot.grade ?? ''}|${slot.variantKey ?? ''}`;
     const hit = index.get(key);
     if (hit) {
       hit.count += 1;

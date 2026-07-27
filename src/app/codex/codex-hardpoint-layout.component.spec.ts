@@ -3,7 +3,8 @@ import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import {
   CodexHardpointLayoutComponent,
-  LayoutGroup,
+  LayoutChild,
+  LayoutSection,
   LayoutSlot,
 } from './codex-hardpoint-layout.component';
 
@@ -21,6 +22,18 @@ function slot(over: Partial<LayoutSlot> & { port: string }): LayoutSlot {
     size: null,
     grade: null,
     manufacturerCode: null,
+    ...over,
+  };
+}
+
+function child(over: Partial<LayoutChild> & { port: string }): LayoutChild {
+  return {
+    typeLabel: null,
+    size: null,
+    className: null,
+    kind: null,
+    name: null,
+    count: 1,
     ...over,
   };
 }
@@ -43,11 +56,25 @@ const PANTHER = slot({
   ],
 });
 
+// A gimbal mount with the gun seat it exposes — the pairing the admin asked
+// for ("3x S3 VariPuck … > 3x S3 CF-337 Panther Repeater").
+const VARIPUCK = slot({
+  port: 'Hardpoint Weapon Wing Left',
+  className: 'Mount_Gimbal_S3',
+  kind: 'weapon',
+  name: 'VariPuck S3 Gimbal Mount',
+  size: 3,
+  grade: 'A',
+  manufacturerCode: 'FFSY',
+  typeLabel: 'Gun Turret',
+  children: [child({ port: 'Hardpoint Class 3', typeLabel: 'Weapon Gun', size: 3 })],
+});
+
 describe('CodexHardpointLayoutComponent', () => {
   let fixture: ComponentFixture<CodexHardpointLayoutComponent>;
 
-  function render(groups: LayoutGroup[]): HTMLElement {
-    fixture.componentRef.setInput('groups', groups);
+  function render(sections: LayoutSection[]): HTMLElement {
+    fixture.componentRef.setInput('sections', sections);
     fixture.detectChanges();
     return fixture.nativeElement as HTMLElement;
   }
@@ -61,20 +88,20 @@ describe('CodexHardpointLayoutComponent', () => {
   });
 
   it('leads with the mounted weapon, not with the port name', () => {
-    const el = render([{ category: 'weapons', slots: [PANTHER] }]);
+    const el = render([{ section: 'weapons', slots: [PANTHER] }]);
     expect(el.querySelector('.slot-item')?.textContent?.trim()).toBe('CF-337 Panther Repeater');
     expect(el.querySelector('.size-tag')?.textContent?.trim()).toBe('S3');
     expect(el.querySelector('.slot-port')?.textContent?.trim()).toBe('Hardpoint Weapon Top Left');
   });
 
   it('shows who made it and what it is on one meta line', () => {
-    const el = render([{ category: 'weapons', slots: [PANTHER] }]);
+    const el = render([{ section: 'weapons', slots: [PANTHER] }]);
     expect(el.querySelector('.meta-txt')?.textContent?.trim()).toBe('KLA · Gun');
     expect(el.querySelector('.tag.dmg')).toBeTruthy(); // the ENERGY badge
   });
 
   it('renders every curated stat with its unit', () => {
-    const el = render([{ category: 'weapons', slots: [PANTHER] }]);
+    const el = render([{ section: 'weapons', slots: [PANTHER] }]);
     const values = Array.from(el.querySelectorAll('.slot-stats dd')).map((d) =>
       d.textContent?.trim(),
     );
@@ -86,7 +113,7 @@ describe('CodexHardpointLayoutComponent', () => {
   it('collapses identical mounts into one "3× S3" row without faking a position', () => {
     const el = render([
       {
-        category: 'weapons',
+        section: 'weapons',
         slots: [
           { ...PANTHER, port: 'Hardpoint Weapon Top Left' },
           { ...PANTHER, port: 'Hardpoint Weapon Top Right' },
@@ -103,24 +130,55 @@ describe('CodexHardpointLayoutComponent', () => {
 
   it('omits the meta line entirely when the extract identifies nothing', () => {
     const bare = slot({ port: 'Hardpoint X', className: 'X', kind: 'item', name: 'X' });
-    const el = render([{ category: 'systems', slots: [bare] }]);
+    const el = render([{ section: 'structure', slots: [bare] }]);
     expect(el.querySelector('.meta-txt')).toBeNull();
     expect(el.querySelector('.tag')).toBeNull();
     expect(el.querySelector('.slot-item')?.textContent?.trim()).toBe('X');
   });
 
   it('marks a stock-empty mount as empty instead of inventing an occupant', () => {
-    const el = render([{ category: 'weapons', slots: [slot({ port: 'Hardpoint Weapon Bottom' })] }]);
+    const el = render([{ section: 'weapons', slots: [slot({ port: 'Hardpoint Weapon Bottom' })] }]);
     expect(el.querySelector('.slot')?.classList).toContain('empty');
     expect(el.querySelector('.slot-empty')).toBeTruthy();
     expect(el.querySelector('.slot-item')).toBeNull();
+  });
+
+  it('badges an empty mount with the size the HARDPOINT accepts', () => {
+    const el = render([
+      { section: 'weapons', slots: [slot({ port: 'Hardpoint Gun Nose', portSize: 4 })] },
+    ]);
+    expect(el.querySelector('.size-tag')?.textContent?.trim()).toBe('S4');
+    expect(el.querySelector('.size-tag')?.classList).toContain('muted');
+  });
+
+  it('chains the mount to the weapon seat inside it, counted per mount', () => {
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [
+          { ...VARIPUCK, port: 'Hardpoint Weapon Wing Left' },
+          { ...VARIPUCK, port: 'Hardpoint Weapon Wing Right' },
+          { ...VARIPUCK, port: 'Hardpoint Weapon Nose' },
+        ],
+      },
+    ]);
+    // One collapsed row: the mount headline, then its sub-slot beside it.
+    expect(el.querySelectorAll('.slot').length).toBe(1);
+    expect(el.querySelector('.slot-item')?.textContent?.trim()).toBe('VariPuck S3 Gimbal Mount');
+    const kid = el.querySelector('.kid');
+    expect(kid).toBeTruthy();
+    // 3 mounts × 1 gun seat each — the "3× S3" the admin asked to read.
+    expect(kid?.querySelector('.size-tag')?.textContent?.trim()).toBe('3× S3');
+    // Nothing resolvable in the seat → an explicit placeholder, not a dropped row.
+    expect(kid?.querySelector('.kid-empty')?.textContent?.trim()).toBe('—');
+    expect(kid?.querySelector('.meta-txt')?.textContent?.trim()).toBe('Weapon Gun');
   });
 
   it('marks a row as locatable only when its port has a hull position', () => {
     const located = { ...PANTHER, rawPort: 'hardpoint_weapon_top_left' };
     const unknown = slot({ port: 'Hardpoint Weapon Bottom', rawPort: 'hardpoint_weapon_bottom' });
     fixture.componentRef.setInput('locatablePorts', ['hardpoint_weapon_top_left']);
-    const el = render([{ category: 'weapons', slots: [located, unknown] }]);
+    const el = render([{ section: 'weapons', slots: [located, unknown] }]);
     const rows = Array.from(el.querySelectorAll('.slot'));
     expect(rows[0].classList).toContain('located');
     expect(rows[1].classList).not.toContain('located');
@@ -131,7 +189,7 @@ describe('CodexHardpointLayoutComponent', () => {
     fixture.componentInstance.hovered.subscribe((v) => seen.push(v));
     const el = render([
       {
-        category: 'weapons',
+        section: 'weapons',
         slots: [
           { ...PANTHER, rawPort: 'hardpoint_weapon_top_left' },
           { ...PANTHER, rawPort: 'hardpoint_weapon_top_right' },
@@ -148,7 +206,7 @@ describe('CodexHardpointLayoutComponent', () => {
   it('emits null for a row whose port name the extract never carried', () => {
     const seen: (string[] | null)[] = [];
     fixture.componentInstance.hovered.subscribe((v) => seen.push(v));
-    const el = render([{ category: 'weapons', slots: [PANTHER] }]); // no rawPort
+    const el = render([{ section: 'weapons', slots: [PANTHER] }]); // no rawPort
     (el.querySelector('.slot') as HTMLElement).dispatchEvent(new MouseEvent('mouseenter'));
     expect(seen).toEqual([null]);
   });
@@ -157,7 +215,7 @@ describe('CodexHardpointLayoutComponent', () => {
     fixture.componentRef.setInput('activePorts', ['hardpoint_weapon_top_left']);
     const el = render([
       {
-        category: 'weapons',
+        section: 'weapons',
         slots: [
           { ...PANTHER, rawPort: 'hardpoint_weapon_top_left' },
           slot({ port: 'Hardpoint Weapon Bottom', rawPort: 'hardpoint_weapon_bottom' }),
@@ -172,11 +230,36 @@ describe('CodexHardpointLayoutComponent', () => {
   it('says so when a real gun has no numbers in this extract', () => {
     const el = render([
       {
-        category: 'weapons',
+        section: 'weapons',
         slots: [{ ...PANTHER, stats: [], statsMissing: true }],
       },
     ]);
     expect(el.querySelector('.slot-note')).toBeTruthy();
     expect(el.querySelector('.slot-stats')).toBeNull();
+  });
+
+  it('orders the configurable blocks first and de-emphasises the fixed rest', () => {
+    const el = render([
+      { section: 'structure', slots: [slot({ port: 'Hardpoint Thruster', className: 'T', kind: 'component', name: 'T' })] },
+      { section: 'lifeSupport', slots: [slot({ port: 'Hardpoint Life Support', className: 'L', kind: 'item', name: 'L' })] },
+      { section: 'weapons', slots: [PANTHER] },
+    ]);
+    const order = Array.from(el.querySelectorAll('.mod-sec')).map((s) =>
+      s.getAttribute('data-sec'),
+    );
+    expect(order).toEqual(['weapons', 'lifeSupport', 'structure']);
+    const fixed = el.querySelector('.mod-sec[data-sec="structure"]');
+    expect(fixed?.classList).toContain('fixed');
+  });
+
+  it('emits the clicked occupant so the parent can open its stat sheet', () => {
+    const seen: { slot: LayoutSlot; count: number; child: LayoutChild | null }[] = [];
+    fixture.componentInstance.inspected.subscribe((v) => seen.push(v));
+    const el = render([{ section: 'weapons', slots: [PANTHER, { ...PANTHER, port: 'B' }] }]);
+    (el.querySelector('button.slot-btn') as HTMLButtonElement).click();
+    expect(seen.length).toBe(1);
+    expect(seen[0].slot.className).toBe('KLWE_LaserRepeater_S3');
+    expect(seen[0].count).toBe(2); // the collapsed row stands for both mounts
+    expect(seen[0].child).toBeNull();
   });
 });
