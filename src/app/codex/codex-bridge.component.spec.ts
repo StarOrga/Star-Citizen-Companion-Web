@@ -7,6 +7,7 @@ import { CodexListRow, CodexService } from './codex.service';
 import { RoleService } from '../auth/role.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShip } from '../hangar/hangar.types';
+import { ShowroomService } from './showroom.service';
 
 function shipRow(over: Partial<CodexListRow> & { classNameSlug: string }): CodexListRow {
   return {
@@ -103,6 +104,17 @@ describe('CodexBridgeComponent', () => {
         // Stub RoleService so the embedded status banner never constructs the
         // real one (which pulls Auth/Supabase and hangs whenStable in tests).
         { provide: RoleService, useValue: { isCollaborator: signal(false) } },
+        // Same reason: the Showroom billboard + Holo-Ready badge inject the real
+        // ShowroomService, whose load() hits Supabase and hangs whenStable. Stub
+        // it empty — no liveries ⇒ billboard hidden, badges render nothing.
+        {
+          provide: ShowroomService,
+          useValue: {
+            entries: signal([]),
+            modelShipIds: signal(new Set<string>()),
+            load: jasmine.createSpy('load').and.resolveTo(undefined),
+          },
+        },
       ],
     }).compileComponents();
 
