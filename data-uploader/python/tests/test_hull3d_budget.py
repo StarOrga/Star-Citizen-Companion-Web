@@ -22,7 +22,14 @@ class _FakeP4K:
 
 
 def _exporter(tmp_path: Path, sizes: List[int], **cfg_kw) -> tuple:
-    """Exporter whose _optimize writes glbs of the given sizes, one per call."""
+    """Exporter whose _optimize writes glbs of the given sizes, one per call.
+
+    The ladder tests drive an explicit 1024 / 1 MB quality so they describe the
+    *mechanism*, not whatever the shipped catalog-wide defaults happen to be —
+    those are pinned separately in `test_shipped_defaults_fit_the_storage_budget`.
+    """
+    cfg_kw.setdefault("texture_size", 1024)
+    cfg_kw.setdefault("max_model_bytes", 1_000_000)
     cfg = HullExportConfig(
         cgf_converter=tmp_path / "cgf-converter.exe",
         out_dir=tmp_path / "out",
@@ -81,3 +88,23 @@ def test_zero_budget_disables_the_retry_ladder(tmp_path: Path) -> None:
     size = ex._optimize_to_budget(tmp_path / "raw.glb", tmp_path / "web.glb", "pirate")
     assert size == 9_000_000
     assert calls == [(1024, 0.002)]
+
+
+def test_shipped_defaults_fit_the_storage_budget(tmp_path: Path) -> None:
+    """The catalog-wide defaults are a storage decision, not a taste one.
+
+    The Supabase free plan leaves ~150 MB for the ship-skins bucket; a
+    whole-catalog build is ~800 liveries, so the per-skin ceiling has to stay
+    well under 200 kB…600 kB depending on how many ships get built. Pin the
+    defaults so a future tweak to `texture_size` has to argue with this test.
+    """
+    cfg = HullExportConfig(
+        cgf_converter=tmp_path / "cgf-converter.exe",
+        out_dir=tmp_path / "out",
+        work_dir=tmp_path / "work",
+    )
+    assert cfg.texture_size == 512
+    assert cfg.max_model_bytes == 600_000
+    assert cfg.strip_interior is True
+    ex = Hull3DExporter(_FakeP4K(), cfg)
+    assert ex.quality_ladder() == [(512, 0.002), (256, 0.004)]
