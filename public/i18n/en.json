@@ -383,6 +383,23 @@
       "nose": "Nose",
       "readoutIdle": "No hardpoint selected"
     },
+    "showroom": {
+      "title": "Showroom",
+      "subtitle": "Inspect real ship liveries in interactive 3D — datamined hull and textures from the current build.",
+      "count": "{{liveries}} liveries in 3D across {{ships}} ship(s)",
+      "spotlight": "Now in the Showroom",
+      "gallery": "All liveries",
+      "liveryCount": "{{count}} liveries",
+      "billboard": {
+        "eyebrow": "New",
+        "title": "Rotate real ship liveries in 3D — {{count}} ready",
+        "cta": "Enter the Showroom"
+      },
+      "empty": {
+        "title": "No 3D liveries yet",
+        "body": "3D liveries are extracted per game build and appear here as they land."
+      }
+    },
     "skins": {
       "title": "Liveries",
       "source": "From Data.p4k · real hull + real textures",
