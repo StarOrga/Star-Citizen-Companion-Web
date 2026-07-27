@@ -1307,7 +1307,8 @@
       "routine": "Routine",
       "routineBadge": "Auto",
       "reply": "Reply",
-      "replyPlaceholder": "Write a reply… (Markdown supported)"
+      "replyPlaceholder": "Write a reply… (Markdown supported)",
+      "reopenHint": "Replying reopens this archived topic — it goes back to ToDo and the routine picks it up again."
     },
     "compose": {
       "placeholder": "What could be better? Markdown supported.",

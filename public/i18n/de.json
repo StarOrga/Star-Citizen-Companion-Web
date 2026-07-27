@@ -1307,7 +1307,8 @@
       "routine": "Routine",
       "routineBadge": "Auto",
       "reply": "Antworten",
-      "replyPlaceholder": "Antwort schreiben… (Markdown möglich)"
+      "replyPlaceholder": "Antwort schreiben… (Markdown möglich)",
+      "reopenHint": "Eine Antwort öffnet dieses archivierte Thema wieder — es geht zurück auf ToDo und die Routine nimmt es erneut auf."
     },
     "compose": {
       "placeholder": "Was könnte besser sein? Markdown möglich.",
