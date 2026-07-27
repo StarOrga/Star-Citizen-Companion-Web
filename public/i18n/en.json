@@ -372,6 +372,17 @@
       "systems": "Systems",
       "other": "Other"
     },
+    "hardpointMap": {
+      "title": "Position on the hull",
+      "hint": "Point at a hardpoint below — the marker shows where it sits on the ship.",
+      "approximate": "extent approximated",
+      "viewTop": "Top view",
+      "viewSide": "Side view (starboard)",
+      "viewTopAria": "Top view of the hull with {{count}} hardpoint markers",
+      "viewSideAria": "Side view of the hull with {{count}} hardpoint markers",
+      "nose": "Nose",
+      "readoutIdle": "No hardpoint selected"
+    },
     "skins": {
       "title": "Liveries",
       "source": "From Data.p4k · real hull + real textures",
@@ -681,6 +692,15 @@
     "language": {
       "title": "Language",
       "label": "Language"
+    },
+    "composer": {
+      "title": "Input",
+      "hint": "Applies to every message field — new topic, thread reply, and the answer box in the processing mode.",
+      "sendOnEnter": {
+        "label": "Enter sends",
+        "descOn": "Enter sends the message, Shift+Enter inserts a new line. Ctrl/Cmd+Enter sends as well.",
+        "descOff": "Enter inserts a new line. Sending happens only with Ctrl/Cmd+Enter or the send button."
+      }
     },
     "danger": {
       "title": "Delete account",
@@ -1204,11 +1224,13 @@
     "setStatus": "Change status",
     "loadMore": "Load {{count}} more",
     "toggleDetails": "Expand or collapse this entry",
+    "topicNumber": "Topic #{{n}} — a fixed number you can refer to",
     "showMore": "more",
     "showLess": "Show less",
     "filter": {
       "label": "Filter by author",
-      "all": "All"
+      "all": "All",
+      "toggle": "Filter"
     },
     "statusFilter": {
       "label": "Filter by status",
@@ -1216,11 +1238,12 @@
     },
     "search": {
       "label": "Search feedback",
-      "placeholder": "Search … topic and whole thread",
+      "placeholder": "Search … topic, whole thread or #number",
       "clear": "Clear search",
       "results": "{{count}} results · by relevance",
       "empty": "No results for “{{query}}”.",
-      "inThread": "in thread"
+      "inThread": "in thread",
+      "toggle": "Search"
     },
     "tab": {
       "label": "Switch between active topics and the archive",
@@ -1270,9 +1293,12 @@
       "replyPlaceholder": "Write a reply… (Markdown supported)"
     },
     "compose": {
-      "placeholder": "What could be better? Markdown supported — Enter to send, Shift+Enter for a new line.",
+      "placeholder": "What could be better? Markdown supported.",
       "send": "Send",
+      "newTopic": "New topic",
+      "collapse": "Close",
       "sendHint": "Enter = send · Shift+Enter = new line",
+      "sendHintCtrl": "Ctrl/Cmd+Enter = send · Enter = new line",
       "bold": "Bold",
       "bullet": "Bullet list",
       "numbered": "Numbered list",

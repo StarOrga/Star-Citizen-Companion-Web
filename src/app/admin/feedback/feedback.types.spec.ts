@@ -24,6 +24,7 @@ import {
   shippedPerWeek,
   startOfMonth,
   startOfWeek,
+  topicNumber,
   topicTitle,
   workflowFocusIndex,
   workflowScopeCounts,
@@ -72,6 +73,38 @@ describe('topicTitle', () => {
     expect(title.length).toBeLessThanOrEqual(20);
     expect(title.endsWith('…')).toBeTrue();
   });
+});
+
+describe('topicNumber (feedback 21587480)', () => {
+  const at = '2026-07-01T10:00:00Z';
+
+  it('reads the row\'s stable sequential number', () => {
+    expect(topicNumber(row('a', 'open', at, { seq: 42 }))).toBe(42);
+    expect(topicNumber(row('a', 'open', at, { seq: 1 }))).toBe(1);
+  });
+
+  it('is null for a row that carries no number', () => {
+    expect(topicNumber(row('a', 'open', at))).toBeNull();
+    expect(topicNumber(row('a', 'open', at, { seq: null }))).toBeNull();
+  });
+
+  it('rejects 0 and negatives — the numbering starts at 1', () => {
+    expect(topicNumber(row('a', 'open', at, { seq: 0 }))).toBeNull();
+    expect(topicNumber(row('a', 'open', at, { seq: -3 }))).toBeNull();
+  });
+
+  it('is independent of the row\'s position in any list', () => {
+    const first = row('first', 'open', '2026-07-01T10:00:00Z', { seq: 9 });
+    const second = row('second', 'open', '2026-07-02T10:00:00Z', { seq: 4 });
+    // Sorting/filtering the list must never renumber a topic — that is the whole
+    // reason the number comes from the DB instead of from an index.
+    const sorted = [first, second].sort((a, b) => timeOfCreated(b) - timeOfCreated(a));
+    expect(sorted.map(topicNumber)).toEqual([4, 9]);
+  });
+
+  function timeOfCreated(r: FeedbackRow): number {
+    return Date.parse(r.created_at);
+  }
 });
 
 describe('isAwaitingAdmin', () => {
@@ -592,6 +625,58 @@ describe('searchFeedback', () => {
 
   it('yields nothing for a blank query', () => {
     expect(searchFeedback(rows, threads, '   ')).toEqual([]);
+  });
+});
+
+describe('searchFeedback by topic number (feedback 21587480)', () => {
+  const at = '2026-07-01T10:00:00Z';
+  /** The topic actually numbered #42 — its text holds no digits at all. */
+  const numbered = row('numbered', 'open', at, { seq: 42, body: 'Codex Sortierung der Komponenten' });
+  /** A different topic that merely mentions "42" in its prose. */
+  const mentions = row('mentions', 'open', at, { seq: 7, body: 'Der Preis liegt bei 42 Credits' });
+  /** #142 — must not answer a search for #42. */
+  const other = row('other', 'open', at, { seq: 142, body: 'Ganz anderes Thema' });
+  const unnumbered = row('unnumbered', 'open', at, { body: 'Alte Zeile ohne Nummer' });
+  const rows = [mentions, other, numbered, unnumbered];
+  const noThreads = new Map<string, FeedbackMessage[]>();
+
+  it('finds the topic by its bare number', () => {
+    expect(searchFeedback(rows, noThreads, '42').map((h) => h.row.id)).toContain('numbered');
+  });
+
+  it('accepts the "#42" reference form — the hash folds away in normalization', () => {
+    const hits = searchFeedback(rows, noThreads, '#42');
+    expect(hits[0].row.id).toBe('numbered');
+    expect(hits[0].inNumber).toBeTrue();
+  });
+
+  it('ranks the numbered topic above one that merely mentions the digits', () => {
+    expect(searchFeedback(rows, noThreads, '#42').map((h) => h.row.id)).toEqual([
+      'numbered',
+      'mentions',
+    ]);
+  });
+
+  it('matches the number exactly — "#4" is not topic #42', () => {
+    expect(searchFeedback(rows, noThreads, '#4').map((h) => h.row.id)).not.toContain('numbered');
+  });
+
+  it('does not confuse #42 with #142', () => {
+    expect(searchFeedback(rows, noThreads, '#142').map((h) => h.row.id)).toEqual(['other']);
+  });
+
+  it('leaves a row without a number out of every number search', () => {
+    for (const query of ['#42', '42', '#7']) {
+      expect(searchFeedback(rows, noThreads, query).map((h) => h.row.id)).not.toContain(
+        'unnumbered',
+      );
+    }
+  });
+
+  it('keeps the number out of inBody / inThread', () => {
+    const hit = searchFeedback(rows, noThreads, '#42')[0];
+    expect(hit.inBody).toBeFalse();
+    expect(hit.inThread).toBeFalse();
   });
 });
 

@@ -27,6 +27,7 @@ import {
   WorkflowScopeCounts,
   awaitsTriage,
   isUserSubmitted,
+  topicNumber,
   topicTitle,
   workflowFocusIndex,
 } from './feedback.types';
@@ -118,6 +119,13 @@ const ADVANCE_SLIDE_MS = 380;
               @if (untriaged(item)) {
                 <span class="kind untriaged">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span>
               }
+            }
+            <!-- Stable reference number (feedback 21587480), quiet and ahead of
+                 the title — the handle the admin can quote back. -->
+            @if (topicNo(item); as no) {
+              <span
+                class="wf-no"
+                [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
             }
             <span class="wf-title">{{ title(item) }}</span>
             <span class="wf-ts">{{ item.row.created_at | date: 'shortDate' }}</span>
@@ -324,6 +332,16 @@ const ADVANCE_SLIDE_MS = 380;
       color: var(--sc-fg-0);
     }
     .wf-ts { flex: 0 0 auto; color: var(--sc-fg-2); font-size: 0.72rem; }
+    /* Reference number: same quiet treatment as in the Übersicht rows — a handle
+       next to the title, never competing with it. */
+    .wf-no {
+      flex: 0 0 auto;
+      color: var(--sc-fg-2);
+      font-size: 0.74rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      user-select: all;
+    }
 
     .wf-body { font-size: 0.92rem; line-height: 1.5; overflow-wrap: anywhere; }
     .wf-body :first-child { margin-top: 0; }
@@ -443,7 +461,9 @@ const ADVANCE_SLIDE_MS = 380;
       .wf-card.celebrate, .wf-cheer, .wf-advance, .wf-empty-icon { animation: none; }
     }
 
-    /* Docked panel: tighter thread window so the composer stays reachable. */
+    /* Docked panel: tighter vertical rhythm so the one card and its always-on
+       answer foot own the panel, matching the Übersicht density pass (3133f9). */
+    .wf.compact { gap: 8px; }
     .wf.compact .thread { max-height: 220px; }
     .wf.compact .wf-card { padding: 12px 12px; }
     .wf.compact .wf-foot { margin: 0 -12px -12px; padding: 8px 12px 12px; }
@@ -618,6 +638,15 @@ export class FeedbackWorkflowComponent {
 
   title(item: WorkflowItem): string {
     return topicTitle(item.row.body, this.compact() ? 48 : 72);
+  }
+
+  /**
+   * The topic's stable reference number, or `null` when it has none (feedback
+   * 21587480) — the same "#42" the Übersicht row shows, so an admin working the
+   * queue can name the topic they are on.
+   */
+  topicNo(item: WorkflowItem): number | null {
+    return topicNumber(item.row);
   }
 
   /** Filed by a viewer/collaborator through the public feedback FAB. */

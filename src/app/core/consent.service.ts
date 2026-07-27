@@ -5,8 +5,10 @@ import { Injectable, computed, signal } from '@angular/core';
  *
  * The app sets no cookies — it uses localStorage in three categories:
  *  - `essential`: required for the app to function. Auth session (`sc.auth`),
- *    language (`sc.lang`), and the consent decision itself (`sc.consent`).
- *    Not configurable — without these, login and language selection break.
+ *    language (`sc.lang`), the composer's Enter-key mapping
+ *    (`sc.composer.sendOnEnter`, see `ComposerPrefsService`), and the consent
+ *    decision itself (`sc.consent`). Not configurable — without these, login,
+ *    language selection and a deliberately chosen keyboard mapping break.
  *  - `preferences`: convenience state (news channel filter, saved articles,
  *    favorited upcoming ships and their seen-baseline, admin UI
  *    drafts/defaults). Opt-in: nothing in this category is written

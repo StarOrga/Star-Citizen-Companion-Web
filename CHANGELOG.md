@@ -4,6 +4,85 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.51.0] - 2026-07-27
+
+### Added
+
+- **Every feedback topic now has a number you can refer to.** The admin board
+  shows a quiet `#42` ahead of each topic title — in the Übersicht rows (compact
+  panel and full page) and on the Abarbeiten card — so a topic can be named in a
+  conversation instead of quoted or identified by its uuid. The number is a
+  database column fed by a sequence, **not** a position in the list: it is
+  assigned once at creation and never moves, however the board is filtered,
+  searched, re-sorted or pruned. Existing topics were numbered by age, so `#1` is
+  the oldest entry on the board. The board search takes it too — typing `42` or
+  `#42` jumps to that topic, matched exactly (`#4` is not `#42`) and ranked above
+  topics that merely mention the digits. Admin-only: the number is not shown to
+  the author of a user-submitted topic. Feedback 21587480.
+
+## [0.50.0] - 2026-07-27
+
+### Added
+
+- **Codex — hardpoint positions on the hull (#137 part 3).** A ship's loadout
+  list can now be *located*: pointing at a hardpoint row highlights a marker in
+  a top-down and a side schematic of the hull, and pointing at a marker
+  highlights its row. Collapsed rows ("3× S3") light up all three of their
+  mounts. The coordinates come from the ship's own `.cga` mesh in `Data.p4k` —
+  the desktop uploader now reads the mesh's helper-node transforms and joins
+  them to the item ports and default-loadout mounts by exact node name, so a
+  marker is either the real mount point or absent. Additive migration
+  (`codex_item_ports.helper_name/position/rotation`) plus a ship-level map in
+  the payload; ingest accepts both the new and the old shape.
+  _Ships already in the catalog show no positions until the admin re-runs the
+  uploader — the previous category-grouped list is exactly what they keep.
+  The deck / interior view (#137 part 4) is not part of this._
+
+## [0.49.2] - 2026-07-27
+
+### Changed
+
+- **Feedback board — the docked panel now shows the threads, not the chrome.** In
+  the small (docked) FAB panel the control rows and the new-topic composer used to
+  stack ahead of the list and squeeze it down to barely one visible thread. The
+  compact panel is reorganised so the thread list owns the space: the new-topic
+  composer collapses to a slim **＋ Neues Thema** bar that opens the full composer
+  on demand (and folds back once the topic is sent); search and the status/author
+  chips fold behind a **⌕ / ⚲ Filter** cluster on a single filter row next to the
+  Aktiv/Archiv tabs, with a marker when a hidden filter is active; and the
+  motivating "shipped" totals line is dropped in compact (the numbers live in the
+  Fortschritt tab). The processing mode ("Abarbeiten") gets a matching tighter
+  vertical rhythm. The full-page board is unchanged. Feedback 3133f9.
+
+## [0.49.1] - 2026-07-27
+
+### Changed
+
+- **Codex "Where to buy" — matches far more items now (#254).** Purchase lookup
+  now matches against the item's English name (UEX is English-only, so German
+  display names like "A03-Snipergewehr" previously never matched "A03 Sniper
+  Rifle"), tolerates livery/paint variants via token-subset matching, and
+  searches both the "Personal Weapons" and "Gadgets" UEX categories for FPS
+  gear. Verified against the live API — e.g. A03 Sniper Rifle, P4-AR, S-38
+  Pistol and multi-tools now resolve dozens of purchase locations that used to
+  show "no data".
+
+## [0.49.0] - 2026-07-26
+
+### Added
+
+- **"Enter sendet" is now a per-user setting** (Einstellungen → Eingabe). Which
+  key sends a message is a matter of taste, so each user picks their own mapping
+  instead of living with a fixed one. On (the default) keeps the chat convention:
+  Enter sends, Shift+Enter breaks the line. Off mirrors it: Enter breaks the
+  line and only **Ctrl/Cmd+Enter** (or the send button) sends. Ctrl/Cmd+Enter
+  sends in both mappings, whichever key inserts the newline also continues a
+  bullet/numbered list, and the hint under the field names the mapping that is
+  actually active. The choice applies to every composer — new topic, thread
+  reply, the answer box in the processing mode and the user feedback panel — and
+  is remembered per browser (`sc.composer.sendOnEnter`, essential category like
+  the language choice, so a deliberately chosen mapping is never silently lost).
+
 ## [0.48.2] - 2026-07-26
 
 ### Added

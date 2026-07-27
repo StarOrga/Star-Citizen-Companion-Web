@@ -372,6 +372,17 @@
       "systems": "Systeme",
       "other": "Sonstige"
     },
+    "hardpointMap": {
+      "title": "Position an der Hülle",
+      "hint": "Zeiger auf einen Hardpoint unten — der Marker zeigt, wo er am Schiff sitzt.",
+      "approximate": "Ausdehnung genähert",
+      "viewTop": "Draufsicht",
+      "viewSide": "Seitenansicht (Steuerbord)",
+      "viewTopAria": "Draufsicht der Hülle mit {{count}} Hardpoint-Markern",
+      "viewSideAria": "Seitenansicht der Hülle mit {{count}} Hardpoint-Markern",
+      "nose": "Bug",
+      "readoutIdle": "Kein Hardpoint ausgewählt"
+    },
     "skins": {
       "title": "Lackierungen",
       "source": "Aus Data.p4k · echtes Hull + echte Texturen",
@@ -681,6 +692,15 @@
     "language": {
       "title": "Sprache",
       "label": "Sprache"
+    },
+    "composer": {
+      "title": "Eingabe",
+      "hint": "Gilt für jedes Nachrichtenfeld — neues Thema, Antwort im Thread, Antwortfeld im Abarbeiten-Modus.",
+      "sendOnEnter": {
+        "label": "Enter sendet",
+        "descOn": "Enter sendet die Nachricht, Shift+Enter macht eine neue Zeile. Strg/Cmd+Enter sendet ebenfalls.",
+        "descOff": "Enter macht eine neue Zeile. Gesendet wird nur mit Strg/Cmd+Enter oder über den Senden-Button."
+      }
     },
     "danger": {
       "title": "Account löschen",
@@ -1204,11 +1224,13 @@
     "setStatus": "Status ändern",
     "loadMore": "Weitere {{count}} laden",
     "toggleDetails": "Eintrag aus- oder einklappen",
+    "topicNumber": "Thema #{{n}} — feste Nummer, auf die du dich beziehen kannst",
     "showMore": "mehr",
     "showLess": "Weniger anzeigen",
     "filter": {
       "label": "Nach Ersteller filtern",
-      "all": "Alle"
+      "all": "Alle",
+      "toggle": "Filter"
     },
     "statusFilter": {
       "label": "Nach Status filtern",
@@ -1216,11 +1238,12 @@
     },
     "search": {
       "label": "Feedback durchsuchen",
-      "placeholder": "Suchen … Thema und ganzer Thread",
+      "placeholder": "Suchen … Thema, ganzer Thread oder #Nummer",
       "clear": "Suche löschen",
       "results": "{{count}} Treffer · nach Relevanz",
       "empty": "Keine Treffer für „{{query}}“.",
-      "inThread": "im Thread"
+      "inThread": "im Thread",
+      "toggle": "Suche"
     },
     "tab": {
       "label": "Zwischen aktiven Themen und Archiv wechseln",
@@ -1270,9 +1293,12 @@
       "replyPlaceholder": "Antwort schreiben… (Markdown möglich)"
     },
     "compose": {
-      "placeholder": "Was könnte besser sein? Markdown möglich — Enter zum Senden, Shift+Enter für eine neue Zeile.",
+      "placeholder": "Was könnte besser sein? Markdown möglich.",
       "send": "Senden",
+      "newTopic": "Neues Thema",
+      "collapse": "Schließen",
       "sendHint": "Enter = senden · Shift+Enter = neue Zeile",
+      "sendHintCtrl": "Strg/Cmd+Enter = senden · Enter = neue Zeile",
       "bold": "Fett",
       "bullet": "Aufzählung",
       "numbered": "Nummerierte Liste",

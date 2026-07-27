@@ -344,9 +344,20 @@ async function main() {
     }
   }
 
+  // Keep in sync with data-uploader/src/lib/catalog-map.ts (vector()).
+  const vector = (value, length) =>
+    Array.isArray(value) &&
+    value.length === length &&
+    value.every((v) => typeof v === 'number' && Number.isFinite(v))
+      ? value
+      : null;
+
   function collectPorts(parentClassName, parentKind, itemPorts) {
     if (!Array.isArray(itemPorts)) return;
-    itemPorts.forEach((p, idx) =>
+    itemPorts.forEach((p, idx) => {
+      // Hardpoint coordinates (#137 part 3): present only for ports the
+      // extractor matched to a helper node in the hull .cga; NULL otherwise.
+      const position = vector(p.position, 3);
       ports.push(
         tagged({
           parent_class_name: parentClassName,
@@ -357,9 +368,12 @@ async function main() {
           types: Array.isArray(p.types) ? p.types : [],
           flags: Array.isArray(p.flags) ? p.flags : [],
           port_index: idx,
+          helper_name: p.helperName ?? null,
+          position,
+          rotation: position ? vector(p.rotation, 4) : null,
         }),
-      ),
-    );
+      );
+    });
   }
 
   const counts = {};

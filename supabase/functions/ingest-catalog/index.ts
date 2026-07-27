@@ -9,7 +9,8 @@
 //
 //   POST { op: "init",             build: {...} }                      -> { build_id }
 //   POST { op: "upsert",           build_id, table, rows: [...] }      -> { upserted }
-//   POST { op: "ports",            build_id, rows: [...] }             -> { inserted }
+//   POST { op: "ports",            build_id, rows: [...] }             -> { inserted, degraded? }
+//        (rows may carry hardpoint coordinates: helper_name/position/rotation)
 //   POST { op: "clear_ports",      build_id }                          -> { ok }
 //   POST { op: "ingredients",      build_id, rows: [...] }             -> { inserted }
 //   POST { op: "clear_ingredients",build_id }                          -> { ok }
@@ -53,6 +54,44 @@ const CATALOG_TABLES = new Set([
   'codex_blueprints',
 ]);
 const NAT_CONFLICT = 'channel,patch_version,build_number,class_name';
+
+// ── item ports ───────────────────────────────────────────────────────────────
+// Ports are INSERTed verbatim, so the accepted column set is pinned here: an
+// extractor that grows a new field cannot accidentally reach the table (and a
+// typo'd key surfaces as a dropped value instead of a 400 for the whole batch).
+// `helper_name` / `position` / `rotation` are the hardpoint coordinates added by
+// migration 20260726220000 — optional in both directions (see the `ports` op).
+const PORT_COLUMNS = [
+  'build_id', 'channel', 'patch_version', 'build_number',
+  'parent_class_name', 'parent_kind', 'port_name',
+  'min_size', 'max_size', 'types', 'flags', 'port_index',
+  'helper_name', 'position', 'rotation',
+] as const;
+const PORT_TRANSFORM_COLUMNS = ['helper_name', 'position', 'rotation'] as const;
+
+function sanitizePortRow(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of PORT_COLUMNS) {
+    if (row[key] !== undefined) out[key] = row[key];
+  }
+  return out;
+}
+
+function stripTransform(row: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...row };
+  for (const key of PORT_TRANSFORM_COLUMNS) delete out[key];
+  return out;
+}
+
+/** True when Postgres rejected the insert because a transform column is absent. */
+function isMissingTransformColumn(error: unknown): boolean {
+  const e = error as { code?: string; message?: string };
+  const msg = (e?.message ?? '').toLowerCase();
+  const missingColumn = e?.code === 'PGRST204' || e?.code === '42703' ||
+    msg.includes('could not find') || msg.includes('does not exist') ||
+    msg.includes('column');
+  return missingColumn && PORT_TRANSFORM_COLUMNS.some((c) => msg.includes(c));
+}
 
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -183,9 +222,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (op === 'ports') {
       const rows = body.rows as unknown[];
       if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
-      const { error } = await admin.from('codex_item_ports').insert(rows);
-      if (error) throw error;
-      return json({ ok: true, inserted: rows.length });
+      const clean = (rows as Record<string, unknown>[]).map(sanitizePortRow);
+      const { error } = await admin.from('codex_item_ports').insert(clean);
+      if (!error) return json({ ok: true, inserted: clean.length });
+      // Forwards compatibility: an uploader that already sends hardpoint
+      // coordinates must not fail against a project where the additive
+      // 20260726220000 migration has not been applied yet. Retry once without the
+      // transform columns and say so, rather than losing the whole port batch.
+      if (!isMissingTransformColumn(error)) throw error;
+      const legacy = clean.map(stripTransform);
+      const retry = await admin.from('codex_item_ports').insert(legacy);
+      if (retry.error) throw retry.error;
+      return json({ ok: true, inserted: legacy.length, degraded: 'no_transform_columns' });
     }
 
     if (op === 'locale_strings') {
