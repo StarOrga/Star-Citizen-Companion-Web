@@ -295,7 +295,6 @@
       "fullSpec": "Volles Datenblatt",
       "showFullSpec": "Volles Datenblatt anzeigen",
       "hideFullSpec": "Volles Datenblatt ausblenden",
-      "layoutHint": "Stock-Loadout als beschriftete Slots — Slot öffnen zeigt das verbaute Item.",
       "quantumRange": "Quantum-Reichweite",
       "quantumSpeed": "Quantum-Geschwindigkeit",
       "quantumFuel": "Quantum-Treibstoff",
@@ -313,7 +312,8 @@
       "whereToBuyPrice": "Preis",
       "whereToBuyTerminal": "Terminal",
       "whereToBuyLocation": "Standort",
-      "whereToBuyAttribution": "Preise von UEX Corp — von der Community gepflegt, spiegeln evtl. nicht die Live-Server wider. Nicht mit Cloud Imperium Games verbunden."
+      "whereToBuyAttribution": "Preise von UEX Corp — von der Community gepflegt, spiegeln evtl. nicht die Live-Server wider. Nicht mit Cloud Imperium Games verbunden.",
+      "moduleOrderHint": "Zuerst kommen die konfigurierbaren Module — Waffen samt Aufhängung, Türme, Raketen, Pods, Schilde, Generator, Quantenantrieb, Radar, Kühler, Lebenserhaltung. Alles Feste steht darunter. Ein Klick auf ein Modul öffnet seine vollständige Werte-Tabelle."
     },
     "swap": {
       "title": "Was passt hier?",
@@ -460,6 +460,75 @@
       "promote": "Für alle veröffentlichen",
       "unpromote": "Globalen Link zurückziehen",
       "adminHint": "Veröffentlichen macht den Link oben für alle Nutzer sichtbar. Nutzer-Links werden nie automatisch veröffentlicht."
+    },
+    "moduleSection": {
+      "weapons": "Waffen",
+      "remoteTurrets": "Ferngesteuerte Türme",
+      "missiles": "Raketen & Bewaffnung",
+      "pod": "Pods",
+      "shields": "Schilde",
+      "powerPlants": "Generator",
+      "quantum": "Quantenantrieb",
+      "radar": "Radar & Sensoren",
+      "coolers": "Kühler",
+      "lifeSupport": "Lebenserhaltung",
+      "structure": "Zelle & feste Systeme",
+      "fixedTag": "nicht konfigurierbar"
+    },
+    "summary": {
+      "title": "Kampfübersicht",
+      "damage": "Schaden",
+      "defence": "Verteidigung",
+      "power": "Energieverwaltung",
+      "noData": "Der aktuelle Extract enthält für dieses Feld keine Werte.",
+      "alphaDamage": "Alpha-Schaden (alle Waffen)",
+      "dps": "Dauerfeuer-DPS",
+      "weaponMounts": "Waffenaufhängungen",
+      "ordnanceMounts": "Raketenaufhängungen",
+      "shieldHp": "Schildpool",
+      "shieldRegen": "Schildregeneration",
+      "regenDelay": "Regen-Verzögerung",
+      "downedDelay": "Ausfall-Verzögerung",
+      "hullHp": "Hüllen-HP",
+      "distortionPool": "Distortion-Pool",
+      "powerPlants": "Generatoren",
+      "powerPlantSize": "Gesamtgröße Generatoren",
+      "powerDraw": "Energiebedarf",
+      "poweredItems": "Versorgte Komponenten",
+      "plantDurability": "Haltbarkeit Generatoren",
+      "plantDistortion": "Distortion-Pool Generatoren",
+      "gap": {
+        "noStockGuns": "Die Standardwaffen dieses Rumpfs stecken nicht im Extract — das Spiel legt die Werksbewaffnung in einem separaten Loadout-Record ab, den wir noch nicht auflösen. Die Aufhängungen unten zeigen deshalb den Platz statt der Waffe.",
+        "noFireRate": "Im 4.9.0-Extract fehlt die Feuerrate, deshalb lässt sich noch kein Dauerfeuer-DPS ableiten.",
+        "noShields": "Im Werks-Loadout dieses Schiffs steckt kein Schildgenerator.",
+        "noHullHp": "Hüllen-HP sind noch nicht Teil des P4K-Extracts.",
+        "noResistances": "Schadensresistenzen pro Kanal werden nicht extrahiert — kein Schiff und keine Panzerung trägt sie.",
+        "noPowerPlant": "Im Werks-Loadout dieses Schiffs steckt kein Generator.",
+        "noPowerDraw": "Energiebedarf und -abgabe pro Komponente fehlen im Extract, deshalb lässt sich das Energiedreieck nicht berechnen."
+      }
+    },
+    "hull": {
+      "title": "Rumpf & Flug",
+      "hullHp": "Hüllen-HP",
+      "dimensions": "Abmessungen (L×B×H)",
+      "crew": "Besatzung",
+      "equippedMass": "Masse der Ausrüstung",
+      "scmSpeed": "SCM-Geschwindigkeit",
+      "maxSpeed": "Höchstgeschwindigkeit",
+      "boostSpeed": "Boost-Geschwindigkeit",
+      "pitch": "Nickrate",
+      "yaw": "Gierrate",
+      "roll": "Rollrate",
+      "flightMissing": "Die Flugeigenschaften stehen in der Vehicle-Definition, die unser P4K-Extractor noch nicht auflöst — die Zeilen bleiben stehen und füllen sich von selbst, sobald er es tut."
+    },
+    "inspect": {
+      "close": "Schließen",
+      "hardpoint": "Hardpoint",
+      "parameters": "Parameter",
+      "general": "Allgemein",
+      "projectile": "Projektil",
+      "noStats": "Der aktuelle Extract enthält für dieses Teil keine Werte.",
+      "openDetail": "Vollständigen Katalogeintrag öffnen"
     }
   },
   "blueprint": {

@@ -16,6 +16,7 @@ import {
   ComponentPayload,
   Dimensions,
   ItemPayload,
+  ItemPort,
   Lang,
   LoadoutEntry,
   ShipPayload,
@@ -61,16 +62,34 @@ import {
   unescapeText,
 } from './codex-format';
 import {
+  EquippedStat,
   ammoClassNameFor,
   ammoClassNamesFor,
   damageChannelsOf,
   equippedStats,
   equippedTypeLabel,
+  formatEquippedStat,
   isWeaponMountPort,
   weaponStatsUnavailable,
 } from './codex-equipped-stats';
+import { ShipModuleSection, classifyShipModule } from './ship-module-sections';
+import {
+  ShipSummaryPanel,
+  SummaryOccupant,
+  buildShipSummaryPanels,
+  equippedMass,
+} from './ship-summary-panels';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
-import { CodexHardpointLayoutComponent, LayoutGroup, LayoutSlot } from './codex-hardpoint-layout.component';
+import {
+  CodexHardpointLayoutComponent,
+  LayoutChild,
+  LayoutSection,
+  LayoutSlot,
+} from './codex-hardpoint-layout.component';
+import {
+  CodexComponentModalComponent,
+  ComponentInspectEntry,
+} from './codex-component-modal.component';
 import { CodexSwapDockComponent } from './codex-swap-dock.component';
 import { ShipHardpointMapComponent } from './ship-hardpoint-map.component';
 import {
@@ -133,6 +152,14 @@ interface LoadoutGroup {
   items: LoadoutItem[];
 }
 
+// One row of the hull / dimensions block. `value === null` renders "—": the
+// ship HAS the property, this extract just does not carry it (admin request
+// 461288f9: never show nothing).
+interface HullFact {
+  labelKey: string;
+  value: string | null;
+}
+
 // The recipe that PRODUCES this entity (#187: "which materials do I need").
 interface GearRecipe {
   classNameSlug: string;
@@ -143,7 +170,7 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexSwapDockComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
+  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapDockComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -432,6 +459,108 @@ interface GearRecipe {
           </section>
         }
 
+        <!-- ── Ships: the three headline panels (461288f9) ─────────
+             Damage / Defence / Power Management, aggregated from the very
+             loadout listed further down. Panels name what the extract cannot
+             answer instead of printing a confident zero. ───────────── -->
+        @if (summaryPanels().length > 0) {
+          <section class="sc-card block">
+            <h2>{{ 'codex.summary.title' | translate }}</h2>
+            <div class="sum-grid">
+              @for (p of summaryPanels(); track p.key) {
+                <article class="sum-panel" [attr.data-panel]="p.key">
+                  <h3>{{ ('codex.summary.' + p.key) | translate }}</h3>
+                  @if (p.rows.length > 0) {
+                    <dl class="sum-rows">
+                      @for (r of p.rows; track r.labelKey) {
+                        <div class="sum-row">
+                          <dt>
+                            {{ r.labelKey | translate }}
+                            @if (r.derived) {
+                              <span class="derived"
+                                    [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
+                            }
+                          </dt>
+                          <dd>{{ fmtSummary(r) }}</dd>
+                        </div>
+                      }
+                    </dl>
+                  } @else {
+                    <p class="sum-empty">{{ 'codex.summary.noData' | translate }}</p>
+                  }
+                  @for (g of p.gapKeys; track g) {
+                    <p class="sum-gap">{{ g | translate }}</p>
+                  }
+                </article>
+              }
+            </div>
+          </section>
+        }
+
+        <!-- ── Ships: hull, size and flight characteristics ────────
+             Every row is rendered even when the value is absent, so the block
+             answers "does the catalog know this?" rather than silently
+             shrinking. ──────────────────────────────────────────── -->
+        @if (hullFacts().length > 0) {
+          <section class="sc-card block">
+            <h2>{{ 'codex.hull.title' | translate }}</h2>
+            <dl class="hull-grid">
+              @for (f of hullFacts(); track f.labelKey) {
+                <div class="hull-fact" [class.unknown]="!f.value">
+                  <dt>{{ f.labelKey | translate }}</dt>
+                  <dd>{{ f.value ?? '—' }}</dd>
+                </div>
+              }
+            </dl>
+            @if (flightDataMissing()) {
+              <p class="hint warn">{{ 'codex.hull.flightMissing' | translate }}</p>
+            }
+          </section>
+        }
+
+        <!-- ── Ship modules, configurable blocks first (461288f9) ── -->
+        @if (moduleSections().length > 0) {
+          <section class="sc-card block">
+            <h2>
+              {{ 'codex.detail.loadout' | translate }}
+              <span class="ct">{{ installedCount() }}</span>
+              @if (hiddenEmptyCount() > 0) {
+                <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
+                  {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
+                </button>
+              }
+            </h2>
+            <!-- "What even IS a hardpoint?" — answered up front, once. -->
+            <p class="hint">{{ 'codex.detail.hardpointExplainer' | translate }}</p>
+            <p class="hint">{{ 'codex.detail.moduleOrderHint' | translate }}</p>
+            @if (emptyWeaponMounts() > 0) {
+              <p class="hint warn">
+                {{ 'codex.equipped.armamentMissing' | translate: { count: emptyWeaponMounts() } }}
+              </p>
+            }
+            <!-- WHERE each hardpoint sits on the hull (#137 part 3). Rendered
+                 only when this ship's extract carries coordinates; every ship
+                 without them keeps exactly the previous list-only layout. -->
+            @if (hardpointFrame(); as frame) {
+              <sc-ship-hardpoint-map
+                [markers]="hardpointMarkers()"
+                [frame]="frame"
+                [activePorts]="activePorts()"
+                (hovered)="setActivePorts($event)" />
+            }
+            <sc-codex-hardpoint-layout
+              [sections]="moduleSections()"
+              [locatablePorts]="locatablePorts()"
+              [activePorts]="activePorts()"
+              (hovered)="setActivePorts($event)"
+              (inspected)="openInspect($event)"
+              (swapRequested)="openSwapDock($event)" />
+            @if (swapSlot()) {
+              <sc-codex-swap-dock class="swap-host" [slot]="swapSlot()" (closed)="swapSlot.set(null)" />
+            }
+          </section>
+        }
+
         <!-- ── Hardpoints, grouped by category ───────────────────── -->
         @if (hardpointGroups().length > 0) {
           <section class="sc-card block">
@@ -499,48 +628,6 @@ interface GearRecipe {
                   }
                 </ul>
               </div>
-            }
-          </section>
-        }
-
-        <!-- ── Default loadout as read-only hardpoint layout (Rung 1) ─ -->
-        @if (loadoutGroups().length > 0) {
-          <section class="sc-card block">
-            <h2>
-              {{ 'codex.detail.loadout' | translate }}
-              <span class="ct">{{ installedCount() }}</span>
-              @if (hiddenEmptyCount() > 0) {
-                <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
-                  {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
-                </button>
-              }
-            </h2>
-            <!-- "What even IS a hardpoint?" — answered up front, once. -->
-            <p class="hint">{{ 'codex.detail.hardpointExplainer' | translate }}</p>
-            <p class="hint">{{ 'codex.detail.layoutHint' | translate }}</p>
-            @if (emptyWeaponMounts() > 0) {
-              <p class="hint warn">
-                {{ 'codex.equipped.armamentMissing' | translate: { count: emptyWeaponMounts() } }}
-              </p>
-            }
-            <!-- WHERE each hardpoint sits on the hull (#137 part 3). Rendered
-                 only when this ship's extract carries coordinates; every ship
-                 without them keeps exactly the previous list-only layout. -->
-            @if (hardpointFrame(); as frame) {
-              <sc-ship-hardpoint-map
-                [markers]="hardpointMarkers()"
-                [frame]="frame"
-                [activePorts]="activePorts()"
-                (hovered)="setActivePorts($event)" />
-            }
-            <sc-codex-hardpoint-layout
-              [groups]="layoutGroups()"
-              [locatablePorts]="locatablePorts()"
-              [activePorts]="activePorts()"
-              (hovered)="setActivePorts($event)"
-              (swapRequested)="openSwapDock($event)" />
-            @if (swapSlot()) {
-              <sc-codex-swap-dock class="swap-host" [slot]="swapSlot()" (closed)="swapSlot.set(null)" />
             }
           </section>
         }
@@ -633,6 +720,10 @@ interface GearRecipe {
       }
 
       <sc-codex-compare-tray />
+
+      <!-- Full stat sheet for one clicked module (461288f9). Rendered last so
+           its fixed-position backdrop sits above everything on the page. -->
+      <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
     </section>
   `,
   styles: [`
@@ -711,6 +802,36 @@ interface GearRecipe {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .block h2 .ct { font-size: 0.7rem; color: var(--sc-fg-2); }
     .desc { margin: 0; color: var(--sc-fg-1); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+    /* Damage · Defence · Power Management — the three headline panels */
+    .sum-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .sum-panel { border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border);
+      border-top-width: 2px; padding: 10px 12px; }
+    .sum-panel[data-panel="damage"] { border-top-color: var(--sc-accent-hot, #ff7a45); }
+    .sum-panel[data-panel="defence"] { border-top-color: var(--sc-accent); }
+    .sum-panel[data-panel="power"] { border-top-color: #ffc14d; }
+    .sum-panel h3 { margin: 0 0 8px; font-size: 0.68rem; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--sc-fg-1); }
+    .sum-rows { margin: 0; display: flex; flex-direction: column; gap: 3px; }
+    .sum-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .sum-row dt { font-size: 0.68rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .sum-row dd { margin: 0; font-size: 0.88rem; color: var(--sc-fg-0);
+      font-family: var(--sc-font-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .sum-row .derived { color: var(--sc-fg-2); cursor: help; }
+    .sum-empty { margin: 0; font-size: 0.72rem; color: var(--sc-fg-2); font-style: italic; }
+    .sum-gap { margin: 8px 0 0; font-size: 0.64rem; color: var(--sc-fg-2); line-height: 1.4; }
+
+    /* Hull, size and flight — a row per property, "—" when unknown */
+    .hull-grid { margin: 0; display: grid; gap: 8px;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+    .hull-fact { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
+      border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
+    .hull-fact dt { font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--sc-fg-2); }
+    .hull-fact dd { margin: 0; font-size: 0.95rem; color: var(--sc-fg-0);
+      font-family: var(--sc-font-display); }
+    .hull-fact.unknown { border-style: dashed; }
+    .hull-fact.unknown dd { color: var(--sc-fg-2); }
 
     /* Stat grid (components / weapons), grouped by purpose */
     .sg-head { margin: 14px 0 8px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em;
@@ -1442,8 +1563,8 @@ export class CodexDetailComponent implements OnInit {
     this.hardpointMarkers().map((m) => m.port),
   );
 
-  /** Whether the loadout card renders (it hosts the hull map when it does). */
-  readonly hasLoadoutSection = computed(() => this.loadoutGroups().length > 0);
+  /** Whether the modules card renders (it hosts the hull map when it does). */
+  readonly hasLoadoutSection = computed(() => this.moduleSections().length > 0);
 
   isPortLocated(port: CodexItemPort): boolean {
     return !!port.portName && this.locatablePorts().includes(port.portName);
@@ -1464,48 +1585,250 @@ export class CodexDetailComponent implements OnInit {
     this.activePorts.set(ports ?? []);
   }
 
-  /** Loadout groups mapped to the hardpoint-layout input shape (Rung 1). */
-  readonly layoutGroups = computed<LayoutGroup[]>(() => {
+  // ── ship modules, ordered by what a pilot can configure (461288f9) ──────────
+  // The three headline panels, the hull block and the module list all read the
+  // SAME resolved occupants, so they can never contradict each other.
+
+  /** The resolved occupant of one hardpoint (null payload = stock-empty port). */
+  private readonly resolvedLoadout = computed(() => {
+    const payloads = this.loadoutPayloads();
+    const ammo = this.ammoPayloads();
+    return this.loadoutAll().map((l) => {
+      const hit = l.className ? payloads.get(l.className) : undefined;
+      const payload = hit?.payload ?? null;
+      return {
+        item: l,
+        kind: hit?.kind ?? l.kind,
+        payload,
+        ammoPayload: l.className ? ammo.get(ammoClassNameFor(l.className) ?? '') : undefined,
+        section: classifyShipModule(l.port, {
+          entityKind: (payload as { entityKind?: string } | null)?.entityKind ?? l.kind,
+          componentKind: (payload as { kind?: string } | null)?.kind ?? null,
+          subType: (payload as { subType?: string } | null)?.subType ?? null,
+          attachType: (payload as { attachType?: string } | null)?.attachType ?? null,
+        }) as ShipModuleSection,
+      };
+    });
+  });
+
+  /** Aggregation input for the Damage / Defence / Power panels. */
+  private readonly summaryOccupants = computed<SummaryOccupant[]>(() =>
+    this.resolvedLoadout().map((r) => ({
+      section: r.section,
+      kind: r.kind,
+      payload: r.payload,
+      ammoPayload: r.ammoPayload,
+      count: 1,
+    })),
+  );
+
+  /** Damage · Defence · Power Management — the three panels above the modules. */
+  readonly summaryPanels = computed<ShipSummaryPanel[]>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return [];
+    return buildShipSummaryPanels(this.summaryOccupants());
+  });
+
+  /**
+   * Sub-slots a mount exposes, read from the mount's OWN `itemPorts`: the gun
+   * seat inside a gimbal, the two missile ports of a rack, the twin guns of a
+   * remote turret. The extract resolves no occupant for them (CIG keeps the
+   * default weapon fit in a separate loadout record), so they render as sized
+   * placeholders — the mount stops masquerading as the weapon either way.
+   */
+  private childrenFor(className: string | null): LayoutChild[] {
+    if (!className) return [];
+    const payload = this.loadoutPayloads().get(className)?.payload as
+      | { itemPorts?: ItemPort[] }
+      | undefined;
+    const ports = payload?.itemPorts ?? [];
+    const out: LayoutChild[] = [];
+    const index = new Map<string, LayoutChild>();
+    for (const p of ports) {
+      const types = (p.types ?? []).filter(Boolean);
+      if (types.length === 0) continue; // untyped ports hold nothing a pilot picks
+      const size = p.minSize != null && p.minSize === p.maxSize ? p.minSize : null;
+      const typeLabel = humanizePortType(types[0]);
+      const key = `${typeLabel}|${size ?? ''}`;
+      const hit = index.get(key);
+      if (hit) {
+        hit.count += 1;
+        continue;
+      }
+      const child: LayoutChild = {
+        port: this.humanizePort(p.portName),
+        typeLabel,
+        size,
+        className: null,
+        kind: null,
+        name: null,
+        count: 1,
+      };
+      index.set(key, child);
+      out.push(child);
+    }
+    return out;
+  }
+
+  /**
+   * The module list: configurable blocks in the requested order, then the fixed
+   * rest. Configurable blocks ALWAYS show every hardpoint — an unfitted mount
+   * renders as an empty seat rather than disappearing, so the sections can
+   * never come up blank. Only the fixed block still folds its empty ports away
+   * behind the existing toggle (a capital ship has hundreds of them).
+   */
+  readonly moduleSections = computed<LayoutSection[]>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return [];
     // Jump range rendered as a chip directly on the quantum-drive slot (#137).
     const tech = this.techStats();
     const qdChip =
       tech?.quantumDriveClassName && tech.quantum.jumpRangeMm != null
         ? this.fmtGm(tech.quantum.jumpRangeMm)
         : null;
-    const payloads = this.loadoutPayloads();
-    const ammo = this.ammoPayloads();
-    return this.loadoutGroups().map((g) => ({
-      category: g.category,
-      slots: g.items.map((l) => {
-        // What is installed here decides WHICH stats show: a gun gets
-        // damage/velocity/range, a shield HP/regen, a cooler only durability.
-        const hit = l.className ? payloads.get(l.className) : undefined;
-        const item = {
-          kind: hit?.kind ?? l.kind,
-          payload: hit?.payload ?? null,
-          ammoPayload: l.className
-            ? ammo.get(ammoClassNameFor(l.className) ?? '')
-            : undefined,
-        };
-        return {
-          port: this.humanizePort(l.port),
-          // Raw name kept alongside the label so the hull map can match the row.
-          rawPort: l.port,
-          className: l.className,
-          kind: l.kind,
-          name: l.name,
-          size: l.size,
-          grade: l.grade,
-          manufacturerCode: l.manufacturerCode,
-          statChip: qdChip && l.className === tech!.quantumDriveClassName ? qdChip : null,
-          typeLabel: equippedTypeLabel(item),
-          damageChannels: damageChannelsOf(item.payload, item.ammoPayload),
-          stats: equippedStats(item),
-          statsMissing: weaponStatsUnavailable(item),
-        };
-      }),
-    }));
+    const showEmpty = this.showEmptyLoadout();
+
+    const buckets = new Map<ShipModuleSection, LayoutSlot[]>();
+    for (const r of this.resolvedLoadout()) {
+      const configurable = r.section !== 'structure';
+      if (!configurable && !r.item.className && !showEmpty) continue;
+      const l = r.item;
+      const item = { kind: r.kind, payload: r.payload, ammoPayload: r.ammoPayload };
+      const children = configurable ? this.childrenFor(l.className) : [];
+      const slot: LayoutSlot = {
+        port: this.humanizePort(l.port),
+        // Raw name kept alongside the label so the hull map can match the row.
+        rawPort: l.port,
+        className: l.className,
+        kind: l.kind,
+        name: l.name,
+        size: l.size,
+        grade: l.grade,
+        manufacturerCode: l.manufacturerCode,
+        statChip: qdChip && l.className === tech!.quantumDriveClassName ? qdChip : null,
+        typeLabel: equippedTypeLabel(item),
+        damageChannels: damageChannelsOf(item.payload, item.ammoPayload),
+        stats: equippedStats(item),
+        statsMissing: weaponStatsUnavailable(item),
+        children,
+        portSize: this.portSizeOf(l.port),
+        // Two identical mounts holding different things must not collapse.
+        variantKey: children.map((c) => `${c.className ?? ''}:${c.count}`).join(','),
+      };
+      const hit = buckets.get(r.section);
+      if (hit) hit.push(slot);
+      else buckets.set(r.section, [slot]);
+    }
+    // Configurable blocks are emitted even when the ship has none of that
+    // hardpoint at all? No — an absent block says "this hull has no coolers",
+    // which is information; an EMPTY block would just be noise.
+    return [...buckets.entries()].map(([section, slots]) => ({ section, slots }));
   });
+
+  /** Accepted size of a structural hardpoint, when `codex_item_ports` knows it. */
+  private portSizeOf(portName: string | null): number | null {
+    if (!portName) return null;
+    const port = this.detail()?.ports.find((p) => p.portName === portName);
+    if (!port) return null;
+    return port.minSize != null && port.minSize === port.maxSize ? port.minSize : null;
+  }
+
+  /**
+   * Hull HP, size and flight characteristics — the block under the panels.
+   * Every row is rendered even when the value is missing ("—"), because the
+   * ship undeniably HAS a hull and a top speed; only our extract does not.
+   */
+  readonly hullFacts = computed<HullFact[]>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return [];
+    const p = d.payload as ShipPayload | undefined;
+    const dim = this.dimensions();
+    const flight = p?.flight;
+    const mass = equippedMass(this.summaryOccupants());
+    const num = (v: number | null | undefined, unit: string): string | null =>
+      v == null || !Number.isFinite(v) || v === 0 ? null : `${formatNumber(v)} ${unit}`;
+    return [
+      { labelKey: 'codex.hull.hullHp', value: null },
+      {
+        labelKey: 'codex.hull.dimensions',
+        value: dim
+          ? `${formatNumber(dim.length)} × ${formatNumber(dim.width)} × ${formatNumber(dim.height)} m`
+          : null,
+      },
+      { labelKey: 'codex.hull.crew', value: p?.crew?.size ? String(p.crew.size) : null },
+      { labelKey: 'codex.hull.equippedMass', value: num(mass, 'kg') },
+      { labelKey: 'codex.hull.scmSpeed', value: num(flight?.scmSpeed, 'm/s') },
+      { labelKey: 'codex.hull.maxSpeed', value: num(flight?.maxSpeed, 'm/s') },
+      { labelKey: 'codex.hull.boostSpeed', value: num(flight?.boostSpeed, 'm/s') },
+      { labelKey: 'codex.hull.pitch', value: num(flight?.pitch, '°/s') },
+      { labelKey: 'codex.hull.yaw', value: num(flight?.yaw, '°/s') },
+      { labelKey: 'codex.hull.roll', value: num(flight?.roll, '°/s') },
+    ];
+  });
+
+  /** True while no flight number at all is in the extract — worth saying once. */
+  readonly flightDataMissing = computed(() =>
+    this.hullFacts()
+      .filter((f) => f.labelKey.includes('Speed') || ['codex.hull.pitch', 'codex.hull.yaw', 'codex.hull.roll'].includes(f.labelKey))
+      .every((f) => f.value === null),
+  );
+
+  // ── component overlay (461288f9) ────────────────────────────────────────────
+  /** The occupant currently open in the full-stat overlay, or null. */
+  readonly inspected = signal<ComponentInspectEntry | null>(null);
+
+  /**
+   * Open the overlay for a clicked card. A sub-slot with nothing resolvable in
+   * it has no stats to show, so it stays inert rather than opening an empty
+   * window.
+   */
+  openInspect(ev: { slot: LayoutSlot; count: number; child: LayoutChild | null }): void {
+    const source = ev.child
+      ? {
+          className: ev.child.className,
+          kind: ev.child.kind,
+          name: ev.child.name,
+          size: ev.child.size,
+          grade: null as string | null,
+          manufacturerCode: null as string | null,
+          typeLabel: ev.child.typeLabel,
+          port: ev.child.port,
+        }
+      : {
+          className: ev.slot.className,
+          kind: ev.slot.kind,
+          name: ev.slot.name,
+          size: ev.slot.size,
+          grade: ev.slot.grade,
+          manufacturerCode: ev.slot.manufacturerCode,
+          typeLabel: ev.slot.typeLabel ?? null,
+          port: ev.slot.port,
+        };
+    if (!source.className) return;
+    const hit = this.loadoutPayloads().get(source.className);
+    this.inspected.set({
+      className: source.className,
+      kind: hit?.kind ?? source.kind,
+      name: source.name || humanizeClassName(source.className),
+      port: source.port,
+      count: ev.count,
+      size: source.size,
+      grade: source.grade,
+      manufacturerCode: source.manufacturerCode,
+      typeLabel: source.typeLabel,
+      payload: hit?.payload ?? null,
+      ammoPayload: this.ammoPayloads().get(ammoClassNameFor(source.className) ?? ''),
+    });
+  }
+
+  closeInspect(): void {
+    this.inspected.set(null);
+  }
+
+  /** Render one aggregated panel row with its unit. */
+  fmtSummary(stat: EquippedStat): string {
+    return formatEquippedStat(stat);
+  }
 
   /**
    * How many of the ship's weapon mounts have NO stock item in this extract.
@@ -1591,19 +1914,19 @@ export class CodexDetailComponent implements OnInit {
   readonly emptyLoadoutCount = computed(() => this.loadoutAll().filter((l) => !l.className).length);
 
   /**
-   * Empty ports the toggle would reveal. Empty WEAPON mounts are always shown
-   * (see loadoutGroups), so counting them here would promise rows the toggle
-   * does not actually add.
+   * Empty ports the toggle would reveal. Only the FIXED block folds anything
+   * away now — every configurable section shows all of its hardpoints — so
+   * counting a configurable empty here would promise rows the toggle never adds.
    */
   readonly hiddenEmptyCount = computed(
-    () => this.loadoutAll().filter((l) => !l.className && !isWeaponMountPort(l.port)).length,
+    () =>
+      this.resolvedLoadout().filter((r) => r.section === 'structure' && !r.item.className).length,
   );
 
   /**
-   * Default loadout grouped by category. Empty stock ports are hidden behind
-   * the toggle — EXCEPT empty weapon mounts: "this ship has three size-3 gun
-   * mounts and the extract knows no stock gun for them" is the answer to the
-   * pilot's question, not noise to fold away.
+   * Default loadout grouped by the generic hardpoint category. Still the source
+   * for the hero equipment summary; the ship's module list uses the richer
+   * `moduleSections` above.
    */
   readonly loadoutGroups = computed<LoadoutGroup[]>(() => {
     const all = this.loadoutAll();

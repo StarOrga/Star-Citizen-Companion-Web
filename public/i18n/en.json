@@ -295,7 +295,6 @@
       "fullSpec": "Full spec sheet",
       "showFullSpec": "Show full spec sheet",
       "hideFullSpec": "Hide full spec sheet",
-      "layoutHint": "Stock loadout as labelled slots — open a slot to inspect the installed item.",
       "quantumRange": "Quantum range",
       "quantumSpeed": "Quantum speed",
       "quantumFuel": "Quantum fuel",
@@ -313,7 +312,8 @@
       "whereToBuyPrice": "Price",
       "whereToBuyTerminal": "Terminal",
       "whereToBuyLocation": "Location",
-      "whereToBuyAttribution": "Prices from UEX Corp — community-maintained, may not reflect live servers. Not affiliated with Cloud Imperium Games."
+      "whereToBuyAttribution": "Prices from UEX Corp — community-maintained, may not reflect live servers. Not affiliated with Cloud Imperium Games.",
+      "moduleOrderHint": "Configurable modules come first — weapons and their mounts, turrets, ordnance, pods, shields, power plant, quantum drive, radar, coolers, life support. Everything fixed sits below. Click any module for its full stat table."
     },
     "swap": {
       "title": "What fits here",
@@ -460,6 +460,75 @@
       "promote": "Publish for everyone",
       "unpromote": "Withdraw global link",
       "adminHint": "Publishing makes the link above visible to all users. User links are never published automatically."
+    },
+    "moduleSection": {
+      "weapons": "Weapons",
+      "remoteTurrets": "Remote turrets",
+      "missiles": "Missiles & ordnance",
+      "pod": "Pods",
+      "shields": "Shields",
+      "powerPlants": "Power plant",
+      "quantum": "Quantum drive",
+      "radar": "Radar & sensors",
+      "coolers": "Coolers",
+      "lifeSupport": "Life support",
+      "structure": "Airframe & fixed systems",
+      "fixedTag": "not configurable"
+    },
+    "summary": {
+      "title": "Combat readout",
+      "damage": "Damage",
+      "defence": "Defence",
+      "power": "Power management",
+      "noData": "The current extract carries no numbers for this panel.",
+      "alphaDamage": "Alpha damage (all guns)",
+      "dps": "Sustained DPS",
+      "weaponMounts": "Weapon mounts",
+      "ordnanceMounts": "Ordnance mounts",
+      "shieldHp": "Shield pool",
+      "shieldRegen": "Shield regeneration",
+      "regenDelay": "Regen delay",
+      "downedDelay": "Downed delay",
+      "hullHp": "Hull HP",
+      "distortionPool": "Distortion pool",
+      "powerPlants": "Power plants",
+      "powerPlantSize": "Combined plant size",
+      "powerDraw": "Power draw",
+      "poweredItems": "Powered items",
+      "plantDurability": "Plant durability",
+      "plantDistortion": "Plant distortion pool",
+      "gap": {
+        "noStockGuns": "This hull's stock guns are not in the extract — the game keeps default weapon fits in a separate loadout record we do not resolve yet, so the mounts below show the seat rather than the gun.",
+        "noFireRate": "No fire rate in the 4.9.0 extract, so sustained DPS cannot be derived yet.",
+        "noShields": "No shield generator in this ship's stock loadout.",
+        "noHullHp": "Hull HP is not part of the P4K extract yet.",
+        "noResistances": "Per-channel damage resistances are not extracted — no ship or armour entity carries them.",
+        "noPowerPlant": "No power plant in this ship's stock loadout.",
+        "noPowerDraw": "Per-item power draw and output are not in the extract yet, so the power triangle cannot be computed."
+      }
+    },
+    "hull": {
+      "title": "Hull & flight",
+      "hullHp": "Hull HP",
+      "dimensions": "Dimensions (L×W×H)",
+      "crew": "Crew",
+      "equippedMass": "Equipment mass",
+      "scmSpeed": "SCM speed",
+      "maxSpeed": "Max speed",
+      "boostSpeed": "Boost speed",
+      "pitch": "Pitch rate",
+      "yaw": "Yaw rate",
+      "roll": "Roll rate",
+      "flightMissing": "Flight characteristics live in the vehicle definition, which our P4K extractor does not resolve yet — the rows stay here so they fill in by themselves once it does."
+    },
+    "inspect": {
+      "close": "Close",
+      "hardpoint": "Hardpoint",
+      "parameters": "Parameters",
+      "general": "General",
+      "projectile": "Projectile",
+      "noStats": "The current extract carries no values for this item.",
+      "openDetail": "Open full catalog entry"
     }
   },
   "blueprint": {
