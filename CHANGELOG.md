@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.55.1] - 2026-07-28
+
+### Fixed
+
+- **The hardpoint markers on the 3D ship were invisible and unclickable.**
+  `data-visibility-attribute` belongs on each hotspot, not on `<model-viewer>`,
+  so model-viewer never marked any marker as visible — and the stylesheet used
+  that missing flag to fade markers to 25% *and* strip their pointer events.
+  Every one of the 96 markers shipped in 0.55.0 was therefore dead on arrival.
+  The attribute now sits where model-viewer reads it, and the occlusion rule
+  only dims: a marker behind the hull recedes but stays clickable, so a wiring
+  slip can never again turn the whole feature off. Found by driving the real
+  rendered model in a browser — a DOM-only check cannot see this, because the
+  markup was correct and only the rendered result was wrong.
+
 ## [0.55.0] - 2026-07-28
 
 ### Added
