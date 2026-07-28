@@ -119,3 +119,37 @@ Plugin defaults still apply; only the rules below override or add.
    2026-07-09 I shipped 0.13.0 source-only and stopped — the user had to say
    "release it too". Both times a source bump was mistaken for a release. Source
    bump ≠ release; for uploader ships the release rides along by default.
+
+6. **Mobile + tablet gate — MANDATORY extra quality gate in Step 2.**
+   Any ship whose diff touches `src/**`, `public/**` or `angular.json` must run
+   the responsive gate **after** `ship_build` succeeded (the gate audits the
+   freshly built `dist/sc-companion/browser`):
+
+   ```bash
+   npm run gate:mobile        # add --json=mobile-gate.json for an artefact
+   ```
+
+   - **Exit 1 ⇒ the ship is blocked.** Render `render_completion_card` with
+     variant `ship-blocked` and quote the failing device/route lines. It is a
+     quality gate exactly like build or lint — do not "note it and continue".
+   - **Exit 2** means the gate could not run (no Chrome, no target). Fix the
+     environment; treat a gate that cannot run as red, never as green.
+   - Fix the findings in the app. Only if a finding is genuinely a false
+     positive, add a narrow, justified entry to `scripts/mobile-gate.config.json`
+     (`ignore.selectors` / `ignore.consolePatterns` + a `$waivers` entry naming
+     the follow-up) — **never** lower `thresholds.minTapTargetPx` (44) or
+     `thresholds.minFontSizePx` (12). Those are the platform minimums; moving
+     them makes the gate lie.
+   - Backend-only ships (docs, `supabase/**`, `data-uploader/**`, workflows)
+     skip it automatically — nothing frontend changed.
+   - Deliberate skip for a frontend ship: put `SKIP-MOBILE-GATE: <reason>` in
+     the response, and list "mobile gate: skipped (<reason>)" under `tests` on
+     the completion card. Never silent.
+   - What each check means, how to run it against a preview URL, and the device
+     matrix: [`docs/mobile-gate.md`](../../../docs/mobile-gate.md).
+
+   *Why this rule exists:* admin feedback c21fab87 ("Mobile ist es einfach noch
+   nicht gut") — phone/tablet quality was only ever verified by eyeballing a
+   screenshot, so regressions (sideways scroll, 28 px chips, 10 px labels,
+   sticky bars over buttons) shipped repeatedly. A ship-time gate is the last
+   place where that can still be caught before users see it.

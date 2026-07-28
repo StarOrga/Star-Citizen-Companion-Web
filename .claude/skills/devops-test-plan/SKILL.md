@@ -26,7 +26,25 @@ Plugin defaults still apply; only the rules below override or add.
    If a probe must use raw curl, explicitly note in the report: "404 here
    means private+unauthenticated, not missing".
 
-3. **Auto-update download URL is the public mirror — probe it unauth.**
+3. **Responsive verification = `npm run gate:mobile`, not screenshot vibes.**
+   The five-viewport screenshot loop of the plugin's `web-angular` profile is
+   replaced by [`scripts/mobile-gate.mjs`](../../../scripts/mobile-gate.mjs)
+   (see `profile.json` next to this file). It drives real Chromium via CDP with
+   iOS + Android phone/tablet device emulation and asserts machine-checkable
+   rules (no horizontal overflow, tap targets ≥ 44 px, text ≥ 12 px, no clipped
+   or overlapping content, no fixed/sticky element covering a control, zoomable
+   viewport meta, no console errors) across the public routes.
+
+   - inner loop: `npm run gate:mobile:quick` (2 devices × 4 routes)
+   - before shipping: `npm run gate:mobile` — mandatory, see
+     `.claude/skills/ship/SKILL.md` rule 1
+   - after editing the gate itself: `npm run gate:mobile:selftest` proves every
+     check still detects its fixture violation
+   - the desktop viewport (1280×800) stays a normal `$BROWSER_TOOL` screenshot;
+     the gate deliberately only owns phone + tablet
+   - full reference: [`docs/mobile-gate.md`](../../../docs/mobile-gate.md)
+
+4. **Auto-update download URL is the public mirror — probe it unauth.**
    Since issue #7's resolution, binaries are mirrored to public repo
    `StarOrga/Star-Citizen-Companion-Binaries`. After every `data-uploader-v*` release,
    `curl -sIL <mirror_asset_url>` UNAUTHENTICATED — expect 302→200 with
