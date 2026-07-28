@@ -1,6 +1,6 @@
 {
   "name": "sc-companion",
-  "version": "0.55.1",
+  "version": "0.55.2",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "gen:release-notes": "node scripts/gen-release-notes.js",
     "gen:readme-content": "node scripts/gen-readme-content.mjs",
     "check:readme-docs": "node scripts/gen-readme-content.mjs --check",
-    "prebuild": "node scripts/gen-release-notes.js",
+    "prebuild": "node scripts/gen-release-notes.js && node scripts/check-csp-3d.mjs",
     "build": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false --browsers=ChromeHeadless",
@@ -30,7 +30,8 @@
     "tool:build": "npm --prefix desktop-tool run build",
     "tool:test": "npm --prefix desktop-tool run test",
     "tool:typecheck": "npm --prefix desktop-tool run typecheck",
-    "tool:package": "npm --prefix desktop-tool run package:win"
+    "tool:package": "npm --prefix desktop-tool run package:win",
+    "check:csp-3d": "node scripts/check-csp-3d.mjs"
   },
   "dependencies": {
     "@angular/animations": "^21.2.17",
