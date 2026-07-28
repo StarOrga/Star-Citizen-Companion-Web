@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   HostListener,
   OnDestroy,
   OnInit,
@@ -139,36 +140,50 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
                    otherwise the shrinking video list reads as a bug. -->
               <span class="rail-note">{{ 'news.videos.retention' | translate:{ days: videoRetentionDays } }}</span>
             </div>
-            <div class="rail-track">
-              @for (vid of recentVideos(); track vid.id) {
-                <article class="vid-card sc-reveal" [class.watched]="svc.isWatched(vid.id)"
-                         [attr.data-channel]="vid.channel" tabindex="0" role="button"
-                         [attr.aria-label]="vid.title"
-                         (click)="openVideo(vid)"
-                         (keydown.enter)="openVideo(vid)"
-                         (keydown.space)="onVideoSpace($event, vid)"
-                         (mouseenter)="onVideoEnter(vid)"
-                         (mouseleave)="onVideoLeave()">
-                  <div class="vid-thumb-wrap">
-                    <sc-news-thumb
-                      [images]="imagesOf(vid)"
-                      [channel]="vid.channel"
-                      [channelLabel]="('news.channels.' + vid.channel) | translate"
-                      [channelIcon]="iconFor(vid.channel)"
-                      [featured]="false" />
-                    @if (svc.isWatched(vid.id)) {
-                      <span class="watched-badge">
-                        <span class="tick" aria-hidden="true">✓</span>
-                        {{ 'news.videos.watched' | translate }}
+            <div class="rail-wrap">
+              <div class="rail-track" #railTrack (scroll)="onRailScroll()">
+                @for (vid of recentVideos(); track vid.id) {
+                  <article class="vid-card sc-reveal" [class.watched]="svc.isWatched(vid.id)"
+                           [attr.data-channel]="vid.channel" tabindex="0" role="button"
+                           [attr.aria-label]="vid.title"
+                           (click)="openVideo(vid)"
+                           (keydown.enter)="openVideo(vid)"
+                           (keydown.space)="onVideoSpace($event, vid)"
+                           (mouseenter)="onVideoEnter(vid)"
+                           (mouseleave)="onVideoLeave()">
+                    <div class="vid-thumb-wrap">
+                      <sc-news-thumb
+                        [images]="imagesOf(vid)"
+                        [channel]="vid.channel"
+                        [channelLabel]="('news.channels.' + vid.channel) | translate"
+                        [channelIcon]="iconFor(vid.channel)"
+                        [featured]="false" />
+                      <span class="vid-scrim" aria-hidden="true"></span>
+                      <span class="play" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.6v12.8a.6.6 0 0 0 .92.5l9.6-6.4a.6.6 0 0 0 0-1L8.92 5.1a.6.6 0 0 0-.92.5z"/></svg>
                       </span>
-                    }
-                  </div>
-                  <div class="vid-body">
-                    <h3>{{ vid.title }}</h3>
-                    <time>{{ relTime(vid.publishedAt) }}</time>
-                  </div>
-                </article>
-              }
+                      @if (svc.isWatched(vid.id)) {
+                        <span class="watched-badge">
+                          <span class="tick" aria-hidden="true">✓</span>
+                          {{ 'news.videos.watched' | translate }}
+                        </span>
+                      }
+                      <div class="vid-caption">
+                        <h3>{{ vid.title }}</h3>
+                        <time>{{ relTime(vid.publishedAt) }}</time>
+                      </div>
+                    </div>
+                  </article>
+                }
+              </div>
+              <button type="button" class="rail-nav prev" [class.off]="!canRailPrev()"
+                      [attr.aria-hidden]="!canRailPrev()" [attr.tabindex]="canRailPrev() ? 0 : -1"
+                      [attr.aria-label]="'news.videos.scrollPrev' | translate"
+                      (click)="scrollRail(-1)">‹</button>
+              <button type="button" class="rail-nav next" [class.off]="!canRailNext()"
+                      [attr.aria-hidden]="!canRailNext()" [attr.tabindex]="canRailNext() ? 0 : -1"
+                      [attr.aria-label]="'news.videos.scrollNext' | translate"
+                      (click)="scrollRail(1)">›</button>
             </div>
           </section>
         }
@@ -273,24 +288,37 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
          overlay; the footer keeps quick actions (save / share / external). -->
     <ng-template #card let-item let-featured="featured" let-showSummary="showSummary">
       <article class="card sc-reveal" [class.featured]="featured" [class.has-thumb]="!!item.thumbnail"
+               [class.video]="isVideo(item)"
                [attr.data-channel]="item.channel" tabindex="0" role="button"
                [attr.aria-label]="item.title"
                (click)="openDetail(item)"
                (keydown.enter)="openDetail(item)"
                (keydown.space)="onCardSpace($event, item)">
-        <sc-news-thumb
-          [images]="imagesOf(item)"
-          [channel]="item.channel"
-          [channelLabel]="('news.channels.' + item.channel) | translate"
-          [channelIcon]="iconFor(item.channel)"
-          [featured]="featured" />
+        <div class="thumb-wrap">
+          <sc-news-thumb
+            [images]="imagesOf(item)"
+            [channel]="item.channel"
+            [channelLabel]="('news.channels.' + item.channel) | translate"
+            [channelIcon]="iconFor(item.channel)"
+            [featured]="featured" />
+          @if (isVideo(item)) {
+            <span class="play" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.6v12.8a.6.6 0 0 0 .92.5l9.6-6.4a.6.6 0 0 0 0-1L8.92 5.1a.6.6 0 0 0-.92.5z"/></svg>
+            </span>
+          }
+        </div>
         <div class="body">
           <h3>{{ item.title }}</h3>
           @if (item.summary && showSummary) {
             <p>{{ item.summary }}</p>
           }
           <div class="foot">
-            <time>{{ relTime(item.publishedAt) }}</time>
+            <span class="when">
+              @if (isVideo(item)) {
+                <span class="vid-tag">{{ 'news.videos.badge' | translate }}</span>
+              }
+              <time>{{ relTime(item.publishedAt) }}</time>
+            </span>
             <span class="actions">
               <button type="button" class="act fav" [class.on]="isFav(item)"
                       [attr.aria-pressed]="isFav(item)"
@@ -319,12 +347,23 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
                    [attr.aria-label]="item.title" (click)="$event.stopPropagation()">
             <button type="button" class="nd-close" (click)="closeDetail()"
                     [attr.aria-label]="'news.detail.close' | translate">✕</button>
-            <sc-news-thumb
-              [images]="imagesOf(item)"
-              [channel]="item.channel"
-              [channelLabel]="('news.channels.' + item.channel) | translate"
-              [channelIcon]="iconFor(item.channel)"
-              [featured]="true" />
+            <div class="thumb-wrap nd-media">
+              <sc-news-thumb
+                [images]="imagesOf(item)"
+                [channel]="item.channel"
+                [channelLabel]="('news.channels.' + item.channel) | translate"
+                [channelIcon]="iconFor(item.channel)"
+                [featured]="true" />
+              <!-- For a video the hero doubles as the play target: one tap from
+                   the detail view straight into the clip. -->
+              @if (isVideo(item)) {
+                <a class="play play-link" [href]="item.url" target="_blank" rel="noopener noreferrer"
+                   [attr.aria-label]="'news.videos.play' | translate"
+                   [attr.title]="'news.videos.play' | translate">
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.6v12.8a.6.6 0 0 0 .92.5l9.6-6.4a.6.6 0 0 0 0-1L8.92 5.1a.6.6 0 0 0-.92.5z"/></svg>
+                </a>
+              }
+            </div>
             <div class="nd-body">
               <div class="nd-chan">
                 <span class="ch-icon" [innerHTML]="iconFor(item.channel)"></span>
@@ -358,7 +397,18 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
   `,
   styles: [`
     :host { display: block; }
-    .news-page { display: flex; flex-direction: column; gap: 16px; }
+    /* ---------- Tile scale ----------
+       One scale for the whole page (feedback 0a5268e7). Every section lays its
+       tiles out on the SAME track, so a "Heute" tile, a "Diese Woche" tile and an
+       "Älter" tile are pixel-identical instead of the old 280 / ~313 / 210 px mix.
+       The hero is not a separate size but an integer multiple of that track
+       (2 columns x 2 rows), and the video rail runs on the next step up. */
+    .news-page {
+      --news-tile: 300px;        /* article tile floor — was 280 (regular) / 210 (rail) */
+      --news-tile-video: 380px;  /* cinema tile floor: one step up on the same scale */
+      --news-gap: 16px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
 
     /* ---------- Header ---------- */
     .head {
@@ -489,22 +539,29 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .bucket-toggle:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
     /* ---------- Cards ---------- */
-    .cards { display: grid; gap: 14px; }
-    .today-cards { grid-template-columns: 1.6fr 1fr 1fr; grid-auto-rows: minmax(180px, auto); }
-    .today-cards .card.featured { grid-column: 1; grid-row: span 2; }
-    .regular-cards { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-    @media (max-width: 800px) {
-      .today-cards { grid-template-columns: 1fr; }
-      .today-cards .card.featured { grid-column: 1; grid-row: auto; }
+    /* Same track in every bucket — the tile size no longer depends on which
+       section an item happens to land in. */
+    .cards {
+      display: grid; gap: var(--news-gap);
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--news-tile)), 1fr));
+    }
+    /* The hero is two tiles wide and two tiles tall — a multiple of the scale,
+       not a size of its own. Below 760px the grid can hold fewer than two
+       columns, so it falls back to a plain tile (with the bigger type kept). */
+    @media (min-width: 760px) {
+      .today-cards .card.featured { grid-column: span 2; grid-row: span 2; }
     }
 
     .card {
       display: flex; flex-direction: column; gap: 0;
       border: 1px solid var(--sc-border); border-radius: 8px;
       background: var(--sc-bg-1); color: inherit; text-decoration: none;
-      overflow: hidden; min-height: 180px;
+      overflow: hidden; min-height: 200px;
       transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
     }
+    /* Thumb + optional play affordance share one positioning context. */
+    .thumb-wrap { position: relative; display: flex; }
+    .thumb-wrap > sc-news-thumb { flex: 1 1 auto; min-width: 0; }
     .card:hover {
       transform: translateY(-3px) scale(1.005);
       border-color: var(--sc-accent);
@@ -532,16 +589,24 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .card .body .foot .src { color: var(--sc-accent); text-transform: lowercase; }
     .card .body .foot time { color: var(--sc-fg-2); }
 
-    .card.featured { min-height: 380px; }
+    .card.featured { min-height: 420px; }
     .card.featured .body h3 { font-size: 1.25rem; font-family: var(--sc-font-display); letter-spacing: 0.02em; -webkit-line-clamp: 3; }
     .card.featured .body p { -webkit-line-clamp: 4; }
+    /* The hero spans two rows, so it is usually taller than its own content.
+       Let the image take that surplus instead of leaving a hollow text block. */
+    .card.featured .thumb-wrap { flex: 1 1 auto; }
+    /* 21/9 only pays off once the hero is genuinely wide; on a single-column
+       grid it would shrink to a letterbox sliver. */
+    @media (max-width: 759.98px) {
+      .card.featured sc-news-thumb { aspect-ratio: 16 / 9; }
+    }
 
     /* ---------- Skeleton ---------- */
     /* Mirrors the real card (thumb on top, text lines below) so the loading state
        reads as "content is coming", not as empty boxes. */
-    .card.skel { display: flex; flex-direction: column; gap: 0; cursor: default; min-height: 180px; }
+    .card.skel { display: flex; flex-direction: column; gap: 0; cursor: default; min-height: 200px; }
     .card.skel:hover { transform: none; box-shadow: none; border-color: var(--sc-border); }
-    .card.skel.featured { min-height: 380px; }
+    .card.skel.featured { min-height: 420px; }
     .skel-thumb { width: 100%; aspect-ratio: 16 / 9; display: block; }
     .card.skel.featured .skel-thumb { aspect-ratio: 21 / 9; }
     .skel-body { display: flex; flex-direction: column; gap: 9px; padding: 14px; flex: 1; }
@@ -595,31 +660,88 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .fav-chip.active { background: color-mix(in srgb, var(--sc-warning) 20%, transparent); border-color: var(--sc-warning); }
     .fav-chip.active .ct { background: color-mix(in srgb, var(--sc-warning) 28%, transparent); color: var(--sc-bg-0); }
 
-    /* ---------- Recent videos rail (#146) ---------- */
-    .video-rail { display: flex; flex-direction: column; gap: 10px; }
+    /* ---------- Recent videos rail (#146) ----------
+       Padded like a bucket so the rail's left edge lines up with the article
+       tiles below it, and carried on the same tile scale (--news-tile-video). */
+    .video-rail {
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent);
+    }
     .rail-note { font-size: 0.7rem; color: var(--sc-fg-2); margin-left: auto; }
+    /* min-width:0 all the way down to the scroll container — otherwise the
+       rail's min-content width (n x tile) pushes the whole page wide on phones. */
+    .video-rail, .rail-wrap { min-width: 0; }
+    .rail-wrap { position: relative; }
     .rail-track {
-      display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 78vw);
-      gap: 12px; overflow-x: auto; padding: 2px 2px 8px;
+      display: grid; grid-auto-flow: column;
+      /* Fixed, NOT 1fr: a rail holding two clips must not blow them up to twice
+         the width of a five-clip rail — the tile size stays a constant. */
+      grid-auto-columns: min(86vw, var(--news-tile-video));
+      gap: var(--news-gap); overflow-x: auto; padding: 2px 2px 10px;
       scroll-snap-type: x proximity; scrollbar-width: thin;
     }
-    /* On wider viewports the ~5-wide row fits without horizontal scrolling. */
-    @media (min-width: 720px) {
-      .rail-track { grid-auto-columns: minmax(0, 1fr); }
+    /* Cinema tiles are wider than the viewport can hold, so the rail scrolls.
+       Touch swipes it; pointer users get the arrows. */
+    .rail-nav {
+      position: absolute; top: 50%; transform: translateY(-60%); z-index: 4;
+      width: 36px; height: 36px; border-radius: 50%;
+      display: none; align-items: center; justify-content: center;
+      background: color-mix(in srgb, var(--sc-bg-0) 82%, transparent);
+      border: 1px solid var(--sc-border); color: var(--sc-fg-0);
+      font-size: 1.1rem; line-height: 1; cursor: pointer;
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      transition: opacity .18s ease, border-color .18s ease, color .18s ease;
     }
+    @media (min-width: 720px) { .rail-nav { display: inline-flex; } }
+    .rail-nav:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .rail-nav.off { opacity: 0; pointer-events: none; }
+    .rail-nav.prev { left: 2px; }
+    .rail-nav.next { right: 2px; }
+
+    /* Video tiles are deliberately NOT article tiles: the thumbnail is the card,
+       the caption rides on it under a scrim, and a play target sits dead centre
+       (feedback 0a5268e7 — "videos anders darstellen, kreativer"). */
     .vid-card {
-      display: flex; flex-direction: column; scroll-snap-align: start;
-      background: var(--sc-bg-1); border: 1px solid var(--sc-border);
+      position: relative; display: flex; flex-direction: column; scroll-snap-align: start;
+      background: var(--sc-bg-1);
+      border: 1px solid color-mix(in srgb, var(--sc-danger) 45%, var(--sc-border));
       border-radius: 10px; overflow: hidden; cursor: pointer; text-align: left;
-      transition: border-color .15s ease, transform .15s ease, opacity .2s ease;
+      transition: border-color .15s ease, transform .15s ease, opacity .2s ease, box-shadow .15s ease;
     }
     .vid-card:hover, .vid-card:focus-visible {
-      border-color: var(--sc-accent); transform: translateY(-2px); outline: none;
+      border-color: var(--sc-danger); transform: translateY(-2px); outline: none;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45),
+                  0 0 18px color-mix(in srgb, var(--sc-danger) 30%, transparent);
     }
     .vid-card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .vid-thumb-wrap { position: relative; }
+    /* HUD corner brackets in the channel colour — the same visual grammar the
+       rest of the app uses, tinted so a video reads as a video at a glance. */
+    .vid-card::before, .vid-card::after {
+      content: ''; position: absolute; width: 14px; height: 14px; z-index: 3;
+      border: 1px solid color-mix(in srgb, var(--sc-danger) 65%, transparent);
+      pointer-events: none;
+    }
+    .vid-card::before { top: 6px; left: 6px; border-right: 0; border-bottom: 0; }
+    .vid-card::after { bottom: 6px; right: 6px; border-left: 0; border-top: 0; }
+    .vid-thumb-wrap { position: relative; display: flex; }
+    .vid-thumb-wrap > sc-news-thumb { flex: 1 1 auto; min-width: 0; }
+    .vid-scrim {
+      position: absolute; inset: 30% 0 0; z-index: 2; pointer-events: none;
+      background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--sc-bg-0) 92%, transparent) 78%);
+    }
+    .vid-caption {
+      position: absolute; inset: auto 0 0; z-index: 3; pointer-events: none;
+      display: flex; flex-direction: column; gap: 2px; padding: 10px 12px 11px;
+    }
+    .vid-caption h3 {
+      margin: 0; font-size: 0.92rem; line-height: 1.3; color: var(--sc-fg-0);
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .vid-caption time { color: var(--sc-fg-1); font-size: 0.74rem; }
     .watched-badge {
-      position: absolute; top: 8px; right: 8px;
+      position: absolute; top: 8px; right: 8px; z-index: 4;
       display: inline-flex; align-items: center; gap: 4px;
       padding: 3px 8px; border-radius: 999px; font-size: 0.68rem; font-weight: 600;
       color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
@@ -629,14 +751,44 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .watched-badge .tick { color: var(--sc-accent); }
     .vid-card.watched { opacity: 0.55; }
     .vid-card.watched:hover, .vid-card.watched:focus-visible { opacity: 0.85; }
-    .vid-body { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; }
-    .vid-body h3 {
-      margin: 0; font-size: 0.9rem; line-height: 1.3;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+
+    /* ---------- Play affordance (rail, stream cards, detail) ---------- */
+    .play {
+      position: absolute; top: 50%; left: 50%; z-index: 3;
+      transform: translate(-50%, -50%);
+      width: 54px; height: 54px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--sc-fg-0);
+      background: color-mix(in srgb, var(--sc-danger) 78%, transparent);
+      border: 1px solid color-mix(in srgb, var(--sc-fg-0) 45%, transparent);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+      transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
     }
-    .vid-body time { color: var(--sc-fg-2); font-size: 0.75rem; }
+    .play svg { width: 22px; height: 22px; margin-left: 2px; display: block; }
+    .vid-card:hover .play, .vid-card:focus-visible .play,
+    .card.video:hover .play, .card.video:focus-visible .play {
+      transform: translate(-50%, -50%) scale(1.12);
+      background: var(--sc-danger);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5),
+                  0 0 0 8px color-mix(in srgb, var(--sc-danger) 22%, transparent);
+    }
+    /* In the stream (YouTube filter / favourites) a video keeps the article
+       layout — same tile size — but wears the same play + channel accent. */
+    .card.video { border-color: color-mix(in srgb, var(--sc-danger) 40%, var(--sc-border)); }
+    .card.video:hover { border-color: var(--sc-danger); }
+    .card.video .play { width: 46px; height: 46px; }
+    .card.video .play svg { width: 19px; height: 19px; }
+    .vid-tag {
+      display: inline-flex; align-items: center; gap: 4px; margin-right: 8px;
+      padding: 1px 7px; border-radius: 999px;
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--sc-danger); border: 1px solid color-mix(in srgb, var(--sc-danger) 55%, transparent);
+    }
+    .foot .when { display: inline-flex; align-items: center; }
     @media (prefers-reduced-motion: reduce) {
       .vid-card, .vid-card:hover, .vid-card:focus-visible { transform: none; }
+      .play, .vid-card:hover .play, .card.video:hover .play { transition: none; }
     }
 
     /* ---------- Card as button + quick actions ---------- */
@@ -676,6 +828,19 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       color: var(--sc-fg-0); cursor: pointer; font-size: 1rem; line-height: 1;
     }
     .nd-close:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .nd-media { width: 100%; }
+    .play-link {
+      pointer-events: auto; text-decoration: none;
+      width: 64px; height: 64px;
+    }
+    .play-link svg { width: 26px; height: 26px; }
+    .play-link:hover, .play-link:focus-visible {
+      transform: translate(-50%, -50%) scale(1.1);
+      background: var(--sc-danger); outline: none;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5),
+                  0 0 0 8px color-mix(in srgb, var(--sc-danger) 22%, transparent);
+    }
+    .play-link:focus-visible { outline: 2px solid var(--sc-fg-0); outline-offset: 3px; }
     .nd-body { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 20px; }
     .nd-chan { display: flex; align-items: center; gap: 8px; font-size: 0.74rem; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
     .nd-chan .ch-icon { display: inline-flex; width: 15px; height: 15px; }
@@ -741,6 +906,18 @@ export class NewsListComponent implements OnInit, OnDestroy {
     return active.size === 0 || active.has('youtube');
   });
   private dwellTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Rail scroll affordance: the cinema tiles run on --news-tile-video, so five
+  // of them overflow every realistic viewport. Touch swipes; pointer users get
+  // arrows, and each arrow hides itself at its end of the track.
+  private readonly railTrack = viewChild<ElementRef<HTMLElement>>('railTrack');
+  readonly canRailPrev = signal(false);
+  readonly canRailNext = signal(false);
+  private readonly syncRailScroll = effect(() => {
+    this.railTrack();      // dependency: rail mounted / unmounted
+    this.recentVideos();   // dependency: track content changed
+    this.updateRailScroll();
+  });
 
   // Enlarged in-app detail view (CDK overlay), plus a transient share toast.
   private readonly detailTpl = viewChild.required<TemplateRef<unknown>>('detailTpl');
@@ -867,6 +1044,37 @@ export class NewsListComponent implements OnInit, OnDestroy {
 
   private clearDwell(): void {
     if (this.dwellTimer) { clearTimeout(this.dwellTimer); this.dwellTimer = null; }
+  }
+
+  /** Video items get the cinematic treatment wherever they are rendered. */
+  isVideo(item: VerseNewsItem): boolean {
+    return item.channel === 'youtube';
+  }
+
+  // ── Video rail scrolling ─────────────────────────────────────────────────
+  onRailScroll(): void { this.updateRailScroll(); }
+
+  @HostListener('window:resize')
+  onWindowResize(): void { this.updateRailScroll(); }
+
+  scrollRail(dir: 1 | -1): void {
+    const el = this.railTrack()?.nativeElement;
+    if (!el) return;
+    const step = Math.max(240, Math.round(el.clientWidth * 0.8));
+    el.scrollBy({ left: dir * step, behavior: 'smooth' });
+  }
+
+  private updateRailScroll(): void {
+    const el = this.railTrack()?.nativeElement;
+    if (!el) {
+      this.canRailPrev.set(false);
+      this.canRailNext.set(false);
+      return;
+    }
+    // 8px slack: sub-pixel scroll positions must not leave a dead arrow behind.
+    const max = el.scrollWidth - el.clientWidth;
+    this.canRailPrev.set(el.scrollLeft > 8);
+    this.canRailNext.set(el.scrollLeft < max - 8);
   }
 
   @HostListener('document:keydown.escape')

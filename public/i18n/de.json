@@ -671,7 +671,11 @@
     "videos": {
       "title": "Neue Videos",
       "watched": "Gesehen",
-      "retention": "Nur die letzten {{days}} Tage"
+      "retention": "Nur die letzten {{days}} Tage",
+      "badge": "Video",
+      "play": "Video abspielen",
+      "scrollPrev": "Vorherige Videos",
+      "scrollNext": "Weitere Videos"
     },
     "detail": {
       "close": "Schließen"
