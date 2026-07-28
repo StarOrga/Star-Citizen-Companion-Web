@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.54.0",
+  "current": "0.55.1",
   "releases": [
+    {
+      "version": "0.55.1",
+      "date": "2026-07-28",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "The hardpoint markers on the 3D ship were invisible and unclickable.",
+              "text": "data-visibility-attribute belongs on each hotspot, not on <model-viewer>, so model-viewer never marked any marker as visible — and the stylesheet used that missing flag to fade markers to 25% *and* strip their pointer events. Every one of the 96 markers shipped in 0.55.0 was therefore dead on arrival. The attribute now sits where model-viewer reads it, and the occlusion rule only dims: a marker behind the hull recedes but stays clickable, so a wiring slip can never again turn the whole feature off. Found by driving the real rendered model in a browser — a DOM-only check cannot see this, because the markup was correct and only the rendered result was wrong."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.55.0",
+      "date": "2026-07-28",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Hovering a component now shows where it sits on the 3D ship.",
+              "text": "The loadout list, the orthographic hull map and the 3D model are three views of one selection: point at a component row and its marker lights up on the model, point at a marker and its row lights up. The marker positions are read out of the ship's own .glb — CryEngine's hardpoint_* / helper_* locator nodes survive the export pipeline and are named exactly like the codex port names, so nothing has to be re-extracted and no coordinate convention has to be guessed. 96 of the Cutlass Black's 100 ports resolve to a marker; the rest are abstract ports with no physical presence on the hull. Ships whose model carries no locators are unchanged."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.54.0",
       "date": "2026-07-27",
