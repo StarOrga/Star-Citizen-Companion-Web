@@ -110,7 +110,6 @@ const GLB_HEAD_BYTES = 1_048_576;
                   environment-image="neutral"
                   camera-orbit="35deg 75deg 105%"
                   interaction-prompt="none"
-                  data-visibility-attribute="visible"
                   (load)="onModelLoad()"
                   (error)="onModelError()"
                 >
@@ -125,6 +124,7 @@ const GLB_HEAD_BYTES = 1_048_576;
                       [attr.slot]="h.slot"
                       [attr.data-position]="h.position"
                       data-normal="0 1 0"
+                      data-visibility-attribute="visible"
                       [attr.aria-label]="h.itemName ? h.label + ' — ' + h.itemName : h.label"
                       (mouseenter)="hovered.emit([h.port])"
                       (mouseleave)="hovered.emit(null)"
@@ -487,9 +487,11 @@ const GLB_HEAD_BYTES = 1_048_576;
       /* ── Hardpoint markers on the hull (#256) ───────────────────────
          model-viewer positions these itself via the slot/data-position
          pair; everything here is only what the dot looks like. The
-         occluded state comes from data-visibility-attribute="visible",
-         so a marker on the far side of the hull fades instead of
-         floating in front of it. */
+         occluded state comes from the PER-HOTSPOT
+         data-visibility-attribute (on the button, not on <model-viewer>),
+         which makes model-viewer add data-visible while the marker is
+         unoccluded — so a marker on the far side of the hull fades
+         instead of floating in front of it. */
       .hp-dot {
         position: relative; /* anchors .hp-tip */
         width: 14px;
@@ -501,9 +503,14 @@ const GLB_HEAD_BYTES = 1_048_576;
         cursor: pointer;
         transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease;
       }
+      /* Occluded markers recede but stay usable. model-viewer ADDS data-visible
+         to an unoccluded hotspot and removes it again — so "no attribute" means
+         either "behind the hull" or "the per-hotspot data-visibility-attribute
+         is not wired". Dimming is therefore the most this rule may do: a version
+         that also killed pointer-events turned a wiring slip into a dead
+         feature (every marker faint and unclickable) instead of a cosmetic one. */
       .hp-dot:not([data-visible]) {
-        opacity: 0.25;
-        pointer-events: none;
+        opacity: 0.4;
       }
       .hp-dot:hover,
       .hp-dot:focus-visible,
