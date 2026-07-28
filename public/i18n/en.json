@@ -671,7 +671,11 @@
     "videos": {
       "title": "Recent Videos",
       "watched": "Watched",
-      "retention": "Last {{days}} days only"
+      "retention": "Last {{days}} days only",
+      "badge": "Video",
+      "play": "Play video",
+      "scrollPrev": "Previous videos",
+      "scrollNext": "More videos"
     },
     "detail": {
       "close": "Close"

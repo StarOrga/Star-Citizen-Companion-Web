@@ -336,7 +336,8 @@ export function isPixelReadable(url: string): boolean {
     }
     /* Blur-up reveal: the layer fades in and sharpens the moment it decodes. */
     .layer.show { opacity: 1; filter: blur(0); }
-    :host-context(.card:hover) .layer.show { transform: scale(calc(var(--sc-thumb-zoom, 1) * 1.04)); }
+    :host-context(.card:hover) .layer.show,
+    :host-context(.vid-card:hover) .layer.show { transform: scale(calc(var(--sc-thumb-zoom, 1) * 1.04)); }
 
     .ch-pill {
       position: absolute; top: 8px; left: 8px; z-index: 2;
