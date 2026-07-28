@@ -4,6 +4,35 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.55.2] - 2026-07-28
+
+### Fixed
+
+- **The 3D ship view was dead in production — for every visitor, since the CSP
+  landed.** Not just the new hardpoint markers: the always-on 3D view and the
+  Showroom too. Everyone got "3D-Modell konnte nicht geladen werden". The
+  Content-Security-Policy from #200 denied four things `<model-viewer>` needs to
+  render a Draco-compressed hull: `blob:` in `img-src` (three.js decodes glb
+  textures into blob URLs), in `connect-src` (it fetches them back) and in
+  `worker-src` (the Draco decoder runs in a blob worker), plus
+  `'wasm-unsafe-eval'` in `script-src` for the decoder's WebAssembly module —
+  deliberately not `'unsafe-eval'`, which would also permit `eval()`. The
+  decoder itself is fetched from Google's CDN, so `https://www.gstatic.com` is
+  allowed in `connect-src` as well.
+
+  Nothing caught this because nothing could: the build was green, the tests were
+  green, and the app degraded politely instead of failing. Reproduced by serving
+  the production build locally under the exact deployed policy, then confirmed
+  fixed the same way — model loads, all 96 markers visible, clickable and
+  placed.
+
+### Added
+
+- **A build-time guard so the 3D view cannot be switched off unnoticed again.**
+  `npm run check:csp-3d` (wired into `prebuild`) fails the build if the policy
+  in `vercel.json` loses any source the renderer depends on, and says which one
+  and why.
+
 ## [0.55.1] - 2026-07-28
 
 ### Fixed
