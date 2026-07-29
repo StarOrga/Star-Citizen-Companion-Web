@@ -274,7 +274,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (op === 'ingredients') {
       const rows = body.rows as unknown[];
       if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
-      const { error } = await admin.from('codex_blueprint_ingredients').insert(rows);
+      // Idempotent on the natural key: the uploader's resumable chunk sender
+      // persists its cursor BEFORE the call it guards, so a run killed
+      // mid-flight replays exactly one chunk on resume. A plain insert
+      // duplicated those recipe rows (and `clear_ingredients` only runs when a
+      // phase starts from scratch, so it could never clean them up).
+      // Requires the codex_bp_ingredients_natural_idx unique index — apply the
+      // migration before deploying this function.
+      const { error } = await admin
+        .from('codex_blueprint_ingredients')
+        .upsert(rows, {
+          onConflict: 'build_id,blueprint_class_name,ingredient_index',
+          ignoreDuplicates: false,
+        });
       if (error) throw error;
       return json({ ok: true, inserted: rows.length });
     }

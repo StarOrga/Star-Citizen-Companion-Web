@@ -9,31 +9,23 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   BlueprintListFilters,
   CodexListRow,
   CodexService,
   pickLocalized,
 } from './codex.service';
-import { cleanLocaleValue, formatCraftTime, humanizeClassName } from './codex-format';
+import {
+  cleanLocaleValue,
+  formatCraftTime,
+  humanizeBlueprintCategory,
+  humanizeBlueprintName,
+} from './codex-format';
 import { BlueprintPayload } from './codex.types';
 
 const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
-
-// Blueprint categories shown in the facet filter.
-const BLUEPRINT_CATEGORIES = [
-  'ship_components',
-  'fps_weapons',
-  'ship_weapons',
-  'consumables',
-  'armor',
-  'clothing',
-  'food',
-  'medicine',
-  'other',
-] as const;
 
 @Component({
   selector: 'sc-blueprint-list',
@@ -69,15 +61,17 @@ const BLUEPRINT_CATEGORIES = [
           }
         </div>
         <div class="facets">
-          <label class="facet">
-            <span>{{ 'blueprint.filters.category' | translate }}</span>
-            <select class="sc-select" [ngModel]="category()" (ngModelChange)="setCategory($event)">
-              <option value="">{{ 'codex.filters.all' | translate }}</option>
-              @for (c of categories; track c) {
-                <option [value]="c">{{ ('blueprint.category.' + c) | translate }}</option>
-              }
-            </select>
-          </label>
+          @if (categories().length > 0) {
+            <label class="facet">
+              <span>{{ 'blueprint.filters.category' | translate }}</span>
+              <select class="sc-select" [ngModel]="category()" (ngModelChange)="setCategory($event)">
+                <option value="">{{ 'codex.filters.all' | translate }}</option>
+                @for (c of categories(); track c) {
+                  <option [value]="c">{{ categoryLabel(c) }}</option>
+                }
+              </select>
+            </label>
+          }
           @if (hasActiveFilters()) {
             <button class="reset" type="button" (click)="resetFilters()">
               {{ 'codex.filters.reset' | translate }}
@@ -121,7 +115,7 @@ const BLUEPRINT_CATEGORIES = [
                 <code class="cls">{{ r.classNameSlug }}</code>
                 <div class="badges">
                   @if (r.blueprintCategory) {
-                    <span class="badge cat">{{ ('blueprint.category.' + r.blueprintCategory) | translate }}</span>
+                    <span class="badge cat">{{ categoryLabel(r.blueprintCategory) }}</span>
                   }
                   @if (r.blueprintTier != null) {
                     <span class="badge">{{ 'blueprint.card.tier' | translate: { tier: r.blueprintTier } }}</span>
@@ -226,8 +220,15 @@ const BLUEPRINT_CATEGORIES = [
 })
 export class BlueprintListComponent implements OnInit {
   readonly svc = inject(CodexService);
+  private readonly t = inject(TranslateService);
 
-  readonly categories = BLUEPRINT_CATEGORIES;
+  /**
+   * Facet buckets from the build itself. This used to be a hardcoded snake_case
+   * list (`ship_components`, `fps_weapons`, …) that matched nothing the
+   * extractor writes (CIG emits `FPSArmours`, `VehicleComponentS1`, …), so
+   * every filter pick returned zero rows and every badge leaked its i18n key.
+   */
+  readonly categories = signal<string[]>([]);
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
 
   readonly searchInput = signal('');
@@ -254,12 +255,25 @@ export class BlueprintListComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.svc.loadCurrentBuild();
+    try {
+      this.categories.set(await this.svc.blueprintCategories());
+    } catch {
+      // Advisory facet — a failure hides the filter, it never breaks the list.
+      this.categories.set([]);
+    }
+  }
+
+  /** Translated bucket label, humanized fallback for buckets we have no key for. */
+  categoryLabel(c: string): string {
+    const key = `blueprint.category.${c}`;
+    const translated = this.t.instant(key);
+    return translated && translated !== key ? translated : humanizeBlueprintCategory(c);
   }
 
   cardName(r: CodexListRow): string {
     const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
     const en = p?.name ? pickLocalized(p.name, 'en') : '';
-    return en || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
+    return en || cleanLocaleValue(r.nameLocalized) || humanizeBlueprintName(r.classNameSlug);
   }
 
   craftTimeLabel(r: CodexListRow): string | null {

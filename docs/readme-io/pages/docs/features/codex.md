@@ -1,11 +1,12 @@
 ---
 title: Codex
-excerpt: Every ship, weapon, component, item, ammo and manufacturer — datamined from the live build and searchable.
+excerpt: Every ship, weapon, component, item, ammo, manufacturer and crafting blueprint — datamined from the live build and searchable.
 ---
 
 The **Codex** is the reference half of SC Companion: ships, weapons,
-components, items, ammunition and manufacturers, extracted from the live game
-build rather than transcribed by hand. It is public — no account needed.
+components, items, ammunition, manufacturers and crafting blueprints, extracted
+from the live game build rather than transcribed by hand. It is public — no
+account needed.
 
 ## The Bridge
 
@@ -24,6 +25,10 @@ build rather than transcribed by hand. It is public — no account needed.
 `/codex/index` is the power-user escape hatch: the full filter list with kind
 tabs, every facet, a result grid, load-more paging and the compare tray. One
 click from the Bridge.
+
+Kind tabs are driven by the build manifest: a kind the current build reports as
+empty is shown greyed out with a *soon* marker, and everything the build
+actually carries — blueprints included — is browsable.
 
 ## Ship detail — the stock loadout
 
@@ -63,8 +68,19 @@ the UI already has a slot for each of them.
 
 ## Blueprints
 
-Blueprint pages break a ship down into its hardpoint layout and the components
-it carries, driven by the same extracted catalog.
+`/codex/blueprint` lists the game's **crafting blueprints** — the datamined
+recipes behind the crafting loop. Reach them from the Bridge link row, or as a
+kind tab in Index mode alongside ships, weapons and the rest.
+
+Each card carries its category (CIG's own buckets: FPS armor, FPS weapons,
+vehicle components and vehicle weapons by size class, mission items), its tier
+and its craft time. The category filter is built from the categories the current
+build actually contains, so it never offers a bucket that returns nothing.
+
+A blueprint page then shows the full recipe: tier, craft and dismantle time,
+output quantity, and every ingredient with its quantity, role (primary,
+secondary, catalyst) and minimum quality. Ingredients link to their own Codex
+pages, and an item page links back to the blueprints that consume it.
 
 ## Keybinds
 

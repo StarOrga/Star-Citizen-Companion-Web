@@ -559,19 +559,25 @@
       "category": "Category"
     },
     "category": {
-      "ship_components": "Ship Components",
-      "fps_weapons": "FPS Weapons",
-      "ship_weapons": "Ship Weapons",
-      "consumables": "Consumables",
-      "armor": "Armor",
-      "clothing": "Clothing",
-      "food": "Food",
-      "medicine": "Medicine",
-      "other": "Other"
+      "FPSArmours": "FPS Armor",
+      "FPSWeapons": "FPS Weapons",
+      "MissionItem": "Mission Item",
+      "VehicleComponentS0": "Vehicle Component S0",
+      "VehicleComponentS1": "Vehicle Component S1",
+      "VehicleComponentS2": "Vehicle Component S2",
+      "VehicleComponentS3": "Vehicle Component S3",
+      "VehicleComponentS4": "Vehicle Component S4",
+      "VehicleWeaponsS1": "Vehicle Weapons S1",
+      "VehicleWeaponsS2": "Vehicle Weapons S2",
+      "VehicleWeaponsS3": "Vehicle Weapons S3",
+      "VehicleWeaponsS4": "Vehicle Weapons S4",
+      "VehicleWeaponsS5": "Vehicle Weapons S5",
+      "VehicleWeaponsS6": "Vehicle Weapons S6"
     },
     "card": {
       "tier": "Tier {{tier}}"
     },
+    "recipesMissing": "No recipe ingredients were extracted for this build yet — blueprints are listed, but without their material list.",
     "role": {
       "primary": "Primary",
       "secondary": "Secondary",
