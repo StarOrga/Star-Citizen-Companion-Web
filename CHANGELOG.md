@@ -4,6 +4,64 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.56.0] - 2026-07-29
+
+### Added
+
+- **Unsent feedback input is kept on your account — everywhere, including
+  screenshots.** Somebody wrote a long topic about the Verse News overhaul, never
+  pressed send, closed the tab, and it was gone. The only safety net had been a
+  single `localStorage` key for the new-topic box: text only, no attachments, no
+  reply boxes, and gated behind the opt-in *preferences* consent — so anyone who
+  declined had no draft at all, and no draft ever survived switching device.
+
+  Drafts now live in `public.feedback_drafts`, one row per (account, composer).
+  Every composer in the feedback surface has its own scope, so the three boxes a
+  single thread can show never overwrite each other. Attachments upload into the
+  existing `feedback-images` bucket the moment they are attached, so the row
+  holds a URL instead of megabytes of base64 — and sending a restored draft
+  reuses that object instead of storing it twice.
+
+  A draft is removed by exactly two events: a successful send, or the user
+  pressing discard (two-step, so one stray click cannot destroy minutes of
+  writing). Not by a reload, not by closing the panel, not by a failed write — a
+  failed write keeps the value, says so in the composer, and retries. `pagehide`
+  flushes with `fetch(keepalive)`, the one path that still completes while the
+  tab is being torn down, which is exactly the case that lost the original
+  report. Pre-existing `localStorage` drafts are imported once, then removed.
+
+- **A review gate: shipping no longer ends a topic — signing it off does.**
+  `shipped` / `issue_created` used to drop a topic straight into the archive, so
+  nobody ever looked at the result on the live app. Those outcomes now stay on
+  the active board in an *Abnahme* bucket with two ways out: sign it off (→
+  Erledigt) or resume the conversation, which returns the topic to the routine's
+  queue. Backed by `admin_feedback.reviewed_at`, deliberately not a new status
+  value — the autonomous routine's contract is status-only and unchanged. Topics
+  that ended before the gate existed are backfilled as reviewed.
+
+### Changed
+
+- **The lifecycle map now has the shape of the machine it describes.** Rückfragen
+  and the terminal states were listed under the diagram as an "Abzweigungen &
+  Endstationen" footer, which is not what they are. A Rückfrage is now drawn
+  inside the stage it detours from and loops back into, and the path ends in a
+  visible fork: either geshipped or handed to an issue — after the sign-off.
+
+- **One word per bucket across the whole admin panel.** The charts drop from a
+  bar-per-bucket to the four that carry information, in the order a topic walks
+  them: ToDo · Offen (in Arbeit, Rückfragen, Abnahme) · Geshipped · Issue
+  erstellt — all labelled from the same source the filter chips use, so they
+  cannot drift apart. The archive tab is now "Erledigt", and the totals line —
+  the quick analytical read — is shown in the docked FAB panel too instead of
+  being dropped there.
+
+### Known debt
+
+- The mobile/tablet gate from #307 is red on `main` (704 findings, all on
+  `/login` and the shared topbar: 41–38 px form controls, 16 px trust links,
+  sub-12 px labels). Verified identical on `origin/main` and on this branch, so
+  this release neither causes nor worsens it. Needs its own pass.
+
 ## [0.55.2] - 2026-07-28
 
 ### Fixed
