@@ -39,7 +39,8 @@ run (*More info → Run anyway*).
 | **Screensaver delay ▸** | Idle time before the screensaver appears — 5 / 10 / 15 / 30 / 60 min |
 | **Fade transition** | Toggle the crossfade |
 | **Weekly Verse News on start** | Show a weekly Verse-News summary image as the first wallpaper after boot or login, once per day. On by default |
-| **Start with Windows** | Autostart via the user's `Run` key. On by default for new installs; existing installs keep their current setting |
+| **Start with Windows** | Autostart via the user's `Run` key. On by default for new installs; existing installs keep their current setting. When enabled, the entry always follows the copy you actually launched — downloading a newer build and starting it once is enough to make it the installed one |
+| **◈ v… (update status)** | Always names the running version plus the update state: up to date, update available, downloading, or *sign in for `<ring>` updates*. A signed-out install on a locked ring even flags "outdated" when a newer build is already public. Click to sign in, install, or retry |
 | **Show Verse News summary now** | Re-fetch the summary and set it immediately |
 | **Open Starscape website** | The web gallery |
 
