@@ -42,6 +42,12 @@ export interface FetchedImage {
 
 export type ImageFetcher = (url: string) => Promise<FetchedImage | undefined>;
 
+// A comm-link that embeds a clip lists the clip itself among its media urls.
+// Those can never become a wallpaper, and each one wasted one of the four
+// candidate slots below on a multi-MB download that only ever fails to decode.
+// Deny-list: RSI's signed `/i/<sha1>/…` proxy urls carry no extension at all.
+const NON_IMAGE_URL = /\.(mp4|webm|mov|m4v|avi|mkv|ogv|ogg|mp3|wav|pdf|zip)(?:[?#]|$)/i;
+
 /** Ordered, deduped candidate urls for an item: thumbnail first, then images[]. */
 export function imageCandidates(
   item: { thumbnail?: string; images?: string[] },
@@ -49,7 +55,7 @@ export function imageCandidates(
   const out: string[] = [];
   const seen = new Set<string>();
   for (const url of [item.thumbnail, ...(item.images ?? [])]) {
-    if (!url || seen.has(url)) continue;
+    if (!url || seen.has(url) || NON_IMAGE_URL.test(url)) continue;
     seen.add(url);
     out.push(url);
   }
