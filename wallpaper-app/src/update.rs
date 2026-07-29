@@ -76,8 +76,10 @@ pub enum State {
     /// Only ever seen when the relaunch was deferred (screensaver on screen).
     Installed(String),
     /// The locked ring is above the anonymous tier — a website sign-in is needed
-    /// before this ring's builds are served.
-    SignInRequired,
+    /// before this ring's builds are served. `newer` carries the version the
+    /// clamped (lower-ring) response actually served, when even THAT is newer
+    /// than this build: proof of being outdated that needs no sign-in at all.
+    SignInRequired { newer: Option<String> },
     /// Signed in, but the account's role does not reach the locked ring (e.g. a
     /// beta copy on a viewer account). Deliberately NOT actionable: clicking
     /// would only re-open a browser sign-in that cannot change the outcome.
@@ -182,31 +184,54 @@ fn pick_channel(from_name: Option<Channel>, stored: Option<Channel>) -> Channel 
 /// Tray label for the current state — the SCC "status readout" voice, and the
 /// only place the updater ever talks to the user.
 pub fn tray_label(channel: Channel) -> String {
+    label_for(state(), channel)
+}
+
+/// [`tray_label`] separated from the global state so it can be tested for every
+/// state without racing other tests over the `STATE` mutex.
+fn label_for(state: State, channel: Channel) -> String {
     let ring = channel.as_str();
-    match state() {
-        State::Checking => util::t("◈ Suche nach Updates…", "◈ Checking for updates…"),
+    // Every state names the running version. The tray is the only surface this
+    // app has, and "which build am I even on?" must never depend on which state
+    // the updater happens to be stuck in (a signed-out alpha install used to sit
+    // in SignInRequired forever, showing no version at all).
+    match state {
+        State::Checking => util::t(
+            &format!("◈ v{CURRENT_VERSION} · Suche nach Updates…"),
+            &format!("◈ v{CURRENT_VERSION} · checking for updates…"),
+        ),
         State::Current => util::t(
             &format!("◈ Aktuell · v{CURRENT_VERSION} · {ring}"),
             &format!("◈ Up to date · v{CURRENT_VERSION} · {ring}"),
         ),
         State::Available(v) => util::t(
-            &format!("▲ Update verfügbar · v{v}"),
-            &format!("▲ Update available · v{v}"),
+            &format!("▲ Update verfügbar · v{CURRENT_VERSION} → v{v}"),
+            &format!("▲ Update available · v{CURRENT_VERSION} → v{v}"),
         ),
-        State::Downloading => util::t("▼ Update wird geladen…", "▼ Downloading update…"),
+        State::Downloading => util::t(
+            &format!("▼ v{CURRENT_VERSION} · Update wird geladen…"),
+            &format!("▼ v{CURRENT_VERSION} · downloading update…"),
+        ),
         State::Installed(v) => util::t(
             &format!("◈ v{v} installiert · aktiv beim nächsten Start"),
             &format!("◈ v{v} installed · active on next start"),
         ),
-        State::SignInRequired => util::t(
-            &format!("◈ Anmelden für {ring}-Updates"),
-            &format!("◈ Sign in for {ring} updates"),
+        State::SignInRequired { newer: Some(v) } => util::t(
+            &format!("▲ v{CURRENT_VERSION} veraltet (≥ v{v}) · Anmelden für {ring}-Updates"),
+            &format!("▲ v{CURRENT_VERSION} outdated (≥ v{v}) · sign in for {ring} updates"),
+        ),
+        State::SignInRequired { newer: None } => util::t(
+            &format!("◈ v{CURRENT_VERSION} · Anmelden für {ring}-Updates"),
+            &format!("◈ v{CURRENT_VERSION} · sign in for {ring} updates"),
         ),
         State::NotEntitled => util::t(
             &format!("◈ v{CURRENT_VERSION} · {ring} für dieses Konto nicht freigegeben"),
             &format!("◈ v{CURRENT_VERSION} · {ring} not enabled for this account"),
         ),
-        State::Failed => util::t("▲ Update fehlgeschlagen · erneut versuchen", "▲ Update failed · retry"),
+        State::Failed => util::t(
+            &format!("▲ v{CURRENT_VERSION} · Update fehlgeschlagen · erneut versuchen"),
+            &format!("▲ v{CURRENT_VERSION} · update failed · retry"),
+        ),
         State::Unknown => util::t(
             &format!("◈ Starscape v{CURRENT_VERSION} · {ring}"),
             &format!("◈ Starscape v{CURRENT_VERSION} · {ring}"),
@@ -216,7 +241,7 @@ pub fn tray_label(channel: Channel) -> String {
 
 /// True when clicking the tray entry does something.
 pub fn is_actionable() -> bool {
-    matches!(state(), State::Available(_) | State::SignInRequired | State::Failed)
+    matches!(state(), State::Available(_) | State::SignInRequired { .. } | State::Failed)
 }
 
 /// One full cycle: resolve the ring, and install straight away when a genuinely
@@ -251,7 +276,7 @@ pub fn run_cycle(interactive: bool, channel: Channel, on_signed_in: &dyn Fn()) -
     // and the feed then reads us as anonymous, which looks exactly like "your role
     // is too low". Ask the auth server once: a rejected refresh clears the store
     // and turns this into the sign-in case below, which is the honest answer.
-    if matches!(outcome, Outcome::Clamped) && token.is_some() {
+    if matches!(outcome, Outcome::Clamped { .. }) && token.is_some() {
         token = session::revalidate();
         if token.is_some() {
             outcome = check(channel, token.as_deref());
@@ -262,7 +287,7 @@ pub fn run_cycle(interactive: bool, channel: Channel, on_signed_in: &dyn Fn()) -
     // Only worth a browser trip when we have NO usable session: being clamped with
     // a live one means the account's role, not its sign-in state, is the limit, and
     // re-authenticating as the same user cannot change that.
-    if interactive && token.is_none() && matches!(outcome, Outcome::Clamped) {
+    if interactive && token.is_none() && matches!(outcome, Outcome::Clamped { .. }) {
         if let Some(fresh) = crate::auth::run_oauth_flow() {
             fresh.save();
             on_signed_in();
@@ -272,14 +297,14 @@ pub fn run_cycle(interactive: bool, channel: Channel, on_signed_in: &dyn Fn()) -
     }
 
     match outcome {
-        Outcome::Clamped if token.is_some() => {
+        Outcome::Clamped { .. } if token.is_some() => {
             log::line("update: signed in, but this account's role does not reach the locked ring");
             set_state(State::NotEntitled);
             false
         }
-        Outcome::Clamped => {
+        Outcome::Clamped { newer } => {
             log::line("update: ring above the anonymous tier — website sign-in required");
-            set_state(State::SignInRequired);
+            set_state(State::SignInRequired { newer });
             false
         }
         Outcome::Failed => {
@@ -303,8 +328,10 @@ pub fn run_cycle(interactive: bool, channel: Channel, on_signed_in: &dyn Fn()) -
 enum Outcome {
     /// Feed unreachable or unparseable.
     Failed,
-    /// The server clamped us to a lower ring than the locked one.
-    Clamped,
+    /// The server clamped us to a lower ring than the locked one. `newer` is
+    /// the version that lower ring serves, kept only when it beats the running
+    /// build — see [`clamp_newer_hint`].
+    Clamped { newer: Option<String> },
     Current,
     Newer(Release),
 }
@@ -343,7 +370,7 @@ fn check(channel: Channel, access_token: Option<&str>) -> Outcome {
     // caller's tier was clamped — never install across rings on that basis.
     let served = net::json_str(&text, "channel").unwrap_or_default();
     if !served.is_empty() && served != channel.as_key() {
-        return Outcome::Clamped;
+        return Outcome::Clamped { newer: clamp_newer_hint(&text) };
     }
 
     let Some(version) = net::json_str(&text, "version") else {
@@ -396,6 +423,18 @@ fn check(channel: Channel, access_token: Option<&str>) -> Outcome {
         return Outcome::Failed;
     };
     Outcome::Newer(Release { version, url, sha256, size_bytes })
+}
+
+/// The "you are provably outdated" hint carried by a clamped feed response.
+///
+/// A clamp serves the LOWER ring's release, and rings only ever trail each
+/// other — stable is the slowest. So when even the clamped version beats the
+/// running build, the build is outdated no matter what the locked ring would
+/// say; that fact is worth showing to a signed-out user. When the clamped
+/// version is not newer, nothing is known about the locked ring and the hint
+/// stays empty — never installed from, only displayed.
+fn clamp_newer_hint(feed_text: &str) -> Option<String> {
+    net::json_str(feed_text, "version").filter(|v| is_newer(v, CURRENT_VERSION))
 }
 
 /// Path of the "what we last wrote over ourselves" marker.
@@ -681,7 +720,10 @@ mod tests {
         assert!(!is_actionable());
         set_state(State::Available("0.4.0".into()));
         assert!(is_actionable());
-        set_state(State::SignInRequired);
+        set_state(State::SignInRequired { newer: None });
+        assert!(is_actionable());
+        // The outdated-hint variant is the same click target.
+        set_state(State::SignInRequired { newer: Some("9.9.9".into()) });
         assert!(is_actionable());
         set_state(State::Downloading);
         assert!(!is_actionable());
@@ -689,6 +731,54 @@ mod tests {
         set_state(State::NotEntitled);
         assert!(!is_actionable());
         set_state(State::Unknown);
+    }
+
+    /// The tray is the app's only surface: every state must name the running
+    /// version, or a stuck state (a signed-out alpha install, a failed feed)
+    /// leaves the user unable to tell a fresh build from a months-old one.
+    #[test]
+    fn every_tray_label_names_the_running_version() {
+        let needle = format!("v{CURRENT_VERSION}");
+        let all = [
+            State::Unknown,
+            State::Checking,
+            State::Current,
+            State::Available("9.9.9".into()),
+            State::Downloading,
+            State::SignInRequired { newer: None },
+            State::SignInRequired { newer: Some("9.9.9".into()) },
+            State::NotEntitled,
+            State::Failed,
+        ];
+        for s in all {
+            let label = label_for(s, Channel::Alpha);
+            assert!(
+                label.contains(&needle),
+                "tray label {label:?} does not name the running version"
+            );
+        }
+        // Installed names the NEW build instead — the running version is the
+        // one thing that label is explicitly about replacing.
+        assert!(label_for(State::Installed("9.9.9".into()), Channel::Alpha).contains("v9.9.9"));
+    }
+
+    #[test]
+    fn a_clamped_feed_flags_outdated_only_when_even_the_lower_ring_is_newer() {
+        // Stable already serves something newer than this build → provably old.
+        assert_eq!(
+            clamp_newer_hint(r#"{"version":"99.0.0","channel":"stable"}"#),
+            Some("99.0.0".to_string())
+        );
+        // Stable trails the running build (normal for an alpha install):
+        // nothing is known about the locked ring — no hint.
+        assert_eq!(clamp_newer_hint(r#"{"version":"0.0.1","channel":"stable"}"#), None);
+        // Same version: not newer, no hint.
+        assert_eq!(
+            clamp_newer_hint(&format!(r#"{{"version":"{CURRENT_VERSION}","channel":"stable"}}"#)),
+            None
+        );
+        // A malformed feed carries no hint rather than a bogus one.
+        assert_eq!(clamp_newer_hint(r#"{"channel":"stable"}"#), None);
     }
 
     #[test]
