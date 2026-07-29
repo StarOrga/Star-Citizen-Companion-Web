@@ -2,16 +2,18 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  OnInit,
+  OnDestroy,
   computed,
+  effect,
   inject,
   input,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ComposerPrefsService } from '../../core/composer-prefs.service';
-import { ConsentService } from '../../core/consent.service';
+import { FeedbackDraftService } from '../../feedback/feedback-draft.service';
 import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import type { FeedbackImage } from './markdown.util';
 
@@ -19,7 +21,18 @@ import type { FeedbackImage } from './markdown.util';
 export interface PendingImage {
   id: string;
   name: string;
+  /**
+   * Compressed data URI of the picked/pasted file. Empty for an image restored
+   * from a stored draft — those already live in the bucket and are never
+   * downloaded back into the browser just to be re-uploaded.
+   */
   dataUrl: string;
+  /**
+   * Public bucket URL, set once the image was uploaded for a persisted draft.
+   * `uploadFeedbackImages` passes such an image straight through, so sending a
+   * restored draft neither re-uploads nor duplicates it.
+   */
+  url?: string;
 }
 
 /** What a composer hands back on submit: the trimmed text plus queued images. */
@@ -53,9 +66,16 @@ const MAX_ATTACHMENTS = 10;
  *
  * The parent supplies an `onSubmit` handler that returns `true` once the
  * message is persisted; the composer only clears itself on success, so a failed
- * insert keeps the draft and attachments intact. When a `persistKey` is set the
- * text draft additionally survives reloads via localStorage (opt-in to the
- * preferences consent category).
+ * insert keeps the draft and attachments intact.
+ *
+ * DRAFTS (`draftScope`): everything typed here — text *and* attached
+ * screenshots — is stored on the user's account (`FeedbackDraftService`) and
+ * restored the next time this composer opens, on any device. It is cleared by
+ * exactly two events: a successful send, or the user pressing discard. Not by a
+ * reload, not by closing the panel, not by a failed write. The previous
+ * behaviour (one localStorage key, new-topic box only, text only, gated behind
+ * the opt-in preferences consent) lost a long report to a closed tab, which is
+ * what this replaces.
  */
 @Component({
   selector: 'sc-feedback-composer',
@@ -96,8 +116,28 @@ const MAX_ATTACHMENTS = 10;
         </button>
         <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFileInput($event)" />
         <span class="grow"></span>
-        @if (draftRestored()) {
-          <span class="draft-flag">{{ 'adminFeedback.compose.draftRestored' | translate }}</span>
+        <!-- Draft state + the only thing that deletes a draft besides sending
+             it. Two-step on purpose: one stray click must not throw away text
+             the user spent minutes on. -->
+        @if (draftLabel(); as label) {
+          <span class="draft-flag" [class.warn]="draftFailed()">{{ label | translate }}</span>
+        }
+        @if (hasStoredDraft()) {
+          @if (discardArmed()) {
+            <button
+              type="button"
+              class="draft-clear armed"
+              (click)="discardDraft()">
+              {{ 'adminFeedback.compose.draftDiscardConfirm' | translate }}
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="draft-clear"
+              (click)="armDiscard()"
+              [title]="'adminFeedback.compose.draftDiscard' | translate"
+              [attr.aria-label]="'adminFeedback.compose.draftDiscard' | translate">✕</button>
+          }
         }
       </div>
 
@@ -107,6 +147,7 @@ const MAX_ATTACHMENTS = 10;
                 (input)="onInput($event)"
                 (keydown)="onKeydown($event)"
                 (paste)="onPaste($event)"
+                (blur)="flushDraft()"
                 [placeholder]="placeholder() | translate"
                 [attr.aria-label]="placeholder() | translate"
                 [rows]="compact() ? 2 : 4"></textarea>
@@ -192,6 +233,20 @@ const MAX_ATTACHMENTS = 10;
     .tool:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .grow { flex: 1; }
     .draft-flag { font-size: 0.72rem; color: var(--sc-fg-2); }
+    .draft-flag.warn { color: var(--sc-accent-hot); }
+    .draft-clear {
+      padding: 2px 7px;
+      background: transparent;
+      color: var(--sc-fg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 4px;
+      font: inherit;
+      font-size: 0.72rem;
+      line-height: 1.3;
+      cursor: pointer;
+    }
+    .draft-clear:hover { color: var(--sc-danger); border-color: var(--sc-danger); }
+    .draft-clear.armed { color: var(--sc-danger); border-color: var(--sc-danger); }
 
     .input {
       width: 100%;
@@ -229,10 +284,10 @@ const MAX_ATTACHMENTS = 10;
     }
   `],
 })
-export class FeedbackComposerComponent implements OnInit {
+export class FeedbackComposerComponent implements OnDestroy {
   private readonly translate = inject(TranslateService);
-  private readonly consentSvc = inject(ConsentService);
   private readonly composerPrefs = inject(ComposerPrefsService);
+  private readonly drafts = inject(FeedbackDraftService);
   private readonly ta = viewChild<ElementRef<HTMLTextAreaElement>>('ta');
 
   /** i18n key for the textarea placeholder / aria-label. */
@@ -243,8 +298,13 @@ export class FeedbackComposerComponent implements OnInit {
   readonly busy = input(false);
   /** Reply variant: smaller textarea and a micro send button. */
   readonly compact = input(false);
-  /** localStorage key for draft persistence — null disables it (reply composers). */
-  readonly persistKey = input<string | null>(null);
+  /**
+   * Identity of this composer in the account-bound draft store (see
+   * `draftScopes`). Null turns persistence off entirely — every composer in the
+   * feedback surface sets one; the input stays nullable so an embedding outside
+   * that surface is not forced to invent a key.
+   */
+  readonly draftScope = input<string | null>(null);
   /**
    * Handler the parent supplies. Returns `true` once the message is persisted,
    * so the composer clears itself; `false`/throw keeps the draft on failure.
@@ -255,15 +315,41 @@ export class FeedbackComposerComponent implements OnInit {
   readonly draftRestored = signal(false);
   readonly attachments = signal<PendingImage[]>([]);
   /**
-   * Queued images in the shape the shared attachment row renders: the pending
-   * data URI as source, the file name as alt (so the enlarge label names it).
+   * Queued images in the shape the shared attachment row renders. A restored
+   * draft has no local bytes left, so the bucket URL is the source there.
    */
   readonly pendingImages = computed<FeedbackImage[]>(() =>
-    this.attachments().map((a) => ({ src: a.dataUrl, alt: a.name })),
+    this.attachments().map((a) => ({ src: a.url ?? a.dataUrl, alt: a.name })),
   );
   readonly dragActive = signal(false);
   readonly sending = signal(false);
   readonly errorMsg = signal<string | null>(null);
+  /** Discard is two-step — this is the armed state of the confirm button. */
+  readonly discardArmed = signal(false);
+  private discardTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** A draft for this composer exists in the store (so it can be discarded). */
+  readonly hasStoredDraft = computed(() => {
+    const scope = this.draftScope();
+    return !!scope && !!this.drafts.entries().get(scope);
+  });
+
+  /** The last write for this composer failed — say so instead of pretending. */
+  readonly draftFailed = computed(() => {
+    const scope = this.draftScope();
+    return !!scope && !!this.drafts.entries().get(scope)?.failed;
+  });
+
+  /** One-line draft state next to the toolbar; null while there is nothing to say. */
+  readonly draftLabel = computed<string | null>(() => {
+    const scope = this.draftScope();
+    if (!scope) return null;
+    if (this.draftRestored()) return 'adminFeedback.compose.draftRestored';
+    const entry = this.drafts.entries().get(scope);
+    if (!entry) return null;
+    if (entry.failed) return 'adminFeedback.compose.draftFailed';
+    return entry.dirty ? 'adminFeedback.compose.draftSaving' : 'adminFeedback.compose.draftSaved';
+  });
 
   /** Hint under the field — must name the mapping the user actually has. */
   readonly sendHintKey = computed(() =>
@@ -279,8 +365,25 @@ export class FeedbackComposerComponent implements OnInit {
       (this.draft().trim().length > 0 || this.attachments().length > 0),
   );
 
-  ngOnInit(): void {
-    this.restoreDraft();
+  constructor() {
+    // The workflow view keeps ONE composer mounted and moves it from topic to
+    // topic, so the scope is not a constant. Every change has to hand the old
+    // draft back to the store and pull the new one in — otherwise a half-typed
+    // answer would follow the cursor onto the next topic and be saved there.
+    effect(() => {
+      const scope = this.draftScope();
+      if (scope === this.activeScope) return;
+      const previous = this.activeScope;
+      this.activeScope = scope;
+      untracked(() => this.switchScope(previous, scope));
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.discardTimer) clearTimeout(this.discardTimer);
+    // Closing the panel, collapsing the topic or navigating away must not cost
+    // the last few characters sitting in the debounce window.
+    this.flushDraft();
   }
 
   // ---- Submit ------------------------------------------------------------
@@ -297,48 +400,99 @@ export class FeedbackComposerComponent implements OnInit {
       if (ok) {
         this.draft.set('');
         this.draftRestored.set(false);
-        this.saveDraft('');
         this.attachments.set([]);
+        this.disarmDiscard();
+        // Sent: the draft has become a message and its uploads are referenced
+        // by that message's body, so the row goes and the objects stay.
+        const scope = this.draftScope();
+        if (scope) void this.drafts.clearSent(scope);
       }
     } finally {
       this.sending.set(false);
     }
   }
 
-  // ---- Draft persistence (localStorage) ----------------------------------
+  // ---- Draft persistence (account-bound, see FeedbackDraftService) --------
 
-  private restoreDraft(): void {
-    const key = this.persistKey();
-    if (!key) return;
-    try {
-      const saved = localStorage.getItem(key);
-      if (saved && saved.trim()) {
-        this.draft.set(saved);
-        this.draftRestored.set(true);
-      }
-    } catch {
-      /* localStorage unavailable (private mode) — ignore */
-    }
+  /** Scope the on-screen content currently belongs to. */
+  private activeScope: string | null = null;
+
+  private switchScope(previous: string | null, next: string | null): void {
+    if (previous) void this.drafts.flush(previous);
+    this.draft.set('');
+    this.attachments.set([]);
+    this.draftRestored.set(false);
+    this.errorMsg.set(null);
+    this.disarmDiscard();
+    if (next) void this.restoreDraft(next);
   }
 
-  private saveDraft(value: string): void {
-    const key = this.persistKey();
-    if (!key) return;
-    // Preference-category storage is opt-in (#130) — clearing stays allowed.
-    if (value.trim() && !this.consentSvc.preferencesAllowed()) return;
-    try {
-      if (value.trim()) localStorage.setItem(key, value);
-      else localStorage.removeItem(key);
-    } catch {
-      /* ignore */
-    }
+  private async restoreDraft(scope: string): Promise<void> {
+    await this.drafts.ready();
+    // Moved on again while the store was loading — that scope owns the box now.
+    if (this.activeScope !== scope) return;
+    const entry = this.drafts.entry(scope);
+    if (!entry) return;
+    // If the user was faster than the network, what they typed wins: a restore
+    // must never overwrite live input.
+    if (this.draft().length > 0 || this.attachments().length > 0) return;
+    this.draft.set(entry.body);
+    this.attachments.set(
+      entry.images.map((img) => ({ id: img.id, name: img.name, dataUrl: '', url: img.url })),
+    );
+    this.draftRestored.set(true);
+  }
+
+  /** Hand the current content to the store (debounced there, not here). */
+  private saveDraft(): void {
+    const scope = this.draftScope();
+    if (!scope) return;
+    this.drafts.stage(
+      scope,
+      this.draft(),
+      // Only uploaded attachments can be referenced; one that failed to upload
+      // still rides along on send, it just is not part of the stored draft.
+      this.attachments()
+        .filter((a): a is PendingImage & { url: string } => !!a.url)
+        .map((a) => ({ id: a.id, name: a.name, url: a.url })),
+    );
+  }
+
+  /** Write immediately — on blur and when the composer goes away. */
+  flushDraft(): void {
+    const scope = this.draftScope();
+    if (scope) void this.drafts.flush(scope);
+  }
+
+  /** First click arms the confirm, and disarms itself again after a few seconds. */
+  armDiscard(): void {
+    this.discardArmed.set(true);
+    if (this.discardTimer) clearTimeout(this.discardTimer);
+    this.discardTimer = setTimeout(() => this.discardArmed.set(false), 5000);
+  }
+
+  private disarmDiscard(): void {
+    if (this.discardTimer) clearTimeout(this.discardTimer);
+    this.discardTimer = null;
+    this.discardArmed.set(false);
+  }
+
+  /** The user's explicit "throw this away" — the only non-send path that clears. */
+  discardDraft(): void {
+    this.disarmDiscard();
+    const scope = this.draftScope();
+    this.draft.set('');
+    this.attachments.set([]);
+    this.draftRestored.set(false);
+    this.errorMsg.set(null);
+    if (scope) void this.drafts.discard(scope);
   }
 
   onInput(e: Event): void {
     const value = (e.target as HTMLTextAreaElement).value;
     this.draft.set(value);
     this.draftRestored.set(false);
-    this.saveDraft(value);
+    this.saveDraft();
   }
 
   // ---- Keyboard behaviour ------------------------------------------------
@@ -450,7 +604,7 @@ export class FeedbackComposerComponent implements OnInit {
     el.setSelectionRange(caret, caret);
     this.draft.set(next);
     this.draftRestored.set(false);
-    this.saveDraft(next);
+    this.saveDraft();
     el.focus();
   }
 
@@ -501,6 +655,7 @@ export class FeedbackComposerComponent implements OnInit {
 
   removeAttachment(id: string): void {
     this.attachments.update((list) => list.filter((a) => a.id !== id));
+    this.saveDraft();
   }
 
   /** Drop the queued image behind a chip — the row reports position, not id. */
@@ -524,10 +679,33 @@ export class FeedbackComposerComponent implements OnInit {
       try {
         const att = await this.processImage(file);
         this.attachments.update((list) => [...list, att]);
+        await this.cacheAttachment(att);
       } catch {
         this.errorMsg.set(this.translate.instant('adminFeedback.compose.imageError'));
       }
     }
+  }
+
+  /**
+   * Put a freshly attached screenshot into the bucket so the stored draft can
+   * point at it. Deliberately at attach time: the draft row then holds a URL
+   * instead of megabytes of base64, and the later send reuses the same object.
+   *
+   * A failed upload is not an error the user has to act on — the image is still
+   * in the composer and still sent normally. It only would not come back after
+   * a reload, and saying so is more honest than a silent gap.
+   */
+  private async cacheAttachment(att: PendingImage): Promise<void> {
+    if (!this.draftScope()) return;
+    const url = await this.drafts.uploadAttachment(att);
+    if (url) {
+      this.attachments.update((list) =>
+        list.map((a) => (a.id === att.id ? { ...a, url } : a)),
+      );
+    } else {
+      this.errorMsg.set(this.translate.instant('adminFeedback.compose.attachNotCached'));
+    }
+    this.saveDraft();
   }
 
   /**

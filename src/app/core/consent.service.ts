@@ -10,9 +10,11 @@ import { Injectable, computed, signal } from '@angular/core';
  *    decision itself (`sc.consent`). Not configurable — without these, login,
  *    language selection and a deliberately chosen keyboard mapping break.
  *  - `preferences`: convenience state (news channel filter, saved articles,
- *    favorited upcoming ships and their seen-baseline, admin UI
- *    drafts/defaults). Opt-in: nothing in this category is written
- *    until the user allows it; declining purges what exists.
+ *    favorited upcoming ships and their seen-baseline, admin UI defaults).
+ *    Opt-in: nothing in this category is written until the user allows it;
+ *    declining purges what exists. Composer drafts used to live here and no
+ *    longer do — unsent text is the user's own content, so it is stored on the
+ *    account instead (`FeedbackDraftService`) and never gated.
  *  - `statistics`: anonymous product analytics (PostHog, EU region). Opt-in:
  *    no analytics library is loaded and no event is sent until the user
  *    allows it; declining purges PostHog's own localStorage state.
@@ -32,6 +34,12 @@ const CONSENT_KEY = 'sc.consent';
 
 // Keys purged when preference storage is declined. Keep in sync with the
 // literals at their write sites (news.service, telemetry-stats, admin-feedback).
+//
+// The two `*.draft` keys are legacy: composer drafts moved onto the account
+// (`public.feedback_drafts`, migration 20260729120000) and are no longer written
+// here at all. `FeedbackDraftService` imports and removes them on first load;
+// they stay listed so a decline also clears the copy of anyone who has not
+// opened the feedback panel since.
 const PREFERENCE_KEYS = [
   'sc-companion.news.channels',
   'sc-companion.news.favorites',
@@ -40,6 +48,7 @@ const PREFERENCE_KEYS = [
   'sc-companion.upcoming.baseline',
   'sc-telemetry-product',
   'sc.adminFeedback.draft',
+  'sc.userFeedback.draft',
 ] as const;
 
 // PostHog namespaces its localStorage entries `ph_<projectKey>_*`, so the exact

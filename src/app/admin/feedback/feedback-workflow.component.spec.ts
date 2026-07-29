@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { FeedbackWorkflowComponent } from './feedback-workflow.component';
 import { CelebrationService } from './celebration.service';
@@ -43,6 +44,9 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
       imports: [FeedbackWorkflowComponent],
       providers: [
         provideTranslateService({ fallbackLang: 'en' }),
+        // The answer box persists its draft on the account, which pulls in
+        // AuthService — and that injects the Router.
+        provideRouter([]),
         { provide: CelebrationService, useValue: celebration },
       ],
     }).compileComponents();

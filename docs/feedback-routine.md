@@ -13,6 +13,16 @@ declined 2026-07-07 (see `sc-admin-feedback-routine` memory).
 Source of work: rows in `public.admin_feedback` with `status = 'open'`,
 oldest `created_at` first.
 
+> **The review gate (`reviewed_at`, migration 20260729130000) is invisible to the
+> routine — deliberately.** Shipping no longer archives a topic: the board keeps
+> a `shipped` / `issue_created` row on the ACTIVE side until an admin signs it
+> off (`reviewed_at`), and "Gespräch wieder aufnehmen" sets `status = 'open'` and
+> `reviewed_at = null`, which is an ordinary queue item again. The routine
+> therefore needs no change: it never reads or writes `reviewed_at`, and every
+> query below stays exactly as it is. The gate is a second, human way into the
+> continuation loop that query (d) already implements — pressing a button instead
+> of having to remember to reply.
+
 Status lifecycle the routine drives:
 
 ```

@@ -19,10 +19,8 @@ import {
 import { FeedbackAttachmentsComponent } from '../admin/feedback/feedback-attachments.component';
 import { RenderedFeedbackBody, renderFeedbackBody } from '../admin/feedback/markdown.util';
 import { UserFeedbackService } from './user-feedback.service';
+import { draftScopes, memoScope } from './feedback-draft.types';
 import { AuthorFeedbackRow } from './user-feedback.types';
-
-/** localStorage key backing the non-admin composer draft. */
-const DRAFT_KEY = 'sc.userFeedback.draft';
 
 /** Which half of the panel is on screen. */
 type UserFeedbackTab = 'compose' | 'mine';
@@ -95,7 +93,7 @@ type UserFeedbackTab = 'compose' | 'mine';
             <div class="ok" role="status">{{ 'userFeedback.sent' | translate }}</div>
           }
           <sc-feedback-composer
-            [persistKey]="draftKey"
+            [draftScope]="composeScope"
             [busy]="feedback.busy()"
             placeholder="userFeedback.placeholder"
             sendLabel="userFeedback.send"
@@ -164,6 +162,7 @@ type UserFeedbackTab = 'compose' | 'mine';
                     @if (t.author_status === 'question') {
                       <sc-feedback-composer
                         [compact]="true"
+                        [draftScope]="replyScope(t.id)"
                         [busy]="feedback.busy()"
                         placeholder="userFeedback.answerPlaceholder"
                         sendLabel="userFeedback.answer"
@@ -311,7 +310,8 @@ type UserFeedbackTab = 'compose' | 'mine';
 export class UserFeedbackPanelComponent implements OnInit {
   readonly feedback = inject(UserFeedbackService);
 
-  readonly draftKey = DRAFT_KEY;
+  /** Draft identity of the new-topic box (see `FeedbackDraftService`). */
+  readonly composeScope = draftScopes.userNew;
   readonly tab = signal<UserFeedbackTab>('compose');
   readonly topics = this.feedback.topics;
   readonly openQuestions = this.feedback.openQuestions;
@@ -393,6 +393,13 @@ export class UserFeedbackPanelComponent implements OnInit {
     }
     return ok;
   };
+
+  private readonly replyScopes = new Map<string, string>();
+
+  /** Draft identity of one topic's answer box, memoized for a stable binding. */
+  replyScope(id: string): string {
+    return memoScope(this.replyScopes, id, draftScopes.userReply);
+  }
 
   private readonly replySubmitters = new Map<string, (p: ComposerPayload) => Promise<boolean>>();
 

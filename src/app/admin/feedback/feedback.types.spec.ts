@@ -4,6 +4,7 @@ import {
   FeedbackStatus,
   buildWorkflowQueue,
   bucketLabelStatus,
+  awaitsReview,
   computePace,
   computeStats,
   feedbackBucket,
@@ -498,17 +499,17 @@ describe('computeStats', () => {
   ]);
 
   it('counts all-time totals', () => {
-    expect(computeStats(rows, threads, null)).toEqual({ shipped: 2, open: 3, answered: 2 });
+    expect(computeStats(rows, threads, null)).toEqual({ todo: 3, open: 0, done: 2, issues: 0, answered: 2 });
   });
 
   it('scopes each metric to the window by its own timestamp', () => {
-    // shipped: only s1 shipped in July. open: o1 + q1 created in July
+    // done: only s1 shipped in July. todo: o1 + q1 created in July
     // (rejected never counts). answered: only the 05.07. answer.
-    expect(computeStats(rows, threads, from)).toEqual({ shipped: 1, open: 2, answered: 1 });
+    expect(computeStats(rows, threads, from)).toEqual({ todo: 2, open: 0, done: 1, issues: 0, answered: 1 });
   });
 
   it('handles an empty board', () => {
-    expect(computeStats([], new Map(), null)).toEqual({ shipped: 0, open: 0, answered: 0 });
+    expect(computeStats([], new Map(), null)).toEqual({ todo: 0, open: 0, done: 0, issues: 0, answered: 0 });
   });
 
   it('counts an answered Rückfrage as still open (its ToDo bucket)', () => {
@@ -519,14 +520,14 @@ describe('computeStats', () => {
         msg('h1', 'q9', false, '2026-07-02T12:00:00Z'),
       ]],
     ]);
-    expect(computeStats([answered], thread, null)).toEqual({ shipped: 0, open: 1, answered: 1 });
+    expect(computeStats([answered], thread, null)).toEqual({ todo: 1, open: 0, done: 0, issues: 0, answered: 1 });
   });
 
-  it('does not count an issue hand-off as still open', () => {
+  it('counts an issue hand-off as its own outcome, never as still open', () => {
     const filed = row('i1', 'issue_created', '2026-07-02T10:00:00Z', {
       ship_ref: 'https://github.com/o/r/issues/9',
     });
-    expect(computeStats([filed], new Map(), null)).toEqual({ shipped: 0, open: 0, answered: 0 });
+    expect(computeStats([filed], new Map(), null)).toEqual({ todo: 0, open: 0, done: 0, issues: 1, answered: 0 });
   });
 });
 
@@ -865,6 +866,7 @@ describe('lifecycleSnapshot', () => {
       awaiting_admin: 1,
       awaiting_author: 0,
       in_progress: 2,
+      review: 0,
       shipped: 1,
       issue_created: 1,
       rejected: 0,
@@ -904,5 +906,84 @@ describe('lifecycleSnapshot', () => {
       now,
     );
     expect(onlyArchive.oldestActiveDays).toBeNull();
+  });
+});
+
+/**
+ * The review gate (migration 20260729130000): shipping is not the end of a
+ * topic, an admin saying "yes, that was it" is. Until then the topic stays on
+ * the ACTIVE board with a way back into the work loop.
+ */
+describe('review gate', () => {
+  const shipped = (extra: Partial<FeedbackRow> = {}) =>
+    row('s', 'shipped', '2026-07-20T10:00:00Z', {
+      shipped_at: '2026-07-21T10:00:00Z',
+      reviewed_at: null,
+      ...extra,
+    });
+
+  it('holds a fresh ship in the gate instead of archiving it', () => {
+    const m = shipped();
+    expect(awaitsReview(m)).toBeTrue();
+    expect(feedbackBucket(m)).toBe('review');
+    expect(isArchived(m)).toBeFalse();
+  });
+
+  it('holds an issue hand-off in the same gate', () => {
+    const m = row('i', 'issue_created', '2026-07-20T10:00:00Z', {
+      ship_ref: 'https://github.com/o/r/issues/9',
+      reviewed_at: null,
+    });
+    expect(feedbackBucket(m)).toBe('review');
+    expect(isArchived(m)).toBeFalse();
+  });
+
+  it('archives the topic once an admin signed it off', () => {
+    const m = shipped({ reviewed_at: '2026-07-22T09:00:00Z' });
+    expect(awaitsReview(m)).toBeFalse();
+    expect(feedbackBucket(m)).toBe('shipped');
+    expect(isArchived(m)).toBeTrue();
+  });
+
+  it('never gates the admin\'s own decisions — declined and legacy rejected', () => {
+    const declined = row('d', 'declined', '2026-07-20T10:00:00Z', { reviewed_at: null });
+    const rejected = row('r', 'rejected', '2026-07-20T10:00:00Z', { reviewed_at: null });
+    expect(awaitsReview(declined)).toBeFalse();
+    expect(awaitsReview(rejected)).toBeFalse();
+    expect(isArchived(declined)).toBeTrue();
+    expect(isArchived(rejected)).toBeTrue();
+  });
+
+  it('lets a post-ship continuation win over the gate — it is already back in the loop', () => {
+    const m = shipped();
+    const replies = new Map<string, FeedbackMessage[]>([
+      ['s', [msg('h1', 's', false, '2026-07-22T10:00:00Z')]],
+    ]);
+    expect(awaitsReview(m, replies.get('s'))).toBeFalse();
+    expect(feedbackBucket(m, replies.get('s'))).toBe('todo');
+  });
+
+  it('treats an absent column as signed off, so fixtures and projections keep working', () => {
+    const legacy = row('s', 'shipped', '2026-07-20T10:00:00Z');
+    expect(legacy.reviewed_at).toBeUndefined();
+    expect(awaitsReview(legacy)).toBeFalse();
+    expect(feedbackBucket(legacy)).toBe('shipped');
+  });
+
+  it('keeps the gate on the active side of the board and labels it "review"', () => {
+    expect(bucketLabelStatus('review')).toBe('review');
+    const pending = shipped();
+    const signedOff = shipped({ reviewed_at: '2026-07-22T09:00:00Z' });
+    const snapshot = lifecycleSnapshot([pending, signedOff], new Map(), Date.parse('2026-07-25T00:00:00Z'));
+    expect(snapshot.counts.review).toBe(1);
+    expect(snapshot.counts.shipped).toBe(1);
+    expect(snapshot.reviewShipped).toBe(1);
+    expect(snapshot.reviewIssues).toBe(0);
+  });
+
+  it('counts a topic awaiting sign-off as Offen, not as done', () => {
+    const stats = computeStats([shipped()], new Map(), null);
+    expect(stats.open).toBe(1);
+    expect(stats.done).toBe(0);
   });
 });

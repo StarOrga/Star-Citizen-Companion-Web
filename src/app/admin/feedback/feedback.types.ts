@@ -46,17 +46,46 @@ export const ARCHIVE_STATUSES: readonly FeedbackStatus[] = [
   'declined',
 ];
 
+/** The two outcomes that go through the admin's sign-off (see {@link awaitsReview}). */
+const REVIEWABLE_STATUSES: readonly FeedbackStatus[] = ['shipped', 'issue_created'];
+
 /**
- * True when a topic reached a terminal status (→ Archive). `shipped` is terminal
- * only *at rest*: when the admin replies to a shipped topic after the ship it is
- * reopened as a continuation (the routine's post-ship review loop, see
- * docs/feedback-routine "Post-ship review & continue"), so it belongs on the
- * active board again — pass its thread so that case is caught. Without the thread
- * the check falls back to status only (a shipped row reads as archived), matching
- * the old behaviour for callers that don't track replies.
+ * True while a finished topic still waits for an admin to sign it off
+ * (migration 20260729130000).
+ *
+ * Shipping is not the end of a topic — somebody has to look at the result on the
+ * live app and say "yes, that was it". Until they do, the topic stays on the
+ * ACTIVE board with two ways out: accept it (→ Erledigt) or pick the
+ * conversation back up (→ the routine's queue). `declined`/legacy `rejected` are
+ * excluded on purpose: those already ARE an admin decision.
+ *
+ * `reviewed_at === undefined` means the caller never selected the column (a
+ * fixture row, a projection) and is deliberately NOT treated as pending — same
+ * convention as `source`/`triaged`, where an absent field means the legacy
+ * default rather than a new state.
+ */
+export function awaitsReview(row: FeedbackRow, replies?: readonly FeedbackMessage[]): boolean {
+  if (!REVIEWABLE_STATUSES.includes(row.status)) return false;
+  if (row.reviewed_at !== null) return false;
+  // A post-ship continuation is already back in the work loop; asking for a
+  // sign-off on top of it would be a second, contradictory prompt.
+  return !isContinuedAfterShip(row, replies);
+}
+
+/**
+ * True when a topic reached a terminal status AND was signed off (→ Erledigt).
+ * Two things keep a terminal row on the active board: a post-ship continuation
+ * (the routine's review loop, docs/feedback-routine "Post-ship review &
+ * continue") and a pending review (see {@link awaitsReview}). Pass the thread so
+ * the first case is caught; without it the check falls back to status plus
+ * sign-off, matching the old behaviour for callers that don't track replies.
  */
 export function isArchived(row: FeedbackRow, replies?: readonly FeedbackMessage[]): boolean {
-  return ARCHIVE_STATUSES.includes(row.status) && !isContinuedAfterShip(row, replies);
+  return (
+    ARCHIVE_STATUSES.includes(row.status) &&
+    !isContinuedAfterShip(row, replies) &&
+    !awaitsReview(row, replies)
+  );
 }
 
 /**
@@ -122,6 +151,13 @@ export interface FeedbackRow {
   triaged?: boolean;
   /** The admin's explanation on a `declined` topic — shown to the author. */
   decision_note?: string | null;
+  /**
+   * Admin sign-off on a finished topic (migration 20260729130000). `null` on a
+   * shipped / issue-created row means it is still in the review gate; a
+   * timestamp means Erledigt. Optional so fixture rows and projections that omit
+   * the column are not read as "pending" — see {@link awaitsReview}.
+   */
+  reviewed_at?: string | null;
 }
 
 /** True for a topic a non-admin filed through the user feedback FAB. */
@@ -232,6 +268,10 @@ export function isContinuedAfterShip(
  *   34c44134): once the admin replied, the topic is back on the routine's pile,
  *   so it belongs to the ToDo bucket rather than into its own "answered" corner.
  * - `in_progress` — the routine is working on it right now.
+ * - `review` — the work is done (shipped, or handed to a GitHub issue) and waits
+ *   for the admin's sign-off. Still ACTIVE: this is the last point at which a
+ *   result can be sent back into the loop instead of quietly landing in the
+ *   archive (see {@link awaitsReview}).
  * - `shipped` / `issue_created` / `rejected` / `declined` — terminal, mirrors
  *   the status — except a `shipped` topic the admin replied to after the ship,
  *   which reopens as a continuation and buckets as `todo` (see
@@ -246,6 +286,7 @@ export type FeedbackBucket =
   | 'awaiting_author'
   | 'todo'
   | 'in_progress'
+  | 'review'
   | 'shipped'
   | 'issue_created'
   | 'rejected'
@@ -257,6 +298,7 @@ export const ACTIVE_BUCKETS: readonly FeedbackBucket[] = [
   'awaiting_author',
   'todo',
   'in_progress',
+  'review',
 ];
 
 /**
@@ -269,14 +311,18 @@ export function feedbackBucket(
   replies?: readonly FeedbackMessage[],
 ): FeedbackBucket {
   switch (row.status) {
-    case 'issue_created':
     case 'rejected':
     case 'declined':
       return row.status;
+    case 'issue_created':
+      // Handing a topic to a GitHub issue is an outcome like a ship, so it goes
+      // through the same sign-off before it counts as done.
+      return awaitsReview(row, replies) ? 'review' : 'issue_created';
     case 'shipped':
       // Terminal at rest, but a human reply after the ship reopens it as a
       // continuation → back on the routine's pile → ToDo (see isContinuedAfterShip).
-      return isContinuedAfterShip(row, replies) ? 'todo' : 'shipped';
+      if (isContinuedAfterShip(row, replies)) return 'todo';
+      return awaitsReview(row, replies) ? 'review' : 'shipped';
     case 'in_progress':
       return 'in_progress';
     case 'needs_input_author':
@@ -294,13 +340,16 @@ export function feedbackBucket(
   }
 }
 
+/** Key under `adminFeedback.status.*` that labels a bucket. */
+export type BucketLabelKey = FeedbackStatus | 'review';
+
 /**
- * The status vocabulary a bucket is labelled with, so the UI can keep using the
- * existing `adminFeedback.status.*` translation keys: `todo` reads as the
- * (renamed) `open` label "ToDo", `awaiting_admin` as "Rückfrage",
- * `awaiting_author` as "Rückfrage an Absender".
+ * The vocabulary a bucket is labelled with — one place, so the filter chips, the
+ * card pills, the lifecycle map and the charts cannot drift apart: `todo` reads
+ * as the (renamed) `open` label "ToDo", `awaiting_admin` as "Rückfrage",
+ * `awaiting_author` as "Rückfrage an Absender", `review` as "Abnahme".
  */
-export function bucketLabelStatus(bucket: FeedbackBucket): FeedbackStatus {
+export function bucketLabelStatus(bucket: FeedbackBucket): BucketLabelKey {
   if (bucket === 'todo') return 'open';
   if (bucket === 'awaiting_admin') return 'needs_input';
   if (bucket === 'awaiting_author') return 'needs_input_author';
@@ -440,14 +489,22 @@ export function workflowFocusIndex(replies: readonly FeedbackMessage[]): number 
 
 // ---- Progress statistics --------------------------------------------------
 
+/**
+ * The four numbers the charts show. Deliberately the same four words the board's
+ * filters use, and deliberately not one per bucket: a chart with nine bars says
+ * less than one with four.
+ *
+ *   ToDo · Offen · Erledigt · Issue erstellt
+ */
 export interface FeedbackStats {
-  /** Topics whose ship landed inside the window. */
-  shipped: number;
-  /**
-   * Topics raised inside the window that are still on the pile — every active
-   * bucket (ToDo, awaiting the admin, in progress). Labelled "ToDo" in the UI.
-   */
+  /** Raised in the window, nobody has picked it up yet (bucket `todo`). */
+  todo: number;
+  /** Raised in the window and in flight: in Arbeit, Rückfragen, Abnahme. */
   open: number;
+  /** Shipped inside the window and signed off by an admin. */
+  done: number;
+  /** Handed off to a GitHub issue and signed off. */
+  issues: number;
   /** Answers the admin gave to a routine Rückfrage inside the window. */
   answered: number;
 }
@@ -464,12 +521,14 @@ function shippedTime(row: FeedbackRow): number {
  * Every metric is attributed to the window by *its own* timestamp, so the
  * monthly and the all-time column are computed the exact same way:
  *
- * - `shipped`  — by the topic's ship time
- * - `open`     — by the topic's creation time (still active today)
+ * - `done`     — by the topic's ship time
+ * - `issues`   — by the topic's last processing time (when it was handed off)
+ * - `todo` / `open` — by the topic's creation time (still active today)
  * - `answered` — by the answer message's creation time
  *
  * "Still active" is resolved through {@link feedbackBucket}, so an answered
- * Rückfrage lands in the ToDo/open count exactly like the board's list does.
+ * Rückfrage lands in the ToDo count and a topic awaiting sign-off lands in
+ * "Offen" exactly like the board's list does.
  */
 export function computeStats(
   rows: readonly FeedbackRow[],
@@ -477,16 +536,21 @@ export function computeStats(
   from: number | null,
 ): FeedbackStats {
   const inWindow = (t: number) => from === null || t >= from;
-  const stats: FeedbackStats = { shipped: 0, open: 0, answered: 0 };
+  const stats: FeedbackStats = { todo: 0, open: 0, done: 0, issues: 0, answered: 0 };
 
   for (const row of rows) {
     const replies = threads.get(row.id);
     const bucket = feedbackBucket(row, replies);
     if (bucket === 'shipped') {
-      if (inWindow(shippedTime(row))) stats.shipped++;
+      if (inWindow(shippedTime(row))) stats.done++;
+    } else if (bucket === 'issue_created') {
+      if (inWindow(timeOf(row.processed_at) || timeOf(row.updated_at))) stats.issues++;
+    } else if (bucket === 'todo') {
+      if (inWindow(timeOf(row.created_at))) stats.todo++;
     } else if (ACTIVE_BUCKETS.includes(bucket)) {
-      // Only non-terminal topics count as still open — an `issue_created` or
-      // legacy `rejected` row is done, it just didn't ship from here.
+      // Everything else still in flight — in Arbeit, both Rückfrage flavours and
+      // the sign-off. A legacy `rejected`/`declined` row is done, it just didn't
+      // ship from here.
       if (inWindow(timeOf(row.created_at))) stats.open++;
     }
 
@@ -985,6 +1049,10 @@ export interface LifecycleSnapshot {
   working: number;
   /** `in_progress` topics parked as a review hold — their PR waits for a human. */
   reviewHolds: number;
+  /** Topics in the sign-off gate that got there by shipping. */
+  reviewShipped: number;
+  /** Topics in the sign-off gate that got there via a GitHub issue. */
+  reviewIssues: number;
   /** Whole days the oldest topic in an active bucket has been open; `null` if none. */
   oldestActiveDays: number | null;
   /** Every topic on the board. */
@@ -998,6 +1066,7 @@ function emptyBucketCounts(): Record<FeedbackBucket, number> {
     awaiting_author: 0,
     todo: 0,
     in_progress: 0,
+    review: 0,
     shipped: 0,
     issue_created: 0,
     rejected: 0,
@@ -1021,6 +1090,8 @@ export function lifecycleSnapshot(
     continuations: 0,
     working: 0,
     reviewHolds: 0,
+    reviewShipped: 0,
+    reviewIssues: 0,
     oldestActiveDays: null,
     total: rows.length,
   };
@@ -1049,6 +1120,9 @@ export function lifecycleSnapshot(
       // "Surfacing open review-holds").
       if (row.ship_ref) snapshot.reviewHolds++;
       else snapshot.working++;
+    } else if (bucket === 'review') {
+      if (row.status === 'issue_created') snapshot.reviewIssues++;
+      else snapshot.reviewShipped++;
     }
   }
 

@@ -1379,14 +1379,15 @@
       "toggle": "Suche"
     },
     "tab": {
-      "label": "Zwischen aktiven Themen und Archiv wechseln",
+      "label": "Zwischen aktiven Themen und erledigten wechseln",
       "active": "Aktiv",
-      "archive": "Archiv"
+      "archive": "Erledigt"
     },
     "stats": {
       "rueckfragen": "{{count}} Rückfragen",
-      "shipped": "{{count}} shipped",
-      "issues": "{{count}} Issues erstellt"
+      "shipped": "{{count}} geshipped",
+      "issues": "{{count}} Issues erstellt",
+      "review": "{{count}} warten auf Abnahme"
     },
     "expandAll": "Alle ausklappen",
     "collapseAll": "Alle einklappen",
@@ -1417,7 +1418,8 @@
       "answered": "Beantwortet",
       "continued": "Fortgesetzt",
       "needs_input_author": "Rückfrage an Absender",
-      "declined": "Nicht umgesetzt"
+      "declined": "Nicht umgesetzt",
+      "review": "Abnahme"
     },
     "thread": {
       "routine": "Routine",
@@ -1439,6 +1441,12 @@
       "code": "Inline-Code",
       "list": "Liste",
       "draftRestored": "Entwurf wiederhergestellt",
+      "draftSaving": "Entwurf wird gesichert…",
+      "draftSaved": "Entwurf gesichert",
+      "draftFailed": "Entwurf nicht gesichert – Verbindung?",
+      "draftDiscard": "Entwurf verwerfen",
+      "draftDiscardConfirm": "Wirklich verwerfen?",
+      "attachNotCached": "Bild konnte nicht zwischengespeichert werden – es geht beim Neuladen verloren, wird aber mitgesendet.",
       "attach": "Bild anhängen",
       "attachHint": "Bilder per Einfügen (Strg+V) oder Ablegen hinzufügen",
       "attachmentsLabel": "Angehängte Bilder",
@@ -1486,11 +1494,11 @@
       "thisMonth": "Diesen Monat",
       "allTime": "All-time",
       "shipped": "Geshipped",
-      "open": "ToDo",
+      "open": "Offen",
       "answered": "Rückfragen beantwortet",
-      "shippedShare": "geshipped",
-      "donutLabel": "{{label}}: {{pct}} % geshipped",
-      "note": "Jeder Wert zählt nach seinem eigenen Zeitstempel: geshipped nach Ship-Datum, ToDo nach Erstellung, Rückfragen nach Antwortdatum. Beantwortete Rückfragen zählen als ToDo — die Routine muss sie noch aufgreifen.",
+      "shippedShare": "erledigt",
+      "donutLabel": "{{label}}: {{pct}} % erledigt",
+      "note": "Jeder Wert zählt nach seinem eigenen Zeitstempel: Erledigt nach Ship-Datum, Issues nach Übergabe, ToDo und Offen nach Erstellung. Beantwortete Rückfragen zählen als ToDo — die Routine muss sie noch aufgreifen.",
       "paceMedian": "Median bis Ship",
       "paceQuestions": "Rückfragen-Quote",
       "paceQuestionsHint": "{{questioned}} von {{raised}} Themen",
@@ -1505,8 +1513,7 @@
       "throughputWeek": "Woche ab {{date}}: {{count}} Ships",
       "throughputAria": "Ships pro Woche über die letzten {{weeks}} Wochen: {{total}} insgesamt, stärkste Woche {{max}}, diese Woche {{current}}.",
       "lifecycleTitle": "Lebenszyklus",
-      "lifecycleIntro": "Welche Stufen ein Thema durchläuft und welche Abzweigungen es nehmen kann — mit dem aktuellen Stand je Stufe.",
-      "lifecycleSide": "Abzweigungen & Endstationen",
+      "lifecycleIntro": "Der Weg eines Themas von links nach rechts: Arbeit, dazwischen Rückfragen, die zurück in die Arbeit führen, und am Ende genau eine von zwei Endstationen — nach der Abnahme.",
       "lifecycleNote": "Die Zahlen zeigen, wie viele Themen aktuell in einer Stufe stehen — es gibt keine Übergangs-Historie, also keinen Durchlauf-Zähler.",
       "stageNow": "Themen aktuell in dieser Stufe",
       "flow": {
@@ -1517,7 +1524,13 @@
         "reaper": "Claim verwaist (> 30 Min. ohne PR) — Reaper öffnet neu",
         "hold": "Rot oder sensibel (Auth, RLS, Secrets, destruktive Migration)",
         "holdTarget": "PR wartet auf Review",
-        "continue": "Du antwortest nach dem Ship — Fortsetzung"
+        "continue": "Du antwortest nach dem Ship — Fortsetzung",
+        "toReview": "Build + Tests grün, PR gemergt",
+        "toReviewIssue": "Als GitHub-Issue übergeben",
+        "accepted": "Du nimmst ab",
+        "reopened": "Du nimmst das Gespräch wieder auf",
+        "askAuthor": "Du fragst beim Absender nach",
+        "authorAnswered": "Der Absender antwortet"
       },
       "fact": {
         "oldest": "ältestes offenes Thema: {{days}} Tage",
@@ -1529,9 +1542,20 @@
         "terminalAtRest": "Endstation im Ruhezustand — deine Antwort startet eine neue Runde",
         "pendingContinuation": "{{count}} mit frischer Antwort — wird wieder aufgegriffen",
         "awaiting": "wartet auf deine Antwort",
-        "issueTerminal": "Endstation — du hängst das Thema an ein GitHub-Issue; die Routine fasst es nie wieder an",
-        "rejectedLegacy": "Endstation (Alt-Status) — die Routine setzt ihn nie"
-      }
+        "issueTerminal": "Endstation — am GitHub-Issue weiterverfolgt; die Routine fasst es nicht wieder an",
+        "rejectedLegacy": "Endstation (Alt-Status) — die Routine setzt ihn nie",
+        "reviewShipped": "{{count}} geshipped, wartet auf deine Abnahme",
+        "reviewIssues": "{{count}} an ein Issue übergeben, wartet auf deine Abnahme",
+        "reviewWhy": "Erst deine Abnahme beendet ein Thema — sonst geht es zurück in die Arbeit",
+        "doneTerminal": "Endstation — abgenommen und geschlossen",
+        "declinedTerminal": "Endstation — bewusst nicht umgesetzt, mit Begründung an den Absender"
+      },
+      "todo": "ToDo",
+      "done": "Geshipped",
+      "issues": "Issue erstellt",
+      "openHint": "In Arbeit, Rückfragen und Abnahme",
+      "lifecycleBranch": "Abzweigung",
+      "lifecycleOutcome": "Endstation — eine von beiden"
     },
     "userTopic": {
       "badge": "Nutzer-Feedback",
@@ -1553,6 +1577,13 @@
       "confirm": "Nicht umsetzen",
       "cancel": "Abbrechen",
       "noteRequired": "Bitte eine Begründung angeben – der Absender bekommt sie zu lesen."
+    },
+    "review": {
+      "headlineShipped": "Geshipped — bitte abnehmen",
+      "headlineIssue": "An ein Issue übergeben — bitte abnehmen",
+      "hint": "Schau dir das Ergebnis live an. Passt es, ist das Thema erledigt. Passt es nicht, nimm das Gespräch wieder auf — das Thema geht zurück in die Warteschlange der Routine.",
+      "accept": "Abnehmen — erledigt",
+      "reopen": "Gespräch wieder aufnehmen"
     }
   },
   "feedbackFab": {

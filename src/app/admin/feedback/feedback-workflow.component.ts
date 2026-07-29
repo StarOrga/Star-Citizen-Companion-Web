@@ -20,6 +20,7 @@ import { RenderedFeedbackBody, renderFeedbackBody } from './markdown.util';
 import { CelebrationService } from './celebration.service';
 import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
+import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
 import {
   FeedbackMessage,
   WORKFLOW_SCOPES,
@@ -182,6 +183,7 @@ const ADVANCE_SLIDE_MS = 380;
             <div class="wf-compose">
               <sc-feedback-composer
                 [compact]="true"
+                [draftScope]="answerScope(item.row.id)"
                 [busy]="busy()"
                 placeholder="adminFeedback.workflow.answerPlaceholder"
                 sendLabel="adminFeedback.workflow.answerSend"
@@ -743,6 +745,17 @@ export class FeedbackWorkflowComponent {
       },
       { injector: this.injector },
     );
+  }
+
+  private readonly answerScopes = new Map<string, string>();
+
+  /**
+   * Draft identity of the answer box for one topic. Its own scope rather than
+   * the thread's: the queue moves on to the next item while a half-written
+   * answer may still be sitting here, and each must come back to its own topic.
+   */
+  answerScope(feedbackId: string): string {
+    return memoScope(this.answerScopes, feedbackId, draftScopes.adminWorkflow);
   }
 
   /**
