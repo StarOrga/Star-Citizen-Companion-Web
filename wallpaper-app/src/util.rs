@@ -338,6 +338,29 @@ pub fn set_autostart(enable: bool) -> bool {
     }
 }
 
+/// Re-point an ENABLED autostart entry at the running exe.
+///
+/// The Run value keeps whatever path it was first written with, so a manually
+/// downloaded newer build — the documented way out of a broken build, see the
+/// 0.4.0 sign-in deadlock — would otherwise never take over: every boot
+/// relaunches the old file, and the new one exits on the single-instance
+/// mutex. Only called while HOLDING that mutex, so the running copy is the one
+/// the user actually chose. No-op when autostart is off or already correct.
+/// Returns true when the value was rewritten.
+pub fn refresh_autostart_path() -> bool {
+    let Some(stored) = read_hkcu_string(RUN_KEY, RUN_VALUE) else {
+        return false; // autostart is off — the user's choice, keep it
+    };
+    let Ok(exe) = std::env::current_exe() else {
+        return false;
+    };
+    let quoted = format!("\"{}\"", exe.to_string_lossy());
+    if stored == quoted {
+        return false;
+    }
+    write_hkcu_string(RUN_KEY, RUN_VALUE, &quoted)
+}
+
 // ---------------- Date helper (for the once-per-day boot summary) ----------------
 
 /// Today's local date as `yyyymmdd` (e.g. `20260719`). Used only to gate the

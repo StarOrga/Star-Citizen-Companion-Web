@@ -62,6 +62,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sub-12 px labels). Verified identical on `origin/main` and on this branch, so
   this release neither causes nor worsens it. Needs its own pass.
 
+## [0.55.4] - 2026-07-29
+
+### Fixed
+
+- **A stale Starscape install was invisible and sticky — the tray never said
+  which build was running, and a manually downloaded newer build never took
+  over.** Ships wallpaper-app **0.4.2**. Three gaps, one story: (1) several
+  tray states (sign-in required, checking, downloading, failed) showed no
+  version at all, so a signed-out alpha install could not tell a fresh build
+  from a months-old one — every label now names the running version. (2) A
+  clamped update-feed response (signed out on a locked ring) still names the
+  lower ring's version; when even that beats the running build the tray now
+  flags "outdated" — proof that needs no sign-in, display-only, never
+  installed from. (3) The autostart `Run` value kept the path it was first
+  written with, so a manually downloaded newer exe — the documented way out
+  of the 0.4.0 sign-in deadlock — lost the singleton race to the old build on
+  every boot, forever. Startup now re-points an enabled `Run` entry at the exe
+  that actually holds the mutex. 45 wallpaper-app tests green (3 new).
+
 ## [0.55.3] - 2026-07-29
 
 ### Fixed
