@@ -4,6 +4,36 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.55.3] - 2026-07-29
+
+### Fixed
+
+- **Starscape's weekly Verse-News wallpaper was blank ("No Verse News this
+  week") while the feed itself was perfectly healthy.** The Comm-Link Wiki
+  API's `images` include also lists a post's embedded clips
+  (`source.mp4`/`source.webm`), and the image cache collapsed every asset of a
+  media id onto one cache key — so it picked the .mp4 as its download sample
+  and re-fetched ~390 MB of undecodable video on every single request, without
+  ever recording a failure. That pushed `fetch-verse-news` from ~2 s to
+  15–22 s, past the budget `starscape-summary` allows it, and the summary's
+  empty-card fallback rendered as a legitimate 200. Video urls are now filtered
+  out of the image path (deny-list with tests), guarded again at the cache
+  boundary, and the cache refuses video/audio content-types, >12 MB payloads
+  and >16 MP sources up front; cache warm-up is capped at 6 s per request.
+  Measured: 2.6 s per call, wallpaper renders real news again.
+- **The summary then hit the edge worker's memory limit (HTTP 546) the moment
+  it had real images to draw.** Five full-resolution sources inlined as base64
+  and decoded in the resvg heap at once was over budget at any render width
+  above ~1280 px. The renderer now requests the smallest stored variant each
+  role actually paints (w400 for the ~120 px strip thumbnails, w800 for the
+  full-bleed hero) and caps accepted bytes per role — an oversized source is
+  skipped in favor of the next candidate instead of taking the render down.
+  Verified at 1920×1080, 2560×1440 and 3840×2160 against production.
+- **The `news-images` bucket sat at 856 MB of its 1 GB quota** because the
+  #295 compaction backfill had shipped but never been executed. Ran it:
+  244 sources rewritten to the variant ladder, 0 failures, bucket now
+  ~58 MB. The feed serves ladder urls exclusively (no legacy `cover.*` left).
+
 ## [0.55.2] - 2026-07-28
 
 ### Fixed
