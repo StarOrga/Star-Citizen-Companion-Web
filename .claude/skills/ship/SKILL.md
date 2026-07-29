@@ -36,7 +36,10 @@ Plugin defaults still apply; only the rules below override or add.
    - **Exit 1 ⇒ ship blocked** — `render_completion_card` variant
      `ship-blocked`, quoting the failing device/route lines.
    - **Exit 2 ⇒ the gate could not run** (no Chrome, no target). That counts as
-     red, never as green.
+     red, never as green. Only an environment that provably has no Chromium may
+     re-run with `npm run gate:mobile -- --skip-if-unavailable`; that exits `0`
+     with a `SKIPPED` line, which must then be reported as a skip (not a pass)
+     exactly like `SKIP-MOBILE-GATE` below.
    - Never lower `thresholds.minTapTargetPx` (44) or `minFontSizePx` (12) to get
      green. False positives get a narrow `ignore` entry plus a `$waivers` note
      in `scripts/mobile-gate.config.json`.

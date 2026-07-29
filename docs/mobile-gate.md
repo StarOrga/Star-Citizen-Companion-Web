@@ -35,6 +35,12 @@ node scripts/mobile-gate.mjs --json=mobile-gate.json --screenshots=.mobile-gate
 Exit codes: `0` green · `1` at least one `error` finding (the gate failed) ·
 `2` the gate could not run at all (no browser, no target, bad config).
 
+On a machine that genuinely has no Chromium (a bare CI container), pass
+`--skip-if-unavailable` (or set `MOBILE_GATE_SKIP_IF_UNAVAILABLE=1`). The gate
+then prints a loud `SKIPPED` line and exits `0` instead of `2`, so an automated
+pipeline is not hard-blocked by a missing browser. A skip is *not* a pass — a
+ship that skipped the gate must say so (see the `/ship` rule below).
+
 ### What it tests against
 
 Resolution order, first match wins:

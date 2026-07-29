@@ -14,6 +14,7 @@
  *   node scripts/mobile-gate.mjs --routes=/news,/codex --devices=iphone-14
  *   node scripts/mobile-gate.mjs --json=mobile-gate.json --screenshots=.mobile-gate
  *   node scripts/mobile-gate.mjs --selftest           # prove every check still fires
+ *   node scripts/mobile-gate.mjs --skip-if-unavailable # exit 0 + SKIPPED when no Chromium exists
  *
  * Exit codes: 0 green · 1 blocking findings (gate failed) · 2 could not run.
  *
@@ -26,7 +27,7 @@
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { extname, join, resolve } from 'node:path';
+import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 
@@ -594,16 +595,45 @@ const MIME = {
   '.wasm': 'application/wasm', '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml', '.webmanifest': 'application/manifest+json',
 };
 
-function startStaticServer(root, port) {
+/**
+ * Resolve a request path against the served root, or null when it escapes it.
+ * The request path is attacker-controlled (even on 127.0.0.1), so it is
+ * decoded, rejected on NUL / `..` segments, normalised, and the resolved
+ * candidate must still live inside `root`.
+ */
+function safeResolve(root, requestUrl) {
+  const raw = (requestUrl || '/').split('?')[0].split('#')[0];
+  let decoded;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+  if (decoded.includes('\0')) return null;
+  // Treat both separators as separators so `..` cannot hide behind a backslash.
+  const unified = '/' + decoded.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (unified.split('/').includes('..')) return null;
+  const normalised = normalize(unified).replace(/\\/g, '/');
+  if (normalised.split('/').includes('..')) return null;
+  const file = resolve(root, '.' + normalised);
+  if (file !== root && !file.startsWith(root + sep)) return null;
+  return { file: file, path: normalised };
+}
+
+function startStaticServer(rootDir, port) {
+  const root = resolve(rootDir);
   return new Promise((res, rej) => {
     const server = createServer((req, resp) => {
-      const url = decodeURIComponent((req.url || '/').split('?')[0]);
-      let file = join(root, url);
+      const safe = safeResolve(root, req.url);
+      if (!safe) {
+        resp.writeHead(404).end('not found');
+        return;
+      }
+      let file = safe.file;
       try {
-        if (!file.startsWith(root)) throw new Error('traversal');
         if (existsSync(file) && statSync(file).isFile()) {
           // serve as-is
-        } else if (extname(url)) {
+        } else if (extname(safe.path)) {
           resp.writeHead(404).end('not found');
           return;
         } else {
@@ -1011,6 +1041,17 @@ async function main() {
 
   const screenshotDir = args.opts.screenshots ? resolve(REPO_ROOT, args.opts.screenshots) : null;
   if (screenshotDir) mkdirSync(screenshotDir, { recursive: true });
+
+  // Opt-in escape hatch for environments that simply have no Chromium (bare CI
+  // containers). Loud on purpose: a skipped gate must never read as a pass.
+  const maySkip = args.flags.has('skip-if-unavailable') || process.env.MOBILE_GATE_SKIP_IF_UNAVAILABLE === '1';
+  if (maySkip && !findBrowser()) {
+    console.log(
+      '[mobile-gate] SKIPPED — no Chrome/Edge binary in this environment ' +
+        '(--skip-if-unavailable). The mobile gate did NOT run; it is not a pass.',
+    );
+    process.exit(0);
+  }
 
   const target = await resolveTarget(cfg);
   teardown.push(() => target.stop && target.stop());

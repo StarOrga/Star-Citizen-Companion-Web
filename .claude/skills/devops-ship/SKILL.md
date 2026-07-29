@@ -133,7 +133,10 @@ Plugin defaults still apply; only the rules below override or add.
      variant `ship-blocked` and quote the failing device/route lines. It is a
      quality gate exactly like build or lint — do not "note it and continue".
    - **Exit 2** means the gate could not run (no Chrome, no target). Fix the
-     environment; treat a gate that cannot run as red, never as green.
+     environment; treat a gate that cannot run as red, never as green. An
+     environment that provably has no Chromium may re-run with
+     `--skip-if-unavailable` (exit `0` + a `SKIPPED` line) and report it as a
+     skip — never as a pass.
    - Fix the findings in the app. Only if a finding is genuinely a false
      positive, add a narrow, justified entry to `scripts/mobile-gate.config.json`
      (`ignore.selectors` / `ignore.consolePatterns` + a `$waivers` entry naming
