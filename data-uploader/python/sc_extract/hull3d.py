@@ -5,7 +5,7 @@ P4K, no external data sources.
 Pipeline (per ship, per skin):
     p4k  -> .cga + .cgam + paint .mtl + referenced DDS  (scdatatools, unsplit)
          -> cgf-converter (-embedtextures)              -> textured glb
-         -> gltf-transform optimize (simplify+webp+draco)-> web glb (~3 MB)
+         -> gltf-transform optimize (simplify+webp+meshopt)-> web glb (~3 MB)
 
 External *build tools* (NOT data sources — data is 100% P4K):
   * cgf-converter v2.0.0+  (Markemp/Cryengine-Converter) — parses SC 4.x Ivo
@@ -115,6 +115,13 @@ class HullExportConfig:
     # Per-model size budget. A skin over budget is re-optimized down the quality
     # ladder (halve textures, coarsen simplify) until it fits — so only the heavy
     # skins lose fidelity, not the whole catalog. 0 disables the budget.
+    #
+    # Deliberately NOT raised for the draco->meshopt swap (#305). meshopt is
+    # ~1.56x draco on the MESH, but textures are ~70 % of a web glb, so the
+    # end-to-end effect is far smaller than 1.56x — and the ladder already
+    # handles an over-budget model deterministically. Expect it to step down one
+    # rung more often than before; re-tune this from the real per-skin sizes of
+    # the first full meshopt re-export rather than from an estimate.
     max_model_bytes: int = 600_000
     # Drop the ship's interior geometry/textures. The Showroom is an exterior
     # viewer; the interior is a quarter of the triangles and the bulk of the
@@ -227,7 +234,17 @@ class Hull3DExporter:
                  # `PaletteMaterial001` covering ~42 % of the Cutlass — the white
                  # blob of feedback d7f44a41. Keep the materials distinct.
                  "--palette", "false",
-                 "--compress", "draco"]
+                 # meshopt, not draco (#305). Both keep the mesh compressed on
+                 # disk, so both need a client-side decoder — the difference is
+                 # WHERE that decoder comes from. model-viewer hardcodes Draco's
+                 # to `https://www.gstatic.com/draco/...` and resets any override
+                 # while loading, so a Draco hull cannot be decoded without
+                 # reaching Google. Its meshopt decoder is bundled and merely
+                 # needs `meshoptDecoderLocation` pointed at a same-origin copy,
+                 # which sticks. Measured cost of the swap on the Cutlass hull
+                 # through this exact pipeline: 1.97 MB -> 3.09 MB (1.56x), and
+                 # the rendered model is dimensionally identical (delta < 1 mm).
+                 "--compress", "meshopt"]
         host_argv = os.environ.get("SC_GLTF_TRANSFORM_ARGV")
         if host_argv:
             # Host (Electron) provides the runtime: a JSON argv prefix that runs

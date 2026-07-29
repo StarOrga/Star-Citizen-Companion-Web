@@ -4,6 +4,35 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.56.1] - 2026-07-29
+
+### Changed
+
+- **Ship hulls will be compressed with meshopt instead of Draco, so the 3D view
+  stops depending on a Google CDN.** Both formats keep the mesh compressed on
+  disk and both need a decoder in the browser — the difference is where that
+  decoder comes from. model-viewer hardcodes Draco's to `www.gstatic.com` and
+  resets any override while loading, so a Draco hull simply cannot be decoded
+  without reaching Google; anyone behind a corporate proxy, AV filter or privacy
+  blocker sees no 3D at all. Its meshopt decoder is bundled and only needs to be
+  pointed at a same-origin copy, which is now shipped in `public/meshopt/`.
+
+  Measured on the Cutlass hull through the real export pipeline: 1.97 MB → 3.09 MB
+  (1.56×) for a model that renders dimensionally identically (18.88 × 9.82 ×
+  23.78 m, delta under 1 mm). The per-model size budget is deliberately unchanged
+  — textures are ~70 % of a glb, so the end-to-end effect is far smaller than
+  1.56×, and the existing quality ladder already handles an over-budget model.
+
+  The viewer reads **both** formats as of this release, which is what makes the
+  switch safe: the Draco hulls currently in the bucket keep working, and
+  `www.gstatic.com` stays in the CSP until they have all been re-exported.
+
+### Added
+
+- The 3D guard now also fails the build when the self-hosted meshopt decoder is
+  missing — that would otherwise surface only at runtime, on one route, with a
+  green build and green tests.
+
 ## [0.56.0] - 2026-07-29
 
 ### Added

@@ -23,6 +23,40 @@ import {
 // only enters the bundle chunk for that route — never the initial bundle.
 import '@google/model-viewer';
 
+/**
+ * Register the SELF-HOSTED meshopt decoder (#305).
+ *
+ * model-viewer already bundles three's `MeshoptDecoder`, but it only wires it
+ * into the loader once `meshoptDecoderLocation` is set — unset, a
+ * meshopt-compressed glb fails with "setMeshoptDecoder must be called before
+ * loading compressed files". Unlike `dracoDecoderLocation` there is no CDN
+ * default here, so pointing it at our own copy means the decoder is genuinely
+ * same-origin: no request to Google, and the 3D view keeps working on networks
+ * that block third-party CDNs.
+ *
+ * Setting this is harmless for the Draco hulls currently in the bucket — it only
+ * adds meshopt capability. That ordering is deliberate: the viewer must be able
+ * to read meshopt BEFORE the uploader starts producing it, and `www.gstatic.com`
+ * may only leave the CSP once no Draco hull is left to decode.
+ *
+ * Verified in a real browser: a meshopt hull renders with the same dimensions as
+ * the Draco one (18.88 x 9.82 x 23.78 m, delta < 1 mm), decoder fetched from our
+ * own origin, and unlike the Draco setter this location is NOT reset on load.
+ */
+function useSelfHostedMeshoptDecoder(ctor: unknown): void {
+  if (ctor) {
+    (ctor as { meshoptDecoderLocation?: string }).meshoptDecoderLocation =
+      '/meshopt/meshopt_decoder.loader.js';
+  }
+}
+useSelfHostedMeshoptDecoder(customElements.get('model-viewer'));
+void customElements
+  .whenDefined('model-viewer')
+  .then((ctor) => useSelfHostedMeshoptDecoder(ctor ?? customElements.get('model-viewer')))
+  .catch(() => {
+    /* a model-viewer that never defines already surfaces as a model load error */
+  });
+
 type ViewMode = '3d' | 'paint';
 
 /** A port the detail view wants located on the model. */

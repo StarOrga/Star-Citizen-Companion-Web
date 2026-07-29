@@ -1,7 +1,93 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.55.3",
+  "current": "0.56.1",
   "releases": [
+    {
+      "version": "0.56.1",
+      "date": "2026-07-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Ship hulls will be compressed with meshopt instead of Draco, so the 3D view stops depending on a Google CDN.",
+              "text": "Both formats keep the mesh compressed on disk and both need a decoder in the browser — the difference is where that decoder comes from. model-viewer hardcodes Draco's to www.gstatic.com and resets any override while loading, so a Draco hull simply cannot be decoded without reaching Google; anyone behind a corporate proxy, AV filter or privacy blocker sees no 3D at all. Its meshopt decoder is bundled and only needs to be pointed at a same-origin copy, which is now shipped in public/meshopt/. Measured on the Cutlass hull through the real export pipeline: 1.97 MB → 3.09 MB (1.56×) for a model that renders dimensionally identically (18.88 × 9.82 × 23.78 m, delta under 1 mm). The per-model size budget is deliberately unchanged — textures are ~70 % of a glb, so the end-to-end effect is far smaller than 1.56×, and the existing quality ladder already handles an over-budget model. The viewer reads both formats as of this release, which is what makes the switch safe: the Draco hulls currently in the bucket keep working, and www.gstatic.com stays in the CSP until they have all been re-exported."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The 3D guard now also fails the build when the self-hosted meshopt decoder is missing — that would otherwise surface only at runtime, on one route, with a green build and green tests."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.56.0",
+      "date": "2026-07-29",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Unsent feedback input is kept on your account — everywhere, including screenshots.",
+              "text": "Somebody wrote a long topic about the Verse News overhaul, never pressed send, closed the tab, and it was gone. The only safety net had been a single localStorage key for the new-topic box: text only, no attachments, no reply boxes, and gated behind the opt-in *preferences* consent — so anyone who declined had no draft at all, and no draft ever survived switching device. Drafts now live in public.feedback_drafts, one row per (account, composer). Every composer in the feedback surface has its own scope, so the three boxes a single thread can show never overwrite each other. Attachments upload into the existing feedback-images bucket the moment they are attached, so the row holds a URL instead of megabytes of base64 — and sending a restored draft reuses that object instead of storing it twice. A draft is removed by exactly two events: a successful send, or the user pressing discard (two-step, so one stray click cannot destroy minutes of writing). Not by a reload, not by closing the panel, not by a failed write — a failed write keeps the value, says so in the composer, and retries. pagehide flushes with fetch(keepalive), the one path that still completes while the tab is being torn down, which is exactly the case that lost the original report. Pre-existing localStorage drafts are imported once, then removed."
+            },
+            {
+              "title": "A review gate: shipping no longer ends a topic — signing it off does.",
+              "text": "shipped / issue_created used to drop a topic straight into the archive, so nobody ever looked at the result on the live app. Those outcomes now stay on the active board in an *Abnahme* bucket with two ways out: sign it off (→ Erledigt) or resume the conversation, which returns the topic to the routine's queue. Backed by admin_feedback.reviewed_at, deliberately not a new status value — the autonomous routine's contract is status-only and unchanged. Topics that ended before the gate existed are backfilled as reviewed."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "The lifecycle map now has the shape of the machine it describes.",
+              "text": "Rückfragen and the terminal states were listed under the diagram as an \"Abzweigungen & Endstationen\" footer, which is not what they are. A Rückfrage is now drawn inside the stage it detours from and loops back into, and the path ends in a visible fork: either geshipped or handed to an issue — after the sign-off."
+            },
+            {
+              "title": "One word per bucket across the whole admin panel.",
+              "text": "The charts drop from a bar-per-bucket to the four that carry information, in the order a topic walks them: ToDo · Offen (in Arbeit, Rückfragen, Abnahme) · Geshipped · Issue erstellt — all labelled from the same source the filter chips use, so they cannot drift apart. The archive tab is now \"Erledigt\", and the totals line — the quick analytical read — is shown in the docked FAB panel too instead of being dropped there."
+            }
+          ]
+        },
+        {
+          "category": "Known debt",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The mobile/tablet gate from #307 is red on main (704 findings, all on /login and the shared topbar: 41–38 px form controls, 16 px trust links, sub-12 px labels). Verified identical on origin/main and on this branch, so this release neither causes nor worsens it. Needs its own pass."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.55.4",
+      "date": "2026-07-29",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "A stale Starscape install was invisible and sticky — the tray never said which build was running, and a manually downloaded newer build never took over.",
+              "text": "Ships wallpaper-app 0.4.2. Three gaps, one story: (1) several tray states (sign-in required, checking, downloading, failed) showed no version at all, so a signed-out alpha install could not tell a fresh build from a months-old one — every label now names the running version. (2) A clamped update-feed response (signed out on a locked ring) still names the lower ring's version; when even that beats the running build the tray now flags \"outdated\" — proof that needs no sign-in, display-only, never installed from. (3) The autostart Run value kept the path it was first written with, so a manually downloaded newer exe — the documented way out of the 0.4.0 sign-in deadlock — lost the singleton race to the old build on every boot, forever. Startup now re-points an enabled Run entry at the exe that actually holds the mutex. 45 wallpaper-app tests green (3 new)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.55.3",
       "date": "2026-07-29",
