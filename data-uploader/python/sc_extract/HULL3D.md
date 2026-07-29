@@ -16,7 +16,7 @@ Data.p4k
    textured glb  (~155 MB, full-res)
         │
         ▼  glb_materials repair  (no-op skin · paint tints · interior strip)
-        ▼  gltf-transform optimize  (weld · simplify · webp@512 · draco, no palette)
+        ▼  gltf-transform optimize  (weld · simplify · webp@512 · meshopt, no palette)
         ▼  over the per-skin budget? re-optimize at 256
    web glb  (≤0.6 MB)  ──►  <model-viewer> in the Angular app (lazy-loaded route)
 ```

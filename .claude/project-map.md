@@ -2,6 +2,7 @@
 # Project Map — scc-starscape-auth
 
 558 tracked files.
+556 tracked files.
 
 ## Structure
 ```
@@ -76,6 +77,8 @@ src/  (172) — Source code
   environments/  (2)
 supabase/  (100)
   functions/  (48)
+supabase/  (98)
+  functions/  (46)
     api/  (12) — API endpoints
     check-bundle/  (1)
     delete-user/  (1)
