@@ -20,7 +20,13 @@ import {
   toLang,
 } from './codex.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { cleanLocaleValue, humanizeClassName } from './codex-format';
+import {
+  cleanLocaleValue,
+  formatCraftTime,
+  humanizeBlueprintCategory,
+  humanizeBlueprintName,
+  humanizeClassName,
+} from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
@@ -132,6 +138,15 @@ const COMPONENT_KINDS = [
               </select>
             </label>
           }
+          @if (kind() === 'blueprint' && blueprintCategoryOptions().length > 0) {
+            <label class="facet">
+              <span>{{ 'blueprint.filters.category' | translate }}</span>
+              <select class="sc-select" [ngModel]="blueprintCategory()" (ngModelChange)="setBlueprintCategory($event)">
+                <option value="">{{ 'codex.filters.all' | translate }}</option>
+                @for (c of blueprintCategoryOptions(); track c) { <option [value]="c">{{ categoryLabel(c) }}</option> }
+              </select>
+            </label>
+          }
           @if (supportsVariants()) {
             <label class="facet check">
               <input type="checkbox" [ngModel]="includeVariants()" (ngModelChange)="setIncludeVariants($event)" />
@@ -162,6 +177,9 @@ const COMPONENT_KINDS = [
 
         @if (isPartialKind()) {
           <p class="partial-note">{{ 'codex.empty.partial' | translate }}</p>
+        }
+        @if (blueprintRecipesMissing()) {
+          <p class="partial-note">{{ 'blueprint.recipesMissing' | translate }}</p>
         }
 
         @if (loading() && rows().length === 0) {
@@ -215,6 +233,9 @@ const COMPONENT_KINDS = [
                   @if (r.crewSize != null) { <span class="badge">{{ 'codex.card.crew' | translate: { count: r.crewSize } }}</span> }
                   @if (r.speed != null) { <span class="badge subtle">{{ r.speed }} m/s</span> }
                   @if (r.isVariant) { <span class="badge variant">{{ 'codex.card.variant' | translate }}</span> }
+                  @if (r.blueprintCategory) { <span class="badge">{{ categoryLabel(r.blueprintCategory) }}</span> }
+                  @if (r.blueprintTier != null) { <span class="badge">{{ 'blueprint.card.tier' | translate: { tier: r.blueprintTier } }}</span> }
+                  @if (craftTimeLabel(r); as ct) { <span class="badge subtle">{{ ct }}</span> }
                 </div>
                 @if (r.size != null) {
                   <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
@@ -365,9 +386,26 @@ export class CodexListComponent implements OnInit {
   // hangar.ships() signal (no DB change), so ship cards can mark ownership.
   readonly inHangarSet = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
 
-  /** Kinds whose catalog isn't ingested yet — shown but disabled. (UC-13) */
+  /**
+   * Kinds whose catalog isn't ingested yet — shown but disabled. (UC-13)
+   *
+   * Derived from the build manifest, never hardcoded: `blueprint` was pinned to
+   * "coming soon" long after the uploader started shipping blueprints, which
+   * left 1595 ingested rows unreachable (the tab was disabled and `setKind`
+   * refused it, and nothing else in the UI links to /codex/blueprint).
+   * Unknown count → enabled; only an explicit 0 disables a kind.
+   */
   isComingSoon(k: CodexKind): boolean {
-    return k === 'blueprint';
+    return this.kindCount(k) === 0;
+  }
+
+  /** Human label for a raw CIG blueprint bucket, translated when we have a key. */
+  categoryLabel(c: string): string {
+    // Read the language signal so OnPush re-renders labels on a DE/EN switch.
+    this.dataLang();
+    const key = `blueprint.category.${c}`;
+    const translated = this.t.instant(key);
+    return translated && translated !== key ? translated : humanizeBlueprintCategory(c);
   }
 
   // Slugs whose preview image failed to load — fall back to the category icon
@@ -400,7 +438,11 @@ export class CodexListComponent implements OnInit {
     const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
     // Distinct-pick: DE only when genuinely translated, EN otherwise. (#50)
     const localized = p?.name ? pickLocalizedDistinct(p.name, this.dataLang()) : '';
-    return localized || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
+    const fallback =
+      this.kind() === 'blueprint'
+        ? humanizeBlueprintName(r.classNameSlug)
+        : humanizeClassName(r.classNameSlug);
+    return localized || cleanLocaleValue(r.nameLocalized) || fallback;
   }
 
   readonly kind = signal<CodexKind>('ship');
@@ -412,6 +454,10 @@ export class CodexListComponent implements OnInit {
   readonly componentKind = signal('');
   readonly weaponClass = signal('');
   readonly includeVariants = signal(false);
+  /** Blueprint-only facet — raw CIG bucket, '' = all. */
+  readonly blueprintCategory = signal('');
+  /** Buckets actually present in the build (loaded once, data-driven). */
+  readonly blueprintCategoryOptions = signal<string[]>([]);
 
   readonly rows = signal<CodexListRow[]>([]);
   readonly total = signal(0);
@@ -448,8 +494,28 @@ export class CodexListComponent implements OnInit {
       !!this.grade() ||
       !!this.componentKind() ||
       !!this.weaponClass() ||
+      !!this.blueprintCategory() ||
       this.includeVariants(),
   );
+
+  /**
+   * True when the build carries blueprints but zero recipe rows — the list is
+   * still useful (names, tiers, craft times) but every detail page will be
+   * ingredient-less, so say so instead of looking broken.
+   */
+  readonly blueprintRecipesMissing = computed(() => {
+    if (this.kind() !== 'blueprint') return false;
+    const counts = this.svc.build()?.entityCounts as Record<string, unknown> | undefined;
+    if (!counts) return false;
+    const blueprints = counts['blueprints'];
+    const ingredients = counts['blueprint_ingredients'];
+    return typeof blueprints === 'number' && blueprints > 0 && ingredients === 0;
+  });
+
+  /** Craft-time badge for a blueprint card, or null when unknown. */
+  craftTimeLabel(r: CodexListRow): string | null {
+    return formatCraftTime(r.craftTimeSec);
+  }
 
   constructor() {
     // Keep the data language in sync with UI language switches. (#50)
@@ -467,6 +533,7 @@ export class CodexListComponent implements OnInit {
       this.componentKind();
       this.weaponClass();
       this.includeVariants();
+      this.blueprintCategory();
       this.runQuery(true);
     });
   }
@@ -475,6 +542,16 @@ export class CodexListComponent implements OnInit {
     await this.svc.loadCurrentBuild();
     // UC-02: hangar membership backs the in-hangar badge on ship cards.
     if (this.hangar.ships().length === 0) void this.hangar.loadAll();
+    await this.loadBlueprintCategories();
+  }
+
+  /** Facet source for the blueprint kind. Advisory — a failure just hides it. */
+  private async loadBlueprintCategories(): Promise<void> {
+    try {
+      this.blueprintCategoryOptions.set(await this.svc.blueprintCategories());
+    } catch {
+      this.blueprintCategoryOptions.set([]);
+    }
   }
 
   // True when the current build only seeded a subset of this kind (seeded <
@@ -501,8 +578,8 @@ export class CodexListComponent implements OnInit {
 
   setKind(k: CodexKind): void {
     if (k === this.kind()) return;
-    // Blueprint catalog is empty (0 rows) until crafting data is ingested — the
-    // kind is shown disabled, so ignore any stray activation. (UC-13)
+    // A kind the build reports as empty is shown disabled — ignore stray
+    // activation (keyboard, deep link). (UC-13)
     if (this.isComingSoon(k)) return;
     // reset facets that don't apply across kinds
     this.manufacturer.set('');
@@ -510,6 +587,7 @@ export class CodexListComponent implements OnInit {
     this.grade.set('');
     this.componentKind.set('');
     this.weaponClass.set('');
+    this.blueprintCategory.set('');
     this.kind.set(k);
   }
 
@@ -530,6 +608,7 @@ export class CodexListComponent implements OnInit {
   setComponentKind(v: string): void { this.componentKind.set(v); }
   setWeaponClass(v: string): void { this.weaponClass.set(v); }
   setIncludeVariants(v: boolean): void { this.includeVariants.set(v); }
+  setBlueprintCategory(v: string): void { this.blueprintCategory.set(v); }
 
   resetFilters(): void {
     this.manufacturer.set('');
@@ -537,6 +616,7 @@ export class CodexListComponent implements OnInit {
     this.grade.set('');
     this.componentKind.set('');
     this.weaponClass.set('');
+    this.blueprintCategory.set('');
     this.includeVariants.set(false);
   }
 
@@ -579,6 +659,7 @@ export class CodexListComponent implements OnInit {
       grade: this.grade() || undefined,
       componentKind: this.componentKind() || undefined,
       weaponClass: this.weaponClass() || undefined,
+      category: this.blueprintCategory() || undefined,
       includeVariants: this.includeVariants(),
       limit: PAGE_SIZE,
       offset: this.offset,
