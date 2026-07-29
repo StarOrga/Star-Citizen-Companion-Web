@@ -100,11 +100,11 @@ type Phase = 'waiting' | 'ready' | 'empty' | 'done';
       .row { display: flex; gap: 10px; flex-wrap: wrap; }
       .meta-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.85rem; align-items: baseline; }
       .meta-grid span { color: var(--sc-fg-2); }
-      .privacy { margin: 10px 0 0; font-size: 0.78rem; color: var(--sc-fg-2); line-height: 1.55;
+      .privacy { margin: 10px 0 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.55;
         border-top: 1px solid var(--sc-border); padding-top: 8px; }
       .review h2 { margin: 0 0 10px; font-size: 0.95rem; font-family: var(--sc-font-display); letter-spacing: 0.04em; }
       .link-btn { background: transparent; border: 0; color: var(--sc-fg-2); cursor: pointer;
-        font-size: 0.78rem; margin-top: 10px; text-decoration: underline; padding: 0; }
+        font-size: max(0.78rem, var(--sc-fs-floor)); margin-top: 10px; text-decoration: underline; padding: 0; }
       .sc-btn-primary { background: var(--sc-accent); color: var(--sc-bg-0); border-color: var(--sc-accent); }
       .spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--sc-border);
         border-top-color: var(--sc-accent); display: inline-block; animation: spin 0.9s linear infinite; }

@@ -293,7 +293,7 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       background: color-mix(in srgb, var(--sc-bg-2) 88%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent);
       -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-      font-family: var(--sc-font-display); font-size: 0.62rem; letter-spacing: 0.16em;
+      font-family: var(--sc-font-display); font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.16em;
       text-transform: uppercase; color: var(--sc-accent);
       animation: sc-reveal-in 0.3s ease both;
     }
@@ -379,7 +379,7 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       overflow-wrap: anywhere;
     }
     .dropdown-header .dh-email {
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       color: var(--sc-fg-2);
       overflow-wrap: anywhere;
     }
@@ -393,7 +393,7 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       border-radius: 4px;
       color: var(--sc-fg-1);
       font-family: var(--sc-font-display);
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       letter-spacing: 0.06em;
       text-transform: uppercase;
       text-decoration: none;
@@ -438,7 +438,7 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
         padding: 2px 16px;
       }
       .nav::-webkit-scrollbar { display: none; }
-      .nav a { padding: 8px 12px; font-size: 0.72rem; white-space: nowrap; flex: 0 0 auto; }
+      .nav a { padding: 8px 12px; font-size: max(0.72rem, var(--sc-fs-floor)); white-space: nowrap; flex: 0 0 auto; }
       .actions { flex: 1; justify-content: flex-end; }
       .content { padding: 20px 16px; }
     }

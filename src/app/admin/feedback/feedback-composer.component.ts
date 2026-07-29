@@ -216,7 +216,7 @@ const MAX_ATTACHMENTS = 10;
       border: 1px solid var(--sc-danger);
       color: var(--sc-danger);
       border-radius: 6px;
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
     }
 
     .toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -227,12 +227,12 @@ const MAX_ATTACHMENTS = 10;
       border: 1px solid var(--sc-border);
       border-radius: 4px;
       font: inherit;
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       cursor: pointer;
     }
     .tool:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .grow { flex: 1; }
-    .draft-flag { font-size: 0.72rem; color: var(--sc-fg-2); }
+    .draft-flag { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .draft-flag.warn { color: var(--sc-accent-hot); }
     .draft-clear {
       padding: 2px 7px;
@@ -241,7 +241,7 @@ const MAX_ATTACHMENTS = 10;
       border: 1px solid var(--sc-border);
       border-radius: 4px;
       font: inherit;
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       line-height: 1.3;
       cursor: pointer;
     }
@@ -274,9 +274,9 @@ const MAX_ATTACHMENTS = 10;
        so the composer carries no size of its own. */
 
     .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .foot .hint { margin: 0; font-size: 0.76rem; color: var(--sc-fg-2); }
+    .foot .hint { margin: 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .composer.compact .foot .hint { display: none; }
-    .sc-btn.micro { padding: 4px 10px; font-size: 0.7rem; letter-spacing: 0.04em; }
+    .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
 
     @media (max-width: 640px) {
       .foot { flex-direction: column; align-items: stretch; }

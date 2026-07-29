@@ -981,7 +981,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     /* Non-interactive day heading between dated groups of topics. */
     .date-group {
       margin: 6px 2px 0;
-      font-size: 0.66rem;
+      font-size: max(0.66rem, var(--sc-fs-floor));
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.07em;
@@ -1006,7 +1006,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .msg-head.one-liner .chev {
       flex: 0 0 auto;
       color: var(--sc-fg-2);
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       transition: transform 0.16s ease;
     }
     .msg-head.one-liner .chev.open { transform: rotate(90deg); }
@@ -1023,7 +1023,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .msg-head.one-liner .row-author {
       flex: 0 0 auto;
       color: var(--sc-fg-2);
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
     }
     .msg-head.one-liner:hover .topic-title { color: var(--sc-accent); }
     /* Reference number (feedback 21587480): monospaced digits so a column of
@@ -1032,7 +1032,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .topic-no {
       flex: 0 0 auto;
       color: var(--sc-fg-2);
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       font-weight: 600;
       font-variant-numeric: tabular-nums;
       letter-spacing: 0.02em;
@@ -1084,7 +1084,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       font-weight: 600;
       letter-spacing: 0.03em;
       white-space: nowrap;
@@ -1107,7 +1107,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       background: color-mix(in srgb, #a78bfa 28%, transparent);
       color: #a78bfa;
-      font-size: 0.64rem;
+      font-size: max(0.64rem, var(--sc-fs-floor));
       font-weight: 700;
     }
 
@@ -1172,7 +1172,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       cursor: pointer;
       transition: all 0.16s ease;
     }
@@ -1208,7 +1208,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       font-weight: 600;
       white-space: nowrap;
       cursor: pointer;
@@ -1235,13 +1235,13 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border: 1px solid var(--sc-success);
       border-radius: 999px;
       color: var(--sc-success);
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       letter-spacing: 0.05em;
       text-transform: uppercase;
       white-space: nowrap;
     }
     .rg-title { font-size: 0.82rem; font-weight: 600; color: var(--sc-fg-0); }
-    .rg-hint { margin: 0; font-size: 0.74rem; line-height: 1.45; color: var(--sc-fg-2); }
+    .rg-hint { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); line-height: 1.45; color: var(--sc-fg-2); }
     .rg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .rg-actions .accept { border-color: var(--sc-success); color: var(--sc-success); }
     .rg-actions .accept:hover { background: rgba(74, 222, 128, 0.16); }
@@ -1292,7 +1292,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .archive-tab.active { background: rgba(0, 212, 255, 0.14); color: var(--sc-accent); }
     .archive-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     .archive-tab .tab-count {
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       font-weight: 500;
       color: var(--sc-fg-2);
       font-variant-numeric: tabular-nums;
@@ -1315,7 +1315,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       white-space: nowrap;
       cursor: pointer;
       transition: all 0.16s ease;
@@ -1323,7 +1323,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .tb-icon:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .tb-icon.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
     .tb-icon:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
-    .tb-icon .chev { display: inline-block; font-size: 0.72rem; transition: transform 0.16s ease; }
+    .tb-icon .chev { display: inline-block; font-size: max(0.72rem, var(--sc-fs-floor)); transition: transform 0.16s ease; }
     .tb-icon .chev.open { transform: rotate(90deg); }
     /* Active-filter marker on the collapsed "Filter" button, so a fold that is
        hiding an applied chip still reads as "narrowed". */
@@ -1367,7 +1367,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     }
     .cs-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .cs-title {
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       text-transform: uppercase;
       letter-spacing: 0.06em;
       font-weight: 600;
@@ -1395,7 +1395,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
        "In Arbeit" is intentionally not shown. */
     .board-stats {
       display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
-      margin: 0; padding: 2px 0; font-size: 0.78rem; color: var(--sc-fg-2);
+      margin: 0; padding: 2px 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
     }
     .board-stats .stat.rueckfragen { color: #a78bfa; font-weight: 600; }
     .board-stats .stat.review { color: var(--sc-success); font-weight: 600; }
@@ -1405,7 +1405,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       content: '·'; margin-right: 8px; color: var(--sc-fg-2); font-weight: 400;
     }
     /* Docked panel: same numbers, less room — smaller and tighter, never dropped. */
-    .board-stats.compact { gap: 6px; padding: 0; font-size: 0.7rem; }
+    .board-stats.compact { gap: 6px; padding: 0; font-size: max(0.7rem, var(--sc-fs-floor)); }
     .board-stats.compact .stat + .stat::before { margin-right: 6px; }
 
     /* Archive tab list — done topics, dimmed a touch so the tab reads as history. */
@@ -1421,7 +1421,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.76rem;
+      font-size: max(0.76rem, var(--sc-fs-floor));
       letter-spacing: 0.04em;
       cursor: pointer;
       transition: all 0.16s ease;
@@ -1450,14 +1450,14 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .msg-detail { display: flex; flex-direction: column; gap: 8px; }
     .msg-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .author { font-weight: 600; font-size: 0.9rem; }
-    .ts { color: var(--sc-fg-2); font-size: 0.76rem; }
+    .ts { color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
 
     .status-pill {
       margin-left: auto;
       display: inline-block;
       padding: 2px 8px;
       border-radius: 999px;
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -1548,11 +1548,11 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .reply-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .reply-author { font-weight: 600; font-size: 0.82rem; }
     .reply-badge {
-      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em;
+      font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em;
       padding: 1px 6px; border-radius: 999px;
       background: color-mix(in srgb, #a78bfa 25%, transparent); color: #a78bfa;
     }
-    .reply-ts { margin-left: auto; color: var(--sc-fg-2); font-size: 0.72rem; }
+    .reply-ts { margin-left: auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
     .reply-body { font-size: 0.88rem; line-height: 1.45; overflow-wrap: anywhere; }
     .reply-body :first-child { margin-top: 0; }
     .reply-body :last-child { margin-bottom: 0; }
@@ -1564,7 +1564,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     /* Archived topics: a reply reopens them, so say so above the composer. */
     .reopen-hint {
       margin: 4px 0 0;
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       color: var(--sc-fg-2);
       font-style: italic;
     }
@@ -1581,10 +1581,10 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 6px;
       color: var(--sc-fg-0);
       font: inherit;
-      font-size: 0.76rem;
+      font-size: max(0.76rem, var(--sc-fs-floor));
     }
     .issue-input:focus-visible { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25); }
-    .sc-btn.micro { padding: 4px 10px; font-size: 0.7rem; letter-spacing: 0.04em; }
+    .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
     .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
 
@@ -1601,13 +1601,13 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     }
     .ac-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .ac-title {
-      font-size: 0.72rem; text-transform: uppercase;
+      font-size: max(0.72rem, var(--sc-fs-floor)); text-transform: uppercase;
       letter-spacing: 0.08em; font-weight: 600; color: var(--sc-accent);
     }
-    .ac-status { margin-left: auto; font-size: 0.72rem; color: var(--sc-fg-2); }
+    .ac-status { margin-left: auto; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .ac-status strong { color: var(--sc-fg-1); }
-    .ac-hint { margin: 0; font-size: 0.72rem; color: var(--sc-fg-2); }
-    .ac-ask { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--sc-fg-2); }
+    .ac-hint { margin: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .ac-ask { display: inline-flex; align-items: center; gap: 6px; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     .status-pill.from-user { border-color: var(--sc-accent); color: var(--sc-accent); }
     .status-pill.untriaged { border-color: var(--sc-accent-hot); color: var(--sc-accent-hot); }
@@ -1616,7 +1616,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .decline-input {
       width: 100%; box-sizing: border-box; padding: 6px 8px; resize: vertical;
       background: var(--sc-bg-2); border: 1px solid var(--sc-danger);
-      border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: 0.78rem;
+      border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
     }
     .decline-input:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
     .decline-actions { display: flex; gap: 6px; }

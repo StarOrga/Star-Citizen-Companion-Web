@@ -144,7 +144,7 @@ import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.comp
       border-radius: 999px;
       background: var(--sc-accent-hot);
       color: #10060a;
-      font-size: 0.66rem;
+      font-size: max(0.66rem, var(--sc-fs-floor));
       font-weight: 700;
     }
 

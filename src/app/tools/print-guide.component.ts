@@ -117,13 +117,19 @@ interface ExternalTool {
     .legal { border-color: var(--sc-accent); }
     .legal .disclaimer {
       color: var(--sc-fg-2);
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       border-top: 1px solid var(--sc-border);
       padding-top: 10px;
       margin-top: 12px;
     }
     .link-list { margin: 0; padding-left: 20px; }
     .link-list li { margin: 4px 0; }
+    /* Standalone links (list entries, the CIG-guide hint) are controls, not
+       prose — on touch they get the full hit area. */
+    @media (pointer: coarse) {
+      .link-list li > a,
+      .hint > a:only-child { display: flex; align-items: center; min-height: var(--sc-tap-min); }
+    }
 
     a { color: var(--sc-accent); }
     a:hover { color: var(--sc-fg-0); }

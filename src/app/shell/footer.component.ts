@@ -89,7 +89,7 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
     }
     .badge-label {
       font-family: var(--sc-font-display);
-      font-size: 0.58rem;
+      font-size: max(0.58rem, var(--sc-fs-floor));
       letter-spacing: 0.1em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
@@ -107,13 +107,13 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
     }
     .meta .disclaimer {
       color: var(--sc-fg-2);
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       line-height: 1.4;
       margin: 0;
     }
     .meta .copyright {
       color: var(--sc-fg-2);
-      font-size: 0.7rem;
+      font-size: max(0.7rem, var(--sc-fs-floor));
       line-height: 1.4;
       margin: 2px 0 0;
       opacity: 0.8;
@@ -144,7 +144,7 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
     }
     .whatsnew a {
       font-family: var(--sc-font-display);
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--sc-accent);
@@ -154,13 +154,13 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
     .whatsnew a:hover { color: var(--sc-fg-1); }
     .whatsnew .ver {
       color: var(--sc-fg-2);
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       font-family: ui-monospace, monospace;
     }
     .legal-links {
       display: flex;
       gap: 6px;
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       color: var(--sc-fg-2);
     }
     .legal-links a {

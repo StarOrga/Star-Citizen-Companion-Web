@@ -317,7 +317,7 @@ interface Lane {
     .index-link {
       padding: 6px 12px; border-radius: 8px;
       background: color-mix(in srgb, var(--sc-accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 34%, transparent);
-      color: var(--sc-accent); font-family: var(--sc-font-display); font-size: 0.7rem; letter-spacing: 0.05em;
+      color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.05em;
       text-transform: uppercase; text-decoration: none; white-space: nowrap;
     }
     .index-link:hover { background: color-mix(in srgb, var(--sc-accent) 22%, transparent); }
@@ -334,9 +334,9 @@ interface Lane {
     }
     .showroom-billboard:hover { border-color: var(--sc-accent); box-shadow: 0 0 24px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
     .sb-text { display: flex; flex-direction: column; gap: 3px; }
-    .sb-eyebrow { font-family: var(--sc-font-display); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent); }
+    .sb-eyebrow { font-family: var(--sc-font-display); font-size: max(0.64rem, var(--sc-fs-floor)); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent); }
     .sb-title { font-size: 1.05rem; }
-    .sb-cta { font-family: var(--sc-font-display); font-size: 0.74rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--sc-accent); }
+    .sb-cta { font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; color: var(--sc-accent); }
 
     /* Hero */
     .hero {
@@ -356,7 +356,7 @@ interface Lane {
     .hero-art img { max-width: 100%; max-height: 340px; object-fit: contain; filter: drop-shadow(0 8px 26px rgba(0,0,0,0.6)); }
     .hero-art.icon-only sc-codex-icon { width: 60%; height: 60%; }
     .hero-body { display: flex; flex-direction: column; gap: 8px; padding: 28px 30px; justify-content: center; }
-    .hero-eyebrow { font-family: var(--sc-font-display); font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .hero-eyebrow { font-family: var(--sc-font-display); font-size: max(0.68rem, var(--sc-fs-floor)); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); }
     .hero-eyebrow.hangar { color: var(--sc-accent); }
     .hero-eyebrow.flagship { color: var(--sc-warning, #ffc14d); }
     .hero-name { margin: 0; font-size: clamp(1.6rem, 3vw, 2.4rem); line-height: 1.1; }
@@ -366,12 +366,12 @@ interface Lane {
     .hero-mfr { margin: 0; color: var(--sc-fg-1); font-family: var(--sc-font-display); letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.8rem; }
     .hero-stats { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; margin: 10px 0 4px; }
     .hero-stat { display: flex; flex-direction: column; gap: 2px; }
-    .stat-label { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sc-fg-2); }
+    .stat-label { font-size: max(0.64rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.1em; color: var(--sc-fg-2); }
     .stat-value { font-family: var(--sc-font-display); font-size: 1.5rem; color: var(--sc-fg-0); }
     .hero-fresh { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
       background: color-mix(in srgb, var(--sc-success, #5fd698) 12%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-success, #5fd698) 34%, transparent);
-      color: var(--sc-fg-1); font-size: 0.74rem; }
+      color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); }
     .fresh-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sc-success, #5fd698); box-shadow: 0 0 8px var(--sc-success, #5fd698); }
     .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
     .btn { padding: 11px 22px; border-radius: 9px; font-family: var(--sc-font-display); font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
@@ -384,14 +384,14 @@ interface Lane {
     .btn.flag:hover { background: color-mix(in srgb, var(--sc-warning, #ffc14d) 14%, transparent); }
     .btn.flag.is-flagship { background: color-mix(in srgb, var(--sc-warning, #ffc14d) 22%, transparent); }
     .flagship-hint { display: flex; align-items: flex-start; gap: 7px; margin: 10px 0 0; max-width: 46ch;
-      color: var(--sc-fg-2); font-size: 0.76rem; line-height: 1.45; }
+      color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); line-height: 1.45; }
     .flagship-hint .hint-icon { color: var(--sc-warning, #ffc14d); line-height: 1.45; }
 
     /* Lanes */
     .lane { display: flex; flex-direction: column; gap: 12px; }
     .lane-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
     .lane-head h2 { margin: 0; font-size: 1.05rem; }
-    .lane-sub { color: var(--sc-fg-2); font-size: 0.76rem; }
+    .lane-sub { color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
     .results-head { display: flex; align-items: baseline; }
     .count { font-family: var(--sc-font-display); font-size: 0.82rem; letter-spacing: 0.06em; color: var(--sc-accent); text-transform: uppercase; }
     .lane-track {
@@ -415,10 +415,11 @@ interface Lane {
     .lane-thumb.icon-only sc-codex-icon { width: 100%; height: 100%; }
     .lane-info { display: flex; flex-direction: column; gap: 2px; min-height: 40px; }
     .lane-name { margin: 0; font-size: 0.9rem; font-weight: 600; line-height: 1.2; }
-    .lane-mfr { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
+    .lane-mfr { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
     .lane-actions { display: flex; align-items: center; gap: 8px; margin-top: auto; }
     .chip-btn { border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-2);
-      font-size: 0.82rem; line-height: 1; min-width: 30px; height: 26px; border-radius: 7px; cursor: pointer;
+      font-size: 0.82rem; line-height: 1; min-width: max(30px, var(--sc-tap-min));
+      height: 26px; min-height: var(--sc-tap-min); border-radius: 7px; cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center; padding: 0 8px; }
     .chip-btn:hover { color: var(--sc-success, #5fd698); border-color: var(--sc-success, #5fd698); }
     .chip-btn.compare:hover { color: var(--sc-accent); border-color: var(--sc-accent); }

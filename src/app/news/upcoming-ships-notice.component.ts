@@ -82,13 +82,13 @@ const NAME_LIMIT = 6;
     .line { margin: 0; font-size: 0.82rem; color: var(--sc-fg-1); }
     .ships { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
     .ship { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px;
-      border: 1px solid var(--sc-border); background: var(--sc-bg-2); font-size: 0.75rem; }
+      border: 1px solid var(--sc-border); background: var(--sc-bg-2); font-size: max(0.75rem, var(--sc-fs-floor)); }
     .ship.fav { border-color: color-mix(in srgb, var(--sc-accent) 44%, transparent); }
     .ship .star { color: var(--sc-accent); }
-    .ship .st { color: var(--sc-fg-2); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .ship .st { color: var(--sc-fg-2); font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.04em; }
     .ship.more { color: var(--sc-fg-2); background: transparent; border-style: dashed; }
     .cta { align-self: flex-start; margin-top: 2px; color: var(--sc-accent); text-decoration: none;
-      font-family: var(--sc-font-display); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; }
+      font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; }
     .cta:hover { text-decoration: underline; }
   `],
 })

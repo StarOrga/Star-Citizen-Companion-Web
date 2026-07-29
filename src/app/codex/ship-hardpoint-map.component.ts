@@ -116,15 +116,15 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
     :host { display: block; }
     .hp-map { margin: 0 0 14px; }
     figcaption { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-    .ttl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--sc-fg-1); }
-    .hint { font-size: 0.63rem; color: var(--sc-fg-2); }
+    .ttl { font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.07em; color: var(--sc-fg-1); }
+    .hint { font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     .views { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     @media (max-width: 720px) { .views { grid-template-columns: 1fr; } }
 
     .view { position: relative; border-radius: 8px; padding: 6px 8px 4px;
       background: var(--sc-bg-1); border: 1px solid var(--sc-border); min-width: 0; }
-    .v-label { display: block; font-size: 0.6rem; text-transform: uppercase;
+    .v-label { display: block; font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase;
       letter-spacing: 0.05em; color: var(--sc-fg-2); margin-bottom: 4px; }
     svg { display: block; width: 100%; height: auto; overflow: visible; }
 
@@ -148,7 +148,7 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
     .mk:focus-visible .halo { fill: color-mix(in srgb, var(--sc-accent) 22%, transparent);
       stroke: var(--sc-accent); stroke-width: 0.6; }
 
-    .readout { margin: 6px 0 0; min-height: 1.1em; font-size: 0.66rem; color: var(--sc-accent); }
+    .readout { margin: 6px 0 0; min-height: 1.1em; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-accent); }
     .readout.empty { color: var(--sc-fg-2); font-style: italic; }
   `],
 })
