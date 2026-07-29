@@ -31,7 +31,12 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 const RSI_REFERER = 'https://robertsspaceindustries.com/';
 const IMG_FETCH_TIMEOUT_MS = 6000;
-const NEWS_FETCH_TIMEOUT_MS = 8000;
+// Budget for the whole news step, SHARED by both key attempts. It used to be a
+// per-attempt 8s, so one slow upstream burned 16s and the wallpaper app's 12s
+// boot gate had already given up — and because a timed-out fetch is
+// indistinguishable from "no news", the render silently degraded to the empty
+// "No Verse News this week" card instead of failing loudly.
+const NEWS_FETCH_BUDGET_MS = 9000;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 // Cap the rasterization width. resvg-wasm's render buffers scale with output size
 // and blow the edge-runtime memory limit (WORKER_RESOURCE_LIMIT) at ≥2560px wide.
@@ -99,18 +104,26 @@ function ensureWasm(): Promise<void> {
 // ---------------------------------------------------------------------
 async function fetchVerseNews(): Promise<VerseNewsItem[]> {
   const endpoint = `${SUPABASE_URL}/functions/v1/fetch-verse-news`;
+  const deadline = Date.now() + NEWS_FETCH_BUDGET_MS;
+
   const attempt = async (key: string) => {
+    const left = deadline - Date.now();
+    if (left <= 0) return null;
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), NEWS_FETCH_TIMEOUT_MS);
+    const t = setTimeout(() => ctrl.abort(), left);
     try {
       const res = await fetch(endpoint, {
         headers: { apikey: key, Authorization: `Bearer ${key}` },
         signal: ctrl.signal,
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        console.error(`fetch-verse-news HTTP ${res.status}`);
+        return null;
+      }
       const json = await res.json();
       return Array.isArray(json?.news) ? (json.news as VerseNewsItem[]) : null;
-    } catch {
+    } catch (err) {
+      console.error('fetch-verse-news request failed:', err);
       return null;
     } finally {
       clearTimeout(t);
@@ -261,6 +274,11 @@ Deno.serve(async (req: Request) => {
   try {
     const news = await fetchVerseNews();
     const selected = selectItems(news, count);
+    // The empty card is a legitimate render, so it never threw and nothing in
+    // the logs said the wallpaper had gone blank. Say it out loud.
+    if (!selected.length) {
+      console.error(`starscape-summary: EMPTY summary — ${news.length} news item(s) reached selection`);
+    }
 
     const chosen = await Promise.all(
       selected.map((it) => selectBestImage(imageCandidates(it), fetchImage)),

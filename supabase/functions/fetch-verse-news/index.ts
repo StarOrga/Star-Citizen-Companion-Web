@@ -11,6 +11,7 @@ import { PNG } from 'npm:pngjs@7.0.0';
 import { scoreWallpaper } from './wallpaper-quality.ts';
 import { isCommLinkArticleUrl } from './comm-link-url.ts';
 import { isWithinVideoRetention, videoRetentionCutoff } from './video-retention.ts';
+import { isImageUrl } from './media-urls.ts';
 import {
   MAX_PASSTHROUGH_BYTES,
   OPAQUE_WIDTH,
@@ -221,6 +222,8 @@ function firstImageUrl(images: unknown): string | undefined {
 }
 
 // All distinct image urls from the `images` include, in API order, capped.
+// Video assets of the same post are filtered out here — see media-urls.ts for
+// why that mattered far beyond the card itself.
 // The first comm-link image is usually the hero, but not always (e.g. event
 // schedules lead with a tall portrait poster) — so we surface them all and let
 // the client decide which to show / rotate.
@@ -231,7 +234,7 @@ function allImageUrls(images: unknown): string[] | undefined {
   const out: string[] = [];
   for (const img of images) {
     const url = img && typeof img === 'object' ? (img as Record<string, unknown>)['rsi_url'] : null;
-    if (typeof url === 'string' && url && !seen.has(url)) {
+    if (typeof url === 'string' && url && isImageUrl(url) && !seen.has(url)) {
       seen.add(url);
       out.push(url);
       if (out.length >= MAX_IMAGE_URLS) break;
@@ -506,6 +509,14 @@ const PUBLIC_BASE = `${SUPABASE_URL}/storage/v1/object/public/${IMG_BUCKET}`;
 // day, so the cap is never the bottleneck.
 const MAX_CACHE_PER_REQUEST = 4;
 const IMG_FETCH_TIMEOUT_MS = 8000;
+// Hard ceiling on a single source download. RSI's `cover` variant is ≤1140px
+// wide, and even the un-variantable signed-proxy originals stay well under
+// this; anything bigger is not artwork we should be parking in the bucket.
+const MAX_SOURCE_BYTES = 32 * 1024 * 1024;
+// Wall clock the cache warm-up may add to a request. Callers (the news page,
+// and starscape-summary on a 9s budget) wait on this endpoint; warming is
+// housekeeping and must never be what makes them time out.
+const CACHE_WARM_BUDGET_MS = 6000;
 
 // Swap the variant segment of an RSI **media** CDN url. Ingest only ever asks for
 // `cover` (the ≤1140w variant we resize down from); other urls (signed proxy,
@@ -541,8 +552,18 @@ async function fetchImage(url: string, ext: string): Promise<{ bytes: Uint8Array
       signal: ctrl.signal,
     });
     if (!res.ok) return null;
+    // Refuse obvious non-images and absurd payloads BEFORE reading the body:
+    // the widest variant we store is 1140px, so nothing legitimate here comes
+    // close to the cap. Without it a mislabelled url streams its whole body
+    // into memory just to fail decoding (a 190 MB clip did exactly that).
+    // Deny-list rather than requiring `image/*`: RSI occasionally serves real
+    // artwork as octet-stream, and the decoder keys on magic bytes anyway.
+    const declaredType = (res.headers.get('content-type') ?? '').toLowerCase();
+    if (/^(?:video|audio|text)\/|^application\/(?:json|zip|pdf)/.test(declaredType)) return null;
+    const declaredLength = Number(res.headers.get('content-length') ?? NaN);
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_SOURCE_BYTES) return null;
     const bytes = new Uint8Array(await res.arrayBuffer());
-    if (!bytes.length) return null;
+    if (!bytes.length || bytes.length > MAX_SOURCE_BYTES) return null;
     const ct = res.headers.get('content-type') ?? `image/${ext === 'jpg' ? 'jpeg' : ext}`;
     return { bytes, ct };
   } catch {
@@ -614,10 +635,14 @@ async function cacheOne(admin: SupabaseClient, hash: string, ext: string, sample
 async function cacheImages(items: VerseNewsItem[]): Promise<void> {
   if (!SUPABASE_URL || !SERVICE_KEY) return; // misconfigured → leave raw urls untouched
 
-  // Unique source identities across all items.
+  // Unique source identities across all items. `isImageUrl` is re-applied here
+  // on purpose: extraction already drops video assets, but this is the boundary
+  // where a non-image sample turns into an unbounded, permanently-retried
+  // download — no feed source gets to poison it.
   const byBase = new Map<string, { ext: string; sample: string }>();
   for (const it of items) {
     for (const url of it.images ?? []) {
+      if (!isImageUrl(url)) continue;
       const { base, ext } = imageIdentity(url);
       if (!byBase.has(base)) byBase.set(base, { ext, sample: url });
     }
@@ -645,9 +670,19 @@ async function cacheImages(items: VerseNewsItem[]): Promise<void> {
   for (const r of (data ?? []) as CacheRow[]) cached.set(r.source_key, r);
 
   // Download misses, bounded and one at a time — see MAX_CACHE_PER_REQUEST.
+  // The count cap alone was not enough: a source that can never be cached is a
+  // miss again on the very next request, so a handful of them turned every
+  // single call into a multi-minute download party (and starved the endpoint's
+  // callers). The wall-clock budget makes warming the cache strictly
+  // best-effort work that a slow or hostile source cannot extend.
+  const deadline = Date.now() + CACHE_WARM_BUDGET_MS;
   const misses = entries.filter((e) => !cached.has(e.hash)).slice(0, MAX_CACHE_PER_REQUEST);
   const freshlyCached: CacheRow[] = [];
-  for (const e of misses) {
+  for (const [i, e] of misses.entries()) {
+    if (Date.now() >= deadline) {
+      console.warn(`verse_image_cache: warm budget spent, ${misses.length - i} miss(es) deferred`);
+      break;
+    }
     try {
       const row = await cacheOne(admin, e.hash, e.ext, e.sample);
       if (row) {
@@ -663,10 +698,13 @@ async function cacheImages(items: VerseNewsItem[]): Promise<void> {
     await admin.from('verse_image_cache').upsert(freshlyCached, { onConflict: 'source_key' });
   }
 
-  // Rewrite to cached urls; thumbnail tracks images[0].
+  // Rewrite to cached urls; thumbnail tracks images[0]. Non-image urls are left
+  // alone — they share a cache identity with the artwork of the same media id,
+  // so rewriting them would silently turn a clip url into a picture url.
   for (const it of items) {
     if (!it.images) continue;
     it.images = it.images.map((url) => {
+      if (!isImageUrl(url)) return url;
       const ent = entByBase.get(imageIdentity(url).base);
       const row = ent ? cached.get(ent.hash) : undefined;
       return row ? cachedUrl(row) : url;
