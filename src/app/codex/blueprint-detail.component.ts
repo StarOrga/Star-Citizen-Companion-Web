@@ -20,6 +20,8 @@ import {
   formatCraftTime,
   formatNumber,
   formatQuality,
+  humanizeBlueprintCategory,
+  humanizeBlueprintName,
   humanizeClassName,
   humanizeKey,
   unescapeText,
@@ -250,7 +252,7 @@ export class BlueprintDetailComponent implements OnInit {
     return (
       fromPayload ||
       cleanLocaleValue(this.detail()?.row['name_localized'] as string) ||
-      humanizeClassName(this.detail()?.classNameSlug)
+      humanizeBlueprintName(this.detail()?.classNameSlug)
     );
   });
 
@@ -269,7 +271,14 @@ export class BlueprintDetailComponent implements OnInit {
 
     const cat = d.row['category'] as string | null;
     if (cat) {
-      facts.push({ label: t('blueprint.filters.category'), value: t(`blueprint.category.${cat}`) });
+      // CIG buckets are open-ended — fall back to a humanized label rather than
+      // printing the raw i18n key when a new one shows up.
+      const key = `blueprint.category.${cat}`;
+      const label = t(key);
+      facts.push({
+        label: t('blueprint.filters.category'),
+        value: label && label !== key ? label : humanizeBlueprintCategory(cat),
+      });
     }
     const tier = d.row['tier'] as number | null;
     if (tier != null) {

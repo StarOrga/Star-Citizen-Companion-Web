@@ -559,19 +559,25 @@
       "category": "Kategorie"
     },
     "category": {
-      "ship_components": "Schiffskomponenten",
-      "fps_weapons": "FPS-Waffen",
-      "ship_weapons": "Schiffswaffen",
-      "consumables": "Verbrauchsgüter",
-      "armor": "Rüstung",
-      "clothing": "Kleidung",
-      "food": "Nahrung",
-      "medicine": "Medizin",
-      "other": "Sonstiges"
+      "FPSArmours": "FPS-Rüstung",
+      "FPSWeapons": "FPS-Waffen",
+      "MissionItem": "Missionsgegenstand",
+      "VehicleComponentS0": "Fahrzeugkomponente S0",
+      "VehicleComponentS1": "Fahrzeugkomponente S1",
+      "VehicleComponentS2": "Fahrzeugkomponente S2",
+      "VehicleComponentS3": "Fahrzeugkomponente S3",
+      "VehicleComponentS4": "Fahrzeugkomponente S4",
+      "VehicleWeaponsS1": "Fahrzeugwaffen S1",
+      "VehicleWeaponsS2": "Fahrzeugwaffen S2",
+      "VehicleWeaponsS3": "Fahrzeugwaffen S3",
+      "VehicleWeaponsS4": "Fahrzeugwaffen S4",
+      "VehicleWeaponsS5": "Fahrzeugwaffen S5",
+      "VehicleWeaponsS6": "Fahrzeugwaffen S6"
     },
     "card": {
       "tier": "Tier {{tier}}"
     },
+    "recipesMissing": "Für diesen Build wurden noch keine Rezeptzutaten extrahiert — Baupläne sind gelistet, aber ohne Materialliste.",
     "role": {
       "primary": "Primär",
       "secondary": "Sekundär",

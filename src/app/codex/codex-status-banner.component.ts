@@ -125,7 +125,9 @@ export class CodexStatusBannerComponent {
     const seeded = counts['seeded'] as Record<string, number> | undefined;
     const rows: CoverageRow[] = [];
     for (const k of CODEX_KINDS) {
-      if (k === 'blueprint') continue;
+      // No kind is skipped: blueprints used to be excluded here while their
+      // catalog was empty, which kept them invisible long after ingest started.
+      // A kind the manifest doesn't report is filtered out below anyway.
       const plural = k === 'ammunition' ? 'ammunition' : `${k}s`;
       const total = counts[plural];
       if (typeof total !== 'number') continue;

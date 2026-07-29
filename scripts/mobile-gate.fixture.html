@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- deliberately zoom-blocking → must trigger `viewport-meta` -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>mobile-gate self-test fixture</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #10141f; color: #e8ecf5; }
+      section { padding: 16px; border-bottom: 1px solid #29314a; }
+      h2 { font-size: 16px; margin: 0 0 8px; }
+
+      /* → horizontal-overflow */
+      .too-wide { width: 900px; height: 40px; background: #3a4668; }
+
+      /* → tap-target-too-small */
+      .tiny-btn { width: 28px; height: 24px; font-size: 14px; }
+
+      /* → text-too-small */
+      .tiny-text { font-size: 9px; }
+
+      /* → content-clipped (overflow hidden, no ellipsis/line-clamp) */
+      .clipped { width: 120px; overflow: hidden; white-space: nowrap; font-size: 16px; }
+
+      /* → fixed-overlay-covers-control */
+      .sticky-bar {
+        position: fixed; left: 0; right: 0; bottom: 0; height: 90px;
+        background: #1d2540; display: flex; align-items: center; padding: 0 16px;
+      }
+      .under-bar { margin-bottom: 8px; height: 48px; width: 200px; }
+
+      /* → overlapping-content (non-fixed element on top of a control) */
+      .overlap-host { position: relative; height: 70px; }
+      .overlap-host button { position: absolute; inset: 0 auto auto 0; width: 160px; height: 48px; }
+      .overlap-host .veil { position: absolute; inset: 0 auto auto 0; width: 200px; height: 60px; background: rgba(255, 90, 90, .35); }
+
+      .spacer { height: 1400px; }
+    </style>
+  </head>
+  <body>
+    <section>
+      <h2>1 — horizontal overflow</h2>
+      <div class="too-wide">wider than any phone viewport</div>
+    </section>
+
+    <section>
+      <h2>2 — tap target below 44px</h2>
+      <button class="tiny-btn" type="button">x</button>
+    </section>
+
+    <section>
+      <h2>3 — text below 12px</h2>
+      <p class="tiny-text">This caption is far too small to read on a phone.</p>
+    </section>
+
+    <section>
+      <h2>4 — clipped text</h2>
+      <div class="clipped">This sentence is cut off without an ellipsis, so the reader loses it.</div>
+    </section>
+
+    <section>
+      <h2>5 — overlapping content</h2>
+      <div class="overlap-host">
+        <button type="button">Buy this thing</button>
+        <div class="veil"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>6 — console error</h2>
+      <script>
+        console.error('mobile-gate self-test: synthetic console error');
+      </script>
+    </section>
+
+    <div class="spacer">scroll area — the sticky bar below must be caught covering the button at the end</div>
+
+    <section>
+      <h2>7 — fixed bar covering a control</h2>
+      <button class="under-bar" type="button">Submit — hidden behind the bar</button>
+    </section>
+
+    <div class="sticky-bar"><span>sticky bottom bar</span></div>
+  </body>
+</html>

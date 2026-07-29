@@ -14,6 +14,8 @@ import {
   formatQuality,
   groupCompareRows,
   groupStatRows,
+  humanizeBlueprintCategory,
+  humanizeBlueprintName,
   humanizeClassName,
   humanizeKey,
   isCatalogStale,
@@ -65,6 +67,35 @@ describe('codex-format', () => {
     it('returns empty for nullish', () => {
       expect(humanizeClassName(null)).toBe('');
       expect(humanizeClassName('')).toBe('');
+    });
+  });
+
+  describe('humanizeBlueprintName', () => {
+    it('drops the BP_CRAFT_ prefix every blueprint carries', () => {
+      expect(humanizeBlueprintName('BP_CRAFT_APAR_MassDriver_S2')).toBe('APAR Mass Driver S2');
+    });
+    it('leaves a class name without the prefix alone', () => {
+      expect(humanizeBlueprintName('AMRS_LaserCannon_S3')).toBe('AMRS Laser Cannon S3');
+    });
+    it('returns empty for nullish', () => {
+      expect(humanizeBlueprintName(null)).toBe('');
+      expect(humanizeBlueprintName('')).toBe('');
+    });
+  });
+
+  describe('humanizeBlueprintCategory', () => {
+    it('splits an acronym from the word that follows it', () => {
+      expect(humanizeBlueprintCategory('FPSArmours')).toBe('FPS Armours');
+      expect(humanizeBlueprintCategory('FPSWeapons')).toBe('FPS Weapons');
+    });
+    it('splits PascalCase and keeps size tokens attached to their word', () => {
+      expect(humanizeBlueprintCategory('VehicleComponentS1')).toBe('Vehicle Component S1');
+      expect(humanizeBlueprintCategory('VehicleWeaponsS6')).toBe('Vehicle Weapons S6');
+      expect(humanizeBlueprintCategory('MissionItem')).toBe('Mission Item');
+    });
+    it('returns empty for nullish', () => {
+      expect(humanizeBlueprintCategory(null)).toBe('');
+      expect(humanizeBlueprintCategory('')).toBe('');
     });
   });
 
