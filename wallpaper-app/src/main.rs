@@ -155,6 +155,12 @@ fn main() {
         cfg.save();
         log::line("startup: existing install migrated — autostart choice preserved");
     }
+    // Whatever exe the user launched IS the install now (we hold the singleton
+    // mutex). An enabled Run entry still pointing at a previous download would
+    // resurrect the old build on every boot — observed with 0.4.0 → 0.4.1.
+    if util::refresh_autostart_path() {
+        log::line("startup: autostart re-pointed at this exe (it registered a different path)");
+    }
 
     // Channel lock: the update ring is decided by the DOWNLOAD, never in the app
     // (see `update::resolve_channel` for the precedence and why). An unmarked
