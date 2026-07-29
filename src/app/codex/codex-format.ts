@@ -65,6 +65,46 @@ export function humanizeClassName(className: string | null | undefined): string 
     .trim() || raw;
 }
 
+/**
+ * Human label for a raw CIG blueprint category (`codex_blueprints.category`).
+ *
+ * The extractor stores CIG's own PascalCase bucket names — `FPSArmours`,
+ * `VehicleComponentS1`, `MissionItem`. They are open-ended (a patch can add a
+ * bucket), so translations are best-effort and this is the fallback: never leak
+ * a raw i18n key or slug into the UI.
+ *
+ * Kept separate from `humanizeClassName` on purpose: this splits acronym
+ * boundaries (`FPSArmours` → `FPS Armours`), which would mangle entity class
+ * names elsewhere.
+ */
+export function humanizeBlueprintCategory(raw: string | null | undefined): string {
+  const s = (raw ?? '').trim();
+  if (!s) return '';
+  return (
+    s
+      // "VehicleComponent" → "Vehicle Component"
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      // "FPSArmours" → "FPS Armours" (acronym followed by a word)
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+      .replace(/\s+/g, ' ')
+      .trim() || s
+  );
+}
+
+/**
+ * Display name for a blueprint class.
+ *
+ * Only 1 of ~1600 blueprints carries a `name_localized`, so the class name IS
+ * the label in practice — and every one of them starts with `BP_CRAFT_`, which
+ * is pure noise repeated on every card. Strip it, then humanize what is left
+ * (the crafted item's class): `BP_CRAFT_APAR_MassDriver_S2` → `APAR Mass Driver S2`.
+ */
+export function humanizeBlueprintName(className: string | null | undefined): string {
+  const raw = (className ?? '').trim();
+  if (!raw) return '';
+  return humanizeClassName(raw.replace(/^BP_CRAFT_/i, '')) || humanizeClassName(raw);
+}
+
 export function unescapeText(s: string | null | undefined): string {
   if (!s) return '';
   return s

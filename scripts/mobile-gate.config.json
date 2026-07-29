@@ -1,0 +1,52 @@
+{
+  "$comment": [
+    "Config for scripts/mobile-gate.mjs — the mobile & tablet gate that /ship runs.",
+    "Thresholds are contractual: do NOT relax them to make a red run green.",
+    "Every entry under `ignore` MUST carry a justification and a follow-up issue in $waivers."
+  ],
+  "devices": ["iphone-14", "pixel-7", "ipad-air", "galaxy-tab-s9"],
+  "quickDevices": ["iphone-14", "ipad-air"],
+  "routes": [
+    "/news",
+    "/codex",
+    "/codex/index",
+    "/codex/showroom",
+    "/codex/keybinds",
+    "/starscape",
+    "/hangar",
+    "/release-notes",
+    "/tools/3d-print",
+    "/about",
+    "/login"
+  ],
+  "quickRoutes": ["/news", "/codex", "/hangar", "/login"],
+  "thresholds": {
+    "minTapTargetPx": 44,
+    "minFontSizePx": 12,
+    "overflowTolerancePx": 1,
+    "maxFindingsPerCheck": 8
+  },
+  "severity": {
+    "horizontal-overflow": "error",
+    "tap-target-too-small": "error",
+    "text-too-small": "error",
+    "content-clipped": "error",
+    "overlapping-content": "error",
+    "fixed-overlay-covers-control": "error",
+    "viewport-meta": "error",
+    "console-error": "error",
+    "network-error": "warn"
+  },
+  "ignore": {
+    "selectors": {},
+    "consolePatterns": [],
+    "routes": []
+  },
+  "$waivers": [],
+  "timing": {
+    "navigationTimeoutMs": 45000,
+    "settleMs": 900,
+    "scrollSettleMs": 350,
+    "maxScrollSteps": 8
+  }
+}

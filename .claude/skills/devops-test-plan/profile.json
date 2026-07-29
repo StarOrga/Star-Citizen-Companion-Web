@@ -1,0 +1,40 @@
+{
+  "profile": "web-angular",
+  "description": "SC Companion — Angular 21 PWA on 127.0.0.1:4200. Responsive verification is delegated to the machine-checkable mobile gate (scripts/mobile-gate.mjs) instead of eyeballing screenshots.",
+  "tool_chain": [
+    {
+      "step": 1,
+      "tool": "Bash(npm start)  →  http://127.0.0.1:4200",
+      "purpose": "Start the Angular dev server if it is not already listening. IPv4 only — see .claude/deep-knowledge/local-dev.md (localhost != 127.0.0.1 here)."
+    },
+    {
+      "step": 2,
+      "tool": "$BROWSER_TOOL probe — Chrome-MCP (Edge, if connected) → Preview → Playwright",
+      "purpose": "Resolve the active browser tool for structured reads. Never computer-use."
+    },
+    {
+      "step": 3,
+      "tool": "$BROWSER_TOOL snapshot (read_page / browser_snapshot / preview_snapshot)",
+      "purpose": "Verify DOM content, element presence and ARIA state on the changed route"
+    },
+    {
+      "step": 4,
+      "tool": "$BROWSER_TOOL console + network read",
+      "purpose": "Catch runtime JS errors and failed/4xx/5xx requests the snapshot cannot reveal"
+    },
+    {
+      "step": 5,
+      "tool": "Bash(npm run gate:mobile:quick)  — full `npm run gate:mobile` before shipping",
+      "purpose": "Machine-checked phone + tablet verification: iPhone 14 390x844 (iOS), Pixel 7 393x851 (Android), iPad Air 820x1180 (iOS), Galaxy Tab S9 800x1280 (Android). Asserts no horizontal overflow, tap targets >= 44px, text >= 12px, no clipped/overlapping content, no fixed bar covering a control, zoomable viewport meta, no console errors. Non-zero exit = red; do NOT relax thresholds. Docs: docs/mobile-gate.md"
+    },
+    {
+      "step": 6,
+      "tool": "$BROWSER_TOOL set viewport 1280x800 + screenshot",
+      "purpose": "Desktop layout — the one viewport the mobile gate deliberately does not cover"
+    }
+  ],
+  "viewports": ["mobile-ios", "mobile-android", "tablet-ios", "tablet-android", "desktop"],
+  "allowed_actions": ["read", "write_via_dom"],
+  "blocked_actions": ["computer-use"],
+  "must_ask_triggers": []
+}

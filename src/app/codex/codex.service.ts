@@ -89,6 +89,9 @@ export interface CodexListFilters {
   attachTypeIn?: string[];
   // include AI/template variants (default: buyable-only)
   includeVariants?: boolean;
+  // blueprint-only facet — raw CIG bucket from codex_blueprints.category
+  // (e.g. 'FPSArmours', 'VehicleComponentS1'). Ignored for other kinds.
+  category?: string;
   limit?: number;
   offset?: number;
 }
@@ -159,6 +162,12 @@ export interface PortQuery {
 
 const PAGE_SIZE = 60;
 const SEARCH_LIMIT = 60;
+
+// Facet scan for blueprint categories: PostgREST caps a response at 1000 rows,
+// so the column is paged. The cap bounds a pathological build (10k blueprints)
+// instead of looping forever.
+const CATEGORY_PAGE_SIZE = 1000;
+const CATEGORY_MAX_PAGES = 10;
 
 // Columns selected per kind for the list view. Keep payload last.
 const LIST_SELECT: Record<CodexKind, string> = {
@@ -307,6 +316,7 @@ export class CodexService {
     if (filters.attachType && kind === 'item') query = query.eq('attach_type', filters.attachType);
     if (filters.attachTypeIn?.length && kind === 'item')
       query = query.in('attach_type', filters.attachTypeIn);
+    if (filters.category && kind === 'blueprint') query = query.eq('category', filters.category);
 
     const q = filters.search?.trim();
     if (q) {
@@ -685,6 +695,59 @@ export class CodexService {
   }
 
   // ── Blueprint-specific queries ─────────────────────────────────────────────
+
+  /** Cached distinct categories, keyed by the build they were derived from. */
+  private blueprintCategoryCache: { buildId: string; values: string[] } | null = null;
+  private blueprintCategoryPromise: Promise<string[]> | null = null;
+
+  /**
+   * Distinct blueprint categories present in the current build, sorted.
+   *
+   * These are CIG's own bucket names and change between patches, so they MUST
+   * come from the data — a hardcoded list silently filters everything to zero
+   * the moment the extractor emits a bucket nobody predicted.
+   *
+   * PostgREST has no DISTINCT, so this pages the `category` column (one small
+   * column, server max-rows is 1000) and dedupes client-side. Cached per build,
+   * and single-flighted so a facet + list render can't double-fetch.
+   */
+  async blueprintCategories(): Promise<string[]> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+    if (this.blueprintCategoryCache?.buildId === build.id) {
+      return this.blueprintCategoryCache.values;
+    }
+    if (this.blueprintCategoryPromise) return this.blueprintCategoryPromise;
+    this.blueprintCategoryPromise = this.fetchBlueprintCategories(build.id).finally(() => {
+      this.blueprintCategoryPromise = null;
+    });
+    return this.blueprintCategoryPromise;
+  }
+
+  private async fetchBlueprintCategories(buildId: string): Promise<string[]> {
+    const seen = new Set<string>();
+    for (let page = 0; page < CATEGORY_MAX_PAGES; page++) {
+      const from = page * CATEGORY_PAGE_SIZE;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (this.sb.client as any)
+        .from('codex_blueprints')
+        .select('category')
+        .eq('build_id', buildId)
+        // Deterministic total order — paging without it can repeat/skip rows.
+        .order('category', { ascending: true, nullsFirst: false })
+        .order('class_name', { ascending: true })
+        .range(from, from + CATEGORY_PAGE_SIZE - 1);
+      if (error) throw error;
+      const rows = (data ?? []) as { category: string | null }[];
+      for (const r of rows) {
+        if (r.category) seen.add(r.category);
+      }
+      if (rows.length < CATEGORY_PAGE_SIZE) break;
+    }
+    const values = [...seen].sort((a, b) => a.localeCompare(b));
+    this.blueprintCategoryCache = { buildId, values };
+    return values;
+  }
 
   /**
    * Paged list of blueprints in the current build.
