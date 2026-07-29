@@ -16,7 +16,12 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { Buffer } from 'node:buffer';
 import { Resvg, initWasm } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { buildSummarySvg, type SummaryItem } from './summary-svg.ts';
-import { imageCandidates, selectBestImage, type FetchedImage } from './image-select.ts';
+import {
+  imageCandidates,
+  selectBestImage,
+  type FetchedImage,
+  type ImageFetcher,
+} from './image-select.ts';
 import { Orbitron_700, Orbitron_500, Rajdhani_500, Rajdhani_600 } from './fonts.ts';
 
 const CORS_HEADERS = {
@@ -179,28 +184,68 @@ function selectItems(news: VerseNewsItem[], count: number): VerseNewsItem[] {
 // Image inlining — SVG (and resvg) can't fetch remote urls, so every hero
 // / thumbnail image is downloaded server-side and embedded as base64.
 // ---------------------------------------------------------------------
-async function fetchImage(url: string): Promise<FetchedImage | undefined> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), IMG_FETCH_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, {
-      headers: { Referer: RSI_REFERER, 'User-Agent': 'sc-companion/1.0 (+starscape-summary)' },
-      signal: ctrl.signal,
-    });
-    if (!res.ok) return undefined;
-    const contentType = (res.headers.get('content-type') ?? 'image/jpeg').split(';')[0].trim();
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    if (!bytes.length) return undefined;
-    return { bytes, contentType };
-  } catch {
-    return undefined;
-  } finally {
-    clearTimeout(t);
-  }
+// Peak memory, not bandwidth, is the constraint: every accepted image is held
+// as raw bytes AND as a base64 data: URI AND decoded inside the resvg wasm
+// heap. Five full-resolution sources at once is WORKER_RESOURCE_LIMIT, and the
+// bucket still serves plenty of those — pre-#295 `cover.<ext>` objects that the
+// compaction backfill has not rewritten into a ladder yet. So each role caps
+// what it will accept and `selectBestImage` simply moves to the next candidate;
+// an item with nothing small enough falls back to the branded placeholder,
+// which is a far better outcome than a 546 and no wallpaper at all.
+const HERO_MAX_BYTES = 3_000_000;
+const THUMB_MAX_BYTES = 600_000;
+
+function makeImageFetcher(maxBytes: number): ImageFetcher {
+  return async (url: string): Promise<FetchedImage | undefined> => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), IMG_FETCH_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, {
+        headers: { Referer: RSI_REFERER, 'User-Agent': 'sc-companion/1.0 (+starscape-summary)' },
+        signal: ctrl.signal,
+      });
+      if (!res.ok) return undefined;
+      const declared = Number(res.headers.get('content-length') ?? NaN);
+      if (Number.isFinite(declared) && declared > maxBytes) return undefined;
+      const contentType = (res.headers.get('content-type') ?? 'image/jpeg').split(';')[0].trim();
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (!bytes.length || bytes.length > maxBytes) return undefined;
+      return { bytes, contentType };
+    } catch {
+      return undefined;
+    } finally {
+      clearTimeout(t);
+    }
+  };
 }
 
 function toDataUri(img: FetchedImage): string {
   return `data:${img.contentType};base64,${Buffer.from(img.bytes).toString('base64')}`;
+}
+
+// ---------------------------------------------------------------------
+// Variant sizing — cached artwork advertises its whole ladder in the url
+// (`…/<hash>/w<N>.<ext>`, the scheme mirrored in
+// src/app/news/news-image-variants.ts). Asking for the top rung everywhere was
+// what made this function fall over the moment it had real content to draw:
+// five ≤1600px images inlined as base64 AND decoded into the resvg heap at once
+// is WORKER_RESOURCE_LIMIT at a 1920px render. The strip paints ~120px boxes,
+// so a 400px rung is already generous there.
+// ---------------------------------------------------------------------
+const RUNG_WIDTHS = [400, 800];
+const VARIANT_URL_RE = /^(https?:\/\/.+\/)w(\d+)(\.[a-zA-Z0-9]+)$/;
+const HERO_MAX_WIDTH = 800; // full-bleed background
+const THUMB_MAX_WIDTH = 400; // ~120px box in the strip
+
+/** Largest stored rung no wider than `maxWidth`; non-ladder urls pass through. */
+function variantAtMost(url: string, maxWidth: number): string {
+  const m = VARIANT_URL_RE.exec(url);
+  if (!m) return url;
+  const top = Number(m[2]);
+  if (!Number.isFinite(top) || top <= 0) return url; // w0 = single opaque object
+  const rungs = [...RUNG_WIDTHS.filter((w) => w < top), top];
+  const pick = rungs.filter((w) => w <= maxWidth).pop() ?? rungs[0];
+  return `${m[1]}w${pick}${m[3]}`;
 }
 
 // ---------------------------------------------------------------------
@@ -280,8 +325,17 @@ Deno.serve(async (req: Request) => {
       console.error(`starscape-summary: EMPTY summary — ${news.length} news item(s) reached selection`);
     }
 
+    const heroFetcher = makeImageFetcher(HERO_MAX_BYTES);
+    const thumbFetcher = makeImageFetcher(THUMB_MAX_BYTES);
     const chosen = await Promise.all(
-      selected.map((it) => selectBestImage(imageCandidates(it), fetchImage)),
+      selected.map((it, i) => {
+        const hero = i === 0;
+        const cap = hero ? HERO_MAX_WIDTH : THUMB_MAX_WIDTH;
+        return selectBestImage(
+          imageCandidates(it).map((u) => variantAtMost(u, cap)),
+          hero ? heroFetcher : thumbFetcher,
+        );
+      }),
     );
     const [heroDataUri, ...thumbDataUris] = chosen.map((c) => (c ? toDataUri(c) : undefined));
 

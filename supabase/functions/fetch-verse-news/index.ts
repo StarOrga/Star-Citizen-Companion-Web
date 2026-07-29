@@ -509,10 +509,20 @@ const PUBLIC_BASE = `${SUPABASE_URL}/storage/v1/object/public/${IMG_BUCKET}`;
 // day, so the cap is never the bottleneck.
 const MAX_CACHE_PER_REQUEST = 4;
 const IMG_FETCH_TIMEOUT_MS = 8000;
-// Hard ceiling on a single source download. RSI's `cover` variant is ≤1140px
-// wide, and even the un-variantable signed-proxy originals stay well under
-// this; anything bigger is not artwork we should be parking in the bucket.
-const MAX_SOURCE_BYTES = 32 * 1024 * 1024;
+// Hard ceilings on a single source. RSI's `cover` variant is ≤1140px wide and
+// tens of KB; the un-variantable signed-proxy originals are the only large
+// ones. Both caps exist because an oversized source is not merely expensive —
+// it can NEVER be cached (jpeg-js gives up at 512 MB of RGBA), so it stays a
+// miss and is re-downloaded on every single request until someone notices.
+// One 17.7 MB, 19k-pixel-wide panorama was costing ~2s and 17.7 MB of egress
+// per call for exactly that reason. Rejecting it early is not a loss: the card
+// keeps the raw RSI url and renders as before.
+const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
+// Calibrated, not guessed: jpeg-js aborts a 7680×3292 (25 MP) source even with
+// maxMemoryUsageInMB 512 — its accounting covers far more than the output
+// buffer. 16 MP leaves margin below the smallest failure we have measured, and
+// is still ~14× the 1140px-wide variant this all gets resized down to.
+const MAX_SOURCE_PIXELS = 16_000_000;
 // Wall clock the cache warm-up may add to a request. Callers (the news page,
 // and starscape-summary on a 9s budget) wait on this endpoint; warming is
 // housekeeping and must never be what makes them time out.
@@ -602,6 +612,11 @@ async function cacheOne(admin: SupabaseClient, hash: string, ext: string, sample
   const src = mediaVariant(sample, 'cover');
   const fetched = (await fetchImage(src, ext)) ?? (src === sample ? null : await fetchImage(sample, ext));
   if (!fetched) return null;
+
+  // Header-only dimension check — skip the multi-second decode of something we
+  // already know will exhaust the decoder's memory budget and fail anyway.
+  const size = readImageSize(fetched.bytes);
+  if (size && size.w * size.h > MAX_SOURCE_PIXELS) return null;
 
   const upload = (path: string, bytes: Uint8Array, contentType: string) =>
     admin.storage.from(IMG_BUCKET).upload(path, bytes, {
