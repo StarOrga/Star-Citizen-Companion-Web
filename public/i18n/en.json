@@ -1373,14 +1373,15 @@
       "toggle": "Search"
     },
     "tab": {
-      "label": "Switch between active topics and the archive",
+      "label": "Switch between active and finished topics",
       "active": "Active",
-      "archive": "Archive"
+      "archive": "Done"
     },
     "stats": {
       "rueckfragen": "{{count}} follow-ups",
       "shipped": "{{count}} shipped",
-      "issues": "{{count}} issues created"
+      "issues": "{{count}} issues created",
+      "review": "{{count}} waiting for sign-off"
     },
     "expandAll": "Expand all",
     "collapseAll": "Collapse all",
@@ -1411,7 +1412,8 @@
       "answered": "Answered",
       "continued": "Continued",
       "needs_input_author": "Asked the sender",
-      "declined": "Not implemented"
+      "declined": "Not implemented",
+      "review": "Sign-off"
     },
     "thread": {
       "routine": "Routine",
@@ -1433,6 +1435,12 @@
       "code": "Inline code",
       "list": "List",
       "draftRestored": "Draft restored",
+      "draftSaving": "Saving draft…",
+      "draftSaved": "Draft saved",
+      "draftFailed": "Draft not saved – connection?",
+      "draftDiscard": "Discard draft",
+      "draftDiscardConfirm": "Discard for good?",
+      "attachNotCached": "Image could not be cached – it will be lost on reload but is still sent along.",
       "attach": "Attach image",
       "attachHint": "Add images by pasting (Ctrl+V) or dropping them here",
       "attachmentsLabel": "Attached images",
@@ -1480,11 +1488,11 @@
       "thisMonth": "This month",
       "allTime": "All-time",
       "shipped": "Shipped",
-      "open": "ToDo",
+      "open": "Open",
       "answered": "Questions answered",
-      "shippedShare": "shipped",
-      "donutLabel": "{{label}}: {{pct}}% shipped",
-      "note": "Every metric is attributed by its own timestamp: shipped by ship date, ToDo by creation date, questions by answer date. An answered question counts as ToDo — the routine still has to pick it up.",
+      "shippedShare": "done",
+      "donutLabel": "{{label}}: {{pct}}% done",
+      "note": "Every value counts by its own timestamp: Done by ship date, issues by hand-off, ToDo and Open by creation. Answered questions count as ToDo — the routine still has to pick them up.",
       "paceMedian": "Median to ship",
       "paceQuestions": "Question rate",
       "paceQuestionsHint": "{{questioned}} of {{raised}} topics",
@@ -1499,9 +1507,8 @@
       "throughputWeek": "Week of {{date}}: {{count}} ships",
       "throughputAria": "Ships per week over the last {{weeks}} weeks: {{total}} in total, best week {{max}}, this week {{current}}.",
       "lifecycleTitle": "Lifecycle",
-      "lifecycleIntro": "Which stages a topic moves through and which branches it can take — with the live count per stage.",
-      "lifecycleSide": "Branches & terminal stages",
-      "lifecycleNote": "The numbers show how many topics sit in a stage right now — there is no transition history, so no pass-through counter.",
+      "lifecycleIntro": "A topic’s path top to bottom: work, questions branching off and leading back into it, and exactly one of two end states at the bottom — after your sign-off.",
+      "lifecycleNote": "The numbers show how many topics sit in a stage right now — there is no transition history, so no throughput counter.",
       "stageNow": "topics currently in this stage",
       "flow": {
         "pickup": "The routine picks up the oldest topic",
@@ -1511,7 +1518,13 @@
         "reaper": "Claim went stale (> 30 min without a PR) — the reaper reopens it",
         "hold": "Red or sensitive (auth, RLS, secrets, destructive migration)",
         "holdTarget": "PR waits for review",
-        "continue": "You reply after the ship — continuation"
+        "continue": "You reply after the ship — continuation",
+        "toReview": "Build + tests green, PR merged",
+        "toReviewIssue": "Handed to a GitHub issue",
+        "accepted": "You sign it off",
+        "reopened": "You resume the conversation",
+        "askAuthor": "You ask the person who filed it",
+        "authorAnswered": "The author answers"
       },
       "fact": {
         "oldest": "oldest open topic: {{days}} days",
@@ -1523,9 +1536,20 @@
         "terminalAtRest": "Terminal at rest — your reply starts another round",
         "pendingContinuation": "{{count}} with a fresh reply — will be picked up again",
         "awaiting": "waiting for your answer",
-        "issueTerminal": "Terminal — you file the topic against a GitHub issue; the routine never touches it again",
-        "rejectedLegacy": "Terminal (legacy status) — the routine never sets it"
-      }
+        "issueTerminal": "End state — followed up on the GitHub issue; the routine never touches it again",
+        "rejectedLegacy": "Terminal (legacy status) — the routine never sets it",
+        "reviewShipped": "{{count}} shipped, waiting for your sign-off",
+        "reviewIssues": "{{count}} handed to an issue, waiting for your sign-off",
+        "reviewWhy": "Only your sign-off ends a topic — otherwise it goes back into the work loop",
+        "doneTerminal": "End state — signed off and closed",
+        "declinedTerminal": "End state — deliberately not implemented, with a reason sent to the author"
+      },
+      "todo": "ToDo",
+      "done": "Shipped",
+      "issues": "Issue created",
+      "openHint": "In progress, questions and sign-off",
+      "lifecycleBranch": "Branch",
+      "lifecycleOutcome": "End state — one of the two"
     },
     "userTopic": {
       "badge": "User feedback",
@@ -1547,6 +1571,13 @@
       "confirm": "Decline",
       "cancel": "Cancel",
       "noteRequired": "Please give a reason — the sender gets to read it."
+    },
+    "review": {
+      "headlineShipped": "Shipped — please sign off",
+      "headlineIssue": "Handed to an issue — please sign off",
+      "hint": "Look at the result on the live app. If it is right, the topic is done. If it is not, pick the conversation back up — the topic returns to the routine’s queue.",
+      "accept": "Sign off — done",
+      "reopen": "Resume the conversation"
     }
   },
   "feedbackFab": {

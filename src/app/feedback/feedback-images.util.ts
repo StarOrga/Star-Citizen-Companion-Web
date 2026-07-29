@@ -41,6 +41,11 @@ function dataUrlToBlob(dataUrl: string): Blob {
 /**
  * Upload the composer's queued images and return their public URLs, in order.
  * Throws on the first failure so the caller can keep the draft intact.
+ *
+ * An image that already carries a `url` was uploaded when it was attached to a
+ * persisted draft (`FeedbackDraftService.uploadAttachment`) — it is passed
+ * through instead of being stored a second time, so sending a restored draft
+ * costs no upload at all and leaves no duplicate object behind.
  */
 export async function uploadFeedbackImages(
   client: SupabaseClient,
@@ -51,6 +56,10 @@ export async function uploadFeedbackImages(
   const bucket = client.storage.from(FEEDBACK_IMAGES_BUCKET);
   const urls: string[] = [];
   for (const img of images) {
+    if (img.url) {
+      urls.push(img.url);
+      continue;
+    }
     const blob = dataUrlToBlob(img.dataUrl);
     const path = `${uid}/${crypto.randomUUID()}.${extForType(blob.type)}`;
     const { error } = await bucket.upload(path, blob, { contentType: blob.type, upsert: false });
@@ -58,6 +67,18 @@ export async function uploadFeedbackImages(
     urls.push(bucket.getPublicUrl(path).data.publicUrl);
   }
   return urls;
+}
+
+/**
+ * Object path inside `feedback-images` for one of its public URLs, or null when
+ * the URL points somewhere else — then it is not ours to delete.
+ */
+export function feedbackImagePath(url: string): string | null {
+  const marker = `/object/public/${FEEDBACK_IMAGES_BUCKET}/`;
+  const idx = url.indexOf(marker);
+  if (idx < 0) return null;
+  const path = url.slice(idx + marker.length).split('?')[0];
+  return path ? decodeURIComponent(path) : null;
 }
 
 /** Compose the stored body: text with any uploaded images appended as markdown. */

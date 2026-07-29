@@ -1,7 +1,79 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideTranslateService } from '@ngx-translate/core';
 import { ComposerPrefsService } from '../../core/composer-prefs.service';
+import { FeedbackDraftService, DraftEntry } from '../../feedback/feedback-draft.service';
+import { DraftImageRef } from '../../feedback/feedback-draft.types';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
+
+/**
+ * Stand-in for the account-bound draft store: the composer's contract with it is
+ * "hand me what is stored, take what I hold, and only remove it when I say so".
+ */
+class FakeDraftStore {
+  readonly map = signal<ReadonlyMap<string, DraftEntry>>(new Map());
+  readonly staged: { scope: string; body: string; images: DraftImageRef[] }[] = [];
+  readonly flushed: string[] = [];
+  readonly discarded: string[] = [];
+  readonly cleared: string[] = [];
+  uploadUrl: string | null = 'https://db.test/storage/v1/object/public/feedback-images/u/1.jpg';
+
+  readonly entries = this.map.asReadonly();
+
+  seed(scope: string, entry: Partial<DraftEntry>): void {
+    const next = new Map(this.map());
+    next.set(scope, {
+      scope,
+      feedbackId: null,
+      body: '',
+      images: [],
+      updatedAt: '2026-07-29T10:00:00Z',
+      dirty: false,
+      failed: false,
+      ...entry,
+    });
+    this.map.set(next);
+  }
+
+  ready(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  entry(scope: string): DraftEntry | null {
+    return this.map().get(scope) ?? null;
+  }
+
+  stage(scope: string, body: string, images: readonly DraftImageRef[]): void {
+    this.staged.push({ scope, body, images: [...images] });
+  }
+
+  flush(scope: string): Promise<void> {
+    this.flushed.push(scope);
+    return Promise.resolve();
+  }
+
+  discard(scope: string): Promise<void> {
+    this.discarded.push(scope);
+    const next = new Map(this.map());
+    next.delete(scope);
+    this.map.set(next);
+    return Promise.resolve();
+  }
+
+  clearSent(scope: string): Promise<void> {
+    this.cleared.push(scope);
+    const next = new Map(this.map());
+    next.delete(scope);
+    this.map.set(next);
+    return Promise.resolve();
+  }
+
+  uploadAttachment(): Promise<string | null> {
+    return Promise.resolve(this.uploadUrl);
+  }
+}
+
+let drafts: FakeDraftStore;
 
 /**
  * The chat keyboard contract (feedback aa8d5b18): Enter sends by default,
@@ -15,11 +87,15 @@ describe('FeedbackComposerComponent — Enter sends', () => {
 
   async function setup(draft = 'hello', sendOnEnter = true) {
     sent = [];
+    drafts = new FakeDraftStore();
     localStorage.setItem('sc.composer.sendOnEnter', sendOnEnter ? '1' : '0');
 
     await TestBed.configureTestingModule({
       imports: [FeedbackComposerComponent],
-      providers: [provideTranslateService({ fallbackLang: 'en' })],
+      providers: [
+        provideTranslateService({ fallbackLang: 'en' }),
+        { provide: FeedbackDraftService, useValue: drafts },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(FeedbackComposerComponent);
@@ -180,5 +256,151 @@ describe('FeedbackComposerComponent — Enter sends', () => {
       TestBed.inject(ComposerPrefsService).setSendOnEnter(true);
       expect(cmp.sendHintKey()).toBe('adminFeedback.compose.sendHint');
     });
+  });
+});
+
+/**
+ * Draft persistence: someone wrote a long topic, never pressed send and closed
+ * the tab — and it was gone. Everything typed here now lives on the account and
+ * only leaves it on a send or an explicit discard.
+ */
+describe('FeedbackComposerComponent — account-bound drafts', () => {
+  let fixture: ComponentFixture<FeedbackComposerComponent>;
+  let cmp: FeedbackComposerComponent;
+  let sent: ComposerPayload[];
+
+  const SCOPE = 'admin:new';
+  const OTHER = 'admin:workflow:0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0';
+  const IMG = 'https://db.test/storage/v1/object/public/feedback-images/u/1.jpg';
+
+  async function mount(scope: string | null = SCOPE, ok = true) {
+    sent = [];
+    await TestBed.configureTestingModule({
+      imports: [FeedbackComposerComponent],
+      providers: [
+        provideTranslateService({ fallbackLang: 'en' }),
+        { provide: FeedbackDraftService, useValue: drafts },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(FeedbackComposerComponent);
+    fixture.componentRef.setInput('draftScope', scope);
+    fixture.componentRef.setInput('onSubmit', (p: ComposerPayload) => {
+      sent.push(p);
+      return Promise.resolve(ok);
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    cmp = fixture.componentInstance;
+  }
+
+  function type(value: string) {
+    const el: HTMLTextAreaElement = fixture.nativeElement.querySelector('textarea');
+    el.value = value;
+    cmp.onInput({ target: el } as unknown as Event);
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => {
+    drafts = new FakeDraftStore();
+  });
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('restores text and attachments from the store', async () => {
+    drafts.seed(SCOPE, { body: 'the long report', images: [{ id: 'i1', name: 'shot', url: IMG }] });
+    await mount();
+
+    expect(cmp.draft()).toBe('the long report');
+    expect(cmp.attachments().map((a) => a.url)).toEqual([IMG]);
+    expect(cmp.draftRestored()).toBeTrue();
+    // The restored image has no local bytes — the bucket URL is what renders.
+    expect(cmp.pendingImages().map((i) => i.src)).toEqual([IMG]);
+  });
+
+  it('stages every keystroke and flushes on blur', async () => {
+    await mount();
+    type('half a th');
+    type('half a thought');
+
+    expect(drafts.staged.map((s) => s.body)).toEqual(['half a th', 'half a thought']);
+    expect(drafts.staged.every((s) => s.scope === SCOPE)).toBeTrue();
+
+    cmp.flushDraft();
+    expect(drafts.flushed).toContain(SCOPE);
+  });
+
+  it('clears the stored draft after a successful send — and only then', async () => {
+    await mount(SCOPE, false);
+    type('will not go through');
+    await cmp.submit();
+
+    expect(sent.length).toBe(1);
+    expect(drafts.cleared).toEqual([]);
+    expect(cmp.draft()).toBe('will not go through');
+  });
+
+  it('clears the stored draft once the message is persisted', async () => {
+    await mount();
+    type('this one lands');
+    await cmp.submit();
+
+    expect(drafts.cleared).toEqual([SCOPE]);
+    expect(cmp.draft()).toBe('');
+  });
+
+  it('needs two clicks to discard, and then wipes text, attachments and row', async () => {
+    drafts.seed(SCOPE, { body: 'typed', images: [{ id: 'i1', name: 'shot', url: IMG }] });
+    await mount();
+
+    cmp.armDiscard();
+    expect(cmp.discardArmed()).toBeTrue();
+    expect(drafts.discarded).toEqual([]);
+
+    cmp.discardDraft();
+    expect(drafts.discarded).toEqual([SCOPE]);
+    expect(cmp.draft()).toBe('');
+    expect(cmp.attachments()).toEqual([]);
+    expect(cmp.hasStoredDraft()).toBeFalse();
+  });
+
+  it('hands the old draft back and pulls the new one when the scope moves on', async () => {
+    drafts.seed(SCOPE, { body: 'first topic' });
+    drafts.seed(OTHER, { body: 'second topic' });
+    await mount();
+    expect(cmp.draft()).toBe('first topic');
+
+    fixture.componentRef.setInput('draftScope', OTHER);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(drafts.flushed).toContain(SCOPE);
+    expect(cmp.draft()).toBe('second topic');
+  });
+
+  it('reports the store state next to the toolbar', async () => {
+    await mount();
+    expect(cmp.draftLabel()).toBeNull();
+
+    drafts.seed(SCOPE, { body: 'x', dirty: true });
+    expect(cmp.draftLabel()).toBe('adminFeedback.compose.draftSaving');
+
+    drafts.seed(SCOPE, { body: 'x', dirty: false });
+    expect(cmp.draftLabel()).toBe('adminFeedback.compose.draftSaved');
+
+    drafts.seed(SCOPE, { body: 'x', dirty: true, failed: true });
+    expect(cmp.draftLabel()).toBe('adminFeedback.compose.draftFailed');
+    expect(cmp.draftFailed()).toBeTrue();
+  });
+
+  it('persists nothing at all without a scope', async () => {
+    await mount(null);
+    type('ephemeral');
+
+    expect(drafts.staged).toEqual([]);
+    expect(cmp.draftLabel()).toBeNull();
+    expect(cmp.hasStoredDraft()).toBeFalse();
   });
 });

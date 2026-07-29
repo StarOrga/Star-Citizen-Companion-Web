@@ -26,6 +26,7 @@ import {
   FeedbackMessage,
   FeedbackRow,
   FeedbackSearchHit,
+  BucketLabelKey,
   FeedbackStatus,
   WorkflowScope,
   awaitsTriage,
@@ -44,6 +45,8 @@ import {
   workflowScopeCounts,
 } from './feedback.types';
 import { buildFeedbackBody, uploadFeedbackImages } from '../../feedback/feedback-images.util';
+import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
+import { awaitsReview } from './feedback.types';
 import {
   AuthorFeedbackMessage,
   AuthorFeedbackStatus,
@@ -81,8 +84,8 @@ interface FeedbackGroup {
   items: FeedbackRow[];
 }
 
-/** localStorage key backing the new-topic composer draft. */
-const DRAFT_KEY = 'sc.adminFeedback.draft';
+/** Draft identity of the new-topic composer (see `FeedbackDraftService`). */
+const DRAFT_SCOPE = draftScopes.adminNew;
 /** localStorage key remembering the last selected board view. */
 const VIEW_KEY = 'sc.adminFeedback.view';
 /**
@@ -359,6 +362,18 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                     {{ 'adminFeedback.status.in_progress' | translate }}
                   </button>
                 }
+                <!-- Shipped / handed to an issue and waiting for the sign-off
+                     that ends the topic (migration 20260729130000). -->
+                @if (bucketCounts().review > 0) {
+                  <button
+                    type="button"
+                    class="status-chip review"
+                    [class.active]="statusFilter() === 'review'"
+                    (click)="setStatusFilter('review')">
+                    {{ 'adminFeedback.status.review' | translate }}
+                    <span class="chip-count">{{ bucketCounts().review }}</span>
+                  </button>
+                }
               } @else {
                 @if (bucketCounts().shipped > 0) {
                   <button
@@ -422,13 +437,19 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
           </div>
         </div>
 
-        <!-- One motivating totals line for the current filtering (feedback
-             605d317d): open Rückfragen + shipped so far. "In Arbeit" is
-             deliberately left out — it isn't a number worth celebrating. -->
-        @if (!embedded() && (motivatingStats().rueckfragen > 0 || motivatingStats().shipped > 0 || motivatingStats().issues > 0)) {
-          <p class="board-stats">
+        <!-- One totals line for the current filtering (feedback 605d317d): what
+             is waiting on the admin, and what came out of the board so far.
+             Shown in BOTH modes — the docked panel is the quick analytical look,
+             so this is exactly the line it must not be missing (it only drops
+             the wording down to bare numbers there). "In Arbeit" is deliberately
+             left out: it is nothing to act on and nothing to celebrate. -->
+        @if (hasBoardStats()) {
+          <p class="board-stats" [class.compact]="embedded()">
             @if (motivatingStats().rueckfragen > 0) {
               <span class="stat rueckfragen">{{ 'adminFeedback.stats.rueckfragen' | translate: { count: motivatingStats().rueckfragen } }}</span>
+            }
+            @if (motivatingStats().review > 0) {
+              <span class="stat review">{{ 'adminFeedback.stats.review' | translate: { count: motivatingStats().review } }}</span>
             }
             @if (motivatingStats().shipped > 0) {
               <span class="stat shipped">{{ 'adminFeedback.stats.shipped' | translate: { count: motivatingStats().shipped } }}</span>
@@ -626,6 +647,33 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
               </div>
             }
 
+            <!-- REVIEW GATE — the work is done, the topic is not. It stays here
+                 until an admin looked at the result and decided, instead of
+                 dropping into the archive unseen (migration 20260729130000). -->
+            @if (inReview(m)) {
+              <section class="review-gate">
+                <div class="rg-head">
+                  <span class="rg-badge">{{ 'adminFeedback.status.review' | translate }}</span>
+                  <span class="rg-title">
+                    {{ (m.status === 'issue_created'
+                        ? 'adminFeedback.review.headlineIssue'
+                        : 'adminFeedback.review.headlineShipped') | translate }}
+                  </span>
+                </div>
+                @if (!embedded()) {
+                  <p class="rg-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
+                }
+                <div class="rg-actions">
+                  <button class="sc-btn micro accept" (click)="acceptReview(m)" [disabled]="busy()">
+                    ✓ {{ 'adminFeedback.review.accept' | translate }}
+                  </button>
+                  <button class="sc-btn micro" (click)="reopenFromReview(m)" [disabled]="busy()">
+                    ↻ {{ 'adminFeedback.review.reopen' | translate }}
+                  </button>
+                </div>
+              </section>
+            }
+
             <!-- Reply composer — full parity with the new-topic box (toolbar,
                  Enter to send / Shift+Enter for a newline, image paste/drop,
                  list continuation). On an archived topic a reply reopens it
@@ -638,6 +686,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
             <div class="reply-compose">
               <sc-feedback-composer
                 [compact]="true"
+                [draftScope]="threadScope(m.id)"
                 [busy]="busy()"
                 placeholder="adminFeedback.thread.replyPlaceholder"
                 sendLabel="adminFeedback.thread.reply"
@@ -687,6 +736,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                   </label>
                   <sc-feedback-composer
                     [compact]="true"
+                    [draftScope]="authorScope(m.id)"
                     [busy]="busy()"
                     placeholder="adminFeedback.userTopic.messagePlaceholder"
                     sendLabel="adminFeedback.userTopic.messageSend"
@@ -700,7 +750,10 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                  additionally be archived as "issue created" by pasting the
                  GitHub issue url (feedback eeba60e7). -->
             <div class="msg-actions">
-              @if (!archived(m)) {
+              <!-- A topic in the sign-off gate has already produced its outcome:
+                   the only decisions left are the two in the gate above, so the
+                   "hand it to an issue" / triage controls stay out of the way. -->
+              @if (!archived(m) && !inReview(m)) {
                 @if (issueFormFor() === m.id) {
                   <form class="issue-form" (submit)="submitIssueRef(m, $event)">
                     <input
@@ -736,7 +789,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                    to keep seeing "nicht umgesetzt" plus the reason, so the
                    delete button becomes "nicht umsetzen & löschen" with a
                    mandatory comment (feedback 5920cf8c, point 4). -->
-              @if (fromUser(m) && !archived(m)) {
+              @if (fromUser(m) && !archived(m) && !inReview(m)) {
                 @if (declineFormFor() === m.id) {
                   <form class="decline-form" (submit)="declineTopic(m, $event)">
                     <textarea
@@ -781,7 +834,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
         @if (!embedded()) {
           <sc-feedback-composer
             class="main-composer"
-            [persistKey]="draftKey"
+            [draftScope]="draftScope"
             [busy]="busy()"
             placeholder="adminFeedback.compose.placeholder"
             sendLabel="adminFeedback.compose.send"
@@ -797,7 +850,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                 [attr.aria-label]="'adminFeedback.compose.collapse' | translate">✕</button>
             </div>
             <sc-feedback-composer
-              [persistKey]="draftKey"
+              [draftScope]="draftScope"
               [busy]="busy()"
               placeholder="adminFeedback.compose.placeholder"
               sendLabel="adminFeedback.compose.send"
@@ -1072,6 +1125,40 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       transition: all 0.16s ease;
     }
     .archive-tab:hover { color: var(--sc-fg-0); }
+    /* ---- Review gate ----
+       Deliberately loud: it is the one card state that asks for a decision
+       rather than reporting one, and it sits between the thread and the reply
+       box so it cannot be scrolled past. */
+    .review-gate {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--sc-success);
+      border-left-width: 3px;
+      border-radius: 8px;
+      background: rgba(74, 222, 128, 0.08);
+    }
+    .rg-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .rg-badge {
+      padding: 1px 8px;
+      border: 1px solid var(--sc-success);
+      border-radius: 999px;
+      color: var(--sc-success);
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .rg-title { font-size: 0.82rem; font-weight: 600; color: var(--sc-fg-0); }
+    .rg-hint { margin: 0; font-size: 0.74rem; line-height: 1.45; color: var(--sc-fg-2); }
+    .rg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .rg-actions .accept { border-color: var(--sc-success); color: var(--sc-success); }
+    .rg-actions .accept:hover { background: rgba(74, 222, 128, 0.16); }
+
+    .status-chip.review { border-color: var(--sc-success); color: var(--sc-success); }
+    .status-chip .chip-count { margin-left: 5px; opacity: 0.75; }
+
     .archive-tab.active { background: rgba(0, 212, 255, 0.14); color: var(--sc-accent); }
     .archive-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     .archive-tab .tab-count {
@@ -1181,11 +1268,15 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       margin: 0; padding: 2px 0; font-size: 0.78rem; color: var(--sc-fg-2);
     }
     .board-stats .stat.rueckfragen { color: #a78bfa; font-weight: 600; }
+    .board-stats .stat.review { color: var(--sc-success); font-weight: 600; }
     .board-stats .stat.shipped { color: var(--sc-accent); font-weight: 600; }
     .board-stats .stat.issues { color: #818cf8; font-weight: 600; }
     .board-stats .stat + .stat::before {
       content: '·'; margin-right: 8px; color: var(--sc-fg-2); font-weight: 400;
     }
+    /* Docked panel: same numbers, less room — smaller and tighter, never dropped. */
+    .board-stats.compact { gap: 6px; padding: 0; font-size: 0.7rem; }
+    .board-stats.compact .stat + .stat::before { margin-right: 6px; }
 
     /* Archive tab list — done topics, dimmed a touch so the tab reads as history. */
     .archive-list { display: flex; flex-direction: column; gap: 12px; }
@@ -1422,8 +1513,8 @@ export class AdminFeedbackComponent implements OnInit {
   readonly errorMsg = signal<string | null>(null);
   readonly selfId = computed(() => this.auth.user()?.id ?? null);
 
-  /** localStorage key handed to the new-topic composer for draft persistence. */
-  readonly draftKey = DRAFT_KEY;
+  /** Draft scope handed to the new-topic composer for account-bound persistence. */
+  readonly draftScope = DRAFT_SCOPE;
 
   /** Replies per topic, keyed by feedback id (oldest first). */
   readonly threads = signal<Map<string, FeedbackMessage[]>>(new Map());
@@ -1596,7 +1687,7 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /** The status vocabulary a topic's bucket is labelled and coloured with. */
-  bucketLabel(m: FeedbackRow): FeedbackStatus {
+  bucketLabel(m: FeedbackRow): BucketLabelKey {
     return bucketLabelStatus(this.bucketOf(m));
   }
 
@@ -1757,6 +1848,7 @@ export class AdminFeedbackComponent implements OnInit {
       awaiting_admin: 0,
       awaiting_author: 0,
       in_progress: 0,
+      review: 0,
       shipped: 0,
       issue_created: 0,
       rejected: 0,
@@ -1778,16 +1870,24 @@ export class AdminFeedbackComponent implements OnInit {
    */
   readonly motivatingStats = computed(() => {
     let rueckfragen = 0;
+    let review = 0;
     let shipped = 0;
     let issues = 0;
     for (const m of this.messages()) {
       if (!this.matchesAuthor(m)) continue;
       const bucket = this.bucketOf(m);
       if (bucket === 'awaiting_admin') rueckfragen++;
+      else if (bucket === 'review') review++;
       else if (bucket === 'shipped') shipped++;
       else if (bucket === 'issue_created') issues++;
     }
-    return { rueckfragen, shipped, issues };
+    return { rueckfragen, review, shipped, issues };
+  });
+
+  /** True while any of the totals is worth a line at all. */
+  readonly hasBoardStats = computed(() => {
+    const s = this.motivatingStats();
+    return s.rueckfragen > 0 || s.review > 0 || s.shipped > 0 || s.issues > 0;
   });
 
   /**
@@ -2209,7 +2309,7 @@ export class AdminFeedbackComponent implements OnInit {
     this.errorMsg.set(null);
     const { data, error } = await this.sb.client
       .from('admin_feedback')
-      .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, source, triaged, decision_note, author:profiles(display_name, username)')
+      .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, reviewed_at, source, triaged, decision_note, author:profiles(display_name, username)')
       .order('created_at', { ascending: true });
     if (error) {
       this.errorMsg.set(error.message);
@@ -2390,6 +2490,22 @@ export class AdminFeedbackComponent implements OnInit {
     return true;
   }
 
+  /**
+   * Memoized draft scopes. A topic shows two composers at once (the admin <->
+   * routine thread and the author channel), and the workflow view a third — each
+   * keeps its own draft, so the keys must stay distinct and stable.
+   */
+  private readonly threadScopes = new Map<string, string>();
+  private readonly authorScopes = new Map<string, string>();
+
+  threadScope(feedbackId: string): string {
+    return memoScope(this.threadScopes, feedbackId, draftScopes.adminThread);
+  }
+
+  authorScope(feedbackId: string): string {
+    return memoScope(this.authorScopes, feedbackId, draftScopes.adminAuthor);
+  }
+
   /** Memoized per-topic reply handlers, so each composer gets a stable input. */
   private readonly replySubmitters = new Map<string, (p: ComposerPayload) => Promise<boolean>>();
 
@@ -2478,6 +2594,53 @@ export class AdminFeedbackComponent implements OnInit {
       return;
     }
     this.cancelIssueForm();
+    await this.refresh();
+  }
+
+  // ---- Review gate ----------------------------------------------------------
+
+  /** Template-side alias: is this topic waiting for the admin's sign-off? */
+  inReview(m: FeedbackRow): boolean {
+    return awaitsReview(m, this.threads().get(m.id));
+  }
+
+  /**
+   * Sign the outcome off. The topic leaves the active board for "Erledigt" —
+   * the one place a shipped or issue-handed topic is finally done.
+   */
+  async acceptReview(m: FeedbackRow): Promise<void> {
+    await this.writeReview(m, { reviewed_at: new Date().toISOString() });
+  }
+
+  /**
+   * Reject the outcome and put the topic back into the work loop.
+   *
+   * `status = 'open'` rather than `'in_progress'`, deliberately: `open` IS the
+   * routine's queue (docs/feedback-routine, "Contract"), so this is what makes
+   * work happen again — usually within one cycle. Writing `in_progress` would
+   * park the topic under a claim nobody holds, and the reaper would have to undo
+   * it half an hour later. `ship_ref` is kept: the previous attempt's PR/issue
+   * stays visible as the history of what was already tried.
+   */
+  async reopenFromReview(m: FeedbackRow): Promise<void> {
+    await this.writeReview(m, {
+      status: 'open',
+      reviewed_at: null,
+      // Fresh outside decision — let the routine re-read it from the top.
+      processing_note: null,
+      processed_at: null,
+    });
+  }
+
+  private async writeReview(m: FeedbackRow, patch: Record<string, unknown>): Promise<void> {
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const { error } = await this.sb.client.from('admin_feedback').update(patch).eq('id', m.id);
+    if (error) {
+      this.errorMsg.set(error.message);
+      this.busy.set(false);
+      return;
+    }
     await this.refresh();
   }
 

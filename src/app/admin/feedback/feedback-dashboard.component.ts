@@ -59,6 +59,8 @@ interface StageNode {
   /** Live annotations ("2 Review-Hold", "ältestes 4 Tage offen"). */
   facts: string[];
   exits: StageExit[];
+  /** Detours that leave this stage and come back to it (the two Rückfragen). */
+  branches: StageNode[];
 }
 
 /** Circumference of the donut ring (r = 26) — precomputed for the dash array. */
@@ -122,27 +124,39 @@ const WEEKS = 12;
               </div>
             </div>
 
-            <!-- Bars: the three headline metrics, scaled inside this window. -->
+            <!-- Bars: the four board buckets that matter, scaled inside this
+                 window, in the order a topic walks them. Same four words the
+                 filters use — not one bar per bucket, which said less. -->
             <dl class="bars">
-              <div class="bar-row shipped">
-                <dt>{{ 'adminFeedback.dashboard.shipped' | translate }}</dt>
+              <div class="bar-row todo">
+                <dt>{{ 'adminFeedback.dashboard.todo' | translate }}</dt>
                 <dd>
-                  <span class="bar"><span class="fill" [style.width.%]="barPct(w, w.stats.shipped)"></span></span>
-                  <b>{{ w.stats.shipped }}</b>
+                  <span class="bar"><span class="fill" [style.width.%]="barPct(w, w.stats.todo)"></span></span>
+                  <b>{{ w.stats.todo }}</b>
                 </dd>
               </div>
               <div class="bar-row open">
-                <dt>{{ 'adminFeedback.dashboard.open' | translate }}</dt>
+                <dt>
+                  {{ 'adminFeedback.dashboard.open' | translate }}
+                  <small>{{ 'adminFeedback.dashboard.openHint' | translate }}</small>
+                </dt>
                 <dd>
                   <span class="bar"><span class="fill" [style.width.%]="barPct(w, w.stats.open)"></span></span>
                   <b>{{ w.stats.open }}</b>
                 </dd>
               </div>
-              <div class="bar-row answered">
-                <dt>{{ 'adminFeedback.dashboard.answered' | translate }}</dt>
+              <div class="bar-row shipped">
+                <dt>{{ 'adminFeedback.dashboard.done' | translate }}</dt>
                 <dd>
-                  <span class="bar"><span class="fill" [style.width.%]="barPct(w, w.stats.answered)"></span></span>
-                  <b>{{ w.stats.answered }}</b>
+                  <span class="bar"><span class="fill" [style.width.%]="barPct(w, w.stats.done)"></span></span>
+                  <b>{{ w.stats.done }}</b>
+                </dd>
+              </div>
+              <div class="bar-row issues">
+                <dt>{{ 'adminFeedback.dashboard.issues' | translate }}</dt>
+                <dd>
+                  <span class="bar"><span class="fill" [style.width.%]="barPct(w, w.stats.issues)"></span></span>
+                  <b>{{ w.stats.issues }}</b>
                 </dd>
               </div>
             </dl>
@@ -223,22 +237,41 @@ const WEEKS = 12;
           }
         </ng-template>
 
+        <!-- The spine carries the path itself. A branch (a Rückfrage) is drawn
+             INSIDE the stage it leaves from and loops back into, because that is
+             what it is — not a second category underneath the diagram. -->
         <ol class="stages">
           @for (s of mainStages(); track s.key) {
             <li class="stage" [attr.data-stage]="s.key">
               <ng-container [ngTemplateOutlet]="node" [ngTemplateOutletContext]="{ $implicit: s }" />
+              @if (s.branches.length) {
+                <ul class="branches">
+                  @for (b of s.branches; track b.key) {
+                    <li class="stage is-branch" [attr.data-stage]="b.key">
+                      <span class="branch-tag">{{ 'adminFeedback.dashboard.lifecycleBranch' | translate }}</span>
+                      <ng-container [ngTemplateOutlet]="node" [ngTemplateOutletContext]="{ $implicit: b }" />
+                    </li>
+                  }
+                </ul>
+              }
             </li>
           }
         </ol>
 
-        <h4 class="side-title">{{ 'adminFeedback.dashboard.lifecycleSide' | translate }}</h4>
-        <ul class="stages side">
-          @for (s of sideStages(); track s.key) {
-            <li class="stage" [attr.data-stage]="s.key">
-              <ng-container [ngTemplateOutlet]="node" [ngTemplateOutletContext]="{ $implicit: s }" />
-            </li>
-          }
-        </ul>
+        <!-- …and it ends in exactly one of these. Rendered as a visible fork so
+             "either shipped or handed to an issue" is the shape of the diagram
+             rather than a sentence somebody has to read. -->
+        <div class="outcomes">
+          <span class="fork" aria-hidden="true"></span>
+          <h4 class="outcome-title">{{ 'adminFeedback.dashboard.lifecycleOutcome' | translate }}</h4>
+          <ul class="stages outcome-list">
+            @for (s of outcomeStages(); track s.key) {
+              <li class="stage is-outcome" [attr.data-stage]="s.key">
+                <ng-container [ngTemplateOutlet]="node" [ngTemplateOutletContext]="{ $implicit: s }" />
+              </li>
+            }
+          </ul>
+        </div>
 
         <p class="panel-note">{{ 'adminFeedback.dashboard.lifecycleNote' | translate }}</p>
       </article>
@@ -315,12 +348,21 @@ const WEEKS = 12;
       transition: width 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     .bar-row dd b { flex: 0 0 auto; min-width: 1.6em; text-align: right; font-size: 0.86rem; }
+    .bar-row dt small {
+      display: block;
+      font-size: 0.58rem;
+      letter-spacing: 0.02em;
+      color: var(--sc-fg-2);
+      opacity: 0.8;
+    }
     .bar-row.shipped .fill { background: var(--sc-success); }
     .bar-row.shipped dd b { color: var(--sc-success); }
-    .bar-row.open .fill { background: var(--sc-accent); }
-    .bar-row.open dd b { color: var(--sc-accent); }
-    .bar-row.answered .fill { background: #a78bfa; }
-    .bar-row.answered dd b { color: #a78bfa; }
+    .bar-row.todo .fill { background: var(--sc-accent); }
+    .bar-row.todo dd b { color: var(--sc-accent); }
+    .bar-row.open .fill { background: var(--sc-warning); }
+    .bar-row.open dd b { color: var(--sc-warning); }
+    .bar-row.issues .fill { background: #a78bfa; }
+    .bar-row.issues dd b { color: #a78bfa; }
 
     @keyframes bar-grow {
       from { transform: scaleX(0); }
@@ -432,17 +474,81 @@ const WEEKS = 12;
     }
     .stage[data-stage='todo'] .dot { background: var(--sc-accent); }
     .stage[data-stage='in_progress'] .dot { background: var(--sc-warning); }
+    .stage[data-stage='review'] .dot { background: var(--sc-success); }
     .stage[data-stage='shipped'] .dot { background: var(--sc-success); }
+    .stage[data-stage='issue_created'] .dot { background: #a78bfa; }
     .stage[data-stage='awaiting_admin'] .dot { background: #a78bfa; }
+    .stage[data-stage='awaiting_author'] .dot { background: #a78bfa; }
+    .stage[data-stage='declined'] .dot { background: var(--sc-fg-2); }
     .stage[data-stage='rejected'] .dot { background: var(--sc-danger); }
+
+    /* ---- Branches: a Rückfrage lives inside the stage it detours from ---- */
+    .branches {
+      list-style: none;
+      margin: 8px 0 0;
+      padding: 0 0 0 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-left: 2px dashed var(--sc-border);
+    }
+    .stage.is-branch {
+      padding: 7px 9px 7px 22px;
+      border: 1px dashed var(--sc-border);
+      border-radius: 6px;
+      background: var(--sc-bg-1);
+    }
+    .stage.is-branch .dot { left: 8px; top: 12px; }
+    .branch-tag {
+      display: inline-block;
+      margin-bottom: 3px;
+      font-size: 0.56rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sc-fg-2);
+    }
+
+    /* ---- Outcome fork: the path ends in exactly one of these ---- */
+    .outcomes { position: relative; margin-top: 12px; padding-top: 14px; }
+    .fork {
+      position: absolute;
+      left: 4px;
+      top: -10px;
+      width: 2px;
+      height: 22px;
+      background: var(--sc-border);
+    }
+    .outcome-title {
+      margin: 0 0 8px;
+      padding-left: 18px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sc-fg-2);
+    }
+    .outcome-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    @container (max-width: 360px) { .outcome-list { grid-template-columns: 1fr; } }
+    .stage.is-outcome {
+      padding: 9px 10px 9px 22px;
+      border: 1px solid var(--sc-border);
+      border-radius: 8px;
+      background: var(--sc-bg-1);
+    }
+    .stage.is-outcome .dot { left: 8px; top: 13px; }
+    .stage.is-outcome[data-stage='shipped'] { border-color: var(--sc-success); }
+    .stage.is-outcome[data-stage='issue_created'] { border-color: #a78bfa; }
 
     .stage-head { display: flex; align-items: baseline; gap: 8px; }
     .stage-name { font-size: 0.78rem; font-weight: 600; color: var(--sc-fg-0); overflow-wrap: anywhere; }
     .stage-count { margin-left: auto; font-size: 0.92rem; font-weight: 700; color: var(--sc-fg-1); }
     .stage[data-stage='todo'] .stage-count { color: var(--sc-accent); }
     .stage[data-stage='in_progress'] .stage-count { color: var(--sc-warning); }
+    .stage[data-stage='review'] .stage-count { color: var(--sc-success); }
     .stage[data-stage='shipped'] .stage-count { color: var(--sc-success); }
+    .stage[data-stage='issue_created'] .stage-count { color: #a78bfa; }
     .stage[data-stage='awaiting_admin'] .stage-count { color: #a78bfa; }
+    .stage[data-stage='awaiting_author'] .stage-count { color: #a78bfa; }
 
     .meter {
       display: block;
@@ -461,8 +567,11 @@ const WEEKS = 12;
     }
     .stage[data-stage='todo'] .meter-fill { background: var(--sc-accent); }
     .stage[data-stage='in_progress'] .meter-fill { background: var(--sc-warning); }
+    .stage[data-stage='review'] .meter-fill { background: var(--sc-success); }
     .stage[data-stage='shipped'] .meter-fill { background: var(--sc-success); }
+    .stage[data-stage='issue_created'] .meter-fill { background: #a78bfa; }
     .stage[data-stage='awaiting_admin'] .meter-fill { background: #a78bfa; }
+    .stage[data-stage='awaiting_author'] .meter-fill { background: #a78bfa; }
 
     .facts, .exits { list-style: none; margin: 5px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
     .facts li { font-size: 0.64rem; line-height: 1.35; color: var(--sc-fg-2); overflow-wrap: anywhere; }
@@ -566,7 +675,12 @@ export class FeedbackDashboardComponent {
     lifecycleSnapshot(this.rows(), this.threads()),
   );
 
-  /** The happy path every topic walks: ToDo → In Arbeit → Geshipped. */
+  /**
+   * The path itself: ToDo → In Arbeit → Abnahme. Each Rückfrage hangs off the
+   * stage it leaves from as a `branch`, so the diagram shows what it is — a
+   * detour that comes back — instead of listing it as a separate category
+   * underneath.
+   */
   readonly mainStages = computed<StageNode[]>(() => {
     const s = this.snapshot();
     this.lang();
@@ -582,44 +696,65 @@ export class FeedbackDashboardComponent {
     if (s.working) workFacts.push(this.t('fact.working', { count: s.working }));
     if (s.reviewHolds) workFacts.push(this.t('fact.hold', { count: s.reviewHolds }));
 
-    const shippedFacts: string[] = [this.t('fact.terminalAtRest')];
-    if (s.continuations) {
-      shippedFacts.push(this.t('fact.pendingContinuation', { count: s.continuations }));
-    }
+    const reviewFacts: string[] = [this.t('fact.reviewWhy')];
+    if (s.reviewShipped) reviewFacts.push(this.t('fact.reviewShipped', { count: s.reviewShipped }));
+    if (s.reviewIssues) reviewFacts.push(this.t('fact.reviewIssues', { count: s.reviewIssues }));
+
+    // The two Rückfrage flavours: one the routine asks the admin, one the admin
+    // asks the person who filed the topic. Both leave "In Arbeit" and both come
+    // back to it — that loop is the point, hence `back: true` on the return.
+    const branches: StageNode[] = [
+      this.toStage('awaiting_admin', s, s.counts.awaiting_admin ? [this.t('fact.awaiting')] : [], [
+        { label: this.t('flow.answered'), target: this.stageLabel('todo'), back: true },
+      ]),
+      this.toStage('awaiting_author', s, [], [
+        { label: this.t('flow.authorAnswered'), target: this.stageLabel('todo'), back: true },
+      ]),
+    ];
 
     return [
       this.toStage('todo', s, todoFacts, [
         { label: this.t('flow.pickup'), target: this.stageLabel('in_progress'), back: false },
       ]),
-      this.toStage('in_progress', s, workFacts, [
-        { label: this.t('flow.green'), target: this.stageLabel('shipped'), back: false },
-        { label: this.t('flow.question'), target: this.stageLabel('awaiting_admin'), back: false },
-        { label: this.t('flow.hold'), target: this.t('flow.holdTarget'), back: true },
-        { label: this.t('flow.reaper'), target: this.stageLabel('todo'), back: true },
-      ]),
-      this.toStage('shipped', s, shippedFacts, [
-        { label: this.t('flow.continue'), target: this.stageLabel('in_progress'), back: true },
+      this.toStage(
+        'in_progress',
+        s,
+        workFacts,
+        [
+          { label: this.t('flow.toReview'), target: this.stageLabel('review'), back: false },
+          { label: this.t('flow.toReviewIssue'), target: this.stageLabel('review'), back: false },
+          { label: this.t('flow.question'), target: this.stageLabel('awaiting_admin'), back: false },
+          { label: this.t('flow.askAuthor'), target: this.stageLabel('awaiting_author'), back: false },
+          { label: this.t('flow.hold'), target: this.t('flow.holdTarget'), back: true },
+          { label: this.t('flow.reaper'), target: this.stageLabel('todo'), back: true },
+        ],
+        branches,
+      ),
+      this.toStage('review', s, reviewFacts, [
+        { label: this.t('flow.accepted'), target: this.stageLabel('shipped'), back: false },
+        { label: this.t('flow.reopened'), target: this.stageLabel('todo'), back: true },
       ]),
     ];
   });
 
   /**
-   * The branches off the spine: the Rückfrage a topic bounces into and returns
-   * from, and the terminal stages nothing ever picks up again. Legacy `rejected`
-   * only appears while such rows still exist.
+   * Where the path ends — exactly one of these per topic. A fork rather than a
+   * list: "either shipped or handed to an issue" is the shape of the machine,
+   * and `declined` is the third way out for a topic somebody filed and the admin
+   * decided against. Legacy `rejected` only appears while such rows still exist.
    */
-  readonly sideStages = computed<StageNode[]>(() => {
+  readonly outcomeStages = computed<StageNode[]>(() => {
     const s = this.snapshot();
     this.lang();
     const stages: StageNode[] = [
-      this.toStage(
-        'awaiting_admin',
-        s,
-        s.counts.awaiting_admin ? [this.t('fact.awaiting')] : [],
-        [{ label: this.t('flow.answered'), target: this.stageLabel('todo'), back: true }],
-      ),
+      this.toStage('shipped', s, [this.t('fact.doneTerminal')], [
+        { label: this.t('flow.continue'), target: this.stageLabel('in_progress'), back: true },
+      ]),
       this.toStage('issue_created', s, [this.t('fact.issueTerminal')], []),
     ];
+    if (s.counts.declined) {
+      stages.push(this.toStage('declined', s, [this.t('fact.declinedTerminal')], []));
+    }
     if (s.counts.rejected) {
       stages.push(this.toStage('rejected', s, [this.t('fact.rejectedLegacy')], []));
     }
@@ -631,6 +766,7 @@ export class FeedbackDashboardComponent {
     snapshot: LifecycleSnapshot,
     facts: string[],
     exits: StageExit[],
+    branches: StageNode[] = [],
   ): StageNode {
     const peak = Math.max(1, ...Object.values(snapshot.counts));
     const count = snapshot.counts[key];
@@ -641,6 +777,7 @@ export class FeedbackDashboardComponent {
       share: (count / peak) * 100,
       facts,
       exits,
+      branches,
     };
   }
 
@@ -659,14 +796,17 @@ export class FeedbackDashboardComponent {
     stats: FeedbackStats,
     pace: FeedbackPace,
   ): StatWindow {
-    const resolvable = stats.shipped + stats.open;
+    // "Erledigt" for the donut means *reached an end*, so a topic handed to a
+    // GitHub issue counts as resolved too — it left the board on purpose.
+    const resolved = stats.done + stats.issues;
+    const resolvable = resolved + stats.todo + stats.open;
     return {
       key,
       label,
       stats,
       pace,
-      ratio: resolvable === 0 ? 0 : stats.shipped / resolvable,
-      max: Math.max(stats.shipped, stats.open, stats.answered, 1),
+      ratio: resolvable === 0 ? 0 : resolved / resolvable,
+      max: Math.max(stats.todo, stats.open, stats.done, stats.issues, 1),
       median: this.formatDuration(pace.medianShipHours),
       questionPct: this.pct(pace.questionRate),
       questionHint: this.t('paceQuestionsHint', {
