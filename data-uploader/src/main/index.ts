@@ -53,6 +53,7 @@ import {
   runSync,
 } from './session.js';
 import * as uploadJob from './upload-session.js';
+import * as throttle from './throttle.js';
 import { isInterrupt, PausedError } from '../lib/pause-control.js';
 import { ProgressHub } from '../lib/progress-hub.js';
 import { initTray, updateTray, destroyTray, notifyHidden, hasTray, type TrayMenuLabels } from './tray.js';
@@ -406,6 +407,28 @@ ipcMain.handle('sc:estimate', (_e, profileId: keyof typeof PROFILES, sizeBytes: 
   estimateForSize(profileId, sizeBytes),
 );
 
+// ============= Live performance-profile IPC =============
+//
+// The profile is owned by MAIN, not by the renderer's `state.profile`, because
+// it has to keep steering sidecars that outlive a renderer reload — and because
+// only main knows their pids. The renderer holds a display mirror and re-reads
+// this on every switch.
+
+ipcMain.handle('sc:perf:get', () => throttle.view());
+
+// The one write path. Returns how many running sidecars the new profile
+// actually reached, so the UI can say "applied to the running job" instead of
+// implying an effect that never left the process.
+ipcMain.handle('sc:perf:set', (_e, profileId: unknown) => {
+  const result = throttle.set(profileId);
+  // Every window mirrors the switch — including the one that did not send it,
+  // and the Configure screen when the change came from the Run screen.
+  for (const w of BrowserWindow.getAllWindows()) {
+    w.webContents.send('sc:perf:changed', result);
+  }
+  return result;
+});
+
 ipcMain.handle('sc:authenticate', async () => {
   const result = await runOAuthFlow(WEB_BASE);
   // Persist the session (encrypted) so the operator signs in ONCE. Best-effort:
@@ -659,6 +682,9 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
   });
   job.cancel = handle.cancel;
   activeJobs.set(jobId, job);
+  // Hand the sidecar to the live throttle: it gets the profile in effect NOW,
+  // and every later switch reaches it without restarting the extraction.
+  throttle.registerJob(jobId, handle.pid);
   watchdog.start();
   try {
     const final = await handle.promise;
@@ -676,6 +702,9 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
   } finally {
     watchdog.stop();
     activeJobs.delete(jobId);
+    // Deregister BEFORE the OS can recycle the pid — a later switch must never
+    // re-prioritise whatever process inherited this number.
+    throttle.unregisterJob(jobId);
   }
 });
 
@@ -708,6 +737,7 @@ ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<S
   });
   job.cancel = handle.cancel;
   activeJobs.set(jobId, job);
+  throttle.registerJob(jobId, handle.pid);
   watchdog.start();
   try {
     const final = await handle.promise;
@@ -718,6 +748,7 @@ ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<S
   } finally {
     watchdog.stop();
     activeJobs.delete(jobId);
+    throttle.unregisterJob(jobId);
   }
 });
 

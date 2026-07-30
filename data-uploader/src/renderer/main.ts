@@ -28,6 +28,25 @@ interface JobViewLike {
   state: { status: string } | null;
 }
 
+/** Performance profiles the operator can pick — mirrors `lib/performance.ts`. */
+type LiveProfile = 'minimal' | 'standard' | 'maximum' | 'auto';
+
+/** Mirror of the `PerformanceProfile` shape the bridge hands back. */
+interface ProfileDefLike {
+  id: string;
+  label: { en: string };
+  description: { en: string };
+}
+
+/** Mirror of `main/throttle.ts:ThrottleSetResult`. */
+interface ThrottleViewLike {
+  profile: LiveProfile;
+  liveJobs: number;
+  supported: boolean;
+  changed?: boolean;
+  applied?: number;
+}
+
 interface PublicSettings {
   telemetryEnabled: boolean;
   minimizeToTray: boolean;
@@ -162,7 +181,12 @@ const state = {
     source: string;
     selected: boolean;
   }>,
-  profile: 'standard' as 'minimal' | 'standard' | 'maximum' | 'auto',
+  // Display mirror of the profile MAIN holds. Main owns it because it is live:
+  // switching mid-run has to reach the already-spawned sidecar, whose pid only
+  // main knows. Never write this directly — go through `applyProfile()`.
+  profile: 'standard' as LiveProfile,
+  /** False on a platform with no live priority control — the UI must not imply one. */
+  throttleSupported: true,
   // When set on the Configure screen, a successful extraction flows straight
   // into the upload (no manual "Upload anbieten" click) — for unattended runs.
   autoUpload: false,
@@ -226,6 +250,15 @@ async function init(): Promise<void> {
   } catch {
     state.settings = null;
   }
+
+  // Adopt the profile MAIN currently holds (it may already be steering an
+  // auto-run that started before this window existed), and follow every later
+  // switch — including ones made from another view or another window.
+  await refreshProfileFromMain();
+  window.sc.perf.onChanged((v: ThrottleViewLike) => {
+    adoptThrottle(v);
+    void repaintProfilePickers();
+  });
 
   // Role decides whether the Configure view shows the update-channel picker.
   try {
@@ -1093,6 +1126,7 @@ function renderConfigure(): string {
       <h1>${t('configure.title', {}) || 'Profil wählen'}</h1>
       <p class="view-intro">${t('configure.subtitle', {}) || 'Live umschaltbar — du kannst während des Laufs wechseln.'}</p>
       <div class="profiles view-body" id="profiles-mount"></div>
+      <p class="throttle-status" id="profiles-mount-status" style="display:none;"></p>
       <label class="auto-upload-toggle" title="${t('configure.autoUploadHint', {}) || 'Lädt das Bundle nach der Extraktion automatisch hoch (nur wenn du bereits verbunden bist).'}">
         <input type="checkbox" id="chk-auto-upload" ${state.autoUpload ? 'checked' : ''} />
         <span>${t('configure.autoUpload', {}) || 'Nach der Extraktion automatisch hochladen'}</span>
@@ -1148,32 +1182,88 @@ function wireConfigure(): void {
 }
 
 async function renderProfiles(): Promise<void> {
-  const mount = $('#profiles-mount');
+  await paintProfilePicker('#profiles-mount', { compact: false });
+}
+
+// ============= Live performance switch =============
+//
+// The profile is deliberately NOT a start-time snapshot: the operator's case is
+// "I'm about to play — throttle down" / "I'm away for half an hour — throttle
+// up", and cancelling a multi-hour extract to change a setting is no answer.
+// So the same picker is mounted on Configure (large) and on the Run + Upload
+// views (compact), all writing through `applyProfile`, and main pushes the new
+// profile into the running sidecar.
+
+/** The single write path for the profile — main is the source of truth. */
+async function applyProfile(next: LiveProfile, statusSel?: string): Promise<void> {
+  let result: ThrottleViewLike;
+  try {
+    result = await window.sc.perf.set(next);
+  } catch {
+    // A failed switch must not leave the UI showing a mode that is not in
+    // effect — re-read main's truth and repaint from that.
+    await refreshProfileFromMain();
+    return;
+  }
+  adoptThrottle(result);
+  await repaintProfilePickers();
+  if (statusSel) paintThrottleStatus(statusSel, result);
+}
+
+function adoptThrottle(v: ThrottleViewLike): void {
+  state.profile = v.profile;
+  state.throttleSupported = v.supported;
+}
+
+async function refreshProfileFromMain(): Promise<void> {
+  try {
+    adoptThrottle(await window.sc.perf.get());
+  } catch {
+    /* keep the last known mirror — the picker still works, it just may lag */
+  }
+  await repaintProfilePickers();
+}
+
+/** Repaint every picker currently in the DOM (only one view is mounted at a time). */
+async function repaintProfilePickers(): Promise<void> {
+  await paintProfilePicker('#profiles-mount', { compact: false });
+  await paintProfilePicker('#run-throttle-mount', { compact: true });
+  await paintProfilePicker('#upload-throttle-mount', { compact: true });
+}
+
+async function paintProfilePicker(sel: string, opts: { compact: boolean }): Promise<void> {
+  const mount = $(sel);
   if (!mount) return;
   const { profiles } = await window.sc.profiles();
   const selectedSize = state.channels
     .filter((c) => c.selected)
     .reduce((sum, c) => sum + c.sizeBytes, 0);
   const lang = getLocale();
+  const statusSel = `${sel}-status`;
   const entries = await Promise.all(
-    Object.values(profiles).map(async (p) => {
-      const eta = await window.sc.estimate(p.id as 'minimal' | 'standard' | 'maximum' | 'auto', selectedSize);
+    (Object.values(profiles) as ProfileDefLike[]).map(async (p) => {
       const label = (p.label as Record<string, string>)[lang] ?? p.label.en;
       const desc = (p.description as Record<string, string>)[lang] ?? p.description.en;
       const active = p.id === state.profile ? 'active' : '';
+      // The ETA is a start-time estimate for a whole run — showing it next to a
+      // job that is already half done would be a lie, so the compact (mid-run)
+      // pills drop it instead of restating it.
+      const eta = opts.compact
+        ? ''
+        : `<span class="eta">~ ${(await window.sc.estimate(p.id as LiveProfile, selectedSize)).formatted}</span>`;
       return `
-        <div class="profile-pill ${active}" data-profile="${p.id}" tabindex="0" role="button">
+        <div class="profile-pill ${opts.compact ? 'compact' : ''} ${active}" data-profile="${p.id}" tabindex="0" role="button" aria-pressed="${active ? 'true' : 'false'}">
           <span class="name">${label}</span>
-          <span class="desc">${desc}</span>
-          <span class="eta">~ ${eta.formatted}</span>
+          ${opts.compact ? '' : `<span class="desc">${desc}</span>`}
+          ${eta}
         </div>`;
     }),
   );
   mount.innerHTML = entries.join('');
   mount.querySelectorAll('.profile-pill').forEach((el) => {
     const select = (): void => {
-      state.profile = (el as HTMLElement).dataset['profile'] as typeof state.profile;
-      void renderProfiles();
+      const id = (el as HTMLElement).dataset['profile'] as LiveProfile | undefined;
+      if (id) void applyProfile(id, statusSel);
     };
     el.addEventListener('click', select);
     el.addEventListener('keydown', (e) => {
@@ -1186,12 +1276,57 @@ async function renderProfiles(): Promise<void> {
   });
 }
 
+/**
+ * Tell the operator what the switch actually did. Deliberately three different
+ * answers: a switch that reached a running sidecar, a switch that only arms the
+ * next run, and a platform where we cannot re-prioritise at all — collapsing
+ * them into one cheerful "saved" would be the failure mode where they trust a
+ * throttle that never happened and go play anyway.
+ */
+function paintThrottleStatus(sel: string, v: ThrottleViewLike): void {
+  const el = $(sel);
+  if (!el) return;
+  let msg: string;
+  if (!v.supported) {
+    msg = t('configure.speed.unsupported', {}) || 'Auf dieser Plattform lässt sich die Priorität nicht live ändern.';
+  } else if ((v.applied ?? 0) > 0) {
+    msg = t('configure.speed.applied', {}) || 'Modus geändert — wirkt ab der nächsten Datei.';
+  } else if (v.liveJobs > 0) {
+    msg = t('configure.speed.appliedPartly', {}) || 'Modus geändert — konnte dem laufenden Prozess aber nicht zugestellt werden (siehe Log).';
+  } else {
+    msg = t('configure.speed.armed', {}) || 'Modus gesetzt — er gilt, sobald ein Lauf startet.';
+  }
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+/** The compact mid-run switch, mounted on the Run and Upload views. */
+function throttleBarHtml(id: string): string {
+  return `
+    <div class="throttle-bar" id="${id}">
+      <div class="throttle-head">
+        <span class="throttle-title">${t('configure.speed.title', {}) || 'Geschwindigkeit'}</span>
+        <span class="throttle-hint">${t('configure.speed.hint', {}) || 'Jederzeit umschaltbar — auch mitten im Lauf.'}</span>
+      </div>
+      <div class="profiles compact" id="${id}-mount"></div>
+      <p class="throttle-status" id="${id}-mount-status" style="display:none;"></p>
+      <p class="throttle-note">${t('configure.speed.scopePinned', {}) || 'Der Umfang der Extraktion bleibt für den laufenden Vorgang fest — nur Tempo und Priorität ändern sich.'}</p>
+      ${
+        state.throttleSupported
+          ? ''
+          : `<p class="throttle-note warn">${t('configure.speed.unsupported', {}) || 'Auf dieser Plattform lässt sich die Priorität nicht live ändern.'}</p>`
+      }
+    </div>
+  `;
+}
+
 // ============= View: Run (Phase 1 stub UI) =============
 
 function renderRun(): string {
   return `
     <div class="view">
       <h1>${t('run.title', {}) || 'Extraktion läuft'}</h1>
+      ${throttleBarHtml('run-throttle')}
       <div class="run-grid view-body">
         <section class="card run-main">
           ${progressCardHtml('run-progress', runSteps())}
@@ -1231,6 +1366,9 @@ function markBundleReady(): void {
 }
 
 function wireRun(): void {
+  // Mounted BEFORE the extraction kicks off, and never disabled while it runs —
+  // being able to throttle down mid-run is the entire point of this control.
+  void paintProfilePicker('#run-throttle-mount', { compact: true });
   $('#btn-back-configure')?.addEventListener('click', () => {
     void (async () => {
       const ok = await confirmLeave(
@@ -1484,6 +1622,7 @@ function renderAuthUpload(): string {
   return `
     <div class="view">
       <h1>${t('upload.title', {}) || 'Upload'}</h1>
+      ${throttleBarHtml('upload-throttle')}
       <div class="upload-grid view-body">
         <section class="card upload-actions">
           <p>${t('upload.intro', {}) || 'Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.'}</p>
@@ -1533,6 +1672,7 @@ function renderAuthUpload(): string {
 let uploadProgress: ProgressController | null = null;
 
 function wireAuthUpload(): void {
+  void paintProfilePicker('#upload-throttle-mount', { compact: true });
   uploadProgress = mountProgress('upload-progress', {
     counterLabel,
     steps: uploadSteps(),

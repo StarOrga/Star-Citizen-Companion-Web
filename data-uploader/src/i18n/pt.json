@@ -16,7 +16,16 @@
   "configure": {
     "title": "Escolher um perfil",
     "subtitle": "Pode ser alterado durante a extração.",
-    "start": "Iniciar extração"
+    "start": "Iniciar extração",
+    "speed": {
+      "title": "Velocidade",
+      "hint": "Pode mudar a qualquer momento, mesmo durante a execução.",
+      "applied": "Modo alterado — vale a partir do próximo ficheiro.",
+      "appliedPartly": "Modo alterado, mas não chegou ao processo em curso (ver registo).",
+      "armed": "Modo definido — aplica-se assim que uma execução começar.",
+      "unsupported": "Esta plataforma não permite alterar a prioridade em tempo real.",
+      "scopePinned": "O âmbito da extração fica fixo para o trabalho em curso — só o ritmo e a prioridade mudam."
+    }
   },
   "run": {
     "title": "Extraindo",

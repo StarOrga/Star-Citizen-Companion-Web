@@ -32,7 +32,16 @@
     "subtitle": "Switchable live — change it mid-run.",
     "start": "Start extraction",
     "autoUpload": "Upload automatically after extraction",
-    "autoUploadHint": "Uploads the bundle automatically once extraction finishes (only when you're already connected)."
+    "autoUploadHint": "Uploads the bundle automatically once extraction finishes (only when you're already connected).",
+    "speed": {
+      "title": "Speed",
+      "hint": "Switch any time — mid-run included.",
+      "applied": "Mode changed — takes effect from the next file.",
+      "appliedPartly": "Mode changed — but it could not be delivered to the running process (see log).",
+      "armed": "Mode set — it applies as soon as a run starts.",
+      "unsupported": "This platform has no live priority control.",
+      "scopePinned": "The extraction scope stays fixed for the running job — only pace and priority change."
+    }
   },
   "run": {
     "title": "Extracting",

@@ -32,7 +32,16 @@
     "subtitle": "Live umschaltbar — du kannst während des Laufs wechseln.",
     "start": "Extraktion starten",
     "autoUpload": "Nach der Extraktion automatisch hochladen",
-    "autoUploadHint": "Lädt das Bundle nach der Extraktion automatisch hoch (nur wenn du bereits verbunden bist)."
+    "autoUploadHint": "Lädt das Bundle nach der Extraktion automatisch hoch (nur wenn du bereits verbunden bist).",
+    "speed": {
+      "title": "Geschwindigkeit",
+      "hint": "Jederzeit umschaltbar — auch mitten im Lauf.",
+      "applied": "Modus geändert — wirkt ab der nächsten Datei.",
+      "appliedPartly": "Modus geändert — konnte dem laufenden Prozess aber nicht zugestellt werden (siehe Protokoll).",
+      "armed": "Modus gesetzt — er gilt, sobald ein Lauf startet.",
+      "unsupported": "Auf dieser Plattform lässt sich die Priorität nicht live ändern.",
+      "scopePinned": "Der Umfang der Extraktion bleibt für den laufenden Vorgang fest — nur Tempo und Priorität ändern sich."
+    }
   },
   "run": {
     "title": "Extraktion läuft",
