@@ -40,6 +40,7 @@ import {
   refKind,
   searchFeedback,
   searchTokens,
+  timeOf,
   topicNumber,
   topicTitle,
   workflowScopeCounts,
@@ -55,8 +56,18 @@ import {
   groupAuthorMessages,
 } from '../../feedback/user-feedback.types';
 
-/** The board's three modes: scan the list, work the queue, read the numbers. */
-export type FeedbackView = 'overview' | 'workflow' | 'progress';
+/**
+ * The board's four modes: scan the list, work the queue, sign the finished work
+ * off, read the numbers.
+ *
+ * `review` is the admin's own step (feedback #79): the review gate (migration
+ * 20260729130000) already keeps a shipped topic on the active board until
+ * somebody accepts the result, but it only surfaced inside the topic's card in
+ * the overview — so finding what is waiting meant scrolling the board. As its
+ * own mode it is a visible "this was done, please check and tick it off" pile
+ * with the archive one click away.
+ */
+export type FeedbackView = 'overview' | 'workflow' | 'review' | 'progress';
 
 /**
  * Which half of the overview list is on screen: the working set or the done
@@ -181,6 +192,20 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
             <span class="tab-badge">{{ workflowQueue().length }}</span>
           }
         </button>
+        <!-- The sign-off step (feedback #79): everything the routine finished
+             and nobody has confirmed yet, with its own count so it is obvious
+             from the switch that something is waiting. -->
+        <button
+          type="button"
+          class="view-tab"
+          [class.active]="view() === 'review'"
+          [attr.aria-pressed]="view() === 'review'"
+          (click)="setView('review')">
+          {{ 'adminFeedback.view.review' | translate }}
+          @if (reviewQueue().length > 0) {
+            <span class="tab-badge review">{{ reviewQueue().length }}</span>
+          }
+        </button>
         <button
           type="button"
           class="view-tab"
@@ -204,6 +229,67 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
             (markHandled)="markHandled($event)"
             (scopeChange)="setWorkflowScope($event)"
             (showProgress)="setView('progress')" />
+        </div>
+      } @else if (view() === 'review') {
+        <!-- SIGN-OFF QUEUE — "wurde bearbeitet, bitte prüfen und abhaken".
+             Same two decisions as the in-card review gate (accept → archive,
+             reopen → back into the routine's queue); this is only the place
+             that collects them so none has to be hunted for. -->
+        <div class="board alt">
+          <section class="rv">
+            <p class="rv-lead">{{ 'adminFeedback.review.queueTitle' | translate }}</p>
+            @if (!embedded()) {
+              <p class="rv-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
+            }
+
+            @if (reviewQueue().length === 0) {
+              <div class="rv-empty sc-card">
+                <div class="rv-empty-icon" aria-hidden="true">✅</div>
+                <h3>{{ 'adminFeedback.review.emptyTitle' | translate }}</h3>
+                <p>{{ 'adminFeedback.review.emptyHint' | translate }}</p>
+              </div>
+            } @else {
+              @for (m of reviewQueue(); track m.id) {
+                <article class="rv-card sc-card">
+                  <header class="rv-head">
+                    <span class="rg-badge">
+                      {{ (m.status === 'issue_created'
+                          ? 'adminFeedback.status.issue_created'
+                          : 'adminFeedback.status.shipped') | translate }}
+                    </span>
+                    @if (topicNo(m); as no) {
+                      <span class="rv-no" [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
+                    }
+                    <span class="rv-title">{{ topicTitle(m.body) }}</span>
+                    <span class="rv-ts">{{ reviewSince(m) | date: 'shortDate' }}</span>
+                  </header>
+
+                  @if (m.ship_ref) {
+                    <a
+                      class="ship-ref"
+                      [class.issue]="linkKind(m) === 'issue'"
+                      [href]="m.ship_ref"
+                      target="_blank"
+                      rel="noopener noreferrer">
+                      {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
+                    </a>
+                  }
+
+                  <div class="rg-actions">
+                    <button class="sc-btn micro accept" (click)="acceptReview(m)" [disabled]="busy()">
+                      ✓ {{ 'adminFeedback.review.accept' | translate }}
+                    </button>
+                    <button class="sc-btn micro" (click)="reopenFromReview(m)" [disabled]="busy()">
+                      ↻ {{ 'adminFeedback.review.reopen' | translate }}
+                    </button>
+                    <button class="sc-btn micro ghost" (click)="openInOverview(m)">
+                      {{ 'adminFeedback.review.openTopic' | translate }} →
+                    </button>
+                  </div>
+                </article>
+              }
+            }
+          </section>
         </div>
       } @else if (view() === 'progress') {
         <div class="board alt">
@@ -1155,6 +1241,46 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .rg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .rg-actions .accept { border-color: var(--sc-success); color: var(--sc-success); }
     .rg-actions .accept:hover { background: rgba(74, 222, 128, 0.16); }
+    .rg-actions .ghost { border-color: var(--sc-border); color: var(--sc-fg-2); }
+    .rg-actions .ghost:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+
+    /* ---- Sign-off queue (the 4th view) ----
+       One row per finished topic: what it was, where the result is, and the two
+       decisions. Deliberately flat — this is a checklist, not a reading view;
+       the full thread is one "Thema öffnen" away. */
+    .rv { display: flex; flex-direction: column; gap: 10px; }
+    .rv-lead { margin: 0; font-size: 0.86rem; font-weight: 600; color: var(--sc-fg-0); }
+    .rv-hint { margin: 0; font-size: 0.76rem; line-height: 1.45; color: var(--sc-fg-2); }
+    .rv-card {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 10px 12px;
+      border-left: 3px solid var(--sc-success);
+    }
+    .rv-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .rv-no {
+      flex: 0 0 auto; color: var(--sc-fg-2);
+      font-size: 0.74rem; font-weight: 600;
+      font-variant-numeric: tabular-nums; user-select: all;
+    }
+    .rv-title {
+      flex: 1 1 auto; min-width: 0;
+      overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+      font-size: 0.88rem; font-weight: 600; color: var(--sc-fg-0);
+    }
+    .rv-ts { flex: 0 0 auto; color: var(--sc-fg-2); font-size: 0.72rem; }
+    .rv-empty {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 30px 20px; text-align: center;
+    }
+    .rv-empty h3 { margin: 0; font-size: 1rem; }
+    .rv-empty p { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; }
+    .rv-empty-icon { font-size: 1.9rem; }
+    /* The sign-off badge is green like the gate it belongs to, not violet like
+       the Rückfrage badge on the processing tab. */
+    .tab-badge.review {
+      background: color-mix(in srgb, var(--sc-success) 28%, transparent);
+      color: var(--sc-success);
+    }
 
     .status-chip.review { border-color: var(--sc-success); color: var(--sc-success); }
     .status-chip .chip-count { margin-left: 5px; opacity: 0.75; }
@@ -1552,7 +1678,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readView(): FeedbackView {
     try {
       const raw = localStorage.getItem(VIEW_KEY);
-      if (raw === 'overview' || raw === 'workflow' || raw === 'progress') return raw;
+      if (raw === 'overview' || raw === 'workflow' || raw === 'review' || raw === 'progress') return raw;
     } catch {
       /* ignore */
     }
@@ -2602,6 +2728,40 @@ export class AdminFeedbackComponent implements OnInit {
   /** Template-side alias: is this topic waiting for the admin's sign-off? */
   inReview(m: FeedbackRow): boolean {
     return awaitsReview(m, this.threads().get(m.id));
+  }
+
+  /**
+   * Everything the routine finished that nobody has confirmed yet — the sign-off
+   * view's whole content and the badge on its tab (feedback #79).
+   *
+   * Oldest first, like the processing queue: a result that has been waiting for
+   * days is the one most likely to be forgotten. Deliberately unfiltered by the
+   * overview's search / author / status chips — this is a step of its own, not a
+   * slice of that list.
+   */
+  readonly reviewQueue = computed(() =>
+    this.messages()
+      .filter((m) => this.inReview(m))
+      .sort((a, b) => timeOf(this.reviewSince(a)) - timeOf(this.reviewSince(b))),
+  );
+
+  /** When the outcome landed — what the sign-off card dates itself by. */
+  reviewSince(m: FeedbackRow): string {
+    return m.shipped_at ?? m.processed_at ?? m.updated_at;
+  }
+
+  /**
+   * Open the topic's full card in the overview: the sign-off row is a summary,
+   * and "does this look right?" sometimes needs the thread. Filters are cleared
+   * so the target cannot be hidden by a chip the admin left active.
+   */
+  openInOverview(m: FeedbackRow): void {
+    this.setView('overview');
+    this.setBoardTab('active');
+    this.statusFilter.set(null);
+    this.authorFilter.set(null);
+    this.clearSearch();
+    this.jumpTo(m.id);
   }
 
   /**

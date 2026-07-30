@@ -160,8 +160,25 @@ export class NewsService {
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private visibilityListener: (() => void) | null = null;
   private refreshSeq = 0;
+  private inFlight: Promise<void> | null = null;
 
-  async refresh(silent = false): Promise<void> {
+  /**
+   * Load the feed. Concurrent callers share one request: since the playability
+   * chip moved into the app header (feedback #79) there are two independent
+   * consumers of this feed, and on a cold start of /news both ask for it in the
+   * same tick. Coalescing keeps that a single fetch — the second caller still
+   * gets a promise that resolves when the data is in.
+   */
+  refresh(silent = false): Promise<void> {
+    if (this.inFlight) return this.inFlight;
+    const run = this.fetchFeed(silent);
+    this.inFlight = run;
+    return run.finally(() => {
+      if (this.inFlight === run) this.inFlight = null;
+    });
+  }
+
+  private async fetchFeed(silent: boolean): Promise<void> {
     const seq = ++this.refreshSeq;
     if (!silent) this.loading.set(true);
     this.error.set(null);

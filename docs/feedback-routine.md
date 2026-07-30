@@ -22,6 +22,14 @@ oldest `created_at` first.
 > query below stays exactly as it is. The gate is a second, human way into the
 > continuation loop that query (d) already implements — pressing a button instead
 > of having to remember to reply.
+>
+> Since feedback #79 the gate has its own step on the board: **Abnahme**, the
+> fourth tab of the view switch next to Übersicht / Abarbeiten / Fortschritt. It
+> collects every row the gate is holding (badge = how many), and each row carries
+> the same two decisions the in-card gate has — "Ins Archiv — erledigt"
+> (`reviewed_at`) and "Gespräch wieder aufnehmen" (`status = 'open'`) — so a
+> finished topic can be filed without opening the Archive tab. Still no new
+> status value, still nothing the routine reads.
 
 Status lifecycle the routine drives:
 

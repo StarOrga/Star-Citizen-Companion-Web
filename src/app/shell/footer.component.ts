@@ -65,12 +65,16 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
       padding: 12px 28px;
       margin-top: auto;
     }
+    /* The community badge and the disclaimer column need real air between them
+       (feedback #79, item 6): at 18px the wrapped "… Community" and the
+       "Dies ist eine inoffizielle …" line ran into each other and read as one
+       sentence. 34px separates the two blocks without breaking the single row. */
     .inner {
       max-width: 1400px;
       margin: 0 auto;
       display: flex;
       align-items: center;
-      gap: 18px;
+      gap: 34px;
       flex-wrap: nowrap;
     }
     .badge {

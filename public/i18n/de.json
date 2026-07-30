@@ -1483,6 +1483,7 @@
       "label": "Ansicht wechseln",
       "overview": "Übersicht",
       "workflow": "Abarbeiten",
+      "review": "Abnahme",
       "progress": "Fortschritt"
     },
     "cheer": {
@@ -1606,8 +1607,12 @@
       "headlineShipped": "Geshipped — bitte abnehmen",
       "headlineIssue": "An ein Issue übergeben — bitte abnehmen",
       "hint": "Schau dir das Ergebnis live an. Passt es, ist das Thema erledigt. Passt es nicht, nimm das Gespräch wieder auf — das Thema geht zurück in die Warteschlange der Routine.",
-      "accept": "Abnehmen — erledigt",
-      "reopen": "Gespräch wieder aufnehmen"
+      "accept": "Ins Archiv — erledigt",
+      "reopen": "Gespräch wieder aufnehmen",
+      "queueTitle": "Wurde bearbeitet — bitte prüfen und abhaken",
+      "openTopic": "Thema öffnen",
+      "emptyTitle": "Nichts abzunehmen",
+      "emptyHint": "Sobald die Routine ein Thema geshippt oder an ein Issue übergeben hat, wartet es hier auf deine Abnahme."
     }
   },
   "feedbackFab": {

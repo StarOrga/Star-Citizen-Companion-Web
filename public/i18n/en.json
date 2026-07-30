@@ -1483,6 +1483,7 @@
       "label": "Switch view",
       "overview": "Overview",
       "workflow": "Process",
+      "review": "Sign-off",
       "progress": "Progress"
     },
     "cheer": {
@@ -1606,8 +1607,12 @@
       "headlineShipped": "Shipped — please sign off",
       "headlineIssue": "Handed to an issue — please sign off",
       "hint": "Look at the result on the live app. If it is right, the topic is done. If it is not, pick the conversation back up — the topic returns to the routine’s queue.",
-      "accept": "Sign off — done",
-      "reopen": "Resume the conversation"
+      "accept": "To the archive — done",
+      "reopen": "Resume the conversation",
+      "queueTitle": "Done — please check and tick off",
+      "openTopic": "Open topic",
+      "emptyTitle": "Nothing to sign off",
+      "emptyHint": "As soon as the routine ships a topic or hands it to an issue, it waits here for your sign-off."
     }
   },
   "feedbackFab": {
