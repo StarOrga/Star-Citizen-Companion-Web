@@ -231,7 +231,7 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       pointer-events: none;
       font-family: 'Segoe Script', 'Brush Script MT', 'Snell Roundhand', cursive;
       font-style: italic;
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       font-weight: 400;
       line-height: 1;
       letter-spacing: 0.06em;

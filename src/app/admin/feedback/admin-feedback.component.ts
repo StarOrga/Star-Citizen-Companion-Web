@@ -1254,7 +1254,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
        the full thread is one "Thema öffnen" away. */
     .rv { display: flex; flex-direction: column; gap: 10px; }
     .rv-lead { margin: 0; font-size: 0.86rem; font-weight: 600; color: var(--sc-fg-0); }
-    .rv-hint { margin: 0; font-size: 0.76rem; line-height: 1.45; color: var(--sc-fg-2); }
+    .rv-hint { margin: 0; font-size: max(0.76rem, var(--sc-fs-floor)); line-height: 1.45; color: var(--sc-fg-2); }
     .rv-card {
       display: flex; flex-direction: column; gap: 8px;
       padding: 10px 12px;
@@ -1263,7 +1263,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .rv-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .rv-no {
       flex: 0 0 auto; color: var(--sc-fg-2);
-      font-size: 0.74rem; font-weight: 600;
+      font-size: max(0.74rem, var(--sc-fs-floor)); font-weight: 600;
       font-variant-numeric: tabular-nums; user-select: all;
     }
     .rv-title {
@@ -1271,7 +1271,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
       font-size: 0.88rem; font-weight: 600; color: var(--sc-fg-0);
     }
-    .rv-ts { flex: 0 0 auto; color: var(--sc-fg-2); font-size: 0.72rem; }
+    .rv-ts { flex: 0 0 auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
     .rv-empty {
       display: flex; flex-direction: column; align-items: center; gap: 6px;
       padding: 30px 20px; text-align: center;
