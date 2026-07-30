@@ -4,7 +4,7 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.56.2] - 2026-07-30
 
 ### Fixed
 
@@ -120,7 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `/login` and the shared topbar: 41–38 px form controls, 16 px trust links,
   sub-12 px labels). Verified identical on `origin/main` and on this branch, so
   this release neither causes nor worsens it. Needs its own pass.
-  *Resolved in [Unreleased] — the cause was app-wide, not login-specific.*
+  *Resolved in 0.56.2 — the cause was app-wide, not login-specific.*
 
 ## [0.55.4] - 2026-07-29
 
