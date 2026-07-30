@@ -1041,7 +1041,8 @@
       "summary": {
         "title": "In short",
         "noAds": "No advertising, no ad networks.",
-        "noTracking": "No advertising trackers. Product analytics run through PostHog on EU servers to improve the app.",
+        "signIn": "There are exactly two ways to sign in: e-mail address and password, or your Google account. The Google route is optional and does send data to Google.",
+        "noTracking": "No advertising trackers. Product analytics via PostHog (EU) only run if you allow them — off by default.",
         "minimal": "Only the data the features need — nothing is sold or shared for marketing.",
         "euHosting": "Application data is stored in the EU (Supabase, region eu-central-1 / Frankfurt)."
       },
@@ -1052,28 +1053,51 @@
       },
       "account": {
         "title": "Account and application data",
-        "p1": "If you create an account, your e-mail address and a salted password hash are processed by our backend provider Supabase in the EU region eu-central-1 (Frankfurt). Optionally you can sign in with Google; in that case Google learns that you signed in to this site, and we receive your e-mail address from Google.",
-        "p2": "Feature data you create (profile, hangar ships, loadouts, settings) is stored under your account and is only readable by you — enforced with row-level security in the database.",
-        "p3": "Accounts are invite-only. Sign-ups that are not approved can be removed together with their data."
+        "p1": "You only need an account for the personal features (hangar, loadouts, settings, feedback). News, codex and release notes work without one. There are exactly two ways to sign in: e-mail address plus password, or the \"Continue with Google\" button. The app uses no other method — no magic links, no SMS codes, no further social logins — and there is no sign-up form: accounts are created by an invitation an administrator sends to your e-mail address.",
+        "p2": "For sign-in, our backend provider Supabase keeps an auth record about you in the EU region eu-central-1 (Frankfurt): your e-mail address, a salted password hash when you use password sign-in (never the plaintext password), the linked sign-in methods, and timestamps such as invitation, creation and last sign-in.",
+        "p3": "On top of that there is a profile record with what the app needs for you: a display name (initially the part of your e-mail address before the @), the username you pick yourself, your language and game-channel preference, optionally your RSI handle and your flagship, plus your role (viewer, collaborator, admin) and whether your account is approved. Role and approval decide what you may see and do.",
+        "p4": "Feature data you create (hangar ships, loadouts, ship links, saved drafts, settings) is stored under your account and is only readable by you — enforced with row-level security in the database. One obvious exception: feedback you send is visible to the maintainers, with your account as the sender so they can reply.",
+        "p5": "Accounts are invite-only. Sign-ups that are not approved never get past the login page and can be removed together with their data."
+      },
+      "google": {
+        "title": "Signing in with Google",
+        "p1": "The Google route is optional — e-mail and password get you in without Google. When you tap \"Continue with Google\", the app sends you to Google's sign-in page (accounts.google.com). Google thereby learns that you are signing in to SC Companion, along with the technical data every page visit carries (IP address, browser, time). The provider is Google Ireland Limited (Ireland) or Google LLC (USA).",
+        "p2": "After a successful sign-in, Google returns data to us that Supabase stores in your account's auth record: your Google account id, your e-mail address, the name you have on file with Google, and the URL of your Google profile picture. Almost none of it is displayed — your name appears in the account menu, and only for as long as you have not set your own username; the app never loads your profile picture, it only shows the first letter as an initial.",
+        "p3": "Nothing flows back to Google beyond the sign-in itself — no hangar, codex or usage data. What Google does with the sign-in data on its side is governed by Google's own privacy policy:",
+        "policyLink": "Google's privacy policy (policies.google.com/privacy)",
+        "p4": "The legal basis for this route is your consent (Art. 6(1)(a) GDPR): you decide anew at every sign-in whether to use it. If you want to get rid of an existing Google link, contact the maintainers via the routes in the site notice."
       },
       "local": {
-        "title": "Cookies and local storage",
-        "p1": "SCC sets no third-party tracking cookies. Your browser's local storage keeps the sign-in session token, language preference and UI state. As an installable web app (PWA), a service worker caches static assets on your device for faster loading and offline use — this cache contains no personal data and can be cleared by uninstalling the app or clearing site data."
+        "title": "Cookies, local storage and your session",
+        "p1": "SCC sets no cookies — neither its own nor any from ad networks. Instead the app uses your browser's local storage, for these entries:",
+        "keys": {
+          "session": "sc.auth — your sign-in session: a short-lived access token and a refresh token from Supabase. While you stay signed in, the app renews the access token automatically in the background; signing out deletes the entry. Clearing your browser's site data signs you out as well.",
+          "lang": "sc.lang — your language choice.",
+          "consent": "sc.consent — your decision about the storage categories, so we do not ask again on every visit.",
+          "composer": "sc.composer.sendOnEnter — whether the Enter key sends in the feedback box or adds a new line.",
+          "preferences": "\"Preferences\" category — convenience state such as news filters, saved articles and favorited ships. Only written if you allow it; withdrawing your consent deletes those entries immediately.",
+          "statistics": "\"Statistics\" category — the state of the anonymous product analytics (PostHog). Only created if you allow it; withdrawing your consent deletes it immediately."
+        },
+        "p2": "During a Google sign-in there is briefly one extra entry in session storage (sc.oauth-redirect-qs) so that you land back on the page you came from. It disappears when the tab closes at the latest.",
+        "p3": "If you explicitly authorize one of our desktop tools (data uploader, Starscape), the browser hands your session's access token to the program running locally on your machine (127.0.0.1) — not to a third party, and never via the address bar.",
+        "p4": "As an installable web app (PWA), a service worker caches static assets on your device for faster loading and offline use — this cache contains no personal data and can be cleared by uninstalling the app or clearing site data."
       },
       "thirdParty": {
         "title": "Third-party services",
         "p1": "The app talks to a small, fixed set of services (also technically enforced by our Content-Security-Policy):",
-        "supabase": "Supabase (database, authentication) — EU region eu-central-1.",
-        "vercel": "Vercel (hosting, CDN) — delivery of the static app.",
-        "google": "Google Sign-In (optional) — only if you choose to sign in with Google.",
-        "posthog": "PostHog (product analytics and error diagnostics) — EU cloud, loaded through a first-party proxy; captures usage events and errors to improve the app.",
+        "supabase": "Supabase (database, authentication, file storage) — EU region eu-central-1 (Frankfurt); processes your account and application data on our behalf.",
+        "vercel": "Vercel Inc. (hosting, CDN) — delivery of the static app.",
+        "google": "Google Sign-In (Google Ireland Limited / Google LLC) — only if you choose to sign in with Google; details in the \"Signing in with Google\" section.",
+        "posthog": "PostHog (product analytics and error diagnostics) — EU cloud (eu.i.posthog.com); captures anonymous usage events and errors, and only after you consent.",
         "fonts": "Google Fonts — font files are loaded from Google servers; Google may see your IP address.",
+        "rsiMedia": "Images in the Verse news are partly loaded straight from Roberts Space Industries servers (media.robertsspaceindustries.com, theverse.robertsspaceindustries.com) — RSI sees your IP address while they load.",
         "gameApis": "Public Star Citizen data: status.robertsspaceindustries.com and api.star-citizen.wiki (read-only, no account data is sent)."
       },
       "rights": {
         "title": "Your rights",
-        "p1": "Under the GDPR you have the right to access, rectification, erasure, restriction of processing, data portability and objection regarding your personal data.",
-        "p2": "You can delete your account and its data in the app settings, or contact the maintainers via the site notice — we will handle requests promptly."
+        "p1": "Under the GDPR you have the right to access, rectification, erasure, restriction of processing, data portability and objection regarding your personal data. You may also lodge a complaint with a data protection supervisory authority.",
+        "p2": "Your account can be deleted completely: removing the auth record also removes profile, hangar, loadouts, drafts and uploads through the database cascade. Right now the deletion is carried out by an administrator — the delete button in the settings only works for accounts with the admin role. Request it via the contact routes in the site notice; requests are handled promptly.",
+        "p3": "You can withdraw your consent for preference storage and statistics at any time in the settings; withdrawal deletes the affected local entries immediately and applies going forward — the lawfulness of processing up to that point is unaffected."
       }
     },
     "imprint": {

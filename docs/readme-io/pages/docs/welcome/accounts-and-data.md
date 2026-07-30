@@ -24,8 +24,14 @@ Registration is **invite-only** during the alpha. Two sign-in methods lead to
 the same account when the e-mail matches:
 
 - **E-mail + password** — the password is stored only as a salted hash.
-- **Google OAuth** — Google learns that you signed in here, and the project
-  receives your e-mail address. Nothing else.
+- **Google OAuth** — you are redirected to `accounts.google.com`, so Google
+  learns that you signed in here. In return the project receives your Google
+  account id, e-mail address, the name on your Google profile and the URL of
+  your profile picture; Supabase keeps them in the auth record. The app shows
+  the name in the account menu until you pick your own username and never
+  loads the picture. Nothing about your hangar or usage goes back to Google.
+
+There is no sign-up form, no magic link and no other social login.
 
 SC Companion never asks for your RSI account credentials and has no way to act
 on your RSI account.
@@ -71,9 +77,14 @@ flips to `beta`.
 
 ## Deleting your account
 
-**Settings → Delete account** removes the account and everything attached to it
-— profile, hangar, configurations, uploads and bundles. It is immediate,
-irreversible, and signs you out afterwards.
+Deleting the account removes everything attached to it — profile, hangar,
+configurations, uploads and bundles — through the database cascade. It is
+irreversible.
+
+**Settings → Delete account** performs it directly, but the underlying
+`delete-user` function currently only accepts admin callers, so for a viewer or
+collaborator account the button fails. Ask a maintainer (see
+[Support](doc:support)) and the deletion is carried out for you.
 
 ## Reporting a privacy or security issue
 

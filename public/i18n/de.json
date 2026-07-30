@@ -1041,7 +1041,8 @@
       "summary": {
         "title": "Kurz gefasst",
         "noAds": "Keine Werbung, keine Werbenetzwerke.",
-        "noTracking": "Keine Werbe-Tracker. Produkt-Analytik läuft über PostHog auf EU-Servern, um die App zu verbessern.",
+        "signIn": "Anmelden kannst du dich auf genau zwei Wegen: mit E-Mail-Adresse und Passwort oder mit deinem Google-Konto. Der Google-Weg ist freiwillig und gibt Daten an Google.",
+        "noTracking": "Keine Werbe-Tracker. Produkt-Analytik über PostHog (EU) läuft nur, wenn du sie erlaubst — Voreinstellung ist aus.",
         "minimal": "Nur die Daten, die die Funktionen brauchen — nichts wird verkauft oder zu Marketingzwecken geteilt.",
         "euHosting": "Anwendungsdaten liegen in der EU (Supabase, Region eu-central-1 / Frankfurt)."
       },
@@ -1052,28 +1053,51 @@
       },
       "account": {
         "title": "Konto- und Anwendungsdaten",
-        "p1": "Wenn du ein Konto anlegst, verarbeitet unser Backend-Anbieter Supabase deine E-Mail-Adresse und einen gesalzenen Passwort-Hash in der EU-Region eu-central-1 (Frankfurt). Optional kannst du dich mit Google anmelden; Google erfährt dann, dass du dich auf dieser Seite angemeldet hast, und wir erhalten deine E-Mail-Adresse von Google.",
-        "p2": "Funktionsdaten, die du anlegst (Profil, Hangar-Schiffe, Loadouts, Einstellungen), werden unter deinem Konto gespeichert und sind nur für dich lesbar — durchgesetzt per Row-Level-Security in der Datenbank.",
-        "p3": "Konten sind nur auf Einladung möglich. Nicht freigeschaltete Registrierungen können samt Daten entfernt werden."
+        "p1": "Ein Konto brauchst du nur für die persönlichen Funktionen (Hangar, Loadouts, Einstellungen, Feedback). News, Codex und Release Notes gehen ohne. Zum Anmelden gibt es genau zwei Wege: E-Mail-Adresse plus Passwort oder den Knopf „Mit Google fortfahren\". Andere Verfahren — Magic-Link, SMS-Code, weitere Social-Logins — setzt die App nicht ein, und ein Registrierungsformular gibt es nicht: Konten entstehen durch eine Einladung, die ein Administrator an deine E-Mail-Adresse schickt.",
+        "p2": "Für die Anmeldung legt unser Backend-Anbieter Supabase in der EU-Region eu-central-1 (Frankfurt) einen Auth-Eintrag zu dir an: deine E-Mail-Adresse, bei der Passwort-Anmeldung einen gesalzenen Passwort-Hash (nie das Passwort im Klartext), die verknüpften Anmeldeverfahren und Zeitstempel wie Einladung, Anlage und letzte Anmeldung.",
+        "p3": "Dazu kommt ein Profil-Datensatz mit dem, was die App für dich braucht: ein Anzeigename (beim Anlegen automatisch der Teil deiner E-Mail-Adresse vor dem @), dein selbst gewählter Nutzername, Sprach- und Spielkanal-Einstellung, optional dein RSI-Handle und dein Flaggschiff sowie deine Rolle (Viewer, Collaborator, Admin) und ob dein Konto freigeschaltet ist. Rolle und Freischaltung entscheiden, was du sehen und tun darfst.",
+        "p4": "Funktionsdaten, die du anlegst (Hangar-Schiffe, Loadouts, Schiffs-Links, gespeicherte Entwürfe, Einstellungen), liegen unter deinem Konto und sind nur für dich lesbar — durchgesetzt per Row-Level-Security in der Datenbank. Eine Ausnahme ist naheliegend: Feedback, das du absendest, sehen die Maintainer, und zwar mit deinem Konto als Absender, damit sie antworten können.",
+        "p5": "Konten sind nur auf Einladung nutzbar. Nicht freigeschaltete Registrierungen kommen nicht über die Anmeldeseite hinaus und können samt Daten entfernt werden."
+      },
+      "google": {
+        "title": "Anmeldung mit Google",
+        "p1": "Der Google-Weg ist freiwillig — mit E-Mail und Passwort kommst du ohne Google ins Konto. Tippst du auf „Mit Google fortfahren\", leitet dich die App zur Anmeldeseite von Google (accounts.google.com) weiter. Google erfährt dabei, dass du dich bei SC Companion anmeldest, samt der technischen Daten, die jeder Seitenaufruf mitbringt (IP-Adresse, Browser, Zeitpunkt). Anbieter ist Google Ireland Limited (Irland) bzw. Google LLC (USA).",
+        "p2": "Nach erfolgreicher Anmeldung gibt Google Daten an uns zurück, die Supabase im Auth-Eintrag deines Kontos speichert: deine Google-Konto-Kennung, deine E-Mail-Adresse, deinen bei Google hinterlegten Namen und die Adresse deines Google-Profilbilds. Angezeigt wird davon fast nichts — im Kontomenü steht dein Name, und auch der nur, solange du keinen eigenen Nutzernamen gesetzt hast; dein Profilbild lädt die App gar nicht erst, sie zeigt nur den ersten Buchstaben als Initiale.",
+        "p3": "Umgekehrt fließt nichts zu Google zurück, was über den Anmeldevorgang hinausgeht — keine Hangar-, Codex- oder Nutzungsdaten. Was Google selbst mit den Anmeldedaten macht, richtet sich nach Googles eigener Datenschutzerklärung:",
+        "policyLink": "Datenschutzerklärung von Google (policies.google.com/privacy)",
+        "p4": "Rechtsgrundlage für diesen Weg ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO): Du entscheidest bei jeder Anmeldung neu, ob du ihn nutzt. Willst du eine bestehende Google-Verknüpfung wieder loswerden, wende dich über die Kontaktwege im Impressum an die Maintainer."
       },
       "local": {
-        "title": "Cookies und lokaler Speicher",
-        "p1": "SCC setzt keine Tracking-Cookies von Dritten. Im lokalen Speicher deines Browsers liegen Session-Token, Spracheinstellung und UI-Zustand. Als installierbare Web-App (PWA) cached ein Service Worker statische Dateien auf deinem Gerät für schnelleres Laden und Offline-Nutzung — dieser Cache enthält keine personenbezogenen Daten und lässt sich durch Deinstallation oder Löschen der Website-Daten entfernen."
+        "title": "Cookies, lokaler Speicher und Sitzung",
+        "p1": "SCC setzt keine Cookies — weder eigene noch von Werbenetzwerken. Stattdessen nutzt die App den lokalen Speicher deines Browsers, und zwar für diese Einträge:",
+        "keys": {
+          "session": "sc.auth — deine Anmelde-Sitzung: ein kurzlebiges Zugriffs-Token und ein Erneuerungs-Token von Supabase. Solange du angemeldet bleibst, erneuert die App das Zugriffs-Token automatisch im Hintergrund; beim Abmelden wird der Eintrag gelöscht. Löschst du die Website-Daten deines Browsers, bist du ebenfalls abgemeldet.",
+          "lang": "sc.lang — deine Sprachwahl.",
+          "consent": "sc.consent — deine Entscheidung zu den Speicher-Kategorien, damit wir nicht bei jedem Besuch neu fragen.",
+          "composer": "sc.composer.sendOnEnter — ob die Enter-Taste im Feedback-Feld absendet oder eine neue Zeile macht.",
+          "preferences": "Kategorie „Präferenzen\" — Komfort-Zustand wie News-Filter, gemerkte Artikel und favorisierte Schiffe. Wird nur geschrieben, wenn du sie erlaubst; ein Widerruf löscht die Einträge sofort.",
+          "statistics": "Kategorie „Statistik\" — der Zustand der anonymen Produkt-Analytik (PostHog). Entsteht nur, wenn du sie erlaubst; ein Widerruf löscht ihn sofort."
+        },
+        "p2": "Während einer Google-Anmeldung liegt kurzzeitig zusätzlich ein Eintrag im Sitzungsspeicher (sc.oauth-redirect-qs), damit du nach der Rückkehr wieder auf der Seite landest, von der du gekommen bist. Er verschwindet spätestens mit dem Schließen des Tabs.",
+        "p3": "Autorisierst du ausdrücklich eines unserer Desktop-Werkzeuge (Data-Uploader, Starscape), übergibt der Browser das Zugriffs-Token deiner Sitzung an das Programm, das lokal auf deinem Rechner läuft (127.0.0.1) — nicht an einen Dritten, und nie über die Adresszeile.",
+        "p4": "Als installierbare Web-App (PWA) cached ein Service Worker statische Dateien auf deinem Gerät für schnelleres Laden und Offline-Nutzung — dieser Cache enthält keine personenbezogenen Daten und lässt sich durch Deinstallation oder Löschen der Website-Daten entfernen."
       },
       "thirdParty": {
         "title": "Dienste von Drittanbietern",
         "p1": "Die App kommuniziert mit einem kleinen, festen Satz an Diensten (technisch zusätzlich per Content-Security-Policy durchgesetzt):",
-        "supabase": "Supabase (Datenbank, Authentifizierung) — EU-Region eu-central-1.",
-        "vercel": "Vercel (Hosting, CDN) — Auslieferung der statischen App.",
-        "google": "Google Sign-In (optional) — nur wenn du dich bewusst mit Google anmeldest.",
-        "posthog": "PostHog (Produkt-Analytik und Fehlerdiagnose) — EU-Cloud, eingebunden über einen First-Party-Proxy; erfasst Nutzungsereignisse und Fehler zur Verbesserung der App.",
+        "supabase": "Supabase (Datenbank, Authentifizierung, Datei-Speicher) — EU-Region eu-central-1 (Frankfurt); verarbeitet deine Konto- und Anwendungsdaten in unserem Auftrag.",
+        "vercel": "Vercel Inc. (Hosting, CDN) — Auslieferung der statischen App.",
+        "google": "Google Sign-In (Google Ireland Limited / Google LLC) — nur wenn du dich bewusst mit Google anmeldest; Details im Abschnitt „Anmeldung mit Google\".",
+        "posthog": "PostHog (Produkt-Analytik und Fehlerdiagnose) — EU-Cloud (eu.i.posthog.com); erfasst anonyme Nutzungsereignisse und Fehler, und das nur nach deiner Zustimmung.",
         "fonts": "Google Fonts — Schriftdateien werden von Google-Servern geladen; Google kann dabei deine IP-Adresse sehen.",
+        "rsiMedia": "Bilder in den Verse-News kommen teils direkt von Servern von Roberts Space Industries (media.robertsspaceindustries.com, theverse.robertsspaceindustries.com) — beim Laden sieht RSI deine IP-Adresse.",
         "gameApis": "Öffentliche Star-Citizen-Daten: status.robertsspaceindustries.com und api.star-citizen.wiki (nur lesend, es werden keine Kontodaten übertragen)."
       },
       "rights": {
         "title": "Deine Rechte",
-        "p1": "Nach der DSGVO hast du das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch bezüglich deiner personenbezogenen Daten.",
-        "p2": "Du kannst dein Konto samt Daten in den App-Einstellungen löschen oder die Maintainer über das Impressum kontaktieren — Anfragen werden zeitnah bearbeitet."
+        "p1": "Nach der DSGVO hast du das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch bezüglich deiner personenbezogenen Daten. Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren.",
+        "p2": "Dein Konto lässt sich vollständig löschen: Mit dem Auth-Eintrag verschwinden per Datenbank-Kaskade auch Profil, Hangar, Loadouts, Entwürfe und Uploads. Ausgeführt wird die Löschung derzeit von einem Administrator — der Löschen-Knopf in den Einstellungen greift nur bei Konten mit Administratorrolle. Fordere sie über die Kontaktwege im Impressum an; Anfragen werden zeitnah bearbeitet.",
+        "p3": "Deine Zustimmung zu Präferenz-Speicher und Statistik kannst du jederzeit in den Einstellungen widerrufen; der Widerruf löscht die betroffenen lokalen Einträge sofort und wirkt für die Zukunft — die Rechtmäßigkeit der Verarbeitung bis dahin bleibt unberührt."
       }
     },
     "imprint": {
