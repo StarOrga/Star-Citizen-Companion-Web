@@ -19,12 +19,11 @@ import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { NewsService, NewsChannel, VerseNewsItem, VerseStatus, StatusLevel, effectivePlayability, pickRecentVideos, VIDEO_RETENTION_DAYS } from './news.service';
+import { NewsService, NewsChannel, VerseNewsItem, pickRecentVideos, VIDEO_RETENTION_DAYS } from './news.service';
 import { NewsThumbComponent } from './news-thumb.component';
 import { UpcomingShipsNoticeComponent } from './upcoming-ships-notice.component';
 
 const CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
-const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
 
 // Hover-dwell threshold before a video counts as "watched" (#146). Long enough
 // that a cursor merely passing over the rail doesn't burn through the videos,
@@ -60,35 +59,10 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
           }
         </div>
 
-        @if (svc.feed()?.status; as st) {
-          @let eff = effectiveStatus(st);
-          <button class="status-chip" type="button" [class]="'status-' + eff"
-                  [attr.aria-expanded]="statusOpen()" (click)="toggleStatus()">
-            <span class="dot" [class]="'status-' + eff"></span>
-            <span class="meta">
-              <span class="t">{{ 'news.status.title' | translate }}</span>
-              <strong>{{ ('news.status.' + eff) | translate }}</strong>
-            </span>
-            <span class="chev" aria-hidden="true">{{ statusOpen() ? '▴' : '▾' }}</span>
-          </button>
-        }
+        <!-- The playability chip used to sit here; it now lives in the app
+             header next to the search (feedback #79), where it is visible on
+             every route instead of only on this page. -->
       </header>
-
-      @if (statusOpen() && svc.feed()?.status; as st) {
-        <div class="status-panel sc-card">
-          <h3>{{ 'news.status.services' | translate }}</h3>
-          @if (st.components.length > 0) {
-            <ul class="svc-list">
-              @for (c of st.components; track c.name) {
-                <li><span class="dot" [class]="'status-' + c.status"></span><span class="svc-name">{{ c.name }}</span><span class="svc-status">{{ ('news.status.' + c.status) | translate }}</span></li>
-              }
-            </ul>
-          } @else {
-            <p class="muted">{{ 'news.status.noComponents' | translate }}</p>
-          }
-          <a class="ext-link" [href]="rsiStatusUrl" target="_blank" rel="noopener noreferrer">{{ 'news.status.checkExternal' | translate }}</a>
-        </div>
-      }
 
       <!-- Codex "Upcoming Ships" delta (feedback d3fbc023): self-hides when
            there is nothing new since the user last looked. -->
@@ -410,57 +384,21 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       display: flex; flex-direction: column; gap: 16px;
     }
 
-    /* ---------- Header ---------- */
+    /* ---------- Header ----------
+       The title block is nudged a few pixels off the page's left edge
+       (feedback #79, item 4): the stream card below it is rounded, so a title
+       flush with the container edge reads as if it hung over that curve.
+       The head's own bottom margin then closes the vertical rhythm the shell
+       opened: 16px page gap + 10px here = the same 26px of air that now sits
+       above the title (item 5). */
     .head {
       display: flex; justify-content: space-between; align-items: flex-start;
       gap: 16px; flex-wrap: wrap;
+      padding-left: 6px;
+      margin-bottom: 10px;
     }
     .title-block h1 { margin: 0; }
     .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
-
-    .status-chip {
-      display: inline-flex; align-items: center; gap: 10px;
-      padding: 8px 14px; border-radius: 999px;
-      background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-      color: var(--sc-fg-0); cursor: pointer;
-      font-family: inherit; font-size: 0.82rem;
-      transition: border-color .18s, background .18s, box-shadow .18s;
-    }
-    .status-chip:hover { border-color: var(--sc-accent); }
-    .status-chip .meta { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
-    .status-chip .meta .t { font-size: 0.66rem; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.08em; }
-    .status-chip .meta strong { font-size: 0.88rem; font-family: var(--sc-font-display); letter-spacing: 0.04em; }
-    .status-chip .chev { color: var(--sc-fg-2); font-size: 0.75rem; }
-    .status-chip.status-operational { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-success) 40%, transparent); }
-    .status-chip.status-degraded, .status-chip.status-partial_outage,
-    .status-chip.status-maintenance { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-warning) 40%, transparent); }
-    .status-chip.status-major_outage { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-danger) 40%, transparent); }
-
-    .dot {
-      width: 10px; height: 10px; border-radius: 50%;
-      background: var(--sc-fg-2); flex: 0 0 auto;
-    }
-    .dot.status-operational { background: var(--sc-success); box-shadow: 0 0 8px var(--sc-success); }
-    .dot.status-degraded, .dot.status-partial_outage { background: var(--sc-warning); }
-    .dot.status-major_outage { background: var(--sc-danger); box-shadow: 0 0 8px var(--sc-danger); }
-    .dot.status-maintenance { background: var(--sc-accent); }
-    .dot.status-unknown { background: var(--sc-fg-2); }
-
-    .status-panel {
-      padding: 14px 18px;
-      animation: slide-down .2s ease;
-    }
-    @keyframes slide-down {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: none; }
-    }
-    .status-panel h3 { font-size: 0.85rem; margin: 0 0 8px; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.08em; }
-    .svc-list { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-    .svc-list li { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; padding: 4px 6px; border-radius: 4px; background: var(--sc-bg-1); }
-    .svc-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .svc-status { font-size: 0.72rem; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
-    .ext-link { font-size: 0.82rem; }
-    .muted { color: var(--sc-fg-2); font-size: 0.85rem; margin: 0; }
 
     /* ---------- New posts pill ---------- */
     .new-pill {
@@ -877,10 +815,8 @@ export class NewsListComponent implements OnInit, OnDestroy {
   private readonly viewContainer = inject(ViewContainerRef);
 
   readonly channels = CHANNELS;
-  readonly rsiStatusUrl = RSI_STATUS_URL;
   // Retention window shown next to the video rail head (e7082310).
   readonly videoRetentionDays = VIDEO_RETENTION_DAYS;
-  readonly statusOpen = signal(false);
   readonly olderOpen = signal(false);
   readonly hasFilter = computed(() => this.svc.activeChannels().size > 0);
 
@@ -965,18 +901,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
     this.detailRef = null;
   }
 
-  toggleStatus() { this.statusOpen.update((v) => !v); }
   toggleOlder() { this.olderOpen.update((v) => !v); }
-
-  /**
-   * Playability-aware headline for the status chip: escalates the RSI overall
-   * to at least the Persistent Universe component's level so a scheduled PU
-   * maintenance no longer reads as "Playable" (feedback 740d31cb). See
-   * `effectivePlayability`.
-   */
-  effectiveStatus(st: VerseStatus): StatusLevel {
-    return effectivePlayability(st);
-  }
 
   // Channel + favorites filtering are mutually exclusive views: picking a
   // channel (or "Alle") leaves the saved-only view; the ★ chip enters it.
