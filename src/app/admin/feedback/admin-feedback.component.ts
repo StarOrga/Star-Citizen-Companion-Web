@@ -21,6 +21,7 @@ import { ComposerPayload, FeedbackComposerComponent, PendingImage } from './feed
 import { CelebrationService } from './celebration.service';
 import { FeedbackDashboardComponent } from './feedback-dashboard.component';
 import { FeedbackWorkflowComponent } from './feedback-workflow.component';
+import { RoutineStatusComponent } from './routine-status.component';
 import {
   FeedbackBucket,
   FeedbackMessage,
@@ -128,6 +129,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     FeedbackComposerComponent,
     FeedbackWorkflowComponent,
     FeedbackDashboardComponent,
+    RoutineStatusComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Smooth height/opacity collapse+expand for a topic's detail region, so the
@@ -156,6 +158,8 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
           </div>
         </header>
       }
+
+      <sc-routine-status />
 
       @if (errorMsg()) {
         <div class="err"><strong>{{ 'adminFeedback.errorTitle' | translate }}:</strong> {{ errorMsg() }}</div>
