@@ -173,6 +173,13 @@ function findDevInterpreter(): string {
 export interface ExtractHandle {
   promise: Promise<ExtractFinal>;
   cancel: () => void;
+  /**
+   * OS pid of the sidecar, or null when it never spawned. Exposed so the live
+   * performance switch can re-prioritise this exact process mid-run (see
+   * `main/throttle.ts`) — the sidecar owns the CPU/disk load, so a mode change
+   * that does not reach it changes nothing the operator can feel.
+   */
+  pid: number | null;
 }
 
 export function startExtraction(
@@ -188,7 +195,7 @@ export function startExtraction(
   const missing = packagedPythonMissing(source, app.isPackaged);
   if (missing) {
     log.error('[python-bridge]', missing);
-    return { promise: Promise.resolve({ ok: false, error: missing }), cancel: () => {} };
+    return { promise: Promise.resolve({ ok: false, error: missing }), cancel: () => {}, pid: null };
   }
 
   const args = [
@@ -225,6 +232,7 @@ export function startExtraction(
     return {
       promise: Promise.resolve({ ok: false, error: `spawn failed: ${message}` }),
       cancel: () => {},
+      pid: null,
     };
   }
 
@@ -312,6 +320,7 @@ export function startExtraction(
 
   return {
     promise,
+    pid: child.pid ?? null,
     cancel: () => {
       cancelled = true;
       killProcessTree(child);

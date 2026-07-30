@@ -71,6 +71,8 @@ export interface SkinExportFinal {
 export interface SkinExportHandle {
   promise: Promise<SkinExportFinal>;
   cancel: () => void;
+  /** Sidecar pid, so the live performance switch can re-prioritise it mid-run. */
+  pid: number | null;
 }
 
 /** Where the downloaded cgf-converter binary lives (per-user, not bundled). */
@@ -138,7 +140,7 @@ export function startSkinExport(
   const missing = packagedPythonMissing(source, app.isPackaged);
   if (missing) {
     log.error('[skin-bridge]', missing);
-    return { promise: Promise.resolve({ ok: false, error: missing }), cancel: () => {} };
+    return { promise: Promise.resolve({ ok: false, error: missing }), cancel: () => {}, pid: null };
   }
 
   const args = [
@@ -171,6 +173,7 @@ export function startSkinExport(
     return {
       promise: Promise.resolve({ ok: false, error: `spawn failed: ${(err as Error).message}` }),
       cancel: () => {},
+      pid: null,
     };
   }
 
@@ -229,6 +232,7 @@ export function startSkinExport(
 
   return {
     promise,
+    pid: child.pid ?? null,
     cancel: () => {
       cancelled = true;
       killProcessTree(child);

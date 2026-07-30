@@ -16,7 +16,16 @@
   "configure": {
     "title": "Choisir un profil",
     "subtitle": "Modifiable à la volée pendant l'extraction.",
-    "start": "Démarrer l'extraction"
+    "start": "Démarrer l'extraction",
+    "speed": {
+      "title": "Vitesse",
+      "hint": "Modifiable à tout moment, même en cours d'exécution.",
+      "applied": "Mode modifié — effectif dès le fichier suivant.",
+      "appliedPartly": "Mode modifié, mais non transmis au processus en cours (voir le journal).",
+      "armed": "Mode enregistré — il s'appliquera au prochain démarrage.",
+      "unsupported": "Cette plateforme ne permet pas de changer la priorité à chaud.",
+      "scopePinned": "La portée de l'extraction reste figée pour le travail en cours ; seuls le rythme et la priorité changent."
+    }
   },
   "run": {
     "title": "Extraction en cours",

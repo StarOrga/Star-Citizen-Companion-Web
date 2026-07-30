@@ -54,6 +54,12 @@ export type SkinToken = string | (() => string | Promise<string>);
 export interface SkinUploadHooks {
   /** Cooperative pause/cancel, checked between ships. */
   control?: PauseControl;
+  /**
+   * Awaited at the same boundaries as the pause checkpoint. Re-reads the LIVE
+   * performance profile per call, so a mid-run switch is picked up by the next
+   * ship / asset rather than only by the next run.
+   */
+  pace?: () => Promise<void>;
   /** Ship ids a prior run already committed — skipped without touching disk. */
   doneShips?: string[];
   /** Fired when a ship is fully committed, so a kill can't lose the progress. */
@@ -118,6 +124,7 @@ export async function uploadSkins(
     try {
       // Safe boundary between ships — a pause here costs nothing to replay.
       hooks.control?.checkpoint();
+      await hooks.pace?.();
       // Job-state cache: a ship this job already committed. Complements the
       // on-disk marker below, which also survives a *new* job over the same dir.
       if (done.has(shipId)) {
@@ -162,6 +169,7 @@ export async function uploadSkins(
         // the whole ship (the marker is only written after `commit`), which is
         // safe: every PUT is an upsert.
         hooks.control?.checkpoint();
+        await hooks.pace?.();
         await putSigned(byPath.get(`${cat.ship}/${s.id}.glb`), resolve(dir, s.model!), 'model/gltf-binary');
         n++;
         if (s.icon) {

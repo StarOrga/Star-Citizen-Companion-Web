@@ -50,6 +50,8 @@ src/
 ├── lib/          # Domain-Logic (im Main-Prozess geladen)
 │   ├── discovery.ts       # 3-Stufen-Cascade
 │   ├── performance.ts     # Profil-Definitionen + ETA
+│   ├── throttle-control.ts # Live-Profil (mid-run umschaltbar) + Pacing
+│   ├── process-throttle.ts # OS-Kommando für Priorität/Affinität
 │   ├── extractor.ts       # P4K-Pipeline (Phase 2)
 │   ├── validator.ts       # Quality-Score (Phase 2)
 │   ├── oauth.ts           # Loopback-OAuth-Flow
@@ -61,6 +63,34 @@ src/
     ├── en.json
     └── {fr,es,pt,ru,zh}.json   # Stubs (English-Fallback)
 ```
+
+## Performance-Profil (live umschaltbar)
+
+Das Profil (`minimal` / `standard` / `maximum` / `auto`) ist **kein**
+Start-Snapshot: es lässt sich mitten im laufenden Job wechseln — runter, wenn
+gezockt wird, hoch, wenn der PC ohnehin ungenutzt ist. Der Job wird dafür
+weder abgebrochen noch neu gestartet.
+
+- **Quelle der Wahrheit** ist der Main-Prozess (`main/throttle.ts`), nicht der
+  Renderer: nur er kennt die PIDs der laufenden Sidecars, und er überlebt einen
+  Renderer-Reload. Der Renderer hält nur einen Spiegel und schreibt über
+  `sc:perf:set`.
+- **Python-Sidecar** (der eigentliche CPU-/Disk-Fresser) ist nicht unsere
+  Schleife und kann nichts nachlesen. Stattdessen setzt jeder Wechsel
+  Prioritätsklasse + CPU-Affinität des laufenden Prozesses neu
+  (`lib/process-throttle.ts`; Windows via PowerShell, POSIX via `renice`). Das
+  greift sofort und kann per Konstruktion keine halb geschriebene Datei
+  beschädigen, weil es die Job-Logik nicht anfasst.
+- **Upload-Stufen** (Catalog-Chunks, Skin-PUTs) sind unsere Schleife: sie rufen
+  an denselben sicheren Grenzen wie `PauseControl.checkpoint()` zusätzlich
+  `throttle.pace()` auf. Das liest das Profil **pro Work-Unit** neu — ein
+  Wechsel wirkt ab der nächsten Unit, nie mitten in einem Request.
+- **Nicht live** ist der Extraktions-*Scope* (HD-Icons, Render-PNGs,
+  Component-Tree): der entscheidet, *welche* Dateien der Sidecar abarbeitet, und
+  seine Planung läuft schon. Scope bleibt für den Lauf fest; die UI sagt das.
+
+Das Umschalt-UI hängt auf Configure (groß, mit ETA) sowie auf der Run- und der
+Upload-View (kompakt) — überall derselbe Schreibpfad.
 
 ## Security-Modell (Iter 2 · § B2)
 
