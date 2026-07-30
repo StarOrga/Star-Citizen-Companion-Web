@@ -757,23 +757,23 @@ interface GearRecipe {
     }
     .hero-art .hero-icon { width: 100%; height: 100%; min-height: 200px; }
     .hero-body { padding: 22px 24px 22px 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-    .kind-tag { align-self: flex-start; font-size: 0.64rem; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.1em;
+    .kind-tag { align-self: flex-start; font-size: max(0.64rem, var(--sc-fs-floor)); padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.1em;
       background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, transparent); color: var(--sc-accent); }
     .hero-body h1 { margin: 2px 0 0; font-size: 1.7rem; line-height: 1.15; overflow-wrap: anywhere; }
     .hero-body .mfr { margin: 0; color: var(--sc-fg-1); font-size: 0.96rem; overflow-wrap: anywhere; }
-    .hero-body .cls { font-size: 0.74rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
+    .hero-body .cls { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
 
     .facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
     .fact { display: flex; flex-direction: column; gap: 1px; padding: 6px 12px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
     .fact.accent { border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); }
-    .f-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+    .f-label { font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .f-value { font-size: 0.9rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
     .fact.accent .f-value { color: var(--sc-accent); }
 
     .loadout-summary { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
     .ls-item { display: inline-flex; align-items: baseline; gap: 5px; padding: 5px 11px; border-radius: 999px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
     .ls-count { font-family: var(--sc-font-display); font-size: 0.95rem; color: var(--sc-fg-0); }
-    .ls-cat { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
+    .ls-cat { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
     .ls-item[data-cat="weapons"] { border-color: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 45%, transparent); }
     .ls-item[data-cat="weapons"] .ls-count { color: var(--sc-accent-hot, #ff7a45); }
     .ls-item[data-cat="missiles"] { border-color: color-mix(in srgb, #ff5252 45%, transparent); }
@@ -781,30 +781,30 @@ interface GearRecipe {
 
     .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: auto; padding-top: 12px; flex-wrap: wrap; }
     .pin { padding: 8px 16px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
-      font-family: var(--sc-font-display); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+      font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
     .pin:hover, .pin.pinned { color: var(--sc-accent); border-color: var(--sc-accent); }
     .add-hangar { color: var(--sc-accent); }
     a.rsi-link { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
 
     .ship-link-form { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
-    .sl-hint { margin: 0 0 8px; font-size: 0.76rem; color: var(--sc-fg-2); }
+    .sl-hint { margin: 0 0 8px; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .sl-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .sl-input { flex: 1 1 320px; min-width: 0; padding: 8px 12px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.82rem; }
     .sl-input:focus { outline: none; border-color: var(--sc-accent); }
     .sl-input[aria-invalid='true'] { border-color: var(--sc-danger); }
-    .sl-error { margin: 8px 0 0; font-size: 0.76rem; color: var(--sc-danger); }
-    .sl-ok { margin: 8px 0 0; font-size: 0.76rem; color: var(--sc-accent); }
+    .sl-error { margin: 8px 0 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-danger); }
+    .sl-ok { margin: 8px 0 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-accent); }
     .sl-admin { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--sc-border); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .sl-admin-tag { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
-    .sl-admin-hint { font-size: 0.72rem; color: var(--sc-fg-2); flex: 1 1 220px; }
-    .in-hangar { font-size: 0.74rem; color: var(--sc-fg-2); font-style: italic; }
-    .prov { font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
+    .sl-admin-tag { font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .sl-admin-hint { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); flex: 1 1 220px; }
+    .in-hangar { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
+    .prov { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
 
     /* Generic block */
     .block { padding: 16px 18px; }
     .block h2 { margin: 0 0 12px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-accent);
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .block h2 .ct { font-size: 0.7rem; color: var(--sc-fg-2); }
+    .block h2 .ct { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .desc { margin: 0; color: var(--sc-fg-1); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 
     /* Damage · Defence · Power Management — the three headline panels */
@@ -814,23 +814,23 @@ interface GearRecipe {
     .sum-panel[data-panel="damage"] { border-top-color: var(--sc-accent-hot, #ff7a45); }
     .sum-panel[data-panel="defence"] { border-top-color: var(--sc-accent); }
     .sum-panel[data-panel="power"] { border-top-color: #ffc14d; }
-    .sum-panel h3 { margin: 0 0 8px; font-size: 0.68rem; text-transform: uppercase;
+    .sum-panel h3 { margin: 0 0 8px; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: uppercase;
       letter-spacing: 0.07em; color: var(--sc-fg-1); }
     .sum-rows { margin: 0; display: flex; flex-direction: column; gap: 3px; }
     .sum-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-    .sum-row dt { font-size: 0.68rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .sum-row dt { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
     .sum-row dd { margin: 0; font-size: 0.88rem; color: var(--sc-fg-0);
       font-family: var(--sc-font-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .sum-row .derived { color: var(--sc-fg-2); cursor: help; }
-    .sum-empty { margin: 0; font-size: 0.72rem; color: var(--sc-fg-2); font-style: italic; }
-    .sum-gap { margin: 8px 0 0; font-size: 0.64rem; color: var(--sc-fg-2); line-height: 1.4; }
+    .sum-empty { margin: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
+    .sum-gap { margin: 8px 0 0; font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.4; }
 
     /* Hull, size and flight — a row per property, "—" when unknown */
     .hull-grid { margin: 0; display: grid; gap: 8px;
       grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
     .hull-fact { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
       border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
-    .hull-fact dt { font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.05em;
+    .hull-fact dt { font-size: max(0.63rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.05em;
       color: var(--sc-fg-2); }
     .hull-fact dd { margin: 0; font-size: 0.95rem; color: var(--sc-fg-0);
       font-family: var(--sc-font-display); }
@@ -838,7 +838,7 @@ interface GearRecipe {
     .hull-fact.unknown dd { color: var(--sc-fg-2); }
 
     /* Stat grid (components / weapons), grouped by purpose */
-    .sg-head { margin: 14px 0 8px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em;
+    .sg-head { margin: 14px 0 8px; font-size: max(0.7rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.07em;
       color: var(--sc-fg-1); display: flex; align-items: center; gap: 8px; }
     .sg-head::after { content: ''; flex: 1; height: 1px; background: var(--sc-border); }
     .sg-head:first-of-type { margin-top: 0; }
@@ -847,13 +847,13 @@ interface GearRecipe {
     .stat-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
     .stat-grid + .sg-head { margin-top: 14px; }
     .stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
-    .s-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
+    .s-label { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
     .s-value { font-size: 1.05rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
-    .s-unit { font-size: 0.7rem; color: var(--sc-fg-2); font-family: system-ui, sans-serif; }
+    .s-unit { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: system-ui, sans-serif; }
 
     /* Where to buy */
     .buy-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-    .buy-table th { text-align: left; padding: 6px 10px; font-size: 0.66rem; text-transform: uppercase;
+    .buy-table th { text-align: left; padding: 6px 10px; font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase;
       letter-spacing: 0.06em; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); }
     .buy-table td { padding: 7px 10px; border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
     .buy-price { color: var(--sc-accent); font-family: var(--sc-font-display); white-space: nowrap; }
@@ -862,7 +862,7 @@ interface GearRecipe {
     /* Damage bars */
     .dmg-list { display: flex; flex-direction: column; gap: 8px; }
     .dmg { display: grid; grid-template-columns: 96px 1fr 64px; align-items: center; gap: 10px; }
-    .dmg-label { font-size: 0.76rem; color: var(--sc-fg-1); }
+    .dmg-label { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
     .dmg-bar { height: 8px; border-radius: 999px; background: var(--sc-bg-2); overflow: hidden; }
     .dmg-fill { display: block; height: 100%; border-radius: 999px; background: var(--sc-accent); }
     .dmg[data-ch="energy"] .dmg-fill { background: var(--sc-accent); }
@@ -876,9 +876,9 @@ interface GearRecipe {
     /* Hardpoint / loadout groups */
     .hp-group { margin-top: 12px; }
     .hp-group:first-of-type { margin-top: 0; }
-    .hp-cat { margin: 0 0 6px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-1);
+    .hp-cat { margin: 0 0 6px; font-size: max(0.7rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-1);
       display: flex; align-items: center; gap: 6px; }
-    .hp-cat .hp-ct { font-size: 0.64rem; padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
+    .hp-cat .hp-ct { font-size: max(0.64rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
     .hp-list, .ld-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 
     .hp { border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); overflow: hidden; }
@@ -897,18 +897,18 @@ interface GearRecipe {
     .hp.open .hp-caret { color: var(--sc-accent); }
     .hp-name { font-size: 0.82rem; color: var(--sc-fg-0); flex: 1 1 auto; overflow-wrap: anywhere; }
     .hp-meta { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; justify-content: flex-end; flex: 0 1 auto; }
-    .hp-size { font-size: 0.7rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
+    .hp-size { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
     .compat { padding: 4px 12px 12px 34px; background: var(--sc-bg-0); }
 
-    .chip { font-size: 0.62rem; padding: 1px 6px; border-radius: 999px; background: var(--sc-bg-2); color: var(--sc-fg-2); border: 1px solid var(--sc-border); white-space: nowrap; }
+    .chip { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 1px 6px; border-radius: 999px; background: var(--sc-bg-2); color: var(--sc-fg-2); border: 1px solid var(--sc-border); white-space: nowrap; }
     .muted { color: var(--sc-fg-2); margin: 0; font-size: 0.82rem; }
-    .hint { color: var(--sc-fg-2); margin: 0 0 12px; font-size: 0.74rem; }
+    .hint { color: var(--sc-fg-2); margin: 0 0 12px; font-size: max(0.74rem, var(--sc-fs-floor)); }
     /* Data-gap disclosure: visible enough to be read, quiet enough not to
        look like an app error — the data is missing, nothing is broken. */
     .hint.warn { border-left: 2px solid color-mix(in srgb, var(--sc-warn, #e8a33d) 60%, transparent);
       padding-left: 8px; }
     .err-inline { color: var(--sc-danger); font-size: 0.8rem; }
-    .compat-head { color: var(--sc-fg-2); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin: 4px 0 8px; }
+    .compat-head { color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; margin: 4px 0 8px; }
     .compat-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
     .compat-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 4px; background: var(--sc-bg-1); }
     .compat-link { color: var(--sc-accent); text-decoration: none; font-size: 0.8rem; overflow-wrap: anywhere; }
@@ -921,20 +921,20 @@ interface GearRecipe {
     .compat-meta { display: inline-flex; gap: 4px; flex-shrink: 0; }
 
     .ghost-toggle { margin-left: auto; padding: 3px 10px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border);
-      color: var(--sc-fg-2); font-family: inherit; font-size: 0.68rem; text-transform: none; letter-spacing: 0; cursor: pointer; }
+      color: var(--sc-fg-2); font-family: inherit; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; cursor: pointer; }
     .ghost-toggle:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
     .raw-block { padding-top: 14px; }
     .spec-toggles { display: flex; gap: 8px; flex-wrap: wrap; }
-    .raw-toggle { padding: 7px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: inherit; font-size: 0.76rem; cursor: pointer; }
+    .raw-toggle { padding: 7px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: inherit; font-size: max(0.76rem, var(--sc-fs-floor)); cursor: pointer; }
     .raw-toggle:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
     .spec { margin-top: 12px; }
     .spec-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 4px; }
     .spec-table td { padding: 5px 10px; border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
     .sp-key { color: var(--sc-fg-2); width: 45%; overflow-wrap: anywhere; }
     .sp-val { color: var(--sc-fg-0); font-family: var(--sc-font-display); overflow-wrap: anywhere; }
-    .spec-prov { margin: 10px 0 0; font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
-    .raw { margin: 12px 0 0; padding: 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-size: 0.74rem; overflow: auto; max-height: 460px; }
+    .spec-prov { margin: 10px 0 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
+    .raw { margin: 12px 0 0; padding: 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); overflow: auto; max-height: 460px; }
 
     .skel-card { height: 260px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
     @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }

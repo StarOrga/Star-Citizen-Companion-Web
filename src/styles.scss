@@ -39,6 +39,114 @@
   --text-tertiary: #84a0b6;
 }
 
+/* ============================================================
+   TOUCH BASELINE — phones and tablets
+   The design language is deliberately dense: a 15px root with a
+   micro-label scale that bottoms out around 0.58rem (8.7px). That
+   reads fine under a mouse at desk distance and is unusable at
+   arm's length on a phone, where WCAG 2.5.8 / Apple HIG also ask
+   for a 44x44px hit area.
+   `pointer: coarse` is the honest discriminator — it matches every
+   touch device (and the mobile gate's emulation) and never a mouse,
+   so the desktop composition is untouched.
+   ============================================================ */
+
+:root {
+  /* Readability floor, consumed as `font-size: max(<design size>, var(--sc-fs-floor))`.
+     0 on a fine pointer = the design size wins and desktop renders unchanged. */
+  --sc-fs-floor: 0px;
+  /* Minimum hit area. 0 on a fine pointer, so mouse-precision layouts keep
+     their compact controls. */
+  --sc-tap-min: 0px;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --sc-fs-floor: 12px;
+    /* 48px, Material's touch-target minimum, rather than the bare 44px HIG
+       floor. The app animates both the route change and each card reveal from
+       `scale(0.994)`; while those overlap the effective scale is ~0.988, and a
+       control sized at exactly 44px measures 43.5px mid-flight — below its own
+       minimum. The extra 4px keeps the affordance true at every frame. */
+    --sc-tap-min: 48px;
+  }
+
+  /* Interactive primitives grow to the full 44px hit area. `min-height` and
+     `min-width` are used (never `height`) so a control that is already large
+     enough keeps its own box. Note that neither applies to non-replaced inline
+     elements — which is exactly right: a link inside running prose stays part
+     of the text flow, and the gate exempts it for the same reason. */
+  button,
+  select,
+  textarea,
+  summary,
+  a,
+  [role='button'],
+  [role='link'],
+  [role='tab'],
+  [role='switch'],
+  [role='menuitem'] {
+    min-height: var(--sc-tap-min);
+    min-width: var(--sc-tap-min);
+  }
+
+  /* Text inputs need the height but must keep their layout width. */
+  input:not([type='hidden']):not([type='checkbox']):not([type='radio']) {
+    min-height: var(--sc-tap-min);
+  }
+
+  /* Native checkboxes/radios cannot carry a hit area larger than their own box,
+     so the element becomes the invisible 48px target and the visible 22px
+     control is drawn in ::before, with its mark in ::after. Both pseudo-elements
+     share one grid cell so the mark sits centred on the control.
+     (Painting the control via the element's own background would tie its shape
+     to the 48px border box — a radio would then render square, because
+     `border-radius` clips at the border box while `background-clip: content-box`
+     paints the inner 22px.) */
+  input[type='checkbox'],
+  input[type='radio'] {
+    appearance: none;
+    -webkit-appearance: none;
+    inline-size: var(--sc-tap-min);
+    block-size: var(--sc-tap-min);
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    display: grid;
+    place-content: center;
+  }
+  input[type='checkbox']::before,
+  input[type='radio']::before,
+  input[type='checkbox']::after,
+  input[type='radio']::after {
+    content: '';
+    grid-area: 1 / 1;
+    place-self: center;
+  }
+  input[type='checkbox']::before,
+  input[type='radio']::before {
+    inline-size: 22px;
+    block-size: 22px;
+    border-radius: 4px;
+    background: var(--sc-bg-1);
+    box-shadow: inset 0 0 0 1px var(--sc-border);
+  }
+  input[type='radio']::before { border-radius: 50%; }
+  input[type='checkbox']::after,
+  input[type='radio']::after {
+    inline-size: 12px;
+    block-size: 12px;
+    transform: scale(0);
+    transition: transform 0.12s ease;
+    background: var(--sc-accent);
+    clip-path: polygon(14% 44%, 0 60%, 40% 100%, 100% 18%, 84% 0, 38% 68%);
+  }
+  input[type='radio']::after { clip-path: none; border-radius: 50%; }
+  input[type='checkbox']:checked::after,
+  input[type='radio']:checked::after { transform: scale(1); }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -207,7 +315,7 @@ input[type='radio'] {
   align-items: center;
   padding: 2px 10px;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: max(0.7rem, var(--sc-fs-floor));
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;

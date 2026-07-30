@@ -70,10 +70,15 @@ import { TranslateModule } from '@ngx-translate/core';
     a:hover { color: var(--sc-fg-0); }
     .link-list { margin: 0; padding-left: 20px; }
     .link-list li { margin: 4px 0; }
+    /* A list entry that is nothing but a link is a control, not prose — on touch
+       it gets the full hit area instead of the ~19px inline text box. */
+    @media (pointer: coarse) {
+      .link-list li > a { display: flex; align-items: center; min-height: var(--sc-tap-min); }
+    }
     .trademark { border-color: var(--sc-accent); }
     .trademark .disclaimer {
       color: var(--sc-fg-2);
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       border-top: 1px solid var(--sc-border);
       padding-top: 10px;
       margin-top: 12px;

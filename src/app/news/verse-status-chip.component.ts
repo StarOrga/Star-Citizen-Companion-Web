@@ -86,7 +86,7 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
       background: var(--sc-bg-1); border: 1px solid var(--sc-border);
       color: var(--sc-fg-0); cursor: pointer;
       font-family: var(--sc-font-display);
-      font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase;
+      font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase;
       white-space: nowrap;
       transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
     }
@@ -117,7 +117,7 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), var(--sc-glow);
     }
     .vs-panel h3 {
-      margin: 0; font-size: 0.72rem; color: var(--sc-fg-2);
+      margin: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
       text-transform: uppercase; letter-spacing: 0.08em;
     }
     .svc-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 5px; }
@@ -126,9 +126,9 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
       padding: 4px 6px; border-radius: 4px; background: var(--sc-bg-1);
     }
     .svc-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .svc-status { font-size: 0.7rem; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
+    .svc-status { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
     .muted { color: var(--sc-fg-2); font-size: 0.82rem; margin: 0; }
-    .ext-link { font-size: 0.78rem; color: var(--sc-accent); }
+    .ext-link { font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-accent); }
 
     /* Phones: the label eats the row the nav needs, so only the dot survives. */
     @media (max-width: 720px) {

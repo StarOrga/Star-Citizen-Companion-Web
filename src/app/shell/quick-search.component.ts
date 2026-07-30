@@ -157,12 +157,12 @@ const PER_KIND_LIMIT = 6;
       display: inline-flex; align-items: center; gap: 8px;
       padding: 6px 12px; border-radius: 6px;
       background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-      color: var(--sc-fg-2); cursor: pointer; font-family: inherit; font-size: 0.78rem;
+      color: var(--sc-fg-2); cursor: pointer; font-family: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
     }
     .trigger:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .trigger-icon { font-size: 0.95rem; }
     .trigger kbd {
-      font-size: 0.62rem; padding: 1px 5px; border-radius: 4px;
+      font-size: max(0.62rem, var(--sc-fs-floor)); padding: 1px 5px; border-radius: 4px;
       background: var(--sc-bg-2); border: 1px solid var(--sc-border); color: var(--sc-fg-2);
       font-family: var(--sc-font-mono, monospace);
     }
@@ -189,15 +189,15 @@ const PER_KIND_LIMIT = 6;
       display: inline-flex; align-items: center; gap: 6px;
       padding: 5px 12px; border-radius: 999px;
       border: 1px solid var(--sc-border); background: transparent;
-      color: var(--sc-fg-1); font-family: inherit; font-size: 0.74rem; cursor: pointer;
+      color: var(--sc-fg-1); font-family: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer;
       transition: border-color .16s, background .16s, color .16s;
     }
     .qs-cat:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .qs-cat.active { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); border-color: var(--sc-accent); color: var(--sc-fg-0); font-weight: 600; }
-    .qs-cat-ct { font-size: 0.64rem; padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
+    .qs-cat-ct { font-size: max(0.64rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
     .qs-cat.active .qs-cat-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-bg-0); }
     .state.cat-empty { color: var(--sc-warning); font-style: italic; }
-    .qs-divider { list-style: none; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); padding: 6px 4px 2px; border-top: 1px dashed color-mix(in srgb, var(--sc-border) 70%, transparent); margin-top: 2px; }
+    .qs-divider { list-style: none; font-size: max(0.62rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); padding: 6px 4px 2px; border-top: 1px dashed color-mix(in srgb, var(--sc-border) 70%, transparent); margin-top: 2px; }
     .state { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; padding: 2px 4px; }
     .qs-results { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
     .qs-row {
@@ -211,25 +211,25 @@ const PER_KIND_LIMIT = 6;
     .qs-row:hover,
     .qs-row.active { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
     .qs-kind {
-      flex: 0 0 auto; width: 92px; font-size: 0.62rem; text-transform: uppercase;
+      flex: 0 0 auto; width: 92px; font-size: max(0.62rem, var(--sc-fs-floor)); text-transform: uppercase;
       letter-spacing: 0.07em; color: var(--sc-fg-2);
     }
     .qs-name { flex: 1; font-size: 0.9rem; min-width: 120px; }
     .qs-chips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
-    .badge { font-size: 0.62rem; padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
+    .badge { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
     .add-btn {
       position: relative; z-index: 1;
       flex: 0 0 auto; padding: 4px 10px; border-radius: 6px;
       background: transparent; border: 1px solid var(--sc-accent); color: var(--sc-accent);
-      font-family: var(--sc-font-display); font-size: 0.62rem; letter-spacing: 0.05em;
+      font-family: var(--sc-font-display); font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.05em;
       text-transform: uppercase; cursor: pointer;
     }
     .add-btn:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
-    .in-hangar { font-size: 0.66rem; color: var(--sc-fg-2); font-style: italic; }
+    .in-hangar { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .qs-nav-hint {
       margin: 0; padding: 6px 4px 0; border-top: 1px solid var(--sc-border);
-      color: var(--sc-fg-2); font-size: 0.7rem; text-align: center; letter-spacing: 0.03em;
+      color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor)); text-align: center; letter-spacing: 0.03em;
     }
 
     @media (max-width: 720px) {

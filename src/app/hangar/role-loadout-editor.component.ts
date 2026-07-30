@@ -124,14 +124,14 @@ import {
     .icon-btn { border: none; background: transparent; color: var(--sc-fg-2); cursor: pointer; font-size: 1rem; }
     .icon-btn:hover { color: var(--sc-accent); }
     .badges { display: flex; gap: 6px; margin-top: 8px; }
-    .badge { font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
+    .badge { font-size: max(0.68rem, var(--sc-fs-floor)); padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     .badge.role { text-transform: uppercase; letter-spacing: 0.05em; }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
 
     .sc-card h2 { margin: 0 0 12px; font-size: 1rem; }
     .slot-list { display: flex; flex-direction: column; gap: 6px; }
     .slot { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
-    .slot-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+    .slot-label { font-size: max(0.72rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .slot-assign { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .assign-name { flex: 1; font-size: 0.86rem; min-width: 140px; }
     .assign-name.empty { color: var(--sc-fg-2); font-style: italic; }
@@ -141,11 +141,11 @@ import {
     .slot-input:focus { outline: none; border-color: var(--sc-accent); }
     .save-row { display: flex; gap: 8px; margin-top: 14px; }
 
-    .sc-btn { padding: 8px 14px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
+    .sc-btn { padding: 8px 14px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
     .sc-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .sc-btn:disabled { opacity: 0.5; cursor: default; }
-    .sc-btn.small { padding: 7px 12px; font-size: 0.7rem; }
-    .sc-btn.tiny { padding: 4px 9px; font-size: 0.64rem; }
+    .sc-btn.small { padding: 7px 12px; font-size: max(0.7rem, var(--sc-fs-floor)); }
+    .sc-btn.tiny { padding: 4px 9px; font-size: max(0.64rem, var(--sc-fs-floor)); }
     .sc-btn.ghost { border-color: var(--sc-border); color: var(--sc-fg-1); }
     .sc-btn.ghost:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
     .sc-btn.danger { border-color: var(--sc-danger); color: var(--sc-danger); }

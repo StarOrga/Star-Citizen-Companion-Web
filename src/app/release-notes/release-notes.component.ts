@@ -85,7 +85,7 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
     }
     .hint { color: var(--sc-fg-2); margin: 0 0 0.6rem; }
     .sc-pill.current {
-      display: inline-block; font-size: 0.72rem; letter-spacing: 0.05em;
+      display: inline-block; font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.05em;
       padding: 3px 10px; border-radius: 999px;
       border: 1px solid var(--sc-accent); color: var(--sc-accent);
       background: rgba(0, 212, 255, 0.08); font-family: var(--sc-font-display);
@@ -95,7 +95,7 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
     .load-more {
       display: block; margin: 0.5rem auto 0; padding: 8px 18px;
       border-radius: 999px; cursor: pointer;
-      font-family: var(--sc-font-display); font-size: 0.78rem; letter-spacing: 0.05em;
+      font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.05em;
       border: 1px solid var(--sc-accent); color: var(--sc-accent);
       background: rgba(0, 212, 255, 0.06);
     }
@@ -123,7 +123,7 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
     .section { margin: 0 0 0.9rem; }
     .sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 0.35rem; flex-wrap: wrap; }
     .tag {
-      font-size: 0.62rem; letter-spacing: 0.09em; text-transform: uppercase;
+      font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.09em; text-transform: uppercase;
       font-family: var(--sc-font-display); padding: 2px 8px; border-radius: 4px;
       border: 1px solid currentColor;
     }

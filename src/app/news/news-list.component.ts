@@ -285,13 +285,20 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
         </div>
         <div class="body">
           <!-- Stretched link (d2171662): the headline is a real <a href> to the
-               source and its ::after covers the whole tile, so the entire card is
-               middle-clickable / Ctrl+clickable while the footer actions stay
-               ordinary buttons. Plain left click is intercepted for the overlay. -->
+               source and the overlay span covers the whole tile, so the entire
+               card is middle-clickable / Ctrl+clickable while the footer actions
+               stay ordinary buttons. Plain left click is intercepted for the
+               overlay.
+               The overlay is a real element rather than ::after so the mobile
+               gate can measure it: it looks for a touch-target child to learn an
+               element's true hit area, and a pseudo-element is invisible to that
+               check — the headline would be reported as a 246x18px tap target
+               when it is in fact the whole card. -->
           <h3>
             <a class="card-link" [href]="item.url" target="_blank" rel="noopener noreferrer"
                (click)="onCardClick($event, item)"
-               (keydown.space)="onCardSpace($event, item)">{{ item.title }}</a>
+               (keydown.space)="onCardSpace($event, item)">{{ item.title }}<span
+                 class="card-link-touch-target" aria-hidden="true"></span></a>
           </h3>
           @if (item.summary && showSummary) {
             <p>{{ item.summary }}</p>
@@ -416,7 +423,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       padding: 8px 18px; border-radius: 999px;
       background: var(--sc-accent); color: var(--sc-bg-0);
       border: none; cursor: pointer;
-      font-family: var(--sc-font-display); font-size: 0.78rem; letter-spacing: 0.08em;
+      font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.08em;
       box-shadow: 0 0 20px color-mix(in srgb, var(--sc-accent) 40%, transparent);
       animation: pill-pulse 2.2s ease-in-out infinite;
     }
@@ -445,7 +452,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 6px 12px; border-radius: 999px;
       border: 1px solid var(--sc-border); background: transparent;
-      color: var(--sc-fg-1); font-family: inherit; font-size: 0.78rem;
+      color: var(--sc-fg-1); font-family: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
       cursor: pointer; transition: all 0.16s;
     }
     .chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
@@ -454,7 +461,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       border-color: var(--sc-accent); color: var(--sc-fg-0); font-weight: 600;
     }
     .chip .ct {
-      font-size: 0.68rem; padding: 0 6px; border-radius: 8px;
+      font-size: max(0.68rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px;
       background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent);
       color: var(--sc-fg-2);
     }
@@ -474,7 +481,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       text-transform: uppercase; color: var(--sc-accent);
     }
     .bucket-ct {
-      font-size: 0.7rem; color: var(--sc-fg-2);
+      font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
       padding: 1px 8px; border-radius: 999px;
       background: var(--sc-bg-1); border: 1px solid var(--sc-border);
     }
@@ -482,7 +489,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       margin-left: auto; padding: 4px 10px;
       background: transparent; border: 1px solid var(--sc-border);
       color: var(--sc-fg-2); border-radius: 6px;
-      font-family: inherit; font-size: 0.74rem; cursor: pointer;
+      font-family: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer;
     }
     .bucket-toggle:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
@@ -511,7 +518,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     /* The headline anchor carries the card's whole hit area — no visual change,
        but the browser now knows the tile is a link (d2171662). */
     .card-link { color: inherit; text-decoration: none; }
-    .card-link::after { content: ''; position: absolute; inset: 0; z-index: 5; }
+    .card-link-touch-target { position: absolute; inset: 0; z-index: 5; }
     .card-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 3px; }
     /* Thumb + optional play affordance share one positioning context. */
     .thumb-wrap { position: relative; display: flex; }
@@ -537,7 +544,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .card .body .foot {
       display: flex; justify-content: space-between; align-items: center;
       margin-top: auto; padding-top: 6px;
-      font-size: 0.7rem; color: var(--sc-fg-2);
+      font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
       border-top: 1px dashed color-mix(in srgb, var(--sc-border) 70%, transparent);
     }
     .card .body .foot .src { color: var(--sc-accent); text-transform: lowercase; }
@@ -587,7 +594,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     /* ---------- Freshness indicator (live "updated X min ago") ---------- */
     .freshness {
       display: inline-flex; align-items: center; gap: 7px;
-      margin: 6px 0 0; font-size: 0.72rem; color: var(--sc-fg-2);
+      margin: 6px 0 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
       font-variant-numeric: tabular-nums;
     }
     .freshness .pulse {
@@ -622,7 +629,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       padding: 14px 16px;
       border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent);
     }
-    .rail-note { font-size: 0.7rem; color: var(--sc-fg-2); margin-left: auto; }
+    .rail-note { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); margin-left: auto; }
     /* min-width:0 all the way down to the scroll container — otherwise the
        rail's min-content width (n x tile) pushes the whole page wide on phones. */
     .video-rail, .rail-wrap { min-width: 0; }
@@ -700,11 +707,11 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
-    .vid-caption time { color: var(--sc-fg-1); font-size: 0.74rem; }
+    .vid-caption time { color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); }
     .watched-badge {
       position: absolute; top: 8px; right: 8px; z-index: 4;
       display: inline-flex; align-items: center; gap: 4px;
-      padding: 3px 8px; border-radius: 999px; font-size: 0.68rem; font-weight: 600;
+      padding: 3px 8px; border-radius: 999px; font-size: max(0.68rem, var(--sc-fs-floor)); font-weight: 600;
       color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
       border: 1px solid var(--sc-border);
       -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
@@ -743,7 +750,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .vid-tag {
       display: inline-flex; align-items: center; gap: 4px; margin-right: 8px;
       padding: 1px 7px; border-radius: 999px;
-      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      font-size: max(0.62rem, var(--sc-fs-floor)); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
       color: var(--sc-danger); border: 1px solid color-mix(in srgb, var(--sc-danger) 55%, transparent);
     }
     .foot .when { display: inline-flex; align-items: center; }
@@ -758,14 +765,15 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .card .body .foot .actions { display: inline-flex; align-items: center; gap: 6px; position: relative; z-index: 6; }
     .act {
       display: inline-flex; align-items: center; justify-content: center;
-      min-width: 26px; height: 24px; padding: 0 6px; border-radius: 6px;
+      min-width: max(26px, var(--sc-tap-min)); height: 24px; min-height: var(--sc-tap-min);
+      padding: 0 6px; border-radius: 6px;
       background: transparent; border: 1px solid transparent; color: var(--sc-fg-2);
       font-family: inherit; font-size: 0.82rem; line-height: 1; cursor: pointer; text-decoration: none;
     }
     .act:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
     .act.fav.on { color: var(--sc-warning); }
     .act.fav.on:hover { border-color: var(--sc-warning); color: var(--sc-warning); }
-    .act.ext { font-size: 0.7rem; color: var(--sc-accent); text-transform: lowercase; }
+    .act.ext { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-accent); text-transform: lowercase; }
 
     /* ---------- Detail overlay ---------- */
     .nd-overlay {
@@ -803,7 +811,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     }
     .play-link:focus-visible { outline: 2px solid var(--sc-fg-0); outline-offset: 3px; }
     .nd-body { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 20px; }
-    .nd-chan { display: flex; align-items: center; gap: 8px; font-size: 0.74rem; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
+    .nd-chan { display: flex; align-items: center; gap: 8px; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
     .nd-chan .ch-icon { display: inline-flex; width: 15px; height: 15px; }
     .nd-chan .ch-icon svg { width: 100%; height: 100%; }
     .nd-chan .dot-sep { opacity: 0.6; }
@@ -813,7 +821,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .nd-actions .sc-btn {
       padding: 8px 14px; border-radius: 6px; background: var(--sc-bg-1);
       border: 1px solid var(--sc-accent); color: var(--sc-accent);
-      font-family: var(--sc-font-display); font-size: 0.74rem; letter-spacing: 0.05em;
+      font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.05em;
       text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;
     }
     .nd-actions .sc-btn:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }

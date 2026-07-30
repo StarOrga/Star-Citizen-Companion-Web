@@ -208,7 +208,7 @@ const EAGER_TILES = 8;
 
     .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; }
     .chip {
-      padding: 4px 12px; border-radius: 999px; font-size: 0.76rem;
+      padding: 4px 12px; border-radius: 999px; font-size: max(0.76rem, var(--sc-fs-floor));
       background: var(--sc-bg-1); color: var(--sc-fg-2);
       border: 1px solid var(--sc-border); cursor: pointer;
     }
@@ -266,7 +266,7 @@ const EAGER_TILES = 8;
 
     .tile-series {
       position: absolute; left: 8px; bottom: 8px;
-      padding: 2px 8px; border-radius: 999px; font-size: 0.62rem;
+      padding: 2px 8px; border-radius: 999px; font-size: max(0.62rem, var(--sc-fs-floor));
       background: rgba(0, 0, 0, 0.6); color: var(--sc-fg-1);
       backdrop-filter: blur(4px);
     }
@@ -274,7 +274,7 @@ const EAGER_TILES = 8;
     .more { align-self: center; }
     .empty { color: var(--sc-fg-2); text-align: center; }
     .err { border-color: var(--sc-danger); color: var(--sc-danger); }
-    .attribution { color: var(--sc-fg-2); font-size: 0.72rem; margin: 0; opacity: 0.85; }
+    .attribution { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); margin: 0; opacity: 0.85; }
 
     .lightbox {
       position: fixed; inset: 0; z-index: 1200;
@@ -298,11 +298,11 @@ const EAGER_TILES = 8;
     }
     .lb-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .lb-meta strong { font-size: 0.9rem; color: var(--sc-fg-0); }
-    .lb-sub { color: var(--sc-fg-2); font-size: 0.74rem; }
+    .lb-sub { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
     .lb-actions { display: flex; align-items: center; gap: 12px; }
     .lb-actions .sc-btn { text-decoration: none; color: var(--sc-accent); border-color: var(--sc-accent); }
     .lb-actions .sc-btn:hover { background: var(--sc-accent); color: var(--sc-bg-0); }
-    .lb-link { color: var(--sc-fg-2); font-size: 0.78rem; }
+    .lb-link { color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); }
     .lb-link:hover { color: var(--sc-fg-0); }
     .lb-close {
       background: transparent; border: 0; color: var(--sc-fg-2);

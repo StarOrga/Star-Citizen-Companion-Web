@@ -217,7 +217,7 @@ type LangId = 'de' | 'en';
     .label {
       color: var(--sc-fg-2);
       font-family: var(--sc-font-display);
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
@@ -229,7 +229,7 @@ type LangId = 'de' | 'en';
       display: inline-block;
       padding: 2px 10px;
       border-radius: 999px;
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -242,12 +242,12 @@ type LangId = 'de' | 'en';
 
     .hint { color: var(--sc-fg-2); margin: 0 0 12px; font-size: 0.85rem; }
 
-    .consent-desc { color: var(--sc-fg-2); font-size: 0.78rem; margin: 4px 0 10px; line-height: 1.45; }
+    .consent-desc { color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); margin: 4px 0 10px; line-height: 1.45; }
     .consent-pill {
       display: inline-block;
       padding: 2px 10px;
       border-radius: 999px;
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -273,7 +273,7 @@ type LangId = 'de' | 'en';
     .inline-label {
       color: var(--sc-fg-2);
       font-family: var(--sc-font-display);
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }

@@ -243,10 +243,10 @@ const PRODUCT_STORAGE_KEY = 'sc-telemetry-product';
     .bar-num { text-align: right; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
     .count-badge {
       background: rgba(210,153,34,.18); color: #d29922; border-radius: 12px;
-      padding: 1px 9px; font-size: 0.78rem; font-variant-numeric: tabular-nums; margin-left: 0.4rem;
+      padding: 1px 9px; font-size: max(0.78rem, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; margin-left: 0.4rem;
     }
     .pills { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-    .role-pill { background: rgba(255,255,255,.06); border-radius: 12px; padding: 2px 10px; font-size: 0.78rem; }
+    .role-pill { background: rgba(255,255,255,.06); border-radius: 12px; padding: 2px 10px; font-size: max(0.78rem, var(--sc-fs-floor)); }
     .table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     .table th, .table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,.07); vertical-align: top; }
     .table .msg { color: var(--sc-text-dim, #8b97a8); max-width: 360px; overflow-wrap: anywhere; }
