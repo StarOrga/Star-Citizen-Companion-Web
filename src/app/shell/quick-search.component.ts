@@ -23,6 +23,7 @@ import {
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
 import { AuthService } from '../auth/auth.service';
 import { HangarService } from '../hangar/hangar.service';
+import { isPlainLeftClick } from '../core/modified-click.util';
 
 interface QuickResult {
   kind: CodexKind;
@@ -112,8 +113,14 @@ const PER_KIND_LIMIT = 6;
                     [id]="'qs-opt-' + i"
                     [class.active]="i === activeIndex()"
                     [attr.aria-selected]="i === activeIndex()"
-                    (click)="openResult(r)"
                     (mouseenter)="activeIndex.set(i)">
+                  <!-- Decorative hit-anchor (d2171662): a real href spanning the
+                       row, so middle click / Ctrl+click / "open in new tab" reach
+                       the codex entry. Hidden from AT — the listbox option itself
+                       is already the accessible target, and an interactive child
+                       would break the combobox semantics. -->
+                  <a class="qs-hit" aria-hidden="true" tabindex="-1"
+                     [href]="hrefFor(r)" (click)="onResultClick($event, r)"></a>
                   <span class="qs-kind">{{ ('codex.kindSingular.' + r.kind) | translate }}</span>
                   <span class="qs-name">{{ name(r.row) }}</span>
                   <span class="qs-chips">
@@ -194,10 +201,13 @@ const PER_KIND_LIMIT = 6;
     .state { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; padding: 2px 4px; }
     .qs-results { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
     .qs-row {
+      position: relative;
       display: flex; align-items: center; gap: 10px;
       padding: 9px 10px; border-radius: 6px; cursor: pointer;
       background: var(--sc-bg-0); border: 1px solid transparent;
     }
+    /* Invisible full-row link — carries the URL, never the look. */
+    .qs-hit { position: absolute; inset: 0; border-radius: inherit; }
     .qs-row:hover,
     .qs-row.active { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
     .qs-kind {
@@ -209,6 +219,7 @@ const PER_KIND_LIMIT = 6;
     .badge { font-size: 0.62rem; padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
     .add-btn {
+      position: relative; z-index: 1;
       flex: 0 0 auto; padding: 4px 10px; border-radius: 6px;
       background: transparent; border: 1px solid var(--sc-accent); color: var(--sc-accent);
       font-family: var(--sc-font-display); font-size: 0.62rem; letter-spacing: 0.05em;
@@ -400,6 +411,22 @@ export class QuickSearchComponent {
   openResult(r: QuickResult): void {
     this.close();
     void this.router.navigate(['/codex', r.kind, r.row.classNameSlug]);
+  }
+
+  /** The row's real URL — same target `openResult` routes to (d2171662). */
+  hrefFor(r: QuickResult): string {
+    return `/codex/${r.kind}/${r.row.classNameSlug}`;
+  }
+
+  /**
+   * Plain left click stays an in-app route change (no full reload, palette
+   * closes); a modified or middle click is left to the browser, which opens the
+   * codex entry in a new tab and leaves the palette alone.
+   */
+  onResultClick(ev: MouseEvent, r: QuickResult): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.openResult(r);
   }
 
   async addToHangar(ev: Event, row: CodexListRow): Promise<void> {
