@@ -313,7 +313,8 @@
       "whereToBuyTerminal": "Terminal",
       "whereToBuyLocation": "Standort",
       "whereToBuyAttribution": "Preise von UEX Corp — von der Community gepflegt, spiegeln evtl. nicht die Live-Server wider. Nicht mit Cloud Imperium Games verbunden.",
-      "moduleOrderHint": "Zuerst kommen die konfigurierbaren Module — Waffen samt Aufhängung, Türme, Raketen, Pods, Schilde, Generator, Quantenantrieb, Radar, Kühler, Lebenserhaltung. Alles Feste steht darunter. Ein Klick auf ein Modul öffnet seine vollständige Werte-Tabelle."
+      "moduleOrderHint": "Zuerst kommen die konfigurierbaren Module — Waffen samt Aufhängung, Türme, Raketen, Pods, Schilde, Generator, Quantenantrieb, Radar, Kühler, Lebenserhaltung. Alles Feste steht darunter. Ein Klick auf ein Modul öffnet seine vollständige Werte-Tabelle.",
+      "loadoutEmptyWeaponMount": "Waffenaufhängung – keine Standardwaffe in diesem Extract"
     },
     "swap": {
       "pickerTitle": "Modul tauschen",
@@ -338,7 +339,10 @@
       "appliesToMany": "Gilt für alle {{count}} identischen Hardpoints",
       "matched": "{{shown}} von {{total}} kompatiblen Teilen",
       "sortHint": "Spalte anklicken zum Sortieren, Strg-Klick für eine zweite Sortierung.",
-      "missingColumns": "Nicht in diesem Daten-Extract enthalten und deshalb ohne Spalte: {{fields}}."
+      "missingColumns": "Nicht in diesem Daten-Extract enthalten und deshalb ohne Spalte: {{fields}}.",
+      "installedNone": "Platz ab Werk leer",
+      "pickHere": "Auswählen",
+      "fitInferred": "Dieser Platz ist ab Werk leer. Die Liste stammt von einem baugleichen, bestückten Platz desselben Schiffs – nicht aus den Daten dieses Hardpoints selbst."
     },
     "statGroup": {
       "identity": "Identität",
@@ -453,7 +457,15 @@
       "distortion": "Distortion-Kapazität",
       "derivedHint": "Abgeleiteter Wert, aus anderen extrahierten Werten berechnet.",
       "noStats": "Für diese Waffe liegen im aktuellen Extract keine Werte vor.",
-      "armamentMissing": "{{count}} Waffenaufhängungen führen in diesem Extract keine Standardwaffe — das Spiel hinterlegt Standard-Bewaffnung in einem separaten Datensatz, den unser P4K-Extractor noch nicht auflöst."
+      "armamentMissing": "{{count}} Waffenaufhängungen führen in diesem Extract keine Standardwaffe — das Spiel hinterlegt Standard-Bewaffnung in einem separaten Datensatz, den unser P4K-Extractor noch nicht auflöst.",
+      "missileCount": "Raketen",
+      "missileSize": "Raketengröße",
+      "cmInfrared": "Infrarot-Signatur",
+      "cmElectromagnetic": "EM-Signatur",
+      "cmCrossSection": "Querschnitt",
+      "cmRadius": "Wolkenradius",
+      "cmCloudLifetime": "Wolkenstandzeit",
+      "cmLifetime": "Wirkdauer"
     },
     "shipLink": {
       "add": "Pledge-Link hinzufügen",
@@ -488,7 +500,10 @@
       "coolers": "Kühler",
       "lifeSupport": "Lebenserhaltung",
       "structure": "Zelle & feste Systeme",
-      "fixedTag": "nicht konfigurierbar"
+      "fixedTag": "nicht konfigurierbar",
+      "countermeasures": "Gegenmaßnahmen",
+      "shieldsNote": "Schild-Generatoren sind die austauschbaren Schildplätze; das Schild-Steuermodul verwaltet sie und ist kein eigener Generator. Wie viele Generatoren ein Rumpf hat, steht in diesem Block – ab Werk leere Plätze eingeschlossen.",
+      "countermeasuresNote": "Köder (Decoy) ziehen wärmesuchende Raketen ab, Störköder (Noise/Chaff) blenden radargelenkte. Wie viele du brauchst, hängt vom Signaturwert der abgefeuerten Munition ab – dieses Extract verknüpft einen Werfer nicht mit seiner Munition, deshalb stehen hier keine Signaturwerte pro Werfer."
     },
     "summary": {
       "title": "Kampfübersicht",
@@ -545,6 +560,10 @@
       "noStats": "Der aktuelle Extract enthält für dieses Teil keine Werte.",
       "openDetail": "Vollständigen Katalogeintrag öffnen",
       "openStats": "Alle Werte anzeigen"
+    },
+    "moduleRole": {
+      "shieldGenerator": "Generator",
+      "shieldController": "Steuermodul"
     }
   },
   "blueprint": {

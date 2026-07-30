@@ -255,4 +255,58 @@ describe('CodexSwapPickerComponent', () => {
     expect(el.querySelector('.sp-msg')?.textContent).toContain('codex.swap.none');
     expect(svc.ports.length).toBe(0);
   });
+
+  // ── unfitted bays (admin request 1add86a4) ────────────────────────────────
+
+  it('lists candidates for a bay that ships EMPTY, from its declared fit', async () => {
+    // The Nomad's `hardpoint_shield_generator_01`: nothing installed, so there
+    // is no attachType to read — the caller declares what the bay accepts.
+    const el = await open({
+      port: 'Hardpoint Shield Generator 01',
+      count: 1,
+      className: null,
+      kind: null,
+      name: null,
+      size: 1,
+      attachTypes: ['Shield'],
+      fitInferred: true,
+    });
+    expect(svc.ports).toEqual([{ types: ['Shield'], minSize: 1, maxSize: 1 }]);
+    expect(rowNames(el).length).toBe(COMPATIBLE.length);
+    // Nothing is installed, so no row may claim to be.
+    expect(el.querySelector('.tag.eq')).toBeNull();
+    expect(el.querySelector('.sp-sub')?.textContent).toContain('codex.swap.installedNone');
+  });
+
+  it('admits when the candidate list was inferred from a sibling bay', async () => {
+    const base: SwapTarget = {
+      port: 'Hardpoint Shield Generator 01',
+      count: 1,
+      className: null,
+      kind: null,
+      name: null,
+      size: 1,
+      attachTypes: ['Shield'],
+    };
+    const inferred = await open({ ...base, fitInferred: true });
+    expect(inferred.querySelector('.sp-hint.inferred')?.textContent).toContain(
+      'codex.swap.fitInferred',
+    );
+    await open(null);
+    const direct = await open(base);
+    expect(direct.querySelector('.sp-hint.inferred')).toBeNull();
+  });
+
+  it('stays empty for a bay nothing declares a fit for', async () => {
+    const el = await open({
+      port: 'Hardpoint Weapon Bottom',
+      count: 1,
+      className: null,
+      kind: null,
+      name: null,
+      size: null,
+    });
+    expect(el.querySelector('.sp-msg')?.textContent).toContain('codex.swap.none');
+    expect(svc.ports.length).toBe(0);
+  });
 });

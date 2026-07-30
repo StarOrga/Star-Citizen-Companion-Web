@@ -32,12 +32,14 @@ actually carries — blueprints included — is browsable.
 
 ## Ship detail — the stock loadout
 
-A ship page shows its factory loadout as hardpoint clusters (weapons, missiles,
-defense, power, propulsion, avionics …). Every occupied hardpoint reads as a
-component card:
+A ship page shows its factory loadout as hardpoint blocks, the ones you can
+configure first: weapons, remote turrets, missiles, countermeasures, pods,
+shields, power plant, quantum drive, radar, coolers, life support — then the
+fixed airframe below. Every occupied hardpoint reads as a component card:
 
 - **Size class** — `S3`, or `3× S3` when several identical hardpoints carry the
-  same item and collapse into one row.
+  same item and collapse into one row. Shield bays and countermeasure launchers
+  never collapse: each of them is a choice you make on its own.
 - **Name** — the mounted item itself, e.g. *CF-337 Panther Repeater*, as the
   headline. Click it to open that item's own Codex page.
 - **Maker · type** — e.g. `KLA · Gun`, plus the damage type for weapons
@@ -47,6 +49,23 @@ component card:
   a quantum drive shows jump range, drive speed, spool-up and cooldown. Values
   marked `*` are derived (range, for instance, is projectile speed × lifetime).
 - **Port** — which hardpoint it sits on, listed last as context.
+
+A hardpoint the ship leaves unfitted is still listed — an empty bay is part of
+the ship, not an absence of one. Where the data says what belongs in it (either
+from the hardpoint itself or from an identical, fitted bay on the same hull),
+the empty bay opens the same "what else fits here" picker as a fitted one; the
+picker says when its list was inferred from a sibling bay.
+
+### Shields, missiles and countermeasures
+
+- **Shields** list every generator bay separately, plus the ship's shield
+  **control module**, tagged as such. The control module is not a fourth shield:
+  it manages the generators. The extract carries no "physical vs. logical slot"
+  flag, so the page names what it does know — generator or controller.
+- **Missile racks** show what they *carry* (`4` missiles at `S2`) next to their
+  own size (`S4`). Which missiles are loaded is not in the data.
+- **Countermeasures** (decoy and noise/chaff launchers) are their own block
+  directly below the missiles, and are swappable like any other module.
 
 ### What the game data does not contain
 
@@ -59,9 +78,15 @@ data, so the Codex omits them rather than showing a guess or a zero:
   is no honest DPS.
 - **Cooling rate and power output** for coolers and power plants.
 - **Stock guns on most hulls.** Default weapon fits live in a separate vehicle
-  loadout record, so most ships show their gun mounts as empty with a note
-  saying how many. Turrets, missile racks and countermeasure launchers *are*
-  in the data and do show up.
+  loadout record, so most ships show their gun mounts as unfitted, labelled
+  "no stock weapon in this extract" and counted in a note on the Weapons block.
+  Turrets, missile racks and countermeasure launchers *are* in the data and do
+  show up.
+- **Which round a countermeasure launcher fires.** Decoy and noise *rounds* do
+  carry their signature values (infrared, EM, cross section, cloud radius and
+  duration), but no launcher in the build points at its round — so the Codex
+  shows no per-launcher signature numbers rather than borrowing another
+  manufacturer's.
 
 These fill in by themselves as the extractor learns to resolve those records —
 the UI already has a slot for each of them.

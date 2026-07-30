@@ -46,6 +46,7 @@ export type EquippedStatFormat =
   | 'kms' // source m/s → 196,000 km/s
   | 'scu' // 1.6 SCU
   | 'kn' // source newtons → 1,587 kN
+  | 'size' // 2 → S2 (a hardpoint/ordnance size, not a quantity)
   | 'percent'; // source 0–1 ratio → 25 %
 
 /** One curated headline stat of an equipped item. */
@@ -212,6 +213,83 @@ export function damagePerSecond(
   return a === null || rpm === null ? null : (a * rpm) / 60;
 }
 
+// ── ordnance racks ───────────────────────────────────────────────────────────
+
+/** One missile port of a rack, as the extract stores it. */
+interface RackPort {
+  types?: (string | null)[] | null;
+  minSize?: number | null;
+  maxSize?: number | null;
+}
+
+/** What a missile rack can carry, read from the rack's OWN `itemPorts`. */
+export interface MissileRackLoad {
+  /** How many missiles fit on the rack (number of Missile sub-ports). */
+  count: number;
+  /** The size those missiles have, or null when the ports disagree/are open. */
+  size: number | null;
+}
+
+/**
+ * How much ordnance a rack holds (admin request 1add86a4: "bei Raketen … da
+ * müssten schon welche drin sein"). The rack's own size ("S4") says what the
+ * HULL gives it, not what it carries — `MRCK_S04_CNOU_Quad_S02_*` is a size-4
+ * rack for four size-2 missiles, and only its four `Missile` sub-ports say so.
+ *
+ * Which missiles are LOADED is a different question and the extract does not
+ * answer it: the sub-ports resolve to no occupant, exactly like the stock guns.
+ * So this reports capacity, never a missile name.
+ */
+export function missileRackLoad(payload: unknown): MissileRackLoad | null {
+  const ports = (payload as { itemPorts?: RackPort[] } | null | undefined)?.itemPorts;
+  if (!Array.isArray(ports)) return null;
+  const missilePorts = ports.filter((p) =>
+    (p?.types ?? []).some((t) => (t ?? '').trim().toLowerCase() === 'missile'),
+  );
+  if (missilePorts.length === 0) return null;
+  const sizes = new Set(
+    missilePorts.map((p) => (p.minSize != null && p.minSize === p.maxSize ? p.minSize : null)),
+  );
+  const size = sizes.size === 1 ? [...sizes][0] : null;
+  return { count: missilePorts.length, size };
+}
+
+// ── countermeasure rounds ────────────────────────────────────────────────────
+
+/**
+ * The signature numbers a decoy / noise round puts into the sky, straight out
+ * of `raw.projectileParams.typeParams` on the countermeasure's AMMO record
+ * (`CounterMeasureFlareParams` / `CounterMeasureChaffParams` in 4.9.0):
+ * infrared, electromagnetic and cross-section pull, plus the chaff cloud's
+ * radius and standing time.
+ *
+ * These are exactly the numbers the admin asked for ("1 Decoy hat einen
+ * Hitzewert von X, damit der User sich ausrechnen kann, wie viele er braucht").
+ * They live on the ROUND, and 4.9.0 does NOT link a launcher to the round it
+ * fires — `ammoContainerRecord` is null on all 188 countermeasure launchers and
+ * no `<launcher>_AMMO` record exists — so a Nomad hardpoint resolves nothing
+ * today and this returns []. It is wired through the same `ammoPayload`
+ * plumbing every gun uses, so the row fills itself in the moment the extractor
+ * resolves that link. Nothing here is ever guessed from a sibling round.
+ */
+export function countermeasureStats(ammoPayload: unknown): EquippedStat[] {
+  const raw = (ammoPayload as { raw?: Record<string, unknown> } | null | undefined)?.raw;
+  const params = (raw?.['projectileParams'] as { typeParams?: Record<string, unknown> } | undefined)
+    ?.typeParams;
+  const out: EquippedStat[] = [];
+  if (params) {
+    const at = (key: string): number | null => toFiniteNumber(params[key] ?? null);
+    push(out, 'codex.equipped.cmInfrared', at('StartInfrared'), 'int');
+    push(out, 'codex.equipped.cmElectromagnetic', at('StartElectromagnetic'), 'int');
+    push(out, 'codex.equipped.cmCrossSection', at('StartCrossSection'), 'int');
+    const radius = (params['radiusRange'] as { maximum?: number } | undefined)?.maximum ?? null;
+    push(out, 'codex.equipped.cmRadius', toFiniteNumber(radius), 'metres');
+    push(out, 'codex.equipped.cmCloudLifetime', at('volumeLifetime'), 'seconds');
+  }
+  push(out, 'codex.equipped.cmLifetime', toFiniteNumber(raw?.['lifetime'] ?? null), 'seconds');
+  return out;
+}
+
 // ── per-type stat pickers ────────────────────────────────────────────────────
 
 const SHIELD_STRUCT = 'shield';
@@ -232,6 +310,19 @@ function pushHealth(out: EquippedStat[], stats: StatsMap): void {
 
 function weaponStats(payload: unknown, ammoPayload: unknown): EquippedStat[] {
   const out: EquippedStat[] = [];
+  const subType = (payload as { subType?: string | null } | null | undefined)?.subType ?? '';
+
+  // A countermeasure launcher has no damage of its own — everything a pilot can
+  // act on sits on the round it throws.
+  if (subType === 'CountermeasureLauncher') return countermeasureStats(ammoPayload);
+
+  // A rack leads with what it CARRIES; its own size is already the row badge.
+  const rack = missileRackLoad(payload);
+  if (rack) {
+    push(out, 'codex.equipped.missileCount', rack.count, 'int');
+    push(out, 'codex.equipped.missileSize', rack.size, 'size');
+  }
+
   // Damage lives on the projectile for guns, and directly on weaponParams for
   // the handful of turrets/mounts that carry their own impactDamage.
   const alpha = alphaDamage(ammoPayload) ?? alphaDamage(payload);
@@ -468,6 +559,8 @@ export function formatEquippedStat(stat: EquippedStat): string {
       return `${formatNumber(v)} SCU`;
     case 'kn':
       return `${formatNumber(Math.round(v / 1_000))} kN`;
+    case 'size':
+      return `S${formatNumber(Math.round(v))}`;
     case 'percent':
       return `${formatNumber(Math.round(v * 100))} %`;
   }
@@ -486,6 +579,12 @@ export interface GroupableSlot {
    * different guns inside). Slots that differ here never collapse into one row.
    */
   variantKey?: string | null;
+  /**
+   * Opt this hardpoint OUT of collapsing entirely — it stands for one decision
+   * a pilot makes individually (a shield bay, a countermeasure launcher, an
+   * unfitted mount). Set by the ship page; see `isIndividualSection`.
+   */
+  noCollapse?: boolean;
 }
 
 /** A run of hardpoints holding the exact same thing, collapsed to one row. */
@@ -505,12 +604,19 @@ export interface GroupedSlot<T extends GroupableSlot> {
  * when the ship really does carry three of the same size-3 item. Empty ports
  * group with each other (same null class) but never with a filled one.
  * Order of first appearance is preserved.
+ *
+ * A slot flagged `noCollapse` always keeps its own row — the caller has decided
+ * that hardpoint is an individual choice (a shield bay, a countermeasure
+ * launcher, an unfitted mount) and folding it away would hide that choice.
  */
 export function groupIdenticalSlots<T extends GroupableSlot>(slots: T[]): GroupedSlot<T>[] {
   const out: GroupedSlot<T>[] = [];
   const index = new Map<string, GroupedSlot<T>>();
+  let solo = 0;
   for (const slot of slots) {
-    const key = `${slot.className ?? ' empty'}|${slot.size ?? ''}|${slot.grade ?? ''}|${slot.variantKey ?? ''}`;
+    const key = slot.noCollapse
+      ? ` solo|${solo++}`
+      : `${slot.className ?? ' empty'}|${slot.size ?? ''}|${slot.grade ?? ''}|${slot.variantKey ?? ''}`;
     const hit = index.get(key);
     if (hit) {
       hit.count += 1;

@@ -5,6 +5,9 @@ import {
   classifyShipModule,
   groupByShipSection,
   isConfigurableSection,
+  isIndividualSection,
+  isShieldControlPort,
+  shipPortFamily,
 } from './ship-module-sections';
 
 // Port names below are verbatim from the 4.9.0 catalog (build b77f1586) —
@@ -35,7 +38,40 @@ describe('classifyShipModule', () => {
   it('keeps a missile rack out of the weapons block even when the port says "weapon"', () => {
     expect(classifyShipModule('hardpoint_weapon_missilerack_right_wing')).toBe('missiles');
     expect(classifyShipModule('hardpoint_missile_rack_left')).toBe('missiles');
-    expect(classifyShipModule('hardpoint_countermeasure_launcher_left')).toBe('missiles');
+  });
+
+  it('files decoy / noise launchers under countermeasures, not under ordnance', () => {
+    // Verbatim from the 4.9.0 CNOU_Nomad loadout (admin request 1add86a4):
+    // both launchers used to land in the missile block, where they read as
+    // ordnance a pilot cannot pick.
+    expect(classifyShipModule('hardpoint_countermeasure_launcher_left')).toBe('countermeasures');
+    expect(classifyShipModule('hardpoint_countermeasure_launcher_right')).toBe('countermeasures');
+    expect(classifyShipModule('hardpoint_cml_left')).toBe('countermeasures');
+    // …and the occupant alone is enough when the port name says nothing.
+    expect(
+      classifyShipModule('hardpoint_class_1', { subType: 'CountermeasureLauncher' }),
+    ).toBe('countermeasures');
+    expect(classifyShipModule('hardpoint_class_1', { attachType: 'WeaponDefensive' })).toBe(
+      'countermeasures',
+    );
+  });
+
+  it('keeps the missile racks themselves in the ordnance block', () => {
+    expect(classifyShipModule('hardpoint_missiles_wing_left')).toBe('missiles');
+    expect(classifyShipModule('hardpoint_missiles_wing_right')).toBe('missiles');
+  });
+
+  it('puts the shield CONTROL module with the shields, not in the fixed rest', () => {
+    // `hardpoint_controller_shield` is a controller, so the furniture rule used
+    // to bury it — yet it is the one shield-side module a pilot must be able to
+    // tell apart from a generator bay (1add86a4).
+    expect(classifyShipModule('hardpoint_controller_shield')).toBe('shields');
+    expect(isShieldControlPort('hardpoint_controller_shield')).toBe(true);
+    expect(isShieldControlPort('hardpoint_shield_generator_01')).toBe(false);
+    expect(isShieldControlPort(null, { attachType: 'ShieldController' })).toBe(true);
+    // The fire-group module stays fixed: it holds nothing and offers no choice.
+    expect(classifyShipModule('hardpoint_controller_weapon')).toBe('structure');
+    expect(isShieldControlPort('hardpoint_controller_weapon')).toBe(false);
   });
 
   it('never mistakes furniture for armament', () => {
@@ -87,6 +123,7 @@ describe('SHIP_MODULE_SECTION_ORDER', () => {
       'weapons',
       'remoteTurrets',
       'missiles',
+      'countermeasures',
       'pod',
       'shields',
       'powerPlants',
@@ -98,10 +135,49 @@ describe('SHIP_MODULE_SECTION_ORDER', () => {
     expect(SHIP_MODULE_SECTION_ORDER[SHIP_MODULE_SECTION_ORDER.length - 1]).toBe('structure');
   });
 
+  it('places countermeasures directly after the missiles they defend against', () => {
+    const order = [...SHIP_MODULE_SECTION_ORDER];
+    expect(order.indexOf('countermeasures')).toBe(order.indexOf('missiles') + 1);
+  });
+
   it('marks exactly the fixed block as non-configurable', () => {
     for (const s of SHIP_MODULE_SECTION_ORDER) {
       expect(isConfigurableSection(s)).toBe(s !== 'structure');
     }
+  });
+
+  it('lists shields and countermeasures slot by slot, everything else collapsed', () => {
+    for (const s of SHIP_MODULE_SECTION_ORDER) {
+      expect(isIndividualSection(s)).toBe(s === 'shields' || s === 'countermeasures');
+    }
+  });
+});
+
+describe('shipPortFamily', () => {
+  it('gives the Nomad\'s three shield bays one family', () => {
+    const family = shipPortFamily('hardpoint_shield_generator_02');
+    expect(family).toBe('hardpoint_shield_generator');
+    expect(shipPortFamily('hardpoint_shield_generator_01')).toBe(family);
+    expect(shipPortFamily('hardpoint_shield_generator_03')).toBe(family);
+  });
+
+  it('strips stacked positional words, not the identity of the port', () => {
+    expect(shipPortFamily('hardpoint_weapon_top_left')).toBe('hardpoint_weapon');
+    expect(shipPortFamily('hardpoint_cooler_right')).toBe('hardpoint_cooler');
+    // The fire-group controller carries no positional tail — it keeps its name.
+    expect(shipPortFamily('hardpoint_controller_weapon')).toBe('hardpoint_controller_weapon');
+  });
+
+  it('never strips a port down to nothing', () => {
+    expect(shipPortFamily('left')).toBe('left');
+    expect(shipPortFamily('hardpoint_01')).toBe('hardpoint_01');
+    expect(shipPortFamily(null)).toBe('');
+  });
+
+  it('does not merge unrelated bays that merely share a prefix', () => {
+    expect(shipPortFamily('hardpoint_weapon_rack_01')).not.toBe(
+      shipPortFamily('hardpoint_weapon_top_left'),
+    );
   });
 });
 

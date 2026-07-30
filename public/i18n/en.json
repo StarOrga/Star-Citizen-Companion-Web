@@ -313,7 +313,8 @@
       "whereToBuyTerminal": "Terminal",
       "whereToBuyLocation": "Location",
       "whereToBuyAttribution": "Prices from UEX Corp — community-maintained, may not reflect live servers. Not affiliated with Cloud Imperium Games.",
-      "moduleOrderHint": "Configurable modules come first — weapons and their mounts, turrets, ordnance, pods, shields, power plant, quantum drive, radar, coolers, life support. Everything fixed sits below. Click any module for its full stat table."
+      "moduleOrderHint": "Configurable modules come first — weapons and their mounts, turrets, ordnance, pods, shields, power plant, quantum drive, radar, coolers, life support. Everything fixed sits below. Click any module for its full stat table.",
+      "loadoutEmptyWeaponMount": "Weapon mount — no stock weapon in this extract"
     },
     "swap": {
       "pickerTitle": "Swap module",
@@ -338,7 +339,10 @@
       "appliesToMany": "Applies to all {{count}} identical hardpoints",
       "matched": "{{shown}} of {{total}} compatible items",
       "sortHint": "Click a column to sort, Ctrl-click to add a secondary sort.",
-      "missingColumns": "Not in this data extract, so not shown as a column: {{fields}}."
+      "missingColumns": "Not in this data extract, so not shown as a column: {{fields}}.",
+      "installedNone": "Bay empty (stock)",
+      "pickHere": "Pick one",
+      "fitInferred": "This bay ships empty. The list comes from an identical, fitted bay on the same ship — not from this hardpoint’s own data."
     },
     "statGroup": {
       "identity": "Identity",
@@ -453,7 +457,15 @@
       "distortion": "Distortion capacity",
       "derivedHint": "Derived value, calculated from other extracted stats.",
       "noStats": "No stats for this weapon in the current extract.",
-      "armamentMissing": "{{count}} weapon mounts carry no stock weapon in this extract — the game keeps default weapon fits in a separate record that our P4K extractor does not resolve yet."
+      "armamentMissing": "{{count}} weapon mounts carry no stock weapon in this extract — the game keeps default weapon fits in a separate record that our P4K extractor does not resolve yet.",
+      "missileCount": "Missiles",
+      "missileSize": "Missile size",
+      "cmInfrared": "Infrared signature",
+      "cmElectromagnetic": "EM signature",
+      "cmCrossSection": "Cross section",
+      "cmRadius": "Cloud radius",
+      "cmCloudLifetime": "Cloud duration",
+      "cmLifetime": "Round lifetime"
     },
     "shipLink": {
       "add": "Add pledge link",
@@ -488,7 +500,10 @@
       "coolers": "Coolers",
       "lifeSupport": "Life support",
       "structure": "Airframe & fixed systems",
-      "fixedTag": "not configurable"
+      "fixedTag": "not configurable",
+      "countermeasures": "Countermeasures",
+      "shieldsNote": "Shield generators are the swappable shield bays; the shield control module manages them and is not a generator itself. Every generator bay this hull has is listed here, including the ones that ship empty.",
+      "countermeasuresNote": "Decoys pull heat-seeking missiles away, noise (chaff) blinds radar-guided ones. How many you need depends on the signature values of the round that is fired — this extract does not link a launcher to its round, so no per-launcher signature values are shown."
     },
     "summary": {
       "title": "Combat readout",
@@ -545,6 +560,10 @@
       "noStats": "The current extract carries no values for this item.",
       "openDetail": "Open full catalog entry",
       "openStats": "Show all values"
+    },
+    "moduleRole": {
+      "shieldGenerator": "Generator",
+      "shieldController": "Control module"
     }
   },
   "blueprint": {

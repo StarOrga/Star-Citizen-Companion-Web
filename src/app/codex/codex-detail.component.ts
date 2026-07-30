@@ -72,7 +72,13 @@ import {
   isWeaponMountPort,
   weaponStatsUnavailable,
 } from './codex-equipped-stats';
-import { ShipModuleSection, classifyShipModule } from './ship-module-sections';
+import {
+  ShipModuleSection,
+  classifyShipModule,
+  isIndividualSection,
+  isShieldControlPort,
+  shipPortFamily,
+} from './ship-module-sections';
 import {
   ShipSummaryPanel,
   SummaryOccupant,
@@ -86,6 +92,7 @@ import {
   LayoutSection,
   LayoutSlot,
   LayoutTarget,
+  SectionNote,
 } from './codex-hardpoint-layout.component';
 import {
   CodexComponentModalComponent,
@@ -160,6 +167,23 @@ interface HullFact {
   labelKey: string;
   value: string | null;
 }
+
+// What an occupied hardpoint proves about the bay it sits in (see portFitIndex).
+interface PortFit {
+  attachType: string;
+  size: number | null;
+}
+
+// What may go into an UNFITTED hardpoint, and where that answer came from.
+interface EmptyFit {
+  types: string[];
+  size: number | null;
+  /** true = borrowed from an identical fitted bay, not read off this port. */
+  inferred: boolean;
+}
+
+// Engine placeholders that identify no attach type — never build a fit on them.
+const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other']);
 
 // The recipe that PRODUCES this entity (#187: "which materials do I need").
 interface GearRecipe {
@@ -539,11 +563,9 @@ interface GearRecipe {
             <!-- "What even IS a hardpoint?" — answered up front, once. -->
             <p class="hint">{{ 'codex.detail.hardpointExplainer' | translate }}</p>
             <p class="hint">{{ 'codex.detail.moduleOrderHint' | translate }}</p>
-            @if (emptyWeaponMounts() > 0) {
-              <p class="hint warn">
-                {{ 'codex.equipped.armamentMissing' | translate: { count: emptyWeaponMounts() } }}
-              </p>
-            }
+            <!-- The "no stock guns in this extract" disclosure used to sit here,
+                 far above the block it is about. It now rides on the Weapons
+                 section itself (1add86a4) — see moduleSections below. -->
             <!-- WHERE each hardpoint sits on the hull (#137 part 3). Rendered
                  only when this ship's extract carries coordinates; every ship
                  without them keeps exactly the previous list-only layout. -->
@@ -1503,9 +1525,27 @@ export class CodexDetailComponent implements OnInit {
    */
   openSwapPicker(ev: LayoutTarget): void {
     const src = ev.child ?? ev.slot;
-    if (!src.className) return;
+    const port = ev.child ? ev.child.port : ev.slot.port;
+    if (!src.className) {
+      // An UNFITTED bay is still a choice, as long as we know what fits in it
+      // (1add86a4). Sub-slots are excluded: a rack's missile seats have no
+      // hardpoint of their own to read a fit off.
+      const fit = ev.child ? null : this.emptyFits().get(ev.slot.rawPort ?? '');
+      if (!fit) return;
+      this.swapTarget.set({
+        port,
+        count: ev.count,
+        className: null,
+        kind: null,
+        name: null,
+        size: fit.size,
+        attachTypes: fit.types,
+        fitInferred: fit.inferred,
+      });
+      return;
+    }
     this.swapTarget.set({
-      port: ev.child ? ev.child.port : ev.slot.port,
+      port,
       count: ev.count,
       className: src.className,
       kind: src.kind,
@@ -1648,19 +1688,78 @@ export class CodexDetailComponent implements OnInit {
     return this.loadoutAll().map((l) => {
       const hit = l.className ? payloads.get(l.className) : undefined;
       const payload = hit?.payload ?? null;
+      const occupant = {
+        entityKind: (payload as { entityKind?: string } | null)?.entityKind ?? l.kind,
+        componentKind: (payload as { kind?: string } | null)?.kind ?? null,
+        subType: (payload as { subType?: string } | null)?.subType ?? null,
+        attachType: (payload as { attachType?: string } | null)?.attachType ?? null,
+      };
       return {
         item: l,
         kind: hit?.kind ?? l.kind,
         payload,
+        occupant,
         ammoPayload: l.className ? ammo.get(ammoClassNameFor(l.className) ?? '') : undefined,
-        section: classifyShipModule(l.port, {
-          entityKind: (payload as { entityKind?: string } | null)?.entityKind ?? l.kind,
-          componentKind: (payload as { kind?: string } | null)?.kind ?? null,
-          subType: (payload as { subType?: string } | null)?.subType ?? null,
-          attachType: (payload as { attachType?: string } | null)?.attachType ?? null,
-        }) as ShipModuleSection,
+        section: classifyShipModule(l.port, occupant) as ShipModuleSection,
       };
     });
+  });
+
+  /**
+   * What an OCCUPIED hardpoint proves its bay accepts, indexed by section + port
+   * family (`hardpoint_shield_generator_01/02/03` share a family, see
+   * `shipPortFamily`). This is how an unfitted bay still gets a "what fits
+   * here" list: the Nomad's empty `hardpoint_shield_generator_01` borrows the
+   * `Shield` / size-1 fit its two fitted twins carry (admin request 1add86a4).
+   *
+   * It is an INFERENCE, not extract data — the picker labels it as such — but
+   * it is inferred from this very hull, never from another ship or a guess.
+   */
+  private readonly portFitIndex = computed<Map<string, PortFit>>(() => {
+    const out = new Map<string, PortFit>();
+    for (const r of this.resolvedLoadout()) {
+      if (!r.item.className) continue;
+      const attachType = (r.occupant.attachType ?? '').trim();
+      if (!attachType || PLACEHOLDER_ATTACH_TYPE.has(attachType.toLowerCase())) continue;
+      const key = `${r.section}|${shipPortFamily(r.item.port)}`;
+      if (out.has(key)) continue;
+      out.set(key, {
+        attachType,
+        size: r.item.size ?? (r.payload as { size?: number | null } | null)?.size ?? null,
+      });
+    }
+    return out;
+  });
+
+  /**
+   * What may go into an unfitted hardpoint. The hardpoint's OWN accepted types
+   * win when `codex_item_ports` carries them; otherwise an identical fitted bay
+   * on the same hull answers, flagged `inferred` so the picker can say so.
+   */
+  private emptyFitFor(portName: string | null, section: ShipModuleSection): EmptyFit | null {
+    if (!portName) return null;
+    const own = this.detail()?.ports.find((p) => p.portName === portName);
+    const ownTypes = (own?.types ?? []).filter(Boolean);
+    if (own && ownTypes.length > 0) {
+      return {
+        types: ownTypes,
+        size: own.minSize != null && own.minSize === own.maxSize ? own.minSize : null,
+        inferred: false,
+      };
+    }
+    const hit = this.portFitIndex().get(`${section}|${shipPortFamily(portName)}`);
+    return hit ? { types: [hit.attachType], size: hit.size, inferred: true } : null;
+  }
+
+  /** Every unfitted configurable hardpoint we can offer a candidate list for. */
+  private readonly emptyFits = computed<Map<string, EmptyFit>>(() => {
+    const out = new Map<string, EmptyFit>();
+    for (const r of this.resolvedLoadout()) {
+      if (r.item.className || r.section === 'structure' || !r.item.port) continue;
+      const fit = this.emptyFitFor(r.item.port, r.section);
+      if (fit) out.set(r.item.port, fit);
+    }
+    return out;
   });
 
   /** Aggregation input for the Damage / Defence / Power panels. */
@@ -1747,6 +1846,7 @@ export class CodexDetailComponent implements OnInit {
       const l = r.item;
       const item = { kind: r.kind, payload: r.payload, ammoPayload: r.ammoPayload };
       const children = configurable ? this.childrenFor(l.className) : [];
+      const fit = l.className ? undefined : this.emptyFits().get(l.port);
       const slot: LayoutSlot = {
         port: this.humanizePort(l.port),
         // Raw name kept alongside the label so the hull map can match the row.
@@ -1763,9 +1863,17 @@ export class CodexDetailComponent implements OnInit {
         stats: equippedStats(item),
         statsMissing: weaponStatsUnavailable(item),
         children,
-        portSize: this.portSizeOf(l.port),
+        portSize: this.portSizeOf(l.port) ?? fit?.size ?? null,
         // Two identical mounts holding different things must not collapse.
         variantKey: children.map((c) => `${c.className ?? ''}:${c.count}`).join(','),
+        // Every bay in an individual block, and every unfitted configurable
+        // hardpoint, is a decision of its own and keeps its own row (1add86a4).
+        noCollapse: isIndividualSection(r.section) || (configurable && !l.className),
+        emptyLabelKey: isWeaponMountPort(l.port)
+          ? 'codex.detail.loadoutEmptyWeaponMount'
+          : null,
+        roleKey: this.moduleRoleKey(r.section, l.port, r.occupant),
+        emptySwappable: !!fit,
       };
       const hit = buckets.get(r.section);
       if (hit) hit.push(slot);
@@ -1774,8 +1882,40 @@ export class CodexDetailComponent implements OnInit {
     // Configurable blocks are emitted even when the ship has none of that
     // hardpoint at all? No — an absent block says "this hull has no coolers",
     // which is information; an EMPTY block would just be noise.
-    return [...buckets.entries()].map(([section, slots]) => ({ section, slots }));
+    return [...buckets.entries()].map(([section, slots]) => ({
+      section,
+      slots,
+      notes: this.sectionNotes(section),
+    }));
   });
+
+  /**
+   * The role a hardpoint plays inside a block that mixes roles. Only the shield
+   * block does today: three generator BAYS plus the ship's shield CONTROL
+   * module. Naming both is the honest reading of the admin's "2 physische und 1
+   * logischer Platz" (1add86a4) — the extract carries no physical/logical flag,
+   * but it does distinguish a generator from its controller.
+   */
+  private moduleRoleKey(
+    section: ShipModuleSection,
+    port: string | null,
+    occupant: { attachType?: string | null },
+  ): string | null {
+    if (section !== 'shields') return null;
+    return isShieldControlPort(port, occupant)
+      ? 'codex.moduleRole.shieldController'
+      : 'codex.moduleRole.shieldGenerator';
+  }
+
+  /** What a block can and cannot tell a pilot, said next to that block. */
+  private sectionNotes(section: ShipModuleSection): SectionNote[] {
+    if (section === 'weapons' && this.emptyWeaponMounts() > 0) {
+      return [{ key: 'codex.equipped.armamentMissing', params: { count: this.emptyWeaponMounts() } }];
+    }
+    if (section === 'shields') return [{ key: 'codex.moduleSection.shieldsNote' }];
+    if (section === 'countermeasures') return [{ key: 'codex.moduleSection.countermeasuresNote' }];
+    return [];
+  }
 
   /** Accepted size of a structural hardpoint, when `codex_item_ports` knows it. */
   private portSizeOf(portName: string | null): number | null {

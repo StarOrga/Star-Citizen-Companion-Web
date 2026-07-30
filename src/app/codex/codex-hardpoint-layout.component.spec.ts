@@ -323,4 +323,157 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(el.querySelector('button.kid-btn')).toBeNull(); // empty seat is inert
     expect(swaps.length).toBe(0);
   });
+
+  // ── admin request 1add86a4 ────────────────────────────────────────────────
+
+  it('says an unfitted GUN mount lacks extract data, not that the ship is unarmed', () => {
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [
+          slot({
+            port: 'Hardpoint Weapon Bottom',
+            emptyLabelKey: 'codex.detail.loadoutEmptyWeaponMount',
+          }),
+        ],
+      },
+    ]);
+    // The default "empty (stock)" copy would read as "this ship has no gun".
+    expect(el.querySelector('.slot-empty')?.textContent?.trim()).toBe(
+      'codex.detail.loadoutEmptyWeaponMount',
+    );
+  });
+
+  it('renders a block note under its heading', () => {
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [PANTHER],
+        notes: [{ key: 'codex.equipped.armamentMissing', params: { count: 3 } }],
+      },
+    ]);
+    const note = el.querySelector('.mod-sec[data-sec="weapons"] .sec-note');
+    expect(note?.textContent?.trim()).toBe('codex.equipped.armamentMissing');
+  });
+
+  it('keeps every shield bay on its own row, empty ones included', () => {
+    const bay = (port: string, className: string | null) =>
+      slot({
+        port,
+        className,
+        kind: className ? ('component' as const) : null,
+        name: className ? 'Sechs Shield' : null,
+        size: className ? 1 : null,
+        noCollapse: true,
+        roleKey: 'codex.moduleRole.shieldGenerator',
+        emptySwappable: !className,
+        portSize: 1,
+      });
+    const el = render([
+      {
+        section: 'shields',
+        slots: [
+          bay('Hardpoint Shield Generator 01', null),
+          bay('Hardpoint Shield Generator 02', 'SHLD_SECO_S01'),
+          bay('Hardpoint Shield Generator 03', 'SHLD_SECO_S01'),
+        ],
+      },
+    ]);
+    // Three bays, three rows — never "2× S1" plus one empty.
+    expect(el.querySelectorAll('.slot').length).toBe(3);
+    expect(el.querySelectorAll('.tag.role').length).toBe(3);
+  });
+
+  it('tells the shield CONTROL module apart from a generator bay', () => {
+    const el = render([
+      {
+        section: 'shields',
+        slots: [
+          slot({
+            port: 'Hardpoint Controller Shield',
+            className: 'Controller_Shield_CNOU_Nomad',
+            kind: 'item',
+            name: 'Shield Controller',
+            roleKey: 'codex.moduleRole.shieldController',
+          }),
+        ],
+      },
+    ]);
+    expect(el.querySelector('.tag.role')?.textContent?.trim()).toBe(
+      'codex.moduleRole.shieldController',
+    );
+  });
+
+  it('opens the picker for an empty bay we know the accepted type of', () => {
+    const swaps: LayoutTarget[] = [];
+    fixture.componentInstance.swapRequested.subscribe((v) => swaps.push(v));
+    const el = render([
+      {
+        section: 'shields',
+        slots: [
+          slot({
+            port: 'Hardpoint Shield Generator 01',
+            rawPort: 'hardpoint_shield_generator_01',
+            emptySwappable: true,
+            portSize: 1,
+          }),
+        ],
+      },
+    ]);
+    const btn = el.querySelector('button.slot-btn.open-bay') as HTMLButtonElement;
+    expect(btn).toBeTruthy();
+    btn.click();
+    expect(swaps.length).toBe(1);
+    expect(swaps[0].slot.rawPort).toBe('hardpoint_shield_generator_01');
+    expect(swaps[0].child).toBeNull();
+  });
+
+  it('leaves an empty bay inert when nothing says what fits in it', () => {
+    const swaps: LayoutTarget[] = [];
+    fixture.componentInstance.swapRequested.subscribe((v) => swaps.push(v));
+    const el = render([
+      { section: 'weapons', slots: [slot({ port: 'Hardpoint Weapon Bottom' })] },
+    ]);
+    expect(el.querySelector('button.slot-btn')).toBeNull();
+    expect(swaps.length).toBe(0);
+  });
+
+  it('gives countermeasures a block of their own, after the missiles', () => {
+    const rack = slot({
+      port: 'Hardpoint Missiles Wing Left',
+      className: 'MRCK_S04_CNOU_Quad_S02_Left',
+      kind: 'weapon',
+      name: 'MSD-442 Missile Rack',
+      size: 4,
+      typeLabel: 'Missile Rack',
+      stats: [
+        { labelKey: 'codex.equipped.missileCount', value: 4, format: 'int' },
+        { labelKey: 'codex.equipped.missileSize', value: 2, format: 'size' },
+      ],
+    });
+    const decoy = slot({
+      port: 'Hardpoint Countermeasure Launcher Left',
+      className: 'CNOU_Nomad_CML_Flare',
+      kind: 'weapon',
+      name: 'Decoy Launcher',
+      size: 1,
+      noCollapse: true,
+      typeLabel: 'Countermeasure Launcher',
+    });
+    const el = render([
+      { section: 'countermeasures', slots: [decoy] },
+      { section: 'missiles', slots: [rack] },
+    ]);
+    const order = Array.from(el.querySelectorAll('.mod-sec')).map((s) =>
+      s.getAttribute('data-sec'),
+    );
+    expect(order).toEqual(['missiles', 'countermeasures']);
+    // The rack leads with what it CARRIES, not only with its own size.
+    const rackStats = Array.from(
+      el.querySelectorAll('.mod-sec[data-sec="missiles"] .slot-stats dd'),
+    ).map((d) => d.textContent?.trim());
+    expect(rackStats).toEqual(['4', 'S2']);
+    // A launcher is configurable like any other module in a configurable block.
+    expect(el.querySelector('.mod-sec[data-sec="countermeasures"] button.slot-btn')).toBeTruthy();
+  });
 });
