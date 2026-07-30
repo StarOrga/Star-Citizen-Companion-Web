@@ -21,7 +21,7 @@ import { ComposerPayload, FeedbackComposerComponent, PendingImage } from './feed
 import { CelebrationService } from './celebration.service';
 import { FeedbackDashboardComponent } from './feedback-dashboard.component';
 import { FeedbackWorkflowComponent } from './feedback-workflow.component';
-import { RoutineStatusComponent } from './routine-status.component';
+import { RoutineStatusDirective } from './routine-status.directive';
 import {
   FeedbackBucket,
   FeedbackMessage,
@@ -129,7 +129,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     FeedbackComposerComponent,
     FeedbackWorkflowComponent,
     FeedbackDashboardComponent,
-    RoutineStatusComponent,
+    RoutineStatusDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Smooth height/opacity collapse+expand for a topic's detail region, so the
@@ -153,13 +153,14 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       @if (!embedded()) {
         <header class="head">
           <div>
-            <h1>{{ 'adminFeedback.title' | translate }}</h1>
+            <!-- The heading doubles as the dev-PC liveness light: tinted green
+                 / red / left grey by scRoutineStatus (feedback a7573f0e). On
+                 the embedded board the FAB panel's own title carries it. -->
+            <h1 scRoutineStatus>{{ 'adminFeedback.title' | translate }}</h1>
             <p class="hint">{{ 'adminFeedback.subtitle' | translate }}</p>
           </div>
         </header>
       }
-
-      <sc-routine-status />
 
       @if (errorMsg()) {
         <div class="err"><strong>{{ 'adminFeedback.errorTitle' | translate }}:</strong> {{ errorMsg() }}</div>

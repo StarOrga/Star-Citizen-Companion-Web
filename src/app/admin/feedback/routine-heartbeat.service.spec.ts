@@ -1,6 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { WritableSignal, signal } from '@angular/core';
-import { TranslateService, provideTranslateService } from '@ngx-translate/core';
+import { TestBed } from '@angular/core/testing';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import {
   HEARTBEAT_FRESH_MS,
@@ -9,7 +7,6 @@ import {
   heartbeatState,
   relativeFromNow,
 } from './routine-heartbeat.service';
-import { RoutineStatusComponent } from './routine-status.component';
 
 const MIN = 60_000;
 const NOW = Date.parse('2026-07-30T12:00:00.000Z');
@@ -115,84 +112,6 @@ describe('routine heartbeat', () => {
       const svc = TestBed.inject(RoutineHeartbeatService);
       await svc.refresh();
       expect(svc.note()).toBe('queue empty');
-    });
-  });
-
-  describe('RoutineStatusComponent', () => {
-    let fixture: ComponentFixture<RoutineStatusComponent>;
-    let state: WritableSignal<HeartbeatState>;
-    let lastSeen: WritableSignal<string | null>;
-
-    async function setup(initial: HeartbeatState, seenAt: string | null) {
-      state = signal(initial);
-      lastSeen = signal(seenAt);
-      const stub = {
-        state,
-        lastSeen,
-        note: signal<string | null>(null),
-        checkedAt: signal(NOW),
-        refresh: () => Promise.resolve(),
-      };
-
-      TestBed.resetTestingModule();
-      await TestBed.configureTestingModule({
-        imports: [RoutineStatusComponent],
-        providers: [
-          provideTranslateService({ fallbackLang: 'en' }),
-          { provide: RoutineHeartbeatService, useValue: stub },
-        ],
-      }).compileComponents();
-
-      const translate = TestBed.inject(TranslateService);
-      translate.setTranslation('en', {
-        adminFeedback: {
-          heartbeat: {
-            online: 'Dev PC reachable',
-            offline: 'Dev PC unreachable',
-            unknown: 'Dev PC status unknown',
-            onlineTitle: 'Dev PC reachable - checked in {{time}}.',
-            offlineTitle: 'Dev PC unreachable - last checked in {{time}}.',
-            unknownTitle: 'Status unknown.',
-          },
-        },
-      });
-      translate.use('en');
-
-      fixture = TestBed.createComponent(RoutineStatusComponent);
-      fixture.detectChanges();
-    }
-
-    const el = () => fixture.nativeElement.querySelector('.rs') as HTMLElement;
-
-    it('paints the label green with its own wording when the PC is reachable', async () => {
-      await setup('online', iso(5 * MIN));
-      expect(el().classList).toContain('ok');
-      expect(el().classList).not.toContain('down');
-      expect(el().textContent!.trim()).toBe('Dev PC reachable');
-      // Colour is never the only signal: the tooltip names the moment.
-      expect(el().getAttribute('title')).toContain('checked in');
-      expect(el().getAttribute('aria-label')).toBe(el().getAttribute('title'));
-    });
-
-    it('paints it red and names the last check-in when the PC went quiet', async () => {
-      await setup('offline', iso(3 * 60 * MIN));
-      expect(el().classList).toContain('down');
-      expect(el().textContent!.trim()).toBe('Dev PC unreachable');
-      expect(el().getAttribute('title')).toContain('last checked in');
-    });
-
-    it('stays neutral grey when nothing is known', async () => {
-      await setup('unknown', null);
-      expect(el().classList).not.toContain('ok');
-      expect(el().classList).not.toContain('down');
-      expect(el().textContent!.trim()).toBe('Dev PC status unknown');
-      expect(el().getAttribute('title')).toBe('Status unknown.');
-    });
-
-    it('falls back to the neutral sentence when a known state has no usable timestamp', async () => {
-      await setup('offline', null);
-      expect(el().classList).toContain('down');
-      expect(el().getAttribute('title')).toBe('Status unknown.');
     });
   });
 });
