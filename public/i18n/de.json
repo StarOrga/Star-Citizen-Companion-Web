@@ -1344,6 +1344,14 @@
   "adminFeedback": {
     "title": "Feedback-Board",
     "subtitle": "Nur für Admins. Schreib, was besser werden kann — die Abendroutine nimmt offene Punkte auf, shippt sie und markiert sie hier.",
+    "heartbeat": {
+      "online": "Dev-PC erreichbar",
+      "offline": "Dev-PC nicht erreichbar",
+      "unknown": "Dev-PC Status unbekannt",
+      "onlineTitle": "Dev-PC erreichbar — die Feedback-Routine hat sich {{time}} gemeldet. Neue Themen werden bearbeitet.",
+      "offlineTitle": "Dev-PC nicht erreichbar — die Feedback-Routine hat sich zuletzt {{time}} gemeldet. Rechner aus, Claude nicht offen oder Tokens verbraucht; neue Themen bleiben liegen, bis er wieder läuft.",
+      "unknownTitle": "Status unbekannt — bisher keine Rückmeldung der Feedback-Routine."
+    },
     "refresh": "Aktualisieren",
     "loading": "Lädt…",
     "empty": "Noch kein Feedback. Sei der Erste.",
