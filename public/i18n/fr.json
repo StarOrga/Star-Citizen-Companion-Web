@@ -87,6 +87,8 @@
     "refresh": "Actualiser",
     "lastAdmin": "Dernier admin",
     "lastAdminTip": "Promouvoir d'abord un autre admin avant de modifier ce rôle — sinon le système n'aurait plus aucun admin.",
+    "protected": "Protégé",
+    "protectedTip": "Compte fondateur protégé. Le rôle, l'approbation et la suppression sont verrouillés dans la base de données — le verrou ne peut être levé que côté serveur (service_role), jamais depuis l'interface d'administration.",
     "invite": {
       "title": "Inviter un utilisateur",
       "subtitle": "Envoie un e-mail magic-link Supabase. Le rôle est attribué dès qu'il accepte.",

@@ -830,6 +830,8 @@
     "refresh": "Aktualisieren",
     "lastAdmin": "Letzter Admin",
     "lastAdminTip": "Erst einen weiteren Admin promoten, bevor diese Rolle geändert werden kann — sonst hätte das System keinen Admin mehr.",
+    "protected": "Geschützt",
+    "protectedTip": "Geschützter Gründer-Account. Rolle, Freigabe und Löschung sind in der Datenbank gesperrt — die Sperre kann nur serverseitig (service_role) aufgehoben werden, nicht über die Admin-Oberfläche.",
     "invite": {
       "title": "User einladen",
       "subtitle": "Schickt eine Supabase-Magic-Link-Mail. Rolle wird beim Annehmen direkt zugewiesen.",

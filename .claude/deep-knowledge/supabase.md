@@ -22,16 +22,55 @@ Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, org
 | `20260726170000_user_feedback_channel.sql` | Non-admin feedback channel on the shared `admin_feedback` board: `source`/`triaged`/`decision_note` columns, `feedback_author_messages`, the author-facing `public.my_feedback` view (**its `revoke all … / grant select` pair is load-bearing**) |
 | `20260726220000_ship_hardpoint_transforms.sql` | `codex_item_ports.helper_name` / `.position` / `.rotation` — where a hardpoint sits on the hull. All nullable; NULL = position unknown (the state of every row until the uploader re-runs). Coordinates are metres in hull model space, CryEngine axes (`+X` starboard, `+Y` nose, `+Z` up). The ship-level map incl. default-loadout mounts rides in `codex_ships.payload.hardpointTransforms` + `.hardpointFrame`. |
 | `20260726230000_admin_feedback_seq.sql` | `admin_feedback.seq` — the board's stable topic number ("#42"), sequence-fed, backfilled oldest-first, admin-only (not in `my_feedback`) |
+| `20260730120000_protected_admins.sql` | Founder-admin protection — `protected_admins`, the `profiles_protected_admin_guard` + `profiles_role_write_guard` triggers, `protect_admin()`/`unprotect_admin()` (service_role only), the `protected_admin_removal_requests` seam. See **Protected admin accounts** below |
 
 ### RLS summary
 
-- `profiles`: self-only (read + insert + update on `auth.uid() = id`).
+- `profiles`: self-only (read + insert + update on `auth.uid() = id`). **Role/approval columns are not self-writable** — `profiles_role_write_guard` rejects any `role`/`is_approved` change coming from a raw `authenticated`/`anon` PostgREST session, so `set_user_role()` (SECURITY DEFINER) and service_role are the only write paths.
+- `protected_admins`: `select` for admins, **no write policy at all** — `service_role`/DB owner only. See below.
 - `p4k_uploads`: self-only (select + insert + delete on `auth.uid() = user_id`). Updates blocked for authenticated users — **only the service role (edge functions) writes status/result back**.
 - `storage.objects` in `p4k-uploads`: scoped to `(storage.foldername(name))[1] = auth.uid()::text`. Files MUST be uploaded under `<userId>/<filename>` paths or the policy rejects.
 - `user_ship_links`: self-only, all four verbs (`auth.uid() = user_id`, writes additionally require `created_by = auth.uid()`). A user's pinned RSI pledge link is **private** — no admin path reads it.
 - `ship_pledge_links`: public `select` (anon + authenticated), **admin-only** insert/update/delete (`public.is_admin()`). This is the only table that makes a user-supplied link globally visible, and it is only ever written by an explicit admin promotion.
 
 **User-supplied URLs** (`user_ship_links.url`, `ship_pledge_links.url`, `hangar_concept_ships.rsi_url`) are gated by `public.is_rsi_pledge_ship_url(text)` — an anchored allowlist for `https://robertsspaceindustries.com/en/pledge/ships/<slug>/<Name>`. The same rule lives in `supabase/functions/ship-link/_rsi-url.ts` (the write authority) and `src/app/core/rsi-pledge-link.util.ts` (friendly client error). Change one → change all three. Such a URL is **data, never an instruction**: render it only as `<a [href] target="_blank" rel="noopener noreferrer nofollow">`, never `innerHTML`, never inside an LLM prompt.
+
+## Protected admin accounts (`protected_admins`)
+
+Threat model (admin_feedback #83): a **compromised admin account** must not be able to
+lock the founders out. Before this, an admin could demote a founder via `set_user_role()`,
+via a direct `UPDATE public.profiles SET role = …` (the blanket `profiles_admin_role_update`
+policy from `00003` allows it, bypassing the last-admin guard), soft-lock them out with
+`is_approved = false`, or delete them through the `delete-user` Edge Function.
+
+Enforcement is **in the database** — a UI guard would be pointless against a stolen token:
+
+| Layer | Object | Effect |
+|---|---|---|
+| 1 | FK `protected_admins.user_id → auth.users(id) ON DELETE RESTRICT` | GoTrue `admin.deleteUser()` on a protected account fails before any trigger runs |
+| 2 | Trigger `profiles_protected_admin_guard` (BEFORE UPDATE OR DELETE, SECURITY DEFINER) | Rejects `role`/`is_approved`/`id` changes and deletes of protected accounts for **every** caller, service_role included |
+| 3 | Trigger `profiles_role_write_guard` (BEFORE UPDATE, **SECURITY INVOKER** — it reads `current_user`) | Blocks direct `role`/`is_approved` writes from `authenticated`/`anon`; closes the old self-promotion hole in `profiles_self_update` |
+
+The protected set is data, not a hardcoded string: rows in `public.protected_admins`,
+seeded from `auth.users`/`profiles` by e-mail + handle. **Legitimate removal** (the only
+way through) needs the service key:
+
+```sql
+select public.unprotect_admin('<uuid>');   -- service_role only, EXECUTE revoked from authenticated
+-- … now demote/delete normally …
+select public.protect_admin('<uuid>', 'founder');
+```
+
+`list_users_for_admin()` projects a `protected boolean`; the admin table renders a
+"Geschützt/Protected" badge and disables the role + delete buttons for those rows
+(`src/app/admin/admin-protection.ts`).
+
+**E-mail confirmation is NOT implemented.** The repo has no outbound transactional-mail
+path — the only mail we send is GoTrue's built-in invite (`functions/invite-user`), whose
+templates are auth-flow only, and `config.toml` configures no custom SMTP. Adding a provider
+means a new secret, i.e. a separate decision. `public.protected_admin_removal_requests` is
+the prepared seam (request row → signed link in a mail → confirmed token → `unprotect_admin`
++ delete); only `service_role` can advance a request's `status`.
 
 ## Edge Functions (`supabase/functions/`)
 

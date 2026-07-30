@@ -5,6 +5,7 @@ import { SupabaseClientProvider } from '../core/supabase.client';
 import { useAutoRefresh } from '../core/auto-refresh';
 import { Role, RoleService } from '../auth/role.service';
 import { AuthService } from '../auth/auth.service';
+import { isDeleteBlocked, isProtectedAccount, isRoleChangeBlocked } from './admin-protection';
 
 interface AdminUserRow {
   id: string;
@@ -12,6 +13,11 @@ interface AdminUserRow {
   display_name: string | null;
   username: string | null;
   role: Role;
+  /**
+   * Row exists in `public.protected_admins` (migration 20260730120000).
+   * Optional so a client running against a pre-migration DB still parses.
+   */
+  protected?: boolean | null;
   created_at: string;
   last_sign_in_at: string | null;
 }
@@ -156,6 +162,11 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                       {{ 'admin.lastAdmin' | translate }}
                     </span>
                   }
+                  @if (isProtected(u)) {
+                    <span class="role-pill protected" [title]="'admin.protectedTip' | translate">
+                      {{ 'admin.protected' | translate }}
+                    </span>
+                  }
                 </td>
                 <td>{{ u.created_at | date:'shortDate' }}</td>
                 <td>{{ u.last_sign_in_at ? (u.last_sign_in_at | date:'short') : '—' }}</td>
@@ -163,28 +174,31 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                   @if (u.role !== 'collaborator') {
                     <button class="sc-btn micro"
                             (click)="setRole(u.id, 'collaborator')"
-                            [disabled]="busy() || wouldStrandUs(u, 'collaborator')"
-                            [title]="wouldStrandUs(u, 'collaborator') ? ('admin.lastAdminTip' | translate) : ''">
+                            [disabled]="busy() || roleLocked(u, 'collaborator')"
+                            [title]="roleLockReason(u, 'collaborator')">
                       {{ 'admin.actions.promoteCollab' | translate }}
                     </button>
                   }
                   @if (u.role !== 'admin') {
-                    <button class="sc-btn micro" (click)="setRole(u.id, 'admin')" [disabled]="busy()">
+                    <button class="sc-btn micro"
+                            (click)="setRole(u.id, 'admin')"
+                            [disabled]="busy() || roleLocked(u, 'admin')"
+                            [title]="roleLockReason(u, 'admin')">
                       {{ 'admin.actions.promoteAdmin' | translate }}
                     </button>
                   }
                   @if (u.role !== 'viewer') {
                     <button class="sc-btn micro"
                             (click)="setRole(u.id, 'viewer')"
-                            [disabled]="busy() || wouldStrandUs(u, 'viewer')"
-                            [title]="wouldStrandUs(u, 'viewer') ? ('admin.lastAdminTip' | translate) : ''">
+                            [disabled]="busy() || roleLocked(u, 'viewer')"
+                            [title]="roleLockReason(u, 'viewer')">
                       {{ 'admin.actions.demoteViewer' | translate }}
                     </button>
                   }
                   <button class="sc-btn micro danger"
                           (click)="deleteUser(u)"
-                          [disabled]="busy() || wouldStrandByDelete(u)"
-                          [title]="wouldStrandByDelete(u) ? ('admin.lastAdminTip' | translate) : ''">
+                          [disabled]="busy() || deleteLocked(u)"
+                          [title]="deleteLockReason(u)">
                     {{ (u.id === selfId() ? 'admin.actions.leaveSelf' : 'admin.actions.delete') | translate }}
                   </button>
                 </td>
@@ -308,6 +322,12 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       &.last-admin {
         background: rgba(251, 191, 36, 0.18);
         color: var(--sc-warning);
+        margin-left: 6px;
+        cursor: help;
+      }
+      &.protected {
+        background: rgba(167, 139, 250, 0.18);
+        color: #a78bfa;
         margin-left: 6px;
         cursor: help;
       }
@@ -539,6 +559,36 @@ export class AdminComponent implements OnInit {
    */
   wouldStrandByDelete(target: AdminUserRow): boolean {
     return target.role === 'admin' && this.adminCount() === 1;
+  }
+
+  /**
+   * Founder account (`public.protected_admins`). The DB rejects every
+   * demotion/un-approval/deletion of these rows regardless of who asks —
+   * see migration 20260730120000_protected_admins.sql. The UI only
+   * explains it up front.
+   */
+  isProtected(target: AdminUserRow): boolean {
+    return isProtectedAccount(target);
+  }
+
+  roleLocked(target: AdminUserRow, newRole: Role): boolean {
+    return isRoleChangeBlocked(target, newRole) || this.wouldStrandUs(target, newRole);
+  }
+
+  roleLockReason(target: AdminUserRow, newRole: Role): string {
+    if (isRoleChangeBlocked(target, newRole)) return this.translate.instant('admin.protectedTip');
+    if (this.wouldStrandUs(target, newRole)) return this.translate.instant('admin.lastAdminTip');
+    return '';
+  }
+
+  deleteLocked(target: AdminUserRow): boolean {
+    return isDeleteBlocked(target) || this.wouldStrandByDelete(target);
+  }
+
+  deleteLockReason(target: AdminUserRow): string {
+    if (isDeleteBlocked(target)) return this.translate.instant('admin.protectedTip');
+    if (this.wouldStrandByDelete(target)) return this.translate.instant('admin.lastAdminTip');
+    return '';
   }
 
   async ngOnInit() {

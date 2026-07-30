@@ -830,6 +830,8 @@
     "refresh": "Refresh",
     "lastAdmin": "Last admin",
     "lastAdminTip": "Promote another admin first before changing this role — otherwise the system would be left without any admin.",
+    "protected": "Protected",
+    "protectedTip": "Protected founder account. Role, approval and deletion are locked in the database — the lock can only be lifted server-side (service_role), never from the admin UI.",
     "invite": {
       "title": "Invite user",
       "subtitle": "Sends a Supabase magic-link email. Role is assigned the moment they accept.",
