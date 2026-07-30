@@ -17,12 +17,14 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { NewsService, NewsChannel, VerseNewsItem, pickRecentVideos, VIDEO_RETENTION_DAYS } from './news.service';
 import { NewsThumbComponent } from './news-thumb.component';
 import { UpcomingShipsNoticeComponent } from './upcoming-ships-notice.component';
 import { isMiddleClick, isPlainLeftClick } from '../core/modified-click.util';
+import { SameRouteRefreshService } from '../core/same-route-refresh.service';
 
 const CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
 
@@ -52,7 +54,15 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
         <div class="title-block">
           <h1>{{ 'news.title' | translate }}</h1>
           <p class="hint">{{ 'news.subtitle' | translate }}</p>
-          @if (updatedRel(); as rel) {
+          <!-- A reload triggered from the nav keeps the current cards on screen
+               (no skeleton flash), so the freshness line carries the echo that
+               something IS happening (feedback 7532e639). -->
+          @if (svc.loading() && svc.feed()) {
+            <p class="freshness refreshing" role="status" aria-live="polite">
+              <span class="pulse" aria-hidden="true"></span>
+              {{ 'news.refreshing' | translate }}
+            </p>
+          } @else if (updatedRel(); as rel) {
             <p class="freshness" [class.stale]="updatedStale()">
               <span class="pulse" aria-hidden="true"></span>
               {{ 'news.lastUpdated' | translate:{ rel: rel } }}
@@ -604,6 +614,10 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     }
     .freshness.stale { color: var(--sc-warning); }
     .freshness.stale .pulse { background: var(--sc-warning); animation: none; }
+    /* In-flight reload (nav re-click / poll): accent-coloured and beating twice
+       as fast, so the line reads as "working" rather than "fresh". */
+    .freshness.refreshing { color: var(--sc-accent); }
+    .freshness.refreshing .pulse { background: var(--sc-accent); animation-duration: 1.1s; }
     @keyframes fresh-pulse {
       0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sc-success) 55%, transparent); }
       70% { box-shadow: 0 0 0 6px transparent; }
@@ -842,6 +856,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
   readonly svc = inject(NewsService);
   private readonly t = inject(TranslateService);
   private readonly route = inject(ActivatedRoute);
+  private readonly sameRoute = inject(SameRouteRefreshService);
   private readonly overlay = inject(Overlay);
   private readonly viewContainer = inject(ViewContainerRef);
 
@@ -909,6 +924,29 @@ export class NewsListComponent implements OnInit, OnDestroy {
     if (!fetched) return false;
     return this.now() - Date.parse(fetched) > 7 * 60 * 1000;
   });
+
+  constructor() {
+    // Re-clicking "Verse News" (or the brand logo) while already on this page
+    // reloads the feed instead of doing nothing (feedback 7532e639).
+    this.sameRoute
+      .onRefresh('/news')
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.reloadFromNav());
+  }
+
+  /**
+   * The same-route "reload" gesture: re-fetch the feed and go back to the top,
+   * the two things a browser reload would have done that the user actually
+   * wants here. Deliberately NOT `location.reload()` — that would throw away
+   * the warm SPA state and re-download the app for a data refresh. Non-silent
+   * so the header shows the "refreshing" line and the click has a visible echo.
+   */
+  private reloadFromNav(): void {
+    void this.svc.refresh();
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
 
   async ngOnInit() {
     // Deep-link support: /news?article=<id> opens that item's detail directly
