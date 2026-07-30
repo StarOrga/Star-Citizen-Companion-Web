@@ -50,6 +50,19 @@ export interface SwapTarget {
   kind: CodexKind | null;
   name: string | null;
   size: number | null;
+  /**
+   * What the hardpoint ACCEPTS, for a bay that ships empty. Normally the list
+   * is derived from the installed item's `attachType`, which an unfitted bay
+   * cannot provide — so the ship page supplies it here instead, either from the
+   * hardpoint's own `codex_item_ports` entry or from an identical, fitted bay
+   * on the same hull (admin request 1add86a4: the Nomad's third shield slot).
+   */
+  attachTypes?: string[] | null;
+  /**
+   * True when `attachTypes` came from a sibling hardpoint rather than from this
+   * one — the picker says so, so an inference is never read as a fact.
+   */
+  fitInferred?: boolean;
 }
 
 /** Supabase rejects very long `in.()` lists — hydrate payloads in batches. */
@@ -89,6 +102,8 @@ const HYDRATE_CHUNK = 100;
                 <span class="sp-port">{{ t.port }}</span>
                 @if (t.name) {
                   · <span>{{ 'codex.swap.installed' | translate }}: {{ t.name }}</span>
+                } @else {
+                  · <span>{{ 'codex.swap.installedNone' | translate }}</span>
                 }
               </p>
             </div>
@@ -97,6 +112,12 @@ const HYDRATE_CHUNK = 100;
           </header>
 
           <p class="sp-hint">{{ 'codex.swap.previewHint' | translate }}</p>
+          <!-- The candidate list for an unfitted bay was derived from an
+               identical, fitted bay on this hull — say so rather than let an
+               inference pass for extract data (1add86a4). -->
+          @if (t.fitInferred) {
+            <p class="sp-hint inferred">{{ 'codex.swap.fitInferred' | translate }}</p>
+          }
 
           @if (loading()) {
             <p class="sp-msg">{{ 'codex.swap.loading' | translate }}</p>
@@ -281,6 +302,9 @@ const HYDRATE_CHUNK = 100;
       border: 1px solid var(--sc-border); color: var(--sc-fg-1); cursor: pointer; font-size: 0.9rem; line-height: 1; }
     .sp-close:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
     .sp-hint { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
+    .sp-hint.inferred { margin-top: 4px; font-style: normal;
+      border-left: 2px solid color-mix(in srgb, var(--sc-warn, #e8a33d) 55%, transparent);
+      padding-left: 8px; }
     .sp-msg { margin: 6px 0; font-size: 0.8rem; color: var(--sc-fg-2); }
     .sp-msg.err { color: var(--sc-danger, #ff5252); }
 
@@ -449,13 +473,16 @@ export class CodexSwapPickerComponent {
       const attachType = (installed?.payload as { attachType?: string | null } | undefined)?.attachType;
       const size =
         t.size ?? ((installed?.payload as { size?: number | null } | undefined)?.size ?? null);
-      if (!attachType) {
+      // An empty bay has no installed item to read an attachType off, so the
+      // caller's declared accepted types carry the query instead (1add86a4).
+      const types = attachType ? [attachType] : (t.attachTypes ?? []).filter(Boolean);
+      if (types.length === 0) {
         if (token === this.loadToken) this.candidates.set([]);
         return;
       }
 
       const items = await this.svc.getCompatibleItems({
-        types: [attachType],
+        types,
         minSize: size,
         maxSize: size,
       });

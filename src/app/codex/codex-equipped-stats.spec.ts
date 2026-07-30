@@ -12,6 +12,8 @@ import {
   impactDamageChannels,
   isWeaponMountPort,
   MAX_STATS_PER_SLOT,
+  countermeasureStats,
+  missileRackLoad,
   penetrationDistance,
   projectileRange,
   sizeBadge,
@@ -58,6 +60,84 @@ const PANTHER_AMMO = {
   raw: {
     projectileParams: {
       penetrationParams: { farRadius: 0, nearRadius: 0, basePenetrationDistance: 0.085 },
+    },
+  },
+};
+
+/**
+ * MRCK_S04_CNOU_Quad_S02_Left — the Nomad's wing rack. A size-4 rack whose own
+ * `itemPorts` are the only place the "four size-2 missiles" fact lives; which
+ * missiles are LOADED is not in the extract (admin request 1add86a4).
+ */
+const NOMAD_MISSILE_RACK = {
+  entityKind: 'weapon',
+  className: 'MRCK_S04_CNOU_Quad_S02_Left',
+  subType: 'MissileRack',
+  attachType: 'MissileLauncher',
+  size: 4,
+  itemPorts: [
+    { types: ['Missile'], minSize: 2, maxSize: 2, portName: 'missile_01_attach' },
+    { types: ['Missile'], minSize: 2, maxSize: 2, portName: 'missile_02_attach' },
+    { types: ['Missile'], minSize: 2, maxSize: 2, portName: 'missile_03_attach' },
+    { types: ['Missile'], minSize: 2, maxSize: 2, portName: 'missile_04_attach' },
+  ],
+  weaponParams: {},
+};
+
+/**
+ * CNOU_Nomad_CML_Flare — the Nomad's decoy launcher. Every number on it is zero
+ * or null and `ammoContainerRecord` is unresolved, which is true for all 188
+ * countermeasure launchers in 4.9.0.
+ */
+const NOMAD_CML_FLARE = {
+  entityKind: 'weapon',
+  className: 'CNOU_Nomad_CML_Flare',
+  subType: 'CountermeasureLauncher',
+  attachType: 'WeaponDefensive',
+  size: 1,
+  itemPorts: [],
+  weaponParams: { fireRate: 0, heatPerShot: 0, ammoContainerRecord: null },
+};
+
+/** BEHR_Flare — a decoy ROUND, where the signature values actually live. */
+const BEHR_FLARE_AMMO = {
+  className: 'BEHR_Flare',
+  raw: {
+    speed: 65,
+    lifetime: 8,
+    projectileParams: {
+      _Type_: 'CounterMeasureProjectileParams',
+      typeParams: {
+        _Type_: 'CounterMeasureFlareParams',
+        StartInfrared: 20000,
+        EndInfrared: 20000,
+        StartElectromagnetic: 20000,
+        EndElectromagnetic: 20000,
+        StartCrossSection: 6500,
+        EndCrossSection: 6500,
+        StartDecibel: 0,
+        EndDecibel: 0,
+      },
+    },
+  },
+};
+
+/** TALN_Chaff — a noise ROUND: same signature block plus a cloud. */
+const TALN_CHAFF_AMMO = {
+  className: 'TALN_Chaff',
+  raw: {
+    speed: 180,
+    lifetime: 0.8,
+    projectileParams: {
+      typeParams: {
+        _Type_: 'CounterMeasureChaffParams',
+        StartInfrared: 30000,
+        StartElectromagnetic: 30000,
+        StartCrossSection: 20000,
+        StartDecibel: 0,
+        volumeLifetime: 8,
+        radiusRange: { minimum: 400, maximum: 400 },
+      },
     },
   },
 };
@@ -380,6 +460,33 @@ describe('codex-equipped-stats', () => {
       expect(groups.map((g) => g.count)).toEqual([2, 1]);
       expect(groups[0].slot.className).toBeNull();
     });
+
+    it('keeps a noCollapse hardpoint on its own row', () => {
+      // The Nomad's shield bank: two bays hold the SAME generator and one ships
+      // empty — collapsing would show two rows for three independent choices
+      // (admin request 1add86a4).
+      const bay = (className: string | null) => ({ ...slot(className, 1), noCollapse: true });
+      const groups = groupIdenticalSlots([bay(null), bay('SHLD_SECO_S01'), bay('SHLD_SECO_S01')]);
+      expect(groups.length).toBe(3);
+      expect(groups.every((g) => g.count === 1)).toBe(true);
+      expect(groups.map((g) => g.slot.className)).toEqual([
+        null,
+        'SHLD_SECO_S01',
+        'SHLD_SECO_S01',
+      ]);
+    });
+
+    it('still collapses the neighbours of a noCollapse hardpoint', () => {
+      const groups = groupIdenticalSlots([
+        { ...slot('SHIELD', 1), noCollapse: true },
+        slot('THRUSTER', 1),
+        slot('THRUSTER', 1),
+      ]);
+      expect(groups.map((g) => [g.slot.className, g.count])).toEqual([
+        ['SHIELD', 1],
+        ['THRUSTER', 2],
+      ]);
+    });
   });
 
   describe('sizeBadge', () => {
@@ -447,6 +554,82 @@ describe('codex-equipped-stats', () => {
     it('rejects non-weapon ports and blanks', () => {
       expect(isWeaponMountPort('hardpoint_shield_generator_02')).toBe(false);
       expect(isWeaponMountPort(null)).toBe(false);
+    });
+  });
+
+  // ── ordnance racks (admin request 1add86a4) ────────────────────────────────
+  describe('missileRackLoad', () => {
+    it('reads capacity off the rack\'s own missile ports', () => {
+      expect(missileRackLoad(NOMAD_MISSILE_RACK)).toEqual({ count: 4, size: 2 });
+    });
+
+    it('reports no size when the rack\'s ports disagree or accept a range', () => {
+      const mixed = {
+        itemPorts: [
+          { types: ['Missile'], minSize: 1, maxSize: 1 },
+          { types: ['Missile'], minSize: 3, maxSize: 3 },
+        ],
+      };
+      expect(missileRackLoad(mixed)).toEqual({ count: 2, size: null });
+      const open = { itemPorts: [{ types: ['Missile'], minSize: 1, maxSize: 4 }] };
+      expect(missileRackLoad(open)).toEqual({ count: 1, size: null });
+    });
+
+    it('ignores everything that is not a missile port', () => {
+      expect(missileRackLoad({ itemPorts: [{ types: ['WeaponGun'], minSize: 3, maxSize: 3 }] }))
+        .toBeNull();
+      expect(missileRackLoad({ itemPorts: [] })).toBeNull();
+      expect(missileRackLoad(null)).toBeNull();
+    });
+
+    it('surfaces the rack load as stats on the equipped row', () => {
+      const stats = equippedStats({ kind: 'weapon', payload: NOMAD_MISSILE_RACK });
+      const byKey = new Map(stats.map((s) => [s.labelKey, s]));
+      expect(byKey.get('codex.equipped.missileCount')?.value).toBe(4);
+      expect(formatEquippedStat(byKey.get('codex.equipped.missileSize')!)).toBe('S2');
+    });
+  });
+
+  // ── countermeasure rounds (admin request 1add86a4) ─────────────────────────
+  describe('countermeasureStats', () => {
+    it('reads the signature values off a decoy round', () => {
+      const rows = new Map(
+        countermeasureStats(BEHR_FLARE_AMMO).map((s) => [s.labelKey, formatEquippedStat(s)]),
+      );
+      expect(rows.get('codex.equipped.cmInfrared')).toBe('20,000');
+      expect(rows.get('codex.equipped.cmElectromagnetic')).toBe('20,000');
+      expect(rows.get('codex.equipped.cmCrossSection')).toBe('6,500');
+      expect(rows.get('codex.equipped.cmLifetime')).toBe('8 s');
+      // A flare is a single burning round — it has no chaff cloud.
+      expect(rows.has('codex.equipped.cmRadius')).toBe(false);
+    });
+
+    it('adds the cloud geometry for a noise round', () => {
+      const rows = new Map(
+        countermeasureStats(TALN_CHAFF_AMMO).map((s) => [s.labelKey, formatEquippedStat(s)]),
+      );
+      expect(rows.get('codex.equipped.cmRadius')).toBe('400 m');
+      expect(rows.get('codex.equipped.cmCloudLifetime')).toBe('8 s');
+    });
+
+    it('emits nothing rather than zeros when the round is unknown', () => {
+      // The reality on every 4.9.0 hull: `ammoContainerRecord` is null on all
+      // 188 countermeasure launchers and no `<launcher>_AMMO` record exists, so
+      // the row stays silent instead of printing invented numbers.
+      expect(countermeasureStats(undefined)).toEqual([]);
+      expect(equippedStats({ kind: 'weapon', payload: NOMAD_CML_FLARE })).toEqual([]);
+    });
+
+    it('never borrows another manufacturer\'s round for a launcher', () => {
+      const stats = equippedStats({ kind: 'weapon', payload: NOMAD_CML_FLARE });
+      expect(stats.length).toBe(0);
+      // …but fills in the moment the extractor resolves the link.
+      const linked = equippedStats({
+        kind: 'weapon',
+        payload: NOMAD_CML_FLARE,
+        ammoPayload: BEHR_FLARE_AMMO,
+      });
+      expect(linked.some((s) => s.labelKey === 'codex.equipped.cmInfrared')).toBe(true);
     });
   });
 });
