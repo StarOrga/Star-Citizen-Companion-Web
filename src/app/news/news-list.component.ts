@@ -285,13 +285,20 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
         </div>
         <div class="body">
           <!-- Stretched link (d2171662): the headline is a real <a href> to the
-               source and its ::after covers the whole tile, so the entire card is
-               middle-clickable / Ctrl+clickable while the footer actions stay
-               ordinary buttons. Plain left click is intercepted for the overlay. -->
+               source and the overlay span covers the whole tile, so the entire
+               card is middle-clickable / Ctrl+clickable while the footer actions
+               stay ordinary buttons. Plain left click is intercepted for the
+               overlay.
+               The overlay is a real element rather than ::after so the mobile
+               gate can measure it: it looks for a touch-target child to learn an
+               element's true hit area, and a pseudo-element is invisible to that
+               check — the headline would be reported as a 246x18px tap target
+               when it is in fact the whole card. -->
           <h3>
             <a class="card-link" [href]="item.url" target="_blank" rel="noopener noreferrer"
                (click)="onCardClick($event, item)"
-               (keydown.space)="onCardSpace($event, item)">{{ item.title }}</a>
+               (keydown.space)="onCardSpace($event, item)">{{ item.title }}<span
+                 class="card-link-touch-target" aria-hidden="true"></span></a>
           </h3>
           @if (item.summary && showSummary) {
             <p>{{ item.summary }}</p>
@@ -511,7 +518,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     /* The headline anchor carries the card's whole hit area — no visual change,
        but the browser now knows the tile is a link (d2171662). */
     .card-link { color: inherit; text-decoration: none; }
-    .card-link::after { content: ''; position: absolute; inset: 0; z-index: 5; }
+    .card-link-touch-target { position: absolute; inset: 0; z-index: 5; }
     .card-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 3px; }
     /* Thumb + optional play affordance share one positioning context. */
     .thumb-wrap { position: relative; display: flex; }

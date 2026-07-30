@@ -124,9 +124,9 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     }
   });
 
-  // The card link is stretched over the tile via a `::after` overlay. Real
-  // hit-testing is the only honest check that it covers the artwork without
-  // burying the footer's own buttons.
+  // The card link is stretched over the tile via an absolutely positioned
+  // overlay child. Real hit-testing is the only honest check that it covers the
+  // artwork without burying the footer's own buttons.
   it('stretches the card link over the artwork but not over the quick actions', () => {
     const card = el<HTMLElement>('.card')!;
     const link = el<HTMLAnchorElement>('.card .card-link')!;
@@ -143,7 +143,11 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     }
 
     expect(card.contains(hit(thumb))).withContext('artwork inside the card').toBeTrue();
-    expect(hit(thumb)).withContext('artwork hits the stretched link').toBe(link);
+    // Containment, not identity: the overlay is a real child element (so the
+    // mobile gate can measure the true hit area), and hit-testing therefore
+    // resolves to the overlay rather than to the anchor itself. Either way the
+    // point belongs to the stretched link — which is what this asserts.
+    expect(link.contains(hit(thumb))).withContext('artwork hits the stretched link').toBeTrue();
     expect(hit(fav)).withContext('fav button stays its own target').toBe(fav);
   });
 
