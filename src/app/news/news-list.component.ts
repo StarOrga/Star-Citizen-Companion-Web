@@ -22,6 +22,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { NewsService, NewsChannel, VerseNewsItem, VerseStatus, StatusLevel, effectivePlayability, pickRecentVideos, VIDEO_RETENTION_DAYS } from './news.service';
 import { NewsThumbComponent } from './news-thumb.component';
 import { UpcomingShipsNoticeComponent } from './upcoming-ships-notice.component';
+import { isMiddleClick, isPlainLeftClick } from '../core/modified-click.util';
 
 const CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
 const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
@@ -144,13 +145,18 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
               <div class="rail-track" #railTrack (scroll)="onRailScroll()">
                 @for (vid of recentVideos(); track vid.id) {
                   <article class="vid-card sc-reveal" [class.watched]="svc.isWatched(vid.id)"
-                           [attr.data-channel]="vid.channel" tabindex="0" role="button"
-                           [attr.aria-label]="vid.title"
-                           (click)="openVideo(vid)"
-                           (keydown.enter)="openVideo(vid)"
-                           (keydown.space)="onVideoSpace($event, vid)"
+                           [attr.data-channel]="vid.channel"
                            (mouseenter)="onVideoEnter(vid)"
                            (mouseleave)="onVideoLeave()">
+                    <!-- Real link across the whole tile (d2171662): middle click,
+                         Ctrl/⌘+click and "open link in new tab" hand the clip to
+                         the browser; a plain left click stays in the app and
+                         opens the detail overlay. -->
+                    <a class="vid-link" [href]="vid.url" target="_blank" rel="noopener noreferrer"
+                       [attr.aria-label]="vid.title"
+                       (click)="onVideoClick($event, vid)"
+                       (auxclick)="onVideoAux($event, vid)"
+                       (keydown.space)="onVideoSpace($event, vid)"></a>
                     <div class="vid-thumb-wrap">
                       <sc-news-thumb
                         [images]="imagesOf(vid)"
@@ -289,11 +295,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     <ng-template #card let-item let-featured="featured" let-showSummary="showSummary">
       <article class="card sc-reveal" [class.featured]="featured" [class.has-thumb]="!!item.thumbnail"
                [class.video]="isVideo(item)"
-               [attr.data-channel]="item.channel" tabindex="0" role="button"
-               [attr.aria-label]="item.title"
-               (click)="openDetail(item)"
-               (keydown.enter)="openDetail(item)"
-               (keydown.space)="onCardSpace($event, item)">
+               [attr.data-channel]="item.channel">
         <div class="thumb-wrap">
           <sc-news-thumb
             [images]="imagesOf(item)"
@@ -308,7 +310,15 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
           }
         </div>
         <div class="body">
-          <h3>{{ item.title }}</h3>
+          <!-- Stretched link (d2171662): the headline is a real <a href> to the
+               source and its ::after covers the whole tile, so the entire card is
+               middle-clickable / Ctrl+clickable while the footer actions stay
+               ordinary buttons. Plain left click is intercepted for the overlay. -->
+          <h3>
+            <a class="card-link" [href]="item.url" target="_blank" rel="noopener noreferrer"
+               (click)="onCardClick($event, item)"
+               (keydown.space)="onCardSpace($event, item)">{{ item.title }}</a>
+          </h3>
           @if (item.summary && showSummary) {
             <p>{{ item.summary }}</p>
           }
@@ -553,12 +563,18 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     }
 
     .card {
+      position: relative;
       display: flex; flex-direction: column; gap: 0;
       border: 1px solid var(--sc-border); border-radius: 8px;
       background: var(--sc-bg-1); color: inherit; text-decoration: none;
       overflow: hidden; min-height: 200px;
       transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
     }
+    /* The headline anchor carries the card's whole hit area — no visual change,
+       but the browser now knows the tile is a link (d2171662). */
+    .card-link { color: inherit; text-decoration: none; }
+    .card-link::after { content: ''; position: absolute; inset: 0; z-index: 5; }
+    .card-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 3px; }
     /* Thumb + optional play affordance share one positioning context. */
     .thumb-wrap { position: relative; display: flex; }
     .thumb-wrap > sc-news-thumb { flex: 1 1 auto; min-width: 0; }
@@ -709,12 +725,19 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       border-radius: 10px; overflow: hidden; cursor: pointer; text-align: left;
       transition: border-color .15s ease, transform .15s ease, opacity .2s ease, box-shadow .15s ease;
     }
-    .vid-card:hover, .vid-card:focus-visible {
+    .vid-card:hover, .vid-card:focus-within {
       border-color: var(--sc-danger); transform: translateY(-2px); outline: none;
       box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45),
                   0 0 18px color-mix(in srgb, var(--sc-danger) 30%, transparent);
     }
-    .vid-card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    /* The tile IS a link (d2171662) — an overlay anchor spanning the card, so
+       middle click / Ctrl+click / "open in new tab" reach the clip natively.
+       It sits above scrim, caption, badge and play glyph (all decorative). */
+    .vid-link {
+      position: absolute; inset: 0; z-index: 5;
+      text-decoration: none; color: inherit; border-radius: inherit;
+    }
+    .vid-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -3px; }
     /* HUD corner brackets in the channel colour — the same visual grammar the
        rest of the app uses, tinted so a video reads as a video at a glance. */
     .vid-card::before, .vid-card::after {
@@ -750,7 +773,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     }
     .watched-badge .tick { color: var(--sc-accent); }
     .vid-card.watched { opacity: 0.55; }
-    .vid-card.watched:hover, .vid-card.watched:focus-visible { opacity: 0.85; }
+    .vid-card.watched:hover, .vid-card.watched:focus-within { opacity: 0.85; }
 
     /* ---------- Play affordance (rail, stream cards, detail) ---------- */
     .play {
@@ -766,8 +789,8 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
     }
     .play svg { width: 22px; height: 22px; margin-left: 2px; display: block; }
-    .vid-card:hover .play, .vid-card:focus-visible .play,
-    .card.video:hover .play, .card.video:focus-visible .play {
+    .vid-card:hover .play, .vid-card:focus-within .play,
+    .card.video:hover .play, .card.video:focus-within .play {
       transform: translate(-50%, -50%) scale(1.12);
       background: var(--sc-danger);
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5),
@@ -787,14 +810,14 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     }
     .foot .when { display: inline-flex; align-items: center; }
     @media (prefers-reduced-motion: reduce) {
-      .vid-card, .vid-card:hover, .vid-card:focus-visible { transform: none; }
+      .vid-card, .vid-card:hover, .vid-card:focus-within { transform: none; }
       .play, .vid-card:hover .play, .card.video:hover .play { transition: none; }
     }
 
-    /* ---------- Card as button + quick actions ---------- */
+    /* ---------- Card as link + quick actions ---------- */
     .card { cursor: pointer; text-align: left; }
-    .card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .card .body .foot .actions { display: inline-flex; align-items: center; gap: 6px; }
+    /* Actions ride above the stretched card link so they stay their own targets. */
+    .card .body .foot .actions { display: inline-flex; align-items: center; gap: 6px; position: relative; z-index: 6; }
     .act {
       display: inline-flex; align-items: center; justify-content: center;
       min-width: 26px; height: 24px; padding: 0 6px; border-radius: 6px;
@@ -1009,6 +1032,19 @@ export class NewsListComponent implements OnInit, OnDestroy {
     this.detailRef = null;
   }
 
+  /**
+   * Card headline is a real `<a href>` to the source (d2171662). Only the plain
+   * left click is ours — everything the browser has its own meaning for (middle
+   * click, Ctrl/⌘/Shift/Alt+click, context menu "open in new tab") falls through
+   * untouched and lands on the source in a new tab.
+   */
+  onCardClick(ev: MouseEvent, item: VerseNewsItem): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.openDetail(item);
+  }
+
+  /** Space on the card link: anchors don't activate on Space, so we do. */
   onCardSpace(ev: Event, item: VerseNewsItem): void {
     ev.preventDefault();
     this.openDetail(item);
@@ -1034,6 +1070,27 @@ export class NewsListComponent implements OnInit, OnDestroy {
   onVideoSpace(ev: Event, item: VerseNewsItem): void {
     ev.preventDefault();
     this.openVideo(item);
+  }
+
+  /**
+   * Rail tile is a real `<a href>` to the clip (d2171662): a plain left click
+   * keeps the in-app detail view, a modified click is the browser's business.
+   * Either way the clip counts as watched.
+   */
+  onVideoClick(ev: MouseEvent, item: VerseNewsItem): void {
+    this.svc.markWatched(item.id);
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.openDetail(item);
+  }
+
+  /**
+   * Middle click never reaches `click` — the browser fires `auxclick` and opens
+   * the tab itself. We only piggyback the "watched" bookkeeping onto it; the
+   * navigation stays entirely native.
+   */
+  onVideoAux(ev: MouseEvent, item: VerseNewsItem): void {
+    if (isMiddleClick(ev)) this.svc.markWatched(item.id);
   }
 
   /** Opening a video (click / keyboard) also counts as watched, then shows detail. */

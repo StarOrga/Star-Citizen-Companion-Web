@@ -18,6 +18,7 @@ import {
   AppDownloadPanelComponent,
 } from '../desktop/app-download-panel.component';
 import { StarscapeAppPromoComponent } from './starscape-app-promo.component';
+import { isPlainLeftClick } from '../core/modified-click.util';
 
 // Believable, varied masonry-tile heights (px) for the loading skeletons. The
 // gallery rows carry no dimension metadata, so a fixed cycle of plausible
@@ -114,8 +115,14 @@ const EAGER_TILES = 8;
 
       <div class="wall">
         @for (w of svc.wallpapers(); track w.imageId; let i = $index) {
-          <button type="button" class="tile" [class.loaded]="loaded().has(w.imageId)"
-                  (click)="open(w)" [attr.aria-label]="w.title">
+          <!-- A tile is a link to the full-res source (d2171662): middle click,
+               Ctrl/⌘+click and "open image in new tab" go straight to the CDN
+               original; a plain left click keeps the in-page lightbox. -->
+          <a class="tile" [class.loaded]="loaded().has(w.imageId)"
+             [href]="w.sourceUrl" target="_blank" rel="noopener noreferrer"
+             [attr.aria-label]="w.title"
+             (click)="onTileClick($event, w)"
+             (keydown.space)="onTileSpace($event, w)">
             <!-- Skeleton holds the tile's height while its preview decodes, so
                  the column never collapses to a border stripe. Dropped once the
                  image is ready (or has failed) — then the image defines height. -->
@@ -143,7 +150,7 @@ const EAGER_TILES = 8;
               (error)="onBroken(w.imageId)"
               [class.hidden]="broken().has(w.imageId)" />
             @if (w.series) { <span class="tile-series">{{ w.series }}</span> }
-          </button>
+          </a>
         }
       </div>
 
@@ -215,9 +222,10 @@ const EAGER_TILES = 8;
       position: relative; display: block; width: 100%; margin: 0 0 12px;
       padding: 0; border: 1px solid var(--sc-border); border-radius: 8px;
       overflow: hidden; cursor: zoom-in; background: var(--sc-bg-1);
-      break-inside: avoid;
+      break-inside: avoid; color: inherit; text-decoration: none;
       transition: transform 0.16s ease, box-shadow 0.16s ease;
     }
+    .tile:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .tile:hover { transform: translateY(-2px);
       box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 14px color-mix(in srgb, var(--sc-accent) 25%, transparent); }
     .tile img { display: block; width: 100%; height: auto; }
@@ -437,6 +445,23 @@ export class StarscapeComponent implements OnInit {
 
   open(w: Wallpaper): void {
     this.active.set(w);
+  }
+
+  /**
+   * Tile links to the original CDN image (d2171662). Only the plain left click is
+   * ours (lightbox); middle click, Ctrl/⌘/Shift+click and the context menu keep
+   * the browser's native "open in a new tab" behaviour.
+   */
+  onTileClick(ev: MouseEvent, w: Wallpaper): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.open(w);
+  }
+
+  /** Anchors don't activate on Space the way the old <button> tile did. */
+  onTileSpace(ev: Event, w: Wallpaper): void {
+    ev.preventDefault();
+    this.open(w);
   }
 
   close(): void {
