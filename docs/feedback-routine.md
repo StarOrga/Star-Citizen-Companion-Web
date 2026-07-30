@@ -337,22 +337,38 @@ on conflict (id) do update
 
 The ordering is the whole point. A cycle that finds nothing to do is still a
 cycle that *ran*, and it is by far the most common kind — stamping after the
-queue read (or after the reaper) would leave the dot red through every quiet
+queue read (or after the reaper) would leave the title red through every quiet
 stretch and train the admin to ignore it. `<short note>` is a one-liner for the
 tooltip ("queue empty", "3 items claimed"); it is rendered verbatim to admins,
 so nothing private goes in it.
 
 ### What the admin sees
 
-The admin feedback panel renders a small dot plus three words above the view
-switch (`src/app/admin/feedback/routine-status.component.ts`, fed by
-`routine-heartbeat.service.ts`):
+**The panel's own title carries it — nothing else appears on screen.**
+`src/app/admin/feedback/routine-status.directive.ts` (fed by
+`routine-heartbeat.service.ts`) tints whichever element already says
+"Feedback": the FAB panel head when docked or maximized, the `<h1>` on the full
+board page. The tint rules are global (`src/styles.scss`, "ROUTINE LIVENESS
+TINT") because the same signal has to reach all of those.
 
-| `now() - last_seen_at` | dot | wording |
+| `now() - last_seen_at` | title | tooltip / screen reader |
 |---|---|---|
-| < 45 min | green, filled | "Dev-PC erreichbar" |
-| ≥ 45 min | red, filled | "Dev-PC nicht erreichbar" |
-| no row / query error | grey, hollow ring | "Dev-PC Status unbekannt" |
+| < 45 min | green | "Dev-PC erreichbar — … hat sich vor 5 Minuten gemeldet." |
+| ≥ 45 min | red | "Dev-PC nicht erreichbar — zuletzt vor 3 Stunden …" |
+| no row / query error | untinted | "Status unbekannt — bisher keine Rückmeldung." |
+
+The first cut of this was a line of its own — a dot plus the words "Dev-PC
+erreichbar" above the view switch — and the admin sent it back: *"Es soll nicht
+stehen 'Dev PC erreichbar' sondern nur der Titel oben 'Feedback' soll grün oder
+Rot markiert sein, also nichts stark Offensichtliches sondern was dezentes aber
+bemerkbares"*. A liveness light is glanced at, not read; it earns no real estate
+of its own.
+
+**Colour is still never the only carrier.** The wording lives on as visually
+hidden text inside the title (so the heading reads "Feedback (Dev-PC nicht
+erreichbar)" to a screen reader, and shows itself under forced colours, where
+the tint is stripped away), and the `title` attribute keeps naming the last
+check-in on hover.
 
 **45 minutes, against a 20-minute cadence, is deliberate:** it tolerates ~2
 missed cycles. A tighter window (say 25 min) would flip red every time a cycle
@@ -364,7 +380,7 @@ an hour.
 session, or a failed request says nothing whatsoever about the dev PC, and
 painting that red would be a claim the admin then has to go and disprove.
 
-**A usage-limit abort turns the dot red on its own** — which is the property
+**A usage-limit abort turns the title red on its own** — which is the property
 the feedback predicted ("denke das System wird damit automatisch auch erkennen
 wenn die Tokens verbraucht sind"). There is no token check anywhere: a run that
 dies on a usage limit, or never starts because Claude is closed, simply never
