@@ -62,7 +62,7 @@ import { ConsentService } from './consent.service';
       letter-spacing: 0.05em;
       color: var(--sc-fg-0);
     }
-    .text span { color: var(--sc-fg-2); font-size: 0.78rem; line-height: 1.45; }
+    .text span { color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); line-height: 1.45; }
     .actions { display: flex; gap: 8px; flex: 0 0 auto; }
     .sc-btn-primary {
       background: var(--sc-accent);

@@ -26,13 +26,13 @@ import { ShowroomService } from './showroom.service';
     .holo-badge {
       display: inline-flex; align-items: center; gap: 5px;
       padding: 2px 8px; border-radius: 999px;
-      font-family: var(--sc-font-display); font-size: 0.62rem; letter-spacing: 0.08em;
+      font-family: var(--sc-font-display); font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.08em;
       text-transform: uppercase; white-space: nowrap;
       color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent);
     }
-    .holo-glyph { font-size: 0.78rem; line-height: 1; text-shadow: 0 0 6px var(--sc-accent); }
+    .holo-glyph { font-size: max(0.78rem, var(--sc-fs-floor)); line-height: 1; text-shadow: 0 0 6px var(--sc-accent); }
   `],
 })
 export class HoloReadyBadgeComponent {

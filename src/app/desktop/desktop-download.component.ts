@@ -131,12 +131,12 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
 
     .meta { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
     .rel-when {
-      color: var(--sc-fg-2); font-size: 0.7rem;
+      color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor));
       letter-spacing: 0.06em; text-transform: uppercase;
     }
     .link {
       background: transparent; border: 0; padding: 0; cursor: pointer;
-      font: inherit; font-size: 0.76rem; color: var(--sc-accent);
+      font: inherit; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-accent);
       text-decoration: underline; text-underline-offset: 2px;
     }
     .link:hover { color: var(--sc-accent-hot); }
@@ -147,7 +147,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
       padding: 10px 0 0; border-top: 1px solid var(--sc-border);
     }
     .promote .pl {
-      color: var(--sc-fg-2); font-size: 0.7rem;
+      color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor));
       letter-spacing: 0.06em; text-transform: uppercase;
     }
     .promote .psel {

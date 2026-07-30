@@ -46,7 +46,7 @@ import { HEARTBEAT_POLL_MS, RoutineHeartbeatService, relativeFromNow } from './r
         align-items: center;
         gap: 0.4em;
         margin: 0 0 0.35rem;
-        font-size: 0.72rem;
+        font-size: max(0.72rem, var(--sc-fs-floor));
         line-height: 1.2;
         letter-spacing: 0.02em;
         cursor: help;

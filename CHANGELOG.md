@@ -4,6 +4,36 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.56.2] - 2026-07-30
+
+### Fixed
+
+- **The app was designed for a mouse at desk distance, and phones inherited it
+  unchanged.** The mobile/tablet gate had been red since #307 with 704 blocking
+  findings across all 4 devices × 11 public routes — not a login-page defect but
+  a system-wide one: a 15 px root with a label scale bottoming out at 0.58 rem
+  (8.7 px), and controls built to mouse precision (form fields 41 px, buttons
+  38 px, footer and trust links 16 px, icon buttons down to 14 × 16 px).
+
+  Both floors are now expressed once, as tokens, and applied only where they are
+  actually required — `@media (pointer: coarse)`, which matches every touch
+  device and never a mouse:
+
+  - `--sc-fs-floor` — consumed as `font-size: max(<design size>, var(--sc-fs-floor))`
+    by all 389 sub-12 px declarations. On touch the smallest rendered text on
+    any route is exactly 12 px; on a fine pointer the token is `0px`, so the
+    design size wins and the desktop composition is unchanged (verified: the
+    footer badge label still computes to 8.7 px there).
+  - `--sc-tap-min` — a 48 px minimum hit area on every interactive primitive.
+    48 rather than the bare 44 px minimum because the app animates both the
+    route change and each card reveal from `scale(0.994)`; while those overlap a
+    control sized at exactly 44 px measures 43.5 px mid-flight, below its own
+    minimum. Native checkboxes and radios cannot carry a hit area larger than
+    their own box, so they are redrawn as a 22 px control centred in the target.
+
+  No threshold was relaxed and no waiver was added — `scripts/mobile-gate.config.json`
+  is untouched. `npm run gate:mobile`: 44 page audits, 0 blocking findings.
+
 ## [0.56.1] - 2026-07-29
 
 ### Changed
@@ -90,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `/login` and the shared topbar: 41–38 px form controls, 16 px trust links,
   sub-12 px labels). Verified identical on `origin/main` and on this branch, so
   this release neither causes nor worsens it. Needs its own pass.
+  *Resolved in 0.56.2 — the cause was app-wide, not login-specific.*
 
 ## [0.55.4] - 2026-07-29
 

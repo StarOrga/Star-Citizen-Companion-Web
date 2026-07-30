@@ -146,7 +146,7 @@ const SKELETONS = Array.from({ length: 8 }, (_, i) => i);
     .kb { display: flex; flex-direction: column; gap: 18px; padding-bottom: 90px; }
 
     .kb-head { display: flex; flex-direction: column; gap: 4px; }
-    .back { font-size: 0.78rem; color: var(--sc-accent); text-decoration: none; width: fit-content; }
+    .back { font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-accent); text-decoration: none; width: fit-content; }
     .back:hover { text-decoration: underline; }
     .kb-head h1 { margin: 4px 0 0; font-size: clamp(1.4rem, 2.6vw, 2rem); }
     .sub { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; }
@@ -160,7 +160,7 @@ const SKELETONS = Array.from({ length: 8 }, (_, i) => i);
     .devices { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
     .dev {
       padding: 7px 14px; border: none; background: transparent; color: var(--sc-fg-2);
-      font-family: var(--sc-font-display); font-size: 0.72rem; letter-spacing: 0.04em;
+      font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.04em;
       text-transform: uppercase; border-radius: 7px; cursor: pointer;
     }
     .dev:hover { color: var(--sc-fg-0); }
@@ -172,7 +172,7 @@ const SKELETONS = Array.from({ length: 8 }, (_, i) => i);
     }
     .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
 
-    .count { margin: 0; color: var(--sc-fg-2); font-size: 0.76rem; }
+    .count { margin: 0; color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
 
     .cat { display: flex; flex-direction: column; gap: 6px; }
     .cat-head {
@@ -196,13 +196,13 @@ const SKELETONS = Array.from({ length: 8 }, (_, i) => i);
       background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent);
       color: var(--sc-accent); font-family: var(--sc-font-display);
-      font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase;
+      font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase;
       white-space: nowrap; vertical-align: middle;
     }
     .cat-head .ctx { margin-left: 0; }
     /* Ground truth for a derived label — nothing from the datamine is lost. */
     .act-raw {
-      font-family: var(--sc-font-mono, ui-monospace, monospace); font-size: 0.68rem;
+      font-family: var(--sc-font-mono, ui-monospace, monospace); font-size: max(0.68rem, var(--sc-fs-floor));
       color: var(--sc-fg-2); overflow-wrap: anywhere;
     }
     .bind {

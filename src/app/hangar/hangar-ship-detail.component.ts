@@ -352,7 +352,7 @@ interface PortRow {
     .icon-btn:hover { color: var(--sc-accent); }
     .sub { margin: 2px 0 0; color: var(--sc-fg-2); }
     .badges { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-    .badge { font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
+    .badge { font-size: max(0.68rem, var(--sc-fs-floor)); padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.wishlist { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); }
@@ -360,13 +360,13 @@ interface PortRow {
 
     .head-actions { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
     .facet { display: flex; flex-direction: column; gap: 4px; }
-    .facet > span { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+    .facet > span { font-size: max(0.64rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .sc-select { background: var(--sc-bg-1); color: var(--sc-fg-0); border: 1px solid var(--sc-border); border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-    .sc-btn { padding: 8px 14px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: 0.74rem; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+    .sc-btn { padding: 8px 14px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
     .sc-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .sc-btn:disabled { opacity: 0.5; cursor: default; }
-    .sc-btn.small { padding: 7px 12px; font-size: 0.7rem; }
-    .sc-btn.tiny { padding: 4px 9px; font-size: 0.64rem; }
+    .sc-btn.small { padding: 7px 12px; font-size: max(0.7rem, var(--sc-fs-floor)); }
+    .sc-btn.tiny { padding: 4px 9px; font-size: max(0.64rem, var(--sc-fs-floor)); }
     .sc-btn.ghost { border-color: var(--sc-border); color: var(--sc-fg-1); }
     .sc-btn.ghost:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
     .sc-btn.danger { border-color: var(--sc-danger); color: var(--sc-danger); }
@@ -385,24 +385,24 @@ interface PortRow {
     .cfg-tab { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-1); cursor: pointer; font-family: inherit; font-size: 0.8rem; }
     .cfg-tab:hover { border-color: var(--sc-accent); }
     .cfg-tab.active { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-fg-0); }
-    .cfg-role { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
+    .cfg-role { font-size: max(0.64rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
     .cfg-active { color: var(--sc-success, #4ade80); }
     .cfg-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
     .stat-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
     .stat { display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
-    .stat-label { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+    .stat-label { font-size: max(0.64rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .stat strong { font-size: 1.3rem; font-family: var(--sc-font-display); color: var(--sc-accent); }
-    .stat-sub { font-size: 0.7rem; color: var(--sc-fg-2); }
-    .stats-note { margin: 10px 0 0; font-size: 0.7rem; color: var(--sc-fg-2); }
+    .stat-sub { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .stats-note { margin: 10px 0 0; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     .cat { margin-top: 14px; }
-    .cat h3 { margin: 0 0 8px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+    .cat h3 { margin: 0 0 8px; font-size: max(0.78rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .port-list { display: flex; flex-direction: column; gap: 6px; }
     .port { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
     .port.overridden { border-color: color-mix(in srgb, var(--sc-accent) 50%, transparent); }
     .port-info { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-    .port-name { font-family: var(--sc-font-mono, monospace); font-size: 0.76rem; color: var(--sc-fg-1); word-break: break-all; }
+    .port-name { font-family: var(--sc-font-mono, monospace); font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-1); word-break: break-all; }
     .port-meta { display: flex; gap: 4px; flex-wrap: wrap; }
     .port-assign { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .assign-name { flex: 1; font-size: 0.86rem; min-width: 140px; }
@@ -412,19 +412,19 @@ interface PortRow {
     .comp-stats { display: flex; flex-wrap: wrap; gap: 6px; }
     .std-item .comp-stats { flex: 1 1 100%; }
     .comp-stat { display: inline-flex; align-items: baseline; gap: 5px; padding: 2px 9px; border-radius: 999px; background: var(--sc-bg-2); border: 1px solid var(--sc-border); }
-    .cs-k { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
-    .cs-v { font-size: 0.74rem; font-family: var(--sc-font-display); color: var(--sc-accent); }
+    .cs-k { font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
+    .cs-v { font-size: max(0.74rem, var(--sc-fs-floor)); font-family: var(--sc-font-display); color: var(--sc-accent); }
 
     .std-head { display: flex; align-items: baseline; gap: 10px; }
     .std-head h2 { margin: 0; }
-    .std-ct { font-size: 0.7rem; color: var(--sc-fg-2); padding: 1px 8px; border-radius: 999px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
+    .std-ct { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); padding: 1px 8px; border-radius: 999px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
     .standard .hint { margin: 6px 0 0; }
     .std-empty { margin-top: 10px; }
     .std-list { display: flex; flex-direction: column; gap: 6px; }
     .std-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); flex-wrap: wrap; }
     .std-name { font-size: 0.88rem; color: var(--sc-fg-0); flex: 1; min-width: 140px; }
     .std-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-    .std-port { font-family: var(--sc-font-mono, monospace); font-size: 0.68rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .std-port { font-family: var(--sc-font-mono, monospace); font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
 
     .notes textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.86rem; resize: vertical; margin-bottom: 8px; }
     .notes textarea:focus { outline: none; border-color: var(--sc-accent); }

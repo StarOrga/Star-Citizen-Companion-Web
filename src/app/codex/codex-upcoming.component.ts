@@ -168,13 +168,13 @@ import { UpcomingShip, UpcomingShipsService } from './upcoming-ships.service';
 
     .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
     .head-main { display: flex; flex-direction: column; gap: 6px; }
-    .back { color: var(--sc-accent); text-decoration: none; font-family: var(--sc-font-display); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    .back { color: var(--sc-accent); text-decoration: none; font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; }
     .back:hover { text-decoration: underline; }
     .head h1 { margin: 0; font-size: clamp(1.4rem, 3vw, 2rem); }
     .lede { margin: 0; color: var(--sc-fg-2); font-size: 0.86rem; max-width: 62ch; }
     .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     .meta-count { font-family: var(--sc-font-display); font-size: 0.9rem; letter-spacing: 0.04em; color: var(--sc-accent); text-transform: uppercase; }
-    .meta-fresh { display: inline-flex; align-items: center; gap: 6px; color: var(--sc-fg-2); font-size: 0.72rem; }
+    .meta-fresh { display: inline-flex; align-items: center; gap: 6px; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
     .fresh-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sc-success, #5fd698); box-shadow: 0 0 8px var(--sc-success, #5fd698); }
 
     .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -193,9 +193,9 @@ import { UpcomingShip, UpcomingShipsService } from './upcoming-ships.service';
 
     .fav-chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: 999px;
       border: 1px solid var(--sc-border); background: var(--sc-bg-1); color: var(--sc-fg-1);
-      font-family: inherit; font-size: 0.78rem; cursor: pointer; }
+      font-family: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); cursor: pointer; }
     .fav-chip .star { color: var(--sc-fg-2); }
-    .fav-chip .ct { font-size: 0.7rem; color: var(--sc-fg-2); }
+    .fav-chip .ct { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .fav-chip:hover { border-color: var(--sc-accent); }
     .fav-chip.active { border-color: var(--sc-accent); color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .fav-chip.active .star, .fav-chip.active .ct { color: var(--sc-accent); }
@@ -203,7 +203,7 @@ import { UpcomingShip, UpcomingShipsService } from './upcoming-ships.service';
     .block { display: flex; flex-direction: column; gap: 12px; }
     .block-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
     .block-head h2 { margin: 0; font-size: 1.05rem; }
-    .block-sub { color: var(--sc-fg-2); font-size: 0.76rem; }
+    .block-sub { color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
 
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
 
@@ -222,9 +222,9 @@ import { UpcomingShip, UpcomingShipsService } from './upcoming-ships.service';
     .thumb.icon-only sc-codex-icon { width: 56%; height: 56%; opacity: 0.7; }
     .info { display: flex; flex-direction: column; gap: 4px; }
     .name { margin: 0; font-size: 0.92rem; font-weight: 600; line-height: 1.2; }
-    .mfr { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
+    .mfr { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
     .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
-    .badge { font-size: 0.62rem; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 7px; border-radius: 6px;
+    .badge { font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 7px; border-radius: 6px;
       background: var(--sc-bg-2); color: var(--sc-fg-1); border: 1px solid var(--sc-border); }
     .badge.status { background: color-mix(in srgb, var(--sc-fg-2) 14%, transparent); }
     .badge.status.concept { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 34%, transparent); color: var(--sc-accent); }

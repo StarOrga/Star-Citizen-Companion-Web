@@ -265,11 +265,11 @@ interface RenderSection {
     .mod-sec.fixed { background: transparent; opacity: 0.78; }
     .mod-sec.fixed:hover { opacity: 1; }
 
-    .sec-head { margin: 0 0 8px; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em;
+    .sec-head { margin: 0 0 8px; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.07em;
       color: var(--sc-fg-1); display: flex; align-items: center; gap: 6px; }
-    .sec-ct { font-size: 0.62rem; padding: 0 6px; border-radius: 8px;
+    .sec-ct { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px;
       background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
-    .sec-tag { font-size: 0.56rem; letter-spacing: 0.06em; color: var(--sc-fg-2);
+    .sec-tag { font-size: max(0.56rem, var(--sc-fs-floor)); letter-spacing: 0.06em; color: var(--sc-fg-2);
       border: 1px solid var(--sc-border); border-radius: 3px; padding: 0 5px; }
 
     .sec-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -305,7 +305,7 @@ interface RenderSection {
     /* Size badge | name + meta — the two things that identify the occupant. */
     .slot-head { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
     .slot-ident { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .size-tag { flex: 0 0 auto; font-size: 0.66rem; font-weight: 600; line-height: 1.4;
+    .size-tag { flex: 0 0 auto; font-size: max(0.66rem, var(--sc-fs-floor)); font-weight: 600; line-height: 1.4;
       padding: 1px 6px; border-radius: 4px; white-space: nowrap;
       font-variant-numeric: tabular-nums; color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
@@ -317,8 +317,8 @@ interface RenderSection {
     .slot-btn.static .slot-item { color: var(--sc-fg-1); }
     .slot-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; min-width: 0; }
     .slot-meta:empty { display: none; }
-    .meta-txt { font-size: 0.64rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .tag { font-size: 0.58rem; letter-spacing: 0.04em; text-transform: uppercase;
+    .meta-txt { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .tag { font-size: max(0.58rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase;
       padding: 0 5px; border-radius: 3px; background: var(--sc-bg-2); color: var(--sc-fg-2);
       border: 1px solid var(--sc-border); white-space: nowrap; }
     .tag.accent { text-transform: none; letter-spacing: 0; color: var(--sc-accent);
@@ -328,19 +328,19 @@ interface RenderSection {
       background: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 10%, transparent); }
 
     /* Port name is context, not headline — it sits last and quiet. */
-    .slot-port { font-size: 0.63rem; color: var(--sc-fg-2); opacity: 0.85; overflow-wrap: anywhere; }
-    .slot-empty { font-size: 0.74rem; color: var(--sc-fg-2); font-style: italic; }
+    .slot-port { font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); opacity: 0.85; overflow-wrap: anywhere; }
+    .slot-empty { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .kid-empty { font-size: 0.84rem; color: var(--sc-fg-2); }
 
     .slot-stats { margin: 5px 0 0; padding: 5px 0 0; display: flex; flex-wrap: wrap;
       gap: 2px 14px;
       border-top: 1px solid color-mix(in srgb, var(--sc-border) 70%, transparent); }
     .slot-stats .stat { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
-    .slot-stats dt { font-size: 0.63rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .slot-stats dd { margin: 0; font-size: 0.7rem; color: var(--sc-fg-1); white-space: nowrap;
+    .slot-stats dt { font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .slot-stats dd { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-1); white-space: nowrap;
       font-variant-numeric: tabular-nums; }
     .slot-stats .derived { color: var(--sc-fg-2); cursor: help; }
-    .slot-note { margin-top: 4px; font-size: 0.63rem; color: var(--sc-fg-2); font-style: italic; }
+    .slot-note { margin-top: 4px; font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
 
     @media (max-width: 720px) {
       .chain { display: none; }

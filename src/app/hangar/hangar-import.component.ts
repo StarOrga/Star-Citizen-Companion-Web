@@ -141,11 +141,11 @@ const MAX_ENTRIES = 200;
     .close:hover { color: var(--sc-fg-0); }
     .hint { color: var(--sc-fg-2); font-size: 0.8rem; margin: 0; line-height: 1.5; }
     .pick { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .pick-hint { color: var(--sc-fg-2); font-size: 0.75rem; }
+    .pick-hint { color: var(--sc-fg-2); font-size: max(0.75rem, var(--sc-fs-floor)); }
     .err { color: var(--sc-danger); font-size: 0.82rem; }
     .summary-row { display: flex; justify-content: space-between; align-items: center; gap: 12px;
       font-size: 0.8rem; color: var(--sc-fg-1); }
-    .link-btn { background: transparent; border: 0; color: var(--sc-accent); cursor: pointer; font-size: 0.76rem; }
+    .link-btn { background: transparent; border: 0; color: var(--sc-accent); cursor: pointer; font-size: max(0.76rem, var(--sc-fs-floor)); }
     .rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px;
       max-height: 320px; overflow-y: auto; }
     .row { display: flex; justify-content: space-between; align-items: center; gap: 10px;
@@ -154,8 +154,8 @@ const MAX_ENTRIES = 200;
     .row label { display: flex; align-items: center; gap: 8px; min-width: 0; cursor: pointer; }
     .row input { accent-color: var(--sc-accent); }
     .src { font-size: 0.85rem; color: var(--sc-fg-0); }
-    .nick { font-size: 0.76rem; color: var(--sc-fg-2); font-style: italic; }
-    .badge { font-size: 0.62rem; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+    .nick { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
+    .badge { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 2px 8px; border-radius: 999px; white-space: nowrap;
       border: 1px solid var(--sc-border); color: var(--sc-fg-2); }
     .badge.ok { color: var(--sc-success); border-color: color-mix(in srgb, var(--sc-success) 50%, transparent); }
     .badge.fuzzy { color: #f0b35c; border-color: color-mix(in srgb, #f0b35c 50%, transparent); }

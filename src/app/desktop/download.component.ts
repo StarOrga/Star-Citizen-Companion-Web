@@ -63,7 +63,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
       border-radius: 4px;
     }
     .rel-when {
-      color: var(--sc-fg-2); font-size: 0.7rem;
+      color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor));
       letter-spacing: 0.06em; text-transform: uppercase;
     }
   `],
