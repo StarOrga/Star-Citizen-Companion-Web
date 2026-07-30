@@ -169,6 +169,41 @@ const SEARCH_LIMIT = 60;
 const CATEGORY_PAGE_SIZE = 1000;
 const CATEGORY_MAX_PAGES = 10;
 
+// Locale lookups filter with PostgREST's `key=in.(…)`, which rides in the URL.
+// The Supabase edge answers a bare `400 Bad Request` — no PostgREST error body —
+// once the request line passes ~25 300 characters (measured 2026-07-30 against
+// the live project: 819 keybind keys = 25 264 chars → 200, 820 = 25 303 → 400).
+// 7 000 encoded characters per batch keeps a whole request below the 8 000-char
+// mark postgrest-js itself flags as "may exceed server limits", with ~3.5x
+// headroom to the real ceiling. Anything but /codex/keybinds fits in one batch.
+const LOCALE_KEY_URL_BUDGET = 7000;
+// A batch must also stay under PostgREST's 1000-row response cap: keys short
+// enough to pack >1000 into one budget would come back silently truncated
+// rather than erroring.
+const LOCALE_KEY_BATCH_MAX = 500;
+
+/**
+ * Split locale keys into batches whose encoded `in.(…)` list fits the URL
+ * budget. Cost per key is its percent-encoded length plus the `%2C` separator.
+ */
+function batchLocaleKeys(keys: string[]): string[][] {
+  const batches: string[][] = [];
+  let current: string[] = [];
+  let length = 0;
+  for (const key of keys) {
+    const cost = encodeURIComponent(key).length + 3;
+    if (current.length && (length + cost > LOCALE_KEY_URL_BUDGET || current.length >= LOCALE_KEY_BATCH_MAX)) {
+      batches.push(current);
+      current = [];
+      length = 0;
+    }
+    current.push(key);
+    length += cost;
+  }
+  if (current.length) batches.push(current);
+  return batches;
+}
+
 // Columns selected per kind for the list view. Keep payload last.
 const LIST_SELECT: Record<CodexKind, string> = {
   ship: 'class_name, name_localized, manufacturer_code, role, crew_size, is_variant, payload',
@@ -588,6 +623,12 @@ export class CodexService {
    * value in the current build, from codex_locale_strings. The leading `@` is
    * stripped to match the table's key form. Returns a key→value map keyed by
    * the ORIGINAL input string.
+   *
+   * The key list travels in the URL as PostgREST's `key=in.(…)`, so it is sent
+   * in batches (see LOCALE_KEY_URL_BUDGET) rather than one request — /codex/
+   * keybinds asks for ~1 250 keys at once, which overran the edge's request-line
+   * limit and 400'd on every load. Batches run concurrently, so the extra
+   * requests cost roughly one round-trip on HTTP/2.
    */
   async resolveLocaleKeys(keys: string[], lang: Lang): Promise<Map<string, string>> {
     const out = new Map<string, string>();
@@ -595,16 +636,26 @@ export class CodexService {
     const wanted = keys.filter((k) => k && k.startsWith('@'));
     if (!build || wanted.length === 0) return out;
     const norm = new Map(wanted.map((k) => [k.slice(1), k])); // stripped -> original
-    const { data, error } = await this.sb.client
-      .from('codex_locale_strings')
-      .select('key, value')
-      .eq('build_id', build.id)
-      .eq('lang', lang)
-      .in('key', [...norm.keys()]);
-    if (error) return out; // localization is a nice-to-have — never block the view
-    for (const r of (data ?? []) as { key: string; value: string }[]) {
-      const original = norm.get(r.key);
-      if (original) out.set(original, r.value);
+
+    const batches = await Promise.all(
+      batchLocaleKeys([...norm.keys()]).map((batch) =>
+        this.sb.client
+          .from('codex_locale_strings')
+          .select('key, value')
+          .eq('build_id', build.id)
+          .eq('lang', lang)
+          .in('key', batch),
+      ),
+    );
+    for (const { data, error } of batches) {
+      // Localization is a nice-to-have — never block the view. A batch that
+      // fails just leaves its keys unresolved; the caller falls back to English
+      // or to the raw key.
+      if (error) continue;
+      for (const r of (data ?? []) as { key: string; value: string }[]) {
+        const original = norm.get(r.key);
+        if (original) out.set(original, r.value);
+      }
     }
     return out;
   }
