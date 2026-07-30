@@ -96,7 +96,13 @@
   }
 
   /* Native checkboxes/radios cannot carry a hit area larger than their own box,
-     so they are drawn as a 22px control centred inside the full touch target. */
+     so the element becomes the invisible 48px target and the visible 22px
+     control is drawn in ::before, with its mark in ::after. Both pseudo-elements
+     share one grid cell so the mark sits centred on the control.
+     (Painting the control via the element's own background would tie its shape
+     to the 48px border box — a radio would then render square, because
+     `border-radius` clips at the border box while `background-clip: content-box`
+     paints the inner 22px.) */
   input[type='checkbox'],
   input[type='radio'] {
     appearance: none;
@@ -104,20 +110,31 @@
     inline-size: var(--sc-tap-min);
     block-size: var(--sc-tap-min);
     margin: 0;
+    padding: 0;
     border: none;
-    background:
-      linear-gradient(var(--sc-bg-1), var(--sc-bg-1)) content-box,
-      transparent;
-    padding: calc((var(--sc-tap-min) - 22px) / 2);
-    background-clip: content-box;
-    box-shadow: inset 0 0 0 1px var(--sc-border);
+    background: none;
     display: grid;
     place-content: center;
   }
-  input[type='radio'] { border-radius: 50%; }
+  input[type='checkbox']::before,
+  input[type='radio']::before,
+  input[type='checkbox']::after,
+  input[type='radio']::after {
+    content: '';
+    grid-area: 1 / 1;
+    place-self: center;
+  }
   input[type='checkbox']::before,
   input[type='radio']::before {
-    content: '';
+    inline-size: 22px;
+    block-size: 22px;
+    border-radius: 4px;
+    background: var(--sc-bg-1);
+    box-shadow: inset 0 0 0 1px var(--sc-border);
+  }
+  input[type='radio']::before { border-radius: 50%; }
+  input[type='checkbox']::after,
+  input[type='radio']::after {
     inline-size: 12px;
     block-size: 12px;
     transform: scale(0);
@@ -125,9 +142,9 @@
     background: var(--sc-accent);
     clip-path: polygon(14% 44%, 0 60%, 40% 100%, 100% 18%, 84% 0, 38% 68%);
   }
-  input[type='radio']::before { clip-path: none; border-radius: 50%; }
-  input[type='checkbox']:checked::before,
-  input[type='radio']:checked::before { transform: scale(1); }
+  input[type='radio']::after { clip-path: none; border-radius: 50%; }
+  input[type='checkbox']:checked::after,
+  input[type='radio']:checked::after { transform: scale(1); }
 }
 
 * {
