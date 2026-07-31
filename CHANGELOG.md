@@ -4,6 +4,35 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.56.3] - 2026-07-31
+
+### Fixed
+
+- **Every keybinding on `/codex/keybinds` was labelled with a raw `@`-key,
+  because the query that resolves those labels returned HTTP 400 on every single
+  load.** The lookup filters with PostgREST's `key=in.(…)`, which rides in the
+  URL — and the keybindings page asks for ~1250 keys at once, a 35 919-character
+  request line. The Supabase edge rejects it with a bare `400 Bad Request` and no
+  PostgREST error body, so nothing distinguished it from an empty result;
+  measured against the live project, 819 keys (25 264 chars) still return 200 and
+  820 (25 303) do not. It fired twice per load, once per language, and surfaced
+  as three `network-error` warnings per device in the mobile gate.
+
+  The key list is now split into batches of at most 7000 encoded characters —
+  below the 8000-char mark postgrest-js itself flags as "may exceed server
+  limits" — and the batches are issued concurrently, so on HTTP/2 the page still
+  pays roughly one round-trip. A batch is additionally capped at 500 keys so a
+  reply can never hit PostgREST's 1000-row cap and come back silently truncated.
+  Six batches per language cover the keybindings page; every other caller
+  (ship roles, hardpoint labels) still fits in a single request.
+
+  A failing batch now leaves only its own keys unresolved instead of discarding
+  the entire translation map — localization stays a nice-to-have that never
+  blocks the view.
+
+  `npm run gate:mobile`: `/codex/keybinds` drops from 3 network warnings per
+  device to 0, 44 page audits, 0 blocking findings.
+
 ## [0.56.2] - 2026-07-30
 
 ### Fixed
