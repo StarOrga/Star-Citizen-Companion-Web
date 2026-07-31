@@ -169,6 +169,13 @@ const SEARCH_LIMIT = 60;
 const CATEGORY_PAGE_SIZE = 1000;
 const CATEGORY_MAX_PAGES = 10;
 
+// Keybinds hit the same 1000-row cap: a build's default profile is already
+// ~1.1k actions, so an unpaged select silently drops the tail (it comes back
+// short, not as an error). The cap bounds a pathological profile (10k actions)
+// instead of looping forever.
+const KEYBIND_PAGE_SIZE = 1000;
+const KEYBIND_MAX_PAGES = 10;
+
 // Locale lookups filter with PostgREST's `key=in.(…)`, which rides in the URL.
 // The Supabase edge answers a bare `400 Bad Request` — no PostgREST error body —
 // once the request line passes ~25 300 characters (measured 2026-07-30 against
@@ -669,16 +676,29 @@ export class CodexService {
   async listKeybinds(): Promise<CodexKeybind[]> {
     const build = await this.loadCurrentBuild();
     if (!build) return [];
-    const { data, error } = await this.sb.client
-      .from('codex_keybinds')
-      .select(
-        'actionmap, action_name, label_key, description_key, category_label_key, ' +
-          'activation_mode, binding_keyboard, binding_mouse, binding_gamepad, binding_joystick, sort',
-      )
-      .eq('build_id', build.id)
-      .order('sort', { ascending: true });
-    if (error) throw new Error(error.message);
-    return ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
+    const rows: Record<string, unknown>[] = [];
+    for (let page = 0; page < KEYBIND_MAX_PAGES; page++) {
+      const from = page * KEYBIND_PAGE_SIZE;
+      const { data, error } = await this.sb.client
+        .from('codex_keybinds')
+        .select(
+          'actionmap, action_name, label_key, description_key, category_label_key, ' +
+            'activation_mode, binding_keyboard, binding_mouse, binding_gamepad, binding_joystick, sort',
+        )
+        .eq('build_id', build.id)
+        // `sort` is the extractor's global document-order counter and unique
+        // within a build, so it is already a total order; `action_name` only
+        // guards against a future extractor emitting ties, which would let
+        // paging repeat or skip rows.
+        .order('sort', { ascending: true })
+        .order('action_name', { ascending: true })
+        .range(from, from + KEYBIND_PAGE_SIZE - 1);
+      if (error) throw new Error(error.message);
+      const batch = (data ?? []) as unknown as Record<string, unknown>[];
+      rows.push(...batch);
+      if (batch.length < KEYBIND_PAGE_SIZE) break;
+    }
+    return rows.map((r) => ({
       actionmap: (r['actionmap'] as string) ?? '',
       actionName: (r['action_name'] as string) ?? '',
       labelKey: (r['label_key'] as string | null) ?? null,
