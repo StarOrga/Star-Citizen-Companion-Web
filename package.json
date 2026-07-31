@@ -12,6 +12,7 @@
     "check:readme-docs": "node scripts/gen-readme-content.mjs --check",
     "prebuild": "node scripts/gen-release-notes.js && node scripts/check-csp-3d.mjs",
     "build": "ng build --configuration production",
+    "postbuild": "node scripts/check-index-csp.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false --browsers=ChromeHeadless",
     "typecheck": "npx tsc --noEmit -p tsconfig.app.json",
@@ -34,7 +35,8 @@
     "tool:test": "npm --prefix desktop-tool run test",
     "tool:typecheck": "npm --prefix desktop-tool run typecheck",
     "tool:package": "npm --prefix desktop-tool run package:win",
-    "check:csp-3d": "node scripts/check-csp-3d.mjs"
+    "check:csp-3d": "node scripts/check-csp-3d.mjs",
+    "check:csp-index": "node scripts/check-index-csp.mjs"
   },
   "dependencies": {
     "@angular/animations": "^21.2.17",
