@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { animate, style, transition, trigger } from '@angular/animations';
-import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { useAutoRefresh } from '../../core/auto-refresh';
@@ -49,6 +49,9 @@ import {
 import { buildFeedbackBody, uploadFeedbackImages } from '../../feedback/feedback-images.util';
 import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
 import { awaitsReview } from './feedback.types';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
+import { formatScDate } from '../../core/locale/date-format';
+import { LocaleService } from '../../core/locale/locale.service';
 import {
   AuthorFeedbackMessage,
   AuthorFeedbackStatus,
@@ -122,7 +125,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
   selector: 'sc-admin-feedback',
   standalone: true,
   imports: [
-    DatePipe,
+    ScDatePipe,
     NgTemplateOutlet,
     TranslateModule,
     FeedbackAttachmentsComponent,
@@ -268,7 +271,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                       <span class="rv-no" [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
                     }
                     <span class="rv-title">{{ topicTitle(m.body) }}</span>
-                    <span class="rv-ts">{{ reviewSince(m) | date: 'shortDate' }}</span>
+                    <span class="rv-ts">{{ reviewSince(m) | scDate }}</span>
                   </header>
 
                   @if (m.ship_ref) {
@@ -662,7 +665,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                   [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
               }
               <span class="author">{{ authorLabel(m) }}</span>
-              <span class="ts">{{ m.created_at | date:'short' }}</span>
+              <span class="ts">{{ m.created_at | scDate: 'datetime' }}</span>
               <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
             </div>
           }
@@ -718,7 +721,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                     <div class="reply-head">
                       <span class="reply-author">{{ authorLabelFor(msg) }}</span>
                       @if (msg.is_system) { <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span> }
-                      <span class="reply-ts">{{ msg.created_at | date: (embedded() ? 'shortDate' : 'short') }}</span>
+                      <span class="reply-ts">{{ msg.created_at | scDate: (embedded() ? 'date' : 'datetime') }}</span>
                     </div>
                     @let reply = render(msg.body);
                     @if (!embedded()) {
@@ -812,7 +815,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                           @if (am.is_question) {
                             <span class="reply-badge">{{ 'adminFeedback.userTopic.questionBadge' | translate }}</span>
                           }
-                          <span class="reply-ts">{{ am.created_at | date: 'short' }}</span>
+                          <span class="reply-ts">{{ am.created_at | scDate: 'datetime' }}</span>
                         </div>
                         @let authorReply = render(am.body);
                         <div class="reply-body" [innerHTML]="authorReply.html"></div>
@@ -1634,6 +1637,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly translate = inject(TranslateService);
+  private readonly locale = inject(LocaleService);
   private readonly consent = inject(ConsentService);
   private readonly celebration = inject(CelebrationService);
 
@@ -2143,11 +2147,9 @@ export class AdminFeedbackComponent implements OnInit {
     const DAY_MS = 86_400_000;
     if (day === today) return this.translate.instant('adminFeedback.dateGroup.today');
     if (day === today - DAY_MS) return this.translate.instant('adminFeedback.dateGroup.yesterday');
-    return new Intl.DateTimeFormat(this.translate.currentLang || 'en', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).format(d);
+    // App-wide formatter: month spelled out, fields in the resolved region's
+    // order (feedback 38b3d25a).
+    return formatScDate(d, { language: this.locale.language(), region: this.locale.region() });
   }
 
   /**

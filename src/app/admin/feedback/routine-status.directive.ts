@@ -2,6 +2,7 @@ import { DestroyRef, Directive, ElementRef, Renderer2, effect, inject, input } f
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateService } from '@ngx-translate/core';
 import { HEARTBEAT_POLL_MS, HeartbeatState, RoutineHeartbeatService, relativeFromNow } from './routine-heartbeat.service';
+import { LocaleService } from '../../core/locale/locale.service';
 
 /** Marker class the global tint rules hang off (see `src/styles.scss`). */
 const TINT_CLASS = 'sc-routine-tint';
@@ -61,6 +62,7 @@ export class RoutineStatusDirective {
   private readonly renderer = inject(Renderer2);
   private readonly heartbeat = inject(RoutineHeartbeatService);
   private readonly translate = inject(TranslateService);
+  private readonly locale = inject(LocaleService);
   /** Re-runs the wording when the UI language flips (board-wide pattern). */
   private readonly langChange = toSignal(this.translate.onLangChange, { initialValue: null });
 
@@ -72,7 +74,9 @@ export class RoutineStatusDirective {
     effect(() => {
       const state = this.heartbeat.state();
       this.langChange();
-      const locale = this.translate.currentLang || 'en';
+      // Resolved language + region (feedback 38b3d25a), not the bare ngx-translate
+      // tag — the region decides the relative-time wording just like the date order.
+      const locale = this.locale.intlLocale();
       const when = relativeFromNow(this.heartbeat.lastSeen(), this.heartbeat.checkedAt(), locale);
       // No usable timestamp means we cannot name a moment — fall back to the
       // neutral sentence rather than printing one with a hole in it.

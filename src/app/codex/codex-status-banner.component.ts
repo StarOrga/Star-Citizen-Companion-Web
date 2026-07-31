@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { CODEX_KINDS, CodexService } from './codex.service';
 import { RoleService } from '../auth/role.service';
+import { formatScDate } from '../core/locale/date-format';
+import { LocaleService } from '../core/locale/locale.service';
 
 interface CoverageRow {
   kind: string;
@@ -111,7 +113,7 @@ interface CoverageRow {
 export class CodexStatusBannerComponent {
   readonly svc = inject(CodexService);
   readonly roles = inject(RoleService);
-  readonly translate = inject(TranslateService);
+  readonly locale = inject(LocaleService);
   readonly expanded = signal(false);
 
   toggle(): void {
@@ -141,15 +143,11 @@ export class CodexStatusBannerComponent {
   extractedLabel(): string | null {
     const at = this.svc.build()?.extractedAt;
     if (!at) return null;
-    const d = new Date(at);
-    // Locale-aware: honour the app's de/en toggle instead of the browser locale
-    // (bare toLocaleDateString() ignored the active language — ISO 8601 / i18n).
-    return isNaN(d.getTime())
-      ? at
-      : d.toLocaleDateString(this.translate.currentLang || 'en', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-        });
+    // Goes through the app-wide formatter so the month is spelled out and the
+    // field order follows the user's resolved region (feedback 38b3d25a) — a
+    // bare toLocaleDateString() honoured neither.
+    return (
+      formatScDate(at, { language: this.locale.language(), region: this.locale.region() }) || at
+    );
   }
 }

@@ -725,6 +725,7 @@
       "hours": "{{n}}h ago",
       "yesterday": "yesterday",
       "days": "{{n}} days ago",
+      "week": "1 week ago",
       "weeks": "{{n}} weeks ago"
     },
     "upcomingShips": {
@@ -833,9 +834,62 @@
       "errTaken": "That username is already taken.",
       "errGeneric": "Could not save username. Please try again."
     },
-    "language": {
-      "title": "Language",
-      "label": "Language"
+    "locale": {
+      "title": "Language & region",
+      "hint": "The language picks the translation and the spelled-out month names; the region picks the order of the date fields and the clock convention. “Automatic” follows whatever your browser reports.",
+      "auto": "Automatic",
+      "detected": "Detected automatically: {{value}}",
+      "preview": "Example",
+      "language": {
+        "label": "Language"
+      },
+      "region": {
+        "label": "Region"
+      },
+      "languages": {
+        "de": "German",
+        "en": "English"
+      },
+      "regions": {
+        "DE": "Germany",
+        "AT": "Austria",
+        "CH": "Switzerland",
+        "GB": "United Kingdom",
+        "IE": "Ireland",
+        "US": "United States",
+        "CA": "Canada",
+        "FR": "France",
+        "IT": "Italy",
+        "ES": "Spain",
+        "PT": "Portugal",
+        "NL": "Netherlands",
+        "BE": "Belgium",
+        "LU": "Luxembourg",
+        "DK": "Denmark",
+        "SE": "Sweden",
+        "NO": "Norway",
+        "FI": "Finland",
+        "PL": "Poland",
+        "CZ": "Czechia",
+        "HU": "Hungary",
+        "RO": "Romania",
+        "GR": "Greece",
+        "TR": "Türkiye",
+        "RU": "Russia",
+        "UA": "Ukraine",
+        "BR": "Brazil",
+        "MX": "Mexico",
+        "AR": "Argentina",
+        "AU": "Australia",
+        "NZ": "New Zealand",
+        "ZA": "South Africa",
+        "IN": "India",
+        "JP": "Japan",
+        "CN": "China",
+        "KR": "South Korea",
+        "SG": "Singapore",
+        "AE": "United Arab Emirates"
+      }
     },
     "composer": {
       "title": "Input",

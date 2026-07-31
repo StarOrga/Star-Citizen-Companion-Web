@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { ConsentService } from '../core/consent.service';
 import { useAutoRefresh } from '../core/auto-refresh';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 interface VersionRow { version: string; crashes: number; usage: number; sessions: number; }
 interface CountRow { name?: string; role?: string; count: number; }
@@ -43,7 +44,7 @@ const PRODUCT_STORAGE_KEY = 'sc-telemetry-product';
 @Component({
   selector: 'sc-telemetry-stats',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, TranslateModule],
+  imports: [ScDatePipe, DecimalPipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -161,7 +162,7 @@ const PRODUCT_STORAGE_KEY = 'sc-telemetry-product';
                 <tbody>
                   @for (r of a.recent; track $index) {
                     <tr>
-                      <td class="mono">{{ r.at | date:'short' }}</td>
+                      <td class="mono">{{ r.at | scDate: 'datetime' }}</td>
                       <td class="mono">{{ r.version }}</td>
                       <td>
                         @if (reasonLabelKey(r.reason); as key) {
@@ -196,7 +197,7 @@ const PRODUCT_STORAGE_KEY = 'sc-telemetry-product';
               <tbody>
                 @for (c of s.recentCrashes; track $index) {
                   <tr>
-                    <td class="mono">{{ c.at | date:'short' }}</td>
+                    <td class="mono">{{ c.at | scDate: 'datetime' }}</td>
                     <td class="mono">{{ c.version }}</td>
                     <td>{{ c.role ?? '—' }}</td>
                     <td class="mono">{{ c.name ?? '—' }}</td>
@@ -208,7 +209,7 @@ const PRODUCT_STORAGE_KEY = 'sc-telemetry-product';
           } @else { <p class="hint">{{ 'telemetry.empty' | translate }}</p> }
         </div>
 
-        <p class="gen hint">{{ 'telemetry.generatedAt' | translate }}: {{ s.generatedAt | date:'medium' }}</p>
+        <p class="gen hint">{{ 'telemetry.generatedAt' | translate }}: {{ s.generatedAt | scDate: 'datetime' }}</p>
       }
     </section>
   `,

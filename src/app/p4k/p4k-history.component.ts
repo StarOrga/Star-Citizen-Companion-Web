@@ -1,14 +1,15 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BundleDiffSummary, ChannelTag, P4kBundleRow, P4kService } from './p4k.service';
 import { RoleService } from '../auth/role.service';
 import { useAutoRefresh } from '../core/auto-refresh';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 @Component({
   selector: 'sc-p4k-history',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, TranslateModule],
+  imports: [ScDatePipe, DecimalPipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="hist">
@@ -91,7 +92,7 @@ import { useAutoRefresh } from '../core/auto-refresh';
                       · <b>{{ g.entities | number }}</b> {{ 'p4k.col.entities' | translate }}
                     </span>
                   </div>
-                  <span class="patch-when">{{ g.latest_at | date:'short' }}</span>
+                  <span class="patch-when">{{ g.latest_at | scDate: 'datetime' }}</span>
                 </div>
 
                 @if (isGroupExpanded(g.patch_version)) {
@@ -135,7 +136,7 @@ import { useAutoRefresh } from '../core/auto-refresh';
                             <span class="n">{{ b.uploaded_by_name ?? '—' }}</span>
                             <span class="e mono">{{ b.uploaded_by_email }}</span>
                           </div>
-                          <span class="up-when">{{ b.created_at | date:'short' }}</span>
+                          <span class="up-when">{{ b.created_at | scDate: 'datetime' }}</span>
                           @if (b.diff_summary) {
                             <button class="expand-btn" type="button"
                                     (click)="toggleExpand(b.id)"

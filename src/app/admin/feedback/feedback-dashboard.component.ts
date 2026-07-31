@@ -23,6 +23,8 @@ import {
   shippedPerWeek,
   startOfMonth,
 } from './feedback.types';
+import { formatScCompactDate, formatScMonthName } from '../../core/locale/date-format';
+import { LocaleService } from '../../core/locale/locale.service';
 
 /** One rendered column: a labelled time window with its numbers. */
 interface StatWindow {
@@ -632,6 +634,7 @@ const WEEKS = 12;
 })
 export class FeedbackDashboardComponent {
   private readonly translate = inject(TranslateService);
+  private readonly locale = inject(LocaleService);
 
   /**
    * Ticks on every language switch so the computed labels below (which resolve
@@ -829,8 +832,7 @@ export class FeedbackDashboardComponent {
 
   /** "Diesen Monat" with the actual month name appended, e.g. "Diesen Monat · Juli". */
   private monthLabel(): string {
-    const name = new Intl.DateTimeFormat(this.translate.currentLang || 'en', { month: 'long' })
-      .format(new Date());
+    const name = formatScMonthName(new Date(), this.locale.language(), this.locale.region());
     return `${this.translate.instant('adminFeedback.dashboard.thisMonth')} · ${name}`;
   }
 
@@ -862,11 +864,13 @@ export class FeedbackDashboardComponent {
     });
   }
 
+  /**
+   * Sparkline axis tick. Numeric short form on purpose — a spelled-out month
+   * does not fit a few-pixel chart label; the field ORDER still follows the
+   * resolved region (feedback 38b3d25a).
+   */
   private weekDate(start: number): string {
-    return new Intl.DateTimeFormat(this.translate.currentLang || 'en', {
-      day: '2-digit',
-      month: '2-digit',
-    }).format(new Date(start));
+    return formatScCompactDate(new Date(start), this.locale.language(), this.locale.region());
   }
 
   donutLabel(w: StatWindow): string {

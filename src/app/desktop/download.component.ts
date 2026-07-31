@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
 import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
 import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-release.service';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 /**
  * Minimal, viewer-accessible download surface (`/download`). Unlike `/uploader`
@@ -19,7 +19,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
 @Component({
   selector: 'sc-download',
   standalone: true,
-  imports: [DatePipe, TranslateModule, AppDownloadPanelComponent, ChannelPickerComponent],
+  imports: [ScDatePipe, TranslateModule, AppDownloadPanelComponent, ChannelPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="dl">
@@ -46,7 +46,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
 
       @if (release(); as r) {
         <span class="rel-when">
-          {{ 'desktop.released' | translate }} · {{ r.created_at | date: 'mediumDate' }}
+          {{ 'desktop.released' | translate }} · {{ r.created_at | scDate }}
         </span>
       }
     </section>

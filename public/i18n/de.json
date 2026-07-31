@@ -725,6 +725,7 @@
       "hours": "vor {{n}} Std",
       "yesterday": "gestern",
       "days": "vor {{n}} Tagen",
+      "week": "vor 1 Woche",
       "weeks": "vor {{n}} Wochen"
     },
     "upcomingShips": {
@@ -833,9 +834,62 @@
       "errTaken": "Dieser Benutzername ist bereits vergeben.",
       "errGeneric": "Benutzername konnte nicht gespeichert werden. Bitte erneut versuchen."
     },
-    "language": {
-      "title": "Sprache",
-      "label": "Sprache"
+    "locale": {
+      "title": "Sprache & Region",
+      "hint": "Die Sprache bestimmt die Übersetzung und die ausgeschriebenen Monatsnamen, die Region bestimmt die Reihenfolge im Datum und die Uhrzeit-Schreibweise. „Automatisch“ übernimmt, was dein Browser meldet.",
+      "auto": "Automatisch",
+      "detected": "Automatisch erkannt: {{value}}",
+      "preview": "Beispiel",
+      "language": {
+        "label": "Sprache"
+      },
+      "region": {
+        "label": "Region"
+      },
+      "languages": {
+        "de": "Deutsch",
+        "en": "Englisch"
+      },
+      "regions": {
+        "DE": "Deutschland",
+        "AT": "Österreich",
+        "CH": "Schweiz",
+        "GB": "Vereinigtes Königreich",
+        "IE": "Irland",
+        "US": "Vereinigte Staaten",
+        "CA": "Kanada",
+        "FR": "Frankreich",
+        "IT": "Italien",
+        "ES": "Spanien",
+        "PT": "Portugal",
+        "NL": "Niederlande",
+        "BE": "Belgien",
+        "LU": "Luxemburg",
+        "DK": "Dänemark",
+        "SE": "Schweden",
+        "NO": "Norwegen",
+        "FI": "Finnland",
+        "PL": "Polen",
+        "CZ": "Tschechien",
+        "HU": "Ungarn",
+        "RO": "Rumänien",
+        "GR": "Griechenland",
+        "TR": "Türkei",
+        "RU": "Russland",
+        "UA": "Ukraine",
+        "BR": "Brasilien",
+        "MX": "Mexiko",
+        "AR": "Argentinien",
+        "AU": "Australien",
+        "NZ": "Neuseeland",
+        "ZA": "Südafrika",
+        "IN": "Indien",
+        "JP": "Japan",
+        "CN": "China",
+        "KR": "Südkorea",
+        "SG": "Singapur",
+        "AE": "Vereinigte Arabische Emirate"
+      }
     },
     "composer": {
       "title": "Eingabe",

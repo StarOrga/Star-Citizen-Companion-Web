@@ -6,7 +6,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 // The composer and the markdown renderer live under admin/feedback for
 // historical reasons but are plain, admin-agnostic building blocks — reused
@@ -21,6 +20,7 @@ import { RenderedFeedbackBody, renderFeedbackBody } from '../admin/feedback/mark
 import { UserFeedbackService } from './user-feedback.service';
 import { draftScopes, memoScope } from './feedback-draft.types';
 import { AuthorFeedbackRow } from './user-feedback.types';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 /** Which half of the panel is on screen. */
 type UserFeedbackTab = 'compose' | 'mine';
@@ -44,7 +44,7 @@ type UserFeedbackTab = 'compose' | 'mine';
 @Component({
   selector: 'sc-user-feedback-panel',
   standalone: true,
-  imports: [DatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
+  imports: [ScDatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="panel-root">
@@ -123,7 +123,7 @@ type UserFeedbackTab = 'compose' | 'mine';
 
                 @if (isOpen(t.id)) {
                   <div class="topic-detail">
-                    <span class="ts">{{ t.created_at | date: 'short' }}</span>
+                    <span class="ts">{{ t.created_at | scDate: 'datetime' }}</span>
                     @let topicBody = render(t.body);
                     <div class="body" [innerHTML]="topicBody.html"></div>
                     <sc-feedback-attachments [images]="topicBody.images" />
@@ -146,7 +146,7 @@ type UserFeedbackTab = 'compose' | 'mine';
                               @if (msg.is_question) {
                                 <span class="reply-badge">{{ 'userFeedback.questionBadge' | translate }}</span>
                               }
-                              <span class="reply-ts">{{ msg.created_at | date: 'short' }}</span>
+                              <span class="reply-ts">{{ msg.created_at | scDate: 'datetime' }}</span>
                             </div>
                             @let replyBody = render(msg.body);
                             <div class="reply-body" [innerHTML]="replyBody.html"></div>
