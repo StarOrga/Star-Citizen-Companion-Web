@@ -1394,7 +1394,8 @@
       "unknown": "Dev PC status unknown",
       "onlineTitle": "Dev PC reachable — the feedback routine checked in {{time}}. New topics are being worked.",
       "offlineTitle": "Dev PC unreachable — the feedback routine last checked in {{time}}. Machine off, Claude not running, or usage limit reached; new topics wait until it is back.",
-      "unknownTitle": "Status unknown — no sign of the feedback routine yet."
+      "unknownTitle": "Status unknown — no sign of the feedback routine yet.",
+      "ariaLabel": "{{title}} — {{state}}"
     },
     "refresh": "Refresh",
     "loading": "Loading…",

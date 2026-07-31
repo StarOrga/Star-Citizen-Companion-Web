@@ -1,12 +1,10 @@
-import { DestroyRef, Directive, ElementRef, Renderer2, effect, inject } from '@angular/core';
+import { DestroyRef, Directive, ElementRef, Renderer2, effect, inject, input } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateService } from '@ngx-translate/core';
 import { HEARTBEAT_POLL_MS, HeartbeatState, RoutineHeartbeatService, relativeFromNow } from './routine-heartbeat.service';
 
 /** Marker class the global tint rules hang off (see `src/styles.scss`). */
 const TINT_CLASS = 'sc-routine-tint';
-/** Class carrying the visually hidden state wording. */
-const SR_CLASS = 'sc-routine-tint__sr';
 /** State → modifier class. `unknown` deliberately has none: grey is the resting look. */
 const STATE_CLASS: Record<HeartbeatState, string | null> = {
   online: 'is-online',
@@ -32,22 +30,33 @@ const STATE_CLASS: Record<HeartbeatState, string | null> = {
  * three states render identically in all three places without any of them
  * growing a status row.
  *
- * Accessibility: colour is never the only carrier. The element keeps a visually
- * hidden state wording (so the heading reads "Feedback (Dev-PC nicht
- * erreichbar)" to a screen reader, and becomes visible under forced colours,
- * where the tint itself is stripped away), plus a `title` naming the last
- * check-in — the "zuletzt gesehen vor …" tooltip the first version had.
+ * **The directive adds no text node, ever.** The round after that one shipped a
+ * visually hidden `<span>` inside the title, and it turned up on screen as a
+ * prefix — the heading read "(DEV-PC ERREICHBAR)Feedback" instead of a tinted
+ * "Feedback", which is exactly the line the admin had just asked us to remove
+ * ("Sollte aber NUR 'Feedback' heißen, und das dann Rot oder Grün entsprechend
+ * einfärben"). A clip-rect span is only invisible while every stylesheet that
+ * could reach it behaves; the safe version is not to put the wording in the
+ * document at all. The state now rides on `aria-label` plus the `title`
+ * tooltip: both are genuine non-colour carriers for assistive tech, and neither
+ * can ever leak into the layout, whatever CSS does or fails to load.
  *
- * All DOM work goes through `Renderer2` from a single `effect`: the hidden
- * wording is a child node the directive has to create anyway, so class, tooltip
- * and text are kept on one code path instead of split across host bindings.
- * The host's own title text is never touched.
+ * The host's own title stays the single source of the visible text — the
+ * directive only ever touches classes and attributes on it, never its content.
+ * `scRoutineStatus` takes the translation key of that title as a plain static
+ * attribute value (`scRoutineStatus="feedbackFab.title"`) so the accessible
+ * name can stay "Feedback — Dev-PC erreichbar" instead of collapsing to the
+ * state alone. Static, not a binding, on purpose: the attribute has to survive
+ * into the DOM because the global tint rules select on it.
  */
 @Directive({
   selector: '[scRoutineStatus]',
   standalone: true,
 })
 export class RoutineStatusDirective {
+  /** i18n key of the title we decorate, so the accessible name keeps it. */
+  readonly titleKey = input('', { alias: 'scRoutineStatus' });
+
   private readonly el = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly renderer = inject(Renderer2);
   private readonly heartbeat = inject(RoutineHeartbeatService);
@@ -60,12 +69,6 @@ export class RoutineStatusDirective {
     const host = this.el.nativeElement;
     this.renderer.addClass(host, TINT_CLASS);
 
-    // Appended once and only ever re-texted, so the host's own content (a
-    // translated title that may itself re-render) is left untouched.
-    const sr = this.renderer.createElement('span') as HTMLElement;
-    this.renderer.addClass(sr, SR_CLASS);
-    this.renderer.appendChild(host, sr);
-
     effect(() => {
       const state = this.heartbeat.state();
       this.langChange();
@@ -77,6 +80,7 @@ export class RoutineStatusDirective {
         state === 'unknown' || !when
           ? this.translate.instant('adminFeedback.heartbeat.unknownTitle')
           : this.translate.instant(`adminFeedback.heartbeat.${state}Title`, { time: when });
+      const wording = this.translate.instant(`adminFeedback.heartbeat.${state}`);
 
       for (const cls of Object.values(STATE_CLASS)) {
         if (cls) this.renderer.removeClass(host, cls);
@@ -85,7 +89,16 @@ export class RoutineStatusDirective {
       if (active) this.renderer.addClass(host, active);
 
       this.renderer.setAttribute(host, 'title', detail);
-      this.renderer.setProperty(sr, 'textContent', ` (${this.translate.instant('adminFeedback.heartbeat.' + state)})`);
+      // Without a key we would rather name only the state than silently rename
+      // the heading to nothing — but both call sites pass one.
+      const key = this.titleKey();
+      const label = key
+        ? this.translate.instant('adminFeedback.heartbeat.ariaLabel', {
+            title: this.translate.instant(key),
+            state: wording,
+          })
+        : wording;
+      this.renderer.setAttribute(host, 'aria-label', label);
     });
 
     void this.heartbeat.refresh();

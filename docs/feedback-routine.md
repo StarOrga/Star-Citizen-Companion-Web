@@ -364,11 +364,19 @@ Rot markiert sein, also nichts stark Offensichtliches sondern was dezentes aber
 bemerkbares"*. A liveness light is glanced at, not read; it earns no real estate
 of its own.
 
-**Colour is still never the only carrier.** The wording lives on as visually
-hidden text inside the title (so the heading reads "Feedback (Dev-PC nicht
-erreichbar)" to a screen reader, and shows itself under forced colours, where
-the tint is stripped away), and the `title` attribute keeps naming the last
-check-in on hover.
+**The title is the word and nothing else.** The round after that one kept the
+wording as a visually hidden `<span>` inside the heading — and it showed up on
+screen as a prefix: *"Der Feedback Name ist aktuell (DEV-PC Erreichbar)Feedback
+— Sollte aber NUR 'Feedback' heißen, und das dann Rot oder Grün entsprechend
+einfärben"*. So the directive now injects **no DOM text at all**; a clip-rect
+span is only invisible while every stylesheet that could reach it behaves, and
+this one is a heading the admin looks at every day.
+
+**Colour is still never the only carrier.** The state rides on `aria-label`
+(`"Feedback — Dev-PC nicht erreichbar"`, composed from the title's own i18n key
+that `scRoutineStatus="…"` carries) plus the `title` attribute naming the last
+check-in on hover. Both are read by assistive tech and neither can leak into the
+layout, whatever CSS does or fails to load.
 
 **45 minutes, against a 20-minute cadence, is deliberate:** it tolerates ~2
 missed cycles. A tighter window (say 25 min) would flip red every time a cycle
