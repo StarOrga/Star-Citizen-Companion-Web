@@ -4,6 +4,29 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.56.4] - 2026-07-31
+
+### Fixed
+
+- **`/codex/keybinds` showed 1000 of the build's 1103 keybindings, with nothing
+  to indicate the other 103 were missing.** `listKeybinds()` issued a plain
+  select, and PostgREST answers with at most 1000 rows — reporting the real
+  total only in the `content-range` header. A capped response is indistinguishable
+  from a complete one: no error, no warning, just a list that quietly ends early.
+  Measured against build `b77f1586` (patch 4.9.0), a `count=exact` probe reports
+  1103 rows where the page rendered 1000.
+
+  The query is now paged in 1000-row batches until a page comes back short, the
+  same way the blueprint-category facet scan in the same file already works.
+
+  The page's document order is unchanged: rows still come back ordered by the
+  extractor's global `sort` counter, which is what lets the view group
+  consecutive rows into their actionmap sections. Because that column carries no
+  unique constraint in the schema, `action_name` is now applied as a secondary
+  sort — paging over a non-total order is what lets rows repeat or vanish across
+  a page boundary. Verified against the live build: `sort` unique and monotonic,
+  every actionmap group contiguous.
+
 ## [0.56.3] - 2026-07-31
 
 ### Fixed
