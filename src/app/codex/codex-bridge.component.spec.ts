@@ -151,6 +151,19 @@ describe('CodexBridgeComponent', () => {
     expect(cmp.lanes().some((l) => l.id === 'hangar')).toBeTrue();
   });
 
+  it('shows no lane the ingested catalog did not produce', async () => {
+    // The bridge used to carry a "Popular to compare" lane driven by twelve
+    // ship classNames compiled into the component. Every fact about a ship must
+    // come from the data-uploader pipeline (admin request 1add86a4), so a lane
+    // may only exist for rows the catalog/hangar actually returned.
+    const fixture = await setup({ catalog: [shipRow({ classNameSlug: 'AEGS_Gladius' })], hangar: [] });
+    const ids = fixture.componentInstance.lanes().map((l) => l.id);
+    expect(ids).not.toContain('popular');
+    for (const id of ids) {
+      expect(id === 'hangar' || id === 'fresh' || id.startsWith('role-')).toBeTrue();
+    }
+  });
+
   it('exposes an Index-mode escape hatch link', async () => {
     const fixture = await setup({ catalog: [shipRow({ classNameSlug: 'AEGS_Gladius' })], hangar: [] });
     const link: HTMLAnchorElement | null = fixture.nativeElement.querySelector('.index-link');

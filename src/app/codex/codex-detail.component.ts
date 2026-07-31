@@ -86,6 +86,7 @@ import {
   equippedMass,
 } from './ship-summary-panels';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
+import { carriedByPort, carriedSlots, stockLoadoutClassNames } from './stock-loadout';
 import {
   CodexHardpointLayoutComponent,
   LayoutChild,
@@ -154,6 +155,11 @@ interface LoadoutItem {
   size: number | null;
   grade: string | null;
   manufacturerCode: string | null;
+  /**
+   * Sub-port name → the class the stock loadout installs there, for the item on
+   * THIS hardpoint. Empty when the extract carries no nested fit for it.
+   */
+  carried: ReadonlyMap<string, string>;
 }
 interface LoadoutGroup {
   category: HardpointCategory;
@@ -519,7 +525,7 @@ interface GearRecipe {
                     <p class="sum-empty">{{ 'codex.summary.noData' | translate }}</p>
                   }
                   @for (g of p.gapKeys; track g) {
-                    <p class="sum-gap">{{ g | translate }}</p>
+                    <p class="sum-gap">{{ g | translate: { patch: patchLabel() } }}</p>
                   }
                 </article>
               }
@@ -1178,10 +1184,11 @@ export class CodexDetailComponent implements OnInit {
   private async resolveLoadoutEntities(d: CodexDetail): Promise<void> {
     if (d.kind !== 'ship') return;
     const entries = (d.payload as ShipPayload | undefined)?.defaultLoadout ?? [];
-    const classNames = entries
-      .map((e) => e.entityClassName)
-      .filter((c): c is string => !!c);
-    this.loadoutEntities.set(await this.svc.resolveEntities(classNames));
+    // Sub-items too — a gun that only exists inside a mount still needs its
+    // name, size and manufacturer resolved.
+    this.loadoutEntities.set(
+      await this.svc.resolveEntities(stockLoadoutClassNames(entries)),
+    );
   }
 
   /**
@@ -1194,9 +1201,11 @@ export class CodexDetailComponent implements OnInit {
   private async resolveShipTech(d: CodexDetail): Promise<void> {
     if (d.kind !== 'ship') return;
     const entries = (d.payload as ShipPayload | undefined)?.defaultLoadout ?? [];
-    const classNames = [
-      ...new Set(entries.map((e) => e.entityClassName).filter((c): c is string => !!c)),
-    ];
+    // Sub-items included: the per-hardpoint readout needs the payload of a gun
+    // that sits inside a mount. The AGGREGATE lines below stay top-level —
+    // computeLoadoutStats sums a ship's drives and tanks, and a sub-item is
+    // never one of those.
+    const classNames = stockLoadoutClassNames(entries);
     if (classNames.length === 0) return;
     try {
       const payloads = await this.svc.getEntityPayloads(classNames);
@@ -1764,13 +1773,16 @@ export class CodexDetailComponent implements OnInit {
 
   /** Aggregation input for the Damage / Defence / Power panels. */
   private readonly summaryOccupants = computed<SummaryOccupant[]>(() =>
-    this.resolvedLoadout().map((r) => ({
-      section: r.section,
-      kind: r.kind,
-      payload: r.payload,
-      ammoPayload: r.ammoPayload,
-      count: 1,
-    })),
+    this.resolvedLoadout().flatMap((r) => [
+      {
+        section: r.section,
+        kind: r.kind,
+        payload: r.payload,
+        ammoPayload: r.ammoPayload,
+        count: 1,
+      },
+      ...this.carriedOccupants(r.section, r.item.carried),
+    ]),
   );
 
   /** Damage · Defence · Power Management — the three panels above the modules. */
@@ -1783,40 +1795,59 @@ export class CodexDetailComponent implements OnInit {
   /**
    * Sub-slots a mount exposes, read from the mount's OWN `itemPorts`: the gun
    * seat inside a gimbal, the two missile ports of a rack, the twin guns of a
-   * remote turret. The extract resolves no occupant for them (CIG keeps the
-   * default weapon fit in a separate loadout record), so they render as sized
-   * placeholders — the mount stops masquerading as the weapon either way.
+   * remote turret.
+   *
+   * `carried` is the stock fit the ship's own loadout puts into those sub-ports
+   * (uploader change for 1add86a4 — a gun mount names its gun there, which is
+   * why the Nomad's repeaters used to be missing everywhere). A sub-port the
+   * extract says nothing about keeps the sized placeholder it always had; the
+   * mount never masquerades as the weapon either way.
    */
-  private childrenFor(className: string | null): LayoutChild[] {
+  private childrenFor(
+    className: string | null,
+    carried: ReadonlyMap<string, string>,
+  ): LayoutChild[] {
     if (!className) return [];
     const payload = this.loadoutPayloads().get(className)?.payload as
       | { itemPorts?: ItemPort[] }
       | undefined;
-    const ports = payload?.itemPorts ?? [];
-    const out: LayoutChild[] = [];
-    const index = new Map<string, LayoutChild>();
-    for (const p of ports) {
-      const types = (p.types ?? []).filter(Boolean);
-      if (types.length === 0) continue; // untyped ports hold nothing a pilot picks
-      const size = p.minSize != null && p.minSize === p.maxSize ? p.minSize : null;
-      const typeLabel = humanizePortType(types[0]);
-      const key = `${typeLabel}|${size ?? ''}`;
-      const hit = index.get(key);
-      if (hit) {
-        hit.count += 1;
-        continue;
-      }
-      const child: LayoutChild = {
-        port: this.humanizePort(p.portName),
-        typeLabel,
-        size,
-        className: null,
-        kind: null,
-        name: null,
+    const resolved = this.loadoutEntities();
+    return carriedSlots(
+      payload?.itemPorts,
+      carried,
+      (cn) => {
+        const hit = resolved.get(cn);
+        return hit
+          ? { kind: hit.kind, size: hit.size, displayName: cleanLocaleValue(hit.nameLocalized) }
+          : undefined;
+      },
+      (portName) => this.humanizePort(portName),
+    );
+  }
+
+  /**
+   * The stock items sitting in the sub-slots of a hardpoint's occupant, as
+   * summary occupants of the SAME block: a gimbal's gun belongs to the weapons
+   * block, a rack's missiles to the missile block. Without this the Damage panel
+   * would ignore every gun that is mounted through a gimbal — i.e. most of them.
+   */
+  private carriedOccupants(
+    section: ShipModuleSection,
+    carried: ReadonlyMap<string, string>,
+  ): SummaryOccupant[] {
+    const payloads = this.loadoutPayloads();
+    const ammo = this.ammoPayloads();
+    const out: SummaryOccupant[] = [];
+    for (const className of carried.values()) {
+      const hit = payloads.get(className);
+      if (!hit) continue;
+      out.push({
+        section,
+        kind: hit.kind,
+        payload: hit.payload,
+        ammoPayload: ammo.get(ammoClassNameFor(className) ?? ''),
         count: 1,
-      };
-      index.set(key, child);
-      out.push(child);
+      });
     }
     return out;
   }
@@ -1845,7 +1876,7 @@ export class CodexDetailComponent implements OnInit {
       if (!configurable && !r.item.className && !showEmpty) continue;
       const l = r.item;
       const item = { kind: r.kind, payload: r.payload, ammoPayload: r.ammoPayload };
-      const children = configurable ? this.childrenFor(l.className) : [];
+      const children = configurable ? this.childrenFor(l.className, l.carried) : [];
       const fit = l.className ? undefined : this.emptyFits().get(l.port);
       const slot: LayoutSlot = {
         port: this.humanizePort(l.port),
@@ -2023,11 +2054,23 @@ export class CodexDetailComponent implements OnInit {
   }
 
   /**
+   * The patch the catalog was extracted from, as a parenthetical for gap notes
+   * that name it — empty when the build is not loaded yet, so the sentence
+   * still reads. Read from the build, never from the translation file: a
+   * version frozen into i18n keeps claiming the old patch after every upload.
+   */
+  readonly patchLabel = computed<string>(() => {
+    const patch = this.svc.build()?.patchVersion?.trim();
+    return patch ? ` (${patch})` : '';
+  });
+
+  /**
    * How many of the ship's weapon mounts have NO stock item in this extract.
-   * Almost always > 0 today: CIG keeps default weapon fits in a separate
-   * loadout record our P4K extractor does not resolve yet, so only a handful of
-   * ships carry guns in `defaultLoadout`. Naming the gap beats letting a pilot
-   * conclude the ship is unarmed.
+   * Used to be nearly every mount on every hull, because the extractor read only
+   * an entry's literal `entityClassName` and CIG names most stock fits by record
+   * reference instead; the uploader resolves both now, so on a fresh extract
+   * this is 0 for almost every ship. It stays here for the ones where the gap is
+   * real — naming it beats letting a pilot conclude the ship is unarmed.
    */
   readonly emptyWeaponMounts = computed<number>(() => {
     const d = this.detail();
@@ -2098,6 +2141,7 @@ export class CodexDetailComponent implements OnInit {
         size: r?.size ?? null,
         grade: r?.grade ?? null,
         manufacturerCode: r?.manufacturerCode ?? null,
+        carried: carriedByPort(e),
       };
     });
   });

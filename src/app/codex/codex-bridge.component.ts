@@ -25,24 +25,12 @@ import { HangarService } from '../hangar/hangar.service';
 const SEARCH_DEBOUNCE_MS = 250;
 const LANE_SIZE = 18;
 
-// "Popular to compare" — a small curated set of well-known ship classNames.
-// Kept honest: these are only SHOWN if the current build actually holds them
-// (missing ones are silently skipped; the lane hides if none resolve). No
-// synthetic rows — every card here is a real catalog row.
-const POPULAR_CLASSNAMES: readonly string[] = [
-  'AEGS_Gladius',
-  'ANVL_Arrow',
-  'ORIG_300i',
-  'DRAK_Cutlass_Black',
-  'MISC_Freelancer',
-  'RSI_Constellation_Andromeda',
-  'AEGS_Avenger_Titan',
-  'CNOU_Mustang_Alpha',
-  'ANVL_Carrack',
-  'MISC_Prospector',
-  'AEGS_Vanguard_Warden',
-  'RSI_Aurora_MR',
-];
+// NOTE: there used to be a "Popular to compare" lane here, driven by twelve
+// hand-picked ship classNames compiled into this file. That is game data living
+// in the web app, which the Codex must not do — every fact about a ship comes
+// from the data-uploader pipeline, and we have no popularity signal in it. The
+// lane is gone rather than replaced by an invented ranking; the Scanner, the
+// "Fresh this patch" lane and the per-manufacturer lanes still reach every hull.
 
 interface Lane {
   id: string;
@@ -480,7 +468,6 @@ export class CodexBridgeComponent implements OnInit {
   private readonly catalog = signal<CodexListRow[]>([]);
   // Hangar ship catalog rows, keyed in hangar order (Your Hangar lane + hero).
   private readonly hangarRows = signal<CodexListRow[]>([]);
-  private readonly popularRows = signal<CodexListRow[]>([]);
   private readonly heroThumbBroken = signal(false);
   private readonly brokenThumbs = signal<ReadonlySet<string>>(new Set<string>());
 
@@ -536,15 +523,6 @@ export class CodexBridgeComponent implements OnInit {
         rows: fresh.slice(0, LANE_SIZE),
       });
     }
-    const popular = this.popularRows();
-    if (popular.length > 0) {
-      out.push({
-        id: 'popular',
-        titleKey: 'codex.bridge.lanes.popular',
-        subtitleKey: 'codex.bridge.lanes.popularSub',
-        rows: popular,
-      });
-    }
     for (const group of this.roleGroups()) {
       out.push({
         id: 'role-' + group.key,
@@ -598,15 +576,7 @@ export class CodexBridgeComponent implements OnInit {
       await this.svc.loadCurrentBuild();
       void this.showroom.load();
       if (this.hangar.ships().length === 0) await this.hangar.loadAll();
-      const [catalog, popular] = await Promise.all([
-        this.svc.listBridgeShips(60),
-        this.svc.getShipsByClassNames([...POPULAR_CLASSNAMES]),
-      ]);
-      this.catalog.set(catalog);
-      // Keep the curated order for the popular lane (only ships present in build).
-      this.popularRows.set(
-        POPULAR_CLASSNAMES.map((cn) => popular.get(cn)).filter((r): r is CodexListRow => !!r),
-      );
+      this.catalog.set(await this.svc.listBridgeShips(60));
       await this.resolveHangarRows();
     } catch (err) {
       this.error.set((err as Error).message ?? 'Unknown error');

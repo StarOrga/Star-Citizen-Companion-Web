@@ -71,6 +71,33 @@ Findings worth not re-deriving — all measured, not assumed:
 - **Crafting is in the P4K**, under `CraftingBlueprintRecord.blueprint.*` — see
   `docs/concepts/codex-extraction-output.md` §0b for the exact nesting.
 
+## Ship default loadouts (verified 2026-07-31 against LIVE 4.9.0)
+
+There is **no separate loadout record** to chase — the trap is subtler, and it
+cost us a whole "ships look unarmed" gap. `SEntityComponentDefaultLoadoutParams
+.loadout.entries` holds `SItemPortLoadoutEntryParams`, and each one names its
+item in **one of two** ways:
+
+| field | count (top-level, all 314 catalog ships) |
+| --- | --- |
+| `entityClassName` — a bare class-name string | 13 346 |
+| `entityClassReference` — a record ref, with `entityClassName` `""` | 10 972 |
+
+All 16 859 references in the ship set point at an `EntityClassDefinition`, so
+`_RecordName_` minus its type prefix is the class name the codex joins on.
+
+Entries also **nest**: `entry.loadout` is a further loadout node carrying the
+sub-items of the item just installed (10 209 sub-entries, max depth 2). A gun
+mount is what bolts to the hull; the gun sits one level down —
+`hardpoint_weapon_top_left` → `Mount_Gimbal_S3` → `hardpoint_class_2` →
+`KLWE_LaserRepeater_S3`. The sub-port name is a port of the OCCUPANT itself
+(9 168 of 9 317 match the occupant's own `itemPorts`), which is the join that
+lets a consumer pair a mount with what it carries.
+
+`sc_extract/dataforge_extract.py::_loadout_entries` reads both forms and the
+nesting. `Data/Scripts/Loadouts/Vehicles/` (13 files) is a red herring — no
+player ship's armament is there.
+
 ## Ivo geometry chunks — hardpoint positions (reverse-engineered 2026-07-26)
 
 `scdatatools` 1.0.4 cannot parse SC 4.x Ivo *geometry* chunks, so
