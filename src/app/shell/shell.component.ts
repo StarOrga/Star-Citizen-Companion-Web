@@ -24,6 +24,8 @@ import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
+import { isPlainLeftClick } from '../core/modified-click.util';
+import { SameRouteRefreshService } from '../core/same-route-refresh.service';
 import { FooterComponent } from './footer.component';
 import { QuickSearchComponent } from './quick-search.component';
 import { FeedbackFabComponent } from './feedback-fab.component';
@@ -52,7 +54,14 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
            (feedback #79). It is absolutely positioned on purpose — the title's
            own vertical position had to stay exactly where it was, so the badge
            must not take part in the brand row's layout. -->
-      <a class="brand" routerLink="/news" [attr.aria-label]="'nav.brandAria' | translate">
+      <!-- The brand is the "home" control: it points at /news, the app's home
+           route. Re-clicking it while already on /news refreshes the feed
+           instead of doing nothing (feedback 7532e639). -->
+      <a
+        class="brand"
+        routerLink="/news"
+        [attr.aria-label]="'nav.brandAria' | translate"
+        (click)="onNavActivate($event, '/news')">
         <img class="logo" src="icons/scc-favicon.svg" alt="" width="32" height="32" />
         <span class="wordmark">
           <span class="title">Star Citizen Companion</span>
@@ -61,7 +70,12 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       </a>
 
       <nav class="nav">
-        <a routerLink="/news" routerLinkActive="active">{{ 'nav.news' | translate }}</a>
+        <!-- Tapping the ALREADY ACTIVE entry reloads the page's data (feedback
+             7532e639) — the router drops a same-URL navigation, so without this
+             the second click is a dead control. -->
+        <a routerLink="/news" routerLinkActive="active" (click)="onNavActivate($event, '/news')">
+          {{ 'nav.news' | translate }}
+        </a>
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
         <a routerLink="/starscape" routerLinkActive="active">{{ 'nav.starscape' | translate }}</a>
         <!-- Hangar is intentionally NOT a top-level nav entry: it lives under the
@@ -458,6 +472,7 @@ export class ShellComponent {
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly sameRoute = inject(SameRouteRefreshService);
 
   readonly signingOut = signal(false);
   readonly menuOpen = signal(false);
@@ -485,6 +500,18 @@ export class ShellComponent {
       }
     });
     this.destroyRef.onDestroy(() => this.clearNavTimers());
+  }
+
+  /**
+   * A nav anchor was activated. These stay real `<a [routerLink]>` links, so
+   * middle click / Ctrl+⌘+Shift+click keep opening a new tab — those never mean
+   * "refresh this view" and are handed straight back to the browser. Only the
+   * plain left click can be a same-route re-activation, and only then does the
+   * routed page get asked to reload its data.
+   */
+  onNavActivate(event: MouseEvent, path: string): void {
+    if (!isPlainLeftClick(event)) return;
+    this.sameRoute.request(path);
   }
 
   /** A routed view mounted — replay the content reveal. */

@@ -25,7 +25,7 @@
     "admin": "Benutzer",
     "desktop": "Data Upload",
     "signOut": "Abmelden",
-    "brandAria": "Star Citizen Companion (SCC)",
+    "brandAria": "Star Citizen Companion (SCC) — zur Startseite (Verse News)",
     "langAria": "Sprache",
     "accountMenu": "Konto-Menü",
     "telemetry": "Telemetrie",
@@ -650,6 +650,7 @@
     "emptyFavorites": "Noch keine gemerkten Beiträge — tippe auf ☆ an einem Beitrag, um ihn hier zu sammeln.",
     "errorTitle": "News konnten nicht geladen werden",
     "lastUpdated": "Aktualisiert {{rel}}",
+    "refreshing": "Wird aktualisiert…",
     "status": {
       "title": "Star Citizen Live",
       "operational": "Spielbar",
