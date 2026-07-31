@@ -16,8 +16,9 @@ account needed.
   so both `Gladius` and `AEGS_*` work.
 - **Featured hero** — your flagship if you have one, otherwise a highlighted
   ship, stamped with the patch and build it came from.
-- **Lanes** — *Your Hangar*, *Fresh this patch*, *Popular to compare*, and
-  *Explore by manufacturer*.
+- **Lanes** — *Your Hangar*, *Fresh this patch* and *Explore by manufacturer*.
+  Every lane is built from the ingested build; there is no hand-picked
+  "featured ships" list anywhere in the app.
 - **Compare** — add ships to a comparison tray and view them side by side.
 
 ### Index mode
@@ -63,7 +64,10 @@ picker says when its list was inferred from a sibling bay.
   it manages the generators. The extract carries no "physical vs. logical slot"
   flag, so the page names what it does know — generator or controller.
 - **Missile racks** show what they *carry* (`4` missiles at `S2`) next to their
-  own size (`S4`). Which missiles are loaded is not in the data.
+  own size (`S4`), and — on a build extracted with a current Data Uploader —
+  which missile is loaded in each station.
+- **Guns mounted through a gimbal** name both parts: the mount is what bolts to
+  the hull, and the gun it holds is listed under it as the sub-slot's occupant.
 - **Countermeasures** (decoy and noise/chaff launchers) are their own block
   directly below the missiles, and are swappable like any other module.
 
@@ -77,11 +81,12 @@ data, so the Codex omits them rather than showing a guess or a zero:
   yet — every ship weapon reports a fire rate of `0`. Without a fire rate there
   is no honest DPS.
 - **Cooling rate and power output** for coolers and power plants.
-- **Stock guns on most hulls.** Default weapon fits live in a separate vehicle
-  loadout record, so most ships show their gun mounts as unfitted, labelled
-  "no stock weapon in this extract" and counted in a note on the Weapons block.
-  Turrets, missile racks and countermeasure launchers *are* in the data and do
-  show up.
+- **Stock guns, on builds extracted by an older Data Uploader.** Those hulls
+  show their gun mounts as unfitted, labelled "no stock weapon in this extract"
+  and counted in a note on the Weapons block. The gap was on our side — the game
+  names most factory-fitted items by an internal reference the extractor skipped
+  — and it closes for good the next time that build is uploaded with a current
+  uploader. A gun mount that is still genuinely empty keeps the label.
 - **Which round a countermeasure launcher fires.** Decoy and noise *rounds* do
   carry their signature values (infrared, EM, cross section, cloud radius and
   duration), but no launcher in the build points at its round — so the Codex

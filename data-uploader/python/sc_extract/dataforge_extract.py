@@ -195,6 +195,82 @@ def _attach_def(comps: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     return None
 
 
+# ── default loadout ───────────────────────────────────────────────────────────
+# A ship's stock fit lives in SEntityComponentDefaultLoadoutParams.loadout, an
+# SItemPortLoadout*Params whose `entries` are SItemPortLoadoutEntryParams. Each
+# entry names its item in ONE OF TWO ways — verified against the LIVE 4.9.0
+# Data/Game2.dcb over all 314 catalog ships:
+#
+#   * `entityClassName`  — a bare class-name string (13 346 top-level entries)
+#   * `entityClassReference` — a record reference to the item's
+#     EntityClassDefinition, with `entityClassName` left as "" (10 972 top-level
+#     entries; all 16 859 references in the whole ship set point at an
+#     EntityClassDefinition, so `_RecordName_` minus its type prefix IS the
+#     class name the codex keys on)
+#
+# Reading only the first form is what made ship armament look absent: the Nomad
+# names every thruster and its missile racks by string, but its three gun mounts
+# — and the guns inside them — only by reference.
+#
+# Entries also NEST: `entry.loadout` is another loadout node holding the
+# sub-items of the item just installed. That is where a gun mount's actual gun
+# lives (`hardpoint_weapon_top_left` → Mount_Gimbal_S3 → `hardpoint_class_2` →
+# KLWE_LaserRepeater_S3), as do a missile rack's missiles and a turret's weapon.
+# Measured nesting depth is 2 (10 209 sub-entries across the catalog); the cap
+# below is slack against a future deeper tree and against a malformed cycle.
+_LOADOUT_MAX_DEPTH = 8
+
+
+def _loadout_class_name(entry: Dict[str, Any]) -> Optional[str]:
+    """The class name an ``SItemPortLoadoutEntryParams`` installs, or None.
+
+    Prefers the literal ``entityClassName``; falls back to the record reference
+    the same entry may carry instead. Returns None only when the port really is
+    stock-empty — never a guessed or derived name.
+    """
+    name = entry.get("entityClassName")
+    if isinstance(name, str) and name.strip():
+        return name.strip()
+    ref = entry.get("entityClassReference")
+    if isinstance(ref, dict):
+        raw = ref.get("_RecordName_")
+        if isinstance(raw, str) and raw.strip():
+            return _strip_type_prefix(raw.strip()) or None
+    return None
+
+
+def _loadout_entries(loadout: Any, _depth: int = 0) -> List[Dict[str, Any]]:
+    """``[{itemPortName, entityClassName, entries?}]`` for one loadout node.
+
+    ``entries`` is present only when the installed item brings its own sub-items,
+    so the flat top-level shape older consumers read is unchanged.
+    """
+    if not isinstance(loadout, dict) or _depth > _LOADOUT_MAX_DEPTH:
+        return []
+    entries = loadout.get("entries")
+    if not isinstance(entries, list):
+        return []
+    out: List[Dict[str, Any]] = []
+    for e in entries:
+        if not isinstance(e, dict):
+            continue
+        item: Dict[str, Any] = {
+            "itemPortName": e.get("itemPortName"),
+            "entityClassName": _loadout_class_name(e),
+        }
+        children = _loadout_entries(e.get("loadout"), _depth + 1)
+        if children:
+            item["entries"] = children
+        out.append(item)
+    return out
+
+
+def _default_loadout_of(comps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """The stock fit of an entity, from its components. Empty when it has none."""
+    dl = _find_component(comps, "SEntityComponentDefaultLoadoutParams")
+    return _loadout_entries(dl.get("loadout")) if dl else []
+
+
 class CodexExtractor:
     """Drives the generic dump + typed projections over a DataForge instance."""
 
@@ -1322,22 +1398,7 @@ class CodexExtractor:
         return out
 
     def _default_loadout(self, comps) -> List[Dict[str, Any]]:
-        dl = _find_component(comps, "SEntityComponentDefaultLoadoutParams")
-        if not dl:
-            return []
-        loadout = dl.get("loadout")
-        entries = loadout.get("entries") if isinstance(loadout, dict) else None
-        if not isinstance(entries, list):
-            return []
-        out = []
-        for e in entries:
-            if not isinstance(e, dict):
-                continue
-            out.append({
-                "itemPortName": e.get("itemPortName"),
-                "entityClassName": e.get("entityClassName") or None,
-            })
-        return out
+        return _default_loadout_of(comps)
 
     # ── exhaustive generic dump ─────────────────────────────────────────────────
     def dump_all_records(self) -> None:
