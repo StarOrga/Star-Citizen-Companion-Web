@@ -14,6 +14,19 @@ resolution, the download link, and the source Comm-Link.
 > linked with attribution to the source Comm-Link. Fan-made gallery — no
 > re-sale, no re-hosting.
 
+## On a phone
+
+The gallery is a plain two-column feed you scroll straight through. Phones and
+small tablets are served the CDN's light preview variant instead of the wide
+one — roughly a quarter of the bytes for the same tile — and opening a tile
+shows a screen-sized copy rather than the multi-megabyte original. **Download
+original** still gives you the untouched file.
+
+**Share** in the opened tile hands the wallpaper to the Android/iOS share
+sheet, so it can go straight into a chat, a note or your own timeline. The link
+it shares reopens exactly that wallpaper. Browsers without a share sheet
+(most desktops) copy the link to the clipboard instead.
+
 ## Desktop wallpaper app
 
 A tiny native Windows tray app rotates your desktop background through the same

@@ -112,6 +112,16 @@ Mechanics that keep the results honest:
 - Every route is loaded, then **scroll-swept** in 85 %-viewport steps (max 8).
   Occlusion checks run at each step, so a sticky bar that only covers content
   further down the page is still caught.
+
+  > The sweep drives `window.scrollTo` and measures against
+  > `document.documentElement.scrollHeight`, so it only works while **the
+  > viewport is the scroll container**. If a global rule ever moves the scroll
+  > port into a nested element — `height: 100%` plus `overflow-x: hidden` on
+  > `<body>` is enough, because `overflow-x: hidden` forces `overflow-y` to
+  > compute to `auto` — every sweep step silently re-audits the top of the page
+  > and the gate goes green on layouts it never looked at. That was the state
+  > until admin feedback 4e54ad2c; `src/styles.scss` now keeps
+  > `overflow-x: hidden` on `<html>` alone.
 - The occlusion checks are skipped while a modal/`cdk-overlay` is open — a modal
   is *supposed* to cover the page.
 - Findings are de-duplicated per route and capped at 8 per check, so one broken

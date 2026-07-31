@@ -183,6 +183,25 @@ export class StarscapeService {
     }
   }
 
+  /**
+   * A single wallpaper by image id — what a shared `?image=<id>` link resolves.
+   * Fetched directly instead of paging the grid until it appears: the target is
+   * usually hundreds of rows deep.
+   */
+  async loadOne(imageId: string): Promise<Wallpaper | null> {
+    try {
+      const { data, error } = await this.sb.client
+        .from('verse_wallpapers')
+        .select('image_id, source_url, preview_url, title, series, article_url, published_at')
+        .eq('image_id', imageId)
+        .maybeSingle();
+      if (error || !data) return null;
+      return mapRow(data as Record<string, unknown>);
+    } catch {
+      return null; // a dead link must not break the gallery behind it
+    }
+  }
+
   async setSeries(series: string): Promise<void> {
     if (this.activeSeries() === series) return;
     this.activeSeries.set(series);

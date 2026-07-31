@@ -1862,6 +1862,11 @@
     "loading": "Lädt…",
     "download": "Original herunterladen",
     "sourceArticle": "Quell-Comm-Link",
+    "share": {
+      "label": "Teilen",
+      "copied": "Link kopiert",
+      "failed": "Link konnte nicht kopiert werden"
+    },
     "close": "Schließen",
     "attribution": "Alle Bilder © Cloud Imperium Games — direkt vom RSI-CDN ausgeliefert, mit Verweis auf den Quell-Comm-Link. Fan-Galerie, kein Weiterverkauf, kein Re-Hosting.",
     "appTitle": "Desktop-Wallpaper-App",
