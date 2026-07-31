@@ -27,13 +27,43 @@ stat the web app **cannot** display; closing them is extractor work.
 | `weaponParams.fireRate` is `0` on **all 430** ship weapons that carry the struct (likewise `projectilesPerShot`, `heatPerShot` mostly) | fire actions / `SWeaponActionFireParams` are not resolved | **no DPS and no fire-rate row anywhere.** `damagePerSecond()` in `codex-equipped-stats.ts` is implemented and starts working by itself once fireRate is real |
 | No **spread / recoil**, **power draw**, **EM signature** or **health** on ship weapons (re-verified 2026-07-27 over all 97 size-3 ship weapons of build `b77f1586`) | `weaponParams` carries only fire-action, animation and green-zone flags; weapons have no `stats` struct at all | the **swap picker** (`codex-swap-picker.component.ts`) derives its columns from the data, so a size-3 gun table shows Alpha / Penetration / Range / Projectile speed and names DPS + fire rate as missing in its footer instead of rendering columns of `—` |
 | `weaponParams.ammoContainerRecord` is `null` on **all 430** | ammo container record not resolved | **no magazine / max-ammo count.** Also forces the gun→projectile link to go through the `<weaponClass>_AMMO` name convention instead of the record reference |
-| Ship weapon hardpoints are stock-**empty**: only **4 of 314** ships have any `subType=Gun` in `defaultLoadout`; 145 ships have weapon ports that are all empty | CIG keeps default weapon fits in a separate loadout record the extractor does not follow (ship `itemPorts` are structural only — the Nomad exposes 5, none of them weapons) | the codex cannot show a ship's stock armament (e.g. the Nomad's 3× S3). The UI discloses this per ship instead of implying the ship is unarmed |
+| ~~Ship weapon hardpoints are stock-**empty**: only **4 of 314** ships have any `subType=Gun` in `defaultLoadout`~~ **CLOSED 2026-07-31** — **295 of 314** now do | Not a separate loadout record after all: `SItemPortLoadoutEntryParams` names its item EITHER as a literal `entityClassName` string OR via an `entityClassReference` record reference with `entityClassName` left `""`, and the extractor read only the first. It also stopped at the top level, where a gun mount — not the gun — sits. Both fixed; see §0c | the codex shows a ship's stock armament as soon as a P4K is re-extracted with an uploader that carries this change. Extracts made before it carry no guns, and the UI keeps disclosing the gap per ship |
 | Coolers carry no cooling rate, power plants no power output | neither has a dedicated `SCItem*Params` struct (already noted above) | those hardpoints show durability only |
 | No **per-item power draw / output** anywhere | `ItemResourceComponentParams` (present on 1 872 components) carries only `defaultPriority`, `isRelay`, `wirelessConnection` and self-repair fields; `EntityComponentPowerConnection` — the struct that holds `PowerBase`/`PowerDraw` — exists on exactly **one** non-ship entity in the whole catalog | the ship page's **Power Management** panel can report generation *count/size/durability/distortion pool* but no power triangle. Named as a gap in the panel (`codex.summary.gap.noPowerDraw`) |
 | No **ship hull HP** and no per-channel **damage resistances** | ship payloads carry no health struct, and the per-hull `ARMR_<ship>` item is stat-less (`payload.stats` absent); shields expose only `SHealthComponentParams.DamageResistances.IgnoreMeleeDamage` | the **Defence** panel shows the shield pool, regen, delays and distortion pool; hull HP renders as `—` with an explicit note rather than a fabricated number |
 | `payload.flight` is **all-null on every ship** (0 of 314 carry `scmSpeed`) | SCM/max/boost speed and pitch/yaw/roll live in the vehicle definition, which the extractor does not resolve | the ship page's **Hull & flight** block renders the rows as `—` so they fill in by themselves once the extractor follows the reference |
 | **Purchase price and shop location are not in the P4K at all** (audited 2026-07-26 against the LIVE archive) | Items do carry `SCItemPurchasableParams` (10 548 records), but it holds only display/interaction fields — `displayName`, `displayThumbnail`, `allowTryOn`, `allowQuickBuy`, `interactionPoints`, … — and **no price**. `Data/Scripts/ShopInventories/Inv_<Shop>_<Location>.json` (118 files) *does* carry `BuyPrice`/`SellPrice` per item id, but **0 of 6317** of those ids resolve against `Data/Game2.dcb` — they are pre-4.0 entitlement ids, and the file set still contains 2018/2019 anniversary-sale inventories. Modern shop inventories are served from CIG's backend, not shipped in the client. | **"Where can I buy it" cannot be answered by datamining** — for FPS gear or anything else. The codex omits the section rather than showing a wrong or empty price. Community-sourced pricing (or an RSI/third-party API) would be a separate, non-extractor feature. |
 | Armour damage-resistance **multipliers** are still unresolved | `SCItemSuitArmorParams.damageResistance` is a record *reference*, and `record_to_dict` does not follow references — so the generic stat dump yields the macro name (`DamageResistanceMacro.LightArmor`) but no numbers. `protectedBodyParts` (a list of references) and storage capacity (behind `containerParams`) drop out for the same reason. | the armour stat panel added in #273 shows the fields that ARE flat (temperature range, radiation, g-force, helmet optics) but no actual protection values, body coverage or SCU capacity. Fix is an explicit `record_by_id` hop — tracked as a follow-up. |
+
+## 0c. How a ship's stock loadout is really stored (verified 2026-07-31, LIVE 4.9.0)
+
+Measured over all 314 catalog ships in `Data/Game2.dcb`, not assumed. The stock
+fit lives in `SEntityComponentDefaultLoadoutParams.loadout.entries`, a list of
+`SItemPortLoadoutEntryParams`, and it hides the item in two places:
+
+* **Two ways to name the occupant.** `entityClassName` is a bare class-name
+  string on 13 346 top-level entries; on **10 972** it is `""` and the item is
+  named by `entityClassReference` instead — a record reference to its
+  `EntityClassDefinition` (all 16 859 references in the ship set point at one, so
+  `_RecordName_` minus the `EntityClassDefinition.` prefix IS the codex class
+  name). Reading only the first form is what made ship armament look absent.
+* **Entries nest.** `entry.loadout` is another loadout node holding the
+  sub-items of the item just installed — 10 209 sub-entries, max depth 2. This is
+  where a gun mount's actual gun lives:
+  `hardpoint_weapon_top_left` → `Mount_Gimbal_S3` → `hardpoint_class_2` →
+  `KLWE_LaserRepeater_S3`. Same for a rack's missiles and a turret's weapon.
+  The sub-port name is a port of the OCCUPANT (9 168 of 9 317 match its own
+  `itemPorts`), which is how the UI pairs "3× S3 gimbal → 3× S3 repeater".
+
+Effect of resolving both: occupied hardpoints **13 346 → 34 527** (of 36 231
+entries), ships with a stock `subType=Gun` **4 → 295** of 314. 54 references
+across 17 distinct class names resolve to no catalog entity — capital-ship
+internals (Javelin engine covers, side-turret interiors) and one
+`APAR_BallisticGatling_S4_CapitalShip`; those keep a class name with no joined
+entity rather than being dropped.
+
+There is **no** separate per-ship loadout XML: `Data/Scripts/Loadouts/Vehicles/`
+holds 13 files, none of them a player ship's armament.
 
 Crafting, by contrast, IS fully reachable — and was silently broken until this
 change. A `CraftingBlueprintRecord` nests everything under a `blueprint` node
@@ -125,6 +155,12 @@ interface HardpointFrame {
 interface LoadoutEntry {       // ships only — stock/default loadout
   itemPortName: string | null;
   entityClassName: string | null;   // join → weapons/components/items; null = port stock-empty
+  // The stock fit of the item installed HERE — a gun mount's gun, a rack's
+  // missiles, a turret's weapon. Sub-port names match the OCCUPANT's own
+  // `itemPorts` (9 168 of 9 317 sub-entries do, measured on 4.9.0). ABSENT when
+  // the occupant carries nothing and on every extract made before this field
+  // existed, so "no key" means unknown, never "carries nothing".
+  entries?: LoadoutEntry[];
 }
 ```
 

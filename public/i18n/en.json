@@ -66,8 +66,6 @@
         "hangarSub": "Ships you own",
         "fresh": "Fresh this patch",
         "freshSub": "Ships in the current live build",
-        "popular": "Popular to compare",
-        "popularSub": "Community favourites, side by side",
         "role": "Explore by manufacturer",
         "roleSub": "Ships grouped by their maker"
       }
@@ -529,7 +527,7 @@
       "plantDistortion": "Plant distortion pool",
       "gap": {
         "noStockGuns": "This hull's stock guns are not in the extract — the game keeps default weapon fits in a separate loadout record we do not resolve yet, so the mounts below show the seat rather than the gun.",
-        "noFireRate": "No fire rate in the 4.9.0 extract, so sustained DPS cannot be derived yet.",
+        "noFireRate": "No fire rate in this extract{{patch}}, so sustained DPS cannot be derived yet.",
         "noShields": "No shield generator in this ship's stock loadout.",
         "noHullHp": "Hull HP is not part of the P4K extract yet.",
         "noResistances": "Per-channel damage resistances are not extracted — no ship or armour entity carries them.",
@@ -702,6 +700,19 @@
       "play": "Play video",
       "scrollPrev": "Previous videos",
       "scrollNext": "More videos"
+    },
+    "patch": {
+      "title": "Patch Notes",
+      "hint": "Grouped by main patch — newest first",
+      "line": "Alpha {{version}}",
+      "otherLine": "Without a version",
+      "hotfix": "Hotfix",
+      "current": "Currently live",
+      "stage": {
+        "live": "Live",
+        "ptu": "PTU",
+        "evocati": "Evocati"
+      }
     },
     "detail": {
       "close": "Close"

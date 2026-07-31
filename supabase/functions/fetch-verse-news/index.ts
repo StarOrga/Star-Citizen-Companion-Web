@@ -311,6 +311,10 @@ async function fetchYouTube(): Promise<VerseNewsItem[]> {
 // posts: patch updates, launcher notes), which is what belongs in a news feed.
 const SPECTRUM_API = 'https://robertsspaceindustries.com/api/spectrum/forum/channel/threads';
 const SPECTRUM_CHANNEL_ID = 1;
+// X-Tavern-Id is the COMMUNITY id (1 = Star Citizen), not the channel — the same
+// value for every forum we read. It used to be derived from SPECTRUM_CHANNEL_ID
+// only because those two happened to be 1 as well.
+const SPECTRUM_TAVERN_ID = 1;
 
 // Each thread row already carries RSI's own preview of its first post's media as
 // `media_preview: { type, thumbnail: { url } }` — so we get the hero image WITHOUT
@@ -346,54 +350,140 @@ function upgradeTheverseVariant(url: string): string {
   return url.replace(/\/tavern_upload_mini(\.[a-zA-Z0-9]+)(\?|$)/, '/tavern_upload_large$1$2');
 }
 
+/** One page of threads of a Spectrum forum channel, newest first. */
+async function spectrumThreads(channelId: number, page: number): Promise<Record<string, unknown>[]> {
+  const res = await fetch(SPECTRUM_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-Tavern-Id': String(SPECTRUM_TAVERN_ID),
+      'User-Agent': 'SC-Companion/0.3 (+https://sc-companion.vercel.app)',
+    },
+    body: JSON.stringify({ channel_id: channelId, page, sort: 'newest' }),
+  });
+  if (!res.ok) throw new Error(`spectrum HTTP ${res.status}`);
+  const json = await res.json();
+  return Array.isArray(json?.data?.threads) ? json.data.threads : [];
+}
+
+interface SpectrumMapOptions {
+  channelId: number;
+  channel: Channel;
+  source: VerseNewsItem['source'];
+  category: string;
+  idPrefix: string;
+  /** Patch-note threads are plain text; skipping media keeps them out of the image pipeline. */
+  withImage: boolean;
+}
+
+/**
+ * One Spectrum thread row → feed item, or null when the row is unusable.
+ * Malformed rows are SKIPPED rather than patched up with fabricated values — a
+ * synthetic id (crypto.randomUUID) would change every fetch and falsely trip the
+ * client's "new posts" counter; a missing slug yields a dead thread link.
+ * The timestamp upper bound (year 2100) keeps a finite-but-absurd value from
+ * throwing RangeError in `new Date(...).toISOString()` — which, inside a
+ * function-level try, would collapse an ENTIRE channel to [].
+ */
+function mapSpectrumThread(t: Record<string, unknown>, opt: SpectrumMapOptions): VerseNewsItem | null {
+  const id = t['id'];
+  const subject = t['subject'];
+  const slug = t['slug'];
+  // time_created is a Unix timestamp in **seconds**. `time_modified` looks like
+  // an "edited at" but tracks the last REPLY (it moves in lockstep with
+  // replies_count), so it is deliberately not surfaced — "updated 2 days ago"
+  // would mean "someone commented", not "there are new notes".
+  const created = Number(t['time_created']);
+  if (!id || typeof subject !== 'string' || !subject.trim() ||
+      typeof slug !== 'string' || !slug ||
+      !Number.isFinite(created) || created <= 0 || created > 4102444800) return null;
+  const image = opt.withImage ? spectrumImageUrl(t['media_preview']) : undefined;
+  return {
+    id: opt.idPrefix + String(id),
+    title: subject,
+    url: `${RSI_BASE}/spectrum/community/SC/forum/${opt.channelId}/thread/${slug}`,
+    publishedAt: new Date(created * 1000).toISOString(),
+    channel: opt.channel,
+    source: opt.source,
+    category: opt.category,
+    // First-post hero from media_preview; absent → client channel default.
+    ...(image ? { thumbnail: image, images: [image] } : {}),
+  };
+}
+
 async function fetchSpectrum(): Promise<VerseNewsItem[]> {
   try {
-    const res = await fetch(SPECTRUM_API, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Tavern-Id': String(SPECTRUM_CHANNEL_ID),
-        'User-Agent': 'SC-Companion/0.3 (+https://sc-companion.vercel.app)',
-      },
-      body: JSON.stringify({ channel_id: SPECTRUM_CHANNEL_ID, page: 1, sort: 'newest' }),
-    });
-    if (!res.ok) throw new Error(`spectrum HTTP ${res.status}`);
-    const json = await res.json();
-    const threads: Record<string, unknown>[] = Array.isArray(json?.data?.threads) ? json.data.threads : [];
+    const threads = await spectrumThreads(SPECTRUM_CHANNEL_ID, 1);
     const out: VerseNewsItem[] = [];
     for (const t of threads) {
-      const id = t['id'];
-      const subject = t['subject'];
-      const slug = t['slug'];
-      // time_created is a Unix timestamp in **seconds**.
-      const created = Number(t['time_created']);
-      // Skip malformed entries instead of fabricating ids/dates/urls — a synthetic
-      // id (crypto.randomUUID) would change every fetch and falsely trip the
-      // client's "new posts" counter; a missing slug yields a dead thread link.
-      // The timestamp upper bound (year 2100) keeps a finite-but-absurd value from
-      // throwing RangeError in `new Date(...).toISOString()` below — which, inside
-      // the function-level try, would collapse the ENTIRE Spectrum feed to [].
-      if (!id || typeof subject !== 'string' || !subject.trim() ||
-          typeof slug !== 'string' || !slug ||
-          !Number.isFinite(created) || created <= 0 || created > 4102444800) continue;
-      const image = spectrumImageUrl(t['media_preview']);
-      out.push({
-        id: 'spec-' + String(id),
-        title: subject,
-        url: `${RSI_BASE}/spectrum/community/SC/forum/${SPECTRUM_CHANNEL_ID}/thread/${slug}`,
-        publishedAt: new Date(created * 1000).toISOString(),
+      const item = mapSpectrumThread(t, {
+        channelId: SPECTRUM_CHANNEL_ID,
         channel: 'spectrum',
         source: 'spectrum',
         category: 'Spectrum',
-        // First-post hero from media_preview; absent → client spectrum default.
-        ...(image ? { thumbnail: image, images: [image] } : {}),
+        idPrefix: 'spec-',
+        withImage: true,
       });
+      if (!item) continue;
+      out.push(item);
       if (out.length >= 12) break;
     }
     return out;
   } catch (err) {
     console.error('fetchSpectrum failed:', err);
+    return [];
+  }
+}
+
+// --------------------- Patch notes (Spectrum "Patch Notes" forum) ---------------------
+// RSI publishes EVERY patch note as a thread in the SC Patch-Notes forum: the
+// major LIVE release notes, each PTU/Evocati wave, the point releases and the
+// rolling "Hotfix Central" threads. None of that reaches the Comm-Link wiki API,
+// which is why the patch channel used to be all but empty — it was fed only by
+// the odd comm-link whose *series* string happened to mention "patch", so 4.9 and
+// its hotfixes never showed up at all (feedback 44e90e30).
+//
+// Two pages ≈ 100 threads ≈ the last half-dozen patch lines, which is what "show
+// me everything" costs here: ~20 KB of JSON and no images at all (these threads
+// carry no media_preview, and we do not ask for one — see withImage:false), so
+// they add nothing to the image cache or the wallpaper crawl.
+const PATCH_NOTES_CHANNEL_ID = 190048;
+const PATCH_NOTES_PAGES = [1, 2];
+const MAX_PATCH_NOTES = 120;
+
+async function fetchPatchNotes(): Promise<VerseNewsItem[]> {
+  try {
+    // One slow page must not cost us the other one.
+    const pages = await Promise.all(
+      PATCH_NOTES_PAGES.map((page) =>
+        spectrumThreads(PATCH_NOTES_CHANNEL_ID, page).catch((err) => {
+          console.error(`fetchPatchNotes page ${page} failed:`, err);
+          return [] as Record<string, unknown>[];
+        })
+      ),
+    );
+    const seen = new Set<string>();
+    const out: VerseNewsItem[] = [];
+    for (const t of pages.flat()) {
+      const item = mapSpectrumThread(t, {
+        channelId: PATCH_NOTES_CHANNEL_ID,
+        channel: 'patch',
+        source: 'patch-notes',
+        category: 'Patch Notes',
+        idPrefix: 'patch-',
+        withImage: false,
+      });
+      // Pinned threads are repeated at the top of EVERY page — without this the
+      // current release notes would appear once per page fetched.
+      if (!item || seen.has(item.id)) continue;
+      seen.add(item.id);
+      out.push(item);
+      if (out.length >= MAX_PATCH_NOTES) break;
+    }
+    return out;
+  } catch (err) {
+    console.error('fetchPatchNotes failed:', err);
     return [];
   }
 }
@@ -1077,14 +1167,15 @@ async function enforceVideoRetention(items: VerseNewsItem[]): Promise<void> {
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
 
-  const [commLinks, youtube, spectrum, status] = await Promise.all([
+  const [commLinks, youtube, spectrum, patchNotes, status] = await Promise.all([
     fetchCommLinks(),
     fetchYouTube(),
     fetchSpectrum(),
+    fetchPatchNotes(),
     fetchStatus(),
   ]);
 
-  const news = [...commLinks, ...youtube, ...spectrum]
+  const news = [...commLinks, ...youtube, ...spectrum, ...patchNotes]
     .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 
   // Record full-res wallpaper metadata BEFORE the cache rewrite below swaps
