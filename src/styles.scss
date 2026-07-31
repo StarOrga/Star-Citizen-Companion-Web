@@ -151,10 +151,29 @@
   box-sizing: border-box;
 }
 
+/* The document scrolls in the VIEWPORT, not inside <body>.
+ *
+ * This used to read `height: 100%` + `overflow-x: hidden` on BOTH elements, which
+ * quietly moved the scroll port into <body>: `overflow-x: hidden` forces
+ * `overflow-y` to compute to `auto`, the <html> copy propagates to the viewport,
+ * and the <body> copy then makes <body> itself a scroll container pinned to
+ * exactly one viewport height. The visible result was a document that reported
+ * `scrollHeight === clientHeight`, so `window.scrollTo` (the router's
+ * `scrollPositionRestoration`, the news "back to top" button) was a no-op and
+ * touch scrolling had to drive a nested scroller — on a phone the page reads as
+ * frozen (admin feedback 4e54ad2c).
+ *
+ * Keeping `overflow-x: hidden` on <html> alone still clips horizontal overflow
+ * (it propagates to the viewport) while leaving <body> in normal flow, and
+ * `min-height` lets the body grow with its content instead of clipping it. */
+html {
+  overflow-x: hidden;
+}
+
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
   background: var(--sc-bg-0);
   color: var(--sc-fg-0);
   font-family: var(--sc-font-body);
@@ -162,7 +181,6 @@ html, body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
 }
 
 body::before {

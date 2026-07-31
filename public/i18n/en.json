@@ -1873,6 +1873,11 @@
     "loading": "Loading…",
     "download": "Download original",
     "sourceArticle": "Source Comm-Link",
+    "share": {
+      "label": "Share",
+      "copied": "Link copied",
+      "failed": "Couldn't copy link"
+    },
     "close": "Close",
     "attribution": "All imagery © Cloud Imperium Games — served directly from the RSI CDN, linked with attribution to the source Comm-Link. Fan-made gallery, no re-sale, no re-hosting.",
     "appTitle": "Desktop Wallpaper App",
