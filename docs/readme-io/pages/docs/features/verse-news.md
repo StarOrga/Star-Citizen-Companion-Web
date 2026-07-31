@@ -18,8 +18,13 @@ readable without an account.
 | **Favorites** | Your own starred posts (account required) |
 
 Use the channel filter to narrow the feed, or **Show all** to clear it. Posts
-are bucketed into **Today**, **This week** and **Older**, with the older bucket
-collapsed until you expand it.
+are bucketed into **Today**, **This week** and **Older**.
+
+The **Older** bucket follows the filter: in the unfiltered **All** view it is
+open, because that is the full stream you came to browse. Pick a channel (or the
+saved-only view) and it folds away, so a filtered page shows the fresh matches
+first; clearing the filter opens it again. You can always override it with the
+button in the bucket header — that choice sticks until you change the filter.
 
 ## Videos
 
