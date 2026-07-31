@@ -37,6 +37,13 @@ export interface PatchLineGroup {
   latestAt: string;
   /** True once the line has reached LIVE, i.e. it is (or was) the played build. */
   hasLive: boolean;
+  /**
+   * The newest line that has reached LIVE — the build you can play right now.
+   * Exactly one group carries it. `hasLive` alone would badge all of 4.9 … 4.3
+   * as "LIVE", which is true of their past and useless as information; the lines
+   * above this one are still PTU, the ones below are history.
+   */
+  isCurrentLive: boolean;
 }
 
 /**
@@ -141,6 +148,7 @@ export function groupPatchNotes(news: readonly VerseNewsItem[]): PatchLineGroup[
       entries,
       latestAt,
       hasLive: entries.some((e) => e.stage === 'live'),
+      isCurrentLive: false,
     });
   }
 
@@ -150,5 +158,7 @@ export function groupPatchNotes(news: readonly VerseNewsItem[]): PatchLineGroup[
     if (!a.line !== !b.line) return a.line ? -1 : 1;
     return compareVersionsDesc(a.segments, b.segments);
   });
+  const current = groups.find((g) => g.line && g.hasLive);
+  if (current) current.isCurrentLive = true;
   return groups;
 }

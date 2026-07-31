@@ -204,8 +204,10 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
                         ? ('news.patch.line' | translate:{ version: group.line })
                         : ('news.patch.otherLine' | translate)
                     }}</span>
-                    @if (group.hasLive) {
-                      <span class="tag" data-stage="live">{{ 'news.patch.stage.live' | translate }}</span>
+                    <!-- Only the newest line that reached LIVE — that is the
+                         build you can play right now. -->
+                    @if (group.isCurrentLive) {
+                      <span class="tag" data-stage="live">{{ 'news.patch.current' | translate }}</span>
                     }
                     <span class="bucket-ct">{{ group.entries.length }}</span>
                     <time class="rail-note">{{ relTime(group.latestAt) }}</time>

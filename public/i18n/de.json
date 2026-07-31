@@ -709,6 +709,7 @@
       "line": "Alpha {{version}}",
       "otherLine": "Ohne Versionsangabe",
       "hotfix": "Hotfix",
+      "current": "Aktuell live",
       "stage": {
         "live": "Live",
         "ptu": "PTU",

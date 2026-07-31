@@ -123,6 +123,20 @@ describe('groupPatchNotes — newest main patch on top, small patches nested (44
     expect(live.latestAt).toBe('2026-07-16T00:00:00.000Z');
   });
 
+  it('calls exactly one line "currently live" — the newest that shipped, not every past one', () => {
+    const groups = groupPatchNotes(news);
+    expect(groups.filter((g) => g.isCurrentLive).map((g) => g.line)).toEqual(['4.9']);
+    // 4.8 reached LIVE once too, but that is history, not the played build.
+    expect(groups.find((g) => g.line === '4.8')!.hasLive).toBe(true);
+  });
+
+  it('claims no live line at all while only PTU notes exist', () => {
+    const ptuOnly = groupPatchNotes([
+      patch('a', '[Wave 1] Star Citizen Alpha 4.10 PTU Patch Notes 12358556', '2026-07-30T00:00:00.000Z'),
+    ]);
+    expect(ptuOnly.some((g) => g.isCurrentLive)).toBe(false);
+  });
+
   it('ignores everything that is not a patch note', () => {
     const all = groupPatchNotes(news).flatMap((g) => g.entries);
     expect(all.some((e) => e.item.id === 'c1')).toBe(false);
