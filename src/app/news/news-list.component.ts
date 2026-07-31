@@ -319,7 +319,10 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
               <div class="bucket-head">
                 <h2>{{ 'news.buckets.older' | translate }}</h2>
                 <span class="bucket-ct">{{ svc.bucketed().older.length }}</span>
-                <button type="button" class="bucket-toggle" (click)="toggleOlder()">
+                <!-- Auto-folded with the filter (1bc19cdc); the button stays the
+                     manual override, so it carries the state for AT. -->
+                <button type="button" class="bucket-toggle"
+                        [attr.aria-expanded]="olderOpen()" (click)="toggleOlder()">
                   {{ (olderOpen() ? 'news.buckets.hideMore' : 'news.buckets.showMore') | translate:{ count: svc.bucketed().older.length } }}
                 </button>
               </div>
@@ -987,8 +990,28 @@ export class NewsListComponent implements OnInit, OnDestroy {
   readonly channels = CHANNELS;
   // Retention window shown next to the video rail head (e7082310).
   readonly videoRetentionDays = VIDEO_RETENTION_DAYS;
-  readonly olderOpen = signal(false);
   readonly hasFilter = computed(() => this.svc.activeChannels().size > 0);
+
+  // ── Older entries fold with the filter (feedback 1bc19cdc) ───────────────
+  // "Alle" is the browsing view: the whole stream is on screen, so the "Älter"
+  // bucket is open. A filter is a search: the user narrowed the page down to one
+  // channel (or the saved items) and wants the fresh matches, not a wall of
+  // archive — so older folds away and is one click from coming back.
+  //
+  // The filter identity, not just "is there a filter": switching Comm-Link →
+  // YouTube is a new view and re-applies the default, which is what the admin
+  // asked for. Empty string = "Alle".
+  private readonly filterKey = computed(() => {
+    if (this.svc.favoritesOnly()) return 'fav';
+    return [...this.svc.activeChannels()].sort().join('+');
+  });
+  readonly isFiltered = computed(() => this.filterKey() !== '');
+
+  // Manual toggles beat the automatic state — but only inside the current view.
+  // `null` = "no manual choice here yet", so the default applies again as soon
+  // as the filter changes (reset below).
+  private readonly olderOverride = signal<boolean | null>(null);
+  readonly olderOpen = computed(() => this.olderOverride() ?? !this.isFiltered());
 
   // ── Recent videos rail (#146) ────────────────────────────────────────────
   // Watched set captured at load. `markWatched` updates the service's live set
@@ -1038,6 +1061,20 @@ export class NewsListComponent implements OnInit, OnDestroy {
     next.set(group.line, !this.isLineOpen(group));
     this.lineOverride.set(next);
   }
+
+  // One reset for every collapsible on the page (feedback 1bc19cdc): changing the
+  // filter drops the manual choices made in the previous view, so both the
+  // "Älter" bucket and the patch lines fall back to that view's default instead
+  // of carrying a stale "expanded" across a filter switch. Older patch lines keep
+  // the 44e90e30 default — newest line expanded, the rest one click away — in
+  // every view; re-expanding all of them under "Alle" would undo that grouping.
+  private readonly resetFoldsOnFilterChange = effect(() => {
+    this.filterKey(); // dependency: re-run on every filter switch
+    untracked(() => {
+      this.olderOverride.set(null);
+      if (this.lineOverride().size > 0) this.lineOverride.set(new Map());
+    });
+  });
 
   // Rail scroll affordance: the cinema tiles run on --news-tile-video, so five
   // of them overflow every realistic viewport. Touch swipes; pointer users get
@@ -1120,7 +1157,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
     this.detailRef = null;
   }
 
-  toggleOlder() { this.olderOpen.update((v) => !v); }
+  toggleOlder() { this.olderOverride.set(!this.olderOpen()); }
 
   // Channel + favorites filtering are mutually exclusive views: picking a
   // channel (or "Alle") leaves the saved-only view; the ★ chip enters it.
