@@ -703,6 +703,19 @@
       "scrollPrev": "Previous videos",
       "scrollNext": "More videos"
     },
+    "patch": {
+      "title": "Patch Notes",
+      "hint": "Grouped by main patch — newest first",
+      "line": "Alpha {{version}}",
+      "otherLine": "Without a version",
+      "hotfix": "Hotfix",
+      "current": "Currently live",
+      "stage": {
+        "live": "Live",
+        "ptu": "PTU",
+        "evocati": "Evocati"
+      }
+    },
     "detail": {
       "close": "Close"
     },
