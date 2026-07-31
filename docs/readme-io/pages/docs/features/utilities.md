@@ -52,3 +52,22 @@ Admin-only surfaces, listed here so the map is complete:
 The web app is a **PWA** and ships fully localised in **English and German** —
 switchable in Settings. The Data Uploader and the Starscape wallpaper app are
 Windows desktop binaries; see [Desktop tools](doc:desktop-tools).
+
+**Language** and **region** are two separate settings, because they answer two
+different questions. The language picks the translation and the month names;
+the region decides how a date is *ordered* and whether the clock runs 12- or
+24-hour. A German speaker in the US can therefore read a German UI with US
+dates.
+
+Both default to **Automatic**, resolved in this order:
+
+1. your profile setting, if you picked one,
+2. what your browser reports — its preferred languages, its locale, and its
+   time zone (`Europe/Vienna` → Austria, even when the browser names no
+   country),
+3. English with a day-first region.
+
+Dates are always written with the month spelled out, in your region's field
+order: `31 / July / 2026` in Europe, `July / 31 / 2026` in the US,
+`2026 / July / 31` in Japan. Settings shows a live preview of your current
+combination.

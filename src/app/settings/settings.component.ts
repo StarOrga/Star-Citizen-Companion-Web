@@ -13,17 +13,21 @@ import { RoleService } from '../auth/role.service';
 import { ComposerPrefsService } from '../core/composer-prefs.service';
 import { ConsentService } from '../core/consent.service';
 import { AnalyticsService } from '../core/analytics.service';
+import { LocaleService } from '../core/locale/locale.service';
+import type { AppLanguage, RegionCode } from '../core/locale/locale.types';
+import { PICKER_REGIONS } from '../core/locale/region.data';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { SupabaseClientProvider } from '../core/supabase.client';
 
 // Only languages with a real translation file are offered (issue #23) — the
 // other locale files are machine-stub placeholders; offering them silently
 // fell back to English, which read as "translation exists but is broken".
-type LangId = 'de' | 'en';
+type LangId = AppLanguage;
 
 @Component({
   selector: 'sc-settings',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, ScDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -64,7 +68,7 @@ type LangId = 'de' | 'en';
           </div>
           <div class="row">
             <span class="label">{{ 'profile.created' | translate }}</span>
-            <span class="value">{{ user.created_at }}</span>
+            <span class="value">{{ user.created_at | scDate }}</span>
           </div>
         </div>
       }
@@ -99,21 +103,53 @@ type LangId = 'de' | 'en';
         }
       </div>
 
-      <!-- 3. Language -->
+      <!-- 3. Language & region (feedback 38b3d25a) -->
       <div class="sc-card section">
-        <h2>{{ 'settings.language.title' | translate }}</h2>
+        <h2>{{ 'settings.locale.title' | translate }}</h2>
+        <p class="hint">{{ 'settings.locale.hint' | translate }}</p>
+
         <label class="field-row">
-          <span class="inline-label">{{ 'settings.language.label' | translate }}</span>
+          <span class="inline-label">{{ 'settings.locale.language.label' | translate }}</span>
           <select
             class="sc-select"
-            [value]="currentLang()"
-            (change)="onLangChange($event)"
-            [attr.aria-label]="'settings.language.label' | translate">
-            @for (l of locales; track l) {
-              <option [value]="l">{{ l.toUpperCase() }}</option>
+            [value]="locale.languageSetting()"
+            (change)="onLanguageChange($event)"
+            [attr.aria-label]="'settings.locale.language.label' | translate">
+            <option value="auto">{{ 'settings.locale.auto' | translate }}</option>
+            @for (l of languages; track l) {
+              <option [value]="l">{{ 'settings.locale.languages.' + l | translate }}</option>
             }
           </select>
         </label>
+        @if (locale.languageIsAuto()) {
+          <p class="consent-desc">
+            {{ 'settings.locale.detected' | translate: { value: languageLabel(locale.language()) } }}
+          </p>
+        }
+
+        <label class="field-row">
+          <span class="inline-label">{{ 'settings.locale.region.label' | translate }}</span>
+          <select
+            class="sc-select region-select"
+            [value]="locale.regionSetting()"
+            (change)="onRegionChange($event)"
+            [attr.aria-label]="'settings.locale.region.label' | translate">
+            <option value="auto">{{ 'settings.locale.auto' | translate }}</option>
+            @for (r of regions; track r) {
+              <option [value]="r">{{ 'settings.locale.regions.' + r | translate }}</option>
+            }
+          </select>
+        </label>
+        @if (locale.regionIsAuto()) {
+          <p class="consent-desc">
+            {{ 'settings.locale.detected' | translate: { value: regionLabel(locale.region()) } }}
+          </p>
+        }
+
+        <div class="row">
+          <span class="label">{{ 'settings.locale.preview' | translate }}</span>
+          <span class="value">{{ sampleDate | scDate: 'datetime' }}</span>
+        </div>
       </div>
 
       <!-- 4. Input / composer keyboard (feedback aa8d5b18) -->
@@ -305,6 +341,7 @@ type LangId = 'de' | 'en';
       cursor: pointer;
       min-width: 90px;
     }
+    .region-select { min-width: 180px; }
     .sc-select:focus {
       outline: none;
       border-color: var(--sc-accent);
@@ -366,16 +403,18 @@ export class SettingsComponent implements OnInit {
   readonly profile = inject(ProfileService);
   readonly consent = inject(ConsentService);
   readonly composerPrefs = inject(ComposerPrefsService);
+  readonly locale = inject(LocaleService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
   private readonly analytics = inject(AnalyticsService);
 
-  readonly locales: readonly LangId[] = ['de', 'en'];
+  readonly languages: readonly LangId[] = ['de', 'en'];
+  readonly regions: readonly RegionCode[] = PICKER_REGIONS;
+  /** Stable reference so the live format preview does not re-render per tick. */
+  readonly sampleDate = new Date();
   // Normalize legacy stored values (fr/es/pt/ru/zh from the old 7-language
   // dropdown) onto the supported pair so the select always has a valid option.
-  readonly currentLang = computed<LangId>(() =>
-    (this.translate.getCurrentLang() ?? 'en').startsWith('de') ? 'de' : 'en',
-  );
+  readonly currentLang = computed<LangId>(() => this.locale.language());
 
   // Username — the saved value is the shared ProfileService signal, so editing
   // here immediately updates the avatar/account-menu across the shell.
@@ -444,18 +483,56 @@ export class SettingsComponent implements OnInit {
     this.consent.setStatistics((e.target as HTMLInputElement).checked);
   }
 
-  onLangChange(e: Event) {
-    const lang = (e.target as HTMLSelectElement).value as LangId;
-    this.translate.use(lang);
-    if (typeof localStorage !== 'undefined') localStorage.setItem('sc.lang', lang);
-    this.analytics.capture('settings_language_changed', { lang });
+  /**
+   * Language choice. `LocaleService` owns persistence + the ngx-translate
+   * activation (the shell mirrors its resolved language), so this handler only
+   * records the choice and syncs it to the account.
+   */
+  onLanguageChange(e: Event) {
+    const value = (e.target as HTMLSelectElement).value;
+    const setting = value === 'auto' ? 'auto' : (value as LangId);
+    this.locale.setLanguage(setting);
+    this.analytics.capture('settings_language_changed', { lang: setting });
     // Persist to the profile as the logged-in preference. Fire-and-forget:
     // a failure here (e.g. migration not yet applied) must not block the UI.
+    // `null` clears the column, i.e. hands the decision back to detection.
     this.sb.client
-      .rpc('set_preferred_lang', { lang })
+      .rpc('set_preferred_lang', { lang: setting === 'auto' ? null : setting })
       .then(({ error }) => {
         if (error) console.warn('[settings] set_preferred_lang failed:', error.message);
       });
+  }
+
+  /** Region choice — decides date field order and the clock convention. */
+  onRegionChange(e: Event) {
+    const value = (e.target as HTMLSelectElement).value;
+    const setting = value === 'auto' ? 'auto' : value.toUpperCase();
+    this.locale.setRegion(setting);
+    this.analytics.capture('settings_region_changed', { region: setting });
+    this.sb.client
+      .rpc('set_preferred_region', { region: setting === 'auto' ? null : setting })
+      .then(({ error }) => {
+        if (error) console.warn('[settings] set_preferred_region failed:', error.message);
+      });
+  }
+
+  /** Translated language name, for the "detected automatically" line. */
+  languageLabel(lang: string): string {
+    return this.translated(`settings.locale.languages.${lang}`, lang.toUpperCase());
+  }
+
+  /**
+   * Translated region name. A region resolved from the browser can legitimately
+   * sit outside the curated picker list (e.g. `HR`) — show the raw ISO code
+   * rather than leaking a translation key.
+   */
+  regionLabel(region: string): string {
+    return this.translated(`settings.locale.regions.${region}`, region);
+  }
+
+  private translated(key: string, fallback: string): string {
+    const value = this.translate.instant(key);
+    return !value || value === key ? fallback : value;
   }
 
   async deleteAccount() {

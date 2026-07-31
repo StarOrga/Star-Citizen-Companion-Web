@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { ReleaseNotesService } from './release-notes.service';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 /** Keep-a-Changelog standard categories that get a localized, colored tag. */
 const KNOWN_CATEGORIES = ['added', 'changed', 'fixed', 'removed', 'deprecated', 'security'] as const;
@@ -14,7 +14,7 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
 @Component({
   selector: 'sc-release-notes',
   standalone: true,
-  imports: [DatePipe, TranslateModule],
+  imports: [ScDatePipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -37,7 +37,7 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
             <li class="release">
               <div class="rel-head">
                 <span class="ver mono">v{{ r.version }}</span>
-                @if (r.date) { <time class="date">{{ toDate(r.date) | date: 'longDate' }}</time> }
+                @if (r.date) { <time class="date">{{ toDate(r.date) | scDate }}</time> }
               </div>
               @for (s of r.sections; track $index) {
                 <div class="section">
@@ -193,7 +193,7 @@ export class ReleaseNotesComponent implements OnInit {
     return (KNOWN_CATEGORIES as readonly string[]).includes(first) ? (first as KnownCategory) : null;
   }
 
-  /** CHANGELOG dates are ISO (YYYY-MM-DD); parse for the DatePipe. */
+  /** CHANGELOG dates are ISO (YYYY-MM-DD); parse for the ScDatePipe. */
   toDate(iso: string): Date | string {
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? iso : d;

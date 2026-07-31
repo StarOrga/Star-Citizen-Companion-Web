@@ -9,7 +9,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { StarscapeService, StarscapeRing, Wallpaper, ringsForRole } from './starscape.service';
@@ -21,6 +20,7 @@ import {
 } from '../desktop/app-download-panel.component';
 import { StarscapeAppPromoComponent } from './starscape-app-promo.component';
 import { isPlainLeftClick } from '../core/modified-click.util';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 // Believable, varied masonry-tile heights (px) for the loading skeletons. The
 // gallery rows carry no dimension metadata, so a fixed cycle of plausible
@@ -48,7 +48,7 @@ const EAGER_TILES = 8;
   standalone: true,
   imports: [
     TranslateModule,
-    DatePipe,
+    ScDatePipe,
     ImgReadyDirective,
     AppDownloadPanelComponent,
     StarscapeAppPromoComponent,
@@ -211,7 +211,7 @@ const EAGER_TILES = 8;
               <strong>{{ w.title }}</strong>
               <span class="lb-sub">
                 @if (w.series) { {{ w.series }} · }
-                @if (w.publishedAt) { {{ w.publishedAt | date: 'mediumDate' }} }
+                @if (w.publishedAt) { {{ w.publishedAt | scDate }} }
               </span>
             </div>
             <div class="lb-actions">

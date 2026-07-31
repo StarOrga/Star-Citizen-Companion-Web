@@ -1376,7 +1376,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
     if (d === 1) return this.t.instant('news.relative.yesterday');
     if (d < 7) return this.t.instant('news.relative.days', { n: d });
     const w = Math.floor(d / 7);
-    return this.t.instant('news.relative.weeks', { n: w });
+    return this.t.instant(w === 1 ? 'news.relative.week' : 'news.relative.weeks', { n: w });
   }
 
   iconFor(channel: NewsChannel): string {

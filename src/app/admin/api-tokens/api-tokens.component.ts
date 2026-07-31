@@ -6,7 +6,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   API_TOKEN_SCOPES,
@@ -16,6 +15,7 @@ import {
   CreatedToken,
 } from './api-tokens.service';
 import { useAutoRefresh } from '../../core/auto-refresh';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 
 interface FlashMessage {
   kind: 'success' | 'error';
@@ -28,7 +28,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
 @Component({
   selector: 'sc-api-tokens',
   standalone: true,
-  imports: [DatePipe, TranslateModule],
+  imports: [ScDatePipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -116,9 +116,9 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
                   }
                 </td>
                 <td>
-                  {{ t.last_used_at ? (t.last_used_at | date:'short') : ('admin.tokens.neverUsed' | translate) }}
+                  {{ t.last_used_at ? (t.last_used_at | scDate: 'datetime') : ('admin.tokens.neverUsed' | translate) }}
                 </td>
-                <td>{{ t.created_at | date:'short' }}</td>
+                <td>{{ t.created_at | scDate: 'datetime' }}</td>
                 <td class="actions">
                   <button
                     class="sc-btn micro danger"

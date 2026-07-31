@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AnalyticsService } from '../core/analytics.service';
+import { formatScDate } from '../core/locale/date-format';
+import { LocaleService } from '../core/locale/locale.service';
 import { ExtensionBridgeService, ExtensionHangarPayload } from './extension-bridge.service';
 import { HangarImportComponent } from './hangar-import.component';
 
@@ -116,6 +118,7 @@ type Phase = 'waiting' | 'ready' | 'empty' | 'done';
 export class HangarImportPageComponent implements OnInit {
   private readonly bridge = inject(ExtensionBridgeService);
   private readonly analytics = inject(AnalyticsService);
+  private readonly locale = inject(LocaleService);
 
   readonly phase = signal<Phase>('waiting');
   readonly payload = signal<ExtensionHangarPayload | null>(null);
@@ -138,8 +141,13 @@ export class HangarImportPageComponent implements OnInit {
   }
 
   capturedLabel(): string {
-    const at = this.payload()?.capturedAt;
-    return at ? new Date(at).toLocaleString() : '';
+    // App-wide format (feedback 38b3d25a): spelled-out month, field order from
+    // the user's resolved region — not the raw browser locale.
+    return formatScDate(this.payload()?.capturedAt, {
+      language: this.locale.language(),
+      region: this.locale.region(),
+      style: 'datetime',
+    });
   }
 
   onImported(count: number): void {

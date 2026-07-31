@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { UpcomingShip, UpcomingShipsService } from './upcoming-ships.service';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 /**
  * Codex — Upcoming Ships. Renders the diff computed by the `rsi-upcoming-ships`
@@ -25,7 +26,7 @@ import { UpcomingShip, UpcomingShipsService } from './upcoming-ships.service';
 @Component({
   selector: 'sc-codex-upcoming',
   standalone: true,
-  imports: [DatePipe, NgTemplateOutlet, RouterLink, TranslateModule, CodexCategoryIconComponent],
+  imports: [ScDatePipe, NgTemplateOutlet, RouterLink, TranslateModule, CodexCategoryIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="upcoming">
@@ -41,7 +42,7 @@ import { UpcomingShip, UpcomingShipsService } from './upcoming-ships.service';
               <span class="meta-count">{{ 'codex.upcoming.count' | translate: { count: c.total } }}</span>
               <span class="meta-fresh">
                 <span class="fresh-dot" aria-hidden="true"></span>
-                {{ 'codex.upcoming.updated' | translate: { time: (f.fetchedAt | date: 'short') } }}
+                {{ 'codex.upcoming.updated' | translate: { time: (f.fetchedAt | scDate: 'datetime') } }}
               </span>
             </div>
           }

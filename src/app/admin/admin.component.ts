@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { useAutoRefresh } from '../core/auto-refresh';
 import { Role, RoleService } from '../auth/role.service';
 import { AuthService } from '../auth/auth.service';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 interface AdminUserRow {
   id: string;
@@ -26,7 +26,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 @Component({
   selector: 'sc-admin',
   standalone: true,
-  imports: [DatePipe, TranslateModule],
+  imports: [ScDatePipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -157,8 +157,8 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                     </span>
                   }
                 </td>
-                <td>{{ u.created_at | date:'shortDate' }}</td>
-                <td>{{ u.last_sign_in_at ? (u.last_sign_in_at | date:'short') : '—' }}</td>
+                <td>{{ u.created_at | scDate }}</td>
+                <td>{{ u.last_sign_in_at ? (u.last_sign_in_at | scDate: 'datetime') : '—' }}</td>
                 <td class="actions">
                   @if (u.role !== 'collaborator') {
                     <button class="sc-btn micro"

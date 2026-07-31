@@ -4,6 +4,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from './auth/auth.service';
 import { AnalyticsService } from './core/analytics.service';
 import { ConsentBannerComponent } from './core/consent-banner.component';
+import { LocaleService } from './core/locale/locale.service';
 import { SupabaseClientProvider } from './core/supabase.client';
 import { SwUpdateService } from './core/sw-update.service';
 
@@ -80,49 +81,55 @@ export class AppComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly analytics = inject(AnalyticsService);
+  private readonly locale = inject(LocaleService);
   readonly swUpdate = inject(SwUpdateService);
 
   /**
-   * Guards the language-persistence race: the profile's `preferred_lang` is
-   * applied only ONCE, on the first post-login load. Without this flag a
-   * language the user changes in the same session would be clobbered the next
-   * time the auth signal re-emits (e.g. token refresh).
+   * Guards the preference race: the profile's locale columns are applied only
+   * ONCE, on the first post-login load. Without this flag a language the user
+   * changes in the same session would be clobbered the next time the auth
+   * signal re-emits (e.g. token refresh).
    */
-  private appliedProfileLang = false;
+  private appliedProfileLocale = false;
 
   constructor() {
-    // After auth is ready and a user appears, load their stored language
-    // preference and apply it — but only on the initial post-login load, so a
-    // switch made in the current session is never overridden (see flag above).
+    // After auth is ready and a user appears, load their stored locale
+    // preferences and apply them — but only on the initial post-login load, so
+    // a switch made in the current session is never overridden (see flag).
     effect(() => {
       const user = this.auth.user();
-      if (!user || this.appliedProfileLang) return;
-      this.appliedProfileLang = true;
+      if (!user || this.appliedProfileLocale) return;
+      this.appliedProfileLocale = true;
       this.sb.client
         .from('profiles')
-        .select('preferred_lang')
+        .select('preferred_lang, preferred_region')
         .eq('id', user.id)
         .maybeSingle()
         .then(({ data }) => {
-          const raw = data?.['preferred_lang'] as string | null | undefined;
-          // Only de/en have real translations (issue #23) — normalize legacy
-          // preferences (fr/es/…) instead of activating a stub locale.
-          const pref = raw === 'de' || raw === 'en' ? raw : null;
-          if (pref && pref !== this.translate.getCurrentLang()) {
-            this.translate.use(pref);
-            if (typeof localStorage !== 'undefined') localStorage.setItem('sc.lang', pref);
-          }
+          // LocaleService ignores anything unusable — legacy languages
+          // (fr/es/…) that have no real translation (issue #23), NULL columns,
+          // and a `preferred_region` that is absent because the migration has
+          // not been applied yet.
+          this.locale.hydrateFromProfile(
+            data?.['preferred_lang'] as string | null | undefined,
+            data?.['preferred_region'] as string | null | undefined,
+          );
         });
+    });
+
+    // The resolved language is the single source of truth for ngx-translate:
+    // whatever LocaleService decides (profile → explicit choice → browser →
+    // English) is what gets activated, including later switches.
+    effect(() => {
+      const lang = this.locale.language();
+      if (lang !== this.translate.getCurrentLang()) this.translate.use(lang);
     });
   }
 
   ngOnInit(): void {
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('sc.lang') : null;
-    // Normalize legacy stored languages (fr/es/pt/ru/zh) onto the supported
-    // de/en pair — see issue #23.
-    const stored = raw === 'de' || raw === 'en' ? raw : null;
-    const browser = (this.translate.getBrowserLang() ?? 'en').slice(0, 2);
-    const initial = stored ?? (browser === 'de' ? 'de' : 'en');
+    // Activate synchronously on boot so the first paint is already translated;
+    // the effect above only handles subsequent changes.
+    const initial = this.locale.language();
     this.translate.use(initial);
 
     // Sync <html lang> with the active translation so SEO + screenreaders

@@ -14,13 +14,13 @@ import {
   viewChild,
   viewChildren,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RenderedFeedbackBody, renderFeedbackBody } from './markdown.util';
 import { CelebrationService } from './celebration.service';
 import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
 import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import {
   FeedbackMessage,
   WORKFLOW_SCOPES,
@@ -57,7 +57,7 @@ const ADVANCE_SLIDE_MS = 380;
 @Component({
   selector: 'sc-feedback-workflow',
   standalone: true,
-  imports: [DatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
+  imports: [ScDatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="wf" [class.compact]="compact()">
@@ -130,7 +130,7 @@ const ADVANCE_SLIDE_MS = 380;
                 [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
             }
             <span class="wf-title">{{ title(item) }}</span>
-            <span class="wf-ts">{{ item.row.created_at | date: 'shortDate' }}</span>
+            <span class="wf-ts">{{ item.row.created_at | scDate }}</span>
           </header>
 
           @let body = render(item.row.body);
@@ -162,7 +162,7 @@ const ADVANCE_SLIDE_MS = 380;
                         <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span>
                       }
                     }
-                    <span class="reply-ts">{{ msg.created_at | date: 'short' }}</span>
+                    <span class="reply-ts">{{ msg.created_at | scDate: 'datetime' }}</span>
                   </div>
                   @let reply = render(msg.body);
                   <div class="reply-body" [innerHTML]="reply.html"></div>

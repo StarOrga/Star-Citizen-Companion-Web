@@ -7,7 +7,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { RoleService } from '../auth/role.service';
@@ -15,6 +14,7 @@ import { P4kHistoryComponent } from '../p4k/p4k-history.component';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
 import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
 import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-release.service';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 /**
  * The Data Upload page (`/uploader`). Since admin feedback eb9c6ec3 it renders
@@ -29,7 +29,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
   selector: 'sc-desktop-download',
   standalone: true,
   imports: [
-    DatePipe,
+    ScDatePipe,
     TranslateModule,
     P4kHistoryComponent,
     AppDownloadPanelComponent,
@@ -62,7 +62,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
       <div class="meta">
         @if (release(); as r) {
           <span class="rel-when">
-            {{ 'desktop.released' | translate }} · {{ r.created_at | date: 'mediumDate' }}
+            {{ 'desktop.released' | translate }} · {{ r.created_at | scDate }}
           </span>
         }
         <button type="button" class="link" (click)="historyOpen.set(true)">
