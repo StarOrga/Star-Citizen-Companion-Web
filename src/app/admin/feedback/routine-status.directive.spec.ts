@@ -13,14 +13,20 @@ const iso = (msAgo: number) => new Date(NOW - msAgo).toISOString();
   standalone: true,
   imports: [TranslateModule, RoutineStatusDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<h1 scRoutineStatus>{{ 'feedbackFab.title' | translate }}</h1>`,
+  template: `<h1 scRoutineStatus="feedbackFab.title">{{ 'feedbackFab.title' | translate }}</h1>`,
 })
 class HostComponent {}
 
 /**
- * The dev-PC liveness signal as the admin asked for it the second time round
- * (feedback a7573f0e): "nur der Titel oben 'Feedback' soll grün oder Rot
- * markiert sein" — no status line of its own, and nothing louder than a tint.
+ * The dev-PC liveness signal as the admin asked for it (feedback a7573f0e):
+ * "nur der Titel oben 'Feedback' soll grün oder Rot markiert sein" — no status
+ * line of its own, and nothing louder than a tint.
+ *
+ * The round in between shipped a visually hidden span inside the title and it
+ * rendered as "(DEV-PC ERREICHBAR)Feedback" on screen, so the assertions below
+ * are deliberately about the *whole* element: not "the visible part reads
+ * Feedback once you ignore the hidden bits", but "the title has no child nodes
+ * and its text is the title, full stop".
  */
 describe('RoutineStatusDirective', () => {
   let fixture: ComponentFixture<HostComponent>;
@@ -53,6 +59,7 @@ describe('RoutineStatusDirective', () => {
           onlineTitle: 'Dev PC reachable - checked in {{time}}.',
           offlineTitle: 'Dev PC unreachable - last checked in {{time}}.',
           unknownTitle: 'Status unknown.',
+          ariaLabel: '{{title}} - {{state}}',
         },
       },
     });
@@ -63,13 +70,6 @@ describe('RoutineStatusDirective', () => {
   }
 
   const title = () => fixture.nativeElement.querySelector('h1') as HTMLElement;
-  /** What a sighted user reads — the hidden state wording does not count. */
-  const visibleText = () => {
-    const clone = title().cloneNode(true) as HTMLElement;
-    clone.querySelector('.sc-routine-tint__sr')?.remove();
-    return clone.textContent!.trim();
-  };
-  const srText = () => title().querySelector('.sc-routine-tint__sr')!.textContent!.trim();
 
   it('tints the existing title green and adds no wording of its own', async () => {
     await setup('online', iso(5 * MIN));
@@ -77,16 +77,27 @@ describe('RoutineStatusDirective', () => {
     expect(title().classList).toContain('is-online');
     expect(title().classList).not.toContain('is-offline');
     // The whole point of the follow-up: the panel still just says "Feedback".
-    expect(visibleText()).toBe('Feedback');
+    expect(title().textContent).toBe('Feedback');
     // The global tint rules select on the directive's own attribute to outweigh
     // the component-scoped `color` on those titles — so it has to reach the DOM.
+    // A static attribute value keeps it there; a binding would not.
     expect(title().hasAttribute('scRoutineStatus')).toBeTrue();
+  });
+
+  it('puts nothing at all inside the title element', async () => {
+    await setup('offline', iso(3 * 60 * MIN));
+    // No element children and exactly one text node: there is no span left
+    // that a missing or overridden stylesheet could reveal.
+    expect(title().childElementCount).toBe(0);
+    expect(title().childNodes.length).toBe(1);
+    expect(title().textContent).toBe('Feedback');
+    expect(title().textContent).not.toContain('Dev PC');
   });
 
   it('tints it red and keeps naming the last check-in on hover', async () => {
     await setup('offline', iso(3 * 60 * MIN));
     expect(title().classList).toContain('is-offline');
-    expect(visibleText()).toBe('Feedback');
+    expect(title().textContent).toBe('Feedback');
     expect(title().getAttribute('title')).toContain('last checked in');
   });
 
@@ -106,19 +117,20 @@ describe('RoutineStatusDirective', () => {
 
   it('never leaves colour as the only carrier', async () => {
     await setup('offline', iso(3 * 60 * MIN));
-    // Hidden for the eye, part of the heading for assistive tech — and shown
-    // again under forced colours, where the tint itself is overridden.
-    expect(srText()).toBe('(Dev PC unreachable)');
+    // Off-screen but part of the accessible name — and it still names the
+    // heading, so the state does not replace "Feedback" for a screen reader.
+    expect(title().getAttribute('aria-label')).toBe('Feedback - Dev PC unreachable');
     expect(title().getAttribute('title')).toContain('Dev PC unreachable');
   });
 
   it('repaints when the state flips, without the host re-rendering', async () => {
     await setup('online', iso(5 * MIN));
+    expect(title().getAttribute('aria-label')).toBe('Feedback - Dev PC reachable');
     state.set('offline');
     fixture.detectChanges();
     expect(title().classList).toContain('is-offline');
     expect(title().classList).not.toContain('is-online');
-    expect(srText()).toBe('(Dev PC unreachable)');
-    expect(visibleText()).toBe('Feedback');
+    expect(title().getAttribute('aria-label')).toBe('Feedback - Dev PC unreachable');
+    expect(title().textContent).toBe('Feedback');
   });
 });

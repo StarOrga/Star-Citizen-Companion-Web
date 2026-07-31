@@ -40,8 +40,12 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
             [attr.aria-label]="'feedbackFab.title' | translate">
             <header class="panel-head">
               <!-- The title doubles as the dev-PC liveness light: tinted green
-                   / red / left grey by scRoutineStatus (feedback a7573f0e). -->
-              <span class="panel-title" scRoutineStatus>{{ 'feedbackFab.title' | translate }}</span>
+                   / red / left grey by scRoutineStatus (feedback a7573f0e). It
+                   stays the word and nothing else — the state reaches assistive
+                   tech through aria-label, never as text on screen. The
+                   attribute's value is the title's own i18n key, so that
+                   accessible name can keep saying "Feedback" too. -->
+              <span class="panel-title" scRoutineStatus="feedbackFab.title">{{ 'feedbackFab.title' | translate }}</span>
               <div class="panel-actions">
                 <button
                   type="button"

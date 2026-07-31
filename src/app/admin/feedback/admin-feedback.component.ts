@@ -155,8 +155,10 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
           <div>
             <!-- The heading doubles as the dev-PC liveness light: tinted green
                  / red / left grey by scRoutineStatus (feedback a7573f0e). On
-                 the embedded board the FAB panel's own title carries it. -->
-            <h1 scRoutineStatus>{{ 'adminFeedback.title' | translate }}</h1>
+                 the embedded board the FAB panel's own title carries it. The
+                 attribute's value is this heading's own i18n key: the state
+                 wording rides on aria-label, never on screen. -->
+            <h1 scRoutineStatus="adminFeedback.title">{{ 'adminFeedback.title' | translate }}</h1>
             <p class="hint">{{ 'adminFeedback.subtitle' | translate }}</p>
           </div>
         </header>

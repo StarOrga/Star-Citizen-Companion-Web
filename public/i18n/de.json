@@ -1394,7 +1394,8 @@
       "unknown": "Dev-PC Status unbekannt",
       "onlineTitle": "Dev-PC erreichbar — die Feedback-Routine hat sich {{time}} gemeldet. Neue Themen werden bearbeitet.",
       "offlineTitle": "Dev-PC nicht erreichbar — die Feedback-Routine hat sich zuletzt {{time}} gemeldet. Rechner aus, Claude nicht offen oder Tokens verbraucht; neue Themen bleiben liegen, bis er wieder läuft.",
-      "unknownTitle": "Status unbekannt — bisher keine Rückmeldung der Feedback-Routine."
+      "unknownTitle": "Status unbekannt — bisher keine Rückmeldung der Feedback-Routine.",
+      "ariaLabel": "{{title}} — {{state}}"
     },
     "refresh": "Aktualisieren",
     "loading": "Lädt…",
