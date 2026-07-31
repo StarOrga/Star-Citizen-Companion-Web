@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ConsentService } from '../core/consent.service';
+import { PatchLineGroup, groupPatchNotes } from './patch-notes';
 
 export type NewsChannel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 export type StatusLevel = 'operational' | 'degraded' | 'partial_outage' | 'major_outage' | 'maintenance' | 'unknown';
@@ -140,6 +141,12 @@ export class NewsService {
     return f.news.filter((n) => Date.parse(n.publishedAt) > cutoff).length;
   });
 
+  /**
+   * Patch notes grouped by main patch line, newest line first (44e90e30).
+   * Derived from the titles, so a brand-new line (4.10, 5.0, …) groups itself.
+   */
+  readonly patchLines = computed<PatchLineGroup[]>(() => groupPatchNotes(this.feed()?.news ?? []));
+
   readonly bucketed = computed<BucketedNews>(() => {
     const f = this.feed();
     if (!f) return { today: [], week: [], older: [] };
@@ -151,9 +158,15 @@ export class NewsService {
     // In the default "Alle" view videos have their own recent-videos rail
     // (#146), so drop them from the stream to avoid showing each clip twice.
     // Selecting the YouTube channel explicitly still lists every video here.
+    //
+    // Patch notes are dropped from the time buckets in EVERY channel view
+    // (44e90e30): they have their own section, grouped by patch line, and a
+    // release/PTU/hotfix stream chopped into "Heute / Diese Woche / Älter" is
+    // exactly the shape the admin asked us to get away from. The `patch` chip
+    // therefore narrows the page down to that section.
     const filtered = active.size === 0
-      ? f.news.filter((n) => n.channel !== 'youtube')
-      : f.news.filter((n) => active.has(n.channel));
+      ? f.news.filter((n) => n.channel !== 'youtube' && n.channel !== 'patch')
+      : f.news.filter((n) => active.has(n.channel) && n.channel !== 'patch');
     return bucketByTime(filtered);
   });
 

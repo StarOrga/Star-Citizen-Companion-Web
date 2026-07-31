@@ -21,6 +21,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { NewsService, NewsChannel, VerseNewsItem, pickRecentVideos, VIDEO_RETENTION_DAYS } from './news.service';
+import { PatchLineGroup } from './patch-notes';
 import { NewsThumbComponent } from './news-thumb.component';
 import { UpcomingShipsNoticeComponent } from './upcoming-ships-notice.component';
 import { isMiddleClick, isPlainLeftClick } from '../core/modified-click.util';
@@ -178,6 +179,69 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
           </section>
         }
 
+        <!-- Patch notes, grouped by main patch line (feedback 44e90e30). RSI
+             ships a line as a stream — PTU waves, the LIVE release notes, point
+             releases, then weeks of hotfixes — so a flat date list buries the
+             very thing you came for. Newest line on top and expanded, older
+             lines one click away, nothing dropped. -->
+        @if (showPatchNotes()) {
+          <section class="patch-notes" [attr.aria-label]="'news.patch.title' | translate">
+            <div class="bucket-head">
+              <h2>{{ 'news.patch.title' | translate }}</h2>
+              <span class="bucket-ct">{{ svc.channelCount('patch') }}</span>
+              <span class="rail-note">{{ 'news.patch.hint' | translate }}</span>
+            </div>
+            <ol class="patch-lines">
+              @for (group of svc.patchLines(); track group.line) {
+                <li class="patch-line" [class.open]="isLineOpen(group)">
+                  <!-- Expand/collapse is an action, not a navigation → button. -->
+                  <button type="button" class="line-head"
+                          [attr.aria-expanded]="isLineOpen(group)"
+                          (click)="toggleLine(group)">
+                    <span class="caret" aria-hidden="true">›</span>
+                    <span class="line-name">{{
+                      group.line
+                        ? ('news.patch.line' | translate:{ version: group.line })
+                        : ('news.patch.otherLine' | translate)
+                    }}</span>
+                    @if (group.hasLive) {
+                      <span class="tag" data-stage="live">{{ 'news.patch.stage.live' | translate }}</span>
+                    }
+                    <span class="bucket-ct">{{ group.entries.length }}</span>
+                    <time class="rail-note">{{ relTime(group.latestAt) }}</time>
+                  </button>
+                  @if (isLineOpen(group)) {
+                    <ul class="patch-entries">
+                      @for (entry of group.entries; track entry.item.id) {
+                        <li class="patch-entry">
+                          <!-- Real anchor: the notes live on RSI, so middle click
+                               and "open in new tab" must just work. -->
+                          <a class="entry-link" [href]="entry.item.url"
+                             target="_blank" rel="noopener noreferrer">
+                            <span class="entry-title">{{ entry.item.title }}</span>
+                            <span class="entry-meta">
+                              @if (entry.version) {
+                                <span class="tag ver">{{ entry.version }}</span>
+                              }
+                              @if (entry.stage) {
+                                <span class="tag" [attr.data-stage]="entry.stage">{{ ('news.patch.stage.' + entry.stage) | translate }}</span>
+                              }
+                              @if (entry.hotfix) {
+                                <span class="tag hotfix">{{ 'news.patch.hotfix' | translate }}</span>
+                              }
+                              <time>{{ relTime(entry.item.publishedAt) }}</time>
+                            </span>
+                          </a>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </li>
+              }
+            </ol>
+          </section>
+        }
+
         @if (svc.loading() && !svc.feed()) {
           <div class="bucket" aria-hidden="true">
             <div class="bucket-head"><span class="skel-line shimmer head"></span></div>
@@ -267,7 +331,10 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
             </section>
           }
 
-          @if (svc.bucketed().today.length === 0 && svc.bucketed().week.length === 0 && svc.bucketed().older.length === 0) {
+          <!-- The patch section lives outside the buckets, so "nothing here" must
+               not be claimed while it is on screen (e.g. the Patch-Notes chip
+               alone, which empties the buckets by design). -->
+          @if (!showPatchNotes() && svc.bucketed().today.length === 0 && svc.bucketed().week.length === 0 && svc.bucketed().older.length === 0) {
             <div class="sc-card empty">{{ (svc.favoritesOnly() ? 'news.emptyFavorites' : (hasFilter() ? 'news.emptyFiltered' : 'news.empty')) | translate }}</div>
           }
         }
@@ -638,7 +705,9 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     /* ---------- Recent videos rail (#146) ----------
        Padded like a bucket so the rail's left edge lines up with the article
        tiles below it, and carried on the same tile scale (--news-tile-video). */
-    .video-rail {
+    /* Shared with the patch-notes section below: both are full-width bands that
+       sit above the bucket stream and need the same padding and hairline. */
+    .video-rail, .patch-notes {
       display: flex; flex-direction: column; gap: 10px;
       padding: 14px 16px;
       border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent);
@@ -733,6 +802,59 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .watched-badge .tick { color: var(--sc-accent); }
     .vid-card.watched { opacity: 0.55; }
     .vid-card.watched:hover, .vid-card.watched:focus-within { opacity: 0.85; }
+
+    /* ---------- Patch notes, grouped by patch line (44e90e30) ----------
+       Deliberately a list, not a card grid: these entries have no artwork and
+       no teaser text, and what the reader scans for is "which line, which ring,
+       how recent" — three short facts per row. Section chrome is shared with the
+       video rail above (see .video-rail). An Evocati tag needs no colour of its
+       own: the plain .tag muted look is exactly right for the ring nobody here
+       can open. */
+    .patch-lines, .patch-entries { list-style: none; margin: 0; padding: 0; }
+    .patch-lines { display: flex; flex-direction: column; gap: 8px; }
+    .patch-line {
+      border: 1px solid var(--sc-border); border-radius: 8px;
+      background: var(--sc-bg-1); overflow: hidden;
+    }
+    .patch-line.open { border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border)); }
+    .line-head, .entry-link { min-height: var(--sc-tap-min); text-align: left; }
+    .line-head:focus-visible, .entry-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -3px; }
+    .line-head {
+      display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px;
+      background: transparent; border: 0; color: var(--sc-fg-0);
+      font-family: inherit; font-size: 0.9rem; cursor: pointer;
+    }
+    .line-head:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+    .caret { display: inline-flex; width: 12px; justify-content: center; color: var(--sc-accent); }
+    .patch-line.open .caret { transform: rotate(90deg); }
+    /* Count pill and trailing timestamp deliberately reuse the bucket/rail
+       classes — a patch line is a section head like any other on this page. */
+    .line-name { font-family: var(--sc-font-display); letter-spacing: 0.04em; }
+
+    .patch-entries { border-top: 1px dashed color-mix(in srgb, var(--sc-border) 70%, transparent); }
+    .patch-entry + .patch-entry { border-top: 1px solid color-mix(in srgb, var(--sc-border) 40%, transparent); }
+    .entry-link {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 9px 12px 9px 34px; color: inherit; text-decoration: none;
+    }
+    .entry-link:hover { background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
+    .entry-title { font-size: 0.86rem; line-height: 1.35; }
+    .entry-meta {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+      font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
+    }
+    .tag {
+      display: inline-flex; align-items: center;
+      padding: 1px 7px; border-radius: 999px;
+      font-size: max(0.64rem, var(--sc-fs-floor)); font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--sc-fg-2); border: 1px solid color-mix(in srgb, var(--sc-fg-2) 45%, transparent);
+    }
+    .tag.ver { color: var(--sc-fg-1); text-transform: none; }
+    /* LIVE = what you can play right now, PTU = test build. */
+    .tag[data-stage='live'] { color: var(--sc-success); border-color: color-mix(in srgb, var(--sc-success) 55%, transparent); }
+    .tag[data-stage='ptu'] { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 55%, transparent); }
+    .tag.hotfix { color: var(--sc-warning); border-color: color-mix(in srgb, var(--sc-warning) 55%, transparent); }
 
     /* ---------- Play affordance (rail, stream cards, detail) ---------- */
     .play {
@@ -888,6 +1010,32 @@ export class NewsListComponent implements OnInit, OnDestroy {
     return active.size === 0 || active.has('youtube');
   });
   private dwellTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // ── Patch notes by line (44e90e30) ───────────────────────────────────────
+  // Shown in the default "Alle" view and whenever the Patch-Notes chip is on —
+  // the same rule the video rail follows. Never in the saved-only view.
+  readonly showPatchNotes = computed(() => {
+    if (this.svc.favoritesOnly()) return false;
+    if (this.svc.patchLines().length === 0) return false;
+    const active = this.svc.activeChannels();
+    return active.size === 0 || active.has('patch');
+  });
+  // Only the lines the user explicitly toggled are recorded. Everything else
+  // follows the default "newest line open", which is what keeps 4.10 expanded
+  // on the day it replaces 4.9 as the newest line — no state to migrate.
+  private readonly lineOverride = signal<ReadonlyMap<string, boolean>>(new Map());
+
+  isLineOpen(group: PatchLineGroup): boolean {
+    const explicit = this.lineOverride().get(group.line);
+    if (explicit !== undefined) return explicit;
+    return group.line === this.svc.patchLines()[0]?.line;
+  }
+
+  toggleLine(group: PatchLineGroup): void {
+    const next = new Map(this.lineOverride());
+    next.set(group.line, !this.isLineOpen(group));
+    this.lineOverride.set(next);
+  }
 
   // Rail scroll affordance: the cinema tiles run on --news-tile-video, so five
   // of them overflow every realistic viewport. Touch swipes; pointer users get
