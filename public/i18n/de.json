@@ -712,6 +712,65 @@
         "live": "Live",
         "ptu": "PTU",
         "evocati": "Evocati"
+      },
+      "facet": {
+        "live": "Live",
+        "hotfix": "Hotfix",
+        "ptu": "PTU",
+        "evocati": "Evocati",
+        "other": "Sonstige"
+      },
+      "filter": {
+        "version": "Version",
+        "channel": "Kanal",
+        "all": "Alle",
+        "versionAria": "Patch-Notes nach Version filtern",
+        "channelAria": "Patch-Notes nach Kanal filtern",
+        "empty": "Keine Patch-Notes für diese Auswahl.",
+        "reset": "Filter zurücksetzen"
+      },
+      "latest": {
+        "title": "Neueste je Kanal",
+        "hint": "Höchstens ein Eintrag pro Kanal"
+      },
+      "history": {
+        "title": "Historie"
+      },
+      "kpi": {
+        "title": "Patch-Performance",
+        "sub": "Aktuell gegenüber dem Ø aller Patches",
+        "average": "Ø all time",
+        "samplesLabel": "Basis",
+        "samples": "{{n}} Messwerte",
+        "goto": "{{title}} anzeigen",
+        "pause": "Wechsel pausieren",
+        "play": "Wechsel fortsetzen",
+        "deltaFaster": "{{n}} Tage schneller als der Ø",
+        "deltaSlower": "{{n}} Tage langsamer als der Ø",
+        "deltaMore": "{{n}} mehr als der Ø",
+        "deltaLess": "{{n}} weniger als der Ø",
+        "deltaSame": "genau auf Ø-Niveau",
+        "axisFrom": "letzte {{days}} Tage",
+        "axisNow": "jetzt",
+        "barNotes": "{{n}} Patch-Notes bis {{date}}",
+        "barDays": "Alpha {{version}}: {{n}} Tage",
+        "chartAria": "{{title}}: aktuell {{latest}} {{unit}}, Ø {{average}} {{unit}} aus {{n}} Messwerten",
+        "unit": {
+          "days": "Tage",
+          "notes": "Patch-Notes"
+        },
+        "volume": {
+          "title": "Patch-Notes im Verlauf",
+          "sub": "Beiträge je {{days}} Tage"
+        },
+        "leadTime": {
+          "title": "PTU → Live",
+          "sub": "Tage vom ersten Testbuild bis zum Live-Release"
+        },
+        "cadence": {
+          "title": "Patch-Takt",
+          "sub": "Tage zwischen zwei Live-Releases"
+        }
       }
     },
     "detail": {

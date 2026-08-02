@@ -14,7 +14,7 @@ readable without an account.
 | **Comm-Link** | RSI's official Comm-Link posts |
 | **Spectrum** | RSI's Spectrum announcement forums |
 | **YouTube** | The official Star Citizen channel |
-| **Patch notes** | Patch note releases, tied to the version that shipped them |
+| **Patch notes** | Patch note releases, in their own section (see below) |
 | **Favorites** | Your own starred posts (account required) |
 
 Use the channel filter to narrow the feed, or **Show all** to clear it. Posts
@@ -37,6 +37,61 @@ leave the feed and their cached thumbnails are deleted, because SC Companion
 only has so much online storage and a video that old is no longer news. The
 articles themselves are unaffected: only videos age out, and every video is
 still one click away on YouTube.
+
+## Patch notes
+
+RSI publishes a patch line as a stream: a few Evocati and PTU waves, the LIVE
+release notes, the point releases (4.8.1, 4.8.2) and then weeks of hotfixes.
+Listed flat by date that buries the one note you came for, so patch notes get
+their own section instead of a slot in the stream.
+
+**Grouped by main patch line.** Everything belonging to 4.9 sits under 4.9,
+newest line on top and expanded, older lines one click away. The line you can
+actually play right now is badged **Current** — that is the newest line that has
+reached LIVE, not every line that ever did.
+
+**Two filters**, both multi-select, both with *All* as the empty selection:
+
+- **Version** — 4.10, 4.9, 4.8 …, because sometimes the question is
+  "what changed in 4.9".
+- **Channel** — Live, Hotfix, PTU, Evocati, because sometimes it is
+  "what is on PTU right now".
+
+Every note is filed under exactly one channel, so the counts on the chips add up
+and nothing appears twice. A hotfix thread counts as **Hotfix**, even though its
+title also says LIVE.
+
+The patch lines are read from the note titles, not from a hardcoded list — the
+day RSI posts the first 5.0 note it becomes the newest line on its own.
+
+### At a glance
+
+Above the history sits the newest note per channel, at most one each: the current
+LIVE notes, the latest hotfix, the PTU wave in testing. It follows the filters,
+so the header can never contradict the list under it.
+
+### Patch performance
+
+A small panel rotates through up to three views of how CIG is currently shipping,
+each pairing the newest measurement with the **all-time average** (drawn as a
+dashed rule across the bars):
+
+| KPI | What it measures |
+|---|---|
+| **Patch notes published** | Notes per rolling 30 days, over the last year |
+| **PTU → LIVE** | Days from a line's first test build to its release |
+| **Release cadence** | Days between two consecutive LIVE releases |
+
+Everything is derived from the patch notes already on the page — the titles give
+the version and the ring, the publication dates give the timing.
+
+A KPI that the data cannot yet prove is left out rather than shown as a zero, so
+on a young feed you may see fewer than three.
+
+The rotation is meant to be ignorable, not annoying: it holds while you hover or
+tab into the panel, the dots jump straight to a view and stop the carousel, the
+play button hands it back, and with **reduced motion** switched on in your OS it
+never advances by itself at all — the dots still reach every view.
 
 ## Live service status
 
