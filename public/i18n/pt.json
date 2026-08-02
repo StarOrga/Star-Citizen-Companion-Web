@@ -87,6 +87,8 @@
     "refresh": "Atualizar",
     "lastAdmin": "Último admin",
     "lastAdminTip": "Promova outro admin antes de alterar este papel — caso contrário, o sistema ficaria sem admin.",
+    "protected": "Protegido",
+    "protectedTip": "Conta de fundador protegida. Função, aprovação e exclusão estão bloqueadas no banco de dados — o bloqueio só pode ser removido no servidor (service_role), nunca pela interface de administração.",
     "invite": {
       "title": "Convidar usuário",
       "subtitle": "Envia um e-mail magic-link do Supabase. O papel é atribuído no momento em que aceitar.",

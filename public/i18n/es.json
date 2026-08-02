@@ -87,6 +87,8 @@
     "refresh": "Actualizar",
     "lastAdmin": "Último admin",
     "lastAdminTip": "Promueve primero a otro admin antes de cambiar este rol — si no, el sistema se quedaría sin admin.",
+    "protected": "Protegido",
+    "protectedTip": "Cuenta de fundador protegida. El rol, la aprobación y la eliminación están bloqueados en la base de datos: el bloqueo solo puede levantarse en el servidor (service_role), nunca desde el panel de administración.",
     "invite": {
       "title": "Invitar usuario",
       "subtitle": "Envía un correo magic-link de Supabase. El rol se asigna al aceptar.",

@@ -10,8 +10,16 @@
 //         400 { error: 'invalid_body' }
 //         401 { error: 'unauthorized' }
 //         403 { error: 'forbidden' }
+//         403 { error: 'protected_admin' }
 //         404 { error: 'user_not_found' }
 //         409 { error: 'cannot_delete_last_admin' }
+//
+// Founder protection (admin_feedback #83): accounts listed in
+// public.protected_admins can never be deleted here. This check is a
+// UX nicety only — the real enforcement is in the database (FK
+// ON DELETE RESTRICT + the profiles_protected_admin_guard trigger from
+// migration 20260802080000), so even a caller that bypasses this
+// function entirely cannot delete a protected account.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
@@ -90,6 +98,24 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .maybeSingle();
   if (targetErr || !target) {
     return json({ error: 'user_not_found' }, 404);
+  }
+
+  // 5a. Founder protection — mirrors the DB guard so the admin gets a
+  //     readable 403 instead of a raw constraint-violation 500.
+  const { data: protectedRow } = await adminClient
+    .from('protected_admins')
+    .select('user_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (protectedRow) {
+    return json(
+      {
+        error: 'protected_admin',
+        message:
+          'Dieser Account ist geschützt und kann nicht gelöscht werden. Die Schutzmarkierung muss zuerst serverseitig (service_role) entfernt werden.',
+      },
+      403,
+    );
   }
 
   // 5. Last-admin protection — applies whether the caller is deleting

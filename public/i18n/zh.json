@@ -87,6 +87,8 @@
     "refresh": "刷新",
     "lastAdmin": "最后的管理员",
     "lastAdminTip": "在更改此角色前先提升另一个用户为管理员 — 否则系统将没有任何管理员。",
+    "protected": "受保护",
+    "protectedTip": "受保护的创始人账户。角色、审批与删除均已在数据库中锁定——只能在服务端（service_role）解除，无法通过管理界面操作。",
     "invite": {
       "title": "邀请用户",
       "subtitle": "发送 Supabase magic-link 邮件。用户接受时即分配角色。",
