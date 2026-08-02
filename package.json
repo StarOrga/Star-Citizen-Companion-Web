@@ -30,6 +30,7 @@
     "functions:serve": "supabase functions serve",
     "functions:deploy": "supabase functions deploy",
     "news:compact": "node --max-old-space-size=4096 scripts/news-image-compact.mjs",
+    "wallpapers:dedupe": "node scripts/wallpaper-dedupe.mjs",
     "tool:dev": "npm --prefix desktop-tool run dev",
     "tool:build": "npm --prefix desktop-tool run build",
     "tool:test": "npm --prefix desktop-tool run test",
