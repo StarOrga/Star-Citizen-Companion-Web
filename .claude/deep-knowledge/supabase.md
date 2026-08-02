@@ -52,8 +52,12 @@ Enforcement is **in the database** — a UI guard would be pointless against a s
 | 3 | Trigger `profiles_role_write_guard` (BEFORE UPDATE, **SECURITY INVOKER** — it reads `current_user`) | Blocks direct `role`/`is_approved` writes from `authenticated`/`anon`; closes the old self-promotion hole in `profiles_self_update` |
 
 The protected set is data, not a hardcoded string: rows in `public.protected_admins`,
-seeded from `auth.users`/`profiles` by e-mail + handle. **Legitimate removal** (the only
-way through) needs the service key:
+seeded by matching `auth.users.email` against **two exact addresses** (the founders —
+`jeremy.treder@` and `christoph.loeschen@`, both gmail). Address identity is the key on
+purpose: display names and handles are user-editable, so a fuzzy predicate could protect
+the wrong account (there is a second `…loeschen@hotmail.com` admin) or silently none. The
+migration **aborts** if either address has no profile — the seed is never half-applied.
+**Legitimate removal** (the only way through) needs the service key:
 
 ```sql
 select public.unprotect_admin('<uuid>');   -- service_role only, EXECUTE revoked from authenticated

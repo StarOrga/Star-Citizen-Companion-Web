@@ -228,26 +228,58 @@ grant execute on function public.unprotect_admin(uuid) to service_role;
 -- ============================================================
 -- Seed — the two founder accounts (admin_feedback #83)
 -- ============================================================
--- Resolved from live data (auth.users / profiles), not hardcoded into
--- client code. Jeremy's address is already pinned in 00003; Christoph is
--- matched by local-part / handle so the migration does not publish a
--- private domain in a public repo.
+-- Pinned to the two EXACT e-mail addresses, on the admin's explicit
+-- instruction ("mach das anhand der beiden email adressen ganz konkret
+-- fest", 2026-08-02). The earlier version matched Christoph fuzzily
+-- (local-part LIKE / username / display_name), which was ambiguous:
+-- `ccloeschen@hotmail.com` is a second admin account of the same person's
+-- family name, and a fuzzy predicate that silently protects the wrong
+-- one — or none — is worse than a loud failure. Address identity is the
+-- only stable key here; display names and handles are user-editable and
+-- would let a renamed account slip in or out of the protected set.
 --
--- POST-DEPLOY CHECK — this MUST return 2:
---   select count(*) from public.protected_admins;
--- If Christoph's account does not match any predicate below, add him
--- explicitly with the service key:
---   select public.protect_admin('<uuid>', 'founder');
+-- Matched case-insensitively against auth.users.email. Both addresses are
+-- resolved to a live profile at apply time; a missing one aborts the
+-- migration (see the assertion below) rather than leaving a founder
+-- unprotected without anybody noticing.
 insert into public.protected_admins (user_id, reason)
 select p.id, 'founder'
 from public.profiles p
 join auth.users u on u.id = p.id
-where lower(u.email) = 'jeremy.treder@gmail.com'
-   or lower(u.email) like 'christoph.loeschen@%'
-   or p.username = 'Mollywator'                                    -- citext: case-insensitive
-   or lower(coalesce(p.display_name, '')) in
-      ('mollywator', 'christoph.loeschen', 'christoph loeschen', 'christoph löschen')
+where lower(u.email) in (
+  'jeremy.treder@gmail.com',
+  'christoph.loeschen@gmail.com'
+)
 on conflict (user_id) do nothing;
+
+-- Fail loudly instead of shipping a half-protected founder set. The
+-- previous revision only left a "post-deploy check" comment — a manual
+-- step nobody runs. Both addresses must exist and be protected.
+do $$
+declare
+  missing text;
+begin
+  select string_agg(want.email, ', ')
+    into missing
+  from (values
+    ('jeremy.treder@gmail.com'),
+    ('christoph.loeschen@gmail.com')
+  ) as want(email)
+  where not exists (
+    select 1
+    from public.protected_admins pa
+    join auth.users u on u.id = pa.user_id
+    where lower(u.email) = want.email
+  );
+
+  if missing is not null then
+    raise exception
+      'protected_admins seed: no profile found for %. Create the account, then re-run this migration (or: select public.protect_admin(''<uuid>'', ''founder'')).',
+      missing
+      using errcode = '23503';
+  end if;
+end;
+$$;
 
 -- ============================================================
 -- Seam — removal requests (the e-mail-confirmation boundary)
