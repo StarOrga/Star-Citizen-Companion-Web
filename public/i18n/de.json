@@ -639,7 +639,7 @@
   },
   "news": {
     "title": "Verse News",
-    "subtitle": "Live Comm-Link, Spectrum, YouTube & Patches — automatisch alle 5 Min.",
+    "subtitle": "Live Comm-Link, Spectrum, YouTube & Patches",
     "loading": "Lade…",
     "newPosts": "{{count}} neue Posts ↑",
     "newPost": "1 neuer Post ↑",

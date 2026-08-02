@@ -61,21 +61,29 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       <header class="head">
         <div class="title-block">
           <h1>{{ 'news.title' | translate }}</h1>
-          <p class="hint">{{ 'news.subtitle' | translate }}</p>
-          <!-- A reload triggered from the nav keeps the current cards on screen
+          <!-- Subtitle and freshness share ONE row (feedback 98f50dfc): the head
+               used to stack three lines — title / subtitle / freshness — and the
+               subtitle's trailing "automatisch alle 5 Min." only restated the
+               cadence that the live freshness line already proves. The cadence
+               claim is gone from the string, the measured line stays, and the
+               header gives a whole text line back to the stream.
+               A reload triggered from the nav keeps the current cards on screen
                (no skeleton flash), so the freshness line carries the echo that
                something IS happening (feedback 7532e639). -->
-          @if (svc.loading() && svc.feed()) {
-            <p class="freshness refreshing" role="status" aria-live="polite">
-              <span class="pulse" aria-hidden="true"></span>
-              {{ 'news.refreshing' | translate }}
-            </p>
-          } @else if (updatedRel(); as rel) {
-            <p class="freshness" [class.stale]="updatedStale()">
-              <span class="pulse" aria-hidden="true"></span>
-              {{ 'news.lastUpdated' | translate:{ rel: rel } }}
-            </p>
-          }
+          <p class="meta">
+            <span class="hint">{{ 'news.subtitle' | translate }}</span>
+            @if (svc.loading() && svc.feed()) {
+              <span class="freshness refreshing" role="status" aria-live="polite">
+                <span class="pulse" aria-hidden="true"></span>
+                {{ 'news.refreshing' | translate }}
+              </span>
+            } @else if (updatedRel(); as rel) {
+              <span class="freshness" [class.stale]="updatedStale()">
+                <span class="pulse" aria-hidden="true"></span>
+                {{ 'news.lastUpdated' | translate:{ rel: rel } }}
+              </span>
+            }
+          </p>
         </div>
 
         <!-- The playability chip used to sit here; it now lives in the app
@@ -448,7 +456,17 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       margin-bottom: 10px;
     }
     .title-block h1 { margin: 0; }
-    .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
+    /* One meta row instead of two stacked ones; it still wraps to two on a
+       narrow viewport. No drawn separator between the halves — the freshness
+       line already opens with its own coloured pulse dot, and a "·" would
+       dangle at the start of the wrapped line. */
+    .title-block .meta {
+      display: flex; flex-wrap: wrap; align-items: baseline;
+      column-gap: 14px; row-gap: 2px;
+      margin: 4px 0 0;
+    }
+    .title-block .hint { color: var(--sc-fg-2); margin: 0; }
+    .title-block .meta .freshness { margin: 0; }
 
     /* ---------- New posts pill ---------- */
     .new-pill {
