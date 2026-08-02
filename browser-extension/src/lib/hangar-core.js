@@ -14,11 +14,14 @@
  * content scripts themselves are classic scripts.
  */
 
+// Keep this list to origins that actually exist. `star-citizen-companion-web`
+// was listed here until 2026-08-02 on the assumption that renaming the repo
+// renamed Vercel's auto-domain too — it did not (the Vercel project is still
+// `star-citizen-companion-website`, which 307s to the alias below). An
+// unclaimed *.vercel.app subdomain is registrable by anyone, so leaving a
+// non-existent origin in a hand-off allow-list is a standing hijack target.
 /** Origins the extension is allowed to hand a payload to. First = default. */
-export const COMPANION_ORIGINS = Object.freeze([
-  'https://sc-companion.vercel.app',
-  'https://star-citizen-companion-web.vercel.app',
-]);
+export const COMPANION_ORIGINS = Object.freeze(['https://sc-companion.vercel.app']);
 
 /** Route on the companion app that renders the review/confirm screen. */
 export const COMPANION_IMPORT_PATH = '/hangar/import';
