@@ -10,8 +10,10 @@ reader) plus localization tables, and writes:
     ``manufacturers/`` — typed projections matching the domain model
     (docs/concepts/codex-research.md §5), streamed one JSON file per entity.
 
-Classification is driven by the live data: ships by the
-``libs/foundry/records/entities/spaceships/`` filename prefix, items by their
+Classification is driven by the live data: vehicles by their
+``libs/foundry/records/entities/{spaceships,groundvehicles,vehicles}/`` record
+path OR by carrying ``VehicleComponentParams`` (see ``_VEHICLE_ROOT_RE`` — a
+spaceships-only prefix used to drop every ground vehicle), items by their
 ``SAttachableComponentParams.AttachDef.Type`` (vocabulary discovered from the
 live datacore — see datacore_schema.json), with an ``Other`` catch-all so
 nothing is silently dropped.
@@ -110,7 +112,27 @@ _ARMOR_TYPES = {
     "Char_Armor_Legs", "Char_Armor_Undersuit", "Char_Armor_Backpack",
 }
 
-_SHIP_PREFIX = "libs/foundry/records/entities/spaceships/"
+# ── vehicle classification ────────────────────────────────────────────────────
+# A vehicle used to be "an entity whose record file sits under
+# libs/foundry/records/entities/spaceships/". That single prefix silently
+# dropped every GROUND vehicle: the live datacore keeps them in a SIBLING
+# directory (entities/groundvehicles, 40 records against 920 spaceships), so the
+# URSA, the whole Cyclone family, Storm, Nova, ROC, PTV/STV/UTV/MTC/MDC, ATLS,
+# Ballista, Mule, Dragonfly, Nox and X1 never reached the `ships/` projection and
+# therefore never reached codex_ships. Downstream that looked like a completely
+# different bug — the RSI diff reported them as "flight-ready but missing", i.e.
+# ships the app knows nothing about and consequently has no artwork for.
+#
+# Two signals now, so a future directory rename cannot repeat this:
+#   1. the known vehicle roots (fast path, no record resolve needed), and
+#   2. VehicleComponentParams on the resolved record — the component that MAKES
+#      an entity a vehicle, wherever CIG decides to file it.
+_VEHICLE_ROOT_RE = re.compile(
+    r"libs/foundry/records/entities/(?:spaceships|groundvehicles|vehicles)/"
+)
+# The component every drivable/flyable entity carries. Used as the data-driven
+# fallback for records filed outside the known roots.
+_VEHICLE_COMPONENT = "VehicleComponentParams"
 
 # Overall progress-bar sub-ranges (percent) for the two long phases, so the bar
 # advances smoothly instead of freezing at the phase's start value. The host
@@ -866,6 +888,10 @@ class CodexExtractor:
         item_d = self.out / "items"; item_d.mkdir(parents=True, exist_ok=True)
 
         n_ship = n_wpn = n_comp = n_item = n_skip = 0
+        # Vehicles the path roots missed and only VehicleComponentParams caught —
+        # logged so a directory rename shows up as a number instead of silently
+        # shrinking the ship catalog again.
+        n_offroot = 0
         ents = self.df.records_by_type_name("EntityClassDefinition")
         total = len(ents)
         for i, r in enumerate(ents):
@@ -877,11 +903,16 @@ class CodexExtractor:
                 n_skip += 1
                 continue
             fn = _norm_path(r.filename)
-            is_ship = fn.startswith(_SHIP_PREFIX)
             resolved = self.df.record_to_dict(r, max_depth=20)
             comps = _components_of(resolved)
             attach = _attach_def(comps)
             atype = attach.get("Type") if attach else None
+            # Path first (cheap, covers 99%), then the component signal for a
+            # vehicle filed outside the known roots. See _VEHICLE_ROOT_RE.
+            is_ship = bool(_VEHICLE_ROOT_RE.search(fn))
+            if not is_ship and _find_component(comps, _VEHICLE_COMPONENT) is not None:
+                is_ship = True
+                n_offroot += 1
 
             if is_ship:
                 obj = self._project_ship(r, resolved, comps, attach)
@@ -927,6 +958,10 @@ class CodexExtractor:
                             f"{n_comp} components · {n_item} items · "
                             f"{self._skins_total} skins "
                             f"({n_skip} dev/NPC variants skipped)")
+        if n_offroot:
+            self.on_log("warn", f"ships: {n_offroot} vehicle(s) matched only by "
+                                f"{_VEHICLE_COMPONENT} — outside the known entity "
+                                f"roots; check whether CIG moved a directory")
         self._bump("ships", n_ship)
         self._bump("weapons", n_wpn)
         self._bump("components", n_comp)

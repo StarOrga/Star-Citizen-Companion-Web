@@ -1,4 +1,11 @@
-import { UpcomingShip, diffUpcoming, matchesUpcomingQuery, snapshotOf } from './upcoming-ships.service';
+import {
+  UpcomingShip,
+  diffUpcoming,
+  matchesUpcomingQuery,
+  normalizeShipName,
+  snapshotOf,
+  thumbnailCandidates,
+} from './upcoming-ships.service';
 
 function ship(partial: Partial<UpcomingShip> & { id: string; name: string }): UpcomingShip {
   return {
@@ -101,5 +108,51 @@ describe('upcoming ships — diff', () => {
     const bare = ship({ id: 'x', name: 'X' });
     expect(snapshotOf([bare])).toEqual({ x: '' });
     expect(diffUpcoming([bare], snapshotOf([bare]), new Set(['x'])).favoriteUpdates).toEqual([]);
+  });
+});
+
+describe('upcoming ships — artwork candidates', () => {
+  it('prefers the full candidate list over the single legacy url', () => {
+    const s = ship({
+      id: 'ursa',
+      name: 'Ursa',
+      thumbnail: 'https://media.robertsspaceindustries.com/x/store_small.jpg',
+      thumbnails: [
+        'https://media.robertsspaceindustries.com/x/store_small.jpg',
+        'https://media.robertsspaceindustries.com/x/store_large.jpg',
+      ],
+    });
+    expect(thumbnailCandidates(s)).toEqual([
+      'https://media.robertsspaceindustries.com/x/store_small.jpg',
+      'https://media.robertsspaceindustries.com/x/store_large.jpg',
+    ]);
+  });
+
+  it('falls back to the single url for payloads that predate the list', () => {
+    const s = ship({ id: 'ursa', name: 'Ursa', thumbnail: 'https://media.rsi/x.jpg' });
+    expect(thumbnailCandidates(s)).toEqual(['https://media.rsi/x.jpg']);
+  });
+
+  it('yields nothing when the ship has no artwork at all', () => {
+    expect(thumbnailCandidates(ship({ id: 'x', name: 'X' }))).toEqual([]);
+    expect(thumbnailCandidates(ship({ id: 'x', name: 'X', thumbnails: [] }))).toEqual([]);
+  });
+});
+
+describe('upcoming ships — game-name normalization', () => {
+  // Must stay byte-for-byte compatible with the edge function's normalizeName,
+  // or `gameShipArt` lookups silently miss and ship cards lose their artwork.
+  it('lowercases and drops everything non-alphanumeric', () => {
+    expect(normalizeShipName('Aegis Idris-M')).toBe('aegisidrism');
+    expect(normalizeShipName('MISC Hull C')).toBe('mischullc');
+    expect(normalizeShipName('Origin 890 Jump')).toBe('origin890jump');
+  });
+
+  it('strips diacritics so accented CIG names still match', () => {
+    expect(normalizeShipName("Aopoa San'tok.yāi")).toBe('aopoasantokyai');
+  });
+
+  it('is stable for names that are already normalized', () => {
+    expect(normalizeShipName('rsiursa')).toBe('rsiursa');
   });
 });

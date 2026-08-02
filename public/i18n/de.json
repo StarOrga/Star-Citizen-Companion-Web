@@ -103,7 +103,9 @@
       "noMatches": {
         "title": "Keine Treffer",
         "body": "Kein kommendes Schiff passt zu Suche und Filter — Suchbegriff kürzen oder Favoritenfilter lösen."
-      }
+      },
+      "laneSub": "Von RSI angekündigt, in unseren Spieldaten noch ohne Eintrag",
+      "laneAll": "Alle {{count}} ansehen"
     },
     "categoriesAria": "Codex-Kategorien",
     "soon": "Kommt bald — noch keine Daten extrahiert.",
@@ -128,7 +130,8 @@
       "item": "Gegenstände",
       "ammunition": "Munition",
       "manufacturer": "Hersteller",
-      "blueprint": "Baupläne"
+      "blueprint": "Baupläne",
+      "upcoming": "Kommend"
     },
     "kindSingular": {
       "ship": "Schiff",

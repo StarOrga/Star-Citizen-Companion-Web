@@ -6,6 +6,7 @@ import { CodexListComponent } from './codex-list.component';
 import { CodexListRow, CodexService } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { RoleService } from '../auth/role.service';
+import { UpcomingShipsService } from './upcoming-ships.service';
 
 function blueprintRow(className: string, category: string | null): CodexListRow {
   return {
@@ -32,7 +33,7 @@ function blueprintRow(className: string, category: string | null): CodexListRow 
 describe('CodexListComponent (Index mode)', () => {
   async function setup(
     entityCounts: Record<string, number>,
-    opts: { categories?: string[]; rows?: CodexListRow[] } = {},
+    opts: { categories?: string[]; rows?: CodexListRow[]; art?: string[]; preview?: string | null } = {},
   ): Promise<{
     fixture: ComponentFixture<CodexListComponent>;
     cmp: CodexListComponent;
@@ -57,7 +58,7 @@ describe('CodexListComponent (Index mode)', () => {
         .createSpy('blueprintCategories')
         .and.resolveTo(opts.categories ?? []),
       isPinned: () => false,
-      previewUrl: () => null,
+      previewUrl: () => opts.preview ?? null,
     };
 
     const hangar: Partial<HangarService> = {
@@ -75,6 +76,27 @@ describe('CodexListComponent (Index mode)', () => {
         // The embedded status banner injects the real RoleService otherwise,
         // which pulls Auth/Supabase and hangs whenStable.
         { provide: RoleService, useValue: { isCollaborator: signal(false) } },
+        // The RSI ship-matrix feed backs the "upcoming" category and the
+        // artwork fallback on ship cards; the real one injects HttpClient.
+        {
+          provide: UpcomingShipsService,
+          useValue: {
+            feed: signal(null),
+            loading: signal(false),
+            error: signal(null),
+            concept: signal([]),
+            flightReadyMissing: signal([]),
+            query: signal(''),
+            favoritesOnly: signal(false),
+            favoriteCount: signal(0),
+            newIds: signal(new Set<string>()),
+            ensureLoaded: jasmine.createSpy('ensureLoaded').and.resolveTo(undefined),
+            refresh: jasmine.createSpy('refresh').and.resolveTo(undefined),
+            acknowledge: () => undefined,
+            isFavorite: () => false,
+            artFor: () => opts.art ?? ([] as string[]),
+          },
+        },
       ],
     }).compileComponents();
 
@@ -150,5 +172,93 @@ describe('CodexListComponent (Index mode)', () => {
       'blueprint',
       jasmine.objectContaining({ category: 'FPSArmours' }),
     );
+  });
+
+  /**
+   * "Kommende Schiffe" is a CATEGORY of the Codex index, not a sub-tab of its own
+   * (admin feedback 0a5988d5). It sits in the same strip as the datamined kinds
+   * but is fed by the RSI ship-matrix, so no build manifest can disable it.
+   */
+  describe('CodexListComponent — upcoming category', () => {
+    it('lists upcoming alongside the datamined kinds', async () => {
+      const { cmp } = await setup({ ships: 300 });
+
+      expect(cmp.categories).toContain('upcoming');
+      expect(cmp.categories.slice(0, -1)).toEqual([...cmp.kinds]);
+    });
+
+    it('is never disabled, even when the build reports nothing', async () => {
+      const { cmp } = await setup({});
+
+      expect(cmp.isComingSoon('upcoming')).toBe(false);
+    });
+
+    it('swaps the facet list for the upcoming grid without disturbing the kind', async () => {
+      const { cmp } = await setup({ ships: 300 });
+      cmp.setKind('weapon');
+
+      cmp.setCategory('upcoming');
+
+      expect(cmp.isUpcoming()).toBe(true);
+      // The data kind is untouched, so returning to it keeps facets + results.
+      expect(cmp.kind()).toBe('weapon');
+    });
+
+    it('returns to a data kind from the upcoming category', async () => {
+      const { cmp } = await setup({ ships: 300 });
+      cmp.setCategory('upcoming');
+
+      cmp.setCategory('ship');
+
+      expect(cmp.isUpcoming()).toBe(false);
+      expect(cmp.kind()).toBe('ship');
+    });
+
+    it('does not query the catalog for the upcoming category', async () => {
+      const { fixture, cmp, listByKind } = await setup({ ships: 300 });
+      listByKind.calls.reset();
+
+      cmp.setCategory('upcoming');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(listByKind).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * Ship cards borrow RSI's store render when our datamined preview is absent —
+   * only ~6% of the catalog ships one (feedback 0a5988d5, ask 2).
+   */
+  describe('CodexListComponent — ship card artwork', () => {
+    const row = (): CodexListRow => ({
+      ...blueprintRow('RSI_Ursa', null),
+      nameLocalized: 'Ursa',
+    });
+
+    it('falls back to RSI artwork when there is no datamined render', async () => {
+      const { cmp } = await setup({ ships: 300 }, { art: ['https://media.rsi/ursa.jpg'] });
+
+      expect(cmp.thumbs(row())).toEqual(['https://media.rsi/ursa.jpg']);
+    });
+
+    it('leads with the RSI render and keeps the datamined silhouette as fallback', async () => {
+      // The datamined "preview" is the game's flat white UI silhouette, so a
+      // real RSI photo goes first and the silhouette only covers hulls RSI has
+      // no matrix entry for (feedback 0a5988d5, ask 2).
+      const { cmp } = await setup(
+        { ships: 300 },
+        { art: ['https://media.rsi/ursa.jpg'], preview: 'https://sb/preview.webp' },
+      );
+
+      expect(cmp.thumbs(row())).toEqual(['https://media.rsi/ursa.jpg', 'https://sb/preview.webp']);
+    });
+
+    it('does not borrow ship artwork for non-ship kinds', async () => {
+      const { cmp } = await setup({ ships: 300, weapons: 40 }, { art: ['https://media.rsi/ursa.jpg'] });
+      cmp.setKind('weapon');
+
+      expect(cmp.thumbs(row())).toEqual([]);
+    });
   });
 });
