@@ -688,17 +688,18 @@ export class CodexBridgeComponent implements OnInit {
   }
 
   /**
-   * Ordered art candidates for a ship row: the datamined preview render, then
-   * RSI's own store render for the same hull. Most hulls have no datamined art
-   * (UC-01) and a render url can 404 — `sc-fallback-image` walks the list and
-   * only shows the silhouette glyph when every candidate failed.
+   * Ordered art candidates for a ship row, best-looking first: RSI's own store
+   * render, then our datamined preview. The datamined "preview" is the game's
+   * flat white UI silhouette — it identifies a hull without showing it — so it
+   * serves as the fallback for hulls RSI has no matrix entry for, not as the
+   * primary. `sc-fallback-image` walks the list and only shows the glyph once
+   * every candidate has failed.
    */
   thumbs(r: CodexListRow): string[] {
-    const out: string[] = [];
+    const out: string[] = [...this.rsi.artFor(r.nameLocalized ?? this.rowName(r))];
     const p = r.payload as { previewImage?: string | null } | undefined;
     const local = this.svc.previewUrl(p?.previewImage);
     if (local) out.push(local);
-    out.push(...this.rsi.artFor(r.nameLocalized ?? this.rowName(r)));
     return out;
   }
 

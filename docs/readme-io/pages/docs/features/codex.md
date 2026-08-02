@@ -136,9 +136,10 @@ notified in [Verse News](doc:verse-news) when their status changes.
 
 ## Ship artwork
 
-Ship cards prefer the render extracted from the game files. Only a small part of
-the catalog ships one, so a card without a datamined render falls back to the
-ship's own artwork from the RSI website, matched by ship name.
+Ship cards show the ship's own artwork from the RSI website, matched by ship
+name. Where RSI has no entry, the card falls back to the image extracted from
+the game files — that one is the game's flat UI silhouette, which identifies a
+hull rather than showing it, so it is the fallback and not the first choice.
 
 Both sources publish image urls that can be missing, so a card carries a whole
 list of candidates and tries the next one whenever an image fails to load — the

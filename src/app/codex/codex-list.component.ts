@@ -436,23 +436,27 @@ export class CodexListComponent implements OnInit {
   }
 
   /**
-   * Ordered art candidates for a list row: the datamined preview render first,
-   * then — for ships — the RSI ship-matrix artwork for the same hull.
+   * Ordered art candidates for a list row, best-looking first.
    *
-   * Only ~6% of catalog entities ship a datamined render (UC-01), and a render
-   * that 404s used to drop the card straight to the category glyph. RSI already
-   * publishes a store render for nearly every hull we hold, so the Codex now
-   * borrows it instead of showing an empty silhouette. `sc-fallback-image`
-   * walks the list and renders the glyph only when every candidate failed.
+   * For SHIPS the RSI store render leads: our datamined "preview" is the game's
+   * flat white UI silhouette (Data/Textures/UI/Spaceships), which identifies a
+   * hull but does not show it. RSI publishes an actual photo of nearly every
+   * hull we hold, so the Codex uses that and keeps the silhouette as the
+   * fallback for hulls RSI has no matrix entry for. Other kinds have no RSI
+   * counterpart, so their datamined render is all there is.
+   *
+   * Any of these urls can be missing, so the list is handed to
+   * `sc-fallback-image`, which walks it and shows the category glyph only once
+   * every candidate has failed.
    */
   thumbs(r: CodexListRow): string[] {
     const out: string[] = [];
-    const p = r.payload as { previewImage?: string | null } | undefined;
-    const local = this.svc.previewUrl(p?.previewImage);
-    if (local) out.push(local);
     // Match on the denormalized `name_localized` — the very column the edge
     // function keys `gameShipArt` by, so no second normalization dialect exists.
     if (this.kind() === 'ship') out.push(...this.rsi.artFor(r.nameLocalized ?? this.cardName(r)));
+    const p = r.payload as { previewImage?: string | null } | undefined;
+    const local = this.svc.previewUrl(p?.previewImage);
+    if (local) out.push(local);
     return out;
   }
 

@@ -242,13 +242,16 @@ describe('CodexListComponent (Index mode)', () => {
       expect(cmp.thumbs(row())).toEqual(['https://media.rsi/ursa.jpg']);
     });
 
-    it('keeps the datamined render first and RSI as the fallback', async () => {
+    it('leads with the RSI render and keeps the datamined silhouette as fallback', async () => {
+      // The datamined "preview" is the game's flat white UI silhouette, so a
+      // real RSI photo goes first and the silhouette only covers hulls RSI has
+      // no matrix entry for (feedback 0a5988d5, ask 2).
       const { cmp } = await setup(
         { ships: 300 },
         { art: ['https://media.rsi/ursa.jpg'], preview: 'https://sb/preview.webp' },
       );
 
-      expect(cmp.thumbs(row())).toEqual(['https://sb/preview.webp', 'https://media.rsi/ursa.jpg']);
+      expect(cmp.thumbs(row())).toEqual(['https://media.rsi/ursa.jpg', 'https://sb/preview.webp']);
     });
 
     it('does not borrow ship artwork for non-ship kinds', async () => {
