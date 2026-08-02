@@ -741,38 +741,32 @@
       },
       "kpi": {
         "title": "Patch-Performance",
-        "sub": "Aktuell gegenüber dem Ø aller Patches",
-        "average": "Ø all time",
+        "sub": "Aktuell gegenüber dem Median aller Patches",
         "samplesLabel": "Basis",
         "samples": "{{n}} Messwerte",
         "goto": "{{title}} anzeigen",
         "pause": "Wechsel pausieren",
         "play": "Wechsel fortsetzen",
-        "deltaFaster": "{{n}} Tage schneller als der Ø",
-        "deltaSlower": "{{n}} Tage langsamer als der Ø",
-        "deltaMore": "{{n}} mehr als der Ø",
-        "deltaLess": "{{n}} weniger als der Ø",
-        "deltaSame": "genau auf Ø-Niveau",
-        "axisFrom": "letzte {{days}} Tage",
-        "axisNow": "jetzt",
-        "barNotes": "{{n}} Patch-Notes bis {{date}}",
+        "deltaFaster": "{{n}} Tage schneller als der Median",
+        "deltaSlower": "{{n}} Tage langsamer als der Median",
+        "deltaSame": "genau auf Median-Niveau",
         "barDays": "Alpha {{version}}: {{n}} Tage",
-        "chartAria": "{{title}}: aktuell {{latest}} {{unit}}, Ø {{average}} {{unit}} aus {{n}} Messwerten",
+        "chartAria": "{{title}}: aktuell {{latest}} {{unit}}, Median {{median}} {{unit}} aus {{n}} Messwerten",
         "unit": {
-          "days": "Tage",
-          "notes": "Patch-Notes"
-        },
-        "volume": {
-          "title": "Patch-Notes im Verlauf",
-          "sub": "Beiträge je {{days}} Tage"
+          "days": "Tage"
         },
         "leadTime": {
           "title": "PTU → Live",
           "sub": "Tage vom ersten Testbuild bis zum Live-Release"
         },
         "cadence": {
-          "title": "Patch-Takt",
+          "title": "Patch-Takt (Hauptlinien)",
           "sub": "Tage zwischen zwei Live-Releases"
+        },
+        "median": "Median all time",
+        "subCadence": {
+          "title": "Patch-Takt (Sub-Patches)",
+          "sub": "Tage zwischen zwei Sub-Patches in PTU oder Live"
         }
       }
     },

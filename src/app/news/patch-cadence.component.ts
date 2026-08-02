@@ -10,15 +10,8 @@ import {
 } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
-import { formatScCompactDate, toDateOrNull } from '../core/locale/date-format';
-import {
-  PatchKpi,
-  PatchKpiPoint,
-  VOLUME_WINDOWS,
-  VOLUME_WINDOW_DAYS,
-  kpiDelta,
-  pointPct,
-} from './patch-stats';
+import { PatchKpi, PatchKpiPoint, kpiDelta, pointPct } from './patch-stats';
+
 
 /** How long one KPI stays on screen before the panel moves on. */
 const ROTATE_MS = 7000;
@@ -31,9 +24,15 @@ const ROTATE_MS = 7000;
  * Patch-Performance ist von CIG."
  *
  * Three small charts, one at a time, each pairing the newest measurement with
- * the all-time average. Hand-rolled bars on the existing tokens — this repo has
- * no charting dependency on purpose, and the Fortschritt dashboard sets the
- * precedent for that.
+ * the all-time MEDIAN (9c000427 — release intervals are right-skewed, so a mean
+ * would be dragged up by one delayed release and every normal patch would read
+ * as "faster than average" forever; see patch-stats.ts). Hand-rolled bars on the
+ * existing tokens — this repo has no charting dependency on purpose, and the
+ * Fortschritt dashboard sets the precedent for that.
+ *
+ * All three KPIs are now durations in days where shorter is better, so every
+ * slide carries a verdict — the old "patch notes per 30 days" chart had a bar
+ * height but no direction, and counted forum threads rather than builds.
  *
  * Rotation etiquette:
  * - `prefers-reduced-motion: reduce` disables the auto-advance completely; the
@@ -95,14 +94,14 @@ const ROTATE_MS = 7000;
               <p class="kpi-sub">{{ subOf(slide) }}</p>
               <p class="kpi-now">
                 <strong>{{ num(slide.latest) }}</strong>
-                <span class="unit">{{ ('news.patch.kpi.unit.' + slide.unit) | translate }}</span>
+                <span class="unit">{{ 'news.patch.kpi.unit.days' | translate }}</span>
               </p>
               <p class="kpi-delta" [class.good]="deltaTone(slide) === 'good'" [class.bad]="deltaTone(slide) === 'bad'">
                 {{ deltaLabel(slide) }}
               </p>
               <dl class="kpi-avg">
-                <dt>{{ 'news.patch.kpi.average' | translate }}</dt>
-                <dd>{{ num(slide.average) }} {{ ('news.patch.kpi.unit.' + slide.unit) | translate }}</dd>
+                <dt>{{ 'news.patch.kpi.median' | translate }}</dt>
+                <dd>{{ num(slide.median) }} {{ 'news.patch.kpi.unit.days' | translate }}</dd>
                 <dt>{{ 'news.patch.kpi.samplesLabel' | translate }}</dt>
                 <dd>{{ 'news.patch.kpi.samples' | translate:{ n: slide.samples } }}</dd>
               </dl>
@@ -110,9 +109,9 @@ const ROTATE_MS = 7000;
 
             <div class="chart-wrap">
               <div class="chart" role="img" [attr.aria-label]="chartAria(slide)">
-                <!-- The all-time average as a rule across the bars: the comparison
+                <!-- The all-time median as a rule across the bars: the comparison
                      the admin asked for, readable without doing the arithmetic. -->
-                <span class="avg-rule" [style.bottom.%]="avgPct(slide)" aria-hidden="true"></span>
+                <span class="avg-rule" [style.bottom.%]="medianPct(slide)" aria-hidden="true"></span>
                 @for (p of slide.points; track $index; let last = $last) {
                   <span class="col" [class.now]="last" [attr.title]="pointTitle(slide, p)">
                     <span class="col-bar" [style.height.%]="barPct(slide, p)"></span>
@@ -298,9 +297,7 @@ export class PatchCadenceComponent implements OnDestroy {
   }
 
   subOf(kpi: PatchKpi): string {
-    return this.t.instant(`news.patch.kpi.${kpi.key}.sub`, {
-      days: VOLUME_WINDOW_DAYS,
-    });
+    return this.t.instant(`news.patch.kpi.${kpi.key}.sub`);
   }
 
   /**
@@ -324,20 +321,18 @@ export class PatchCadenceComponent implements OnDestroy {
     const delta = kpiDelta(kpi);
     if (delta === 0) return this.t.instant('news.patch.kpi.deltaSame');
     const n = Math.abs(delta);
-    if (kpi.unit === 'days') {
-      return this.t.instant(delta < 0 ? 'news.patch.kpi.deltaFaster' : 'news.patch.kpi.deltaSlower', { n });
-    }
-    return this.t.instant(delta > 0 ? 'news.patch.kpi.deltaMore' : 'news.patch.kpi.deltaLess', { n });
+    return this.t.instant(delta < 0 ? 'news.patch.kpi.deltaFaster' : 'news.patch.kpi.deltaSlower', { n });
   }
 
   /**
-   * Only the two duration KPIs carry a verdict — shipping faster than usual is
-   * good news. "More patch notes than average" is activity, not quality, so it
-   * stays uncoloured rather than pretending to be a grade.
+   * Every KPI is now a duration where shorter is better, so every slide gets a
+   * verdict. (The old volume chart counted forum threads and had no direction —
+   * "more posts than usual" is activity, not quality — which is half the reason
+   * it went; see patch-stats.ts.)
    */
   deltaTone(kpi: PatchKpi): 'good' | 'bad' | 'neutral' {
     const delta = kpiDelta(kpi);
-    if (!kpi.lowerIsBetter || delta === 0) return 'neutral';
+    if (delta === 0) return 'neutral';
     return delta < 0 ? 'good' : 'bad';
   }
 
@@ -345,16 +340,13 @@ export class PatchCadenceComponent implements OnDestroy {
     return pointPct(kpi, point);
   }
 
-  /** Where the all-time average sits on the same scale as the bars. */
-  avgPct(kpi: PatchKpi): number {
+  /** Where the all-time median sits on the same scale as the bars. */
+  medianPct(kpi: PatchKpi): number {
     const max = Math.max(...kpi.points.map((p) => p.value), 1);
-    return Math.min(100, Math.round((kpi.average / max) * 100));
+    return Math.min(100, Math.round((kpi.median / max) * 100));
   }
 
-  pointTitle(kpi: PatchKpi, point: PatchKpiPoint): string {
-    if (kpi.unit === 'notes') {
-      return this.t.instant('news.patch.kpi.barNotes', { n: point.value, date: this.shortDate(point.at) });
-    }
+  pointTitle(_kpi: PatchKpi, point: PatchKpiPoint): string {
     return this.t.instant('news.patch.kpi.barDays', { version: point.label, n: point.value });
   }
 
@@ -362,34 +354,18 @@ export class PatchCadenceComponent implements OnDestroy {
     return this.t.instant('news.patch.kpi.chartAria', {
       title: this.titleOf(kpi),
       latest: this.num(kpi.latest),
-      average: this.num(kpi.average),
-      unit: this.t.instant(`news.patch.kpi.unit.${kpi.unit}`),
+      median: this.num(kpi.median),
+      unit: this.t.instant('news.patch.kpi.unit.days'),
       n: kpi.samples,
     });
   }
 
   axisFrom(kpi: PatchKpi): string {
-    if (kpi.unit === 'notes') {
-      return this.t.instant('news.patch.kpi.axisFrom', { days: VOLUME_WINDOWS * VOLUME_WINDOW_DAYS });
-    }
     return kpi.points[0]?.label ?? '';
   }
 
   axisTo(kpi: PatchKpi): string {
-    if (kpi.unit === 'notes') return this.t.instant('news.patch.kpi.axisNow');
     return kpi.points[kpi.points.length - 1]?.label ?? '';
-  }
-
-  /**
-   * A bar's own date. The app's default is the spelled-out
-   * `31 / Juli / 2026` (#332), which cannot fit a bar a few pixels wide — so this
-   * is the documented compact exception, still region-ordered and never a
-   * hand-rolled format.
-   */
-  private shortDate(iso: string): string {
-    const date = toDateOrNull(iso);
-    if (!date) return '';
-    return formatScCompactDate(date, this.locale.language(), this.locale.region());
   }
 }
 
