@@ -149,7 +149,10 @@ const SEARCH_DEBOUNCE_MS = 250;
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
     .title-block { display: flex; flex-direction: column; gap: 4px; }
     .title-block h1 { margin: 4px 0 0; }
-    .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 60ch; }
+    /* The column gap alone sets title-to-subtitle distance (feedback 98f50dfc):
+       a margin here stacked on top of it and made this head 4px taller than
+       every other list view's. */
+    .title-block .hint { color: var(--sc-fg-2); margin: 0; max-width: 60ch; }
 
     .provenance {
       display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
