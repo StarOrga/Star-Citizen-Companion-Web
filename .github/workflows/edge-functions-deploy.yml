@@ -1,0 +1,170 @@
+name: edge-functions
+
+# Supabase edge functions do NOT deploy when a PR is merged — `supabase
+# functions deploy` is a separate, manual step. That gap is not theoretical:
+# PR #309 hardened `starscape-summary` against oversized images on 2026-07-29,
+# was merged, and was never deployed. Production kept serving v13 (no byte
+# caps, no image-variant selection, no content-length precheck) until a
+# comm-link shipped a 7680x3292 image on 2026-07-30 and every request died
+# with `546 Memory limit exceeded`. Starscape's weekly Verse-News wallpaper was
+# gone for two days while the repo — and every local test — looked perfectly
+# healthy, because they exercised code that was not in production.
+#
+# So: whatever lands on main gets deployed here, automatically, and only the
+# functions that actually changed (scripts/changed-edge-functions.mjs decides).
+#
+# One-time setup: a SUPABASE_ACCESS_TOKEN repo secret holding a Supabase
+# personal access token (`sbp_…`, the same one `supabase login` stores).
+# Until it exists the deploy job fails LOUDLY rather than skipping — a silent
+# skip is exactly the failure mode this workflow was built to end.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - 'supabase/config.toml'
+      - 'scripts/changed-edge-functions.mjs'
+      - '.github/workflows/edge-functions-deploy.yml'
+  pull_request:
+    paths:
+      - 'supabase/functions/**'
+      - 'supabase/config.toml'
+      - 'scripts/changed-edge-functions.mjs'
+      - '.github/workflows/edge-functions-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      functions:
+        description: 'Comma-separated slugs, or "all". Empty = whatever the last commit touched.'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_REF: hcnqhvzlavdycidqyaai
+
+jobs:
+  # Runs on pull requests too, where it deploys nothing: it just states which
+  # functions the merge will push, so the deploy surface is visible at review
+  # time instead of being remembered afterwards.
+  plan:
+    name: which functions does this touch
+    runs-on: ubuntu-latest
+    outputs:
+      slugs: ${{ steps.resolve.outputs.slugs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The resolver decides what reaches production, so a regression in it is
+      # a deploy bug. Cheap to guard, so guard it on every run.
+      - name: Selftest the resolver
+        run: npm run check:edge-functions
+
+      - id: resolve
+        name: Resolve affected functions
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_FUNCTIONS: ${{ github.event.inputs.functions }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT" = "workflow_dispatch" ] && [ -n "${INPUT_FUNCTIONS:-}" ]; then
+            if [ "$INPUT_FUNCTIONS" = "all" ]; then
+              SLUGS="$(node scripts/changed-edge-functions.mjs --all)"
+            else
+              SLUGS="$(printf '%s' "$INPUT_FUNCTIONS" | tr ',' '\n' | sed 's/[[:space:]]//g' | grep -v '^$' || true)"
+            fi
+          else
+            case "$EVENT" in
+              pull_request) BASE="$PR_BASE_SHA" ;;
+              *)            BASE="${PUSH_BEFORE:-}" ;;
+            esac
+            # A brand-new branch (or a force push) reports an all-zero "before";
+            # fall back to the first parent so the range is always valid.
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              BASE="$(git rev-parse HEAD^)"
+            fi
+            SLUGS="$(node scripts/changed-edge-functions.mjs --base "$BASE" --head HEAD)"
+          fi
+
+          # Emit as a single space-separated line so the deploy job can loop it.
+          ONE_LINE="$(printf '%s' "$SLUGS" | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
+          echo "slugs=$ONE_LINE" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Edge functions affected"
+            echo ""
+            if [ -z "$ONE_LINE" ]; then
+              echo "_None — nothing to deploy._"
+            else
+              for s in $ONE_LINE; do echo "- \`$s\`"; done
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: deploy to Supabase
+    needs: plan
+    if: github.event_name != 'pull_request' && needs.plan.outputs.slugs != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fail loudly and early when the token is missing. Skipping would leave
+      # production silently behind the repo — the exact bug this workflow ends.
+      - name: Require the Supabase access token
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN is not set, so these functions did NOT deploy: ${{ needs.plan.outputs.slugs }}"
+            echo "::error::Add it once with: gh secret set SUPABASE_ACCESS_TOKEN   (value = the sbp_… token from 'supabase login')"
+            exit 1
+          fi
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy changed functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SLUGS: ${{ needs.plan.outputs.slugs }}
+        run: |
+          set -uo pipefail
+          failed=""
+          deployed=""
+
+          for slug in $SLUGS; do
+            echo "::group::deploy $slug"
+            if supabase functions deploy "$slug" --project-ref "$PROJECT_REF"; then
+              deployed="$deployed $slug"
+            else
+              # Keep going: one bad function must not leave the rest stale.
+              echo "::error::failed to deploy $slug"
+              failed="$failed $slug"
+            fi
+            echo "::endgroup::"
+          done
+
+          {
+            echo "### Deploy result"
+            echo ""
+            for s in $deployed; do echo "- ✅ \`$s\`"; done
+            for s in $failed;   do echo "- ❌ \`$s\`"; done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "$failed" ]; then
+            echo "::error::edge-function deploy failed for:$failed"
+            exit 1
+          fi
+          echo "Deployed:$deployed"
