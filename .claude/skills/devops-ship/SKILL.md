@@ -14,8 +14,9 @@ Plugin defaults still apply; only the rules below override or add.
 1. **Watch this repo's downstream deploy surfaces — they land after the merge.**
    `ship_release` only confirms PR merge + GitHub release/tag. The real
    artefacts arrive MINUTES later: the `data-uploader-build.yml` workflow
-   (tag-push) gates a usable binary, and the Vercel web deploy runs on
-   main-push. After `ship_release` succeeds with a tag that triggers external
+   (tag-push) gates a usable binary, the `edge-functions-deploy.yml` workflow
+   (main-push) pushes changed Supabase functions, and the Vercel web deploy runs
+   on main-push. After `ship_release` succeeds with a tag that triggers external
    work, run `gh run watch <run-id> --exit-status` in the background before
    calling `render_completion_card`.
 
@@ -42,6 +43,27 @@ Plugin defaults still apply; only the rules below override or add.
    "Vercel: deployed ✓ / not deployed / pre-existing 404", "Binary build:
    green / red / pending", "Edge Functions: redeployed ✓". Don't hide an
    unverified-or-broken surface behind a global "shipped" headline.
+
+   **Edge functions deploy themselves now — verify the run, don't claim the
+   deploy.** `.github/workflows/edge-functions-deploy.yml` fires on every
+   main-push touching `supabase/functions/**` or `supabase/config.toml` and
+   pushes exactly the functions that changed
+   (`scripts/changed-edge-functions.mjs` decides). So the card line is the
+   *run's* verdict — `gh run list --workflow=edge-functions -L 1` — not "I
+   deployed it". Two things still need a human:
+   - The job **fails loudly** if the `SUPABASE_ACCESS_TOKEN` secret is missing.
+     That is deliberate; fix the secret, never the check.
+   - To redeploy without a code change (a stale function, a rolled-back
+     deploy), use the manual trigger:
+     `gh workflow run edge-functions -f functions=<slug|all>`.
+
+   *Why this rule exists:* 2026-07-31 — PR #309 hardened `starscape-summary`
+   and was merged on 07-29; nobody ran the deploy. Prod served the pre-#309
+   code until a comm-link shipped a 7680×3292 image, then returned `546 Memory
+   limit exceeded` on every request and Starscape's weekly wallpaper was gone
+   for two days. Repo green, every local test green, production broken. Rule 2
+   already asked for an "Edge Functions" card line — nothing enforced it, so
+   the workflow enforces it now.
 
 3. **Tag-only retries: bump the tag, don't re-push the same one.**
    When the binary build fails and we need to retry after a fix, push a

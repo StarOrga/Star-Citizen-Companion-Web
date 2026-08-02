@@ -5,8 +5,8 @@ import { publicOnlyGuard } from './auth/public-only.guard';
 import { publicOrApprovedGuard } from './auth/public-or-approved.guard';
 import { roleGuard } from './auth/role.guard';
 
-// Guard policy (#131): the shell itself is PUBLIC — News, Codex, Release
-// Notes and the 3D-print guide are browsable without login. Every private
+// Guard policy (#131): the shell itself is PUBLIC — News, Codex and Release
+// Notes are browsable without login. Every private
 // child names its guards EXPLICITLY (whitelist thinking: a new route is
 // private unless deliberately left open). authGuard always precedes
 // approvedGuard/roleGuard — both hang on RoleService.waitReady without a
@@ -224,14 +224,6 @@ export const routes: Routes = [
         canActivate: [...PRIVATE],
         loadComponent: () =>
           import('./settings/settings.component').then((m) => m.SettingsComponent),
-      },
-      {
-        // 3D-printing guidance (issue #79, Option 0) — a no-hosting info page:
-        // links vetted external community tools, documents the print-prep
-        // workflow. Serves ZERO CIG-derived geometry by design (EULA). Public.
-        path: 'tools/3d-print',
-        loadComponent: () =>
-          import('./tools/print-guide.component').then((m) => m.PrintGuideComponent),
       },
       {
         // Install + privacy page for the hangar-import browser extension.
