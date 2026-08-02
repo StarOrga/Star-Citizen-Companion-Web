@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   CODEX_KINDS,
@@ -19,6 +19,9 @@ import {
   pickLocalizedDistinct,
   toLang,
 } from './codex.service';
+import { UpcomingGridComponent } from './upcoming-grid.component';
+import { FallbackImageComponent } from './fallback-image.component';
+import { UpcomingShipsService } from './upcoming-ships.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   cleanLocaleValue,
@@ -43,10 +46,20 @@ const COMPONENT_KINDS = [
   'FuelTank', 'FuelIntake', 'CargoGrid', 'Other',
 ] as const;
 
+/**
+ * The category strip is a superset of the datamined kinds: `upcoming` is a
+ * category of the SAME catalog (ships RSI has announced but our extraction has
+ * no record of yet), so it belongs in this bar rather than behind its own
+ * sub-tab. It is not a `CodexKind` — no table backs it; the feed comes from the
+ * `rsi-upcoming-ships` edge function.
+ */
+export const UPCOMING_CATEGORY = 'upcoming' as const;
+export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
+
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent],
+  imports: [FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -59,25 +72,30 @@ const COMPONENT_KINDS = [
         <sc-codex-status-banner />
       </header>
 
-      <!-- Kind switcher -->
+      <!-- Category switcher (datamined kinds + the RSI "upcoming" category) -->
       <div class="kind-bar" role="tablist" [attr.aria-label]="'codex.categoriesAria' | translate">
-        @for (k of kinds; track k) {
+        @for (k of categories; track k) {
           <button class="kind" type="button" role="tab"
-                  [class.active]="kind() === k"
+                  [class.active]="category() === k"
                   [class.soon]="isComingSoon(k)"
                   [disabled]="isComingSoon(k)"
-                  [attr.aria-selected]="kind() === k"
+                  [attr.aria-selected]="category() === k"
                   [attr.title]="isComingSoon(k) ? ('codex.soon' | translate) : null"
-                  (click)="setKind(k)">
+                  (click)="setCategory(k)">
             <span>{{ ('codex.kinds.' + k) | translate }}</span>
             @if (isComingSoon(k)) {
               <span class="kind-ct soon-tag">{{ 'codex.soonShort' | translate }}</span>
-            } @else if (kindCount(k); as ct) {
+            } @else if (categoryCount(k); as ct) {
               <span class="kind-ct">{{ ct }}</span>
             }
           </button>
         }
       </div>
+
+      @if (isUpcoming()) {
+        <p class="hint upcoming-lede">{{ 'codex.upcoming.subtitle' | translate }}</p>
+        <sc-upcoming-grid />
+      } @else {
 
       <!-- Search + facets -->
       <div class="controls sc-card">
@@ -195,12 +213,10 @@ const COMPONENT_KINDS = [
           <div class="grid">
             @for (r of rows(); track r.classNameSlug) {
               <a class="card" [routerLink]="['/codex', kind(), r.classNameSlug]">
-                <div class="thumb" [class.icon-only]="!thumb(r)">
-                  @if (thumb(r); as src) {
-                    <img [src]="src" [alt]="cardName(r)" loading="lazy" (error)="onThumbError(r)" />
-                  } @else {
+                <div class="thumb" [class.icon-only]="thumbs(r).length === 0">
+                  <sc-fallback-image [candidates]="thumbs(r)" [alt]="cardName(r)">
                     <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" />
-                  }
+                  </sc-fallback-image>
                 </div>
                 <div class="card-top">
                   <h3 class="name">{{ cardName(r) }}</h3>
@@ -256,6 +272,7 @@ const COMPONENT_KINDS = [
           }
         }
       }
+      }
 
       <sc-codex-compare-tray />
     </section>
@@ -269,6 +286,8 @@ const COMPONENT_KINDS = [
     .to-bridge:hover { text-decoration: underline; }
     .title-block h1 { margin: 0; }
     .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 60ch; }
+
+    .upcoming-lede { margin: -4px 0 0; color: var(--sc-fg-2); font-size: 0.86rem; max-width: 72ch; }
 
     .kind-bar { display: flex; flex-wrap: wrap; gap: 6px; }
     .kind {
@@ -323,8 +342,9 @@ const COMPONENT_KINDS = [
     }
     .card:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 28%, transparent); }
     .card .thumb { height: 96px; margin: -4px 0 2px; display: flex; align-items: center; justify-content: center;
-      border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
-    .card .thumb img { max-height: 88px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+      border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0));
+      /* sc-fallback-image owns the <img>; sizing crosses the boundary as a var. */
+      --sc-img-max-h: 88px; }
     .card .thumb sc-codex-icon { width: 100%; height: 100%; }
     .card:hover .thumb sc-codex-icon { transform: scale(1.05); transition: transform 0.16s; }
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
@@ -373,6 +393,8 @@ export class CodexListComponent implements OnInit {
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
+  private readonly rsi = inject(UpcomingShipsService);
+  private readonly route = inject(ActivatedRoute);
 
   // Data language tracks the UI language as a SIGNAL so OnPush card titles
   // re-render on a language switch (they previously read t.currentLang
@@ -380,6 +402,8 @@ export class CodexListComponent implements OnInit {
   private readonly dataLang = signal(toLang(this.t.currentLang));
 
   readonly kinds = CODEX_KINDS;
+  /** Datamined kinds + the RSI-sourced "upcoming ships" category. */
+  readonly categories: readonly CodexCategory[] = [...CODEX_KINDS, UPCOMING_CATEGORY];
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
 
   // UC-02: class names already in the hangar — a pure read-overlay over the
@@ -395,7 +419,10 @@ export class CodexListComponent implements OnInit {
    * refused it, and nothing else in the UI links to /codex/blueprint).
    * Unknown count → enabled; only an explicit 0 disables a kind.
    */
-  isComingSoon(k: CodexKind): boolean {
+  isComingSoon(k: CodexCategory): boolean {
+    // The upcoming category is fed by RSI, not by a build manifest — it is
+    // never "coming soon" and never disabled.
+    if (k === UPCOMING_CATEGORY) return false;
     return this.kindCount(k) === 0;
   }
 
@@ -408,21 +435,25 @@ export class CodexListComponent implements OnInit {
     return translated && translated !== key ? translated : humanizeBlueprintCategory(c);
   }
 
-  // Slugs whose preview image failed to load — fall back to the category icon
-  // instead of a broken-image glyph. (UC-01)
-  private readonly brokenThumbs = signal<ReadonlySet<string>>(new Set<string>());
-
-  /** Preview-image URL for a list row, or null when art is absent or broken. */
-  thumb(r: CodexListRow): string | null {
-    if (this.brokenThumbs().has(r.classNameSlug)) return null;
+  /**
+   * Ordered art candidates for a list row: the datamined preview render first,
+   * then — for ships — the RSI ship-matrix artwork for the same hull.
+   *
+   * Only ~6% of catalog entities ship a datamined render (UC-01), and a render
+   * that 404s used to drop the card straight to the category glyph. RSI already
+   * publishes a store render for nearly every hull we hold, so the Codex now
+   * borrows it instead of showing an empty silhouette. `sc-fallback-image`
+   * walks the list and renders the glyph only when every candidate failed.
+   */
+  thumbs(r: CodexListRow): string[] {
+    const out: string[] = [];
     const p = r.payload as { previewImage?: string | null } | undefined;
-    return this.svc.previewUrl(p?.previewImage);
-  }
-
-  onThumbError(r: CodexListRow): void {
-    const next = new Set(this.brokenThumbs());
-    next.add(r.classNameSlug);
-    this.brokenThumbs.set(next);
+    const local = this.svc.previewUrl(p?.previewImage);
+    if (local) out.push(local);
+    // Match on the denormalized `name_localized` — the very column the edge
+    // function keys `gameShipArt` by, so no second normalization dialect exists.
+    if (this.kind() === 'ship') out.push(...this.rsi.artFor(r.nameLocalized ?? this.cardName(r)));
+    return out;
   }
 
   /** Sub-category that refines the fallback icon (componentKind/weaponClass/subType). */
@@ -445,6 +476,13 @@ export class CodexListComponent implements OnInit {
     return localized || cleanLocaleValue(r.nameLocalized) || fallback;
   }
 
+  /**
+   * Active category strip entry. `kind` stays the last DATA kind so the query
+   * effect, the compare tray and the facet state survive a detour through the
+   * upcoming category unchanged.
+   */
+  readonly category = signal<CodexCategory>('ship');
+  readonly isUpcoming = computed(() => this.category() === UPCOMING_CATEGORY);
   readonly kind = signal<CodexKind>('ship');
   readonly searchInput = signal('');
   private readonly searchTerm = signal('');
@@ -539,10 +577,26 @@ export class CodexListComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    this.applyRouteCategory();
+    // RSI artwork for ship cards + the upcoming badge count. Advisory and
+    // silent: a failure just leaves the datamined renders as they were.
+    void this.rsi.ensureLoaded();
     await this.svc.loadCurrentBuild();
     // UC-02: hangar membership backs the in-hangar badge on ship cards.
     if (this.hangar.ships().length === 0) void this.hangar.loadAll();
     await this.loadBlueprintCategories();
+  }
+
+  /**
+   * Preselect a category from the route: `data.category` (the legacy
+   * `/codex/upcoming` deep link, kept alive for the Verse-News CTA and any
+   * bookmark) or `?kind=` on `/codex/index`. Unknown values are ignored.
+   */
+  private applyRouteCategory(): void {
+    const snap = this.route.snapshot;
+    const wanted = (snap.data['category'] ?? snap.queryParamMap.get('kind') ?? '') as string;
+    const match = this.categories.find((c) => c === wanted);
+    if (match) this.setCategory(match);
   }
 
   /** Facet source for the blueprint kind. Advisory — a failure just hides it. */
@@ -574,6 +628,22 @@ export class CodexListComponent implements OnInit {
     const total = counts[plural];
     const v = seeded ?? total;
     return typeof v === 'number' ? v : null;
+  }
+
+  /** Badge count for a strip entry; the upcoming one comes from the RSI feed. */
+  categoryCount(k: CodexCategory): number | null {
+    if (k === UPCOMING_CATEGORY) return this.rsi.feed()?.ships.length ?? null;
+    return this.kindCount(k);
+  }
+
+  setCategory(k: CodexCategory): void {
+    if (k === this.category()) return;
+    // A kind the build reports as empty is shown disabled — ignore stray
+    // activation (keyboard, deep link). (UC-13)
+    if (this.isComingSoon(k)) return;
+    this.category.set(k);
+    if (k === UPCOMING_CATEGORY) return;
+    this.setKind(k);
   }
 
   setKind(k: CodexKind): void {

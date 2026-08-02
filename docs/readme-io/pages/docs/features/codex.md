@@ -119,9 +119,13 @@ default profile — useful when a patch quietly moves a binding.
 
 ## Upcoming Ships
 
-`/codex/upcoming` is the **difference between what RSI lists and what the live
-build actually contains**: ships announced on the RSI ship matrix that have no
-match in the datamined data yet. They are split into
+Upcoming ships are a **category of the Codex**, not a separate page: pick
+*Upcoming* in the category strip of the index (`/codex/index`, or the shortcut
+`/codex/upcoming`), or open the *Upcoming* lane on the Codex landing page.
+
+The category is the **difference between what RSI lists and what the live build
+actually contains**: ships announced on the RSI ship matrix that have no match
+in the datamined data yet. They are split into
 
 - **In concept** — RSI is still building these, not flyable yet, and
 - **Flight-ready on RSI** — RSI lists them as flight-ready, but our game data
@@ -129,6 +133,16 @@ match in the datamined data yet. They are split into
 
 You can search this list, filter to favourites only, and star ships to be
 notified in [Verse News](doc:verse-news) when their status changes.
+
+## Ship artwork
+
+Ship cards prefer the render extracted from the game files. Only a small part of
+the catalog ships one, so a card without a datamined render falls back to the
+ship's own artwork from the RSI website, matched by ship name.
+
+Both sources publish image urls that can be missing, so a card carries a whole
+list of candidates and tries the next one whenever an image fails to load — the
+placeholder silhouette only appears once every candidate has failed.
 
 ## Where the data comes from
 

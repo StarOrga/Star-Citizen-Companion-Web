@@ -5,6 +5,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { CodexBridgeComponent } from './codex-bridge.component';
 import { CodexListRow, CodexService } from './codex.service';
 import { RoleService } from '../auth/role.service';
+import { UpcomingShipsService } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShip } from '../hangar/hangar.types';
 import { ShowroomService } from './showroom.service';
@@ -104,6 +105,27 @@ describe('CodexBridgeComponent', () => {
         // Stub RoleService so the embedded status banner never constructs the
         // real one (which pulls Auth/Supabase and hangs whenStable in tests).
         { provide: RoleService, useValue: { isCollaborator: signal(false) } },
+        // The RSI ship-matrix feed backs the "upcoming" category and the
+        // artwork fallback on ship cards; the real one injects HttpClient.
+        {
+          provide: UpcomingShipsService,
+          useValue: {
+            feed: signal(null),
+            loading: signal(false),
+            error: signal(null),
+            concept: signal([]),
+            flightReadyMissing: signal([]),
+            query: signal(''),
+            favoritesOnly: signal(false),
+            favoriteCount: signal(0),
+            newIds: signal(new Set<string>()),
+            ensureLoaded: jasmine.createSpy('ensureLoaded').and.resolveTo(undefined),
+            refresh: jasmine.createSpy('refresh').and.resolveTo(undefined),
+            acknowledge: () => undefined,
+            isFavorite: () => false,
+            artFor: () => [] as string[],
+          },
+        },
         // Same reason: the Showroom billboard + Holo-Ready badge inject the real
         // ShowroomService, whose load() hits Supabase and hangs whenStable. Stub
         // it empty — no liveries ⇒ billboard hidden, badges render nothing.

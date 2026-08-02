@@ -103,7 +103,9 @@
       "noMatches": {
         "title": "No matches",
         "body": "No upcoming ship matches the search and filter — shorten the term or drop the favorites filter."
-      }
+      },
+      "laneSub": "Announced by RSI, with no entry in our game data yet",
+      "laneAll": "View all {{count}}"
     },
     "categoriesAria": "Codex categories",
     "soon": "Coming soon — no data extracted yet.",
@@ -128,7 +130,8 @@
       "item": "Items",
       "ammunition": "Ammunition",
       "manufacturer": "Manufacturers",
-      "blueprint": "Blueprints"
+      "blueprint": "Blueprints",
+      "upcoming": "Upcoming"
     },
     "kindSingular": {
       "ship": "Ship",
