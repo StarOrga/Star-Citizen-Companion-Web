@@ -1054,10 +1054,37 @@ async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
       }
     }
     if (rows.size === 0) return;
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    // What the gallery already holds — ids to skip, hashes to compare against.
+    // Reading the whole column is fine at this table's size (a few hundred rows
+    // of 64 hex chars), and Hamming distance is not something an index could
+    // serve anyway. A failed read degrades to "gallery looks empty": the crawl
+    // still captures, it just cannot skip or reject this round.
+    const { data: existing, error: readErr } = await admin
+      .from('verse_wallpapers')
+      .select('image_id, phash');
+    if (readErr) console.error('captureWallpapers: gallery read failed:', readErr.message);
+    const stored = (existing ?? []) as { image_id: string; phash: string | null }[];
+    const knownIds = new Set(stored.map((r) => r.image_id));
+    const storedHashes = stored.map((r) => r.phash).filter((h): h is string => !!h);
+
+    // Candidates already in the gallery are dropped HERE, before any network
+    // work. They used to run the whole HEAD + download + decode gauntlet only
+    // for `ignoreDuplicates` to throw the result away — and, since an article
+    // stays in the feed for weeks, they consumed the MAX_CONTENT_SCORED_PER_RUN
+    // budget every single crawl, deferring genuinely new artwork behind images
+    // the gallery already had. Skipping them also keeps the near-duplicate log
+    // honest: a stored row matches its OWN hash, which would otherwise be
+    // reported as a rejection on every run.
+    const fresh = [...rows.values()].filter((row) => !knownIds.has(row.image_id));
+    if (fresh.length === 0) return;
+    if (fresh.length < rows.size) {
+      console.log(`captureWallpapers: ${rows.size - fresh.length} candidate(s) already in the gallery`);
+    }
     // Verify each candidate really is wallpaper-sized artwork before it reaches
     // the public gallery — this is what keeps inline icons/patterns/videos out (#133).
     const verified = await Promise.all(
-      [...rows.values()].map(async (row) => ((await isWallpaperMedia(row.source_url)) ? row : null)),
+      fresh.map(async (row) => ((await isWallpaperMedia(row.source_url)) ? row : null)),
     );
     const keep = verified.filter((row): row is WallpaperRow => row !== null);
     if (keep.length === 0) return;
@@ -1079,20 +1106,7 @@ async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
     );
     const passed = scored.filter((row): row is WallpaperRow => row !== null);
     if (passed.length === 0) return;
-    const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-    // Reject artwork the gallery already shows (#duplicate-photos). Reading the
-    // whole hash column is fine at this table's size — a few hundred rows of 64
-    // hex chars — and Hamming distance is not something an index could serve.
-    // A failed read degrades to "no known hashes", i.e. the pre-filter
-    // behaviour: the crawl still captures, it just cannot reject this round.
-    const { data: existing, error: hashErr } = await admin
-      .from('verse_wallpapers')
-      .select('phash')
-      .not('phash', 'is', null);
-    if (hashErr) console.error('captureWallpapers: phash read failed:', hashErr.message);
-    const storedHashes = (existing ?? [])
-      .map((r) => (r as { phash: string | null }).phash)
-      .filter((h): h is string => !!h);
+    // Reject artwork the gallery already shows under a different CDN id.
     const finalRows = rejectNearDuplicates(passed, storedHashes);
     if (finalRows.length === 0) return;
     // First capture wins — rows are immutable source metadata, so duplicate
