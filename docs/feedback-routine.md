@@ -43,6 +43,10 @@ open ──pick up──▶ in_progress ──green build+tests──▶ shipped
                                        ▼
         admin answers in the thread ──▶ picked up again next run
 
+  in_progress + ship_ref (review-hold)
+          ──admin replies in the thread (query (e))──▶ claimed back (ship_ref cleared),
+                                                       steer implemented on the SAME PR branch
+
   shipped ──admin replies in the thread (query (d))──▶ reopened as a continuation
      ▲                                                          │
      │                                                          ▼
@@ -729,6 +733,74 @@ in that thread (or when there is none yet) — that converges, so a hold nudges 
 real news instead of once per cadence tick. Do **not** flip the row to
 `needs_input` to make it visible: that drops the `ship_ref` and turns a real
 review-hold into a bare claim the reaper will then reopen.
+
+### A human reply to a hold is an ANSWER — and no queue read could see it
+
+The decay rule above assumes the only thing that happens to a hold is that time
+passes. Something far more important can happen: **the admin replies in the
+thread.** He has just answered the question the hold was parked for — and until
+2026-08-02 nothing in this routine looked at that.
+
+Trace the four queue reads against a held row (`in_progress`, `ship_ref` set):
+
+- **(a)** reads `open` — a hold is not `open`.
+- **(b)** reads `needs_input` whose newest message is human — a hold is not
+  `needs_input`.
+- **(d)** reads `shipped` whose newest message is human — a hold is not `shipped`.
+- **(c)** reads holds — but selects only `id, ship_ref, processing_note,
+  processed_at`. It never reads the thread, so a reply on a hold is invisible
+  to it by construction.
+
+`in_progress` + a human reply was therefore a **black hole**: the one status
+where an admin answer produced no effect whatsoever. And it is the status the
+routine *itself* chose for exactly the topics where it most wanted an answer.
+
+**Feedback `40d2f925` / PR #314 is the case.** Parked 2026-07-30 17:20 as
+"sensitive — auth/RLS". At **19:28 the same day** the admin replied with a
+concrete steer: no user may self-promote to admin, a downgrade must go through
+an e-mail confirmation, and only admins may appoint admins. That reply sat
+unread for three days while every cycle reported the row as "review-hold, offen
+seit X" — technically true and completely beside the point. What looked from the
+board like a routine that had stopped working was a routine that could not see
+the answer.
+
+**The fix is a fifth queue read, (e), run with the others:**
+
+```sql
+-- (e) answered review-hold: in_progress topics whose newest message is human
+select f.id, f.ship_ref, f.body, m.created_at as answered_at
+from public.admin_feedback f
+join lateral (
+  select is_system, created_at from public.admin_feedback_messages m
+  where m.feedback_id = f.id order by m.created_at desc limit 1
+) m on true
+where f.status = 'in_progress' and m.is_system = false
+order by m.created_at asc;
+```
+
+Treat an (e) hit as **actionable work, ranked by the reply's age, not the row's**
+— the admin has been waiting since he wrote it. Claim it exactly like a (d)
+continuation, with `ship_ref` **cleared**:
+
+```sql
+update public.admin_feedback set status='in_progress', ship_ref=null, processed_at=now()
+where id='<id>' and status='in_progress' and ship_ref is not null returning id;
+```
+
+Clearing `ship_ref` is the same load-bearing move as in a continuation: while the
+routine owns the topic again it must look like an ordinary claim, so an
+interrupted run leaves a bare `in_progress` the reaper heals instead of a fake
+hold that strands forever. The PR link is not lost — it is in the thread's own
+hold reply. Then read the **full thread**, implement the steer **on the existing
+PR branch** (the work is already there; do not start a second PR), re-verify, and
+finish normally: ship if the steer resolved what made it sensitive, or re-hold
+with a fresh `ship_ref` and a reply saying what is still open.
+
+The general shape, worth remembering beyond this one query: **every status the
+routine can park a topic in needs a path back out that a human reply triggers.**
+`needs_input` had (b), `shipped` had (d), the archived statuses had the reopen
+trigger — `in_progress` had nothing, and that is precisely where the routine
+parks the topics it most wants an answer on.
 
 ## Loose-ends sweep — the same duty for work that isn't in the DB
 
