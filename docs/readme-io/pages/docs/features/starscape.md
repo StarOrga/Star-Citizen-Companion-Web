@@ -16,11 +16,16 @@ resolution, the download link, and the source Comm-Link.
 
 ## On a phone
 
-The gallery is a plain two-column feed you scroll straight through. Phones and
-small tablets are served the CDN's light preview variant instead of the wide
-one — roughly a quarter of the bytes for the same tile — and opening a tile
-shows a screen-sized copy rather than the multi-megabyte original. **Download
-original** still gives you the untouched file.
+The gallery is a single full-width column you scroll straight through. Most of
+this artwork is ultrawide desktop wallpaper — wider than 2.2:1 — so a
+side-by-side grid would squeeze each picture into a band barely a finger tall.
+One image per row keeps every wallpaper at a size you can actually look at.
+
+Phones are served the CDN's light preview variant instead of the wide one —
+roughly a quarter of the bytes for the same tile — and opening a tile shows a
+screen-sized copy rather than the multi-megabyte original. **Download original**
+still gives you the untouched file. Tablets and desktops, whose tiles are wide
+enough to show the difference, get the sharper variant.
 
 **Share** in the opened tile hands the wallpaper to the Android/iOS share
 sheet, so it can go straight into a chat, a note or your own timeline. The link

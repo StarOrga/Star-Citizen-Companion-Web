@@ -92,10 +92,35 @@ describe('StarscapeComponent', () => {
     expect(source).not.toBeNull();
     // A `sizes` hint is multiplied by the device pixel ratio, so it cannot keep a
     // DPR-3 phone off the 1140w cover — only an explicit media source can.
-    expect(source.media).toBe('(max-width: 900px)');
+    //
+    // The pin stops at 480px: past it a tile is 350-608px wide on DPR-2 hardware,
+    // where the 500w post is under 1x CSS density and looks soft. Widening it back
+    // to the 900px it used to be re-blurs every tablet (feedback 4e54ad2c).
+    expect(source.media).toBe('(max-width: 480px)');
     expect(source.getAttribute('srcset')).toBe(
       'https://media.robertsspaceindustries.com/abc123/post.jpg',
     );
+    f.destroy();
+  });
+
+  it('sizes the tile slot as the single full-width phone column it now is', () => {
+    const f = setup();
+    const img = f.nativeElement.querySelector('.tile picture img') as HTMLImageElement;
+    // 95vw, not the 48vw of the two-column phone grid that rendered every
+    // ultrawide wallpaper as a ~75px stripe (feedback 4e54ad2c).
+    expect(img.getAttribute('sizes')).toBe('(max-width: 640px) 95vw, (max-width: 900px) 46vw, 300px');
+    f.destroy();
+  });
+
+  it('shapes loading placeholders by aspect ratio so they match the column width', () => {
+    const f = setup();
+    const c = f.componentInstance;
+    // A ratio, never a pixel height: a fixed height tuned for a 260px desktop
+    // column painted a 200-340px block in a phone column and then snapped down to
+    // the real ~150px image, reflowing the whole page on every decode.
+    const ratios = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => Number(c.skelRatio(i)));
+    for (const r of ratios) expect(r).toBeGreaterThan(1); // landscape art, always
+    expect(ratios[10]).toBe(ratios[0]); // cycles
     f.destroy();
   });
 

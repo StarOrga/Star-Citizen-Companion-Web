@@ -22,11 +22,20 @@ import { StarscapeAppPromoComponent } from './starscape-app-promo.component';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
-// Believable, varied masonry-tile heights (px) for the loading skeletons. The
-// gallery rows carry no dimension metadata, so a fixed cycle of plausible
-// heights gives the grid a real "images incoming" silhouette instead of the
-// collapsed border stripes a zero-height <img> produces before it decodes.
-const SKEL_HEIGHTS = [210, 280, 240, 320, 200, 300, 260, 190, 340, 230];
+// Believable, varied masonry-tile shapes for the loading skeletons. The gallery
+// rows carry no dimension metadata, so a fixed cycle of plausible shapes gives
+// the grid a real "images incoming" silhouette instead of the collapsed border
+// stripes a zero-height <img> produces before it decodes.
+//
+// These are ASPECT RATIOS, not pixel heights: a placeholder has to be the size
+// the image will actually be, and that depends on the column width. Fixed
+// heights were tuned for a ~260 px desktop column, so in the 173 px column a
+// phone used to get they painted 200-340 px blocks that then snapped down to
+// ~75 px of real image — a full-page reflow on every decode. A ratio tracks the
+// column at every breakpoint, so the tile never resizes when the image lands.
+// The cycle leans wide because the source art is: of the 24 wallpapers on page
+// one, 16 are wider than 2.2:1 and only 2 are portrait.
+const SKEL_RATIOS = ['2.35', '1.78', '2.4', '2.35', '1.85', '3', '2.35', '2', '2.5', '1.6'];
 // Number of placeholder tiles painted while the very first page is in flight.
 const SKELETON_SLOTS = 12;
 // Query parameter carrying a single wallpaper — what the share button hands out,
@@ -115,7 +124,7 @@ const EAGER_TILES = 8;
       @if (svc.loading() && svc.wallpapers().length === 0) {
         <div class="wall" aria-hidden="true">
           @for (i of skeletonSlots; track i) {
-            <span class="tile skel-tile sc-skel" [style.height.px]="skelH(i)"></span>
+            <span class="tile skel-tile sc-skel" [style.aspectRatio]="skelRatio(i)"></span>
           }
         </div>
       }
@@ -134,33 +143,43 @@ const EAGER_TILES = 8;
                  the column never collapses to a border stripe. Dropped once the
                  image is ready (or has failed) — then the image defines height. -->
             @if (!loaded().has(w.imageId) && !broken().has(w.imageId)) {
-              <span class="tile-skel sc-skel" [style.height.px]="skelH(i)" aria-hidden="true"></span>
+              <span class="tile-skel sc-skel" [style.aspectRatio]="skelRatio(i)" aria-hidden="true"></span>
             }
-            <!-- Responsive sources: a phone pulls the light post (500w) variant,
-                 desktop the crisp cover (1140w) — so the mobile grid paints fast
-                 and shows something immediately instead of loading a 1140w image
-                 per tile (admin feedback 32cbf3ad). The src fallback is the light
-                 variant too, so browsers ignoring srcset still get the fast one.
+            <!-- Responsive sources. Only two candidates exist upstream: the light
+                 post (500w) and the crisp cover (1140w). Which one is right is
+                 decided by the tile's real CSS width per breakpoint, measured
+                 against the built app rather than assumed:
 
-                 The "sizes" hint alone could NOT deliver that (admin feedback
-                 4e54ad2c): it is expressed in CSS pixels, but candidate selection
-                 multiplies it by the device pixel ratio. On a DPR-3 phone the
-                 48vw slot therefore asked for ~540 device px, overshot the 500w
-                 "post" candidate and pulled the 1140w "cover" for EVERY tile —
-                 measured 7.8 MB per gallery page on mobile against 1.9 MB on
-                 desktop, i.e. the exact inverse of the intent above. On a mobile
-                 connection that is the reported "images never load, just grey".
-                 The <source> below pins phones and small tablets to the light
-                 variant outright, which no DPR can override; 500w into a ~165 px
-                 tile is still ~3x density. -->
+                   ≤480px  phone, 1 column   → 358-448px tile → post = 1.1-1.4x
+                   ≤640px  1 column          → up to 608px    → cover
+                   ≤900px  2 columns         → ~350px @DPR2   → cover
+                   >900px  3-4 columns       → ~300px @DPR1   → post
+
+                 A phone is pinned to post by the <source> below because "sizes"
+                 alone cannot hold it there: sizes is in CSS pixels but candidate
+                 selection multiplies it by the device pixel ratio, so a DPR-3
+                 phone overshoots the 500w candidate and pulls cover for EVERY
+                 tile (admin feedback 4e54ad2c — 7.8 MB per gallery page on
+                 mobile against 1.9 MB on desktop, the exact inverse of the
+                 intent). At the 358px tile a phone now gets, post is still 1.4x
+                 CSS density, which is the usual cap for a browse thumbnail; the
+                 crisp copy is one tap away in the lightbox.
+
+                 The pin stops at 480px rather than the 900px it used to cover:
+                 above that the tile is 350-608px wide on DPR-2 hardware, where
+                 500w works out to 0.8-0.9x CSS density — visibly soft. Those
+                 slots need cover, and the honest "sizes" below now asks for it.
+                 (The 48vw/31vw/244px it replaces under-declared every slot; they
+                 were written for the two-column phone grid this feedback
+                 removed, and 244px was never the ~300px desktop tile.) -->
             <picture>
-              <source media="(max-width: 900px)" [srcset]="lowResFor(w.previewUrl)" />
+              <source media="(max-width: 480px)" [srcset]="lowResFor(w.previewUrl)" />
               <img
                 class="tile-img"
                 [class.ready]="loaded().has(w.imageId)"
                 [srcset]="srcsetFor(w.previewUrl)"
                 [src]="lowResFor(w.previewUrl)"
-                sizes="(max-width: 640px) 48vw, (max-width: 900px) 31vw, 244px"
+                sizes="(max-width: 640px) 95vw, (max-width: 900px) 46vw, 300px"
                 [alt]="w.title ?? ''"
                 decoding="async"
                 [attr.loading]="i < eagerTiles ? 'eager' : 'lazy'"
@@ -369,7 +388,22 @@ const EAGER_TILES = 8;
     }
 
     @media (max-width: 640px) {
-      .wall { columns: 2 150px; }
+      /* ONE column on phones, not two (admin feedback 4e54ad2c: "immer noch nur
+         striche in starscape mobile").
+
+         Starscape's art is desktop wallpaper: of the 24 images on page one, 16
+         are wider than 2.2:1 and the median is 2.34:1. Two columns on a 390 px
+         screen leave a 173 px column, so the median wallpaper rendered 173x75 px
+         — twenty-four horizontal bands stacked into a wall of stripes. The
+         images were loading the whole time (all 24 return HTTP 200), which is
+         why fixing their byte weight in #331 changed nothing: the geometry, not
+         the network, was crushing them.
+
+         A single column is 358 px on the same screen, so the median wallpaper
+         lands at 358x153 px and reads as a picture. It is also the layout the
+         request asked for by name — a full-width feed is what "mobile friendly
+         zum durchscrollen" means. */
+      .wall { columns: 1; }
       /* Full-bleed overlay → respect the notch / home indicator. */
       .lightbox {
         padding:
@@ -519,9 +553,13 @@ export class StarscapeComponent implements OnInit {
     if (wallpaper) this.active.set(wallpaper);
   }
 
-  /** Plausible varied placeholder height (px) for tile `i`, cycled from a fixed set. */
-  skelH(i: number): number {
-    return SKEL_HEIGHTS[i % SKEL_HEIGHTS.length];
+  /**
+   * Plausible varied placeholder aspect ratio for tile `i`, cycled from a fixed
+   * set. A ratio rather than a height so the placeholder is the size the image
+   * will actually be in whatever column width the current breakpoint gives.
+   */
+  skelRatio(i: number): string {
+    return SKEL_RATIOS[i % SKEL_RATIOS.length];
   }
 
   /**
