@@ -14,7 +14,7 @@ account gets you and what the project keeps. The binding version is the
 | Verse News, Starscape, Codex, release notes | ✅ full read access | ✅ |
 | Saved posts, news filters | — | ✅ |
 | Hangar, configurations, role loadouts, flagship | — | ✅ |
-| Settings (callsign, language) | — | ✅ |
+| Settings (callsign, language, region) | — | ✅ |
 | Data Uploader downloads, Bundle History | — | collaborator / admin |
 | Admin: users, API tokens, telemetry, feedback | — | admin |
 
@@ -24,8 +24,14 @@ Registration is **invite-only** during the alpha. Two sign-in methods lead to
 the same account when the e-mail matches:
 
 - **E-mail + password** — the password is stored only as a salted hash.
-- **Google OAuth** — Google learns that you signed in here, and the project
-  receives your e-mail address. Nothing else.
+- **Google OAuth** — you are redirected to `accounts.google.com`, so Google
+  learns that you signed in here. In return the project receives your Google
+  account id, e-mail address, the name on your Google profile and the URL of
+  your profile picture; Supabase keeps them in the auth record. The app shows
+  the name in the account menu until you pick your own username and never
+  loads the picture. Nothing about your hangar or usage goes back to Google.
+
+There is no sign-up form, no magic link and no other social login.
 
 SC Companion never asks for your RSI account credentials and has no way to act
 on your RSI account.
@@ -35,9 +41,9 @@ on your RSI account.
 | Data | Where | Who can read it |
 |---|---|---|
 | E-mail, password hash | Supabase Auth, `eu-central-1` (Frankfurt) | you + admins |
-| Profile (callsign, role, flagship) | Postgres, row-level security | you |
+| Profile (callsign, role, flagship, language, region) | Postgres, row-level security | you |
 | Hangar, configurations, loadouts, notes | Postgres, row-level security | you |
-| Session token, language, UI state | your browser's local storage | you |
+| Session token, language, region, UI state | your browser's local storage | you |
 | Anonymous product analytics | PostHog, EU servers | maintainers, aggregated |
 
 Row-level security is enforced in the database, not just in the UI — another
@@ -48,8 +54,8 @@ signed-in user cannot read your hangar even by calling the API directly.
 The app sets **no cookies at all**. Everything lives in your browser's local
 storage, split into three buckets you control in **Settings**:
 
-- **Essential** — session, language, and the consent decision itself. Always
-  on; the app cannot work without them.
+- **Essential** — session, language, region, and the consent decision itself.
+  Always on; the app cannot work without them.
 - **Preferences** — news channel filter, saved articles, similar convenience
   state. Turning it off deletes the stored values.
 - **Statistics** — anonymous usage statistics (PostHog, EU). **Off by default**,
@@ -71,9 +77,14 @@ flips to `beta`.
 
 ## Deleting your account
 
-**Settings → Delete account** removes the account and everything attached to it
-— profile, hangar, configurations, uploads and bundles. It is immediate,
-irreversible, and signs you out afterwards.
+Deleting the account removes everything attached to it — profile, hangar,
+configurations, uploads and bundles — through the database cascade. It is
+irreversible.
+
+**Settings → Delete account** performs it directly, but the underlying
+`delete-user` function currently only accepts admin callers, so for a viewer or
+collaborator account the button fails. Ask a maintainer (see
+[Support](doc:support)) and the deletion is carried out for you.
 
 ## Reporting a privacy or security issue
 

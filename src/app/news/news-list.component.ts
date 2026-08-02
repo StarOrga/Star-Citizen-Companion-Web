@@ -17,14 +17,18 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { NewsService, NewsChannel, VerseNewsItem, VerseStatus, StatusLevel, effectivePlayability, pickRecentVideos, VIDEO_RETENTION_DAYS } from './news.service';
+import { NewsService, NewsChannel, VerseNewsItem, pickRecentVideos, VIDEO_RETENTION_DAYS } from './news.service';
+import { PatchNotesSectionComponent } from './patch-notes-section.component';
+import { relativeTime } from './relative-time';
 import { NewsThumbComponent } from './news-thumb.component';
 import { UpcomingShipsNoticeComponent } from './upcoming-ships-notice.component';
+import { isMiddleClick, isPlainLeftClick } from '../core/modified-click.util';
+import { SameRouteRefreshService } from '../core/same-route-refresh.service';
 
 const CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
-const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
 
 // Hover-dwell threshold before a video counts as "watched" (#146). Long enough
 // that a cursor merely passing over the rail doesn't burn through the videos,
@@ -44,51 +48,48 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
 @Component({
   selector: 'sc-news-list',
   standalone: true,
-  imports: [TranslateModule, NewsThumbComponent, NgTemplateOutlet, UpcomingShipsNoticeComponent],
+  imports: [
+    TranslateModule,
+    NewsThumbComponent,
+    NgTemplateOutlet,
+    UpcomingShipsNoticeComponent,
+    PatchNotesSectionComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="news-page">
       <header class="head">
         <div class="title-block">
           <h1>{{ 'news.title' | translate }}</h1>
-          <p class="hint">{{ 'news.subtitle' | translate }}</p>
-          @if (updatedRel(); as rel) {
-            <p class="freshness" [class.stale]="updatedStale()">
-              <span class="pulse" aria-hidden="true"></span>
-              {{ 'news.lastUpdated' | translate:{ rel: rel } }}
-            </p>
-          }
+          <!-- Subtitle and freshness share ONE row (feedback 98f50dfc): the head
+               used to stack three lines — title / subtitle / freshness — and the
+               subtitle's trailing "automatisch alle 5 Min." only restated the
+               cadence that the live freshness line already proves. The cadence
+               claim is gone from the string, the measured line stays, and the
+               header gives a whole text line back to the stream.
+               A reload triggered from the nav keeps the current cards on screen
+               (no skeleton flash), so the freshness line carries the echo that
+               something IS happening (feedback 7532e639). -->
+          <p class="meta">
+            <span class="hint">{{ 'news.subtitle' | translate }}</span>
+            @if (svc.loading() && svc.feed()) {
+              <span class="freshness refreshing" role="status" aria-live="polite">
+                <span class="pulse" aria-hidden="true"></span>
+                {{ 'news.refreshing' | translate }}
+              </span>
+            } @else if (updatedRel(); as rel) {
+              <span class="freshness" [class.stale]="updatedStale()">
+                <span class="pulse" aria-hidden="true"></span>
+                {{ 'news.lastUpdated' | translate:{ rel: rel } }}
+              </span>
+            }
+          </p>
         </div>
 
-        @if (svc.feed()?.status; as st) {
-          @let eff = effectiveStatus(st);
-          <button class="status-chip" type="button" [class]="'status-' + eff"
-                  [attr.aria-expanded]="statusOpen()" (click)="toggleStatus()">
-            <span class="dot" [class]="'status-' + eff"></span>
-            <span class="meta">
-              <span class="t">{{ 'news.status.title' | translate }}</span>
-              <strong>{{ ('news.status.' + eff) | translate }}</strong>
-            </span>
-            <span class="chev" aria-hidden="true">{{ statusOpen() ? '▴' : '▾' }}</span>
-          </button>
-        }
+        <!-- The playability chip used to sit here; it now lives in the app
+             header next to the search (feedback #79), where it is visible on
+             every route instead of only on this page. -->
       </header>
-
-      @if (statusOpen() && svc.feed()?.status; as st) {
-        <div class="status-panel sc-card">
-          <h3>{{ 'news.status.services' | translate }}</h3>
-          @if (st.components.length > 0) {
-            <ul class="svc-list">
-              @for (c of st.components; track c.name) {
-                <li><span class="dot" [class]="'status-' + c.status"></span><span class="svc-name">{{ c.name }}</span><span class="svc-status">{{ ('news.status.' + c.status) | translate }}</span></li>
-              }
-            </ul>
-          } @else {
-            <p class="muted">{{ 'news.status.noComponents' | translate }}</p>
-          }
-          <a class="ext-link" [href]="rsiStatusUrl" target="_blank" rel="noopener noreferrer">{{ 'news.status.checkExternal' | translate }}</a>
-        </div>
-      }
 
       <!-- Codex "Upcoming Ships" delta (feedback d3fbc023): self-hides when
            there is nothing new since the user last looked. -->
@@ -144,13 +145,18 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
               <div class="rail-track" #railTrack (scroll)="onRailScroll()">
                 @for (vid of recentVideos(); track vid.id) {
                   <article class="vid-card sc-reveal" [class.watched]="svc.isWatched(vid.id)"
-                           [attr.data-channel]="vid.channel" tabindex="0" role="button"
-                           [attr.aria-label]="vid.title"
-                           (click)="openVideo(vid)"
-                           (keydown.enter)="openVideo(vid)"
-                           (keydown.space)="onVideoSpace($event, vid)"
+                           [attr.data-channel]="vid.channel"
                            (mouseenter)="onVideoEnter(vid)"
                            (mouseleave)="onVideoLeave()">
+                    <!-- Real link across the whole tile (d2171662): middle click,
+                         Ctrl/⌘+click and "open link in new tab" hand the clip to
+                         the browser; a plain left click stays in the app and
+                         opens the detail overlay. -->
+                    <a class="vid-link" [href]="vid.url" target="_blank" rel="noopener noreferrer"
+                       [attr.aria-label]="vid.title"
+                       (click)="onVideoClick($event, vid)"
+                       (auxclick)="onVideoAux($event, vid)"
+                       (keydown.space)="onVideoSpace($event, vid)"></a>
                     <div class="vid-thumb-wrap">
                       <sc-news-thumb
                         [images]="imagesOf(vid)"
@@ -186,6 +192,15 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
                       (click)="scrollRail(1)">›</button>
             </div>
           </section>
+        }
+
+        <!-- Patch notes (feedback 44e90e30). RSI ships a line as a stream — PTU
+             waves, the LIVE release notes, point releases, then weeks of
+             hotfixes — so a flat date list buries the very thing you came for.
+             Its own component: the section owns four pieces of state plus a
+             rotating KPI panel, none of which the surrounding stream needs. -->
+        @if (showPatchNotes()) {
+          <sc-patch-notes-section />
         }
 
         @if (svc.loading() && !svc.feed()) {
@@ -263,7 +278,10 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
               <div class="bucket-head">
                 <h2>{{ 'news.buckets.older' | translate }}</h2>
                 <span class="bucket-ct">{{ svc.bucketed().older.length }}</span>
-                <button type="button" class="bucket-toggle" (click)="toggleOlder()">
+                <!-- Auto-folded with the filter (1bc19cdc); the button stays the
+                     manual override, so it carries the state for AT. -->
+                <button type="button" class="bucket-toggle"
+                        [attr.aria-expanded]="olderOpen()" (click)="toggleOlder()">
                   {{ (olderOpen() ? 'news.buckets.hideMore' : 'news.buckets.showMore') | translate:{ count: svc.bucketed().older.length } }}
                 </button>
               </div>
@@ -277,7 +295,10 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
             </section>
           }
 
-          @if (svc.bucketed().today.length === 0 && svc.bucketed().week.length === 0 && svc.bucketed().older.length === 0) {
+          <!-- The patch section lives outside the buckets, so "nothing here" must
+               not be claimed while it is on screen (e.g. the Patch-Notes chip
+               alone, which empties the buckets by design). -->
+          @if (!showPatchNotes() && svc.bucketed().today.length === 0 && svc.bucketed().week.length === 0 && svc.bucketed().older.length === 0) {
             <div class="sc-card empty">{{ (svc.favoritesOnly() ? 'news.emptyFavorites' : (hasFilter() ? 'news.emptyFiltered' : 'news.empty')) | translate }}</div>
           }
         }
@@ -289,11 +310,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     <ng-template #card let-item let-featured="featured" let-showSummary="showSummary">
       <article class="card sc-reveal" [class.featured]="featured" [class.has-thumb]="!!item.thumbnail"
                [class.video]="isVideo(item)"
-               [attr.data-channel]="item.channel" tabindex="0" role="button"
-               [attr.aria-label]="item.title"
-               (click)="openDetail(item)"
-               (keydown.enter)="openDetail(item)"
-               (keydown.space)="onCardSpace($event, item)">
+               [attr.data-channel]="item.channel">
         <div class="thumb-wrap">
           <sc-news-thumb
             [images]="imagesOf(item)"
@@ -308,7 +325,22 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
           }
         </div>
         <div class="body">
-          <h3>{{ item.title }}</h3>
+          <!-- Stretched link (d2171662): the headline is a real <a href> to the
+               source and the overlay span covers the whole tile, so the entire
+               card is middle-clickable / Ctrl+clickable while the footer actions
+               stay ordinary buttons. Plain left click is intercepted for the
+               overlay.
+               The overlay is a real element rather than ::after so the mobile
+               gate can measure it: it looks for a touch-target child to learn an
+               element's true hit area, and a pseudo-element is invisible to that
+               check — the headline would be reported as a 246x18px tap target
+               when it is in fact the whole card. -->
+          <h3>
+            <a class="card-link" [href]="item.url" target="_blank" rel="noopener noreferrer"
+               (click)="onCardClick($event, item)"
+               (keydown.space)="onCardSpace($event, item)">{{ item.title }}<span
+                 class="card-link-touch-target" aria-hidden="true"></span></a>
+          </h3>
           @if (item.summary && showSummary) {
             <p>{{ item.summary }}</p>
           }
@@ -410,57 +442,31 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       display: flex; flex-direction: column; gap: 16px;
     }
 
-    /* ---------- Header ---------- */
+    /* ---------- Header ----------
+       The title block is nudged a few pixels off the page's left edge
+       (feedback #79, item 4): the stream card below it is rounded, so a title
+       flush with the container edge reads as if it hung over that curve.
+       The head's own bottom margin then closes the vertical rhythm the shell
+       opened: 16px page gap + 10px here = the same 26px of air that now sits
+       above the title (item 5). */
     .head {
       display: flex; justify-content: space-between; align-items: flex-start;
       gap: 16px; flex-wrap: wrap;
+      padding-left: 6px;
+      margin-bottom: 10px;
     }
     .title-block h1 { margin: 0; }
-    .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
-
-    .status-chip {
-      display: inline-flex; align-items: center; gap: 10px;
-      padding: 8px 14px; border-radius: 999px;
-      background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-      color: var(--sc-fg-0); cursor: pointer;
-      font-family: inherit; font-size: 0.82rem;
-      transition: border-color .18s, background .18s, box-shadow .18s;
+    /* One meta row instead of two stacked ones; it still wraps to two on a
+       narrow viewport. No drawn separator between the halves — the freshness
+       line already opens with its own coloured pulse dot, and a "·" would
+       dangle at the start of the wrapped line. */
+    .title-block .meta {
+      display: flex; flex-wrap: wrap; align-items: baseline;
+      column-gap: 14px; row-gap: 2px;
+      margin: 4px 0 0;
     }
-    .status-chip:hover { border-color: var(--sc-accent); }
-    .status-chip .meta { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
-    .status-chip .meta .t { font-size: 0.66rem; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.08em; }
-    .status-chip .meta strong { font-size: 0.88rem; font-family: var(--sc-font-display); letter-spacing: 0.04em; }
-    .status-chip .chev { color: var(--sc-fg-2); font-size: 0.75rem; }
-    .status-chip.status-operational { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-success) 40%, transparent); }
-    .status-chip.status-degraded, .status-chip.status-partial_outage,
-    .status-chip.status-maintenance { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-warning) 40%, transparent); }
-    .status-chip.status-major_outage { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-danger) 40%, transparent); }
-
-    .dot {
-      width: 10px; height: 10px; border-radius: 50%;
-      background: var(--sc-fg-2); flex: 0 0 auto;
-    }
-    .dot.status-operational { background: var(--sc-success); box-shadow: 0 0 8px var(--sc-success); }
-    .dot.status-degraded, .dot.status-partial_outage { background: var(--sc-warning); }
-    .dot.status-major_outage { background: var(--sc-danger); box-shadow: 0 0 8px var(--sc-danger); }
-    .dot.status-maintenance { background: var(--sc-accent); }
-    .dot.status-unknown { background: var(--sc-fg-2); }
-
-    .status-panel {
-      padding: 14px 18px;
-      animation: slide-down .2s ease;
-    }
-    @keyframes slide-down {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: none; }
-    }
-    .status-panel h3 { font-size: 0.85rem; margin: 0 0 8px; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.08em; }
-    .svc-list { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-    .svc-list li { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; padding: 4px 6px; border-radius: 4px; background: var(--sc-bg-1); }
-    .svc-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .svc-status { font-size: 0.72rem; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
-    .ext-link { font-size: 0.82rem; }
-    .muted { color: var(--sc-fg-2); font-size: 0.85rem; margin: 0; }
+    .title-block .hint { color: var(--sc-fg-2); margin: 0; }
+    .title-block .meta .freshness { margin: 0; }
 
     /* ---------- New posts pill ---------- */
     .new-pill {
@@ -468,7 +474,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       padding: 8px 18px; border-radius: 999px;
       background: var(--sc-accent); color: var(--sc-bg-0);
       border: none; cursor: pointer;
-      font-family: var(--sc-font-display); font-size: 0.78rem; letter-spacing: 0.08em;
+      font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.08em;
       box-shadow: 0 0 20px color-mix(in srgb, var(--sc-accent) 40%, transparent);
       animation: pill-pulse 2.2s ease-in-out infinite;
     }
@@ -497,7 +503,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 6px 12px; border-radius: 999px;
       border: 1px solid var(--sc-border); background: transparent;
-      color: var(--sc-fg-1); font-family: inherit; font-size: 0.78rem;
+      color: var(--sc-fg-1); font-family: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
       cursor: pointer; transition: all 0.16s;
     }
     .chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
@@ -506,7 +512,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       border-color: var(--sc-accent); color: var(--sc-fg-0); font-weight: 600;
     }
     .chip .ct {
-      font-size: 0.68rem; padding: 0 6px; border-radius: 8px;
+      font-size: max(0.68rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px;
       background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent);
       color: var(--sc-fg-2);
     }
@@ -526,7 +532,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       text-transform: uppercase; color: var(--sc-accent);
     }
     .bucket-ct {
-      font-size: 0.7rem; color: var(--sc-fg-2);
+      font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
       padding: 1px 8px; border-radius: 999px;
       background: var(--sc-bg-1); border: 1px solid var(--sc-border);
     }
@@ -534,7 +540,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       margin-left: auto; padding: 4px 10px;
       background: transparent; border: 1px solid var(--sc-border);
       color: var(--sc-fg-2); border-radius: 6px;
-      font-family: inherit; font-size: 0.74rem; cursor: pointer;
+      font-family: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer;
     }
     .bucket-toggle:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
@@ -553,12 +559,18 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     }
 
     .card {
+      position: relative;
       display: flex; flex-direction: column; gap: 0;
       border: 1px solid var(--sc-border); border-radius: 8px;
       background: var(--sc-bg-1); color: inherit; text-decoration: none;
       overflow: hidden; min-height: 200px;
       transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
     }
+    /* The headline anchor carries the card's whole hit area — no visual change,
+       but the browser now knows the tile is a link (d2171662). */
+    .card-link { color: inherit; text-decoration: none; }
+    .card-link-touch-target { position: absolute; inset: 0; z-index: 5; }
+    .card-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 3px; }
     /* Thumb + optional play affordance share one positioning context. */
     .thumb-wrap { position: relative; display: flex; }
     .thumb-wrap > sc-news-thumb { flex: 1 1 auto; min-width: 0; }
@@ -583,7 +595,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .card .body .foot {
       display: flex; justify-content: space-between; align-items: center;
       margin-top: auto; padding-top: 6px;
-      font-size: 0.7rem; color: var(--sc-fg-2);
+      font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
       border-top: 1px dashed color-mix(in srgb, var(--sc-border) 70%, transparent);
     }
     .card .body .foot .src { color: var(--sc-accent); text-transform: lowercase; }
@@ -633,7 +645,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     /* ---------- Freshness indicator (live "updated X min ago") ---------- */
     .freshness {
       display: inline-flex; align-items: center; gap: 7px;
-      margin: 6px 0 0; font-size: 0.72rem; color: var(--sc-fg-2);
+      margin: 6px 0 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
       font-variant-numeric: tabular-nums;
     }
     .freshness .pulse {
@@ -643,6 +655,10 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     }
     .freshness.stale { color: var(--sc-warning); }
     .freshness.stale .pulse { background: var(--sc-warning); animation: none; }
+    /* In-flight reload (nav re-click / poll): accent-coloured and beating twice
+       as fast, so the line reads as "working" rather than "fresh". */
+    .freshness.refreshing { color: var(--sc-accent); }
+    .freshness.refreshing .pulse { background: var(--sc-accent); animation-duration: 1.1s; }
     @keyframes fresh-pulse {
       0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sc-success) 55%, transparent); }
       70% { box-shadow: 0 0 0 6px transparent; }
@@ -663,12 +679,15 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     /* ---------- Recent videos rail (#146) ----------
        Padded like a bucket so the rail's left edge lines up with the article
        tiles below it, and carried on the same tile scale (--news-tile-video). */
+    /* The patch-notes section below is the same kind of full-width band and
+       carries its own copy of this chrome — view encapsulation keeps this one
+       here (see patch-notes-section.component.ts). */
     .video-rail {
       display: flex; flex-direction: column; gap: 10px;
       padding: 14px 16px;
       border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent);
     }
-    .rail-note { font-size: 0.7rem; color: var(--sc-fg-2); margin-left: auto; }
+    .rail-note { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); margin-left: auto; }
     /* min-width:0 all the way down to the scroll container — otherwise the
        rail's min-content width (n x tile) pushes the whole page wide on phones. */
     .video-rail, .rail-wrap { min-width: 0; }
@@ -709,12 +728,19 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       border-radius: 10px; overflow: hidden; cursor: pointer; text-align: left;
       transition: border-color .15s ease, transform .15s ease, opacity .2s ease, box-shadow .15s ease;
     }
-    .vid-card:hover, .vid-card:focus-visible {
+    .vid-card:hover, .vid-card:focus-within {
       border-color: var(--sc-danger); transform: translateY(-2px); outline: none;
       box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45),
                   0 0 18px color-mix(in srgb, var(--sc-danger) 30%, transparent);
     }
-    .vid-card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    /* The tile IS a link (d2171662) — an overlay anchor spanning the card, so
+       middle click / Ctrl+click / "open in new tab" reach the clip natively.
+       It sits above scrim, caption, badge and play glyph (all decorative). */
+    .vid-link {
+      position: absolute; inset: 0; z-index: 5;
+      text-decoration: none; color: inherit; border-radius: inherit;
+    }
+    .vid-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -3px; }
     /* HUD corner brackets in the channel colour — the same visual grammar the
        rest of the app uses, tinted so a video reads as a video at a glance. */
     .vid-card::before, .vid-card::after {
@@ -739,18 +765,18 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
-    .vid-caption time { color: var(--sc-fg-1); font-size: 0.74rem; }
+    .vid-caption time { color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); }
     .watched-badge {
       position: absolute; top: 8px; right: 8px; z-index: 4;
       display: inline-flex; align-items: center; gap: 4px;
-      padding: 3px 8px; border-radius: 999px; font-size: 0.68rem; font-weight: 600;
+      padding: 3px 8px; border-radius: 999px; font-size: max(0.68rem, var(--sc-fs-floor)); font-weight: 600;
       color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
       border: 1px solid var(--sc-border);
       -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
     }
     .watched-badge .tick { color: var(--sc-accent); }
     .vid-card.watched { opacity: 0.55; }
-    .vid-card.watched:hover, .vid-card.watched:focus-visible { opacity: 0.85; }
+    .vid-card.watched:hover, .vid-card.watched:focus-within { opacity: 0.85; }
 
     /* ---------- Play affordance (rail, stream cards, detail) ---------- */
     .play {
@@ -766,8 +792,8 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
     }
     .play svg { width: 22px; height: 22px; margin-left: 2px; display: block; }
-    .vid-card:hover .play, .vid-card:focus-visible .play,
-    .card.video:hover .play, .card.video:focus-visible .play {
+    .vid-card:hover .play, .vid-card:focus-within .play,
+    .card.video:hover .play, .card.video:focus-within .play {
       transform: translate(-50%, -50%) scale(1.12);
       background: var(--sc-danger);
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5),
@@ -782,29 +808,30 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .vid-tag {
       display: inline-flex; align-items: center; gap: 4px; margin-right: 8px;
       padding: 1px 7px; border-radius: 999px;
-      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      font-size: max(0.62rem, var(--sc-fs-floor)); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
       color: var(--sc-danger); border: 1px solid color-mix(in srgb, var(--sc-danger) 55%, transparent);
     }
     .foot .when { display: inline-flex; align-items: center; }
     @media (prefers-reduced-motion: reduce) {
-      .vid-card, .vid-card:hover, .vid-card:focus-visible { transform: none; }
+      .vid-card, .vid-card:hover, .vid-card:focus-within { transform: none; }
       .play, .vid-card:hover .play, .card.video:hover .play { transition: none; }
     }
 
-    /* ---------- Card as button + quick actions ---------- */
+    /* ---------- Card as link + quick actions ---------- */
     .card { cursor: pointer; text-align: left; }
-    .card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .card .body .foot .actions { display: inline-flex; align-items: center; gap: 6px; }
+    /* Actions ride above the stretched card link so they stay their own targets. */
+    .card .body .foot .actions { display: inline-flex; align-items: center; gap: 6px; position: relative; z-index: 6; }
     .act {
       display: inline-flex; align-items: center; justify-content: center;
-      min-width: 26px; height: 24px; padding: 0 6px; border-radius: 6px;
+      min-width: max(26px, var(--sc-tap-min)); height: 24px; min-height: var(--sc-tap-min);
+      padding: 0 6px; border-radius: 6px;
       background: transparent; border: 1px solid transparent; color: var(--sc-fg-2);
       font-family: inherit; font-size: 0.82rem; line-height: 1; cursor: pointer; text-decoration: none;
     }
     .act:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
     .act.fav.on { color: var(--sc-warning); }
     .act.fav.on:hover { border-color: var(--sc-warning); color: var(--sc-warning); }
-    .act.ext { font-size: 0.7rem; color: var(--sc-accent); text-transform: lowercase; }
+    .act.ext { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-accent); text-transform: lowercase; }
 
     /* ---------- Detail overlay ---------- */
     .nd-overlay {
@@ -842,7 +869,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     }
     .play-link:focus-visible { outline: 2px solid var(--sc-fg-0); outline-offset: 3px; }
     .nd-body { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 20px; }
-    .nd-chan { display: flex; align-items: center; gap: 8px; font-size: 0.74rem; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
+    .nd-chan { display: flex; align-items: center; gap: 8px; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
     .nd-chan .ch-icon { display: inline-flex; width: 15px; height: 15px; }
     .nd-chan .ch-icon svg { width: 100%; height: 100%; }
     .nd-chan .dot-sep { opacity: 0.6; }
@@ -852,7 +879,7 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
     .nd-actions .sc-btn {
       padding: 8px 14px; border-radius: 6px; background: var(--sc-bg-1);
       border: 1px solid var(--sc-accent); color: var(--sc-accent);
-      font-family: var(--sc-font-display); font-size: 0.74rem; letter-spacing: 0.05em;
+      font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.05em;
       text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;
     }
     .nd-actions .sc-btn:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
@@ -873,16 +900,35 @@ export class NewsListComponent implements OnInit, OnDestroy {
   readonly svc = inject(NewsService);
   private readonly t = inject(TranslateService);
   private readonly route = inject(ActivatedRoute);
+  private readonly sameRoute = inject(SameRouteRefreshService);
   private readonly overlay = inject(Overlay);
   private readonly viewContainer = inject(ViewContainerRef);
 
   readonly channels = CHANNELS;
-  readonly rsiStatusUrl = RSI_STATUS_URL;
   // Retention window shown next to the video rail head (e7082310).
   readonly videoRetentionDays = VIDEO_RETENTION_DAYS;
-  readonly statusOpen = signal(false);
-  readonly olderOpen = signal(false);
   readonly hasFilter = computed(() => this.svc.activeChannels().size > 0);
+
+  // ── Older entries fold with the filter (feedback 1bc19cdc) ───────────────
+  // "Alle" is the browsing view: the whole stream is on screen, so the "Älter"
+  // bucket is open. A filter is a search: the user narrowed the page down to one
+  // channel (or the saved items) and wants the fresh matches, not a wall of
+  // archive — so older folds away and is one click from coming back.
+  //
+  // The filter identity, not just "is there a filter": switching Comm-Link →
+  // YouTube is a new view and re-applies the default, which is what the admin
+  // asked for. Empty string = "Alle".
+  private readonly filterKey = computed(() => {
+    if (this.svc.favoritesOnly()) return 'fav';
+    return [...this.svc.activeChannels()].sort().join('+');
+  });
+  readonly isFiltered = computed(() => this.filterKey() !== '');
+
+  // Manual toggles beat the automatic state — but only inside the current view.
+  // `null` = "no manual choice here yet", so the default applies again as soon
+  // as the filter changes (reset below).
+  private readonly olderOverride = signal<boolean | null>(null);
+  readonly olderOpen = computed(() => this.olderOverride() ?? !this.isFiltered());
 
   // ── Recent videos rail (#146) ────────────────────────────────────────────
   // Watched set captured at load. `markWatched` updates the service's live set
@@ -906,6 +952,26 @@ export class NewsListComponent implements OnInit, OnDestroy {
     return active.size === 0 || active.has('youtube');
   });
   private dwellTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // ── Patch notes by line (44e90e30) ───────────────────────────────────────
+  // Shown in the default "Alle" view and whenever the Patch-Notes chip is on —
+  // the same rule the video rail follows. Never in the saved-only view.
+  readonly showPatchNotes = computed(() => {
+    if (this.svc.favoritesOnly()) return false;
+    if (this.svc.patchLines().length === 0) return false;
+    const active = this.svc.activeChannels();
+    return active.size === 0 || active.has('patch');
+  });
+
+  // One reset for every collapsible on the page (feedback 1bc19cdc): changing the
+  // filter drops the manual choices made in the previous view, so the "Älter"
+  // bucket falls back to that view's default instead of carrying a stale
+  // "expanded" across a filter switch. The patch section resets its own folds --
+  // it owns them now (44e90e30 follow-up).
+  private readonly resetFoldsOnFilterChange = effect(() => {
+    this.filterKey(); // dependency: re-run on every filter switch
+    untracked(() => this.olderOverride.set(null));
+  });
 
   // Rail scroll affordance: the cinema tiles run on --news-tile-video, so five
   // of them overflow every realistic viewport. Touch swipes; pointer users get
@@ -934,7 +1000,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
   // Live "updated X ago" label for the header, recomputed as the clock ticks.
   readonly updatedRel = computed(() => {
     const fetched = this.svc.feed()?.fetchedAt;
-    return fetched ? this.relFrom(fetched, this.now()) : null;
+    return fetched ? this.relTime(fetched) : null;
   });
   // Feed is considered stale once it outlives ~1.4 poll cycles (poll = 5 min).
   readonly updatedStale = computed(() => {
@@ -942,6 +1008,29 @@ export class NewsListComponent implements OnInit, OnDestroy {
     if (!fetched) return false;
     return this.now() - Date.parse(fetched) > 7 * 60 * 1000;
   });
+
+  constructor() {
+    // Re-clicking "Verse News" (or the brand logo) while already on this page
+    // reloads the feed instead of doing nothing (feedback 7532e639).
+    this.sameRoute
+      .onRefresh('/news')
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.reloadFromNav());
+  }
+
+  /**
+   * The same-route "reload" gesture: re-fetch the feed and go back to the top,
+   * the two things a browser reload would have done that the user actually
+   * wants here. Deliberately NOT `location.reload()` — that would throw away
+   * the warm SPA state and re-download the app for a data refresh. Non-silent
+   * so the header shows the "refreshing" line and the click has a visible echo.
+   */
+  private reloadFromNav(): void {
+    void this.svc.refresh();
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
 
   async ngOnInit() {
     // Deep-link support: /news?article=<id> opens that item's detail directly
@@ -965,18 +1054,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
     this.detailRef = null;
   }
 
-  toggleStatus() { this.statusOpen.update((v) => !v); }
-  toggleOlder() { this.olderOpen.update((v) => !v); }
-
-  /**
-   * Playability-aware headline for the status chip: escalates the RSI overall
-   * to at least the Persistent Universe component's level so a scheduled PU
-   * maintenance no longer reads as "Playable" (feedback 740d31cb). See
-   * `effectivePlayability`.
-   */
-  effectiveStatus(st: VerseStatus): StatusLevel {
-    return effectivePlayability(st);
-  }
+  toggleOlder() { this.olderOverride.set(!this.olderOpen()); }
 
   // Channel + favorites filtering are mutually exclusive views: picking a
   // channel (or "Alle") leaves the saved-only view; the ★ chip enters it.
@@ -1009,6 +1087,19 @@ export class NewsListComponent implements OnInit, OnDestroy {
     this.detailRef = null;
   }
 
+  /**
+   * Card headline is a real `<a href>` to the source (d2171662). Only the plain
+   * left click is ours — everything the browser has its own meaning for (middle
+   * click, Ctrl/⌘/Shift/Alt+click, context menu "open in new tab") falls through
+   * untouched and lands on the source in a new tab.
+   */
+  onCardClick(ev: MouseEvent, item: VerseNewsItem): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.openDetail(item);
+  }
+
+  /** Space on the card link: anchors don't activate on Space, so we do. */
   onCardSpace(ev: Event, item: VerseNewsItem): void {
     ev.preventDefault();
     this.openDetail(item);
@@ -1034,6 +1125,27 @@ export class NewsListComponent implements OnInit, OnDestroy {
   onVideoSpace(ev: Event, item: VerseNewsItem): void {
     ev.preventDefault();
     this.openVideo(item);
+  }
+
+  /**
+   * Rail tile is a real `<a href>` to the clip (d2171662): a plain left click
+   * keeps the in-app detail view, a modified click is the browser's business.
+   * Either way the clip counts as watched.
+   */
+  onVideoClick(ev: MouseEvent, item: VerseNewsItem): void {
+    this.svc.markWatched(item.id);
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.openDetail(item);
+  }
+
+  /**
+   * Middle click never reaches `click` — the browser fires `auxclick` and opens
+   * the tab itself. We only piggyback the "watched" bookkeeping onto it; the
+   * navigation stays entirely native.
+   */
+  onVideoAux(ev: MouseEvent, item: VerseNewsItem): void {
+    if (isMiddleClick(ev)) this.svc.markWatched(item.id);
   }
 
   /** Opening a video (click / keyboard) also counts as watched, then shows detail. */
@@ -1144,24 +1256,10 @@ export class NewsListComponent implements OnInit, OnDestroy {
     try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
   }
 
+  // Delegates to the shared helper so this surface and the patch section can
+  // never drift apart on what "vor 1 Woche" means (44e90e30 follow-up).
   relTime(iso: string): string {
-    return this.relFrom(iso, this.now());
-  }
-
-  private relFrom(iso: string, nowMs: number): string {
-    const t = Date.parse(iso);
-    if (!Number.isFinite(t)) return '';
-    const diffMs = nowMs - t;
-    if (diffMs < 60000) return this.t.instant('news.relative.now');
-    const min = Math.floor(diffMs / 60000);
-    if (min < 60) return this.t.instant('news.relative.minutes', { n: min });
-    const h = Math.floor(min / 60);
-    if (h < 24) return this.t.instant('news.relative.hours', { n: h });
-    const d = Math.floor(h / 24);
-    if (d === 1) return this.t.instant('news.relative.yesterday');
-    if (d < 7) return this.t.instant('news.relative.days', { n: d });
-    const w = Math.floor(d / 7);
-    return this.t.instant('news.relative.weeks', { n: w });
+    return relativeTime(iso, this.now(), (k, p) => this.t.instant(k, p));
   }
 
   iconFor(channel: NewsChannel): string {

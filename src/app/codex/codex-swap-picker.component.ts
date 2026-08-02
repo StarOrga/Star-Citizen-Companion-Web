@@ -50,6 +50,19 @@ export interface SwapTarget {
   kind: CodexKind | null;
   name: string | null;
   size: number | null;
+  /**
+   * What the hardpoint ACCEPTS, for a bay that ships empty. Normally the list
+   * is derived from the installed item's `attachType`, which an unfitted bay
+   * cannot provide — so the ship page supplies it here instead, either from the
+   * hardpoint's own `codex_item_ports` entry or from an identical, fitted bay
+   * on the same hull (admin request 1add86a4: the Nomad's third shield slot).
+   */
+  attachTypes?: string[] | null;
+  /**
+   * True when `attachTypes` came from a sibling hardpoint rather than from this
+   * one — the picker says so, so an inference is never read as a fact.
+   */
+  fitInferred?: boolean;
 }
 
 /** Supabase rejects very long `in.()` lists — hydrate payloads in batches. */
@@ -89,6 +102,8 @@ const HYDRATE_CHUNK = 100;
                 <span class="sp-port">{{ t.port }}</span>
                 @if (t.name) {
                   · <span>{{ 'codex.swap.installed' | translate }}: {{ t.name }}</span>
+                } @else {
+                  · <span>{{ 'codex.swap.installedNone' | translate }}</span>
                 }
               </p>
             </div>
@@ -97,6 +112,12 @@ const HYDRATE_CHUNK = 100;
           </header>
 
           <p class="sp-hint">{{ 'codex.swap.previewHint' | translate }}</p>
+          <!-- The candidate list for an unfitted bay was derived from an
+               identical, fitted bay on this hull — say so rather than let an
+               inference pass for extract data (1add86a4). -->
+          @if (t.fitInferred) {
+            <p class="sp-hint inferred">{{ 'codex.swap.fitInferred' | translate }}</p>
+          }
 
           @if (loading()) {
             <p class="sp-msg">{{ 'codex.swap.loading' | translate }}</p>
@@ -275,12 +296,15 @@ const HYDRATE_CHUNK = 100;
     .sp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
     .sp-titles h2 { margin: 0; font-size: 1.02rem; display: flex; align-items: center; gap: 8px; }
     .sp-icon { color: var(--sc-accent); }
-    .sp-sub { margin: 3px 0 0; font-size: 0.74rem; color: var(--sc-fg-1); overflow-wrap: anywhere; }
+    .sp-sub { margin: 3px 0 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-1); overflow-wrap: anywhere; }
     .sp-port { color: var(--sc-fg-2); }
     .sp-close { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); color: var(--sc-fg-1); cursor: pointer; font-size: 0.9rem; line-height: 1; }
     .sp-close:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
-    .sp-hint { margin: 0; font-size: 0.7rem; color: var(--sc-fg-2); font-style: italic; }
+    .sp-hint { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
+    .sp-hint.inferred { margin-top: 4px; font-style: normal;
+      border-left: 2px solid color-mix(in srgb, var(--sc-warn, #e8a33d) 55%, transparent);
+      padding-left: 8px; }
     .sp-msg { margin: 6px 0; font-size: 0.8rem; color: var(--sc-fg-2); }
     .sp-msg.err { color: var(--sc-danger, #ff5252); }
 
@@ -293,15 +317,15 @@ const HYDRATE_CHUNK = 100;
     /* A plain grouped div rather than fieldset/legend: a legend is rendered
        outside the flex flow, which breaks the pill row's wrapping. */
     .sp-group { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-    .sp-group-label { flex: 0 0 100%; padding-bottom: 3px; font-size: 0.58rem; letter-spacing: 0.07em;
+    .sp-group-label { flex: 0 0 100%; padding-bottom: 3px; font-size: max(0.58rem, var(--sc-fs-floor)); letter-spacing: 0.07em;
       text-transform: uppercase; color: var(--sc-fg-2); }
     .pill { padding: 4px 10px; border-radius: 999px; background: var(--sc-bg-0); border: 1px solid var(--sc-border);
-      color: var(--sc-fg-1); font: inherit; font-size: 0.72rem; cursor: pointer; display: inline-flex;
+      color: var(--sc-fg-1); font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; display: inline-flex;
       align-items: center; gap: 5px; }
     .pill:hover { border-color: var(--sc-accent); }
     .pill.on { color: var(--sc-accent); border-color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
-    .pill-ct { font-size: 0.6rem; color: var(--sc-fg-2); font-variant-numeric: tabular-nums; }
+    .pill-ct { font-size: max(0.6rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-variant-numeric: tabular-nums; }
 
     .sp-scroll { overflow: auto; border-radius: 8px; border: 1px solid var(--sc-border); }
     .sp-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
@@ -309,7 +333,7 @@ const HYDRATE_CHUNK = 100;
       border-bottom: 1px solid var(--sc-border); padding: 0; text-align: right; }
     .sp-table thead th.c-name { text-align: left; }
     .hd { width: 100%; padding: 6px 8px; background: transparent; border: none; color: var(--sc-fg-2);
-      font: inherit; font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase;
+      font: inherit; font-size: max(0.6rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase;
       cursor: pointer; text-align: inherit; white-space: nowrap; }
     .hd:hover { color: var(--sc-accent); }
     .hd-dir { color: var(--sc-accent); margin-left: 3px; }
@@ -328,12 +352,12 @@ const HYDRATE_CHUNK = 100;
     .pick-name { font-size: 0.8rem; color: var(--sc-fg-0); overflow-wrap: anywhere;
       display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .sp-row.equipped .pick-name { color: var(--sc-accent-hot, #ff7a45); }
-    .pick-meta { font-size: 0.64rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .size-tag { flex: 0 0 auto; font-size: 0.62rem; font-weight: 600; line-height: 1.5; padding: 1px 6px;
+    .pick-meta { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .size-tag { flex: 0 0 auto; font-size: max(0.62rem, var(--sc-fs-floor)); font-weight: 600; line-height: 1.5; padding: 1px 6px;
       border-radius: 4px; white-space: nowrap; color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); }
-    .tag { font-size: 0.54rem; letter-spacing: 0.04em; text-transform: uppercase; padding: 0 5px;
+    .tag { font-size: max(0.54rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; padding: 0 5px;
       border-radius: 3px; background: var(--sc-bg-2); color: var(--sc-fg-2);
       border: 1px solid var(--sc-border); white-space: nowrap; }
     .tag.dmg { color: var(--sc-accent-hot, #ff7a45);
@@ -342,7 +366,7 @@ const HYDRATE_CHUNK = 100;
     .tag.eq { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 55%, transparent);
       background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
 
-    td.c-num { position: relative; padding: 6px 8px; text-align: right; font-size: 0.76rem;
+    td.c-num { position: relative; padding: 6px 8px; text-align: right; font-size: max(0.76rem, var(--sc-fs-floor));
       color: var(--sc-fg-1); white-space: nowrap; }
     td.c-num.lead { color: var(--sc-fg-0); }
     /* Magnitude cue on the column the table is sorted by. */
@@ -352,24 +376,24 @@ const HYDRATE_CHUNK = 100;
 
     .sp-delta td { padding: 8px 10px; background: var(--sc-bg-0);
       border-bottom: 1px solid var(--sc-border); }
-    .dl-head { margin: 0 0 5px; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em;
+    .dl-head { margin: 0 0 5px; font-size: max(0.62rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em;
       color: var(--sc-fg-2); }
     .dl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 3px 22px; }
-    .dd { display: flex; align-items: baseline; gap: 7px; font-size: 0.76rem; }
+    .dd { display: flex; align-items: baseline; gap: 7px; font-size: max(0.76rem, var(--sc-fs-floor)); }
     .dd-pct { min-width: 50px; text-align: right; font-family: var(--sc-font-display); color: var(--sc-fg-1); }
     .dd.up .dd-pct { color: #5fd698; }
     .dd.down .dd-pct { color: var(--sc-danger, #ff5252); }
     .dd-key { color: var(--sc-fg-0); }
-    .dd-vals { color: var(--sc-fg-2); font-size: 0.7rem; white-space: nowrap; }
+    .dd-vals { color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor)); white-space: nowrap; }
 
     .sp-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
       flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--sc-border); }
     .sp-counts p { margin: 0; }
-    .sp-applies { font-size: 0.74rem; color: var(--sc-fg-1); }
-    .sp-sorthint { font-size: 0.66rem; color: var(--sc-fg-2); margin-top: 2px !important; }
-    .sp-missing { font-size: 0.66rem; color: var(--sc-fg-2); font-style: italic; margin-top: 3px !important; }
+    .sp-applies { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
+    .sp-sorthint { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); margin-top: 2px !important; }
+    .sp-missing { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; margin-top: 3px !important; }
     .sp-cancel { padding: 7px 16px; border-radius: 6px; background: var(--sc-bg-0);
-      border: 1px solid var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: 0.78rem; cursor: pointer; }
+      border: 1px solid var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); cursor: pointer; }
     .sp-cancel:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
 
     @media (max-width: 720px) {
@@ -449,13 +473,16 @@ export class CodexSwapPickerComponent {
       const attachType = (installed?.payload as { attachType?: string | null } | undefined)?.attachType;
       const size =
         t.size ?? ((installed?.payload as { size?: number | null } | undefined)?.size ?? null);
-      if (!attachType) {
+      // An empty bay has no installed item to read an attachType off, so the
+      // caller's declared accepted types carry the query instead (1add86a4).
+      const types = attachType ? [attachType] : (t.attachTypes ?? []).filter(Boolean);
+      if (types.length === 0) {
         if (token === this.loadToken) this.candidates.set([]);
         return;
       }
 
       const items = await this.svc.getCompatibleItems({
-        types: [attachType],
+        types,
         minSize: size,
         maxSize: size,
       });

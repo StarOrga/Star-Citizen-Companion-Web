@@ -75,6 +75,32 @@ export interface LayoutSlot {
    * different things never collapse into one row (see `groupIdenticalSlots`).
    */
   variantKey?: string | null;
+  /** Keep this hardpoint on its own row — it is an individual choice. */
+  noCollapse?: boolean;
+  /**
+   * i18n key for what "nothing installed" MEANS here. The default reads "empty
+   * (stock)", which on a gun mount would claim the ship is unarmed — a weapon
+   * mount says instead that the extract carries no stock weapon (1add86a4).
+   */
+  emptyLabelKey?: string | null;
+  /**
+   * i18n key naming the role this hardpoint plays inside its block, when the
+   * block mixes roles — a shield GENERATOR bay versus the shield CONTROL
+   * module. Rendered as a tag; null for blocks where every row is the same job.
+   */
+  roleKey?: string | null;
+  /** An unfitted hardpoint we know the accepted item type for — still swappable. */
+  emptySwappable?: boolean;
+}
+
+/**
+ * A short, translated note under a section head: the data gap in the weapons
+ * block, what "generator vs control module" means in the shield block. Params
+ * feed ngx-translate interpolation.
+ */
+export interface SectionNote {
+  key: string;
+  params?: Record<string, unknown>;
 }
 
 /**
@@ -91,6 +117,8 @@ export interface LayoutTarget {
 export interface LayoutSection {
   section: ShipModuleSection;
   slots: LayoutSlot[];
+  /** Optional explanatory note rendered under this block's heading. */
+  notes?: SectionNote[];
 }
 
 /** A section after identical hardpoints have been collapsed. */
@@ -100,6 +128,7 @@ interface RenderSection {
   count: number;
   rows: GroupedSlot<LayoutSlot>[];
   configurable: boolean;
+  notes: SectionNote[];
 }
 
 /**
@@ -138,6 +167,11 @@ interface RenderSection {
               <span class="sec-tag">{{ 'codex.moduleSection.fixedTag' | translate }}</span>
             }
           </h3>
+          <!-- What this block can and cannot tell you — named where it is read,
+               not once at the top of the page (1add86a4). -->
+          @for (n of sec.notes; track n.key) {
+            <p class="sec-note">{{ n.key | translate: n.params }}</p>
+          }
           <ul class="sec-rows" [class.dense]="!sec.configurable">
             @for (row of sec.rows; track row.slot.port + $index) {
               <li class="slot" [class.empty]="!row.slot.className"
@@ -153,6 +187,9 @@ interface RenderSection {
                         <span class="slot-ident">
                           <span class="slot-item">{{ row.slot.name }}</span>
                           <span class="slot-meta">
+                            @if (row.slot.roleKey) {
+                              <span class="tag role">{{ row.slot.roleKey | translate }}</span>
+                            }
                             @if (metaLine(row); as m) { <span class="meta-txt">{{ m }}</span> }
                             @for (ch of row.slot.damageChannels; track ch) {
                               <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
@@ -182,11 +219,41 @@ interface RenderSection {
                         <span class="slot-note">{{ 'codex.equipped.noStats' | translate }}</span>
                       }
                     </button>
+                  } @else if (row.slot.emptySwappable && sec.configurable) {
+                    <!-- An unfitted bay we DO know the accepted item type for
+                         (from the hardpoint itself or from an identical fitted
+                         bay on the same hull) stays a real choice: the Nomad's
+                         third shield slot is pickable even though it ships
+                         empty (1add86a4). -->
+                    <button type="button" class="slot-btn linked open-bay"
+                            (click)="openSlot(row, sec.configurable)"
+                            [attr.title]="portTitle(row)">
+                      <span class="slot-head">
+                        @if (emptyBadge(row); as b) { <span class="size-tag muted">{{ b }}</span> }
+                        <span class="slot-ident">
+                          <span class="slot-empty">{{ emptyLabel(row) | translate }}</span>
+                          <span class="slot-meta">
+                            @if (row.slot.roleKey) {
+                              <span class="tag role">{{ row.slot.roleKey | translate }}</span>
+                            }
+                            <span class="tag pick">{{ 'codex.swap.pickHere' | translate }}</span>
+                          </span>
+                        </span>
+                      </span>
+                      <span class="slot-port">{{ portLabel(row) }}</span>
+                    </button>
                   } @else {
                     <span class="slot-btn static" [attr.title]="portTitle(row)">
                       <span class="slot-head">
                         @if (emptyBadge(row); as b) { <span class="size-tag muted">{{ b }}</span> }
-                        <span class="slot-empty">{{ 'codex.detail.loadoutEmpty' | translate }}</span>
+                        <span class="slot-ident">
+                          <span class="slot-empty">{{ emptyLabel(row) | translate }}</span>
+                          <span class="slot-meta">
+                            @if (row.slot.roleKey) {
+                              <span class="tag role">{{ row.slot.roleKey | translate }}</span>
+                            }
+                          </span>
+                        </span>
                       </span>
                       <span class="slot-port">{{ portLabel(row) }}</span>
                     </span>
@@ -259,18 +326,25 @@ interface RenderSection {
     .mod-sec[data-sec="weapons"] { border-top: 2px solid color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 55%, transparent); }
     .mod-sec[data-sec="remoteTurrets"] { border-top: 2px solid color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 35%, transparent); }
     .mod-sec[data-sec="missiles"] { border-top: 2px solid color-mix(in srgb, #ff5252 45%, transparent); }
+    .mod-sec[data-sec="countermeasures"] { border-top: 2px solid color-mix(in srgb, #f0c419 45%, transparent); }
     .mod-sec[data-sec="shields"] { border-top: 2px solid color-mix(in srgb, var(--sc-accent) 55%, transparent); }
     .mod-sec[data-sec="powerPlants"] { border-top: 2px solid color-mix(in srgb, #ffc14d 45%, transparent); }
     /* Nothing here can be configured, so the block steps back visually. */
     .mod-sec.fixed { background: transparent; opacity: 0.78; }
     .mod-sec.fixed:hover { opacity: 1; }
 
-    .sec-head { margin: 0 0 8px; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em;
+    .sec-head { margin: 0 0 8px; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.07em;
       color: var(--sc-fg-1); display: flex; align-items: center; gap: 6px; }
-    .sec-ct { font-size: 0.62rem; padding: 0 6px; border-radius: 8px;
+    .sec-ct { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px;
       background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
-    .sec-tag { font-size: 0.56rem; letter-spacing: 0.06em; color: var(--sc-fg-2);
+    .sec-tag { font-size: max(0.56rem, var(--sc-fs-floor)); letter-spacing: 0.06em; color: var(--sc-fg-2);
       border: 1px solid var(--sc-border); border-radius: 3px; padding: 0 5px; }
+    /* Data-gap / mechanic note: readable, but never loud enough to read as an
+       app error — nothing is broken, the extract just stops here. */
+    .sec-note { margin: 0 0 8px; font-size: max(0.68rem, var(--sc-fs-floor)); line-height: 1.45;
+      color: var(--sc-fg-2);
+      border-left: 2px solid color-mix(in srgb, var(--sc-warn, #e8a33d) 55%, transparent);
+      padding-left: 8px; }
 
     .sec-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
     .sec-rows.dense { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
@@ -295,6 +369,8 @@ interface RenderSection {
     button.slot-btn:hover, button.kid-btn:hover { border-color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
     .slot.empty > .duo > .slot-btn { background: transparent; border-style: dashed; }
+    .slot.empty > .duo > button.slot-btn.open-bay:hover { border-color: var(--sc-accent);
+      background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
     .kid.empty .kid-btn { background: transparent; border-style: dashed; }
     /* A row whose position on the hull is known gets a locator rail; when the
        hull map highlights it, the rail lights up. */
@@ -305,7 +381,7 @@ interface RenderSection {
     /* Size badge | name + meta — the two things that identify the occupant. */
     .slot-head { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
     .slot-ident { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .size-tag { flex: 0 0 auto; font-size: 0.66rem; font-weight: 600; line-height: 1.4;
+    .size-tag { flex: 0 0 auto; font-size: max(0.66rem, var(--sc-fs-floor)); font-weight: 600; line-height: 1.4;
       padding: 1px 6px; border-radius: 4px; white-space: nowrap;
       font-variant-numeric: tabular-nums; color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
@@ -317,30 +393,35 @@ interface RenderSection {
     .slot-btn.static .slot-item { color: var(--sc-fg-1); }
     .slot-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; min-width: 0; }
     .slot-meta:empty { display: none; }
-    .meta-txt { font-size: 0.64rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .tag { font-size: 0.58rem; letter-spacing: 0.04em; text-transform: uppercase;
+    .meta-txt { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .tag { font-size: max(0.58rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase;
       padding: 0 5px; border-radius: 3px; background: var(--sc-bg-2); color: var(--sc-fg-2);
       border: 1px solid var(--sc-border); white-space: nowrap; }
     .tag.accent { text-transform: none; letter-spacing: 0; color: var(--sc-accent);
+      border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    /* "Generator" vs "Control module" — the one word that keeps a shield bank
+       from reading as four interchangeable shields. */
+    .tag.role { text-transform: none; letter-spacing: 0; color: var(--sc-fg-1); }
+    .tag.pick { text-transform: none; letter-spacing: 0; color: var(--sc-accent);
       border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
     .tag.dmg { color: var(--sc-accent-hot, #ff7a45);
       border-color: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 45%, transparent);
       background: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 10%, transparent); }
 
     /* Port name is context, not headline — it sits last and quiet. */
-    .slot-port { font-size: 0.63rem; color: var(--sc-fg-2); opacity: 0.85; overflow-wrap: anywhere; }
-    .slot-empty { font-size: 0.74rem; color: var(--sc-fg-2); font-style: italic; }
+    .slot-port { font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); opacity: 0.85; overflow-wrap: anywhere; }
+    .slot-empty { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .kid-empty { font-size: 0.84rem; color: var(--sc-fg-2); }
 
     .slot-stats { margin: 5px 0 0; padding: 5px 0 0; display: flex; flex-wrap: wrap;
       gap: 2px 14px;
       border-top: 1px solid color-mix(in srgb, var(--sc-border) 70%, transparent); }
     .slot-stats .stat { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
-    .slot-stats dt { font-size: 0.63rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .slot-stats dd { margin: 0; font-size: 0.7rem; color: var(--sc-fg-1); white-space: nowrap;
+    .slot-stats dt { font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .slot-stats dd { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-1); white-space: nowrap;
       font-variant-numeric: tabular-nums; }
     .slot-stats .derived { color: var(--sc-fg-2); cursor: help; }
-    .slot-note { margin-top: 4px; font-size: 0.63rem; color: var(--sc-fg-2); font-style: italic; }
+    .slot-note { margin-top: 4px; font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
 
     @media (max-width: 720px) {
       .chain { display: none; }
@@ -424,6 +505,7 @@ export class CodexHardpointLayoutComponent {
         count: g.slots.length,
         rows: groupIdenticalSlots(g.slots),
         configurable: isConfigurableSection(g.section),
+        notes: g.notes ?? [],
       })),
   );
 
@@ -441,6 +523,16 @@ export class CodexHardpointLayoutComponent {
    */
   emptyBadge(row: GroupedSlot<LayoutSlot>): string | null {
     return sizeBadge(row.count, row.slot.portSize ?? null);
+  }
+
+  /**
+   * What "nothing installed" means on THIS hardpoint. "Empty (stock)" is right
+   * for a bay the ship really does leave unfitted, but on a gun mount it reads
+   * as "this ship has no guns" — which is a claim about the ship when the truth
+   * is a claim about our extract (1add86a4).
+   */
+  emptyLabel(row: GroupedSlot<LayoutSlot>): string {
+    return row.slot.emptyLabelKey ?? 'codex.detail.loadoutEmpty';
   }
 
   /** Sub-slot badge: mount count × sub-slots per mount, at the sub-slot's size. */

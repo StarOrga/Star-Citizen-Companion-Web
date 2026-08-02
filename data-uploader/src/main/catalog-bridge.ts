@@ -85,6 +85,12 @@ export type CatalogToken = string | (() => string | Promise<string>);
 export interface CatalogHooks {
   /** Cooperative pause/cancel, checked between chunks. */
   control?: PauseControl;
+  /**
+   * Awaited between chunks, right after the pause checkpoint. Re-reads the
+   * LIVE performance profile on every call, so switching to "minimal impact"
+   * mid-upload is honoured by the next chunk instead of at the next run.
+   */
+  pace?: () => Promise<void>;
   /** Reuse a build row from an interrupted run instead of `init`-ing a new one. */
   buildId?: string | null;
   /** Phases already fully sent — their network calls are skipped. */
@@ -200,6 +206,9 @@ export async function uploadCatalog(
     for (let i = done; i < rows.length; i += chunkSize) {
       // Safe boundary: between chunks, never mid-request.
       hooks.control?.checkpoint();
+      // Same boundary, same reason: a throttle change lands here, where no
+      // request is in flight, so it can never truncate one.
+      await hooks.pace?.();
       // Persist the cursor BEFORE the call it guards. A kill mid-flight then
       // replays this one chunk (an idempotent upsert) rather than skipping it.
       hooks.onCursor?.(phase, done);

@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   HostListener,
   OnInit,
   computed,
@@ -8,7 +9,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { StarscapeService, StarscapeRing, Wallpaper, ringsForRole } from './starscape.service';
 import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
@@ -18,14 +19,30 @@ import {
   AppDownloadPanelComponent,
 } from '../desktop/app-download-panel.component';
 import { StarscapeAppPromoComponent } from './starscape-app-promo.component';
+import { isPlainLeftClick } from '../core/modified-click.util';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
-// Believable, varied masonry-tile heights (px) for the loading skeletons. The
-// gallery rows carry no dimension metadata, so a fixed cycle of plausible
-// heights gives the grid a real "images incoming" silhouette instead of the
-// collapsed border stripes a zero-height <img> produces before it decodes.
-const SKEL_HEIGHTS = [210, 280, 240, 320, 200, 300, 260, 190, 340, 230];
+// Believable, varied masonry-tile shapes for the loading skeletons. The gallery
+// rows carry no dimension metadata, so a fixed cycle of plausible shapes gives
+// the grid a real "images incoming" silhouette instead of the collapsed border
+// stripes a zero-height <img> produces before it decodes.
+//
+// These are ASPECT RATIOS, not pixel heights: a placeholder has to be the size
+// the image will actually be, and that depends on the column width. Fixed
+// heights were tuned for a ~260 px desktop column, so in the 173 px column a
+// phone used to get they painted 200-340 px blocks that then snapped down to
+// ~75 px of real image — a full-page reflow on every decode. A ratio tracks the
+// column at every breakpoint, so the tile never resizes when the image lands.
+// The cycle leans wide because the source art is: of the 24 wallpapers on page
+// one, 16 are wider than 2.2:1 and only 2 are portrait.
+const SKEL_RATIOS = ['2.35', '1.78', '2.4', '2.35', '1.85', '3', '2.35', '2', '2.5', '1.6'];
 // Number of placeholder tiles painted while the very first page is in flight.
 const SKELETON_SLOTS = 12;
+// Query parameter carrying a single wallpaper — what the share button hands out,
+// and what reopens that wallpaper's lightbox when the link is followed.
+const DEEP_LINK_PARAM = 'image';
+// How long the clipboard-fallback confirmation stays up.
+const SHARE_HINT_MS = 2600;
 // Above-the-fold tiles load eagerly (with high fetch priority for the first
 // row) so first paint is driven by real bytes, not lazy-load proximity.
 const EAGER_TILES = 8;
@@ -40,7 +57,7 @@ const EAGER_TILES = 8;
   standalone: true,
   imports: [
     TranslateModule,
-    DatePipe,
+    ScDatePipe,
     ImgReadyDirective,
     AppDownloadPanelComponent,
     StarscapeAppPromoComponent,
@@ -107,43 +124,74 @@ const EAGER_TILES = 8;
       @if (svc.loading() && svc.wallpapers().length === 0) {
         <div class="wall" aria-hidden="true">
           @for (i of skeletonSlots; track i) {
-            <span class="tile skel-tile sc-skel" [style.height.px]="skelH(i)"></span>
+            <span class="tile skel-tile sc-skel" [style.aspectRatio]="skelRatio(i)"></span>
           }
         </div>
       }
 
       <div class="wall">
         @for (w of svc.wallpapers(); track w.imageId; let i = $index) {
-          <button type="button" class="tile" [class.loaded]="loaded().has(w.imageId)"
-                  (click)="open(w)" [attr.aria-label]="w.title">
+          <!-- A tile is a link to the full-res source (d2171662): middle click,
+               Ctrl/⌘+click and "open image in new tab" go straight to the CDN
+               original; a plain left click keeps the in-page lightbox. -->
+          <a class="tile" [class.loaded]="loaded().has(w.imageId)"
+             [href]="w.sourceUrl" target="_blank" rel="noopener noreferrer"
+             [attr.aria-label]="w.title"
+             (click)="onTileClick($event, w)"
+             (keydown.space)="onTileSpace($event, w)">
             <!-- Skeleton holds the tile's height while its preview decodes, so
                  the column never collapses to a border stripe. Dropped once the
                  image is ready (or has failed) — then the image defines height. -->
             @if (!loaded().has(w.imageId) && !broken().has(w.imageId)) {
-              <span class="tile-skel sc-skel" [style.height.px]="skelH(i)" aria-hidden="true"></span>
+              <span class="tile-skel sc-skel" [style.aspectRatio]="skelRatio(i)" aria-hidden="true"></span>
             }
-            <!-- Responsive sources: a phone pulls the light post (500w) variant,
-                 desktop the crisp cover (1140w) — so the mobile grid paints fast
-                 and shows something immediately instead of loading a 1140w image
-                 per tile (admin feedback 32cbf3ad). The src fallback is the light
-                 variant too, so browsers ignoring srcset still get the fast one. -->
-            <img
-              class="tile-img"
-              [class.ready]="loaded().has(w.imageId)"
-              [srcset]="srcsetFor(w.previewUrl)"
-              [src]="lowResFor(w.previewUrl)"
-              sizes="(max-width: 640px) 48vw, (max-width: 900px) 31vw, 244px"
-              [alt]="w.title ?? ''"
-              decoding="async"
-              [attr.loading]="i < eagerTiles ? 'eager' : 'lazy'"
-              [attr.fetchpriority]="i < 4 ? 'high' : null"
-              scImgReady
-              (ready)="onLoad(w.imageId)"
-              (load)="onLoad(w.imageId)"
-              (error)="onBroken(w.imageId)"
-              [class.hidden]="broken().has(w.imageId)" />
+            <!-- Responsive sources. Only two candidates exist upstream: the light
+                 post (500w) and the crisp cover (1140w). Which one is right is
+                 decided by the tile's real CSS width per breakpoint, measured
+                 against the built app rather than assumed:
+
+                   ≤480px  phone, 1 column   → 358-448px tile → post = 1.1-1.4x
+                   ≤640px  1 column          → up to 608px    → cover
+                   ≤900px  2 columns         → ~350px @DPR2   → cover
+                   >900px  3-4 columns       → ~300px @DPR1   → post
+
+                 A phone is pinned to post by the <source> below because "sizes"
+                 alone cannot hold it there: sizes is in CSS pixels but candidate
+                 selection multiplies it by the device pixel ratio, so a DPR-3
+                 phone overshoots the 500w candidate and pulls cover for EVERY
+                 tile (admin feedback 4e54ad2c — 7.8 MB per gallery page on
+                 mobile against 1.9 MB on desktop, the exact inverse of the
+                 intent). At the 358px tile a phone now gets, post is still 1.4x
+                 CSS density, which is the usual cap for a browse thumbnail; the
+                 crisp copy is one tap away in the lightbox.
+
+                 The pin stops at 480px rather than the 900px it used to cover:
+                 above that the tile is 350-608px wide on DPR-2 hardware, where
+                 500w works out to 0.8-0.9x CSS density — visibly soft. Those
+                 slots need cover, and the honest "sizes" below now asks for it.
+                 (The 48vw/31vw/244px it replaces under-declared every slot; they
+                 were written for the two-column phone grid this feedback
+                 removed, and 244px was never the ~300px desktop tile.) -->
+            <picture>
+              <source media="(max-width: 480px)" [srcset]="lowResFor(w.previewUrl)" />
+              <img
+                class="tile-img"
+                [class.ready]="loaded().has(w.imageId)"
+                [srcset]="srcsetFor(w.previewUrl)"
+                [src]="lowResFor(w.previewUrl)"
+                sizes="(max-width: 640px) 95vw, (max-width: 900px) 46vw, 300px"
+                [alt]="w.title ?? ''"
+                decoding="async"
+                [attr.loading]="i < eagerTiles ? 'eager' : 'lazy'"
+                [attr.fetchpriority]="i < 4 ? 'high' : null"
+                scImgReady
+                (ready)="onLoad(w.imageId)"
+                (load)="onLoad(w.imageId)"
+                (error)="onBroken(w.imageId)"
+                [class.hidden]="broken().has(w.imageId)" />
+            </picture>
             @if (w.series) { <span class="tile-series">{{ w.series }}</span> }
-          </button>
+          </a>
         }
       </div>
 
@@ -166,16 +214,32 @@ const EAGER_TILES = 8;
     @if (active(); as w) {
       <div class="lightbox" role="dialog" aria-modal="true" (click)="close()">
         <figure (click)="$event.stopPropagation()">
-          <img [src]="w.sourceUrl" [alt]="w.title ?? ''" />
+          <!-- Phones get the 1140w cover rather than the untouched original: a
+               375 px screen at DPR 3 can resolve 1125 px, so the cover is
+               visually identical there but a fraction of the bytes — opening a
+               tile on mobile data used to mean waiting on a multi-MB source
+               file (admin feedback 4e54ad2c). "Full resolution" stays one tap
+               away: the download button and the tile link both keep the
+               original. -->
+          <picture>
+            <source media="(max-width: 900px)" [srcset]="previewFor(w)" />
+            <img [src]="w.sourceUrl" [alt]="w.title ?? ''" />
+          </picture>
           <figcaption>
             <div class="lb-meta">
               <strong>{{ w.title }}</strong>
               <span class="lb-sub">
                 @if (w.series) { {{ w.series }} · }
-                @if (w.publishedAt) { {{ w.publishedAt | date: 'mediumDate' }} }
+                @if (w.publishedAt) { {{ w.publishedAt | scDate }} }
               </span>
             </div>
             <div class="lb-actions">
+              <!-- A real ACTION, so a <button>: it opens the Android/iOS share
+                   sheet via the Web Share API and only falls back to the
+                   clipboard where that API is missing (desktop browsers). -->
+              <button type="button" class="sc-btn lb-share" (click)="share(w)">
+                {{ 'starscape.share.label' | translate }}
+              </button>
               <a class="sc-btn" [href]="w.sourceUrl" target="_blank" rel="noopener noreferrer" download>
                 {{ 'starscape.download' | translate }}
               </a>
@@ -184,6 +248,9 @@ const EAGER_TILES = 8;
               </a>
               <button type="button" class="lb-close" (click)="close()" [attr.aria-label]="'starscape.close' | translate">✕</button>
             </div>
+            @if (shareHint(); as hint) {
+              <p class="lb-hint" role="status" aria-live="polite">{{ hint | translate }}</p>
+            }
           </figcaption>
         </figure>
       </div>
@@ -201,7 +268,7 @@ const EAGER_TILES = 8;
 
     .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; }
     .chip {
-      padding: 4px 12px; border-radius: 999px; font-size: 0.76rem;
+      padding: 4px 12px; border-radius: 999px; font-size: max(0.76rem, var(--sc-fs-floor));
       background: var(--sc-bg-1); color: var(--sc-fg-2);
       border: 1px solid var(--sc-border); cursor: pointer;
     }
@@ -215,12 +282,16 @@ const EAGER_TILES = 8;
       position: relative; display: block; width: 100%; margin: 0 0 12px;
       padding: 0; border: 1px solid var(--sc-border); border-radius: 8px;
       overflow: hidden; cursor: zoom-in; background: var(--sc-bg-1);
-      break-inside: avoid;
+      break-inside: avoid; color: inherit; text-decoration: none;
       transition: transform 0.16s ease, box-shadow 0.16s ease;
     }
+    .tile:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .tile:hover { transform: translateY(-2px);
       box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 14px color-mix(in srgb, var(--sc-accent) 25%, transparent); }
-    .tile img { display: block; width: 100%; height: auto; }
+    /* <picture> is inline by default — it has to become the tile's block box so
+       the image keeps filling the column. */
+    .tile picture { display: block; }
+    .tile img { display: block; width: 100%; max-width: 100%; height: auto; }
     .tile img.hidden { display: none; }
 
     /* Blur-up "power-on" reveal: the preview develops out of a blur the moment
@@ -258,7 +329,7 @@ const EAGER_TILES = 8;
 
     .tile-series {
       position: absolute; left: 8px; bottom: 8px;
-      padding: 2px 8px; border-radius: 999px; font-size: 0.62rem;
+      padding: 2px 8px; border-radius: 999px; font-size: max(0.62rem, var(--sc-fs-floor));
       background: rgba(0, 0, 0, 0.6); color: var(--sc-fg-1);
       backdrop-filter: blur(4px);
     }
@@ -266,7 +337,7 @@ const EAGER_TILES = 8;
     .more { align-self: center; }
     .empty { color: var(--sc-fg-2); text-align: center; }
     .err { border-color: var(--sc-danger); color: var(--sc-danger); }
-    .attribution { color: var(--sc-fg-2); font-size: 0.72rem; margin: 0; opacity: 0.85; }
+    .attribution { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); margin: 0; opacity: 0.85; }
 
     .lightbox {
       position: fixed; inset: 0; z-index: 1200;
@@ -278,9 +349,19 @@ const EAGER_TILES = 8;
       margin: 0; max-width: min(1400px, 96vw); max-height: 92vh;
       display: flex; flex-direction: column; gap: 0; cursor: default;
     }
+    /* display: contents keeps the <img> as the figure's flex item, so the
+       sizing rules below apply exactly as they did before the <picture>. */
+    .lightbox picture { display: contents; }
     .lightbox img {
       max-width: 100%; max-height: calc(92vh - 64px); object-fit: contain;
       border-radius: 8px 8px 0 0; background: var(--sc-bg-0);
+    }
+    /* Dynamic viewport units where supported: on a phone "vh" is the URL-bar-less
+       LARGE viewport, so a 92vh figure is taller than what is actually on screen
+       and the caption (with the share button) sits below the fold. */
+    @supports (height: 100dvh) {
+      .lightbox figure { max-height: 92dvh; }
+      .lightbox img { max-height: calc(92dvh - 64px); }
     }
     figcaption {
       display: flex; align-items: center; justify-content: space-between;
@@ -290,21 +371,65 @@ const EAGER_TILES = 8;
     }
     .lb-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .lb-meta strong { font-size: 0.9rem; color: var(--sc-fg-0); }
-    .lb-sub { color: var(--sc-fg-2); font-size: 0.74rem; }
+    .lb-sub { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
     .lb-actions { display: flex; align-items: center; gap: 12px; }
     .lb-actions .sc-btn { text-decoration: none; color: var(--sc-accent); border-color: var(--sc-accent); }
     .lb-actions .sc-btn:hover { background: var(--sc-accent); color: var(--sc-bg-0); }
-    .lb-link { color: var(--sc-fg-2); font-size: 0.78rem; }
+    .lb-link { color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); }
     .lb-link:hover { color: var(--sc-fg-0); }
     .lb-close {
       background: transparent; border: 0; color: var(--sc-fg-2);
       font-size: 1rem; cursor: pointer; padding: 4px;
     }
     .lb-close:hover { color: var(--sc-fg-0); }
+    .lb-hint {
+      flex: 1 0 100%; margin: 0; text-align: right;
+      color: var(--sc-accent); font-size: max(0.72rem, var(--sc-fs-floor));
+    }
 
     @media (max-width: 640px) {
-      .wall { columns: 2 150px; }
-      .lightbox { padding: 8px; }
+      /* ONE column on phones, not two (admin feedback 4e54ad2c: "immer noch nur
+         striche in starscape mobile").
+
+         Starscape's art is desktop wallpaper: of the 24 images on page one, 16
+         are wider than 2.2:1 and the median is 2.34:1. Two columns on a 390 px
+         screen leave a 173 px column, so the median wallpaper rendered 173x75 px
+         — twenty-four horizontal bands stacked into a wall of stripes. The
+         images were loading the whole time (all 24 return HTTP 200), which is
+         why fixing their byte weight in #331 changed nothing: the geometry, not
+         the network, was crushing them.
+
+         A single column is 358 px on the same screen, so the median wallpaper
+         lands at 358x153 px and reads as a picture. It is also the layout the
+         request asked for by name — a full-width feed is what "mobile friendly
+         zum durchscrollen" means. */
+      .wall { columns: 1; }
+      /* Full-bleed overlay → respect the notch / home indicator. */
+      .lightbox {
+        padding:
+          max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+          max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+      }
+      /* Caption stacks so the actions get a full-width row of their own instead
+         of being squeezed against the title on a 375px screen. */
+      figcaption { flex-direction: column; align-items: stretch; gap: 10px; }
+      .lb-actions { flex-wrap: wrap; gap: 8px; }
+      .lb-actions .sc-btn { flex: 1 1 auto; text-align: center; }
+      .lb-hint { text-align: left; }
+    }
+
+    /* Touch targets. 48px rather than the 44px minimum because the app-wide
+       reveal/press animations scale interactive elements by 0.994, which measures
+       a 44px control as 43px. */
+    @media (pointer: coarse) {
+      .chip { min-height: 48px; display: inline-flex; align-items: center; }
+      .more { min-height: 48px; }
+      .lb-actions .sc-btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
+      .lb-link { min-height: 48px; display: inline-flex; align-items: center; }
+      .lb-close { min-width: 48px; min-height: 48px; }
+      /* No hover on touch — the lift and the zoom-in cursor are mouse idioms. */
+      .tile { cursor: pointer; }
+      .tile:hover { transform: none; box-shadow: none; }
     }
 
     /* A Windows tray app cannot be installed from a phone or tablet, so the
@@ -320,6 +445,8 @@ const EAGER_TILES = 8;
 export class StarscapeComponent implements OnInit {
   readonly svc = inject(StarscapeService);
   private readonly roles = inject(RoleService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   /**
    * Rings this visitor may download, clamped by role (viewer → stable,
@@ -384,6 +511,8 @@ export class StarscapeComponent implements OnInit {
   );
 
   readonly active = signal<Wallpaper | null>(null);
+  /** Translation key of the clipboard-fallback confirmation, or null. */
+  readonly shareHint = signal<string | null>(null);
   readonly broken = signal<ReadonlySet<string>>(new Set<string>());
   // Preview images that have decoded at least once — gates each tile's blur-up
   // reveal and drops its skeleton. Cache hits are recovered via ImgReadyDirective.
@@ -393,22 +522,44 @@ export class StarscapeComponent implements OnInit {
   readonly skeletonSlots = Array.from({ length: SKELETON_SLOTS }, (_, i) => i);
   readonly eagerTiles = EAGER_TILES;
 
+  private shareHintTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor() {
     // Re-resolve the ring links whenever the role settles (it arrives after the
     // profile fetch, so a collaborator's beta link appears once it does).
     effect(() => {
       void this.svc.loadRingReleases(this.allowedRings());
     });
+    this.destroyRef.onDestroy(() => {
+      if (this.shareHintTimer) clearTimeout(this.shareHintTimer);
+    });
   }
 
   async ngOnInit(): Promise<void> {
     void this.svc.loadDesktopRelease();
     if (this.svc.wallpapers().length === 0) await this.svc.load(true);
+    await this.openDeepLink();
   }
 
-  /** Plausible varied placeholder height (px) for tile `i`, cycled from a fixed set. */
-  skelH(i: number): number {
-    return SKEL_HEIGHTS[i % SKEL_HEIGHTS.length];
+  /**
+   * `?image=<id>` — a shared wallpaper link. The image is usually not on the
+   * first page, so it is fetched by id rather than searched for in the grid.
+   */
+  private async openDeepLink(): Promise<void> {
+    const id = this.route.snapshot.queryParamMap.get(DEEP_LINK_PARAM);
+    if (!id) return;
+    const known = this.svc.wallpapers().find((w) => w.imageId === id);
+    const wallpaper = known ?? (await this.svc.loadOne(id));
+    if (wallpaper) this.active.set(wallpaper);
+  }
+
+  /**
+   * Plausible varied placeholder aspect ratio for tile `i`, cycled from a fixed
+   * set. A ratio rather than a height so the placeholder is the size the image
+   * will actually be in whatever column width the current breakpoint gives.
+   */
+  skelRatio(i: number): string {
+    return SKEL_RATIOS[i % SKEL_RATIOS.length];
   }
 
   /**
@@ -427,6 +578,52 @@ export class StarscapeComponent implements OnInit {
     return rsiVariant(previewUrl, 'post');
   }
 
+  /** `cover` variant (≤1140w) — the lightbox's phone-sized stand-in for the original. */
+  previewFor(w: Wallpaper): string {
+    return rsiVariant(w.previewUrl, 'cover');
+  }
+
+  /** Deep link that reopens this wallpaper's lightbox on our own site. */
+  shareUrl(w: Wallpaper): string {
+    const origin = typeof location !== 'undefined' ? location.origin : '';
+    return `${origin}/starscape?${DEEP_LINK_PARAM}=${encodeURIComponent(w.imageId)}`;
+  }
+
+  /**
+   * Hand the wallpaper to the platform's own share sheet (Android/iOS) via the
+   * Web Share API. Desktop browsers without it fall back to the clipboard, which
+   * is confirmed inline — a silent copy reads as a dead button.
+   */
+  async share(w: Wallpaper): Promise<void> {
+    const url = this.shareUrl(w);
+    const nav = typeof navigator !== 'undefined' ? navigator : undefined;
+    if (nav?.share) {
+      try {
+        await nav.share({ title: w.title ?? 'Starscape', url });
+      } catch {
+        /* the user dismissed the sheet — not an error */
+      }
+      return;
+    }
+    const clipboard = nav?.clipboard;
+    if (!clipboard?.writeText) {
+      this.flashShareHint('starscape.share.failed');
+      return;
+    }
+    try {
+      await clipboard.writeText(url);
+      this.flashShareHint('starscape.share.copied');
+    } catch {
+      this.flashShareHint('starscape.share.failed');
+    }
+  }
+
+  private flashShareHint(key: string): void {
+    this.shareHint.set(key);
+    if (this.shareHintTimer) clearTimeout(this.shareHintTimer);
+    this.shareHintTimer = setTimeout(() => this.shareHint.set(null), SHARE_HINT_MS);
+  }
+
   /** Marks a preview decoded → fades it in and removes its skeleton. */
   onLoad(id: string): void {
     if (this.loaded().has(id)) return;
@@ -439,8 +636,26 @@ export class StarscapeComponent implements OnInit {
     this.active.set(w);
   }
 
+  /**
+   * Tile links to the original CDN image (d2171662). Only the plain left click is
+   * ours (lightbox); middle click, Ctrl/⌘/Shift+click and the context menu keep
+   * the browser's native "open in a new tab" behaviour.
+   */
+  onTileClick(ev: MouseEvent, w: Wallpaper): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.open(w);
+  }
+
+  /** Anchors don't activate on Space the way the old <button> tile did. */
+  onTileSpace(ev: Event, w: Wallpaper): void {
+    ev.preventDefault();
+    this.open(w);
+  }
+
   close(): void {
     this.active.set(null);
+    this.shareHint.set(null);
   }
 
   onBroken(id: string): void {

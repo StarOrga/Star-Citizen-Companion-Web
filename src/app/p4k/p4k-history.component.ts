@@ -1,14 +1,15 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BundleDiffSummary, ChannelTag, P4kBundleRow, P4kService } from './p4k.service';
 import { RoleService } from '../auth/role.service';
 import { useAutoRefresh } from '../core/auto-refresh';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 @Component({
   selector: 'sc-p4k-history',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, TranslateModule],
+  imports: [ScDatePipe, DecimalPipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="hist">
@@ -91,7 +92,7 @@ import { useAutoRefresh } from '../core/auto-refresh';
                       · <b>{{ g.entities | number }}</b> {{ 'p4k.col.entities' | translate }}
                     </span>
                   </div>
-                  <span class="patch-when">{{ g.latest_at | date:'short' }}</span>
+                  <span class="patch-when">{{ g.latest_at | scDate: 'datetime' }}</span>
                 </div>
 
                 @if (isGroupExpanded(g.patch_version)) {
@@ -135,7 +136,7 @@ import { useAutoRefresh } from '../core/auto-refresh';
                             <span class="n">{{ b.uploaded_by_name ?? '—' }}</span>
                             <span class="e mono">{{ b.uploaded_by_email }}</span>
                           </div>
-                          <span class="up-when">{{ b.created_at | date:'short' }}</span>
+                          <span class="up-when">{{ b.created_at | scDate: 'datetime' }}</span>
                           @if (b.diff_summary) {
                             <button class="expand-btn" type="button"
                                     (click)="toggleExpand(b.id)"
@@ -261,13 +262,13 @@ import { useAutoRefresh } from '../core/auto-refresh';
 
     .retention-hint {
       margin: 0; padding: 12px 20px 16px;
-      font-size: 0.74rem; color: var(--sc-fg-2);
+      font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
     }
 
     /* Channel pill (shared visual grammar with the summary). */
     .ch-pill {
       display: inline-block; padding: 2px 10px; border-radius: 999px;
-      font-family: var(--sc-font-display); font-size: 0.68rem; letter-spacing: 0.08em;
+      font-family: var(--sc-font-display); font-size: max(0.68rem, var(--sc-fs-floor)); letter-spacing: 0.08em;
       &.live { background: rgba(0, 212, 255, 0.18); color: var(--sc-accent); }
       &.ptu { background: rgba(74, 222, 128, 0.18); color: var(--sc-success); }
       &.eptu { background: rgba(251, 191, 36, 0.18); color: var(--sc-warning); }
@@ -276,14 +277,14 @@ import { useAutoRefresh } from '../core/auto-refresh';
     }
     .badge {
       display: inline-block; padding: 1px 7px; border-radius: 999px;
-      font-family: var(--sc-font-display); font-size: 0.6rem;
+      font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor));
       letter-spacing: 0.06em; text-transform: uppercase; vertical-align: middle;
       background: rgba(122, 134, 156, 0.16); color: var(--sc-fg-2);
       border: 1px solid var(--sc-border);
     }
 
     .mono { font-family: monospace; }
-    .small { font-size: 0.76rem; color: var(--sc-fg-2); }
+    .small { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .num { font-variant-numeric: tabular-nums; text-align: right; }
 
     /* Quality bar (reused for patch + upload rows). */
@@ -299,7 +300,7 @@ import { useAutoRefresh } from '../core/auto-refresh';
     }
     .qbar-text {
       position: absolute; inset: 0; display: grid; place-items: center;
-      font-size: 0.72rem; font-variant-numeric: tabular-nums; color: var(--sc-fg-0); font-weight: 600;
+      font-size: max(0.72rem, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; color: var(--sc-fg-0); font-weight: 600;
     }
 
     /* ── Patch cards ── */
@@ -320,10 +321,10 @@ import { useAutoRefresh } from '../core/auto-refresh';
     .patch-ver { font-size: 1.05rem; color: var(--sc-fg-0); display: flex; align-items: center; gap: 8px; }
     .patch-mid { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
     .pills { display: flex; gap: 6px; flex-wrap: wrap; }
-    .meta-mini { color: var(--sc-fg-2); font-size: 0.72rem; white-space: nowrap; }
+    .meta-mini { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); white-space: nowrap; }
     .meta-mini b { color: var(--sc-fg-1); font-variant-numeric: tabular-nums; font-weight: 600; }
     .patch-when {
-      color: var(--sc-fg-2); font-size: 0.74rem;
+      color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor));
       font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap;
     }
 
@@ -339,20 +340,20 @@ import { useAutoRefresh } from '../core/auto-refresh';
     .up-row.superseded-row { opacity: 0.72; }
     .up-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-width: 0; }
     .up-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
-    .up-b { font-size: 0.78rem; color: var(--sc-fg-1); }
+    .up-b { font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
     .up-ent { display: flex; gap: 5px; flex-wrap: wrap; }
     .echip {
       padding: 1px 6px; background: var(--sc-bg-2); border-radius: 3px;
-      font-size: 0.74rem; color: var(--sc-fg-1); font-variant-numeric: tabular-nums;
+      font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-1); font-variant-numeric: tabular-nums;
     }
-    .diff-mini { font-family: monospace; font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+    .diff-mini { font-family: monospace; font-size: max(0.76rem, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; }
     .d-add { color: var(--sc-success); }
     .d-rem { color: var(--sc-danger); }
     .up-tool { color: var(--sc-fg-2); }
     .uploader-cell { display: flex; flex-direction: column; line-height: 1.15; text-align: right; }
     .uploader-cell .n { font-size: 0.8rem; overflow-wrap: anywhere; }
-    .uploader-cell .e { font-size: 0.72rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .up-when { color: var(--sc-fg-2); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+    .uploader-cell .e { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .up-when { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; }
 
     .expand-btn {
       background: transparent; border: none; color: var(--sc-accent); cursor: pointer;
@@ -361,20 +362,20 @@ import { useAutoRefresh } from '../core/auto-refresh';
     .expand-btn:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
 
     .acts { display: flex; gap: 6px; flex-wrap: wrap; }
-    .sc-btn.micro { padding: 4px 10px; font-size: 0.7rem; letter-spacing: 0.04em; }
+    .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
     .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
 
     /* Diff detail (per-upload expand). */
     .diff-detail { padding: 10px 14px 12px 34px; }
     .diff-detail > strong {
-      font-family: var(--sc-font-display); font-size: 0.72rem;
+      font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor));
       letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-fg-2);
     }
     .diff-table { width: 100%; max-width: 560px; margin-top: 8px; border-collapse: collapse; }
     .diff-table th, .diff-table td { padding: 4px 10px; border-bottom: 1px solid var(--sc-border); font-size: 0.82rem; }
     .diff-table th {
-      text-align: left; font-family: var(--sc-font-display); font-size: 0.68rem;
+      text-align: left; font-family: var(--sc-font-display); font-size: max(0.68rem, var(--sc-fs-floor));
       letter-spacing: 0.06em; color: var(--sc-fg-2); text-transform: uppercase;
     }
     .disabled-note {

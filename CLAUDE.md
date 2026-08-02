@@ -16,6 +16,7 @@ Angular 21 PWA · Supabase · Vercel (`sc-companion.vercel.app`, alias of `star-
 
 - Standalone components, signals, `providedIn: 'root'` services, `OnPush`.
 - **All user-facing strings localized via ngx-translate** (`{{ 'key' | translate }}` in templates). Never hardcode UI text in DE/EN — add keys to `public/i18n/{de,en}.json`.
+- **Navigations are real anchors.** Anything that takes the user somewhere (card, tile, list row, thumbnail) must render as `<a [routerLink]>` / `<a [href] target="_blank" rel="noopener noreferrer">`, never a `<div>`/`<button>` with `(click)` — middle click, Ctrl/⌘+click and "open link in new tab" are browser features that only work on an anchor. Where the plain left click stays in-app (overlay, lightbox), gate the handler with `isPlainLeftClick` (`src/app/core/modified-click.util.ts`) so modified clicks fall through untouched. Real *actions* (toggle, delete, submit, open a picker) stay `<button>`.
 - Auth-gated routes use `authGuard` (awaits `auth.ready()`).
 - **No API keys in repo or client bundle.** Third-party APIs go through Edge-Function proxies; keys live as Supabase Edge-Function secrets.
 - Branch off `main` (`feat/...`, `fix/...`) — main is hook-protected against direct edits.

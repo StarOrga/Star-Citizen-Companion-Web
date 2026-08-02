@@ -97,7 +97,7 @@ import { FooterComponent } from '../shell/footer.component';
       margin: 20px 0 0;
       text-align: center;
       color: var(--sc-fg-2);
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       line-height: 1.45;
     }
     .trust-links {
@@ -105,7 +105,7 @@ import { FooterComponent } from '../shell/footer.component';
       justify-content: center;
       gap: 8px;
       margin-top: 14px;
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       color: var(--sc-fg-2);
     }
     .trust-links a {
@@ -159,7 +159,7 @@ import { FooterComponent } from '../shell/footer.component';
       gap: 12px;
       margin: 22px 0;
       color: var(--sc-fg-2);
-      font-size: 0.75rem;
+      font-size: max(0.75rem, var(--sc-fs-floor));
       letter-spacing: 0.1em;
     }
     .sep::before, .sep::after {

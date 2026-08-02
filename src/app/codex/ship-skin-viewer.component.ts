@@ -303,7 +303,7 @@ const GLB_HEAD_BYTES = 1_048_576;
         }
       }
       .skins-head .src {
-        font-size: 0.72rem;
+        font-size: max(0.72rem, var(--sc-fs-floor));
         color: var(--muted, #8a92a0);
       }
       .skins-body {
@@ -434,11 +434,11 @@ const GLB_HEAD_BYTES = 1_048_576;
       }
       .badge p {
         margin: 0.2rem 0 0;
-        font-size: 0.78rem;
+        font-size: max(0.78rem, var(--sc-fs-floor));
         color: #cdd3db;
       }
       .badge .meta {
-        font-size: 0.7rem;
+        font-size: max(0.7rem, var(--sc-fs-floor));
         color: var(--muted, #8a92a0);
       }
       .list {
@@ -492,7 +492,7 @@ const GLB_HEAD_BYTES = 1_048_576;
         margin-top: 0.15rem;
       }
       .tag {
-        font-size: 0.62rem;
+        font-size: max(0.62rem, var(--sc-fs-floor));
         padding: 0.05rem 0.4rem;
         border-radius: 5px;
         margin-right: 0.3rem;
@@ -512,7 +512,7 @@ const GLB_HEAD_BYTES = 1_048_576;
         bottom: 0.5rem;
         margin: 0;
         max-width: 60%;
-        font-size: 0.64rem;
+        font-size: max(0.64rem, var(--sc-fs-floor));
         line-height: 1.3;
         color: #7f92ab;
         pointer-events: none;
@@ -565,7 +565,7 @@ const GLB_HEAD_BYTES = 1_048_576;
         background: rgba(8, 11, 16, 0.94);
         border: 1px solid #2a3444;
         color: #dce6f5;
-        font-size: 0.66rem;
+        font-size: max(0.66rem, var(--sc-fs-floor));
         pointer-events: none;
       }
       .hp-tip em {

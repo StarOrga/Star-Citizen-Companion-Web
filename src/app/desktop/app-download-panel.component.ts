@@ -113,9 +113,9 @@ export interface AppDownloadEntry {
       font-family: var(--sc-font-display); font-size: 0.86rem;
       color: var(--sc-fg-0); letter-spacing: 0.02em;
     }
-    .ap-desc { font-size: 0.72rem; color: var(--sc-fg-2); line-height: 1.35; }
+    .ap-desc { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.35; }
     .ap-ver {
-      font-family: var(--sc-font-display); font-size: 0.78rem;
+      font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor));
       color: var(--sc-accent); font-variant-numeric: tabular-nums;
     }
     .ap-actions:empty { display: none; }
@@ -130,7 +130,7 @@ export interface AppDownloadEntry {
     .ap-btn {
       display: inline-flex; align-items: baseline; gap: 6px;
       padding: 4px 12px; border-radius: 999px;
-      font-size: 0.76rem; white-space: nowrap; text-decoration: none;
+      font-size: max(0.76rem, var(--sc-fs-floor)); white-space: nowrap; text-decoration: none;
       color: var(--sc-accent); border: 1px solid var(--sc-accent);
       transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
     }
@@ -138,22 +138,22 @@ export interface AppDownloadEntry {
     /* Pre-release rings / secondary platforms stay quieter than the safe default. */
     .ap-btn.secondary { color: var(--sc-fg-2); border-color: var(--sc-border); }
     .ap-btn.secondary:hover { background: var(--sc-bg-2); color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .ap-btn-ver { font-size: 0.68rem; opacity: 0.8; font-variant-numeric: tabular-nums; }
+    .ap-btn-ver { font-size: max(0.68rem, var(--sc-fs-floor)); opacity: 0.8; font-variant-numeric: tabular-nums; }
 
-    .ap-state { margin: 0; font-size: 0.74rem; color: var(--sc-fg-2); }
+    .ap-state { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     .ap-details {
       display: flex; flex-direction: column; gap: 6px;
       padding-top: 8px; border-top: 1px solid var(--sc-border);
     }
-    .ap-note { margin: 0; font-size: 0.66rem; color: var(--sc-fg-2); line-height: 1.45; }
+    .ap-note { margin: 0; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.45; }
     .ap-rn-label {
       color: var(--sc-fg-2); font-family: var(--sc-font-display);
-      font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase;
+      font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase;
     }
     .ap-rn {
       margin: 0; padding: 0; background: none; border: 0;
-      color: var(--sc-fg-2); font-family: inherit; font-size: 0.74rem; line-height: 1.5;
+      color: var(--sc-fg-2); font-family: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); line-height: 1.5;
       white-space: pre-wrap; max-height: 200px; overflow-y: auto;
     }
   `],

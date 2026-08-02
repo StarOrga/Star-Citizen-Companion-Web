@@ -89,6 +89,13 @@ export interface HardpointFrameData {
 export interface LoadoutEntry {
   itemPortName: string | null;
   entityClassName: string | null; // null = port stock-empty
+  /**
+   * The stock fit of the item installed HERE — a gun mount's gun, a rack's
+   * missiles, a turret's weapon. Absent when the occupant carries nothing (and
+   * on every extract made before the uploader resolved it), so consumers must
+   * treat "no key" as "unknown", never as "carries nothing".
+   */
+  entries?: LoadoutEntry[];
 }
 
 export type EntityKind = 'ship' | 'weapon' | 'component' | 'item' | 'blueprint';

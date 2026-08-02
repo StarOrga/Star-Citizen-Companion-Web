@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { useAutoRefresh } from '../core/auto-refresh';
 import { Role, RoleService } from '../auth/role.service';
 import { AuthService } from '../auth/auth.service';
 import { isDeleteBlocked, isProtectedAccount, isRoleChangeBlocked } from './admin-protection';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 interface AdminUserRow {
   id: string;
@@ -32,7 +32,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 @Component({
   selector: 'sc-admin',
   standalone: true,
-  imports: [DatePipe, TranslateModule],
+  imports: [ScDatePipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -168,8 +168,8 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                     </span>
                   }
                 </td>
-                <td>{{ u.created_at | date:'shortDate' }}</td>
-                <td>{{ u.last_sign_in_at ? (u.last_sign_in_at | date:'short') : '—' }}</td>
+                <td>{{ u.created_at | scDate }}</td>
+                <td>{{ u.last_sign_in_at ? (u.last_sign_in_at | scDate: 'datetime') : '—' }}</td>
                 <td class="actions">
                   @if (u.role !== 'collaborator') {
                     <button class="sc-btn micro"
@@ -289,7 +289,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     .table thead th {
       background: var(--sc-bg-2);
       font-family: var(--sc-font-display);
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
@@ -299,7 +299,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     .table thead th.active { color: var(--sc-accent); }
     .sort-ind { display: inline-block; width: 1em; margin-left: 4px; font-size: 0.8em; }
     .user-name { display: block; }
-    .user-handle { display: block; color: var(--sc-fg-2); font-size: 0.76rem; font-family: monospace; }
+    .user-handle { display: block; color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); font-family: monospace; }
     .table tbody tr:hover { background: rgba(0, 212, 255, 0.04); }
     .table tbody tr.is-self {
       background: rgba(0, 212, 255, 0.06);
@@ -310,7 +310,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       display: inline-block;
       padding: 2px 8px;
       border-radius: 999px;
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -335,7 +335,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     .actions { display: flex; gap: 6px; flex-wrap: wrap; }
     .sc-btn.micro {
       padding: 4px 10px;
-      font-size: 0.7rem;
+      font-size: max(0.7rem, var(--sc-fs-floor));
       letter-spacing: 0.04em;
     }
     .sc-btn.micro.danger {

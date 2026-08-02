@@ -1,7 +1,55 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.56.1",
+  "current": "0.56.4",
   "releases": [
+    {
+      "version": "0.56.4",
+      "date": "2026-07-31",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "/codex/keybinds showed 1000 of the build's 1103 keybindings, with nothing to indicate the other 103 were missing.",
+              "text": "listKeybinds() issued a plain select, and PostgREST answers with at most 1000 rows — reporting the real total only in the content-range header. A capped response is indistinguishable from a complete one: no error, no warning, just a list that quietly ends early. Measured against build b77f1586 (patch 4.9.0), a count=exact probe reports 1103 rows where the page rendered 1000. The query is now paged in 1000-row batches until a page comes back short, the same way the blueprint-category facet scan in the same file already works. The page's document order is unchanged: rows still come back ordered by the extractor's global sort counter, which is what lets the view group consecutive rows into their actionmap sections. Because that column carries no unique constraint in the schema, action_name is now applied as a secondary sort — paging over a non-total order is what lets rows repeat or vanish across a page boundary. Verified against the live build: sort unique and monotonic, every actionmap group contiguous."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.56.3",
+      "date": "2026-07-31",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Every keybinding on /codex/keybinds was labelled with a raw @-key, because the query that resolves those labels returned HTTP 400 on every single load.",
+              "text": "The lookup filters with PostgREST's key=in.(…), which rides in the URL — and the keybindings page asks for ~1250 keys at once, a 35 919-character request line. The Supabase edge rejects it with a bare 400 Bad Request and no PostgREST error body, so nothing distinguished it from an empty result; measured against the live project, 819 keys (25 264 chars) still return 200 and 820 (25 303) do not. It fired twice per load, once per language, and surfaced as three network-error warnings per device in the mobile gate. The key list is now split into batches of at most 7000 encoded characters — below the 8000-char mark postgrest-js itself flags as \"may exceed server limits\" — and the batches are issued concurrently, so on HTTP/2 the page still pays roughly one round-trip. A batch is additionally capped at 500 keys so a reply can never hit PostgREST's 1000-row cap and come back silently truncated. Six batches per language cover the keybindings page; every other caller (ship roles, hardpoint labels) still fits in a single request. A failing batch now leaves only its own keys unresolved instead of discarding the entire translation map — localization stays a nice-to-have that never blocks the view. npm run gate:mobile: /codex/keybinds drops from 3 network warnings per device to 0, 44 page audits, 0 blocking findings."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.56.2",
+      "date": "2026-07-30",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "The app was designed for a mouse at desk distance, and phones inherited it unchanged.",
+              "text": "The mobile/tablet gate had been red since #307 with 704 blocking findings across all 4 devices × 11 public routes — not a login-page defect but a system-wide one: a 15 px root with a label scale bottoming out at 0.58 rem (8.7 px), and controls built to mouse precision (form fields 41 px, buttons 38 px, footer and trust links 16 px, icon buttons down to 14 × 16 px). Both floors are now expressed once, as tokens, and applied only where they are actually required — @media (pointer: coarse), which matches every touch device and never a mouse: - --sc-fs-floor — consumed as font-size: max(<design size>, var(--sc-fs-floor)) by all 389 sub-12 px declarations. On touch the smallest rendered text on any route is exactly 12 px; on a fine pointer the token is 0px, so the design size wins and the desktop composition is unchanged (verified: the footer badge label still computes to 8.7 px there). - --sc-tap-min — a 48 px minimum hit area on every interactive primitive. 48 rather than the bare 44 px minimum because the app animates both the route change and each card reveal from scale(0.994); while those overlap a control sized at exactly 44 px measures 43.5 px mid-flight, below its own minimum. Native checkboxes and radios cannot carry a hit area larger than their own box, so they are redrawn as a 22 px control centred in the target. No threshold was relaxed and no waiver was added — scripts/mobile-gate.config.json is untouched. npm run gate:mobile: 44 page audits, 0 blocking findings."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.56.1",
       "date": "2026-07-29",
@@ -66,7 +114,7 @@
           "items": [
             {
               "title": "",
-              "text": "The mobile/tablet gate from #307 is red on main (704 findings, all on /login and the shared topbar: 41–38 px form controls, 16 px trust links, sub-12 px labels). Verified identical on origin/main and on this branch, so this release neither causes nor worsens it. Needs its own pass."
+              "text": "The mobile/tablet gate from #307 is red on main (704 findings, all on /login and the shared topbar: 41–38 px form controls, 16 px trust links, sub-12 px labels). Verified identical on origin/main and on this branch, so this release neither causes nor worsens it. Needs its own pass. *Resolved in 0.56.2 — the cause was app-wide, not login-specific.*"
             }
           ]
         }

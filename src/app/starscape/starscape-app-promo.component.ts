@@ -117,28 +117,28 @@ const ROTATE_MS = 2600;
 
     .body { display: flex; flex-direction: column; gap: 3px; }
     .eyebrow {
-      font-family: var(--sc-font-display); font-size: 0.6rem;
+      font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor));
       letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent);
     }
     .title { font-family: var(--sc-font-display); font-size: 0.94rem; color: var(--sc-fg-0); }
-    .desc { font-size: 0.74rem; color: var(--sc-fg-2); line-height: 1.4; }
+    .desc { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.4; }
     .cta {
       align-self: flex-start; margin-top: 8px;
       display: inline-flex; align-items: baseline; gap: 6px;
       padding: 5px 14px; border-radius: 999px;
-      font-size: 0.78rem; text-decoration: none; white-space: nowrap;
+      font-size: max(0.78rem, var(--sc-fs-floor)); text-decoration: none; white-space: nowrap;
       color: var(--sc-bg-0); background: var(--sc-accent); border: 1px solid var(--sc-accent);
       transition: filter 0.16s ease;
     }
     .cta:hover { filter: brightness(1.12); }
-    .cta-ver { font-size: 0.68rem; opacity: 0.75; font-variant-numeric: tabular-nums; }
-    .note { margin-top: 6px; font-size: 0.62rem; color: var(--sc-fg-2); opacity: 0.8; line-height: 1.4; }
+    .cta-ver { font-size: max(0.68rem, var(--sc-fs-floor)); opacity: 0.75; font-variant-numeric: tabular-nums; }
+    .note { margin-top: 6px; font-size: max(0.62rem, var(--sc-fs-floor)); color: var(--sc-fg-2); opacity: 0.8; line-height: 1.4; }
 
     .x {
       position: absolute; top: 6px; right: 8px;
       background: rgba(0, 0, 0, 0.45); border: 0; border-radius: 50%;
       width: 22px; height: 22px; line-height: 1;
-      color: var(--sc-fg-1); font-size: 0.74rem; cursor: pointer;
+      color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer;
     }
     .x:hover { color: var(--sc-fg-0); background: rgba(0, 0, 0, 0.7); }
 

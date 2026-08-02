@@ -9,11 +9,13 @@
  */
 
 import type { PauseControl } from './pause-control.js';
+import type { ThrottleControl } from './throttle-control.js';
 import { UploadJobStore, sentFor } from './upload-job.js';
 
 /** Structural mirror of `main/catalog-bridge.ts:CatalogHooks`. */
 export interface CatalogHookSet {
   control?: PauseControl;
+  pace?: () => Promise<void>;
   buildId?: string | null;
   donePhases?: string[];
   sentFor?: (phase: string) => number;
@@ -25,14 +27,29 @@ export interface CatalogHookSet {
 /** Structural mirror of `main/skin-ingest.ts:SkinUploadHooks`. */
 export interface SkinHookSet {
   control?: PauseControl;
+  pace?: () => Promise<void>;
   doneShips?: string[];
   onShipDone?: (shipId: string) => void;
 }
 
-export function catalogHooks(store: UploadJobStore, control?: PauseControl): CatalogHookSet {
+/**
+ * Bind the throttle as a per-call getter, never as a captured value: the whole
+ * point is that a stage started under "maximum" observes a later switch to
+ * "minimal" at its next work unit.
+ */
+function pacer(throttle?: ThrottleControl): (() => Promise<void>) | undefined {
+  return throttle ? () => throttle.pace() : undefined;
+}
+
+export function catalogHooks(
+  store: UploadJobStore,
+  control?: PauseControl,
+  throttle?: ThrottleControl,
+): CatalogHookSet {
   const job = store.load();
   return {
     control,
+    pace: pacer(throttle),
     // Read once at stage start: the build row is fixed for the job's lifetime.
     buildId: job?.catalog.buildId ?? null,
     donePhases: job?.catalog.donePhases ?? [],
@@ -65,10 +82,15 @@ export function catalogHooks(store: UploadJobStore, control?: PauseControl): Cat
   };
 }
 
-export function skinHooks(store: UploadJobStore, control?: PauseControl): SkinHookSet {
+export function skinHooks(
+  store: UploadJobStore,
+  control?: PauseControl,
+  throttle?: ThrottleControl,
+): SkinHookSet {
   const job = store.load();
   return {
     control,
+    pace: pacer(throttle),
     doneShips: job?.skins.doneShips ?? [],
     onShipDone: (shipId) => {
       store.update((s) => ({

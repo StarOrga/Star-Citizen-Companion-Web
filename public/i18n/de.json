@@ -25,7 +25,7 @@
     "admin": "Benutzer",
     "desktop": "Data Upload",
     "signOut": "Abmelden",
-    "brandAria": "Star Citizen Companion (SCC)",
+    "brandAria": "Star Citizen Companion (SCC) — zur Startseite (Verse News)",
     "langAria": "Sprache",
     "accountMenu": "Konto-Menü",
     "telemetry": "Telemetrie",
@@ -66,8 +66,6 @@
         "hangarSub": "Schiffe in deinem Besitz",
         "fresh": "Frisch in diesem Patch",
         "freshSub": "Schiffe im aktuellen Live-Build",
-        "popular": "Beliebt zum Vergleichen",
-        "popularSub": "Community-Favoriten im Direktvergleich",
         "role": "Nach Hersteller entdecken",
         "roleSub": "Schiffe nach ihrem Hersteller gruppiert"
       }
@@ -313,7 +311,8 @@
       "whereToBuyTerminal": "Terminal",
       "whereToBuyLocation": "Standort",
       "whereToBuyAttribution": "Preise von UEX Corp — von der Community gepflegt, spiegeln evtl. nicht die Live-Server wider. Nicht mit Cloud Imperium Games verbunden.",
-      "moduleOrderHint": "Zuerst kommen die konfigurierbaren Module — Waffen samt Aufhängung, Türme, Raketen, Pods, Schilde, Generator, Quantenantrieb, Radar, Kühler, Lebenserhaltung. Alles Feste steht darunter. Ein Klick auf ein Modul öffnet seine vollständige Werte-Tabelle."
+      "moduleOrderHint": "Zuerst kommen die konfigurierbaren Module — Waffen samt Aufhängung, Türme, Raketen, Pods, Schilde, Generator, Quantenantrieb, Radar, Kühler, Lebenserhaltung. Alles Feste steht darunter. Ein Klick auf ein Modul öffnet seine vollständige Werte-Tabelle.",
+      "loadoutEmptyWeaponMount": "Waffenaufhängung – keine Standardwaffe in diesem Extract"
     },
     "swap": {
       "pickerTitle": "Modul tauschen",
@@ -338,7 +337,10 @@
       "appliesToMany": "Gilt für alle {{count}} identischen Hardpoints",
       "matched": "{{shown}} von {{total}} kompatiblen Teilen",
       "sortHint": "Spalte anklicken zum Sortieren, Strg-Klick für eine zweite Sortierung.",
-      "missingColumns": "Nicht in diesem Daten-Extract enthalten und deshalb ohne Spalte: {{fields}}."
+      "missingColumns": "Nicht in diesem Daten-Extract enthalten und deshalb ohne Spalte: {{fields}}.",
+      "installedNone": "Platz ab Werk leer",
+      "pickHere": "Auswählen",
+      "fitInferred": "Dieser Platz ist ab Werk leer. Die Liste stammt von einem baugleichen, bestückten Platz desselben Schiffs – nicht aus den Daten dieses Hardpoints selbst."
     },
     "statGroup": {
       "identity": "Identität",
@@ -453,7 +455,15 @@
       "distortion": "Distortion-Kapazität",
       "derivedHint": "Abgeleiteter Wert, aus anderen extrahierten Werten berechnet.",
       "noStats": "Für diese Waffe liegen im aktuellen Extract keine Werte vor.",
-      "armamentMissing": "{{count}} Waffenaufhängungen führen in diesem Extract keine Standardwaffe — das Spiel hinterlegt Standard-Bewaffnung in einem separaten Datensatz, den unser P4K-Extractor noch nicht auflöst."
+      "armamentMissing": "{{count}} Waffenaufhängungen führen in diesem Extract keine Standardwaffe — das Spiel hinterlegt Standard-Bewaffnung in einem separaten Datensatz, den unser P4K-Extractor noch nicht auflöst.",
+      "missileCount": "Raketen",
+      "missileSize": "Raketengröße",
+      "cmInfrared": "Infrarot-Signatur",
+      "cmElectromagnetic": "EM-Signatur",
+      "cmCrossSection": "Querschnitt",
+      "cmRadius": "Wolkenradius",
+      "cmCloudLifetime": "Wolkenstandzeit",
+      "cmLifetime": "Wirkdauer"
     },
     "shipLink": {
       "add": "Pledge-Link hinzufügen",
@@ -488,7 +498,10 @@
       "coolers": "Kühler",
       "lifeSupport": "Lebenserhaltung",
       "structure": "Zelle & feste Systeme",
-      "fixedTag": "nicht konfigurierbar"
+      "fixedTag": "nicht konfigurierbar",
+      "countermeasures": "Gegenmaßnahmen",
+      "shieldsNote": "Schild-Generatoren sind die austauschbaren Schildplätze; das Schild-Steuermodul verwaltet sie und ist kein eigener Generator. Wie viele Generatoren ein Rumpf hat, steht in diesem Block – ab Werk leere Plätze eingeschlossen.",
+      "countermeasuresNote": "Köder (Decoy) ziehen wärmesuchende Raketen ab, Störköder (Noise/Chaff) blenden radargelenkte. Wie viele du brauchst, hängt vom Signaturwert der abgefeuerten Munition ab – dieses Extract verknüpft einen Werfer nicht mit seiner Munition, deshalb stehen hier keine Signaturwerte pro Werfer."
     },
     "summary": {
       "title": "Kampfübersicht",
@@ -514,7 +527,7 @@
       "plantDistortion": "Distortion-Pool Generatoren",
       "gap": {
         "noStockGuns": "Die Standardwaffen dieses Rumpfs stecken nicht im Extract — das Spiel legt die Werksbewaffnung in einem separaten Loadout-Record ab, den wir noch nicht auflösen. Die Aufhängungen unten zeigen deshalb den Platz statt der Waffe.",
-        "noFireRate": "Im 4.9.0-Extract fehlt die Feuerrate, deshalb lässt sich noch kein Dauerfeuer-DPS ableiten.",
+        "noFireRate": "In diesem Extract{{patch}} fehlt die Feuerrate, deshalb lässt sich noch kein Dauerfeuer-DPS ableiten.",
         "noShields": "Im Werks-Loadout dieses Schiffs steckt kein Schildgenerator.",
         "noHullHp": "Hüllen-HP sind noch nicht Teil des P4K-Extracts.",
         "noResistances": "Schadensresistenzen pro Kanal werden nicht extrahiert — kein Schiff und keine Panzerung trägt sie.",
@@ -545,6 +558,10 @@
       "noStats": "Der aktuelle Extract enthält für dieses Teil keine Werte.",
       "openDetail": "Vollständigen Katalogeintrag öffnen",
       "openStats": "Alle Werte anzeigen"
+    },
+    "moduleRole": {
+      "shieldGenerator": "Generator",
+      "shieldController": "Steuermodul"
     }
   },
   "blueprint": {
@@ -622,7 +639,7 @@
   },
   "news": {
     "title": "Verse News",
-    "subtitle": "Live Comm-Link, Spectrum, YouTube & Patches — automatisch alle 5 Min.",
+    "subtitle": "Live Comm-Link, Spectrum, YouTube & Patches",
     "loading": "Lade…",
     "newPosts": "{{count}} neue Posts ↑",
     "newPost": "1 neuer Post ↑",
@@ -631,6 +648,7 @@
     "emptyFavorites": "Noch keine gemerkten Beiträge — tippe auf ☆ an einem Beitrag, um ihn hier zu sammeln.",
     "errorTitle": "News konnten nicht geladen werden",
     "lastUpdated": "Aktualisiert {{rel}}",
+    "refreshing": "Wird aktualisiert…",
     "status": {
       "title": "Star Citizen Live",
       "operational": "Spielbar",
@@ -683,6 +701,78 @@
       "scrollPrev": "Vorherige Videos",
       "scrollNext": "Weitere Videos"
     },
+    "patch": {
+      "title": "Patch-Notes",
+      "hint": "Nach Hauptpatch gruppiert — neuester zuerst",
+      "line": "Alpha {{version}}",
+      "otherLine": "Ohne Versionsangabe",
+      "hotfix": "Hotfix",
+      "current": "Aktuell live",
+      "stage": {
+        "live": "Live",
+        "ptu": "PTU",
+        "evocati": "Evocati"
+      },
+      "facet": {
+        "live": "Live",
+        "hotfix": "Hotfix",
+        "ptu": "PTU",
+        "evocati": "Evocati",
+        "other": "Sonstige"
+      },
+      "filter": {
+        "version": "Version",
+        "channel": "Kanal",
+        "all": "Alle",
+        "versionAria": "Patch-Notes nach Version filtern",
+        "channelAria": "Patch-Notes nach Kanal filtern",
+        "empty": "Keine Patch-Notes für diese Auswahl.",
+        "reset": "Filter zurücksetzen"
+      },
+      "latest": {
+        "title": "Neueste je Kanal",
+        "hint": "Höchstens ein Eintrag pro Kanal"
+      },
+      "history": {
+        "title": "Historie"
+      },
+      "kpi": {
+        "title": "Patch-Performance",
+        "sub": "Aktuell gegenüber dem Ø aller Patches",
+        "average": "Ø all time",
+        "samplesLabel": "Basis",
+        "samples": "{{n}} Messwerte",
+        "goto": "{{title}} anzeigen",
+        "pause": "Wechsel pausieren",
+        "play": "Wechsel fortsetzen",
+        "deltaFaster": "{{n}} Tage schneller als der Ø",
+        "deltaSlower": "{{n}} Tage langsamer als der Ø",
+        "deltaMore": "{{n}} mehr als der Ø",
+        "deltaLess": "{{n}} weniger als der Ø",
+        "deltaSame": "genau auf Ø-Niveau",
+        "axisFrom": "letzte {{days}} Tage",
+        "axisNow": "jetzt",
+        "barNotes": "{{n}} Patch-Notes bis {{date}}",
+        "barDays": "Alpha {{version}}: {{n}} Tage",
+        "chartAria": "{{title}}: aktuell {{latest}} {{unit}}, Ø {{average}} {{unit}} aus {{n}} Messwerten",
+        "unit": {
+          "days": "Tage",
+          "notes": "Patch-Notes"
+        },
+        "volume": {
+          "title": "Patch-Notes im Verlauf",
+          "sub": "Beiträge je {{days}} Tage"
+        },
+        "leadTime": {
+          "title": "PTU → Live",
+          "sub": "Tage vom ersten Testbuild bis zum Live-Release"
+        },
+        "cadence": {
+          "title": "Patch-Takt",
+          "sub": "Tage zwischen zwei Live-Releases"
+        }
+      }
+    },
     "detail": {
       "close": "Schließen"
     },
@@ -694,6 +784,7 @@
       "hours": "vor {{n}} Std",
       "yesterday": "gestern",
       "days": "vor {{n}} Tagen",
+      "week": "vor 1 Woche",
       "weeks": "vor {{n}} Wochen"
     },
     "upcomingShips": {
@@ -802,9 +893,62 @@
       "errTaken": "Dieser Benutzername ist bereits vergeben.",
       "errGeneric": "Benutzername konnte nicht gespeichert werden. Bitte erneut versuchen."
     },
-    "language": {
-      "title": "Sprache",
-      "label": "Sprache"
+    "locale": {
+      "title": "Sprache & Region",
+      "hint": "Die Sprache bestimmt die Übersetzung und die ausgeschriebenen Monatsnamen, die Region bestimmt die Reihenfolge im Datum und die Uhrzeit-Schreibweise. „Automatisch“ übernimmt, was dein Browser meldet.",
+      "auto": "Automatisch",
+      "detected": "Automatisch erkannt: {{value}}",
+      "preview": "Beispiel",
+      "language": {
+        "label": "Sprache"
+      },
+      "region": {
+        "label": "Region"
+      },
+      "languages": {
+        "de": "Deutsch",
+        "en": "Englisch"
+      },
+      "regions": {
+        "DE": "Deutschland",
+        "AT": "Österreich",
+        "CH": "Schweiz",
+        "GB": "Vereinigtes Königreich",
+        "IE": "Irland",
+        "US": "Vereinigte Staaten",
+        "CA": "Kanada",
+        "FR": "Frankreich",
+        "IT": "Italien",
+        "ES": "Spanien",
+        "PT": "Portugal",
+        "NL": "Niederlande",
+        "BE": "Belgien",
+        "LU": "Luxemburg",
+        "DK": "Dänemark",
+        "SE": "Schweden",
+        "NO": "Norwegen",
+        "FI": "Finnland",
+        "PL": "Polen",
+        "CZ": "Tschechien",
+        "HU": "Ungarn",
+        "RO": "Rumänien",
+        "GR": "Griechenland",
+        "TR": "Türkei",
+        "RU": "Russland",
+        "UA": "Ukraine",
+        "BR": "Brasilien",
+        "MX": "Mexiko",
+        "AR": "Argentinien",
+        "AU": "Australien",
+        "NZ": "Neuseeland",
+        "ZA": "Südafrika",
+        "IN": "Indien",
+        "JP": "Japan",
+        "CN": "China",
+        "KR": "Südkorea",
+        "SG": "Singapur",
+        "AE": "Vereinigte Arabische Emirate"
+      }
     },
     "composer": {
       "title": "Eingabe",
@@ -1043,7 +1187,8 @@
       "summary": {
         "title": "Kurz gefasst",
         "noAds": "Keine Werbung, keine Werbenetzwerke.",
-        "noTracking": "Keine Werbe-Tracker. Produkt-Analytik läuft über PostHog auf EU-Servern, um die App zu verbessern.",
+        "signIn": "Anmelden kannst du dich auf genau zwei Wegen: mit E-Mail-Adresse und Passwort oder mit deinem Google-Konto. Der Google-Weg ist freiwillig und gibt Daten an Google.",
+        "noTracking": "Keine Werbe-Tracker. Produkt-Analytik über PostHog (EU) läuft nur, wenn du sie erlaubst — Voreinstellung ist aus.",
         "minimal": "Nur die Daten, die die Funktionen brauchen — nichts wird verkauft oder zu Marketingzwecken geteilt.",
         "euHosting": "Anwendungsdaten liegen in der EU (Supabase, Region eu-central-1 / Frankfurt)."
       },
@@ -1054,28 +1199,51 @@
       },
       "account": {
         "title": "Konto- und Anwendungsdaten",
-        "p1": "Wenn du ein Konto anlegst, verarbeitet unser Backend-Anbieter Supabase deine E-Mail-Adresse und einen gesalzenen Passwort-Hash in der EU-Region eu-central-1 (Frankfurt). Optional kannst du dich mit Google anmelden; Google erfährt dann, dass du dich auf dieser Seite angemeldet hast, und wir erhalten deine E-Mail-Adresse von Google.",
-        "p2": "Funktionsdaten, die du anlegst (Profil, Hangar-Schiffe, Loadouts, Einstellungen), werden unter deinem Konto gespeichert und sind nur für dich lesbar — durchgesetzt per Row-Level-Security in der Datenbank.",
-        "p3": "Konten sind nur auf Einladung möglich. Nicht freigeschaltete Registrierungen können samt Daten entfernt werden."
+        "p1": "Ein Konto brauchst du nur für die persönlichen Funktionen (Hangar, Loadouts, Einstellungen, Feedback). News, Codex und Release Notes gehen ohne. Zum Anmelden gibt es genau zwei Wege: E-Mail-Adresse plus Passwort oder den Knopf „Mit Google fortfahren\". Andere Verfahren — Magic-Link, SMS-Code, weitere Social-Logins — setzt die App nicht ein, und ein Registrierungsformular gibt es nicht: Konten entstehen durch eine Einladung, die ein Administrator an deine E-Mail-Adresse schickt.",
+        "p2": "Für die Anmeldung legt unser Backend-Anbieter Supabase in der EU-Region eu-central-1 (Frankfurt) einen Auth-Eintrag zu dir an: deine E-Mail-Adresse, bei der Passwort-Anmeldung einen gesalzenen Passwort-Hash (nie das Passwort im Klartext), die verknüpften Anmeldeverfahren und Zeitstempel wie Einladung, Anlage und letzte Anmeldung.",
+        "p3": "Dazu kommt ein Profil-Datensatz mit dem, was die App für dich braucht: ein Anzeigename (beim Anlegen automatisch der Teil deiner E-Mail-Adresse vor dem @), dein selbst gewählter Nutzername, Sprach- und Spielkanal-Einstellung, optional dein RSI-Handle und dein Flaggschiff sowie deine Rolle (Viewer, Collaborator, Admin) und ob dein Konto freigeschaltet ist. Rolle und Freischaltung entscheiden, was du sehen und tun darfst.",
+        "p4": "Funktionsdaten, die du anlegst (Hangar-Schiffe, Loadouts, Schiffs-Links, gespeicherte Entwürfe, Einstellungen), liegen unter deinem Konto und sind nur für dich lesbar — durchgesetzt per Row-Level-Security in der Datenbank. Eine Ausnahme ist naheliegend: Feedback, das du absendest, sehen die Maintainer, und zwar mit deinem Konto als Absender, damit sie antworten können.",
+        "p5": "Konten sind nur auf Einladung nutzbar. Nicht freigeschaltete Registrierungen kommen nicht über die Anmeldeseite hinaus und können samt Daten entfernt werden."
+      },
+      "google": {
+        "title": "Anmeldung mit Google",
+        "p1": "Der Google-Weg ist freiwillig — mit E-Mail und Passwort kommst du ohne Google ins Konto. Tippst du auf „Mit Google fortfahren\", leitet dich die App zur Anmeldeseite von Google (accounts.google.com) weiter. Google erfährt dabei, dass du dich bei SC Companion anmeldest, samt der technischen Daten, die jeder Seitenaufruf mitbringt (IP-Adresse, Browser, Zeitpunkt). Anbieter ist Google Ireland Limited (Irland) bzw. Google LLC (USA).",
+        "p2": "Nach erfolgreicher Anmeldung gibt Google Daten an uns zurück, die Supabase im Auth-Eintrag deines Kontos speichert: deine Google-Konto-Kennung, deine E-Mail-Adresse, deinen bei Google hinterlegten Namen und die Adresse deines Google-Profilbilds. Angezeigt wird davon fast nichts — im Kontomenü steht dein Name, und auch der nur, solange du keinen eigenen Nutzernamen gesetzt hast; dein Profilbild lädt die App gar nicht erst, sie zeigt nur den ersten Buchstaben als Initiale.",
+        "p3": "Umgekehrt fließt nichts zu Google zurück, was über den Anmeldevorgang hinausgeht — keine Hangar-, Codex- oder Nutzungsdaten. Was Google selbst mit den Anmeldedaten macht, richtet sich nach Googles eigener Datenschutzerklärung:",
+        "policyLink": "Datenschutzerklärung von Google (policies.google.com/privacy)",
+        "p4": "Rechtsgrundlage für diesen Weg ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO): Du entscheidest bei jeder Anmeldung neu, ob du ihn nutzt. Willst du eine bestehende Google-Verknüpfung wieder loswerden, wende dich über die Kontaktwege im Impressum an die Maintainer."
       },
       "local": {
-        "title": "Cookies und lokaler Speicher",
-        "p1": "SCC setzt keine Tracking-Cookies von Dritten. Im lokalen Speicher deines Browsers liegen Session-Token, Spracheinstellung und UI-Zustand. Als installierbare Web-App (PWA) cached ein Service Worker statische Dateien auf deinem Gerät für schnelleres Laden und Offline-Nutzung — dieser Cache enthält keine personenbezogenen Daten und lässt sich durch Deinstallation oder Löschen der Website-Daten entfernen."
+        "title": "Cookies, lokaler Speicher und Sitzung",
+        "p1": "SCC setzt keine Cookies — weder eigene noch von Werbenetzwerken. Stattdessen nutzt die App den lokalen Speicher deines Browsers, und zwar für diese Einträge:",
+        "keys": {
+          "session": "sc.auth — deine Anmelde-Sitzung: ein kurzlebiges Zugriffs-Token und ein Erneuerungs-Token von Supabase. Solange du angemeldet bleibst, erneuert die App das Zugriffs-Token automatisch im Hintergrund; beim Abmelden wird der Eintrag gelöscht. Löschst du die Website-Daten deines Browsers, bist du ebenfalls abgemeldet.",
+          "lang": "sc.lang — deine Sprachwahl.",
+          "consent": "sc.consent — deine Entscheidung zu den Speicher-Kategorien, damit wir nicht bei jedem Besuch neu fragen.",
+          "composer": "sc.composer.sendOnEnter — ob die Enter-Taste im Feedback-Feld absendet oder eine neue Zeile macht.",
+          "preferences": "Kategorie „Präferenzen\" — Komfort-Zustand wie News-Filter, gemerkte Artikel und favorisierte Schiffe. Wird nur geschrieben, wenn du sie erlaubst; ein Widerruf löscht die Einträge sofort.",
+          "statistics": "Kategorie „Statistik\" — der Zustand der anonymen Produkt-Analytik (PostHog). Entsteht nur, wenn du sie erlaubst; ein Widerruf löscht ihn sofort."
+        },
+        "p2": "Während einer Google-Anmeldung liegt kurzzeitig zusätzlich ein Eintrag im Sitzungsspeicher (sc.oauth-redirect-qs), damit du nach der Rückkehr wieder auf der Seite landest, von der du gekommen bist. Er verschwindet spätestens mit dem Schließen des Tabs.",
+        "p3": "Autorisierst du ausdrücklich eines unserer Desktop-Werkzeuge (Data-Uploader, Starscape), übergibt der Browser das Zugriffs-Token deiner Sitzung an das Programm, das lokal auf deinem Rechner läuft (127.0.0.1) — nicht an einen Dritten, und nie über die Adresszeile.",
+        "p4": "Als installierbare Web-App (PWA) cached ein Service Worker statische Dateien auf deinem Gerät für schnelleres Laden und Offline-Nutzung — dieser Cache enthält keine personenbezogenen Daten und lässt sich durch Deinstallation oder Löschen der Website-Daten entfernen."
       },
       "thirdParty": {
         "title": "Dienste von Drittanbietern",
         "p1": "Die App kommuniziert mit einem kleinen, festen Satz an Diensten (technisch zusätzlich per Content-Security-Policy durchgesetzt):",
-        "supabase": "Supabase (Datenbank, Authentifizierung) — EU-Region eu-central-1.",
-        "vercel": "Vercel (Hosting, CDN) — Auslieferung der statischen App.",
-        "google": "Google Sign-In (optional) — nur wenn du dich bewusst mit Google anmeldest.",
-        "posthog": "PostHog (Produkt-Analytik und Fehlerdiagnose) — EU-Cloud, eingebunden über einen First-Party-Proxy; erfasst Nutzungsereignisse und Fehler zur Verbesserung der App.",
+        "supabase": "Supabase (Datenbank, Authentifizierung, Datei-Speicher) — EU-Region eu-central-1 (Frankfurt); verarbeitet deine Konto- und Anwendungsdaten in unserem Auftrag.",
+        "vercel": "Vercel Inc. (Hosting, CDN) — Auslieferung der statischen App.",
+        "google": "Google Sign-In (Google Ireland Limited / Google LLC) — nur wenn du dich bewusst mit Google anmeldest; Details im Abschnitt „Anmeldung mit Google\".",
+        "posthog": "PostHog (Produkt-Analytik und Fehlerdiagnose) — EU-Cloud (eu.i.posthog.com); erfasst anonyme Nutzungsereignisse und Fehler, und das nur nach deiner Zustimmung.",
         "fonts": "Google Fonts — Schriftdateien werden von Google-Servern geladen; Google kann dabei deine IP-Adresse sehen.",
+        "rsiMedia": "Bilder in den Verse-News kommen teils direkt von Servern von Roberts Space Industries (media.robertsspaceindustries.com, theverse.robertsspaceindustries.com) — beim Laden sieht RSI deine IP-Adresse.",
         "gameApis": "Öffentliche Star-Citizen-Daten: status.robertsspaceindustries.com und api.star-citizen.wiki (nur lesend, es werden keine Kontodaten übertragen)."
       },
       "rights": {
         "title": "Deine Rechte",
-        "p1": "Nach der DSGVO hast du das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch bezüglich deiner personenbezogenen Daten.",
-        "p2": "Du kannst dein Konto samt Daten in den App-Einstellungen löschen oder die Maintainer über das Impressum kontaktieren — Anfragen werden zeitnah bearbeitet."
+        "p1": "Nach der DSGVO hast du das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch bezüglich deiner personenbezogenen Daten. Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren.",
+        "p2": "Dein Konto lässt sich vollständig löschen: Mit dem Auth-Eintrag verschwinden per Datenbank-Kaskade auch Profil, Hangar, Loadouts, Entwürfe und Uploads. Ausgeführt wird die Löschung derzeit von einem Administrator — der Löschen-Knopf in den Einstellungen greift nur bei Konten mit Administratorrolle. Fordere sie über die Kontaktwege im Impressum an; Anfragen werden zeitnah bearbeitet.",
+        "p3": "Deine Zustimmung zu Präferenz-Speicher und Statistik kannst du jederzeit in den Einstellungen widerrufen; der Widerruf löscht die betroffenen lokalen Einträge sofort und wirkt für die Zukunft — die Rechtmäßigkeit der Verarbeitung bis dahin bleibt unberührt."
       }
     },
     "imprint": {
@@ -1346,6 +1514,15 @@
   "adminFeedback": {
     "title": "Feedback-Board",
     "subtitle": "Nur für Admins. Schreib, was besser werden kann — die Abendroutine nimmt offene Punkte auf, shippt sie und markiert sie hier.",
+    "heartbeat": {
+      "online": "Dev-PC erreichbar",
+      "offline": "Dev-PC nicht erreichbar",
+      "unknown": "Dev-PC Status unbekannt",
+      "onlineTitle": "Dev-PC erreichbar — die Feedback-Routine hat sich {{time}} gemeldet. Neue Themen werden bearbeitet.",
+      "offlineTitle": "Dev-PC nicht erreichbar — die Feedback-Routine hat sich zuletzt {{time}} gemeldet. Rechner aus, Claude nicht offen oder Tokens verbraucht; neue Themen bleiben liegen, bis er wieder läuft.",
+      "unknownTitle": "Status unbekannt — bisher keine Rückmeldung der Feedback-Routine.",
+      "ariaLabel": "{{title}} — {{state}}"
+    },
     "refresh": "Aktualisieren",
     "loading": "Lädt…",
     "empty": "Noch kein Feedback. Sei der Erste.",
@@ -1461,6 +1638,7 @@
       "label": "Ansicht wechseln",
       "overview": "Übersicht",
       "workflow": "Abarbeiten",
+      "review": "Abnahme",
       "progress": "Fortschritt"
     },
     "cheer": {
@@ -1584,8 +1762,12 @@
       "headlineShipped": "Geshipped — bitte abnehmen",
       "headlineIssue": "An ein Issue übergeben — bitte abnehmen",
       "hint": "Schau dir das Ergebnis live an. Passt es, ist das Thema erledigt. Passt es nicht, nimm das Gespräch wieder auf — das Thema geht zurück in die Warteschlange der Routine.",
-      "accept": "Abnehmen — erledigt",
-      "reopen": "Gespräch wieder aufnehmen"
+      "accept": "Ins Archiv — erledigt",
+      "reopen": "Gespräch wieder aufnehmen",
+      "queueTitle": "Wurde bearbeitet — bitte prüfen und abhaken",
+      "openTopic": "Thema öffnen",
+      "emptyTitle": "Nichts abzunehmen",
+      "emptyHint": "Sobald die Routine ein Thema geshippt oder an ein Issue übergeben hat, wartet es hier auf deine Abnahme."
     }
   },
   "feedbackFab": {
@@ -1613,61 +1795,6 @@
       "removed": "Entfernt",
       "deprecated": "Veraltet",
       "security": "Sicherheit"
-    }
-  },
-  "printGuide": {
-    "linkLabel": "3D-Druck",
-    "title": "3D-Druck-Guide",
-    "subtitle": "Wie die Community Star-Citizen-Schiffe in druckbare Modelle verwandelt — mit deinen eigenen Spieldateien, auf deinem eigenen Rechner.",
-    "legal": {
-      "title": "Anschauen ja — Download nein",
-      "p1": "Schiffsmodelle kannst du direkt hier im Codex ansehen (3D-Viewer): Spielinhalte zum ANSCHAUEN darzustellen ist die etablierte Community-Praxis, die CIG bei Fan-Tools duldet — dieselbe Grundlage, auf der alle Ship-Viewer-Seiten stehen. Es bleibt eine geduldete Grauzone, kein verbrieftes Recht.",
-      "p2": "Was diese App bewusst NICHT anbietet: extrahierte Geometrie zum Download oder zur Weiterverbreitung. Die RSI-EULA verbietet die Weiterverbreitung extrahierter Spiel-Assets, die Fankit- & Fandom-FAQ schließt das Anbieten von Spielinhalten zum Download durch Dritte aus, und Download-Modelle kollidieren mit CIGs eigenem lizenzierten Modell-Programm. Diese Seite erklärt deshalb den Workflow, den du selbst ausführst — auf deinem Rechner, mit deinen eigenen Spieldateien.",
-      "eulaLink": "RSI-Endnutzer-Lizenzvereinbarung (EULA)",
-      "faqLink": "Star Citizen Fankit- & Fandom-FAQ",
-      "affiliation": "Dies ist eine inoffizielle Fan-Site, nicht verbunden mit der Cloud-Imperium-Unternehmensgruppe. Star Citizen® ist eine eingetragene Marke der Cloud Imperium Rights LLC."
-    },
-    "workflow": {
-      "title": "Der Community-Workflow",
-      "extract": {
-        "title": "1. Aus der eigenen Data.p4k extrahieren",
-        "text": "Nutze ein lokales Extraktions-Tool (unp4k, StarFab) gegen die Data.p4k deiner eigenen Star-Citizen-Installation, um die CryEngine-Geometriedateien (.cgf / .cga) des gewünschten Schiffs zu ziehen."
-      },
-      "convert": {
-        "title": "2. In ein Standard-Mesh-Format konvertieren",
-        "text": "Konvertiere die CryEngine-Chunk-Dateien mit Cryengine-Converter oder StarBreaker nach COLLADA/glTF, oder importiere sie via SCExporter direkt in Blender."
-      },
-      "prep": {
-        "title": "3. In Blender druckfertig machen",
-        "text": "Spiel-Meshes sind nicht wasserdicht. Wende einen Solidify-Modifier für Wandstärke an, danach einen Remesh-Durchgang, um Löcher zu schließen und Submillimeter-Details zu reduzieren — dann als STL/3MF exportieren."
-      },
-      "slice": {
-        "title": "4. Slicen und drucken",
-        "text": "Importiere die STL in deinen Slicer, skaliere sie (Spieleinheiten sind keine Millimeter — nutze die echten Schiffsmaße aus unserem Codex als Referenz), füge Stützen hinzu und drucke."
-      }
-    },
-    "tools": {
-      "title": "Bewährte Community-Tools",
-      "hint": "Alle Tools sind Open-Source-Projekte von Dritten, die du lokal ausführst. Prüfe vor der Nutzung Dokumentation und Lizenz des jeweiligen Projekts.",
-      "unp4k": "Der klassische Data.p4k-Extraktor — entpackt Archiv-Einträge auf deine Festplatte.",
-      "starfab": "Extraktions-Frontend und Daten-Tooling für Star Citizen (StarFab-GUI auf Basis von scdatatools).",
-      "starbreaker": "Rust-Toolkit, das Spieldaten liest und Meshes nach glTF/GLB exportiert.",
-      "cryengineConverter": "Konvertiert CryEngine-.cgf/.cga-Chunk-Dateien nach COLLADA für den Blender-Import.",
-      "scexporter": "Blender-Add-on, das Star-Citizen-Geometrie direkt importiert."
-    },
-    "tips": {
-      "title": "Tipps zur Druckvorbereitung",
-      "watertight": "Spiel-Meshes sind Anzeige-Meshes: Löcher, sich schneidende Shells und Non-Manifold-Kanten sind normal — vor dem Slicen ist immer eine Reparatur nötig.",
-      "solidify": "Blenders Solidify-Modifier gibt papierdünnen Rumpfpaneelen eine druckbare Wandstärke (0,8–1,6 mm bei Schreibtisch-Modellgröße).",
-      "remesh": "Ein Voxel-Remesh schließt Lücken und verschmilzt Shells auf Kosten feiner Details — wähle die Voxelgröße passend zur Druckerauflösung.",
-      "scale": "Die Dateien haben keinen kanonischen Maßstab. Skaliere über echte Maße: Schau die Schiffslänge im Codex nach und skaliere das Modell auf deine Zielgröße.",
-      "lod": "Für Hero-Drucke das höchste LOD (LOD0) nehmen; niedrigere LODs slicen schneller und reichen für kleine Schreibtisch-Modelle.",
-      "cigGuide": "CIG-Community-Guide: Easy preparation of STL files for 3D printing"
-    },
-    "codex": {
-      "title": "Schiffsmaße aus dem Codex",
-      "text": "Jede Schiffsseite in unserem Codex listet echte Länge, Breite und Höhe aus den Spieldaten — die Referenz, um einen Druck korrekt zu skalieren.",
-      "cta": "Codex öffnen"
     }
   },
   "extension": {
@@ -1806,6 +1933,11 @@
     "loading": "Lädt…",
     "download": "Original herunterladen",
     "sourceArticle": "Quell-Comm-Link",
+    "share": {
+      "label": "Teilen",
+      "copied": "Link kopiert",
+      "failed": "Link konnte nicht kopiert werden"
+    },
     "close": "Schließen",
     "attribution": "Alle Bilder © Cloud Imperium Games — direkt vom RSI-CDN ausgeliefert, mit Verweis auf den Quell-Comm-Link. Fan-Galerie, kein Weiterverkauf, kein Re-Hosting.",
     "appTitle": "Desktop-Wallpaper-App",

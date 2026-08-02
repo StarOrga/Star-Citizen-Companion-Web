@@ -4,6 +4,8 @@ import type { PerformanceProfile, ProfileId, ETA } from '../lib/performance.js';
 import type { UploadPayload, UploadResult } from '../lib/uploader.js';
 import type { UploadJobState, JobNat } from '../lib/upload-job.js';
 import type { JobView } from '../main/upload-session.js';
+import type { ThrottleView, ThrottleSetResult } from '../main/throttle.js';
+import type { LiveProfileId } from '../lib/throttle-control.js';
 import type { AutoRunDecision } from '../lib/auto-run.js';
 
 /** The settings subset the UI is allowed to see (no installId). */
@@ -197,6 +199,21 @@ export const api = {
     ipcRenderer.invoke('sc:profiles'),
   estimate: (profileId: ProfileId, sizeBytes: number): Promise<ETA> =>
     ipcRenderer.invoke('sc:estimate', profileId, sizeBytes),
+  /**
+   * The LIVE performance profile. Separate from `profiles()` (which only lists
+   * the definitions) because this one is mutable while a job runs: main owns
+   * the current value and pushes it to the running sidecars.
+   */
+  perf: {
+    get: (): Promise<ThrottleView> => ipcRenderer.invoke('sc:perf:get'),
+    set: (profileId: LiveProfileId): Promise<ThrottleSetResult> =>
+      ipcRenderer.invoke('sc:perf:set', profileId),
+    onChanged: (cb: (v: ThrottleSetResult) => void): (() => void) => {
+      const listener = (_e: unknown, payload: ThrottleSetResult): void => cb(payload);
+      ipcRenderer.on('sc:perf:changed', listener);
+      return () => ipcRenderer.removeListener('sc:perf:changed', listener);
+    },
+  },
   authenticate: (): Promise<AuthResult> => ipcRenderer.invoke('sc:authenticate'),
   upload: (payload: UploadPayload): Promise<UploadResult> =>
     ipcRenderer.invoke('sc:upload', payload),

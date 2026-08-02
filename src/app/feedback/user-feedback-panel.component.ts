@@ -6,7 +6,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 // The composer and the markdown renderer live under admin/feedback for
 // historical reasons but are plain, admin-agnostic building blocks — reused
@@ -21,6 +20,7 @@ import { RenderedFeedbackBody, renderFeedbackBody } from '../admin/feedback/mark
 import { UserFeedbackService } from './user-feedback.service';
 import { draftScopes, memoScope } from './feedback-draft.types';
 import { AuthorFeedbackRow } from './user-feedback.types';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 /** Which half of the panel is on screen. */
 type UserFeedbackTab = 'compose' | 'mine';
@@ -44,7 +44,7 @@ type UserFeedbackTab = 'compose' | 'mine';
 @Component({
   selector: 'sc-user-feedback-panel',
   standalone: true,
-  imports: [DatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
+  imports: [ScDatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="panel-root">
@@ -123,7 +123,7 @@ type UserFeedbackTab = 'compose' | 'mine';
 
                 @if (isOpen(t.id)) {
                   <div class="topic-detail">
-                    <span class="ts">{{ t.created_at | date: 'short' }}</span>
+                    <span class="ts">{{ t.created_at | scDate: 'datetime' }}</span>
                     @let topicBody = render(t.body);
                     <div class="body" [innerHTML]="topicBody.html"></div>
                     <sc-feedback-attachments [images]="topicBody.images" />
@@ -146,7 +146,7 @@ type UserFeedbackTab = 'compose' | 'mine';
                               @if (msg.is_question) {
                                 <span class="reply-badge">{{ 'userFeedback.questionBadge' | translate }}</span>
                               }
-                              <span class="reply-ts">{{ msg.created_at | date: 'short' }}</span>
+                              <span class="reply-ts">{{ msg.created_at | scDate: 'datetime' }}</span>
                             </div>
                             @let replyBody = render(msg.body);
                             <div class="reply-body" [innerHTML]="replyBody.html"></div>
@@ -206,7 +206,7 @@ type UserFeedbackTab = 'compose' | 'mine';
     }
     .tab:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .tab.active { color: var(--sc-fg-0); border-color: var(--sc-accent); background: var(--sc-bg-2); }
-    .tab-count { font-size: 0.72rem; color: var(--sc-fg-2); }
+    .tab-count { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .tab-dot {
       width: 7px;
       height: 7px;
@@ -215,7 +215,7 @@ type UserFeedbackTab = 'compose' | 'mine';
     }
 
     .intro { margin: 0; font-size: 0.84rem; color: var(--sc-fg-2); line-height: 1.5; }
-    .privacy { margin: 0; font-size: 0.74rem; color: var(--sc-fg-2); opacity: 0.85; line-height: 1.45; }
+    .privacy { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); opacity: 0.85; line-height: 1.45; }
     .compose-pane, .mine-pane { display: flex; flex-direction: column; gap: 10px; }
 
     .err {
@@ -262,13 +262,13 @@ type UserFeedbackTab = 'compose' | 'mine';
       font-size: 0.86rem;
       color: var(--sc-fg-0);
     }
-    .ts { font-size: 0.72rem; color: var(--sc-fg-2); }
+    .ts { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     .status-pill {
       padding: 2px 8px;
       border-radius: 999px;
       border: 1px solid var(--sc-border);
-      font-size: 0.7rem;
+      font-size: max(0.7rem, var(--sc-fs-floor));
       white-space: nowrap;
       color: var(--sc-fg-2);
     }
@@ -297,7 +297,7 @@ type UserFeedbackTab = 'compose' | 'mine';
       background: var(--sc-bg-1);
     }
     .reply.is-admin { border-color: var(--sc-accent); }
-    .reply-head { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--sc-fg-2); }
+    .reply-head { display: flex; align-items: center; gap: 8px; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .reply-author { font-weight: 600; color: var(--sc-fg-1); }
     .reply-badge {
       padding: 1px 6px;

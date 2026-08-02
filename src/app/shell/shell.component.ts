@@ -24,15 +24,18 @@ import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
+import { isPlainLeftClick } from '../core/modified-click.util';
+import { SameRouteRefreshService } from '../core/same-route-refresh.service';
 import { FooterComponent } from './footer.component';
 import { QuickSearchComponent } from './quick-search.component';
 import { FeedbackFabComponent } from './feedback-fab.component';
 import { UserFeedbackFabComponent } from './user-feedback-fab.component';
+import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent, FeedbackFabComponent, UserFeedbackFabComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Routed views "develop" into focus as they mount — fade + slight rise, keyed
   // to a per-navigation counter so it replays on every switch. Header/footer are
@@ -47,14 +50,32 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
   ],
   template: `
     <header class="topbar">
-      <a class="brand" routerLink="/news" [attr.aria-label]="'nav.brandAria' | translate">
+      <!-- Wordmark: the "alpha" badge is CENTERED UNDER the title, not beside it
+           (feedback #79). It is absolutely positioned on purpose — the title's
+           own vertical position had to stay exactly where it was, so the badge
+           must not take part in the brand row's layout. -->
+      <!-- The brand is the "home" control: it points at /news, the app's home
+           route. Re-clicking it while already on /news refreshes the feed
+           instead of doing nothing (feedback 7532e639). -->
+      <a
+        class="brand"
+        routerLink="/news"
+        [attr.aria-label]="'nav.brandAria' | translate"
+        (click)="onNavActivate($event, '/news')">
         <img class="logo" src="icons/scc-favicon.svg" alt="" width="32" height="32" />
-        <span class="title">Star Citizen Companion</span>
-        <span class="sc-pill tech">alpha</span>
+        <span class="wordmark">
+          <span class="title">Star Citizen Companion</span>
+          <span class="alpha-badge">alpha</span>
+        </span>
       </a>
 
       <nav class="nav">
-        <a routerLink="/news" routerLinkActive="active">{{ 'nav.news' | translate }}</a>
+        <!-- Tapping the ALREADY ACTIVE entry reloads the page's data (feedback
+             7532e639) — the router drops a same-URL navigation, so without this
+             the second click is a dead control. -->
+        <a routerLink="/news" routerLinkActive="active" (click)="onNavActivate($event, '/news')">
+          {{ 'nav.news' | translate }}
+        </a>
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
         <a routerLink="/starscape" routerLinkActive="active">{{ 'nav.starscape' | translate }}</a>
         <!-- Hangar is intentionally NOT a top-level nav entry: it lives under the
@@ -84,6 +105,9 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
       </nav>
 
       <div class="actions">
+        <!-- "Is Star Citizen playable" — moved out of the Verse-News page into
+             the header, immediately left of the search (feedback #79). -->
+        <sc-verse-status-chip />
         <sc-quick-search />
 
         @if (!auth.user()) {
@@ -182,10 +206,15 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
       z-index: 10;
       flex-wrap: wrap;
     }
+    /* Header rhythm: brand left, nav dead centre, actions right (feedback #79).
+       Both flanks run on flex: 1 1 0, so they share the leftover width evenly
+       and the nav lands on the header's centre line rather than wherever the
+       brand happens to end. */
     .brand {
       display: flex;
       align-items: center;
       gap: 10px;
+      flex: 1 1 0;
       min-width: 200px;
       text-decoration: none;
       color: inherit;
@@ -195,16 +224,40 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
       height: 32px;
       filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
     }
+    /* Positioning context for the alpha badge only — the title is the sole item
+       in flow here, so the wordmark's box (and the title's baseline) is exactly
+       what it was before the badge moved underneath it. */
+    .brand .wordmark { position: relative; display: inline-flex; align-items: center; }
     .brand .title {
       font-family: var(--sc-font-display);
       letter-spacing: 0.1em;
       text-transform: uppercase;
       font-weight: 600;
     }
+    /* Out of flow (see .wordmark): centred under the title, in a light italic
+       script hand so it reads as a hand-written margin note rather than a
+       second badge competing with the wordmark. */
+    .brand .alpha-badge {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translate(-50%, 1px);
+      pointer-events: none;
+      font-family: 'Segoe Script', 'Brush Script MT', 'Snell Roundhand', cursive;
+      font-style: italic;
+      font-size: max(0.72rem, var(--sc-fs-floor));
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: 0.06em;
+      color: color-mix(in srgb, var(--sc-accent) 85%, transparent);
+      text-shadow: 0 0 8px color-mix(in srgb, var(--sc-accent) 30%, transparent);
+      white-space: nowrap;
+    }
     .nav {
       display: flex;
       gap: 4px;
-      flex: 1;
+      flex: 0 1 auto;
+      justify-content: center;
       flex-wrap: wrap;
     }
     .nav a {
@@ -254,7 +307,7 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
       background: color-mix(in srgb, var(--sc-bg-2) 88%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent);
       -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-      font-family: var(--sc-font-display); font-size: 0.62rem; letter-spacing: 0.16em;
+      font-family: var(--sc-font-display); font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.16em;
       text-transform: uppercase; color: var(--sc-accent);
       animation: sc-reveal-in 0.3s ease both;
     }
@@ -271,6 +324,8 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
       display: flex;
       gap: 8px;
       align-items: center;
+      flex: 1 1 0;
+      justify-content: flex-end;
     }
     .signin-btn {
       text-decoration: none;
@@ -338,7 +393,7 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
       overflow-wrap: anywhere;
     }
     .dropdown-header .dh-email {
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       color: var(--sc-fg-2);
       overflow-wrap: anywhere;
     }
@@ -352,7 +407,7 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
       border-radius: 4px;
       color: var(--sc-fg-1);
       font-family: var(--sc-font-display);
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       letter-spacing: 0.06em;
       text-transform: uppercase;
       text-decoration: none;
@@ -367,17 +422,23 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
     }
     .dropdown-item:disabled { opacity: 0.5; cursor: default; }
 
+    /* Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
+       heading is not marooned in empty space (feedback #79, item 5). The
+       reclaimed space is reused below the heading by the pages themselves. */
     .content {
       flex: 1;
       width: 100%;
-      padding: 32px 28px;
+      padding: 26px 28px 32px;
       max-width: 1280px;
       margin: 0 auto;
     }
     @media (max-width: 720px) {
       .topbar { gap: 12px; padding: 10px 16px; }
-      .brand { min-width: 0; }
+      .brand { min-width: 0; flex: 0 0 auto; }
       .brand .title { display: none; }
+      /* Without the title there is nothing to sit under — the badge goes back
+         beside the logo so it does not float over the header edge. */
+      .brand .alpha-badge { position: static; transform: none; }
       /* Nav becomes a horizontally-scrollable strip so links never overflow
          the row or wrap awkwardly onto multiple lines. */
       .nav {
@@ -391,7 +452,7 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
         padding: 2px 16px;
       }
       .nav::-webkit-scrollbar { display: none; }
-      .nav a { padding: 8px 12px; font-size: 0.72rem; white-space: nowrap; flex: 0 0 auto; }
+      .nav a { padding: 8px 12px; font-size: max(0.72rem, var(--sc-fs-floor)); white-space: nowrap; flex: 0 0 auto; }
       .actions { flex: 1; justify-content: flex-end; }
       .content { padding: 20px 16px; }
     }
@@ -411,6 +472,7 @@ export class ShellComponent {
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly sameRoute = inject(SameRouteRefreshService);
 
   readonly signingOut = signal(false);
   readonly menuOpen = signal(false);
@@ -438,6 +500,18 @@ export class ShellComponent {
       }
     });
     this.destroyRef.onDestroy(() => this.clearNavTimers());
+  }
+
+  /**
+   * A nav anchor was activated. These stay real `<a [routerLink]>` links, so
+   * middle click / Ctrl+⌘+Shift+click keep opening a new tab — those never mean
+   * "refresh this view" and are handed straight back to the browser. Only the
+   * plain left click can be a same-route re-activation, and only then does the
+   * routed page get asked to reload its data.
+   */
+  onNavActivate(event: MouseEvent, path: string): void {
+    if (!isPlainLeftClick(event)) return;
+    this.sameRoute.request(path);
   }
 
   /** A routed view mounted — replay the content reveal. */

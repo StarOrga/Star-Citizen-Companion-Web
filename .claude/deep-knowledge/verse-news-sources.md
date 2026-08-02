@@ -20,6 +20,57 @@ Fields used: `id`, `title`, `rsi_url` (the canonical RSI permalink — **not** `
 
 **Some entries return `images: []` even with `include=images`.** The "Roadmap Roundup" Transmission series is the recurring offender — the wiki scraper never captures its hero image (`images_count: 0` for every entry). For any comm-link that comes back without images, `fetch-verse-news` falls back to scraping the `og:image` (then `twitter:image`) meta tag from the RSI permalink (`backfillMissingImages` / `fetchOgImage`). That og:image is a `media.robertsspaceindustries.com/<id>/heap_thumb.png` url, so the existing variant-swap + cache pipeline turns it into the durable `post`/`cover` copies unchanged. Only RSI-hosted og urls are accepted (the page is untrusted); fallback is bounded to `MAX_OG_FALLBACK` entries per request.
 
+## Primary for patch notes: Spectrum forum 190048
+
+- Endpoint: `POST https://robertsspaceindustries.com/api/spectrum/forum/channel/threads`
+  with `{ channel_id: 190048, page, sort: 'newest' }` and header `X-Tavern-Id: 1`.
+- `X-Tavern-Id` is the **community** id (1 = Star Citizen), not the channel — the
+  same value for the Announcements forum (`channel_id` 1) and this one.
+- Channel 190048 is the SC "Patch Notes" forum and is where RSI publishes
+  **everything**: the LIVE release notes, every PTU/Evocati wave, the point
+  releases (4.8.1, 4.8.2) and the rolling "Hotfix Central" threads.
+
+None of that reaches the Comm-Link wiki API. Before feedback 44e90e30 the `patch`
+channel was fed only by comm-links whose *series* string happened to contain
+"patch"/"release"/"hotfix" — in practice near-zero, so 4.9 and its hotfixes never
+appeared at all while RSI's own site had them.
+
+`fetchPatchNotes` reads two pages (~100 threads ≈ the last half-dozen patch
+lines, back roughly nine months) and dedupes by thread id: **pinned threads are
+repeated at the top of every page**, so without that the current release notes
+would appear once per page fetched.
+
+These threads carry no `media_preview` and we do not ask for one
+(`mapSpectrumThread` `withImage: false`) — so patch notes cost nothing in the
+image cache, the wallpaper crawl, or storage. The client renders the channel
+placeholder.
+
+`time_modified` looks like an "edited at" but tracks the **last reply** (it moves
+in lockstep with `replies_count`), so it is deliberately not surfaced: an
+"updated 2 days ago" badge would mean "someone commented", not "there are new
+notes". A LIVE hotfix thread announces its own updates in its title instead
+("Hotfix Central (Updated 7.30.2026)").
+
+### Grouping is client-side and data-derived
+
+`src/app/news/patch-notes.ts` parses the version out of each title and groups by
+**main patch line** (first two segments), newest line first, entries newest first
+inside a line — the shape feedback 44e90e30 asked for. Nothing is keyed off a
+list of known versions, so 4.10 and 5.0 group themselves.
+
+Two traps the parser exists to avoid:
+
+1. **Numeric ordering.** `4.10` sorts ABOVE `4.9`. Segments are compared as
+   numbers; a string compare puts 4.10 below 4.9.
+2. **Dates and build numbers in titles.** `(Updated 7.30.2026)` would otherwise
+   open a patch line "7.30", and `12358556` is a build number, not a version. The
+   version is read from the `Alpha <x.y[.z]>` anchor first, and the generic
+   fallback rejects any token adjacent to more digits or dots.
+
+Patch notes are excluded from the time buckets (`Heute / Diese Woche / Älter`) in
+every channel view — they own their own section, and the `patch` filter chip
+narrows the page down to it.
+
 ## Secondary: RSI status RSS
 
 - Endpoint: `https://status.robertsspaceindustries.com/index.xml`

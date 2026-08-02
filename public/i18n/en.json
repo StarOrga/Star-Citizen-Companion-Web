@@ -25,7 +25,7 @@
     "admin": "Users",
     "desktop": "Data Upload",
     "signOut": "Sign out",
-    "brandAria": "Star Citizen Companion (SCC)",
+    "brandAria": "Star Citizen Companion (SCC) — go to the home page (Verse News)",
     "langAria": "Language",
     "accountMenu": "Account menu",
     "telemetry": "Telemetry",
@@ -66,8 +66,6 @@
         "hangarSub": "Ships you own",
         "fresh": "Fresh this patch",
         "freshSub": "Ships in the current live build",
-        "popular": "Popular to compare",
-        "popularSub": "Community favourites, side by side",
         "role": "Explore by manufacturer",
         "roleSub": "Ships grouped by their maker"
       }
@@ -313,7 +311,8 @@
       "whereToBuyTerminal": "Terminal",
       "whereToBuyLocation": "Location",
       "whereToBuyAttribution": "Prices from UEX Corp — community-maintained, may not reflect live servers. Not affiliated with Cloud Imperium Games.",
-      "moduleOrderHint": "Configurable modules come first — weapons and their mounts, turrets, ordnance, pods, shields, power plant, quantum drive, radar, coolers, life support. Everything fixed sits below. Click any module for its full stat table."
+      "moduleOrderHint": "Configurable modules come first — weapons and their mounts, turrets, ordnance, pods, shields, power plant, quantum drive, radar, coolers, life support. Everything fixed sits below. Click any module for its full stat table.",
+      "loadoutEmptyWeaponMount": "Weapon mount — no stock weapon in this extract"
     },
     "swap": {
       "pickerTitle": "Swap module",
@@ -338,7 +337,10 @@
       "appliesToMany": "Applies to all {{count}} identical hardpoints",
       "matched": "{{shown}} of {{total}} compatible items",
       "sortHint": "Click a column to sort, Ctrl-click to add a secondary sort.",
-      "missingColumns": "Not in this data extract, so not shown as a column: {{fields}}."
+      "missingColumns": "Not in this data extract, so not shown as a column: {{fields}}.",
+      "installedNone": "Bay empty (stock)",
+      "pickHere": "Pick one",
+      "fitInferred": "This bay ships empty. The list comes from an identical, fitted bay on the same ship — not from this hardpoint’s own data."
     },
     "statGroup": {
       "identity": "Identity",
@@ -453,7 +455,15 @@
       "distortion": "Distortion capacity",
       "derivedHint": "Derived value, calculated from other extracted stats.",
       "noStats": "No stats for this weapon in the current extract.",
-      "armamentMissing": "{{count}} weapon mounts carry no stock weapon in this extract — the game keeps default weapon fits in a separate record that our P4K extractor does not resolve yet."
+      "armamentMissing": "{{count}} weapon mounts carry no stock weapon in this extract — the game keeps default weapon fits in a separate record that our P4K extractor does not resolve yet.",
+      "missileCount": "Missiles",
+      "missileSize": "Missile size",
+      "cmInfrared": "Infrared signature",
+      "cmElectromagnetic": "EM signature",
+      "cmCrossSection": "Cross section",
+      "cmRadius": "Cloud radius",
+      "cmCloudLifetime": "Cloud duration",
+      "cmLifetime": "Round lifetime"
     },
     "shipLink": {
       "add": "Add pledge link",
@@ -488,7 +498,10 @@
       "coolers": "Coolers",
       "lifeSupport": "Life support",
       "structure": "Airframe & fixed systems",
-      "fixedTag": "not configurable"
+      "fixedTag": "not configurable",
+      "countermeasures": "Countermeasures",
+      "shieldsNote": "Shield generators are the swappable shield bays; the shield control module manages them and is not a generator itself. Every generator bay this hull has is listed here, including the ones that ship empty.",
+      "countermeasuresNote": "Decoys pull heat-seeking missiles away, noise (chaff) blinds radar-guided ones. How many you need depends on the signature values of the round that is fired — this extract does not link a launcher to its round, so no per-launcher signature values are shown."
     },
     "summary": {
       "title": "Combat readout",
@@ -514,7 +527,7 @@
       "plantDistortion": "Plant distortion pool",
       "gap": {
         "noStockGuns": "This hull's stock guns are not in the extract — the game keeps default weapon fits in a separate loadout record we do not resolve yet, so the mounts below show the seat rather than the gun.",
-        "noFireRate": "No fire rate in the 4.9.0 extract, so sustained DPS cannot be derived yet.",
+        "noFireRate": "No fire rate in this extract{{patch}}, so sustained DPS cannot be derived yet.",
         "noShields": "No shield generator in this ship's stock loadout.",
         "noHullHp": "Hull HP is not part of the P4K extract yet.",
         "noResistances": "Per-channel damage resistances are not extracted — no ship or armour entity carries them.",
@@ -545,6 +558,10 @@
       "noStats": "The current extract carries no values for this item.",
       "openDetail": "Open full catalog entry",
       "openStats": "Show all values"
+    },
+    "moduleRole": {
+      "shieldGenerator": "Generator",
+      "shieldController": "Control module"
     }
   },
   "blueprint": {
@@ -622,7 +639,7 @@
   },
   "news": {
     "title": "Verse News",
-    "subtitle": "Live Comm-Link, Spectrum, YouTube & patches — auto-refresh every 5 min.",
+    "subtitle": "Live Comm-Link, Spectrum, YouTube & patches",
     "loading": "Loading…",
     "newPosts": "{{count}} new posts ↑",
     "newPost": "1 new post ↑",
@@ -631,6 +648,7 @@
     "emptyFavorites": "No saved posts yet — tap ☆ on any post to collect it here.",
     "errorTitle": "Could not load news",
     "lastUpdated": "Updated {{rel}}",
+    "refreshing": "Refreshing…",
     "status": {
       "title": "Star Citizen Live",
       "operational": "Playable",
@@ -683,6 +701,78 @@
       "scrollPrev": "Previous videos",
       "scrollNext": "More videos"
     },
+    "patch": {
+      "title": "Patch Notes",
+      "hint": "Grouped by main patch — newest first",
+      "line": "Alpha {{version}}",
+      "otherLine": "Without a version",
+      "hotfix": "Hotfix",
+      "current": "Currently live",
+      "stage": {
+        "live": "Live",
+        "ptu": "PTU",
+        "evocati": "Evocati"
+      },
+      "facet": {
+        "live": "Live",
+        "hotfix": "Hotfix",
+        "ptu": "PTU",
+        "evocati": "Evocati",
+        "other": "Other"
+      },
+      "filter": {
+        "version": "Version",
+        "channel": "Channel",
+        "all": "All",
+        "versionAria": "Filter patch notes by version",
+        "channelAria": "Filter patch notes by channel",
+        "empty": "No patch notes match this selection.",
+        "reset": "Reset filters"
+      },
+      "latest": {
+        "title": "Newest per channel",
+        "hint": "At most one entry per channel"
+      },
+      "history": {
+        "title": "History"
+      },
+      "kpi": {
+        "title": "Patch performance",
+        "sub": "Latest versus the all-time average",
+        "average": "All-time avg",
+        "samplesLabel": "Based on",
+        "samples": "{{n}} data points",
+        "goto": "Show {{title}}",
+        "pause": "Pause rotation",
+        "play": "Resume rotation",
+        "deltaFaster": "{{n}} days faster than average",
+        "deltaSlower": "{{n}} days slower than average",
+        "deltaMore": "{{n}} more than average",
+        "deltaLess": "{{n}} fewer than average",
+        "deltaSame": "exactly on average",
+        "axisFrom": "last {{days}} days",
+        "axisNow": "now",
+        "barNotes": "{{n}} patch notes up to {{date}}",
+        "barDays": "Alpha {{version}}: {{n}} days",
+        "chartAria": "{{title}}: currently {{latest}} {{unit}}, average {{average}} {{unit}} across {{n}} data points",
+        "unit": {
+          "days": "days",
+          "notes": "patch notes"
+        },
+        "volume": {
+          "title": "Patch notes over time",
+          "sub": "Posts per {{days}} days"
+        },
+        "leadTime": {
+          "title": "PTU → Live",
+          "sub": "Days from the first test build to the live release"
+        },
+        "cadence": {
+          "title": "Patch cadence",
+          "sub": "Days between two live releases"
+        }
+      }
+    },
     "detail": {
       "close": "Close"
     },
@@ -694,6 +784,7 @@
       "hours": "{{n}}h ago",
       "yesterday": "yesterday",
       "days": "{{n}} days ago",
+      "week": "1 week ago",
       "weeks": "{{n}} weeks ago"
     },
     "upcomingShips": {
@@ -802,9 +893,62 @@
       "errTaken": "That username is already taken.",
       "errGeneric": "Could not save username. Please try again."
     },
-    "language": {
-      "title": "Language",
-      "label": "Language"
+    "locale": {
+      "title": "Language & region",
+      "hint": "The language picks the translation and the spelled-out month names; the region picks the order of the date fields and the clock convention. “Automatic” follows whatever your browser reports.",
+      "auto": "Automatic",
+      "detected": "Detected automatically: {{value}}",
+      "preview": "Example",
+      "language": {
+        "label": "Language"
+      },
+      "region": {
+        "label": "Region"
+      },
+      "languages": {
+        "de": "German",
+        "en": "English"
+      },
+      "regions": {
+        "DE": "Germany",
+        "AT": "Austria",
+        "CH": "Switzerland",
+        "GB": "United Kingdom",
+        "IE": "Ireland",
+        "US": "United States",
+        "CA": "Canada",
+        "FR": "France",
+        "IT": "Italy",
+        "ES": "Spain",
+        "PT": "Portugal",
+        "NL": "Netherlands",
+        "BE": "Belgium",
+        "LU": "Luxembourg",
+        "DK": "Denmark",
+        "SE": "Sweden",
+        "NO": "Norway",
+        "FI": "Finland",
+        "PL": "Poland",
+        "CZ": "Czechia",
+        "HU": "Hungary",
+        "RO": "Romania",
+        "GR": "Greece",
+        "TR": "Türkiye",
+        "RU": "Russia",
+        "UA": "Ukraine",
+        "BR": "Brazil",
+        "MX": "Mexico",
+        "AR": "Argentina",
+        "AU": "Australia",
+        "NZ": "New Zealand",
+        "ZA": "South Africa",
+        "IN": "India",
+        "JP": "Japan",
+        "CN": "China",
+        "KR": "South Korea",
+        "SG": "Singapore",
+        "AE": "United Arab Emirates"
+      }
     },
     "composer": {
       "title": "Input",
@@ -1043,7 +1187,8 @@
       "summary": {
         "title": "In short",
         "noAds": "No advertising, no ad networks.",
-        "noTracking": "No advertising trackers. Product analytics run through PostHog on EU servers to improve the app.",
+        "signIn": "There are exactly two ways to sign in: e-mail address and password, or your Google account. The Google route is optional and does send data to Google.",
+        "noTracking": "No advertising trackers. Product analytics via PostHog (EU) only run if you allow them — off by default.",
         "minimal": "Only the data the features need — nothing is sold or shared for marketing.",
         "euHosting": "Application data is stored in the EU (Supabase, region eu-central-1 / Frankfurt)."
       },
@@ -1054,28 +1199,51 @@
       },
       "account": {
         "title": "Account and application data",
-        "p1": "If you create an account, your e-mail address and a salted password hash are processed by our backend provider Supabase in the EU region eu-central-1 (Frankfurt). Optionally you can sign in with Google; in that case Google learns that you signed in to this site, and we receive your e-mail address from Google.",
-        "p2": "Feature data you create (profile, hangar ships, loadouts, settings) is stored under your account and is only readable by you — enforced with row-level security in the database.",
-        "p3": "Accounts are invite-only. Sign-ups that are not approved can be removed together with their data."
+        "p1": "You only need an account for the personal features (hangar, loadouts, settings, feedback). News, codex and release notes work without one. There are exactly two ways to sign in: e-mail address plus password, or the \"Continue with Google\" button. The app uses no other method — no magic links, no SMS codes, no further social logins — and there is no sign-up form: accounts are created by an invitation an administrator sends to your e-mail address.",
+        "p2": "For sign-in, our backend provider Supabase keeps an auth record about you in the EU region eu-central-1 (Frankfurt): your e-mail address, a salted password hash when you use password sign-in (never the plaintext password), the linked sign-in methods, and timestamps such as invitation, creation and last sign-in.",
+        "p3": "On top of that there is a profile record with what the app needs for you: a display name (initially the part of your e-mail address before the @), the username you pick yourself, your language and game-channel preference, optionally your RSI handle and your flagship, plus your role (viewer, collaborator, admin) and whether your account is approved. Role and approval decide what you may see and do.",
+        "p4": "Feature data you create (hangar ships, loadouts, ship links, saved drafts, settings) is stored under your account and is only readable by you — enforced with row-level security in the database. One obvious exception: feedback you send is visible to the maintainers, with your account as the sender so they can reply.",
+        "p5": "Accounts are invite-only. Sign-ups that are not approved never get past the login page and can be removed together with their data."
+      },
+      "google": {
+        "title": "Signing in with Google",
+        "p1": "The Google route is optional — e-mail and password get you in without Google. When you tap \"Continue with Google\", the app sends you to Google's sign-in page (accounts.google.com). Google thereby learns that you are signing in to SC Companion, along with the technical data every page visit carries (IP address, browser, time). The provider is Google Ireland Limited (Ireland) or Google LLC (USA).",
+        "p2": "After a successful sign-in, Google returns data to us that Supabase stores in your account's auth record: your Google account id, your e-mail address, the name you have on file with Google, and the URL of your Google profile picture. Almost none of it is displayed — your name appears in the account menu, and only for as long as you have not set your own username; the app never loads your profile picture, it only shows the first letter as an initial.",
+        "p3": "Nothing flows back to Google beyond the sign-in itself — no hangar, codex or usage data. What Google does with the sign-in data on its side is governed by Google's own privacy policy:",
+        "policyLink": "Google's privacy policy (policies.google.com/privacy)",
+        "p4": "The legal basis for this route is your consent (Art. 6(1)(a) GDPR): you decide anew at every sign-in whether to use it. If you want to get rid of an existing Google link, contact the maintainers via the routes in the site notice."
       },
       "local": {
-        "title": "Cookies and local storage",
-        "p1": "SCC sets no third-party tracking cookies. Your browser's local storage keeps the sign-in session token, language preference and UI state. As an installable web app (PWA), a service worker caches static assets on your device for faster loading and offline use — this cache contains no personal data and can be cleared by uninstalling the app or clearing site data."
+        "title": "Cookies, local storage and your session",
+        "p1": "SCC sets no cookies — neither its own nor any from ad networks. Instead the app uses your browser's local storage, for these entries:",
+        "keys": {
+          "session": "sc.auth — your sign-in session: a short-lived access token and a refresh token from Supabase. While you stay signed in, the app renews the access token automatically in the background; signing out deletes the entry. Clearing your browser's site data signs you out as well.",
+          "lang": "sc.lang — your language choice.",
+          "consent": "sc.consent — your decision about the storage categories, so we do not ask again on every visit.",
+          "composer": "sc.composer.sendOnEnter — whether the Enter key sends in the feedback box or adds a new line.",
+          "preferences": "\"Preferences\" category — convenience state such as news filters, saved articles and favorited ships. Only written if you allow it; withdrawing your consent deletes those entries immediately.",
+          "statistics": "\"Statistics\" category — the state of the anonymous product analytics (PostHog). Only created if you allow it; withdrawing your consent deletes it immediately."
+        },
+        "p2": "During a Google sign-in there is briefly one extra entry in session storage (sc.oauth-redirect-qs) so that you land back on the page you came from. It disappears when the tab closes at the latest.",
+        "p3": "If you explicitly authorize one of our desktop tools (data uploader, Starscape), the browser hands your session's access token to the program running locally on your machine (127.0.0.1) — not to a third party, and never via the address bar.",
+        "p4": "As an installable web app (PWA), a service worker caches static assets on your device for faster loading and offline use — this cache contains no personal data and can be cleared by uninstalling the app or clearing site data."
       },
       "thirdParty": {
         "title": "Third-party services",
         "p1": "The app talks to a small, fixed set of services (also technically enforced by our Content-Security-Policy):",
-        "supabase": "Supabase (database, authentication) — EU region eu-central-1.",
-        "vercel": "Vercel (hosting, CDN) — delivery of the static app.",
-        "google": "Google Sign-In (optional) — only if you choose to sign in with Google.",
-        "posthog": "PostHog (product analytics and error diagnostics) — EU cloud, loaded through a first-party proxy; captures usage events and errors to improve the app.",
+        "supabase": "Supabase (database, authentication, file storage) — EU region eu-central-1 (Frankfurt); processes your account and application data on our behalf.",
+        "vercel": "Vercel Inc. (hosting, CDN) — delivery of the static app.",
+        "google": "Google Sign-In (Google Ireland Limited / Google LLC) — only if you choose to sign in with Google; details in the \"Signing in with Google\" section.",
+        "posthog": "PostHog (product analytics and error diagnostics) — EU cloud (eu.i.posthog.com); captures anonymous usage events and errors, and only after you consent.",
         "fonts": "Google Fonts — font files are loaded from Google servers; Google may see your IP address.",
+        "rsiMedia": "Images in the Verse news are partly loaded straight from Roberts Space Industries servers (media.robertsspaceindustries.com, theverse.robertsspaceindustries.com) — RSI sees your IP address while they load.",
         "gameApis": "Public Star Citizen data: status.robertsspaceindustries.com and api.star-citizen.wiki (read-only, no account data is sent)."
       },
       "rights": {
         "title": "Your rights",
-        "p1": "Under the GDPR you have the right to access, rectification, erasure, restriction of processing, data portability and objection regarding your personal data.",
-        "p2": "You can delete your account and its data in the app settings, or contact the maintainers via the site notice — we will handle requests promptly."
+        "p1": "Under the GDPR you have the right to access, rectification, erasure, restriction of processing, data portability and objection regarding your personal data. You may also lodge a complaint with a data protection supervisory authority.",
+        "p2": "Your account can be deleted completely: removing the auth record also removes profile, hangar, loadouts, drafts and uploads through the database cascade. Right now the deletion is carried out by an administrator — the delete button in the settings only works for accounts with the admin role. Request it via the contact routes in the site notice; requests are handled promptly.",
+        "p3": "You can withdraw your consent for preference storage and statistics at any time in the settings; withdrawal deletes the affected local entries immediately and applies going forward — the lawfulness of processing up to that point is unaffected."
       }
     },
     "imprint": {
@@ -1346,6 +1514,15 @@
   "adminFeedback": {
     "title": "Feedback Board",
     "subtitle": "Admins-only channel. Post what could be better — the nightly routine picks up open items, ships them, and marks them here.",
+    "heartbeat": {
+      "online": "Dev PC reachable",
+      "offline": "Dev PC unreachable",
+      "unknown": "Dev PC status unknown",
+      "onlineTitle": "Dev PC reachable — the feedback routine checked in {{time}}. New topics are being worked.",
+      "offlineTitle": "Dev PC unreachable — the feedback routine last checked in {{time}}. Machine off, Claude not running, or usage limit reached; new topics wait until it is back.",
+      "unknownTitle": "Status unknown — no sign of the feedback routine yet.",
+      "ariaLabel": "{{title}} — {{state}}"
+    },
     "refresh": "Refresh",
     "loading": "Loading…",
     "empty": "No feedback yet. Be the first to post.",
@@ -1461,6 +1638,7 @@
       "label": "Switch view",
       "overview": "Overview",
       "workflow": "Process",
+      "review": "Sign-off",
       "progress": "Progress"
     },
     "cheer": {
@@ -1584,8 +1762,12 @@
       "headlineShipped": "Shipped — please sign off",
       "headlineIssue": "Handed to an issue — please sign off",
       "hint": "Look at the result on the live app. If it is right, the topic is done. If it is not, pick the conversation back up — the topic returns to the routine’s queue.",
-      "accept": "Sign off — done",
-      "reopen": "Resume the conversation"
+      "accept": "To the archive — done",
+      "reopen": "Resume the conversation",
+      "queueTitle": "Done — please check and tick off",
+      "openTopic": "Open topic",
+      "emptyTitle": "Nothing to sign off",
+      "emptyHint": "As soon as the routine ships a topic or hands it to an issue, it waits here for your sign-off."
     }
   },
   "feedbackFab": {
@@ -1613,61 +1795,6 @@
       "removed": "Removed",
       "deprecated": "Deprecated",
       "security": "Security"
-    }
-  },
-  "printGuide": {
-    "linkLabel": "3D Printing",
-    "title": "3D Printing Guide",
-    "subtitle": "How the community turns Star Citizen ships into printable models — using your own game files, on your own machine.",
-    "legal": {
-      "title": "Viewing is fine — downloads are not",
-      "p1": "You can inspect ship models right here in the codex (3D viewer): rendering game content for VIEWING is the established community practice that CIG tolerates across fan tools — the same ground every ship viewer site stands on. It remains a tolerated grey area, not a granted right.",
-      "p2": "What this app deliberately does NOT offer: extracted geometry for download or redistribution. The RSI EULA prohibits redistributing extracted game assets, the Fankit & Fandom FAQ rules out offering game content for download by others, and downloadable models collide with CIG’s own licensed model program. So this page explains the workflow you run yourself, on your own machine, with your own game files.",
-      "eulaLink": "RSI End User License Agreement",
-      "faqLink": "Star Citizen Fankit & Fandom FAQ",
-      "affiliation": "This is an unofficial fan site, not affiliated with the Cloud Imperium group of companies. Star Citizen® is a registered trademark of Cloud Imperium Rights LLC."
-    },
-    "workflow": {
-      "title": "The community workflow",
-      "extract": {
-        "title": "1. Extract from your own Data.p4k",
-        "text": "Use a local extraction tool (unp4k, StarFab) against the Data.p4k of your own Star Citizen installation to pull the CryEngine geometry files (.cgf / .cga) of the ship you want."
-      },
-      "convert": {
-        "title": "2. Convert to a standard mesh format",
-        "text": "Convert the CryEngine chunk files to COLLADA/glTF with Cryengine-Converter or StarBreaker, or import them into Blender directly via SCExporter."
-      },
-      "prep": {
-        "title": "3. Prepare for printing in Blender",
-        "text": "Game meshes are not watertight. Apply a Solidify modifier for wall thickness, then a Remesh pass to close holes and reduce sub-millimetre detail before exporting STL/3MF."
-      },
-      "slice": {
-        "title": "4. Slice and print",
-        "text": "Import the STL into your slicer, scale it (game units are not millimetres — use the real ship dimensions from our Codex as reference), add supports and print."
-      }
-    },
-    "tools": {
-      "title": "Vetted community tools",
-      "hint": "All tools are third-party, open-source projects you run locally. Check each project's documentation and license before use.",
-      "unp4k": "The classic Data.p4k extractor — unpacks game archive entries onto your disk.",
-      "starfab": "Extraction front-end and data tooling for Star Citizen (StarFab GUI on top of scdatatools).",
-      "starbreaker": "Rust toolkit that reads game data and exports meshes to glTF/GLB.",
-      "cryengineConverter": "Converts CryEngine .cgf/.cga chunk files into COLLADA for Blender import.",
-      "scexporter": "Blender add-on that imports Star Citizen geometry directly."
-    },
-    "tips": {
-      "title": "Print-prep tips",
-      "watertight": "Game meshes are display meshes: expect holes, intersecting shells and non-manifold edges — they always need repair before slicing.",
-      "solidify": "Blender's Solidify modifier gives paper-thin hull panels a printable wall thickness (0.8–1.6 mm at desk-model scale).",
-      "remesh": "A voxel Remesh pass closes gaps and merges shells at the cost of fine detail — pick the voxel size to match your printer's resolution.",
-      "scale": "There is no canonical scale in the files. Scale by real dimensions: look up the ship's length in the Codex and scale the model to your target size.",
-      "lod": "Prefer the highest LOD (LOD0) for hero prints; lower LODs slice faster and are fine for small desk models.",
-      "cigGuide": "CIG community guide: Easy preparation of STL files for 3D printing"
-    },
-    "codex": {
-      "title": "Ship dimensions from the Codex",
-      "text": "Every ship page in our Codex lists real length, width and height from the game data — the reference you need to scale a print correctly.",
-      "cta": "Open Codex"
     }
   },
   "extension": {
@@ -1806,6 +1933,11 @@
     "loading": "Loading…",
     "download": "Download original",
     "sourceArticle": "Source Comm-Link",
+    "share": {
+      "label": "Share",
+      "copied": "Link copied",
+      "failed": "Couldn't copy link"
+    },
     "close": "Close",
     "attribution": "All imagery © Cloud Imperium Games — served directly from the RSI CDN, linked with attribution to the source Comm-Link. Fan-made gallery, no re-sale, no re-hosting.",
     "appTitle": "Desktop Wallpaper App",

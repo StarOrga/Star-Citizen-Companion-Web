@@ -22,6 +22,14 @@ oldest `created_at` first.
 > query below stays exactly as it is. The gate is a second, human way into the
 > continuation loop that query (d) already implements — pressing a button instead
 > of having to remember to reply.
+>
+> Since feedback #79 the gate has its own step on the board: **Abnahme**, the
+> fourth tab of the view switch next to Übersicht / Abarbeiten / Fortschritt. It
+> collects every row the gate is holding (badge = how many), and each row carries
+> the same two decisions the in-card gate has — "Ins Archiv — erledigt"
+> (`reviewed_at`) and "Gespräch wieder aufnehmen" (`status = 'open'`) — so a
+> finished topic can be filed without opening the Archive tab. Still no new
+> status value, still nothing the routine reads.
 
 Status lifecycle the routine drives:
 
@@ -302,6 +310,103 @@ issue **and its sub-issues** for open/merged PRs — `gh issue view <n>`,
 covers. Re-check `origin/main` immediately before the serial merge; on a
 conflict, reconcile *toward what already shipped* and keep only the unique
 delta rather than forcing the merge through.
+
+## Liveness heartbeat (STEP 0.5 — the very first thing every cycle)
+
+The routine runs on **Jerry's PC**, not in the cloud. When the machine is off,
+Claude isn't running, or the usage limit is reached, the routine simply doesn't
+fire — and says nothing. From the board that is indistinguishable from "the
+queue is empty and everything is fine": an admin files a topic, sees it sitting
+at `open`, and has no way to tell whether it is queued at a working machine or
+at a dark one. Feedback `a7573f0e` asked for exactly that missing bit — "zeig
+mir an, ob der PC erreichbar ist" — and pointed at the obvious source: the
+routine already polls this board every ~20 minutes, so **the poll itself is the
+proof of life**. It only ever needed somewhere to leave a mark.
+
+**Every cycle, as its FIRST action** — before STEP 1.5's reaper, before STEP 1's
+queue read, and above all before any "queue empty → stop" exit — the routine
+stamps `public.routine_heartbeat` (migration
+`20260730173500_routine_heartbeat.sql`):
+
+```sql
+insert into public.routine_heartbeat (id, last_seen_at, note, updated_at)
+values ('admin-feedback-routine', now(), '<short note>', now())
+on conflict (id) do update
+  set last_seen_at = now(), note = excluded.note, updated_at = now();
+```
+
+The ordering is the whole point. A cycle that finds nothing to do is still a
+cycle that *ran*, and it is by far the most common kind — stamping after the
+queue read (or after the reaper) would leave the title red through every quiet
+stretch and train the admin to ignore it. `<short note>` is a one-liner for the
+tooltip ("queue empty", "3 items claimed"); it is rendered verbatim to admins,
+so nothing private goes in it.
+
+### What the admin sees
+
+**The panel's own title carries it — nothing else appears on screen.**
+`src/app/admin/feedback/routine-status.directive.ts` (fed by
+`routine-heartbeat.service.ts`) tints whichever element already says
+"Feedback": the FAB panel head when docked or maximized, the `<h1>` on the full
+board page. The tint rules are global (`src/styles.scss`, "ROUTINE LIVENESS
+TINT") because the same signal has to reach all of those.
+
+| `now() - last_seen_at` | title | tooltip / screen reader |
+|---|---|---|
+| < 45 min | green | "Dev-PC erreichbar — … hat sich vor 5 Minuten gemeldet." |
+| ≥ 45 min | red | "Dev-PC nicht erreichbar — zuletzt vor 3 Stunden …" |
+| no row / query error | untinted | "Status unbekannt — bisher keine Rückmeldung." |
+
+The first cut of this was a line of its own — a dot plus the words "Dev-PC
+erreichbar" above the view switch — and the admin sent it back: *"Es soll nicht
+stehen 'Dev PC erreichbar' sondern nur der Titel oben 'Feedback' soll grün oder
+Rot markiert sein, also nichts stark Offensichtliches sondern was dezentes aber
+bemerkbares"*. A liveness light is glanced at, not read; it earns no real estate
+of its own.
+
+**The title is the word and nothing else.** The round after that one kept the
+wording as a visually hidden `<span>` inside the heading — and it showed up on
+screen as a prefix: *"Der Feedback Name ist aktuell (DEV-PC Erreichbar)Feedback
+— Sollte aber NUR 'Feedback' heißen, und das dann Rot oder Grün entsprechend
+einfärben"*. So the directive now injects **no DOM text at all**; a clip-rect
+span is only invisible while every stylesheet that could reach it behaves, and
+this one is a heading the admin looks at every day.
+
+**Colour is still never the only carrier.** The state rides on `aria-label`
+(`"Feedback — Dev-PC nicht erreichbar"`, composed from the title's own i18n key
+that `scRoutineStatus="…"` carries) plus the `title` attribute naming the last
+check-in on hover. Both are read by assistive tech and neither can leak into the
+layout, whatever CSS does or fails to load.
+
+**45 minutes, against a 20-minute cadence, is deliberate:** it tolerates ~2
+missed cycles. A tighter window (say 25 min) would flip red every time a cycle
+merely started late or ran long, and a status light that lies is worse than no
+status light. A much wider one would hide a genuinely dead routine for most of
+an hour.
+
+**Grey is a real third state, not an error bucket.** A missing row, an expired
+session, or a failed request says nothing whatsoever about the dev PC, and
+painting that red would be a claim the admin then has to go and disprove.
+
+**A usage-limit abort turns the title red on its own** — which is the property
+the feedback predicted ("denke das System wird damit automatisch auch erkennen
+wenn die Tokens verbraucht sind"). There is no token check anywhere: a run that
+dies on a usage limit, or never starts because Claude is closed, simply never
+reaches STEP 0.5, so `last_seen_at` stops advancing and ages past the window by
+itself. The same is true for a powered-off PC, a crashed run, and a disabled
+scheduled task. That is why the stamp must be **unconditional** — never guarded
+by "did we do any work" — and why it must not be moved later in the cycle.
+
+### Who may write it
+
+`public.routine_heartbeat` has RLS on, a SELECT policy gated on
+`public.is_admin()`, and **no insert/update/delete policy at all**. With RLS
+enabled and no write policy, every API write is refused, while the service role
+(which bypasses RLS) keeps stamping — that asymmetry is the security model.
+The routine writes it through the Supabase MCP / service role like every other
+STEP; the web app only ever reads. Do not add a write policy, and do not widen
+the read to `anon`/`authenticated`: whether the dev machine is up is admin
+business, and the table exists to answer that one question.
 
 ## Resuming interrupted work (stale-claim reaper)
 
@@ -1304,6 +1409,16 @@ Animations API, no dependency). All of it is suppressed under
 | `triaged`        | routine release gate; `true` for every admin row, `false` on a fresh user topic and again after its author answered, until an admin releases it |
 | `decision_note`  | the admin's explanation on a `declined` user topic — **author-visible** (only while the topic is declined) |
 | `status_before_author_question` | admin-only memo: the status a topic had when an admin asked its author something, restored by the answer |
+
+`public.routine_heartbeat` (see migration `20260730173500_routine_heartbeat.sql`)
+— one row per routine, overwritten in place; see "Liveness heartbeat" above:
+
+| column         | meaning                                                    |
+|----------------|------------------------------------------------------------|
+| `id`           | routine key, `admin-feedback-routine` for this routine      |
+| `last_seen_at` | start of the most recent cycle — the whole signal           |
+| `note`         | short one-liner shown in the admin tooltip; never secrets    |
+| `updated_at`   | bookkeeping, same instant as `last_seen_at` in practice      |
 
 ### Active vs. Archive (`issue_created`)
 

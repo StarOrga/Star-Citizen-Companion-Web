@@ -110,18 +110,18 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
     .ua-chev { color: var(--sc-accent-hot); transition: transform 0.16s ease; display: inline-block; }
     .ua-chev.open { transform: rotate(90deg); }
     .ua-title {
-      font-family: var(--sc-font-display); font-size: 0.74rem;
+      font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor));
       letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-accent-hot);
     }
-    .ua-hint { font-size: 0.72rem; color: var(--sc-fg-2); flex: 1 1 auto; }
-    .ua-ver { font-size: 0.7rem; color: var(--sc-fg-2); font-variant-numeric: tabular-nums; }
+    .ua-hint { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); flex: 1 1 auto; }
+    .ua-ver { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-variant-numeric: tabular-nums; }
 
     .ua-body { display: flex; flex-direction: column; gap: 8px; padding: 8px 0 0; max-width: 560px; }
-    .ua-err { margin: 0; font-size: 0.74rem; color: var(--sc-danger); }
+    .ua-err { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-danger); }
     .ua-links { display: flex; gap: 14px; flex-wrap: wrap; }
     .ua-link {
       background: transparent; border: 0; padding: 0; cursor: pointer;
-      font: inherit; font-size: 0.74rem; color: var(--sc-accent);
+      font: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-accent);
       text-decoration: underline; text-underline-offset: 2px;
     }
     .ua-link:hover { color: var(--sc-accent-hot); }

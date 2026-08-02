@@ -6,7 +6,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   API_TOKEN_SCOPES,
@@ -16,6 +15,7 @@ import {
   CreatedToken,
 } from './api-tokens.service';
 import { useAutoRefresh } from '../../core/auto-refresh';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 
 interface FlashMessage {
   kind: 'success' | 'error';
@@ -28,7 +28,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
 @Component({
   selector: 'sc-api-tokens',
   standalone: true,
-  imports: [DatePipe, TranslateModule],
+  imports: [ScDatePipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -116,9 +116,9 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
                   }
                 </td>
                 <td>
-                  {{ t.last_used_at ? (t.last_used_at | date:'short') : ('admin.tokens.neverUsed' | translate) }}
+                  {{ t.last_used_at ? (t.last_used_at | scDate: 'datetime') : ('admin.tokens.neverUsed' | translate) }}
                 </td>
-                <td>{{ t.created_at | date:'short' }}</td>
+                <td>{{ t.created_at | scDate: 'datetime' }}</td>
                 <td class="actions">
                   <button
                     class="sc-btn micro danger"
@@ -263,7 +263,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
       padding: 4px 12px;
       border-radius: 999px;
       font-family: var(--sc-font-display);
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       letter-spacing: 0.1em;
       text-transform: uppercase;
       white-space: nowrap;
@@ -281,7 +281,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
       margin-top: 8px;
       color: var(--sc-accent);
       font-family: var(--sc-font-display);
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       letter-spacing: 0.06em;
       text-decoration: none;
     }
@@ -332,7 +332,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
     .table thead th {
       background: var(--sc-bg-2);
       font-family: var(--sc-font-display);
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
@@ -346,7 +346,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
       display: inline-block;
       padding: 2px 8px;
       border-radius: 999px;
-      font-size: 0.7rem;
+      font-size: max(0.7rem, var(--sc-fs-floor));
       font-weight: 600;
       background: rgba(0, 212, 255, 0.12);
       color: var(--sc-accent);
@@ -355,7 +355,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
     }
 
     .actions { display: flex; gap: 6px; flex-wrap: wrap; }
-    .sc-btn.micro { padding: 4px 10px; font-size: 0.7rem; letter-spacing: 0.04em; }
+    .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.danger {
       color: var(--sc-danger);
       border-color: var(--sc-danger);
@@ -400,7 +400,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
       margin-top: 16px;
     }
     .field-label {
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--sc-fg-2);
@@ -428,7 +428,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
       gap: 8px;
     }
     .scopes-field legend {
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--sc-fg-2);

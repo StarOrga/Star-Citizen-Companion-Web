@@ -116,11 +116,11 @@ interface ShowroomCard {
     .sp-art img { max-width: 100%; max-height: 280px; object-fit: contain; filter: drop-shadow(0 8px 26px rgba(0,0,0,0.6)); }
     .sp-art.icon-only sc-codex-icon { width: 55%; height: 55%; }
     .sp-body { display: flex; flex-direction: column; gap: 6px; padding: 26px 28px; justify-content: center; }
-    .sp-eyebrow { font-family: var(--sc-font-display); font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent); }
+    .sp-eyebrow { font-family: var(--sc-font-display); font-size: max(0.66rem, var(--sc-fs-floor)); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent); }
     .sp-body h2 { margin: 0; font-size: clamp(1.4rem, 2.6vw, 2rem); line-height: 1.1; }
-    .sp-mfr { margin: 0; color: var(--sc-fg-1); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.78rem; }
+    .sp-mfr { margin: 0; color: var(--sc-fg-1); text-transform: uppercase; letter-spacing: 0.08em; font-size: max(0.78rem, var(--sc-fs-floor)); }
     .sp-meta { margin: 4px 0; color: var(--sc-fg-2); font-size: 0.84rem; }
-    .btn.primary { width: fit-content; margin-top: 8px; padding: 10px 20px; border-radius: 9px; background: var(--sc-accent); color: var(--sc-bg-0); font-family: var(--sc-font-display); font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase; }
+    .btn.primary { width: fit-content; margin-top: 8px; padding: 10px 20px; border-radius: 9px; background: var(--sc-accent); color: var(--sc-bg-0); font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; }
 
     .sr-lane-title { margin: 6px 0 0; font-size: 1.05rem; }
     .sr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
@@ -134,8 +134,8 @@ interface ShowroomCard {
     .sr-thumb.icon-only sc-codex-icon { width: 90%; height: 90%; }
     .sr-info { display: flex; flex-direction: column; gap: 2px; }
     .sr-info h3 { margin: 0; font-size: 0.92rem; line-height: 1.2; }
-    .sr-mfr { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
-    .sr-liveries { font-size: 0.72rem; color: var(--sc-accent); }
+    .sr-mfr { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
+    .sr-liveries { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-accent); }
 
     .skel { min-height: 180px; border-radius: 10px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
     @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }

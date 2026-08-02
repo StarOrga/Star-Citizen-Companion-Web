@@ -137,22 +137,22 @@ interface PinnedRef {
     }
     .bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; }
     .tray-label {
-      font-family: var(--sc-font-display); font-size: 0.74rem; letter-spacing: 0.08em;
+      font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.08em;
       text-transform: uppercase; color: var(--sc-accent); white-space: nowrap;
     }
     .chips { list-style: none; display: flex; gap: 6px; flex-wrap: wrap; margin: 0; padding: 0; }
     .chip {
       display: inline-flex; align-items: center; gap: 4px;
       padding: 3px 4px 3px 10px; border-radius: 999px;
-      background: var(--sc-bg-1); border: 1px solid var(--sc-border); font-size: 0.76rem;
+      background: var(--sc-bg-1); border: 1px solid var(--sc-border); font-size: max(0.76rem, var(--sc-fs-floor));
     }
     .chip-link { color: var(--sc-fg-0); text-decoration: none; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .chip-link:hover { color: var(--sc-accent); }
     .chip-x { border: none; background: transparent; color: var(--sc-fg-2); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 4px; border-radius: 50%; }
     .chip-x:hover { color: var(--sc-danger); }
-    .toggle { padding: 5px 14px; border-radius: 6px; background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
+    .toggle { padding: 5px 14px; border-radius: 6px; background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
     .toggle:hover { background: color-mix(in srgb, var(--sc-accent) 26%, transparent); }
-    .clear { margin-left: auto; padding: 5px 12px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: inherit; font-size: 0.74rem; cursor: pointer; }
+    .clear { margin-left: auto; padding: 5px 12px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer; }
     .clear:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
     .panel { border-top: 1px solid var(--sc-border); padding: 12px 14px; max-height: min(60vh, 460px); overflow: auto; }
@@ -160,15 +160,15 @@ interface PinnedRef {
     .cmp { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
     .cmp th, .cmp td { padding: 6px 10px; text-align: left; border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); white-space: nowrap; }
     .cmp thead th { position: sticky; top: 0; background: var(--sc-bg-2); }
-    .cmp .rowhead { color: var(--sc-fg-2); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; position: sticky; left: 0; background: var(--sc-bg-2); }
+    .cmp .rowhead { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.04em; position: sticky; left: 0; background: var(--sc-bg-2); }
     .cmp tbody .rowhead { background: color-mix(in srgb, var(--sc-bg-1) 92%, transparent); }
     .col-link { display: block; color: var(--sc-accent); text-decoration: none; font-family: var(--sc-font-display); }
     .col-link:hover { text-decoration: underline; }
-    .col-kind { display: block; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
+    .col-kind { display: block; font-size: max(0.62rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
     .cmp td.na { color: var(--sc-fg-2); }
     .cmp td.best { color: #8fe5b5; font-weight: 500; background: color-mix(in srgb, #5fd698 13%, transparent); }
     .cmp td.worst { color: var(--sc-fg-2); }
-    .cmp tr.grp td { padding-top: 12px; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em;
+    .cmp tr.grp td { padding-top: 12px; font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em;
       color: var(--sc-accent); border-bottom: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     .cell-val { display: block; }
     .delta-bar { display: block; margin-top: 3px; height: 3px; border-radius: 999px; background: var(--sc-bg-1);
@@ -178,9 +178,9 @@ interface PinnedRef {
     td.best .delta-fill { background: #5fd698; }
     .panel-tools { display: flex; justify-content: flex-end; margin: 0 0 8px; }
     .diff-toggle { padding: 4px 12px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border);
-      color: var(--sc-fg-2); font-family: inherit; font-size: 0.72rem; cursor: pointer; }
+      color: var(--sc-fg-2); font-family: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; }
     .diff-toggle:hover, .diff-toggle.on { color: var(--sc-accent); border-color: var(--sc-accent); }
-    .reject { margin: 0; padding: 6px 14px 10px; font-size: 0.74rem; color: var(--sc-warning, #ffc14d); }
+    .reject { margin: 0; padding: 6px 14px 10px; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-warning, #ffc14d); }
   `],
 })
 export class CodexCompareTrayComponent {

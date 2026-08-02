@@ -161,7 +161,7 @@ import {
     .hero { display: flex; flex-direction: column; gap: 16px; }
     .hero-text { display: flex; flex-direction: column; gap: 6px; }
     .entity-name { margin: 0; font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
-    .cls { font-size: 0.72rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
+    .cls { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
     .desc { margin: 0; color: var(--sc-fg-1); white-space: pre-wrap; line-height: 1.5; }
 
     .facts { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 8px; }
@@ -172,7 +172,7 @@ import {
       min-width: 100px;
     }
     .fact.accent { border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); }
-    .fact-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sc-fg-2); }
+    .fact-label { font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.1em; color: var(--sc-fg-2); }
     .fact-val { font-size: 0.92rem; font-weight: 600; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
     .fact.accent .fact-val { color: var(--sc-accent); }
 
@@ -190,14 +190,14 @@ import {
     .ing-name { font-size: 0.92rem; font-weight: 600; color: var(--sc-fg-0); }
     .ing-name.link { color: var(--sc-accent); text-decoration: none; }
     .ing-name.link:hover { text-decoration: underline; }
-    .ing-cls { font-size: 0.68rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
+    .ing-cls { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
     .ing-meta { display: flex; flex-wrap: wrap; gap: 5px; }
 
-    .badge { font-size: 0.66rem; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
+    .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     .badge.role { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); }
     .badge.quality { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
 
-    .quality-note { font-size: 0.74rem; color: var(--sc-fg-2); margin: -6px 0 12px; font-style: italic; }
+    .quality-note { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); margin: -6px 0 12px; font-style: italic; }
     .quality-table { display: flex; flex-direction: column; gap: 6px; }
     .quality-row {
       display: flex; align-items: center; gap: 12px;
@@ -207,7 +207,7 @@ import {
     .quality-row.primary { border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); }
     .q-label { flex: 1; font-size: 0.88rem; color: var(--sc-fg-1); }
     .q-val { font-weight: 600; font-family: var(--sc-font-display); color: var(--sc-fg-0); }
-    .q-primary-badge { font-size: 0.6rem; padding: 2px 6px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 18%, transparent); color: var(--sc-accent); border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent); text-transform: uppercase; letter-spacing: 0.06em; }
+    .q-primary-badge { font-size: max(0.6rem, var(--sc-fs-floor)); padding: 2px 6px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 18%, transparent); color: var(--sc-accent); border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent); text-transform: uppercase; letter-spacing: 0.06em; }
 
     .muted { color: var(--sc-fg-2); }
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }

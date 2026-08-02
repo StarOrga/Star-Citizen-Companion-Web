@@ -14,13 +14,13 @@ import {
   viewChild,
   viewChildren,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RenderedFeedbackBody, renderFeedbackBody } from './markdown.util';
 import { CelebrationService } from './celebration.service';
 import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
 import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import {
   FeedbackMessage,
   WORKFLOW_SCOPES,
@@ -57,7 +57,7 @@ const ADVANCE_SLIDE_MS = 380;
 @Component({
   selector: 'sc-feedback-workflow',
   standalone: true,
-  imports: [DatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
+  imports: [ScDatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="wf" [class.compact]="compact()">
@@ -130,7 +130,7 @@ const ADVANCE_SLIDE_MS = 380;
                 [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
             }
             <span class="wf-title">{{ title(item) }}</span>
-            <span class="wf-ts">{{ item.row.created_at | date: 'shortDate' }}</span>
+            <span class="wf-ts">{{ item.row.created_at | scDate }}</span>
           </header>
 
           @let body = render(item.row.body);
@@ -162,7 +162,7 @@ const ADVANCE_SLIDE_MS = 380;
                         <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span>
                       }
                     }
-                    <span class="reply-ts">{{ msg.created_at | date: 'short' }}</span>
+                    <span class="reply-ts">{{ msg.created_at | scDate: 'datetime' }}</span>
                   </div>
                   @let reply = render(msg.body);
                   <div class="reply-body" [innerHTML]="reply.html"></div>
@@ -239,7 +239,7 @@ const ADVANCE_SLIDE_MS = 380;
       background: transparent;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       letter-spacing: 0.03em;
       cursor: pointer;
       transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
@@ -257,7 +257,7 @@ const ADVANCE_SLIDE_MS = 380;
       padding: 0 5px;
       border-radius: 999px;
       background: var(--sc-bg-2);
-      font-size: 0.66rem;
+      font-size: max(0.66rem, var(--sc-fs-floor));
       font-weight: 700;
       text-align: center;
     }
@@ -270,7 +270,7 @@ const ADVANCE_SLIDE_MS = 380;
     .wf-progress { display: flex; align-items: center; gap: 10px; }
     .wf-count {
       flex: 0 0 auto;
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -299,7 +299,7 @@ const ADVANCE_SLIDE_MS = 380;
        and the card's slide-in are dropped there. */
     .wf-advance {
       margin: 0;
-      font-size: 0.76rem;
+      font-size: max(0.76rem, var(--sc-fs-floor));
       font-weight: 600;
       letter-spacing: 0.02em;
       color: var(--sc-success);
@@ -320,7 +320,7 @@ const ADVANCE_SLIDE_MS = 380;
     .kind {
       padding: 2px 8px;
       border-radius: 999px;
-      font-size: 0.64rem;
+      font-size: max(0.64rem, var(--sc-fs-floor));
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.07em;
@@ -338,13 +338,13 @@ const ADVANCE_SLIDE_MS = 380;
       font-size: 0.9rem;
       color: var(--sc-fg-0);
     }
-    .wf-ts { flex: 0 0 auto; color: var(--sc-fg-2); font-size: 0.72rem; }
+    .wf-ts { flex: 0 0 auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
     /* Reference number: same quiet treatment as in the Übersicht rows — a handle
        next to the title, never competing with it. */
     .wf-no {
       flex: 0 0 auto;
       color: var(--sc-fg-2);
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       font-weight: 600;
       font-variant-numeric: tabular-nums;
       user-select: all;
@@ -373,7 +373,7 @@ const ADVANCE_SLIDE_MS = 380;
     .reply-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .reply-author { font-weight: 600; font-size: 0.82rem; }
     .reply-badge {
-      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em;
+      font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em;
       padding: 1px 6px; border-radius: 999px;
       background: color-mix(in srgb, #a78bfa 25%, transparent); color: #a78bfa;
     }
@@ -388,7 +388,7 @@ const ADVANCE_SLIDE_MS = 380;
       color: var(--sc-bg-0);
       font-weight: 700;
     }
-    .reply-ts { margin-left: auto; color: var(--sc-fg-2); font-size: 0.72rem; }
+    .reply-ts { margin-left: auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
     .reply-body { font-size: 0.88rem; line-height: 1.45; overflow-wrap: anywhere; }
     .reply-body :first-child { margin-top: 0; }
     .reply-body :last-child { margin-bottom: 0; }
@@ -416,7 +416,7 @@ const ADVANCE_SLIDE_MS = 380;
     }
 
     .wf-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .sc-btn.micro { padding: 4px 12px; font-size: 0.72rem; letter-spacing: 0.04em; }
+    .sc-btn.micro { padding: 4px 12px; font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.done { color: var(--sc-success); border-color: var(--sc-success); }
     .sc-btn.micro.done:hover:not(:disabled) { background: var(--sc-success); color: var(--sc-bg-0); }
 

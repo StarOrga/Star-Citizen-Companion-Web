@@ -111,6 +111,11 @@
         color: #8aa0b3;
         font-weight: 600;
       }
+      /* Critical CSS runs before styles.scss, so the --sc-fs-floor token does
+         not exist yet — spell the 12px touch floor out literally here. */
+      @media (pointer: coarse) {
+        .sc-boot__word { font-size: 12px; }
+      }
       .sc-boot__bar {
         width: 150px;
         height: 2px;

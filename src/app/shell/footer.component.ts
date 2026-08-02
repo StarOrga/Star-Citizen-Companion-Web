@@ -65,12 +65,16 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
       padding: 12px 28px;
       margin-top: auto;
     }
+    /* The community badge and the disclaimer column need real air between them
+       (feedback #79, item 6): at 18px the wrapped "… Community" and the
+       "Dies ist eine inoffizielle …" line ran into each other and read as one
+       sentence. 34px separates the two blocks without breaking the single row. */
     .inner {
       max-width: 1400px;
       margin: 0 auto;
       display: flex;
       align-items: center;
-      gap: 18px;
+      gap: 34px;
       flex-wrap: nowrap;
     }
     .badge {
@@ -85,7 +89,7 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
     }
     .badge-label {
       font-family: var(--sc-font-display);
-      font-size: 0.58rem;
+      font-size: max(0.58rem, var(--sc-fs-floor));
       letter-spacing: 0.1em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
@@ -103,13 +107,13 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
     }
     .meta .disclaimer {
       color: var(--sc-fg-2);
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       line-height: 1.4;
       margin: 0;
     }
     .meta .copyright {
       color: var(--sc-fg-2);
-      font-size: 0.7rem;
+      font-size: max(0.7rem, var(--sc-fs-floor));
       line-height: 1.4;
       margin: 2px 0 0;
       opacity: 0.8;
@@ -140,7 +144,7 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
     }
     .whatsnew a {
       font-family: var(--sc-font-display);
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--sc-accent);
@@ -150,13 +154,13 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
     .whatsnew a:hover { color: var(--sc-fg-1); }
     .whatsnew .ver {
       color: var(--sc-fg-2);
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       font-family: ui-monospace, monospace;
     }
     .legal-links {
       display: flex;
       gap: 6px;
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       color: var(--sc-fg-2);
     }
     .legal-links a {

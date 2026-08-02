@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { animate, style, transition, trigger } from '@angular/animations';
-import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { useAutoRefresh } from '../../core/auto-refresh';
@@ -21,6 +21,7 @@ import { ComposerPayload, FeedbackComposerComponent, PendingImage } from './feed
 import { CelebrationService } from './celebration.service';
 import { FeedbackDashboardComponent } from './feedback-dashboard.component';
 import { FeedbackWorkflowComponent } from './feedback-workflow.component';
+import { RoutineStatusDirective } from './routine-status.directive';
 import {
   FeedbackBucket,
   FeedbackMessage,
@@ -40,6 +41,7 @@ import {
   refKind,
   searchFeedback,
   searchTokens,
+  timeOf,
   topicNumber,
   topicTitle,
   workflowScopeCounts,
@@ -47,6 +49,9 @@ import {
 import { buildFeedbackBody, uploadFeedbackImages } from '../../feedback/feedback-images.util';
 import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
 import { awaitsReview } from './feedback.types';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
+import { formatScDate } from '../../core/locale/date-format';
+import { LocaleService } from '../../core/locale/locale.service';
 import {
   AuthorFeedbackMessage,
   AuthorFeedbackStatus,
@@ -55,8 +60,18 @@ import {
   groupAuthorMessages,
 } from '../../feedback/user-feedback.types';
 
-/** The board's three modes: scan the list, work the queue, read the numbers. */
-export type FeedbackView = 'overview' | 'workflow' | 'progress';
+/**
+ * The board's four modes: scan the list, work the queue, sign the finished work
+ * off, read the numbers.
+ *
+ * `review` is the admin's own step (feedback #79): the review gate (migration
+ * 20260729130000) already keeps a shipped topic on the active board until
+ * somebody accepts the result, but it only surfaced inside the topic's card in
+ * the overview — so finding what is waiting meant scrolling the board. As its
+ * own mode it is a visible "this was done, please check and tick it off" pile
+ * with the archive one click away.
+ */
+export type FeedbackView = 'overview' | 'workflow' | 'review' | 'progress';
 
 /**
  * Which half of the overview list is on screen: the working set or the done
@@ -110,13 +125,14 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
   selector: 'sc-admin-feedback',
   standalone: true,
   imports: [
-    DatePipe,
+    ScDatePipe,
     NgTemplateOutlet,
     TranslateModule,
     FeedbackAttachmentsComponent,
     FeedbackComposerComponent,
     FeedbackWorkflowComponent,
     FeedbackDashboardComponent,
+    RoutineStatusDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Smooth height/opacity collapse+expand for a topic's detail region, so the
@@ -140,7 +156,12 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       @if (!embedded()) {
         <header class="head">
           <div>
-            <h1>{{ 'adminFeedback.title' | translate }}</h1>
+            <!-- The heading doubles as the dev-PC liveness light: tinted green
+                 / red / left grey by scRoutineStatus (feedback a7573f0e). On
+                 the embedded board the FAB panel's own title carries it. The
+                 attribute's value is this heading's own i18n key: the state
+                 wording rides on aria-label, never on screen. -->
+            <h1 scRoutineStatus="adminFeedback.title">{{ 'adminFeedback.title' | translate }}</h1>
             <p class="hint">{{ 'adminFeedback.subtitle' | translate }}</p>
           </div>
         </header>
@@ -181,6 +202,20 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
             <span class="tab-badge">{{ workflowQueue().length }}</span>
           }
         </button>
+        <!-- The sign-off step (feedback #79): everything the routine finished
+             and nobody has confirmed yet, with its own count so it is obvious
+             from the switch that something is waiting. -->
+        <button
+          type="button"
+          class="view-tab"
+          [class.active]="view() === 'review'"
+          [attr.aria-pressed]="view() === 'review'"
+          (click)="setView('review')">
+          {{ 'adminFeedback.view.review' | translate }}
+          @if (reviewQueue().length > 0) {
+            <span class="tab-badge review">{{ reviewQueue().length }}</span>
+          }
+        </button>
         <button
           type="button"
           class="view-tab"
@@ -204,6 +239,67 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
             (markHandled)="markHandled($event)"
             (scopeChange)="setWorkflowScope($event)"
             (showProgress)="setView('progress')" />
+        </div>
+      } @else if (view() === 'review') {
+        <!-- SIGN-OFF QUEUE — "wurde bearbeitet, bitte prüfen und abhaken".
+             Same two decisions as the in-card review gate (accept → archive,
+             reopen → back into the routine's queue); this is only the place
+             that collects them so none has to be hunted for. -->
+        <div class="board alt">
+          <section class="rv">
+            <p class="rv-lead">{{ 'adminFeedback.review.queueTitle' | translate }}</p>
+            @if (!embedded()) {
+              <p class="rv-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
+            }
+
+            @if (reviewQueue().length === 0) {
+              <div class="rv-empty sc-card">
+                <div class="rv-empty-icon" aria-hidden="true">✅</div>
+                <h3>{{ 'adminFeedback.review.emptyTitle' | translate }}</h3>
+                <p>{{ 'adminFeedback.review.emptyHint' | translate }}</p>
+              </div>
+            } @else {
+              @for (m of reviewQueue(); track m.id) {
+                <article class="rv-card sc-card">
+                  <header class="rv-head">
+                    <span class="rg-badge">
+                      {{ (m.status === 'issue_created'
+                          ? 'adminFeedback.status.issue_created'
+                          : 'adminFeedback.status.shipped') | translate }}
+                    </span>
+                    @if (topicNo(m); as no) {
+                      <span class="rv-no" [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
+                    }
+                    <span class="rv-title">{{ topicTitle(m.body) }}</span>
+                    <span class="rv-ts">{{ reviewSince(m) | scDate }}</span>
+                  </header>
+
+                  @if (m.ship_ref) {
+                    <a
+                      class="ship-ref"
+                      [class.issue]="linkKind(m) === 'issue'"
+                      [href]="m.ship_ref"
+                      target="_blank"
+                      rel="noopener noreferrer">
+                      {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
+                    </a>
+                  }
+
+                  <div class="rg-actions">
+                    <button class="sc-btn micro accept" (click)="acceptReview(m)" [disabled]="busy()">
+                      ✓ {{ 'adminFeedback.review.accept' | translate }}
+                    </button>
+                    <button class="sc-btn micro" (click)="reopenFromReview(m)" [disabled]="busy()">
+                      ↻ {{ 'adminFeedback.review.reopen' | translate }}
+                    </button>
+                    <button class="sc-btn micro ghost" (click)="openInOverview(m)">
+                      {{ 'adminFeedback.review.openTopic' | translate }} →
+                    </button>
+                  </div>
+                </article>
+              }
+            }
+          </section>
         </div>
       } @else if (view() === 'progress') {
         <div class="board alt">
@@ -569,7 +665,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                   [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
               }
               <span class="author">{{ authorLabel(m) }}</span>
-              <span class="ts">{{ m.created_at | date:'short' }}</span>
+              <span class="ts">{{ m.created_at | scDate: 'datetime' }}</span>
               <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
             </div>
           }
@@ -625,7 +721,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                     <div class="reply-head">
                       <span class="reply-author">{{ authorLabelFor(msg) }}</span>
                       @if (msg.is_system) { <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span> }
-                      <span class="reply-ts">{{ msg.created_at | date: (embedded() ? 'shortDate' : 'short') }}</span>
+                      <span class="reply-ts">{{ msg.created_at | scDate: (embedded() ? 'date' : 'datetime') }}</span>
                     </div>
                     @let reply = render(msg.body);
                     @if (!embedded()) {
@@ -719,7 +815,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
                           @if (am.is_question) {
                             <span class="reply-badge">{{ 'adminFeedback.userTopic.questionBadge' | translate }}</span>
                           }
-                          <span class="reply-ts">{{ am.created_at | date: 'short' }}</span>
+                          <span class="reply-ts">{{ am.created_at | scDate: 'datetime' }}</span>
                         </div>
                         @let authorReply = render(am.body);
                         <div class="reply-body" [innerHTML]="authorReply.html"></div>
@@ -891,7 +987,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     /* Non-interactive day heading between dated groups of topics. */
     .date-group {
       margin: 6px 2px 0;
-      font-size: 0.66rem;
+      font-size: max(0.66rem, var(--sc-fs-floor));
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.07em;
@@ -916,7 +1012,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .msg-head.one-liner .chev {
       flex: 0 0 auto;
       color: var(--sc-fg-2);
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       transition: transform 0.16s ease;
     }
     .msg-head.one-liner .chev.open { transform: rotate(90deg); }
@@ -933,7 +1029,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .msg-head.one-liner .row-author {
       flex: 0 0 auto;
       color: var(--sc-fg-2);
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
     }
     .msg-head.one-liner:hover .topic-title { color: var(--sc-accent); }
     /* Reference number (feedback 21587480): monospaced digits so a column of
@@ -942,7 +1038,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .topic-no {
       flex: 0 0 auto;
       color: var(--sc-fg-2);
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       font-weight: 600;
       font-variant-numeric: tabular-nums;
       letter-spacing: 0.02em;
@@ -994,7 +1090,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       font-weight: 600;
       letter-spacing: 0.03em;
       white-space: nowrap;
@@ -1017,7 +1113,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       background: color-mix(in srgb, #a78bfa 28%, transparent);
       color: #a78bfa;
-      font-size: 0.64rem;
+      font-size: max(0.64rem, var(--sc-fs-floor));
       font-weight: 700;
     }
 
@@ -1082,7 +1178,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       cursor: pointer;
       transition: all 0.16s ease;
     }
@@ -1118,7 +1214,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       font-weight: 600;
       white-space: nowrap;
       cursor: pointer;
@@ -1145,16 +1241,56 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border: 1px solid var(--sc-success);
       border-radius: 999px;
       color: var(--sc-success);
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       letter-spacing: 0.05em;
       text-transform: uppercase;
       white-space: nowrap;
     }
     .rg-title { font-size: 0.82rem; font-weight: 600; color: var(--sc-fg-0); }
-    .rg-hint { margin: 0; font-size: 0.74rem; line-height: 1.45; color: var(--sc-fg-2); }
+    .rg-hint { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); line-height: 1.45; color: var(--sc-fg-2); }
     .rg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .rg-actions .accept { border-color: var(--sc-success); color: var(--sc-success); }
     .rg-actions .accept:hover { background: rgba(74, 222, 128, 0.16); }
+    .rg-actions .ghost { border-color: var(--sc-border); color: var(--sc-fg-2); }
+    .rg-actions .ghost:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+
+    /* ---- Sign-off queue (the 4th view) ----
+       One row per finished topic: what it was, where the result is, and the two
+       decisions. Deliberately flat — this is a checklist, not a reading view;
+       the full thread is one "Thema öffnen" away. */
+    .rv { display: flex; flex-direction: column; gap: 10px; }
+    .rv-lead { margin: 0; font-size: 0.86rem; font-weight: 600; color: var(--sc-fg-0); }
+    .rv-hint { margin: 0; font-size: max(0.76rem, var(--sc-fs-floor)); line-height: 1.45; color: var(--sc-fg-2); }
+    .rv-card {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 10px 12px;
+      border-left: 3px solid var(--sc-success);
+    }
+    .rv-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .rv-no {
+      flex: 0 0 auto; color: var(--sc-fg-2);
+      font-size: max(0.74rem, var(--sc-fs-floor)); font-weight: 600;
+      font-variant-numeric: tabular-nums; user-select: all;
+    }
+    .rv-title {
+      flex: 1 1 auto; min-width: 0;
+      overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+      font-size: 0.88rem; font-weight: 600; color: var(--sc-fg-0);
+    }
+    .rv-ts { flex: 0 0 auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
+    .rv-empty {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 30px 20px; text-align: center;
+    }
+    .rv-empty h3 { margin: 0; font-size: 1rem; }
+    .rv-empty p { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; }
+    .rv-empty-icon { font-size: 1.9rem; }
+    /* The sign-off badge is green like the gate it belongs to, not violet like
+       the Rückfrage badge on the processing tab. */
+    .tab-badge.review {
+      background: color-mix(in srgb, var(--sc-success) 28%, transparent);
+      color: var(--sc-success);
+    }
 
     .status-chip.review { border-color: var(--sc-success); color: var(--sc-success); }
     .status-chip .chip-count { margin-left: 5px; opacity: 0.75; }
@@ -1162,7 +1298,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .archive-tab.active { background: rgba(0, 212, 255, 0.14); color: var(--sc-accent); }
     .archive-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     .archive-tab .tab-count {
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       font-weight: 500;
       color: var(--sc-fg-2);
       font-variant-numeric: tabular-nums;
@@ -1185,7 +1321,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.74rem;
+      font-size: max(0.74rem, var(--sc-fs-floor));
       white-space: nowrap;
       cursor: pointer;
       transition: all 0.16s ease;
@@ -1193,7 +1329,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .tb-icon:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .tb-icon.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
     .tb-icon:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
-    .tb-icon .chev { display: inline-block; font-size: 0.72rem; transition: transform 0.16s ease; }
+    .tb-icon .chev { display: inline-block; font-size: max(0.72rem, var(--sc-fs-floor)); transition: transform 0.16s ease; }
     .tb-icon .chev.open { transform: rotate(90deg); }
     /* Active-filter marker on the collapsed "Filter" button, so a fold that is
        hiding an applied chip still reads as "narrowed". */
@@ -1237,7 +1373,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     }
     .cs-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .cs-title {
-      font-size: 0.72rem;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       text-transform: uppercase;
       letter-spacing: 0.06em;
       font-weight: 600;
@@ -1265,7 +1401,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
        "In Arbeit" is intentionally not shown. */
     .board-stats {
       display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
-      margin: 0; padding: 2px 0; font-size: 0.78rem; color: var(--sc-fg-2);
+      margin: 0; padding: 2px 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
     }
     .board-stats .stat.rueckfragen { color: #a78bfa; font-weight: 600; }
     .board-stats .stat.review { color: var(--sc-success); font-weight: 600; }
@@ -1275,7 +1411,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       content: '·'; margin-right: 8px; color: var(--sc-fg-2); font-weight: 400;
     }
     /* Docked panel: same numbers, less room — smaller and tighter, never dropped. */
-    .board-stats.compact { gap: 6px; padding: 0; font-size: 0.7rem; }
+    .board-stats.compact { gap: 6px; padding: 0; font-size: max(0.7rem, var(--sc-fs-floor)); }
     .board-stats.compact .stat + .stat::before { margin-right: 6px; }
 
     /* Archive tab list — done topics, dimmed a touch so the tab reads as history. */
@@ -1291,7 +1427,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 999px;
       color: var(--sc-fg-2);
       font: inherit;
-      font-size: 0.76rem;
+      font-size: max(0.76rem, var(--sc-fs-floor));
       letter-spacing: 0.04em;
       cursor: pointer;
       transition: all 0.16s ease;
@@ -1320,14 +1456,14 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .msg-detail { display: flex; flex-direction: column; gap: 8px; }
     .msg-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .author { font-weight: 600; font-size: 0.9rem; }
-    .ts { color: var(--sc-fg-2); font-size: 0.76rem; }
+    .ts { color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
 
     .status-pill {
       margin-left: auto;
       display: inline-block;
       padding: 2px 8px;
       border-radius: 999px;
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -1418,11 +1554,11 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .reply-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .reply-author { font-weight: 600; font-size: 0.82rem; }
     .reply-badge {
-      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em;
+      font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em;
       padding: 1px 6px; border-radius: 999px;
       background: color-mix(in srgb, #a78bfa 25%, transparent); color: #a78bfa;
     }
-    .reply-ts { margin-left: auto; color: var(--sc-fg-2); font-size: 0.72rem; }
+    .reply-ts { margin-left: auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
     .reply-body { font-size: 0.88rem; line-height: 1.45; overflow-wrap: anywhere; }
     .reply-body :first-child { margin-top: 0; }
     .reply-body :last-child { margin-bottom: 0; }
@@ -1434,7 +1570,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     /* Archived topics: a reply reopens them, so say so above the composer. */
     .reopen-hint {
       margin: 4px 0 0;
-      font-size: 0.78rem;
+      font-size: max(0.78rem, var(--sc-fs-floor));
       color: var(--sc-fg-2);
       font-style: italic;
     }
@@ -1451,10 +1587,10 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
       border-radius: 6px;
       color: var(--sc-fg-0);
       font: inherit;
-      font-size: 0.76rem;
+      font-size: max(0.76rem, var(--sc-fs-floor));
     }
     .issue-input:focus-visible { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25); }
-    .sc-btn.micro { padding: 4px 10px; font-size: 0.7rem; letter-spacing: 0.04em; }
+    .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
     .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
 
@@ -1471,13 +1607,13 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     }
     .ac-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .ac-title {
-      font-size: 0.72rem; text-transform: uppercase;
+      font-size: max(0.72rem, var(--sc-fs-floor)); text-transform: uppercase;
       letter-spacing: 0.08em; font-weight: 600; color: var(--sc-accent);
     }
-    .ac-status { margin-left: auto; font-size: 0.72rem; color: var(--sc-fg-2); }
+    .ac-status { margin-left: auto; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .ac-status strong { color: var(--sc-fg-1); }
-    .ac-hint { margin: 0; font-size: 0.72rem; color: var(--sc-fg-2); }
-    .ac-ask { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--sc-fg-2); }
+    .ac-hint { margin: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .ac-ask { display: inline-flex; align-items: center; gap: 6px; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     .status-pill.from-user { border-color: var(--sc-accent); color: var(--sc-accent); }
     .status-pill.untriaged { border-color: var(--sc-accent-hot); color: var(--sc-accent-hot); }
@@ -1486,7 +1622,7 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
     .decline-input {
       width: 100%; box-sizing: border-box; padding: 6px 8px; resize: vertical;
       background: var(--sc-bg-2); border: 1px solid var(--sc-danger);
-      border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: 0.78rem;
+      border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
     }
     .decline-input:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
     .decline-actions { display: flex; gap: 6px; }
@@ -1501,6 +1637,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly translate = inject(TranslateService);
+  private readonly locale = inject(LocaleService);
   private readonly consent = inject(ConsentService);
   private readonly celebration = inject(CelebrationService);
 
@@ -1552,7 +1689,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readView(): FeedbackView {
     try {
       const raw = localStorage.getItem(VIEW_KEY);
-      if (raw === 'overview' || raw === 'workflow' || raw === 'progress') return raw;
+      if (raw === 'overview' || raw === 'workflow' || raw === 'review' || raw === 'progress') return raw;
     } catch {
       /* ignore */
     }
@@ -2010,11 +2147,9 @@ export class AdminFeedbackComponent implements OnInit {
     const DAY_MS = 86_400_000;
     if (day === today) return this.translate.instant('adminFeedback.dateGroup.today');
     if (day === today - DAY_MS) return this.translate.instant('adminFeedback.dateGroup.yesterday');
-    return new Intl.DateTimeFormat(this.translate.currentLang || 'en', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).format(d);
+    // App-wide formatter: month spelled out, fields in the resolved region's
+    // order (feedback 38b3d25a).
+    return formatScDate(d, { language: this.locale.language(), region: this.locale.region() });
   }
 
   /**
@@ -2602,6 +2737,40 @@ export class AdminFeedbackComponent implements OnInit {
   /** Template-side alias: is this topic waiting for the admin's sign-off? */
   inReview(m: FeedbackRow): boolean {
     return awaitsReview(m, this.threads().get(m.id));
+  }
+
+  /**
+   * Everything the routine finished that nobody has confirmed yet — the sign-off
+   * view's whole content and the badge on its tab (feedback #79).
+   *
+   * Oldest first, like the processing queue: a result that has been waiting for
+   * days is the one most likely to be forgotten. Deliberately unfiltered by the
+   * overview's search / author / status chips — this is a step of its own, not a
+   * slice of that list.
+   */
+  readonly reviewQueue = computed(() =>
+    this.messages()
+      .filter((m) => this.inReview(m))
+      .sort((a, b) => timeOf(this.reviewSince(a)) - timeOf(this.reviewSince(b))),
+  );
+
+  /** When the outcome landed — what the sign-off card dates itself by. */
+  reviewSince(m: FeedbackRow): string {
+    return m.shipped_at ?? m.processed_at ?? m.updated_at;
+  }
+
+  /**
+   * Open the topic's full card in the overview: the sign-off row is a summary,
+   * and "does this look right?" sometimes needs the thread. Filters are cleared
+   * so the target cannot be hidden by a chip the admin left active.
+   */
+  openInOverview(m: FeedbackRow): void {
+    this.setView('overview');
+    this.setBoardTab('active');
+    this.statusFilter.set(null);
+    this.authorFilter.set(null);
+    this.clearSearch();
+    this.jumpTo(m.id);
   }
 
   /**

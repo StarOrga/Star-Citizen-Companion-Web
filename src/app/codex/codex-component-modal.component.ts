@@ -190,16 +190,16 @@ export interface ComponentInspectEntry {
 
     .cm-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
     .cm-ident { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
-    .cm-size { flex: 0 0 auto; font-size: 0.72rem; font-weight: 600; line-height: 1.5;
+    .cm-size { flex: 0 0 auto; font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 600; line-height: 1.5;
       padding: 2px 8px; border-radius: 4px; white-space: nowrap; font-variant-numeric: tabular-nums;
       color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); }
     .cm-titles { min-width: 0; }
     .cm-titles h2 { margin: 0; font-size: 1.05rem; line-height: 1.2; overflow-wrap: anywhere; }
     .cm-meta { margin: 4px 0 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .cm-meta-txt { font-size: 0.72rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .cm-port { margin: 4px 0 0; font-size: 0.68rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .chip { font-size: 0.58rem; letter-spacing: 0.04em; text-transform: uppercase;
+    .cm-meta-txt { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .cm-port { margin: 4px 0 0; font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .chip { font-size: max(0.58rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase;
       padding: 0 5px; border-radius: 3px; background: var(--sc-bg-2); color: var(--sc-fg-2);
       border: 1px solid var(--sc-border); white-space: nowrap; }
     .chip.dmg { color: var(--sc-accent-hot, #ff7a45);
@@ -213,28 +213,28 @@ export interface ComponentInspectEntry {
     .cm-headline { margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); display: flex; flex-wrap: wrap; gap: 6px 20px; }
     .cm-headline .hs { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
-    .cm-headline dt { font-size: 0.66rem; color: var(--sc-fg-2); }
+    .cm-headline dt { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .cm-headline dd { margin: 0; font-size: 0.86rem; color: var(--sc-accent);
       font-variant-numeric: tabular-nums; white-space: nowrap; }
     .derived { color: var(--sc-fg-2); cursor: help; }
 
-    .cm-block h3 { margin: 0 0 6px; font-size: 0.66rem; text-transform: uppercase;
+    .cm-block h3 { margin: 0 0 6px; font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase;
       letter-spacing: 0.07em; color: var(--sc-fg-2); }
     .cm-block.ammo h3 { color: var(--sc-accent-hot, #ff7a45); }
     .cm-table { width: 100%; border-collapse: collapse; }
     .cm-table tr { border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
     .cm-table tr:last-child { border-bottom: none; }
-    .ct-key { padding: 3px 10px 3px 0; font-size: 0.74rem; color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .ct-val { padding: 3px 0; font-size: 0.78rem; color: var(--sc-fg-0); text-align: right;
+    .ct-key { padding: 3px 10px 3px 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .ct-val { padding: 3px 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-0); text-align: right;
       white-space: nowrap; font-variant-numeric: tabular-nums; }
-    .ct-unit { color: var(--sc-fg-2); font-size: 0.7rem; }
+    .ct-unit { color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor)); }
 
-    .cm-empty { margin: 0; font-size: 0.78rem; color: var(--sc-fg-2); font-style: italic; }
+    .cm-empty { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .cm-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px;
       flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--sc-border); }
-    .cm-open { font-size: 0.78rem; color: var(--sc-accent); text-decoration: none; }
+    .cm-open { font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-accent); text-decoration: none; }
     .cm-open:hover { text-decoration: underline; }
-    .cm-cls { font-size: 0.68rem; color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace);
+    .cm-cls { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace);
       overflow-wrap: anywhere; }
 
     @media (max-width: 640px) {

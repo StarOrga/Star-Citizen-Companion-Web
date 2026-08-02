@@ -9,6 +9,7 @@ import {
 import { TranslateModule } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.component';
+import { RoutineStatusDirective } from '../admin/feedback/routine-status.directive';
 
 /**
  * Admin-only feedback launcher. Replaces the former `/admin/feedback` nav item
@@ -24,7 +25,7 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
 @Component({
   selector: 'sc-feedback-fab',
   standalone: true,
-  imports: [TranslateModule, AdminFeedbackComponent],
+  imports: [TranslateModule, AdminFeedbackComponent, RoutineStatusDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (roles.isAdmin()) {
@@ -38,7 +39,13 @@ import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.compone
             [attr.aria-hidden]="minimized()"
             [attr.aria-label]="'feedbackFab.title' | translate">
             <header class="panel-head">
-              <span class="panel-title">{{ 'feedbackFab.title' | translate }}</span>
+              <!-- The title doubles as the dev-PC liveness light: tinted green
+                   / red / left grey by scRoutineStatus (feedback a7573f0e). It
+                   stays the word and nothing else — the state reaches assistive
+                   tech through aria-label, never as text on screen. The
+                   attribute's value is the title's own i18n key, so that
+                   accessible name can keep saying "Feedback" too. -->
+              <span class="panel-title" scRoutineStatus="feedbackFab.title">{{ 'feedbackFab.title' | translate }}</span>
               <div class="panel-actions">
                 <button
                   type="button"

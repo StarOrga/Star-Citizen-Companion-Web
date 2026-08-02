@@ -122,10 +122,15 @@ const REPO_ZIP_URL = 'https://github.com/StarOrga/Star-Citizen-Companion-Web/arc
       .checks li::before { content: '✓'; position: absolute; left: 0; color: var(--sc-success); }
       .link-list { margin: 6px 0 0; padding-left: 18px; font-size: 0.82rem; }
       .link-list a { color: var(--sc-accent); }
+      /* A list entry that is nothing but a link is a control, not prose — on
+         touch it gets the full hit area. */
+      @media (pointer: coarse) {
+        .link-list li > a { display: flex; align-items: center; min-height: var(--sc-tap-min); }
+      }
       .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
       .browsers { margin-top: 10px; }
       .sc-btn-primary { background: var(--sc-accent); color: var(--sc-bg-0); border-color: var(--sc-accent); }
-      .disclaimer { color: var(--sc-fg-2); font-size: 0.74rem; line-height: 1.6; }
+      .disclaimer { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); line-height: 1.6; }
     `,
   ],
 })

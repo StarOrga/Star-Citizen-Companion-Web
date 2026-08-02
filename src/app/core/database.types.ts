@@ -1204,6 +1204,7 @@ export type Database = {
           is_approved: boolean
           preferred_channel: string | null
           preferred_lang: string | null
+          preferred_region: string | null
           role: string
           rsi_handle: string | null
           updated_at: string
@@ -1216,6 +1217,7 @@ export type Database = {
           is_approved?: boolean
           preferred_channel?: string | null
           preferred_lang?: string | null
+          preferred_region?: string | null
           role?: string
           rsi_handle?: string | null
           updated_at?: string
@@ -1228,6 +1230,7 @@ export type Database = {
           is_approved?: boolean
           preferred_channel?: string | null
           preferred_lang?: string | null
+          preferred_region?: string | null
           role?: string
           rsi_handle?: string | null
           updated_at?: string
@@ -1447,7 +1450,11 @@ export type Database = {
         Returns: undefined
       }
       set_preferred_lang: {
-        Args: { lang: string }
+        Args: { lang: string | null }
+        Returns: undefined
+      }
+      set_preferred_region: {
+        Args: { region: string | null }
         Returns: undefined
       }
       set_user_role: {

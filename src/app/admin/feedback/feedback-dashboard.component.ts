@@ -23,6 +23,8 @@ import {
   shippedPerWeek,
   startOfMonth,
 } from './feedback.types';
+import { formatScCompactDate, formatScMonthName } from '../../core/locale/date-format';
+import { LocaleService } from '../../core/locale/locale.service';
 
 /** One rendered column: a labelled time window with its numbers. */
 interface StatWindow {
@@ -290,7 +292,7 @@ const WEEKS = 12;
     .win { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 12px; }
     .win-title {
       margin: 0;
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -321,7 +323,7 @@ const WEEKS = 12;
     }
     .donut-centre strong { font-size: 1.15rem; color: var(--sc-fg-0); line-height: 1; }
     .donut-centre span {
-      font-size: 0.56rem;
+      font-size: max(0.56rem, var(--sc-fs-floor));
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
@@ -330,7 +332,7 @@ const WEEKS = 12;
     /* ---- Bars ---- */
     .bars { display: flex; flex-direction: column; gap: 7px; margin: 0; }
     .bar-row { display: flex; flex-direction: column; gap: 3px; }
-    .bar-row dt { font-size: 0.68rem; letter-spacing: 0.04em; color: var(--sc-fg-2); }
+    .bar-row dt { font-size: max(0.68rem, var(--sc-fs-floor)); letter-spacing: 0.04em; color: var(--sc-fg-2); }
     .bar-row dd { display: flex; align-items: center; gap: 8px; margin: 0; }
     .bar {
       flex: 1 1 auto;
@@ -350,7 +352,7 @@ const WEEKS = 12;
     .bar-row dd b { flex: 0 0 auto; min-width: 1.6em; text-align: right; font-size: 0.86rem; }
     .bar-row dt small {
       display: block;
-      font-size: 0.58rem;
+      font-size: max(0.58rem, var(--sc-fs-floor));
       letter-spacing: 0.02em;
       color: var(--sc-fg-2);
       opacity: 0.8;
@@ -380,7 +382,7 @@ const WEEKS = 12;
     }
     .pace-cell { min-width: 0; }
     .pace-cell dt {
-      font-size: 0.6rem;
+      font-size: max(0.6rem, var(--sc-fs-floor));
       letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
@@ -395,25 +397,25 @@ const WEEKS = 12;
     }
     .pace-cell dd small {
       display: block;
-      font-size: 0.6rem;
+      font-size: max(0.6rem, var(--sc-fs-floor));
       font-weight: 400;
       color: var(--sc-fg-2);
     }
 
-    .dash-note { margin: 0; font-size: 0.68rem; line-height: 1.4; color: var(--sc-fg-2); }
+    .dash-note { margin: 0; font-size: max(0.68rem, var(--sc-fs-floor)); line-height: 1.4; color: var(--sc-fg-2); }
 
     /* ---- Shared panel chrome (throughput + lifecycle) ---- */
     .panel { display: flex; flex-direction: column; gap: 9px; padding: 14px 12px; }
     .panel-head { display: flex; flex-direction: column; gap: 2px; }
     .panel-title {
       margin: 0;
-      font-size: 0.68rem;
+      font-size: max(0.68rem, var(--sc-fs-floor));
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
     }
-    .panel-sub, .panel-note { font-size: 0.66rem; line-height: 1.4; color: var(--sc-fg-2); }
+    .panel-sub, .panel-note { font-size: max(0.66rem, var(--sc-fs-floor)); line-height: 1.4; color: var(--sc-fg-2); }
     .panel-note { margin: 0; padding-top: 2px; }
 
     /* ---- Throughput sparkline ---- */
@@ -442,7 +444,7 @@ const WEEKS = 12;
       display: flex;
       justify-content: space-between;
       gap: 8px;
-      font-size: 0.6rem;
+      font-size: max(0.6rem, var(--sc-fs-floor));
       color: var(--sc-fg-2);
     }
 
@@ -502,7 +504,7 @@ const WEEKS = 12;
     .branch-tag {
       display: inline-block;
       margin-bottom: 3px;
-      font-size: 0.56rem;
+      font-size: max(0.56rem, var(--sc-fs-floor));
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
@@ -521,7 +523,7 @@ const WEEKS = 12;
     .outcome-title {
       margin: 0 0 8px;
       padding-left: 18px;
-      font-size: 0.62rem;
+      font-size: max(0.62rem, var(--sc-fs-floor));
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -540,7 +542,7 @@ const WEEKS = 12;
     .stage.is-outcome[data-stage='issue_created'] { border-color: #a78bfa; }
 
     .stage-head { display: flex; align-items: baseline; gap: 8px; }
-    .stage-name { font-size: 0.78rem; font-weight: 600; color: var(--sc-fg-0); overflow-wrap: anywhere; }
+    .stage-name { font-size: max(0.78rem, var(--sc-fs-floor)); font-weight: 600; color: var(--sc-fg-0); overflow-wrap: anywhere; }
     .stage-count { margin-left: auto; font-size: 0.92rem; font-weight: 700; color: var(--sc-fg-1); }
     .stage[data-stage='todo'] .stage-count { color: var(--sc-accent); }
     .stage[data-stage='in_progress'] .stage-count { color: var(--sc-warning); }
@@ -574,13 +576,13 @@ const WEEKS = 12;
     .stage[data-stage='awaiting_author'] .meter-fill { background: #a78bfa; }
 
     .facts, .exits { list-style: none; margin: 5px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
-    .facts li { font-size: 0.64rem; line-height: 1.35; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .facts li { font-size: max(0.64rem, var(--sc-fs-floor)); line-height: 1.35; color: var(--sc-fg-2); overflow-wrap: anywhere; }
     .exits li {
       display: flex;
       flex-wrap: wrap;
       align-items: baseline;
       gap: 4px 6px;
-      font-size: 0.64rem;
+      font-size: max(0.64rem, var(--sc-fs-floor));
       line-height: 1.35;
       color: var(--sc-fg-1);
     }
@@ -599,7 +601,7 @@ const WEEKS = 12;
 
     .side-title {
       margin: 4px 0 0;
-      font-size: 0.62rem;
+      font-size: max(0.62rem, var(--sc-fs-floor));
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -632,6 +634,7 @@ const WEEKS = 12;
 })
 export class FeedbackDashboardComponent {
   private readonly translate = inject(TranslateService);
+  private readonly locale = inject(LocaleService);
 
   /**
    * Ticks on every language switch so the computed labels below (which resolve
@@ -829,8 +832,7 @@ export class FeedbackDashboardComponent {
 
   /** "Diesen Monat" with the actual month name appended, e.g. "Diesen Monat · Juli". */
   private monthLabel(): string {
-    const name = new Intl.DateTimeFormat(this.translate.currentLang || 'en', { month: 'long' })
-      .format(new Date());
+    const name = formatScMonthName(new Date(), this.locale.language(), this.locale.region());
     return `${this.translate.instant('adminFeedback.dashboard.thisMonth')} · ${name}`;
   }
 
@@ -862,11 +864,13 @@ export class FeedbackDashboardComponent {
     });
   }
 
+  /**
+   * Sparkline axis tick. Numeric short form on purpose — a spelled-out month
+   * does not fit a few-pixel chart label; the field ORDER still follows the
+   * resolved region (feedback 38b3d25a).
+   */
   private weekDate(start: number): string {
-    return new Intl.DateTimeFormat(this.translate.currentLang || 'en', {
-      day: '2-digit',
-      month: '2-digit',
-    }).format(new Date(start));
+    return formatScCompactDate(new Date(start), this.locale.language(), this.locale.region());
   }
 
   donutLabel(w: StatWindow): string {

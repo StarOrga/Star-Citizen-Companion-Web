@@ -308,6 +308,25 @@ h3 { font-size: 0.9rem; }
 .profile-pill .desc { font-size: 0.76rem; color: var(--sc-fg-2); }
 .profile-pill .eta { font-family: monospace; font-size: 0.78rem; color: var(--sc-accent); }
 
+/* Mid-run speed switch (Run + Upload views). Same pills, one line tall, so it
+   reads as a control strip above the progress card rather than a second
+   configuration screen. It stays interactive for the whole run — throttling
+   down without cancelling the job is the point of it existing. */
+.throttle-bar {
+  display: flex; flex-direction: column; gap: 6px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--sc-border);
+  border-radius: 8px;
+  background: var(--sc-bg-1);
+}
+.throttle-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.throttle-title { font-family: var(--sc-font-display); font-size: 0.78rem; letter-spacing: 0.06em; }
+.throttle-hint, .throttle-note { font-size: 0.72rem; color: var(--sc-fg-2); margin: 0; }
+.throttle-status { font-size: 0.74rem; color: var(--sc-accent); margin: 0; }
+.profiles.compact { gap: 8px; }
+.profile-pill.compact { padding: 7px 12px; gap: 0; align-items: center; justify-content: center; min-width: 110px; }
+
 .progress-bar {
   position: relative;
   height: 6px;

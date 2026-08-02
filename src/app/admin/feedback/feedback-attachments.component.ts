@@ -174,7 +174,7 @@ import { FeedbackImage } from './markdown.util';
       border-radius: 50%;
       background: rgba(0, 0, 0, 0.6);
       color: #fff;
-      font-size: 0.62rem;
+      font-size: max(0.62rem, var(--sc-fs-floor));
       line-height: 1;
       cursor: pointer;
     }
@@ -229,7 +229,7 @@ import { FeedbackImage } from './markdown.util';
       font-size: 1rem; line-height: 1; cursor: pointer;
     }
     .lb-step:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
-    .lb-count { color: var(--sc-fg-2); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+    .lb-count { color: var(--sc-fg-2); font-size: max(0.75rem, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; }
   `],
 })
 export class FeedbackAttachmentsComponent {
