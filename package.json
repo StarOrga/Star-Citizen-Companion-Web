@@ -36,7 +36,8 @@
     "tool:typecheck": "npm --prefix desktop-tool run typecheck",
     "tool:package": "npm --prefix desktop-tool run package:win",
     "check:csp-3d": "node scripts/check-csp-3d.mjs",
-    "check:csp-index": "node scripts/check-index-csp.mjs"
+    "check:csp-index": "node scripts/check-index-csp.mjs",
+    "check:edge-functions": "node scripts/changed-edge-functions.mjs --selftest"
   },
   "dependencies": {
     "@angular/animations": "^21.2.17",
