@@ -741,38 +741,32 @@
       },
       "kpi": {
         "title": "Patch performance",
-        "sub": "Latest versus the all-time average",
-        "average": "All-time avg",
+        "sub": "Latest versus the all-time median",
         "samplesLabel": "Based on",
         "samples": "{{n}} data points",
         "goto": "Show {{title}}",
         "pause": "Pause rotation",
         "play": "Resume rotation",
-        "deltaFaster": "{{n}} days faster than average",
-        "deltaSlower": "{{n}} days slower than average",
-        "deltaMore": "{{n}} more than average",
-        "deltaLess": "{{n}} fewer than average",
-        "deltaSame": "exactly on average",
-        "axisFrom": "last {{days}} days",
-        "axisNow": "now",
-        "barNotes": "{{n}} patch notes up to {{date}}",
+        "deltaFaster": "{{n}} days faster than the median",
+        "deltaSlower": "{{n}} days slower than the median",
+        "deltaSame": "exactly on the median",
         "barDays": "Alpha {{version}}: {{n}} days",
-        "chartAria": "{{title}}: currently {{latest}} {{unit}}, average {{average}} {{unit}} across {{n}} data points",
+        "chartAria": "{{title}}: currently {{latest}} {{unit}}, median {{median}} {{unit}} across {{n}} data points",
         "unit": {
-          "days": "days",
-          "notes": "patch notes"
-        },
-        "volume": {
-          "title": "Patch notes over time",
-          "sub": "Posts per {{days}} days"
+          "days": "days"
         },
         "leadTime": {
           "title": "PTU → Live",
           "sub": "Days from the first test build to the live release"
         },
         "cadence": {
-          "title": "Patch cadence",
+          "title": "Patch cadence (main lines)",
           "sub": "Days between two live releases"
+        },
+        "median": "All-time median",
+        "subCadence": {
+          "title": "Patch cadence (sub-patches)",
+          "sub": "Days between two sub-patches in PTU or live"
         }
       }
     },
