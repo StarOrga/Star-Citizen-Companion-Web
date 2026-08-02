@@ -712,6 +712,65 @@
         "live": "Live",
         "ptu": "PTU",
         "evocati": "Evocati"
+      },
+      "facet": {
+        "live": "Live",
+        "hotfix": "Hotfix",
+        "ptu": "PTU",
+        "evocati": "Evocati",
+        "other": "Other"
+      },
+      "filter": {
+        "version": "Version",
+        "channel": "Channel",
+        "all": "All",
+        "versionAria": "Filter patch notes by version",
+        "channelAria": "Filter patch notes by channel",
+        "empty": "No patch notes match this selection.",
+        "reset": "Reset filters"
+      },
+      "latest": {
+        "title": "Newest per channel",
+        "hint": "At most one entry per channel"
+      },
+      "history": {
+        "title": "History"
+      },
+      "kpi": {
+        "title": "Patch performance",
+        "sub": "Latest versus the all-time average",
+        "average": "All-time avg",
+        "samplesLabel": "Based on",
+        "samples": "{{n}} data points",
+        "goto": "Show {{title}}",
+        "pause": "Pause rotation",
+        "play": "Resume rotation",
+        "deltaFaster": "{{n}} days faster than average",
+        "deltaSlower": "{{n}} days slower than average",
+        "deltaMore": "{{n}} more than average",
+        "deltaLess": "{{n}} fewer than average",
+        "deltaSame": "exactly on average",
+        "axisFrom": "last {{days}} days",
+        "axisNow": "now",
+        "barNotes": "{{n}} patch notes up to {{date}}",
+        "barDays": "Alpha {{version}}: {{n}} days",
+        "chartAria": "{{title}}: currently {{latest}} {{unit}}, average {{average}} {{unit}} across {{n}} data points",
+        "unit": {
+          "days": "days",
+          "notes": "patch notes"
+        },
+        "volume": {
+          "title": "Patch notes over time",
+          "sub": "Posts per {{days}} days"
+        },
+        "leadTime": {
+          "title": "PTU → Live",
+          "sub": "Days from the first test build to the live release"
+        },
+        "cadence": {
+          "title": "Patch cadence",
+          "sub": "Days between two live releases"
+        }
       }
     },
     "detail": {

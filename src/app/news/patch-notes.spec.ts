@@ -2,12 +2,17 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { NewsService, VerseNewsItem } from './news.service';
 import { ConsentService } from '../core/consent.service';
+import type { PatchFacet } from './patch-notes';
 import {
   compareVersionsDesc,
+  facetCounts,
+  filterPatchLines,
   groupPatchNotes,
   isHotfixTitle,
+  latestPerFacet,
   parsePatchStage,
   parsePatchVersion,
+  patchFacetOf,
   patchLineOf,
 } from './patch-notes';
 
@@ -150,6 +155,95 @@ describe('groupPatchNotes — newest main patch on top, small patches nested (44
 
   it('returns nothing when the feed has no patch notes at all', () => {
     expect(groupPatchNotes([])).toEqual([]);
+  });
+});
+
+describe('patch facets — one channel per note, so counts add up and nothing shows twice (44e90e30)', () => {
+  it('files a hotfix under hotfix, even though its title also says LIVE', () => {
+    expect(patchFacetOf('live', true)).toBe('hotfix');
+    expect(patchFacetOf('ptu', true)).toBe('hotfix');
+  });
+
+  it('otherwise files a note under its ring', () => {
+    expect(patchFacetOf('live', false)).toBe('live');
+    expect(patchFacetOf('ptu', false)).toBe('ptu');
+    expect(patchFacetOf('evocati', false)).toBe('evocati');
+  });
+
+  it('parks a note that names no ring at all under "other"', () => {
+    expect(patchFacetOf(null, false)).toBe('other');
+  });
+});
+
+describe('filterPatchLines / latestPerFacet — the patch section filters and its at-a-glance header', () => {
+  const news: VerseNewsItem[] = [
+    patch('p-410-ptu', '[Wave 1] Star Citizen Alpha 4.10 PTU Patch Notes 12358556', '2026-07-30T00:00:00.000Z'),
+    patch('p-49-hotfix', 'Star Citizen Alpha 4.9 LIVE - Hotfix Central (Updated 7.30.2026)', '2026-07-16T00:00:00.000Z'),
+    patch('p-49-live', 'Star Citizen Alpha 4.9 LIVE Release Notes', '2026-07-15T00:00:00.000Z'),
+    patch('p-49-evo', '[Evo NDA] Star Citizen Alpha 4.9 PTU Patch Notes 12107679', '2026-06-20T00:00:00.000Z'),
+    patch('p-48-live', 'Star Citizen Alpha 4.8 LIVE Release Notes', '2026-05-13T00:00:00.000Z'),
+    patch('p-48-hotfix', 'Star Citizen Alpha 4.8.2 LIVE - Hotfix 12030094', '2026-06-17T00:00:00.000Z'),
+  ];
+  const groups = groupPatchNotes(news);
+  const noFilter = { lines: new Set<string>(), facets: new Set<PatchFacet>() };
+
+  it('returns everything untouched when nothing is selected', () => {
+    expect(filterPatchLines(groups, noFilter)).toBe(groups);
+  });
+
+  it('narrows to one patch line', () => {
+    const only49 = filterPatchLines(groups, { lines: new Set(['4.9']), facets: new Set<PatchFacet>() });
+    expect(only49.map((g) => g.line)).toEqual(['4.9']);
+    expect(only49[0].entries.length).toBe(3);
+  });
+
+  it('narrows to one channel across every line', () => {
+    const hotfixes = filterPatchLines(groups, { lines: new Set<string>(), facets: new Set<PatchFacet>(['hotfix']) });
+    expect(hotfixes.flatMap((g) => g.entries).map((e) => e.item.id)).toEqual(['p-49-hotfix', 'p-48-hotfix']);
+  });
+
+  it('combines both axes and drops lines that keep nothing', () => {
+    const ptuIn49 = filterPatchLines(groups, { lines: new Set(['4.9', '4.8']), facets: new Set<PatchFacet>(['evocati']) });
+    expect(ptuIn49.map((g) => g.line)).toEqual(['4.9']);
+  });
+
+  it('re-dates a narrowed line but never un-badges the build you can play', () => {
+    const liveOnly = filterPatchLines(groups, { lines: new Set<string>(), facets: new Set<PatchFacet>(['live']) });
+    const line49 = liveOnly.find((g) => g.line === '4.9')!;
+    // Newest remaining entry is the release, not the (filtered-out) hotfix.
+    expect(line49.latestAt).toBe('2026-07-15T00:00:00.000Z');
+    expect(line49.isCurrentLive).toBe(true);
+  });
+
+  it('counts every note exactly once across the facets', () => {
+    const counts = facetCounts(groups);
+    expect(counts.get('live')).toBe(2);
+    expect(counts.get('hotfix')).toBe(2);
+    expect(counts.get('ptu')).toBe(1);
+    expect(counts.get('evocati')).toBe(1);
+    const total = [...counts.values()].reduce((a, b) => a + b, 0);
+    expect(total).toBe(news.length);
+  });
+
+  it('surfaces the newest note per channel, at most one each', () => {
+    const highlights = latestPerFacet(groups);
+    expect(highlights.map((h) => h.facet)).toEqual(['live', 'hotfix', 'ptu', 'evocati']);
+    expect(highlights.map((h) => h.entry.item.id))
+      .toEqual(['p-49-live', 'p-49-hotfix', 'p-410-ptu', 'p-49-evo']);
+  });
+
+  it('keeps the header in a fixed order rather than reshuffling on every post', () => {
+    // The PTU wave is the newest note overall; it still sits behind LIVE.
+    expect(latestPerFacet(groups)[0].facet).toBe('live');
+  });
+
+  it('follows the filter, so the header never contradicts the list below it', () => {
+    const only48 = filterPatchLines(groups, { lines: new Set(['4.8']), facets: new Set<PatchFacet>() });
+    expect(latestPerFacet(only48).map((h) => h.entry.item.id)).toEqual(['p-48-live', 'p-48-hotfix']);
+  });
+
+  it('names the line each highlight belongs to', () => {
+    expect(latestPerFacet(groups).find((h) => h.facet === 'ptu')!.line).toBe('4.10');
   });
 });
 

@@ -1,10 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { NewsListComponent } from './news-list.component';
+import { PatchNotesSectionComponent } from './patch-notes-section.component';
 import { NewsChannel, NewsService, VerseFeed, VerseNewsItem } from './news.service';
 import { ConsentService } from '../core/consent.service';
 import { UpcomingShipsService } from '../codex/upcoming-ships.service';
@@ -189,22 +191,29 @@ describe('Verse News — older entries fold with the filter (1bc19cdc)', () => {
     expect(fixture.componentInstance.olderOpen()).toBeTrue();
   });
 
+  // The patch lines live in their own component since 44e90e30, so this reaches
+  // through the rendered tree — which also asserts that the list still mounts the
+  // section at all.
   it('folds a manually opened older patch line back on a filter change', () => {
-    const c = fixture.componentInstance;
+    const section = fixture.debugElement.query(By.directive(PatchNotesSectionComponent))
+      ?.componentInstance as PatchNotesSectionComponent;
+    expect(section).withContext('news-list renders the patch-notes section').toBeTruthy();
+
     const lines = svc.patchLines();
     expect(lines.length).toBeGreaterThan(1);
 
     const older = lines[1];
-    expect(c.isLineOpen(lines[0])).withContext('newest line stays open').toBeTrue();
-    expect(c.isLineOpen(older)).withContext('older line starts folded').toBeFalse();
+    expect(section.isLineOpen(lines[0])).withContext('newest line stays open').toBeTrue();
+    expect(section.isLineOpen(older)).withContext('older line starts folded').toBeFalse();
 
-    c.toggleLine(older);
+    section.toggleLine(older);
     fixture.detectChanges();
-    expect(c.isLineOpen(older)).toBeTrue();
+    expect(section.isLineOpen(older)).toBeTrue();
 
     setFilter('patch');
+    fixture.detectChanges();
 
-    expect(c.isLineOpen(older)).withContext('older line folds with the filter').toBeFalse();
-    expect(c.isLineOpen(lines[0])).withContext('newest line is still the open one').toBeTrue();
+    expect(section.isLineOpen(older)).withContext('older line folds with the filter').toBeFalse();
+    expect(section.isLineOpen(lines[0])).withContext('newest line is still the open one').toBeTrue();
   });
 });

@@ -18,6 +18,22 @@ import type { VerseNewsItem } from './news.service';
 
 export type PatchStage = 'live' | 'ptu' | 'evocati';
 
+/**
+ * The channel a note belongs to — the second filter axis the admin asked for
+ * ("nach version oder nach live hotfix ptu etc."), and the key the "newest per
+ * channel" header is bucketed by.
+ *
+ * Every note gets EXACTLY ONE facet, so the chip counts add up to the total and
+ * the header can promise "at most one per channel" without showing the same
+ * thread twice. A hotfix thread reads `LIVE - Hotfix Central`, i.e. stage `live`
+ * AND hotfix — hotfix wins, because that is the more specific fact and the one
+ * you filter for. `other` catches the odd note that names neither ring.
+ */
+export type PatchFacet = 'live' | 'hotfix' | 'ptu' | 'evocati' | 'other';
+
+/** Display order for the facet chips and the "newest per channel" header. */
+export const PATCH_FACETS: readonly PatchFacet[] = ['live', 'hotfix', 'ptu', 'evocati', 'other'];
+
 export interface PatchNoteEntry {
   item: VerseNewsItem;
   /** Full version as published, e.g. `4.9`, `4.8.2`, `4.6.0`. Empty when unparseable. */
@@ -26,6 +42,8 @@ export interface PatchNoteEntry {
   segments: number[];
   stage: PatchStage | null;
   hotfix: boolean;
+  /** Single filter/grouping channel derived from `stage` + `hotfix` (see PatchFacet). */
+  facet: PatchFacet;
 }
 
 export interface PatchLineGroup {
@@ -102,14 +120,23 @@ export function isHotfixTitle(title: string): boolean {
   return /hotfix/i.test(title);
 }
 
+/** The one channel a note is filed under — hotfix beats the ring it patches. */
+export function patchFacetOf(stage: PatchStage | null, hotfix: boolean): PatchFacet {
+  if (hotfix) return 'hotfix';
+  return stage ?? 'other';
+}
+
 function toEntry(item: VerseNewsItem): PatchNoteEntry {
   const version = parsePatchVersion(item.title);
+  const stage = parsePatchStage(item.title);
+  const hotfix = isHotfixTitle(item.title);
   return {
     item,
     version,
     segments: versionSegments(version),
-    stage: parsePatchStage(item.title),
-    hotfix: isHotfixTitle(item.title),
+    stage,
+    hotfix,
+    facet: patchFacetOf(stage, hotfix),
   };
 }
 
@@ -138,10 +165,7 @@ export function groupPatchNotes(news: readonly VerseNewsItem[]): PatchLineGroup[
       if (Number.isFinite(byDate) && byDate !== 0) return byDate;
       return compareVersionsDesc(a.segments, b.segments);
     });
-    const latestAt = entries.reduce(
-      (acc, e) => (Date.parse(e.item.publishedAt) > Date.parse(acc) ? e.item.publishedAt : acc),
-      entries[0].item.publishedAt,
-    );
+    const latestAt = newestAt(entries);
     groups.push({
       line,
       segments: versionSegments(line),
@@ -161,4 +185,92 @@ export function groupPatchNotes(news: readonly VerseNewsItem[]): PatchLineGroup[
   const current = groups.find((g) => g.line && g.hasLive);
   if (current) current.isCurrentLive = true;
   return groups;
+}
+
+/** Newest publication date in a set of entries. */
+function newestAt(entries: readonly PatchNoteEntry[]): string {
+  return entries.reduce(
+    (acc, e) => (Date.parse(e.item.publishedAt) > Date.parse(acc) ? e.item.publishedAt : acc),
+    entries[0].item.publishedAt,
+  );
+}
+
+/**
+ * The two filter axes of the patch section. An EMPTY set means "no restriction
+ * on this axis" — the same convention the channel chips above the stream use, so
+ * "Alle" is simply the empty selection rather than a magic member.
+ */
+export interface PatchFilter {
+  /** Main patch lines to keep (`4.10`, `4.9`, … `''` = the unversioned group). */
+  lines: ReadonlySet<string>;
+  facets: ReadonlySet<PatchFacet>;
+}
+
+export const EMPTY_PATCH_FILTER: PatchFilter = { lines: new Set(), facets: new Set() };
+
+/**
+ * Narrow the grouped patch notes to the current selection.
+ *
+ * Groups that lose all their entries disappear, and `latestAt` is re-derived
+ * from what is left — but `hasLive` / `isCurrentLive` are carried over
+ * UNCHANGED: which build you can play is a fact about the game, not about the
+ * filter, so hiding the LIVE notes must not silently un-badge 4.9.
+ */
+export function filterPatchLines(
+  groups: readonly PatchLineGroup[],
+  filter: PatchFilter,
+): PatchLineGroup[] {
+  const { lines, facets } = filter;
+  if (lines.size === 0 && facets.size === 0) return groups as PatchLineGroup[];
+  const out: PatchLineGroup[] = [];
+  for (const group of groups) {
+    if (lines.size > 0 && !lines.has(group.line)) continue;
+    const entries = facets.size === 0 ? group.entries : group.entries.filter((e) => facets.has(e.facet));
+    if (entries.length === 0) continue;
+    out.push({ ...group, entries, latestAt: newestAt(entries) });
+  }
+  return out;
+}
+
+/** How many notes each facet holds — drives the chip counts. */
+export function facetCounts(groups: readonly PatchLineGroup[]): Map<PatchFacet, number> {
+  const counts = new Map<PatchFacet, number>();
+  for (const group of groups) {
+    for (const entry of group.entries) {
+      counts.set(entry.facet, (counts.get(entry.facet) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+/** One "newest note" per channel — the at-a-glance header above the history. */
+export interface PatchHighlight {
+  facet: PatchFacet;
+  entry: PatchNoteEntry;
+  /** Main patch line the entry belongs to, so the card can name it. */
+  line: string;
+}
+
+/**
+ * The newest note per channel, at most one each (44e90e30 follow-up: "maximal 1
+ * pro live, ptu etc. auf dem ersten Blick").
+ *
+ * Facets partition the notes, so no thread can show up twice — the rolling
+ * hotfix thread is the hotfix card, never also the LIVE card. Ordered by
+ * PATCH_FACETS (live, hotfix, ptu, evocati, other), NOT by date: the row is a
+ * status board, and a board whose columns swap places whenever RSI posts is
+ * unreadable.
+ */
+export function latestPerFacet(groups: readonly PatchLineGroup[]): PatchHighlight[] {
+  const best = new Map<PatchFacet, PatchHighlight>();
+  for (const group of groups) {
+    for (const entry of group.entries) {
+      const current = best.get(entry.facet);
+      const t = Date.parse(entry.item.publishedAt);
+      if (!current || t > Date.parse(current.entry.item.publishedAt)) {
+        best.set(entry.facet, { facet: entry.facet, entry, line: group.line });
+      }
+    }
+  }
+  return PATCH_FACETS.map((f) => best.get(f)).filter((h): h is PatchHighlight => !!h);
 }
