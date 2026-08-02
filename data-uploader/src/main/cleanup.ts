@@ -6,9 +6,12 @@
  * dirs are large (PNGs, JSON, manifests) and must be reclaimed once their
  * contents have been uploaded — otherwise they fill the disk over many runs.
  *
- * Two reclaim paths:
+ * Reclaim paths:
  *  1. Post-upload — delete the run's dir right after a confirmed upload.
  *  2. Startup scan — sweep leftover dirs from previous FAILED/incomplete runs.
+ *  3. Full purge — drop EVERY extract dir, no age or marker gate, at the two
+ *     moments the operator has declared the old data expendable: right after a
+ *     complete confirmed upload, and when a new extraction starts.
  *
  * SAFETY: every delete goes through `assertSafeExtractTarget()`, which refuses
  * any path that is not a *sub*directory of a `.sc-companion-extracts` segment.
@@ -38,6 +41,19 @@ export interface UploadMarkerInfo {
 export interface CleanupResult {
   ok: boolean;
   error?: string;
+}
+
+export interface PurgeResult extends CleanupResult {
+  /** Extract dirs actually removed. */
+  removed: number;
+  /** Extract dirs left alone because a live job still owns them. */
+  kept: number;
+}
+
+/** Comparable form of a path — Windows paths are case-insensitive. */
+function pathKey(target: string): string {
+  const resolved = resolve(target);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
 /**
@@ -218,4 +234,76 @@ export async function scanAndCleanupDiscovered(): Promise<CleanupResult> {
     return { ok: true };
   }
   return scanAndCleanupOrphans(roots);
+}
+
+/**
+ * Full purge: delete EVERY `<root>/.sc-companion-extracts/*` dir, with no
+ * marker and no age gate — the only thing that survives is a dir listed in
+ * `keep` (the run that is about to start, plus any job that is live right now).
+ *
+ * This is deliberately more aggressive than `scanAndCleanupOrphans`, which
+ * keeps marker-less dirs younger than 24 h because it cannot know whether some
+ * other window is mid-run. The purge is only ever called from a point where the
+ * operator has said the old data is expendable, and the caller names the dirs
+ * that are still in use — so the 24 h guess is neither needed nor wanted there.
+ *
+ * Best-effort and guarded like every other delete here: never throws.
+ */
+export async function purgeExtracts(roots: string[], keep: string[] = []): Promise<PurgeResult> {
+  const protectedDirs = new Set(keep.filter(Boolean).map(pathKey));
+  const removed: string[] = [];
+  let kept = 0;
+  try {
+    for (const root of [...new Set(roots.filter(Boolean).map((r) => resolve(r)))]) {
+      const extractsRoot = join(root, EXTRACTS_DIR_NAME);
+      let entries: { name: string; isDirectory(): boolean }[];
+      try {
+        entries = await fs.readdir(extractsRoot, { withFileTypes: true });
+      } catch {
+        continue; // no extracts folder under this root
+      }
+      for (const ent of entries) {
+        if (!ent.isDirectory()) continue;
+        const dir = join(extractsRoot, ent.name);
+        if (protectedDirs.has(pathKey(dir))) {
+          kept++;
+          continue;
+        }
+        const res = await safeRemoveDir(dir);
+        if (res.ok) removed.push(dir);
+      }
+    }
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    log.warn('[cleanup] purge aborted', { error });
+    return { ok: false, removed: removed.length, kept, error };
+  }
+  log.info(`[cleanup] purge: removed ${removed.length}, kept ${kept} (in use)`, { removed });
+  return { ok: true, removed: removed.length, kept };
+}
+
+/**
+ * `purgeExtracts` over every install root we can find. `extraRoots` is unioned
+ * in so a caller that already knows its own install path (the extraction about
+ * to start) still reclaims that install's leftovers even if discovery comes
+ * back empty or misses it.
+ */
+export async function purgeAllExtracts(
+  keep: string[] = [],
+  extraRoots: string[] = [],
+): Promise<PurgeResult> {
+  let roots: string[] = [];
+  try {
+    const channels = await discoverAll();
+    roots = channels.map((c) => c.installPath);
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    log.warn('[cleanup] discovery for purge failed — falling back to known roots', { error });
+  }
+  const all = [...roots, ...extraRoots].filter(Boolean);
+  if (all.length === 0) {
+    log.info('[cleanup] purge: no install roots to sweep');
+    return { ok: true, removed: 0, kept: 0 };
+  }
+  return purgeExtracts(all, keep);
 }

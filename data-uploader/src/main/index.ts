@@ -32,6 +32,7 @@ import {
 import {
   cleanupAfterUpload,
   scanAndCleanupDiscovered,
+  purgeAllExtracts,
   type UploadMarkerInfo,
   type CleanupResult,
 } from './cleanup.js';
@@ -588,11 +589,48 @@ interface ActiveJob {
   /** Last progress the sidecar reported — context for the abort payload. */
   lastPhase: string | null;
   lastPct: number | null;
+  /** Where this job writes. The extract purge must never delete it. */
+  outDir: string | null;
 }
 const activeJobs = new Map<string, ActiveJob>();
 
-function newActiveJob(kind: ActiveJob['kind']): ActiveJob {
-  return { kind, cancel: () => {}, abortReason: null, startedAt: Date.now(), lastPhase: null, lastPct: null };
+function newActiveJob(kind: ActiveJob['kind'], outDir: string | null = null): ActiveJob {
+  return {
+    kind,
+    cancel: () => {},
+    abortReason: null,
+    startedAt: Date.now(),
+    lastPhase: null,
+    lastPct: null,
+    outDir,
+  };
+}
+
+/** Output dirs of every job running right now — the purge's keep-list. */
+function liveJobOutDirs(): string[] {
+  return [...activeJobs.values()].map((j) => j.outDir).filter((d): d is string => !!d);
+}
+
+/**
+ * The install root behind an extract dir (`<root>/.sc-companion-extracts/<run>`),
+ * as a 0- or 1-element list to hand the purge as an extra root. Keeps the
+ * current install in scope even when discovery finds nothing.
+ */
+function installRootOf(outDir: string | undefined | null): string[] {
+  if (!outDir) return [];
+  const root = dirname(dirname(outDir));
+  return root && root !== '.' ? [root] : [];
+}
+
+/**
+ * The extract dir a paused/unfinished upload would resume from, if there is
+ * one. A new extraction must not pull that out from under it — the renderer
+ * takes the same care before its own post-upload cleanup. Once an upload
+ * completes, the job file is dropped and this dir is fair game again.
+ */
+function resumableUploadOutDir(): string[] {
+  const { state, resumable } = uploadJob.view();
+  return resumable && state?.outDir ? [state.outDir] : [];
 }
 
 /**
@@ -664,8 +702,26 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
     timeoutMs: JOB_STALL_MS,
     onTimeout: (idle) => reportJobStall('extract', idle, jobId),
   });
+  // A new extraction means every earlier extract on disk is superseded — drop
+  // them all BEFORE the sidecar starts writing, so two full extracts never sit
+  // side by side and fill the drive. The dir this run is about to fill and any
+  // dir a concurrent job owns are excluded; `extraRoots` covers this install
+  // even if discovery comes back empty.
+  const purge = await purgeAllExtracts(
+    [req.outDir, ...liveJobOutDirs(), ...resumableUploadOutDir()],
+    installRootOf(req.outDir),
+  );
+  if (purge.removed > 0) {
+    event.sender.send('sc:extract:event', {
+      jobId,
+      type: 'log',
+      message: `cleanup: removed ${purge.removed} older extract folder(s)`,
+      level: 'info',
+    });
+  }
+
   hub.start('extract');
-  const job = newActiveJob('extract');
+  const job = newActiveJob('extract', req.outDir);
   const handle = startExtraction(req, (ev: PythonExtractEvent) => {
     watchdog.pet(); // every event is a sign of life — reset the stall timer
     // Mirror into main's hub so the tray shows extraction progress even while
@@ -730,7 +786,7 @@ ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<S
     timeoutMs: JOB_STALL_MS,
     onTimeout: (idle) => reportJobStall('skin', idle, jobId),
   });
-  const job = newActiveJob('skin');
+  const job = newActiveJob('skin', req.outDir);
   const handle = startSkinExport(req, (ev) => {
     watchdog.pet();
     event.sender.send('sc:skin:event', { jobId, ...ev });
@@ -828,8 +884,15 @@ ipcMain.handle(
 
 ipcMain.handle(
   'sc:cleanup:extractDir',
-  async (_e, outDir: string, info: UploadMarkerInfo): Promise<CleanupResult> =>
-    cleanupAfterUpload(outDir, info ?? {}),
+  async (_e, outDir: string, info: UploadMarkerInfo): Promise<CleanupResult> => {
+    const own = await cleanupAfterUpload(outDir, info ?? {});
+    // The renderer only reaches this once the WHOLE upload (bundle + codex +
+    // skins) is confirmed, so nothing on disk is needed any more — sweep the
+    // leftovers of earlier runs too, not just this run's dir. Best-effort: the
+    // per-run result is what the operator's status line reports.
+    await purgeAllExtracts(liveJobOutDirs(), installRootOf(outDir));
+    return own;
+  },
 );
 
 ipcMain.handle('sc:extract:cancel', (_e, jobId: string) => {
