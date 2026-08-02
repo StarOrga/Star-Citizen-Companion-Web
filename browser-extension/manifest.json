@@ -15,8 +15,7 @@
   "host_permissions": [
     "https://robertsspaceindustries.com/account/pledges*",
     "https://robertsspaceindustries.com/*/account/pledges*",
-    "https://sc-companion.vercel.app/*",
-    "https://star-citizen-companion-web.vercel.app/*"
+    "https://sc-companion.vercel.app/*"
   ],
   "action": {
     "default_title": "__MSG_extName__",
@@ -38,10 +37,7 @@
       "run_at": "document_idle"
     },
     {
-      "matches": [
-        "https://sc-companion.vercel.app/*",
-        "https://star-citizen-companion-web.vercel.app/*"
-      ],
+      "matches": ["https://sc-companion.vercel.app/*"],
       "js": ["src/content/companion-bridge.js"],
       "run_at": "document_start"
     }
@@ -51,8 +47,7 @@
       "resources": ["src/lib/hangar-core.js"],
       "matches": [
         "https://robertsspaceindustries.com/*",
-        "https://sc-companion.vercel.app/*",
-        "https://star-citizen-companion-web.vercel.app/*"
+        "https://sc-companion.vercel.app/*"
       ]
     }
   ]
