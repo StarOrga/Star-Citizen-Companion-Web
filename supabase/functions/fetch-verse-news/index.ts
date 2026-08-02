@@ -9,6 +9,7 @@ import { Buffer } from 'node:buffer';
 import jpeg from 'npm:jpeg-js@0.4.4';
 import { PNG } from 'npm:pngjs@7.0.0';
 import { scoreWallpaper } from './wallpaper-quality.ts';
+import { isNearDuplicate, perceptualHash } from './perceptual-hash.ts';
 import { isCommLinkArticleUrl } from './comm-link-url.ts';
 import { isWithinVideoRetention, videoRetentionCutoff } from './video-retention.ts';
 import { isImageUrl } from './media-urls.ts';
@@ -820,7 +821,10 @@ async function cacheImages(items: VerseNewsItem[]): Promise<void> {
 
 // --------------------- Starscape wallpaper capture (#133) ---------------------
 // Metadata-only: record the ORIGINAL full-res CDN url of every media.rsi news
-// image in `verse_wallpapers`, deduped by CDN id. NO image bytes are stored —
+// image in `verse_wallpapers`, deduped by CDN id AND by picture — the id catches
+// the same asset, `perceptual-hash.ts` catches the same scene republished under
+// a different id (an armour-set comm-link ships one hangar render per colourway;
+// at tile size they read as one photo repeated). NO image bytes are stored —
 // the gallery hotlinks RSI directly (maintainer directive: keep DB/storage
 // lean; `source.<ext>` is the verified largest variant, ~4× the cover).
 // Must run BEFORE cacheImages(), which rewrites item urls to our cached copies.
@@ -857,6 +861,8 @@ interface WallpaperRow {
   series: string | null;
   article_url: string;
   published_at: string | null;
+  /** 256-bit dHash of the picture; null when the format could not be decoded. */
+  phash: string | null;
 }
 
 // HEAD the original CDN url and keep it only if it is a raster image of wallpaper
@@ -945,11 +951,16 @@ const WALLPAPER_CONTENT_TIMEOUT_MS = 10_000;
 // *this* crawl only. The row simply retries next crawl (identical semantics
 // to any other captureWallpapers rejection), so a transient decode hiccup can
 // never permanently drop a real wallpaper.
-async function passesContentCheck(row: WallpaperRow): Promise<boolean> {
+//
+// The decoded pixels also yield the row's perceptual hash — the near-duplicate
+// signal (see perceptual-hash.ts) rides along on this one decode instead of
+// costing a second fetch. A skipped or failed check yields no hash, and a null
+// hash never matches, so such an image is kept rather than silently dropped.
+async function contentCheck(row: WallpaperRow): Promise<{ ok: boolean; phash: string | null }> {
   const ext = row.preview_url.slice(row.preview_url.lastIndexOf('.')).toLowerCase();
   if (ext !== '.jpg' && ext !== '.jpeg' && ext !== '.png') {
     console.log(`captureWallpapers: content check skipped (${ext || 'unknown ext'}) for ${row.image_id}`);
-    return true;
+    return { ok: true, phash: null };
   }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), WALLPAPER_CONTENT_TIMEOUT_MS);
@@ -958,7 +969,7 @@ async function passesContentCheck(row: WallpaperRow): Promise<boolean> {
       headers: { Referer: RSI_BASE + '/' },
       signal: ctrl.signal,
     });
-    if (!res.ok) return false;
+    if (!res.ok) return { ok: false, phash: null };
     const buf = new Uint8Array(await res.arrayBuffer());
     let rgba: Uint8Array;
     let width: number;
@@ -977,15 +988,42 @@ async function passesContentCheck(row: WallpaperRow): Promise<boolean> {
     const score = scoreWallpaper(rgba, width, height);
     if (!score.ok) {
       console.log(`captureWallpapers: content-rejected ${row.image_id} [${score.reasons.join(',')}]`);
-      return false;
+      return { ok: false, phash: null };
     }
-    return true;
+    return { ok: true, phash: perceptualHash(rgba, width, height) };
   } catch (err) {
     console.error(`captureWallpapers: content check threw for ${row.image_id}, rejecting this crawl:`, err);
-    return false;
+    return { ok: false, phash: null };
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Drop candidates whose PICTURE the gallery already has, or that repeat each
+ * other within this crawl.
+ *
+ * Order matters and is deliberate: candidates are walked in feed order and the
+ * first one wins, matching the existing "first capture wins" rule for ids. RSI
+ * lists an article's hero artwork first, so feed order is also the best
+ * available proxy for "the shot worth keeping".
+ *
+ * A candidate is never allowed to displace a STORED row. Rows are what
+ * `?image=<id>` share links resolve, so evicting one to swap in a near-identical
+ * newcomer would break a live link for no visible gain.
+ */
+function rejectNearDuplicates(candidates: WallpaperRow[], storedHashes: string[]): WallpaperRow[] {
+  const seen = [...storedHashes];
+  const keep: WallpaperRow[] = [];
+  for (const row of candidates) {
+    if (row.phash && seen.some((h) => isNearDuplicate(row.phash, h))) {
+      console.log(`captureWallpapers: near-duplicate rejected ${row.image_id} (${row.article_url})`);
+      continue;
+    }
+    if (row.phash) seen.push(row.phash);
+    keep.push(row);
+  }
+  return keep;
 }
 
 async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
@@ -1011,6 +1049,7 @@ async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
           series: it.category ?? null,
           article_url: it.url,
           published_at: it.publishedAt || null,
+          phash: null, // filled by contentCheck() from the decoded pixels
         });
       }
     }
@@ -1033,11 +1072,29 @@ async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
       );
     }
     const scored = await Promise.all(
-      toScore.map(async (row) => ((await passesContentCheck(row)) ? row : null)),
+      toScore.map(async (row) => {
+        const verdict = await contentCheck(row);
+        return verdict.ok ? { ...row, phash: verdict.phash } : null;
+      }),
     );
-    const finalRows = scored.filter((row): row is WallpaperRow => row !== null);
-    if (finalRows.length === 0) return;
+    const passed = scored.filter((row): row is WallpaperRow => row !== null);
+    if (passed.length === 0) return;
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    // Reject artwork the gallery already shows (#duplicate-photos). Reading the
+    // whole hash column is fine at this table's size — a few hundred rows of 64
+    // hex chars — and Hamming distance is not something an index could serve.
+    // A failed read degrades to "no known hashes", i.e. the pre-filter
+    // behaviour: the crawl still captures, it just cannot reject this round.
+    const { data: existing, error: hashErr } = await admin
+      .from('verse_wallpapers')
+      .select('phash')
+      .not('phash', 'is', null);
+    if (hashErr) console.error('captureWallpapers: phash read failed:', hashErr.message);
+    const storedHashes = (existing ?? [])
+      .map((r) => (r as { phash: string | null }).phash)
+      .filter((h): h is string => !!h);
+    const finalRows = rejectNearDuplicates(passed, storedHashes);
+    if (finalRows.length === 0) return;
     // First capture wins — rows are immutable source metadata, so duplicate
     // ids from later crawls are ignored instead of churning updated_at.
     const { error } = await admin
