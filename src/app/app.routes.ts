@@ -90,12 +90,16 @@ export const routes: Routes = [
       },
       {
         // Upcoming Ships — the diff between the public RSI ship-matrix and our
-        // datamined game data (edge fn rsi-upcoming-ships). Public; static
-        // segment placed BEFORE codex/:kind/:className so it is not consumed by
-        // the :kind wildcard.
+        // datamined game data (edge fn rsi-upcoming-ships). No longer a page of
+        // its own: it is a CATEGORY of the Codex index, so this path just opens
+        // the index with that category preselected. Kept as a route (not a
+        // redirect) so the Verse-News CTA and existing bookmarks keep a stable
+        // url. Static segment placed BEFORE codex/:kind/:className so it is not
+        // consumed by the :kind wildcard.
         path: 'codex/upcoming',
+        data: { category: 'upcoming' },
         loadComponent: () =>
-          import('./codex/codex-upcoming.component').then((m) => m.CodexUpcomingComponent),
+          import('./codex/codex-list.component').then((m) => m.CodexListComponent),
       },
       {
         // The Showroom — public, livery-first 3D discovery destination. Reads only the

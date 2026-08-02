@@ -20,6 +20,8 @@ import { ExtensionPromoComponent } from './extension-promo.component';
 import { UploaderAccessComponent } from '../desktop/uploader-access.component';
 import { HoloReadyBadgeComponent } from './holo-ready-badge.component';
 import { ShowroomService } from './showroom.service';
+import { FallbackImageComponent } from './fallback-image.component';
+import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -65,6 +67,7 @@ interface Lane {
     ExtensionPromoComponent,
     UploaderAccessComponent,
     HoloReadyBadgeComponent,
+    FallbackImageComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -85,7 +88,6 @@ interface Lane {
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>
           <a class="index-link" routerLink="/codex/fps">{{ 'fps.bridgeLink' | translate }}</a>
           <a class="index-link" routerLink="/codex/blueprint">{{ 'blueprint.title' | translate }}</a>
-          <a class="index-link" routerLink="/codex/upcoming">{{ 'codex.upcoming.title' | translate }}</a>
           <a class="index-link" routerLink="/codex/showroom">{{ 'codex.showroom.title' | translate }}</a>
           <a class="index-link" routerLink="/codex/keybinds">{{ 'codex.bridge.keybinds' | translate }}</a>
           <a class="index-link" routerLink="/hangar">{{ 'codex.bridge.hangar' | translate }}</a>
@@ -151,14 +153,12 @@ interface Lane {
           <article class="hero" [class.is-hangar]="heroFromHangar()">
             <!-- The art is a real link to the same target as the Open button, so
                  tapping the render behaves like every other card in the app. -->
-            <a class="hero-art" [class.icon-only]="!heroThumb()"
+            <a class="hero-art" [class.icon-only]="heroThumbs().length === 0"
                [routerLink]="['/codex', 'ship', h.classNameSlug]"
                [attr.aria-label]="'codex.bridge.hero.openShip' | translate: { ship: rowName(h) }">
-              @if (heroThumb(); as src) {
-                <img [src]="src" [alt]="rowName(h)" (error)="onHeroThumbError()" />
-              } @else {
+              <sc-fallback-image [candidates]="heroThumbs()" [alt]="rowName(h)" [eager]="true">
                 <sc-codex-icon kind="ship" />
-              }
+              </sc-fallback-image>
             </a>
             <div class="hero-body">
               @if (heroFromFlagship()) {
@@ -235,6 +235,41 @@ interface Lane {
           </section>
         }
 
+        <!-- Upcoming ships as a lane of the Codex itself, not a separate
+             sub-tab: announced hulls belong next to the ones we already hold.
+             The header links into the Index with that category preselected. -->
+        @if (upcomingPreview().length > 0) {
+          <section class="lane">
+            <header class="lane-head">
+              <h2>{{ 'codex.upcoming.title' | translate }}</h2>
+              <span class="lane-sub">{{ 'codex.upcoming.laneSub' | translate }}</span>
+              <a class="lane-more" routerLink="/codex/upcoming">
+                {{ 'codex.upcoming.laneAll' | translate: { count: upcomingCount() } }} →
+              </a>
+            </header>
+            <div class="lane-track">
+              @for (ship of upcomingPreview(); track ship.id) {
+                <a class="lane-card" [href]="ship.rsiUrl || rsiShipsUrl" target="_blank" rel="noopener noreferrer">
+                  <div class="lane-thumb" [class.icon-only]="upcomingThumbs(ship).length === 0">
+                    <sc-fallback-image [candidates]="upcomingThumbs(ship)" [alt]="ship.name">
+                      <sc-codex-icon kind="ship" />
+                    </sc-fallback-image>
+                  </div>
+                  <div class="lane-info">
+                    <h3 class="lane-name">{{ ship.name }}</h3>
+                    @if (ship.manufacturerCode) { <span class="lane-mfr">{{ ship.manufacturerCode }}</span> }
+                  </div>
+                  <div class="lane-actions">
+                    <span class="upcoming-tag" [class.concept]="!ship.flightReadyButMissing">
+                      {{ upcomingStatus(ship) | translate }}
+                    </span>
+                  </div>
+                </a>
+              }
+            </div>
+          </section>
+        }
+
         @if (!loading() && lanes().length === 0 && !hero()) {
           <div class="sc-card empty">
             <strong>{{ 'codex.empty.title' | translate }}</strong>
@@ -246,12 +281,10 @@ interface Lane {
       <!-- Reusable lane / result card -->
       <ng-template #laneCard let-r>
         <a class="lane-card" [routerLink]="['/codex', 'ship', r.classNameSlug]">
-          <div class="lane-thumb" [class.icon-only]="!thumb(r)">
-            @if (thumb(r); as src) {
-              <img [src]="src" [alt]="rowName(r)" loading="lazy" (error)="onThumbError(r)" />
-            } @else {
+          <div class="lane-thumb" [class.icon-only]="thumbs(r).length === 0">
+            <sc-fallback-image [candidates]="thumbs(r)" [alt]="rowName(r)">
               <sc-codex-icon kind="ship" />
-            }
+            </sc-fallback-image>
           </div>
           <div class="lane-info">
             <h3 class="lane-name">{{ rowName(r) }}</h3>
@@ -341,7 +374,8 @@ interface Lane {
       cursor: pointer; text-decoration: none; color: inherit; transition: background 0.16s; }
     .hero-art:hover { background: radial-gradient(circle at 45% 45%, color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-2)), var(--sc-bg-0)); }
     .hero-art:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -4px; }
-    .hero-art img { max-width: 100%; max-height: 340px; object-fit: contain; filter: drop-shadow(0 8px 26px rgba(0,0,0,0.6)); }
+    /* sc-fallback-image owns the <img>; sizing crosses the boundary as a var. */
+    .hero-art { --sc-img-max-h: 340px; --sc-img-shadow: drop-shadow(0 8px 26px rgba(0,0,0,0.6)); }
     .hero-art.icon-only sc-codex-icon { width: 60%; height: 60%; }
     .hero-body { display: flex; flex-direction: column; gap: 8px; padding: 28px 30px; justify-content: center; }
     .hero-eyebrow { font-family: var(--sc-font-display); font-size: max(0.68rem, var(--sc-fs-floor)); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); }
@@ -379,6 +413,15 @@ interface Lane {
     .lane { display: flex; flex-direction: column; gap: 12px; }
     .lane-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
     .lane-head h2 { margin: 0; font-size: 1.05rem; }
+    .lane-more { margin-left: auto; color: var(--sc-accent); text-decoration: none;
+      font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor));
+      letter-spacing: 0.06em; text-transform: uppercase; }
+    .lane-more:hover { text-decoration: underline; }
+    .upcoming-tag { font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 3px 7px; border-radius: 6px; border: 1px solid var(--sc-border);
+      background: color-mix(in srgb, var(--sc-fg-2) 14%, transparent); color: var(--sc-fg-1); }
+    .upcoming-tag.concept { background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
+      border-color: color-mix(in srgb, var(--sc-accent) 34%, transparent); color: var(--sc-accent); }
     .lane-sub { color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
     .results-head { display: flex; align-items: baseline; }
     .count { font-family: var(--sc-font-display); font-size: 0.82rem; letter-spacing: 0.06em; color: var(--sc-accent); text-transform: uppercase; }
@@ -399,7 +442,7 @@ interface Lane {
     .lane-card:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 26%, transparent); }
     .lane-thumb { height: 108px; display: flex; align-items: center; justify-content: center; border-radius: 8px;
       background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
-    .lane-thumb img { max-height: 100px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+    .lane-thumb { --sc-img-max-h: 100px; }
     .lane-thumb.icon-only sc-codex-icon { width: 100%; height: 100%; }
     .lane-info { display: flex; flex-direction: column; gap: 2px; min-height: 40px; }
     .lane-name { margin: 0; font-size: 0.9rem; font-weight: 600; line-height: 1.2; }
@@ -430,7 +473,7 @@ interface Lane {
     @media (max-width: 760px) {
       .hero { grid-template-columns: 1fr; }
       .hero-art { padding: 18px; }
-      .hero-art img { max-height: 220px; }
+      .hero-art { --sc-img-max-h: 220px; }
       .hero-body { padding: 20px 22px; }
     }
 
@@ -447,6 +490,7 @@ export class CodexBridgeComponent implements OnInit {
   private readonly hangar = inject(HangarService);
   private readonly router = inject(Router);
   private readonly showroom = inject(ShowroomService);
+  private readonly rsi = inject(UpcomingShipsService);
 
   readonly skeletons = Array.from({ length: 6 }, (_, i) => i);
 
@@ -468,8 +512,6 @@ export class CodexBridgeComponent implements OnInit {
   private readonly catalog = signal<CodexListRow[]>([]);
   // Hangar ship catalog rows, keyed in hangar order (Your Hangar lane + hero).
   private readonly hangarRows = signal<CodexListRow[]>([]);
-  private readonly heroThumbBroken = signal(false);
-  private readonly brokenThumbs = signal<ReadonlySet<string>>(new Set<string>());
 
   // Class names already in the hangar — read-overlay over hangar.ships().
   readonly inHangarSet = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
@@ -575,6 +617,9 @@ export class CodexBridgeComponent implements OnInit {
     try {
       await this.svc.loadCurrentBuild();
       void this.showroom.load();
+      // RSI ship-matrix feed: artwork for hulls without a datamined render, plus
+      // the upcoming lane. Advisory — a failure leaves both untouched.
+      void this.rsi.ensureLoaded();
       if (this.hangar.ships().length === 0) await this.hangar.loadAll();
       this.catalog.set(await this.svc.listBridgeShips(60));
       await this.resolveHangarRows();
@@ -642,28 +687,44 @@ export class CodexBridgeComponent implements OnInit {
     return localized || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
   }
 
-  thumb(r: CodexListRow): string | null {
-    if (this.brokenThumbs().has(r.classNameSlug)) return null;
+  /**
+   * Ordered art candidates for a ship row, best-looking first: RSI's own store
+   * render, then our datamined preview. The datamined "preview" is the game's
+   * flat white UI silhouette — it identifies a hull without showing it — so it
+   * serves as the fallback for hulls RSI has no matrix entry for, not as the
+   * primary. `sc-fallback-image` walks the list and only shows the glyph once
+   * every candidate has failed.
+   */
+  thumbs(r: CodexListRow): string[] {
+    const out: string[] = [...this.rsi.artFor(r.nameLocalized ?? this.rowName(r))];
     const p = r.payload as { previewImage?: string | null } | undefined;
-    return this.svc.previewUrl(p?.previewImage);
+    const local = this.svc.previewUrl(p?.previewImage);
+    if (local) out.push(local);
+    return out;
   }
 
-  onThumbError(r: CodexListRow): void {
-    const next = new Set(this.brokenThumbs());
-    next.add(r.classNameSlug);
-    this.brokenThumbs.set(next);
-  }
-
-  readonly heroThumb = computed<string | null>(() => {
-    if (this.heroThumbBroken()) return null;
+  readonly heroThumbs = computed<string[]>(() => {
     const h = this.hero();
-    if (!h) return null;
-    const p = h.payload as { previewImage?: string | null } | undefined;
-    return this.svc.previewUrl(p?.previewImage);
+    return h ? this.thumbs(h) : [];
   });
 
-  onHeroThumbError(): void {
-    this.heroThumbBroken.set(true);
+  // ── upcoming-ships lane ────────────────────────────────────────────────────
+  /** Deep link target when RSI gives us no per-ship url. */
+  readonly rsiShipsUrl = 'https://robertsspaceindustries.com/pledge/ships';
+
+  readonly upcomingCount = computed(() => this.rsi.feed()?.ships.length ?? 0);
+  /** Concept ships lead — those are the genuinely "coming" ones. */
+  readonly upcomingPreview = computed(() => (this.rsi.feed()?.ships ?? []).slice(0, 12));
+
+  upcomingThumbs(ship: UpcomingShip): string[] {
+    return thumbnailCandidates(ship);
+  }
+
+  upcomingStatus(ship: UpcomingShip): string {
+    const s = (ship.productionStatus ?? '').toLowerCase();
+    if (s === 'in-concept' || s === 'in concept') return 'codex.upcoming.status.concept';
+    if (s === 'flight-ready' || s === 'flight ready') return 'codex.upcoming.status.flightReady';
+    return ship.productionStatus ?? '';
   }
 
   /** ONE headline stat for the hero: crew, else SCM speed if present. */

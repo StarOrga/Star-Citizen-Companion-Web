@@ -18,6 +18,22 @@
 // normalized game name across every ingested build (conservative: fewer false
 // "upcoming" positives). RSI's own `production_status` is returned alongside so a
 // reviewer can see whether the diff and RSI agree.
+//
+// Artwork (why a candidate LIST, not one url): an RSI media entry advertises its
+// whole derivative family in `images` — but that map is generated from a size
+// template, so a listed variant is not guaranteed to exist on the CDN, and the
+// map also carries non-art variants (avatar/logo/icon/banner/texture). Returning
+// a single "first non-empty value" therefore produced two silent failures: a
+// missing derivative rendered as the generic ship glyph forever (the client has
+// no second url to try), and a ship whose first media entry is a manufacturer
+// logo rendered the logo. We now emit an ORDERED, art-only candidate list per
+// ship (`thumbnails`) that the client walks on <img> error.
+//
+// `gameShipArt` (added for the Codex): the same matcher already knows which RSI
+// entry belongs to which ingested game ship, so we publish that mapping —
+// normalized game-ship name → RSI art — instead of throwing it away. The Codex
+// ship cards use it whenever the datamined preview render is missing, so RSI
+// artwork is not an upcoming-ships-only feature.
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -48,11 +64,22 @@ interface UpcomingShip {
   type: string | null;
   focus: string | null;
   rsiUrl: string | null;
+  /** Best candidate, kept for older clients. Always `thumbnails[0] ?? null`. */
   thumbnail: string | null;
+  /** Ordered art candidates; the client falls through to the next on load error. */
+  thumbnails: string[];
   // true only when RSI marks the ship flight-ready AND we found no game-data match
   // — i.e. the diff surfaced it even though RSI says it exists. Helps a reviewer
   // spot name-matching gaps vs genuinely just-released ships.
   flightReadyButMissing: boolean;
+}
+
+/** RSI artwork for a ship we DO hold game data for (keyed by normalized game name). */
+interface RsiShipArt {
+  /** RSI's own display name — lets a client show where the art came from. */
+  name: string;
+  rsiUrl: string | null;
+  thumbnails: string[];
 }
 
 // --------------------- name normalization ---------------------
@@ -64,42 +91,92 @@ function normalizeName(raw: string): string {
     .replace(/[^a-z0-9]/g, ''); // drop spaces, punctuation, hyphens
 }
 
-// Does the RSI ship (by normalized name) already exist in the game-data name set?
-function matchesGameData(rsiNorm: string, exact: Set<string>, all: string[]): boolean {
-  if (!rsiNorm) return false;
-  if (exact.has(rsiNorm)) return true;
-  if (rsiNorm.length < MIN_CONTAINS_LEN) return false;
+// Which game-data names does this RSI ship match? Empty array = the ship is not
+// in our extracted game data (→ it is part of the "upcoming" diff).
+//
+// Returns matches instead of a boolean so the caller can also publish the
+// inverse mapping (game ship → RSI art) without re-running the fuzzy match.
+// Each match carries a specificity score: an exact hit always wins, otherwise
+// the LONGEST matching RSI name wins, so "aegisidrism" binds to "idrism" and
+// not to the shorter, less specific "idris".
+function matchGameData(rsiNorm: string, exact: Set<string>, all: string[]): { name: string; score: number }[] {
+  if (!rsiNorm) return [];
+  const out: { name: string; score: number }[] = [];
+  if (exact.has(rsiNorm)) out.push({ name: rsiNorm, score: Number.MAX_SAFE_INTEGER });
+  if (rsiNorm.length < MIN_CONTAINS_LEN) return out;
   // Manufacturer-prefixed game name contains the bare RSI model name
   // ("aegisidrism" ⊇ "idrism"), or the rare inverse (game name shorter).
   for (const g of all) {
-    if (g.length < MIN_CONTAINS_LEN) continue;
-    if (g.includes(rsiNorm) || rsiNorm.includes(g)) return true;
+    if (g.length < MIN_CONTAINS_LEN || g === rsiNorm) continue;
+    if (g.includes(rsiNorm) || rsiNorm.includes(g)) out.push({ name: g, score: rsiNorm.length });
   }
-  return false;
+  return out;
 }
 
 // --------------------- RSI thumbnail extraction ---------------------
-// Only RSI-hosted urls are accepted (the matrix is untrusted content). RSI media
-// entries expose several sized variants under `images`, plus a `source_url`.
-function rsiThumbnail(media: unknown): string | null {
-  if (!Array.isArray(media)) return null;
+// Only RSI-hosted urls are accepted (the matrix is untrusted content).
+//
+// `images` is a derivative map generated from a size template: every ship
+// advertises the SAME ~48 variant names whether or not the file was rendered,
+// so a listed url can 404. It also mixes in non-art variants. We therefore
+// (a) allow-list art variants in preference order and (b) return every
+// surviving candidate so the client can fall through on a load error.
+const ART_VARIANTS = [
+  'store_small',        // card-sized hero render — the intended thumbnail
+  'store_large',
+  'post_small',
+  'post',
+  'slideshow',
+  'subscribers_vault_thumbnail',
+  'wallpaper_thumb',
+  'product_thumb_large',
+  'store_hub_small',
+] as const;
+
+// Variants that exist on every media entry but never show the ship itself.
+// Falling back to these is what turned "no store render" into "manufacturer
+// logo on the card" — worse than the honest placeholder glyph.
+const NON_ART_VARIANTS = new Set([
+  'avatar', 'logo', 'icon', 'banner', 'cover', 'texture', 'background_blur',
+  'manufacturer_logo_xs', 'heap_note', 'heap_thumb', 'heap_infobox',
+  'slideshow_pager',
+]);
+
+/** Ordered, deduped, RSI-hosted art candidates across ALL media entries. */
+function rsiThumbnails(media: unknown, limit = 5): string[] {
+  if (!Array.isArray(media)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (raw: unknown) => {
+    if (out.length >= limit) return;
+    const url = resolveRsiUrl(raw);
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    out.push(url);
+  };
+  // Pass 1: the preferred variants, best-first, across every media entry — a
+  // ship whose FIRST entry is a logo still reaches the render in entry two.
+  for (const variant of ART_VARIANTS) {
+    for (const entry of media) {
+      if (!entry || typeof entry !== 'object') continue;
+      const images = (entry as Record<string, unknown>)['images'];
+      if (images && typeof images === 'object') push((images as Record<string, unknown>)[variant]);
+    }
+  }
+  // Pass 2: the original upload, then any remaining art-ish variant. Last
+  // resort — `source_url` is full-resolution, so it never leads the list.
   for (const entry of media) {
     if (!entry || typeof entry !== 'object') continue;
     const rec = entry as Record<string, unknown>;
+    push(rec['source_url']);
     const images = rec['images'];
-    const candidates: unknown[] = [];
-    if (images && typeof images === 'object') {
-      // Prefer a card-sized variant, fall back to whatever exists.
-      const im = images as Record<string, unknown>;
-      candidates.push(im['store_small'], im['post_small'], im['store_large'], im['subscribers_vault_thumbnail'], ...Object.values(im));
-    }
-    candidates.push(rec['source_url']);
-    for (const c of candidates) {
-      const url = resolveRsiUrl(c);
-      if (url) return url;
+    if (!images || typeof images !== 'object') continue;
+    for (const [key, value] of Object.entries(images as Record<string, unknown>)) {
+      if (NON_ART_VARIANTS.has(key) || key.startsWith('wallpaper_')) continue;
+      push(value);
     }
   }
-  return null;
+  return out;
 }
 
 function resolveRsiUrl(raw: unknown): string | null {
@@ -182,12 +259,30 @@ Deno.serve(async (req: Request) => {
 
     const ships: UpcomingShip[] = [];
     const seenIds = new Set<string>();
+    // normalized game-ship name → best RSI art found for it (+ the score that won).
+    const artByGameName = new Map<string, { art: RsiShipArt; score: number }>();
     for (const raw of matrix) {
       const name = typeof raw['name'] === 'string' ? (raw['name'] as string).trim() : '';
       if (!name) continue;
       const rsiNorm = normalizeName(name);
-      const inGameData = matchesGameData(rsiNorm, gameNames.exact, gameNames.all);
-      if (inGameData) continue; // already in our game data → not upcoming (the diff)
+      const rsiUrl = normalizeShipUrl(raw['url']);
+      const thumbnails = rsiThumbnails(raw['media']);
+      const matches = matchGameData(rsiNorm, gameNames.exact, gameNames.all);
+
+      if (matches.length > 0) {
+        // Already in our game data → not part of the diff, but its artwork is
+        // exactly what the Codex ship card wants when the datamined render is
+        // missing. Most specific RSI name wins per game ship.
+        if (thumbnails.length > 0) {
+          for (const m of matches) {
+            const cur = artByGameName.get(m.name);
+            if (!cur || m.score > cur.score) {
+              artByGameName.set(m.name, { art: { name, rsiUrl, thumbnails }, score: m.score });
+            }
+          }
+        }
+        continue;
+      }
 
       const id = String(raw['id'] ?? rsiNorm);
       if (seenIds.has(id)) continue;
@@ -205,11 +300,15 @@ Deno.serve(async (req: Request) => {
         productionStatus,
         type: typeof raw['type'] === 'string' ? (raw['type'] as string) : null,
         focus: typeof raw['focus'] === 'string' ? (raw['focus'] as string) : null,
-        rsiUrl: normalizeShipUrl(raw['url']),
-        thumbnail: rsiThumbnail(raw['media']),
+        rsiUrl,
+        thumbnail: thumbnails[0] ?? null,
+        thumbnails,
         flightReadyButMissing: productionStatus === 'flight-ready',
       });
     }
+
+    const gameShipArt: Record<string, RsiShipArt> = {};
+    for (const [gameName, entry] of artByGameName) gameShipArt[gameName] = entry.art;
 
     // Concept ships first (RSI still building them), then just-released/missing,
     // each block alphabetical — a stable, reviewer-friendly order.
@@ -220,12 +319,16 @@ Deno.serve(async (req: Request) => {
 
     const payload = {
       ships,
+      // normalized game-ship name → RSI artwork; consumed by the Codex ship
+      // cards, not by the upcoming list.
+      gameShipArt,
       counts: {
         total: ships.length,
         concept: ships.filter((s) => !s.flightReadyButMissing).length,
         flightReadyMissing: ships.filter((s) => s.flightReadyButMissing).length,
         rsiTotal: matrix.length,
         gameNames: gameNames.all.length,
+        gameShipArt: Object.keys(gameShipArt).length,
       },
       fetchedAt: new Date().toISOString(),
     };

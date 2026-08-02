@@ -16,6 +16,7 @@
 - **Decryption is transparent.** The P4K AES key is hard-coded in scdatatools (`DEFAULT_P4K_KEY`); the `Game.dcb` payload itself is parsed as plaintext binary. No keys to supply, no separate decrypt step.
 - **The `nubia` ImportError only bites if you go through `scdatatools.sc.StarCitizen`** (the convenience wrapper). Import the leaf modules directly and you sidestep it entirely — OR `pip install nubia` / stub it to regain the wrapper. Recommendation: **use the leaf modules + a thin hand-rolled loader**; it's the smallest dependency surface.
 - **Ships** = `EntityClassDefinition` records whose `filename` matches `libs/foundry/records/entities/spaceships/.*`. Stats live in their **Components** (a list of typed structs), not in flat fields.
+  - ⚠️ **Corrected in practice (feedback 0a5988d5):** the `spaceships/` prefix alone is **incomplete** — GROUND vehicles live in the sibling `entities/groundvehicles/` directory (40 records vs 920 spaceships in the live datacore). Using the single prefix silently dropped the whole URSA / Cyclone / Storm / ROC / PTV / STV / UTV / ATLS / Nox / X1 family from `codex_ships`. The extractor now matches `entities/{spaceships,groundvehicles,vehicles}/` **plus** a `VehicleComponentParams` fallback — see `_VEHICLE_ROOT_RE` in `dataforge_extract.py`.
 - **The domain model** (Section 5) intentionally mirrors the field set that `scunpacked` proved extractable, so the schema is grounded in a working reference implementation rather than guesswork.
 
 **Headline risk:** scdatatools 1.0.4 was released **2022-08-02** — ~4 years old. The binary container parser (DataForge v5/v6) is robust, but **record-type and struct-property *names* in the live SC build may have drifted** since. Wave 1 must treat the exact property paths below as *starting hypotheses to confirm against the live `Game.dcb`*, not gospel. (See Section 6.)
@@ -91,13 +92,15 @@ EntityClassDefinition + filename ~ libs/foundry/records/entities/spaceships/.*  
 
 So **the canonical "is this a ship?" test is the `spaceships/` filename prefix** — taken straight from scdatatools' own `register_record_handler` decorator on the `Ship` class.
 
+**But that test only covers SPACE ships.** scdatatools' `Ship` handler is registered for the spaceships path only, and the live datacore keeps drivable ground vehicles under `libs/foundry/records/entities/groundvehicles/`. Treating the spaceships prefix as "is this a vehicle?" therefore loses every rover, buggy, tank and hoverbike in the game. The reliable discriminator for *vehicle* is the second column of the table below: the **`VehicleComponentParams` component** (967 records in the live datacore ≈ 920 spaceships + 40 ground vehicles + a handful filed elsewhere). The extractor uses the path roots as the fast path and that component as the fallback.
+
 ### 1.3 DataCore record types → entity mapping
 
 Verified from scdatatools source + corroborated by the `scunpacked` loader (which parses the same DataCore). The unit of truth is the **`EntityClassDefinition`** record; "what kind of thing it is" is decided by (a) its `filename` path and (b) which **component param structs** appear in its `Components` list.
 
 | Our entity type | DataCore source | Key discriminator |
 |---|---|---|
-| **Ship / vehicle** | `EntityClassDefinition` under `libs/foundry/records/entities/spaceships/…` | filename prefix; has `VehicleComponentParams` component |
+| **Ship / vehicle** | `EntityClassDefinition` under `libs/foundry/records/entities/{spaceships,groundvehicles,vehicles}/…` | filename prefix (all three roots — `spaceships/` alone misses every ground vehicle); OR has `VehicleComponentParams` component |
 | **Ship weapon** | `EntityClassDefinition` (item) | has `SCItemWeaponComponentParams`; `SAttachableComponentParams.AttachDef.Type` ~ `WeaponGun`/`Turret`/`MissileLauncher` |
 | **FPS weapon** | `EntityClassDefinition` (item) | `SCItemWeaponComponentParams` + FPS `AttachDef.Type`/tags; scunpacked splits these into `fps-items.json` |
 | **Ammunition** | dedicated records under `Data/Libs/Foundry/Records/ammoparams` | referenced by `SCItemWeaponComponentParams.ammoContainerRecord` → `SAmmoContainerComponentParams.ammoParamsRecord` |

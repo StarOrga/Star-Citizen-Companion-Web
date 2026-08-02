@@ -19,9 +19,47 @@ export interface UpcomingShip {
   type: string | null;
   focus: string | null;
   rsiUrl: string | null;
+  /** Best candidate; always `thumbnails[0] ?? null`. Kept for older payloads. */
   thumbnail: string | null;
+  /**
+   * Ordered artwork candidates. RSI advertises a fixed derivative family per
+   * media entry regardless of what was actually rendered, so a listed url can
+   * 404 — the UI walks this list on `<img>` error instead of collapsing to the
+   * placeholder glyph after the first miss. Older payloads omit it; readers
+   * must fall back to `[thumbnail]`.
+   */
+  thumbnails?: string[];
   /** RSI marks it flight-ready yet the game-data diff still missed it (name gap or just-released). */
   flightReadyButMissing: boolean;
+}
+
+/** RSI artwork for a ship we DO hold game data for. */
+export interface RsiShipArt {
+  name: string;
+  rsiUrl: string | null;
+  thumbnails: string[];
+}
+
+/**
+ * Normalize a ship name the same way the edge function does, so a game-data
+ * name resolves into the `gameShipArt` map. Lowercase, diacritics stripped,
+ * everything non-alphanumeric dropped.
+ */
+export function normalizeShipName(raw: string): string {
+  return raw
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Ordered artwork candidates for one upcoming ship, tolerating payloads that
+ * predate `thumbnails`.
+ */
+export function thumbnailCandidates(ship: Pick<UpcomingShip, 'thumbnail' | 'thumbnails'>): string[] {
+  if (ship.thumbnails && ship.thumbnails.length > 0) return ship.thumbnails;
+  return ship.thumbnail ? [ship.thumbnail] : [];
 }
 
 export interface UpcomingShipsCounts {
@@ -30,10 +68,17 @@ export interface UpcomingShipsCounts {
   flightReadyMissing: number;
   rsiTotal: number;
   gameNames: number;
+  /** How many ingested game ships the RSI matrix could supply artwork for. */
+  gameShipArt?: number;
 }
 
 export interface UpcomingShipsFeed {
   ships: UpcomingShip[];
+  /**
+   * Normalized game-ship name → RSI artwork, for the ships that ARE in our
+   * game data. Present since the artwork rework; older payloads omit it.
+   */
+  gameShipArt?: Record<string, RsiShipArt>;
   counts: UpcomingShipsCounts | null;
   fetchedAt: string;
 }
@@ -118,6 +163,17 @@ function normalize(value: string): string {
     .trim();
 }
 
+/**
+ * Owns the whole `rsi-upcoming-ships` feed, which carries two products of the
+ * same RSI ship-matrix scrape:
+ *
+ *  1. the "upcoming" diff (ships RSI lists that our game data has no match for),
+ *  2. `gameShipArt` — RSI artwork keyed by normalized game-ship name, used by
+ *     the Codex ship cards whenever the datamined preview render is missing.
+ *
+ * Both consumers share this one signal so the Codex never triggers a second
+ * fetch of the same (CDN-cached) payload.
+ */
 @Injectable({ providedIn: 'root' })
 export class UpcomingShipsService {
   private readonly http = inject(HttpClient);
@@ -170,6 +226,34 @@ export class UpcomingShipsService {
   });
 
   private refreshSeq = 0;
+  private inFlight: Promise<void> | null = null;
+
+  /**
+   * Load the feed once per session (idempotent, dedupes concurrent callers).
+   * The Codex ship grids call this purely for `gameShipArt`, so it must never
+   * flip the visible `loading` flag of the upcoming list.
+   */
+  ensureLoaded(): Promise<void> {
+    if (this.feed()) return Promise.resolve();
+    if (!this.inFlight) {
+      this.inFlight = this.refresh(true).finally(() => {
+        this.inFlight = null;
+      });
+    }
+    return this.inFlight;
+  }
+
+  /**
+   * Ordered RSI artwork candidates for an ingested game ship, matched on its
+   * localized name. Empty when the feed is not loaded yet or the matrix has no
+   * counterpart — the caller keeps its own placeholder in that case.
+   */
+  artFor(gameName: string | null | undefined): string[] {
+    if (!gameName) return [];
+    const map = this.feed()?.gameShipArt;
+    if (!map) return [];
+    return map[normalizeShipName(gameName)]?.thumbnails ?? [];
+  }
 
   async refresh(silent = false): Promise<void> {
     const seq = ++this.refreshSeq;
