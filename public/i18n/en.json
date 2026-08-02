@@ -1736,61 +1736,6 @@
       "security": "Security"
     }
   },
-  "printGuide": {
-    "linkLabel": "3D Printing",
-    "title": "3D Printing Guide",
-    "subtitle": "How the community turns Star Citizen ships into printable models — using your own game files, on your own machine.",
-    "legal": {
-      "title": "Viewing is fine — downloads are not",
-      "p1": "You can inspect ship models right here in the codex (3D viewer): rendering game content for VIEWING is the established community practice that CIG tolerates across fan tools — the same ground every ship viewer site stands on. It remains a tolerated grey area, not a granted right.",
-      "p2": "What this app deliberately does NOT offer: extracted geometry for download or redistribution. The RSI EULA prohibits redistributing extracted game assets, the Fankit & Fandom FAQ rules out offering game content for download by others, and downloadable models collide with CIG’s own licensed model program. So this page explains the workflow you run yourself, on your own machine, with your own game files.",
-      "eulaLink": "RSI End User License Agreement",
-      "faqLink": "Star Citizen Fankit & Fandom FAQ",
-      "affiliation": "This is an unofficial fan site, not affiliated with the Cloud Imperium group of companies. Star Citizen® is a registered trademark of Cloud Imperium Rights LLC."
-    },
-    "workflow": {
-      "title": "The community workflow",
-      "extract": {
-        "title": "1. Extract from your own Data.p4k",
-        "text": "Use a local extraction tool (unp4k, StarFab) against the Data.p4k of your own Star Citizen installation to pull the CryEngine geometry files (.cgf / .cga) of the ship you want."
-      },
-      "convert": {
-        "title": "2. Convert to a standard mesh format",
-        "text": "Convert the CryEngine chunk files to COLLADA/glTF with Cryengine-Converter or StarBreaker, or import them into Blender directly via SCExporter."
-      },
-      "prep": {
-        "title": "3. Prepare for printing in Blender",
-        "text": "Game meshes are not watertight. Apply a Solidify modifier for wall thickness, then a Remesh pass to close holes and reduce sub-millimetre detail before exporting STL/3MF."
-      },
-      "slice": {
-        "title": "4. Slice and print",
-        "text": "Import the STL into your slicer, scale it (game units are not millimetres — use the real ship dimensions from our Codex as reference), add supports and print."
-      }
-    },
-    "tools": {
-      "title": "Vetted community tools",
-      "hint": "All tools are third-party, open-source projects you run locally. Check each project's documentation and license before use.",
-      "unp4k": "The classic Data.p4k extractor — unpacks game archive entries onto your disk.",
-      "starfab": "Extraction front-end and data tooling for Star Citizen (StarFab GUI on top of scdatatools).",
-      "starbreaker": "Rust toolkit that reads game data and exports meshes to glTF/GLB.",
-      "cryengineConverter": "Converts CryEngine .cgf/.cga chunk files into COLLADA for Blender import.",
-      "scexporter": "Blender add-on that imports Star Citizen geometry directly."
-    },
-    "tips": {
-      "title": "Print-prep tips",
-      "watertight": "Game meshes are display meshes: expect holes, intersecting shells and non-manifold edges — they always need repair before slicing.",
-      "solidify": "Blender's Solidify modifier gives paper-thin hull panels a printable wall thickness (0.8–1.6 mm at desk-model scale).",
-      "remesh": "A voxel Remesh pass closes gaps and merges shells at the cost of fine detail — pick the voxel size to match your printer's resolution.",
-      "scale": "There is no canonical scale in the files. Scale by real dimensions: look up the ship's length in the Codex and scale the model to your target size.",
-      "lod": "Prefer the highest LOD (LOD0) for hero prints; lower LODs slice faster and are fine for small desk models.",
-      "cigGuide": "CIG community guide: Easy preparation of STL files for 3D printing"
-    },
-    "codex": {
-      "title": "Ship dimensions from the Codex",
-      "text": "Every ship page in our Codex lists real length, width and height from the game data — the reference you need to scale a print correctly.",
-      "cta": "Open Codex"
-    }
-  },
   "extension": {
     "promo": {
       "text": "Own your fleet already? A browser extension can import your ships straight from your RSI hangar.",

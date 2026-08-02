@@ -1736,61 +1736,6 @@
       "security": "Sicherheit"
     }
   },
-  "printGuide": {
-    "linkLabel": "3D-Druck",
-    "title": "3D-Druck-Guide",
-    "subtitle": "Wie die Community Star-Citizen-Schiffe in druckbare Modelle verwandelt — mit deinen eigenen Spieldateien, auf deinem eigenen Rechner.",
-    "legal": {
-      "title": "Anschauen ja — Download nein",
-      "p1": "Schiffsmodelle kannst du direkt hier im Codex ansehen (3D-Viewer): Spielinhalte zum ANSCHAUEN darzustellen ist die etablierte Community-Praxis, die CIG bei Fan-Tools duldet — dieselbe Grundlage, auf der alle Ship-Viewer-Seiten stehen. Es bleibt eine geduldete Grauzone, kein verbrieftes Recht.",
-      "p2": "Was diese App bewusst NICHT anbietet: extrahierte Geometrie zum Download oder zur Weiterverbreitung. Die RSI-EULA verbietet die Weiterverbreitung extrahierter Spiel-Assets, die Fankit- & Fandom-FAQ schließt das Anbieten von Spielinhalten zum Download durch Dritte aus, und Download-Modelle kollidieren mit CIGs eigenem lizenzierten Modell-Programm. Diese Seite erklärt deshalb den Workflow, den du selbst ausführst — auf deinem Rechner, mit deinen eigenen Spieldateien.",
-      "eulaLink": "RSI-Endnutzer-Lizenzvereinbarung (EULA)",
-      "faqLink": "Star Citizen Fankit- & Fandom-FAQ",
-      "affiliation": "Dies ist eine inoffizielle Fan-Site, nicht verbunden mit der Cloud-Imperium-Unternehmensgruppe. Star Citizen® ist eine eingetragene Marke der Cloud Imperium Rights LLC."
-    },
-    "workflow": {
-      "title": "Der Community-Workflow",
-      "extract": {
-        "title": "1. Aus der eigenen Data.p4k extrahieren",
-        "text": "Nutze ein lokales Extraktions-Tool (unp4k, StarFab) gegen die Data.p4k deiner eigenen Star-Citizen-Installation, um die CryEngine-Geometriedateien (.cgf / .cga) des gewünschten Schiffs zu ziehen."
-      },
-      "convert": {
-        "title": "2. In ein Standard-Mesh-Format konvertieren",
-        "text": "Konvertiere die CryEngine-Chunk-Dateien mit Cryengine-Converter oder StarBreaker nach COLLADA/glTF, oder importiere sie via SCExporter direkt in Blender."
-      },
-      "prep": {
-        "title": "3. In Blender druckfertig machen",
-        "text": "Spiel-Meshes sind nicht wasserdicht. Wende einen Solidify-Modifier für Wandstärke an, danach einen Remesh-Durchgang, um Löcher zu schließen und Submillimeter-Details zu reduzieren — dann als STL/3MF exportieren."
-      },
-      "slice": {
-        "title": "4. Slicen und drucken",
-        "text": "Importiere die STL in deinen Slicer, skaliere sie (Spieleinheiten sind keine Millimeter — nutze die echten Schiffsmaße aus unserem Codex als Referenz), füge Stützen hinzu und drucke."
-      }
-    },
-    "tools": {
-      "title": "Bewährte Community-Tools",
-      "hint": "Alle Tools sind Open-Source-Projekte von Dritten, die du lokal ausführst. Prüfe vor der Nutzung Dokumentation und Lizenz des jeweiligen Projekts.",
-      "unp4k": "Der klassische Data.p4k-Extraktor — entpackt Archiv-Einträge auf deine Festplatte.",
-      "starfab": "Extraktions-Frontend und Daten-Tooling für Star Citizen (StarFab-GUI auf Basis von scdatatools).",
-      "starbreaker": "Rust-Toolkit, das Spieldaten liest und Meshes nach glTF/GLB exportiert.",
-      "cryengineConverter": "Konvertiert CryEngine-.cgf/.cga-Chunk-Dateien nach COLLADA für den Blender-Import.",
-      "scexporter": "Blender-Add-on, das Star-Citizen-Geometrie direkt importiert."
-    },
-    "tips": {
-      "title": "Tipps zur Druckvorbereitung",
-      "watertight": "Spiel-Meshes sind Anzeige-Meshes: Löcher, sich schneidende Shells und Non-Manifold-Kanten sind normal — vor dem Slicen ist immer eine Reparatur nötig.",
-      "solidify": "Blenders Solidify-Modifier gibt papierdünnen Rumpfpaneelen eine druckbare Wandstärke (0,8–1,6 mm bei Schreibtisch-Modellgröße).",
-      "remesh": "Ein Voxel-Remesh schließt Lücken und verschmilzt Shells auf Kosten feiner Details — wähle die Voxelgröße passend zur Druckerauflösung.",
-      "scale": "Die Dateien haben keinen kanonischen Maßstab. Skaliere über echte Maße: Schau die Schiffslänge im Codex nach und skaliere das Modell auf deine Zielgröße.",
-      "lod": "Für Hero-Drucke das höchste LOD (LOD0) nehmen; niedrigere LODs slicen schneller und reichen für kleine Schreibtisch-Modelle.",
-      "cigGuide": "CIG-Community-Guide: Easy preparation of STL files for 3D printing"
-    },
-    "codex": {
-      "title": "Schiffsmaße aus dem Codex",
-      "text": "Jede Schiffsseite in unserem Codex listet echte Länge, Breite und Höhe aus den Spieldaten — die Referenz, um einen Druck korrekt zu skalieren.",
-      "cta": "Codex öffnen"
-    }
-  },
   "extension": {
     "promo": {
       "text": "Flotte schon gekauft? Eine Browser-Erweiterung importiert deine Schiffe direkt aus deinem RSI-Hangar.",
