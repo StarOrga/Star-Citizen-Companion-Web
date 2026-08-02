@@ -678,6 +678,58 @@ do" while a hold is open. Report each hold — PR link, `processing_note`, age �
 instead of taking the silent "No open feedback." stop, so a parked PR the routine
 can't merge itself still nudges the admin to review/merge it.
 
+### A hold decays — verify its state, don't just age it
+
+Reporting "PR link + age" makes a claim about the hold's **existence**, not about
+its **executability**. Those come apart: `main` keeps moving while the hold
+stands still, and a hold can stop being mergeable — or stop being *deployable* —
+without anything in `admin_feedback` changing. The age number cannot show that,
+so a report built only from the SQL above reads as "still fine, just old" on
+exactly the cycle where it has become "no longer works".
+
+**PR #314 (feedback `40d2f925`), 2026-08-02.** Parked on 2026-07-30 as
+"berührt auth/RLS + enthält eine noch nicht gepushte Migration". Correctly not
+auto-merged — that call is the admin's. But over the 2.6 days it stood, two newer
+migrations landed in `main` (`20260730173500_routine_heartbeat.sql`,
+`20260731183000_profile_preferred_region.sql`), which made the hold's own
+`20260730120000_protected_admins.sql` **out of order**: `db push` refuses a
+version older than the newest applied one and demands `--include-all`. Merging it
+would not have deployed it. Every cycle in between had dutifully reported "offen
+seit X"; none had reported that it no longer runs.
+
+**Every cycle, for each open hold, verify these three and report what you found**
+— not just the row:
+
+| Check | How | On decay |
+|---|---|---|
+| Mergeable + CI | `gh pr view <n> --json mergeable,mergeStateStatus,statusCheckRollup` | `UNKNOWN` means GitHub has not computed it yet — re-poll, never report `UNKNOWN` as if it were a verdict |
+| Behind `main` | `git rev-list --count origin/<branch>..origin/main` | bring it up via `gh pr update-branch` (merge-in, **never** force-push) |
+| Migration order | the hold's `supabase/migrations/` prefixes vs. the newest in `origin/main` | renumber to a current prefix — and fix the filename echoed in the file's own header comment and in any docs referencing it |
+
+**Repair the mechanical decay; leave the decision alone.** The human call is
+*whether to merge* (auth / RLS / secrets / payment, destructive migration, data
+deletion) — nothing else about the hold is a decision. Keeping its branch
+rebased and its migration applicable is maintenance, and doing it means the
+admin's "ja, merge" is executable the moment he says it instead of starting a
+fresh debugging round. Still **never** merge a hold, and never `db push` a held
+migration: both are the thing being held.
+
+**Past ~24 h, escalate into the thread, not just into the run report.** The run
+report is a channel the admin does not routinely read; the board is the one he
+looks at. So post a `is_system=true` reply on the hold's own topic naming the PR,
+why it is held, the verified state, and the single question he has to answer:
+
+```sql
+insert into public.admin_feedback_messages (feedback_id, is_system, body)
+values ('<id>', true, '<PR + why held + verified state + the one decision>');
+```
+
+Post it only when the verified state has **changed** since the last system reply
+in that thread (or when there is none yet) — that converges, so a hold nudges on
+real news instead of once per cadence tick. Do **not** flip the row to
+`needs_input` to make it visible: that drops the `ship_ref` and turns a real
+review-hold into a bare claim the reaper will then reopen.
+
 ## Loose-ends sweep — the same duty for work that isn't in the DB
 
 The review-hold rule above closes the gap for one *row status*. But the routine
