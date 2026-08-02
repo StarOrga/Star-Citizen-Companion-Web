@@ -2,7 +2,7 @@ import type { Role } from '../auth/role.service';
 
 /**
  * Client-side mirror of the DB guard from migration
- * `20260730120000_protected_admins.sql`.
+ * `20260802080000_protected_admins.sql`.
  *
  * The database is the authority: `public.protected_admins` + the
  * `profiles_protected_admin_guard` trigger reject every demotion,

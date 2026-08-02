@@ -1,5 +1,5 @@
 -- ============================================================
--- 20260730120000_protected_admins.sql
+-- 20260802080000_protected_admins.sql
 -- Founder-admin protection (admin_feedback #83)
 --
 -- THREAT MODEL

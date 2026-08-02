@@ -14,7 +14,7 @@ interface AdminUserRow {
   username: string | null;
   role: Role;
   /**
-   * Row exists in `public.protected_admins` (migration 20260730120000).
+   * Row exists in `public.protected_admins` (migration 20260802080000).
    * Optional so a client running against a pre-migration DB still parses.
    */
   protected?: boolean | null;
@@ -564,7 +564,7 @@ export class AdminComponent implements OnInit {
   /**
    * Founder account (`public.protected_admins`). The DB rejects every
    * demotion/un-approval/deletion of these rows regardless of who asks —
-   * see migration 20260730120000_protected_admins.sql. The UI only
+   * see migration 20260802080000_protected_admins.sql. The UI only
    * explains it up front.
    */
   isProtected(target: AdminUserRow): boolean {

@@ -18,7 +18,7 @@
 // public.protected_admins can never be deleted here. This check is a
 // UX nicety only — the real enforcement is in the database (FK
 // ON DELETE RESTRICT + the profiles_protected_admin_guard trigger from
-// migration 20260730120000), so even a caller that bypasses this
+// migration 20260802080000), so even a caller that bypasses this
 // function entirely cannot delete a protected account.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';

@@ -22,7 +22,7 @@ Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, org
 | `20260726170000_user_feedback_channel.sql` | Non-admin feedback channel on the shared `admin_feedback` board: `source`/`triaged`/`decision_note` columns, `feedback_author_messages`, the author-facing `public.my_feedback` view (**its `revoke all … / grant select` pair is load-bearing**) |
 | `20260726220000_ship_hardpoint_transforms.sql` | `codex_item_ports.helper_name` / `.position` / `.rotation` — where a hardpoint sits on the hull. All nullable; NULL = position unknown (the state of every row until the uploader re-runs). Coordinates are metres in hull model space, CryEngine axes (`+X` starboard, `+Y` nose, `+Z` up). The ship-level map incl. default-loadout mounts rides in `codex_ships.payload.hardpointTransforms` + `.hardpointFrame`. |
 | `20260726230000_admin_feedback_seq.sql` | `admin_feedback.seq` — the board's stable topic number ("#42"), sequence-fed, backfilled oldest-first, admin-only (not in `my_feedback`) |
-| `20260730120000_protected_admins.sql` | Founder-admin protection — `protected_admins`, the `profiles_protected_admin_guard` + `profiles_role_write_guard` triggers, `protect_admin()`/`unprotect_admin()` (service_role only), the `protected_admin_removal_requests` seam. See **Protected admin accounts** below |
+| `20260802080000_protected_admins.sql` | Founder-admin protection — `protected_admins`, the `profiles_protected_admin_guard` + `profiles_role_write_guard` triggers, `protect_admin()`/`unprotect_admin()` (service_role only), the `protected_admin_removal_requests` seam. See **Protected admin accounts** below |
 
 ### RLS summary
 

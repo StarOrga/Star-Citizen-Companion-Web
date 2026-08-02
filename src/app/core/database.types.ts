@@ -1430,7 +1430,7 @@ export type Database = {
           email: string
           id: string
           last_sign_in_at: string
-          // Added by 20260730120000_protected_admins.sql — hand-patched
+          // Added by 20260802080000_protected_admins.sql — hand-patched
           // because the migration is not deployed yet; regenerate this
           // file after `npm run db:push`.
           protected: boolean
