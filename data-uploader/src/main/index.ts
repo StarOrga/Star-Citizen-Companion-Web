@@ -3,13 +3,20 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { exec } from 'node:child_process';
+import { cpus } from 'node:os';
 import log from 'electron-log';
 import { initLogging, logFromRenderer } from './logging.js';
 import { getSettings, setTelemetryEnabled, patchSettings, syncAutoStartWithOs } from './settings.js';
 import { reportCrash, reportError, reportExtractAbort } from './telemetry-reporter.js';
 import { classifyExtractAbort, type ExtractAbortReason } from '../lib/telemetry.js';
 import { discoverAll, discoverManual } from '../lib/discovery.js';
-import { PROFILES, DEFAULT_PROFILE, estimateForSize } from '../lib/performance.js';
+import {
+  PROFILES,
+  DEFAULT_PROFILE,
+  SELECTABLE_PROFILES,
+  estimateForSize,
+  workersFor,
+} from '../lib/performance.js';
 import { runOAuthFlow } from '../lib/oauth.js';
 import { raiseWindow } from '../lib/window-focus.js';
 import { uploadBundle, type UploadPayload } from '../lib/uploader.js';
@@ -399,8 +406,12 @@ ipcMain.handle('sc:pickFolder', async () => {
   return result.canceled ? null : (result.filePaths[0] ?? null);
 });
 
+// Only the profiles that do what they say. `auto` stays defined (the throttle
+// still accepts it, and Phase 2 will implement it) but is not offered: as a
+// pill it read "Smart" while its only real effect was BelowNormal, so the
+// smart-sounding choice quietly made the run slower than Standard.
 ipcMain.handle('sc:profiles', () => ({
-  profiles: PROFILES,
+  profiles: Object.fromEntries(SELECTABLE_PROFILES.map((id) => [id, PROFILES[id]])),
   default: DEFAULT_PROFILE,
 }));
 
@@ -698,6 +709,16 @@ ipcMain.handle('sc:extract:env', () => {
 
 ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<ExtractFinal> => {
   const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  // Resolve the parallelism HERE, from the profile that is live at the moment
+  // the sidecar starts — not from whatever the renderer had on screen when the
+  // operator first opened Configure. Main owns the live profile (see
+  // `main/throttle.ts`), so this is the only place that can be right.
+  const liveProfile = throttle.control().profile();
+  req = {
+    ...req,
+    workers: workersFor(liveProfile, cpus().length || 1),
+    memCapMb: PROFILES[liveProfile].ramCapMb,
+  };
   const watchdog = createWatchdog({
     timeoutMs: JOB_STALL_MS,
     onTimeout: (idle) => reportJobStall('extract', idle, jobId),

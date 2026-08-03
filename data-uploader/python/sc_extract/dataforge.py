@@ -171,8 +171,14 @@ class Record:
 class DataForge:
     """Parsed DataForge v6/v8 container with record_to_dict resolution."""
 
-    def __init__(self, data: bytes | bytearray) -> None:
-        self._buf = memoryview(bytes(data))
+    def __init__(self, data: bytes | bytearray | memoryview) -> None:
+        # A memoryview is adopted as-is (read-only) rather than copied: workers
+        # map the raw DataCore out of a shared-memory segment, and copying it
+        # per worker would multiply the largest single allocation in the run by
+        # the worker count for no benefit — the parse is read-only anyway. The
+        # CALLER must keep the underlying buffer alive for this object's
+        # lifetime (see parallel_dump._init, which holds the SharedMemory).
+        self._buf = data.toreadonly() if isinstance(data, memoryview) else memoryview(bytes(data))
         self._parse()
 
     # ── Header + section parsing ─────────────────────────────────────────────

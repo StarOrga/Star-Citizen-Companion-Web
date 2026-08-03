@@ -40,6 +40,17 @@ export interface ExtractRequest {
     componentTree: boolean;
   };
   toolVersion: string;
+  /**
+   * Worker processes for the record dump, and the advisory memory budget that
+   * clamps them. Resolved from the performance profile at START time.
+   *
+   * Pinned for the run, exactly like `scope`: a live mode switch re-prioritises
+   * the process tree (see `main/throttle.ts`) but cannot un-spawn a worker that
+   * is mid-record. The sidecar must be told the number — it must never infer it
+   * from cpu_count, which is blind to the affinity mask a throttled run carries.
+   */
+  workers?: number;
+  memCapMb?: number;
 }
 
 /** Event shape emitted by the Python subprocess (see sc_extract/events.py).
@@ -216,6 +227,8 @@ export function startExtraction(
     '--build', req.buildNumber,
     '--scope', scopeToString(req.scope),
     '--tool-version', req.toolVersion,
+    '--workers', String(Math.max(1, Math.floor(req.workers ?? 1))),
+    '--mem-cap-mb', String(Math.max(0, Math.floor(req.memCapMb ?? 0))),
   ];
 
   let child: ChildProcessWithoutNullStreams;

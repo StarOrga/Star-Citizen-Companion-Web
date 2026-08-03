@@ -66,7 +66,9 @@ describe('createThrottleControl', () => {
     c.onChange((p, rt) => seen.push(`${p}:${rt.priority}`));
     c.set('minimal');
     c.set('maximum');
-    expect(seen).toEqual(['minimal:idle', 'maximum:above_normal']);
+    // maximum rides at Normal — see process-throttle.spec on why raising the
+    // class cannot reach the worker processes that do the work.
+    expect(seen).toEqual(['minimal:idle', 'maximum:normal']);
   });
 
   it('survives a listener that throws — job control must not break', () => {
