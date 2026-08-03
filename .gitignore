@@ -40,6 +40,9 @@ desktop.ini
 *.local.json
 src/environments/environment.local.ts
 
+# Local release scratch (uploader binary + release token) — never commit
+ul-rel/
+
 # Supabase local stack
 supabase/.temp/
 supabase/.branches/
