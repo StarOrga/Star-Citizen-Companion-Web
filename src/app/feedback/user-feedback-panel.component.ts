@@ -81,6 +81,7 @@ type UserFeedbackTab = 'compose' | 'mine';
           @switch (err) {
             @case ('upload') { {{ 'userFeedback.uploadError' | translate }} }
             @case ('rate') { {{ 'userFeedback.rateLimit' | translate }} }
+            @case ('preview') { {{ 'userFeedback.impersonationBlocked' | translate }} }
             @default { {{ err }} }
           }
         </div>

@@ -78,7 +78,19 @@ export class SupabaseClientProvider {
     return this._anonClient;
   }
 
-  /** The client every call site should read (inline, never cached in a field). */
+  /**
+   * The client every call site should read (inline, never cached in a field).
+   *
+   * This getter reads `imp.viewAs()`, a signal — which registers `viewAs()`
+   * as a reactive dependency of any effect that reads `client` (e.g.
+   * `profile.service.ts`). That is safe ONLY because every "View as" toggle
+   * (`ImpersonationService.enter()` / `exit()`) is immediately followed by a
+   * full page reload: nothing in this app relies on an in-place, no-reload
+   * transition from `realClient` to `anonClient` (or back) actually being
+   * observed by those effects mid-session. If a future change ever made the
+   * overlay toggle without reloading, every effect depending on `client`
+   * would need to be re-audited for correct re-run behavior.
+   */
   get client(): SupabaseClient {
     return this.imp.viewAs() === 'anon' ? this.anonClient : this.realClient;
   }

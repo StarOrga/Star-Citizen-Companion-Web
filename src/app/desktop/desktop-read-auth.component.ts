@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
+import { ImpersonationService } from '../auth/impersonation.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { isLoopbackCallback } from './loopback.util';
 
@@ -89,6 +90,7 @@ export class DesktopReadAuthComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
+  private readonly imp = inject(ImpersonationService);
 
   readonly status = signal<AuthStatus>('authorizing');
   readonly errorMsg = signal<string | null>(null);
@@ -98,6 +100,13 @@ export class DesktopReadAuthComponent implements OnInit {
   returnUrl = '';
 
   async ngOnInit() {
+    // A token handoff must never run under a presentation overlay — see the
+    // identical guard in DesktopAuthComponent for the full rationale.
+    if (this.imp.active()) {
+      this.imp.exit();
+      return;
+    }
+
     const q = this.route.snapshot.queryParamMap;
     this.cb = q.get('cb') ?? '';
     this.state = q.get('state') ?? '';

@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { AuthService } from '../auth/auth.service';
+import { ImpersonationService } from '../auth/impersonation.service';
 import type { ComposerPayload } from '../admin/feedback/feedback-composer.component';
 import { buildFeedbackBody, uploadFeedbackImages } from './feedback-images.util';
 import {
@@ -25,6 +26,7 @@ import {
 export class UserFeedbackService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
+  private readonly imp = inject(ImpersonationService);
 
   private readonly _topics = signal<AuthorFeedbackRow[]>([]);
   private readonly _threads = signal<AuthorThreadMap>(new Map());
@@ -99,6 +101,20 @@ export class UserFeedbackService {
   }
 
   /**
+   * A role preview is presentation-only: the Supabase JWT stays the real one,
+   * so an admin previewing as viewer/collaborator sees this panel (that is the
+   * point) but a send would file genuine feedback under their own account,
+   * straight into the admin inbox. Both write paths refuse here — the single
+   * choke point, rather than trying to intercept the composer's buttons and
+   * key bindings from the outside.
+   */
+  private blockedByPreview(): boolean {
+    if (!this.imp.active()) return false;
+    this._error.set('preview');
+    return true;
+  }
+
+  /**
    * File a new feedback topic. It enters the admins' board as `source='user'`,
    * `status='open'` and `triaged=false` — untriaged so an admin reads it before
    * the autonomous routine may implement and ship it. Those three values are
@@ -109,6 +125,7 @@ export class UserFeedbackService {
   async submit(payload: ComposerPayload): Promise<boolean> {
     const uid = this.uid;
     if (!uid) return false;
+    if (this.blockedByPreview()) return false;
     this._error.set(null);
     let body: string;
     try {
@@ -146,6 +163,7 @@ export class UserFeedbackService {
   async reply(feedbackId: string, payload: ComposerPayload): Promise<boolean> {
     const uid = this.uid;
     if (!uid) return false;
+    if (this.blockedByPreview()) return false;
     this._error.set(null);
     let body: string;
     try {

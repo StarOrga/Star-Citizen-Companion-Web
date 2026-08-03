@@ -22,6 +22,8 @@ import {
 import { animate, style, transition, trigger } from '@angular/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
+import { ImpersonationService } from '../auth/impersonation.service';
+import { ViewAs } from '../auth/impersonation-policy';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
@@ -114,6 +116,14 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
           <!-- Signed-out (#131): the account menu is meaningless — offer the
                sign-in CTA instead (redirects back after login via authGuard). -->
           <a class="sc-btn signin-btn" routerLink="/login">{{ 'nav.signIn' | translate }}</a>
+          @if (imp.active()) {
+            <!-- The signed-out visitor preview puts the WHOLE account menu out of
+                 reach (auth.user() is null by design — see impersonation.service),
+                 so this is the only way back while on this branch. -->
+            <button type="button" class="sc-btn exit-preview-btn" (click)="imp.exit()">
+              {{ 'impersonation.banner.exit' | translate }}
+            </button>
+          }
         } @else {
         <div class="profile-menu">
           <button
@@ -152,6 +162,36 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
                   {{ 'admin.tokens.navLink' | translate }}
                 </a>
               }
+
+              @if (imp.targets().length > 0) {
+                <!-- "View as" (client-side, downgrade-only preview — see
+                     ImpersonationService). Keyed off imp.targets(), which is
+                     derived from the REAL role, never the effective one — so
+                     this stays visible while a preview is active instead of
+                     vanishing the moment it is used. The separator is a plain
+                     div, deliberately not a .dropdown-item, so the roving
+                     ArrowUp/ArrowDown focus in onMenuKeydown() skips over it. -->
+                <div class="dropdown-sep" role="separator">
+                  <span>{{ 'nav.viewAs.title' | translate }}</span>
+                </div>
+                @for (target of imp.targets(); track target) {
+                  <button
+                    type="button"
+                    class="dropdown-item"
+                    role="menuitem"
+                    [class.is-current]="imp.viewAs() === target"
+                    [attr.aria-current]="imp.viewAs() === target ? 'true' : null"
+                    (click)="enterViewAs(target)">
+                    {{ ('nav.viewAs.' + target) | translate }}
+                  </button>
+                }
+                @if (imp.active()) {
+                  <button type="button" class="dropdown-item" role="menuitem" (click)="exitViewAs()">
+                    {{ 'nav.viewAs.exit' | translate }}
+                  </button>
+                }
+              }
+
               <button
                 type="button"
                 class="dropdown-item"
@@ -202,7 +242,9 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       border-bottom: 1px solid var(--sc-border);
       backdrop-filter: blur(12px);
       position: sticky;
-      top: 0;
+      /* Slides down under sc-impersonation-banner while a preview is active —
+         see that component's constructor, which owns this var (0px = no-op). */
+      top: var(--sc-imp-banner-h, 0px);
       z-index: 10;
       flex-wrap: wrap;
     }
@@ -283,7 +325,7 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
     /* Navigation progress — the "sensor sweep" scan bar, pinned to the very top
        of the viewport above the sticky header (classic top-loading-bar spot). */
     .nav-scan {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      position: fixed; top: var(--sc-imp-banner-h, 0px); left: 0; right: 0; z-index: 50;
       height: 2px; overflow: hidden; pointer-events: none;
       background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
     }
@@ -334,6 +376,12 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       white-space: nowrap;
     }
     .signin-btn:hover { background: var(--sc-accent); color: var(--sc-bg-0); }
+    .exit-preview-btn {
+      color: var(--sc-accent-hot);
+      border-color: var(--sc-accent-hot);
+      white-space: nowrap;
+    }
+    .exit-preview-btn:hover { background: var(--sc-accent-hot); color: var(--sc-bg-0); }
 
     .profile-menu { position: relative; }
     .avatar-btn {
@@ -421,6 +469,25 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       background: rgba(0, 212, 255, 0.1);
     }
     .dropdown-item:disabled { opacity: 0.5; cursor: default; }
+    .dropdown-item.is-current {
+      color: var(--sc-accent-hot);
+      background: rgba(255, 87, 34, 0.1);
+    }
+    /* Deliberately not .dropdown-item — kept out of onMenuKeydown()'s
+       ArrowUp/ArrowDown roving-focus query. */
+    .dropdown-sep {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 4px 2px 2px;
+      padding-top: 6px;
+      border-top: 1px solid var(--sc-border);
+      font-family: var(--sc-font-display);
+      font-size: max(0.66rem, var(--sc-fs-floor));
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--sc-fg-2);
+    }
 
     /* Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
        heading is not marooned in empty space (feedback #79, item 5). The
@@ -468,6 +535,7 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
 export class ShellComponent {
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
+  readonly imp = inject(ImpersonationService);
   readonly profile = inject(ProfileService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly router = inject(Router);
@@ -606,6 +674,21 @@ export class ShellComponent {
       event.preventDefault();
       items[(idx - 1 + items.length) % items.length].focus();
     }
+  }
+
+  /**
+   * Enters a role preview. `ImpersonationService.enter()` is itself a no-op
+   * outside `imp.targets()`, but the menu never renders a button for a value
+   * outside that list in the first place — this is a second, redundant gate.
+   */
+  enterViewAs(target: ViewAs) {
+    this.closeMenu();
+    this.imp.enter(target);
+  }
+
+  exitViewAs() {
+    this.closeMenu();
+    this.imp.exit();
   }
 
   async doSignOut() {

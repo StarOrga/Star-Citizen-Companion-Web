@@ -32,8 +32,28 @@
     "feedback": "Feedback",
     "signIn": "Anmelden",
     "starscape": "Starscape",
+    "viewAs": {
+      "title": "Ansehen als",
+      "collaborator": "Collaborator",
+      "viewer": "Viewer",
+      "anon": "Abgemeldeter Besucher",
+      "exit": "Zurück zu meiner Rolle"
+    },
     "loading": {
       "weak": "Schwaches Signal · Neu justieren"
+    }
+  },
+  "impersonation": {
+    "banner": {
+      "aria": "Rollenvorschau aktiv",
+      "viewingAs": "Vorschau als: {{role}}",
+      "realRole": "Deine echte Rolle: {{role}}",
+      "exit": "Vorschau beenden",
+      "fidelity": {
+        "anon": "Originalgetreue Vorschau — die App ist hier wirklich abgemeldet, du siehst also genau das, was ein Besucher sieht.",
+        "viewer": "Nur Oberfläche und Routing als Vorschau. Daten werden weiterhin mit deinen echten Rechten geladen — eine Einschränkung, die nur ein echter Viewer trifft (leere Liste, RLS-Ablehnung), zeigt sich hier nicht.",
+        "collaborator": "Nur Oberfläche und Routing als Vorschau. Daten werden weiterhin mit deinen echten Rechten geladen — eine Einschränkung, die nur einen echten Collaborator trifft, zeigt sich hier nicht."
+      }
     }
   },
   "codex": {
@@ -1972,6 +1992,7 @@
     "answerPlaceholder": "Deine Antwort…",
     "answer": "Antworten",
     "declinedTitle": "Warum das nicht umgesetzt wird",
+    "impersonationBlocked": "Senden ist deaktiviert, solange du eine andere Rolle vorschaust — es würde echtes Feedback unter deinem eigenen Account im Admin-Postfach ablegen.",
     "tab": {
       "compose": "Feedback senden",
       "mine": "Mein Feedback"

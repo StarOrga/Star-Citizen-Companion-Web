@@ -7,14 +7,25 @@ import { ConsentBannerComponent } from './core/consent-banner.component';
 import { LocaleService } from './core/locale/locale.service';
 import { SupabaseClientProvider } from './core/supabase.client';
 import { SwUpdateService } from './core/sw-update.service';
+import { ImpersonationBannerComponent } from './shell/impersonation-banner.component';
 
 @Component({
   selector: 'sc-root',
   standalone: true,
-  imports: [RouterOutlet, TranslateModule, ConsentBannerComponent],
+  imports: [RouterOutlet, TranslateModule, ConsentBannerComponent, ImpersonationBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <router-outlet />
+    <!-- Mounted here (not inside sc-shell) because a signed-out preview bounces
+         private routes to /login, which renders OUTSIDE the shell — this
+         banner is the only way back from there, so it must live above every
+         route. Its own component publishes --sc-imp-banner-h; the padding
+         below reads it so the routed content (and the shell's own sticky
+         header, which reads the same var) never sits underneath it. -->
+    <sc-impersonation-banner />
+
+    <div class="routed-content">
+      <router-outlet />
+    </div>
 
     <!-- First-visit browser-storage notice (#130) — self-hides once decided. -->
     <sc-consent-banner />
@@ -36,6 +47,13 @@ import { SwUpdateService } from './core/sw-update.service';
       :host {
         display: block;
         min-height: 100vh;
+      }
+
+      /* Pushes the routed content below the fixed sc-impersonation-banner
+         strip (0px and thus a no-op while no preview is active — see that
+         component's constructor, which owns the --sc-imp-banner-h var). */
+      .routed-content {
+        padding-top: var(--sc-imp-banner-h, 0px);
       }
 
       .sw-update {
