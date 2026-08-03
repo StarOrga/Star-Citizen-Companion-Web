@@ -1,6 +1,7 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { AuthService } from './auth.service';
+import { ImpersonationService } from './impersonation.service';
 
 export type Role = 'admin' | 'collaborator' | 'viewer';
 
@@ -8,27 +9,43 @@ export type Role = 'admin' | 'collaborator' | 'viewer';
 export class RoleService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
+  private readonly imp = inject(ImpersonationService);
 
-  private readonly _role = signal<Role | null>(null);
+  private readonly _actualRole = signal<Role | null>(null);
   private readonly _approved = signal(false);
   private readonly _loaded = signal(false);
 
-  readonly role = this._role.asReadonly();
-  /** True only when the account was invited by an admin (or is the bootstrap admin). */
-  readonly approved = this._approved.asReadonly();
+  /** The live, DB-derived real role — never shadowed by the preview overlay. */
+  readonly realRole = this._actualRole.asReadonly();
   readonly loaded = this._loaded.asReadonly();
-  readonly isAdmin = computed(() => this._role() === 'admin');
-  readonly isCollaborator = computed(() =>
-    this._role() === 'admin' || this._role() === 'collaborator',
-  );
+
+  /**
+   * Effective role: the clamped preview target while one is active, else the
+   * real role. `viewAs()` is already clamped against `realRole()`, so this
+   * can never outrank it.
+   */
+  readonly role = computed<Role | null>(() => {
+    const v = this.imp.viewAs();
+    if (v === 'anon') return null;
+    return v ?? this._actualRole();
+  });
+
+  /** True only when the account was invited by an admin (or is the bootstrap admin). */
+  readonly approved = computed(() => (this.imp.viewAs() === 'anon' ? false : this._approved()));
+  readonly isAdmin = computed(() => this.role() === 'admin');
+  readonly isCollaborator = computed(() => this.role() === 'admin' || this.role() === 'collaborator');
 
   constructor() {
+    // Watches the REAL user (not the shadowed `auth.user()`), so the real
+    // role stays loaded during an anon preview and exiting the preview
+    // needs no round trip to the DB.
     effect(() => {
-      const user = this.auth.user();
+      const user = this.auth.realUser();
       if (!user) {
-        this._role.set(null);
+        this._actualRole.set(null);
         this._approved.set(false);
         this._loaded.set(false);
+        this.imp.setActualRole(null, true);
         return;
       }
       this.refresh().catch(() => null);
@@ -36,27 +53,35 @@ export class RoleService {
   }
 
   async refresh(): Promise<void> {
-    const user = this.auth.user();
+    const user = this.auth.realUser();
     if (!user) {
-      this._role.set(null);
+      this._actualRole.set(null);
       this._approved.set(false);
       this._loaded.set(false);
+      this.imp.setActualRole(null, true);
       return;
     }
-    const { data, error } = await this.sb.client
+    // Auth is preview-shadowed, but the profile lookup itself always uses
+    // whichever client `sb.client` currently resolves to for reads; the
+    // real user id is passed explicitly so this always targets the real
+    // account's row regardless of preview state.
+    const { data, error } = await this.sb.realClient
       .from('profiles')
       .select('role, is_approved')
       .eq('id', user.id)
       .maybeSingle();
+    let role: Role;
     if (error) {
       // Fail closed on approval (deny), but keep a sane role default.
-      this._role.set('viewer');
+      role = 'viewer';
       this._approved.set(false);
     } else {
-      this._role.set(((data?.['role'] as Role) ?? 'viewer'));
+      role = (data?.['role'] as Role) ?? 'viewer';
       this._approved.set(data?.['is_approved'] === true);
     }
+    this._actualRole.set(role);
     this._loaded.set(true);
+    this.imp.setActualRole(role, true);
   }
 
   waitReady(): Promise<void> {
