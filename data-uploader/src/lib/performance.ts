@@ -19,12 +19,45 @@ export interface PerformanceProfile {
   description: LocalisedString;
   /** `'auto'` = navigator.hardwareConcurrency or all logical cores. */
   cpuThreads: number | 'auto';
+  /**
+   * Advisory memory budget handed to the sidecar as `--mem-cap-mb`.
+   *
+   * It clamps the WORKER COUNT and nothing else — it is not, and cannot be, a
+   * ceiling on the process: CPython on Windows has no per-process memory limit
+   * short of the Job Object API. The UI copy must not promise otherwise.
+   */
   ramCapMb: number;
-  /** `null` = unthrottled. */
-  diskThrottleMbps: number | null;
   workerProcessPriority: 'idle' | 'below_normal' | 'normal' | 'above_normal' | 'high';
   /** Seconds estimated per GB of source P4K (calibrated guess; updated after first real benchmark). */
   estimatedSecondsPerGb: number;
+}
+
+/**
+ * Worker processes the record dump may use under `profile`.
+ *
+ * This is the knob that actually makes the levels differ. Priority class does
+ * not: Windows only propagates a parent's class to new children when it is
+ * Idle or BelowNormal (measured on Win11 — AboveNormal and High are NOT
+ * inherited, children start at Normal), so the old "maximum = AboveNormal"
+ * could never reach the processes doing the work. Parallelism can.
+ *
+ * `maximum` deliberately leaves one core to the rest of the machine. Saturating
+ * every logical processor with CPU-bound workers starves the Electron UI on the
+ * same box — including the cancel button and the mode switch, i.e. exactly the
+ * controls an operator reaches for when a run is too aggressive.
+ */
+export function workersFor(profile: Exclude<ProfileId, 'custom'>, cores = logicalCores()): number {
+  const total = Math.max(1, Math.floor(cores));
+  switch (profile) {
+    case 'minimal':
+      return 1; // the serial path, byte-for-byte
+    case 'standard':
+      return Math.max(1, Math.floor(total / 2));
+    case 'maximum':
+      return Math.max(1, total - 1); // one core stays with the UI
+    case 'auto':
+      return Math.max(1, Math.floor(total / 2));
+  }
 }
 
 export const PROFILES: Record<Exclude<ProfileId, 'custom'>, PerformanceProfile> = {
@@ -32,12 +65,11 @@ export const PROFILES: Record<Exclude<ProfileId, 'custom'>, PerformanceProfile> 
     id: 'minimal',
     label: { de: 'Minimaler Impact', en: 'Minimal Impact' },
     description: {
-      de: '1 Worker + 1 IO, gedrosselte Disk-Reads. Du kannst flüssig weiterarbeiten.',
-      en: '1 worker + 1 IO, throttled disk reads. Use your PC freely while it runs.',
+      de: '1 Prozess auf 1 Kern, niedrigste Priorität. Du kannst flüssig weiterarbeiten.',
+      en: '1 process on 1 core, lowest priority. Use your PC freely while it runs.',
     },
     cpuThreads: 1,
     ramCapMb: 512,
-    diskThrottleMbps: 50,
     workerProcessPriority: 'idle',
     estimatedSecondsPerGb: 144,
   },
@@ -45,12 +77,11 @@ export const PROFILES: Record<Exclude<ProfileId, 'custom'>, PerformanceProfile> 
     id: 'standard',
     label: { de: 'Standard', en: 'Standard' },
     description: {
-      de: '50 % der Kerne, normale Disk-Last. Browser oder Game spürbar langsamer.',
-      en: 'Half the cores, normal disk load. Browser/game noticeably slower.',
+      de: 'Hälfte der Kerne als eigene Prozesse. Browser oder Game spürbar langsamer.',
+      en: 'Half the cores as separate processes. Browser/game noticeably slower.',
     },
     cpuThreads: halfCores(),
     ramCapMb: 2048,
-    diskThrottleMbps: null,
     workerProcessPriority: 'normal',
     estimatedSecondsPerGb: 36,
   },
@@ -58,13 +89,16 @@ export const PROFILES: Record<Exclude<ProfileId, 'custom'>, PerformanceProfile> 
     id: 'maximum',
     label: { de: 'Maximum Throughput', en: 'Maximum Throughput' },
     description: {
-      de: 'Alle Kerne, sequenziales Prefetch. Anderes Arbeiten am PC ist quasi unmöglich.',
-      en: 'All cores, sequential prefetch. Hard to use the PC for anything else.',
+      de: 'Alle Kerne bis auf einen, als eigene Prozesse. Anderes Arbeiten am PC ist quasi unmöglich.',
+      en: 'Every core but one, as separate processes. Hard to use the PC for anything else.',
     },
     cpuThreads: 'auto',
     ramCapMb: 8192,
-    diskThrottleMbps: null,
-    workerProcessPriority: 'above_normal',
+    // NOT above_normal: Windows does not propagate it to children (measured),
+    // so it could only ever raise the coordinating process — which is idle while
+    // the workers run — and on a low-core box it starves the Electron UI that
+    // owns the cancel button. The parallelism is what makes this profile fast.
+    workerProcessPriority: 'normal',
     estimatedSecondsPerGb: 20,
   },
   auto: {
@@ -76,11 +110,24 @@ export const PROFILES: Record<Exclude<ProfileId, 'custom'>, PerformanceProfile> 
     },
     cpuThreads: 'auto',
     ramCapMb: 4096,
-    diskThrottleMbps: null,
     workerProcessPriority: 'below_normal',
     estimatedSecondsPerGb: 50,
   },
 };
+
+/**
+ * Profiles the operator may actually choose.
+ *
+ * `auto` is excluded until it does what its own description says. It used to be
+ * rendered as a clickable pill labelled "Smart" whose only real effect was
+ * BelowNormal — so picking the smart-sounding option made the run SLOWER than
+ * Standard, with nothing in the UI saying so.
+ */
+export const SELECTABLE_PROFILES: readonly Exclude<ProfileId, 'custom' | 'auto'>[] = [
+  'minimal',
+  'standard',
+  'maximum',
+];
 
 export const DEFAULT_PROFILE: ProfileId = 'standard';
 
@@ -98,7 +145,8 @@ export function estimateForSize(
   return { seconds, formatted: formatDuration(seconds) };
 }
 
-function halfCores(): number {
+/** Logical processors, or 8 where the runtime will not say. */
+export function logicalCores(): number {
   // Available in both Node 20+ and browser
   const cores =
     typeof globalThis !== 'undefined' &&
@@ -107,7 +155,11 @@ function halfCores(): number {
       ? (globalThis as { navigator?: { hardwareConcurrency?: number } }).navigator!
           .hardwareConcurrency!
       : 8;
-  return Math.max(2, Math.floor(cores / 2));
+  return Math.max(1, cores);
+}
+
+function halfCores(): number {
+  return Math.max(2, Math.floor(logicalCores() / 2));
 }
 
 function formatDuration(seconds: number): string {

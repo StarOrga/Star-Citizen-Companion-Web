@@ -50,6 +50,14 @@ class ExtractConfig:
     scope_component_tree: bool = True
     dump_generic: bool = True
     tool_version: str = "0.0.0-dev"
+    #: Worker processes for the exhaustive record dump. 1 = the serial path.
+    #: Always supplied by the host from the chosen performance profile; never
+    #: derived here (see parallel_dump.worker_count).
+    workers: int = 1
+    #: Advisory memory budget in MB — clamps `workers`, nothing more. It cannot
+    #: be a hard cap: CPython on Windows has no per-process memory ceiling short
+    #: of the Job Object API. 0 = no clamp.
+    mem_cap_mb: int = 0
 
 
 @dataclass
@@ -258,6 +266,12 @@ def _real_extract(cfg: ExtractConfig) -> ExtractResult:
 
     source = {"channel": cfg.channel, "patch": cfg.patch_version,
               "build": cfg.build_number}
+    from .parallel_dump import worker_count
+
+    workers = worker_count(cfg.workers, cfg.mem_cap_mb)
+    if workers != cfg.workers:
+        events.log("info", f"record dump: {cfg.workers} worker(s) requested, "
+                           f"{workers} after the {cfg.mem_cap_mb} MB budget clamp")
     extractor = CodexExtractor(
         df, localizer, cfg.out_dir, source,
         on_count=events.count,
@@ -266,6 +280,8 @@ def _real_extract(cfg: ExtractConfig) -> ExtractResult:
         dump_generic=cfg.dump_generic,
         p4k=p4k,
         extract_assets=True,
+        workers=workers,
+        raw_dcb=raw,
     )
     counts = extractor.run()
 
@@ -365,6 +381,22 @@ def main() -> int:
         action="store_true",
         help="Skip the exhaustive generic record dump (faster; keeps existing records/ on disk)",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Worker processes for the record dump (1 = serial). Set by the host "
+             "from the performance profile; NOT auto-detected, because cpu_count "
+             "ignores the CPU affinity a throttled run is pinned to.",
+    )
+    parser.add_argument(
+        "--mem-cap-mb",
+        type=int,
+        default=0,
+        dest="mem_cap_mb",
+        help="Advisory memory budget in MB. Clamps --workers; it is NOT a hard "
+             "cap — Windows CPython cannot enforce one without Job Objects.",
+    )
     args = parser.parse_args()
 
     scope = set(args.scope.split(","))
@@ -379,6 +411,8 @@ def main() -> int:
         scope_component_tree="component_tree" in scope,
         dump_generic=not args.skip_generic,
         tool_version=args.tool_version,
+        workers=args.workers,
+        mem_cap_mb=args.mem_cap_mb,
     )
 
     try:

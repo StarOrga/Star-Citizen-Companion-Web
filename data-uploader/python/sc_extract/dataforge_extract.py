@@ -300,11 +300,19 @@ class CodexExtractor:
                  source: Dict[str, str], on_count: Callable[[str, int], None] = lambda k, v: None,
                  on_log: Callable[[str, str], None] = lambda lvl, m: None,
                  on_progress: Callable[..., None] = lambda *a, **k: None,
-                 dump_generic: bool = True, p4k=None, extract_assets: bool = True) -> None:
+                 dump_generic: bool = True, p4k=None, extract_assets: bool = True,
+                 workers: int = 1, raw_dcb: Optional[bytes] = None) -> None:
         self.df = df
         self.loc = localizer
         self.out = out_dir
         self.source = source
+        # Worker count is handed DOWN from the host, never inferred here — see
+        # parallel_dump.worker_count for why os.cpu_count() is the wrong answer.
+        # 1 (the default) keeps every caller that predates parallelism serial.
+        self.workers = max(1, int(workers))
+        # Raw DataCore bytes, kept only so workers can re-parse them from shared
+        # memory. None => the parallel path is unavailable and we stay serial.
+        self.raw_dcb = raw_dcb
         self.on_count = on_count
         self.on_log = on_log
         self.on_progress = on_progress
@@ -1439,10 +1447,38 @@ class CodexExtractor:
     def dump_all_records(self) -> None:
         base = self.out / "records"
         base.mkdir(parents=True, exist_ok=True)
+        n_types = len(self.df.record_types)
+
+        # The parallel path needs the raw DataCore blob to hand workers (they
+        # re-parse it out of shared memory — the parsed container itself cannot
+        # cross a process boundary). Without it, or with a single worker, run
+        # the serial path below unchanged: `--workers 1` must stay byte-for-byte
+        # what this code did before parallelism existed.
+        if self.workers > 1 and self.raw_dcb:
+            from .parallel_dump import PoolUnusable, dump_records_parallel
+
+            self.on_log("info", f"generic dump: {self.workers} worker processes")
+            try:
+                per_type, total, n_fail = dump_records_parallel(
+                    self.df, self.raw_dcb, base, self.workers,
+                    on_log=self.on_log, on_count=self.on_count,
+                    on_progress=self.on_progress, pct_range=_PCT_RECORDS,
+                )
+            except PoolUnusable as exc:
+                # Falling through to the serial dump costs time; NOT falling
+                # through costs the data. A pool can be unusable for reasons we
+                # cannot see from here (locked-down machine, packaged build
+                # without freeze_support, no shared-memory segment available),
+                # and the exhaustive dump is a guarantee the run makes.
+                self.on_log("warn", f"worker pool unusable ({exc}) — falling back "
+                                    f"to the serial record dump")
+            else:
+                self._finish_record_dump(base, per_type, total, n_fail, n_types)
+                return
+
         per_type = Counter()
         total = 0
         n_fail = 0
-        n_types = len(self.df.record_types)
         # Denominator for the progress line: every record of every type is
         # written here, so the full record count IS the goal (known up front).
         total_records = len(self.df.records)
@@ -1481,6 +1517,11 @@ class CodexExtractor:
                                  pct=_mapped_pct(total, total_records, *_PCT_RECORDS),
                                  detail=_strip_type_prefix(t))
         self.on_progress("records", current=total, total=total_records, pct=_PCT_RECORDS[1])
+        self._finish_record_dump(base, per_type, total, n_fail, n_types)
+
+    def _finish_record_dump(self, base: Path, per_type: Counter, total: int,
+                            n_fail: int, n_types: int) -> None:
+        """Tallies, warnings and the index — identical for serial and parallel."""
         self.on_log("info", f"generic dump: {total:,} records across {n_types} types")
         if n_fail:
             # Surface systemic write failures (disk full, permission, locked dir)

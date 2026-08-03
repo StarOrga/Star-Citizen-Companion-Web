@@ -29,9 +29,25 @@ EventType = Literal["phase", "progress", "file", "count", "log", "warning", "don
 LogLevel = Literal["info", "warn", "error"]
 Phase = Literal["discover", "plan", "extract", "validate", "bundle"]
 
+# ── Single-writer discipline ────────────────────────────────────────────────
+#
+# EXACTLY ONE process may ever write to stdout. Worker processes inherit the
+# same stdout pipe handle, and a JSON line longer than the pipe's atomic-write
+# boundary is split into several WriteFiles — on a Windows byte-mode pipe two
+# writers therefore interleave and produce a torn line. The Electron bridge
+# parses stdout line-by-line and DROPS anything that fails JSON.parse
+# (`src/main/python-bridge.ts`), so a torn line is silently lost. When the torn
+# line is the 'done' event, the bridge sees a clean exit with no result and
+# reports a fully successful multi-hour extract as a FAILURE.
+#
+# So workers never touch stdout: they install a sink that forwards each event
+# to the parent, and the parent — the only process that ever calls
+# `_write_stdout` — re-emits it. `set_event_sink` is what makes that switch.
+_sink: Optional[Any] = None
 
-def emit_event(event_type: EventType, **payload: Any) -> None:
-    """Emit one JSON event line + flush.
+
+def _write_stdout(event: Dict[str, Any]) -> None:
+    """The one and only stdout write path. Parent process only.
 
     The UTF-8 reconfigure at import makes the ensure_ascii=False write safe in
     every realistic case. The fallback exists only for a pathological stdout
@@ -40,8 +56,6 @@ def emit_event(event_type: EventType, **payload: Any) -> None:
     straight to the binary buffer, so the load-bearing 'done'/'error' events
     ALWAYS reach the Electron bridge instead of crashing the run.
     """
-    event: Dict[str, Any] = {"type": event_type}
-    event.update(payload)
     try:
         sys.stdout.write(json.dumps(event, ensure_ascii=False) + "\n")
         sys.stdout.flush()
@@ -52,6 +66,77 @@ def emit_event(event_type: EventType, **payload: Any) -> None:
             sys.stdout.buffer.flush()
         except Exception:  # noqa: BLE001 — nothing more we can do; never mask the real run
             pass
+
+
+def set_event_sink(sink: Optional[Any]) -> None:
+    """Redirect every event away from stdout (worker) or back to it (parent).
+
+    ``sink`` is anything with ``put(dict)`` — in practice a
+    ``multiprocessing.Queue`` handed to workers via the pool initializer.
+    Passing ``None`` restores direct stdout writing.
+
+    A failing sink must never take the run down with it: if the queue is closed
+    (parent already tearing down) the event is dropped, exactly as a torn line
+    would have been — but without corrupting the stream for everyone else.
+    """
+    global _sink
+    _sink = sink
+
+
+def emit_event(event_type: EventType, **payload: Any) -> None:
+    """Emit one JSON event — to stdout in the parent, to the sink in a worker."""
+    event: Dict[str, Any] = {"type": event_type}
+    event.update(payload)
+    sink = _sink
+    if sink is None:
+        _write_stdout(event)
+        return
+    try:
+        sink.put(event)
+    except Exception:  # noqa: BLE001 — a dead queue must not kill the worker
+        pass
+
+
+#: Events whose type starts with this are internal worker→parent bookkeeping
+#: (progress deltas, tallies) and must never reach stdout — the Electron bridge
+#: only knows the types in ``EventType``.
+INTERNAL_PREFIX = "__"
+
+
+def drain_events(
+    queue: Any,
+    limit: int = 512,
+    on_internal: Optional[Any] = None,
+) -> int:
+    """Re-emit up to ``limit`` queued worker events from the parent. Returns how many.
+
+    Bounded on purpose: the parent calls this between work units, and an
+    unbounded drain on a fast queue would starve the actual job. Whatever is
+    left stays queued for the next call.
+
+    Events whose ``type`` is internal go to ``on_internal`` instead of stdout,
+    which is how a worker reports "I finished N more records" without inventing
+    a progress number that could regress — only the parent, which sees every
+    worker, can compute a monotonic total.
+    """
+    n = 0
+    while n < limit:
+        try:
+            event = queue.get_nowait()
+        except Exception:  # noqa: BLE001 — Empty, or a queue closed mid-teardown
+            break
+        if not isinstance(event, dict):
+            continue
+        n += 1
+        if str(event.get("type", "")).startswith(INTERNAL_PREFIX):
+            if on_internal is not None:
+                try:
+                    on_internal(event)
+                except Exception:  # noqa: BLE001 — bookkeeping must not kill the run
+                    pass
+            continue
+        _write_stdout(event)
+    return n
 
 
 def phase(name: Phase, pct: Optional[int] = None) -> None:
