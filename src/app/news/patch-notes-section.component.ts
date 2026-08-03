@@ -265,7 +265,7 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
        ("4.10 PTU, 2 days ago"), not stories with artwork. */
     .patch-sub-head { display: flex; align-items: baseline; gap: 10px; }
     .patch-sub-head h3 {
-      margin: 0; font-size: 0.74rem; letter-spacing: 0.1em;
+      margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.1em;
       text-transform: uppercase; color: var(--sc-fg-1);
     }
     .patch-latest {

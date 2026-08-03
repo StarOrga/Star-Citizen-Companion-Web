@@ -32,8 +32,28 @@
     "feedback": "Feedback",
     "signIn": "Sign in",
     "starscape": "Starscape",
+    "viewAs": {
+      "title": "View as",
+      "collaborator": "Collaborator",
+      "viewer": "Viewer",
+      "anon": "Signed-out visitor",
+      "exit": "Back to my role"
+    },
     "loading": {
       "weak": "Weak signal · retuning"
+    }
+  },
+  "impersonation": {
+    "banner": {
+      "aria": "Role preview active",
+      "viewingAs": "Previewing as: {{role}}",
+      "realRole": "Your real role: {{role}}",
+      "exit": "Exit preview",
+      "fidelity": {
+        "anon": "Faithful preview — the app is genuinely signed out here, so this is exactly what a visitor sees.",
+        "viewer": "UI and routing preview only. You are still fetching data with your real permissions, so a viewer-only data restriction (an empty list, an RLS denial) will not reproduce here.",
+        "collaborator": "UI and routing preview only. You are still fetching data with your real permissions, so a collaborator-only data restriction will not reproduce here."
+      }
     }
   },
   "codex": {
@@ -1972,6 +1992,7 @@
     "answerPlaceholder": "Your answer…",
     "answer": "Reply",
     "declinedTitle": "Why this is not being implemented",
+    "impersonationBlocked": "Sending is disabled while you are previewing another role — it would submit real feedback into the admin inbox under your own account.",
     "tab": {
       "compose": "Send feedback",
       "mine": "My feedback"

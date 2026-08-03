@@ -1,13 +1,44 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
+import { ImpersonationService } from '../auth/impersonation.service';
+
+/**
+ * In-memory, no-op storage for the anon preview client. It deliberately
+ * never touches `sessionStorage`/`localStorage`, so the preview client can
+ * never read or write the real `sc.auth` session key.
+ */
+class InMemoryNoopStorage {
+  private readonly store = new Map<string, string>();
+
+  getItem(key: string): string | null {
+    return this.store.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.store.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.store.delete(key);
+  }
+}
+
+// Single-flight lock passthrough shared by both clients — see the comment
+// on `realClient` below for why Navigator-Lock is disabled entirely.
+function lockPassthrough<R>(_name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> {
+  return fn();
+}
 
 @Injectable({ providedIn: 'root' })
 export class SupabaseClientProvider {
-  readonly client: SupabaseClient;
+  private readonly imp = inject(ImpersonationService);
 
-  constructor() {
-    this.client = createClient(environment.supabase.url, environment.supabase.publishableKey, {
+  /** The real, session-bearing client. All auth operations MUST use this one. */
+  readonly realClient: SupabaseClient = createClient(
+    environment.supabase.url,
+    environment.supabase.publishableKey,
+    {
       auth: {
         persistSession: true,
         detectSessionInUrl: true,
@@ -19,8 +50,48 @@ export class SupabaseClientProvider {
         // `NavigatorLockAcquireTimeoutError: lock:sc.auth` because two
         // Supabase clients fight over the same lock. PKCE with single-flight
         // token rotation makes the lock redundant here.
-        lock: (_name, _acquireTimeout, fn) => fn(),
+        lock: lockPassthrough,
       },
-    });
+    },
+  );
+
+  private _anonClient: SupabaseClient | null = null;
+
+  /**
+   * Lazily-created anon preview client: same project, but no session is
+   * ever persisted/read/refreshed. Used only while previewing as a
+   * signed-out visitor, so RLS genuinely evaluates as `anon`.
+   */
+  private get anonClient(): SupabaseClient {
+    if (!this._anonClient) {
+      this._anonClient = createClient(environment.supabase.url, environment.supabase.publishableKey, {
+        auth: {
+          persistSession: false,
+          detectSessionInUrl: false,
+          autoRefreshToken: false,
+          storageKey: 'sc.anon-preview',
+          storage: new InMemoryNoopStorage(),
+          lock: lockPassthrough,
+        },
+      });
+    }
+    return this._anonClient;
+  }
+
+  /**
+   * The client every call site should read (inline, never cached in a field).
+   *
+   * This getter reads `imp.viewAs()`, a signal — which registers `viewAs()`
+   * as a reactive dependency of any effect that reads `client` (e.g.
+   * `profile.service.ts`). That is safe ONLY because every "View as" toggle
+   * (`ImpersonationService.enter()` / `exit()`) is immediately followed by a
+   * full page reload: nothing in this app relies on an in-place, no-reload
+   * transition from `realClient` to `anonClient` (or back) actually being
+   * observed by those effects mid-session. If a future change ever made the
+   * overlay toggle without reloading, every effect depending on `client`
+   * would need to be re-audited for correct re-run behavior.
+   */
+  get client(): SupabaseClient {
+    return this.imp.viewAs() === 'anon' ? this.anonClient : this.realClient;
   }
 }

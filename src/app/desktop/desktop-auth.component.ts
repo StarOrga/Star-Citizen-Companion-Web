@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
+import { ImpersonationService } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { isLoopbackCallback } from './loopback.util';
@@ -95,6 +96,7 @@ export class DesktopAuthComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
+  private readonly imp = inject(ImpersonationService);
 
   readonly status = signal<AuthStatus>('authorizing');
   readonly errorMsg = signal<string | null>(null);
@@ -104,6 +106,17 @@ export class DesktopAuthComponent implements OnInit {
   returnUrl = '';
 
   async ngOnInit() {
+    // A token handoff must never run under a presentation overlay: under an
+    // anon preview `isAuthenticated()` reports false (dead-ends this flow at
+    // `login_required`, forcing a pointless re-login loop for a user who is
+    // actually signed in), and under any preview `sb.client` may not be the
+    // real session-bearing client. Bail out first — `exit()` reloads, which
+    // lands the user back on this exact URL with the real session restored.
+    if (this.imp.active()) {
+      this.imp.exit();
+      return;
+    }
+
     const q = this.route.snapshot.queryParamMap;
     this.cb = q.get('cb') ?? '';
     this.state = q.get('state') ?? '';

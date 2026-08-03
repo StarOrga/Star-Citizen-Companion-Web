@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
+import { ImpersonationService } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
 import { UserFeedbackService } from '../feedback/user-feedback.service';
 import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.component';
@@ -54,6 +55,19 @@ import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.comp
               </button>
             </header>
             <div class="panel-body">
+              <!-- The FAB stays visible while previewing viewer/collaborator
+                   (that IS the point of the preview — feedback c.f. #4 of the
+                   impersonation spec), but a submit here would write real
+                   feedback under the admin's own real identity, straight into
+                   the admin inbox. The panel itself stays fully interactive
+                   (browsing drafts and past topics is part of what the
+                   preview shows) — only sending is blocked, one level down in
+                   blockSubmitCapture(), plus this notice explaining why. -->
+              @if (blocked()) {
+                <div class="imp-notice" role="note">
+                  {{ 'userFeedback.impersonationBlocked' | translate }}
+                </div>
+              }
               <sc-user-feedback-panel />
             </div>
           </div>
@@ -216,6 +230,16 @@ import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.comp
       min-height: 0;
     }
 
+    .imp-notice {
+      flex: 0 0 auto;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--sc-border);
+      background: rgba(255, 87, 34, 0.1);
+      color: var(--sc-accent-hot);
+      font-size: max(0.76rem, var(--sc-fs-floor));
+      line-height: 1.4;
+    }
+
     @media (max-width: 640px) {
       .fab-root { right: 16px; bottom: 16px; gap: 10px; }
       .panel { height: min(70vh, calc(100vh - 120px)); }
@@ -225,16 +249,31 @@ import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.comp
 export class UserFeedbackFabComponent {
   private readonly auth = inject(AuthService);
   private readonly roles = inject(RoleService);
+  private readonly imp = inject(ImpersonationService);
   private readonly feedback = inject(UserFeedbackService);
 
   /**
    * Signed in, role resolved, and not an admin. Waiting for `loaded()` avoids
    * the flash where the role defaults to `viewer` and an admin briefly sees the
    * wrong FAB next to their own.
+   *
+   * Deliberately unchanged for the preview: an admin previewing as
+   * viewer/collaborator is exactly the case this is meant to show them, so it
+   * stays visible — see `blocked()` below for what changes instead.
    */
   readonly visible = computed(
     () => !!this.auth.user() && this.roles.loaded() && !this.roles.isAdmin(),
   );
+
+  /**
+   * A preview is active: the panel stays open and readable, but sending would
+   * write real feedback under the admin's own real identity (the Supabase JWT
+   * is untouched by a viewer/collaborator/anon preview — see
+   * `ImpersonationService`), straight into the admin inbox. The refusal itself
+   * lives in `UserFeedbackService.submit()/reply()`; this only explains it up
+   * front instead of letting the user type a message and then bounce.
+   */
+  readonly blocked = computed(() => this.imp.active());
 
   /** Topics where an admin's question is waiting on this user's answer. */
   readonly pendingQuestions = this.feedback.openQuestions;
