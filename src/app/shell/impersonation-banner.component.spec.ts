@@ -49,7 +49,12 @@ describe('ImpersonationBannerComponent', () => {
     const banner = fixture.nativeElement.querySelector('.imp-banner');
     expect(banner).toBeTruthy();
     expect(banner.getAttribute('role')).toBe('status');
-    expect(document.documentElement.style.getPropertyValue('--sc-imp-banner-h').trim()).toBe('36px');
+    // The height is MEASURED, not assumed: the fidelity note wraps to a second
+    // line at narrow widths and in the longer locale, and a hard-coded value
+    // left the shell's sticky header sitting underneath the strip.
+    const published = document.documentElement.style.getPropertyValue('--sc-imp-banner-h').trim();
+    expect(published).toBe(`${banner.offsetHeight}px`);
+    expect(banner.offsetHeight).toBeGreaterThan(0);
   });
 
   it('exit() is wired to the Exit-preview button', () => {

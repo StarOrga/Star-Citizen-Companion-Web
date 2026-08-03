@@ -1,5 +1,14 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  computed,
+  effect,
+  inject,
+  viewChild,
+} from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
@@ -27,7 +36,7 @@ import { RoleService } from '../auth/role.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (imp.active()) {
-      <div class="imp-banner" role="status" [attr.aria-label]="'impersonation.banner.aria' | translate">
+      <div #banner class="imp-banner" role="status" [attr.aria-label]="'impersonation.banner.aria' | translate">
         <span class="imp-banner__msg">
           <strong>{{ 'impersonation.banner.viewingAs' | translate: { role: (viewingLabelKey() | translate) } }}</strong>
           <span class="imp-banner__real">{{ 'impersonation.banner.realRole' | translate: { role: (realRoleLabelKey() | translate) } }}</span>
@@ -122,13 +131,38 @@ export class ImpersonationBannerComponent {
     return 'impersonation.banner.fidelity.viewer';
   });
 
+  private readonly bannerEl = viewChild<ElementRef<HTMLElement>>('banner');
+  private observer: ResizeObserver | null = null;
+
   constructor() {
     // Publish the banner's height as a CSS var so ShellComponent's sticky
     // header / nav-scan sweep can offset themselves instead of being covered.
+    // MEASURED, not assumed: the fidelity note wraps to a second line at
+    // narrow widths and in the longer locale, which made a hard-coded 36px
+    // leave the header 16px underneath the strip.
     effect(() => {
-      const active = this.imp.active();
-      this.document.documentElement.style.setProperty('--sc-imp-banner-h', active ? '36px' : '0px');
+      const host = this.bannerEl()?.nativeElement ?? null;
+      this.observer?.disconnect();
+      this.observer = null;
+      if (!host) {
+        this.setHeight(0);
+        return;
+      }
+      this.setHeight(host.offsetHeight);
+      const RO = this.document.defaultView?.ResizeObserver;
+      if (!RO) return; // measured once above; no live tracking without the API
+      this.observer = new RO(() => this.setHeight(host.offsetHeight));
+      this.observer.observe(host);
     });
+
+    inject(DestroyRef).onDestroy(() => {
+      this.observer?.disconnect();
+      this.setHeight(0);
+    });
+  }
+
+  private setHeight(px: number): void {
+    this.document.documentElement.style.setProperty('--sc-imp-banner-h', `${px}px`);
   }
 
   /** `nav.viewAs.anon` for the signed-out preview, `profile.roles.*` for real roles. */
