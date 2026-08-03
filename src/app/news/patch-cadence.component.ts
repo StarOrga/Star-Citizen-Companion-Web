@@ -139,7 +139,7 @@ const ROTATE_MS = 7000;
     }
     .cad-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .cad-head h3 {
-      margin: 0; font-size: 0.78rem; letter-spacing: 0.1em;
+      margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.1em;
       text-transform: uppercase; color: var(--sc-accent);
     }
     .cad-sub { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
@@ -164,7 +164,7 @@ const ROTATE_MS = 7000;
       min-width: var(--sc-tap-min); min-height: var(--sc-tap-min);
       padding: 0 6px; border-radius: 6px;
       background: transparent; border: 1px solid transparent; color: var(--sc-fg-2);
-      font-family: inherit; font-size: 0.7rem; line-height: 1; cursor: pointer;
+      font-family: inherit; font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1; cursor: pointer;
     }
     .cad-play:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
