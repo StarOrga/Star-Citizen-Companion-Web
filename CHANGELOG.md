@@ -4,6 +4,51 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.58.0] - 2026-08-03
+
+### Added
+
+- **Admins and collaborators can preview the app as a weaker role.** The account
+  menu gained a "View as" group: an admin can look at the app as a collaborator,
+  as a viewer, or as a signed-out visitor; a collaborator can do the same minus
+  the collaborator entry. Viewers and anonymous visitors get no such control —
+  there is nothing below them to preview.
+
+  The whole thing is a downgrade-only presentation overlay, and the security
+  rests on that being literally true rather than merely intended. One allow-list
+  (`impersonationTargets`) answers "what may this role preview", and the storage
+  validator is implemented in terms of that same list rather than a rank
+  comparison, so `'admin'` is not a reachable target from any starting point. The
+  ceiling — the real role — always comes from the live profile lookup and is
+  never persisted, so hand-editing the stored value can only ever lower what you
+  see. Nothing about this reaches the server: no new column, no RPC, no minted
+  token. The Supabase JWT is untouched and row-level security keeps enforcing the
+  real role, which is what makes the client-side overlay safe to have at all.
+
+  Because every consumer reads `role()` / `isAdmin()` / `user()`, switching those
+  projections to the effective view was enough to make roughly thirty call sites
+  correct at once — there is no list of places someone could forget to update.
+
+  The signed-out preview goes one step further and swaps in a genuinely
+  session-less Supabase client, so the app really is anonymous and RLS returns
+  exactly what a visitor would get. The viewer and collaborator previews cannot
+  do that — the JWT is still yours, so data is unchanged and only the interface
+  and routing follow the previewed role. The banner says so per mode rather than
+  letting the preview be trusted for something it cannot show.
+
+  A preview survives a reload but not a new tab, entering or leaving one reloads
+  the page (so nothing fetched with the real privileges leaks into the previewed
+  view), and the banner that says which role you are wearing is mounted globally
+  — including on the login page, which is where the signed-out preview sends you.
+  Sending feedback is refused while previewing: the panel is part of what the
+  preview shows, but a submission would file real feedback under your own account.
+
+### Fixed
+
+- **Three headings on Verse News rendered below the readable minimum on tablets.**
+  The sub-patch cadence work set raw `rem` sizes instead of the readable-font
+  floor the rest of the app uses, so a Galaxy Tab S9 measured 10.5–11.7px.
+
 ## [0.57.0] - 2026-08-03
 
 ### Changed
