@@ -24,8 +24,11 @@ bundle* of extracted metadata.
    point at the folder manually.
 2. **Channel selection.** LIVE, PTU, EPTU and tech-preview installs are
    detected separately, so a bundle always knows which build it came from.
-3. **Scan with live progress.** Four performance profiles trade CPU against
-   wall-clock time.
+3. **Scan with live progress.** Three performance profiles trade CPU against
+   wall-clock time, and they do it by changing how many worker processes the
+   record extraction runs in — from a single process pinned to one core up to
+   every core but one. The profile is switchable mid-run for the resource
+   knobs; the worker count itself is fixed when the scan starts.
 4. **Quality score.** Every bundle gets a score describing how complete the
    extraction was, so a half-finished scan cannot quietly displace a good one.
 5. **Verified upload.** Sign-in happens over an OAuth loopback with a

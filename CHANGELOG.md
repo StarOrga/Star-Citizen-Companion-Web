@@ -4,6 +4,62 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.57.0] - 2026-08-03
+
+### Changed
+
+- **"Maximum Throughput" in the data uploader was a no-op — it now actually
+  parallelises the extraction.** Picking it changed nothing measurable: the
+  profile resolved to the same CPU affinity as Standard and differed only in
+  process priority class. Windows does not propagate a raised priority to child
+  processes (measured on Win11: only `Idle` and `BelowNormal` are inherited,
+  `AboveNormal` and `High` leave children at `Normal`), so the one knob meant to
+  give the run more resources could not reach a single process doing work. The
+  extraction was fully serial on top of that, so a saturated run showed 1/N of
+  the machine in Task Manager and looked idle at ~0.6 % CPU.
+
+  The levels now differ where it counts — worker processes. The exhaustive
+  record dump (the full ~115k-record corpus) runs in a process pool: Minimal
+  stays on the single serial path, Standard uses half the cores, Maximum uses
+  every core but one. The remaining core is deliberate — saturating all of them
+  starves the app's own UI, including the cancel button that stops a run that is
+  too aggressive.
+
+  Workers cannot be handed the parsed DataCore (it holds a `memoryview`, and the
+  archive handle sits on ~157 GB), so the parent publishes the raw blob in a
+  shared-memory segment and each worker re-parses it locally. Event output is
+  funnelled through the parent as the single stdout writer: two processes on one
+  pipe tear each other's JSON lines apart, and a torn completion line would have
+  turned a successful multi-hour extraction into a reported failure. If the pool
+  cannot run at all, the serial dump takes over rather than shipping an empty
+  result as a success.
+
+- **The performance profiles no longer advertise settings that were never
+  applied.** `diskThrottleMbps` was read by nothing while the Minimal profile
+  promised "throttled disk reads"; it is gone. The memory budget is documented
+  and wired as what it can actually be — an advisory clamp on the worker count,
+  not a ceiling, since Windows CPython cannot enforce one without Job Objects.
+  The "Smart (Auto)" profile is no longer offered: its only real effect was
+  `BelowNormal`, so choosing the smart-sounding option made the run slower than
+  Standard with nothing in the UI admitting it.
+
+### Fixed
+
+- **On a machine with 64 or more logical processors, the uploader could never
+  restore full CPU affinity after a throttled run.** The mask was emitted
+  unsigned, and `[IntPtr]18446744073709551615` cannot be converted at all —
+  PowerShell rejects it as out of range for an `Int64`. The error was swallowed
+  by the affinity try/catch, so a 32C/64T machine stayed pinned to core 0 for
+  the rest of the job while the UI reported the mode switch as applied. The mask
+  is now emitted in two's-complement form, which is the same bits and parses.
+  The previous unit test asserted the exact value PowerShell rejects.
+
+- **Switching the performance mode mid-run only reached the coordinating
+  process.** The sidecar is rarely the one burning CPU — the record dump runs in
+  workers, and the ship-skin pipeline shells out to `cgf-converter` and
+  `gltf-transform`. Throttling down to play a game left those at full speed. The
+  switch now walks the whole process tree (bounded and cycle-guarded).
+
 ## [0.56.4] - 2026-07-31
 
 ### Fixed
