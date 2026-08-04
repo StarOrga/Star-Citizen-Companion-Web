@@ -17,8 +17,15 @@ import jpeg from 'npm:jpeg-js@0.4.4';
 import { PNG } from 'npm:pngjs@7.0.0';
 import type { RgbaImage, VariantCodecs } from './image-variants.ts';
 
-/** 512 MB matches the existing wallpaper decode budget in index.ts. */
-const MAX_DECODE_MB = 512;
+// jpeg-js's internal accounting, NOT a real allocation cap — a single decode is
+// allowed to reserve this much before it throws. 512 was far above the edge
+// worker's ~256 MB total, so one multi-MP source (a 3840×2160 /i/ original
+// reserves ~130 MB of jpeg-js bookkeeping + a full RGBA copy below) could OOM the
+// isolate and 546 the whole feed. Held to 128 so an oversized source THROWS here
+// (→ decode() returns null → the caller keeps the raw url) instead of crashing.
+// The variant ladder we build tops out at 1600px, so nothing legitimate here
+// needs more; see MAX_DECODE_PIXELS for the pre-decode header gate.
+const MAX_DECODE_MB = 128;
 
 function looksPng(b: Uint8Array): boolean {
   return b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;

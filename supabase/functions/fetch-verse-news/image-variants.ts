@@ -79,15 +79,21 @@ export const OPAQUE_WIDTH = 0;
 export const MAX_PASSTHROUGH_BYTES = 400_000;
 
 /**
- * Refuse to decode anything above this pixel count.
+ * Refuse to decode anything above this pixel count (header-only pre-check).
  *
- * Decoding materialises `w * h * 4` bytes of RGBA, and the Supabase edge worker
- * has a few hundred MB total. 16 MP ≈ 64 MB of RGBA, which leaves headroom for
- * the inflate buffers and the encoder; a 3840×2160 RSI original (8.3 MP) passes
- * comfortably. Anything larger is left to the caller as "undecodable" rather
- * than risking an OOM that would take the whole news feed down with it.
+ * The earlier 16 MP ceiling was calibrated on the wrong model. Decoding does not
+ * cost "`w*h*4` bytes of RGBA" — jpeg-js reserves several times that in internal
+ * bookkeeping, edgeCodecs then holds a SECOND full RGBA copy, and buildVariants
+ * keeps the source RGBA live across every resize/encode. Measured against the
+ * live feed (2026-08-04, the 546 outage): a single 3840×2160 (8.3 MP) `/i/`
+ * original drove the worker's RSS up ~220 MB on its own — the claim that it
+ * "passes comfortably" was simply false, and with captureWallpapers' decodes
+ * already on the heap it took the isolate past its ~256 MB limit → OOM → the
+ * whole news feed 546'd. 6 MP keeps the largest admitted decode well under the
+ * 128 MB jpeg-js cap (see image-codecs.ts). Anything larger keeps its raw url —
+ * a card with an upstream image is a far better outcome than no feed at all.
  */
-export const MAX_DECODE_PIXELS = 16_000_000;
+export const MAX_DECODE_PIXELS = 6_000_000;
 
 /** JPEG quality per rung: smaller variants can afford (and need) less. */
 export function qualityForWidth(width: number): number {

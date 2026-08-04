@@ -590,15 +590,16 @@ const IMG_BUCKET = 'news-images';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const PUBLIC_BASE = `${SUPABASE_URL}/storage/v1/object/public/${IMG_BUCKET}`;
-// Cap work per request so a cold cache can't blow the function timeout; the
-// cache warms over a few request cycles, raw urls serve meanwhile. Much lower
-// than the pre-compaction 16 because each miss now decodes, rescales and
-// re-encodes instead of just streaming bytes through — and misses are processed
-// SEQUENTIALLY (see cacheImages): an RSI original decodes to tens of MB of RGBA,
-// so running several at once is how you OOM the worker and take the whole news
-// feed down. In steady state only a handful of genuinely new images arrive per
-// day, so the cap is never the bottleneck.
-const MAX_CACHE_PER_REQUEST = 4;
+// Cap work per request so a cold cache can't blow the function timeout OR its
+// memory; the cache warms over a few request cycles, raw urls serve meanwhile.
+// Misses are processed SEQUENTIALLY (see cacheImages), but "sequential" only
+// bounds concurrency, not the PEAK: one `/i/` original's decode reserves well
+// over 100 MB (jpeg-js bookkeeping + edgeCodecs' RGBA copy), and that peak lands
+// on top of captureWallpapers' decodes in the same request. 3, with the tighter
+// MAX_SOURCE_PIXELS above, keeps the sum under the isolate limit. In steady
+// state only a handful of genuinely new images arrive per day, so 3 is never the
+// bottleneck.
+const MAX_CACHE_PER_REQUEST = 3;
 const IMG_FETCH_TIMEOUT_MS = 8000;
 // Hard ceilings on a single source. RSI's `cover` variant is ≤1140px wide and
 // tens of KB; the un-variantable signed-proxy originals are the only large
@@ -609,11 +610,14 @@ const IMG_FETCH_TIMEOUT_MS = 8000;
 // per call for exactly that reason. Rejecting it early is not a loss: the card
 // keeps the raw RSI url and renders as before.
 const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
-// Calibrated, not guessed: jpeg-js aborts a 7680×3292 (25 MP) source even with
-// maxMemoryUsageInMB 512 — its accounting covers far more than the output
-// buffer. 16 MP leaves margin below the smallest failure we have measured, and
-// is still ~14× the 1140px-wide variant this all gets resized down to.
-const MAX_SOURCE_PIXELS = 16_000_000;
+// jpeg-js's accounting covers far more than the output buffer, so a "big but not
+// huge" source is still expensive. 16 MP was set against the smallest source
+// that made jpeg-js *abort* (25 MP) — but aborting is not the failure that
+// matters: a source well UNDER that ceiling still decodes, and a single 8.3 MP
+// `/i/` original drove worker RSS +220 MB during the 2026-08-04 546 outage (see
+// MAX_DECODE_PIXELS in image-variants.ts). 6 MP keeps the largest admitted
+// decode under the 128 MB jpeg-js cap; larger sources keep their raw url.
+const MAX_SOURCE_PIXELS = 6_000_000;
 // Wall clock the cache warm-up may add to a request. Callers (the news page,
 // and starscape-summary on a 9s budget) wait on this endpoint; warming is
 // housekeeping and must never be what makes them time out.
@@ -930,7 +934,12 @@ function safeImageDimensions(b: Uint8Array): { w: number; h: number } | null {
 // corrupted JPEGs that render as glitch blocks, or near-blank pattern
 // backgrounds with no real subject. `scoreWallpaper` (wallpaper-quality.ts)
 // inspects decoded pixels to catch those. See module header for calibration.
-const MAX_CONTENT_SCORED_PER_RUN = 12; // bound decode/score CPU per crawl
+// Bounds decode+score work per crawl. Also bounds the wallpaper decodes that
+// share the request's heap with cacheImages below — a big content batch (54
+// candidates the day this 546'd) must not stack 12 decodes' worth of RGBA under
+// the cache-warm decodes. 6 still drains any backlog within a few crawls, since
+// stored ids are skipped and articles linger in the feed for weeks.
+const MAX_CONTENT_SCORED_PER_RUN = 6;
 const WALLPAPER_CONTENT_TIMEOUT_MS = 10_000;
 
 // Decode + content-score a candidate's FULL cover image (the cover variant is
@@ -975,7 +984,10 @@ async function contentCheck(row: WallpaperRow): Promise<{ ok: boolean; phash: st
     let width: number;
     let height: number;
     if (ext === '.jpg' || ext === '.jpeg') {
-      const decoded = jpeg.decode(buf, { useTArray: true, maxMemoryUsageInMB: 512 });
+      // Held to 128 MB (matches image-codecs.ts) so an unexpectedly large cover
+      // throws → this crawl rejects the row → retried next crawl, rather than
+      // OOMing the isolate. Covers are ≤1140px, so nothing real needs more.
+      const decoded = jpeg.decode(buf, { useTArray: true, maxMemoryUsageInMB: 128 });
       rgba = decoded.data;
       width = decoded.width;
       height = decoded.height;
@@ -1254,7 +1266,16 @@ Deno.serve(async (req: Request) => {
   await captureWallpapers(news);
 
   // Replace upstream RSI image urls with our durable cached copies (best-effort).
-  await cacheImages(news);
+  // captureWallpapers/enforceVideoRetention swallow their own errors; cacheImages
+  // did not, so a throw here (a bad row rewrite, an upsert reject) used to reach
+  // the handler and 546 a feed that was otherwise fully assembled. A memory OOM
+  // is not catchable — the pixel/decode caps above are what prevent that — but
+  // any ordinary failure must only cost the url rewrite, never the feed.
+  try {
+    await cacheImages(news);
+  } catch (err) {
+    console.error('cacheImages failed, serving raw urls:', err);
+  }
 
   // Storage side of the video retention rule (e7082310): stamp the thumbnails of
   // the videos we just served and delete the ones that aged out (best-effort).
