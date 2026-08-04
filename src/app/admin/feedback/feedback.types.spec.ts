@@ -20,6 +20,8 @@ import {
   normalizeSearchText,
   rankFeedbackSearch,
   refKind,
+  filterRowScope,
+  rowScopeCounts,
   searchFeedback,
   searchTokens,
   shippedPerWeek,
@@ -437,6 +439,43 @@ describe('workflow scope (feedback abfa97c6)', () => {
     expect(isOwnTopic(theirs, 'me')).toBeFalse();
     expect(isOwnTopic(orphan, 'me')).toBeFalse();
     expect(isOwnTopic(mine1, null)).toBeFalse();
+  });
+});
+
+describe('review scope — bare-row lens for the sign-off queue', () => {
+  // The sign-off list holds finished topics awaiting an admin's Abnahme; the same
+  // mine/others/all lens applies, but to rows rather than WorkflowItems.
+  const mine1 = row('m1', 'shipped', '2026-07-05T10:00:00Z', { author_id: 'me' });
+  const mine2 = row('m2', 'issue_created', '2026-07-06T10:00:00Z', { author_id: 'me' });
+  const theirs = row('t1', 'shipped', '2026-07-07T10:00:00Z', { author_id: 'you' });
+  const orphan = row('n1', 'shipped', '2026-07-08T10:00:00Z', { author_id: null });
+  const rows = [mine1, mine2, theirs, orphan];
+
+  it('counts each scope, with authorless rows landing under "others"', () => {
+    expect(rowScopeCounts(rows, 'me')).toEqual({ mine: 2, others: 2, all: 4 });
+  });
+
+  it('narrows the list to the admin\'s own topics', () => {
+    expect(filterRowScope(rows, 'mine', 'me').map((r) => r.id)).toEqual(['m1', 'm2']);
+  });
+
+  it('narrows to everyone else, keeping authorless topics visible', () => {
+    expect(filterRowScope(rows, 'others', 'me').map((r) => r.id)).toEqual(['t1', 'n1']);
+  });
+
+  it('keeps the whole list for "all"', () => {
+    expect(filterRowScope(rows, 'all', 'me').length).toBe(4);
+  });
+
+  it('preserves list order inside a scope', () => {
+    const shuffled = [mine2, theirs, mine1];
+    expect(filterRowScope(shuffled, 'mine', 'me').map((r) => r.id)).toEqual(['m2', 'm1']);
+  });
+
+  it('falls back to the full list while the user id is unknown', () => {
+    // Auth not settled yet — a blank sign-off queue would look like nothing to do.
+    expect(filterRowScope(rows, 'mine', null).length).toBe(4);
+    expect(rowScopeCounts(rows, null)).toEqual({ mine: 0, others: 4, all: 4 });
   });
 });
 

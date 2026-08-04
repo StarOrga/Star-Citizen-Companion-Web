@@ -465,6 +465,33 @@ export function workflowScopeCounts(
 }
 
 /**
+ * Narrow a bare row list to one author scope — the same mine/others/all lens the
+ * processing mode uses (feedback abfa97c6), but for the sign-off list, which holds
+ * {@link FeedbackRow}s rather than {@link WorkflowItem}s. Unknown `selfId` returns
+ * the full list for the same reason as {@link filterWorkflowScope}: a signed-in
+ * admin must not face a blank queue because the user object arrived a tick late.
+ */
+export function filterRowScope(
+  rows: readonly FeedbackRow[],
+  scope: WorkflowScope,
+  selfId: string | null | undefined,
+): FeedbackRow[] {
+  if (scope === 'all' || !selfId) return [...rows];
+  const wantOwn = scope === 'mine';
+  return rows.filter((row) => isOwnTopic(row, selfId) === wantOwn);
+}
+
+/** Row-list sizes per scope, for the review switch's counts (cf. {@link workflowScopeCounts}). */
+export function rowScopeCounts(
+  rows: readonly FeedbackRow[],
+  selfId: string | null | undefined,
+): WorkflowScopeCounts {
+  let mine = 0;
+  for (const row of rows) if (isOwnTopic(row, selfId)) mine++;
+  return { mine, others: rows.length - mine, all: rows.length };
+}
+
+/**
  * Which thread message the processing mode should put in front of the admin
  * (feedback fda4e3ea) — nobody should have to hunt for the open Rückfrage in a
  * long thread.
