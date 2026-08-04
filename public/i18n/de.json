@@ -1784,7 +1784,9 @@
       "queueTitle": "Wurde bearbeitet — bitte prüfen und abhaken",
       "openTopic": "Thema öffnen",
       "emptyTitle": "Nichts abzunehmen",
-      "emptyHint": "Sobald die Routine ein Thema geshippt oder an ein Issue übergeben hat, wartet es hier auf deine Abnahme."
+      "emptyHint": "Sobald die Routine ein Thema geshippt oder an ein Issue übergeben hat, wartet es hier auf deine Abnahme.",
+      "scopeEmptyTitle": "In dieser Auswahl ist nichts abzunehmen",
+      "scopeEmptyHint": "{{count}} Thema/Themen warten in einer anderen Auswahl."
     }
   },
   "feedbackFab": {
