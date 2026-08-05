@@ -18,7 +18,6 @@ import {
   filterPatchLines,
   latestPerFacet,
 } from './patch-notes';
-import { computePatchStats } from './patch-stats';
 import { PatchCadenceComponent } from './patch-cadence.component';
 import { relativeTime } from './relative-time';
 
@@ -57,12 +56,11 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
         <span class="rail-note">{{ 'news.patch.hint' | translate }}</span>
       </div>
 
-      <!-- Patch performance, rotating. Always computed from ALL patch notes,
-           never from the filtered view: it answers "how is CIG doing", which a
-           chip selection must not be able to rewrite. -->
-      @if (stats().length > 0) {
-        <sc-patch-cadence [kpis]="stats()" />
-      }
+      <!-- Patch performance, rotating. Always fed the FULL, unfiltered patch
+           lines, never the filtered view: it answers "how is CIG doing", which a
+           chip selection must not be able to rewrite. The panel owns its own
+           six-months-vs-all-time window and derives its charts and forecast. -->
+      <sc-patch-cadence [groups]="svc.patchLines()" />
 
       <!-- At a glance: the newest note per channel, at most one each. -->
       @if (highlights().length > 0) {
@@ -381,9 +379,6 @@ export class PatchNotesSectionComponent implements OnDestroy {
       .filter((f) => (counts.get(f) ?? 0) > 0)
       .map((facet) => ({ facet, count: counts.get(facet) ?? 0 }));
   });
-
-  /** Cadence KPIs — all-time, from every patch note, never from the filter. */
-  readonly stats = computed(() => computePatchStats(this.svc.patchLines()));
 
   // Only the lines the user explicitly toggled are recorded. Everything else
   // follows the default "newest line open", which is what keeps 4.10 expanded on

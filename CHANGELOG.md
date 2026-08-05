@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.60.0] - 2026-08-05
+
+### Added
+
+- **The patch-performance panel gained a six-month/all-time toggle and a release
+  forecast.** The rotating cadence charts (PTU → Live, main-line cadence,
+  sub-patch cadence) now default to the last six months and switch to all-time
+  from a control that stays visible on every slide. The window is strict — it
+  drives both the bars and the median with no minimum-sample fallback — so a rare
+  measurement like the major-line cadence can thin out inside six months and
+  return on all-time rather than quietly averaging in year-old releases.
+
+  A fourth slide reads the median cadences forward: the next PTU, the next LIVE
+  patch, the next sub-patch, and — only while a build is actually in the PTU — the
+  next PTU sub-patch. Each is an estimate ("the last such event plus the median
+  gap"), never a promise, and a date the median has already passed is shown as
+  overdue rather than hidden. The next-LIVE estimate is anchored on the lowest
+  test build above the shipped LIVE frontier, so a historical version whose LIVE
+  note never parsed cannot date the forecast off a stale build. The forecast
+  honours the same window toggle as the charts.
+
 ## [0.59.0] - 2026-08-05
 
 ### Added

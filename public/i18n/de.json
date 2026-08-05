@@ -787,7 +787,29 @@
         "subCadence": {
           "title": "Patch-Takt (Sub-Patches)",
           "sub": "Tage zwischen zwei Sub-Patches in PTU oder Live"
+        },
+        "window": {
+          "aria": "Zeitraum der Diagramme",
+          "6m": "6 Monate",
+          "all": "Alle",
+          "empty": "Keine Daten in diesem Zeitraum – auf „Alle“ umschalten."
         }
+      },
+      "forecast": {
+        "title": "Voraussichtliche Termine",
+        "sub": "Median-Schätzung aus dem Patch-Takt, kein offizielles Datum",
+        "row": {
+          "ptu": "Nächster PTU",
+          "live": "Nächster Live-Patch",
+          "subPatch": "Nächster Sub-Patch (Live)",
+          "ptuSubPatch": "Nächster PTU-Sub-Patch"
+        },
+        "today": "heute fällig",
+        "inDays": "in ~{{n}} Tagen",
+        "inWeeks": "in ~{{n}} Wochen",
+        "overdueDays": "überfällig ({{n}} T.)",
+        "overdueWeeks": "überfällig ({{n}} Wo.)",
+        "basis": "Median {{median}} T. · n={{n}} · ab {{version}}"
       }
     },
     "detail": {
