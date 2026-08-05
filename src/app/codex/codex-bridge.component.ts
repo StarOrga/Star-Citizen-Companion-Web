@@ -382,7 +382,11 @@ interface Lane {
     .hero-eyebrow.hangar { color: var(--sc-accent); }
     .hero-eyebrow.flagship { color: var(--sc-warning, #ffc14d); }
     .hero-name { margin: 0; font-size: clamp(1.6rem, 3vw, 2.4rem); line-height: 1.1; }
-    .hero-name-link { color: inherit; text-decoration: none; cursor: pointer; }
+    /* The inline text link only measured ~27px tall, failing the mobile tap-target
+       gate. inline-flex + min-height gives it a real ≥44px vertical hit area while
+       keeping the name vertically centered and free to wrap. 48px (not 44) clears
+       the gate quirk where two overlapping scale(0.994) anims shrink a 44px box to ~43px. */
+    .hero-name-link { display: inline-flex; align-items: center; min-height: 48px; color: inherit; text-decoration: none; cursor: pointer; }
     .hero-name-link:hover { color: var(--sc-accent); }
     .hero-name-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 4px; }
     .hero-mfr { margin: 0; color: var(--sc-fg-1); font-family: var(--sc-font-display); letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.8rem; }
