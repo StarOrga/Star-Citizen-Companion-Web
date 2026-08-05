@@ -787,7 +787,29 @@
         "subCadence": {
           "title": "Patch cadence (sub-patches)",
           "sub": "Days between two sub-patches in PTU or live"
+        },
+        "window": {
+          "aria": "Chart time range",
+          "6m": "6 months",
+          "all": "All time",
+          "empty": "No data in this range — switch to \"All time\"."
         }
+      },
+      "forecast": {
+        "title": "Projected schedule",
+        "sub": "Median estimate from the patch cadence, not an official date",
+        "row": {
+          "ptu": "Next PTU",
+          "live": "Next live patch",
+          "subPatch": "Next sub-patch (live)",
+          "ptuSubPatch": "Next PTU sub-patch"
+        },
+        "today": "due today",
+        "inDays": "in ~{{n}} days",
+        "inWeeks": "in ~{{n}} weeks",
+        "overdueDays": "overdue by {{n}}d",
+        "overdueWeeks": "overdue by {{n}}w",
+        "basis": "Median {{median}}d · n={{n}} · from {{version}}"
       }
     },
     "detail": {
