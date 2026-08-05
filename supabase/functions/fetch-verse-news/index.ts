@@ -590,13 +590,14 @@ const IMG_BUCKET = 'news-images';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const PUBLIC_BASE = `${SUPABASE_URL}/storage/v1/object/public/${IMG_BUCKET}`;
-// Cap work per request so a cold cache can't blow the function timeout OR its
-// memory; the cache warms over a few request cycles, raw urls serve meanwhile.
-// Misses are processed SEQUENTIALLY (see cacheImages), but "sequential" only
-// bounds concurrency, not the PEAK: one `/i/` original's decode reserves well
-// over 100 MB (jpeg-js bookkeeping + edgeCodecs' RGBA copy), and that peak lands
-// on top of captureWallpapers' decodes in the same request. 3, with the tighter
-// MAX_SOURCE_PIXELS above, keeps the sum under the isolate limit. In steady
+// Cap warm work per request so a cold cache can't blow the deferred pass's
+// timeout OR its memory; the cache warms over a few request cycles, raw urls
+// serve meanwhile. Misses are processed SEQUENTIALLY (see warmImageCache), but
+// "sequential" only bounds concurrency, not the PEAK: one `/i/` original's decode
+// reserves well over 100 MB (jpeg-js bookkeeping + edgeCodecs' RGBA copy), and
+// that peak lands on top of captureWallpapers' decodes in the same deferred pass.
+// 3, with the tighter MAX_SOURCE_PIXELS above, keeps the sum under the isolate
+// limit. In steady
 // state only a handful of genuinely new images arrive per day, so 3 is never the
 // bottleneck.
 const MAX_CACHE_PER_REQUEST = 3;
@@ -739,16 +740,31 @@ async function cacheOne(admin: SupabaseClient, hash: string, ext: string, sample
   return { source_key: hash, ext: top.ext, top_width: top.width, bytes: totalVariantBytes(variants) };
 }
 
-// Rewrite every item's image urls to our cached copy where available.
-// Misses (over the per-request cap or failed download) keep their raw RSI url so
-// the card still has a chance to render and gets cached next cycle.
-async function cacheImages(items: VerseNewsItem[]): Promise<void> {
-  if (!SUPABASE_URL || !SERVICE_KEY) return; // misconfigured → leave raw urls untouched
+// The image cache, split into a decode-free response step and a deferred warm.
+// The request path only ever RE-USES what the index already has (no downloads,
+// no decode → cannot OOM); the memory-heavy download+decode runs after the
+// response via waitUntil. Misses keep their raw RSI url for the cycle and are
+// warmed for the next one. This split is what makes an image OOM unable to 546
+// the feed (the 546 outage class — see the size caps above for why one still
+// shouldn't happen in the first place).
+interface ImageCacheEntry {
+  base: string;
+  ext: string;
+  sample: string;
+  hash: string;
+}
 
-  // Unique source identities across all items. `isImageUrl` is re-applied here
-  // on purpose: extraction already drops video assets, but this is the boundary
-  // where a non-image sample turns into an unbounded, permanently-retried
-  // download — no feed source gets to poison it.
+// Shared, DECODE-FREE prep for both the response rewrite and the deferred warm:
+// the unique source identities across all items plus which of them the index
+// already has. `isImageUrl` is re-applied here on purpose — extraction already
+// drops video assets, but this is the boundary where a non-image sample turns
+// into an unbounded, permanently-retried download, so no feed source gets to
+// poison it. A failed lookup returns an empty `cached` map (rewrite leaves raw
+// urls; warm treats everything as a miss), never a throw.
+async function loadImageCache(
+  admin: SupabaseClient,
+  items: VerseNewsItem[],
+): Promise<{ entries: ImageCacheEntry[]; entByBase: Map<string, ImageCacheEntry>; cached: Map<string, CacheRow> }> {
   const byBase = new Map<string, { ext: string; sample: string }>();
   for (const it of items) {
     for (const url of it.images ?? []) {
@@ -757,34 +773,65 @@ async function cacheImages(items: VerseNewsItem[]): Promise<void> {
       if (!byBase.has(base)) byBase.set(base, { ext, sample: url });
     }
   }
-  if (!byBase.size) return;
-
   const entries = await Promise.all(
     [...byBase.entries()].map(async ([base, v]) => ({ base, ...v, hash: await sha1Hex(base) })),
   );
   const entByBase = new Map(entries.map((e) => [e.base, e]));
-
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-
-  // Batch "already cached?" check. `ext`/`top_width` come from the row, not from
-  // the source url, so a PNG that was re-encoded to JPEG resolves correctly.
   const cached = new Map<string, CacheRow>();
+  if (!entries.length) return { entries, entByBase, cached };
+  // `ext`/`top_width` come from the row, not the source url, so a PNG re-encoded
+  // to JPEG resolves correctly.
   const { data, error } = await admin
     .from('verse_image_cache')
     .select('source_key, ext, top_width')
     .in('source_key', entries.map((e) => e.hash));
   if (error) {
     console.error('verse_image_cache lookup failed:', error.message);
-    return; // index unreachable → leave raw urls, don't risk partial rewrites
+    return { entries, entByBase, cached };
   }
   for (const r of (data ?? []) as CacheRow[]) cached.set(r.source_key, r);
+  return { entries, entByBase, cached };
+}
 
-  // Download misses, bounded and one at a time — see MAX_CACHE_PER_REQUEST.
-  // The count cap alone was not enough: a source that can never be cached is a
-  // miss again on the very next request, so a handful of them turned every
-  // single call into a multi-minute download party (and starved the endpoint's
-  // callers). The wall-clock budget makes warming the cache strictly
-  // best-effort work that a slow or hostile source cannot extend.
+// Response-path image step: rewrite each item's urls to the cached copies the
+// index ALREADY holds. Returns a rewritten COPY and never mutates `items` — the
+// deferred warm/capture work below still needs the raw upstream urls. This does
+// a DB lookup and nothing else: no downloads, no decode, so it cannot OOM. A
+// source not yet cached keeps its raw RSI url for this cycle and is warmed for
+// the next one by warmImageCache().
+async function rewriteToCachedImages(items: VerseNewsItem[]): Promise<VerseNewsItem[]> {
+  if (!SUPABASE_URL || !SERVICE_KEY) return items; // misconfigured → raw urls
+  if (!items.some((it) => it.images?.length)) return items;
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  const { entByBase, cached } = await loadImageCache(admin, items);
+  if (!cached.size) return items;
+  return items.map((it) => {
+    if (!it.images) return it;
+    // Non-image urls are left alone — they share a cache identity with the
+    // artwork of the same media id, so rewriting them would silently turn a clip
+    // url into a picture url.
+    const images = it.images.map((url) => {
+      if (!isImageUrl(url)) return url;
+      const ent = entByBase.get(imageIdentity(url).base);
+      const row = ent ? cached.get(ent.hash) : undefined;
+      return row ? cachedUrl(row) : url;
+    });
+    return { ...it, images, thumbnail: images[0] ?? it.thumbnail };
+  });
+}
+
+// Deferred, memory-heavy image step: download + decode + store the sources not
+// yet cached, so the NEXT request's rewrite can serve them. This is the ONLY
+// place a decode happens on the news path, and it runs AFTER the response via
+// waitUntil — so even if a source slips the size caps and OOMs the isolate, the
+// feed was already delivered. Bounded and one-at-a-time (MAX_CACHE_PER_REQUEST +
+// a wall-clock budget) so a slow or hostile source can't extend the warm forever.
+async function warmImageCache(items: VerseNewsItem[]): Promise<void> {
+  if (!SUPABASE_URL || !SERVICE_KEY) return; // misconfigured → nothing to warm
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  const { entries, cached } = await loadImageCache(admin, items);
+  if (!entries.length) return;
+
   const deadline = Date.now() + CACHE_WARM_BUDGET_MS;
   const misses = entries.filter((e) => !cached.has(e.hash)).slice(0, MAX_CACHE_PER_REQUEST);
   const freshlyCached: CacheRow[] = [];
@@ -795,31 +842,14 @@ async function cacheImages(items: VerseNewsItem[]): Promise<void> {
     }
     try {
       const row = await cacheOne(admin, e.hash, e.ext, e.sample);
-      if (row) {
-        cached.set(e.hash, row);
-        freshlyCached.push(row);
-      }
+      if (row) freshlyCached.push(row);
     } catch (err) {
-      // One bad image must never cost the whole feed its cached urls.
+      // One bad image must never cost the whole warm pass.
       console.error(`cacheOne failed for ${e.hash}:`, err);
     }
   }
   if (freshlyCached.length) {
     await admin.from('verse_image_cache').upsert(freshlyCached, { onConflict: 'source_key' });
-  }
-
-  // Rewrite to cached urls; thumbnail tracks images[0]. Non-image urls are left
-  // alone — they share a cache identity with the artwork of the same media id,
-  // so rewriting them would silently turn a clip url into a picture url.
-  for (const it of items) {
-    if (!it.images) continue;
-    it.images = it.images.map((url) => {
-      if (!isImageUrl(url)) return url;
-      const ent = entByBase.get(imageIdentity(url).base);
-      const row = ent ? cached.get(ent.hash) : undefined;
-      return row ? cachedUrl(row) : url;
-    });
-    it.thumbnail = it.images[0] ?? it.thumbnail;
   }
 }
 
@@ -831,7 +861,8 @@ async function cacheImages(items: VerseNewsItem[]): Promise<void> {
 // at tile size they read as one photo repeated). NO image bytes are stored —
 // the gallery hotlinks RSI directly (maintainer directive: keep DB/storage
 // lean; `source.<ext>` is the verified largest variant, ~4× the cover).
-// Must run BEFORE cacheImages(), which rewrites item urls to our cached copies.
+// Runs on the raw `news` urls in the deferred pass; warmImageCache no longer
+// rewrites them in place, so this reads real media.rsi urls regardless of order.
 
 const MEDIA_URL_RE = /^https:\/\/media\.robertsspaceindustries\.com\/([^/]+)\/[^/.]+(\.[a-zA-Z0-9]+)$/;
 
@@ -934,11 +965,13 @@ function safeImageDimensions(b: Uint8Array): { w: number; h: number } | null {
 // corrupted JPEGs that render as glitch blocks, or near-blank pattern
 // backgrounds with no real subject. `scoreWallpaper` (wallpaper-quality.ts)
 // inspects decoded pixels to catch those. See module header for calibration.
-// Bounds decode+score work per crawl. Also bounds the wallpaper decodes that
-// share the request's heap with cacheImages below — a big content batch (54
-// candidates the day this 546'd) must not stack 12 decodes' worth of RGBA under
-// the cache-warm decodes. 6 still drains any backlog within a few crawls, since
-// stored ids are skipped and articles linger in the feed for weeks.
+// Bounds decode+score work per crawl. These decodes now run in the deferred pass
+// (after the response), sharing that isolate's heap with warmImageCache's decodes
+// — a big content batch (54 candidates the day this 546'd) must not stack 12
+// decodes' worth of RGBA under the cache-warm decodes. An OOM there no longer
+// fails the feed, but still recycles the worker, so the cap remains worthwhile. 6
+// drains any backlog within a few crawls (stored ids are skipped; articles linger
+// in the feed for weeks).
 const MAX_CONTENT_SCORED_PER_RUN = 6;
 const WALLPAPER_CONTENT_TIMEOUT_MS = 10_000;
 
@@ -1160,9 +1193,10 @@ async function videoImageKeys(items: VerseNewsItem[]): Promise<Map<string, strin
     if (it.source !== 'youtube') continue;
     if (!Number.isFinite(Date.parse(it.publishedAt))) continue;
     for (const url of it.images ?? []) {
-      // cacheImages() may already have rewritten the url to our public copy, in
-      // which case the key is the first path segment; otherwise it is still the
-      // upstream url and the key is derived the same way cacheImages derives it.
+      // This runs on the raw `news` urls (the deferred pass no longer rewrites
+      // them in place), so the key is normally the sha1 of the source identity —
+      // the same key warmImageCache/rewriteToCachedImages derive. The public-copy
+      // branch stays as a safety net for any already-cached url that reaches here.
       const key = url.startsWith(`${PUBLIC_BASE}/`)
         ? url.slice(PUBLIC_BASE.length + 1).split('/')[0]
         : await sha1Hex(imageIdentity(url).base);
@@ -1246,6 +1280,16 @@ async function enforceVideoRetention(items: VerseNewsItem[]): Promise<void> {
   }
 }
 
+// Run best-effort work AFTER the response is flushed. EdgeRuntime.waitUntil keeps
+// the isolate alive until the promise settles (Supabase Edge / Deno Deploy), so
+// the deferred decode/DB work runs to completion without the client waiting on it
+// — and without an OOM in it being able to fail the already-sent response. Where
+// the global is absent (local `deno test` / dev) it degrades to fire-and-forget.
+function scheduleDeferred(work: () => Promise<void>): void {
+  const p = work().catch((err) => console.error('deferred work failed:', err));
+  (globalThis as { EdgeRuntime?: { waitUntil(promise: Promise<unknown>): void } }).EdgeRuntime?.waitUntil?.(p);
+}
+
 // --------------------- Server ---------------------
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
@@ -1261,37 +1305,42 @@ Deno.serve(async (req: Request) => {
   const news = [...commLinks, ...youtube, ...spectrum, ...patchNotes]
     .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 
-  // Record full-res wallpaper metadata BEFORE the cache rewrite below swaps
-  // the raw RSI urls for our cached copies (#133, best-effort).
-  await captureWallpapers(news);
-
-  // Replace upstream RSI image urls with our durable cached copies (best-effort).
-  // captureWallpapers/enforceVideoRetention swallow their own errors; cacheImages
-  // did not, so a throw here (a bad row rewrite, an upsert reject) used to reach
-  // the handler and 546 a feed that was otherwise fully assembled. A memory OOM
-  // is not catchable — the pixel/decode caps above are what prevent that — but
-  // any ordinary failure must only cost the url rewrite, never the feed.
+  // Response path is DECODE-FREE: rewrite each item to the cached image copies the
+  // index already holds (a DB lookup, no downloads). Everything memory-heavy —
+  // wallpaper capture, cache WARMING, video retention — is deferred to AFTER the
+  // response via waitUntil, so a decoder OOM can never take the feed down again
+  // (the 546 outage class). `rewriteToCachedImages` returns a COPY; `news` keeps
+  // its raw upstream urls, which the deferred work needs.
+  let responseNews = news;
   try {
-    await cacheImages(news);
+    responseNews = await rewriteToCachedImages(news);
   } catch (err) {
-    console.error('cacheImages failed, serving raw urls:', err);
+    console.error('rewriteToCachedImages failed, serving raw urls:', err);
   }
 
-  // Storage side of the video retention rule (e7082310): stamp the thumbnails of
-  // the videos we just served and delete the ones that aged out (best-effort).
-  await enforceVideoRetention(news);
-
-  const payload = {
-    status,
-    news,
-    fetchedAt: new Date().toISOString(),
-  };
-
-  return new Response(JSON.stringify(payload), {
-    headers: {
-      ...CORS_HEADERS,
-      'Content-Type': 'application/json',
-      'Cache-Control': 'public, max-age=300, s-maxage=900',
+  const response = new Response(
+    JSON.stringify({ status, news: responseNews, fetchedAt: new Date().toISOString() }),
+    {
+      headers: {
+        ...CORS_HEADERS,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300, s-maxage=900',
+      },
     },
+  );
+
+  // Best-effort side effects, deferred until after the response is committed, on
+  // `news` (raw upstream urls). captureWallpapers records full-res wallpaper
+  // metadata from the raw media urls (#133); warmImageCache downloads+decodes the
+  // sources the rewrite above couldn't serve yet, populating the cache for the
+  // next request; enforceVideoRetention stamps/prunes video thumbnails (e7082310).
+  // Order is no longer load-bearing (warmImageCache doesn't rewrite in place), but
+  // capture stays first by convention. Each is independently guarded.
+  scheduleDeferred(async () => {
+    try { await captureWallpapers(news); } catch (err) { console.error('captureWallpapers failed:', err); }
+    try { await warmImageCache(news); } catch (err) { console.error('warmImageCache failed:', err); }
+    try { await enforceVideoRetention(news); } catch (err) { console.error('enforceVideoRetention failed:', err); }
   });
+
+  return response;
 });
