@@ -29,16 +29,19 @@ import {
   FeedbackSearchHit,
   BucketLabelKey,
   FeedbackStatus,
+  WORKFLOW_SCOPES,
   WorkflowScope,
   awaitsTriage,
   buildWorkflowQueue,
   bucketLabelStatus,
   feedbackBucket,
+  filterRowScope,
   filterWorkflowScope,
   isArchived,
   isContinuedAfterShip,
   isUserSubmitted,
   refKind,
+  rowScopeCounts,
   searchFeedback,
   searchTokens,
   timeOf,
@@ -120,6 +123,16 @@ const WORKFLOW_SCOPE_KEY = 'sc.adminFeedback.workflowScope';
  * (with its counts) makes the other two scopes one click away.
  */
 const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
+/** localStorage key remembering the sign-off view's scope — its own, kept apart
+ *  from the processing mode's so switching one never moves the other. */
+const REVIEW_SCOPE_KEY = 'sc.adminFeedback.reviewScope';
+/**
+ * Scope the sign-off view opens in: your own topics, mirroring the processing
+ * mode's default (feedback abfa97c6). Signing a result off is the same personal
+ * chore — the topics you raised are the ones you can judge "done" without
+ * guessing — so it starts on `mine`, the other two scopes one click away.
+ */
+const DEFAULT_REVIEW_SCOPE: WorkflowScope = 'mine';
 
 @Component({
   selector: 'sc-admin-feedback',
@@ -252,12 +265,49 @@ const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
               <p class="rv-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
             }
 
-            @if (reviewQueue().length === 0) {
-              <div class="rv-empty sc-card">
-                <div class="rv-empty-icon" aria-hidden="true">✅</div>
-                <h3>{{ 'adminFeedback.review.emptyTitle' | translate }}</h3>
-                <p>{{ 'adminFeedback.review.emptyHint' | translate }}</p>
+            <!-- Whose finished topics to sign off — the same Meine/Andere/Alle lens
+                 the processing mode carries (feedback abfa97c6): its own scope, but
+                 the same "Meine" default. Shown whenever anything is waiting anywhere
+                 so an empty "Meine" can never trap the admin with no way to the rest;
+                 the labels reuse the workflow switch's keys so the two read alike. -->
+            @if (reviewScopeCounts().all > 0) {
+              <div
+                class="rv-scope status-filter"
+                role="group"
+                [attr.aria-label]="'adminFeedback.workflow.scope.label' | translate">
+                @for (opt of reviewScopeOptions(); track opt.key) {
+                  <button
+                    type="button"
+                    class="status-chip"
+                    [class.active]="reviewScope() === opt.key"
+                    [attr.aria-pressed]="reviewScope() === opt.key"
+                    (click)="setReviewScope(opt.key)">
+                    {{ ('adminFeedback.workflow.scope.' + opt.key) | translate }}
+                    <span class="chip-count">{{ opt.count }}</span>
+                  </button>
+                }
               </div>
+            }
+
+            @if (reviewQueue().length === 0) {
+              @if (reviewHiddenByScope() > 0) {
+                <!-- Nothing in this scope, but work waits in another — point at it
+                     instead of celebrating (cf. the processing mode's scope-empty). -->
+                <div class="rv-empty sc-card">
+                  <div class="rv-empty-icon" aria-hidden="true">🗂️</div>
+                  <h3>{{ 'adminFeedback.review.scopeEmptyTitle' | translate }}</h3>
+                  <p>{{ 'adminFeedback.review.scopeEmptyHint' | translate: { count: reviewHiddenByScope() } }}</p>
+                  <button type="button" class="sc-btn" (click)="setReviewScope('all')">
+                    {{ 'adminFeedback.workflow.scope.showAll' | translate }}
+                  </button>
+                </div>
+              } @else {
+                <div class="rv-empty sc-card">
+                  <div class="rv-empty-icon" aria-hidden="true">✅</div>
+                  <h3>{{ 'adminFeedback.review.emptyTitle' | translate }}</h3>
+                  <p>{{ 'adminFeedback.review.emptyHint' | translate }}</p>
+                </div>
+              }
             } @else {
               @for (m of reviewQueue(); track m.id) {
                 <article class="rv-card sc-card">
@@ -2740,18 +2790,68 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /**
-   * Everything the routine finished that nobody has confirmed yet — the sign-off
-   * view's whole content and the badge on its tab (feedback #79).
+   * Everything the routine finished that nobody has confirmed yet (feedback #79).
    *
    * Oldest first, like the processing queue: a result that has been waiting for
-   * days is the one most likely to be forgotten. Deliberately unfiltered by the
-   * overview's search / author / status chips — this is a step of its own, not a
-   * slice of that list.
+   * days is the one most likely to be forgotten. Still deliberately unfiltered by
+   * the overview's search / author / status chips — the only lens it carries is
+   * the mine/others/all scope below, mirroring the processing mode's own switch.
    */
-  readonly reviewQueue = computed(() =>
+  private readonly reviewQueueAll = computed(() =>
     this.messages()
       .filter((m) => this.inReview(m))
       .sort((a, b) => timeOf(this.reviewSince(a)) - timeOf(this.reviewSince(b))),
+  );
+
+  /**
+   * Whose finished topics the sign-off view shows. Its own scope, kept apart from
+   * the processing mode's so switching one never moves the other; both default to
+   * `mine`. Persisted behind the preferences consent like the view itself.
+   */
+  readonly reviewScope = signal<WorkflowScope>(this.readReviewScope());
+
+  setReviewScope(scope: WorkflowScope): void {
+    this.reviewScope.set(scope);
+    if (!this.consent.preferencesAllowed()) return;
+    try {
+      localStorage.setItem(REVIEW_SCOPE_KEY, scope);
+    } catch {
+      /* private mode / quota — the in-memory signal still works */
+    }
+  }
+
+  private readReviewScope(): WorkflowScope {
+    try {
+      const raw = localStorage.getItem(REVIEW_SCOPE_KEY);
+      if (raw === 'mine' || raw === 'others' || raw === 'all') return raw;
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_REVIEW_SCOPE;
+  }
+
+  /** Sign-off counts per scope — the KPIs on the view's scope switch. */
+  readonly reviewScopeCounts = computed(() =>
+    rowScopeCounts(this.reviewQueueAll(), this.selfId()),
+  );
+
+  /** The scope switch in fixed order (mine first), each with its KPI count. */
+  readonly reviewScopeOptions = computed(() => {
+    const counts = this.reviewScopeCounts();
+    return WORKFLOW_SCOPES.map((key) => ({ key, count: counts[key] }));
+  });
+
+  /**
+   * The sign-off list as shown — narrowed to the chosen scope. The tab badge
+   * reads from here too, so the count promises exactly what the view will list.
+   */
+  readonly reviewQueue = computed(() =>
+    filterRowScope(this.reviewQueueAll(), this.reviewScope(), this.selfId()),
+  );
+
+  /** How many sign-offs the current scope hides — drives the "nothing here" hint. */
+  readonly reviewHiddenByScope = computed(
+    () => this.reviewScopeCounts().all - this.reviewQueue().length,
   );
 
   /** When the outcome landed — what the sign-off card dates itself by. */

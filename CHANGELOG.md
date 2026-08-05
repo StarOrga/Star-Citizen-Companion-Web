@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.59.0] - 2026-08-05
+
+### Added
+
+- **The feedback sign-off view gained the same scope filter as the processing
+  mode.** The Abnahme view now carries the Meine / Andere / Alle author-scope
+  switch — the finished topics you raised are the ones you can judge "done"
+  without guessing — and it opens on "Meine", mirroring the processing mode's
+  default. It keeps its own remembered choice (`sc.adminFeedback.reviewScope`),
+  deliberately apart from the processing mode's, so switching the scope in one
+  view never moves it in the other. The view's tab badge now counts the active
+  scope, and an empty scope points at the sign-offs waiting in another scope
+  instead of showing the all-clear.
+
 ## [0.58.0] - 2026-08-03
 
 ### Added

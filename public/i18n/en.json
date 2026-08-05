@@ -1784,7 +1784,9 @@
       "queueTitle": "Done — please check and tick off",
       "openTopic": "Open topic",
       "emptyTitle": "Nothing to sign off",
-      "emptyHint": "As soon as the routine ships a topic or hands it to an issue, it waits here for your sign-off."
+      "emptyHint": "As soon as the routine ships a topic or hands it to an issue, it waits here for your sign-off.",
+      "scopeEmptyTitle": "Nothing to sign off in this scope",
+      "scopeEmptyHint": "{{count}} topic(s) wait in another scope."
     }
   },
   "feedbackFab": {
