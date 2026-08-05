@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.60.1] - 2026-08-05
+
+### Fixed
+
+- **The Codex Bridge hero's ship-name link is now a full mobile tap target.** On
+  phone and tablet the ship-name heading link only offered a ~27 px tall touch
+  area, below the 44 px minimum, so the responsive gate flagged it. It now
+  reserves ≥48 px of vertical hit area (name stays centered and free to wrap),
+  clearing the tap-target check on iPhone, Pixel, iPad and Galaxy Tab emulation.
+
 ## [0.60.0] - 2026-08-05
 
 ### Added
