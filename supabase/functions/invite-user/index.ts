@@ -1,19 +1,27 @@
 // supabase/functions/invite-user
 // ---------------------------------------------------------------
-// Admin-only invite: sends a Supabase Auth invite email and seeds
-// the new user's profile.role to the chosen target role.
+// Admin-only "Registrieren": always allowlists an email so it may sign in
+// and be auto-approved, optionally approves an already-existing account in
+// place, and optionally sends a Supabase Auth invite mail.
 //
-// Input:  POST { email: string, role: 'admin' | 'collaborator' | 'viewer' }
-// Output: 200 { ok: true, userId, email, role }
+// Input:  POST { email: string, role: 'admin' | 'collaborator' | 'viewer', sendInvite: boolean }
+// Output: 200 { status: 'invited', ok: true, userId, email, role }
+//         200 { status: 'approved_existing', ok: true, userId, email, role }
+//         200 { status: 'allowlisted', ok: true, email, role }
 //         400 { error: <message> }
 //         401 { error: 'unauthorized' }
 //         403 { error: 'forbidden' }
+//         409 { error: 'user_exists', message: <string> }  -- sendInvite=true,
+//              account already exists; use approved_existing instead
+//
+// Design doc: docs/superpowers/specs/2026-08-05-access-control-allowlist-design.md (C5)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
-interface InviteBody {
+interface RegisterBody {
   email?: string;
   role?: string;
+  sendInvite?: boolean;
 }
 
 const ALLOWED_ROLES = new Set(['admin', 'collaborator', 'viewer']);
@@ -65,14 +73,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   // 2. Parse + validate body
-  let body: InviteBody;
+  let body: RegisterBody;
   try {
-    body = (await req.json()) as InviteBody;
+    body = (await req.json()) as RegisterBody;
   } catch {
     return json({ error: 'invalid json' }, 400);
   }
   const email = (body.email ?? '').trim().toLowerCase();
-  const role = (body.role ?? 'collaborator').trim().toLowerCase();
+  const role = (body.role ?? 'viewer').trim().toLowerCase();
+  const sendInvite = body.sendInvite === true;
   if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
     return json({ error: 'invalid email' }, 400);
   }
@@ -80,22 +89,70 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ error: 'invalid role' }, 400);
   }
 
-  // 3. Use service_role to invite + upsert profile role
   const adminClient = createClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+
+  // 3. Always allowlist the email — the source of truth so this email may
+  // sign in (self-serve or via invite) and is auto-approved at `role`.
+  const { error: allowErr } = await adminClient
+    .from('allowed_emails')
+    .upsert(
+      { email, role, added_by: user.id },
+      { onConflict: 'email' },
+    );
+  if (allowErr) {
+    return json({ error: 'allowlist write failed: ' + allowErr.message }, 500);
+  }
+
+  // 4. If an auth.users account already exists for this email, approve it
+  // in place (it may have been created before the allowlist entry, or
+  // signed up and been denied by approvedGuard). email_to_user_id() is a
+  // service-role-only SECURITY DEFINER lookup — the admin JS SDK's
+  // listUsers() has no reliable server-side email filter across versions.
+  const { data: existingUserId, error: lookupErr } = await adminClient.rpc(
+    'email_to_user_id',
+    { target_email: email },
+  );
+  if (lookupErr) {
+    return json({ error: 'user lookup failed: ' + lookupErr.message }, 500);
+  }
+
+  if (existingUserId) {
+    const { error: updErr } = await adminClient
+      .from('profiles')
+      .update({ role, is_approved: true })
+      .eq('id', existingUserId);
+    if (updErr) {
+      return json({ error: 'allowlisted but approval failed: ' + updErr.message }, 500);
+    }
+    return json({
+      status: 'approved_existing',
+      ok: true,
+      userId: existingUserId,
+      email,
+      role,
+    });
+  }
+
+  // 5. No existing account. Allowlist-only unless the admin also asked for
+  // an invite mail.
+  if (!sendInvite) {
+    return json({ status: 'allowlisted', ok: true, email, role });
+  }
 
   const { data: inviteData, error: inviteErr } =
     await adminClient.auth.admin.inviteUserByEmail(email);
 
   if (inviteErr || !inviteData?.user) {
-    // Surface "user already exists" as a friendlier error
     const msg = inviteErr?.message ?? 'invite failed';
     if (/already.*registered|exists/i.test(msg)) {
+      // The email is allowlisted regardless (step 3 already ran) — surface
+      // the friendlier status instead of a hard error.
       return json(
         {
           error: 'user_exists',
-          message: 'Diese E-Mail ist bereits registriert. Promote/Demote über die Liste unten.',
+          message: 'Diese E-Mail ist bereits registriert. Die Allowlist wurde trotzdem aktualisiert.',
         },
         409,
       );
@@ -106,9 +163,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const newUserId = inviteData.user.id;
 
   // The handle_new_user trigger has already inserted a profile row
-  // (is_approved=true because inviteUserByEmail stamps invited_at). Set our
-  // target role and re-assert approval explicitly so an invited user is never
-  // gated out by the client `approvedGuard`, regardless of trigger timing.
+  // (is_approved=true because inviteUserByEmail stamps invited_at, or via
+  // the allowlist branch). Re-assert role + approval explicitly so the
+  // invited user is never gated out by timing between the trigger and this
+  // update.
   const { error: updErr } = await adminClient
     .from('profiles')
     .update({ role, is_approved: true })
@@ -117,5 +175,5 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ error: 'invited but role-assign failed: ' + updErr.message }, 500);
   }
 
-  return json({ ok: true, userId: newUserId, email, role });
+  return json({ status: 'invited', ok: true, userId: newUserId, email, role });
 });

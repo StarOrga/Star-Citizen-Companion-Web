@@ -22,9 +22,32 @@ interface AdminUserRow {
   last_sign_in_at: string | null;
 }
 
+/** Row from the `list_allowed_emails()` RPC (C4/C6 — email allowlist). */
+interface AllowedEmailRow {
+  email: string;
+  role: Role;
+  note: string | null;
+  created_at: string;
+  consumed_at: string | null;
+  /** `auth.users` row exists for this email — i.e. the invite has been used. */
+  joined: boolean;
+}
+
 type SortKey = 'user' | 'email' | 'role' | 'joined' | 'lastSeen';
 type SortDir = 'asc' | 'desc';
 type RoleFilter = 'all' | Role;
+
+type AllowlistSortKey = 'email' | 'role' | 'status' | 'added';
+type AllowlistStatusFilter = 'all' | 'pending' | 'joined';
+
+/** Register-form response contract (C5 — `invite-user` edge function). */
+type RegisterStatus = 'allowlisted' | 'approved_existing' | 'invited';
+interface RegisterResponse {
+  status?: RegisterStatus;
+  user_exists?: boolean;
+  error?: string;
+  message?: string;
+}
 
 /** Higher rank = "more privileged"; used for role-column sorting. */
 const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 };
@@ -45,15 +68,15 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 
       <div class="sc-card invite-card">
         <div class="invite-head">
-          <h2>{{ 'admin.invite.title' | translate }}</h2>
-          <p class="hint">{{ 'admin.invite.subtitle' | translate }}</p>
+          <h2>{{ 'admin.register.title' | translate }}</h2>
+          <p class="hint">{{ 'admin.register.subtitle' | translate }}</p>
         </div>
-        <form class="invite-form" (submit)="onInviteSubmit($event)">
+        <form class="invite-form" (submit)="onRegisterSubmit($event)">
           <input type="email"
                  [value]="inviteEmail()"
                  (input)="inviteEmail.set(asInput($event))"
-                 [placeholder]="'admin.invite.emailPlaceholder' | translate"
-                 [attr.aria-label]="'admin.invite.emailPlaceholder' | translate"
+                 [placeholder]="'admin.register.emailPlaceholder' | translate"
+                 [attr.aria-label]="'admin.register.emailPlaceholder' | translate"
                  [disabled]="inviteBusy()"
                  required>
           <select [value]="inviteRole()"
@@ -64,16 +87,132 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
             <option value="collaborator">{{ 'profile.roles.collaborator' | translate }}</option>
             <option value="admin">{{ 'profile.roles.admin' | translate }}</option>
           </select>
+          <label class="send-invite">
+            <input type="checkbox"
+                   [checked]="sendInvite()"
+                   (change)="sendInvite.set(asChecked($event))"
+                   [disabled]="inviteBusy()">
+            {{ 'admin.register.sendInvite' | translate }}
+          </label>
           <button type="submit"
                   class="sc-btn sc-btn-primary"
                   [disabled]="inviteBusy() || !inviteEmail().includes('@')">
-            {{ inviteBusy() ? ('admin.invite.sending' | translate) : ('admin.invite.send' | translate) }}
+            {{ inviteBusy() ? ('admin.register.sending' | translate) : ('admin.register.send' | translate) }}
+          </button>
+          <!-- C7: copy action, not a navigation — stays a <button>. -->
+          <button type="button"
+                  class="sc-btn share-btn"
+                  (click)="copyShareLink()">
+            {{ 'admin.share.button' | translate }}
           </button>
         </form>
         @if (inviteMsg(); as m) {
           <div class="invite-msg" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'">
             {{ m.text }}
           </div>
+        }
+        @if (shareMsg(); as m) {
+          <div class="invite-msg" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'" role="status">
+            {{ m.text }}
+          </div>
+        }
+      </div>
+
+      <div class="sc-card allowlist-card">
+        <div class="invite-head">
+          <h2>{{ 'admin.allowlist.title' | translate }}</h2>
+          <p class="hint">{{ 'admin.allowlist.subtitle' | translate }}</p>
+        </div>
+
+        @if (allowlistErrorMsg()) {
+          <div class="err">
+            <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ allowlistErrorMsg() }}
+          </div>
+        }
+
+        @if (allowlistBusy() && allowedEmails().length === 0) {
+          <div class="empty">{{ 'admin.loading' | translate }}</div>
+        } @else if (allowedEmails().length === 0 && !allowlistBusy()) {
+          <div class="empty">—</div>
+        } @else {
+          <div class="filter-bar">
+            <input type="search"
+                   class="filter-search"
+                   [value]="allowlistSearch()"
+                   (input)="allowlistSearch.set(asInput($event))"
+                   [placeholder]="'admin.filter.searchPlaceholder' | translate"
+                   [attr.aria-label]="'admin.filter.searchPlaceholder' | translate">
+            <select class="filter-role"
+                    [value]="allowlistStatusFilter()"
+                    (change)="allowlistStatusFilter.set(asAllowlistStatusFilter($event))"
+                    [attr.aria-label]="'admin.allowlist.col.status' | translate">
+              <option value="all">{{ 'admin.allowlist.status.all' | translate }}</option>
+              <option value="pending">{{ 'admin.allowlist.status.pending' | translate }}</option>
+              <option value="joined">{{ 'admin.allowlist.status.joined' | translate }}</option>
+            </select>
+            <span class="filter-count">
+              {{ 'admin.filter.count' | translate: { shown: filteredSortedAllowlist().length, total: allowedEmails().length } }}
+            </span>
+          </div>
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th class="sortable" (click)="toggleAllowlistSort('email')"
+                    (keydown.enter)="toggleAllowlistSort('email')" (keydown.space)="$event.preventDefault(); toggleAllowlistSort('email')"
+                    tabindex="0" [attr.aria-sort]="ariaAllowlistSort('email')" [class.active]="allowlistSortKey() === 'email'">
+                  {{ 'admin.col.email' | translate }}<span class="sort-ind">{{ allowlistSortIndicator('email') }}</span>
+                </th>
+                <th class="sortable" (click)="toggleAllowlistSort('role')"
+                    (keydown.enter)="toggleAllowlistSort('role')" (keydown.space)="$event.preventDefault(); toggleAllowlistSort('role')"
+                    tabindex="0" [attr.aria-sort]="ariaAllowlistSort('role')" [class.active]="allowlistSortKey() === 'role'">
+                  {{ 'admin.col.role' | translate }}<span class="sort-ind">{{ allowlistSortIndicator('role') }}</span>
+                </th>
+                <th class="sortable" (click)="toggleAllowlistSort('status')"
+                    (keydown.enter)="toggleAllowlistSort('status')" (keydown.space)="$event.preventDefault(); toggleAllowlistSort('status')"
+                    tabindex="0" [attr.aria-sort]="ariaAllowlistSort('status')" [class.active]="allowlistSortKey() === 'status'">
+                  {{ 'admin.allowlist.col.status' | translate }}<span class="sort-ind">{{ allowlistSortIndicator('status') }}</span>
+                </th>
+                <th class="sortable" (click)="toggleAllowlistSort('added')"
+                    (keydown.enter)="toggleAllowlistSort('added')" (keydown.space)="$event.preventDefault(); toggleAllowlistSort('added')"
+                    tabindex="0" [attr.aria-sort]="ariaAllowlistSort('added')" [class.active]="allowlistSortKey() === 'added'">
+                  {{ 'admin.allowlist.col.added' | translate }}<span class="sort-ind">{{ allowlistSortIndicator('added') }}</span>
+                </th>
+                <th>{{ 'admin.allowlist.col.note' | translate }}</th>
+                <th>{{ 'admin.col.actions' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of filteredSortedAllowlist(); track a.email) {
+                <tr>
+                  <td class="mono">{{ a.email }}</td>
+                  <td>
+                    <span class="role-pill" [class]="a.role">
+                      {{ ('profile.roles.' + a.role) | translate }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="role-pill" [class.joined]="a.joined" [class.pending]="!a.joined">
+                      {{ (a.joined ? 'admin.allowlist.status.joined' : 'admin.allowlist.status.pending') | translate }}
+                    </span>
+                  </td>
+                  <td>{{ a.created_at | scDate }}</td>
+                  <td class="note">{{ a.note ?? '—' }}</td>
+                  <td class="actions">
+                    <button class="sc-btn micro danger"
+                            (click)="removeAllowedEmail(a)"
+                            [disabled]="allowlistBusy()">
+                      {{ 'admin.allowlist.remove' | translate }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="no-matches">{{ 'admin.filter.noMatches' | translate }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
         }
       </div>
 
@@ -306,6 +445,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       box-shadow: inset 2px 0 0 var(--sc-accent);
     }
     .mono { font-family: monospace; font-size: 0.82rem; color: var(--sc-fg-1); overflow-wrap: anywhere; }
+    .note { color: var(--sc-fg-2); max-width: 240px; overflow-wrap: anywhere; }
     .role-pill {
       display: inline-block;
       padding: 2px 8px;
@@ -331,6 +471,8 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
         margin-left: 6px;
         cursor: help;
       }
+      &.joined { background: rgba(74, 222, 128, 0.18); color: var(--sc-success); }
+      &.pending { background: rgba(251, 191, 36, 0.18); color: var(--sc-warning); }
     }
     .actions { display: flex; gap: 6px; flex-wrap: wrap; }
     .sc-btn.micro {
@@ -347,7 +489,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       color: var(--sc-bg-0);
     }
 
-    .invite-card {
+    .invite-card, .allowlist-card {
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -355,9 +497,10 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     .invite-head h2 { margin: 0 0 4px; font-size: 1rem; }
     .invite-head .hint { margin: 0; }
     .invite-form {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
+      display: flex;
+      align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
     }
     .invite-form input[type=email],
     .invite-form select {
@@ -368,6 +511,15 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       border-radius: 4px;
       font: inherit;
       font-size: 0.88rem;
+    }
+    .invite-form input[type=email] { flex: 1 1 220px; min-width: 180px; }
+    .send-invite {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--sc-fg-1);
+      font-size: max(0.8rem, var(--sc-fs-floor));
+      white-space: nowrap;
     }
     .invite-form input[type=email]:focus,
     .invite-form select:focus {
@@ -380,6 +532,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       opacity: 0.4;
       cursor: not-allowed;
     }
+    .share-btn { white-space: nowrap; }
     .invite-msg {
       padding: 8px 12px;
       border-radius: 4px;
@@ -396,7 +549,8 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       color: var(--sc-danger);
     }
     @media (max-width: 640px) {
-      .invite-form { grid-template-columns: 1fr; }
+      .invite-form { flex-direction: column; align-items: stretch; }
+      .invite-form input[type=email] { flex: 1 1 100%; }
     }
   `],
 })
@@ -413,6 +567,7 @@ export class AdminComponent implements OnInit {
 
   constructor() {
     useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
+    useAutoRefresh(() => this.refreshAllowlist(), { enabled: () => !this.allowlistBusy() });
   }
   readonly adminCount = computed(() => this.users().filter((u) => u.role === 'admin').length);
 
@@ -467,14 +622,64 @@ export class AdminComponent implements OnInit {
     return [...filtered].sort((a, b) => cmp(val(a), val(b)));
   });
 
-  // Invite form state
+  // Register-form state (C5/C6 — replaces the old plain invite form).
   readonly inviteEmail = signal('');
   readonly inviteRole = signal<Role>('collaborator');
+  readonly sendInvite = signal(false);
   readonly inviteBusy = signal(false);
   readonly inviteMsg = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
 
+  // C7 — share-link copy state (separate toast so it doesn't clash with the
+  // register form's own success/error message).
+  readonly shareMsg = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
+
+  // Allowlist table state (C6).
+  readonly allowedEmails = signal<AllowedEmailRow[]>([]);
+  readonly allowlistBusy = signal(false);
+  readonly allowlistErrorMsg = signal<string | null>(null);
+  readonly allowlistSearch = signal('');
+  readonly allowlistStatusFilter = signal<AllowlistStatusFilter>('all');
+  readonly allowlistSortKey = signal<AllowlistSortKey>('added');
+  readonly allowlistSortDir = signal<SortDir>('desc');
+
+  readonly filteredSortedAllowlist = computed<AllowedEmailRow[]>(() => {
+    const term = this.allowlistSearch().trim().toLowerCase();
+    const statusF = this.allowlistStatusFilter();
+    const key = this.allowlistSortKey();
+    const dir = this.allowlistSortDir();
+
+    const filtered = this.allowedEmails().filter((a) => {
+      if (statusF === 'pending' && a.joined) return false;
+      if (statusF === 'joined' && !a.joined) return false;
+      if (!term) return true;
+      const haystack = [a.email, a.note].filter((v): v is string => !!v).join(' ').toLowerCase();
+      return haystack.includes(term);
+    });
+
+    const factor = dir === 'asc' ? 1 : -1;
+    const cmp = (a: string | number, b: string | number): number =>
+      typeof a === 'number' && typeof b === 'number'
+        ? (a - b) * factor
+        : String(a).localeCompare(String(b)) * factor;
+
+    const val = (a: AllowedEmailRow): string | number => {
+      switch (key) {
+        case 'email': return a.email;
+        case 'role': return ROLE_RANK[a.role];
+        case 'status': return a.joined ? 1 : 0;
+        case 'added': return a.created_at;
+      }
+    };
+
+    return [...filtered].sort((a, b) => cmp(val(a), val(b)));
+  });
+
   asInput(e: Event): string {
     return (e.target as HTMLInputElement).value;
+  }
+
+  asChecked(e: Event): boolean {
+    return (e.target as HTMLInputElement).checked;
   }
 
   asSelectRole(e: Event): Role {
@@ -483,6 +688,10 @@ export class AdminComponent implements OnInit {
 
   asRoleFilter(e: Event): RoleFilter {
     return (e.target as HTMLSelectElement).value as RoleFilter;
+  }
+
+  asAllowlistStatusFilter(e: Event): AllowlistStatusFilter {
+    return (e.target as HTMLSelectElement).value as AllowlistStatusFilter;
   }
 
   /** Default sort direction per column — recency columns start descending. */
@@ -510,12 +719,41 @@ export class AdminComponent implements OnInit {
     return this.sortDir() === 'asc' ? '▲' : '▼';
   }
 
+  private defaultAllowlistDir(key: AllowlistSortKey): SortDir {
+    return key === 'added' ? 'desc' : 'asc';
+  }
+
+  toggleAllowlistSort(key: AllowlistSortKey): void {
+    if (this.allowlistSortKey() === key) {
+      this.allowlistSortDir.set(this.allowlistSortDir() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.allowlistSortKey.set(key);
+      this.allowlistSortDir.set(this.defaultAllowlistDir(key));
+    }
+  }
+
+  ariaAllowlistSort(key: AllowlistSortKey): 'ascending' | 'descending' | 'none' {
+    if (this.allowlistSortKey() !== key) return 'none';
+    return this.allowlistSortDir() === 'asc' ? 'ascending' : 'descending';
+  }
+
+  allowlistSortIndicator(key: AllowlistSortKey): string {
+    if (this.allowlistSortKey() !== key) return '';
+    return this.allowlistSortDir() === 'asc' ? '▲' : '▼';
+  }
+
   clearFilters(): void {
     this.search.set('');
     this.roleFilter.set('all');
   }
 
-  async onInviteSubmit(e: Event) {
+  /**
+   * C6 — "Registrieren": upserts the email onto the allowlist (and, per the
+   * `invite-user` contract, approves an already-existing account or sends a
+   * Supabase invite mail) via a single edge-function call. Body shape and the
+   * discriminated `status` response are the C5 contract (core agent).
+   */
+  async onRegisterSubmit(e: Event) {
     e.preventDefault();
     const email = this.inviteEmail().trim();
     const role = this.inviteRole();
@@ -523,22 +761,73 @@ export class AdminComponent implements OnInit {
     this.inviteBusy.set(true);
     this.inviteMsg.set(null);
     const { data, error } = await this.sb.client.functions.invoke('invite-user', {
-      body: { email, role },
+      body: { email, role, sendInvite: this.sendInvite() },
     });
     this.inviteBusy.set(false);
-    const payload = (data ?? {}) as { ok?: boolean; error?: string; message?: string };
+    const payload = (data ?? {}) as RegisterResponse;
     if (error || payload.error) {
       this.inviteMsg.set({
         kind: 'error',
-        text: payload.message ?? payload.error ?? error?.message ?? this.translate.instant('admin.invite.unknownError'),
+        text: payload.message ?? payload.error ?? error?.message ?? this.translate.instant('admin.register.unknownError'),
       });
-    } else {
-      this.inviteMsg.set({
-        kind: 'success',
-        text: this.translate.instant('admin.invite.success', { email, role }),
-      });
-      this.inviteEmail.set('');
-      await this.refresh();
+      return;
+    }
+    const statusKey = payload.status ? `admin.register.status.${payload.status}` : 'admin.register.status.allowlisted';
+    this.inviteMsg.set({
+      kind: 'success',
+      text: this.translate.instant(statusKey, { email }),
+    });
+    this.inviteEmail.set('');
+    this.sendInvite.set(false);
+    await Promise.all([this.refresh(), this.refreshAllowlist()]);
+  }
+
+  /**
+   * C7 — copies the admin share link (public `/login` entry point + PostHog
+   * UTM params, no PII) to the clipboard. Clipboard API first, `execCommand`
+   * fallback for browsers/contexts without it (matches the pattern in
+   * api-tokens.component.ts).
+   */
+  async copyShareLink(): Promise<void> {
+    const url = this.shareLink();
+    let ok = false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        ok = true;
+      }
+    } catch {
+      ok = false;
+    }
+    if (!ok) ok = this.legacyCopy(url);
+
+    this.shareMsg.set(
+      ok
+        ? { kind: 'success', text: this.translate.instant('admin.share.copied') }
+        : { kind: 'error', text: this.translate.instant('admin.share.copyFailed') },
+    );
+    setTimeout(() => this.shareMsg.set(null), 3000);
+  }
+
+  private shareLink(): string {
+    const origin = typeof location !== 'undefined' ? location.origin : '';
+    return `${origin}/login?utm_source=admin_share&utm_medium=referral&utm_campaign=access_invite`;
+  }
+
+  private legacyCopy(text: string): boolean {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch {
+      return false;
     }
   }
 
@@ -592,7 +881,7 @@ export class AdminComponent implements OnInit {
   }
 
   async ngOnInit() {
-    await this.refresh();
+    await Promise.all([this.refresh(), this.refreshAllowlist()]);
   }
 
   async refresh() {
@@ -605,6 +894,32 @@ export class AdminComponent implements OnInit {
       this.users.set(((data ?? []) as AdminUserRow[]));
     }
     this.busy.set(false);
+  }
+
+  async refreshAllowlist() {
+    this.allowlistBusy.set(true);
+    this.allowlistErrorMsg.set(null);
+    const { data, error } = await this.sb.client.rpc('list_allowed_emails');
+    if (error) {
+      this.allowlistErrorMsg.set(error.message);
+    } else {
+      this.allowedEmails.set((data ?? []) as AllowedEmailRow[]);
+    }
+    this.allowlistBusy.set(false);
+  }
+
+  async removeAllowedEmail(row: AllowedEmailRow) {
+    const msg = this.translate.instant('admin.allowlist.removeConfirm', { email: row.email });
+    if (!window.confirm(msg)) return;
+    this.allowlistBusy.set(true);
+    this.allowlistErrorMsg.set(null);
+    const { error } = await this.sb.client.rpc('remove_allowed_email', { target_email: row.email });
+    if (error) {
+      this.allowlistErrorMsg.set(error.message);
+      this.allowlistBusy.set(false);
+      return;
+    }
+    await this.refreshAllowlist();
   }
 
   async deleteUser(u: AdminUserRow) {

@@ -192,6 +192,11 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
                 }
               }
 
+              <!-- C1: visually separates "Ansehen als" from "Abmelden" — a plain
+                   <hr>, not a .dropdown-item, so onMenuKeydown()'s roving focus
+                   skips over it (same reasoning as .dropdown-sep above). -->
+              <hr class="menu-sep" role="separator" />
+
               <button
                 type="button"
                 class="dropdown-item"
@@ -487,6 +492,15 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       letter-spacing: 0.1em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
+    }
+    /* C1: groups "Abmelden" apart from everything above it (settings /
+       integrations / view-as). Plain <hr>, matching .dropdown-sep's border
+       tone rather than a browser-default rule. */
+    .menu-sep {
+      width: 100%;
+      margin: 6px 2px 4px;
+      border: 0;
+      border-top: 1px solid var(--sc-border);
     }
 
     /* Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first

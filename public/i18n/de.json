@@ -1015,14 +1015,40 @@
     "lastAdminTip": "Erst einen weiteren Admin promoten, bevor diese Rolle geändert werden kann — sonst hätte das System keinen Admin mehr.",
     "protected": "Geschützt",
     "protectedTip": "Geschützter Gründer-Account. Rolle, Freigabe und Löschung sind in der Datenbank gesperrt — die Sperre kann nur serverseitig (service_role) aufgehoben werden, nicht über die Admin-Oberfläche.",
-    "invite": {
-      "title": "User einladen",
-      "subtitle": "Schickt eine Supabase-Magic-Link-Mail. Rolle wird beim Annehmen direkt zugewiesen.",
+    "register": {
+      "title": "Registrieren",
+      "subtitle": "Trägt die E-Mail in die Allowlist ein und legt die Rolle für den ersten Login fest. Ein bestehender Account wird sofort freigegeben; die Einladungsmail ist optional.",
       "emailPlaceholder": "person@example.com",
-      "send": "Einladung senden",
-      "sending": "Sende…",
-      "success": "{{email}} → {{role}} eingeladen.",
+      "sendInvite": "Einladungsmail senden",
+      "send": "Registrieren",
+      "sending": "Registriere…",
+      "status": {
+        "allowlisted": "{{email}} zur Allowlist hinzugefügt.",
+        "approved_existing": "{{email}} hatte bereits einen Account — freigegeben.",
+        "invited": "{{email}} zur Allowlist hinzugefügt und eingeladen."
+      },
       "unknownError": "Unbekannter Fehler"
+    },
+    "share": {
+      "button": "Share-Link kopieren",
+      "copied": "Share-Link in die Zwischenablage kopiert.",
+      "copyFailed": "Link konnte nicht kopiert werden — bitte manuell kopieren."
+    },
+    "allowlist": {
+      "title": "Allowlist",
+      "subtitle": "Für den Login vorregistrierte E-Mails. Ein entfernter Eintrag betrifft einen bereits beigetretenen Account nicht.",
+      "col": {
+        "status": "Status",
+        "added": "Hinzugefügt",
+        "note": "Notiz"
+      },
+      "status": {
+        "all": "Alle Status",
+        "pending": "Ausstehend",
+        "joined": "Beigetreten"
+      },
+      "remove": "Entfernen",
+      "removeConfirm": "{{email}} aus der Allowlist entfernen? Bereits angemeldete Accounts behalten ihren Zugang."
     },
     "col": {
       "user": "User",

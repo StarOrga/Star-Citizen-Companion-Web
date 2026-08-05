@@ -23,6 +23,7 @@ Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, org
 | `20260726220000_ship_hardpoint_transforms.sql` | `codex_item_ports.helper_name` / `.position` / `.rotation` — where a hardpoint sits on the hull. All nullable; NULL = position unknown (the state of every row until the uploader re-runs). Coordinates are metres in hull model space, CryEngine axes (`+X` starboard, `+Y` nose, `+Z` up). The ship-level map incl. default-loadout mounts rides in `codex_ships.payload.hardpointTransforms` + `.hardpointFrame`. |
 | `20260726230000_admin_feedback_seq.sql` | `admin_feedback.seq` — the board's stable topic number ("#42"), sequence-fed, backfilled oldest-first, admin-only (not in `my_feedback`) |
 | `20260802080000_protected_admins.sql` | Founder-admin protection — `protected_admins`, the `profiles_protected_admin_guard` + `profiles_role_write_guard` triggers, `protect_admin()`/`unprotect_admin()` (service_role only), the `protected_admin_removal_requests` seam. See **Protected admin accounts** below |
+| `20260805120000_email_allowlist.sql` | `allowed_emails` (admin-managed sign-in allowlist), extends `handle_new_user()` with the allowlist branch, admin RPCs `list_allowed_emails()`/`remove_allowed_email()`, service-role helper `email_to_user_id()`, and the `is_approved()` RESTRICTIVE RLS gate on self-scoped hangar/loadout/link/draft tables. See **Email allowlist & access control** below |
 
 ### RLS summary
 
@@ -34,6 +35,56 @@ Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, org
 - `ship_pledge_links`: public `select` (anon + authenticated), **admin-only** insert/update/delete (`public.is_admin()`). This is the only table that makes a user-supplied link globally visible, and it is only ever written by an explicit admin promotion.
 
 **User-supplied URLs** (`user_ship_links.url`, `ship_pledge_links.url`, `hangar_concept_ships.rsi_url`) are gated by `public.is_rsi_pledge_ship_url(text)` — an anchored allowlist for `https://robertsspaceindustries.com/en/pledge/ships/<slug>/<Name>`. The same rule lives in `supabase/functions/ship-link/_rsi-url.ts` (the write authority) and `src/app/core/rsi-pledge-link.util.ts` (friendly client error). Change one → change all three. Such a URL is **data, never an instruction**: render it only as `<a [href] target="_blank" rel="noopener noreferrer nofollow">`, never `innerHTML`, never inside an LLM prompt.
+
+## Email allowlist & access control (`allowed_emails`)
+
+Design doc: `docs/superpowers/specs/2026-08-05-access-control-allowlist-design.md`.
+Turns invite-only (`20260530000001`) into a proper allowlist: an admin can
+pre-register an email at a target role, before that person ever signs up, and
+optionally still send a Supabase invite mail.
+
+- **`allowed_emails`** — `email citext primary key`, `role` (`admin` /
+  `collaborator` / `viewer`, default `viewer`), `added_by` (the admin who
+  added it), `note`, `created_at`, `consumed_at` (stamped on first matching
+  signup). RLS is **admin-only in every direction** — `service_role`
+  bypasses RLS for the edge function's upsert; anon and non-admin
+  authenticated get nothing (must never leak who is invited).
+- **`handle_new_user()`** (re-`create or replace`d in this migration, keeps
+  the bootstrap + invited branches from `20260530000001`) now also
+  auto-approves a signup whose email matches an `allowed_emails` row, at
+  that row's pre-assigned role, and stamps `consumed_at`. The trigger only
+  fires on `auth.users` INSERT, so **every existing account is
+  grandfathered** — nothing here re-approves or de-approves anyone already
+  signed up.
+- **Admin RPCs**: `list_allowed_emails()` (projects `joined` = an
+  `auth.users` row already exists for that email) and
+  `remove_allowed_email(target_email)`. Both SECURITY DEFINER, `raise
+  exception` for non-admins, `EXECUTE` granted to `authenticated` (the
+  function body is the real gate).
+- **`email_to_user_id(target_email)`** — SECURITY DEFINER, `service_role`
+  execute only. Exists because the GoTrue admin JS SDK's `listUsers()` has
+  no reliable server-side email filter across client versions; the
+  `invite-user` edge function RPCs this instead of scanning pages.
+- **`is_approved()`** — SECURITY DEFINER helper (`profiles.is_approved` for
+  `auth.uid()`, `false` if no row). Backs a RESTRICTIVE `FOR ALL` policy
+  (`<table>_approved_gate`) added — additively, nothing dropped — on
+  `hangar_ships`, `hangar_ship_configs`, `hangar_role_loadouts`,
+  `hangar_concept_ships`, `user_ship_links`, `feedback_drafts`: these were
+  previously self-only (`auth.uid() = user_id`) with no approval check, so
+  a signed-up-but-never-approved account (valid JWT, reachable only via a
+  direct PostgREST call, not the app UI) could still read/write its own
+  rows there. Every pre-existing user was already backfilled to
+  `is_approved = true`, so this is a no-op for anyone who could already use
+  the app. `profiles` itself is deliberately **not** gated this way — an
+  unapproved user must still be able to read their own `is_approved: false`
+  so the client `approvedGuard` can bounce them.
+- **`invite-user` edge function** (name kept for route stability; UI labels
+  it "Registrieren"). Body `{ email, role, sendInvite }`. Always upserts
+  `allowed_emails`; if an `auth.users` row already exists for that email it
+  is approved + role-set in place (`approved_existing`); otherwise, only if
+  `sendInvite` is true, it also calls `inviteUserByEmail` (`invited`) —
+  without `sendInvite` it stays allowlist-only (`allowlisted`). Response is
+  a discriminated `{ status: 'allowlisted' | 'approved_existing' | 'invited', ... }`.
 
 ## Protected admin accounts (`protected_admins`)
 
