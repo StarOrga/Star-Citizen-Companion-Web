@@ -190,7 +190,8 @@ grant execute on function public.email_to_user_id(citext) to service_role;
 
 -- ============================================================
 -- C8 — is_approved() helper + RESTRICTIVE gates on self-scoped
--- sensitive tables (hangar/loadouts/links/drafts). Additive: no existing
+-- sensitive tables (hangar/loadouts/links/drafts/p4k_uploads) and the
+-- p4k-uploads storage bucket. Additive: no existing
 -- policy is dropped or replaced, this only narrows further via AND.
 -- Every existing user was backfilled to is_approved=true in
 -- 20260530000001, so no currently-working account is affected.
@@ -212,7 +213,8 @@ declare
 begin
   foreach t in array array[
     'hangar_ships', 'hangar_ship_configs', 'hangar_role_loadouts',
-    'hangar_concept_ships', 'user_ship_links', 'feedback_drafts'
+    'hangar_concept_ships', 'user_ship_links', 'feedback_drafts',
+    'p4k_uploads'
   ]
   loop
     execute format(
@@ -225,3 +227,15 @@ begin
     );
   end loop;
 end $$;
+
+-- R1 (redteam): the p4k-uploads storage bucket is the same threat class — its
+-- owner policies (see 00002_storage_bucket_p4k.sql) are self-folder /
+-- authenticated but never checked is_approved(), so an unapproved account could
+-- PUT up to 300MB and read/delete its objects via the Storage API directly.
+-- Scoped RESTRICTIVE gate: only the p4k-uploads bucket is narrowed, every other
+-- bucket's policies are left exactly as-is (bucket_id <> 'p4k-uploads' => true).
+drop policy if exists "p4k_uploads_approved_gate" on storage.objects;
+create policy "p4k_uploads_approved_gate" on storage.objects
+  as restrictive for all to authenticated
+  using (bucket_id <> 'p4k-uploads' or public.is_approved())
+  with check (bucket_id <> 'p4k-uploads' or public.is_approved());
