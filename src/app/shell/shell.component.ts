@@ -189,6 +189,28 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
                 }
               }
 
+              @if (imp.active()) {
+                <!-- Redundant way back, in addition to the always-visible
+                     ImpersonationBannerComponent. #364 moved the exit out of this
+                     menu onto the banner alone; a user who opens the account menu
+                     looking for it — where it used to live — otherwise finds
+                     nothing and feels trapped (reported: "kann nicht mehr
+                     zurückschalten"). The role SWITCHER stays hidden during a
+                     preview (a real target role never sees it), but a single
+                     "back to my role" item is not a fidelity leak: a real
+                     viewer/collaborator is never in a preview, so never sees it. -->
+                <div class="dropdown-sep" role="separator">
+                  <span>{{ 'nav.viewAs.title' | translate }}</span>
+                </div>
+                <button
+                  type="button"
+                  class="dropdown-item"
+                  role="menuitem"
+                  (click)="exitViewAs()">
+                  {{ 'nav.viewAs.exit' | translate }}
+                </button>
+              }
+
               <!-- C1: visually separates "Ansehen als" from "Abmelden" — a plain
                    <hr>, not a .dropdown-item, so onMenuKeydown()'s roving focus
                    skips over it (same reasoning as .dropdown-sep above). -->
@@ -695,6 +717,16 @@ export class ShellComponent {
   enterViewAs(target: ViewAs) {
     this.closeMenu();
     this.imp.enter(target);
+  }
+
+  /**
+   * Leaves the active preview — redundant with the always-visible
+   * ImpersonationBannerComponent's exit, so the way back is reachable from the
+   * account menu too (where users instinctively look for it).
+   */
+  exitViewAs() {
+    this.closeMenu();
+    this.imp.exit();
   }
 
   async doSignOut() {

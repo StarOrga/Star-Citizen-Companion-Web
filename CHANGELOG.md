@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.61.1] - 2026-08-06
+
+### Fixed
+
+- **"View as" preview: a reliable way back from the account menu.** v0.61.0
+  moved the exit out of the profile dropdown onto the top banner alone; a user
+  who opened the account menu looking for the way back found nothing and felt
+  trapped. A redundant "Zurück zu meiner Rolle" item now shows in the dropdown
+  whenever a preview is active — the role switcher itself stays hidden (a real
+  target role never sees it), so preview fidelity is unchanged. The banner exit
+  remains for routes rendered outside the shell (the signed-out preview).
+
 ## [0.61.0] - 2026-08-06
 
 ### Added
