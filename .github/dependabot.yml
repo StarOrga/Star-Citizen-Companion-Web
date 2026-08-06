@@ -1,0 +1,72 @@
+# Dependabot configuration.
+#
+# Why this file exists: without it, Dependabot opens one PR per package. For
+# the Angular framework packages that is fatal — bumping e.g. @angular/core
+# alone leaves @angular/compiler-cli and the rest on the old version, `ng build`
+# refuses the mismatch, and the Vercel preview deployment fails. Grouping every
+# @angular/* package into a single PR keeps the framework version consistent so
+# the preview build stays green. Non-Angular version updates are bundled too to
+# cut PR noise; security updates outside Angular stay individual so they remain
+# visible and can be merged fast.
+version: 2
+updates:
+  # ---- Angular PWA (repo root) ----
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      # One PR for all Angular framework packages — version and security both,
+      # so a security bump never lands a single mismatched @angular/* package.
+      angular:
+        applies-to: version-updates
+        patterns:
+          - "@angular/*"
+      angular-security:
+        applies-to: security-updates
+        patterns:
+          - "@angular/*"
+      # Everything else, bundled to avoid a PR per dependency.
+      npm-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@angular/*"
+
+  # ---- data-uploader (npm) ----
+  - package-ecosystem: "npm"
+    directory: "/data-uploader"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      uploader-npm:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
+  # ---- data-uploader (Python) ----
+  - package-ecosystem: "pip"
+    directory: "/data-uploader/python"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      uploader-python:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
+  # ---- GitHub Actions workflows ----
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
