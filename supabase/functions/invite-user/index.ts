@@ -13,6 +13,8 @@
 //         403 { error: 'forbidden' }
 //         409 { error: 'user_exists', message: <string> }  -- sendInvite=true,
 //              account already exists; use approved_existing instead
+//         409 { error: <string> }  -- an existing account could not be updated
+//              in place (e.g. a protected admin); the email was still allowlisted
 //
 // Design doc: docs/superpowers/specs/2026-08-05-access-control-allowlist-design.md (C5)
 
@@ -119,12 +121,36 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   if (existingUserId) {
-    const { error: updErr } = await adminClient
+    // Read current state first. A no-op (already at the target role AND
+    // approved) needs no write — which is also what lets an admin "register" an
+    // existing PROTECTED founder at their current role without tripping
+    // profiles_protected_admin_guard (which rejects even service_role).
+    const { data: existingProfile } = await adminClient
       .from('profiles')
-      .update({ role, is_approved: true })
-      .eq('id', existingUserId);
-    if (updErr) {
-      return json({ error: 'allowlisted but approval failed: ' + updErr.message }, 500);
+      .select('role, is_approved')
+      .eq('id', existingUserId)
+      .maybeSingle();
+
+    if (!(existingProfile?.role === role && existingProfile?.is_approved === true)) {
+      const { error: updErr } = await adminClient
+        .from('profiles')
+        .update({ role, is_approved: true })
+        .eq('id', existingUserId);
+      if (updErr) {
+        // The allowlist write (step 3) already succeeded; only the in-place
+        // update of the existing account failed — most likely a protected
+        // founder frozen by profiles_protected_admin_guard. Surface that the
+        // email is allowlisted but the account was left unchanged (409, not a
+        // bare 500) so the admin knows the allowlist part landed.
+        return json(
+          {
+            error:
+              'allowlisted, but the existing account was not updated (it may be a protected admin): ' +
+              updErr.message,
+          },
+          409,
+        );
+      }
     }
     return json({
       status: 'approved_existing',

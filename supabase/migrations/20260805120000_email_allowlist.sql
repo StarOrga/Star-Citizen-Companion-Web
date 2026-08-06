@@ -239,3 +239,31 @@ create policy "p4k_uploads_approved_gate" on storage.objects
   as restrictive for all to authenticated
   using (bucket_id <> 'p4k-uploads' or public.is_approved())
   with check (bucket_id <> 'p4k-uploads' or public.is_approved());
+
+-- R2 (redteam): the same "unapproved authenticated caller writes via direct
+-- API" class also reaches the user feedback channel (open a topic on
+-- admin_feedback source='user', answer in feedback_author_messages) and the
+-- feedback-images bucket. UI-side the app gate already signs these accounts
+-- out; this closes the direct-PostgREST/Storage spam-into-the-admin-queue
+-- vector too. Additive RESTRICTIVE, INSERT/DELETE only — the public image READ
+-- and the author's own-topic READ are deliberately left intact. Admins and any
+-- approved user pass is_approved() unchanged.
+drop policy if exists admin_feedback_approved_insert_gate on public.admin_feedback;
+create policy admin_feedback_approved_insert_gate on public.admin_feedback
+  as restrictive for insert to authenticated
+  with check (public.is_approved());
+
+drop policy if exists feedback_author_messages_approved_insert_gate on public.feedback_author_messages;
+create policy feedback_author_messages_approved_insert_gate on public.feedback_author_messages
+  as restrictive for insert to authenticated
+  with check (public.is_approved());
+
+drop policy if exists feedback_images_approved_write_gate on storage.objects;
+create policy feedback_images_approved_write_gate on storage.objects
+  as restrictive for insert to authenticated
+  with check (bucket_id <> 'feedback-images' or public.is_approved());
+
+drop policy if exists feedback_images_approved_delete_gate on storage.objects;
+create policy feedback_images_approved_delete_gate on storage.objects
+  as restrictive for delete to authenticated
+  using (bucket_id <> 'feedback-images' or public.is_approved());
