@@ -163,5 +163,9 @@ export class AppComponent implements OnInit {
     this.swUpdate.init();
     // No-op without a configured key or statistics consent (#139).
     this.analytics.init();
+    // C7 — one-shot: reads UTM params off THIS load's URL; no-op without
+    // params or (yet) consent. Must run after init() so it shares the same
+    // lazy-loaded PostHog client once consent is granted.
+    this.analytics.captureLanding();
   }
 }

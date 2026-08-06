@@ -37,6 +37,12 @@ export class AnalyticsService {
   private loading = false;
   private routerBound = false;
 
+  /** Set by `captureLanding()`, applied by whichever `enable()` call actually
+   *  finishes loading the client — see that method for the race this avoids. */
+  private pendingLandingUtm: Record<string, string> | null = null;
+  /** One-shot guard — `captureLanding()` must register the UTM props at most once. */
+  private landingCaptured = false;
+
   /** Whether a key is configured at all — false ships until the admin adds one. */
   private get configured(): boolean {
     return environment.posthog.key.trim().length > 0;
@@ -68,11 +74,55 @@ export class AnalyticsService {
     this.client?.capture(event, properties);
   }
 
+  /**
+   * C7 — one-shot landing-page UTM capture. Called once from `AppComponent`
+   * init (alongside `init()`). Reads `utm_source`/`utm_medium`/`utm_campaign`
+   * from the CURRENT `location.search` at call time and, once `statistics`
+   * consent is granted, registers them as PostHog super-properties so every
+   * event from this session — not just the first pageview — carries them.
+   *
+   * Deliberately independent of `pageviewUrl()`: that function keeps
+   * stripping the query string from `$current_url` on every pageview, so the
+   * UTM params never persist in any STORED page URL — only as these
+   * explicitly-registered event properties.
+   *
+   * No-op without a configured key, without any UTM params on the URL, or
+   * (guarded by `landingCaptured`) after the first successful registration.
+   */
+  captureLanding(): void {
+    if (!this.configured) return;
+    const utm = readUtmParams(typeof location !== 'undefined' ? location.search : '');
+    if (Object.keys(utm).length === 0) return;
+
+    effect(
+      () => {
+        if (this.landingCaptured || !this.consent.statisticsAllowed()) return;
+        this.landingCaptured = true;
+        this.pendingLandingUtm = utm;
+        if (this.client) this.applyPendingLandingUtm();
+        else void this.enable();
+      },
+      { injector: this.injector },
+    );
+  }
+
+  private applyPendingLandingUtm(): void {
+    if (this.pendingLandingUtm && this.client) {
+      this.client.register(this.pendingLandingUtm);
+      this.pendingLandingUtm = null;
+    }
+  }
+
   private async enable(): Promise<void> {
     if (this.client) {
       this.client.opt_in_capturing();
+      this.applyPendingLandingUtm();
       return;
     }
+    // A second concurrent caller (e.g. `captureLanding()` racing `init()`'s own
+    // consent effect) cannot re-enter the load below, but the in-flight call
+    // still owns setting `this.client` and applies any pending UTM props once
+    // it finishes — see the two `applyPendingLandingUtm()` calls below.
     if (this.loading) return;
     this.loading = true;
     try {
@@ -90,6 +140,7 @@ export class AnalyticsService {
       });
       this.client = posthog;
       this.bindRouter();
+      this.applyPendingLandingUtm();
     } catch {
       // Blocked by an ad-blocker, offline, or chunk load failure. Analytics is
       // strictly optional — never let it break the app.
@@ -137,4 +188,20 @@ export class AnalyticsService {
  */
 export function pageviewUrl(routerUrl: string, origin: string = location.origin): string {
   return origin + routerUrl.split(/[?#]/)[0];
+}
+
+/**
+ * Extracts only the three standard UTM params from a `location.search`-style
+ * query string, as plain string properties for `posthog.register()`. Absent
+ * params are simply omitted (never `null`/`undefined` entries) — used by
+ * `AnalyticsService.captureLanding()` (C7).
+ */
+export function readUtmParams(search: string): Record<string, string> {
+  const params = new URLSearchParams(search);
+  const out: Record<string, string> = {};
+  for (const key of ['utm_source', 'utm_medium', 'utm_campaign'] as const) {
+    const value = params.get(key);
+    if (value) out[key] = value;
+  }
+  return out;
 }

@@ -4,6 +4,35 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.61.0] - 2026-08-06
+
+### Added
+
+- **The app is now members-only — every page lives behind sign-in.** Signed-out
+  visitors only ever reach the login screen and the legally required public pages
+  (About, Privacy, Imprint); news, codex, starscape, hangar and everything else
+  now require an approved account. Routing is default-deny, so a newly added page
+  is gated automatically rather than public by accident.
+- **Admins register who may join, from the Benutzer page.** A new "Registrieren"
+  form adds an email to an allowlist (with a pre-assigned role); that person can
+  then sign in themselves and becomes a Viewer on first login, optionally after an
+  invite mail. A share button copies an access link (with campaign tracking) to
+  send them. Existing users keep their access unchanged.
+
+### Changed
+
+- **"Ansehen als" now shows only what the selected role sees.** While previewing a
+  lower role the role switcher is hidden, so the UI matches that role exactly; you
+  return to your own role from the preview banner (your real permissions are
+  unchanged in the background). "Abmelden" is now separated from the preview menu.
+
+### Fixed
+
+- **Closed several ways an unapproved account could still reach data via the API.**
+  Signing up without an allowlist entry no longer grants any working access — the
+  hangar, loadouts, data uploads and the feedback channel are gated on approval at
+  the database level, not just in the UI.
+
 ## [0.60.1] - 2026-08-05
 
 ### Fixed

@@ -1015,14 +1015,40 @@
     "lastAdminTip": "Promote another admin first before changing this role — otherwise the system would be left without any admin.",
     "protected": "Protected",
     "protectedTip": "Protected founder account. Role, approval and deletion are locked in the database — the lock can only be lifted server-side (service_role), never from the admin UI.",
-    "invite": {
-      "title": "Invite user",
-      "subtitle": "Sends a Supabase magic-link email. Role is assigned the moment they accept.",
+    "register": {
+      "title": "Register",
+      "subtitle": "Adds the email to the allowlist and assigns its first-login role. Approves the account immediately if it already exists; the invite mail is optional.",
       "emailPlaceholder": "person@example.com",
-      "send": "Send invite",
-      "sending": "Sending…",
-      "success": "{{email}} → {{role}} invited.",
+      "sendInvite": "Send invite mail",
+      "send": "Register",
+      "sending": "Registering…",
+      "status": {
+        "allowlisted": "{{email}} added to the allowlist.",
+        "approved_existing": "{{email}} already had an account — approved.",
+        "invited": "{{email}} added to the allowlist and invited."
+      },
       "unknownError": "Unknown error"
+    },
+    "share": {
+      "button": "Copy share link",
+      "copied": "Share link copied to clipboard.",
+      "copyFailed": "Could not copy the link — copy it manually."
+    },
+    "allowlist": {
+      "title": "Allowlist",
+      "subtitle": "Emails pre-registered for sign-in. Removing an entry does not affect an account that already joined.",
+      "col": {
+        "status": "Status",
+        "added": "Added",
+        "note": "Note"
+      },
+      "status": {
+        "all": "All statuses",
+        "pending": "Pending",
+        "joined": "Joined"
+      },
+      "remove": "Remove",
+      "removeConfirm": "Remove {{email}} from the allowlist? Anyone already signed in keeps their access."
     },
     "col": {
       "user": "User",

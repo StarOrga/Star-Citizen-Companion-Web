@@ -163,14 +163,18 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
                 </a>
               }
 
-              @if (imp.targets().length > 0) {
+              @if (imp.targets().length > 0 && !imp.active()) {
                 <!-- "View as" (client-side, downgrade-only preview — see
-                     ImpersonationService). Keyed off imp.targets(), which is
-                     derived from the REAL role, never the effective one — so
-                     this stays visible while a preview is active instead of
-                     vanishing the moment it is used. The separator is a plain
-                     div, deliberately not a .dropdown-item, so the roving
-                     ArrowUp/ArrowDown focus in onMenuKeydown() skips over it. -->
+                     ImpersonationService). Shown ONLY while NOT already
+                     previewing: once a preview is active the dropdown must look
+                     exactly like the target role's own menu — a real viewer
+                     never sees a "view as" switcher — so the whole section is
+                     hidden. The way back to the real role is the exit button in
+                     the always-visible ImpersonationBannerComponent (mounted in
+                     AppComponent), reachable from every route including /login.
+                     The separator is a plain div, deliberately not a
+                     .dropdown-item, so the roving ArrowUp/ArrowDown focus in
+                     onMenuKeydown() skips over it. -->
                 <div class="dropdown-sep" role="separator">
                   <span>{{ 'nav.viewAs.title' | translate }}</span>
                 </div>
@@ -179,18 +183,16 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
                     type="button"
                     class="dropdown-item"
                     role="menuitem"
-                    [class.is-current]="imp.viewAs() === target"
-                    [attr.aria-current]="imp.viewAs() === target ? 'true' : null"
                     (click)="enterViewAs(target)">
                     {{ ('nav.viewAs.' + target) | translate }}
                   </button>
                 }
-                @if (imp.active()) {
-                  <button type="button" class="dropdown-item" role="menuitem" (click)="exitViewAs()">
-                    {{ 'nav.viewAs.exit' | translate }}
-                  </button>
-                }
               }
+
+              <!-- C1: visually separates "Ansehen als" from "Abmelden" — a plain
+                   <hr>, not a .dropdown-item, so onMenuKeydown()'s roving focus
+                   skips over it (same reasoning as .dropdown-sep above). -->
+              <hr class="menu-sep" role="separator" />
 
               <button
                 type="button"
@@ -488,6 +490,15 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       text-transform: uppercase;
       color: var(--sc-fg-2);
     }
+    /* C1: groups "Abmelden" apart from everything above it (settings /
+       integrations / view-as). Plain <hr>, matching .dropdown-sep's border
+       tone rather than a browser-default rule. */
+    .menu-sep {
+      width: 100%;
+      margin: 6px 2px 4px;
+      border: 0;
+      border-top: 1px solid var(--sc-border);
+    }
 
     /* Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
        heading is not marooned in empty space (feedback #79, item 5). The
@@ -684,11 +695,6 @@ export class ShellComponent {
   enterViewAs(target: ViewAs) {
     this.closeMenu();
     this.imp.enter(target);
-  }
-
-  exitViewAs() {
-    this.closeMenu();
-    this.imp.exit();
   }
 
   async doSignOut() {
