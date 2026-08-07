@@ -228,15 +228,30 @@ grant execute on function public.unprotect_admin(uuid) to service_role;
 -- ============================================================
 -- Seed — the two founder accounts (admin_feedback #83)
 -- ============================================================
--- Pinned to the two EXACT e-mail addresses, on the admin's explicit
+-- Pinned to two EXACT e-mail addresses, on the admin's explicit
 -- instruction ("mach das anhand der beiden email adressen ganz konkret
--- fest", 2026-08-02). The earlier version matched Christoph fuzzily
--- (local-part LIKE / username / display_name), which was ambiguous:
--- `ccloeschen@hotmail.com` is a second admin account of the same person's
--- family name, and a fuzzy predicate that silently protects the wrong
--- one — or none — is worse than a loud failure. Address identity is the
--- only stable key here; display names and handles are user-editable and
--- would let a renamed account slip in or out of the protected set.
+-- fest", 2026-08-02). The earlier version matched the second founder
+-- fuzzily (local-part LIKE / username / display_name), which was
+-- ambiguous: a second admin account carries the same family name, and a
+-- fuzzy predicate that silently protects the wrong one — or none — is
+-- worse than a loud failure. Address identity is the only stable key
+-- here; display names and handles are user-editable and would let a
+-- renamed account slip in or out of the protected set.
+--
+-- WHY DIGESTS AND NOT THE ADDRESSES (admin_feedback #83, 2026-08-07)
+-- ------------------------------------------------------------------
+-- This repo is PUBLIC, so a literal address here is a personal address
+-- published — and scraped — for good. The predicate therefore compares
+-- the SHA-256 of the lowercased address instead. Behaviour is bit-for-bit
+-- identical (same two accounts match); the addresses are simply no longer
+-- readable in the source. `sha256(bytea)` is core PostgreSQL (11+), so
+-- this needs no pgcrypto and works on a bare `db reset` too.
+--
+-- This is anti-scraping, NOT secrecy: a digest confirms an address you
+-- already guessed. It stops crawlers and casual readers, not a targeted
+-- look-up — and it cannot un-publish what earlier revisions of this file
+-- already put into the git history. See scripts/check-no-personal-emails.mjs,
+-- which keeps new ones from being added.
 --
 -- Matched case-insensitively against auth.users.email. Both addresses are
 -- resolved to a live profile at apply time; a missing one aborts the
@@ -246,30 +261,35 @@ insert into public.protected_admins (user_id, reason)
 select p.id, 'founder'
 from public.profiles p
 join auth.users u on u.id = p.id
-where lower(u.email) in (
-  'jeremy.treder@gmail.com',
-  'christoph.loeschen@gmail.com'
+where encode(sha256(convert_to(lower(u.email), 'UTF8')), 'hex') in (
+  -- founder 1
+  'd6deeeba4dcdf15e121a7a1b0ce98f1c4c0330cd77d272d86f254c49ad12d687',
+  -- founder 2
+  'c3092e37be4af9795e3f9d6d6645457fc19a6b73111505f6affdad4a1cf3fe3b'
 )
 on conflict (user_id) do nothing;
 
 -- Fail loudly instead of shipping a half-protected founder set. The
 -- previous revision only left a "post-deploy check" comment — a manual
--- step nobody runs. Both addresses must exist and be protected.
+-- step nobody runs. Both accounts must exist and be protected.
+--
+-- The message names the founder by LABEL, not by address: an exception
+-- text ends up in CI logs, which are as public as this file.
 do $$
 declare
   missing text;
 begin
-  select string_agg(want.email, ', ')
+  select string_agg(want.label, ', ' order by want.label)
     into missing
   from (values
-    ('jeremy.treder@gmail.com'),
-    ('christoph.loeschen@gmail.com')
-  ) as want(email)
+    ('founder 1', 'd6deeeba4dcdf15e121a7a1b0ce98f1c4c0330cd77d272d86f254c49ad12d687'),
+    ('founder 2', 'c3092e37be4af9795e3f9d6d6645457fc19a6b73111505f6affdad4a1cf3fe3b')
+  ) as want(label, email_sha256)
   where not exists (
     select 1
     from public.protected_admins pa
     join auth.users u on u.id = pa.user_id
-    where lower(u.email) = want.email
+    where encode(sha256(convert_to(lower(u.email), 'UTF8')), 'hex') = want.email_sha256
   );
 
   if missing is not null then

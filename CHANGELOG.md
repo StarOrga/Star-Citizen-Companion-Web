@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **No personal e-mail addresses in the public repo any more.** The
+  founder-protection and bootstrap-admin migrations pinned two real addresses
+  as plain text; this repo is public, so those were published and scrapeable.
+  They are now matched by the SHA-256 of the lowercased address
+  (`encode(sha256(convert_to(lower(email),'UTF8')),'hex')` — core PostgreSQL, no
+  pgcrypto), which selects exactly the same accounts. Verified against
+  production: the protected set is unchanged. Docs, changelog and release notes
+  were scrubbed alongside. No schema or data change — nothing to deploy.
+- **A build gate keeps them out.** `npm run check:emails` (new, also wired into
+  `prebuild`) fails the build when a personal address is added to a tracked
+  file, so the Vercel preview build catches it on the PR. It knows the
+  difference between an address and an npm scope, a CSS at-rule, a URL's
+  userinfo or a reserved `.test`/`.example` domain; `--selftest` covers 15 cases.
+  Note this cannot un-publish anything: earlier commits keep the addresses in
+  the git history.
+
 ## [0.61.1] - 2026-08-06
 
 ### Fixed
@@ -2802,9 +2822,9 @@ Coordinated fix paired with **desktop-0.4.5** below. The web-side changes:
   `set_user_role` (last-admin demote-guard). New tables `desktop_releases`
   (with `release_token`) and `p4k_bundles` (digested JSON, replacing raw
   uploads for the future flow). Existing `p4k_uploads` and `p4k-uploads`
-  storage bucket policies tightened to collaborator+. `jeremy.treder@gmail.com`
-  is seeded as the standard admin (idempotent — handles existing profile
-  rows + augments `handle_new_user` for future signups).
+  storage bucket policies tightened to collaborator+. The bootstrap
+  founder account is seeded as the standard admin (idempotent — handles
+  existing profile rows + augments `handle_new_user` for future signups).
 - **`RoleService`** signals + **`roleGuard(...allowed)`** factory.
 - **`AdminComponent`** — user-list with role pills, promote/demote actions,
   guarded behind `roleGuard('admin')`.

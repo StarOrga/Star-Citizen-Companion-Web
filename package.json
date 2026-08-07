@@ -10,7 +10,7 @@
     "gen:release-notes": "node scripts/gen-release-notes.js",
     "gen:readme-content": "node scripts/gen-readme-content.mjs",
     "check:readme-docs": "node scripts/gen-readme-content.mjs --check",
-    "prebuild": "node scripts/gen-release-notes.js && node scripts/check-csp-3d.mjs",
+    "prebuild": "node scripts/gen-release-notes.js && node scripts/check-csp-3d.mjs && node scripts/check-no-personal-emails.mjs",
     "build": "ng build --configuration production",
     "postbuild": "node scripts/check-index-csp.mjs",
     "watch": "ng build --watch --configuration development",
@@ -38,7 +38,9 @@
     "tool:package": "npm --prefix desktop-tool run package:win",
     "check:csp-3d": "node scripts/check-csp-3d.mjs",
     "check:csp-index": "node scripts/check-index-csp.mjs",
-    "check:edge-functions": "node scripts/changed-edge-functions.mjs --selftest"
+    "check:edge-functions": "node scripts/changed-edge-functions.mjs --selftest",
+    "check:emails": "node scripts/check-no-personal-emails.mjs",
+    "check:emails:selftest": "node scripts/check-no-personal-emails.mjs --selftest"
   },
   "dependencies": {
     "@angular/animations": "^21.2.17",

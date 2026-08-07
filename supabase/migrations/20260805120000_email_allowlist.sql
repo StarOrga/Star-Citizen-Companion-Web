@@ -84,10 +84,14 @@ grant select, insert, update, delete on public.allowed_emails to authenticated;
 -- ============================================================
 -- handle_new_user() — add the allowlist branch, keep bootstrap + invited
 -- ============================================================
+-- Bootstrap is matched by the SHA-256 of the lowercased address (public
+-- repo — see scripts/check-no-personal-emails.mjs). Same account matches
+-- as before; `sha256(bytea)` is core PostgreSQL, no pgcrypto needed.
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
-  is_bootstrap boolean := lower(new.email) = 'jeremy.treder@gmail.com';
+  is_bootstrap boolean := encode(sha256(convert_to(lower(new.email), 'UTF8')), 'hex')
+    = 'd6deeeba4dcdf15e121a7a1b0ce98f1c4c0330cd77d272d86f254c49ad12d687';
   -- inviteUserByEmail stamps invited_at; open sign-ups leave it null.
   is_invited   boolean := new.invited_at is not null;
   allow_row    public.allowed_emails%rowtype;
