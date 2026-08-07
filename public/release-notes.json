@@ -1,7 +1,79 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.60.0",
+  "current": "0.61.1",
   "releases": [
+    {
+      "version": "0.61.1",
+      "date": "2026-08-06",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "\"View as\" preview: a reliable way back from the account menu.",
+              "text": "v0.61.0 moved the exit out of the profile dropdown onto the top banner alone; a user who opened the account menu looking for the way back found nothing and felt trapped. A redundant \"Zurück zu meiner Rolle\" item now shows in the dropdown whenever a preview is active — the role switcher itself stays hidden (a real target role never sees it), so preview fidelity is unchanged. The banner exit remains for routes rendered outside the shell (the signed-out preview)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.61.0",
+      "date": "2026-08-06",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "The app is now members-only — every page lives behind sign-in.",
+              "text": "Signed-out visitors only ever reach the login screen and the legally required public pages (About, Privacy, Imprint); news, codex, starscape, hangar and everything else now require an approved account. Routing is default-deny, so a newly added page is gated automatically rather than public by accident."
+            },
+            {
+              "title": "Admins register who may join, from the Benutzer page.",
+              "text": "A new \"Registrieren\" form adds an email to an allowlist (with a pre-assigned role); that person can then sign in themselves and becomes a Viewer on first login, optionally after an invite mail. A share button copies an access link (with campaign tracking) to send them. Existing users keep their access unchanged."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "\"Ansehen als\" now shows only what the selected role sees.",
+              "text": "While previewing a lower role the role switcher is hidden, so the UI matches that role exactly; you return to your own role from the preview banner (your real permissions are unchanged in the background). \"Abmelden\" is now separated from the preview menu."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Closed several ways an unapproved account could still reach data via the API.",
+              "text": "Signing up without an allowlist entry no longer grants any working access — the hangar, loadouts, data uploads and the feedback channel are gated on approval at the database level, not just in the UI."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.60.1",
+      "date": "2026-08-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "The Codex Bridge hero's ship-name link is now a full mobile tap target.",
+              "text": "On phone and tablet the ship-name heading link only offered a ~27 px tall touch area, below the 44 px minimum, so the responsive gate flagged it. It now reserves ≥48 px of vertical hit area (name stays centered and free to wrap), clearing the tap-target check on iPhone, Pixel, iPad and Galaxy Tab emulation."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.60.0",
       "date": "2026-08-05",
@@ -3332,7 +3404,7 @@
           "items": [
             {
               "title": "Migration",
-              "text": "00003_roles_releases_bundles.sql — adds role (admin / collaborator / viewer) to profiles, is_admin() + is_collaborator() helpers (security definer), admin RPCs list_users_for_admin and set_user_role (last-admin demote-guard). New tables desktop_releases (with release_token) and p4k_bundles (digested JSON, replacing raw uploads for the future flow). Existing p4k_uploads and p4k-uploads storage bucket policies tightened to collaborator+. jeremy.treder@gmail.com is seeded as the standard admin (idempotent — handles existing profile rows + augments handle_new_user for future signups)."
+              "text": "00003_roles_releases_bundles.sql — adds role (admin / collaborator / viewer) to profiles, is_admin() + is_collaborator() helpers (security definer), admin RPCs list_users_for_admin and set_user_role (last-admin demote-guard). New tables desktop_releases (with release_token) and p4k_bundles (digested JSON, replacing raw uploads for the future flow). Existing p4k_uploads and p4k-uploads storage bucket policies tightened to collaborator+. The bootstrap founder account is seeded as the standard admin (idempotent — handles existing profile rows + augments handle_new_user for future signups)."
             },
             {
               "title": "RoleService",

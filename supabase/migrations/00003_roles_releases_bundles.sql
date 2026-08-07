@@ -32,7 +32,13 @@ returns boolean language sql security definer set search_path = public stable as
 $$;
 
 -- ============================================================
--- Augment handle_new_user — seed Jeremy as admin on signup
+-- Augment handle_new_user — seed the bootstrap admin on signup
+--
+-- The bootstrap account is identified by the SHA-256 of its lowercased
+-- e-mail rather than the address itself: this repo is public (see
+-- scripts/check-no-personal-emails.mjs). Same account matches, the
+-- address is just not readable here. `sha256(bytea)` is core PostgreSQL
+-- (11+) — no pgcrypto needed.
 -- ============================================================
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -41,19 +47,24 @@ begin
   values (
     new.id,
     split_part(new.email, '@', 1),
-    case when lower(new.email) = 'jeremy.treder@gmail.com' then 'admin' else 'viewer' end
+    case
+      when encode(sha256(convert_to(lower(new.email), 'UTF8')), 'hex')
+           = 'd6deeeba4dcdf15e121a7a1b0ce98f1c4c0330cd77d272d86f254c49ad12d687'
+      then 'admin' else 'viewer'
+    end
   )
   on conflict (id) do nothing;
   return new;
 end;
 $$;
 
--- One-time seed if Jeremy already exists from a previous sign-up
+-- One-time seed if the bootstrap admin already exists from a previous sign-up
 update public.profiles p
 set role = 'admin'
 from auth.users u
 where u.id = p.id
-  and lower(u.email) = 'jeremy.treder@gmail.com'
+  and encode(sha256(convert_to(lower(u.email), 'UTF8')), 'hex')
+      = 'd6deeeba4dcdf15e121a7a1b0ce98f1c4c0330cd77d272d86f254c49ad12d687'
   and p.role <> 'admin';
 
 -- ============================================================

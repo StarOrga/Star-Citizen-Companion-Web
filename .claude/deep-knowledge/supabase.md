@@ -103,11 +103,21 @@ Enforcement is **in the database** — a UI guard would be pointless against a s
 | 3 | Trigger `profiles_role_write_guard` (BEFORE UPDATE, **SECURITY INVOKER** — it reads `current_user`) | Blocks direct `role`/`is_approved` writes from `authenticated`/`anon`; closes the old self-promotion hole in `profiles_self_update` |
 
 The protected set is data, not a hardcoded string: rows in `public.protected_admins`,
-seeded by matching `auth.users.email` against **two exact addresses** (the founders —
-`jeremy.treder@` and `christoph.loeschen@`, both gmail). Address identity is the key on
-purpose: display names and handles are user-editable, so a fuzzy predicate could protect
-the wrong account (there is a second `…loeschen@hotmail.com` admin) or silently none. The
-migration **aborts** if either address has no profile — the seed is never half-applied.
+seeded by matching `auth.users.email` against **two exact addresses** (the two founder
+accounts). Address identity is the key on purpose: display names and handles are
+user-editable, so a fuzzy predicate could protect the wrong account (a second admin
+shares one founder's family name) or silently none. The migration **aborts** if either
+account has no profile — the seed is never half-applied.
+
+The addresses themselves are **not in the repo**: the predicate compares
+`encode(sha256(convert_to(lower(email),'UTF8')),'hex')` against two digest constants
+(core PostgreSQL, no pgcrypto). The repo is public, so a literal address here is a
+personal address published and scraped for good — feedback #83, 2026-08-07. It is
+anti-scraping, not secrecy: a digest confirms an address you already guessed, and it
+cannot un-publish what older revisions already wrote into the git history.
+`npm run check:emails` (also part of `prebuild`) fails the build if a new personal
+address is added — that is the durable half of the fix. To resolve or rotate a digest:
+`node -e "console.log(require('crypto').createHash('sha256').update('<addr>'.toLowerCase()).digest('hex'))"`.
 **Legitimate removal** (the only way through) needs the service key:
 
 ```sql

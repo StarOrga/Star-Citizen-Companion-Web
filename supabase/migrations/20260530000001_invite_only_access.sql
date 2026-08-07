@@ -20,12 +20,16 @@ alter table public.profiles
 update public.profiles set is_approved = true where is_approved = false;
 
 -- ============================================================
--- handle_new_user — only invited users (or Jeremy) are auto-approved
+-- handle_new_user — only invited users (or the bootstrap admin) are auto-approved
 -- ============================================================
+-- The bootstrap account is matched by the SHA-256 of its lowercased
+-- e-mail, not by the address — this repo is public. Same account, just
+-- not readable here (see scripts/check-no-personal-emails.mjs).
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
-  is_bootstrap boolean := lower(new.email) = 'jeremy.treder@gmail.com';
+  is_bootstrap boolean := encode(sha256(convert_to(lower(new.email), 'UTF8')), 'hex')
+    = 'd6deeeba4dcdf15e121a7a1b0ce98f1c4c0330cd77d272d86f254c49ad12d687';
   -- inviteUserByEmail stamps invited_at; open sign-ups leave it null.
   is_invited boolean := new.invited_at is not null;
 begin
