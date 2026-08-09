@@ -18,6 +18,14 @@ import { UpcomingShipsService } from '../codex/upcoming-ships.service';
  * channel chip or the saved-only chip) is a search, so older folds away; going
  * back to "Alle" unfolds it again. A manual toggle beats the automatic state,
  * but only until the filter changes.
+ *
+ * Round 2 (comment-less resume): the fold hides the archive BEHIND the fresh
+ * matches. When a filter matches nothing from today or this week — the live
+ * Spectrum channel routinely does — collapsing "Älter" hid the entire result
+ * set and the filter looked broken. In that case the bucket stays open. And an
+ * explicit "Alle" click always reopens it, even when the view already was
+ * "Alle" (the filter key doesn't change there, so the reset effect alone
+ * wouldn't fire).
  */
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -41,7 +49,11 @@ function feed(): VerseFeed {
     news: [
       item({ id: 'c-today' }),
       item({ id: 'c-old', publishedAt: ago(30) }),
+      item({ id: 's-today', channel: 'spectrum', source: 'spectrum' }),
       item({ id: 's-old', channel: 'spectrum', source: 'spectrum', publishedAt: ago(40) }),
+      // The only video is older than a week (but inside the 31-day retention):
+      // the YouTube filter's whole result set lives in "Älter".
+      item({ id: 'v-old', channel: 'youtube', source: 'youtube', publishedAt: ago(20) }),
       item({
         id: 'p-49',
         channel: 'patch',
@@ -176,6 +188,37 @@ describe('Verse News — older entries fold with the filter (1bc19cdc)', () => {
 
     expect(fixture.componentInstance.olderOpen()).toBeFalse();
     expect(olderCardCount()).toBe(0);
+  });
+
+  it('keeps the older bucket open when every filtered match is older (round 2)', () => {
+    setFilter('youtube');
+
+    expect(fixture.componentInstance.olderOpen())
+      .withContext('all-old result set must not be hidden by the auto-fold').toBeTrue();
+    expect(olderCardCount()).toBeGreaterThan(0);
+  });
+
+  it('keeps the older bucket open in the saved-only view when only old items are saved (round 2)', () => {
+    svc.toggleFavorite('c-old');
+    svc.favoritesOnly.set(true);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.olderOpen()).toBeTrue();
+    expect(olderCardCount()).toBeGreaterThan(0);
+  });
+
+  it('reopens "Älter" on an explicit "Alle" click even when the view already was "Alle" (round 2)', () => {
+    expect(fixture.componentInstance.olderOpen()).toBeTrue();
+
+    fixture.componentInstance.toggleOlder(); // manual "Verbergen" on "Alle"
+    fixture.detectChanges();
+    expect(fixture.componentInstance.olderOpen()).toBeFalse();
+
+    fixture.componentInstance.clearFilter(); // the "Alle" chip — a no-op for the filter key
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.olderOpen()).toBeTrue();
+    expect(olderCardCount()).toBeGreaterThan(0);
   });
 
   it('drops a manual "Alle" collapse when a filter is applied and restored', () => {

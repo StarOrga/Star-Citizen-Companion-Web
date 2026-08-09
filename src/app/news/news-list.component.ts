@@ -928,7 +928,19 @@ export class NewsListComponent implements OnInit, OnDestroy {
   // `null` = "no manual choice here yet", so the default applies again as soon
   // as the filter changes (reset below).
   private readonly olderOverride = signal<boolean | null>(null);
-  readonly olderOpen = computed(() => this.olderOverride() ?? !this.isFiltered());
+  // Round 2 (1bc19cdc): the collapse is about hiding the archive BEHIND the
+  // fresh matches — but a channel like Spectrum routinely has nothing from
+  // today or this week, so folding "Älter" there hid the ENTIRE result set and
+  // the filter looked broken (an empty page with one thin "Älter" row). When
+  // the older bucket is the only content the filter matched, it stays open.
+  readonly olderOpen = computed(() => {
+    const manual = this.olderOverride();
+    if (manual !== null) return manual;
+    if (!this.isFiltered()) return true;
+    const b = this.svc.bucketed();
+    const hasFresh = b.today.length > 0 || b.week.length > 0;
+    return !hasFresh && b.older.length > 0;
+  });
 
   // ── Recent videos rail (#146) ────────────────────────────────────────────
   // Watched set captured at load. `markWatched` updates the service's live set
@@ -1065,6 +1077,11 @@ export class NewsListComponent implements OnInit, OnDestroy {
   clearFilter() {
     this.svc.favoritesOnly.set(false);
     this.svc.clearFilter();
+    // "Alle" always reopens "Älter" (1bc19cdc round 2): when the view already
+    // WAS "Alle", the filter key doesn't change, so the reset effect stays
+    // silent — but the admin's rule is unconditional ("bei 'Alle' wieder
+    // ausklappen"), and a chip that sometimes does nothing reads as broken.
+    this.olderOverride.set(null);
   }
   toggleFavoritesOnly() { this.svc.toggleFavoritesOnly(); }
   isActive(ch: NewsChannel): boolean { return this.svc.activeChannels().has(ch); }
