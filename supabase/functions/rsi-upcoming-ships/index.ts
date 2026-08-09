@@ -13,7 +13,9 @@
 // WITH the manufacturer word ("Aegis Idris-M") and occasionally leaves raw entity
 // tokens ("@vehicle_NameRSI_..."), while the RSI matrix carries the bare model
 // name ("Idris-M") plus a separate manufacturer field. We normalize both sides
-// (lowercase, strip diacritics + non-alphanumerics) and match on exact-or-contains.
+// (lowercase, strip diacritics + non-alphanumerics) and match on exact-or-contains,
+// trying the bare model name AND a manufacturer-prefixed composition of it
+// (see `nameCandidates`) so short names like "ROC" still resolve.
 // A ship counts as already-in-game when its normalized RSI name matches ANY
 // normalized game name across every ingested build (conservative: fewer false
 // "upcoming" positives). RSI's own `production_status` is returned alongside so a
@@ -111,6 +113,26 @@ function matchGameData(rsiNorm: string, exact: Set<string>, all: string[]): { na
     if (g.includes(rsiNorm) || rsiNorm.includes(g)) out.push({ name: g, score: rsiNorm.length });
   }
   return out;
+}
+
+// Normalized name candidates for one RSI matrix entry. The bare model name
+// alone cannot resolve the SHORT names: "ROC", "PTV", "X1", "M50" fall under
+// MIN_CONTAINS_LEN (a 3-char substring match would be noise), yet the game
+// localizes them WITH a manufacturer word — "Greycat ROC", "Origin X1". So we
+// also compose <manufacturer-first-word|code> + <model> ("greycat"+"roc" →
+// "greycatroc"), which lands as a full-length EXACT or contains match and
+// rescues every Greycat/Origin ground vehicle without loosening the guard.
+function nameCandidates(name: string, mfrName: string | null, mfrCode: string | null): string[] {
+  const out = new Set<string>();
+  const base = normalizeName(name);
+  if (base) out.add(base);
+  const firstWord = (mfrName ?? '').trim().split(/\s+/)[0] ?? '';
+  for (const prefix of [firstWord, mfrCode ?? '']) {
+    if (!prefix) continue;
+    const composed = normalizeName(prefix + name);
+    if (composed && composed !== base) out.add(composed);
+  }
+  return [...out];
 }
 
 // --------------------- RSI thumbnail extraction ---------------------
@@ -221,24 +243,40 @@ async function fetchShipMatrix(): Promise<Record<string, unknown>[]> {
 // Distinct, localized game-ship names across every ingested build. Raw entity
 // tokens ("@vehicle_...") are excluded — they never match an RSI display name and
 // only add noise to the contains-match.
+//
+// PAGINATED, and that is load-bearing: PostgREST caps an un-ranged select at
+// 1000 rows and supabase-js reports that truncated result as success.
+// codex_ships holds every build ever ingested (3400+ rows by 2026-08), so the
+// un-ranged version of this query silently dropped every row past 1000 —
+// which is exactly where a fresh upload lands. Result: the newly recognized
+// ground vehicles (URSA, Cyclone, Nova, Storm …) never entered the match set,
+// RSI listed them as "upcoming" although they are in the game data, and the
+// Codex ship cards lost their RSI artwork (the very bug this feed exists to
+// fix). Pages are keyed on the uuid PK for a stable total order.
+const NAMES_PAGE_SIZE = 1000;
 async function fetchGameShipNames(): Promise<{ exact: Set<string>; all: string[] }> {
   const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
   const exact = new Set<string>();
   const all: string[] = [];
   const seen = new Set<string>();
-  const { data, error } = await admin
-    .from('codex_ships')
-    .select('name_localized')
-    .not('name_localized', 'is', null)
-    .not('name_localized', 'like', '@%');
-  if (error) throw new Error(`codex_ships query failed: ${error.message}`);
-  for (const row of data ?? []) {
-    const name = (row as { name_localized: string }).name_localized;
-    const norm = normalizeName(name);
-    if (!norm || seen.has(norm)) continue;
-    seen.add(norm);
-    exact.add(norm);
-    all.push(norm);
+  for (let from = 0; ; from += NAMES_PAGE_SIZE) {
+    const { data, error } = await admin
+      .from('codex_ships')
+      .select('name_localized')
+      .not('name_localized', 'is', null)
+      .not('name_localized', 'like', '@%')
+      .order('id', { ascending: true })
+      .range(from, from + NAMES_PAGE_SIZE - 1);
+    if (error) throw new Error(`codex_ships query failed: ${error.message}`);
+    const rows = (data ?? []) as { name_localized: string }[];
+    for (const row of rows) {
+      const norm = normalizeName(row.name_localized);
+      if (!norm || seen.has(norm)) continue;
+      seen.add(norm);
+      exact.add(norm);
+      all.push(norm);
+    }
+    if (rows.length < NAMES_PAGE_SIZE) break;
   }
   return { exact, all };
 }
@@ -267,17 +305,32 @@ Deno.serve(async (req: Request) => {
       const rsiNorm = normalizeName(name);
       const rsiUrl = normalizeShipUrl(raw['url']);
       const thumbnails = rsiThumbnails(raw['media']);
-      const matches = matchGameData(rsiNorm, gameNames.exact, gameNames.all);
 
-      if (matches.length > 0) {
+      const mfr = raw['manufacturer'];
+      const mfrRec = mfr && typeof mfr === 'object' ? (mfr as Record<string, unknown>) : null;
+      const mfrName = mfrRec && typeof mfrRec['name'] === 'string' ? (mfrRec['name'] as string) : null;
+      const mfrCode = mfrRec && typeof mfrRec['code'] === 'string' ? (mfrRec['code'] as string) : null;
+
+      // Best score per matched game name, across the bare AND the
+      // manufacturer-prefixed candidate ("roc" alone is too short to match,
+      // "greycatroc" hits exactly).
+      const matches = new Map<string, number>();
+      for (const cand of nameCandidates(name, mfrName, mfrCode)) {
+        for (const m of matchGameData(cand, gameNames.exact, gameNames.all)) {
+          const cur = matches.get(m.name);
+          if (cur === undefined || m.score > cur) matches.set(m.name, m.score);
+        }
+      }
+
+      if (matches.size > 0) {
         // Already in our game data → not part of the diff, but its artwork is
         // exactly what the Codex ship card wants when the datamined render is
         // missing. Most specific RSI name wins per game ship.
         if (thumbnails.length > 0) {
-          for (const m of matches) {
-            const cur = artByGameName.get(m.name);
-            if (!cur || m.score > cur.score) {
-              artByGameName.set(m.name, { art: { name, rsiUrl, thumbnails }, score: m.score });
+          for (const [gameName, score] of matches) {
+            const cur = artByGameName.get(gameName);
+            if (!cur || score > cur.score) {
+              artByGameName.set(gameName, { art: { name, rsiUrl, thumbnails }, score });
             }
           }
         }
@@ -288,15 +341,13 @@ Deno.serve(async (req: Request) => {
       if (seenIds.has(id)) continue;
       seenIds.add(id);
 
-      const mfr = raw['manufacturer'];
-      const mfrRec = mfr && typeof mfr === 'object' ? (mfr as Record<string, unknown>) : null;
       const productionStatus = typeof raw['production_status'] === 'string' ? (raw['production_status'] as string) : null;
 
       ships.push({
         id,
         name,
-        manufacturer: mfrRec && typeof mfrRec['name'] === 'string' ? (mfrRec['name'] as string) : null,
-        manufacturerCode: mfrRec && typeof mfrRec['code'] === 'string' ? (mfrRec['code'] as string) : null,
+        manufacturer: mfrName,
+        manufacturerCode: mfrCode,
         productionStatus,
         type: typeof raw['type'] === 'string' ? (raw['type'] as string) : null,
         focus: typeof raw['focus'] === 'string' ? (raw['focus'] as string) : null,
