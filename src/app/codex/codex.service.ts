@@ -2,6 +2,8 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 import { isCatalogStale, comparePatchVersion } from './codex-format';
+import { PolySearchHit, rankPolyHits, toPolyHit } from './codex-poly-search';
+import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
 import {
   CODEX_ENTITY_TABLES,
   BlueprintIngredientPayload,
@@ -591,6 +593,98 @@ export class CodexService {
       .select(LIST_SELECT.ship)
       .eq('build_id', build.id)
       .in('class_name', names);
+    if (error || !data) return out;
+    for (const r of (data ?? []) as unknown[]) {
+      const row = mapListRow('ship', r as Record<string, unknown>);
+      out.set(row.classNameSlug, row);
+    }
+    return out;
+  }
+
+  /**
+   * Poly-entity Codex search: query EVERY kind (not ships-only) with the same
+   * trigram-backed `.or(ilike)` list search, merge the rows into scope-tinted
+   * cross-entity hits, and rank them deterministically (see codex-poly-search).
+   * Zero model calls — server-ranked from our own data. A kind that errors is
+   * skipped rather than failing the whole search.
+   */
+  async searchAll(query: string, perKindLimit = 6): Promise<PolySearchHit[]> {
+    const q = query.trim();
+    if (!q) return [];
+    const results = await Promise.all(
+      CODEX_KINDS.map(async (kind) => {
+        try {
+          const res = await this.listByKind(kind, { search: q, limit: perKindLimit });
+          return res.rows.map((r) => toPolyHit(kind, r));
+        } catch {
+          return [] as PolySearchHit[];
+        }
+      }),
+    );
+    return rankPolyHits(q, results.flat());
+  }
+
+  /**
+   * The most recent LIVE codex builds, newest first (current build is index 0).
+   * ingest-catalog never prunes old builds, so the two newest are the current +
+   * previous patch — the free basis for the inline patch-diff. Best-effort: any
+   * error yields an empty list (no diff, no thrown error).
+   */
+  async recentLiveBuilds(limit = 2): Promise<CodexBuild[]> {
+    try {
+      const { data, error } = await this.sb.client
+        .from('codex_builds')
+        .select(
+          'id, channel, patch_version, build_number, schema_version, quality_score, tool_version, entity_counts, is_current, extracted_at',
+        )
+        .eq('channel', 'LIVE')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error || !data) return [];
+      return (data as Record<string, unknown>[]).map(mapBuild);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Inline patch-diff for the user's owned fleet: for each ship class name, the
+   * numeric deltas between the two most recent LIVE builds (green = better, red
+   * = worse — see codex-build-diff). Degrades gracefully: fewer than two
+   * retained builds, or no comparable movement, yields an empty map — the fleet
+   * simply renders no deltas, never an error. Keyed by class_name.
+   */
+  async ownedFleetDeltas(classNames: string[]): Promise<Map<string, ShipStatDelta[]>> {
+    const out = new Map<string, ShipStatDelta[]>();
+    const names = Array.from(new Set(classNames.filter(Boolean)));
+    if (names.length === 0) return out;
+    const builds = await this.recentLiveBuilds(2);
+    if (builds.length < 2) return out; // need a previous build to diff against
+    const [current, previous] = builds;
+    const [curRows, prevRows] = await Promise.all([
+      this.shipRowsForBuild(current.id, names),
+      this.shipRowsForBuild(previous.id, names),
+    ]);
+    for (const [cn, cur] of curRows) {
+      const prev = prevRows.get(cn);
+      if (!prev) continue;
+      const deltas = computeShipRowDeltas(cur, prev);
+      if (deltas.length) out.set(cn, deltas);
+    }
+    return out;
+  }
+
+  /** Ship list rows for an ARBITRARY build id (the diff needs both builds). */
+  private async shipRowsForBuild(
+    buildId: string,
+    classNames: string[],
+  ): Promise<Map<string, CodexListRow>> {
+    const out = new Map<string, CodexListRow>();
+    const { data, error } = await this.sb.client
+      .from('codex_ships')
+      .select(LIST_SELECT.ship)
+      .eq('build_id', buildId)
+      .in('class_name', classNames);
     if (error || !data) return out;
     for (const r of (data ?? []) as unknown[]) {
       const row = mapListRow('ship', r as Record<string, unknown>);
