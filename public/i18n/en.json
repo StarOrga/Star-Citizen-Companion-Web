@@ -59,6 +59,76 @@
   "codex": {
     "title": "Codex",
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
+    "landing": {
+      "terminal": {
+        "label": "Search the archive",
+        "placeholder": "Archive Terminal — ship, component, weapon, item, manufacturer, blueprint …",
+        "clear": "Clear search"
+      },
+      "status": {
+        "online": "Verse online",
+        "patch": "Patch {{patch}}",
+        "build": "Build {{build}}",
+        "stale": "Data upload needed"
+      },
+      "cycle": {
+        "report": "Cycle report · {{count}} ships changed since the last build",
+        "reportOne": "Cycle report · 1 ship changed since the last build"
+      },
+      "results": {
+        "title": "Archive hits",
+        "searching": "Searching the archive …",
+        "empty": "No matches for “{{term}}”."
+      },
+      "me": {
+        "eyebrow": "On board",
+        "title": "Me",
+        "uncommissioned": "Uncommissioned",
+        "emptyLead": "No personal armour set yet.",
+        "cta": "Equip armour",
+        "ctaGoal": "→ Combat-ready",
+        "ready": "Combat-ready",
+        "openSet": "Open set"
+      },
+      "fleet": {
+        "eyebrow": "In the hangar",
+        "title": "My Fleet",
+        "flagship": "Flagship",
+        "empty": "No ship claimed yet.",
+        "cta": "Claim your first ship",
+        "ctaGoal": "→ Flight-ready",
+        "open": "Open {{ship}}",
+        "compareHint": "Tip: pin 2+ ships to compare them."
+      },
+      "diff": {
+        "scm": "SCM",
+        "max": "Max",
+        "boost": "Boost",
+        "crew": "Crew"
+      },
+      "world": {
+        "title": "World",
+        "subtitle": "What do you want to do?",
+        "lookup": {
+          "title": "Look up",
+          "sub": "Search the catalogue — every entity, plus keybindings.",
+          "keybinds": "Keybinds"
+        },
+        "craft": {
+          "title": "Craft",
+          "sub": "Blueprints and their ingredients."
+        },
+        "news": {
+          "title": "News",
+          "sub": "Ship and manufacturer news."
+        },
+        "discover": {
+          "title": "Discover",
+          "sub": "Upcoming ships and first sightings.",
+          "showroom": "Showroom"
+        }
+      }
+    },
     "bridge": {
       "scannerPlaceholder": "Scan the codex — type a ship name or class (e.g. Gladius, AEGS_*)…",
       "scannerResults": "Scanner · \"{{term}}\"",
