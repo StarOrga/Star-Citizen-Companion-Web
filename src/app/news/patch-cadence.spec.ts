@@ -270,6 +270,108 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
     expect(currentKey(f)).toBe('leadTime');
   });
 
+  // ── The dots (feedback 51a86ea9) ────────────────────────────────────────────
+  // They are the countdown now, so "the bar is full" and "the slide changed"
+  // have to be the same event — a second timer would drift within a minute.
+
+  it('fills the active dot over exactly one turn and flips the slide when it is full', fakeAsync(() => {
+    const f = setup();
+    const c = f.componentInstance;
+
+    // Only the current slide draws a bar, and it sits in the active pill.
+    f.detectChanges();
+    expect(f.nativeElement.querySelectorAll('.dot-fill').length).toBe(1);
+    expect(f.nativeElement.querySelector('.dot.on .dot-fill')).not.toBeNull();
+
+    tick(ROTATE_MS / 2);
+    f.detectChanges();
+    expect(c.fillPct()).withContext('half a turn is about half full').toBeGreaterThan(45);
+    expect(c.fillPct()).toBeLessThan(60);
+    expect(currentKey(f)).toBe('leadTime');
+
+    // One step short of the turn the bar is already aiming at 100%, so it lands
+    // full in the same frame the slide flips rather than a step short of it.
+    tick(ROTATE_MS / 2 - 250);
+    f.detectChanges();
+    expect(c.fillPct()).toBe(100);
+    expect(currentKey(f)).withContext('full, but not switched yet').toBe('leadTime');
+
+    tick(250);
+    f.detectChanges();
+    expect(currentKey(f)).withContext('full = next slide').toBe('cadence');
+    expect(c.fillPct()).withContext('the next countdown starts from empty').toBeLessThan(10);
+
+    discardPeriodicTasks();
+  }));
+
+  it('freezes the fill while the panel is held, then resumes instead of restarting', fakeAsync(() => {
+    const f = setup();
+    const c = f.componentInstance;
+
+    tick(ROTATE_MS / 2);
+    f.detectChanges();
+    c.hovered.set(true);
+    f.detectChanges();
+    const held = c.fillPct();
+    expect(held).toBeGreaterThan(45);
+
+    tick(ROTATE_MS * 2);
+    f.detectChanges();
+    expect(c.fillPct()).withContext('a held bar does not creep on').toBe(held);
+    expect(currentKey(f)).toBe('leadTime');
+
+    // Letting go continues the half-run turn — the remaining half is enough.
+    c.hovered.set(false);
+    f.detectChanges();
+    tick(ROTATE_MS / 2);
+    f.detectChanges();
+    expect(currentKey(f)).toBe('cadence');
+
+    discardPeriodicTasks();
+  }));
+
+  it('restarts the countdown from empty when a dot is picked', fakeAsync(() => {
+    const f = setup();
+    const c = f.componentInstance;
+
+    tick(ROTATE_MS / 2);
+    f.detectChanges();
+    c.show(2);
+    f.detectChanges();
+    expect(c.fillPct()).withContext('a pick inherits nothing from the previous slide').toBe(0);
+
+    discardPeriodicTasks();
+  }));
+
+  it('shows the active dot already full when nothing is counting down', fakeAsync(() => {
+    reduced = true;
+    const f = setup();
+
+    tick(ROTATE_MS);
+    f.detectChanges();
+    expect(f.componentInstance.fillPct())
+      .withContext('no timer to draw, so the pill is simply marked')
+      .toBe(100);
+
+    discardPeriodicTasks();
+  }));
+
+  it('labels every dot with its slide, so the pills say what they open', () => {
+    const f = setup();
+    const labels: string[] = Array.from(
+      f.nativeElement.querySelectorAll('.dot .dot-label') as NodeListOf<HTMLElement>,
+    ).map((el) => el.textContent?.trim() ?? '');
+
+    // TranslateModule.forRoot() has no dictionary here, so `instant` echoes the
+    // key — which is exactly what proves each dot resolves its OWN short label.
+    expect(labels).toEqual([
+      'news.patch.kpi.leadTime.short',
+      'news.patch.kpi.cadence.short',
+      'news.patch.kpi.subCadence.short',
+      'news.patch.forecast.short',
+    ]);
+  });
+
   it('grades a faster-than-median duration as good and a slower one as bad', () => {
     const f = setup();
     const c = f.componentInstance;

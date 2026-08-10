@@ -6,6 +6,7 @@ import {
   effect,
   inject,
   input,
+  linkedSignal,
   signal,
 } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -23,6 +24,16 @@ import {
 
 /** How long one slide stays on screen before the panel moves on. */
 const ROTATE_MS = 7000;
+/**
+ * Resolution of the dot's fill — and the ONLY clock the panel runs (feedback
+ * 51a86ea9). The rotation is not a separate `ROTATE_MS` interval any more: the
+ * fill counts up in these steps and the slide flips on the step that completes
+ * it, so "the bar is full" and "the slide changed" are the same event and can
+ * never drift apart. ROTATE_MS must stay a whole multiple of it (7000 / 250 = 28).
+ * Counted in fixed steps rather than off the wall clock so `fakeAsync` — and a
+ * throttled background tab — see exactly one turn per ROTATE_MS of timer time.
+ */
+const TICK_MS = 250;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The carousel window: the recent six months, or the whole feed. */
@@ -63,10 +74,20 @@ type Slide =
  * the next PTU sub-patch. Estimates, never promises; a date already past is
  * shown as overdue. It obeys the same window as the charts.
  *
+ * ## The dots (feedback 51a86ea9)
+ *
+ * They are labelled pills, not anonymous 10px circles: each carries the slide's
+ * SHORT name ("Takt", "Sub-Patches", "Termine"), so the panel says what is behind
+ * every stop without hovering it. The active pill doubles as the countdown — an
+ * accent band fills it left to right and the slide flips the instant it is full.
+ * That is one clock, not two: see TICK_MS. A stopped carousel (reduced motion)
+ * shows the pill already full, because there is no countdown left to draw.
+ *
  * Rotation etiquette:
  * - `prefers-reduced-motion: reduce` disables the auto-advance completely; the
  *   dots stay, so the content is all still reachable, just never on its own.
- * - Hovering or tab-focusing the panel holds the current slide.
+ * - Hovering or tab-focusing the panel holds the current slide — and freezes the
+ *   fill where it stands, so leaving resumes rather than restarting.
  * - Picking a dot stops the carousel for good; the play button hands it back.
  * - Nothing here grabs focus. The panel is a labelled region, not a live region.
  */
@@ -85,15 +106,24 @@ type Slide =
           <span class="cad-sub">{{ 'news.patch.kpi.sub' | translate }}</span>
           <div class="cad-controls">
             <!-- Dots whenever there is more than one slide — including under
-                 reduced motion, where they are the ONLY way to reach the others. -->
+                 reduced motion, where they are the ONLY way to reach the others.
+                 The active one carries the countdown as its fill. -->
             @if (hasSlides()) {
-              @for (s of slides(); track slideKey(s); let i = $index) {
-                <button type="button" class="dot" [class.on]="i === index()"
-                        [attr.aria-pressed]="i === index()"
-                        [attr.aria-label]="'news.patch.kpi.goto' | translate:{ title: slideTitle(s) }"
-                        [attr.title]="slideTitle(s)"
-                        (click)="show(i)"></button>
-              }
+              <div class="dot-row">
+                @for (s of slides(); track slideKey(s); let i = $index) {
+                  <button type="button" class="dot" [class.on]="i === index()"
+                          [attr.aria-pressed]="i === index()"
+                          [attr.aria-label]="'news.patch.kpi.goto' | translate:{ title: slideTitle(s) }"
+                          [attr.title]="slideTitle(s)"
+                          (click)="show(i)">
+                    @if (i === index()) {
+                      <span class="dot-fill" [class.reset]="fillReset()"
+                            [style.width.%]="fillPct()" aria-hidden="true"></span>
+                    }
+                    <span class="dot-label">{{ slideShort(s) }}</span>
+                  </button>
+                }
+              </div>
             }
             <!-- Pause/resume only where something actually auto-advances. -->
             @if (canAutoRotate()) {
@@ -202,20 +232,42 @@ type Slide =
     }
     .cad-sub { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .cad-controls { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; flex-wrap: wrap; }
-    /* Dots keep a full tap target while staying visually small. */
+    /* Dots are labelled pills: big enough to hit, small enough to stay a
+       navigation aid rather than a second headline. They wrap as a block, so a
+       narrow header breaks between the dots and the toggle, never mid-row. */
+    .dot-row { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
     .dot {
-      position: relative; width: 10px; height: 10px; padding: 0;
-      border-radius: 50%; cursor: pointer;
-      border: 1px solid color-mix(in srgb, var(--sc-fg-2) 60%, transparent);
-      background: transparent;
+      position: relative; overflow: hidden;
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 26px; padding: 0 10px;
+      border-radius: 999px; cursor: pointer;
+      border: 1px solid color-mix(in srgb, var(--sc-fg-2) 45%, transparent);
+      background: transparent; color: var(--sc-fg-2);
+      font-family: inherit; font-size: max(0.66rem, var(--sc-fs-floor));
+      letter-spacing: 0.04em; line-height: 1;
+      transition: color 0.16s, border-color 0.16s;
     }
-    .dot::after {
-      content: ''; position: absolute; left: 50%; top: 50%;
-      width: var(--sc-tap-min); height: var(--sc-tap-min);
-      transform: translate(-50%, -50%);
+    .dot-label {
+      position: relative; z-index: 1;
+      max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .dot.on { background: var(--sc-accent); border-color: var(--sc-accent); }
-    .dot:hover { border-color: var(--sc-accent); }
+    /* The countdown. Its width is the elapsed share of one turn, and it hits
+       100% on the same tick that flips the slide. The linear transition only
+       smooths the 250ms steps; it is never the timing source. */
+    .dot-fill {
+      position: absolute; left: 0; top: 0; bottom: 0; z-index: 0;
+      background: color-mix(in srgb, var(--sc-accent) 42%, transparent);
+      transition: width 250ms linear;
+    }
+    /* A fresh slide starts empty — without this the bar would sweep backwards. */
+    .dot-fill.reset { transition: none; }
+    /* Selected state is carried by the pill itself, so the active dot still
+       reads as active while its countdown is at zero (e.g. right after a pick). */
+    .dot.on {
+      border-color: var(--sc-accent); color: var(--sc-fg-0); font-weight: 600;
+      background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
+    }
+    .dot:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .dot:focus-visible, .cad-play:focus-visible, .win-opt:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .cad-play {
       display: inline-flex; align-items: center; justify-content: center;
@@ -331,6 +383,8 @@ type Slide =
     @media (prefers-reduced-motion: reduce) {
       .slide { animation: none; }
       .col-bar { transition: none; }
+      /* Nothing counts down here, so the fill is a static full pill. */
+      .dot-fill { transition: none; }
     }
   `],
 })
@@ -398,15 +452,44 @@ export class PatchCadenceComponent implements OnDestroy {
   /** Whether the panel advances by itself — drives the pause/resume button. */
   readonly canAutoRotate = computed(() => this.hasSlides() && !this.reducedMotion());
 
+  /** Whether the countdown is running RIGHT NOW. One predicate for the timer and
+   *  for the fill, so the bar can never crawl on while the slide is being held. */
+  private readonly rotating = computed(() =>
+    this.canAutoRotate() && !this.paused() && !this.hovered() && !this.focused(),
+  );
+
+  /**
+   * How long the current slide has been up. Keyed on the index, so ANY slide
+   * change — the timer, a dot, a wrap — starts the next countdown from zero
+   * without a second reset path to forget about.
+   */
+  private readonly elapsed = linkedSignal<number, number>({
+    source: this.index,
+    computation: () => 0,
+  });
+
+  /** The active dot's fill, 0–100. */
+  readonly fillPct = computed(() => {
+    if (!this.hasSlides() || this.reducedMotion()) return 100;
+    // While the timer runs, aim at where the NEXT tick lands: the CSS transition
+    // then covers the step, and the bar reaches 100% in the same frame the slide
+    // flips instead of stopping a step short of full.
+    const ms = this.elapsed() + (this.rotating() ? TICK_MS : 0);
+    return Math.min(100, (ms / ROTATE_MS) * 100);
+  });
+
+  /** A countdown that has not started yet must snap, not sweep back. */
+  readonly fillReset = computed(() => this.elapsed() === 0);
+
   private readonly autoAdvance = effect((onCleanup) => {
+    if (!this.rotating()) return;
     const count = this.slides().length;
-    const running = count > 1
-      && !this.reducedMotion()
-      && !this.paused()
-      && !this.hovered()
-      && !this.focused();
-    if (!running) return;
-    const id = setInterval(() => this.index.update((i) => (i + 1) % count), ROTATE_MS);
+    const id = setInterval(() => {
+      const next = this.elapsed() + TICK_MS;
+      // Full → next slide. The index change resets `elapsed` on its own.
+      if (next >= ROTATE_MS) this.index.update((i) => (i + 1) % count);
+      else this.elapsed.set(next);
+    }, TICK_MS);
     onCleanup(() => clearInterval(id));
   });
 
@@ -429,6 +512,9 @@ export class PatchCadenceComponent implements OnDestroy {
     if (this.window() === w) return;
     this.window.set(w);
     this.index.set(0);
+    // Explicit, because re-scoping while already on the first slide leaves the
+    // index untouched — and a half-full bar under brand-new figures is a lie.
+    this.elapsed.set(0);
   }
 
   /** Jumping to a slide is a deliberate pick — the carousel yields to it. */
@@ -449,6 +535,14 @@ export class PatchCadenceComponent implements OnDestroy {
     return slide.kind === 'forecast'
       ? this.t.instant('news.patch.forecast.title')
       : this.t.instant(`news.patch.kpi.${slide.kpi.key}.title`);
+  }
+
+  /** The dot's caption: a couple of words, and always a fragment of the full
+   *  title above — so the pill and the slide it opens read as the same thing. */
+  slideShort(slide: Slide): string {
+    return slide.kind === 'forecast'
+      ? this.t.instant('news.patch.forecast.short')
+      : this.t.instant(`news.patch.kpi.${slide.kpi.key}.short`);
   }
 
   subOf(kpi: PatchKpi): string {
