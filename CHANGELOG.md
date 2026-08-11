@@ -4,8 +4,6 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
 ## [0.62.0] - 2026-08-11
 
 ### Added
@@ -21,6 +19,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wherever ships are shown, feeding the existing compare tray. Missing data stays
   an honest empty state — no invented stats. The previous Bridge is preserved at
   `/codex/bridge`.
+- **Loadout mounts you can actually manage.** In the Codex loadout editor a
+  pilot can now split a group of identical mounts to equip them individually,
+  and hardpoints that cannot be changed are dropped from the editable list
+  instead of pretending to be configurable. (#385)
+- **News cadence dots that say something.** The publishing-cadence dots on the
+  news page are larger, readable, and fill up as the week progresses instead of
+  rendering as uniform decoration. (#380)
+- **Admin feedback: one run instead of two.** The separate Abnahme step is
+  folded into Abarbeiten, and working through open items got a skip carousel —
+  items that need a decision can be deferred without leaving the run. (#381)
+
+### Fixed
+
+- **URSA & co. regained their RSI artwork.** The `codex_ships` name query is now
+  paged, so ships beyond the first page of results resolve their RSI images
+  again. (#378)
+- **"Älter" stays open when it holds the filter's only matches.** Filtering the
+  news feed no longer collapses the older-items group when every match lives
+  inside it. (#379)
+- **Starscape & shell polish.** The green status dots are quieter, the search
+  icon lost its box, and the wallpaper gallery no longer ends on a placeholder
+  tile. (#384)
 
 ### Security
 
