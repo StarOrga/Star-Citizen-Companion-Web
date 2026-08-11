@@ -1715,7 +1715,10 @@
     },
     "workflow": {
       "progress": "{{current}} of {{total}}",
-      "next": "Next",
+      "skip": "Skip",
+      "skippedCount": "{{count}} skipped",
+      "skippedBadge": "Skipped",
+      "lapWrapped": "Round done — back to the skipped topics",
       "done": "Done",
       "advanced": "Done – on to {{current}} of {{total}}",
       "answerPlaceholder": "Write an answer… (Markdown supported, Enter to send)",
@@ -1723,9 +1726,10 @@
       "openQuestion": "Open question",
       "cheerAnswered": "Question answered — the routine takes it from here.",
       "allDoneTitle": "All caught up",
-      "allDoneHint": "No open questions. Your ToDos sit with the routine — they land here as soon as it needs something from you.",
+      "allDoneHint": "No open questions, nothing to sign off. Your ToDos sit with the routine — they land here as soon as it needs something from you.",
       "kind": {
         "question": "Question",
+        "review": "Sign-off",
         "new": "ToDo"
       },
       "scope": {
@@ -1834,6 +1838,7 @@
       "accept": "To the archive — done",
       "reopen": "Resume the conversation",
       "queueTitle": "Done — please check and tick off",
+      "alsoInWorkflow": "The same topics also run in “Process” — one at a time there, all at a glance here.",
       "openTopic": "Open topic",
       "emptyTitle": "Nothing to sign off",
       "emptyHint": "As soon as the routine ships a topic or hands it to an issue, it waits here for your sign-off.",
