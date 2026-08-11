@@ -365,9 +365,31 @@ export function timeOf(iso: string | null | undefined): number {
 
 // ---- Processing-mode queue ------------------------------------------------
 
+/**
+ * What a queue entry asks of the admin (feedback d4990269):
+ *
+ * - `question` — a Rückfrage the routine is waiting on: read it, answer it.
+ * - `review` — a finished topic waiting for the Abnahme: look at the result and
+ *   take one of its two decisions (accept → Archiv, or pick the conversation
+ *   back up). Same rows the Abnahme tab holds, same two decisions — they are
+ *   only *presented* here as well, one at a time, instead of as a tile grid.
+ */
+export type WorkflowItemKind = 'question' | 'review';
+
 export interface WorkflowItem {
   row: FeedbackRow;
   replies: FeedbackMessage[];
+  /** Which kind of step this is — decides the card's actions, never the status. */
+  kind: WorkflowItemKind;
+}
+
+/**
+ * When a finished topic's outcome landed — what an Abnahme entry is dated and
+ * ordered by. Shared so the Abnahme tab and the processing queue cannot drift
+ * apart on "which one has been waiting longest".
+ */
+export function reviewSince(row: FeedbackRow): string {
+  return row.shipped_at ?? row.processed_at ?? row.updated_at;
 }
 
 /**
@@ -378,8 +400,8 @@ export interface WorkflowItem {
 export type HandledMap = ReadonlyMap<string, string>;
 
 /**
- * The guided processing queue: every Rückfrage still waiting on the admin's
- * answer, oldest first, so the backlog is worked front to back.
+ * The guided processing queue: everything the admin — not the routine — has to
+ * act on, in one predictable order.
  *
  * **Only topics that need the admin are in it** (feedback b0cc6efc). The mode
  * used to append untouched `open` ToDos after the questions, which read as a
@@ -392,6 +414,15 @@ export type HandledMap = ReadonlyMap<string, string>;
  * with the routine, not with the admin. They stay visible in the overview list
  * and count toward the dashboard's ToDo bucket — this queue is the admin's
  * inbox, not the board.
+ *
+ * Since feedback d4990269 the Abnahme (`review` bucket) belongs to that inbox
+ * too: a shipped result nobody has signed off is just as much "waiting on the
+ * admin" as a Rückfrage. The two kinds are **not interleaved by date** —
+ * Rückfragen come first (they block the routine's next run), Abnahmen after
+ * them (they close a topic out), each oldest-first inside its own kind. That
+ * keeps the run predictable: answer, then sign off. The rows themselves are
+ * untouched — bucketing, status and the Abnahme's own two decisions stay
+ * exactly as they are.
  */
 export function buildWorkflowQueue(
   rows: readonly FeedbackRow[],
@@ -399,16 +430,22 @@ export function buildWorkflowQueue(
   handled: HandledMap = new Map(),
 ): WorkflowItem[] {
   const questions: WorkflowItem[] = [];
+  const reviews: WorkflowItem[] = [];
 
   for (const row of rows) {
     // Ticked off and untouched since → stays out of the queue.
     if (handled.get(row.id) === row.updated_at) continue;
     const replies = threads.get(row.id) ?? [];
-    if (feedbackBucket(row, replies) !== 'awaiting_admin') continue;
-    questions.push({ row, replies });
+    const bucket = feedbackBucket(row, replies);
+    if (bucket === 'awaiting_admin') questions.push({ row, replies, kind: 'question' });
+    else if (bucket === 'review') reviews.push({ row, replies, kind: 'review' });
   }
 
-  return questions.sort((a, b) => timeOf(a.row.created_at) - timeOf(b.row.created_at));
+  questions.sort((a, b) => timeOf(a.row.created_at) - timeOf(b.row.created_at));
+  // An Abnahme waits from the moment its outcome landed, not from the day the
+  // topic was raised — so it is aged by the same stamp its card shows.
+  reviews.sort((a, b) => timeOf(reviewSince(a.row)) - timeOf(reviewSince(b.row)));
+  return [...questions, ...reviews];
 }
 
 /**

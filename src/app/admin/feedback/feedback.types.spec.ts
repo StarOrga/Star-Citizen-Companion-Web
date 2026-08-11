@@ -397,6 +397,50 @@ describe('buildWorkflowQueue', () => {
     const queue = buildWorkflowQueue([q1], threads);
     expect(queue[0].replies.map((m) => m.id)).toEqual(['m1']);
   });
+
+  it('marks every question item as such', () => {
+    expect(buildWorkflowQueue([q1, q2], threads).map((i) => i.kind)).toEqual([
+      'question',
+      'question',
+    ]);
+  });
+
+  // ---- Abnahme folded into the queue (feedback d4990269) ----
+
+  const review1 = row('r1', 'shipped', '2026-06-20T10:00:00Z', {
+    reviewed_at: null,
+    shipped_at: '2026-07-08T10:00:00Z',
+  });
+  const review2 = row('r2', 'issue_created', '2026-06-21T10:00:00Z', {
+    reviewed_at: null,
+    processed_at: '2026-07-06T10:00:00Z',
+  });
+
+  it('queues topics waiting for the sign-off after the questions', () => {
+    const queue = buildWorkflowQueue([review1, q1, review2, q2], threads);
+    expect(queue.map((i) => i.row.id)).toEqual(['q2', 'q1', 'r2', 'r1']);
+    expect(queue.map((i) => i.kind)).toEqual(['question', 'question', 'review', 'review']);
+  });
+
+  it('ages an Abnahme by when its outcome landed, not by the topic\'s birthday', () => {
+    // r1 is the OLDER topic but the NEWER outcome — it must come second.
+    expect(buildWorkflowQueue([review1, review2], threads).map((i) => i.row.id)).toEqual([
+      'r2',
+      'r1',
+    ]);
+  });
+
+  it('keeps a signed-off topic out — it is archived, not waiting', () => {
+    const signed = { ...review1, reviewed_at: '2026-07-09T10:00:00Z' };
+    expect(buildWorkflowQueue([signed], threads).map((i) => i.row.id)).toEqual([]);
+  });
+
+  it('lets the tick-off hide an Abnahme like any other item', () => {
+    const handled = new Map([['r1', review1.updated_at]]);
+    expect(buildWorkflowQueue([review1, review2], threads, handled).map((i) => i.row.id)).toEqual([
+      'r2',
+    ]);
+  });
 });
 
 describe('workflow scope (feedback abfa97c6)', () => {
