@@ -6,6 +6,15 @@ import { NewsChannel } from './news.service';
 import { newsDefaultSrc, newsSrcset } from './news-image-variants';
 import { environment } from '../../environments/environment';
 
+// Re-check schedule (ms after the first render) for the decode watchdog below.
+// Bounded on purpose: it exists to recover a MISSED event, not to poll forever —
+// an image that is still in flight (or a lazy one below the fold) reports
+// `complete === false` and is left to its own `load` event, whenever that comes.
+// The last rung is deliberately far out: this whole mechanism exists for phones
+// on mobile data, where a gallery page can take well over ten seconds to settle,
+// and a watchdog that has already expired by then protects nobody.
+const READY_RECHECKS_MS = [1200, 4000, 10000, 22000] as const;
+
 /**
  * Emits the `<img>` element once it is decoded — including the cache-hit case the
  * native `load` event misses. When Angular reuses an already-cached image (e.g. on
@@ -13,16 +22,58 @@ import { environment } from '../../environments/environment';
  * `complete` before any listener is attached, so `(load)` never fires. We re-check
  * `complete` after the first render to recover that signal; without it those tiles
  * would stay stuck under the shimmer forever.
+ *
+ * The first-render check alone is not enough: it only catches an image that was
+ * ALREADY decoded at that instant. A resource that settles a moment later while
+ * its own `load`/`error` event goes missing (bfcache restores, a re-attached
+ * <picture> source, a decode that fails after the bytes arrived) leaves the tile
+ * under its placeholder forever — a wall of grey-blue bars where the pictures
+ * should be (admin feedback 4e54ad2c). So the check is repeated on a short,
+ * bounded schedule and reads the element's OWN state rather than trusting the
+ * event: `complete` with pixels → `ready`, `complete` without pixels → `failed`.
  */
 @Directive({ selector: 'img[scImgReady]', standalone: true })
-export class ImgReadyDirective {
+export class ImgReadyDirective implements OnDestroy {
   private readonly el = inject<ElementRef<HTMLImageElement>>(ElementRef);
   readonly ready = output<HTMLImageElement>();
+  /**
+   * The element finished loading with no pixels — a broken source whose `error`
+   * event was never delivered to us. Consumers that render a fallback bind this
+   * alongside `(error)`; both are idempotent for the same tile.
+   */
+  readonly failed = output<HTMLImageElement>();
+
+  private readonly timers: ReturnType<typeof setTimeout>[] = [];
+  private settled = false;
+
   constructor() {
     afterNextRender(() => {
-      const img = this.el.nativeElement;
-      if (img.complete && img.naturalWidth > 0) this.ready.emit(img);
+      if (this.check()) return;
+      for (const ms of READY_RECHECKS_MS) this.timers.push(setTimeout(() => this.check(), ms));
     });
+  }
+
+  ngOnDestroy(): void {
+    this.clearTimers();
+  }
+
+  /** True once a verdict was emitted (or was already emitted before). */
+  private check(): boolean {
+    if (this.settled) return true;
+    const img = this.el.nativeElement;
+    // `complete` is also true for an <img> with no source at all — that is not a
+    // failure, it is a slot waiting for its url.
+    const hasSource = !!(img.currentSrc || img.getAttribute('src') || img.getAttribute('srcset'));
+    if (!hasSource || !img.complete) return false;
+    this.settled = true;
+    this.clearTimers();
+    if (img.naturalWidth > 0) this.ready.emit(img);
+    else this.failed.emit(img);
+    return true;
+  }
+
+  private clearTimers(): void {
+    for (const t of this.timers.splice(0)) clearTimeout(t);
   }
 }
 

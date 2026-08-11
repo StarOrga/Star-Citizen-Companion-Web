@@ -2083,6 +2083,15 @@
     "empty": "Noch keine Wallpaper erfasst — sie erscheinen, sobald der News-Crawl läuft.",
     "loadMore": "Mehr laden",
     "loading": "Lädt…",
+    "loadingImages": "Bilder werden geladen…",
+    "imagesStalled": "Die Bilder kommen nicht an — vermutlich ist die Verbindung gerade schwach.",
+    "retryImages": "Bilder erneut laden",
+    "imageFailed": "Bild nicht geladen",
+    "retry": "Erneut versuchen",
+    "errors": {
+      "load": "Die Galerie konnte nicht geladen werden.",
+      "timeout": "Die Galerie hat zu lange gebraucht — Verbindung prüfen und erneut versuchen."
+    },
     "download": "Original herunterladen",
     "sourceArticle": "Quell-Comm-Link",
     "share": {

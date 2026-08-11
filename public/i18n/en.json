@@ -2083,6 +2083,15 @@
     "empty": "No wallpapers captured yet — they appear as the news crawl runs.",
     "loadMore": "Load more",
     "loading": "Loading…",
+    "loadingImages": "Loading images…",
+    "imagesStalled": "The images aren't coming through — the connection looks weak right now.",
+    "retryImages": "Reload images",
+    "imageFailed": "Image didn't load",
+    "retry": "Try again",
+    "errors": {
+      "load": "The gallery could not be loaded.",
+      "timeout": "The gallery took too long — check the connection and try again."
+    },
     "download": "Download original",
     "sourceArticle": "Source Comm-Link",
     "share": {
