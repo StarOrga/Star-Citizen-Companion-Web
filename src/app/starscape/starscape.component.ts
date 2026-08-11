@@ -46,6 +46,17 @@ const SHARE_HINT_MS = 2600;
 // Above-the-fold tiles load eagerly (with high fetch priority for the first
 // row) so first paint is driven by real bytes, not lazy-load proximity.
 const EAGER_TILES = 8;
+// How long the first screen of tiles may sit in its placeholder state before the
+// page says so. The eager tiles start fetching immediately, so if NOT ONE of them
+// has decoded by then, something is wrong with the images rather than with the
+// scroll position — and a wall of grey-blue placeholder bars with no explanation
+// is exactly what the gallery was reported as (admin feedback 4e54ad2c).
+//
+// Generous on purpose: the eight eager previews are ~100 KB each, so a genuinely
+// slow mobile link needs well over ten seconds before the FIRST one lands. A
+// notice that fires while the page is merely slow would be crying wolf at the
+// exact users it is meant to help.
+const IMAGE_STALL_MS = 20_000;
 
 /**
  * Starscape (#133) — high-res wallpaper gallery from crawled RSI news imagery.
@@ -109,23 +120,55 @@ const EAGER_TILES = 8;
         </div>
       }
 
+      <!-- A failed page load is a dead end without a way back in: the request is
+           only ever fired on mount, so a phone that lost the connection for one
+           second used to be stuck with whatever it got (admin feedback 4e54ad2c,
+           round 3). The raw message stays as a small technical line — the
+           headline and the action are localized. -->
       @if (svc.error(); as err) {
-        <div class="sc-card err">{{ err }}</div>
+        <div class="sc-card err" role="alert">
+          <p class="err-msg">
+            {{ (svc.timedOut() ? 'starscape.errors.timeout' : 'starscape.errors.load') | translate }}
+          </p>
+          <!-- Only a message that came from the SERVER earns the technical line;
+               our own deadline marker is not a diagnosis and the headline above
+               already says it in the user's language. -->
+          @if (!svc.timedOut()) {
+            <p class="err-detail">{{ err }}</p>
+          }
+          <button type="button" class="sc-btn" [disabled]="svc.loading()" (click)="reload()">
+            {{ 'starscape.retry' | translate }}
+          </button>
+        </div>
       }
 
-      @if (svc.wallpapers().length === 0 && !svc.loading()) {
+      @if (svc.wallpapers().length === 0 && !svc.loading() && !svc.error()) {
         <div class="sc-card empty">
           <p>{{ 'starscape.empty' | translate }}</p>
         </div>
       }
 
       <!-- First-page load: a believable masonry silhouette of sensor "contacts"
-           so the grid reads as "images incoming", never as collapsed stripes. -->
+           so the grid reads as "images incoming", never as collapsed stripes.
+           The caption is what tells a visitor that the bars ARE the loading
+           state — unlabelled, a screen of them just reads as broken content. -->
       @if (svc.loading() && svc.wallpapers().length === 0) {
+        <p class="wall-status" role="status" aria-live="polite">{{ 'starscape.loadingImages' | translate }}</p>
         <div class="wall" aria-hidden="true">
           @for (i of skeletonSlots; track i) {
             <span class="tile skel-tile sc-skel" [style.aspectRatio]="skelRatio(i)"></span>
           }
+        </div>
+      }
+
+      <!-- Rows arrived, pictures did not. Bounded by IMAGE_STALL_MS so the
+           placeholders can never be the final state of the page. -->
+      @if (imagesStalled()) {
+        <div class="sc-card stalled" role="status">
+          <p>{{ 'starscape.imagesStalled' | translate }}</p>
+          <button type="button" class="sc-btn" (click)="retryImages()">
+            {{ 'starscape.retryImages' | translate }}
+          </button>
         </div>
       }
 
@@ -144,6 +187,18 @@ const EAGER_TILES = 8;
                  image is ready (or has failed) — then the image defines height. -->
             @if (!loaded().has(w.imageId) && !broken().has(w.imageId)) {
               <span class="tile-skel sc-skel" [style.aspectRatio]="skelRatio(i)" aria-hidden="true"></span>
+            }
+            <!-- Broken preview: keep the tile's shape and SAY so, with a retry.
+                 Before this, a failed image dropped its skeleton and hid the
+                 <img>, collapsing the tile to a 2px border stripe with no hint
+                 that anything went wrong (admin feedback 4e54ad2c round 3). -->
+            @if (broken().has(w.imageId)) {
+              <span class="tile-failed" [style.aspectRatio]="skelRatio(i)">
+                <span class="tf-msg">{{ 'starscape.imageFailed' | translate }}</span>
+                <button type="button" class="tf-retry" (click)="retryTile($event, w.imageId)">
+                  {{ 'starscape.retry' | translate }}
+                </button>
+              </span>
             }
             <!-- Responsive sources. Only two candidates exist upstream: the light
                  post (500w) and the crisp cover (1140w). Which one is right is
@@ -173,12 +228,12 @@ const EAGER_TILES = 8;
                  were written for the two-column phone grid this feedback
                  removed, and 244px was never the ~300px desktop tile.) -->
             <picture>
-              <source media="(max-width: 480px)" [srcset]="lowResFor(w.previewUrl)" />
+              <source media="(max-width: 480px)" [srcset]="lowResFor(w.previewUrl, w.imageId)" />
               <img
                 class="tile-img"
                 [class.ready]="loaded().has(w.imageId)"
-                [srcset]="srcsetFor(w.previewUrl)"
-                [src]="lowResFor(w.previewUrl)"
+                [srcset]="srcsetFor(w.previewUrl, w.imageId)"
+                [src]="lowResFor(w.previewUrl, w.imageId)"
                 sizes="(max-width: 640px) 95vw, (max-width: 900px) 46vw, 300px"
                 [alt]="w.title ?? ''"
                 decoding="async"
@@ -187,6 +242,7 @@ const EAGER_TILES = 8;
                 scImgReady
                 (ready)="onLoad(w.imageId)"
                 (load)="onLoad(w.imageId)"
+                (failed)="onBroken(w.imageId)"
                 (error)="onBroken(w.imageId)"
                 [class.hidden]="broken().has(w.imageId)" />
             </picture>
@@ -334,9 +390,32 @@ const EAGER_TILES = 8;
       backdrop-filter: blur(4px);
     }
 
+    /* Broken preview: the tile keeps the shape it reserved and states the case,
+       instead of collapsing into an unexplained border stripe. */
+    .tile-failed {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; width: 100%; padding: 12px; text-align: center;
+      background: var(--sc-bg-1);
+      border-radius: inherit; box-sizing: border-box;
+    }
+    .tf-msg { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
+    .tf-retry {
+      position: relative; z-index: 1;
+      padding: 6px 14px; border-radius: 6px; cursor: pointer;
+      background: transparent; border: 1px solid var(--sc-accent); color: var(--sc-accent);
+      font-family: inherit; font-size: max(0.72rem, var(--sc-fs-floor));
+    }
+    .tf-retry:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
+
     .more { align-self: center; }
     .empty { color: var(--sc-fg-2); text-align: center; }
-    .err { border-color: var(--sc-danger); color: var(--sc-danger); }
+    .err { border-color: var(--sc-danger); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+    .err .err-msg { margin: 0; color: var(--sc-danger); }
+    .err .err-detail { margin: 0; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); overflow-wrap: anywhere; }
+    /* Placeholder caption + the "no picture arrived" notice — same quiet voice. */
+    .wall-status { margin: 0; color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
+    .stalled { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; color: var(--sc-fg-2); }
+    .stalled p { margin: 0; }
     .attribution { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); margin: 0; opacity: 0.85; }
 
     .lightbox {
@@ -404,6 +483,14 @@ const EAGER_TILES = 8;
          request asked for by name — a full-width feed is what "mobile friendly
          zum durchscrollen" means. */
       .wall { columns: 1; }
+      /* …but one column also turns the twelve-slot first-load wall into two
+         full screens of nothing but shimmering placeholder bars, which is
+         precisely the thing being complained about ("ich sehe nur graue blaue
+         balken", admin feedback 4e54ad2c round 3). Four slots fill the first
+         phone screen; anything past that is a promise the grid does not need to
+         make. The desktop grid, where twelve slots are three short rows, is
+         untouched. */
+      .skel-tile:nth-child(n + 5) { display: none; }
       /* Full-bleed overlay → respect the notch / home indicator. */
       .lightbox {
         padding:
@@ -424,6 +511,16 @@ const EAGER_TILES = 8;
     @media (pointer: coarse) {
       .chip { min-height: 48px; display: inline-flex; align-items: center; }
       .more { min-height: 48px; }
+      .tf-retry { min-height: 48px; }
+      .err .sc-btn, .stalled .sc-btn { min-height: 48px; }
+      /* No blur-up on touch hardware. A 12px blur over a full-width phone tile
+         is a GPU-composited layer per tile, and while it is up the picture IS a
+         grey-blue smear — on a mid-range phone decoding a whole column at once
+         that is most of what you see (admin feedback 4e54ad2c round 3: "ich sehe
+         nur graue blaue balken"). The fade alone still reads as a reveal and
+         cannot leave a half-composited layer behind. */
+      .tile-img { filter: none; transform: none; transition: opacity 0.3s ease; }
+      .tile-img.ready { filter: none; transform: none; }
       .lb-actions .sc-btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
       .lb-link { min-height: 48px; display: inline-flex; align-items: center; }
       .lb-close { min-width: 48px; min-height: 48px; }
@@ -517,12 +614,35 @@ export class StarscapeComponent implements OnInit {
   // Preview images that have decoded at least once — gates each tile's blur-up
   // reveal and drops its skeleton. Cache hits are recovered via ImgReadyDirective.
   readonly loaded = signal<ReadonlySet<string>>(new Set<string>());
+  /**
+   * Retry counter per image id. Bumping it appends a `#r<n>` fragment to the
+   * tile's urls, which makes the browser re-run its image-selection algorithm
+   * for that element — the only way to re-attempt a source without touching the
+   * url a signed CDN link may depend on (a fragment is never sent to a server).
+   */
+  private readonly retries = signal<Readonly<Record<string, number>>>({});
+  /** IMAGE_STALL_MS has passed since the rows arrived. */
+  private readonly stallElapsed = signal(false);
+
+  /**
+   * Rows are on screen but not a single preview has resolved — the state the
+   * gallery gets reported in ("ich sehe nur graue blaue balken"). Distinct from
+   * a broken tile, which says so on its own.
+   */
+  readonly imagesStalled = computed(
+    () =>
+      this.stallElapsed() &&
+      this.svc.wallpapers().length > 0 &&
+      this.loaded().size === 0 &&
+      this.broken().size === 0,
+  );
 
   // Template constants for the loading skeletons.
   readonly skeletonSlots = Array.from({ length: SKELETON_SLOTS }, (_, i) => i);
   readonly eagerTiles = EAGER_TILES;
 
   private shareHintTimer: ReturnType<typeof setTimeout> | null = null;
+  private stallTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     // Re-resolve the ring links whenever the role settles (it arrives after the
@@ -530,8 +650,13 @@ export class StarscapeComponent implements OnInit {
     effect(() => {
       void this.svc.loadRingReleases(this.allowedRings());
     });
+    // Arm the stall watch as soon as there are rows to draw.
+    effect(() => {
+      if (this.svc.wallpapers().length > 0) this.armStallWatch();
+    });
     this.destroyRef.onDestroy(() => {
       if (this.shareHintTimer) clearTimeout(this.shareHintTimer);
+      if (this.stallTimer) clearTimeout(this.stallTimer);
     });
   }
 
@@ -539,6 +664,60 @@ export class StarscapeComponent implements OnInit {
     void this.svc.loadDesktopRelease();
     if (this.svc.wallpapers().length === 0) await this.svc.load(true);
     await this.openDeepLink();
+  }
+
+  /** Start (or restart) the "no picture has arrived yet" deadline. */
+  private armStallWatch(): void {
+    if (this.stallTimer) return;
+    this.stallTimer = setTimeout(() => {
+      this.stallTimer = null;
+      this.stallElapsed.set(true);
+    }, IMAGE_STALL_MS);
+  }
+
+  /** Re-run the page request after a failed or timed-out load. */
+  reload(): void {
+    void this.svc.load(true);
+  }
+
+  /** Re-attempt one broken tile's preview. */
+  retryTile(ev: Event, imageId: string): void {
+    // The tile is an anchor to the CDN original — a retry must not follow it.
+    ev.preventDefault();
+    ev.stopPropagation();
+    const next = new Set(this.broken());
+    next.delete(imageId);
+    this.broken.set(next);
+    this.bumpRetry([imageId]);
+  }
+
+  /** Re-attempt every preview that has not resolved yet (the stall notice's action). */
+  retryImages(): void {
+    const pending = this.svc
+      .wallpapers()
+      .map((w) => w.imageId)
+      .filter((id) => !this.loaded().has(id));
+    this.broken.set(new Set<string>());
+    this.stallElapsed.set(false);
+    this.bumpRetry(pending);
+    this.armStallWatch();
+  }
+
+  private bumpRetry(ids: readonly string[]): void {
+    if (ids.length === 0) return;
+    const next = { ...this.retries() };
+    for (const id of ids) next[id] = (next[id] ?? 0) + 1;
+    this.retries.set(next);
+  }
+
+  /**
+   * The retry fragment for an image, or '' on the first attempt. A fragment is
+   * purely client-side, so it re-triggers the load without altering the request
+   * a CDN (or a signed proxy url) actually receives.
+   */
+  private retrySuffix(imageId?: string): string {
+    const n = imageId ? (this.retries()[imageId] ?? 0) : 0;
+    return n > 0 ? `#r${n}` : '';
   }
 
   /**
@@ -567,15 +746,16 @@ export class StarscapeComponent implements OnInit {
    * derived from the stored `cover` preview url. Returns '' for urls that can't be
    * re-varianted (e.g. the signed RSI proxy) so the browser just uses `src`.
    */
-  srcsetFor(previewUrl: string): string {
+  srcsetFor(previewUrl: string, imageId?: string): string {
+    const suffix = this.retrySuffix(imageId);
     const post = rsiVariant(previewUrl, 'post');
     const cover = rsiVariant(previewUrl, 'cover');
-    return post === cover ? '' : `${post} 500w, ${cover} 1140w`;
+    return post === cover ? '' : `${post}${suffix} 500w, ${cover}${suffix} 1140w`;
   }
 
   /** Light `post` variant used as the `src` fallback — the fast, mobile-first source. */
-  lowResFor(previewUrl: string): string {
-    return rsiVariant(previewUrl, 'post');
+  lowResFor(previewUrl: string, imageId?: string): string {
+    return `${rsiVariant(previewUrl, 'post')}${this.retrySuffix(imageId)}`;
   }
 
   /** `cover` variant (≤1140w) — the lightbox's phone-sized stand-in for the original. */
@@ -626,6 +806,11 @@ export class StarscapeComponent implements OnInit {
 
   /** Marks a preview decoded → fades it in and removes its skeleton. */
   onLoad(id: string): void {
+    if (this.broken().has(id)) {
+      const stillBroken = new Set(this.broken());
+      stillBroken.delete(id);
+      this.broken.set(stillBroken);
+    }
     if (this.loaded().has(id)) return;
     const next = new Set(this.loaded());
     next.add(id);
@@ -659,6 +844,10 @@ export class StarscapeComponent implements OnInit {
   }
 
   onBroken(id: string): void {
+    // Both `(error)` and the directive's `(failed)` watchdog land here — whichever
+    // notices first wins, the other is a no-op. A tile that already painted is
+    // never demoted to "broken".
+    if (this.broken().has(id) || this.loaded().has(id)) return;
     const next = new Set(this.broken());
     next.add(id);
     this.broken.set(next);

@@ -26,6 +26,7 @@ function serviceStub(wallpapers: Wallpaper[]) {
     total: signal(wallpapers.length),
     loading: signal(false),
     error: signal<string | null>(null),
+    timedOut: signal(false),
     activeSeries: signal(''),
     seriesOptions: signal<string[]>([]),
     hasMore: signal(false),
@@ -186,4 +187,90 @@ describe('StarscapeComponent', () => {
     expect(f.componentInstance.shareHint()).toBe('starscape.share.failed');
     f.destroy();
   });
+
+  /* ---------------------------------------------------------------- *
+   * "Ich sehe nur graue blaue balken" (admin feedback 4e54ad2c round 3).
+   *
+   * Every one of these pins the same rule: a shimmering placeholder may
+   * never be the page's final state. Whatever goes wrong — the request,
+   * one preview, or all of them — the grid has to end up saying so and
+   * offering a way out.
+   * ---------------------------------------------------------------- */
+
+  it('offers a retry instead of leaving a failed page load as a dead end', () => {
+    const svc = serviceStub([]);
+    svc.error.set('network unreachable');
+    const f = setup(svc);
+    const card = f.nativeElement.querySelector('.err') as HTMLElement;
+    expect(card).not.toBeNull();
+    // The server's own words survive as the small technical line.
+    expect(card.textContent).toContain('network unreachable');
+    (card.querySelector('button') as HTMLButtonElement).click();
+    expect(svc.load).toHaveBeenCalledWith(true);
+    f.destroy();
+  });
+
+  it('does not print our own deadline marker as if it were a server message', () => {
+    const svc = serviceStub([]);
+    svc.error.set('timeout after 15s');
+    svc.timedOut.set(true);
+    const f = setup(svc);
+    // The localized headline carries the meaning; an untranslated internal
+    // string has no business on screen.
+    expect(f.nativeElement.querySelector('.err-detail')).toBeNull();
+    expect(f.nativeElement.querySelector('.err')).not.toBeNull();
+    f.destroy();
+  });
+
+  it('keeps a broken preview visible as a stated failure with a retry', () => {
+    const f = setup();
+    const c = f.componentInstance;
+    c.onBroken('abc123');
+    f.detectChanges();
+    const failed = f.nativeElement.querySelector('.tile-failed') as HTMLElement;
+    expect(failed).not.toBeNull();
+
+    const before = c.lowResFor(first.previewUrl, first.imageId);
+    const ev = new MouseEvent('click', { cancelable: true, bubbles: true });
+    (failed.querySelector('.tf-retry') as HTMLButtonElement).dispatchEvent(ev);
+    f.detectChanges();
+
+    // The tile is an anchor to the CDN original — a retry must not navigate.
+    expect(ev.defaultPrevented).toBeTrue();
+    expect(c.broken().has('abc123')).toBeFalse();
+    // A changed url is what makes the browser re-run its selection; a fragment
+    // does that without altering the request the CDN actually receives.
+    expect(c.lowResFor(first.previewUrl, first.imageId)).not.toBe(before);
+    expect(c.lowResFor(first.previewUrl, first.imageId).split('#')[0]).toBe(before);
+    f.destroy();
+  });
+
+  it('never demotes a tile that already painted to "broken"', () => {
+    const f = setup();
+    const c = f.componentInstance;
+    c.onLoad('abc123');
+    c.onBroken('abc123');
+    expect(c.broken().has('abc123')).toBeFalse();
+    f.destroy();
+  });
+
+  it('says the pictures are not arriving once the rows have waited long enough', fakeAsync(() => {
+    const f = setup();
+    expect(f.componentInstance.imagesStalled()).toBeFalse();
+    tick(21000);
+    f.detectChanges();
+    expect(f.componentInstance.imagesStalled()).toBeTrue();
+    expect(f.nativeElement.querySelector('.stalled')).not.toBeNull();
+    f.destroy();
+  }));
+
+  it('stays quiet when a preview did arrive, however slowly', fakeAsync(() => {
+    const f = setup();
+    f.componentInstance.onLoad('abc123');
+    tick(21000);
+    f.detectChanges();
+    expect(f.componentInstance.imagesStalled()).toBeFalse();
+    expect(f.nativeElement.querySelector('.stalled')).toBeNull();
+    f.destroy();
+  }));
 });
