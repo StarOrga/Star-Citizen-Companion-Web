@@ -777,15 +777,18 @@
         },
         "leadTime": {
           "title": "PTU → Live",
+          "short": "PTU → Live",
           "sub": "Days from the first test build to the live release"
         },
         "cadence": {
           "title": "Patch cadence (main lines)",
+          "short": "Cadence",
           "sub": "Days between two live releases"
         },
         "median": "All-time median",
         "subCadence": {
           "title": "Patch cadence (sub-patches)",
+          "short": "Sub-patches",
           "sub": "Days between two sub-patches in PTU or live"
         },
         "window": {
@@ -797,6 +800,7 @@
       },
       "forecast": {
         "title": "Projected schedule",
+        "short": "Schedule",
         "sub": "Median estimate from the patch cadence, not an official date",
         "row": {
           "ptu": "Next PTU",

@@ -777,15 +777,18 @@
         },
         "leadTime": {
           "title": "PTU → Live",
+          "short": "PTU → Live",
           "sub": "Tage vom ersten Testbuild bis zum Live-Release"
         },
         "cadence": {
           "title": "Patch-Takt (Hauptlinien)",
+          "short": "Takt",
           "sub": "Tage zwischen zwei Live-Releases"
         },
         "median": "Median all time",
         "subCadence": {
           "title": "Patch-Takt (Sub-Patches)",
+          "short": "Sub-Patches",
           "sub": "Tage zwischen zwei Sub-Patches in PTU oder Live"
         },
         "window": {
@@ -797,6 +800,7 @@
       },
       "forecast": {
         "title": "Voraussichtliche Termine",
+        "short": "Termine",
         "sub": "Median-Schätzung aus dem Patch-Takt, kein offizielles Datum",
         "row": {
           "ptu": "Nächster PTU",
