@@ -41,6 +41,7 @@ import {
   isContinuedAfterShip,
   isUserSubmitted,
   refKind,
+  reviewSince,
   rowScopeCounts,
   searchFeedback,
   searchTokens,
@@ -211,13 +212,19 @@ const DEFAULT_REVIEW_SCOPE: WorkflowScope = 'mine';
           [attr.aria-pressed]="view() === 'workflow'"
           (click)="setView('workflow')">
           {{ 'adminFeedback.view.workflow' | translate }}
+          <!-- Counts Rückfragen AND Abnahmen since feedback d4990269 — the run
+               walks both, so the badge has to promise both. -->
           @if (workflowQueue().length > 0) {
             <span class="tab-badge">{{ workflowQueue().length }}</span>
           }
         </button>
         <!-- The sign-off step (feedback #79): everything the routine finished
              and nobody has confirmed yet, with its own count so it is obvious
-             from the switch that something is waiting. -->
+             from the switch that something is waiting. Kept as its own tab after
+             feedback d4990269 folded the same rows into the Abarbeiten run: this
+             is the list view of that pile (scan many at once), Abarbeiten is the
+             guided one-at-a-time walk. Both read the same awaitsReview rule, so
+             both counts stay truthful. -->
         <button
           type="button"
           class="view-tab"
@@ -251,6 +258,9 @@ const DEFAULT_REVIEW_SCOPE: WorkflowScope = 'mine';
             [reply]="workflowReplyBound"
             (markHandled)="markHandled($event)"
             (scopeChange)="setWorkflowScope($event)"
+            (acceptReview)="acceptReview($event)"
+            (reopenReview)="reopenFromReview($event)"
+            (openTopic)="openInOverview($event)"
             (showProgress)="setView('progress')" />
         </div>
       } @else if (view() === 'review') {
@@ -263,6 +273,9 @@ const DEFAULT_REVIEW_SCOPE: WorkflowScope = 'mine';
             <p class="rv-lead">{{ 'adminFeedback.review.queueTitle' | translate }}</p>
             @if (!embedded()) {
               <p class="rv-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
+              <!-- Same rows, two ways to work them (feedback d4990269) — say so,
+                   so the pile is not mistaken for a second, separate backlog. -->
+              <p class="rv-hint">{{ 'adminFeedback.review.alsoInWorkflow' | translate }}</p>
             }
 
             <!-- Whose finished topics to sign off — the same Meine/Andere/Alle lens
@@ -2854,9 +2867,13 @@ export class AdminFeedbackComponent implements OnInit {
     () => this.reviewScopeCounts().all - this.reviewQueue().length,
   );
 
-  /** When the outcome landed — what the sign-off card dates itself by. */
+  /**
+   * When the outcome landed — what the sign-off card dates itself by. Shared with
+   * the processing queue's Abnahme ordering (feedback d4990269), so both age an
+   * item by the same stamp.
+   */
   reviewSince(m: FeedbackRow): string {
-    return m.shipped_at ?? m.processed_at ?? m.updated_at;
+    return reviewSince(m);
   }
 
   /**
