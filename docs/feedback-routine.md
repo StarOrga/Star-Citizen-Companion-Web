@@ -30,6 +30,12 @@ oldest `created_at` first.
 > (`reviewed_at`) and "Gespräch wieder aufnehmen" (`status = 'open'`) — so a
 > finished topic can be filed without opening the Archive tab. Still no new
 > status value, still nothing the routine reads.
+>
+> Since feedback d4990269 those same rows **also run in the Abarbeiten queue**,
+> one at a time, with the identical two decisions. Abnahme stays as its own tab —
+> it is the list view of the pile (scan many at once), Abarbeiten is the guided
+> walk through it. Both read the same `awaitsReview` rule, so both badges stay
+> truthful; nothing was duplicated, cloned or given a new status.
 
 Status lifecycle the routine drives:
 
@@ -1302,7 +1308,7 @@ panel and on the full board page alike:
 | View | Component | What it is for |
 |------|-----------|----------------|
 | **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list with each topic's stable `#N` (see below), fuzzy search (see below), status/author filters, new-topic composer |
-| **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through the queue: every Rückfrage still waiting on the admin, oldest first — **and nothing else** (feedback b0cc6efc). Shows topic + full thread + inline answer box, plus a "3 von 7" progress rail |
+| **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through everything that waits on the admin — Rückfragen (oldest first) and, since feedback d4990269, the Abnahmen behind them — **and nothing else** (feedback b0cc6efc). Shows topic + full thread + either the inline answer box or the Abnahme's two decisions, plus a "3 von 7" progress rail and "Überspringen" |
 | **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen, plus pace, throughput and the live lifecycle map (see below) |
 
 **Abarbeiten is the default view** (feedback fda4e3ea). The panel opens in the
@@ -1333,8 +1339,8 @@ and no step goes unnoticed:
   Scrolling animates unless `prefers-reduced-motion: reduce` is set, and it
   happens once per message, so the board's polling refresh never yanks the
   thread back while it is being read.
-- **The answer panel is pinned.** Composer and the Weiter/Erledigt controls sit
-  in a sticky footer at the bottom edge of the scrollport, so however long the
+- **The answer panel is pinned.** Composer and the Überspringen/Erledigt controls
+  sit in a sticky footer at the bottom edge of the scrollport, so however long the
   topic and its thread are, the reply box is always on screen.
 - **Moving on is visible** (feedback 96872872). "Erledigt" pulls the topic out
   of the queue, so the card refills with the next topic in place — previously
@@ -1342,12 +1348,39 @@ and no step goes unnoticed:
   open. The next card now slides in (~380 ms), wears a short accent ring and a
   `role="status"` line names the step ("Erledigt – weiter mit 2 von 6"). Under
   `prefers-reduced-motion: reduce` the slide is dropped; ring and line stay, so
-  the advance is still perceivable. Weiter uses the same slide (without the
-  line — the click itself is the explanation). Draining the last topic reports
-  itself through the "Alles abgearbeitet" screen instead.
+  the advance is still perceivable. Überspringen uses the same slide (without the
+  line — the click itself is the explanation), and so does an Abnahme decision
+  once the write came back and the topic left the queue. Draining the last topic
+  reports itself through the "Alles abgearbeitet" screen instead.
+
+### The run is a carousel with skip (feedback d4990269)
+
+Two kinds of step share the queue, in a fixed order rather than interleaved by
+date: **Rückfragen first** (they block the routine's next run), **Abnahmen after
+them** (they close a topic out), each oldest-first inside its kind. An Abnahme
+step is aged and dated by `reviewSince` (`shipped_at ?? processed_at ??
+updated_at`) — the moment its outcome landed, which is how long it has actually
+been waiting — while a Rückfrage keeps its `created_at`. Both live in
+`buildWorkflowQueue`; a queue entry now carries a `kind` (`'question' |
+'review'`) that decides the card's badge and the controls at its foot. Nothing
+else changed about an Abnahme: same rows, same two decisions ("Ins Archiv —
+erledigt" → `reviewed_at`, "Gespräch wieder aufnehmen" → `status='open'`), same
+`awaitsReview` rule the Abnahme tab reads — the tiles were only *also* folded
+into the one-at-a-time run.
+
+**Überspringen** parks the current topic for this lap and steps to the next one
+the lap has not shown yet. When nothing unseen is left, the lap closes and the
+run comes back around to the parked topics (plus whatever arrived meanwhile),
+announced by a `role="status"` line; the card that comes back wears an
+"Übersprungen" badge, and a counter next to the progress rail says how many are
+still owed a second look. Skipping is **session-local and never written**: no
+column, no status value, no localStorage — exactly like the "Erledigt" tick-off,
+it is a view-level "not now". A lap resets when the scope switch changes, and a
+topic that gets answered, ticked off or decided is dropped from it, so the
+carousel never promises to come back to something that is already gone.
 
 Queue, aggregation and search rules live as pure functions in `feedback.types.ts`
-(`buildWorkflowQueue`, `workflowFocusIndex`, `computeStats`, `computePace`,
+(`buildWorkflowQueue`, `workflowFocusIndex`, `reviewSince`, `computeStats`, `computePace`,
 `shippedPerWeek`, `lifecycleSnapshot`, `neededInput`, `isArchived`, `refKind`,
 `feedbackBucket`, `searchFeedback`), unit-tested in `feedback.types.spec.ts`. All three views
 share that vocabulary: a terminal topic is out of the processing queue, out of

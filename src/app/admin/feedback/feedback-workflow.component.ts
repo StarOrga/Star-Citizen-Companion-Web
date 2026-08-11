@@ -23,12 +23,15 @@ import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import {
   FeedbackMessage,
+  FeedbackRow,
   WORKFLOW_SCOPES,
   WorkflowItem,
   WorkflowScope,
   WorkflowScopeCounts,
   awaitsTriage,
   isUserSubmitted,
+  refKind,
+  reviewSince,
   topicNumber,
   topicTitle,
   workflowFocusIndex,
@@ -43,16 +46,29 @@ const ADVANCE_SLIDE_MS = 380;
  * Guided processing mode ("Abarbeitungsmodus") for the admin feedback board.
  *
  * Instead of scanning the whole board, the admin is walked through the queue
- * one topic at a time — every Rückfrage the routine is waiting on, oldest
- * first (see `buildWorkflowQueue`). Topics that wait on the *routine* are not
- * in it: the mode is the admin's inbox, not the board (feedback b0cc6efc).
- * Each step shows the topic, its full thread and an inline composer; answering
- * fires a short celebration and the queue moves on by itself once the topic
- * leaves it.
+ * one topic at a time — everything that waits on *them* (see
+ * `buildWorkflowQueue`). Topics that wait on the *routine* are not in it: the
+ * mode is the admin's inbox, not the board (feedback b0cc6efc).
  *
- * The queue itself is owned by the parent board (it holds the data and the
- * "ticked off" state) — this component is a pure presentation of it plus a
- * cursor.
+ * Two kinds of step live in that inbox (feedback d4990269):
+ *
+ * - **Rückfrage** — topic, full thread and an inline composer; answering fires a
+ *   short celebration and the queue moves on by itself once the topic leaves it.
+ * - **Abnahme** — a finished topic waiting to be signed off. It carries exactly
+ *   the two decisions the Abnahme tab has ("Ins Archiv — erledigt" and "Gespräch
+ *   wieder aufnehmen") and the link to the result; nothing new was invented, the
+ *   tiles were only folded into the one-at-a-time run so the admin sees a single
+ *   item instead of a grid.
+ *
+ * The run is a **carousel with skip**: "Überspringen" parks the current item for
+ * this lap and steps on; once every item of the lap has been seen the lap resets
+ * and the run comes back around to the skipped ones (plus whatever arrived
+ * meanwhile). Skipping is session-local — nothing is written to the row, the
+ * database or localStorage.
+ *
+ * The queue itself is owned by the parent board (it holds the data, the "ticked
+ * off" state and the writes behind the Abnahme decisions) — this component is a
+ * pure presentation of it plus a cursor.
  */
 @Component({
   selector: 'sc-feedback-workflow',
@@ -93,6 +109,13 @@ const ADVANCE_SLIDE_MS = 380;
             [attr.aria-valuemax]="total()">
             <span class="rail-fill" [style.width.%]="railPct()"></span>
           </div>
+          <!-- How much of this lap was parked, so "übersprungen" is a visible
+               pile the run will come back to rather than a silent detour. -->
+          @if (skippedCount() > 0) {
+            <span class="wf-skipped">
+              {{ 'adminFeedback.workflow.skippedCount' | translate: { count: skippedCount() } }}
+            </span>
+          }
         </div>
 
         <!-- Ticking a topic off swaps the card's content in place — this line
@@ -102,16 +125,38 @@ const ADVANCE_SLIDE_MS = 380;
             ✓ {{ 'adminFeedback.workflow.advanced' | translate: adv }}
           </p>
         }
+        <!-- The lap came around: everything left was skipped once, so the run
+             starts over on the parked items instead of pretending to be done. -->
+        @if (lapWrapped()) {
+          <p class="wf-advance lap" role="status">
+            ↻ {{ 'adminFeedback.workflow.lapWrapped' | translate }}
+          </p>
+        }
 
         <article
           #card
           class="wf-card sc-card"
           [class.celebrate]="celebrating()"
-          [class.arrived]="advanced() !== null">
+          [class.arrived]="advanced() !== null"
+          [class.is-review]="isReview(item)">
           <header class="wf-head">
-            <!-- Every queue item is an open Rückfrage now (feedback b0cc6efc),
-                 so the badge names the one kind instead of switching. -->
-            <span class="kind question">{{ 'adminFeedback.workflow.kind.question' | translate }}</span>
+            <!-- Which of the two steps is on screen (feedback d4990269) — the
+                 Rückfrage the routine asked, or an Abnahme waiting for the
+                 sign-off. The badge is the first thing in the card because the
+                 actions at its foot differ. -->
+            @if (isReview(item)) {
+              <span class="kind review">{{ 'adminFeedback.workflow.kind.review' | translate }}</span>
+              <!-- ...and how the topic got there: shipped, or handed to an issue.
+                   Same wording the Abnahme tab's tiles carry. -->
+              <span class="kind outcome">{{ ('adminFeedback.status.' + outcomeStatus(item)) | translate }}</span>
+            } @else {
+              <span class="kind question">{{ 'adminFeedback.workflow.kind.question' | translate }}</span>
+            }
+            <!-- Parked earlier in this lap and now back around — says why an
+                 already-seen item is in front of the admin again. -->
+            @if (isSkipped()) {
+              <span class="kind skipped">{{ 'adminFeedback.workflow.skippedBadge' | translate }}</span>
+            }
             <!-- A topic a viewer/collaborator filed (feedback 5920cf8c). The
                  author-facing controls — release, "nicht umsetzen", the channel to
                  the author — live in the Übersicht, so flag it here rather than
@@ -130,7 +175,9 @@ const ADVANCE_SLIDE_MS = 380;
                 [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
             }
             <span class="wf-title">{{ title(item) }}</span>
-            <span class="wf-ts">{{ item.row.created_at | scDate }}</span>
+            <!-- An Abnahme is dated by the moment its outcome landed, not by the
+                 day the topic was raised — that is how long it has been waiting. -->
+            <span class="wf-ts">{{ stamp(item) | scDate }}</span>
           </header>
 
           @let body = render(item.row.body);
@@ -139,6 +186,23 @@ const ADVANCE_SLIDE_MS = 380;
 
           @if (item.row.processing_note) {
             <p class="proc-note">{{ item.row.processing_note }}</p>
+          }
+
+          @if (isReview(item)) {
+            <!-- What the sign-off is about: look at the result, then decide.
+                 The link to the PR / issue is a real anchor, so it can be opened
+                 in a new tab like any other link. -->
+            <p class="rv-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
+            @if (item.row.ship_ref) {
+              <a
+                class="ship-ref"
+                [class.issue]="linkKind(item) === 'issue'"
+                [href]="item.row.ship_ref"
+                target="_blank"
+                rel="noopener noreferrer">
+                {{ (linkKind(item) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
+              </a>
+            }
           }
 
           @if (item.replies.length > 0) {
@@ -180,24 +244,53 @@ const ADVANCE_SLIDE_MS = 380;
                however long the topic and its thread are, the reply panel is
                always on screen (feedback fda4e3ea). -->
           <div class="wf-foot">
-            <div class="wf-compose">
-              <sc-feedback-composer
-                [compact]="true"
-                [draftScope]="answerScope(item.row.id)"
-                [busy]="busy()"
-                placeholder="adminFeedback.workflow.answerPlaceholder"
-                sendLabel="adminFeedback.workflow.answerSend"
-                [onSubmit]="submit" />
-            </div>
+            @if (isReview(item)) {
+              <!-- The Abnahme's own two decisions, unchanged: accept ends the
+                   topic in the Archiv, reopen puts it back into the routine's
+                   queue. The parent owns both writes — this card only offers
+                   them one at a time instead of as a tile in a grid. -->
+              <div class="wf-actions">
+                <button
+                  type="button"
+                  class="sc-btn micro done"
+                  (click)="decide(item, 'accept')"
+                  [disabled]="busy()">
+                  ✓ {{ 'adminFeedback.review.accept' | translate }}
+                </button>
+                <button
+                  type="button"
+                  class="sc-btn micro"
+                  (click)="decide(item, 'reopen')"
+                  [disabled]="busy()">
+                  ↻ {{ 'adminFeedback.review.reopen' | translate }}
+                </button>
+                <button type="button" class="sc-btn micro" (click)="skip()">
+                  {{ 'adminFeedback.workflow.skip' | translate }} ⤼
+                </button>
+                <button type="button" class="sc-btn micro ghost" (click)="openTopic.emit(item.row)">
+                  {{ 'adminFeedback.review.openTopic' | translate }} →
+                </button>
+              </div>
+            } @else {
+              <div class="wf-compose">
+                <sc-feedback-composer
+                  [compact]="true"
+                  [draftScope]="answerScope(item.row.id)"
+                  [busy]="busy()"
+                  placeholder="adminFeedback.workflow.answerPlaceholder"
+                  sendLabel="adminFeedback.workflow.answerSend"
+                  [onSubmit]="submit" />
+              </div>
 
-            <div class="wf-actions">
-              <button type="button" class="sc-btn micro" (click)="next()" [disabled]="total() < 2">
-                {{ 'adminFeedback.workflow.next' | translate }} →
-              </button>
-              <button type="button" class="sc-btn micro done" (click)="finish(item)">
-                ✓ {{ 'adminFeedback.workflow.done' | translate }}
-              </button>
-            </div>
+              <div class="wf-actions">
+                <button type="button" class="sc-btn micro" (click)="skip()">
+                  {{ 'adminFeedback.workflow.skip' | translate }} ⤼
+                </button>
+                <button type="button" class="sc-btn micro done" (click)="finish(item)">
+                  ✓ {{ 'adminFeedback.workflow.done' | translate }}
+                </button>
+              </div>
+            }
           </div>
         </article>
       } @else {
@@ -290,6 +383,13 @@ const ADVANCE_SLIDE_MS = 380;
       background: linear-gradient(90deg, var(--sc-accent), var(--sc-accent-hot));
       transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
+    /* How many items this lap parked — quiet, next to the rail. */
+    .wf-skipped {
+      flex: 0 0 auto;
+      font-size: max(0.68rem, var(--sc-fs-floor));
+      letter-spacing: 0.04em;
+      color: var(--sc-fg-2);
+    }
 
     /* ---- Advance cue (a topic was ticked off) ----
        "Erledigt" pulls the topic out of the queue, so the card silently fills
@@ -305,6 +405,8 @@ const ADVANCE_SLIDE_MS = 380;
       color: var(--sc-success);
       animation: wf-rise 0.35s ease-out;
     }
+    /* Same line, other news: the carousel came back around to the skipped pile. */
+    .wf-advance.lap { color: var(--sc-accent); }
 
     /* ---- The one card in focus ---- */
     .wf-card {
@@ -328,6 +430,17 @@ const ADVANCE_SLIDE_MS = 380;
     .kind.question { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
     .kind.from-user { background: rgba(0, 212, 255, 0.1); color: var(--sc-accent); }
     .kind.untriaged { background: rgba(244, 114, 182, 0.18); color: #f472b6; }
+    /* Abnahme steps wear the success accent the sign-off view uses, so the two
+       kinds of step are told apart before a single word is read. */
+    .kind.review { background: color-mix(in srgb, var(--sc-success) 20%, transparent); color: var(--sc-success); }
+    .kind.outcome { border: 1px solid var(--sc-border); color: var(--sc-fg-2); }
+    .kind.skipped { border: 1px dashed var(--sc-border); color: var(--sc-fg-2); }
+    /* Same left edge the Abnahme tiles carry in the sign-off view. */
+    .wf-card.is-review { border-left: 3px solid var(--sc-success); }
+    .rv-hint { margin: 0; font-size: max(0.76rem, var(--sc-fs-floor)); line-height: 1.45; color: var(--sc-fg-2); }
+    .ship-ref { align-self: flex-start; font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; }
+    .ship-ref:hover { text-decoration: underline; }
+    .ship-ref.issue { color: #818cf8; }
     .wf-title {
       flex: 1 1 auto;
       min-width: 0;
@@ -419,6 +532,9 @@ const ADVANCE_SLIDE_MS = 380;
     .sc-btn.micro { padding: 4px 12px; font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.done { color: var(--sc-success); border-color: var(--sc-success); }
     .sc-btn.micro.done:hover:not(:disabled) { background: var(--sc-success); color: var(--sc-bg-0); }
+    /* "Thema öffnen" leaves the run — quiet, so it never competes with a decision. */
+    .sc-btn.micro.ghost { border-color: var(--sc-border); color: var(--sc-fg-2); }
+    .sc-btn.micro.ghost:hover:not(:disabled) { border-color: var(--sc-accent); color: var(--sc-accent); background: transparent; box-shadow: none; }
 
     /* ---- Celebration ---- */
     .wf-cheer {
@@ -498,6 +614,15 @@ export class FeedbackWorkflowComponent {
   readonly scopeChange = output<WorkflowScope>();
   /** "Show me the numbers" from the drained-queue screen. */
   readonly showProgress = output<void>();
+  /**
+   * The three Abnahme controls (feedback d4990269). All of them are the board's
+   * existing ones, forwarded unchanged: accepting writes `reviewed_at`, reopening
+   * puts the topic back into the routine's queue, "Thema öffnen" jumps to the
+   * card in the Übersicht. This component never touches a row itself.
+   */
+  readonly acceptReview = output<FeedbackRow>();
+  readonly reopenReview = output<FeedbackRow>();
+  readonly openTopic = output<FeedbackRow>();
 
   private readonly cardEl = viewChild<ElementRef<HTMLElement>>('card');
   private readonly threadEl = viewChild<ElementRef<HTMLElement>>('thread');
@@ -538,6 +663,25 @@ export class FeedbackWorkflowComponent {
    */
   readonly focusIndex = computed(() => workflowFocusIndex(this.current()?.replies ?? []));
 
+  /**
+   * How many of the items still in the queue were parked in this lap. Ids of
+   * items that meanwhile left the queue are not counted — the number promises
+   * "you will come back to this many", so it has to describe the live queue.
+   */
+  readonly skippedCount = computed(() => {
+    const skipped = this.skipped();
+    if (skipped.size === 0) return 0;
+    let count = 0;
+    for (const item of this.queue()) if (skipped.has(item.row.id)) count++;
+    return count;
+  });
+
+  /** True while the card in front of the admin is one an earlier lap parked. */
+  readonly isSkipped = computed(() => {
+    const item = this.current();
+    return !!item && this.parked().has(item.row.id);
+  });
+
   /** Short celebratory line shown on the card right after an answer landed. */
   readonly celebrating = signal(false);
   readonly cheer = signal('');
@@ -550,6 +694,38 @@ export class FeedbackWorkflowComponent {
    */
   readonly advanced = signal<{ current: number; total: number } | null>(null);
   private advanceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Ids parked with "Überspringen" in the CURRENT lap (feedback d4990269).
+   *
+   * Session-local on purpose: skipping is a "not now", not a decision about the
+   * topic — it must not touch the row, the routine's state machine or a
+   * persisted preference. The set therefore lives and dies with the view, and it
+   * empties itself whenever a lap closes (see {@link skip}) or the scope changes.
+   */
+  private readonly skipped = signal<ReadonlySet<string>>(new Set<string>());
+
+  /**
+   * What the PREVIOUS lap parked — snapshotted when a lap wraps, so an item the
+   * carousel brings back around can say "du hast mich übersprungen". Kept apart
+   * from {@link skipped}, which only ever holds the running lap.
+   */
+  private readonly parked = signal<ReadonlySet<string>>(new Set<string>());
+
+  /** The carousel just wrapped onto the parked items — drives the lap notice. */
+  readonly lapWrapped = signal(false);
+  private lapTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Topic id whose Abnahme decision is in flight (feedback d4990269).
+   *
+   * Unlike "Erledigt", the two sign-off decisions are a round trip to the
+   * database — the topic only leaves the queue once the parent's write came back
+   * and the board refreshed. Remembering which one was decided lets the card
+   * report the step when that happens, instead of silently swapping its content
+   * the way the tick-off used to (feedback 96872872).
+   */
+  private readonly deciding = signal<string | null>(null);
 
   /** `topicId:messageId` the thread was last scrolled to — guards re-scrolls. */
   private focusedKey: string | null = null;
@@ -568,8 +744,10 @@ export class FeedbackWorkflowComponent {
         lastScope = scope;
         // Re-arm against the new scope's queue instead of celebrating it.
         sawWork = total > 0;
-        // A different queue starts at its head.
+        // A different queue starts at its head — and at a fresh lap, so nothing
+        // in it counts as "already skipped".
         this.cursor.set(0);
+        this.clearLap();
         return;
       }
       if (total > 0) {
@@ -579,6 +757,24 @@ export class FeedbackWorkflowComponent {
       if (!sawWork) return;
       sawWork = false;
       this.celebration.burst();
+    });
+
+    // A sign-off decision landed: the topic is gone from the queue, so the card
+    // in front of the admin is a different one — say so and slide it in, exactly
+    // as the tick-off does. If the write failed the topic is still here; the
+    // parent has stopped working by then, so the marker is simply dropped.
+    effect(() => {
+      const pending = this.deciding();
+      if (!pending) return;
+      const queue = this.queue();
+      if (queue.some((item) => item.row.id === pending)) {
+        if (!this.busy()) this.deciding.set(null);
+        return;
+      }
+      this.deciding.set(null);
+      if (queue.length === 0) return;
+      this.announceAdvance(queue.length);
+      this.playSlideIn();
     });
 
     // Put the open Rückfrage in front of the admin instead of the thread's
@@ -605,6 +801,7 @@ export class FeedbackWorkflowComponent {
     inject(DestroyRef).onDestroy(() => {
       if (this.cheerTimer) clearTimeout(this.cheerTimer);
       if (this.advanceTimer) clearTimeout(this.advanceTimer);
+      if (this.lapTimer) clearTimeout(this.lapTimer);
     });
   }
 
@@ -652,6 +849,35 @@ export class FeedbackWorkflowComponent {
     return topicNumber(item.row);
   }
 
+  /**
+   * True for an Abnahme step — a finished topic waiting for the sign-off rather
+   * than a Rückfrage waiting for an answer (feedback d4990269).
+   */
+  isReview(item: WorkflowItem): boolean {
+    return item.kind === 'review';
+  }
+
+  /**
+   * How an Abnahme step's topic reached the gate, in the board's own status
+   * vocabulary: shipped, or handed to a GitHub issue.
+   */
+  outcomeStatus(item: WorkflowItem): 'shipped' | 'issue_created' {
+    return item.row.status === 'issue_created' ? 'issue_created' : 'shipped';
+  }
+
+  /** Whether the result link points at a PR or at an issue (shared rule). */
+  linkKind(item: WorkflowItem): 'issue' | 'ship' {
+    return refKind(item.row);
+  }
+
+  /**
+   * The date the card shows: when the topic was raised for a Rückfrage, when its
+   * outcome landed for an Abnahme — in both cases "waiting since".
+   */
+  stamp(item: WorkflowItem): string {
+    return this.isReview(item) ? reviewSince(item.row) : item.row.created_at;
+  }
+
   /** Filed by a viewer/collaborator through the public feedback FAB. */
   fromUser(item: WorkflowItem): boolean {
     return isUserSubmitted(item.row);
@@ -677,17 +903,74 @@ export class FeedbackWorkflowComponent {
   }
 
   /**
-   * Step to the next item, wrapping at the end so a queue worked by skipping
-   * never strands an item out of reach.
+   * Park the current item for this lap and step on — the carousel's one way of
+   * moving forward (feedback d4990269).
+   *
+   * It walks to the next item the lap has not shown yet. When there is none, the
+   * lap is over: the parked set is emptied and the run comes back around to the
+   * skipped items (and anything that arrived meanwhile), announced by the lap
+   * notice. Nothing is written anywhere — the item keeps its status, its place in
+   * the queue and its actions; it was only postponed.
    */
-  next(): void {
-    const total = this.total();
-    if (total < 2) return;
+  skip(): void {
+    const item = this.current();
+    if (!item) return;
     this.clearAdvance();
-    this.cursor.set((this.position() + 1) % total);
-    // Stepping on purpose needs no explanation, but the card still swaps in
-    // place — the same slide keeps the two ways of moving on consistent.
+
+    const total = this.total();
+    const from = this.position();
+    const skipped = new Set(this.skipped());
+    skipped.add(item.row.id);
+
+    for (let step = 1; step < total; step++) {
+      const index = (from + step) % total;
+      if (skipped.has(this.queue()[index].row.id)) continue;
+      this.skipped.set(skipped);
+      this.cursor.set(index);
+      // Stepping on purpose needs no explanation, but the card still swaps in
+      // place — the same slide keeps every way of moving on consistent.
+      this.playSlideIn();
+      return;
+    }
+
+    // Everything left has been seen once → new lap on the parked pile.
+    this.parked.set(skipped);
+    this.skipped.set(new Set<string>());
+    if (total > 1) this.cursor.set((from + 1) % total);
+    this.announceLap();
     this.playSlideIn();
+  }
+
+  /**
+   * Take one of the Abnahme's two decisions on the current card (feedback
+   * d4990269) — accept the outcome, or pick the conversation back up.
+   *
+   * Both are the board's existing writes, forwarded untouched; this only notes
+   * which topic is being decided so the run can report the step once the write
+   * came back (see the `deciding` effect). A parked item that gets decided is no
+   * longer waiting, so it is dropped from the lap too — otherwise the carousel
+   * would promise to come back to a topic that is already gone.
+   */
+  decide(item: WorkflowItem, decision: 'accept' | 'reopen'): void {
+    this.clearAdvance();
+    this.deciding.set(item.row.id);
+    this.forget(item.row.id);
+    if (decision === 'accept') this.acceptReview.emit(item.row);
+    else this.reopenReview.emit(item.row);
+  }
+
+  /** Drop a topic from the lap's bookkeeping — it is no longer "come back later". */
+  private forget(id: string): void {
+    if (this.skipped().has(id)) {
+      const next = new Set(this.skipped());
+      next.delete(id);
+      this.skipped.set(next);
+    }
+    if (this.parked().has(id)) {
+      const next = new Set(this.parked());
+      next.delete(id);
+      this.parked.set(next);
+    }
   }
 
   /**
@@ -702,6 +985,9 @@ export class FeedbackWorkflowComponent {
    * now stands.
    */
   finish(item: WorkflowItem): void {
+    // A ticked-off topic is done, not postponed — the lap must not still count
+    // it among the items it will come back to.
+    this.forget(item.row.id);
     this.markHandled.emit(item.row.id);
     // The parent drops the topic while emitting, so the queue signals already
     // describe the topic that took its place.
@@ -714,6 +1000,9 @@ export class FeedbackWorkflowComponent {
 
   /** Show "weiter mit x von y" for a moment, then fall back to the plain card. */
   private announceAdvance(total: number): void {
+    // A finished topic is the newer news — drop a standing lap notice.
+    if (this.lapTimer) clearTimeout(this.lapTimer);
+    this.lapWrapped.set(false);
     this.advanced.set({ current: this.position() + 1, total });
     if (this.advanceTimer) clearTimeout(this.advanceTimer);
     this.advanceTimer = setTimeout(() => this.advanced.set(null), ADVANCE_NOTICE_MS);
@@ -723,6 +1012,22 @@ export class FeedbackWorkflowComponent {
     if (this.advanceTimer) clearTimeout(this.advanceTimer);
     this.advanceTimer = null;
     this.advanced.set(null);
+  }
+
+  /** Say that the run wrapped onto the items it had parked, then fall quiet. */
+  private announceLap(): void {
+    this.lapWrapped.set(true);
+    if (this.lapTimer) clearTimeout(this.lapTimer);
+    this.lapTimer = setTimeout(() => this.lapWrapped.set(false), ADVANCE_NOTICE_MS);
+  }
+
+  /** Start a fresh lap: nothing parked, no lap notice standing. */
+  private clearLap(): void {
+    if (this.lapTimer) clearTimeout(this.lapTimer);
+    this.lapTimer = null;
+    this.lapWrapped.set(false);
+    this.skipped.set(new Set<string>());
+    this.parked.set(new Set<string>());
   }
 
   /**
