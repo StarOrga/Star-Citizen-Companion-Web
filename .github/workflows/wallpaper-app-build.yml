@@ -28,7 +28,7 @@ jobs:
       run:
         working-directory: wallpaper-app
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Rust toolchain (MSVC, preinstalled on the runner)
         shell: pwsh
@@ -77,7 +77,7 @@ jobs:
 
       - name: Upload full token artefact (repo collaborators only)
         if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-token
           path: wallpaper-app/release-token.txt
@@ -122,7 +122,7 @@ jobs:
 
       - name: Publish to PUBLIC binaries-mirror release (end-user download)
         if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           repository: StarOrga/Star-Citizen-Companion-Binaries
           token: ${{ secrets.BINARIES_RELEASE_TOKEN }}
@@ -143,7 +143,7 @@ jobs:
 
       - name: Update stable 'latest' alias release (never-stale download URL)
         if: startsWith(github.ref, 'refs/tags/wallpaper-app-v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           repository: StarOrga/Star-Citizen-Companion-Binaries
           token: ${{ secrets.BINARIES_RELEASE_TOKEN }}

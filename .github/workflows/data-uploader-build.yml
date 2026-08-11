@@ -23,8 +23,8 @@ jobs:
       run:
         working-directory: data-uploader
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '20.10.0'
           cache: 'npm'
@@ -39,8 +39,8 @@ jobs:
       run:
         working-directory: data-uploader/python
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           # Match the embedded Python the data uploader actually ships
           # (scripts/fetch-embedded-python.js pins 3.10.15). The numpy~=1.21.5
@@ -83,8 +83,8 @@ jobs:
       # `star-citizen-companion-web`, primary alias `sc-companion.vercel.app`.
       SC_WEB_BASE: https://sc-companion.vercel.app
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '20.10.0'
           cache: 'npm'
@@ -118,7 +118,7 @@ jobs:
           "$env:SC_RELEASE_TOKEN" | Out-File -FilePath release-token.txt -Encoding utf8 -NoNewline
         shell: pwsh
       - name: Upload full token artefact (private to repo collaborators)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-token
           path: data-uploader/release-token.txt
@@ -128,7 +128,7 @@ jobs:
       - name: Package (electron-builder)
         run: npm run package:win
       - name: Upload artefacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: data-uploader-win-x64
           path: |
@@ -136,7 +136,7 @@ jobs:
             data-uploader/release-builds/*.blockmap
             data-uploader/release-builds/latest*.yml
       - name: Publish to PRIVATE source-repo release (for maintainers + token artefact handoff)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             data-uploader/release-builds/*.exe
@@ -161,7 +161,7 @@ jobs:
         # only) stored as `BINARIES_RELEASE_TOKEN`. See
         # https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/7
         # for the full rationale.
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           repository: StarOrga/Star-Citizen-Companion-Binaries
           token: ${{ secrets.BINARIES_RELEASE_TOKEN }}
