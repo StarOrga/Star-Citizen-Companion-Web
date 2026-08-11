@@ -59,6 +59,76 @@
   "codex": {
     "title": "Codex",
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
+    "landing": {
+      "terminal": {
+        "label": "Archiv durchsuchen",
+        "placeholder": "Archiv-Terminal — Schiff, Komponente, Waffe, Item, Hersteller, Bauplan …",
+        "clear": "Suche löschen"
+      },
+      "status": {
+        "online": "Verse online",
+        "patch": "Patch {{patch}}",
+        "build": "Build {{build}}",
+        "stale": "Daten-Upload nötig"
+      },
+      "cycle": {
+        "report": "Zyklus-Report · {{count}} Schiffe mit Änderungen seit dem letzten Build",
+        "reportOne": "Zyklus-Report · 1 Schiff mit Änderungen seit dem letzten Build"
+      },
+      "results": {
+        "title": "Archiv-Treffer",
+        "searching": "Durchsuche das Archiv …",
+        "empty": "Keine Treffer für „{{term}}“."
+      },
+      "me": {
+        "eyebrow": "An Bord",
+        "title": "Ich",
+        "uncommissioned": "Unkommissioniert",
+        "emptyLead": "Noch keine persönliche Rüstung angelegt.",
+        "cta": "Rüstung anlegen",
+        "ctaGoal": "→ Kampfbereit",
+        "ready": "Kampfbereit",
+        "openSet": "Set öffnen"
+      },
+      "fleet": {
+        "eyebrow": "Im Hangar",
+        "title": "Meine Flotte",
+        "flagship": "Flaggschiff",
+        "empty": "Noch kein Schiff beansprucht.",
+        "cta": "Erstes Schiff beanspruchen",
+        "ctaGoal": "→ Flugbereit",
+        "open": "{{ship}} öffnen",
+        "compareHint": "Tipp: 2+ Schiffe anpinnen, um sie zu vergleichen."
+      },
+      "diff": {
+        "scm": "SCM",
+        "max": "Max",
+        "boost": "Boost",
+        "crew": "Crew"
+      },
+      "world": {
+        "title": "Welt",
+        "subtitle": "Was willst du tun?",
+        "lookup": {
+          "title": "Nachschlagen",
+          "sub": "Katalog durchsuchen — jede Entität, plus Tastenbelegung.",
+          "keybinds": "Keybinds"
+        },
+        "craft": {
+          "title": "Herstellen",
+          "sub": "Baupläne und ihre Zutaten."
+        },
+        "news": {
+          "title": "News",
+          "sub": "Neuigkeiten zu Schiffen und Herstellern."
+        },
+        "discover": {
+          "title": "Entdecken",
+          "sub": "Kommende Schiffe und erste Sichtungen.",
+          "showroom": "Showroom"
+        }
+      }
+    },
     "bridge": {
       "scannerPlaceholder": "Codex scannen — Schiffsname oder Klasse eingeben (z. B. Gladius, AEGS_*)…",
       "scannerResults": "Scanner · \"{{term}}\"",

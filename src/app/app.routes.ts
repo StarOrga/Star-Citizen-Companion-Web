@@ -67,8 +67,19 @@ export const routes: Routes = [
           import('./starscape/starscape.component').then((m) => m.StarscapeComponent),
       },
       {
-        // Codex landing = "The Bridge" (Slice 1). Scanner + focal hero + lanes.
+        // Codex front door = "the composed depth-field landing": Archive
+        // Terminal poly-search + ICH/MEINE-FLOTTE hero panels + WELT lanes.
         path: 'codex',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./codex/codex-landing.component').then((m) => m.CodexLandingComponent),
+      },
+      {
+        // The previous front door ("The Bridge") — kept reachable for
+        // comparison/rollback while the new landing is verified (not deleted).
+        // Static segment placed BEFORE codex/:kind/:className so it is never
+        // consumed by the :kind wildcard.
+        path: 'codex/bridge',
         pathMatch: 'full',
         loadComponent: () =>
           import('./codex/codex-bridge.component').then((m) => m.CodexBridgeComponent),
