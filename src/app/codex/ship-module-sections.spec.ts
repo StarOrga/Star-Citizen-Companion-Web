@@ -61,17 +61,33 @@ describe('classifyShipModule', () => {
     expect(classifyShipModule('hardpoint_missiles_wing_right')).toBe('missiles');
   });
 
-  it('puts the shield CONTROL module with the shields, not in the fixed rest', () => {
-    // `hardpoint_controller_shield` is a controller, so the furniture rule used
-    // to bury it — yet it is the one shield-side module a pilot must be able to
-    // tell apart from a generator bay (1add86a4).
-    expect(classifyShipModule('hardpoint_controller_shield')).toBe('shields');
+  it('keeps the shield CONTROL module out of the shield block', () => {
+    // 1add86a4 pulled it into the shield block and tagged it; 32659942 sent it
+    // back to the airframe — invisible in game, not swappable, and a fourth row
+    // in a three-shield block reads as a fourth shield.
+    expect(classifyShipModule('hardpoint_controller_shield')).toBe('structure');
+    expect(classifyShipModule('hardpoint_class_1', { attachType: 'ShieldController' })).toBe(
+      'structure',
+    );
+    // The generator bays themselves are untouched — they are the choice.
+    expect(classifyShipModule('hardpoint_shield_generator_01')).toBe('shields');
     expect(isShieldControlPort('hardpoint_controller_shield')).toBe(true);
     expect(isShieldControlPort('hardpoint_shield_generator_01')).toBe(false);
     expect(isShieldControlPort(null, { attachType: 'ShieldController' })).toBe(true);
     // The fire-group module stays fixed: it holds nothing and offers no choice.
     expect(classifyShipModule('hardpoint_controller_weapon')).toBe('structure');
     expect(isShieldControlPort('hardpoint_controller_weapon')).toBe(false);
+  });
+
+  it('files the quantum drive\'s internal tank as airframe, not as a quantum choice', () => {
+    // "Internal Tank" sat next to the drive and cannot be changed (32659942).
+    expect(classifyShipModule('hardpoint_quantum_fuel_tank')).toBe('structure');
+    expect(classifyShipModule('hardpoint_fuel_tank_internal_01')).toBe('structure');
+    expect(classifyShipModule('hardpoint_class_2', { attachType: 'QuantumFuelTank' })).toBe(
+      'structure',
+    );
+    // …while the drive itself stays exactly where it was.
+    expect(classifyShipModule('hardpoint_quantum_drive')).toBe('quantum');
   });
 
   it('never mistakes furniture for armament', () => {
@@ -87,7 +103,6 @@ describe('classifyShipModule', () => {
     expect(classifyShipModule('hardpoint_shield_generator_left')).toBe('shields');
     expect(classifyShipModule('hardpoint_power_plant')).toBe('powerPlants');
     expect(classifyShipModule('hardpoint_quantum_drive')).toBe('quantum');
-    expect(classifyShipModule('hardpoint_quantum_fuel_tank')).toBe('quantum');
     expect(classifyShipModule('hardpoint_radar')).toBe('radar');
     expect(classifyShipModule('Hardpoint_cooler_left')).toBe('coolers');
     expect(classifyShipModule('Hardpoint_Life_Support')).toBe('lifeSupport');
@@ -123,7 +138,6 @@ describe('SHIP_MODULE_SECTION_ORDER', () => {
       'weapons',
       'remoteTurrets',
       'missiles',
-      'countermeasures',
       'pod',
       'shields',
       'powerPlants',
@@ -135,20 +149,25 @@ describe('SHIP_MODULE_SECTION_ORDER', () => {
     expect(SHIP_MODULE_SECTION_ORDER[SHIP_MODULE_SECTION_ORDER.length - 1]).toBe('structure');
   });
 
-  it('places countermeasures directly after the missiles they defend against', () => {
+  it('drops the countermeasures below everything a pilot can change', () => {
+    // 32659942: the launchers cannot be swapped in game, so the block moves out
+    // of the decision list — still its own block, just under it.
     const order = [...SHIP_MODULE_SECTION_ORDER];
-    expect(order.indexOf('countermeasures')).toBe(order.indexOf('missiles') + 1);
+    expect(order.indexOf('countermeasures')).toBe(order.indexOf('lifeSupport') + 1);
+    expect(order.indexOf('countermeasures')).toBe(order.indexOf('structure') - 1);
   });
 
-  it('marks exactly the fixed block as non-configurable', () => {
+  it('marks the countermeasures and the airframe as non-configurable', () => {
     for (const s of SHIP_MODULE_SECTION_ORDER) {
-      expect(isConfigurableSection(s)).toBe(s !== 'structure');
+      expect(isConfigurableSection(s)).toBe(s !== 'structure' && s !== 'countermeasures');
     }
   });
 
-  it('lists shields and countermeasures slot by slot, everything else collapsed', () => {
+  it('lists shields, countermeasures and coolers slot by slot, everything else collapsed', () => {
     for (const s of SHIP_MODULE_SECTION_ORDER) {
-      expect(isIndividualSection(s)).toBe(s === 'shields' || s === 'countermeasures');
+      expect(isIndividualSection(s)).toBe(
+        s === 'shields' || s === 'countermeasures' || s === 'coolers',
+      );
     }
   });
 });

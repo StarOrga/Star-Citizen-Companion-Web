@@ -593,8 +593,14 @@
       "structure": "Zelle & feste Systeme",
       "fixedTag": "nicht konfigurierbar",
       "countermeasures": "Gegenmaßnahmen",
-      "shieldsNote": "Schild-Generatoren sind die austauschbaren Schildplätze; das Schild-Steuermodul verwaltet sie und ist kein eigener Generator. Wie viele Generatoren ein Rumpf hat, steht in diesem Block – ab Werk leere Plätze eingeschlossen.",
-      "countermeasuresNote": "Köder (Decoy) ziehen wärmesuchende Raketen ab, Störköder (Noise/Chaff) blenden radargelenkte. Wie viele du brauchst, hängt vom Signaturwert der abgefeuerten Munition ab – dieses Extract verknüpft einen Werfer nicht mit seiner Munition, deshalb stehen hier keine Signaturwerte pro Werfer."
+      "shieldsNote": "Jeder Platz in diesem Block ist ein austauschbarer Schildgenerator — ab Werk leere Plätze eingeschlossen. Das Schild-Steuermodul steht bei den festen Systemen: Es ist kein eigener Schild und lässt sich im Spiel nicht tauschen.",
+      "countermeasuresNote": "Werfer lassen sich im Spiel nicht wechseln, dieser Block ist deshalb nur zum Nachlesen. Köder (Decoy) ziehen wärmesuchende Raketen ab, Störköder (Noise/Chaff) blenden radargelenkte. Wie viele du brauchst, hängt vom Signaturwert der abgefeuerten Munition ab — dieses Extract verknüpft einen Werfer nicht mit seiner Munition, deshalb stehen hier keine Signaturwerte pro Werfer.",
+      "splitRows": "Einzeln",
+      "groupRows": "Zusammenfassen",
+      "splitRowsHint": "Jeden Platz einzeln auflisten, damit du sie einzeln ändern kannst",
+      "groupRowsHint": "Gleiche Plätze wieder zu einer Zeile zusammenfassen",
+      "unfold": "Anzeigen",
+      "foldAway": "Ausblenden"
     },
     "summary": {
       "title": "Kampfübersicht",

@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  WritableSignal,
+  computed,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexKind } from './codex.service';
 import {
@@ -129,7 +137,25 @@ interface RenderSection {
   rows: GroupedSlot<LayoutSlot>[];
   configurable: boolean;
   notes: SectionNote[];
+  /** Collapsing this block actually hides hardpoints → offer the split toggle. */
+  splittable: boolean;
+  /** Currently listing every hardpoint on its own row. */
+  split: boolean;
+  /** This block folds away entirely (the airframe). */
+  foldable: boolean;
+  /** A foldable block is currently open. */
+  open: boolean;
 }
+
+/**
+ * Blocks that start folded away. The airframe block is a hull inventory — a
+ * capital ship puts hundreds of thrusters, seats and doors in it and none of
+ * them is a decision, so it opens only when asked for (32659942: *"Die Ganzen
+ * Infos 'Zellen und Feste Systeme' könnte man eingeklappt nach ganz unten
+ * machen"*). Everything else stays open; folding a block you can act on would
+ * hide the action.
+ */
+const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSection>(['structure']);
 
 /**
  * Ship modules, ordered the way a pilot configures them (admin request
@@ -166,7 +192,26 @@ interface RenderSection {
             @if (!sec.configurable) {
               <span class="sec-tag">{{ 'codex.moduleSection.fixedTag' | translate }}</span>
             }
+            <!-- "Alle oder einzeln" (32659942): a block that folds identical
+                 mounts into one row says so, and hands over the choice. Only
+                 shown when collapsing actually hides a hardpoint. -->
+            @if (sec.splittable) {
+              <button type="button" class="sec-btn" (click)="toggleSplit(sec.section)"
+                      [attr.aria-expanded]="sec.split"
+                      [attr.title]="(sec.split ? 'codex.moduleSection.groupRowsHint' : 'codex.moduleSection.splitRowsHint') | translate">
+                <span class="chev" [class.open]="sec.split" aria-hidden="true">›</span>
+                {{ (sec.split ? 'codex.moduleSection.groupRows' : 'codex.moduleSection.splitRows') | translate }}
+              </button>
+            }
+            @if (sec.foldable) {
+              <button type="button" class="sec-btn fold" (click)="toggleFold(sec.section)"
+                      [attr.aria-expanded]="sec.open">
+                <span class="chev" [class.open]="sec.open" aria-hidden="true">›</span>
+                {{ (sec.open ? 'codex.moduleSection.foldAway' : 'codex.moduleSection.unfold') | translate }}
+              </button>
+            }
           </h3>
+          @if (!sec.foldable || sec.open) {
           <!-- What this block can and cannot tell you — named where it is read,
                not once at the top of the page (1add86a4). -->
           @for (n of sec.notes; track n.key) {
@@ -313,6 +358,7 @@ interface RenderSection {
               </li>
             }
           </ul>
+          }
         </section>
       }
     </div>
@@ -339,6 +385,19 @@ interface RenderSection {
       background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
     .sec-tag { font-size: max(0.56rem, var(--sc-fs-floor)); letter-spacing: 0.06em; color: var(--sc-fg-2);
       border: 1px solid var(--sc-border); border-radius: 3px; padding: 0 5px; }
+    /* "Einzeln / zusammen" and the airframe fold. Quiet by default — the block
+       heading must stay a heading — but a real 32px-tall target. */
+    .sec-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+      min-height: 32px; padding: 2px 8px; border-radius: 6px; cursor: pointer;
+      background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2);
+      font: inherit; font-size: max(0.6rem, var(--sc-fs-floor)); letter-spacing: 0.05em;
+      text-transform: uppercase; }
+    .sec-btn + .sec-btn { margin-left: 0; }
+    .sec-btn:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .sec-btn .chev { display: inline-block; font-size: 0.85rem; line-height: 1;
+      transition: transform 140ms ease; }
+    .sec-btn .chev.open { transform: rotate(90deg); }
+    @media (prefers-reduced-motion: reduce) { .sec-btn .chev { transition: none; } }
     /* Data-gap / mechanic note: readable, but never loud enough to read as an
        app error — nothing is broken, the extract just stops here. */
     .sec-note { margin: 0 0 8px; font-size: max(0.68rem, var(--sc-fs-floor)); line-height: 1.45;
@@ -496,18 +555,61 @@ export class CodexHardpointLayoutComponent {
     this.inspected.emit({ slot: row.slot, count: row.count, child: null });
   }
 
-  private ordered = computed<RenderSection[]>(() =>
-    SHIP_MODULE_SECTION_ORDER
+  /**
+   * Blocks the pilot asked to see hardpoint-by-hardpoint. Identical mounts are
+   * folded into one "3× S3 VariPuck" row by default — right when all three
+   * carry the same gun, wrong the moment one of them should not (32659942:
+   * *"da die Waffen aufhängungen einzeln sind müsste es möglich sein, dass man
+   * alle Gimbal Mounts manuell entscheiden kann"*). The toggle is per block and
+   * per visit; nothing about the ship changes, only how many rows it takes.
+   */
+  private readonly splitSections = signal<ReadonlySet<ShipModuleSection>>(new Set());
+  /** Foldable blocks currently open (the airframe starts folded). */
+  private readonly openSections = signal<ReadonlySet<ShipModuleSection>>(new Set());
+
+  private toggle(
+    store: WritableSignal<ReadonlySet<ShipModuleSection>>,
+    section: ShipModuleSection,
+  ): void {
+    const next = new Set(store());
+    if (!next.delete(section)) next.add(section);
+    store.set(next);
+  }
+
+  /** List this block hardpoint by hardpoint, or fold identical ones back together. */
+  toggleSplit(section: ShipModuleSection): void {
+    this.toggle(this.splitSections, section);
+  }
+
+  /** Open or fold away a foldable block (the airframe). */
+  toggleFold(section: ShipModuleSection): void {
+    this.toggle(this.openSections, section);
+  }
+
+  private ordered = computed<RenderSection[]>(() => {
+    const split = this.splitSections();
+    const open = this.openSections();
+    return SHIP_MODULE_SECTION_ORDER
       .map((s) => this.sections().find((g) => g.section === s))
       .filter((g): g is LayoutSection => !!g && g.slots.length > 0)
-      .map((g) => ({
-        section: g.section,
-        count: g.slots.length,
-        rows: groupIdenticalSlots(g.slots),
-        configurable: isConfigurableSection(g.section),
-        notes: g.notes ?? [],
-      })),
-  );
+      .map((g) => {
+        const grouped = groupIdenticalSlots(g.slots);
+        const isSplit = split.has(g.section);
+        return {
+          section: g.section,
+          count: g.slots.length,
+          // Splitting is just "don't group": every hardpoint gets its own row,
+          // each standing for exactly itself.
+          rows: isSplit ? g.slots.map((slot) => ({ slot, count: 1, ports: [slot] })) : grouped,
+          configurable: isConfigurableSection(g.section),
+          notes: g.notes ?? [],
+          splittable: grouped.length < g.slots.length,
+          split: isSplit,
+          foldable: FOLDABLE_SECTIONS.has(g.section),
+          open: open.has(g.section),
+        };
+      });
+  });
 
   readonly renderSections = this.ordered;
 
