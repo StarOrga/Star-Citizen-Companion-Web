@@ -55,11 +55,11 @@ jobs:
     outputs:
       slugs: ${{ steps.resolve.outputs.slugs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -117,7 +117,7 @@ jobs:
     if: github.event_name != 'pull_request' && needs.plan.outputs.slugs != ''
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Fail loudly and early when the token is missing. Skipping would leave
       # production silently behind the repo — the exact bug this workflow ends.
@@ -131,7 +131,7 @@ jobs:
             exit 1
           fi
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
 
