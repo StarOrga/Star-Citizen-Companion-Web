@@ -239,7 +239,13 @@ type Slide =
     .dot {
       position: relative; overflow: hidden;
       display: inline-flex; align-items: center; justify-content: center;
-      min-height: 26px; padding: 0 10px;
+      /* The max() is load-bearing: this class outranks the global
+         "button { min-height: var(--sc-tap-min) }" in styles.scss, so a bare
+         26px would SHRINK the pill back under the 48px touch floor on a coarse
+         pointer. The token is 0 on a fine pointer, so the mouse layout keeps
+         its compact 26px. (The old 10px dot bought its hit area with an
+         oversized ::after; that trick is gone here — the pill clips its fill.) */
+      min-height: max(26px, var(--sc-tap-min)); padding: 0 10px;
       border-radius: 999px; cursor: pointer;
       border: 1px solid color-mix(in srgb, var(--sc-fg-2) 45%, transparent);
       background: transparent; color: var(--sc-fg-2);
