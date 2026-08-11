@@ -48,8 +48,17 @@ const PER_KIND_LIMIT = 6;
   imports: [FormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <!-- The glyph is an inline SVG, not the ⌕ character it used to be: that
+         codepoint renders at wildly different weights and sizes per font (and is
+         missing entirely from some Android system fonts), which is how a search
+         control ends up as a tiny mark in a box. A drawn magnifier scales with
+         the button and looks the same everywhere. -->
     <button type="button" class="trigger" (click)="open()" [attr.aria-label]="'quickSearch.open' | translate">
-      <span class="trigger-icon">⌕</span>
+      <svg class="trigger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+        <circle cx="10.5" cy="10.5" r="6.5" />
+        <line x1="15.4" y1="15.4" x2="21" y2="21" />
+      </svg>
       <span class="trigger-label">{{ 'quickSearch.open' | translate }}</span>
       <kbd>Ctrl K</kbd>
     </button>
@@ -160,7 +169,7 @@ const PER_KIND_LIMIT = 6;
       color: var(--sc-fg-2); cursor: pointer; font-family: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
     }
     .trigger:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
-    .trigger-icon { font-size: 0.95rem; }
+    .trigger-icon { width: 18px; height: 18px; flex: 0 0 auto; }
     .trigger kbd {
       font-size: max(0.62rem, var(--sc-fs-floor)); padding: 1px 5px; border-radius: 4px;
       background: var(--sc-bg-2); border: 1px solid var(--sc-border); color: var(--sc-fg-2);
@@ -235,6 +244,21 @@ const PER_KIND_LIMIT = 6;
     @media (max-width: 720px) {
       .trigger-label { display: none; }
       .trigger kbd { display: none; }
+      /* Icon-only: a bare magnifier, no box. The framed pill is a "search FIELD"
+         affordance and only earns its border while it carries the label and the
+         shortcut — once those are gone, the frame is a square drawn around a
+         small mark and the mark itself is what people look for (admin feedback
+         4e54ad2c round 3: "das such icon sollte größer sein, die lupe ohne das
+         quadrat darum wäre besser"). The button keeps a full 48px touch target,
+         it just does not paint one. */
+      .trigger {
+        background: transparent; border-color: transparent; padding: 0;
+        min-width: 48px; min-height: 48px; justify-content: center;
+        color: var(--sc-fg-0);
+      }
+      .trigger:hover, .trigger:active { background: transparent; border-color: transparent; }
+      .trigger:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 8px; }
+      .trigger-icon { width: 26px; height: 26px; stroke-width: 1.9; }
       .qs-kind { width: auto; }
     }
   `],

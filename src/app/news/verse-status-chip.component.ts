@@ -92,7 +92,10 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
     }
     .vs-chip:hover { border-color: var(--sc-accent); }
     .vs-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
-    .vs-chip.status-operational { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-success) 40%, transparent); }
+    /* "Everything is fine" is the state you should be able to IGNORE, so the
+       operational chip carries no ring and no glow — only a problem earns the
+       eye (admin feedback 4e54ad2c round 3: "grüner punkt ... viel zu
+       auffällig"). Degraded and outage keep their coloured rings. */
     .vs-chip.status-degraded, .vs-chip.status-partial_outage,
     .vs-chip.status-maintenance { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-warning) 40%, transparent); }
     .vs-chip.status-major_outage { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-danger) 40%, transparent); }
@@ -101,7 +104,9 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
       width: 9px; height: 9px; border-radius: 50%;
       background: var(--sc-fg-2); flex: 0 0 auto;
     }
-    .dot.status-operational { background: var(--sc-success); box-shadow: 0 0 8px var(--sc-success); }
+    /* Muted green, no halo: still unmistakably "green = playable", but it sits in
+       the header instead of announcing itself. */
+    .dot.status-operational { background: color-mix(in srgb, var(--sc-success) 72%, var(--sc-bg-1)); }
     .dot.status-degraded, .dot.status-partial_outage { background: var(--sc-warning); }
     .dot.status-major_outage { background: var(--sc-danger); box-shadow: 0 0 8px var(--sc-danger); }
     .dot.status-maintenance { background: var(--sc-accent); }
@@ -132,8 +137,27 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
 
     /* Phones: the label eats the row the nav needs, so only the dot survives. */
     @media (max-width: 720px) {
-      .vs-chip { padding: 7px 9px; gap: 0; }
       .vs-label { display: none; }
+      /* Label-less, the dot is the whole control — so it gets smaller, not
+         louder. A glowing 9px disc next to the search was the single most
+         eye-catching thing in the mobile header. */
+      .dot { width: 8px; height: 8px; }
+      /* And the pill goes with the label. A rounded frame is a "chip" — a thing
+         with a name in it; wrapped around a single 8px dot it is just a box
+         drawn around a mark, the same shape the search trigger next to it was
+         asked to drop (admin feedback 4e54ad2c round 3). Without it the header
+         reads as two quiet glyphs. The control grows to a real 48px target in
+         the process: at 7px/9px padding it measured ~26x24, well under the
+         touch minimum the rest of the app holds itself to. */
+      .vs-chip {
+        padding: 0; gap: 0; justify-content: center;
+        min-width: 48px; min-height: 48px;
+        background: transparent; border-color: transparent;
+      }
+      .vs-chip:hover { border-color: transparent; }
+      .vs-chip:focus-visible {
+        box-shadow: none; outline: 2px solid var(--sc-accent); outline-offset: -4px;
+      }
     }
   `],
 })

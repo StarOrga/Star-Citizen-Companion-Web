@@ -648,19 +648,28 @@ const DEFAULT_IMAGE: Partial<Record<NewsChannel, string>> = {
       margin: 6px 0 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
       font-variant-numeric: tabular-nums;
     }
+    /* Quiet by design: a small, steady, muted dot — "dezent aber bemerkbar".
+       It used to be full-strength green under a box-shadow ring that expanded
+       every 2.4s, forever, next to a line that already says "Aktualisiert vor
+       …" — a permanent piece of motion for a state that never changes (admin
+       feedback 4e54ad2c round 3: "aktualisieren grüner punkt ... viel zu
+       auffällig"). Motion is now reserved for the states that mean something:
+       stale (warning colour) and an in-flight reload (accent, below). */
     .freshness .pulse {
-      width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;
-      background: var(--sc-success);
-      animation: fresh-pulse 2.4s ease-out infinite;
+      width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto;
+      background: color-mix(in srgb, var(--sc-success) 70%, transparent);
     }
     .freshness.stale { color: var(--sc-warning); }
     .freshness.stale .pulse { background: var(--sc-warning); animation: none; }
     /* In-flight reload (nav re-click / poll): accent-coloured and beating twice
        as fast, so the line reads as "working" rather than "fresh". */
     .freshness.refreshing { color: var(--sc-accent); }
-    .freshness.refreshing .pulse { background: var(--sc-accent); animation-duration: 1.1s; }
+    .freshness.refreshing .pulse {
+      background: var(--sc-accent);
+      animation: fresh-pulse 1.1s ease-out infinite;
+    }
     @keyframes fresh-pulse {
-      0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sc-success) 55%, transparent); }
+      0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sc-accent) 55%, transparent); }
       70% { box-shadow: 0 0 0 6px transparent; }
       100% { box-shadow: 0 0 0 0 transparent; }
     }
