@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-08-11
+
+### Added
+
+- **A composed Codex landing page — one search over everything, your fleet and
+  character up front.** The `/codex` front door is now a depth-field landing
+  instead of a link strip. An "Archive Terminal" search spans *every* kind
+  (ships, components, weapons, items, ammunition, manufacturers, blueprints) —
+  no more ships-only search — with cross-entity, scope-tinted results. Your
+  hangar renders as a fleet field with inline, build-scoped patch deltas (green
+  = better, red = worse) on the ships you own; an on-foot "Ich" panel; and World
+  use-case lanes (look up, craft, news, discover). "Compare" is a contextual pin
+  wherever ships are shown, feeding the existing compare tray. Missing data stays
+  an honest empty state — no invented stats. The previous Bridge is preserved at
+  `/codex/bridge`.
+
 ### Security
 
 - **No personal e-mail addresses in the public repo any more.** The
