@@ -50,6 +50,17 @@ export function ringsForRole(role: string | null | undefined): readonly Starscap
 
 const PAGE_SIZE = 24;
 
+/**
+ * Hard ceiling for a gallery page request.
+ *
+ * A plain `await` on the REST call has no deadline: on a flaky mobile
+ * connection the socket can stall without ever failing, `loading` stays true
+ * and the page keeps painting its twelve placeholder tiles — a screen of
+ * grey-blue bars with no error, no retry and no end (admin feedback 4e54ad2c).
+ * The abort turns that dead wait into a normal error state the user can act on.
+ */
+export const LOAD_TIMEOUT_MS = 15_000;
+
 /** Platform entry shape inside `desktop_releases.platforms` for the win-x64 exe. */
 interface PlatformAsset {
   url?: string;
@@ -65,6 +76,8 @@ export class StarscapeService {
   readonly total = signal(0);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  /** The last failure was our own {@link LOAD_TIMEOUT_MS} abort, not a server error. */
+  readonly timedOut = signal(false);
   readonly activeSeries = signal<string>('');
 
   /** Filter chips derived from the loaded pages (no extra distinct query). */
@@ -160,7 +173,17 @@ export class StarscapeService {
     if (this.loading()) return;
     this.loading.set(true);
     this.error.set(null);
+    this.timedOut.set(false);
     const offset = reset ? 0 : this.wallpapers().length;
+    // Deadline for the whole page request — see LOAD_TIMEOUT_MS. `expired` is
+    // what distinguishes our abort from a genuine server error, because the
+    // client reports both as a plain rejected/errored query.
+    const abort = new AbortController();
+    let expired = false;
+    const deadline = setTimeout(() => {
+      expired = true;
+      abort.abort();
+    }, LOAD_TIMEOUT_MS);
     try {
       let q = this.sb.client
         .from('verse_wallpapers')
@@ -171,14 +194,16 @@ export class StarscapeService {
         .range(offset, offset + PAGE_SIZE - 1);
       const series = this.activeSeries();
       if (series) q = q.eq('series', series);
-      const { data, error, count } = await q;
+      const { data, error, count } = await q.abortSignal(abort.signal);
       if (error) throw new Error(error.message);
       const mapped = (data ?? []).map(mapRow);
       this.wallpapers.set(reset ? mapped : [...this.wallpapers(), ...mapped]);
       this.total.set(count ?? mapped.length);
     } catch (err) {
-      this.error.set((err as Error).message ?? 'load failed');
+      this.timedOut.set(expired);
+      this.error.set(expired ? `timeout after ${LOAD_TIMEOUT_MS / 1000}s` : ((err as Error).message ?? 'load failed'));
     } finally {
+      clearTimeout(deadline);
       this.loading.set(false);
     }
   }
