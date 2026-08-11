@@ -593,8 +593,14 @@
       "structure": "Airframe & fixed systems",
       "fixedTag": "not configurable",
       "countermeasures": "Countermeasures",
-      "shieldsNote": "Shield generators are the swappable shield bays; the shield control module manages them and is not a generator itself. Every generator bay this hull has is listed here, including the ones that ship empty.",
-      "countermeasuresNote": "Decoys pull heat-seeking missiles away, noise (chaff) blinds radar-guided ones. How many you need depends on the signature values of the round that is fired — this extract does not link a launcher to its round, so no per-launcher signature values are shown."
+      "shieldsNote": "Every bay in this block is a swappable shield generator, including the ones that ship empty. The shield control module sits with the fixed systems: it is not a shield of its own and cannot be swapped in game.",
+      "countermeasuresNote": "Launchers cannot be changed in game, so this block is for reference only. Decoys pull heat-seeking missiles away, noise (chaff) blinds radar-guided ones. How many you need depends on the signature values of the round that is fired — this extract does not link a launcher to its round, so no per-launcher signature values are shown.",
+      "splitRows": "Individually",
+      "groupRows": "Group",
+      "splitRowsHint": "List every hardpoint on its own row so you can change them one by one",
+      "groupRowsHint": "Fold identical hardpoints back into a single row",
+      "unfold": "Show",
+      "foldAway": "Hide"
     },
     "summary": {
       "title": "Combat readout",

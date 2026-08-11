@@ -80,6 +80,21 @@ describe('CodexHardpointLayoutComponent', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
+  /**
+   * Render and open the airframe block, which ships folded away (32659942).
+   * Tests about what a fixed ROW looks like are not tests about the fold, so
+   * they open it the way a reader would and carry on.
+   */
+  function renderUnfolded(sections: LayoutSection[]): HTMLElement {
+    const el = render(sections);
+    const fold = el.querySelector(
+      '.mod-sec[data-sec="structure"] .sec-btn.fold',
+    ) as HTMLButtonElement | null;
+    fold?.click();
+    fixture.detectChanges();
+    return el;
+  }
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CodexHardpointLayoutComponent],
@@ -131,7 +146,7 @@ describe('CodexHardpointLayoutComponent', () => {
 
   it('omits the meta line entirely when the extract identifies nothing', () => {
     const bare = slot({ port: 'Hardpoint X', className: 'X', kind: 'item', name: 'X' });
-    const el = render([{ section: 'structure', slots: [bare] }]);
+    const el = renderUnfolded([{ section: 'structure', slots: [bare] }]);
     expect(el.querySelector('.meta-txt')).toBeNull();
     expect(el.querySelector('.tag')).toBeNull();
     expect(el.querySelector('.slot-item')?.textContent?.trim()).toBe('X');
@@ -278,7 +293,7 @@ describe('CodexHardpointLayoutComponent', () => {
       kind: 'component',
       name: 'T',
     });
-    const el = render([{ section: 'structure', slots: [thruster] }]);
+    const el = renderUnfolded([{ section: 'structure', slots: [thruster] }]);
     (el.querySelector('button.slot-btn') as HTMLButtonElement).click();
     expect(swaps.length).toBe(0);
     expect(inspects.length).toBe(1);
@@ -438,7 +453,7 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(swaps.length).toBe(0);
   });
 
-  it('gives countermeasures a block of their own, after the missiles', () => {
+  it('gives countermeasures a read-only block of their own, below the choices', () => {
     const rack = slot({
       port: 'Hardpoint Missiles Wing Left',
       className: 'MRCK_S04_CNOU_Quad_S02_Left',
@@ -473,7 +488,96 @@ describe('CodexHardpointLayoutComponent', () => {
       el.querySelectorAll('.mod-sec[data-sec="missiles"] .slot-stats dd'),
     ).map((d) => d.textContent?.trim());
     expect(rackStats).toEqual(['4', 'S2']);
-    // A launcher is configurable like any other module in a configurable block.
-    expect(el.querySelector('.mod-sec[data-sec="countermeasures"] button.slot-btn')).toBeTruthy();
+    // The launcher still opens its stat sheet — it just isn't a swap any more
+    // (32659942), so the block wears the "not configurable" tag.
+    const cm = el.querySelector('.mod-sec[data-sec="countermeasures"]');
+    expect(cm?.querySelector('button.slot-btn')).toBeTruthy();
+    expect(cm?.classList).toContain('fixed');
+    expect(cm?.querySelector('.sec-tag')).toBeTruthy();
+  });
+
+  // ── "alle oder einzeln" (32659942) ────────────────────────────────────────
+
+  const THREE_MOUNTS: LayoutSection[] = [
+    {
+      section: 'weapons',
+      slots: [
+        { ...VARIPUCK, port: 'Hardpoint Weapon Wing Left' },
+        { ...VARIPUCK, port: 'Hardpoint Weapon Wing Right' },
+        { ...VARIPUCK, port: 'Hardpoint Weapon Nose' },
+      ],
+    },
+  ];
+
+  it('offers to split a collapsed block into one row per hardpoint', () => {
+    const el = render(THREE_MOUNTS);
+    expect(el.querySelectorAll('.slot').length).toBe(1);
+
+    const toggle = el.querySelector(
+      '.mod-sec[data-sec="weapons"] .sec-btn',
+    ) as HTMLButtonElement;
+    expect(toggle).toBeTruthy();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+
+    toggle.click();
+    fixture.detectChanges();
+    // Every mount is now its own decision, each naming its own position.
+    expect(el.querySelectorAll('.slot').length).toBe(3);
+    expect(
+      Array.from(el.querySelectorAll('.duo > .slot-btn > .slot-port')).map((p) =>
+        p.textContent?.trim(),
+      ),
+    ).toEqual([
+      'Hardpoint Weapon Wing Left',
+      'Hardpoint Weapon Wing Right',
+      'Hardpoint Weapon Nose',
+    ]);
+    expect(el.querySelector('.size-tag')?.textContent?.trim()).toBe('S3');
+    expect(
+      (el.querySelector('.mod-sec[data-sec="weapons"] .sec-btn') as HTMLElement).getAttribute(
+        'aria-expanded',
+      ),
+    ).toBe('true');
+  });
+
+  it('swaps a single hardpoint once the block is split, not all three at once', () => {
+    const swaps: LayoutTarget[] = [];
+    fixture.componentInstance.swapRequested.subscribe((v) => swaps.push(v));
+    const el = render(THREE_MOUNTS);
+
+    (el.querySelector('button.slot-btn') as HTMLButtonElement).click();
+    expect(swaps[0].count).toBe(3); // collapsed: the row stands for all three
+
+    (el.querySelector('.mod-sec[data-sec="weapons"] .sec-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (el.querySelectorAll('button.slot-btn')[1] as HTMLButtonElement).click();
+    expect(swaps[1].count).toBe(1);
+    expect(swaps[1].slot.port).toBe('Hardpoint Weapon Wing Right');
+  });
+
+  it('offers the split only where collapsing actually hides a hardpoint', () => {
+    const el = render([{ section: 'weapons', slots: [PANTHER] }]);
+    expect(el.querySelector('.sec-btn')).toBeNull();
+  });
+
+  it('folds the airframe away until it is asked for', () => {
+    const thruster = slot({
+      port: 'Hardpoint Thruster',
+      className: 'T',
+      kind: 'component',
+      name: 'T',
+    });
+    const el = render([{ section: 'weapons', slots: [PANTHER] }, { section: 'structure', slots: [thruster] }]);
+    // The heading and its count stay — only the inventory is folded.
+    const fixed = el.querySelector('.mod-sec[data-sec="structure"]') as HTMLElement;
+    expect(fixed.querySelector('.sec-ct')?.textContent?.trim()).toBe('1');
+    expect(fixed.querySelector('.sec-rows')).toBeNull();
+    // A configurable block is never folded — that would hide the action.
+    expect(el.querySelector('.mod-sec[data-sec="weapons"] .sec-rows')).toBeTruthy();
+    expect(el.querySelector('.mod-sec[data-sec="weapons"] .sec-btn.fold')).toBeNull();
+
+    (fixed.querySelector('.sec-btn.fold') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixed.querySelector('.sec-rows')).toBeTruthy();
   });
 });

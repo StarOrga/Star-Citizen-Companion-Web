@@ -39,17 +39,11 @@ export type ShipModuleSection =
  * shows them (admin request 461288f9: "Waffen / Remote Turrets / Raketen /
  * POD / Schilde / Quantum Drive / Radar / Coolers / Life Support", with the
  * power plant — "Generator" in the same request — kept next to the shields).
- *
- * `countermeasures` sits directly after `missiles` (admin request 1add86a4):
- * decoy and noise launchers used to be folded into the missile block, where
- * they read as ordnance a pilot cannot pick. They are their own choice, so they
- * get their own block right below the racks they defend against.
  */
 export const CONFIGURABLE_SHIP_SECTIONS: readonly ShipModuleSection[] = [
   'weapons',
   'remoteTurrets',
   'missiles',
-  'countermeasures',
   'pod',
   'shields',
   'powerPlants',
@@ -59,15 +53,32 @@ export const CONFIGURABLE_SHIP_SECTIONS: readonly ShipModuleSection[] = [
   'lifeSupport',
 ] as const;
 
-/** Full display order — configurable blocks first, the fixed rest last. */
+/**
+ * Blocks that are shown but cannot be swapped, between the configurable ones
+ * and the airframe.
+ *
+ * `countermeasures` used to live directly under `missiles` as its own choice
+ * (admin request 1add86a4). It came back the other way round in 32659942 —
+ * *"Gegenmaßnahme kann man aktuell nicht ändern somit weiter runter und als
+ * kein Auswählbares Fenster anzeigen"*: the game gives no way to change a
+ * decoy or noise launcher, so a picker on it promises something that does not
+ * exist. The block keeps its own heading and its explanation, it just stops
+ * pretending to be a decision and moves below the things that are.
+ */
+const READ_ONLY_SHIP_SECTIONS: readonly ShipModuleSection[] = ['countermeasures'] as const;
+
+/** Full display order — configurable blocks first, then read-only, airframe last. */
 export const SHIP_MODULE_SECTION_ORDER: readonly ShipModuleSection[] = [
   ...CONFIGURABLE_SHIP_SECTIONS,
+  ...READ_ONLY_SHIP_SECTIONS,
   'structure',
 ] as const;
 
+const CONFIGURABLE_SET: ReadonlySet<ShipModuleSection> = new Set(CONFIGURABLE_SHIP_SECTIONS);
+
 /** True for the sections a pilot can swap items in. */
 export function isConfigurableSection(section: ShipModuleSection): boolean {
-  return section !== 'structure';
+  return CONFIGURABLE_SET.has(section);
 }
 
 /**
@@ -78,11 +89,17 @@ export function isConfigurableSection(section: ShipModuleSection): boolean {
  * Collapsing identical occupants is right for twelve manoeuvring thrusters and
  * for a bank of identical guns — but a shield bank of "2× S1 Sechs Shield"
  * hides that those are two independently swappable generators, and a decoy plus
- * a noise launcher are never interchangeable. Both blocks list every slot.
+ * a noise launcher are never interchangeable. All three blocks list every slot.
+ *
+ * `coolers` joined them in 32659942 (*"Coolers müssten 2 sein nicht nur eins!"*):
+ * a hull's two identical coolers collapsed into a single "2× S1" row, and the
+ * multiplier in the badge is much easier to miss than a second line. Every other
+ * block can be split on demand — see the layout component's per-block toggle.
  */
 const INDIVIDUAL_SHIP_SECTIONS: ReadonlySet<ShipModuleSection> = new Set([
   'shields',
   'countermeasures',
+  'coolers',
 ]);
 
 /** True when a block must list every hardpoint separately (never collapse). */
@@ -115,26 +132,43 @@ const STRUCTURAL_PORT =
  * The ship's SHIELD CONTROL module (`hardpoint_controller_shield`, occupied by
  * `Controller_Shield_<Hull>` with `attachType: ShieldController`).
  *
- * It is a controller, so `STRUCTURAL_PORT` used to bury it in the fixed block —
- * yet it is the one shield-side module that is not a generator, and a pilot
- * counting their shield slots needs to tell the two apart (admin request
- * 1add86a4). The fire-group module `hardpoint_controller_weapon` deliberately
- * stays structural: it holds nothing and offers no choice.
+ * 1add86a4 pulled it OUT of the fixed block and tagged it inside the shield
+ * block, so a pilot counting shield slots could tell generator from controller.
+ * 32659942 sent it back: *"'Schild Controller' kann man ingame nichts von sehen
+ * also da uninteressant!!!"* — it is neither visible nor swappable in game, and
+ * a fourth row in a three-shield block costs more than it explains. It is
+ * airframe now, so the block's count is the number of shields and nothing else.
  */
 const SHIELD_CONTROL_PORT = /controller[_a-z]*shield|shield[_a-z]*controller/i;
 const SHIELD_CONTROL_TYPE = /^shieldcontroller$/i;
 
-/**
- * True for the shield CONTROL module rather than a shield generator. The ship
- * page tags that row separately so "3 generator bays + 1 control module" can
- * never be misread as four interchangeable shields.
- */
+/** True for the shield CONTROL module rather than a shield generator. */
 export function isShieldControlPort(
   portName: string | null | undefined,
   occupant?: ShipModuleOccupant | null,
 ): boolean {
   if (portName && SHIELD_CONTROL_PORT.test(portName)) return true;
   return !!occupant?.attachType && SHIELD_CONTROL_TYPE.test(occupant.attachType.trim());
+}
+
+/**
+ * The quantum drive's own fuel tank (`hardpoint_quantum_fuel_tank`, the
+ * "Internal Tank" row). It reads as a second quantum choice next to the drive,
+ * but no ship lets you change it — 32659942: *"Quantum Antrieb 'Internal Tank'
+ * ist auch uninteressant kann man nicht Ändern"*. Filed as airframe so the
+ * quantum block holds the one thing that IS a decision: the drive.
+ */
+const FIXED_TANK_PORT = /(quantum|hydrogen|internal)[_a-z]*(fuel_?)?tank|fuel_?tank/i;
+const FIXED_TANK_TYPE = /^(quantumfueltank|hydrogenfueltank|fueltank)$/i;
+
+/** True for a fuel tank hardpoint — present on the hull, never a pilot's choice. */
+export function isFixedTankPort(
+  portName: string | null | undefined,
+  occupant?: ShipModuleOccupant | null,
+): boolean {
+  if (portName && FIXED_TANK_PORT.test(portName)) return true;
+  const type = (occupant?.attachType ?? occupant?.componentKind ?? '').trim();
+  return !!type && FIXED_TANK_TYPE.test(type);
 }
 
 // Port-name rules, in priority order. First match wins, so the more specific
@@ -190,10 +224,11 @@ const TYPE_SECTION: Readonly<Record<string, ShipModuleSection>> = {
   // the rest
   shield: 'shields',
   shieldgenerator: 'shields',
-  shieldcontroller: 'shields',
+  // Control module and internal tank are hull furniture, not choices (32659942).
+  shieldcontroller: 'structure',
   powerplant: 'powerPlants',
   quantumdrive: 'quantum',
-  quantumfueltank: 'quantum',
+  quantumfueltank: 'structure',
   jumpdrive: 'quantum',
   radar: 'radar',
   scanner: 'radar',
@@ -220,9 +255,12 @@ export function classifyShipModule(
   occupant?: ShipModuleOccupant | null,
 ): ShipModuleSection {
   const port = portName ?? '';
-  // The shield control module is a `controller`, so it has to be pulled out
-  // before the furniture rule buries it in the fixed block (1add86a4).
-  if (isShieldControlPort(port, occupant)) return 'shields';
+  // Two modules that name a configurable block but are not one: the shield
+  // CONTROL module and the quantum drive's internal tank. Both are checked
+  // before the port rules, which would otherwise file them by their keyword
+  // ("shield" → shields, "quantum" → quantum) — see 32659942.
+  if (isShieldControlPort(port, occupant)) return 'structure';
+  if (isFixedTankPort(port, occupant)) return 'structure';
   // Furniture first — it is the only rule allowed to beat the occupant's type,
   // because a turret SEAT genuinely is not a turret.
   if (port && STRUCTURAL_PORT.test(port)) return 'structure';

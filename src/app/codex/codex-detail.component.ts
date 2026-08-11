@@ -75,8 +75,8 @@ import {
 import {
   ShipModuleSection,
   classifyShipModule,
+  isConfigurableSection,
   isIndividualSection,
-  isShieldControlPort,
   shipPortFamily,
 } from './ship-module-sections';
 import {
@@ -1758,7 +1758,7 @@ export class CodexDetailComponent implements OnInit {
   private readonly emptyFits = computed<Map<string, EmptyFit>>(() => {
     const out = new Map<string, EmptyFit>();
     for (const r of this.resolvedLoadout()) {
-      if (r.item.className || r.section === 'structure' || !r.item.port) continue;
+      if (r.item.className || !isConfigurableSection(r.section) || !r.item.port) continue;
       const fit = this.emptyFitFor(r.item.port, r.section);
       if (fit) out.set(r.item.port, fit);
     }
@@ -1866,11 +1866,15 @@ export class CodexDetailComponent implements OnInit {
 
     const buckets = new Map<ShipModuleSection, LayoutSlot[]>();
     for (const r of this.resolvedLoadout()) {
-      const configurable = r.section !== 'structure';
-      if (!configurable && !r.item.className && !showEmpty) continue;
+      const configurable = isConfigurableSection(r.section);
+      // Only the AIRFRAME folds its unfitted ports away (a capital ship has
+      // hundreds). A read-only block like the countermeasures is short and
+      // still worth reading in full, so it keeps every bay.
+      const fixedRest = r.section === 'structure';
+      if (fixedRest && !r.item.className && !showEmpty) continue;
       const l = r.item;
       const item = { kind: r.kind, payload: r.payload, ammoPayload: r.ammoPayload };
-      const children = configurable ? this.childrenFor(l.className, l.carried) : [];
+      const children = fixedRest ? [] : this.childrenFor(l.className, l.carried);
       const fit = l.className ? undefined : this.emptyFits().get(l.port);
       const slot: LayoutSlot = {
         port: this.humanizePort(l.port),
@@ -1897,7 +1901,6 @@ export class CodexDetailComponent implements OnInit {
         emptyLabelKey: isWeaponMountPort(l.port)
           ? 'codex.detail.loadoutEmptyWeaponMount'
           : null,
-        roleKey: this.moduleRoleKey(r.section, l.port, r.occupant),
         emptySwappable: !!fit,
       };
       const hit = buckets.get(r.section);
@@ -1914,23 +1917,10 @@ export class CodexDetailComponent implements OnInit {
     }));
   });
 
-  /**
-   * The role a hardpoint plays inside a block that mixes roles. Only the shield
-   * block does today: three generator BAYS plus the ship's shield CONTROL
-   * module. Naming both is the honest reading of the admin's "2 physische und 1
-   * logischer Platz" (1add86a4) — the extract carries no physical/logical flag,
-   * but it does distinguish a generator from its controller.
-   */
-  private moduleRoleKey(
-    section: ShipModuleSection,
-    port: string | null,
-    occupant: { attachType?: string | null },
-  ): string | null {
-    if (section !== 'shields') return null;
-    return isShieldControlPort(port, occupant)
-      ? 'codex.moduleRole.shieldController'
-      : 'codex.moduleRole.shieldGenerator';
-  }
+  // The shield block used to tag each row "Generator" or "Steuermodul" because
+  // the control module sat inside it (1add86a4). 32659942 moved the controller
+  // into the airframe — every row in the block is a shield again, so the tag
+  // has nothing left to disambiguate and is gone with it.
 
   /** What a block can and cannot tell a pilot, said next to that block. */
   private sectionNotes(section: ShipModuleSection): SectionNote[] {
