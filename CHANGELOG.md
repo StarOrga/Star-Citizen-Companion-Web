@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.62.1] - 2026-08-12
+
+### Security
+
+- **All 9 production npm vulnerabilities cleared (8 high).** Includes the
+  DOMPurify XSS advisory (GHSA-55q2-fjhq-7xh7) — the sanitizer that cleans
+  Verse-News HTML. `npm audit --omit=dev` is back to 0.
+
+### Changed
+
+- **Dependency refresh across the whole repo**, consolidating the 16 open
+  Dependabot PRs: Angular 21.2.19, supabase-js 2.112, zone.js 0.16,
+  posthog-js 1.413 (web) · gltf-transform 4.4.2, electron 43.3, vitest 4.1.10,
+  cryptography 50 (data-uploader 0.23.1) · GitHub-Actions pins (checkout v7,
+  setup-node v7, setup-python v7, upload-artifact v7, gh-release v3,
+  setup-cli v3).
+- data-uploader stays on vite 7 (electron-vite 5 caps its peer range at 7);
+  Angular 22, TypeScript 7 (web) and ngx-translate 18 majors deliberately
+  deferred, scdatatools-pinned Python bumps await a scdatatools update.
+
 ## [0.62.0] - 2026-08-11
 
 ### Added
