@@ -41,6 +41,19 @@ updates:
           - "*"
         exclude-patterns:
           - "@angular/*"
+    ignore:
+      # TypeScript's major is chosen by Angular, not by us: @angular/compiler-cli
+      # declares a hard peer window (21.2.19 → `>=5.9 <6.1`, 22.1.1 → `>=6.0
+      # <6.1`). npm `latest` is already 7.0.2, which no Angular release accepts,
+      # so a TS major is uninstallable — and because npm-dependencies is a
+      # *group*, that one package made the whole group PR unmergeable (#390 also
+      # carried @types/node, jasmine-core and @ngx-translate, all fine on their
+      # own). Ignoring the major lets the rest of the group land.
+      #
+      # TypeScript moves with the Angular upgrade, via `ng update`. Lift this
+      # only if Angular ever widens the window past its own major.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # ---- data-uploader (npm) ----
   - package-ecosystem: "npm"
