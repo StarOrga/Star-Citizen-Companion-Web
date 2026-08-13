@@ -43,12 +43,18 @@ if (!csp) {
   process.exit(1);
 }
 
-const directives = new Map(
-  csp.split(';').map((d) => {
-    const [name, ...sources] = d.trim().split(/\s+/);
-    return [name, sources];
-  }),
-);
+// Browsers enforce the FIRST occurrence of a duplicated directive; a Map would
+// silently keep the last. Duplicates mean the policy no longer says what its
+// author thinks it says — fail fast instead of auditing the wrong one.
+const directives = new Map();
+for (const d of csp.split(';')) {
+  const [name, ...sources] = d.trim().split(/\s+/);
+  if (directives.has(name)) {
+    console.error(`✗ CSP declares "${name}" twice — browsers enforce the first and ignore the rest.`);
+    process.exit(1);
+  }
+  directives.set(name, sources);
+}
 
 // Subresource directives whose requests the service worker re-issues under its
 // own connect-src. frame-src is exempt: frames are navigations, not fetches the

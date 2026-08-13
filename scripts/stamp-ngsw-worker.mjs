@@ -30,6 +30,7 @@
  * so the appended comment cannot break integrity checks.
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -42,7 +43,15 @@ if (!existsSync(worker)) {
 }
 
 const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
-const stamp = `\n// sc-companion v${version} — byte-stamp so header-only changes (CSP!) reach installed workers; see scripts/stamp-ngsw-worker.mjs\n`;
+// The header hash makes the stamp track the POLICY, not just the release: a
+// header-only change deployed under an unchanged app version would otherwise
+// produce a byte-identical worker again — the exact staleness this script
+// exists to prevent.
+const headerHash = createHash('sha256')
+  .update(JSON.stringify(JSON.parse(readFileSync(join(root, 'vercel.json'), 'utf8')).headers ?? []))
+  .digest('hex')
+  .slice(0, 12);
+const stamp = `\n// sc-companion v${version}+h.${headerHash} — byte-stamp so header-only changes (CSP!) reach installed workers; see scripts/stamp-ngsw-worker.mjs\n`;
 
 const source = readFileSync(worker, 'utf8');
 if (source.includes(stamp)) {
