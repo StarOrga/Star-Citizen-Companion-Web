@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.62.0",
+  "current": "0.62.1",
   "releases": [
+    {
+      "version": "0.62.1",
+      "date": "2026-08-12",
+      "sections": [
+        {
+          "category": "Security",
+          "label": "",
+          "items": [
+            {
+              "title": "All 9 production npm vulnerabilities cleared (8 high).",
+              "text": "Includes the DOMPurify XSS advisory (GHSA-55q2-fjhq-7xh7) — the sanitizer that cleans Verse-News HTML. npm audit --omit=dev is back to 0."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Dependency refresh across the whole repo",
+              "text": ", consolidating the 16 open Dependabot PRs: Angular 21.2.19, supabase-js 2.112, zone.js 0.16, posthog-js 1.413 (web) · gltf-transform 4.4.2, electron 43.3, vitest 4.1.10, cryptography 50 (data-uploader 0.23.1) · GitHub-Actions pins (checkout v7, setup-node v7, setup-python v7, upload-artifact v7, gh-release v3, setup-cli v3)."
+            },
+            {
+              "title": "",
+              "text": "data-uploader stays on vite 7 (electron-vite 5 caps its peer range at 7); Angular 22, TypeScript 7 (web) and ngx-translate 18 majors deliberately deferred, scdatatools-pinned Python bumps await a scdatatools update."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.62.0",
       "date": "2026-08-11",
