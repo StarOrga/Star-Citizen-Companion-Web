@@ -4,6 +4,31 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.62.2] - 2026-08-13
+
+### Fixed
+
+- **Starscape images (and RSI-hosted news thumbs) were dead for every returning
+  visitor.** The Angular service worker re-fetches every subresource inside the
+  worker, where only the worker script's CSP `connect-src` applies — and that
+  list was missing the RSI image CDN, the signed `/i/` proxy host and the
+  Google-Fonts pair. ngsw answered each request with a synthesized
+  `504 Gateway Timeout`, while curl and first visits saw 200 (the real cause
+  behind admin feedback 4e54ad2c). The missing hosts are now granted in
+  `connect-src`; `theverse.robertsspaceindustries.com` joins `img-src` for
+  Spectrum-hosted screenshots.
+
+### Added
+
+- **Prebuild guard `check-csp-connect-src.mjs`:** every https host granted in
+  `script/style/font/img-src` must also be in `connect-src`, and duplicated
+  CSP directives fail the build — this bug class cannot ship again.
+- **Postbuild stamp `stamp-ngsw-worker.mjs`:** `ngsw-worker.js` is byte-stamped
+  with the app version plus a hash of the response-header config. A
+  byte-identical worker script never adopts new response headers (the service
+  worker update algorithm discards the fresh fetch), so without the stamp,
+  header-only fixes like this one would never reach existing installs.
+
 ## [0.62.1] - 2026-08-12
 
 ### Security
