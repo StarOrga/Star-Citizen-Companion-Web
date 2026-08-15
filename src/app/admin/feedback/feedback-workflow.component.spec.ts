@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { FeedbackWorkflowComponent } from './feedback-workflow.component';
 import { CelebrationService } from './celebration.service';
-import { FeedbackRow, WorkflowItem } from './feedback.types';
+import { FeedbackMessage, FeedbackRow, WorkflowItem } from './feedback.types';
 
 function row(id: string): FeedbackRow {
   return {
@@ -34,9 +34,27 @@ function reviewItem(id: string): WorkflowItem {
   };
 }
 
+
+/** A thread message, oldest-first order assumed by the component. */
+function msg(id: string, isSystem: boolean): FeedbackMessage {
+  return {
+    id,
+    feedback_id: 'x',
+    author_id: isSystem ? null : 'admin',
+    is_system: isSystem,
+    body: `Message ${id}`,
+    created_at: '2026-07-20T11:00:00Z',
+    author: null,
+  };
+}
+
 describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
   let fixture: ComponentFixture<FeedbackWorkflowComponent>;
   let celebration: { reducedMotion: boolean; burst: jasmine.Spy; burstFrom: jasmine.Spy };
+  /** Stand-in for the board's "post the steer, then reopen" write. */
+  let reopenWithReply: jasmine.Spy;
+  /** What that write resolves to — flipped to false for the failure case. */
+  let reopenOk = true;
 
   /**
    * Mounts the mode with `ids` in the queue and wires `markHandled` the way the
@@ -48,6 +66,10 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
 
   /** Same, but with a hand-built queue — used for the mixed question/Abnahme runs. */
   async function setupQueue(items: WorkflowItem[], reducedMotion = false) {
+    reopenOk = true;
+    reopenWithReply = jasmine
+      .createSpy('reopenWithReply')
+      .and.callFake(() => Promise.resolve(reopenOk));
     celebration = {
       reducedMotion,
       burst: jasmine.createSpy('burst'),
@@ -69,6 +91,7 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
     let queue = items;
     fixture.componentRef.setInput('queue', queue);
     fixture.componentRef.setInput('reply', () => Promise.resolve(true));
+    fixture.componentRef.setInput('reopenWithReply', reopenWithReply);
     fixture.componentInstance.markHandled.subscribe((id: string) => {
       queue = queue.filter((q) => q.row.id !== id);
       fixture.componentRef.setInput('queue', queue);
@@ -247,34 +270,27 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
     expect(cmp.linkKind(cmp.current()!)).toBe('ship');
   });
 
-  it('offers exactly the two Abnahme decisions and hands them to the board', async () => {
+  it('offers the sign-off, the reopen and skip — and no "Thema öffnen"', async () => {
     const cmp = await setupQueue([reviewItem('r')]);
     const accepted: string[] = [];
-    const reopened: string[] = [];
-    const opened: string[] = [];
     cmp.acceptReview.subscribe((r: FeedbackRow) => accepted.push(r.id));
-    cmp.reopenReview.subscribe((r: FeedbackRow) => reopened.push(r.id));
-    cmp.openTopic.subscribe((r: FeedbackRow) => opened.push(r.id));
 
-    // accept · reopen · skip · open topic — no answer box on an Abnahme step.
+    // accept · reopen · skip. "Thema öffnen" is gone (feedback d4990269,
+    // round 2) — the card shows the whole topic — and there is no answer box
+    // until the reopen is picked.
     const buttons: HTMLButtonElement[] = Array.from(
       fixture.nativeElement.querySelectorAll('.wf-actions button'),
     );
-    expect(buttons.length).toBe(4);
+    expect(buttons.length).toBe(3);
     expect(fixture.nativeElement.querySelector('sc-feedback-composer')).toBeNull();
 
     buttons[0].click();
-    buttons[1].click();
-    buttons[3].click();
-
     expect(accepted).toEqual(['r']);
-    expect(reopened).toEqual(['r']);
-    expect(opened).toEqual(['r']);
   });
 
   it('reports the step once a sign-off decision came back', async () => {
     const cmp = await setupQueue([reviewItem('r'), item('q')]);
-    cmp.decide(cmp.current()!, 'accept');
+    cmp.accept(cmp.current()!);
 
     // The board is writing — the topic is still in the queue, nothing to report.
     fixture.componentRef.setInput('busy', true);
@@ -290,7 +306,7 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
 
   it('stays quiet when the sign-off write failed and the topic stayed', async () => {
     const cmp = await setupQueue([reviewItem('r'), item('q')]);
-    cmp.decide(cmp.current()!, 'reopen');
+    cmp.accept(cmp.current()!);
 
     fixture.componentRef.setInput('busy', true);
     fixture.detectChanges();
@@ -310,7 +326,7 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
     cmp.skip(); // parks r → q
     expect(cmp.skippedCount()).toBe(1);
 
-    cmp.decide(cmp.queue()[0], 'accept');
+    cmp.accept(cmp.queue()[0]);
     expect(cmp.skippedCount()).toBe(0);
   });
 
@@ -322,5 +338,148 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
     expect(cmp.stamp(cmp.current()!)).toBe('2026-07-20T10:00:00Z');
     cmp.skip();
     expect(cmp.stamp(cmp.current()!)).toBe('2026-07-25T09:00:00Z');
+  });
+  // ---- Kind lens: the Abnahme tab's replacement (feedback d4990269, round 2) ----
+
+  it('exposes the kind switch with its counts', async () => {
+    const cmp = await setupQueue([item('q'), reviewItem('r')]);
+    fixture.componentRef.setInput('kindCounts', { all: 2, question: 1, review: 1 });
+    fixture.detectChanges();
+
+    expect(cmp.kindOptions()).toEqual([
+      { key: 'all', count: 2 },
+      { key: 'question', count: 1 },
+      { key: 'review', count: 1 },
+    ]);
+  });
+
+  it('emits the picked kind and ignores a click on the active one', async () => {
+    const cmp = await setup(['a']);
+    const picked: string[] = [];
+    cmp.kindChange.subscribe((k: string) => picked.push(k));
+
+    cmp.pickKind('all'); // already the default input value
+    cmp.pickKind('review');
+    expect(picked).toEqual(['review']);
+  });
+
+  it('blames the kind lens, not an empty inbox, when it is what hides the work', async () => {
+    const cmp = await setupQueue([]);
+    // Filtered to Abnahmen, none waiting — but three Rückfragen sit behind it.
+    fixture.componentRef.setInput('kind', 'review');
+    fixture.componentRef.setInput('kindCounts', { all: 3, question: 3, review: 0 });
+    fixture.componentRef.setInput('scopeCounts', { mine: 0, others: 0, all: 0 });
+    fixture.detectChanges();
+
+    expect(cmp.hiddenByScope()).toBe(0);
+    expect(cmp.hiddenByKind()).toBe(3);
+  });
+
+  // ---- Folded thread history (feedback d4990269, round 2) ----
+
+  it('shows only the tail the run points at, folding the rest away', async () => {
+    // …first post, two older messages, then the routine's open question.
+    const q = item('q');
+    q.replies = [msg('m1', false), msg('m2', true), msg('m3', false), msg('m4', true)];
+    const cmp = await setupQueue([q]);
+
+    // The run points at the trailing routine message → everything before folds.
+    expect(cmp.focusIndex()).toBe(3);
+    expect(cmp.hiddenCount()).toBe(3);
+    expect(cmp.visibleReplies().map((m) => m.id)).toEqual(['m4']);
+  });
+
+  it('unfolds the history on demand and folds it back', async () => {
+    const q = item('q');
+    q.replies = [msg('m1', false), msg('m2', true), msg('m3', true)];
+    const cmp = await setupQueue([q]);
+    expect(cmp.visibleReplies().length).toBe(2); // the trailing routine run
+
+    cmp.toggleThread();
+    expect(cmp.hiddenCount()).toBe(0);
+    expect(cmp.visibleReplies().map((m) => m.id)).toEqual(['m1', 'm2', 'm3']);
+
+    cmp.toggleThread();
+    expect(cmp.visibleReplies().map((m) => m.id)).toEqual(['m2', 'm3']);
+  });
+
+  it('folds nothing when the run points at the first message', async () => {
+    const q = item('q');
+    q.replies = [msg('m1', true)];
+    const cmp = await setupQueue([q]);
+
+    expect(cmp.hiddenCount()).toBe(0);
+    expect(fixture.nativeElement.querySelector('.thread-more')).toBeNull();
+  });
+
+  it('starts the next card folded again', async () => {
+    const a = item('a');
+    a.replies = [msg('m1', false), msg('m2', true)];
+    const b = item('b');
+    b.replies = [msg('n1', false), msg('n2', true)];
+    const cmp = await setupQueue([a, b]);
+
+    cmp.toggleThread();
+    expect(cmp.threadExpanded()).toBeTrue();
+    cmp.skip();
+    fixture.detectChanges();
+
+    expect(cmp.current()!.row.id).toBe('b');
+    expect(cmp.threadExpanded()).toBeFalse();
+  });
+
+  // ---- Reopen carries a message (feedback d4990269, round 2) ----
+
+  it('opens the answer box instead of flipping the status on the spot', async () => {
+    const cmp = await setupQueue([reviewItem('r')]);
+    expect(fixture.nativeElement.querySelector('sc-feedback-composer')).toBeNull();
+
+    cmp.startReopen();
+    fixture.detectChanges();
+
+    expect(cmp.reopening()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('sc-feedback-composer')).not.toBeNull();
+    // The two decisions step aside while the admin is writing.
+    const labels: string[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.wf-actions button'),
+    ).map((b) => (b as HTMLButtonElement).textContent!.trim());
+    expect(labels.length).toBe(1);
+    expect(reopenWithReply).not.toHaveBeenCalled();
+  });
+
+  it('backs out of the answer box without writing anything', async () => {
+    const cmp = await setupQueue([reviewItem('r')]);
+    cmp.startReopen();
+    cmp.cancelReopen();
+    fixture.detectChanges();
+
+    expect(cmp.reopening()).toBeFalse();
+    expect(fixture.nativeElement.querySelectorAll('.wf-actions button').length).toBe(3);
+    expect(reopenWithReply).not.toHaveBeenCalled();
+  });
+
+  it('sends the steer and the reopen as one call, then reports the step', async () => {
+    const cmp = await setupQueue([reviewItem('r'), item('q')]);
+    cmp.startReopen();
+
+    expect(await cmp.submitReopen({ text: 'noch nicht ganz', images: [] })).toBeTrue();
+    expect(reopenWithReply).toHaveBeenCalledWith('r', { text: 'noch nicht ganz', images: [] });
+    expect(cmp.reopening()).toBeFalse();
+
+    // The board's refresh drops the reopened topic → the run names where it is.
+    fixture.componentRef.setInput('queue', [item('q')]);
+    fixture.detectChanges();
+    expect(cmp.advanced()).toEqual({ current: 1, total: 1 });
+  });
+
+  it('keeps the box open when the write failed', async () => {
+    const cmp = await setupQueue([reviewItem('r')]);
+    cmp.startReopen();
+    reopenOk = false;
+
+    expect(await cmp.submitReopen({ text: 'nope', images: [] })).toBeFalse();
+    // The admin's words stay in front of them, and nothing was reported.
+    expect(cmp.reopening()).toBeTrue();
+    expect(cmp.advanced()).toBeNull();
   });
 });

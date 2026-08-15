@@ -1783,7 +1783,6 @@
       "label": "Ansicht wechseln",
       "overview": "Übersicht",
       "workflow": "Abarbeiten",
-      "review": "Abnahme",
       "progress": "Fortschritt"
     },
     "cheer": {
@@ -1817,7 +1816,18 @@
       },
       "scopeEmptyTitle": "In dieser Auswahl ist nichts offen",
       "scopeEmptyHint": "{{count}} Thema/Themen liegen in einer anderen Auswahl.",
-      "cheerReplied": "Notiert! Weiter geht's."
+      "cheerReplied": "Notiert! Weiter geht's.",
+      "kindFilter": {
+        "label": "Nur eine Art von Schritt zeigen",
+        "all": "Alle",
+        "question": "Rückfragen",
+        "review": "Abnahmen"
+      },
+      "threadExpand": "{{count}} ältere Nachricht(en) einblenden",
+      "threadCollapse": "Ältere Nachrichten wieder ausblenden",
+      "kindEmptyTitle": "Hier ist gerade nichts",
+      "kindEmptyHint": "{{count}} Thema/Themen warten unter „Alle\".",
+      "kindShowAll": "Alle zeigen"
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",
@@ -1913,13 +1923,10 @@
       "hint": "Schau dir das Ergebnis live an. Passt es, ist das Thema erledigt. Passt es nicht, nimm das Gespräch wieder auf — das Thema geht zurück in die Warteschlange der Routine.",
       "accept": "Ins Archiv — erledigt",
       "reopen": "Gespräch wieder aufnehmen",
-      "queueTitle": "Wurde bearbeitet — bitte prüfen und abhaken",
-      "alsoInWorkflow": "Dieselben Themen laufen auch in „Abarbeiten“ mit — dort eins nach dem anderen, hier alle auf einen Blick.",
-      "openTopic": "Thema öffnen",
-      "emptyTitle": "Nichts abzunehmen",
-      "emptyHint": "Sobald die Routine ein Thema geshippt oder an ein Issue übergeben hat, wartet es hier auf deine Abnahme.",
-      "scopeEmptyTitle": "In dieser Auswahl ist nichts abzunehmen",
-      "scopeEmptyHint": "{{count}} Thema/Themen warten in einer anderen Auswahl."
+      "reopenHint": "Schreib kurz, was noch nicht passt — die Routine nimmt das Thema damit wieder auf und liest deine Antwort als Auftrag.",
+      "reopenPlaceholder": "Was soll noch anders werden?",
+      "reopenSend": "Senden & wieder aufnehmen",
+      "reopenCancel": "Abbrechen"
     }
   },
   "feedbackFab": {

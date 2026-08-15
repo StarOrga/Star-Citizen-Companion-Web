@@ -30,24 +30,25 @@ import {
   BucketLabelKey,
   FeedbackStatus,
   WORKFLOW_SCOPES,
+  WorkflowKind,
   WorkflowScope,
   awaitsTriage,
   buildWorkflowQueue,
   bucketLabelStatus,
   feedbackBucket,
-  filterRowScope,
+  filterWorkflowKind,
   filterWorkflowScope,
   isArchived,
   isContinuedAfterShip,
   isUserSubmitted,
   refKind,
   reviewSince,
-  rowScopeCounts,
   searchFeedback,
   searchTokens,
   timeOf,
   topicNumber,
   topicTitle,
+  workflowKindCounts,
   workflowScopeCounts,
 } from './feedback.types';
 import { buildFeedbackBody, uploadFeedbackImages } from '../../feedback/feedback-images.util';
@@ -65,17 +66,19 @@ import {
 } from '../../feedback/user-feedback.types';
 
 /**
- * The board's four modes: scan the list, work the queue, sign the finished work
- * off, read the numbers.
+ * The board's three modes: scan the list, work the queue, read the numbers.
  *
- * `review` is the admin's own step (feedback #79): the review gate (migration
- * 20260729130000) already keeps a shipped topic on the active board until
- * somebody accepts the result, but it only surfaced inside the topic's card in
- * the overview — so finding what is waiting meant scrolling the board. As its
- * own mode it is a visible "this was done, please check and tick it off" pile
- * with the archive one click away.
+ * There used to be a fourth, `review` — the Abnahme pile as its own tab
+ * (feedback #79). It held exactly the rows the Abarbeiten run walks, which made
+ * it a second surface for one pile, and the admin asked for it to go (feedback
+ * d4990269, round 2: "den Abnahme Tab können wir rausmachen und einfach in
+ * Abarbeiten eine filter möglichkeit nur abnahmen einfügen"). The sign-off did
+ * not lose a home: it is a chip in the run now, and the in-card gate in the
+ * overview is untouched. A remembered `review` view is migrated in
+ * {@link AdminFeedbackComponent.readView} to the run with that filter set, so
+ * nobody's stored preference dead-ends.
  */
-export type FeedbackView = 'overview' | 'workflow' | 'review' | 'progress';
+export type FeedbackView = 'overview' | 'workflow' | 'progress';
 
 /**
  * Which half of the overview list is on screen: the working set or the done
@@ -124,16 +127,14 @@ const WORKFLOW_SCOPE_KEY = 'sc.adminFeedback.workflowScope';
  * (with its counts) makes the other two scopes one click away.
  */
 const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
-/** localStorage key remembering the sign-off view's scope — its own, kept apart
- *  from the processing mode's so switching one never moves the other. */
-const REVIEW_SCOPE_KEY = 'sc.adminFeedback.reviewScope';
+/** localStorage key remembering the processing mode's kind lens. */
+const WORKFLOW_KIND_KEY = 'sc.adminFeedback.workflowKind';
 /**
- * Scope the sign-off view opens in: your own topics, mirroring the processing
- * mode's default (feedback abfa97c6). Signing a result off is the same personal
- * chore — the topics you raised are the ones you can judge "done" without
- * guessing — so it starts on `mine`, the other two scopes one click away.
+ * Kind the processing mode opens on (feedback d4990269, round 2): everything.
+ * The lens replaced the Abnahme tab, and the run's own point is that the admin
+ * works one inbox rather than picking piles — narrowing it is a deliberate act.
  */
-const DEFAULT_REVIEW_SCOPE: WorkflowScope = 'mine';
+const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
 
 @Component({
   selector: 'sc-admin-feedback',
@@ -213,29 +214,18 @@ const DEFAULT_REVIEW_SCOPE: WorkflowScope = 'mine';
           (click)="setView('workflow')">
           {{ 'adminFeedback.view.workflow' | translate }}
           <!-- Counts Rückfragen AND Abnahmen since feedback d4990269 — the run
-               walks both, so the badge has to promise both. -->
-          @if (workflowQueue().length > 0) {
-            <span class="tab-badge">{{ workflowQueue().length }}</span>
+               walks both, so the badge has to promise both. It ignores the run's
+               kind filter on purpose: the badge is "how much is waiting", not
+               "how much is on screen". -->
+          @if (workflowInboxCount() > 0) {
+            <span class="tab-badge">{{ workflowInboxCount() }}</span>
           }
         </button>
-        <!-- The sign-off step (feedback #79): everything the routine finished
-             and nobody has confirmed yet, with its own count so it is obvious
-             from the switch that something is waiting. Kept as its own tab after
-             feedback d4990269 folded the same rows into the Abarbeiten run: this
-             is the list view of that pile (scan many at once), Abarbeiten is the
-             guided one-at-a-time walk. Both read the same awaitsReview rule, so
-             both counts stay truthful. -->
-        <button
-          type="button"
-          class="view-tab"
-          [class.active]="view() === 'review'"
-          [attr.aria-pressed]="view() === 'review'"
-          (click)="setView('review')">
-          {{ 'adminFeedback.view.review' | translate }}
-          @if (reviewQueue().length > 0) {
-            <span class="tab-badge review">{{ reviewQueue().length }}</span>
-          }
-        </button>
+        <!-- The Abnahme tab used to sit here (feedback #79) and hold exactly the
+             rows the Abarbeiten run already walks. Two surfaces for one pile is
+             one too many, so it is gone (feedback d4990269, round 2) — the run
+             carries a "nur Abnahmen" filter instead, and a stored review view
+             lands there (see readView). -->
         <button
           type="button"
           class="view-tab"
@@ -255,114 +245,15 @@ const DEFAULT_REVIEW_SCOPE: WorkflowScope = 'mine';
             [compact]="embedded()"
             [scope]="workflowScope()"
             [scopeCounts]="workflowScopeCounts()"
+            [kind]="workflowKind()"
+            [kindCounts]="workflowKindCounts()"
             [reply]="workflowReplyBound"
+            [reopenWithReply]="workflowReopenBound"
             (markHandled)="markHandled($event)"
             (scopeChange)="setWorkflowScope($event)"
+            (kindChange)="setWorkflowKind($event)"
             (acceptReview)="acceptReview($event)"
-            (reopenReview)="reopenFromReview($event)"
-            (openTopic)="openInOverview($event)"
             (showProgress)="setView('progress')" />
-        </div>
-      } @else if (view() === 'review') {
-        <!-- SIGN-OFF QUEUE — "wurde bearbeitet, bitte prüfen und abhaken".
-             Same two decisions as the in-card review gate (accept → archive,
-             reopen → back into the routine's queue); this is only the place
-             that collects them so none has to be hunted for. -->
-        <div class="board alt">
-          <section class="rv">
-            <p class="rv-lead">{{ 'adminFeedback.review.queueTitle' | translate }}</p>
-            @if (!embedded()) {
-              <p class="rv-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
-              <!-- Same rows, two ways to work them (feedback d4990269) — say so,
-                   so the pile is not mistaken for a second, separate backlog. -->
-              <p class="rv-hint">{{ 'adminFeedback.review.alsoInWorkflow' | translate }}</p>
-            }
-
-            <!-- Whose finished topics to sign off — the same Meine/Andere/Alle lens
-                 the processing mode carries (feedback abfa97c6): its own scope, but
-                 the same "Meine" default. Shown whenever anything is waiting anywhere
-                 so an empty "Meine" can never trap the admin with no way to the rest;
-                 the labels reuse the workflow switch's keys so the two read alike. -->
-            @if (reviewScopeCounts().all > 0) {
-              <div
-                class="rv-scope status-filter"
-                role="group"
-                [attr.aria-label]="'adminFeedback.workflow.scope.label' | translate">
-                @for (opt of reviewScopeOptions(); track opt.key) {
-                  <button
-                    type="button"
-                    class="status-chip"
-                    [class.active]="reviewScope() === opt.key"
-                    [attr.aria-pressed]="reviewScope() === opt.key"
-                    (click)="setReviewScope(opt.key)">
-                    {{ ('adminFeedback.workflow.scope.' + opt.key) | translate }}
-                    <span class="chip-count">{{ opt.count }}</span>
-                  </button>
-                }
-              </div>
-            }
-
-            @if (reviewQueue().length === 0) {
-              @if (reviewHiddenByScope() > 0) {
-                <!-- Nothing in this scope, but work waits in another — point at it
-                     instead of celebrating (cf. the processing mode's scope-empty). -->
-                <div class="rv-empty sc-card">
-                  <div class="rv-empty-icon" aria-hidden="true">🗂️</div>
-                  <h3>{{ 'adminFeedback.review.scopeEmptyTitle' | translate }}</h3>
-                  <p>{{ 'adminFeedback.review.scopeEmptyHint' | translate: { count: reviewHiddenByScope() } }}</p>
-                  <button type="button" class="sc-btn" (click)="setReviewScope('all')">
-                    {{ 'adminFeedback.workflow.scope.showAll' | translate }}
-                  </button>
-                </div>
-              } @else {
-                <div class="rv-empty sc-card">
-                  <div class="rv-empty-icon" aria-hidden="true">✅</div>
-                  <h3>{{ 'adminFeedback.review.emptyTitle' | translate }}</h3>
-                  <p>{{ 'adminFeedback.review.emptyHint' | translate }}</p>
-                </div>
-              }
-            } @else {
-              @for (m of reviewQueue(); track m.id) {
-                <article class="rv-card sc-card">
-                  <header class="rv-head">
-                    <span class="rg-badge">
-                      {{ (m.status === 'issue_created'
-                          ? 'adminFeedback.status.issue_created'
-                          : 'adminFeedback.status.shipped') | translate }}
-                    </span>
-                    @if (topicNo(m); as no) {
-                      <span class="rv-no" [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
-                    }
-                    <span class="rv-title">{{ topicTitle(m.body) }}</span>
-                    <span class="rv-ts">{{ reviewSince(m) | scDate }}</span>
-                  </header>
-
-                  @if (m.ship_ref) {
-                    <a
-                      class="ship-ref"
-                      [class.issue]="linkKind(m) === 'issue'"
-                      [href]="m.ship_ref"
-                      target="_blank"
-                      rel="noopener noreferrer">
-                      {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
-                    </a>
-                  }
-
-                  <div class="rg-actions">
-                    <button class="sc-btn micro accept" (click)="acceptReview(m)" [disabled]="busy()">
-                      ✓ {{ 'adminFeedback.review.accept' | translate }}
-                    </button>
-                    <button class="sc-btn micro" (click)="reopenFromReview(m)" [disabled]="busy()">
-                      ↻ {{ 'adminFeedback.review.reopen' | translate }}
-                    </button>
-                    <button class="sc-btn micro ghost" (click)="openInOverview(m)">
-                      {{ 'adminFeedback.review.openTopic' | translate }} →
-                    </button>
-                  </div>
-                </article>
-              }
-            }
-          </section>
         </div>
       } @else if (view() === 'progress') {
         <div class="board alt">
@@ -1752,7 +1643,11 @@ export class AdminFeedbackComponent implements OnInit {
   private readView(): FeedbackView {
     try {
       const raw = localStorage.getItem(VIEW_KEY);
-      if (raw === 'overview' || raw === 'workflow' || raw === 'review' || raw === 'progress') return raw;
+      if (raw === 'overview' || raw === 'workflow' || raw === 'progress') return raw;
+      // The Abnahme tab is gone (feedback d4990269, round 2). An admin who left
+      // the board on it is looking for the sign-off pile, so hand them the run
+      // already narrowed to it rather than silently dropping them somewhere else.
+      if (raw === 'review') return 'workflow';
     } catch {
       /* ignore */
     }
@@ -1833,23 +1728,91 @@ export class AdminFeedbackComponent implements OnInit {
     buildWorkflowQueue(this.messages(), this.threads(), this.handled()),
   );
 
-  /** Queue size per scope — the KPI counts on the mode's scope switch. */
-  readonly workflowScopeCounts = computed(() =>
-    workflowScopeCounts(this.workflowQueueAll(), this.selfId()),
+  /**
+   * Which kind of step the processing mode is narrowed to (feedback d4990269,
+   * round 2) — the Abnahme tab's replacement. Persisted behind the preferences
+   * consent like the view and the scope.
+   */
+  readonly workflowKind = signal<WorkflowKind>(this.readWorkflowKind());
+
+  setWorkflowKind(kind: WorkflowKind): void {
+    this.workflowKind.set(kind);
+    if (!this.consent.preferencesAllowed()) return;
+    try {
+      localStorage.setItem(WORKFLOW_KIND_KEY, kind);
+    } catch {
+      /* private mode / quota — the in-memory signal still works */
+    }
+  }
+
+  private readWorkflowKind(): WorkflowKind {
+    try {
+      const raw = localStorage.getItem(WORKFLOW_KIND_KEY);
+      if (raw === 'all' || raw === 'question' || raw === 'review') return raw;
+      // Coming from the removed Abnahme tab (see readView): that admin wants the
+      // sign-off pile, so open the run on it instead of on everything.
+      if (localStorage.getItem(VIEW_KEY) === 'review') return 'review';
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_WORKFLOW_KIND;
+  }
+
+  /** The queue narrowed to the chosen scope — both lenses' common ground. */
+  private readonly workflowScopeQueue = computed(() =>
+    filterWorkflowScope(this.workflowQueueAll(), this.workflowScope(), this.selfId()),
   );
 
   /**
-   * The queue as the processing mode shows it — narrowed to the chosen scope.
-   * The view switch's badge reads from here too, so it promises exactly what
-   * the mode will hand over.
+   * Queue size per scope — the KPI counts on the mode's scope switch. Counted on
+   * the KIND-filtered queue, so each chip answers "what would I get if I switched
+   * *this* chip" and the mode's "hidden by scope" hint stays truthful.
+   */
+  readonly workflowScopeCounts = computed(() =>
+    workflowScopeCounts(
+      filterWorkflowKind(this.workflowQueueAll(), this.workflowKind()),
+      this.selfId(),
+    ),
+  );
+
+  /** Item count per kind — counted within the current scope, mirror-image of above. */
+  readonly workflowKindCounts = computed(() => workflowKindCounts(this.workflowScopeQueue()));
+
+  /** What the view switch's badge promises: the whole inbox, kind lens ignored. */
+  readonly workflowInboxCount = computed(() => this.workflowScopeQueue().length);
+
+  /**
+   * The queue as the processing mode shows it — narrowed by both lenses. The
+   * view switch's badge deliberately reads the scope queue instead: the badge
+   * promises what waits in the admin's inbox, and a kind filter is a way of
+   * looking at that inbox, not a smaller one.
    */
   readonly workflowQueue = computed(() =>
-    filterWorkflowScope(this.workflowQueueAll(), this.workflowScope(), this.selfId()),
+    filterWorkflowKind(this.workflowScopeQueue(), this.workflowKind()),
   );
 
   /** Stable reply handler handed to the processing mode's inline composer. */
   readonly workflowReplyBound = (id: string, payload: ComposerPayload): Promise<boolean> =>
     this.sendReply(id, payload);
+
+  /**
+   * "Gespräch wieder aufnehmen" from the run (feedback d4990269, round 2): post
+   * the steer into the thread, then put the topic back into the routine's queue.
+   *
+   * One handler rather than two clicks, and in this order: if the reply fails
+   * nothing is reopened, and if the reopen fails the admin's words are already
+   * saved. The routine then finds a reopened topic *with* the reason in the
+   * thread — which is exactly what its continuation path reads.
+   */
+  readonly workflowReopenBound = async (
+    id: string,
+    payload: ComposerPayload,
+  ): Promise<boolean> => {
+    if (!(await this.sendReply(id, payload))) return false;
+    const row = this.messages().find((m) => m.id === id);
+    if (row) await this.reopenFromReview(row);
+    return true;
+  };
 
   /** How many topics shipped since the last poll — drives the ship banner. */
   readonly shipCheer = signal(0);
@@ -2802,93 +2765,20 @@ export class AdminFeedbackComponent implements OnInit {
     return awaitsReview(m, this.threads().get(m.id));
   }
 
-  /**
-   * Everything the routine finished that nobody has confirmed yet (feedback #79).
-   *
-   * Oldest first, like the processing queue: a result that has been waiting for
-   * days is the one most likely to be forgotten. Still deliberately unfiltered by
-   * the overview's search / author / status chips — the only lens it carries is
-   * the mine/others/all scope below, mirroring the processing mode's own switch.
+  /*
+   * The sign-off view's own queue, scope switch and "hidden by scope" hint lived
+   * here. The view is gone (feedback d4990269, round 2) — the Abnahmen are worked
+   * inside the run, under the run's own scope and kind lenses — so all of it went
+   * with it. What stays is `inReview` (the in-card gate in the Übersicht still
+   * asks it) and the two writes below, which the run calls.
    */
-  private readonly reviewQueueAll = computed(() =>
-    this.messages()
-      .filter((m) => this.inReview(m))
-      .sort((a, b) => timeOf(this.reviewSince(a)) - timeOf(this.reviewSince(b))),
-  );
 
-  /**
-   * Whose finished topics the sign-off view shows. Its own scope, kept apart from
-   * the processing mode's so switching one never moves the other; both default to
-   * `mine`. Persisted behind the preferences consent like the view itself.
+  /*
+   * `reviewSince` (the sign-off card's date) and `openInOverview` ("Thema
+   * öffnen") were the removed view's, and the run no longer needs either: it
+   * dates an Abnahme itself, and it shows the whole topic instead of sending the
+   * admin somewhere else to read it (feedback d4990269, round 2).
    */
-  readonly reviewScope = signal<WorkflowScope>(this.readReviewScope());
-
-  setReviewScope(scope: WorkflowScope): void {
-    this.reviewScope.set(scope);
-    if (!this.consent.preferencesAllowed()) return;
-    try {
-      localStorage.setItem(REVIEW_SCOPE_KEY, scope);
-    } catch {
-      /* private mode / quota — the in-memory signal still works */
-    }
-  }
-
-  private readReviewScope(): WorkflowScope {
-    try {
-      const raw = localStorage.getItem(REVIEW_SCOPE_KEY);
-      if (raw === 'mine' || raw === 'others' || raw === 'all') return raw;
-    } catch {
-      /* ignore */
-    }
-    return DEFAULT_REVIEW_SCOPE;
-  }
-
-  /** Sign-off counts per scope — the KPIs on the view's scope switch. */
-  readonly reviewScopeCounts = computed(() =>
-    rowScopeCounts(this.reviewQueueAll(), this.selfId()),
-  );
-
-  /** The scope switch in fixed order (mine first), each with its KPI count. */
-  readonly reviewScopeOptions = computed(() => {
-    const counts = this.reviewScopeCounts();
-    return WORKFLOW_SCOPES.map((key) => ({ key, count: counts[key] }));
-  });
-
-  /**
-   * The sign-off list as shown — narrowed to the chosen scope. The tab badge
-   * reads from here too, so the count promises exactly what the view will list.
-   */
-  readonly reviewQueue = computed(() =>
-    filterRowScope(this.reviewQueueAll(), this.reviewScope(), this.selfId()),
-  );
-
-  /** How many sign-offs the current scope hides — drives the "nothing here" hint. */
-  readonly reviewHiddenByScope = computed(
-    () => this.reviewScopeCounts().all - this.reviewQueue().length,
-  );
-
-  /**
-   * When the outcome landed — what the sign-off card dates itself by. Shared with
-   * the processing queue's Abnahme ordering (feedback d4990269), so both age an
-   * item by the same stamp.
-   */
-  reviewSince(m: FeedbackRow): string {
-    return reviewSince(m);
-  }
-
-  /**
-   * Open the topic's full card in the overview: the sign-off row is a summary,
-   * and "does this look right?" sometimes needs the thread. Filters are cleared
-   * so the target cannot be hidden by a chip the admin left active.
-   */
-  openInOverview(m: FeedbackRow): void {
-    this.setView('overview');
-    this.setBoardTab('active');
-    this.statusFilter.set(null);
-    this.authorFilter.set(null);
-    this.clearSearch();
-    this.jumpTo(m.id);
-  }
 
   /**
    * Sign the outcome off. The topic leaves the active board for "Erledigt" —

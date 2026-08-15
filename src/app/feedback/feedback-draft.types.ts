@@ -56,6 +56,13 @@ export const draftScopes = {
   adminAuthor: (feedbackId: string): string => `admin:author:${feedbackId}`,
   /** Workflow view, answer to the routine's open question. */
   adminWorkflow: (feedbackId: string): string => `admin:workflow:${feedbackId}`,
+  /**
+   * Workflow view, the steer that reopens a finished topic ("Gespräch wieder
+   * aufnehmen", feedback d4990269). Its own scope rather than the answer box's:
+   * the two boxes can be open on the same topic at different times, and a
+   * half-written steer must not surface as an answer.
+   */
+  adminWorkflowReopen: (feedbackId: string): string => `admin:workflow-reopen:${feedbackId}`,
 } as const;
 
 /**
