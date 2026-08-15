@@ -1783,7 +1783,6 @@
       "label": "Switch view",
       "overview": "Overview",
       "workflow": "Process",
-      "review": "Sign-off",
       "progress": "Progress"
     },
     "cheer": {
@@ -1817,7 +1816,18 @@
       },
       "scopeEmptyTitle": "Nothing open in this scope",
       "scopeEmptyHint": "{{count}} topic(s) sit in another scope.",
-      "cheerReplied": "Noted! On to the next one."
+      "cheerReplied": "Noted! On to the next one.",
+      "kindFilter": {
+        "label": "Show only one kind of step",
+        "all": "All",
+        "question": "Questions",
+        "review": "Sign-offs"
+      },
+      "threadExpand": "Show {{count}} earlier message(s)",
+      "threadCollapse": "Hide earlier messages again",
+      "kindEmptyTitle": "Nothing of this kind right now",
+      "kindEmptyHint": "{{count}} topic(s) are waiting under \"All\".",
+      "kindShowAll": "Show all"
     },
     "dashboard": {
       "thisMonth": "This month",
@@ -1913,13 +1923,10 @@
       "hint": "Look at the result on the live app. If it is right, the topic is done. If it is not, pick the conversation back up — the topic returns to the routine’s queue.",
       "accept": "To the archive — done",
       "reopen": "Resume the conversation",
-      "queueTitle": "Done — please check and tick off",
-      "alsoInWorkflow": "The same topics also run in “Process” — one at a time there, all at a glance here.",
-      "openTopic": "Open topic",
-      "emptyTitle": "Nothing to sign off",
-      "emptyHint": "As soon as the routine ships a topic or hands it to an issue, it waits here for your sign-off.",
-      "scopeEmptyTitle": "Nothing to sign off in this scope",
-      "scopeEmptyHint": "{{count}} topic(s) wait in another scope."
+      "reopenHint": "Say briefly what is still off — this reopens the topic and the routine reads your answer as the brief.",
+      "reopenPlaceholder": "What should be different?",
+      "reopenSend": "Send & reopen",
+      "reopenCancel": "Cancel"
     }
   },
   "feedbackFab": {

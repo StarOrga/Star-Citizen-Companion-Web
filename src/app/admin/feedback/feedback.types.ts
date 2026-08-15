@@ -491,6 +491,47 @@ export function filterWorkflowScope(
   return items.filter((item) => isOwnTopic(item.row, selfId) === wantOwn);
 }
 
+/**
+ * Which kind of step the processing mode is showing — the Abnahme tab's
+ * successor (feedback d4990269, round 2).
+ *
+ * The tab was a second surface for rows the run already walks; the admin asked
+ * for it to be dropped in favour of a lens *inside* the run ("den Abnahme Tab
+ * können wir rausmachen und einfach in Abarbeiten eine filter möglichkeit nur
+ * abnahmen einfügen"). `all` is the run as it was; the other two narrow it to
+ * one kind without changing its order, its actions or a single row.
+ */
+export type WorkflowKind = 'all' | WorkflowItemKind;
+
+/** The lens in switch order — `all` first, because it is the default. */
+export const WORKFLOW_KINDS: readonly WorkflowKind[] = ['all', 'question', 'review'];
+
+/** How many items each kind holds — the counts on the kind switch. */
+export interface WorkflowKindCounts {
+  all: number;
+  question: number;
+  review: number;
+}
+
+/**
+ * Narrow an already-scoped queue to one kind. Applied *after* the scope filter,
+ * so the kind counts always describe what the current scope actually holds.
+ */
+export function filterWorkflowKind(
+  items: readonly WorkflowItem[],
+  kind: WorkflowKind,
+): WorkflowItem[] {
+  if (kind === 'all') return [...items];
+  return items.filter((item) => item.kind === kind);
+}
+
+/** Item counts per kind, for the switch's KPIs. `all` is the untouched total. */
+export function workflowKindCounts(items: readonly WorkflowItem[]): WorkflowKindCounts {
+  let review = 0;
+  for (const item of items) if (item.kind === 'review') review++;
+  return { all: items.length, question: items.length - review, review };
+}
+
 /** Queue sizes per scope, for the switch's counts. `all` is the untouched total. */
 export function workflowScopeCounts(
   items: readonly WorkflowItem[],
@@ -501,32 +542,12 @@ export function workflowScopeCounts(
   return { mine, others: items.length - mine, all: items.length };
 }
 
-/**
- * Narrow a bare row list to one author scope — the same mine/others/all lens the
- * processing mode uses (feedback abfa97c6), but for the sign-off list, which holds
- * {@link FeedbackRow}s rather than {@link WorkflowItem}s. Unknown `selfId` returns
- * the full list for the same reason as {@link filterWorkflowScope}: a signed-in
- * admin must not face a blank queue because the user object arrived a tick late.
+/*
+ * `filterRowScope` / `rowScopeCounts` lived here for the Abnahme tab's own
+ * scope switch. The tab is gone (feedback d4990269, round 2) and the Abnahmen
+ * are worked inside the run, under the run's scope — so the row-level twins of
+ * the two functions above have no caller left and were removed with it.
  */
-export function filterRowScope(
-  rows: readonly FeedbackRow[],
-  scope: WorkflowScope,
-  selfId: string | null | undefined,
-): FeedbackRow[] {
-  if (scope === 'all' || !selfId) return [...rows];
-  const wantOwn = scope === 'mine';
-  return rows.filter((row) => isOwnTopic(row, selfId) === wantOwn);
-}
-
-/** Row-list sizes per scope, for the review switch's counts (cf. {@link workflowScopeCounts}). */
-export function rowScopeCounts(
-  rows: readonly FeedbackRow[],
-  selfId: string | null | undefined,
-): WorkflowScopeCounts {
-  let mine = 0;
-  for (const row of rows) if (isOwnTopic(row, selfId)) mine++;
-  return { mine, others: rows.length - mine, all: rows.length };
-}
 
 /**
  * Which thread message the processing mode should put in front of the admin

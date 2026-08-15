@@ -23,19 +23,25 @@ oldest `created_at` first.
 > continuation loop that query (d) already implements — pressing a button instead
 > of having to remember to reply.
 >
-> Since feedback #79 the gate has its own step on the board: **Abnahme**, the
-> fourth tab of the view switch next to Übersicht / Abarbeiten / Fortschritt. It
-> collects every row the gate is holding (badge = how many), and each row carries
-> the same two decisions the in-card gate has — "Ins Archiv — erledigt"
-> (`reviewed_at`) and "Gespräch wieder aufnehmen" (`status = 'open'`) — so a
-> finished topic can be filed without opening the Archive tab. Still no new
-> status value, still nothing the routine reads.
+> Since feedback #79 the gate has its own step on the board, and since feedback
+> d4990269 that step lives **inside the Abarbeiten run**: every row the gate holds
+> is walked one at a time, with the same two decisions the in-card gate has — "Ins
+> Archiv — erledigt" (`reviewed_at`) and "Gespräch wieder aufnehmen"
+> (`status = 'open'`). Still no new status value, still nothing the routine reads.
 >
-> Since feedback d4990269 those same rows **also run in the Abarbeiten queue**,
-> one at a time, with the identical two decisions. Abnahme stays as its own tab —
-> it is the list view of the pile (scan many at once), Abarbeiten is the guided
-> walk through it. Both read the same `awaitsReview` rule, so both badges stay
-> truthful; nothing was duplicated, cloned or given a new status.
+> The **Abnahme tab is gone** (feedback d4990269, round 2). It was a second
+> surface for exactly the rows the run already walks; what replaced it is a **kind
+> filter** in the run — Alle / Rückfragen / Abnahmen, each with its count — so
+> "just the sign-offs" is a chip rather than a view. A remembered `review` view
+> opens the run on that chip, and the in-card gate in the Übersicht is untouched.
+>
+> **"Gespräch wieder aufnehmen" now carries a message.** In the run it opens the
+> same answer box every thread has; sending posts the steer *and* sets
+> `status = 'open'`. So a reopened topic reaches the routine with the reason
+> already in the thread — which is what the continuation path (query (d) / the
+> `shipped_at` + newer-human-message rule) reads anyway. The write order is
+> reply-then-reopen: a failed reply reopens nothing, a failed reopen has at least
+> kept the admin's words.
 
 Status lifecycle the routine drives:
 
@@ -1308,7 +1314,7 @@ panel and on the full board page alike:
 | View | Component | What it is for |
 |------|-----------|----------------|
 | **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list with each topic's stable `#N` (see below), fuzzy search (see below), status/author filters, new-topic composer |
-| **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through everything that waits on the admin — Rückfragen (oldest first) and, since feedback d4990269, the Abnahmen behind them — **and nothing else** (feedback b0cc6efc). Shows topic + full thread + either the inline answer box or the Abnahme's two decisions, plus a "3 von 7" progress rail and "Überspringen" |
+| **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through everything that waits on the admin — Rückfragen (oldest first) and, since feedback d4990269, the Abnahmen behind them — **and nothing else** (feedback b0cc6efc). Shows topic + thread + either the inline answer box or the Abnahme's two decisions, plus a "3 von 7" progress rail, "Überspringen", and two lenses: **wessen** (mine/others/all) and **welche Art** (Alle / Rückfragen / Abnahmen — the ex-Abnahme tab). The thread is folded to the message the run points at, with one "…" for the history |
 | **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen, plus pace, throughput and the live lifecycle map (see below) |
 
 **Abarbeiten is the default view** (feedback fda4e3ea). The panel opens in the
@@ -1362,11 +1368,29 @@ step is aged and dated by `reviewSince` (`shipped_at ?? processed_at ??
 updated_at`) — the moment its outcome landed, which is how long it has actually
 been waiting — while a Rückfrage keeps its `created_at`. Both live in
 `buildWorkflowQueue`; a queue entry now carries a `kind` (`'question' |
-'review'`) that decides the card's badge and the controls at its foot. Nothing
-else changed about an Abnahme: same rows, same two decisions ("Ins Archiv —
-erledigt" → `reviewed_at`, "Gespräch wieder aufnehmen" → `status='open'`), same
-`awaitsReview` rule the Abnahme tab reads — the tiles were only *also* folded
-into the one-at-a-time run.
+'review'`) that decides the card's badge, the controls at its foot and the kind
+lens. The rows and the `awaitsReview` rule behind them are unchanged; the two
+decisions are still "Ins Archiv — erledigt" (→ `reviewed_at`) and "Gespräch
+wieder aufnehmen" (→ `status='open'`).
+
+Round 2 of the same feedback changed *how* the second one is taken and what the
+card shows around it:
+
+- **Reopening is an answer.** The button opens the run's composer instead of
+  writing on the spot; the two decisions step aside while it is open, and sending
+  posts the reply and reopens the topic in one handler
+  (`workflowReopenBound` → `sendReply` → `reopenFromReview`). Backing out writes
+  nothing. The draft has its own scope (`admin:workflow-reopen:<id>`), so a
+  half-written steer can never surface in the Rückfrage box.
+- **The thread is folded.** Only the message the run points at
+  (`workflowFocusIndex`) and everything after it is on screen; the history sits
+  behind one "…" that says how many messages it hides. The card already shows the
+  topic's first post, so "erster Post → … → letzter Post" falls out of it — and
+  because the fold is anchored to the focus index, the open Rückfrage is never
+  the thing being hidden. Unfolding is per card and session-local; the next card
+  starts folded again.
+- **"Thema öffnen" is gone**, together with the Abnahme tab it belonged to: the
+  card shows the whole topic, so there is nothing left to jump to.
 
 **Überspringen** parks the current topic for this lap and steps to the next one
 the lap has not shown yet. When nothing unseen is left, the lap closes and the
@@ -1375,7 +1399,7 @@ announced by a `role="status"` line; the card that comes back wears an
 "Übersprungen" badge, and a counter next to the progress rail says how many are
 still owed a second look. Skipping is **session-local and never written**: no
 column, no status value, no localStorage — exactly like the "Erledigt" tick-off,
-it is a view-level "not now". A lap resets when the scope switch changes, and a
+it is a view-level "not now". A lap resets when either lens changes, and a
 topic that gets answered, ticked off or decided is dropped from it, so the
 carousel never promises to come back to something that is already gone.
 
