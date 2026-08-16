@@ -79,10 +79,14 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
           {{ 'nav.news' | translate }}
         </a>
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
+        <!-- Hangar regression fix (codex-landing redesign, 2026-08-16): the old
+             Codex Bridge front door was demoted by the landing redesign, so the
+             "lives under the Bridge" rationale that used to justify keeping
+             Hangar out of the top-level nav (feedback f0363cef) no longer holds
+             — without this the app has NO reachable Hangar entry point outside
+             the Hangar itself. Restored as a real top-level link. -->
+        <a routerLink="/hangar" routerLinkActive="active">{{ 'nav.hangar' | translate }}</a>
         <a routerLink="/starscape" routerLinkActive="active">{{ 'nav.starscape' | translate }}</a>
-        <!-- Hangar is intentionally NOT a top-level nav entry: it lives under the
-             Codex Bridge as a sub-link (see codex-bridge.component). Admin call
-             (feedback f0363cef) — declutter the nav bar, route Hangar via Codex. -->
         <!-- Data Upload is intentionally NOT a top-level nav entry (admin
              feedback eb9c6ec3): a whole menu slot for a tool only collaborators
              and admins ever open. It now lives as the collapsible
