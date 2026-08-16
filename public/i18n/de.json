@@ -15,7 +15,32 @@
     "or": "oder",
     "continueGoogle": "Mit Google fortfahren",
     "inviteOnly": "Zugang nur auf Einladung. Bitte einen Admin um eine Einladung.",
-    "deniedInvite": "Dieser Account wurde noch nicht eingeladen. Die Seite ist nur auf Einladung zugänglich — bitte einen Admin um eine Einladung."
+    "deniedInvite": "Dieser Account wurde noch nicht eingeladen. Die Seite ist nur auf Einladung zugänglich — bitte einen Admin um eine Einladung.",
+    "landing": {
+      "appName": "Star Citizen Companion",
+      "join": "Join the Club.",
+      "pitch": "Der Companion ist ein privater Zirkel — Zugang gibt es nur auf Einladung. Du fliegst schon im Verse und willst dabei sein? Dann bewirb dich, ein Admin schaut sich das an.",
+      "perks": {
+        "hangar": "Dein Hangar mit Loadouts und Rollen an einem Ort",
+        "codex": "Codex: Schiffe, Komponenten und Werte aus dem Spiel",
+        "verse": "News, Starscape-Wallpaper und Tools fürs Verse"
+      },
+      "applyCta": "Um Zugang bewerben",
+      "applyInline": "Jetzt bewerben",
+      "backToSignIn": "Zurück zur Anmeldung"
+    },
+    "apply": {
+      "title": "Um Zugang bewerben",
+      "hint": "Kurz sagen, wer du bist — deine Anfrage landet direkt bei den Admins. Ohne Konto, ohne Passwort.",
+      "handle": "RSI-Handle (optional)",
+      "handlePlaceholder": "z. B. CitizenKane",
+      "message": "Nachricht (optional)",
+      "messagePlaceholder": "Woher kennst du uns, was fliegst du?",
+      "send": "Bewerbung senden",
+      "sending": "Sende…",
+      "sent": "Danke! Deine Anfrage ist angekommen. Wenn ein Admin sie annimmt, bekommst du eine Einladungsmail an diese Adresse.",
+      "rateLimited": "Gerade kommen sehr viele Anfragen rein. Bitte versuch es in einer Stunde noch einmal."
+    }
   },
   "nav": {
     "news": "Verse News",
@@ -1221,6 +1246,18 @@
       "count": "{{shown}} von {{total}}",
       "clear": "Filter zurücksetzen",
       "noMatches": "Keine User passen zu den Filtern."
+    },
+    "requests": {
+      "title": "Einladungsanfragen",
+      "subtitle": "Bewerbungen von der Startseite. Annehmen registriert die E-Mail wie über das Formular unten — plus Einladungsmail, damit die Person Bescheid weiß.",
+      "empty": "Keine offenen Anfragen.",
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "declineConfirm": "Anfrage von {{email}} ablehnen? Die Person wird nicht benachrichtigt.",
+      "accepted": "{{email}} angenommen, registriert und eingeladen.",
+      "declined": "Anfrage von {{email}} abgelehnt.",
+      "allowlisted": "Schon auf Allowlist",
+      "joined": "Hat schon Account"
     }
   },
   "desktop": {

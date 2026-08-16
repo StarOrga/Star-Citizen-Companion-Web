@@ -33,6 +33,22 @@ interface AllowedEmailRow {
   joined: boolean;
 }
 
+/**
+ * Row from the `pending_access_requests()` RPC — an invite application filed
+ * from the signed-out landing page (migration 20260816120000).
+ */
+interface AccessRequestRow {
+  id: string;
+  email: string;
+  handle: string | null;
+  message: string | null;
+  created_at: string;
+  /** The address is already on the allowlist (accepting is then a no-op + mail). */
+  allowlisted: boolean;
+  /** An `auth.users` row already exists for the address. */
+  joined: boolean;
+}
+
 type SortKey = 'user' | 'email' | 'role' | 'joined' | 'lastSeen';
 type SortDir = 'asc' | 'desc';
 type RoleFilter = 'all' | Role;
@@ -65,6 +81,82 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
           <p class="hint">{{ 'admin.subtitle' | translate }}</p>
         </div>
       </header>
+
+      <!--
+        Invite applications from the signed-out landing page (feedback
+        56f328ea). Deliberately quiet: no toast, no badge anywhere else in the
+        app — it simply shows up here, where the admin manages access anyway.
+        "Annehmen" is exactly the register form's happy path with an invite
+        mail attached, because the last action was the admin's and the
+        applicant has to be told.
+      -->
+      <div class="sc-card requests-card">
+        <div class="invite-head">
+          <h2>
+            {{ 'admin.requests.title' | translate }}
+            @if (accessRequests().length > 0) {
+              <span class="req-count">{{ accessRequests().length }}</span>
+            }
+          </h2>
+          <p class="hint">{{ 'admin.requests.subtitle' | translate }}</p>
+        </div>
+
+        @if (accessErrorMsg()) {
+          <div class="err">
+            <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ accessErrorMsg() }}
+          </div>
+        }
+
+        @if (accessBusy() && accessRequests().length === 0) {
+          <div class="empty">{{ 'admin.loading' | translate }}</div>
+        } @else if (accessRequests().length === 0) {
+          <div class="empty">{{ 'admin.requests.empty' | translate }}</div>
+        } @else {
+          <ul class="req-list">
+            @for (r of accessRequests(); track r.id) {
+              <li class="req">
+                <div class="req-main">
+                  <div class="req-line">
+                    <span class="req-email">{{ r.email }}</span>
+                    @if (r.handle) { <span class="req-handle">&#64;{{ r.handle }}</span> }
+                    @if (r.joined) {
+                      <span class="pill">{{ 'admin.requests.joined' | translate }}</span>
+                    } @else if (r.allowlisted) {
+                      <span class="pill">{{ 'admin.requests.allowlisted' | translate }}</span>
+                    }
+                  </div>
+                  @if (r.message) { <p class="req-msg">{{ r.message }}</p> }
+                  <p class="req-date">{{ r.created_at | scDate: 'datetime' }}</p>
+                </div>
+                <div class="req-actions">
+                  <select [value]="requestRole(r.id)"
+                          (change)="setRequestRole(r.id, asSelectRole($event))"
+                          [attr.aria-label]="'admin.col.role' | translate"
+                          [disabled]="accessBusy()">
+                    <option value="viewer">{{ 'profile.roles.viewer' | translate }}</option>
+                    <option value="collaborator">{{ 'profile.roles.collaborator' | translate }}</option>
+                    <option value="admin">{{ 'profile.roles.admin' | translate }}</option>
+                  </select>
+                  <button type="button" class="sc-btn sc-btn-primary"
+                          (click)="acceptRequest(r)" [disabled]="accessBusy()">
+                    {{ 'admin.requests.accept' | translate }}
+                  </button>
+                  <button type="button" class="sc-btn req-decline"
+                          (click)="declineRequest(r)" [disabled]="accessBusy()">
+                    {{ 'admin.requests.decline' | translate }}
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (accessMsg(); as m) {
+          <div class="invite-msg" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'" role="status">
+            {{ m.text }}
+          </div>
+        }
+      </div>
 
       <div class="sc-card invite-card">
         <div class="invite-head">
@@ -494,6 +586,57 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       flex-direction: column;
       gap: 12px;
     }
+    /* Access requests (feedback 56f328ea) */
+    .req-count {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 1px 8px;
+      border-radius: 999px;
+      background: var(--sc-accent);
+      color: var(--sc-bg-0);
+      font-size: 0.75rem;
+      font-weight: 700;
+      vertical-align: middle;
+    }
+    .requests-card .empty { padding: 20px; }
+    .req-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+    .req {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border: 1px solid var(--sc-border);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .req-main { min-width: 0; flex: 1 1 320px; }
+    .req-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .req-email { font-weight: 600; word-break: break-all; }
+    .req-handle { color: var(--sc-fg-2); font-size: 0.85rem; }
+    .pill {
+      padding: 1px 8px;
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+      color: var(--sc-fg-2);
+      font-size: max(0.68rem, var(--sc-fs-floor));
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .req-msg {
+      margin: 6px 0 0;
+      color: var(--sc-fg-1);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .req-date { margin: 6px 0 0; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
+    .req-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .sc-btn.req-decline { color: var(--sc-danger); border-color: var(--sc-danger); }
+    .sc-btn.req-decline:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
+
     .invite-head h2 { margin: 0 0 4px; font-size: 1rem; }
     .invite-head .hint { margin: 0; }
     .invite-form {
@@ -568,6 +711,7 @@ export class AdminComponent implements OnInit {
   constructor() {
     useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
     useAutoRefresh(() => this.refreshAllowlist(), { enabled: () => !this.allowlistBusy() });
+    useAutoRefresh(() => this.refreshAccessRequests(), { enabled: () => !this.accessBusy() });
   }
   readonly adminCount = computed(() => this.users().filter((u) => u.role === 'admin').length);
 
@@ -632,6 +776,14 @@ export class AdminComponent implements OnInit {
   // C7 — share-link copy state (separate toast so it doesn't clash with the
   // register form's own success/error message).
   readonly shareMsg = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
+
+  // Access-request queue state (feedback 56f328ea).
+  readonly accessRequests = signal<AccessRequestRow[]>([]);
+  readonly accessBusy = signal(false);
+  readonly accessErrorMsg = signal<string | null>(null);
+  readonly accessMsg = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
+  /** Per-request role picker; absent = the `viewer` default. */
+  private readonly requestRoles = signal<Record<string, Role>>({});
 
   // Allowlist table state (C6).
   readonly allowedEmails = signal<AllowedEmailRow[]>([]);
@@ -881,7 +1033,95 @@ export class AdminComponent implements OnInit {
   }
 
   async ngOnInit() {
-    await Promise.all([this.refresh(), this.refreshAllowlist()]);
+    await Promise.all([this.refresh(), this.refreshAllowlist(), this.refreshAccessRequests()]);
+  }
+
+  requestRole(id: string): Role {
+    return this.requestRoles()[id] ?? 'viewer';
+  }
+
+  setRequestRole(id: string, role: Role): void {
+    this.requestRoles.update((m) => ({ ...m, [id]: role }));
+  }
+
+  async refreshAccessRequests() {
+    this.accessBusy.set(true);
+    this.accessErrorMsg.set(null);
+    const { data, error } = await this.sb.client.rpc('pending_access_requests');
+    if (error) {
+      this.accessErrorMsg.set(error.message);
+    } else {
+      this.accessRequests.set((data ?? []) as AccessRequestRow[]);
+    }
+    this.accessBusy.set(false);
+  }
+
+  /**
+   * Accepting is the register form's happy path plus an invite mail: the
+   * applicant made the first move but the *last* action is the admin's, so
+   * unlike a self-serve signup they have to be told — `sendInvite: true`.
+   * The row is only stamped `accepted` after the invite actually succeeded,
+   * so a failed mail leaves the request in the queue instead of silently
+   * dropping someone.
+   */
+  async acceptRequest(row: AccessRequestRow) {
+    const role = this.requestRole(row.id);
+    this.accessBusy.set(true);
+    this.accessMsg.set(null);
+    const { data, error } = await this.sb.client.functions.invoke('invite-user', {
+      body: { email: row.email, role, sendInvite: !row.joined },
+    });
+    const payload = (data ?? {}) as RegisterResponse;
+    if (error || payload.error) {
+      this.accessBusy.set(false);
+      this.accessMsg.set({
+        kind: 'error',
+        text: payload.message ?? payload.error ?? error?.message
+          ?? this.translate.instant('admin.register.unknownError'),
+      });
+      return;
+    }
+    const { error: decideErr } = await this.sb.client.rpc('decide_access_request', {
+      request_id: row.id,
+      accept: true,
+    });
+    this.accessBusy.set(false);
+    if (decideErr) {
+      this.accessMsg.set({ kind: 'error', text: decideErr.message });
+      return;
+    }
+    this.accessMsg.set({
+      kind: 'success',
+      text: this.translate.instant('admin.requests.accepted', { email: row.email }),
+    });
+    await Promise.all([this.refreshAccessRequests(), this.refreshAllowlist(), this.refresh()]);
+  }
+
+  /**
+   * Declining is silent by design — nothing is sent to the applicant (there
+   * is no relationship to end). The row is stamped rather than deleted so the
+   * decision stays auditable; a genuine second application from the same
+   * address is still possible, since only *pending* rows are unique.
+   */
+  async declineRequest(row: AccessRequestRow) {
+    const msg = this.translate.instant('admin.requests.declineConfirm', { email: row.email });
+    if (!window.confirm(msg)) return;
+    this.accessBusy.set(true);
+    this.accessMsg.set(null);
+    const { error } = await this.sb.client.rpc('decide_access_request', {
+      request_id: row.id,
+      accept: false,
+    });
+    this.accessBusy.set(false);
+    if (error) {
+      this.accessMsg.set({ kind: 'error', text: error.message });
+      return;
+    }
+    this.accessMsg.set({
+      kind: 'success',
+      text: this.translate.instant('admin.requests.declined', { email: row.email }),
+    });
+    await this.refreshAccessRequests();
   }
 
   async refresh() {

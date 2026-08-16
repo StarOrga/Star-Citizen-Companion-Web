@@ -15,7 +15,32 @@
     "or": "or",
     "continueGoogle": "Continue with Google",
     "inviteOnly": "Access is invite-only. Ask an admin to invite you.",
-    "deniedInvite": "This account hasn't been invited yet. The site is invite-only — ask an admin to send you an invitation."
+    "deniedInvite": "This account hasn't been invited yet. The site is invite-only — ask an admin to send you an invitation.",
+    "landing": {
+      "appName": "Star Citizen Companion",
+      "join": "Join the Club.",
+      "pitch": "The Companion is a private circle — access is invite-only. Already flying in the verse and want in? Apply and an admin will take a look.",
+      "perks": {
+        "hangar": "Your hangar with loadouts and roles in one place",
+        "codex": "Codex: ships, components and real in-game values",
+        "verse": "News, Starscape wallpapers and tools for the verse"
+      },
+      "applyCta": "Apply for access",
+      "applyInline": "Apply now",
+      "backToSignIn": "Back to sign-in"
+    },
+    "apply": {
+      "title": "Apply for access",
+      "hint": "Tell us briefly who you are — your request goes straight to the admins. No account, no password.",
+      "handle": "RSI handle (optional)",
+      "handlePlaceholder": "e.g. CitizenKane",
+      "message": "Message (optional)",
+      "messagePlaceholder": "How do you know us, what do you fly?",
+      "send": "Send application",
+      "sending": "Sending…",
+      "sent": "Thanks! Your request arrived. If an admin accepts it you will get an invite mail at this address.",
+      "rateLimited": "A lot of requests are coming in right now. Please try again in an hour."
+    }
   },
   "nav": {
     "news": "Verse News",
@@ -1221,6 +1246,18 @@
       "count": "{{shown}} of {{total}}",
       "clear": "Clear filters",
       "noMatches": "No users match the filters."
+    },
+    "requests": {
+      "title": "Access requests",
+      "subtitle": "Applications from the landing page. Accepting registers the email just like the form below — plus an invite mail, so the person actually hears about it.",
+      "empty": "No open requests.",
+      "accept": "Accept",
+      "decline": "Decline",
+      "declineConfirm": "Decline the request from {{email}}? They will not be notified.",
+      "accepted": "{{email}} accepted, registered and invited.",
+      "declined": "Request from {{email}} declined.",
+      "allowlisted": "Already allowlisted",
+      "joined": "Already has an account"
     }
   },
   "desktop": {
