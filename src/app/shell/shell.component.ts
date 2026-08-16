@@ -79,13 +79,12 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
           {{ 'nav.news' | translate }}
         </a>
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
-        <!-- Hangar regression fix (codex-landing redesign, 2026-08-16): the old
-             Codex Bridge front door was demoted by the landing redesign, so the
-             "lives under the Bridge" rationale that used to justify keeping
-             Hangar out of the top-level nav (feedback f0363cef) no longer holds
-             — without this the app has NO reachable Hangar entry point outside
-             the Hangar itself. Restored as a real top-level link. -->
-        <a routerLink="/hangar" routerLinkActive="active">{{ 'nav.hangar' | translate }}</a>
+        <!-- Hangar is deliberately NOT a top-level entry (feedback f0363cef).
+             It is a subview of Codex: the "Im Hangar" zone on the Codex landing
+             (codex-landing.component.ts) is itself a full-zone entrance link
+             into /hangar, so a dedicated nav slot would be a redundant second
+             door to the same place (correction, 2026-08-16, superseding the
+             short-lived top-level entry added and reverted the same day). -->
         <a routerLink="/starscape" routerLinkActive="active">{{ 'nav.starscape' | translate }}</a>
         <!-- Data Upload is intentionally NOT a top-level nav entry (admin
              feedback eb9c6ec3): a whole menu slot for a tool only collaborators

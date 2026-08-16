@@ -9,8 +9,22 @@ import { ShipStatDelta } from './codex-build-diff';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout, HangarShip, HangarShipConfig } from '../hangar/hangar.types';
 import { AuthService } from '../auth/auth.service';
-import { UpcomingShipsService } from './upcoming-ships.service';
+import { UpcomingShip, UpcomingShipsFeed, UpcomingShipsService } from './upcoming-ships.service';
 import { ShipPayload } from './codex.types';
+
+function upcomingShip(over: Partial<UpcomingShip> & { id: string; name: string }): UpcomingShip {
+  return {
+    manufacturer: null,
+    manufacturerCode: null,
+    productionStatus: 'in-concept',
+    type: null,
+    focus: null,
+    rsiUrl: `https://robertsspaceindustries.com/pledge/ships/${over.id}`,
+    thumbnail: null,
+    flightReadyButMissing: false,
+    ...over,
+  };
+}
 
 function shipRow(over: Partial<CodexListRow> & { classNameSlug: string }): CodexListRow {
   return {
@@ -76,6 +90,8 @@ describe('CodexLandingComponent', () => {
     entityCounts?: Record<string, number>;
     shipConfigs?: HangarShipConfig[];
     resolvedEntities?: Map<string, ResolvedEntity>;
+    upcomingShips?: UpcomingShip[];
+    upcomingNotificationCount?: number;
   }) {
     const compareKeys = signal<string[]>([]);
     const byClassName = opts.byClassName ?? new Map<string, CodexListRow>();
@@ -151,6 +167,12 @@ describe('CodexLandingComponent', () => {
           useValue: {
             ensureLoaded: jasmine.createSpy('ensureLoaded').and.resolveTo(undefined),
             artFor: () => [] as string[],
+            feed: signal<UpcomingShipsFeed | null>(
+              opts.upcomingShips
+                ? { ships: opts.upcomingShips, counts: null, fetchedAt: '' }
+                : null,
+            ),
+            notificationCount: signal(opts.upcomingNotificationCount ?? 0),
           },
         },
       ],
@@ -277,13 +299,94 @@ describe('CodexLandingComponent', () => {
     expect(shipTile?.querySelector('.domain-count')?.textContent?.trim()).toBe('353');
     const bpTile = tiles.find((a) => a.getAttribute('href') === '/codex/blueprint');
     expect(bpTile).toBeTruthy();
-    // Keybinds, Showroom and Kommende Schiffe stay reachable.
+    // Keybinds and Showroom stay reachable directly; "Kommende Schiffe" no
+    // longer has its own rail entry (folded into the Schiffe domain, see the
+    // upcoming-rail tests below).
     const railHrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('.versum-rail a')).map((a) =>
       a.getAttribute('href'),
     );
     expect(railHrefs.some((h) => h?.includes('/codex/showroom'))).toBeTrue();
-    expect(railHrefs.some((h) => h?.includes('/codex/upcoming'))).toBeTrue();
+    expect(railHrefs.some((h) => h?.includes('/codex/upcoming'))).toBeFalse();
     expect(railHrefs.some((h) => h?.includes('/codex/keybinds'))).toBeTrue();
+  });
+
+  it('AN BORD and IM HANGAR zones are each a real routerLink entrance into their subview', async () => {
+    const fixture = await setup({ hangar: [] });
+    const el: HTMLElement = fixture.nativeElement;
+
+    const boardEntry = el.querySelector<HTMLAnchorElement>('.zone.board a.zone-entry');
+    expect(boardEntry?.getAttribute('href')).toBe('/codex/fps');
+
+    const hangarEntry = el.querySelector<HTMLAnchorElement>('.zone.hangar a.zone-entry');
+    expect(hangarEntry?.getAttribute('href')).toBe('/hangar');
+  });
+
+  it('AN BORD zone entrance prefers an existing FPS role loadout over the bare /codex/fps fallback', async () => {
+    const fixture = await setup({
+      hangar: [],
+      roleLoadouts: [fpsLoadout('fps-set-1', 'Boarding Kit')],
+    });
+    const el: HTMLElement = fixture.nativeElement;
+    const boardEntry = el.querySelector<HTMLAnchorElement>('.zone.board a.zone-entry');
+    expect(boardEntry?.getAttribute('href')).toBe('/hangar/loadout/fps-set-1');
+  });
+
+  it('zone entrances do not swallow their nested interactive children (no nested anchors, controls stay reachable)', async () => {
+    const gladius = shipRow({ classNameSlug: 'AEGS_Gladius' });
+    const fixture = await setup({
+      hangar: [hangarShip('AEGS_Gladius')],
+      byClassName: new Map([['AEGS_Gladius', gladius]]),
+      flagship: 'AEGS_Gladius',
+    });
+    const el: HTMLElement = fixture.nativeElement;
+
+    // The stretched entrance <a> must not contain another <a> (invalid HTML).
+    const hangarEntry = el.querySelector('.zone.hangar a.zone-entry');
+    expect(hangarEntry?.querySelector('a')).toBeNull();
+
+    // The ship identity link and pin button, siblings of the entrance link,
+    // still resolve to their own targets.
+    const identityLink = el.querySelector<HTMLAnchorElement>('a.identity-name');
+    expect(identityLink?.getAttribute('href')).toContain('/codex/ship/AEGS_Gladius');
+    expect(el.querySelector('.identity .pin')).not.toBeNull();
+  });
+
+  it('renders the "Was ist neu" rail inside Im Versum once the RSI feed has ships, each tile a real anchor', async () => {
+    const fixture = await setup({
+      hangar: [],
+      upcomingShips: [
+        upcomingShip({ id: 'polaris', name: 'RSI Polaris' }),
+        upcomingShip({ id: 'idris-m', name: 'Aegis Idris-M' }),
+      ],
+      upcomingNotificationCount: 2,
+    });
+    const el: HTMLElement = fixture.nativeElement;
+
+    const rail = el.querySelector('.upcoming-rail');
+    expect(rail).not.toBeNull();
+    const tiles = Array.from(el.querySelectorAll<HTMLAnchorElement>('.upcoming-tile'));
+    expect(tiles.length).toBe(2);
+    expect(tiles[0].getAttribute('href')).toBe('https://robertsspaceindustries.com/pledge/ships/polaris');
+    expect(tiles[0].getAttribute('target')).toBe('_blank');
+    expect(tiles[0].getAttribute('rel')).toBe('noopener noreferrer');
+    expect(el.querySelector('.upcoming-rail__badge')?.textContent?.trim()).toBe('2');
+  });
+
+  it('renders no upcoming-ships rail while the RSI feed is empty/unloaded (no rail placeholder)', async () => {
+    const fixture = await setup({ hangar: [], upcomingShips: [] });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.upcoming-rail')).toBeNull();
+  });
+
+  it('keeps the upcoming-ships rail scroll contained to its own overflow-x container', async () => {
+    const fixture = await setup({
+      hangar: [],
+      upcomingShips: [upcomingShip({ id: 'polaris', name: 'RSI Polaris' })],
+    });
+    const el: HTMLElement = fixture.nativeElement;
+    const scroller = el.querySelector('.upcoming-rail__scroll');
+    expect(scroller).not.toBeNull();
+    expect(scroller?.closest('.upcoming-rail')).not.toBeNull();
   });
 
   it('shows only the live dot + Verse-online text in the status pill; patch/build move behind the details disclosure', async () => {

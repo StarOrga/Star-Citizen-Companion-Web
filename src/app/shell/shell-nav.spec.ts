@@ -121,4 +121,26 @@ describe('ShellComponent navigation', () => {
 
     expect(request).not.toHaveBeenCalled();
   });
+
+  /**
+   * Regression guard (2026-08-16): a Hangar entry was briefly added as a
+   * fourth top-level link, then reverted — Hangar is a subview of Codex,
+   * reached via the "Im Hangar" zone entrance on the Codex landing, not its
+   * own nav slot. Pin the count so a future add-back has to be deliberate.
+   */
+  it('renders exactly three top-level nav entries: News, Codex, Starscape', () => {
+    const fixture = setup();
+    const links = Array.from(
+      fixture.nativeElement.querySelectorAll('nav.nav > a'),
+    ) as HTMLAnchorElement[];
+
+    expect(links.length).toBe(3);
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/news', '/codex', '/starscape']);
+  });
+
+  it('never renders a top-level Hangar nav entry', () => {
+    const fixture = setup();
+    const hangarLink = fixture.nativeElement.querySelector('nav.nav a[href="/hangar"]');
+    expect(hangarLink).toBeNull();
+  });
 });
