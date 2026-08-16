@@ -3,13 +3,14 @@ import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexLandingComponent } from './codex-landing.component';
-import { CodexListRow, CodexService } from './codex.service';
+import { CodexListRow, CodexService, ResolvedEntity } from './codex.service';
 import { PolySearchHit, scopeForKind } from './codex-poly-search';
 import { ShipStatDelta } from './codex-build-diff';
 import { HangarService } from '../hangar/hangar.service';
-import { HangarRoleLoadout, HangarShip } from '../hangar/hangar.types';
+import { HangarRoleLoadout, HangarShip, HangarShipConfig } from '../hangar/hangar.types';
 import { AuthService } from '../auth/auth.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
+import { ShipPayload } from './codex.types';
 
 function shipRow(over: Partial<CodexListRow> & { classNameSlug: string }): CodexListRow {
   return {
@@ -33,9 +34,9 @@ function shipRow(over: Partial<CodexListRow> & { classNameSlug: string }): Codex
   };
 }
 
-function hangarShip(className: string): HangarShip {
+function hangarShip(className: string, id = className): HangarShip {
   return {
-    id: className,
+    id,
     shipClassName: className,
     customName: null,
     status: 'owned',
@@ -48,7 +49,7 @@ function hangarShip(className: string): HangarShip {
 }
 
 function fpsLoadout(id: string, name: string): HangarRoleLoadout {
-  return { id, name, role: 'fps', items: [], createdAt: '', updatedAt: '' };
+  return { id, name, role: 'fps', items: [], createdAt: '', updatedAt: '2026-08-10T00:00:00Z' };
 }
 
 function hit(kind: PolySearchHit['kind'], slug: string): PolySearchHit {
@@ -72,12 +73,28 @@ describe('CodexLandingComponent', () => {
     deltas?: Map<string, ShipStatDelta[]>;
     searchResults?: PolySearchHit[];
     user?: { id: string } | null;
+    entityCounts?: Record<string, number>;
+    shipConfigs?: HangarShipConfig[];
+    resolvedEntities?: Map<string, ResolvedEntity>;
   }) {
     const compareKeys = signal<string[]>([]);
     const byClassName = opts.byClassName ?? new Map<string, CodexListRow>();
 
     const codex: Partial<CodexService> = {
-      build: signal({ patchVersion: '4.2', buildNumber: '9000000' }) as never,
+      build: signal({
+        patchVersion: '4.2',
+        buildNumber: 'desktop',
+        entityCounts: opts.entityCounts ?? {
+          ships: 353,
+          items: 20015,
+          components: 2172,
+          weapons: 1312,
+          blueprints: 1595,
+          manufacturers: 1148,
+          ammunition: 238,
+        },
+        extractedAt: '2026-08-02T20:29:00Z',
+      }) as never,
       stale: signal(false) as never,
       compareKeys: compareKeys.asReadonly(),
       compareRejectedKind: signal(null) as never,
@@ -100,6 +117,12 @@ describe('CodexLandingComponent', () => {
       previewUrl: () => null,
       isPinned: (_k, c) => compareKeys().includes(`ship:${c}`),
       togglePin: jasmine.createSpy('togglePin'),
+      getEntityPayloads: jasmine.createSpy('getEntityPayloads').and.resolveTo(new Map()),
+      resolveEntities: jasmine
+        .createSpy('resolveEntities')
+        .and.resolveTo(opts.resolvedEntities ?? new Map()),
+      resolveLocaleKeys: jasmine.createSpy('resolveLocaleKeys').and.resolveTo(new Map()),
+      listByKind: jasmine.createSpy('listByKind').and.resolveTo({ rows: [], count: 0 }),
     };
 
     const hangar: Partial<HangarService> = {
@@ -107,6 +130,8 @@ describe('CodexLandingComponent', () => {
       roleLoadouts: signal<HangarRoleLoadout[]>(opts.roleLoadouts ?? []) as never,
       flagshipClassName: signal<string | null>(opts.flagship ?? null) as never,
       loadAll: jasmine.createSpy('loadAll').and.resolveTo(undefined),
+      shipByClassName: (className: string) => (opts.hangar ?? []).find((s) => s.shipClassName === className) ?? null,
+      listConfigs: jasmine.createSpy('listConfigs').and.resolveTo(opts.shipConfigs ?? []),
     };
 
     const auth: Partial<AuthService> = {
@@ -136,6 +161,8 @@ describe('CodexLandingComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     return fixture;
   }
 
@@ -144,30 +171,55 @@ describe('CodexLandingComponent', () => {
   it('renders the empty-hangar invitation that links to the ship index', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.fleet-empty')).not.toBeNull();
-    const cta = el.querySelector<HTMLAnchorElement>('.fleet-empty a.btn');
+    expect(el.querySelector('.hangar-empty')).not.toBeNull();
+    const cta = el.querySelector<HTMLAnchorElement>('.hangar-empty a.btn');
     expect(cta?.getAttribute('href')).toContain('/codex/index');
   });
 
-  it('renders the honest ICH empty state (uncommissioned) with an armour CTA when no FPS set exists', async () => {
+  it('renders the honest AN BORD empty state (uncommissioned) with an armour CTA when no personal loadout exists', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.me-empty')).not.toBeNull();
-    expect(el.querySelector('.me-ready')).toBeNull();
-    const cta = el.querySelector<HTMLAnchorElement>('.me-empty a.btn');
+    expect(el.querySelector('.board-empty')).not.toBeNull();
+    expect(el.querySelector('.paperdoll-wrap')).toBeNull();
+    const cta = el.querySelector<HTMLAnchorElement>('.board-empty a.btn');
     expect(cta?.getAttribute('href')).toContain('/codex/fps');
   });
 
-  it('lights the ICH panel up (combat-ready) and links to the personal set when an FPS role loadout exists', async () => {
-    const fixture = await setup({ hangar: [], roleLoadouts: [fpsLoadout('set1', 'Combat Kit')] });
+  it('renders the schematic paperdoll (not a list) once a personal loadout exists', async () => {
+    const fixture = await setup({ hangar: [], roleLoadouts: [fpsLoadout('set1', 'Boarding Kit')] });
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.me-ready')).not.toBeNull();
-    expect(el.querySelector('.me-empty')).toBeNull();
-    const link = el.querySelector<HTMLAnchorElement>('.me-ready a.btn');
-    expect(link?.getAttribute('href')).toContain('/hangar/loadout/set1');
+    expect(el.querySelector('.paperdoll-wrap svg.paperdoll')).not.toBeNull();
+    expect(el.querySelector('.board-empty')).toBeNull();
+    // Six anatomical slots: 1 circle (helmet) + 6 rects (torso/arms×2/legs×2/backpack) + undersuit path.
+    expect(el.querySelectorAll('.doll-slot').length).toBe(7);
   });
 
-  it('shows the fleet field with the flagship larger, others as thumbs, and inline patch deltas', async () => {
+  it('shows the flagship identity (manufacturer · name) and mount-derived KPIs, never crew/cargo/mass/speed', async () => {
+    const gladius = shipRow({
+      classNameSlug: 'AEGS_Gladius',
+      payload: {
+        itemPorts: [
+          { portName: 'hp1', minSize: 2, maxSize: 2, types: ['WeaponGun'], flags: [] },
+        ],
+        defaultLoadout: [{ itemPortName: 'hp1', entityClassName: null }],
+      } as unknown as ShipPayload,
+    });
+    const fixture = await setup({
+      hangar: [hangarShip('AEGS_Gladius')],
+      byClassName: new Map([['AEGS_Gladius', gladius]]),
+      flagship: 'AEGS_Gladius',
+    });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.identity-mfr')?.textContent).toContain('AEGS');
+    const link = el.querySelector<HTMLAnchorElement>('a.identity-name');
+    expect(link?.getAttribute('href')).toContain('/codex/ship/AEGS_Gladius');
+    const kpiText = el.querySelector('.kpi-row')?.textContent ?? '';
+    expect(kpiText).not.toMatch(/crew/i);
+    expect(kpiText).not.toMatch(/cargo/i);
+    expect(kpiText).not.toMatch(/\bspeed\b/i);
+  });
+
+  it('keeps the flagship-led fleet field: other owned ships render as thumbs with inline patch deltas', async () => {
     const gladius = shipRow({ classNameSlug: 'AEGS_Gladius' });
     const arrow = shipRow({ classNameSlug: 'ANVL_Arrow' });
     const deltas = new Map<string, ShipStatDelta[]>([
@@ -186,16 +238,10 @@ describe('CodexLandingComponent', () => {
       deltas,
     });
     const el: HTMLElement = fixture.nativeElement;
-    const flag = el.querySelector<HTMLAnchorElement>('a.fleet-flagship');
-    expect(flag).not.toBeNull();
-    expect(flag!.getAttribute('href')).toContain('/codex/ship/AEGS_Gladius');
-    // inline green delta
     const delta = el.querySelector('.delta.dir-up .delta-val');
     expect(delta?.textContent).toContain('+50');
-    // the non-flagship ship renders as a thumb
     const other = el.querySelector<HTMLAnchorElement>('.fleet-others a.fleet-thumb');
     expect(other?.getAttribute('href')).toContain('/codex/ship/ANVL_Arrow');
-    // >=2 ships -> the contextual compare hint appears
     expect(el.querySelector('.compare-hint')).not.toBeNull();
   });
 
@@ -213,37 +259,47 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('.results')).not.toBeNull();
     const hits = el.querySelectorAll('a.hit');
     expect(hits.length).toBe(3);
-    // manufacturer + blueprint carry the violet meta scope
     expect(el.querySelectorAll('a.hit.meta').length).toBe(2);
-    // blueprint routes to the dedicated blueprint detail
     const bp = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.hit')).find((a) =>
       a.getAttribute('href')?.includes('BP_Foo'),
     );
     expect(bp?.getAttribute('href')).toContain('/codex/blueprint/BP_Foo');
+    // Pin buttons render an SVG glyph, never the old ☆/★ text characters.
+    expect(el.querySelector('a.hit .pin svg')).not.toBeNull();
   });
 
-  it('renders every WELT navigation as a real anchor', async () => {
+  it('renders the IM VERSUM domain tiles as real anchors carrying the live entity counts', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
-    const hrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('.world a')).map((a) =>
+    const tiles = Array.from(el.querySelectorAll<HTMLAnchorElement>('.domain-tile'));
+    expect(tiles.length).toBe(7);
+    const shipTile = tiles.find((a) => a.getAttribute('href')?.includes('kind=ship'));
+    expect(shipTile?.querySelector('.domain-count')?.textContent?.trim()).toBe('353');
+    const bpTile = tiles.find((a) => a.getAttribute('href') === '/codex/blueprint');
+    expect(bpTile).toBeTruthy();
+    // Keybinds, Showroom and Kommende Schiffe stay reachable.
+    const railHrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('.versum-rail a')).map((a) =>
       a.getAttribute('href'),
     );
-    expect(hrefs.some((h) => h?.includes('/codex/index'))).toBeTrue();
-    expect(hrefs.some((h) => h?.includes('/codex/keybinds'))).toBeTrue();
-    expect(hrefs.some((h) => h?.includes('/codex/blueprint'))).toBeTrue();
-    expect(hrefs.some((h) => h?.includes('/news'))).toBeTrue();
-    expect(hrefs.some((h) => h?.includes('/codex/upcoming'))).toBeTrue();
-    expect(hrefs.some((h) => h?.includes('/codex/showroom'))).toBeTrue();
+    expect(railHrefs.some((h) => h?.includes('/codex/showroom'))).toBeTrue();
+    expect(railHrefs.some((h) => h?.includes('/codex/upcoming'))).toBeTrue();
+    expect(railHrefs.some((h) => h?.includes('/codex/keybinds'))).toBeTrue();
   });
 
-  it('shows the Verse-online status pill and surfaces the current patch/build', async () => {
+  it('shows only the live dot + Verse-online text in the status pill; patch/build move behind the details disclosure', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
-    // Structure: the live dot + the build-scoped patch line render.
     expect(el.querySelector('.status-pill .live-dot')).not.toBeNull();
-    expect(el.querySelector('.status-patch')).not.toBeNull();
-    // Data path: the patch value the pill interpolates comes from the build.
-    // (i18n text isn't asserted — the test harness has no translation loader.)
+    expect(el.querySelector('.status-pill .status-build')).toBeNull();
+    const badge = el.querySelector<HTMLDetailsElement>('details.patch-badge');
+    expect(badge).not.toBeNull();
+    expect(badge?.hasAttribute('open')).toBeFalse();
     expect(fixture.componentInstance.svc.build()?.patchVersion).toBe('4.2');
+  });
+
+  it('never renders the removed Zyklus-Report line', async () => {
+    const fixture = await setup({ hangar: [] });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.cycle-report')).toBeNull();
   });
 });

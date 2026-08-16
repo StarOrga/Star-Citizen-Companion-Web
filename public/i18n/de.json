@@ -45,6 +45,7 @@
   "nav": {
     "news": "Verse News",
     "codex": "Codex",
+    "hangar": "Hangar",
     "p4k": "Bundle-Historie",
     "settings": "Einstellungen",
     "admin": "Benutzer",
@@ -93,12 +94,13 @@
       "status": {
         "online": "Verse online",
         "patch": "Patch {{patch}}",
-        "build": "Build {{build}}",
         "stale": "Daten-Upload nötig"
       },
-      "cycle": {
-        "report": "Zyklus-Report · {{count}} Schiffe mit Änderungen seit dem letzten Build",
-        "reportOne": "Zyklus-Report · 1 Schiff mit Änderungen seit dem letzten Build"
+      "patch": {
+        "ask": "Was hat sich geändert?",
+        "archive": "{{count}} Datensätze im Archiv",
+        "extracted": "Eingelesen {{date}}",
+        "build": "Build „{{build}}“ (Platzhalter)"
       },
       "results": {
         "title": "Archiv-Treffer",
@@ -131,26 +133,58 @@
         "boost": "Boost",
         "crew": "Crew"
       },
-      "world": {
-        "title": "Welt",
-        "subtitle": "Was willst du tun?",
-        "lookup": {
-          "title": "Nachschlagen",
-          "sub": "Katalog durchsuchen — jede Entität, plus Tastenbelegung.",
-          "keybinds": "Keybinds"
+      "paperdoll": {
+        "aria": "Schematische Figur mit sechs markierten Rüstungsslots",
+        "helmet": "Helm",
+        "torso": "Torso",
+        "arms": "Arme",
+        "legs": "Beine",
+        "undersuit": "Untersuit",
+        "backpack": "Rucksack",
+        "empty": "— leer —",
+        "archiveDepth": "{{count}} im Archiv"
+      },
+      "kpi": {
+        "ship": {
+          "shieldTotal": "Schildsumme",
+          "emptyMounts": "Unbestückte Aufhängungen",
+          "weaponMounts": "Waffenaufhängungen",
+          "missileCapacity": "Raketenkapazität",
+          "quantumDrive": "Quantum-Antrieb",
+          "fillRate": "Bestückungsgrad"
         },
-        "craft": {
-          "title": "Herstellen",
-          "sub": "Baupläne und ihre Zutaten."
-        },
-        "news": {
-          "title": "News",
-          "sub": "Neuigkeiten zu Schiffen und Herstellern."
-        },
-        "discover": {
-          "title": "Entdecken",
-          "sub": "Kommende Schiffe und erste Sichtungen.",
-          "showroom": "Showroom"
+        "fps": {
+          "slotsFilled": "Belegte Slots",
+          "gradeMix": "Grad-Mix",
+          "weightClass": "Gewichtsklasse",
+          "manufacturer": "Hersteller",
+          "archiveDepth": "Archivtiefe (leer)",
+          "gapArmor": "Rüstungswert",
+          "gapArmorTitle": "Rüstungsteile tragen im aktuellen Archiv keinen Kampfwert-Block — nur Name, Grad, Größe, Hersteller.",
+          "gapWeapon": "Waffengewalt",
+          "gapWeaponTitle": "FPS-Waffen tragen im aktuellen Archiv keinen Stats-Block."
+        }
+      },
+      "configs": {
+        "otherRoles": "Andere gespeicherte Rollen-Loadouts",
+        "otherShip": "Andere Konfigurationen",
+        "active": "aktiv",
+        "openDetail": "Zur Detailseite „{{name}}“ →"
+      },
+      "versum": {
+        "eyebrow": "Im Versum",
+        "title": "Domänen",
+        "showroom": "Showroom",
+        "upcoming": "Kommende Schiffe",
+        "keybinds": "Tastenbelegungen",
+        "domain": {
+          "ship": "Schiffe",
+          "item": "Items",
+          "component": "Komponenten",
+          "weapon": "Waffen",
+          "blueprint": "Baupläne",
+          "manufacturer": "Hersteller",
+          "ammunition": "Munition"
         }
       }
     },

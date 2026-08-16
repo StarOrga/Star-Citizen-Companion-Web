@@ -45,6 +45,7 @@
   "nav": {
     "news": "Verse News",
     "codex": "Codex",
+    "hangar": "Hangar",
     "p4k": "Bundle History",
     "settings": "Settings",
     "admin": "Users",
@@ -93,12 +94,13 @@
       "status": {
         "online": "Verse online",
         "patch": "Patch {{patch}}",
-        "build": "Build {{build}}",
         "stale": "Data upload needed"
       },
-      "cycle": {
-        "report": "Cycle report · {{count}} ships changed since the last build",
-        "reportOne": "Cycle report · 1 ship changed since the last build"
+      "patch": {
+        "ask": "What changed?",
+        "archive": "{{count}} records in the archive",
+        "extracted": "Extracted {{date}}",
+        "build": "Build \"{{build}}\" (placeholder)"
       },
       "results": {
         "title": "Archive hits",
@@ -131,26 +133,58 @@
         "boost": "Boost",
         "crew": "Crew"
       },
-      "world": {
-        "title": "World",
-        "subtitle": "What do you want to do?",
-        "lookup": {
-          "title": "Look up",
-          "sub": "Search the catalogue — every entity, plus keybindings.",
-          "keybinds": "Keybinds"
+      "paperdoll": {
+        "aria": "Schematic figure with six marked armour slots",
+        "helmet": "Helmet",
+        "torso": "Torso",
+        "arms": "Arms",
+        "legs": "Legs",
+        "undersuit": "Undersuit",
+        "backpack": "Backpack",
+        "empty": "— empty —",
+        "archiveDepth": "{{count}} in the archive"
+      },
+      "kpi": {
+        "ship": {
+          "shieldTotal": "Shield total",
+          "emptyMounts": "Empty weapon mounts",
+          "weaponMounts": "Weapon mounts",
+          "missileCapacity": "Missile capacity",
+          "quantumDrive": "Quantum drive",
+          "fillRate": "Fill rate"
         },
-        "craft": {
-          "title": "Craft",
-          "sub": "Blueprints and their ingredients."
-        },
-        "news": {
-          "title": "News",
-          "sub": "Ship and manufacturer news."
-        },
-        "discover": {
-          "title": "Discover",
-          "sub": "Upcoming ships and first sightings.",
-          "showroom": "Showroom"
+        "fps": {
+          "slotsFilled": "Slots filled",
+          "gradeMix": "Grade mix",
+          "weightClass": "Weight class",
+          "manufacturer": "Manufacturer",
+          "archiveDepth": "Archive depth (empty)",
+          "gapArmor": "Protection value",
+          "gapArmorTitle": "Armour pieces carry no combat-stat block in the current archive — only name, grade, size, manufacturer.",
+          "gapWeapon": "Weapon power",
+          "gapWeaponTitle": "FPS weapons carry no stats block in the current archive."
+        }
+      },
+      "configs": {
+        "otherRoles": "Other saved role loadouts",
+        "otherShip": "Other configurations",
+        "active": "active",
+        "openDetail": "Open detail page \"{{name}}\" →"
+      },
+      "versum": {
+        "eyebrow": "In the Verse",
+        "title": "Domains",
+        "showroom": "Showroom",
+        "upcoming": "Upcoming ships",
+        "keybinds": "Keybindings",
+        "domain": {
+          "ship": "Ships",
+          "item": "Items",
+          "component": "Components",
+          "weapon": "Weapons",
+          "blueprint": "Blueprints",
+          "manufacturer": "Manufacturers",
+          "ammunition": "Ammunition"
         }
       }
     },
