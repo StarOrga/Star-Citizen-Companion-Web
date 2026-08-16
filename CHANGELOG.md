@@ -4,6 +4,41 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.64.0] - 2026-08-16
+
+### Changed
+
+- **The Hangar is a Codex subview again, not a nav entry.** v0.63.0 restored it as
+  a fourth top-level link because the Bridge — its former home — had been demoted.
+  The better answer is the one the landing already implies: **clicking anywhere in
+  the "Im Hangar" zone enters the Hangar**, and clicking anywhere in "An Bord"
+  enters the on-foot view (an existing FPS set if there is one, else the FPS
+  catalog). The nav is back to three entries, and a spec now pins that count so the
+  regression cannot return unnoticed.
+  Both zone entrances are real `<a [routerLink]>` anchors — middle-click and
+  Ctrl/⌘-click work — implemented as a stretched `::after` overlay rather than a
+  wrapping anchor, because the zones contain their own controls and nested anchors
+  are invalid HTML. The focus ring spans the whole zone, not just its heading.
+- **The upper surface is one floating box.** "An Bord" and "Im Hangar" keep sharing
+  a single undivided container (the scale break stays the located eyebrow plus the
+  amber→cyan shift), but it now reads as a raised panel via `--shadow-elevated` —
+  a border glow, never a positive-Y drop shadow.
+- **"Im Versum" is frameless until you touch it.** The domain tiles carry no
+  resting border at all; border and glow appear on hover and `:focus-visible`.
+- **"Kommende Schiffe" is no longer its own destination.** It became a horizontally
+  scrollable "Was ist neu" rail next to the ship domain, with the count of hulls
+  that appeared since your last visit as a badge. The rail scrolls inside its own
+  container so the page body never scrolls sideways. Every tile links out to RSI —
+  by construction the upcoming feed only carries hulls with no match in our game
+  data, so there is no internal Codex entry to link to.
+
+### Fixed
+
+- **The in-app release notes never showed v0.63.0.** `prebuild` generates
+  `public/release-notes.json` from the changelog, but the v0.63.0 ship committed
+  the changelog entry without the regenerated artefact — so users ran a version
+  whose notes the app could not display.
+
 ## [0.63.0] - 2026-08-16
 
 ### Changed

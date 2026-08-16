@@ -45,7 +45,6 @@
   "nav": {
     "news": "Verse News",
     "codex": "Codex",
-    "hangar": "Hangar",
     "p4k": "Bundle History",
     "settings": "Settings",
     "admin": "Users",
@@ -175,7 +174,6 @@
         "eyebrow": "In the Verse",
         "title": "Domains",
         "showroom": "Showroom",
-        "upcoming": "Upcoming ships",
         "keybinds": "Keybindings",
         "domain": {
           "ship": "Ships",
@@ -185,6 +183,10 @@
           "blueprint": "Blueprints",
           "manufacturer": "Manufacturers",
           "ammunition": "Ammunition"
+        },
+        "upcomingRail": {
+          "title": "What's new",
+          "badgeAria": "{{count}} new ships since your last visit"
         }
       }
     },

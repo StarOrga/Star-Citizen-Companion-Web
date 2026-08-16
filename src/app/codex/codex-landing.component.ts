@@ -27,7 +27,7 @@ import {
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
-import { UpcomingShipsService } from './upcoming-ships.service';
+import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout, HangarShipConfig } from '../hangar/hangar.types';
 import { AuthService } from '../auth/auth.service';
@@ -209,14 +209,28 @@ interface PaperdollSlotView {
 
       <!-- ── SURFACE: AN BORD + IM HANGAR, one continuous surface ────────────── -->
       <div class="surface" [class.dimmed]="searchActive()">
-        <!-- AN BORD — amber, on-foot character -->
+        <!-- AN BORD — amber, on-foot character. The WHOLE zone is an entrance
+             into the on-foot subview (feedback, 2026-08-16: "wenn man dort
+             irgendwo drauf klickt"). Nested anchors are invalid HTML and the
+             zone already hosts real interactive children (the pin button, the
+             config <details> list, its own deep links), so we cannot wrap the
+             whole zone in one <a>. Instead a.zone-entry carries the
+             heading/eyebrow and is stretched over the WHOLE zone via its
+             ::after (position:absolute; inset:0 — resolves against .zone,
+             the nearest positioned ancestor, since .zone-entry itself stays
+             unpositioned). Every sibling that holds real controls gets
+             position:relative + a higher z-index so it stays clickable; empty
+             chrome (paperdoll, KPI cards) is allowed to fall through to the
+             entrance link, which is exactly the "click anywhere" goal. -->
         <article class="zone board" aria-labelledby="board-title">
-          <header class="zone-head">
-            <span class="zone-eyebrow">{{ 'codex.landing.me.eyebrow' | translate }}</span>
-            @if (!hasPersonalSet()) {
-              <h2 id="board-title">{{ 'codex.landing.me.title' | translate }}</h2>
-            }
-          </header>
+          <a class="zone-entry" [routerLink]="boardEntryLink()">
+            <header class="zone-head">
+              <span class="zone-eyebrow" id="board-title">{{ 'codex.landing.me.eyebrow' | translate }}</span>
+              @if (!hasPersonalSet()) {
+                <h2>{{ 'codex.landing.me.title' | translate }}</h2>
+              }
+            </header>
+          </a>
 
           @if (!hasPersonalSet()) {
             <div class="board-empty">
@@ -322,14 +336,17 @@ interface PaperdollSlotView {
           }
         </article>
 
-        <!-- IM HANGAR — cyan, ship identity + KPI + fleet field -->
+        <!-- IM HANGAR — cyan, ship identity + KPI + fleet field. Same
+             stretched-link entrance as AN BORD, this time into /hangar. -->
         <article class="zone hangar" aria-labelledby="hangar-title">
-          <header class="zone-head">
-            <span class="zone-eyebrow">{{ 'codex.landing.fleet.eyebrow' | translate }}</span>
-            @if (emptyHangar()) {
-              <h2 id="hangar-title">{{ 'codex.landing.fleet.title' | translate }}</h2>
-            }
-          </header>
+          <a class="zone-entry" routerLink="/hangar">
+            <header class="zone-head">
+              <span class="zone-eyebrow" id="hangar-title">{{ 'codex.landing.fleet.eyebrow' | translate }}</span>
+              @if (emptyHangar()) {
+                <h2>{{ 'codex.landing.fleet.title' | translate }}</h2>
+              }
+            </header>
+          </a>
 
           @if (loading()) {
             <div class="identity skel"></div>
@@ -468,9 +485,54 @@ interface PaperdollSlotView {
             </a>
           }
         </div>
+
+        <!-- "Kommende Schiffe" folded into the Schiffe domain (feedback,
+             2026-08-16) — a Netflix-style horizontal rail right under the
+             domain tiles, not a separate domain entry of its own anymore.
+             Renders nothing while the feed is loading/empty (honest empty
+             state, no skeleton promising a rail that never fills). Every tile
+             is a real RSI anchor: these ships are, by construction, the ones
+             the rsi-upcoming-ships diff found NO game-data match for, so an
+             internal /codex/ship/:className route never applies with the
+             current feed shape (no classNameSlug is returned for them) —
+             external is not a fallback here, it is the only correct target. -->
+        @if (upcomingRailShips().length > 0) {
+          <div class="upcoming-rail">
+            <header class="upcoming-rail__head">
+              <h3 class="upcoming-rail__title">{{ 'codex.landing.versum.upcomingRail.title' | translate }}</h3>
+              @if (rsi.notificationCount() > 0) {
+                <span
+                  class="upcoming-rail__badge mono"
+                  [attr.aria-label]="'codex.landing.versum.upcomingRail.badgeAria' | translate: { count: rsi.notificationCount() }"
+                >{{ formatNum(rsi.notificationCount()) }}</span>
+              }
+            </header>
+            <div class="upcoming-rail__scroll" role="list">
+              @for (ship of upcomingRailShips(); track ship.id) {
+                <a
+                  class="upcoming-tile"
+                  role="listitem"
+                  [href]="ship.rsiUrl || upcomingFallbackUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span class="upcoming-tile__thumb" [class.icon-only]="upcomingThumbs(ship).length === 0">
+                    <sc-fallback-image [candidates]="upcomingThumbs(ship)" [alt]="ship.name">
+                      <sc-codex-icon kind="ship" />
+                    </sc-fallback-image>
+                  </span>
+                  <span class="upcoming-tile__name">{{ ship.name }}</span>
+                  @if (ship.manufacturerCode) {
+                    <span class="upcoming-tile__mfr">{{ ship.manufacturerCode }}</span>
+                  }
+                </a>
+              }
+            </div>
+          </div>
+        }
+
         <nav class="versum-rail">
           <a routerLink="/codex/showroom">{{ 'codex.landing.versum.showroom' | translate }}</a>
-          <a routerLink="/codex/upcoming">{{ 'codex.landing.versum.upcoming' | translate }}</a>
           <a
             class="rail-icon"
             routerLink="/codex/keybinds"
@@ -661,18 +723,25 @@ interface PaperdollSlotView {
       .hit.meta .hit-kind { color: var(--meta); }
 
       /* ── ONE SURFACE: AN BORD + IM HANGAR ─────────────────────────────── */
+      /* Correction (2026-08-16): still ONE box for both scales — no divider
+         between the zones, the scale break stays the eyebrow + amber→cyan
+         shift — but now a visibly "floating" panel rather than a borderless
+         field: a real 1px border plus --shadow-elevated (StarUI: border
+         glows only, no positive-Y drop shadow). */
       .surface {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
         gap: 0;
-        border: 1px solid var(--sc-border);
-        border-radius: 3px;
+        border: 1px solid color-mix(in srgb, var(--sc-accent) 18%, var(--sc-border));
+        border-radius: 4px;
         background: var(--sc-bg-1);
+        box-shadow: var(--shadow-elevated);
         transition: opacity 0.2s;
         overflow: hidden;
       }
       .dimmed { opacity: 0.55; }
       .zone {
+        position: relative;
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -687,7 +756,52 @@ interface PaperdollSlotView {
       @media (min-width: 761px) {
         .zone.hangar { border-top: none; border-left: 1px solid var(--sc-border); }
       }
-      .zone-head { display: flex; flex-direction: column; gap: 2px; }
+      /* Zone entrance: the whole zone is a click target into its subview
+         (Hangar / on-foot). This <a> itself carries only the heading, but its
+         ::after is absolutely positioned against .zone (the nearest
+         positioned ancestor, since .zone-entry stays position:static) and
+         stretched to the zone's full bounds via inset:0 — the "click
+         anywhere in the empty area" trick without nesting an <a> around the
+         zone's own interactive children. Those children (board-empty,
+         ready-row, paperdoll-wrap, kpi-row, config-list, hangar-empty,
+         identity) get position:relative + z-index:1 below to stay above the
+         overlay and keep working (pin button, per-item deep links, the
+         config <details> lists). */
+      .zone-entry {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        border-radius: inherit;
+      }
+      .zone-entry::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        border: 1px solid transparent;
+        border-radius: inherit;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      }
+      .zone-entry:hover::after {
+        border-color: color-mix(in srgb, var(--tint) 40%, transparent);
+        background: color-mix(in srgb, var(--tint) 4%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tint) 18%, transparent);
+      }
+      .zone-entry:focus-visible {
+        outline: none;
+      }
+      .zone-entry:focus-visible::after {
+        border-color: var(--tint);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--tint) 55%, transparent), 0 0 18px color-mix(in srgb, var(--tint) 22%, transparent);
+      }
+      .zone-head { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2px; }
+      /* Everything past the entrance header that carries real controls
+         (buttons, nested <a>, <details>) must outrank the ::after overlay. */
+      .board-empty, .ready-row, .paperdoll-wrap, .kpi-row, .config-list,
+      .hangar-empty, .identity {
+        position: relative;
+        z-index: 1;
+      }
       .zone-eyebrow {
         font-family: var(--sc-font-display);
         font-size: 0.68rem;
@@ -913,21 +1027,91 @@ interface PaperdollSlotView {
       }
       .versum-title { margin: 0; font-size: 1.1rem; }
       .domain-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+      /* Frameless at rest, framed on interaction ("rahmenlos bzw. mit dem
+         highlight rahmen", 2026-08-16 correction): no resting border/panel —
+         a transparent 1px border keeps the box size stable — only hover/focus
+         paints the accent frame + glow. */
       .domain-tile {
         display: flex;
         flex-direction: column;
         gap: 4px;
         padding: 12px;
         border-radius: 3px;
-        border: 1px solid var(--sc-border);
+        border: 1px solid transparent;
         text-decoration: none;
         color: inherit;
-        background: var(--sc-bg-1);
-        transition: border-color 0.16s;
+        background: transparent;
+        transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
       }
-      .domain-tile:hover { border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border)); }
+      .domain-tile:hover,
+      .domain-tile:focus-visible {
+        outline: none;
+        border-color: color-mix(in srgb, var(--sc-accent) 60%, transparent);
+        background: color-mix(in srgb, var(--sc-accent) 6%, transparent);
+        box-shadow: var(--shadow-glow);
+      }
       .domain-label { font-size: 0.74rem; color: var(--sc-fg-2); }
       .domain-count { font-size: 1.15rem; font-weight: 700; color: var(--sc-fg-0); }
+
+      /* ── "Was ist neu" — Netflix-style upcoming-ships rail, folded into the
+           Schiffe domain (2026-08-16, replaces the standalone "Kommende
+           Schiffe" tile). Own overflow-x container so the PAGE never scrolls
+           sideways — the mobile gate fails on horizontal page overflow. ── */
+      .upcoming-rail { display: flex; flex-direction: column; gap: 8px; }
+      .upcoming-rail__head { display: flex; align-items: center; gap: 8px; }
+      .upcoming-rail__title { margin: 0; font-size: 0.92rem; }
+      .upcoming-rail__badge {
+        padding: 1px 8px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--sc-bg-0);
+        background: var(--sc-accent);
+      }
+      .upcoming-rail__scroll {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        padding: 2px 2px 6px;
+        margin: 0 -2px;
+      }
+      .upcoming-tile {
+        flex: 0 0 132px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px;
+        border-radius: 3px;
+        border: 1px solid var(--sc-border);
+        background: var(--sc-bg-1);
+        color: inherit;
+        text-decoration: none;
+        scroll-snap-align: start;
+        min-height: var(--sc-tap-min, 44px);
+        transition: border-color 0.16s ease, box-shadow 0.16s ease;
+      }
+      .upcoming-tile:hover, .upcoming-tile:focus-visible {
+        outline: none;
+        border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
+        box-shadow: var(--shadow-glow);
+      }
+      .upcoming-tile__thumb {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 72px;
+        border-radius: 3px;
+        background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0));
+        overflow: hidden;
+        --sc-img-max-h: 68px;
+      }
+      .upcoming-tile__thumb.icon-only sc-codex-icon { width: 50%; height: 50%; opacity: 0.6; color: var(--sc-accent); }
+      .upcoming-tile__name { font-size: 0.76rem; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .upcoming-tile__mfr { font-size: 0.64rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sc-fg-2); }
+
       .versum-rail { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
       .versum-rail a:not(.rail-icon) { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; }
       .versum-rail a:not(.rail-icon):hover { text-decoration: underline; }
@@ -949,7 +1133,7 @@ interface PaperdollSlotView {
         .surface { grid-template-columns: 1fr; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .hit, .surface, .fleet-thumb, .domain-tile { transition: none; }
+        .hit, .surface, .fleet-thumb, .domain-tile, .zone-entry::after, .upcoming-tile { transition: none; }
         .live-dot, .identity.skel { animation: none; }
       }
     `,
@@ -960,7 +1144,9 @@ export class CodexLandingComponent implements OnInit {
   readonly hangar = inject(HangarService);
   readonly auth = inject(AuthService);
   private readonly t = inject(TranslateService);
-  private readonly rsi = inject(UpcomingShipsService);
+  readonly rsi = inject(UpcomingShipsService);
+  /** External fallback when an upcoming ship carries no RSI url of its own. */
+  readonly upcomingFallbackUrl = 'https://robertsspaceindustries.com/pledge/ships';
   private readonly locale = inject(LocaleService);
 
   readonly loading = signal(true);
@@ -1022,6 +1208,17 @@ export class CodexLandingComponent implements OnInit {
   readonly activeLoadout = computed<HangarRoleLoadout | null>(() => this.personalLoadouts()[0] ?? null);
   readonly otherLoadouts = computed(() => this.personalLoadouts().slice(1, 4));
   readonly hasPersonalSet = computed(() => this.activeLoadout() !== null);
+
+  /**
+   * AN BORD zone entrance target — the on-foot subview. A saved `fps` role
+   * loadout (which may not be the most-recently-touched `activeLoadout`,
+   * see above) opens straight into its own detail page; otherwise the zone
+   * falls back to the on-foot equipment index, same as the empty-state CTA.
+   */
+  readonly boardEntryLink = computed<(string | number)[]>(() => {
+    const fps = this.personalLoadouts().find((l) => l.role === 'fps');
+    return fps ? ['/hangar', 'loadout', fps.id] : ['/codex', 'fps'];
+  });
   readonly paperdollSlots = computed<ArmorSlotState[]>(() =>
     armorSlotsFromLoadout(this.activeLoadout()?.items ?? []),
   );
@@ -1088,6 +1285,15 @@ export class CodexLandingComponent implements OnInit {
       })
       .filter((d) => d.count != null);
   });
+
+  /**
+   * "Was ist neu" rail — folded into the Schiffe domain instead of its own
+   * "Kommende Schiffe" entry. Renders nothing (see template) until the feed
+   * that `ngOnInit` already kicked off via `rsi.ensureLoaded()` resolves —
+   * no separate fetch. Capped so the rail stays a scroll strip, not the
+   * whole matrix.
+   */
+  readonly upcomingRailShips = computed<UpcomingShip[]>(() => (this.rsi.feed()?.ships ?? []).slice(0, 20));
 
   constructor() {
     effect(() => {
@@ -1288,6 +1494,11 @@ export class CodexLandingComponent implements OnInit {
 
   formatNum(v: number): string {
     return formatNumber(v);
+  }
+
+  /** Ordered art candidates for an upcoming-ship rail tile; the fallback-image falls through them on load error. */
+  upcomingThumbs(ship: UpcomingShip): string[] {
+    return thumbnailCandidates(ship);
   }
 
   // ── paperdoll rendering helpers ─────────────────────────────────────────────
