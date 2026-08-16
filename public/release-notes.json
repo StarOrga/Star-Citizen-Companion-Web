@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.62.1",
+  "current": "0.62.2",
   "releases": [
+    {
+      "version": "0.62.2",
+      "date": "2026-08-13",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Starscape images (and RSI-hosted news thumbs) were dead for every returning visitor.",
+              "text": "The Angular service worker re-fetches every subresource inside the worker, where only the worker script's CSP connect-src applies — and that list was missing the RSI image CDN, the signed /i/ proxy host and the Google-Fonts pair. ngsw answered each request with a synthesized 504 Gateway Timeout, while curl and first visits saw 200 (the real cause behind admin feedback 4e54ad2c). The missing hosts are now granted in connect-src; theverse.robertsspaceindustries.com joins img-src for Spectrum-hosted screenshots."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Prebuild guard check-csp-connect-src.mjs:",
+              "text": "every https host granted in script/style/font/img-src must also be in connect-src, and duplicated CSP directives fail the build — this bug class cannot ship again."
+            },
+            {
+              "title": "Postbuild stamp stamp-ngsw-worker.mjs:",
+              "text": "ngsw-worker.js is byte-stamped with the app version plus a hash of the response-header config. A byte-identical worker script never adopts new response headers (the service worker update algorithm discards the fresh fetch), so without the stamp, header-only fixes like this one would never reach existing installs."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.62.1",
       "date": "2026-08-12",
