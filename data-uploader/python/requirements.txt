@@ -24,11 +24,11 @@ scdatatools==1.0.4
 # .claude/deep-knowledge/data-uploader-python.md.
 python-nubia==0.2b5    # scdatatools: python_nubia~=0.2b2
 pyquaternion==0.9.9    # scdatatools: pyquaternion~=0.9.9
-pycryptodome==3.12.0   # scdatatools: pycryptodome~=3.12.0 — Crypto.Cipher.AES
-xxhash==2.0.2          # scdatatools: xxhash~=2.0.2
-sentry-sdk==1.5.8      # scdatatools: sentry-sdk==1.5.8 (exact)
-zstandard==0.12.0      # scdatatools: zstandard~=0.12.0 — P4K zstd entries
-numpy==1.21.6          # scdatatools: numpy~=1.21.5; last 1.21.x with a cp310 wheel
+pycryptodome==3.23.0   # scdatatools: pycryptodome~=3.12.0 — Crypto.Cipher.AES
+xxhash==4.0.0          # scdatatools: xxhash~=2.0.2
+sentry-sdk==2.68.0      # scdatatools: sentry-sdk==2.68.0 (exact)
+zstandard==0.25.0      # scdatatools: zstandard~=0.12.0 — P4K zstd entries
+numpy==2.4.6          # scdatatools: numpy~=1.21.5; last 1.21.x with a cp310 wheel
 
 # Our own direct deps — NOT required by scdatatools, so free to pin/update:
 rsa==4.9.1
