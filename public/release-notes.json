@@ -1,7 +1,63 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.62.2",
+  "current": "0.63.0",
   "releases": [
+    {
+      "version": "0.63.0",
+      "date": "2026-08-16",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "The Codex front door is now a scale ladder: person → ship → verse.",
+              "text": "\"An Bord\" and \"Im Hangar\" no longer sit in two bordered panels — they share one continuous surface whose only break is the located eyebrow and the amber→cyan scope shift, because a pilot and their ship are one subject at two scales, not two cards. \"An Bord\" leads with a schematic figure carrying the six armour slots at their anatomical positions instead of a decorative helmet icon over manufactured whitespace (min-height: 260px is gone — it was what created the emptiness the icon then had to fill)."
+            },
+            {
+              "title": "\"Im Hangar\" leads with identity, not inventory:",
+              "text": "Hersteller · Rolle · Name of the selected ship (defaulting to the flagship), followed by up to six KPIs derived from the mount structure — Schildsumme, unbestückte Aufhängungen (the most actionable number the catalog offers), Waffenaufhängungen, Raketenkapazität, Quantum-Antrieb, Bestückungsgrad. The full component list stays on the detail pages. Both scales gained a native <details> list of the three most recently changed saved configurations."
+            },
+            {
+              "title": "\"Welt / Was willst du tun?\" became \"Im Versum\".",
+              "text": "The old row of four one-liner links was navigation wearing the costume of content — structurally the same chip strip it had replaced, only larger. It is now a frameless state surface with domain entries carrying real entity_counts; keybinds moved behind a quiet rail icon (a keybind query pages ~1.1k rows)."
+            },
+            {
+              "title": "StarUI's own rules are now honoured on this page:",
+              "text": "2–4px radii and border glows replace the 16px/12px/999px radii and 0 6px 18px drop shadows that made a deliberately sharp-edged design system read as generic web cards. The remaining Unicode stand-ins (⌕ × ☆ ★ Δ) are stroke SVG icons."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "The Hangar was reachable only by typing its URL.",
+              "text": "It was deliberately kept out of the nav because it \"lived under the Codex Bridge\" — but the Bridge was demoted to /codex/bridge by an earlier landing redesign, and the rationale went with it while the decision stayed. Restored as a top-level nav entry."
+            },
+            {
+              "title": "The \"Zyklus-Report\" line claimed a global patch statistic and counted only your own ships",
+              "text": "(fleetDeltas().size), two centimetres above the very Δ chips it was double-reporting. Removed; patch/build provenance now lives inside the patch-badge disclosure, where it is a question you ask rather than a label you read past."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Ship KPIs are derived exclusively from fitted components and hardpoint structure. crew, cargoCapacity, mass and the entire flight object are null for every ship in the current extraction, so no hull number is rendered anywhere. Likewise, personal armour carries no protection values and FPS weapons carry no stats object at all — \"Stealth/Rüstung/Waffengewalt\" render as honest gap markers with an explanatory aria-label instead of fabricated figures. Closing those gaps is extraction-pipeline work."
+            },
+            {
+              "title": "",
+              "text": "\"Die drei zuletzt geöffneten Konfigurationen\" currently sorts by updated_at; no last_opened_at column exists yet. The ordering is isolated behind sortByRecency() so a later migration can swap it without touching the view."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.62.2",
       "date": "2026-08-13",
