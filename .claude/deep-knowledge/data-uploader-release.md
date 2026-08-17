@@ -9,8 +9,8 @@ A data-uploader release is not visible to users until ALL of:
 
 1. **Merge to `main` + push tag `data-uploader-v<X.Y.Z>`** — triggers the
    `build-windows` job in `.github/workflows/data-uploader-build.yml`. Bump
-   `data-uploader/package.json` (NOT the root web version); see `devops-ship`
-   extension rule 4.
+   `data-uploader/package.json` (NOT the root web version); see the `ship`
+   extension rule 5 (`.claude/skills/ship/SKILL.md`).
 2. **Public mirror release** on `StarOrga/Star-Citizen-Companion-Binaries`
    exists AND is a **full release, not a prerelease**. A prerelease leaves the
    prior `v*.*.0` as "Latest", and GitHub `/releases/latest` + the download page

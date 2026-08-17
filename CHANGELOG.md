@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.64.1] - 2026-08-17
+
+### Changed
+
+- **Claude skill extensions realigned with the renamed devops plugin skills.**
+  The plugin dropped its `devops-` skill prefix a while ago, which silently
+  detached two of this repo's project extensions. `devops-ship`'s five
+  battle-tested rules (downstream deploy surfaces, deploy-target enumeration on
+  the completion card, tag-retry policy, monorepo version bumps, uploader binary
+  release) now live in `.claude/skills/ship/SKILL.md` behind the mobile-gate
+  rule; `devops-concept` shrank to a new `concept/` extension carrying only the
+  CSP `connect-src` rule (its other two rules are enforced upstream by the
+  plugin's validation gate + `post.concept.gate` hook since dotclaude#165);
+  `devops-test-plan/` keeps its name deliberately — it is the plugin's stable
+  consumer-contract path — but its SKILL.md no longer claims to extend a skill
+  that does not exist. Living docs (`docs/mobile-gate.md`,
+  `docs/feedback-routine.md`, deep-knowledge, `.gitignore` comments) reference
+  the current `/ship`, `/concept`, `/promote`, `/setup-cleanup`, `/tune-rethink`
+  and `/run-burn` names; historical records (CHANGELOG, release notes, shipped
+  concept pages, migration comments) were left untouched.
+
 ## [0.64.0] - 2026-08-16
 
 ### Changed

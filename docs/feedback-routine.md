@@ -139,7 +139,7 @@ area has its own verify + release path; use the one(s) the change touches:
 | Area | Verify (the gate) | Release / deploy |
 |------|-------------------|------------------|
 | **Web app** (`src/`, `public/`) | root `npm run typecheck && npm run build && npm test` | PR → squash-merge; Vercel auto-deploys on main-push |
-| **Data-uploader** (`data-uploader/`, Electron) | `cd data-uploader && npm ci && npm run typecheck && npm run build && npm test` (nested project — needs its own `npm ci`) | after merge, tag `data-uploader-v<ver>` → `data-uploader-build.yml` builds the binary → register the `desktop_releases` row (`/devops-ship` rule 5 + `.claude/deep-knowledge/data-uploader-release.md`) |
+| **Data-uploader** (`data-uploader/`, Electron) | `cd data-uploader && npm ci && npm run typecheck && npm run build && npm test` (nested project — needs its own `npm ci`) | after merge, tag `data-uploader-v<ver>` → `data-uploader-build.yml` builds the binary → register the `desktop_releases` row (`/ship` extension rule 6 + `.claude/deep-knowledge/data-uploader-release.md`) |
 | **Wallpaper-app / Starscape** (`wallpaper-app/`, Rust) | **no cargo in the routine env** — do NOT try `cargo build` locally; the gate is a **green CI build** | after merge: bump `wallpaper-app/Cargo.toml` + `Cargo.lock`, push the `wallpaper-app-v<ver>` tag → `wallpaper-app-build.yml` builds + publishes to the mirror + prints the register SQL, **THEN register the `desktop_releases` row (`product='starscape'`)** via the authenticated Supabase MCP — else `/starscape` stays on the old version. Full flow: `.claude/deep-knowledge/starscape-release.md` |
 | **Supabase migrations** (`supabase/migrations/`) | additive change → apply headless `npm run db:push`; a **destructive** migration (drop/rename/data-loss) is a review-hold, never an auto-apply | `db push` to the cloud project IS the deploy — run it after/with the merge |
 | **Supabase edge functions** (`supabase/functions/`) | deploy is the test: `npm run functions:deploy` (or `supabase functions deploy <name>`; CLI creds are stored) | the deploy after merge |
@@ -865,9 +865,9 @@ Its findings are almost all *someone else's* in-flight work — another session'
 worktree, a WIP branch, a deliberate release decision. So:
 
 - **Never promote.** `alpha → beta → stable` is a user decision by construction
-  (`/devops-promote`, same SHA, no rebuild); the sweep only reports the lag.
+  (`/promote`, same SHA, no rebuild); the sweep only reports the lag.
 - **Never delete** a branch, worktree or stash. Branch hygiene is
-  `/devops-setup-cleanup`, user-triggered, with its own dry-run confirm.
+  `/setup-cleanup`, user-triggered, with its own dry-run confirm.
 - **Never open a PR** for a branch the routine doesn't own — an unpushed WIP
   branch may be mid-thought in a live session.
 - **Do push what the routine itself owns.** A `feat/feedback-*` branch with
@@ -1053,7 +1053,7 @@ For each admitted `open` row (process independently, most-recent context wins):
      (rebase / update-branch) — on a clean rebase it squash-merges, then runs any
      **out-of-band deploy** the change needs — `npm run db:push` for a migration,
      `npm run functions:deploy` for an edge function, push the `*-v<ver>` tag so
-     CI builds the desktop binary + register `desktop_releases` (`/devops-ship`
+     CI builds the desktop binary + register `desktop_releases` (`/ship`
      does this end-to-end). Only once the deploy is done:
      `update admin_feedback set status='shipped', shipped_at=now(),
      ship_ref='<PR url>', processed_at=now(), processing_note=null where id=<id>`.

@@ -83,8 +83,8 @@ worktree-Branch der gepusht wird, nicht ein generischer `feature/...`-Name.
 
 ## Concept-/Decision-Pages: echte Skill + Server-Root im Worktree
 
-Wenn eine Entscheidungs-/Feedback-Seite gewünscht ist (z. B. `/devops-rethink`
-Step 6): **immer** die `/devops-concept`-Skill nutzen (Bridge-Server + zwei
+Wenn eine Entscheidungs-/Feedback-Seite gewünscht ist (z. B. `/tune-rethink`
+Step 6): **immer** die `/concept`-Skill nutzen (Bridge-Server + zwei
 Submit-Buttons + Heartbeat), **nie** ein statisches HTML von Hand bauen und
 **nie** im Claude-Preview-Panel öffnen — das Panel hat keinen Heartbeat, die
 Seite zeigt dann dauerhaft „Claude nicht verbunden". Concept-Pages gehören in
@@ -92,7 +92,7 @@ Seite zeigt dann dauerhaft „Claude nicht verbunden". Concept-Pages gehören in
 
 **Worktree-Falle (die eigentliche Projekt-Gotcha):** Server-Roots divergieren.
 Der Claude-Preview-MCP (`preview_start`, launch.json) rootet im **Worktree-cwd**;
-der `/devops-concept`-Bridge rootet laut Skill im **Main-Projekt-Root**. Schreibt
+der `/concept`-Bridge rootet laut Skill im **Main-Projekt-Root**. Schreibt
 man das Artefakt in den einen Root und serviert/öffnet es über einen Server im
 anderen, gibt es `404` / „nicht verbunden". Regel: **Artefakt-Pfad, cwd des
 serviernden Servers und die geöffnete URL müssen denselben Root teilen.** Beim

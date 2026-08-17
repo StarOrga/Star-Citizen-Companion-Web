@@ -9,8 +9,7 @@ turns the judgement into assertions that run at the latest at ship time.
 
 - Runner: [`scripts/mobile-gate.mjs`](../scripts/mobile-gate.mjs)
 - Config: [`scripts/mobile-gate.config.json`](../scripts/mobile-gate.config.json)
-- Ship hook: `.claude/skills/ship/SKILL.md` (and the legacy-named
-  `.claude/skills/devops-ship/SKILL.md`) — Step 2 quality gates
+- Ship hook: `.claude/skills/ship/SKILL.md` rule 1 — Step 2 quality gates
 - Test-plan hook: `.claude/skills/devops-test-plan/profile.json`
 
 ---
