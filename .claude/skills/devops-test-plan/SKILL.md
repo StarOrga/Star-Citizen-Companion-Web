@@ -1,13 +1,18 @@
 ---
 name: devops-test-plan
-description: Project-specific overrides for /devops-test-plan in SC Companion.
+description: Test-plan extension for SC Companion — profile override + live-probe rules (stable consumer-contract path).
 ---
 
-# /devops-test-plan — SC Companion overrides
+# Test-plan extension — SC Companion
 
-This file extends the plugin skill at
-`~/.claude/plugins/cache/dotclaude/devops/<v>/skills/devops-test-plan/`.
-Plugin defaults still apply; only the rules below override or add.
+There is no `/devops-test-plan` skill anymore — test guidance lives in the
+plugin's `deep-knowledge/test-plan.md`, and THIS directory
+(`.claude/skills/devops-test-plan/`) is the **stable consumer-contract path**
+it reads project extensions from (§ Custom Profiles). The
+`post.flow.completion` V&V hook also reads `profile.json` from here on every
+turn. **Keep the directory name** — renaming it detaches the profile override
+and the hook carve-outs. Plugin defaults still apply; only the rules below
+override or add.
 
 ## Project rules
 

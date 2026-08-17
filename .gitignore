@@ -68,7 +68,7 @@ logs/
 .claude/.ship-in-progress
 .claude/.ship-watcher/
 
-# /devops-burn + /devops-concept local-only state
+# /run-burn + /concept local-only state
 .claude/token-config.json
 .claude/concept-active.json
 

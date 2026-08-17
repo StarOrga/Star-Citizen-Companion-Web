@@ -19,8 +19,9 @@ See root [CLAUDE.md](../CLAUDE.md) for project conventions. This file is the ind
 ## Local LLM delegation
 
 Mechanical generation (DTOs, i18n stubs, simple test scaffolds > 20 lines) → delegate via `local_generate`.
-See `~/.claude/plugins/cache/dotclaude/devops/0.78.1/deep-knowledge/local-llm-delegation.md`.
+See `deep-knowledge/local-llm-delegation.md` in the devops plugin cache
+(`~/.claude/plugins/cache/dotclaude/devops/<version>/` — don't pin the version, it churns).
 
 ## Token-config
 
-`token-config.json` mirrors the Hatchit setup for `/devops-burn` budget tracking.
+`token-config.json` mirrors the Hatchit setup for `/run-burn` budget tracking.
