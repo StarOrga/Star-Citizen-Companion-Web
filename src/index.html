@@ -24,6 +24,9 @@
     <meta name="twitter:description" content="Star Citizen Companion (SCC) — Verse News, P4K analyzer, and more." />
     <meta name="twitter:image" content="https://sc-companion.vercel.app/icons/scc-favicon.svg" />
     <meta name="application-name" content="Star Citizen Companion" />
+    <!-- "dev" is intentional — postbuild (scripts/stamp-index-version.mjs) rewrites it to the
+         release version; a hardcoded version here would silently drift from package.json. -->
+    <meta name="app-version" content="dev" />
     <!-- Structured data — machine-readable identity for crawlers and URL-reputation
          scanners: who runs this site, what it is, and where the source lives. -->
     <script type="application/ld+json">
