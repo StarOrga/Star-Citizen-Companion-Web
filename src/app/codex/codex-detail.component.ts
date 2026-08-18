@@ -33,6 +33,7 @@ import {
   toLang,
 } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
+import { HangarShipConfig } from '../hangar/hangar.types';
 import {
   computeLoadoutStats,
   findStat,
@@ -86,6 +87,7 @@ import {
   equippedMass,
 } from './ship-summary-panels';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
+import { CodexLoadoutSaveBarComponent } from './codex-loadout-save-bar.component';
 import { carriedByPort, carriedSlots, stockLoadoutClassNames } from './stock-loadout';
 import {
   CodexHardpointLayoutComponent,
@@ -99,7 +101,30 @@ import {
   CodexComponentModalComponent,
   ComponentInspectEntry,
 } from './codex-component-modal.component';
-import { CodexSwapPickerComponent, SwapTarget } from './codex-swap-picker.component';
+import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
+import {
+  DraftMap,
+  EMPTY_DRAFT,
+  HydrationEpoch,
+  acceptedClassNames,
+  beginHydration,
+  changedCount as draftChangedCount,
+  decodeDraftParam,
+  deleteDraftPaths,
+  encodeDraftParam,
+  isNestedPath,
+  mergeMapInto,
+  mergeSavedLoadout,
+  newHydrationEpoch,
+  parseLocalDraft,
+  restoreDraft,
+  selectSaveableEntries,
+  serializeLocalDraft,
+  setDraftValueForPaths,
+  topSegment,
+  touchedTopPorts,
+  LOCAL_DRAFT_STORAGE_KEY,
+} from './codex-loadout-draft';
 import { ShipHardpointMapComponent } from './ship-hardpoint-map.component';
 import {
   HardpointFrame,
@@ -201,7 +226,7 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent],
+  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, CodexLoadoutSaveBarComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -563,6 +588,15 @@ interface GearRecipe {
             <!-- "What even IS a hardpoint?" — answered up front, once. -->
             <p class="hint">{{ 'codex.detail.hardpointExplainer' | translate }}</p>
             <p class="hint">{{ 'codex.detail.moduleOrderHint' | translate }}</p>
+            <sc-codex-loadout-save-bar
+              [changed]="draftChangedCount()"
+              [saveable]="saveableEntries().length"
+              [saving]="saving()"
+              [error]="saveError()"
+              [inHangar]="inHangar()"
+              (save)="saveLoadoutDraft()"
+              (discard)="discardLoadoutDraft()"
+              (addAndSave)="saveLoadoutDraft()" />
             <!-- The "no stock guns in this extract" disclosure used to sit here,
                  far above the block it is about. It now rides on the Weapons
                  section itself (1add86a4) — see moduleSections below. -->
@@ -580,6 +614,7 @@ interface GearRecipe {
               [sections]="moduleSections()"
               [locatablePorts]="locatablePorts()"
               [activePorts]="activePorts()"
+              (reverted)="onRevertPaths($event)"
               (hovered)="setActivePorts($event)"
               (inspected)="openInspect($event)"
               (swapRequested)="openSwapPicker($event)" />
@@ -749,7 +784,7 @@ interface GearRecipe {
       <!-- Full stat sheet for one clicked module (461288f9). Rendered last so
            its fixed-position backdrop sits above everything on the page. -->
       <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
-      <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" />
+      <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
     </section>
   `,
   styles: [`
@@ -1055,6 +1090,25 @@ export class CodexDetailComponent implements OnInit {
   );
   private readonly ammoPayloads = signal<Map<string, unknown>>(new Map());
 
+  // ── loadout draft write path (PR B — 06-fallen.md) ─────────────────────────
+  // Model per 03-rules §2.4: Map<rawPath, className|null>. `null` = emptied,
+  // distinct from "absent" = unchanged. Only mutated through the pure helpers
+  // in codex-loadout-draft.ts so the app/spec logic never drifts.
+  readonly draft = signal<DraftMap>(EMPTY_DRAFT);
+  /** Payloads for DRAFT-swapped classes — merged in, never a wholesale replace (R6). */
+  private readonly draftPayloads = signal<Map<string, { kind: CodexKind; payload: unknown }>>(new Map());
+  private readonly draftAmmoPayloads = signal<Map<string, unknown>>(new Map());
+  private readonly draftResolved = signal<Map<string, ResolvedEntity>>(new Map());
+  /** Classes currently being hydrated — rows render no numbers while pending (Falle 2). */
+  private readonly pendingClasses = signal<ReadonlySet<string>>(new Set());
+  /** Paths whose restored draft class does not resolve in the current build (R9). */
+  private readonly unresolvableDraftPaths = signal<ReadonlySet<string>>(new Set());
+  /** Paths whose current draft value is already reflected in the stored config. */
+  private readonly savedPaths = signal<ReadonlySet<string>>(new Set());
+  private readonly hydrationEpoch: HydrationEpoch = newHydrationEpoch();
+  readonly saving = signal(false);
+  readonly saveError = signal<string | null>(null);
+
   // Ship tech stats derived from the stock loadout's component payloads (#137):
   // quantum range/speed + fuel capacities. Best-effort — null when unresolvable.
   private readonly techStats = signal<ShipTechStats | null>(null);
@@ -1103,6 +1157,14 @@ export class CodexDetailComponent implements OnInit {
     this.buyOptions.set([]);
     this.buyLoading.set(false);
     this.buyError.set(false);
+    this.draft.set(EMPTY_DRAFT);
+    this.draftPayloads.set(new Map());
+    this.draftAmmoPayloads.set(new Map());
+    this.draftResolved.set(new Map());
+    this.pendingClasses.set(new Set());
+    this.unresolvableDraftPaths.set(new Set());
+    this.savedPaths.set(new Set());
+    this.saveError.set(null);
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
@@ -1112,6 +1174,7 @@ export class CodexDetailComponent implements OnInit {
           this.resolveLocale(d),
           this.resolveShipTech(d),
         ]);
+        if (kind === 'ship') this.restoreDraftFromUrlOrStorage(className);
         if (kind === 'item' || kind === 'weapon') void this.loadWhereToBuy(d);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
         if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug);
@@ -1530,10 +1593,14 @@ export class CodexDetailComponent implements OnInit {
     const src = ev.child ?? ev.slot;
     const port = ev.child ? ev.child.port : ev.slot.port;
     if (!src.className) {
-      // An UNFITTED bay is still a choice, as long as we know what fits in it
-      // (1add86a4). Sub-slots are excluded: a rack's missile seats have no
-      // hardpoint of their own to read a fit off.
-      const fit = ev.child ? null : this.emptyFits().get(ev.slot.rawPort ?? '');
+      // An UNFITTED bay/seat is still a choice, as long as we know what fits
+      // in it (1add86a4, Falle 3). A sub-slot reads its OWN raw types now
+      // (carriedSlots.rawTypes); a top-level bay borrows from a sibling.
+      const fit = ev.child
+        ? ev.child.rawTypes.length > 0
+          ? { types: ev.child.rawTypes, size: ev.child.size, inferred: false }
+          : null
+        : this.emptyFits().get(ev.slot.rawPort ?? '');
       if (!fit) return;
       this.swapTarget.set({
         port,
@@ -1544,6 +1611,8 @@ export class CodexDetailComponent implements OnInit {
         size: fit.size,
         attachTypes: fit.types,
         fitInferred: fit.inferred,
+        rawPorts: ev.rawPorts,
+        rawTypes: fit.types,
       });
       return;
     }
@@ -1554,7 +1623,234 @@ export class CodexDetailComponent implements OnInit {
       kind: src.kind,
       name: src.name,
       size: src.size,
+      rawPorts: ev.rawPorts,
+      rawTypes: ev.child ? ev.child.rawTypes : (this.detail()?.ports.find((p) => p.portName === ev.slot.rawPort)?.types ?? []),
     });
+  }
+
+  // ── loadout draft write path (PR B) ─────────────────────────────────────────
+
+  /** `codex_item_ports.port_name` — the only paths a draft entry can be saved against (R2). */
+  private readonly joinablePorts = computed<ReadonlySet<string>>(() => {
+    const d = this.detail();
+    return new Set((d?.ports ?? []).map((p) => p.portName).filter((p): p is string => !!p));
+  });
+
+  readonly draftChangedCount = computed(() => draftChangedCount(this.draft()));
+
+  private kindOfDraftClass(className: string): string {
+    return (
+      this.draftResolved().get(className)?.kind ??
+      this.loadoutEntities().get(className)?.kind ??
+      'component'
+    );
+  }
+
+  readonly saveableEntries = computed(() =>
+    selectSaveableEntries(this.draft(), this.joinablePorts(), (cn) => this.kindOfDraftClass(cn)),
+  );
+
+  /** "Übernehmen" / "Slot leeren" from the picker — applies to every covered path. */
+  onSwapPicked(pick: SwapPick): void {
+    const paths = pick.target.rawPorts && pick.target.rawPorts.length > 0 ? pick.target.rawPorts : [];
+    if (paths.length === 0) {
+      // No raw identity to write against — nothing we can do safely; close.
+      this.swapTarget.set(null);
+      return;
+    }
+    this.draft.update((d) =>
+      setDraftValueForPaths(d, paths, pick.className, (path) => this.stockValueForPath(path)),
+    );
+    this.unresolvableDraftPaths.update((s) => {
+      if (paths.every((p) => !s.has(p))) return s;
+      const next = new Set(s);
+      for (const p of paths) next.delete(p);
+      return next;
+    });
+    this.swapTarget.set(null);
+    if (pick.className) void this.hydrateDraftClass(pick.className);
+    this.persistDraftMirror();
+  }
+
+  /** Revert the row's own draft entries (the ↺ button). */
+  onRevertPaths(paths: string[]): void {
+    if (paths.length === 0) return;
+    this.draft.update((d) => deleteDraftPaths(d, paths));
+    this.persistDraftMirror();
+  }
+
+  /** The STOCK value at a dotted path — top-level className, or a carried sub-port's. */
+  private stockValueForPath(path: string): string | null {
+    const top = topSegment(path);
+    const item = this.loadoutAll().find((l) => l.port === top);
+    if (!item) return null;
+    if (!isNestedPath(path)) return item.className;
+    const childPort = path.slice(top.length + 1).toLowerCase();
+    for (const [k, v] of item.carried) {
+      if (k.toLowerCase() === childPort) return v;
+    }
+    return null;
+  }
+
+  /** Async stat hydration for a draft-swapped class, epoch-guarded (R6/Falle 2). */
+  private async hydrateDraftClass(className: string): Promise<void> {
+    this.pendingClasses.update((s) => new Set(s).add(className));
+    const ammoNames = ammoClassNamesFor([className]);
+    const epoch = beginHydration(this.hydrationEpoch, [className, ...ammoNames]);
+    try {
+      const [payloads, resolved, ammo] = await Promise.all([
+        this.svc.getEntityPayloads([className]),
+        this.svc.resolveEntities([className]),
+        ammoNames.length > 0 ? this.svc.getAmmoPayloads(ammoNames) : Promise.resolve(new Map<string, unknown>()),
+      ]);
+      const okMain = acceptedClassNames(this.hydrationEpoch, [className], epoch);
+      const okAmmo = acceptedClassNames(this.hydrationEpoch, ammoNames, epoch);
+      if (okMain.length > 0) {
+        this.draftPayloads.update((m) => mergeMapInto(m, payloads, okMain));
+        this.draftResolved.update((m) => mergeMapInto(m, resolved, okMain));
+      }
+      if (okAmmo.length > 0) this.draftAmmoPayloads.update((m) => mergeMapInto(m, ammo, okAmmo));
+    } catch {
+      // A failed hydration just leaves the row pending forever rather than
+      // rendering wrong numbers — Falle 2: "a spinner beats a wrong number".
+    } finally {
+      if (acceptedClassNames(this.hydrationEpoch, [className], epoch).length > 0) {
+        this.pendingClasses.update((s) => {
+          const next = new Set(s);
+          next.delete(className);
+          return next;
+        });
+      }
+    }
+  }
+
+  isDraftClassPending(className: string | null): boolean {
+    return !!className && this.pendingClasses().has(className);
+  }
+
+  // ── persistence (R1/R2) ──────────────────────────────────────────────────
+
+  /**
+   * Write the draft into the ship's ACTIVE hangar config (creating + activating
+   * one when it has none). Never a from-scratch array: only OUR joinable,
+   * top-level paths are upserted/removed; every other row the config already
+   * carries — including ones the hangar editor wrote — survives untouched.
+   */
+  async saveLoadoutDraft(): Promise<void> {
+    const d = this.detail();
+    if (d?.kind !== 'ship' || this.saveableEntries().length === 0) return;
+    this.saving.set(true);
+    this.saveError.set(null);
+    try {
+      const ship =
+        this.hangar.shipByClassName(d.classNameSlug) ?? (await this.hangar.addShip(d.classNameSlug, 'owned'));
+      if (!ship) {
+        this.saveError.set(this.t.instant('codex.loadout.saveErrorHangar') as string);
+        return;
+      }
+      const configs = await this.hangar.listConfigs(ship.id);
+      let target: HangarShipConfig | null = configs.find((c) => c.isActive) ?? configs[0] ?? null;
+      if (!target) {
+        target = await this.hangar.createConfig(
+          ship.id,
+          this.t.instant('codex.loadout.defaultConfigName') as string,
+          'multipurpose',
+          [],
+        );
+        if (!target) {
+          this.saveError.set(this.t.instant('codex.loadout.saveErrorHangar') as string);
+          return;
+        }
+        await this.hangar.activateConfig(target.id, ship.id);
+      }
+      const touched = touchedTopPorts(this.draft(), this.joinablePorts());
+      const merged = mergeSavedLoadout(target.loadout, this.saveableEntries(), touched);
+      const updated = await this.hangar.updateConfig(target.id, { loadout: merged });
+      if (!updated) {
+        this.saveError.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
+        return;
+      }
+      this.savedPaths.set(new Set(this.saveableEntries().map((e) => e.portName)));
+    } catch {
+      this.saveError.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  discardLoadoutDraft(): void {
+    this.draft.set(EMPTY_DRAFT);
+    this.draftPayloads.set(new Map());
+    this.draftAmmoPayloads.set(new Map());
+    this.draftResolved.set(new Map());
+    this.pendingClasses.set(new Set());
+    this.unresolvableDraftPaths.set(new Set());
+    this.savedPaths.set(new Set());
+    this.saveError.set(null);
+    this.persistDraftMirror();
+  }
+
+  // ── URL + localStorage draft mirror (R9) ────────────────────────────────
+
+  /** Best-effort — try/catch throughout: private-mode localStorage still must not break the page. */
+  private persistDraftMirror(): void {
+    const d = this.detail();
+    const buildId = this.svc.build()?.id;
+    if (!d || d.kind !== 'ship' || !buildId) return;
+    try {
+      const param = encodeDraftParam(buildId, this.draft());
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { loadout: param },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    } catch {
+      // Router navigation should not throw in practice — best-effort regardless.
+    }
+    try {
+      if (typeof localStorage === 'undefined') return;
+      if (this.draft().size === 0) localStorage.removeItem(LOCAL_DRAFT_STORAGE_KEY);
+      else localStorage.setItem(LOCAL_DRAFT_STORAGE_KEY, serializeLocalDraft(d.classNameSlug, buildId, this.draft()));
+    } catch {
+      // Private mode / quota — degrade to in-memory only.
+    }
+  }
+
+  /** URL wins over localStorage; both are ignored when the ship or build doesn't match (R9). */
+  private restoreDraftFromUrlOrStorage(classNameSlug: string): void {
+    const buildId = this.svc.build()?.id;
+    if (!buildId) return;
+    const fromUrl = decodeDraftParam(this.route.snapshot.queryParamMap.get('loadout'));
+    let entries: [string, string | null][] | null = null;
+    let sourceBuildId = buildId;
+    if (fromUrl) {
+      entries = fromUrl.entries;
+      sourceBuildId = fromUrl.buildId;
+    } else {
+      try {
+        const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(LOCAL_DRAFT_STORAGE_KEY);
+        const local = parseLocalDraft(raw);
+        if (local && local.shipClassName === classNameSlug) {
+          entries = local.entries;
+          sourceBuildId = local.buildId;
+        }
+      } catch {
+        // Private mode — no restore, page still works.
+      }
+    }
+    if (!entries || entries.length === 0) return;
+    const classResolves = (className: string): boolean =>
+      this.loadoutEntities().has(className) || stockLoadoutClassNames(
+        (this.detail()?.payload as ShipPayload | undefined)?.defaultLoadout ?? [],
+      ).includes(className);
+    const restored = restoreDraft({ version: 'v1', buildId: sourceBuildId, entries }, buildId, classResolves);
+    this.draft.set(restored.draft);
+    this.unresolvableDraftPaths.set(new Set(restored.unresolvable));
+    // A restored draft is UNSAVED by definition (R8) — savedPaths stays empty.
+    for (const [path, value] of restored.draft) {
+      if (value && !restored.unresolvable.includes(path)) void this.hydrateDraftClass(value);
+    }
   }
 
   // ── hardpoint positions on the hull (#137 part 3) ───────────────────────────
@@ -1797,6 +2093,82 @@ export class CodexDetailComponent implements OnInit {
    * extract says nothing about keeps the sized placeholder it always had; the
    * mount never masquerades as the weapon either way.
    */
+  /**
+   * Overlay a top-level port's draft entry onto its STOCK display fields — the
+   * caller keeps the STOCK values for grouping (`groupKey`), this is display
+   * only. `undefined` draftValue = unchanged, `null` = emptied, a class name =
+   * swapped, possibly still hydrating or possibly unresolvable (R6/R9).
+   */
+  private draftOverlayFor(
+    path: string,
+    draftValue: string | null | undefined,
+    stockItem: { kind: CodexKind | null; payload: unknown; ammoPayload: unknown },
+  ): {
+    state: 'changed' | 'pending' | 'unresolved' | null;
+    className: string | null;
+    kind: CodexKind | null;
+    name: string | null;
+    size: number | null;
+    grade: string | null;
+    manufacturerCode: string | null;
+    item: { kind: CodexKind | null; payload: unknown; ammoPayload: unknown };
+  } {
+    if (draftValue === undefined) {
+      const l = this.loadoutAll().find((x) => x.port === path);
+      return {
+        state: null,
+        className: l?.className ?? null,
+        kind: l?.kind ?? null,
+        name: l?.name ?? null,
+        size: l?.size ?? null,
+        grade: l?.grade ?? null,
+        manufacturerCode: l?.manufacturerCode ?? null,
+        item: stockItem,
+      };
+    }
+    if (draftValue === null) {
+      return {
+        state: 'changed',
+        className: null,
+        kind: null,
+        name: null,
+        size: null,
+        grade: null,
+        manufacturerCode: null,
+        item: { kind: null, payload: null, ammoPayload: undefined },
+      };
+    }
+    if (this.unresolvableDraftPaths().has(path)) {
+      return {
+        state: 'unresolved',
+        className: draftValue,
+        kind: null,
+        name: humanizeClassName(draftValue),
+        size: null,
+        grade: null,
+        manufacturerCode: null,
+        item: { kind: null, payload: null, ammoPayload: undefined },
+      };
+    }
+    const hit = this.draftResolved().get(draftValue);
+    const payloadHit = this.draftPayloads().get(draftValue);
+    const pending = this.isDraftClassPending(draftValue) || !hit;
+    return {
+      state: pending ? 'pending' : 'changed',
+      className: draftValue,
+      kind: payloadHit?.kind ?? hit?.kind ?? null,
+      name: cleanLocaleValue(hit?.nameLocalized) || draftValue,
+      size: hit?.size ?? null,
+      grade: hit?.grade ?? null,
+      manufacturerCode: hit?.manufacturerCode ?? null,
+      item: {
+        kind: payloadHit?.kind ?? null,
+        payload: payloadHit?.payload ?? null,
+        ammoPayload: this.draftAmmoPayloads().get(ammoClassNameFor(draftValue) ?? ''),
+      },
+    };
+  }
+
   private childrenFor(
     className: string | null,
     carried: ReadonlyMap<string, string>,
@@ -1876,32 +2248,44 @@ export class CodexDetailComponent implements OnInit {
       const item = { kind: r.kind, payload: r.payload, ammoPayload: r.ammoPayload };
       const children = fixedRest ? [] : this.childrenFor(l.className, l.carried);
       const fit = l.className ? undefined : this.emptyFits().get(l.port);
+      // Grouping stays anchored to the STOCK identity, computed BEFORE any
+      // draft overlay below — a per-slot draft edit can never split or
+      // reorder a collapsed run mid-interaction (R5/Falle 4).
+      const variantKey = children.map((c) => `${c.className ?? ''}:${c.count}`).join(',');
+      const groupKey = `${l.className ?? ' '}|${l.size ?? ''}|${l.grade ?? ''}|${variantKey}`;
+
+      const draftEntry = configurable ? this.draft().get(l.port) : undefined;
+      const overlay = this.draftOverlayFor(l.port, draftEntry, item);
+
       const slot: LayoutSlot = {
         port: this.humanizePort(l.port),
         // Raw name kept alongside the label so the hull map can match the row.
         rawPort: l.port,
-        className: l.className,
-        kind: l.kind,
-        name: l.name,
-        size: l.size,
-        grade: l.grade,
-        manufacturerCode: l.manufacturerCode,
+        className: overlay.className,
+        kind: overlay.kind,
+        name: overlay.name,
+        size: overlay.size,
+        grade: overlay.grade,
+        manufacturerCode: overlay.manufacturerCode,
         statChip: qdChip && l.className === tech!.quantumDriveClassName ? qdChip : null,
-        typeLabel: equippedTypeLabel(item),
-        damageChannels: damageChannelsOf(item.payload, item.ammoPayload),
-        stats: equippedStats(item),
-        statsMissing: weaponStatsUnavailable(item),
+        typeLabel: equippedTypeLabel(overlay.item),
+        damageChannels: damageChannelsOf(overlay.item.payload, overlay.item.ammoPayload),
+        stats: overlay.state === 'pending' ? [] : equippedStats(overlay.item),
+        statsMissing: overlay.state === 'pending' ? false : weaponStatsUnavailable(overlay.item),
         children,
         portSize: this.portSizeOf(l.port) ?? fit?.size ?? null,
         // Two identical mounts holding different things must not collapse.
-        variantKey: children.map((c) => `${c.className ?? ''}:${c.count}`).join(','),
+        variantKey,
+        groupKey,
         // Every bay in an individual block, and every unfitted configurable
         // hardpoint, is a decision of its own and keeps its own row (1add86a4).
         noCollapse: isIndividualSection(r.section) || (configurable && !l.className),
         emptyLabelKey: isWeaponMountPort(l.port)
           ? 'codex.detail.loadoutEmptyWeaponMount'
           : null,
-        emptySwappable: !!fit,
+        emptySwappable: !!fit || (overlay.state === 'changed' && overlay.className === null),
+        draftState: overlay.state,
+        draftPaths: draftEntry !== undefined ? [l.port] : [],
       };
       const hit = buckets.get(r.section);
       if (hit) hit.push(slot);

@@ -472,7 +472,7 @@
       "pickerTitle": "Modul tauschen",
       "installed": "Verbaut",
       "equipped": "Verbaut",
-      "previewHint": "Nur Vorschau — nichts wird gespeichert.",
+      "previewHint": "Vergleichen, dann Übernehmen oder Slot leeren — die Änderung bleibt Entwurf, bis du sie unten speicherst.",
       "loading": "Kompatible Items werden gesucht…",
       "failed": "Die kompatiblen Teile konnten nicht geladen werden.",
       "none": "Keine kompatiblen Alternativen in diesem Build.",
@@ -494,7 +494,26 @@
       "missingColumns": "Nicht in diesem Daten-Extract enthalten und deshalb ohne Spalte: {{fields}}.",
       "installedNone": "Platz ab Werk leer",
       "pickHere": "Auswählen",
-      "fitInferred": "Dieser Platz ist ab Werk leer. Die Liste stammt von einem baugleichen, bestückten Platz desselben Schiffs – nicht aus den Daten dieses Hardpoints selbst."
+      "fitInferred": "Dieser Platz ist ab Werk leer. Die Liste stammt von einem baugleichen, bestückten Platz desselben Schiffs – nicht aus den Daten dieses Hardpoints selbst.",
+      "clearSlot": "Slot leeren",
+      "apply": "Übernehmen"
+    },
+    "loadout": {
+      "changesSummary": "{{changed}} Änderungen · davon {{saveable}} speicherbar",
+      "unsaveableHint": "Verschachtelte und geleerte Slots bleiben vorerst Entwurf — sie lassen sich noch nicht speichern.",
+      "discard": "Änderungen verwerfen",
+      "save": "Speichern",
+      "saving": "Wird gespeichert…",
+      "addToHangarAndSave": "Zum Hangar hinzufügen & speichern",
+      "saveErrorHangar": "Der Hangar war gerade nicht erreichbar — der Entwurf bleibt erhalten, bitte erneut versuchen.",
+      "saveErrorGeneric": "Das Loadout konnte gerade nicht gespeichert werden — der Entwurf bleibt erhalten, bitte erneut versuchen.",
+      "revert": "Auf Werkszustand zurücksetzen",
+      "defaultConfigName": "Codex-Loadout",
+      "draftState": {
+        "changed": "Geändert",
+        "pending": "Lädt…",
+        "unresolved": "Nicht in diesem Build"
+      }
     },
     "statGroup": {
       "identity": "Identität",

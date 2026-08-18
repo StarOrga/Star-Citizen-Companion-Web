@@ -209,7 +209,7 @@ describe('CodexSwapPickerComponent', () => {
     expect(rowNames(fixture.nativeElement)).toEqual(['Mantis GT-220 Gatling']);
   });
 
-  it('previews the stat change against what is installed, and saves nothing', async () => {
+  it('previews the stat change against what is installed', async () => {
     const el = await open();
     const omnisky = Array.from(el.querySelectorAll<HTMLButtonElement>('.pick')).find((b) =>
       b.textContent?.includes('Omnisky'),
@@ -219,10 +219,48 @@ describe('CodexSwapPickerComponent', () => {
     const delta = fixture.nativeElement.querySelector('.sp-delta');
     expect(delta).toBeTruthy();
     expect(delta.textContent).toContain('+402%');
-    // Sandbox contract: no apply/save action exists at all.
-    expect(fixture.nativeElement.querySelector('.sp-foot button')?.textContent?.trim()).toBe(
-      'codex.swap.cancel',
-    );
+  });
+
+  // Falle 5 / 06-fallen.md: the picker still writes NOTHING itself — it only
+  // ever EMITS the choice, and the host owns turning that into a draft or a
+  // persisted change. This spec replaces the old "saves nothing" guard, whose
+  // premise (no apply action at all) the write-path PR intentionally changes.
+  it('emits "Übernehmen" as a picked event and calls no service write method', async () => {
+    const picks: { className: string | null; target: SwapTarget }[] = [];
+    fixture.componentInstance.picked.subscribe((p) => picks.push(p));
+    const el = await open();
+    const omnisky = Array.from(el.querySelectorAll<HTMLButtonElement>('.pick')).find((b) =>
+      b.textContent?.includes('Omnisky'),
+    )!;
+    omnisky.click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.sp-apply') as HTMLButtonElement).click();
+    expect(picks).toEqual([{ className: 'AMRS_LaserCannon_S3', target: TARGET }]);
+    // The stub only has READ methods — if the component had somehow called a
+    // write, that would be a compile error here, not a silent pass.
+    expect(Object.keys(svc)).toEqual(['ports']);
+  });
+
+  it('"Slot leeren" emits className null for the current target, always available', async () => {
+    const picks: { className: string | null; target: SwapTarget }[] = [];
+    fixture.componentInstance.picked.subscribe((p) => picks.push(p));
+    const el = await open();
+    (el.querySelector('.sp-clear') as HTMLButtonElement).click();
+    expect(picks).toEqual([{ className: null, target: TARGET }]);
+  });
+
+  it('"Übernehmen" on a grouped row (count > 1) emits exactly ONE pick — the host applies it to every covered path', async () => {
+    const picks: { className: string | null; target: SwapTarget }[] = [];
+    fixture.componentInstance.picked.subscribe((p) => picks.push(p));
+    const el = await open(TARGET); // TARGET.count === 3
+    const gatling = Array.from(el.querySelectorAll<HTMLButtonElement>('.pick')).find((b) =>
+      b.textContent?.includes('Gatling'),
+    )!;
+    gatling.click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.sp-apply') as HTMLButtonElement).click();
+    expect(picks.length).toBe(1);
+    expect(picks[0].target.count).toBe(3);
   });
 
   it('reports how many identical hardpoints the choice would apply to', async () => {

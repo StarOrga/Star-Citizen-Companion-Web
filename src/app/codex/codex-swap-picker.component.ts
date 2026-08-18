@@ -63,20 +63,37 @@ export interface SwapTarget {
    * one — the picker says so, so an inference is never read as a fact.
    */
   fitInferred?: boolean;
+  /**
+   * Every RAW dotted path this target covers (Falle 3, R5) — one for a plain
+   * hardpoint, several for a grouped row, dotted `parent.child` for a sub-slot.
+   * This is what a draft entry is actually keyed by.
+   */
+  rawPorts?: string[];
+  /** Raw (un-humanized) engine type strings the target's port declares. */
+  rawTypes?: string[];
 }
 
 /** Supabase rejects very long `in.()` lists — hydrate payloads in batches. */
 const HYDRATE_CHUNK = 100;
+
+/** What "Übernehmen" / "Slot leeren" emits — the HOST decides what to do with it. */
+export interface SwapPick {
+  className: string | null;
+  target: SwapTarget;
+}
 
 /**
  * The swap picker (admin request 461288f9): click a configurable module and get
  * the full list of what else fits, as a comparison table — search, damage-type
  * and archetype pills, sortable columns, the installed item marked EQUIPPED.
  *
- * It is a SANDBOX and stays one: picking a row previews the stat change against
- * what is installed and nothing is ever written. There is deliberately no
- * "apply"/"remove" action — this codex has no loadout to save to, and a button
- * that pretends otherwise would be the one lie the surface cannot afford.
+ * It previews the stat change against what is installed (deltas measured
+ * against the CURRENT draft occupant, 03-rules §7.5, not the factory part) and
+ * emits the choice via `picked` — "Übernehmen" on a candidate row, or "Slot
+ * leeren" to explicitly empty the slot. It never writes anything itself: the
+ * HOST (codex-detail's draft state) owns turning a pick into a persisted
+ * change, so the same table works whether the host writes to a draft, a
+ * hangar config, or nothing at all (06-fallen.md Falle 5).
  *
  * Columns come from the data (see swap-table.ts): a stat no candidate carries
  * yields no column, a candidate missing a stat the others have renders "—".
@@ -118,6 +135,12 @@ const HYDRATE_CHUNK = 100;
           @if (t.fitInferred) {
             <p class="sp-hint inferred">{{ 'codex.swap.fitInferred' | translate }}</p>
           }
+
+          <!-- 03-rules §7.5: the first row is always "Slot leeren". A draft can
+               always express "emptied", so this stays enabled unconditionally. -->
+          <button type="button" class="sp-clear" (click)="clearSlot()">
+            <span aria-hidden="true">⌀</span> {{ 'codex.swap.clearSlot' | translate }}
+          </button>
 
           @if (loading()) {
             <p class="sp-msg">{{ 'codex.swap.loading' | translate }}</p>
@@ -247,6 +270,9 @@ const HYDRATE_CHUNK = 100;
                                 }
                               </ul>
                             }
+                            <button type="button" class="sp-apply" (click)="apply(c)">
+                              {{ 'codex.swap.apply' | translate }}
+                            </button>
                           </td>
                         </tr>
                       }
@@ -307,6 +333,15 @@ const HYDRATE_CHUNK = 100;
       padding-left: 8px; }
     .sp-msg { margin: 6px 0; font-size: 0.8rem; color: var(--sc-fg-2); }
     .sp-msg.err { color: var(--sc-danger, #ff5252); }
+
+    .sp-clear { align-self: flex-start; padding: 6px 12px; border-radius: 6px; background: var(--sc-bg-0);
+      border: 1px dashed var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: max(0.76rem, var(--sc-fs-floor));
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .sp-clear:hover { border-color: var(--sc-danger, #ff5252); color: var(--sc-danger, #ff5252); }
+    .sp-apply { margin-top: 8px; padding: 6px 14px; border-radius: 6px; background: var(--sc-accent);
+      border: 1px solid var(--sc-accent); color: var(--sc-bg-0); font: inherit; font-weight: 600;
+      font-size: max(0.76rem, var(--sc-fs-floor)); cursor: pointer; }
+    .sp-apply:hover { filter: brightness(1.08); }
 
     /* search + the two pill groups */
     .sp-tools { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 18px; }
@@ -415,6 +450,8 @@ export class CodexSwapPickerComponent {
   /** The hardpoint to explore; `null` renders nothing (closed). */
   readonly target = input<SwapTarget | null>(null);
   readonly closed = output<void>();
+  /** "Übernehmen" or "Slot leeren" was clicked — the host applies it. */
+  readonly picked = output<SwapPick>();
 
   readonly NAME_KEY = NAME_SORT_KEY;
 
@@ -669,6 +706,20 @@ export class CodexSwapPickerComponent {
         ? computeStatDeltas(swapStatRows(installed), swapStatRows(c))
         : [],
     );
+  }
+
+  /** "Übernehmen" — emit the choice, never write it ourselves (Falle 5). */
+  apply(c: SwapCandidate): void {
+    const t = this.target();
+    if (!t) return;
+    this.picked.emit({ className: c.className, target: t });
+  }
+
+  /** "Slot leeren" — always the first row (03-rules §7.5), draft always expresses it. */
+  clearSlot(): void {
+    const t = this.target();
+    if (!t) return;
+    this.picked.emit({ className: null, target: t });
   }
 
   // ── dialog behaviour ───────────────────────────────────────────────────────

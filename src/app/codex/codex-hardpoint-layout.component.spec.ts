@@ -35,6 +35,8 @@ function child(over: Partial<LayoutChild> & { port: string }): LayoutChild {
     kind: null,
     name: null,
     count: 1,
+    rawPorts: [],
+    rawTypes: [],
     ...over,
   };
 }
@@ -331,12 +333,29 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(swaps[0].child?.className).toBe('KLWE_LaserRepeater_S3');
   });
 
-  it('does not open a picker for a sub-slot the extract left empty', () => {
+  it('does not open a picker for a sub-slot the extract left empty and unknown', () => {
     const swaps: LayoutTarget[] = [];
     fixture.componentInstance.swapRequested.subscribe((v) => swaps.push(v));
     const el = render([{ section: 'weapons', slots: [VARIPUCK] }]);
     expect(el.querySelector('button.kid-btn')).toBeNull(); // empty seat is inert
     expect(swaps.length).toBe(0);
+  });
+
+  it('opens the picker for an empty sub-slot whose accepted type is known (Falle 3)', () => {
+    const swaps: LayoutTarget[] = [];
+    fixture.componentInstance.swapRequested.subscribe((v) => swaps.push(v));
+    const known = {
+      ...VARIPUCK,
+      rawPort: 'hardpoint_weapon_wing_left',
+      children: [child({ port: 'Hardpoint Class 3', rawPorts: ['hardpoint_class_2'], rawTypes: ['WeaponGun'] })],
+    };
+    const el = render([{ section: 'weapons', slots: [known] }]);
+    const btn = el.querySelector('button.kid-btn.open-bay') as HTMLButtonElement;
+    expect(btn).toBeTruthy();
+    btn.click();
+    expect(swaps.length).toBe(1);
+    expect(swaps[0].child?.rawTypes).toEqual(['WeaponGun']);
+    expect(swaps[0].rawPorts).toEqual(['hardpoint_weapon_wing_left.hardpoint_class_2']);
   });
 
   // ── admin request 1add86a4 ────────────────────────────────────────────────

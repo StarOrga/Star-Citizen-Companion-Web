@@ -585,6 +585,15 @@ export interface GroupableSlot {
    * unfitted mount). Set by the ship page; see `isIndividualSection`.
    */
   noCollapse?: boolean;
+  /**
+   * An explicit, caller-computed grouping key that overrides the default
+   * className/size/grade/variantKey derivation. The draft write path (PR B,
+   * R5/Falle 4) sets this to the STOCK identity so a per-slot draft edit can
+   * change what a row DISPLAYS without ever splitting or reordering a
+   * collapsed run mid-interaction — grouping stays anchored to what the ship
+   * actually ships with, independent of what the pilot is trying on.
+   */
+  groupKey?: string | null;
 }
 
 /** A run of hardpoints holding the exact same thing, collapsed to one row. */
@@ -616,7 +625,7 @@ export function groupIdenticalSlots<T extends GroupableSlot>(slots: T[]): Groupe
   for (const slot of slots) {
     const key = slot.noCollapse
       ? ` solo|${solo++}`
-      : `${slot.className ?? ' empty'}|${slot.size ?? ''}|${slot.grade ?? ''}|${slot.variantKey ?? ''}`;
+      : (slot.groupKey ?? `${slot.className ?? ' empty'}|${slot.size ?? ''}|${slot.grade ?? ''}|${slot.variantKey ?? ''}`);
     const hit = index.get(key);
     if (hit) {
       hit.count += 1;
