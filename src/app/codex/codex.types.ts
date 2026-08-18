@@ -136,8 +136,11 @@ export interface ShipPayload extends BaseEntityPayload {
   crew: { size: number | null };
   vehicleName: LocalizedText;
   dimensions: Dimensions | null; // L/W/H in metres from the .cga bounding box
-  // NOTE: flight stats are ALL null in Wave 1 (research Q1 — live entity does
-  // not carry SCM/pitch/yaw; lives in vehicleDefinition, not yet resolved).
+  // NOTE: flight stats are STILL ALL null (PR A / research Q1 — the live
+  // entity's VehicleComponentParams.vehicleDefinition points at an XML file
+  // (Scripts/Entities/Vehicles/Implementations/Xml/<Ship>.xml), not a DCB
+  // record — following it needs a P4K file parse, not a record hop; not
+  // attempted in PR A, see docs/concepts/codex-extraction-output.md §0b).
   flight: {
     scmSpeed: number | null; maxSpeed: number | null; boostSpeed: number | null;
     pitch: number | null; yaw: number | null; roll: number | null;
@@ -149,6 +152,13 @@ export interface ShipPayload extends BaseEntityPayload {
   // as "position unknown", never as an error.
   hardpointTransforms?: Record<string, HardpointTransformEntry> | null;
   hardpointFrame?: HardpointFrameData | null;
+  // Whitelist-only ship stats (PR A task 1) — currently just the signature
+  // system (SSCSignatureSystemParams: IR/EM/cross-section). Same struct-keyed
+  // shape as ComponentPayload.stats, but on an allowlist (not the item/
+  // component blacklist) because a ship's Components list is far larger and
+  // noisier — see _SHIP_STATS_WHITELIST in dataforge_extract.py. Absent when
+  // the whitelist finds nothing (never an empty object).
+  stats?: Record<string, Record<string, string | number | boolean | null>>;
 }
 
 export interface WeaponPayload extends BaseEntityPayload {
