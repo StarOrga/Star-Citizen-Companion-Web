@@ -25,7 +25,7 @@ import json
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .dataforge import DataForge, Record
 from .localization import Localizer
@@ -331,6 +331,9 @@ class CodexExtractor:
         # mesh path -> named helper-node transforms (hardpoint positions). Same
         # .cga as the dimensions, parsed once per hull and shared by variants.
         self._helper_cache: Dict[str, Dict[str, Any]] = {}
+        # FlightController class name -> its IFCSParams struct (or None), see
+        # _flight_controller_ifcs. One resolve per ship class, not per record.
+        self._flight_cache: Dict[str, Optional[Dict[str, Any]]] = {}
         # guid -> manufacturer code, built lazily
         self._manu_cache: Dict[str, Dict[str, Any]] = {}
         # Ship-skin (livery) catalog discovery — built lazily on the first ship,
@@ -1200,6 +1203,36 @@ class CodexExtractor:
             "source": self.source,
         }
 
+    # Struct names whitelisted for the ship-level `stats` block. Deliberately an
+    # allowlist, NOT the item/component blacklist (_SKIP_COMPONENT_STATS) — a
+    # ship's Components list is much larger and noisier than a weapon/item's
+    # (dozens of entries: every hardpoint's default-loadout stub, geometry,
+    # audio…), so dumping "everything not skipped" here would balloon every
+    # ship payload for little value. Extend this set deliberately, one struct
+    # at a time, as new ship-level stat needs arise (PR A: signature only).
+    _SHIP_STATS_WHITELIST = {"SSCSignatureSystemParams"}
+
+    def _ship_stats(self, comps) -> Dict[str, Any]:
+        """Whitelist-only stats block for ships, same struct-keyed shape as
+        `_component_stats()` (one level of nested-struct flattening as
+        `Sub.field`). Ships get no `stats` key at all when the whitelist finds
+        nothing — never an empty object."""
+        stats: Dict[str, Any] = {}
+        for c in comps:
+            t = c.get("_Type_")
+            if t not in self._SHIP_STATS_WHITELIST:
+                continue
+            flat = _scalars(c)
+            for k, v in c.items():
+                if not isinstance(k, str) or k.startswith("_"):
+                    continue
+                if isinstance(v, dict):
+                    for sk, sv in _scalars(v).items():
+                        flat.setdefault(f"{k}.{sk}", sv)
+            if flat:
+                stats[t] = flat
+        return stats
+
     def _project_ship(self, r, resolved, comps, attach) -> Dict[str, Any]:
         base = self._base_entity(r, resolved, comps, attach)
         vcp = _find_component(comps, "VehicleComponentParams") or {}
@@ -1227,9 +1260,10 @@ class CodexExtractor:
             "vehicleName": self._localized(vcp.get("vehicleName")),
             # real-world bounding-box dimensions (metres) parsed from the .cga mesh
             "dimensions": dims,
-            # flight stats: resolved generically from the IFCS / vehicle
-            # flight-controller struct wherever it sits in the resolved graph.
-            "flight": self._flight_stats(resolved, comps),
+            # flight stats: the ship's OWN Components never carry them — they
+            # live on the FlightController ITEM entity referenced from the
+            # default loadout (see _flight_stats docstring).
+            "flight": self._flight_stats(loadout),
             "itemPorts": item_ports,
             "defaultLoadout": loadout,
             # portName -> {position, rotation, helper, source}; model-space metres
@@ -1242,48 +1276,94 @@ class CodexExtractor:
             # (names + icons); the 3D glb build is a separate cached step.
             "skins": skins,
         })
+        ship_stats = self._ship_stats(comps)
+        if ship_stats:
+            base["stats"] = ship_stats
         return base
 
     # ── flight stats (generic) ──────────────────────────────────────────────────
-    # Leaf field names on the IFCS / SCItemFlightControllerParams / vehicle
-    # flight structs. The carrying struct differs by ship type and is often a
-    # strong-pointer'd sub-component (IFCSParams=234, SCItemFlightControllerParams
-    # =234 in the live schema), so we search by LEAF name across the whole
-    # resolved graph, not by a fixed container. No per-ship special-casing — the
-    # same candidate list runs for every vehicle.
+    # VERIFIED against a live Data.p4k (CNOU_Nomad / AEGS_Gladius /
+    # MISC_Freelancer, 2026-08-18): a ship's OWN Components list never carries
+    # movement data. The FlightController is a separate ITEM entity —
+    # "EntityClassDefinition.Controller_Flight_<Ship>" — referenced from the
+    # ship's default loadout at itemPortName "hardpoint_controller_flight".
+    # THAT entity's Components list carries a struct tagged "IFCSParams" with
+    # the actual scm/max/boost speeds and per-axis angular-velocity caps.
+    # (VehicleComponentParams.vehicleDefinition — a P4K XML path — was also
+    # investigated and does NOT carry these; the vehicle XML only references
+    # the FlightController by itemType, never inlines its params.)
     #
-    # TODO(phase2-verify): confirm these leaf names against a real Data.p4k. SC
-    # IFCS has renamed these across patches; the candidate lists cover the names
-    # seen in StarBreaker/scdatatools dumps and erkul's data model. Any field
-    # whose source key is absent stays None (documented-null, never guessed).
-    _FLIGHT_FIELDS = {
-        "scmSpeed": ("scmSpeed", "ScmSpeed", "maxSpeedSCM", "MaxSCMSpeed",
-                     "scmCruiseSpeed"),
-        "maxSpeed": ("maxSpeed", "MaxSpeed", "afterburnSpeed", "boostSpeedForward",
-                     "maxSpeedNAV"),
-        "boostSpeed": ("boostSpeed", "BoostSpeed", "boostSpeedForward",
-                       "afterburnSpeedForward"),
-        "pitch": ("maxAngularVelocityX", "pitchRate", "maxPitchRate",
-                  "angularVelocityPitch"),
-        "yaw": ("maxAngularVelocityZ", "yawRate", "maxYawRate",
-                "angularVelocityYaw"),
-        "roll": ("maxAngularVelocityY", "rollRate", "maxRollRate",
-                 "angularVelocityRoll"),
-    }
+    # Angular velocity is a Vec3 in CryEngine axes (+X right, +Y nose, +Z up —
+    # see the hardpointTransforms comment elsewhere in this file): rotation
+    # AROUND the right axis is pitch, around the nose axis is roll, around the
+    # up axis is yaw.
+    _IFCS_AXIS_TO_RATE = {"x": "pitch", "y": "roll", "z": "yaw"}
 
-    def _flight_stats(self, resolved: Dict[str, Any], comps) -> Dict[str, Any]:
-        """Best-effort flight characteristics, generic over all ship types.
+    def _flight_controller_ifcs(self, loadout: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """The IFCSParams struct off this ship's FlightController item, or ``None``.
 
-        Returns the contract's flight block; any field whose source key is not
-        present resolves to ``None``. Searches the full resolved record graph —
-        the IFCS struct is frequently nested under a strong-pointer'd
-        flight-controller component, not at the entity top level.
+        Cached by the item's bare class name (e.g. ``Controller_Flight_CNOU_
+        Nomad``) since every ship has exactly one, and re-parsing it per skin
+        variant would be wasted work. Best-effort: any resolution failure
+        yields ``None``, never an aborted ship.
         """
-        rv = resolved.get("_RecordValue_", {})
-        return {
-            out_key: _to_float(_find_first_key(rv, candidates))
-            for out_key, candidates in self._FLIGHT_FIELDS.items()
+        entry = next(
+            (e for e in loadout
+             if "controller_flight" in (e.get("itemPortName") or "").lower()),
+            None,
+        )
+        cls = entry.get("entityClassName") if entry else None
+        if not cls:
+            return None
+        if cls in self._flight_cache:
+            return self._flight_cache[cls]
+        ifcs: Optional[Dict[str, Any]] = None
+        try:
+            if not hasattr(self, "_ecd_by_name"):
+                # Bare class name (no "EntityClassDefinition." prefix) -> record,
+                # built once and reused for every ship in the run.
+                self._ecd_by_name = {
+                    rec.name.split(".", 1)[1].lower(): rec
+                    for rec in self.df.records_by_type_name("EntityClassDefinition")
+                    if "." in rec.name
+                }
+            fc_rec = self._ecd_by_name.get(cls.lower())
+            if fc_rec is not None:
+                fc = self.df.record_to_dict(fc_rec, max_depth=12)
+                fc_comps = fc.get("_RecordValue_", {}).get("Components") or []
+                ifcs = next(
+                    (c for c in fc_comps
+                     if isinstance(c, dict) and c.get("_Type_") == "IFCSParams"),
+                    None,
+                )
+        except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
+            self.on_log("warn", f"flight controller resolve failed for {cls}: {exc}")
+        self._flight_cache[cls] = ifcs
+        return ifcs
+
+    def _flight_stats(self, loadout: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """The contract's flight block, resolved from the FlightController item.
+
+        Any field whose source key is absent on the resolved IFCSParams struct
+        stays ``None`` — never guessed. ``boostSpeed`` is the FORWARD boost
+        speed only: the contract has one slot and backward boost (typically
+        ~half of forward) is dropped rather than guessed into it.
+        """
+        out: Dict[str, Any] = {
+            "scmSpeed": None, "maxSpeed": None, "boostSpeed": None,
+            "pitch": None, "yaw": None, "roll": None,
         }
+        ifcs = self._flight_controller_ifcs(loadout)
+        if not ifcs:
+            return out
+        out["scmSpeed"] = _to_float(ifcs.get("scmSpeed"))
+        out["maxSpeed"] = _to_float(ifcs.get("maxSpeed"))
+        out["boostSpeed"] = _to_float(ifcs.get("boostSpeedForward"))
+        mav = ifcs.get("maxAngularVelocity")
+        if isinstance(mav, dict):
+            for axis, out_key in self._IFCS_AXIS_TO_RATE.items():
+                out[out_key] = _to_float(mav.get(axis))
+        return out
 
     def _project_weapon(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
         base = self._base_entity(r, resolved, comps, attach)
@@ -1320,15 +1400,21 @@ class CodexExtractor:
         # derived combat scalars — leaf names searched generically.
         # TODO(phase2-verify): confirm leaf names against a real P4K (SC has
         # renamed these; candidate lists cover StarBreaker/erkul observed names).
+        # fireRate/projectilesPerShot/heatPerShot are NOT derived here — all
+        # three need the SELECTED fire-action struct (below), not an unscoped
+        # generic leaf search: `pelletCount`/`heatPerShot` exist on every fire
+        # action a weapon carries (single/burst/charge/…), so an unscoped
+        # first-match search over the whole record can silently pick a
+        # DIFFERENT fire mode's value than the one actually selected — or, for
+        # heatPerShot, pick up a real 0.0 from an unrelated mode and leave it
+        # sitting in `params` as a stale zero the fire-action stage below then
+        # has no positive value to overwrite (verified against the live P4K:
+        # `KLWE_LaserRepeater_S3`'s own selected action has heatPerShot 0.0 —
+        # a laser weapon genuinely generates no separate shot-heat — and that
+        # must come out ABSENT, not `0.0`).
         derived = {
-            "fireRate": _to_float(_find_first_key(
-                rv, ("fireRate", "FireRate", "roundsPerMinute", "rpm"))),
             "projectileSpeed": _to_float(_find_first_key(
                 rv, ("muzzleVelocity", "projectileSpeed"))),
-            "projectilesPerShot": _to_float(_find_first_key(
-                rv, ("pelletCount", "projectilesPerShot", "ammoCost"))),
-            "heatPerShot": _to_float(_find_first_key(
-                rv, ("heatPerShot", "weaponHeatPerShot"))),
         }
         # per-shot damage (6-channel) from the nested projectile/ammo damage block
         dmg = _damage_set_anycase(_find_first_dict_with(
@@ -1338,6 +1424,35 @@ class CodexExtractor:
         for k, v in derived.items():
             if v is not None and k not in params:
                 params[k] = v
+        # Fire rate (R4): walk SCItemWeaponComponentParams.fireActions, pick the
+        # first genuine fire action's positive fireRate (skipping charge/sequence
+        # wrappers sitting at 0), sanity-band it (30-15000 rpm). `_scalars(wcp)`
+        # above already copied a literal top-level `fireRate: 0.0` that would
+        # otherwise silently shadow the real value — OVERWRITE it unconditionally
+        # here rather than the previous only-if-absent merge. No value found (or
+        # out-of-band) => fireRate is REMOVED so the field is genuinely absent,
+        # never a stale/guessed 0.
+        fire_actions = _collect_fire_actions(wcp.get("fireActions"))
+        fa, rpm = _select_fire_action(fire_actions)
+        if rpm is not None:
+            params["fireRate"] = rpm
+            if fa is not None:
+                # VERIFIED against the live P4K (`KLWE_LaserRepeater_S3`): the
+                # fire action leaf has no top-level `projectilesPerShot` field
+                # at all — pellet count lives one level deeper, at
+                # `launchParams.pelletCount` (an earlier, unverified draft
+                # read a nonexistent top-level field and would never have
+                # found a value). `heatPerShot` IS a genuine top-level field
+                # on the leaf, confirmed against the same weapon.
+                launch = fa.get("launchParams")
+                pps = _to_float(launch.get("pelletCount")) if isinstance(launch, dict) else None
+                if pps is not None and pps > 0:
+                    params["projectilesPerShot"] = pps
+                heat = _to_float(fa.get("heatPerShot"))
+                if heat is not None and heat > 0:
+                    params["heatPerShot"] = heat
+        else:
+            params.pop("fireRate", None)
         return params
 
     def _project_component(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
@@ -1368,7 +1483,11 @@ class CodexExtractor:
         # (SCItemSuitArmorParams / SCItemClothingParams scalars, keyed by struct
         # name) via the same mechanism ship components use — no per-field
         # foreknowledge, dropped entirely when empty so non-armor items stay lean.
-        if atype in _ARMOR_TYPES:
+        # Vehicle (hull) armor pieces get the same treatment: gate on the struct
+        # actually being present (SCItemVehicleArmorParams), not on AttachDef.Type
+        # — the per-hull ARMR_<ship> items don't use the Char_Armor_* vocabulary.
+        has_vehicle_armor = _find_component(comps, "SCItemVehicleArmorParams") is not None
+        if atype in _ARMOR_TYPES or has_vehicle_armor:
             stats = self._component_stats(comps, "Armor")
             if stats:
                 base["stats"] = stats
@@ -1688,6 +1807,84 @@ def _find_first_dict_with(node: Any, required_keys: tuple, _depth: int = 0,
             if found is not None:
                 return found
     return None
+
+
+# ── weapon fire-rate (R4) ────────────────────────────────────────────────────
+# Fire actions are INLINE structs under SCItemWeaponComponentParams.fireActions
+# (not cross-record refs), but they can be wrapped in sequence action structs
+# (`SWeaponActionSequenceParams` -> `sequenceEntries[].weaponAction`) which do
+# NOT themselves carry a `fireRate` field at all. A plain depth-first "first
+# fireRate anywhere" scan (the previous approach) therefore frequently landed
+# on an unrelated nested `fireRate`-shaped leaf instead of the real action's
+# value.
+#
+# VERIFIED against the LIVE 4.9.0 P4K (`KLWE_LaserRepeater_S3`, PR A report):
+# the leaf struct actually carrying `fireRate` is `SWeaponActionFireSingleParams`
+# (fireRate 750, unit RPM per the enclosing `sequenceEntries[].unit`) — NOT the
+# `SWeaponActionFireParams` name an earlier, unverified draft of this file
+# assumed (that type does not exist in the live schema; matching only it would
+# have found zero fire actions on every real ship weapon). CIG's naming
+# convention nests every concrete fire-action variant under the
+# `SWeaponActionFire*Params` family (observed: `...FireSingleParams`; likely
+# siblings for burst/charge/rapid/beam modes use the same prefix) — so we match
+# generically on `_Type_` starting with `SWeaponActionFire` AND the struct
+# actually carrying a literal `fireRate` key, rather than hard-coding one
+# variant name. This stays generic across weapon types without guessing field
+# values: an unrecognised variant simply yields no fire actions (never a wrong
+# number).
+_FIRE_ACTION_TYPE_PREFIX = "SWeaponActionFire"
+_FIRE_RATE_MIN_RPM = 30.0
+_FIRE_RATE_MAX_RPM = 15000.0
+
+
+def _is_fire_action_struct(node: Dict[str, Any]) -> bool:
+    t = node.get("_Type_")
+    return (isinstance(t, str) and t.startswith(_FIRE_ACTION_TYPE_PREFIX)
+            and "fireRate" in node)
+
+
+def _collect_fire_actions(node: Any, _depth: int = 0,
+                          _max_depth: int = 10) -> List[Dict[str, Any]]:
+    """DFS collecting every concrete `SWeaponActionFire*Params` struct (any
+    variant, matched by literal `fireRate` presence — see module note above)
+    under `node`, in encounter order. Descends into sequence-action wrappers
+    and lists — fire actions are inline structs, never cross-record
+    references."""
+    found: List[Dict[str, Any]] = []
+    if _depth > _max_depth:
+        return found
+    if isinstance(node, dict):
+        if _is_fire_action_struct(node):
+            found.append(node)
+        for k, v in node.items():
+            if isinstance(k, str) and k.startswith("_") and k.endswith("_"):
+                continue
+            found.extend(_collect_fire_actions(v, _depth + 1, _max_depth))
+    elif isinstance(node, list):
+        for item in node:
+            found.extend(_collect_fire_actions(item, _depth + 1, _max_depth))
+    return found
+
+
+def _select_fire_action(
+        fire_actions: List[Dict[str, Any]]
+) -> Tuple[Optional[Dict[str, Any]], Optional[float]]:
+    """Pick the fire action to derive fireRate/projectilesPerShot/heatPerShot
+    from: the FIRST action (in struct order) whose literal `fireRate` is
+    positive (skips charge/sequence-wrapper actions sitting at 0 ahead of the
+    real one), then sanity-band that single value. Out-of-band is treated as
+    absent outright — we do not keep scanning past it, so a bogus first value
+    can't be silently papered over by a plausible-looking later one.
+
+    Returns (selected_action_or_None, rpm_or_None).
+    """
+    for fa in fire_actions:
+        rpm = _to_float(fa.get("fireRate"))
+        if rpm is not None and rpm > 0:
+            if _FIRE_RATE_MIN_RPM <= rpm <= _FIRE_RATE_MAX_RPM:
+                return fa, rpm
+            return None, None
+    return None, None
 
 
 def _find_geometry_path(node: Any, _depth: int = 0, _max_depth: int = 12) -> Optional[str]:
