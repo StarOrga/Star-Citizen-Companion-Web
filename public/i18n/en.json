@@ -472,7 +472,7 @@
       "pickerTitle": "Swap module",
       "installed": "Installed",
       "equipped": "Equipped",
-      "previewHint": "Preview only — nothing is saved.",
+      "previewHint": "Compare, then Apply or Empty slot — the change stays a draft until you save it below.",
       "loading": "Scanning compatible items…",
       "failed": "Could not load the compatible items.",
       "none": "No compatible alternatives in this build.",
@@ -494,7 +494,26 @@
       "missingColumns": "Not in this data extract, so not shown as a column: {{fields}}.",
       "installedNone": "Bay empty (stock)",
       "pickHere": "Pick one",
-      "fitInferred": "This bay ships empty. The list comes from an identical, fitted bay on the same ship — not from this hardpoint’s own data."
+      "fitInferred": "This bay ships empty. The list comes from an identical, fitted bay on the same ship — not from this hardpoint’s own data.",
+      "clearSlot": "Empty slot",
+      "apply": "Apply"
+    },
+    "loadout": {
+      "changesSummary": "{{changed}} changes · {{saveable}} savable",
+      "unsaveableHint": "Nested and emptied slots stay a draft — they cannot be saved yet.",
+      "discard": "Discard changes",
+      "save": "Save",
+      "saving": "Saving…",
+      "addToHangarAndSave": "Add to hangar & save",
+      "saveErrorHangar": "Could not reach your hangar right now — the draft is kept, try saving again.",
+      "saveErrorGeneric": "Could not save the loadout right now — the draft is kept, try again.",
+      "revert": "Revert to stock",
+      "defaultConfigName": "Codex loadout",
+      "draftState": {
+        "changed": "Changed",
+        "pending": "Loading…",
+        "unresolved": "Not in this build"
+      }
     },
     "statGroup": {
       "identity": "Identity",

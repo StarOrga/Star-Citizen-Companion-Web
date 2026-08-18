@@ -77,6 +77,15 @@ export interface CarriedSlot {
   kind: CodexKind | null;
   name: string | null;
   count: number;
+  /**
+   * Every RAW sub-port name collapsed into this row (Falle 3 / R5) — the
+   * humanized `port` above cannot address a draft entry or a compatibility
+   * query, only these can. A count>1 row lists every member so a draft can
+   * still address one of several identical seats individually.
+   */
+  rawPorts: string[];
+  /** Raw (un-humanized) engine type strings the sub-port declares. */
+  rawTypes: string[];
 }
 
 /**
@@ -109,11 +118,13 @@ export function carriedSlots(
     typeLabel: string | null,
     portSize: number | null,
     installed: string | null,
+    rawTypes: string[],
   ): void => {
     const key = `${typeLabel ?? ''}|${portSize ?? ''}|${installed ?? ''}`;
     const hit = index.get(key);
     if (hit) {
       hit.count += 1;
+      if (portName) hit.rawPorts.push(portName);
       return;
     }
     const entity = installed ? resolve(installed) : undefined;
@@ -125,6 +136,8 @@ export function carriedSlots(
       kind: entity?.kind ?? null,
       name: installed ? (entity?.displayName ?? null) || installed : null,
       count: 1,
+      rawPorts: portName ? [portName] : [],
+      rawTypes,
     };
     index.set(key, slot);
     out.push(slot);
@@ -137,10 +150,10 @@ export function carriedSlots(
     if (types.length === 0 && !installed) continue;
     seen.add(key);
     const size = p.minSize != null && p.minSize === p.maxSize ? p.minSize : null;
-    add(p.portName ?? null, types.length > 0 ? humanizePortType(types[0]) : null, size, installed);
+    add(p.portName ?? null, types.length > 0 ? humanizePortType(types[0]) : null, size, installed, types);
   }
   for (const [portName, installed] of carried) {
-    if (!seen.has(portName.toLowerCase())) add(portName, null, null, installed);
+    if (!seen.has(portName.toLowerCase())) add(portName, null, null, installed, []);
   }
   return out;
 }
