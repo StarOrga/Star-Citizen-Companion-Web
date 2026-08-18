@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.64.2] - 2026-08-18
+
+### Added
+
+- **The deployed page now proves which version it serves — and /ship checks it.**
+  The built `index.html` carries `<meta name="app-version" content="vX.Y.Z">`,
+  stamped in postbuild by the new `scripts/stamp-index-version.mjs`, which also
+  re-hashes `/index.html` in `ngsw.json` so the service worker's integrity
+  check keeps passing (the index is prefetch-hashed; an unpatched rewrite would
+  degrade every SW client to network-only). `.claude/skills/ship/reference.md`
+  declares the Vercel surface for /ship's live browser check plus the flat
+  `verify:` block for the headless post-merge watcher — both probing with
+  `?ngsw-bypass=true` so stale service-worker shells cannot fake the result.
+  Until now the app exposed no version marker at all, so a green merge could
+  leave a stale deploy live unnoticed. Also re-ships `public/release-notes.json`
+  for v0.64.1, whose changelog entry landed without rerunning the generator.
+
 ## [0.64.1] - 2026-08-17
 
 ### Changed
