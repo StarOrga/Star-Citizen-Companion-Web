@@ -331,6 +331,9 @@ class CodexExtractor:
         # mesh path -> named helper-node transforms (hardpoint positions). Same
         # .cga as the dimensions, parsed once per hull and shared by variants.
         self._helper_cache: Dict[str, Dict[str, Any]] = {}
+        # FlightController class name -> its IFCSParams struct (or None), see
+        # _flight_controller_ifcs. One resolve per ship class, not per record.
+        self._flight_cache: Dict[str, Optional[Dict[str, Any]]] = {}
         # guid -> manufacturer code, built lazily
         self._manu_cache: Dict[str, Dict[str, Any]] = {}
         # Ship-skin (livery) catalog discovery — built lazily on the first ship,
@@ -1257,9 +1260,10 @@ class CodexExtractor:
             "vehicleName": self._localized(vcp.get("vehicleName")),
             # real-world bounding-box dimensions (metres) parsed from the .cga mesh
             "dimensions": dims,
-            # flight stats: resolved generically from the IFCS / vehicle
-            # flight-controller struct wherever it sits in the resolved graph.
-            "flight": self._flight_stats(resolved, comps),
+            # flight stats: the ship's OWN Components never carry them — they
+            # live on the FlightController ITEM entity referenced from the
+            # default loadout (see _flight_stats docstring).
+            "flight": self._flight_stats(loadout),
             "itemPorts": item_ports,
             "defaultLoadout": loadout,
             # portName -> {position, rotation, helper, source}; model-space metres
@@ -1278,45 +1282,88 @@ class CodexExtractor:
         return base
 
     # ── flight stats (generic) ──────────────────────────────────────────────────
-    # Leaf field names on the IFCS / SCItemFlightControllerParams / vehicle
-    # flight structs. The carrying struct differs by ship type and is often a
-    # strong-pointer'd sub-component (IFCSParams=234, SCItemFlightControllerParams
-    # =234 in the live schema), so we search by LEAF name across the whole
-    # resolved graph, not by a fixed container. No per-ship special-casing — the
-    # same candidate list runs for every vehicle.
+    # VERIFIED against a live Data.p4k (CNOU_Nomad / AEGS_Gladius /
+    # MISC_Freelancer, 2026-08-18): a ship's OWN Components list never carries
+    # movement data. The FlightController is a separate ITEM entity —
+    # "EntityClassDefinition.Controller_Flight_<Ship>" — referenced from the
+    # ship's default loadout at itemPortName "hardpoint_controller_flight".
+    # THAT entity's Components list carries a struct tagged "IFCSParams" with
+    # the actual scm/max/boost speeds and per-axis angular-velocity caps.
+    # (VehicleComponentParams.vehicleDefinition — a P4K XML path — was also
+    # investigated and does NOT carry these; the vehicle XML only references
+    # the FlightController by itemType, never inlines its params.)
     #
-    # TODO(phase2-verify): confirm these leaf names against a real Data.p4k. SC
-    # IFCS has renamed these across patches; the candidate lists cover the names
-    # seen in StarBreaker/scdatatools dumps and erkul's data model. Any field
-    # whose source key is absent stays None (documented-null, never guessed).
-    _FLIGHT_FIELDS = {
-        "scmSpeed": ("scmSpeed", "ScmSpeed", "maxSpeedSCM", "MaxSCMSpeed",
-                     "scmCruiseSpeed"),
-        "maxSpeed": ("maxSpeed", "MaxSpeed", "afterburnSpeed", "boostSpeedForward",
-                     "maxSpeedNAV"),
-        "boostSpeed": ("boostSpeed", "BoostSpeed", "boostSpeedForward",
-                       "afterburnSpeedForward"),
-        "pitch": ("maxAngularVelocityX", "pitchRate", "maxPitchRate",
-                  "angularVelocityPitch"),
-        "yaw": ("maxAngularVelocityZ", "yawRate", "maxYawRate",
-                "angularVelocityYaw"),
-        "roll": ("maxAngularVelocityY", "rollRate", "maxRollRate",
-                 "angularVelocityRoll"),
-    }
+    # Angular velocity is a Vec3 in CryEngine axes (+X right, +Y nose, +Z up —
+    # see the hardpointTransforms comment elsewhere in this file): rotation
+    # AROUND the right axis is pitch, around the nose axis is roll, around the
+    # up axis is yaw.
+    _IFCS_AXIS_TO_RATE = {"x": "pitch", "y": "roll", "z": "yaw"}
 
-    def _flight_stats(self, resolved: Dict[str, Any], comps) -> Dict[str, Any]:
-        """Best-effort flight characteristics, generic over all ship types.
+    def _flight_controller_ifcs(self, loadout: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """The IFCSParams struct off this ship's FlightController item, or ``None``.
 
-        Returns the contract's flight block; any field whose source key is not
-        present resolves to ``None``. Searches the full resolved record graph —
-        the IFCS struct is frequently nested under a strong-pointer'd
-        flight-controller component, not at the entity top level.
+        Cached by the item's bare class name (e.g. ``Controller_Flight_CNOU_
+        Nomad``) since every ship has exactly one, and re-parsing it per skin
+        variant would be wasted work. Best-effort: any resolution failure
+        yields ``None``, never an aborted ship.
         """
-        rv = resolved.get("_RecordValue_", {})
-        return {
-            out_key: _to_float(_find_first_key(rv, candidates))
-            for out_key, candidates in self._FLIGHT_FIELDS.items()
+        entry = next(
+            (e for e in loadout
+             if "controller_flight" in (e.get("itemPortName") or "").lower()),
+            None,
+        )
+        cls = entry.get("entityClassName") if entry else None
+        if not cls:
+            return None
+        if cls in self._flight_cache:
+            return self._flight_cache[cls]
+        ifcs: Optional[Dict[str, Any]] = None
+        try:
+            if not hasattr(self, "_ecd_by_name"):
+                # Bare class name (no "EntityClassDefinition." prefix) -> record,
+                # built once and reused for every ship in the run.
+                self._ecd_by_name = {
+                    rec.name.split(".", 1)[1].lower(): rec
+                    for rec in self.df.records_by_type_name("EntityClassDefinition")
+                    if "." in rec.name
+                }
+            fc_rec = self._ecd_by_name.get(cls.lower())
+            if fc_rec is not None:
+                fc = self.df.record_to_dict(fc_rec, max_depth=12)
+                fc_comps = fc.get("_RecordValue_", {}).get("Components") or []
+                ifcs = next(
+                    (c for c in fc_comps
+                     if isinstance(c, dict) and c.get("_Type_") == "IFCSParams"),
+                    None,
+                )
+        except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
+            self.on_log("warn", f"flight controller resolve failed for {cls}: {exc}")
+        self._flight_cache[cls] = ifcs
+        return ifcs
+
+    def _flight_stats(self, loadout: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """The contract's flight block, resolved from the FlightController item.
+
+        Any field whose source key is absent on the resolved IFCSParams struct
+        stays ``None`` — never guessed. ``boostSpeed`` is the FORWARD boost
+        speed only: the contract has one slot and backward boost (typically
+        ~half of forward) is dropped rather than guessed into it.
+        """
+        out: Dict[str, Any] = {
+            "scmSpeed": None, "maxSpeed": None, "boostSpeed": None,
+            "pitch": None, "yaw": None, "roll": None,
         }
+        ifcs = self._flight_controller_ifcs(loadout)
+        if not ifcs:
+            return out
+        out["scmSpeed"] = _to_float(ifcs.get("scmSpeed"))
+        out["maxSpeed"] = _to_float(ifcs.get("maxSpeed"))
+        out["boostSpeed"] = _to_float(ifcs.get("boostSpeedForward"))
+        mav = ifcs.get("maxAngularVelocity")
+        if isinstance(mav, dict):
+            for axis, out_key in self._IFCS_AXIS_TO_RATE.items():
+                out[out_key] = _to_float(mav.get(axis))
+        return out
 
     def _project_weapon(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
         base = self._base_entity(r, resolved, comps, attach)

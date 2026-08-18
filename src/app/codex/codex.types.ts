@@ -136,14 +136,15 @@ export interface ShipPayload extends BaseEntityPayload {
   crew: { size: number | null };
   vehicleName: LocalizedText;
   dimensions: Dimensions | null; // L/W/H in metres from the .cga bounding box
-  // NOTE: flight stats are STILL ALL null (PR A / research Q1 — the live
-  // entity's VehicleComponentParams.vehicleDefinition points at an XML file
-  // (Scripts/Entities/Vehicles/Implementations/Xml/<Ship>.xml), not a DCB
-  // record — following it needs a P4K file parse, not a record hop; not
-  // attempted in PR A, see docs/concepts/codex-extraction-output.md §0b).
+  // Resolved from the FlightController ITEM entity referenced from the
+  // ship's default loadout (itemPortName "hardpoint_controller_flight"), NOT
+  // from the ship's own Components — that entity's IFCSParams struct carries
+  // scmSpeed/maxSpeed/boostSpeed(Forward)/maxAngularVelocity. Any field the
+  // struct doesn't carry stays null (never guessed). boostSpeed is forward
+  // boost only. See docs/concepts/codex-extraction-output.md §0b.
   flight: {
     scmSpeed: number | null; maxSpeed: number | null; boostSpeed: number | null;
-    pitch: number | null; yaw: number | null; roll: number | null;
+    pitch: number | null; yaw: number | null; roll: number | null; // deg/s
   };
   itemPorts: ItemPort[];
   defaultLoadout: LoadoutEntry[];
