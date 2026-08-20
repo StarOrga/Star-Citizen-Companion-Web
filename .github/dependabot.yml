@@ -8,6 +8,13 @@
 # the preview build stays green. Non-Angular version updates are bundled too to
 # cut PR noise; security updates outside Angular stay individual so they remain
 # visible and can be merged fast.
+#
+# The `ignore:` blocks below exist for the opposite reason: a handful of
+# dependencies are pinned by something outside Dependabot's view (a peer range,
+# a transitive `~=` constraint, the embedded Python ABI). Without them
+# Dependabot reopens the same unmergeable PR every week. Each block names what
+# pins the dependency and what would let it be lifted — none of them is a
+# blanket "never update".
 version: 2
 updates:
   # ---- Angular PWA (repo root) ----
@@ -34,6 +41,19 @@ updates:
           - "*"
         exclude-patterns:
           - "@angular/*"
+    ignore:
+      # TypeScript's major is chosen by Angular, not by us: @angular/compiler-cli
+      # declares a hard peer window (21.2.19 → `>=5.9 <6.1`, 22.1.1 → `>=6.0
+      # <6.1`). npm `latest` is already 7.0.2, which no Angular release accepts,
+      # so a TS major is uninstallable — and because npm-dependencies is a
+      # *group*, that one package made the whole group PR unmergeable (#390 also
+      # carried @types/node, jasmine-core and @ngx-translate, all fine on their
+      # own). Ignoring the major lets the rest of the group land.
+      #
+      # TypeScript moves with the Angular upgrade, via `ng update`. Lift this
+      # only if Angular ever widens the window past its own major.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # ---- data-uploader (npm) ----
   - package-ecosystem: "npm"
@@ -46,6 +66,15 @@ updates:
         applies-to: version-updates
         patterns:
           - "*"
+    ignore:
+      # electron-vite is the build driver here and its peer range is
+      # `^5 || ^6 || ^7` (still true for 5.0.0, the current latest). A vite major
+      # therefore cannot be installed at all — #387 had to pin vite back to 7.3.6
+      # to resolve exactly that peer conflict, and #388 reopened it a week later.
+      # Minors and patches stay in scope. Lift this when electron-vite ships
+      # vite 8 support.
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
 
   # ---- data-uploader (Python) ----
   - package-ecosystem: "pip"
@@ -58,6 +87,36 @@ updates:
         applies-to: version-updates
         patterns:
           - "*"
+    ignore:
+      # TRANSITIVE scdatatools 1.0.4 deps — their versions are dictated by
+      # scdatatools's own requires.txt (`~=` ranges), not free to pick. #200
+      # blanket-bumped them to latest, which made `pip install -r
+      # requirements.txt` unsolvable and broke every data-uploader-v* tag build
+      # at fetch-embedded-python — invisibly, since the CI test jobs never
+      # install requirements.txt. #389 proposed the identical set again.
+      #
+      # Only majors/minors are ignored: a patch inside scdatatools's `~=` range
+      # is still installable, so security patches keep flowing. To lift any of
+      # these for real, bump scdatatools itself.
+      # See data-uploader/python/requirements.txt and
+      # .claude/deep-knowledge/data-uploader-python.md.
+      - dependency-name: "python-nubia"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "pyquaternion"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "pycryptodome"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "xxhash"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "zstandard"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # numpy is additionally capped by the runtime: embedded Python is 3.10.x
+      # and 1.21.6 is the last 1.21.x with a cp310 wheel.
+      - dependency-name: "numpy"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # sentry-sdk is pinned EXACTLY by scdatatools (`sentry-sdk==1.5.8`), so
+      # even a patch bump is uninstallable.
+      - dependency-name: "sentry-sdk"
 
   # ---- GitHub Actions workflows ----
   - package-ecosystem: "github-actions"
