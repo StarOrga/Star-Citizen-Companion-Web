@@ -80,15 +80,46 @@ const EMPTY_SHEET: KpiSheet = {
   crossSection: null,
 };
 
-// Field-name candidates for the ship's signature struct. The 4.9.0 extract
-// only just started carrying `SSCSignatureSystemParams` (PR A, #405) — these
-// names are our best reading of the DataForge struct and are UNVERIFIED
-// against a populated build; if a name is wrong the KPI simply stays a gap
-// until it's corrected, it never shows a wrong number.
+// Field-name candidates for the ship's signature struct.
+//
+// VERIFIED against the live Nomad (`SSCSignatureSystemParams`): the struct
+// carries NO scalar IR/EM fields at all — `baseSignatureParams` and
+// `emissionModifierParams` are null. IR/EM stay permanent gaps (there is no
+// field name to fix, unlike the earlier "unverified guess" state); the
+// candidate lists below are kept only so a future patch that DOES add real
+// scalars here starts working without a code change.
 const IR_FIELDS = ['infrared', 'infraredEmittance', 'baseInfraredValue', 'infraredSignature'];
 const EM_IDLE_FIELDS = ['electromagneticIdle', 'emIdle', 'electromagneticEmittanceIdle', 'idleElectromagnetic'];
 const EM_MAX_FIELDS = ['electromagneticMax', 'emMax', 'electromagneticEmittanceMax', 'maxElectromagnetic'];
-const CROSS_SECTION_FIELDS = ['crossSection', 'radarCrossSection', 'crossSectionSignature'];
+// The one real signature value: the radar cross-section Vec3, projected by
+// the extractor as `crossSection.x/y/z` (see dataforge_extract.py
+// `_add_cross_section`). One axis per candidate list.
+const CROSS_SECTION_X_FIELDS = ['crossSection.x'];
+const CROSS_SECTION_Y_FIELDS = ['crossSection.y'];
+const CROSS_SECTION_Z_FIELDS = ['crossSection.z'];
+
+/** The three raw cross-section axes (metres², CryEngine units), each `null`
+ * when absent. Exported so the Schiff panel can show all three honestly
+ * instead of collapsing them into one number. */
+export function crossSectionAxes(
+  shipStats: Record<string, Record<string, unknown>> | null | undefined,
+): { x: number | null; y: number | null; z: number | null } {
+  return {
+    x: usable(findStat(shipStats ?? undefined, 'signature', CROSS_SECTION_X_FIELDS)),
+    y: usable(findStat(shipStats ?? undefined, 'signature', CROSS_SECTION_Y_FIELDS)),
+    z: usable(findStat(shipStats ?? undefined, 'signature', CROSS_SECTION_Z_FIELDS)),
+  };
+}
+
+// The KPI band and swap-comparison columns need ONE comparable number per
+// ship, not three. We use the MAXIMUM of the three axes — the largest
+// visible profile a detector could pick up from its worst angle — rather
+// than an average or the "depth" axis alone, since neither of those is a
+// meaningful "how stealthy is this ship" figure on its own.
+function crossSectionMax(axes: { x: number | null; y: number | null; z: number | null }): number | null {
+  const vals = [axes.x, axes.y, axes.z].filter((v): v is number => v !== null);
+  return vals.length > 0 ? Math.max(...vals) : null;
+}
 
 /** Aggregate the six-cell KPI raw values from one resolved loadout. */
 export function computeKpiSheet(
@@ -162,7 +193,7 @@ export function computeKpiSheet(
   sheet.ir = usable(findStat(shipStats, 'signature', IR_FIELDS));
   sheet.emIdle = usable(findStat(shipStats, 'signature', EM_IDLE_FIELDS));
   sheet.emMax = usable(findStat(shipStats, 'signature', EM_MAX_FIELDS));
-  sheet.crossSection = usable(findStat(shipStats, 'signature', CROSS_SECTION_FIELDS));
+  sheet.crossSection = crossSectionMax(crossSectionAxes(shipStats));
 
   // hullHp, effectiveHp and cargo have no source in the 4.9.0 extract — stay
   // gaps (null) rather than guessed zeros. effectiveHp only ever fills in once
@@ -233,9 +264,11 @@ const KPI_META: Record<KpiKey, KpiMeta> = {
   quantumSpeed: { labelKey: 'codex.kpi.quantumSpeed', format: 'kms', gapKey: 'codex.summary.gap.noQuantum' },
   quantumRange: { labelKey: 'codex.kpi.quantumRange', format: 'gm', gapKey: 'codex.summary.gap.noQuantum' },
   spool: { labelKey: 'codex.kpi.spool', format: 'seconds', gapKey: 'codex.summary.gap.noQuantum' },
-  ir: { labelKey: 'codex.kpi.ir', format: 'int', gapKey: 'codex.summary.gap.noSignature' },
-  emIdle: { labelKey: 'codex.kpi.emIdle', format: 'int', gapKey: 'codex.summary.gap.noSignature' },
-  emMax: { labelKey: 'codex.kpi.emMax', format: 'int', gapKey: 'codex.summary.gap.noSignature' },
+  // IR/EM: not a missing extract, the game files never carry these scalars
+  // (see the CROSS_SECTION_*_FIELDS comment above) — distinct gap wording.
+  ir: { labelKey: 'codex.kpi.ir', format: 'int', gapKey: 'codex.summary.gap.noEmissionModel' },
+  emIdle: { labelKey: 'codex.kpi.emIdle', format: 'int', gapKey: 'codex.summary.gap.noEmissionModel' },
+  emMax: { labelKey: 'codex.kpi.emMax', format: 'int', gapKey: 'codex.summary.gap.noEmissionModel' },
   crossSection: { labelKey: 'codex.kpi.crossSection', format: 'int', gapKey: 'codex.summary.gap.noSignature' },
 };
 
@@ -411,8 +444,14 @@ export function buildOffensivePanel(occupants: readonly SummaryOccupant[]): Offe
 export interface ArmorFacts {
   reductionPhysicalPct: number | null;
   reductionEnergyPct: number | null;
-  penetrationResistancePct: number | null;
-  deflectionPct: number | null;
+  reductionDistortionPct: number | null;
+  /** VERIFIED absolute value (e.g. Nomad `0.2`), NOT a multiplier — no
+   * `1 - x` reduction math applied, unlike the `reduction*Pct` fields. */
+  penetrationReduction: number | null;
+  /** VERIFIED absolute values (e.g. Nomad phys `10.0` / energy `9.0`),
+   * NOT multipliers — same as `penetrationReduction`. */
+  deflectionPhysical: number | null;
+  deflectionEnergy: number | null;
 }
 
 export interface DefensivePanel {
@@ -436,22 +475,34 @@ const RESISTANCE_FIELDS: Readonly<Record<string, string[]>> = {
   distortion: ['distortionResistance', 'DistortionResistance'],
 };
 
-// SCItemVehicleArmorParams multipliers → the reduction percentage a pilot
-// reads ("30% less damage taken" from a 0.7 multiplier). Field names are the
-// documented struct members (04-rules-v2 §7 armor spec); absent on every hull
-// until the extractor resolves the ARMR item's own stats.
+// SCItemVehicleArmorParams field names, VERIFIED against the live
+// `ARMR_CNOU_Nomad`: per-channel multipliers under `damageMultiplier.*`
+// (reduction % = `(1 - multiplier) * 100`, e.g. 0.7 -> "30% less damage
+// taken"), and two ABSOLUTE (not multiplier) sub-structs —
+// `armorPenetrationResistance.basePenetrationReduction` and
+// `armorDeflection.deflectionValue.{DamagePhysical,DamageEnergy}` — which
+// pass through unscaled, never run through the `1 - x` reduction math.
 function armorReductionOf(stats: Record<string, Record<string, unknown>> | undefined): ArmorFacts | null {
   if (!stats) return null;
-  const physMul = findStat(stats, 'armor', ['damageMultiplier.physical', 'physicalDamageMultiplier']);
-  const enMul = findStat(stats, 'armor', ['damageMultiplier.energy', 'energyDamageMultiplier']);
-  const penRes = findStat(stats, 'armor', ['penetrationResistance', 'PenetrationResistance']);
-  const deflect = findStat(stats, 'armor', ['deflection', 'Deflection']);
-  if (physMul === null && enMul === null && penRes === null && deflect === null) return null;
+  const physMul = findStat(stats, 'armor', ['damageMultiplier.DamagePhysical']);
+  const enMul = findStat(stats, 'armor', ['damageMultiplier.DamageEnergy']);
+  const distMul = findStat(stats, 'armor', ['damageMultiplier.DamageDistortion']);
+  const penRed = findStat(stats, 'armor', ['armorPenetrationResistance.basePenetrationReduction']);
+  const deflPhys = findStat(stats, 'armor', ['armorDeflection.deflectionValue.DamagePhysical']);
+  const deflEn = findStat(stats, 'armor', ['armorDeflection.deflectionValue.DamageEnergy']);
+  if (
+    physMul === null && enMul === null && distMul === null &&
+    penRed === null && deflPhys === null && deflEn === null
+  ) {
+    return null;
+  }
   return {
     reductionPhysicalPct: physMul !== null ? (1 - physMul) * 100 : null,
     reductionEnergyPct: enMul !== null ? (1 - enMul) * 100 : null,
-    penetrationResistancePct: penRes !== null ? penRes * 100 : null,
-    deflectionPct: deflect !== null ? deflect * 100 : null,
+    reductionDistortionPct: distMul !== null ? (1 - distMul) * 100 : null,
+    penetrationReduction: penRed,
+    deflectionPhysical: deflPhys,
+    deflectionEnergy: deflEn,
   };
 }
 

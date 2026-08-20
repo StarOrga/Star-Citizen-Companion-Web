@@ -99,6 +99,7 @@ import {
   buildKpiCells,
   buildOffensivePanel,
   computeKpiSheet,
+  crossSectionAxes,
   findArmorPayload,
 } from './codex-loadout-stats';
 import { CodexKpiBandComponent } from './codex-kpi-band.component';
@@ -2189,6 +2190,11 @@ export class CodexDetailComponent implements OnInit {
     const num = (v: number | null | undefined, unit: string): string | null =>
       v == null || !Number.isFinite(v) || v === 0 ? null : `${formatNumber(v)} ${unit}`;
 
+    // "6.604 / 3.302 / 9.712" — only axes that actually exist; null when none do.
+    const axes = crossSectionAxes(p.stats as Record<string, Record<string, unknown>> | undefined);
+    const axisParts = [axes.x, axes.y, axes.z].filter((v): v is number => v != null);
+    const crossSectionAxesLabel = axisParts.length > 0 ? axisParts.map((v) => formatNumber(v)).join(' / ') : null;
+
     const groups: ShipFactGroup[] = [
       {
         titleKey: 'codex.analysis.ship.flightPerformance',
@@ -2217,12 +2223,18 @@ export class CodexDetailComponent implements OnInit {
       {
         titleKey: 'codex.analysis.ship.signature',
         rows: [
-          { labelKey: 'codex.kpi.ir', value: num(sheet.ir, ''), gapKey: 'codex.summary.gap.noSignature' },
-          { labelKey: 'codex.kpi.emIdle', value: num(sheet.emIdle, ''), gapKey: 'codex.summary.gap.noSignature' },
-          { labelKey: 'codex.kpi.emMax', value: num(sheet.emMax, ''), gapKey: 'codex.summary.gap.noSignature' },
-          { labelKey: 'codex.kpi.crossSection', value: num(sheet.crossSection, ''), gapKey: 'codex.summary.gap.noSignature' },
+          // IR/EM: the game files carry no scalar fields at all (verified live
+          // Nomad) — distinct gap wording from the cross-section's "pending
+          // upload" one.
+          { labelKey: 'codex.kpi.ir', value: num(sheet.ir, ''), gapKey: 'codex.summary.gap.noEmissionModel' },
+          { labelKey: 'codex.kpi.emIdle', value: num(sheet.emIdle, ''), gapKey: 'codex.summary.gap.noEmissionModel' },
+          { labelKey: 'codex.kpi.emMax', value: num(sheet.emMax, ''), gapKey: 'codex.summary.gap.noEmissionModel' },
+          // The three cross-section axes shown honestly (x/y/z), not
+          // collapsed into one number — the KPI band uses the max of the
+          // three for its single comparable cell (see crossSectionMax()).
+          { labelKey: 'codex.kpi.crossSection', value: crossSectionAxesLabel, gapKey: 'codex.summary.gap.noSignature' },
         ],
-        note: sheet.crossSection != null ? this.t.instant('codex.analysis.ship.crossSectionNote') : null,
+        note: crossSectionAxesLabel != null ? this.t.instant('codex.analysis.ship.crossSectionNote') : null,
       },
       {
         titleKey: 'codex.analysis.ship.hull',

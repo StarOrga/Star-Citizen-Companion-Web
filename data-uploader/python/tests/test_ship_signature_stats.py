@@ -73,3 +73,41 @@ def test_ship_stats_empty_means_no_stats_key() -> None:
     """No whitelisted struct present => `stats` key absent entirely (caller
     only sets `base["stats"]` when the returned dict is non-empty)."""
     assert _extractor()._ship_stats([{"_Type_": "VehicleComponentParams"}]) == {}
+
+
+def test_ship_stats_projects_cross_section_vec3() -> None:
+    """VERIFIED against the live Nomad: SSCSignatureSystemParams has NO scalar
+    IR/EM fields; the only real value is the radar cross-section Vec3 at
+    `radarProperties.crossSectionParams.crossSection`, depth 3 — one level
+    deeper than the generic 1-level flatten reaches. A targeted post-step
+    projects it as `crossSection.x/y/z`."""
+    comps = [
+        _comp(
+            "SSCSignatureSystemParams",
+            baseSignatureParams=None,
+            emissionModifierParams=None,
+            radarProperties={
+                "_Type_": "SRadarProps",
+                "crossSectionParams": {
+                    "_Type_": "SCrossSectionParams",
+                    "crossSection": {"_Type_": "SVec3", "x": 6604.0, "y": 3302.0, "z": 9712.0},
+                },
+            },
+        ),
+    ]
+    stats = _extractor()._ship_stats(comps)
+    sig = stats["SSCSignatureSystemParams"]
+    assert sig["crossSection.x"] == 6604.0
+    assert sig["crossSection.y"] == 3302.0
+    assert sig["crossSection.z"] == 9712.0
+    # the generic 1-level flatten must NOT also pull in the deeper struct
+    assert "radarProperties.crossSectionParams" not in sig
+
+
+def test_ship_stats_cross_section_absent_when_no_radar_properties() -> None:
+    """No `radarProperties` (or no nested crossSection) => no crossSection.*
+    keys are invented."""
+    comps = [_comp("SSCSignatureSystemParams", signalInfrared=1.0)]
+    stats = _extractor()._ship_stats(comps)
+    sig = stats["SSCSignatureSystemParams"]
+    assert not any(k.startswith("crossSection.") for k in sig)

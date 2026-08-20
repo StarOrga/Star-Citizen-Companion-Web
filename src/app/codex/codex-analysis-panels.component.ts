@@ -233,8 +233,11 @@ export class CodexOffensivePanelComponent {
           <dl class="fact-grid">
             @if (a.reductionPhysicalPct != null) { <dt>{{ 'codex.analysis.defensive.armorPhysical' | translate }}</dt><dd>{{ num(a.reductionPhysicalPct) }} %</dd> }
             @if (a.reductionEnergyPct != null) { <dt>{{ 'codex.analysis.defensive.armorEnergy' | translate }}</dt><dd>{{ num(a.reductionEnergyPct) }} %</dd> }
-            @if (a.penetrationResistancePct != null) { <dt>{{ 'codex.analysis.defensive.armorPenetration' | translate }}</dt><dd>{{ num(a.penetrationResistancePct) }} %</dd> }
-            @if (a.deflectionPct != null) { <dt>{{ 'codex.analysis.defensive.armorDeflection' | translate }}</dt><dd>{{ num(a.deflectionPct) }} %</dd> }
+            @if (a.reductionDistortionPct != null) { <dt>{{ 'codex.analysis.defensive.armorDistortion' | translate }}</dt><dd>{{ num(a.reductionDistortionPct) }} %</dd> }
+            <!-- absolute values, NOT multipliers — no % suffix, no reduction math -->
+            @if (a.penetrationReduction != null) { <dt>{{ 'codex.analysis.defensive.armorPenetration' | translate }}</dt><dd>{{ num(a.penetrationReduction) }}</dd> }
+            @if (a.deflectionPhysical != null) { <dt>{{ 'codex.analysis.defensive.armorDeflectionPhysical' | translate }}</dt><dd>{{ num(a.deflectionPhysical) }}</dd> }
+            @if (a.deflectionEnergy != null) { <dt>{{ 'codex.analysis.defensive.armorDeflectionEnergy' | translate }}</dt><dd>{{ num(a.deflectionEnergy) }}</dd> }
           </dl>
         } @else {
           <p class="note">{{ 'codex.analysis.defensive.noArmorData' | translate }}</p>

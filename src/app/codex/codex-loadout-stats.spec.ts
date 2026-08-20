@@ -7,6 +7,7 @@ import {
   buildOffensivePanel,
   computeKpiDelta,
   computeKpiSheet,
+  crossSectionAxes,
   findArmorPayload,
 } from './codex-loadout-stats';
 
@@ -94,6 +95,46 @@ describe('codex-loadout-stats — computeKpiSheet', () => {
     const sheet = computeKpiSheet([], { flight: { scmSpeed: 180, maxSpeed: 700 } });
     expect(sheet.scm).toBe(180);
     expect(sheet.maxSpeed).toBe(700);
+  });
+
+  it('takes the MAXIMUM of the three cross-section axes as the KPI value (Nomad-shaped fixture)', () => {
+    const sheet = computeKpiSheet([], {
+      stats: {
+        SSCSignatureSystemParams: {
+          'crossSection.x': 6604.0,
+          'crossSection.y': 3302.0,
+          'crossSection.z': 9712.0,
+        },
+      },
+    });
+    expect(sheet.crossSection).toBe(9712.0);
+  });
+
+  it('never invents ship IR/EM — the extract carries no scalar field for them', () => {
+    const sheet = computeKpiSheet([], {
+      stats: { SSCSignatureSystemParams: { 'crossSection.x': 1, 'crossSection.y': 1, 'crossSection.z': 1 } },
+    });
+    expect(sheet.ir).toBeNull();
+    expect(sheet.emIdle).toBeNull();
+    expect(sheet.emMax).toBeNull();
+  });
+});
+
+describe('codex-loadout-stats — crossSectionAxes', () => {
+  it('exposes all three axes for the Schiff panel, independent of the KPI max', () => {
+    const axes = crossSectionAxes({
+      SSCSignatureSystemParams: {
+        'crossSection.x': 6604.0,
+        'crossSection.y': 3302.0,
+        'crossSection.z': 9712.0,
+      },
+    });
+    expect(axes).toEqual({ x: 6604.0, y: 3302.0, z: 9712.0 });
+  });
+
+  it('returns nulls, never invented zeros, when the struct is absent', () => {
+    expect(crossSectionAxes(undefined)).toEqual({ x: null, y: null, z: null });
+    expect(crossSectionAxes({})).toEqual({ x: null, y: null, z: null });
   });
 });
 
@@ -267,18 +308,39 @@ describe('codex-loadout-stats — buildDefensivePanel', () => {
   });
 
   it('computes armor reduction % as (1 - multiplier) when the extract carries it', () => {
+    // Real key names, VERIFIED against the live `ARMR_CNOU_Nomad` projection
+    // (dataforge_extract.py `_component_stats`/`_add_vehicle_armor_depth2`).
     const armorPayload = {
       className: 'ARMR_Test_S1',
       stats: {
         SCItemVehicleArmorParams: {
-          'damageMultiplier.physical': 0.7,
-          'damageMultiplier.energy': 0.85,
+          'damageMultiplier.DamagePhysical': 0.7,
+          'damageMultiplier.DamageEnergy': 0.85,
         },
       },
     };
     const panel = buildDefensivePanel([], armorPayload);
     expect(panel.armor?.reductionPhysicalPct).toBeCloseTo(30, 5);
     expect(panel.armor?.reductionEnergyPct).toBeCloseTo(15, 5);
+    expect(panel.gapKeys).not.toContain('codex.summary.gap.noArmorStats');
+  });
+
+  it('passes penetration/deflection through as absolute values, not multipliers', () => {
+    const armorPayload = {
+      className: 'ARMR_Test_S1',
+      stats: {
+        SCItemVehicleArmorParams: {
+          'armorPenetrationResistance.basePenetrationReduction': 0.2,
+          'armorDeflection.deflectionValue.DamagePhysical': 10.0,
+          'armorDeflection.deflectionValue.DamageEnergy': 9.0,
+        },
+      },
+    };
+    const panel = buildDefensivePanel([], armorPayload);
+    // NOT run through (1 - x) * 100 — these are absolute numbers already.
+    expect(panel.armor?.penetrationReduction).toBe(0.2);
+    expect(panel.armor?.deflectionPhysical).toBe(10.0);
+    expect(panel.armor?.deflectionEnergy).toBe(9.0);
     expect(panel.gapKeys).not.toContain('codex.summary.gap.noArmorStats');
   });
 
