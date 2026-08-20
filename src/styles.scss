@@ -22,6 +22,10 @@
   --sc-accent-hot: var(--accent-hot);
   --sc-success: var(--status-success);
   --sc-warning: var(--accent-warning);
+  /* Alias some codex analysis components already referenced with a `#e8a33d`
+     fallback before this token existed (mixed-range / mixed-generator notes) —
+     defining it here is a no-visual-change consistency fix. */
+  --sc-warn: #e8a33d;
   --sc-danger: var(--accent-danger-light);
   --sc-border: var(--border-subtle);
   --sc-glow: var(--shadow-glow);
@@ -276,6 +280,23 @@ input[type='radio'] {
   border-radius: 8px;
   padding: 20px;
   box-shadow: var(--sc-glow);
+}
+
+/* Loadout | Analyse two-column split on the codex ship detail page (PR C,
+   02-handover §2). Kept global — codex-detail.component.ts is already near
+   its per-component style budget, and this layout has no ship-specific
+   logic worth scoping. Single column below 1120px; the analysis column
+   simply follows the loadout below it (no reordering needed there). */
+.analysis-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.analysis-grid.single { grid-template-columns: 1fr; }
+.analysis-col { display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 1120px) {
+  .analysis-grid { grid-template-columns: 1fr; }
 }
 
 .sc-btn {

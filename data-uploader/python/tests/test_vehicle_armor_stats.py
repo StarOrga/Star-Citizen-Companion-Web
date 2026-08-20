@@ -92,6 +92,70 @@ def test_atype_outside_char_armor_and_no_vehicle_armor_struct_stays_bare(
     assert "stats" not in obj
 
 
+def test_vehicle_armor_item_gets_deflection_and_penetration(ex: CodexExtractor) -> None:
+    """VERIFIED against the live `ARMR_CNOU_Nomad`: `armorDeflection.
+    deflectionValue.*` and `armorPenetrationResistance.
+    penetrationAbsorptionForType.*` are per-damage-type dicts nested one
+    level deeper than the generic 1-level flatten reaches; a targeted
+    post-step for THIS struct only projects them as dotted keys. The
+    `basePenetrationReduction` scalar already survives the generic flatten
+    (depth 1) and must keep working alongside the new depth-2 keys."""
+    resolved = {
+        "_RecordValue_": {
+            "_Type_": "EntityClassDefinition",
+            "Components": [
+                {
+                    "_Type_": "SAttachableComponentParams",
+                    "AttachDef": {"Type": "Ship_Armor", "SubType": "Standard", "Size": 3, "Grade": 2},
+                },
+                {
+                    "_Type_": "SCItemVehicleArmorParams",
+                    "signalInfrared": 1.0,
+                    "signalElectromagnetic": 1.0,
+                    "signalCrossSection": 1.0,
+                    "damageMultiplier": {
+                        "_Type_": "SDamageInfo",
+                        "DamagePhysical": 0.7,
+                        "DamageEnergy": 0.5,
+                    },
+                    "armorPenetrationResistance": {
+                        "_Type_": "SArmorPenetrationResistance",
+                        "basePenetrationReduction": 0.2,
+                        "penetrationAbsorptionForType": {
+                            "_Type_": "SDamageInfo",
+                            "DamagePhysical": 0.1,
+                            "DamageEnergy": 0.05,
+                        },
+                    },
+                    "armorDeflection": {
+                        "_Type_": "SArmorDeflection",
+                        "deflectionValue": {
+                            "_Type_": "SDamageInfo",
+                            "DamagePhysical": 10.0,
+                            "DamageEnergy": 9.0,
+                        },
+                    },
+                },
+            ],
+        }
+    }
+    comps = _components_of(resolved)
+    attach = _attach_def(comps)
+    atype = attach["Type"]
+
+    obj = ex._project_item(ex.df.records[0], resolved, comps, attach, atype)
+
+    armor = obj["stats"]["SCItemVehicleArmorParams"]
+    # depth-1 fields keep working
+    assert armor["damageMultiplier.DamagePhysical"] == 0.7
+    assert armor["armorPenetrationResistance.basePenetrationReduction"] == 0.2
+    # new depth-2 fields
+    assert armor["armorPenetrationResistance.penetrationAbsorptionForType.DamagePhysical"] == 0.1
+    assert armor["armorPenetrationResistance.penetrationAbsorptionForType.DamageEnergy"] == 0.05
+    assert armor["armorDeflection.deflectionValue.DamagePhysical"] == 10.0
+    assert armor["armorDeflection.deflectionValue.DamageEnergy"] == 9.0
+
+
 def test_vehicle_armor_without_params_omits_stats(ex: CodexExtractor) -> None:
     resolved = {
         "_RecordValue_": {
