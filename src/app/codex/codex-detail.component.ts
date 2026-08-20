@@ -80,14 +80,35 @@ import {
   isIndividualSection,
   shipPortFamily,
 } from './ship-module-sections';
-import {
-  ShipSummaryPanel,
-  SummaryOccupant,
-  buildShipSummaryPanels,
-  equippedMass,
-} from './ship-summary-panels';
+import { SummaryOccupant, equippedMass } from './ship-summary-panels';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexLoadoutSaveBarComponent } from './codex-loadout-save-bar.component';
+import {
+  CapabilityPort,
+  MissionId,
+  detectShipCapabilities,
+  foldedSectionsFor,
+  loadStoredMission,
+  missionById,
+  storeMission,
+} from './codex-mission';
+import {
+  KpiCell,
+  KpiShipInput,
+  buildDefensivePanel,
+  buildKpiCells,
+  buildOffensivePanel,
+  computeKpiSheet,
+  findArmorPayload,
+} from './codex-loadout-stats';
+import { CodexKpiBandComponent } from './codex-kpi-band.component';
+import { CodexMissionBarComponent } from './codex-mission-bar.component';
+import {
+  CodexDefensivePanelComponent,
+  CodexOffensivePanelComponent,
+  CodexShipPanelComponent,
+  ShipFactGroup,
+} from './codex-analysis-panels.component';
 import { carriedByPort, carriedSlots, stockLoadoutClassNames } from './stock-loadout';
 import {
   CodexHardpointLayoutComponent,
@@ -226,7 +247,7 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, CodexLoadoutSaveBarComponent],
+  imports: [RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -514,42 +535,18 @@ interface GearRecipe {
           </section>
         }
 
-        <!-- ── Ships: the three headline panels (461288f9) ─────────
-             Damage / Defence / Power Management, aggregated from the very
-             loadout listed further down. Panels name what the extract cannot
-             answer instead of printing a confident zero. ───────────── -->
-        @if (summaryPanels().length > 0) {
-          <section class="sc-card block">
-            <h2>{{ 'codex.summary.title' | translate }}</h2>
-            <div class="sum-grid">
-              @for (p of summaryPanels(); track p.key) {
-                <article class="sum-panel" [attr.data-panel]="p.key">
-                  <h3>{{ ('codex.summary.' + p.key) | translate }}</h3>
-                  @if (p.rows.length > 0) {
-                    <dl class="sum-rows">
-                      @for (r of p.rows; track r.labelKey) {
-                        <div class="sum-row">
-                          <dt>
-                            {{ r.labelKey | translate }}
-                            @if (r.derived) {
-                              <span class="derived"
-                                    [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
-                            }
-                          </dt>
-                          <dd>{{ fmtSummary(r) }}</dd>
-                        </div>
-                      }
-                    </dl>
-                  } @else {
-                    <p class="sum-empty">{{ 'codex.summary.noData' | translate }}</p>
-                  }
-                  @for (g of p.gapKeys; track g) {
-                    <p class="sum-gap">{{ g | translate: { patch: patchLabel() } }}</p>
-                  }
-                </article>
-              }
-            </div>
-          </section>
+        <!-- ── Ships: KPI band + mission bar (PR C) ─────────────────
+             Six headline numbers for the active mission, plus the profile
+             chips that reorder/fold the loadout and analysis columns below.
+             Supersedes the old three-panel "Kampfübersicht" (461288f9) — the
+             new analysis column says the same things without duplicating
+             the page. ───────────────────────────────────────────── -->
+        @if (kind() === 'ship') {
+          <sc-codex-kpi-band [cells]="kpiCells()" />
+          <sc-codex-mission-bar
+            [active]="activeMissionId()"
+            [capabilities]="shipCapabilities()"
+            (missionChange)="setMission($event)" />
         }
 
         <!-- ── Ships: hull, size and flight characteristics ────────
@@ -573,53 +570,68 @@ interface GearRecipe {
           </section>
         }
 
-        <!-- ── Ship modules, configurable blocks first (461288f9) ── -->
-        @if (moduleSections().length > 0) {
-          <section class="sc-card block">
-            <h2>
-              {{ 'codex.detail.loadout' | translate }}
-              <span class="ct">{{ installedCount() }}</span>
-              @if (hiddenEmptyCount() > 0) {
-                <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
-                  {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
-                </button>
+        <!-- ── Loadout | Analyse: two-column split (PR C, 02-handover §2) ── -->
+        <div class="analysis-grid" [class.single]="kind() !== 'ship'">
+          <!-- ── Ship modules, configurable blocks first (461288f9), now
+               mission-ordered/folded (PR C) ── -->
+          @if (moduleSections().length > 0) {
+            <section class="sc-card block">
+              <h2>
+                {{ 'codex.detail.loadout' | translate }}
+                <span class="ct">{{ installedCount() }}</span>
+                @if (hiddenEmptyCount() > 0) {
+                  <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
+                    {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
+                  </button>
+                }
+              </h2>
+              <!-- "What even IS a hardpoint?" — answered up front, once. -->
+              <p class="hint">{{ 'codex.detail.hardpointExplainer' | translate }}</p>
+              <p class="hint">{{ 'codex.detail.moduleOrderHint' | translate }}</p>
+              <sc-codex-loadout-save-bar
+                [changed]="draftChangedCount()"
+                [saveable]="saveableEntries().length"
+                [saving]="saving()"
+                [error]="saveError()"
+                [inHangar]="inHangar()"
+                (save)="saveLoadoutDraft()"
+                (discard)="discardLoadoutDraft()"
+                (addAndSave)="saveLoadoutDraft()" />
+              <!-- The "no stock guns in this extract" disclosure used to sit here,
+                   far above the block it is about. It now rides on the Weapons
+                   section itself (1add86a4) — see moduleSections below. -->
+              <!-- WHERE each hardpoint sits on the hull (#137 part 3). Rendered
+                   only when this ship's extract carries coordinates; every ship
+                   without them keeps exactly the previous list-only layout. -->
+              @if (hardpointFrame(); as frame) {
+                <sc-ship-hardpoint-map
+                  [markers]="hardpointMarkers()"
+                  [frame]="frame"
+                  [activePorts]="activePorts()"
+                  (hovered)="setActivePorts($event)" />
               }
-            </h2>
-            <!-- "What even IS a hardpoint?" — answered up front, once. -->
-            <p class="hint">{{ 'codex.detail.hardpointExplainer' | translate }}</p>
-            <p class="hint">{{ 'codex.detail.moduleOrderHint' | translate }}</p>
-            <sc-codex-loadout-save-bar
-              [changed]="draftChangedCount()"
-              [saveable]="saveableEntries().length"
-              [saving]="saving()"
-              [error]="saveError()"
-              [inHangar]="inHangar()"
-              (save)="saveLoadoutDraft()"
-              (discard)="discardLoadoutDraft()"
-              (addAndSave)="saveLoadoutDraft()" />
-            <!-- The "no stock guns in this extract" disclosure used to sit here,
-                 far above the block it is about. It now rides on the Weapons
-                 section itself (1add86a4) — see moduleSections below. -->
-            <!-- WHERE each hardpoint sits on the hull (#137 part 3). Rendered
-                 only when this ship's extract carries coordinates; every ship
-                 without them keeps exactly the previous list-only layout. -->
-            @if (hardpointFrame(); as frame) {
-              <sc-ship-hardpoint-map
-                [markers]="hardpointMarkers()"
-                [frame]="frame"
+              <sc-codex-hardpoint-layout
+                [sections]="moduleSections()"
+                [sectionOrder]="moduleSectionOrder()"
+                [foldedSections]="foldedModuleSections()"
+                [locatablePorts]="locatablePorts()"
                 [activePorts]="activePorts()"
-                (hovered)="setActivePorts($event)" />
-            }
-            <sc-codex-hardpoint-layout
-              [sections]="moduleSections()"
-              [locatablePorts]="locatablePorts()"
-              [activePorts]="activePorts()"
-              (reverted)="onRevertPaths($event)"
-              (hovered)="setActivePorts($event)"
-              (inspected)="openInspect($event)"
-              (swapRequested)="openSwapPicker($event)" />
-          </section>
-        }
+                (reverted)="onRevertPaths($event)"
+                (hovered)="setActivePorts($event)"
+                (inspected)="openInspect($event)"
+                (swapRequested)="openSwapPicker($event)" />
+            </section>
+          }
+
+          <!-- ── Analyse: offensive / defensive / ship facts (PR C) ── -->
+          @if (kind() === 'ship') {
+            <div class="analysis-col">
+              <sc-codex-offensive-panel [panel]="offensivePanel()" [startCollapsed]="offensiveStartsCollapsed()" />
+              <sc-codex-defensive-panel [panel]="defensivePanel()" />
+              <sc-codex-ship-panel [groups]="shipFactGroups()" />
+            </div>
+          }
+        </div>
 
         <!-- ── Hardpoints, grouped by category ───────────────────── -->
         @if (hardpointGroups().length > 0) {
@@ -1036,6 +1048,16 @@ export class CodexDetailComponent implements OnInit {
   readonly showRaw = signal(false);
   readonly showEmptyLoadout = signal(false);
 
+  // ── mission profiles / analysis column (PR C) ───────────────────────────────
+  readonly activeMissionId = signal<MissionId>('all');
+  readonly activeMission = computed(() => missionById(this.activeMissionId()));
+
+  setMission(id: MissionId): void {
+    this.activeMissionId.set(id);
+    const d = this.detail();
+    if (d) storeMission(d.classNameSlug, id);
+  }
+
   // ── user-supplied RSI pledge link (feedback f7d3bd9a) ───────────────────────
   // The catalog has no dependable per-ship RSI store slug, so the user may pin
   // the real pledge page. Their link is PRIVATE (owner-only RLS); a globally
@@ -1165,6 +1187,7 @@ export class CodexDetailComponent implements OnInit {
     this.unresolvableDraftPaths.set(new Set());
     this.savedPaths.set(new Set());
     this.saveError.set(null);
+    this.activeMissionId.set('all');
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
@@ -1174,6 +1197,9 @@ export class CodexDetailComponent implements OnInit {
           this.resolveLocale(d),
           this.resolveShipTech(d),
         ]);
+        if (kind === 'ship') {
+          this.activeMissionId.set(loadStoredMission(d.classNameSlug) ?? 'all');
+        }
         if (kind === 'ship') this.restoreDraftFromUrlOrStorage(className);
         if (kind === 'item' || kind === 'weapon') void this.loadWhereToBuy(d);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
@@ -2075,11 +2101,139 @@ export class CodexDetailComponent implements OnInit {
     ]),
   );
 
-  /** Damage · Defence · Power Management — the three panels above the modules. */
-  readonly summaryPanels = computed<ShipSummaryPanel[]>(() => {
+  /**
+   * The SAME occupants as `summaryOccupants`, but overlaid with the current
+   * loadout DRAFT (PR C) — swapped ports show the candidate's payload, an
+   * emptied port drops out, and a still-hydrating swap contributes nothing
+   * rather than a stale number. Grouping/order is irrelevant here (this only
+   * feeds aggregate stats), so a swapped mount's own sub-slots are skipped —
+   * the draft write path does not track them separately at this stage.
+   */
+  private readonly draftSummaryOccupants = computed<SummaryOccupant[]>(() =>
+    this.resolvedLoadout().flatMap((r) => {
+      const configurable = isConfigurableSection(r.section);
+      const draftEntry = configurable ? this.draft().get(r.item.port) : undefined;
+      const item = { kind: r.kind, payload: r.payload, ammoPayload: r.ammoPayload };
+      const overlay = this.draftOverlayFor(r.item.port, draftEntry, item);
+      const pending = overlay.state === 'pending';
+      const out: SummaryOccupant[] = [
+        {
+          section: r.section,
+          kind: overlay.item.kind,
+          payload: pending ? null : overlay.item.payload,
+          ammoPayload: pending ? undefined : overlay.item.ammoPayload,
+          count: 1,
+        },
+      ];
+      if (draftEntry === undefined) out.push(...this.carriedOccupants(r.section, r.item.carried));
+      return out;
+    }),
+  );
+
+  /** What this hull can even attempt — drives the mission bar's disabled chips. */
+  readonly shipCapabilities = computed(() => {
+    const d = this.detail();
+    const ports: CapabilityPort[] = (d?.ports ?? []).map((p) => ({ portName: p.portName, types: p.types }));
+    const classNames = this.loadoutAll().map((l) => l.className);
+    return detectShipCapabilities(ports, classNames);
+  });
+
+  /** The ship's own ARMR_ item payload, resolved from the STOCK loadout. */
+  private readonly armorPayload = computed(() => findArmorPayload(this.summaryOccupants()));
+
+  private readonly kpiShipInput = computed<KpiShipInput | null>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return null;
+    const p = d.payload as ShipPayload;
+    return { flight: p.flight, stats: p.stats ?? null };
+  });
+
+  private readonly stockKpiSheet = computed(() =>
+    computeKpiSheet(this.summaryOccupants(), this.kpiShipInput()),
+  );
+  private readonly currentKpiSheet = computed(() =>
+    computeKpiSheet(this.draftSummaryOccupants(), this.kpiShipInput()),
+  );
+
+  /** The six KPI-band cells for the active mission, stock vs. current draft. */
+  readonly kpiCells = computed<KpiCell[]>(() => {
+    if (this.kind() !== 'ship') return [];
+    return buildKpiCells(this.activeMission(), this.stockKpiSheet(), this.currentKpiSheet());
+  });
+
+  readonly offensivePanel = computed(() => {
+    if (this.kind() !== 'ship') return null;
+    return buildOffensivePanel(this.draftSummaryOccupants());
+  });
+
+  readonly defensivePanel = computed(() => {
+    if (this.kind() !== 'ship') return null;
+    return buildDefensivePanel(this.draftSummaryOccupants(), this.armorPayload());
+  });
+
+  /** Sections the active mission folds away — feeds both the loadout layout
+   *  and the analysis panels' default collapse state. */
+  readonly foldedModuleSections = computed(() => foldedSectionsFor(this.activeMission()));
+  readonly moduleSectionOrder = computed(() => this.activeMission().order);
+  readonly offensiveStartsCollapsed = computed(() => this.foldedModuleSections().has('weapons'));
+
+  /** Schiff panel — flight/mass/systems/signature/hull, grouped, gaps honoured. */
+  readonly shipFactGroups = computed<ShipFactGroup[]>(() => {
     const d = this.detail();
     if (!d || d.kind !== 'ship') return [];
-    return buildShipSummaryPanels(this.summaryOccupants());
+    const p = d.payload as ShipPayload;
+    const flight = p.flight;
+    const dim = this.dimensions();
+    const mass = equippedMass(this.draftSummaryOccupants());
+    const sheet = this.currentKpiSheet();
+    const num = (v: number | null | undefined, unit: string): string | null =>
+      v == null || !Number.isFinite(v) || v === 0 ? null : `${formatNumber(v)} ${unit}`;
+
+    const groups: ShipFactGroup[] = [
+      {
+        titleKey: 'codex.analysis.ship.flightPerformance',
+        rows: [
+          { labelKey: 'codex.hull.scmSpeed', value: num(flight?.scmSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
+          { labelKey: 'codex.hull.maxSpeed', value: num(flight?.maxSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
+          { labelKey: 'codex.hull.boostSpeed', value: num(flight?.boostSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
+          { labelKey: 'codex.hull.pitch', value: num(flight?.pitch, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
+          { labelKey: 'codex.hull.yaw', value: num(flight?.yaw, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
+          { labelKey: 'codex.hull.roll', value: num(flight?.roll, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
+        ],
+      },
+      {
+        titleKey: 'codex.analysis.ship.mass',
+        rows: [{ labelKey: 'codex.hull.equippedMass', value: num(mass, 'kg'), gapKey: 'codex.summary.gap.noEquipmentMass' }],
+        note: this.t.instant('codex.analysis.ship.massEquipmentNote'),
+      },
+      {
+        titleKey: 'codex.analysis.ship.systems',
+        rows: [
+          { labelKey: 'codex.kpi.quantumSpeed', value: num(sheet.quantumSpeed, 'km/s'), gapKey: 'codex.summary.gap.noQuantum' },
+          { labelKey: 'codex.kpi.quantumRange', value: sheet.quantumRange != null ? `${formatNumber(sheet.quantumRange / 1_000_000)} Gm` : null, gapKey: 'codex.summary.gap.noQuantum' },
+          { labelKey: 'codex.kpi.spool', value: num(sheet.spool, 's'), gapKey: 'codex.summary.gap.noQuantum' },
+        ],
+      },
+      {
+        titleKey: 'codex.analysis.ship.signature',
+        rows: [
+          { labelKey: 'codex.kpi.ir', value: num(sheet.ir, ''), gapKey: 'codex.summary.gap.noSignature' },
+          { labelKey: 'codex.kpi.emIdle', value: num(sheet.emIdle, ''), gapKey: 'codex.summary.gap.noSignature' },
+          { labelKey: 'codex.kpi.emMax', value: num(sheet.emMax, ''), gapKey: 'codex.summary.gap.noSignature' },
+          { labelKey: 'codex.kpi.crossSection', value: num(sheet.crossSection, ''), gapKey: 'codex.summary.gap.noSignature' },
+        ],
+        note: sheet.crossSection != null ? this.t.instant('codex.analysis.ship.crossSectionNote') : null,
+      },
+      {
+        titleKey: 'codex.analysis.ship.hull',
+        rows: [
+          { labelKey: 'codex.hull.dimensions', value: dim ? `${formatNumber(dim.length)} × ${formatNumber(dim.width)} × ${formatNumber(dim.height)} m` : null },
+          { labelKey: 'codex.hull.crew', value: p.crew?.size ? String(p.crew.size) : null },
+          { labelKey: 'codex.hull.hullHp', value: null, gapKey: 'codex.summary.gap.noHullMass' },
+        ],
+      },
+    ];
+    return groups;
   });
 
   /**

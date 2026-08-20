@@ -3,9 +3,11 @@ import {
   Component,
   WritableSignal,
   computed,
+  effect,
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexKind } from './codex.service';
@@ -585,6 +587,25 @@ export class CodexHardpointLayoutComponent {
   readonly hovered = output<string[] | null>();
   /** The row's "↺" revert button was clicked — emits its draft paths. */
   readonly reverted = output<string[]>();
+  /**
+   * Overrides `SHIP_MODULE_SECTION_ORDER` with a mission-driven order (PR C,
+   * 04-rules-v2 §7.7) — null keeps the default configurable-first order.
+   */
+  readonly sectionOrder = input<readonly ShipModuleSection[] | null>(null);
+  /**
+   * Sections the active mission folds away by default (in addition to
+   * `structure`, which is always foldable). Changing this set resets any
+   * per-visit "unfold" the pilot made under the previous mission — a mission
+   * switch is a fresh read, not an accumulation of manual toggles.
+   */
+  readonly foldedSections = input<ReadonlySet<ShipModuleSection>>(new Set());
+
+  constructor() {
+    effect(() => {
+      this.foldedSections();
+      untracked(() => this.openSections.set(new Set()));
+    });
+  }
 
   /** Raw port names a (possibly collapsed) row stands for. */
   private rawPorts(row: GroupedSlot<LayoutSlot>): string[] {
@@ -692,7 +713,9 @@ export class CodexHardpointLayoutComponent {
   private ordered = computed<RenderSection[]>(() => {
     const split = this.splitSections();
     const open = this.openSections();
-    return SHIP_MODULE_SECTION_ORDER
+    const order = this.sectionOrder() ?? SHIP_MODULE_SECTION_ORDER;
+    const foldable = new Set<ShipModuleSection>([...FOLDABLE_SECTIONS, ...this.foldedSections()]);
+    return order
       .map((s) => this.sections().find((g) => g.section === s))
       .filter((g): g is LayoutSection => !!g && g.slots.length > 0)
       .map((g) => {
@@ -708,7 +731,7 @@ export class CodexHardpointLayoutComponent {
           notes: g.notes ?? [],
           splittable: grouped.length < g.slots.length,
           split: isSplit,
-          foldable: FOLDABLE_SECTIONS.has(g.section),
+          foldable: foldable.has(g.section),
           open: open.has(g.section),
         };
       });
