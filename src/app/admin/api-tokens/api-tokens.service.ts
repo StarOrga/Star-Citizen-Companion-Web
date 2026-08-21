@@ -7,6 +7,7 @@ export const API_TOKEN_SCOPES = [
   'patch:read',
   'ships:read',
   'components:read',
+  'keybinds:read',
   '*:read',
   'admin:tokens',
 ] as const;

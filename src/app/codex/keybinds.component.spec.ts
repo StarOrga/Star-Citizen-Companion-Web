@@ -6,6 +6,41 @@ import { KeybindsComponent } from './keybinds.component';
 import { CodexService } from './codex.service';
 import { CodexKeybind } from './codex.types';
 import { RoleService } from '../auth/role.service';
+import { KeybindCategoryService, keybindKey } from './keybind-category.service';
+import { EMPTY_ASSIGNMENT, KeybindAssignment } from './keybind-taxonomy';
+
+/**
+ * Stand-in for the DB-backed category store: the same signal surface the
+ * component reads, with `apply()` writing straight into the local map so the
+ * assignment flow can be exercised without Supabase.
+ */
+function fakeCats(seed: Record<string, Partial<KeybindAssignment>> = {}) {
+  const map = new Map<string, KeybindAssignment>(
+    Object.entries(seed).map(([k, v]) => [k, { ...EMPTY_ASSIGNMENT, ...v }]),
+  );
+  const byAction = signal<ReadonlyMap<string, KeybindAssignment>>(map);
+  return {
+    byAction: byAction.asReadonly(),
+    loaded: signal(true).asReadonly(),
+    saving: signal(false),
+    error: signal<string | null>(null),
+    load: jasmine.createSpy('load').and.resolveTo(undefined),
+    apply: jasmine
+      .createSpy('apply')
+      .and.callFake(
+        async (targets: { actionmap: string; actionName: string }[], a: KeybindAssignment) => {
+          const next = new Map(byAction());
+          for (const t of targets) {
+            const key = keybindKey(t.actionmap, t.actionName);
+            if (Object.values(a).some((v) => v !== null)) next.set(key, a);
+            else next.delete(key);
+          }
+          byAction.set(next);
+          return true;
+        },
+      ),
+  };
+}
 
 function bind(
   over: Partial<CodexKeybind> & { actionmap: string; actionName: string },
@@ -55,6 +90,10 @@ describe('KeybindsComponent', () => {
     labelsEn?: Map<string, string>;
     /** Active UI language — 'de' exercises the English-original fallback. */
     lang?: string;
+    /** Admin sees the assignment tooling; everyone else the plain reference. */
+    admin?: boolean;
+    /** Seeded category assignments, keyed `actionmap::action_name`. */
+    cats?: Record<string, Partial<KeybindAssignment>>;
   }) {
     const empty = new Map<string, string>();
     const codex: Partial<CodexService> = {
@@ -78,7 +117,14 @@ describe('KeybindsComponent', () => {
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
-        { provide: RoleService, useValue: { isCollaborator: signal(false) } },
+        {
+          provide: RoleService,
+          useValue: {
+            isCollaborator: signal(false),
+            isAdmin: signal(opts.admin ?? false),
+          },
+        },
+        { provide: KeybindCategoryService, useValue: fakeCats(opts.cats) },
       ],
     }).compileComponents();
 
@@ -171,5 +217,97 @@ describe('KeybindsComponent', () => {
     const fixture = await setup({ binds: [] });
     expect(fixture.componentInstance.total()).toBe(0);
     expect(fixture.nativeElement.querySelector('.empty')).not.toBeNull();
+  });
+  // ── admin category assignment (feedback fd58a5eb) ────────────────────────
+
+  it('hides the assignment tooling from non-admins', async () => {
+    const fixture = await setup({ binds: SAMPLE, labels: LABELS });
+    expect(fixture.nativeElement.querySelector('.assign-toggle')).toBeNull();
+    // Even if the flag were flipped, `editing()` gates on the role.
+    fixture.componentInstance.assignMode.set(true);
+    expect(fixture.componentInstance.editing()).toBeFalse();
+  });
+
+  it('opens the assignment bar for an admin', async () => {
+    const fixture = await setup({ binds: SAMPLE, labels: LABELS, admin: true });
+    expect(fixture.nativeElement.querySelector('.assign-toggle')).not.toBeNull();
+    fixture.componentInstance.toggleAssignMode();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.editing()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.assign-bar')).not.toBeNull();
+  });
+
+  it('cascades the pickers and forgets a child its new parent forbids', async () => {
+    const cmp = (await setup({ binds: SAMPLE, labels: LABELS, admin: true })).componentInstance;
+    cmp.setLayer('scope', 'verse');
+    expect(cmp.environments()).toEqual(['on_foot', 'in_vehicle', 'spectator']);
+    cmp.setLayer('environment', 'in_vehicle');
+    cmp.setLayer('role', 'pilot');
+    expect(cmp.draft().role).toBe('pilot');
+    cmp.setLayer('scope', 'in_game');
+    expect(cmp.draft().environment).toBeNull();
+    expect(cmp.draft().role).toBeNull();
+  });
+
+  it('assigns a whole actionmap in one click', async () => {
+    const cmp = (await setup({ binds: SAMPLE, labels: LABELS, admin: true })).componentInstance;
+    cmp.toggleAssignMode();
+    cmp.toggleGroup(cmp.groups()[0]);
+    expect(cmp.selectedCount()).toBe(2);
+    cmp.setLayer('actionGroup', 'flight_control');
+    await cmp.applyToSelection();
+    expect(cmp.cats.apply).toHaveBeenCalled();
+    // Selection resets after a successful write, and the rows now carry chips.
+    expect(cmp.selectedCount()).toBe(0);
+    const rows = cmp.groups()[0].rows;
+    expect(rows.every((r) => r.assigned)).toBeTrue();
+    expect(cmp.chips(rows[0]).map((c) => c.key))
+      .toEqual(['codex.keybinds.taxonomy.actionGroup.flight_control']);
+    expect(cmp.assignedTotal()).toBe(2);
+  });
+
+  it('filters down to the actions still waiting for a category', async () => {
+    const cmp = (
+      await setup({
+        binds: SAMPLE,
+        labels: LABELS,
+        admin: true,
+        cats: { [keybindKey('ui_menu', 'ui_back')]: { actionGroup: 'interaction' } },
+      })
+    ).componentInstance;
+    expect(cmp.assignedTotal()).toBe(1);
+    cmp.setFilter('unassigned');
+    expect(cmp.shownCount()).toBe(2);
+    cmp.setFilter('assigned');
+    expect(cmp.groups().map((g) => g.actionmap)).toEqual(['ui_menu']);
+    cmp.setFilter('all');
+    expect(cmp.shownCount()).toBe(3);
+  });
+
+  it('clears an assignment back to unclassified', async () => {
+    const cmp = (
+      await setup({
+        binds: SAMPLE,
+        labels: LABELS,
+        admin: true,
+        cats: { [keybindKey('ui_menu', 'ui_back')]: { actionGroup: 'interaction' } },
+      })
+    ).componentInstance;
+    cmp.toggleAssignMode();
+    const row = cmp.groups()[1].rows[0];
+    cmp.editRow(row);
+    expect(cmp.draft().actionGroup).toBe('interaction');
+    await cmp.clearSelectionAssignment();
+    expect(cmp.assignedTotal()).toBe(0);
+  });
+
+  it('leaves assignment mode without a lingering selection', async () => {
+    const cmp = (await setup({ binds: SAMPLE, labels: LABELS, admin: true })).componentInstance;
+    cmp.toggleAssignMode();
+    cmp.toggleRow(cmp.groups()[0].rows[0]);
+    expect(cmp.selectedCount()).toBe(1);
+    cmp.toggleAssignMode();
+    expect(cmp.selectedCount()).toBe(0);
+    expect(cmp.filter()).toBe('all');
   });
 });
