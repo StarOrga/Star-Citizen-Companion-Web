@@ -22,6 +22,7 @@ nothing is silently dropped.
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections import Counter
 from pathlib import Path
@@ -1229,9 +1230,32 @@ class CodexExtractor:
                 if isinstance(v, dict):
                     for sk, sv in _scalars(v).items():
                         flat.setdefault(f"{k}.{sk}", sv)
+            if t == "SSCSignatureSystemParams":
+                self._add_cross_section(c, flat)
             if flat:
                 stats[t] = flat
         return stats
+
+    def _add_cross_section(self, sig_params: Dict[str, Any],
+                            flat: Dict[str, Any]) -> None:
+        """Targeted (depth-3) pull of the radar cross-section Vec3.
+
+        VERIFIED against the live Nomad: `SSCSignatureSystemParams` carries no
+        scalar IR/EM fields at all — the only real signature value is
+        `radarProperties.crossSectionParams.crossSection` (a Vec3), one level
+        deeper than the generic 1-level flatten above reaches. This does NOT
+        deepen that generic flatten (which would pull in unrelated noise from
+        every other nested struct) — it reaches for exactly this one known
+        path and emits `crossSection.x/y/z` only when the axis value is
+        present and finite. No invented defaults.
+        """
+        cross = _dig(sig_params, "radarProperties", "crossSectionParams", "crossSection")
+        if not isinstance(cross, dict):
+            return
+        for axis in ("x", "y", "z"):
+            val = _to_float(cross.get(axis))
+            if val is not None and math.isfinite(val):
+                flat[f"crossSection.{axis}"] = val
 
     def _project_ship(self, r, resolved, comps, attach) -> Dict[str, Any]:
         base = self._base_entity(r, resolved, comps, attach)
@@ -1530,9 +1554,39 @@ class CodexExtractor:
                 if isinstance(v, dict):
                     for sk, sv in _scalars(v).items():
                         flat.setdefault(f"{k}.{sk}", sv)
+            if t == "SCItemVehicleArmorParams":
+                self._add_vehicle_armor_depth2(c, flat)
             if flat:  # only components that actually carry scalar values
                 stats[t] = flat
         return stats
+
+    # Depth-2 dicts that the live `SCItemVehicleArmorParams` struct nests its
+    # real per-damage-type numbers under. Targeted post-step for THIS struct
+    # only — `_component_stats()`'s generic 1-level flatten (above) is left
+    # untouched for every other component (red-team R3: no shared-blacklist
+    # regression, see test_stats_regression.py).
+    _VEHICLE_ARMOR_DEPTH2 = (
+        ("armorDeflection", "deflectionValue"),
+        ("armorPenetrationResistance", "penetrationAbsorptionForType"),
+    )
+
+    def _add_vehicle_armor_depth2(self, armor_params: Dict[str, Any],
+                                   flat: Dict[str, Any]) -> None:
+        """VERIFIED against the live `ARMR_CNOU_Nomad`: `armorDeflection.
+        deflectionValue.*` and `armorPenetrationResistance.
+        penetrationAbsorptionForType.*` are per-damage-type dicts one level
+        deeper than the generic flatten reaches. Emits dotted keys like
+        `armorDeflection.deflectionValue.DamagePhysical` only for values that
+        are actually present."""
+        for outer, inner in self._VEHICLE_ARMOR_DEPTH2:
+            sub = armor_params.get(outer)
+            if not isinstance(sub, dict):
+                continue
+            nested = sub.get(inner)
+            if not isinstance(nested, dict):
+                continue
+            for sk, sv in _scalars(nested).items():
+                flat[f"{outer}.{inner}.{sk}"] = sv
 
     def _item_ports(self, comps) -> List[Dict[str, Any]]:
         ipc = _find_component(comps, "SItemPortContainerComponentParams")
