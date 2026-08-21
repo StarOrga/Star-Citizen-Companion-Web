@@ -1,6 +1,5 @@
 {
   "framework": null,
-  "_buildCommand_note": "ng build on Vercel's 2-core box intermittently never exits AFTER writing the complete output ('Application bundle generation complete' + Output location print, then silence until BUILD_EXCEEDED_MAXIMUM_TIME). Verified non-deterministic 2026-08-20/21: 4 hangs vs 1 clean run of the same code; a no-op rebuild of a green commit passes in 27s. The guard kills ng build 300s after start and treats ONLY a timeout kill (124/137) WITH a verifiably complete output (index.html + ngsw.json present) as success — real compile errors still fail the build, and postbuild's stamp/CSP checks re-validate the artifact. Local builds (npm run build) are untouched. Root cause tracked in the loadout-migration follow-up issue; remove this guard once the builder race is fixed upstream.",
   "buildCommand": "npm run prebuild && (timeout -k 10 300 npx ng build --configuration production; ec=$?; echo \"NG_EXIT=$ec\"; if [ $ec -ne 0 ]; then if { [ $ec -eq 124 ] || [ $ec -eq 137 ]; } && [ -f dist/sc-companion/browser/index.html ] && [ -f dist/sc-companion/browser/ngsw.json ]; then echo 'ng build hung after completing output — proceeding under exit guard'; else exit $ec; fi; fi) && npm run postbuild",
   "outputDirectory": "dist/sc-companion/browser",
   "rewrites": [
