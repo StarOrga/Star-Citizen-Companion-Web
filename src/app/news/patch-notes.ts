@@ -274,3 +274,63 @@ export function latestPerFacet(groups: readonly PatchLineGroup[]): PatchHighligh
   }
   return PATCH_FACETS.map((f) => best.get(f)).filter((h): h is PatchHighlight => !!h);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Build waves (2026-08-20 rethink)
+//
+// RSI publishes one note per internal build wave, so a single announcement
+// arrives as a run of near-identical rows: measured in production on
+// 2026-08-20 the open 4.10 line held TWENTY of them — "[All Waves] Star Citizen
+// Alpha 4.10 PTU Patch Notes 12479687", "… 12473311", "… 12464883" — differing
+// only by a build number, and that run alone rendered 1,215 px of the page.
+//
+// It is one event in twenty waves, not twenty pieces of content, so it collapses
+// to ONE row that says how many waves it holds. Nothing is dropped: the group
+// expands to the full list on demand.
+//
+// The rule keys on facet + version rather than on the title, deliberately —
+// the wave marker itself changes mid-run ("[Wave 1]" → "[All Waves]"), so any
+// title-normalising heuristic splits exactly the run it is meant to fold.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Shortest run that is worth folding. Two rows are cheaper left alone. */
+export const WAVE_MIN = 3;
+
+/** Either a single note, or a folded run of build waves for one version+facet. */
+export interface PatchWaveGroup {
+  /** Stable key for `@for` tracking: facet, version and the first entry's id. */
+  key: string;
+  facet: PatchFacet;
+  version: string;
+  entries: PatchNoteEntry[];
+  /** True once the run is long enough to be folded (`entries.length >= WAVE_MIN`). */
+  folded: boolean;
+}
+
+/**
+ * Fold consecutive same-version, same-facet notes into wave groups.
+ *
+ * Only CONSECUTIVE entries fold: the list is already newest-first, so a run is
+ * exactly the stretch of waves that belongs to one announcement. A later,
+ * unrelated note of the same facet that arrives after something else stays its
+ * own row rather than being teleported into an older group.
+ */
+export function groupWaves(entries: readonly PatchNoteEntry[]): PatchWaveGroup[] {
+  const out: PatchWaveGroup[] = [];
+  for (const entry of entries) {
+    const last = out[out.length - 1];
+    if (last && last.facet === entry.facet && last.version === entry.version) {
+      last.entries.push(entry);
+      last.folded = last.entries.length >= WAVE_MIN;
+      continue;
+    }
+    out.push({
+      key: `${entry.facet}|${entry.version}|${entry.item.id}`,
+      facet: entry.facet,
+      version: entry.version,
+      entries: [entry],
+      folded: false,
+    });
+  }
+  return out;
+}

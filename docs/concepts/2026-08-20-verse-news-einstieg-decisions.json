@@ -1,0 +1,40 @@
+[
+  {
+    "iteration": 1,
+    "template": "design",
+    "action": "implement",
+    "submitted_at": "2026-08-20T19:09:15.171Z",
+    "comments": {
+      "general": "ich mag das erste konzept am liebsten!",
+      "designs": {},
+      "screens": {}
+    },
+    "decision": "Design A — Bühne · Befund · Strom (lens: product-value)",
+    "outcome": "implemented",
+    "artifacts": {
+      "new": [
+        "src/app/news/news-stage.ts",
+        "src/app/news/patch-board.component.ts",
+        "src/app/news/news-stage.spec.ts"
+      ],
+      "changed": [
+        "src/app/news/news-list.component.ts",
+        "src/app/news/news.service.ts",
+        "src/app/news/patch-notes.ts",
+        "src/app/news/patch-notes-section.component.ts",
+        "src/app/app.routes.ts",
+        "public/i18n (de + en)",
+        "src/app/news/news-links.spec.ts",
+        "src/app/news/news-videos.spec.ts",
+        "src/app/news/patch-notes.spec.ts"
+      ],
+      "deleted": ["src/app/news/news-older-fold.spec.ts"]
+    },
+    "verification": {
+      "unit_tests": "1338 SUCCESS / 0 FAILED",
+      "build": "exit 0 (incl. version stamp, CSP check, ngsw worker stamp)",
+      "typecheck": "clean",
+      "not_done": "visual check against a signed-in session — /news is behind authGuard"
+    }
+  }
+]

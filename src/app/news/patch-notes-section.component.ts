@@ -14,8 +14,10 @@ import {
   PATCH_FACETS,
   PatchFacet,
   PatchLineGroup,
+  PatchWaveGroup,
   facetCounts,
   filterPatchLines,
+  groupWaves,
   latestPerFacet,
 } from './patch-notes';
 import { PatchCadenceComponent } from './patch-cadence.component';
@@ -52,7 +54,7 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
     <section class="patch-notes" [attr.aria-label]="'news.patch.title' | translate">
       <div class="bucket-head">
         <h2>{{ 'news.patch.title' | translate }}</h2>
-        <span class="bucket-ct">{{ svc.channelCount('patch') }}</span>
+        <span class="bucket-ct">{{ svc.patchCount() }}</span>
         <span class="rail-note">{{ 'news.patch.hint' | translate }}</span>
       </div>
 
@@ -164,7 +166,45 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
               </button>
               @if (isLineOpen(group)) {
                 <ul class="patch-entries">
-                  @for (entry of group.entries; track entry.item.id) {
+                  @for (wave of wavesOf(group); track wave.key) {
+                    @if (wave.folded) {
+                      <!-- One announcement, many build waves. RSI publishes a
+                           note per internal wave, so this used to render as up
+                           to twenty near-identical rows — measured at 1,215 px
+                           for the open 4.10 line alone. Native <details>: the
+                           run costs one row until someone wants all of it, and
+                           it keeps keyboard + find-in-page behaviour for free. -->
+                      <li class="patch-entry wave">
+                        <details>
+                          <summary>
+                            <span class="entry-title">
+                              {{ 'news.patch.waves.title' | translate:{ count: wave.entries.length } }}
+                            </span>
+                            <span class="entry-meta">
+                              @if (wave.version) {
+                                <span class="tag ver">{{ wave.version }}</span>
+                              }
+                              <span class="tag" [attr.data-stage]="wave.facet">{{ ('news.patch.facet.' + wave.facet) | translate }}</span>
+                              <time>{{ relTime(wave.entries[0].item.publishedAt) }}</time>
+                            </span>
+                          </summary>
+                          <ul class="wave-entries">
+                            @for (entry of wave.entries; track entry.item.id) {
+                              <li>
+                                <a class="entry-link" [href]="entry.item.url"
+                                   target="_blank" rel="noopener noreferrer">
+                                  <span class="entry-title">{{ entry.item.title }}</span>
+                                  <span class="entry-meta">
+                                    <time>{{ relTime(entry.item.publishedAt) }}</time>
+                                  </span>
+                                </a>
+                              </li>
+                            }
+                          </ul>
+                        </details>
+                      </li>
+                    } @else {
+                      @for (entry of wave.entries; track entry.item.id) {
                     <li class="patch-entry">
                       <!-- Real anchor: the notes live on RSI, so middle click and
                            "open in new tab" must just work. -->
@@ -185,6 +225,8 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
                         </span>
                       </a>
                     </li>
+                      }
+                    }
                   }
                 </ul>
               }
@@ -317,6 +359,28 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
       padding: 9px 12px 9px 34px; color: inherit; text-decoration: none;
     }
     .entry-link:hover { background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
+
+    /* ---------- Folded build waves ----------
+       One announcement published as a run of near-identical build notes. The
+       summary row is the fold; expanding it lists the individual builds with
+       nothing but their timestamp, because the title is what they all share. */
+    .patch-entry.wave > details > summary {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 9px 12px 9px 34px; cursor: pointer;
+      min-height: var(--sc-tap-min); list-style: none;
+      color: var(--sc-fg-1);
+    }
+    .patch-entry.wave > details > summary::-webkit-details-marker { display: none; }
+    .patch-entry.wave > details > summary::before {
+      content: '▸'; position: absolute; margin-left: -16px;
+      color: var(--sc-fg-2); transition: transform 0.16s ease;
+    }
+    .patch-entry.wave > details[open] > summary::before { content: '▾'; }
+    .patch-entry.wave > details > summary:hover { background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
+    .patch-entry.wave > details > summary:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -3px; }
+    .wave-entries { list-style: none; margin: 0; padding: 0 0 4px; }
+    .wave-entries .entry-link { padding-left: 52px; }
+    .wave-entries .entry-title { color: var(--sc-fg-2); font-size: 0.82rem; }
     .entry-title { font-size: 0.86rem; line-height: 1.35; }
     .entry-meta {
       display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
@@ -389,15 +453,14 @@ export class PatchNotesSectionComponent implements OnDestroy {
   private readonly now = signal(Date.now());
   private readonly clockTimer = setInterval(() => this.now.set(Date.now()), 30_000);
 
-  // Any filter change — the page's channel bar (1bc19cdc) or one of the two
-  // filters here — is a new view of the section, so the manually
+  // Any filter change here is a new view of the section, so the manually
   // collapsed/expanded lines of the previous view go and the "newest line open"
-  // default applies to whatever is left.
+  // default applies to whatever is left. (It used to also watch the page's
+  // channel bar; that bar went with the 2026-08-20 rethink, and this section
+  // now owns a page of its own.)
   private readonly resetFolds = effect(() => {
     this.lineFilter();
     this.facetFilter();
-    this.svc.activeChannels();
-    this.svc.favoritesOnly();
     untracked(() => {
       if (this.lineOverride().size > 0) this.lineOverride.set(new Map());
     });
@@ -432,6 +495,15 @@ export class PatchNotesSectionComponent implements OnDestroy {
   resetFilter(): void {
     this.clearLines();
     this.clearFacets();
+  }
+
+  /**
+   * Fold a line's notes into wave groups. Cheap enough to call from the
+   * template: a line holds tens of entries, and it only runs for the lines the
+   * reader actually expanded.
+   */
+  wavesOf(group: PatchLineGroup): PatchWaveGroup[] {
+    return groupWaves(group.entries);
   }
 
   relTime(iso: string): string {
