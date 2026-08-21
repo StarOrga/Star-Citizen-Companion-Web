@@ -4,6 +4,43 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.65.0] - 2026-08-21
+
+### Added
+
+- **The ship detail page is now a full loadout screen** (#405, #406, #408 —
+  the V2 loadout migration, closing #402). Every fitting on
+  `/codex/ship/:className` can be swapped through the picker ("Übernehmen" /
+  "Slot leeren"), drafts track emptied-vs-unchanged per slot, per-row revert
+  and an explicit save bar persist top-level, port-joinable changes into the
+  ship's active hangar config via read-merge-write — hangar-authored entries
+  survive. A six-cell KPI band (mission-chosen metrics with stock-vs-draft
+  delta chips; `±0` renders nothing), a one-row mission bar
+  (Alles · Kampf · Transport · Reisen · Schleichen · Bergbau · Bergung, each
+  disabled with its reason when the hull can't fly it) and an
+  Offensive / Verteidigung / Schiff analysis column replace the old
+  Kampfübersicht. Drafts mirror to a build-aware URL param + localStorage.
+  Where the extract carries no value, the page shows the named gap notice —
+  never an invented number.
+- **The extractor closes four confirmed catalog gaps** (`schema_version` 2,
+  data-uploader 0.24.0): real weapon fire rate from `SWeaponActionFire*`
+  actions (DPS returns automatically), ship flight data resolved from the
+  `Controller_Flight_<Ship>` item's `IFCSParams`, ship cross-section
+  (Vec3 axes) and per-hull `ARMR_*` armor stats (damage multipliers,
+  penetration, deflection). Ship-level IR/EM turned out to be genuinely
+  absent from the game files (no scalar fields; the emission model hangs on
+  the missing per-item power data) — the UI says so instead of implying a
+  pending upload. New values appear after the next catalog upload.
+
+### Fixed
+
+- **Vercel deploys no longer die on ng build's intermittent no-exit hang**
+  (#410). The builder occasionally never exits after writing a complete
+  artifact, which froze production for 45-minute `BUILD_EXCEEDED_MAXIMUM_TIME`
+  cycles per deploy. `scripts/vercel-build.sh` kills the build 300s in and
+  accepts a timeout kill only when `index.html` and `ngsw.json` verifiably
+  exist; real compile errors still fail. Local builds untouched.
+
 ## [0.64.2] - 2026-08-18
 
 ### Added
