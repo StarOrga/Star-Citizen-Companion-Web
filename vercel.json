@@ -1,6 +1,6 @@
 {
   "framework": null,
-  "buildCommand": "npm run prebuild && (timeout -k 10 300 npx ng build --configuration production; ec=$?; echo \"NG_EXIT=$ec\"; if [ $ec -ne 0 ]; then if { [ $ec -eq 124 ] || [ $ec -eq 137 ]; } && [ -f dist/sc-companion/browser/index.html ] && [ -f dist/sc-companion/browser/ngsw.json ]; then echo 'ng build hung after completing output — proceeding under exit guard'; else exit $ec; fi; fi) && npm run postbuild",
+  "buildCommand": "bash scripts/vercel-build.sh",
   "outputDirectory": "dist/sc-companion/browser",
   "rewrites": [
     { "source": "/ingest/static/(.*)", "destination": "https://eu-assets.i.posthog.com/static/$1" },
