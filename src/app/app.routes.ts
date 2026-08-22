@@ -62,6 +62,13 @@ export const routes: Routes = [
         loadComponent: () => import('./news/news-list.component').then((m) => m.NewsListComponent),
       },
       {
+        // The patch depth lives on its own page since the 2026-08-20 rethink:
+        // on the landing page it cost 2,019 px above the first news article.
+        path: 'news/patches',
+        loadComponent: () =>
+          import('./news/patch-board.component').then((m) => m.PatchBoardComponent),
+      },
+      {
         path: 'starscape',
         loadComponent: () =>
           import('./starscape/starscape.component').then((m) => m.StarscapeComponent),

@@ -1078,6 +1078,14 @@
         "overdueDays": "overdue by {{n}}d",
         "overdueWeeks": "overdue by {{n}}w",
         "basis": "Median {{median}}d · n={{n}} · from {{version}}"
+      },
+      "board": {
+        "title": "Patch history",
+        "sub": "Cadence, forecasts and every release note — grouped by main patch line",
+        "back": "Back to Verse News"
+      },
+      "waves": {
+        "title": "{{count}} build waves of the same announcement"
       }
     },
     "detail": {
@@ -1102,6 +1110,25 @@
       "more": "+{{count}} more",
       "open": "Open upcoming ships",
       "dismiss": "Dismiss notice"
+    },
+    "stage": {
+      "read": "Read",
+      "watch": "Watch"
+    },
+    "stream": {
+      "title": "Stream",
+      "count": "{{count}} posts",
+      "more": "Show {{count}} more"
+    },
+    "verdict": {
+      "label": "Build status",
+      "liveOnly": "{{line}} is live",
+      "due": "{{line}} is live · next main patch in {{days}} days",
+      "today": "{{line}} is live · next main patch due today",
+      "overdue": "{{line}} is live · next main patch {{days}} days overdue",
+      "basis": "Median {{median}} d · n = {{n}}",
+      "basisWithTest": "Median {{median}} d · n = {{n}} · {{test}} in testing",
+      "toBoard": "Patch history"
     }
   },
   "p4k": {
