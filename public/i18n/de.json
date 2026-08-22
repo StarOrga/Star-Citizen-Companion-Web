@@ -381,6 +381,82 @@
         "headtracking": "Head-Tracking",
         "shop": "Shop",
         "debug": "Debug"
+      },
+      "assign": {
+        "toggle": "Kategorien zuweisen",
+        "progress": "{{assigned}} von {{total}} Aktionen zugeordnet",
+        "filter": "Filter",
+        "filters": {
+          "all": "Alle",
+          "unassigned": "Offen",
+          "assigned": "Zugeordnet"
+        },
+        "layers": {
+          "scope": "Scope (L1)",
+          "environment": "Umgebung (L2)",
+          "role": "Rolle (L3)",
+          "activity": "Aktivität (L4)",
+          "actionGroup": "Aktionsgruppe (L5)"
+        },
+        "none": "— keine —",
+        "selected": "{{count}} ausgewählt",
+        "apply": "Zuweisen",
+        "clear": "Zuordnung entfernen",
+        "deselect": "Auswahl aufheben",
+        "export": "JSON exportieren",
+        "saved": "Gespeichert.",
+        "edit": "Bearbeiten",
+        "selectRow": "{{action}} auswählen",
+        "selectGroup": "Alle Aktionen in {{group}} auswählen"
+      },
+      "taxonomy": {
+        "scope": {
+          "verse": "Verse",
+          "in_game": "Im Spiel (UI)",
+          "out_of_game": "Außerhalb des Spiels"
+        },
+        "environment": {
+          "on_foot": "Zu Fuß",
+          "in_vehicle": "Im Fahrzeug",
+          "spectator": "Zuschauer",
+          "mobiglas": "MobiGlas",
+          "starmap": "Sternenkarte",
+          "chat": "Chat",
+          "console": "Konsole"
+        },
+        "role": {
+          "pilot": "Pilot",
+          "copilot": "Kopilot",
+          "gunner": "Schütze",
+          "driver": "Fahrer",
+          "normal": "Normal",
+          "eva": "EVA",
+          "ladder": "Leiter"
+        },
+        "activity": {
+          "combat": "Kampf",
+          "mining": "Bergbau",
+          "salvage": "Bergung",
+          "exploring": "Erkundung",
+          "medical": "Medizin",
+          "trading": "Handel",
+          "racing": "Rennen",
+          "engineering": "Technik",
+          "hacking": "Hacking"
+        },
+        "actionGroup": {
+          "flight_control": "Flugsteuerung",
+          "weapons": "Waffen",
+          "targeting": "Zielerfassung",
+          "shields": "Schilde",
+          "power": "Energie",
+          "mfd_hud": "MFD / HUD",
+          "mining_tools": "Bergbau-Werkzeuge",
+          "movement": "Bewegung",
+          "camera": "Kamera",
+          "communication": "Kommunikation",
+          "interaction": "Interaktion"
+        }
       }
     },
     "provenance": {
@@ -1418,6 +1494,7 @@
         "patch:read": "Liest /v1/patch",
         "ships:read": "Liest /v1/ships",
         "components:read": "Liest /v1/components",
+        "keybinds:read": "Liest /v1/keybinds (Tastenbelegung + Kategorien)",
         "*:read": "Kürzel: alle Read-Endpoints",
         "admin:tokens": "Token-Verwaltung (Admin-Rolle bleibt erforderlich)"
       },

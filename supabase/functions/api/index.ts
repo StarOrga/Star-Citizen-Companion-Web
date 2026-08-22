@@ -10,6 +10,7 @@
 //     GET    /v1/patch       scope: patch:read
 //     GET    /v1/ships       scope: ships:read
 //     GET    /v1/components  scope: components:read
+//     GET    /v1/keybinds    scope: keybinds:read
 //   Session-auth (admin JWT):
 //     POST   /v1/tokens
 //     GET    /v1/tokens
@@ -28,6 +29,7 @@ import * as news from './handlers/news.ts';
 import * as patch from './handlers/patch.ts';
 import * as ships from './handlers/ships.ts';
 import * as components from './handlers/components.ts';
+import * as keybinds from './handlers/keybinds.ts';
 import * as openapi from './openapi.ts';
 import * as docs from './docs.ts';
 
@@ -43,6 +45,7 @@ const router = new Router()
   .get('/v1/patch', patch.get, { scope: 'patch:read' })
   .get('/v1/ships', ships.list, { scope: 'ships:read' })
   .get('/v1/components', components.list, { scope: 'components:read' })
+  .get('/v1/keybinds', keybinds.list, { scope: 'keybinds:read' })
   // ---- Token mgmt (session JWT + admin role, see handler) ----
   .post('/v1/tokens', tokens.create)
   .get('/v1/tokens', tokens.list)

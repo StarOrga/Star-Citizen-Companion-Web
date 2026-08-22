@@ -145,6 +145,57 @@ export const SPEC = {
           },
         },
       },
+      KeybindResponse: {
+        type: 'object',
+        required: ['data', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                actionmap: { type: 'string' },
+                action_name: { type: 'string' },
+                label_key: { type: ['string', 'null'] },
+                description_key: { type: ['string', 'null'] },
+                category_label_key: { type: ['string', 'null'] },
+                activation_mode: { type: ['string', 'null'] },
+                bindings: {
+                  type: 'object',
+                  properties: {
+                    keyboard: { type: ['string', 'null'] },
+                    mouse: { type: ['string', 'null'] },
+                    gamepad: { type: ['string', 'null'] },
+                    joystick: { type: ['string', 'null'] },
+                  },
+                },
+                categories: {
+                  type: ['object', 'null'],
+                  description: 'Curated hierarchy, or null while unclassified.',
+                  properties: {
+                    scope: { type: ['string', 'null'], enum: ['verse', 'in_game', 'out_of_game', null] },
+                    environment: { type: ['string', 'null'] },
+                    role: { type: ['string', 'null'] },
+                    activity: { type: ['string', 'null'] },
+                    action_group: { type: ['string', 'null'] },
+                  },
+                },
+                sort: { type: 'integer' },
+              },
+            },
+          },
+          meta: {
+            type: 'object',
+            properties: {
+              build_number: { type: ['string', 'null'] },
+              patch_version: { type: ['string', 'null'] },
+              channel: { type: ['string', 'null'] },
+              count: { type: 'integer' },
+              assigned_count: { type: 'integer' },
+            },
+          },
+        },
+      },
       EmptyListResponse: {
         type: 'object',
         required: ['data', 'meta'],
@@ -247,6 +298,43 @@ export const SPEC = {
         },
       },
     },
+    '/v1/keybinds': {
+      get: {
+        summary: 'Default input actions + curated category hierarchy',
+        description:
+          'Every default keybinding of the current LIVE build (extracted from ' +
+          '`defaultProfile.xml`) plus the admin-curated Context hierarchy — L1 Scope, ' +
+          'L2 Environment, L3 Role, L4 Activity, L5 Action Group. `categories` is ' +
+          '`null` for an action nobody has classified yet.',
+        tags: ['Read'],
+        security: [{ BearerAuth: ['keybinds:read'] }],
+        parameters: [
+          {
+            name: 'assigned_only',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['true'] },
+            description: 'Return only actions that carry a curated category.',
+          },
+          {
+            name: 'actionmap',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+            description: 'Restrict to one actionmap, e.g. `spaceship_movement`.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Keybinding list for the current build',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/KeybindResponse' } } },
+          },
+          '401': errorRef('Unauthorized'),
+          '403': errorRef('Forbidden (scope)'),
+          '429': errorRef('Rate-limited'),
+        },
+      },
+    },
     '/v1/tokens': {
       get: {
         summary: 'List my API tokens (admin only)',
@@ -277,7 +365,7 @@ export const SPEC = {
                   name: { type: 'string', minLength: 1, maxLength: 80 },
                   scopes: {
                     type: 'array',
-                    items: { type: 'string', enum: ['news:read', 'patch:read', 'ships:read', 'components:read', '*:read', 'admin:tokens'] },
+                    items: { type: 'string', enum: ['news:read', 'patch:read', 'ships:read', 'components:read', 'keybinds:read', '*:read', 'admin:tokens'] },
                   },
                 },
               },
@@ -340,6 +428,7 @@ export const SPEC = {
     'patch:read': 'Read /v1/patch',
     'ships:read': 'Read /v1/ships*',
     'components:read': 'Read /v1/components*',
+    'keybinds:read': 'Read /v1/keybinds',
     '*:read': 'Shortcut: all read endpoints',
     'admin:tokens': 'Manage API tokens via /v1/tokens (admin role still required)',
   },

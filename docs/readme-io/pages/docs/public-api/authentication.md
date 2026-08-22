@@ -68,6 +68,7 @@ not `401` — the credential was valid, the permission was not.
 | `patch:read` | `GET /v1/patch` |
 | `ships:read` | `GET /v1/ships` |
 | `components:read` | `GET /v1/components` |
+| `keybinds:read` | `GET /v1/keybinds` |
 | `*:read` | all of the above |
 | `admin:tokens` | token management |
 

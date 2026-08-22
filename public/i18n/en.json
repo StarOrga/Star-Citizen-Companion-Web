@@ -381,6 +381,82 @@
         "headtracking": "Head tracking",
         "shop": "Shop",
         "debug": "Debug"
+      },
+      "assign": {
+        "toggle": "Assign categories",
+        "progress": "{{assigned}} of {{total}} actions assigned",
+        "filter": "Filter",
+        "filters": {
+          "all": "All",
+          "unassigned": "Open",
+          "assigned": "Assigned"
+        },
+        "layers": {
+          "scope": "Scope (L1)",
+          "environment": "Environment (L2)",
+          "role": "Role (L3)",
+          "activity": "Activity (L4)",
+          "actionGroup": "Action Group (L5)"
+        },
+        "none": "— none —",
+        "selected": "{{count}} selected",
+        "apply": "Assign",
+        "clear": "Remove assignment",
+        "deselect": "Clear selection",
+        "export": "Export JSON",
+        "saved": "Saved.",
+        "edit": "Edit",
+        "selectRow": "Select {{action}}",
+        "selectGroup": "Select every action in {{group}}"
+      },
+      "taxonomy": {
+        "scope": {
+          "verse": "Verse",
+          "in_game": "In-Game (UI)",
+          "out_of_game": "Out-of-Game"
+        },
+        "environment": {
+          "on_foot": "On Foot",
+          "in_vehicle": "In Vehicle",
+          "spectator": "Spectator",
+          "mobiglas": "MobiGlas",
+          "starmap": "StarMap",
+          "chat": "Chat",
+          "console": "Console"
+        },
+        "role": {
+          "pilot": "Pilot",
+          "copilot": "Copilot",
+          "gunner": "Gunner",
+          "driver": "Driver",
+          "normal": "Normal",
+          "eva": "EVA",
+          "ladder": "Ladder"
+        },
+        "activity": {
+          "combat": "Combat",
+          "mining": "Mining",
+          "salvage": "Salvage",
+          "exploring": "Exploring",
+          "medical": "Medical",
+          "trading": "Trading",
+          "racing": "Racing",
+          "engineering": "Engineering",
+          "hacking": "Hacking"
+        },
+        "actionGroup": {
+          "flight_control": "Flight Control",
+          "weapons": "Weapons",
+          "targeting": "Targeting",
+          "shields": "Shields",
+          "power": "Power",
+          "mfd_hud": "MFD / HUD",
+          "mining_tools": "Mining Tools",
+          "movement": "Movement",
+          "camera": "Camera",
+          "communication": "Communication",
+          "interaction": "Interaction"
+        }
       }
     },
     "provenance": {
@@ -1418,6 +1494,7 @@
         "patch:read": "Read /v1/patch",
         "ships:read": "Read /v1/ships",
         "components:read": "Read /v1/components",
+        "keybinds:read": "Read /v1/keybinds (keybindings + categories)",
         "*:read": "Shortcut: all read endpoints",
         "admin:tokens": "Manage tokens (admin role still required)"
       },

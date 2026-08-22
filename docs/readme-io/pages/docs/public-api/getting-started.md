@@ -52,6 +52,7 @@ Each token carries one or more **scopes**, which decide what it may read:
 | `patch:read` | `GET /v1/patch` |
 | `ships:read` | `GET /v1/ships` |
 | `components:read` | `GET /v1/components` |
+| `keybinds:read` | `GET /v1/keybinds` |
 | `*:read` | all read endpoints above |
 | `admin:tokens` | token management endpoints |
 

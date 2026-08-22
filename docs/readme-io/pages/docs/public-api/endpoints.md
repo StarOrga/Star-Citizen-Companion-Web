@@ -12,6 +12,7 @@ All routes are relative to
 | `GET` | `/v1/news` | API token | `news:read` | live data |
 | `GET` | `/v1/ships` | API token | `ships:read` | stub — ingestion pending |
 | `GET` | `/v1/components` | API token | `components:read` | stub — ingestion pending |
+| `GET` | `/v1/keybinds` | API token | `keybinds:read` | live — input actions + curated categories |
 | `POST` | `/v1/tokens` | session JWT (admin) | — | live |
 | `GET` | `/v1/tokens` | session JWT (admin) | — | live |
 | `DELETE` | `/v1/tokens/:id` | session JWT (admin) | — | live |
@@ -100,6 +101,54 @@ Ship roster for a patch version.
 
 Component catalog for a patch version. Same `patch` parameter and the same
 stub behaviour as `/v1/ships`.
+
+---
+
+## GET /v1/keybinds
+
+Every default input action of the current LIVE build — the actionmap, the
+default binding per device, and the **curated category hierarchy** on top.
+
+| Parameter | Values | Effect |
+|---|---|---|
+| `assigned_only` | `true` | only actions that carry a curated category |
+| `actionmap` | e.g. `spaceship_movement` | restrict to one actionmap |
+
+The bindings come from the datamined `defaultProfile.xml`; `categories` is the
+part curated by hand in the admin UI and is `null` while an action is still
+unclassified. Its five layers are the Context half of the SCC Input-Actions
+hierarchy:
+
+| Field | Layer | Values |
+|---|---|---|
+| `scope` | L1 | `verse`, `in_game`, `out_of_game` |
+| `environment` | L2 | `on_foot`, `in_vehicle`, `spectator`, `mobiglas`, `starmap`, `chat`, `console` |
+| `role` | L3 | `pilot`, `copilot`, `gunner`, `driver`, `normal`, `eva`, `ladder` |
+| `activity` | L4 | `combat`, `mining`, `salvage`, `exploring`, `medical`, `trading`, `racing`, `engineering`, `hacking` |
+| `action_group` | L5 | `flight_control`, `weapons`, `targeting`, `shields`, `power`, `mfd_hud`, `mining_tools`, `movement`, `camera`, `communication`, `interaction` |
+
+A child layer is only ever set together with its parent: `environment` belongs
+to exactly one `scope`, and `role` to exactly one `environment`.
+
+```json
+{
+  "data": [
+    {
+      "actionmap": "spaceship_movement",
+      "action_name": "v_strafe_forward",
+      "bindings": { "keyboard": "w", "mouse": null, "gamepad": null, "joystick": null },
+      "categories": {
+        "scope": "verse",
+        "environment": "in_vehicle",
+        "role": "pilot",
+        "activity": null,
+        "action_group": "flight_control"
+      }
+    }
+  ],
+  "meta": { "build_number": "9600000", "patch_version": "4.2", "count": 1142, "assigned_count": 318 }
+}
+```
 
 ---
 

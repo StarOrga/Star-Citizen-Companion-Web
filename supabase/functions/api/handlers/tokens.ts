@@ -18,6 +18,7 @@ const VALID_SCOPES = new Set([
   'patch:read',
   'ships:read',
   'components:read',
+  'keybinds:read',
   '*:read',
   'admin:tokens',
 ]);
