@@ -1154,6 +1154,14 @@
         "overdueDays": "überfällig ({{n}} T.)",
         "overdueWeeks": "überfällig ({{n}} Wo.)",
         "basis": "Median {{median}} T. · n={{n}} · ab {{version}}"
+      },
+      "board": {
+        "title": "Patch-Historie",
+        "sub": "Takt, Termine und jede Release-Note — nach Hauptpatch gruppiert",
+        "back": "Zurück zu Verse News"
+      },
+      "waves": {
+        "title": "{{count}} Build-Wellen derselben Ankündigung"
       }
     },
     "detail": {
@@ -1178,6 +1186,25 @@
       "more": "+{{count}} weitere",
       "open": "Kommende Schiffe öffnen",
       "dismiss": "Hinweis ausblenden"
+    },
+    "stage": {
+      "read": "Lesen",
+      "watch": "Ansehen"
+    },
+    "stream": {
+      "title": "Strom",
+      "count": "{{count}} Beiträge",
+      "more": "{{count}} weitere anzeigen"
+    },
+    "verdict": {
+      "label": "Build-Stand",
+      "liveOnly": "{{line}} ist live",
+      "due": "{{line}} ist live · nächster Hauptpatch in {{days}} Tagen",
+      "today": "{{line}} ist live · nächster Hauptpatch heute fällig",
+      "overdue": "{{line}} ist live · nächster Hauptpatch seit {{days}} Tagen überfällig",
+      "basis": "Median {{median}} T · n = {{n}}",
+      "basisWithTest": "Median {{median}} T · n = {{n}} · {{test}} im Test",
+      "toBoard": "Patch-Historie"
     }
   },
   "p4k": {

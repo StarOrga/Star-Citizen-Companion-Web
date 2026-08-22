@@ -4,6 +4,40 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.66.0] - 2026-08-22
+
+### Changed
+
+- **Verse News opens on a stage instead of a toolbar.** Measured in production
+  on 2026-08-20 the page ran 7,327 px (7.7 screens) and began with a filter bar
+  above a 297 px band holding a single video; its one composed element, the hero
+  tile, was defined as "first item of the *Today* bucket" and that bucket did not
+  exist that day, so no hero rendered at all. The entry is now three objects:
+  a **stage** picked by score over the whole editorial pool — so it resolves on
+  any day the feed holds one image-carrying item — a **verdict** card that
+  reduces the entire patch apparatus above the fold to one sentence plus its
+  basis (median interval and sample count, never dropped), and a flat,
+  reverse-chronological **stream**. Videos are ordinary stream items and the
+  highest-weighted stage candidates; the video rail, the channel filter chips and
+  the Heute / Diese Woche / Älter bands are gone. Chosen by the owner from three
+  code-blind design directions (`.claude/rethink/2026-08-20-verse-news-entry/`,
+  concept page `docs/concepts/2026-08-20-verse-news-einstieg.html`).
+- **The patch depth moved to `/news/patches`.** The rotating cadence carousel,
+  both filter axes and the full history are unchanged in substance — they took
+  2,019 px *above the first news article* and now have a page of their own.
+  Deliberately not a nav entry: Patches is a subview of Verse News, the same
+  reasoning that keeps Hangar out of the top level (feedback f0363cef).
+- **Build waves fold.** RSI publishes one note per internal build wave, so a
+  single announcement arrived as a run of near-identical rows — twenty of them,
+  1,215 px, for the open 4.10 line alone. A run of same-version, same-facet notes
+  now collapses into one expandable row that says how many waves it holds.
+
+### Fixed
+
+- The README version badge tracked 0.64.2 while `package.json` was 0.65.0, which
+  failed the ship pre-flight's version-consistency check on every branch cut
+  afterwards.
+
 ## [0.65.0] - 2026-08-21
 
 ### Added

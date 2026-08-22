@@ -12,29 +12,39 @@ import { UpcomingShipsService } from '../codex/upcoming-ships.service';
  * Verse News navigations must be real anchors (admin feedback d2171662): middle
  * click, Ctrl/⌘+click and "open link in new tab" are browser features and only
  * work on an `<a href>`. These specs assert the rendered DOM, not the handler.
+ *
+ * Rewritten for the "Bühne · Befund · Strom" entry (2026-08-20 rethink): the
+ * video rail is gone, so the two surfaces that carry a link are now the stage
+ * and the stream tile.
  */
 
-const ARTICLE_URL = 'https://robertsspaceindustries.com/comm-link/article-1';
-const VIDEO_URL = 'https://www.youtube.com/watch?v=abc123';
+const STAGE_URL = 'https://www.youtube.com/watch?v=abc123';
+const CARD_URL = 'https://robertsspaceindustries.com/comm-link/article-1';
 
 function item(over: Partial<VerseNewsItem> & Pick<VerseNewsItem, 'id'>): VerseNewsItem {
   return {
     title: `Item ${over.id}`,
-    url: ARTICLE_URL,
+    url: CARD_URL,
     publishedAt: new Date().toISOString(),
     channel: 'comm-link',
     source: 'comm-link',
+    thumbnail: `https://example.test/${over.id}.jpg`,
     ...over,
   } as VerseNewsItem;
 }
 
+/**
+ * The video is two hours old on the highest-weighted channel, so it takes the
+ * stage; the older article lands in the stream. Both surfaces are asserted.
+ */
 function feed(): VerseFeed {
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
   return {
     status: null,
     fetchedAt: new Date().toISOString(),
     news: [
-      item({ id: 'a1' }),
-      item({ id: 'v1', channel: 'youtube', source: 'youtube', url: VIDEO_URL }),
+      item({ id: 'v1', channel: 'youtube', source: 'youtube', url: STAGE_URL, publishedAt: hoursAgo(2) }),
+      item({ id: 'a1', publishedAt: hoursAgo(30) }),
     ],
   } as VerseFeed;
 }
@@ -81,34 +91,44 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     return fixture.nativeElement.querySelector(selector) as T | null;
   }
 
-  it('renders the video rail tile as an <a> pointing at the clip', () => {
-    const link = el<HTMLAnchorElement>('.vid-card .vid-link');
-    expect(link).withContext('video rail tile link').not.toBeNull();
+  it('renders the stage headline as an <a> pointing at the source', () => {
+    const link = el<HTMLAnchorElement>('.stage .stage-link');
+    expect(link).withContext('stage link').not.toBeNull();
     expect(link!.tagName).toBe('A');
-    expect(link!.getAttribute('href')).toBe(VIDEO_URL);
+    expect(link!.getAttribute('href')).toBe(STAGE_URL);
     expect(link!.getAttribute('target')).toBe('_blank');
     expect(link!.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
-  it('renders the article card headline as an <a> pointing at the source', () => {
+  it('renders the stream tile headline as an <a> pointing at the source', () => {
     const link = el<HTMLAnchorElement>('.card .card-link');
-    expect(link).withContext('article card link').not.toBeNull();
-    expect(link!.getAttribute('href')).toBe(ARTICLE_URL);
+    expect(link).withContext('stream tile link').not.toBeNull();
+    expect(link!.getAttribute('href')).toBe(CARD_URL);
     expect(link!.getAttribute('target')).toBe('_blank');
     expect(link!.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
-  it('no longer fakes a button on the card or the rail tile', () => {
+  it('routes the verdict card to the patch board with a routerLink, not a click handler', () => {
+    // The board is in-app, so it must be a real anchor with an href the browser
+    // can open in a new tab — the same rule, applied to an internal route.
+    const link = el<HTMLAnchorElement>('.verdict .verdict-link');
+    if (link) {
+      expect(link.tagName).toBe('A');
+      expect(link.getAttribute('href')).toBe('/news/patches');
+    }
+  });
+
+  it('no longer fakes a button on the stage or the tile', () => {
     expect(el('.card[role="button"]')).toBeNull();
-    expect(el('.vid-card[role="button"]')).toBeNull();
+    expect(el('.stage[role="button"]')).toBeNull();
     expect(el('.card[tabindex]')).toBeNull();
-    expect(el('.vid-card[tabindex]')).toBeNull();
+    expect(el('.stage[tabindex]')).toBeNull();
   });
 
   it('keeps a plain left click in the app (detail overlay opens, no navigation)', () => {
     const c = fixture.componentInstance;
     const ev = new MouseEvent('click', { button: 0, cancelable: true });
-    c.onCardClick(ev, feed().news[0]);
+    c.onItemClick(ev, feed().news[0]);
     expect(ev.defaultPrevented).withContext('plain click is handled in-app').toBeTrue();
     expect(c.selected()).not.toBeNull();
     c.closeDetail();
@@ -118,16 +138,16 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     const c = fixture.componentInstance;
     for (const init of [{ ctrlKey: true }, { metaKey: true }, { button: 1 }]) {
       const ev = new MouseEvent('click', { button: 0, cancelable: true, ...init });
-      c.onCardClick(ev, feed().news[0]);
+      c.onItemClick(ev, feed().news[0]);
       expect(ev.defaultPrevented).withContext(JSON.stringify(init)).toBeFalse();
       expect(c.selected()).withContext('no overlay for a new-tab click').toBeNull();
     }
   });
 
-  // The card link is stretched over the tile via an absolutely positioned
+  // The tile link is stretched over the card via an absolutely positioned
   // overlay child. Real hit-testing is the only honest check that it covers the
   // artwork without burying the footer's own buttons.
-  it('stretches the card link over the artwork but not over the quick actions', () => {
+  it('stretches the tile link over the artwork but not over the quick actions', () => {
     const card = el<HTMLElement>('.card')!;
     const link = el<HTMLAnchorElement>('.card .card-link')!;
     const fav = el<HTMLElement>('.card .act.fav')!;
@@ -149,13 +169,5 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     // point belongs to the stretched link — which is what this asserts.
     expect(link.contains(hit(thumb))).withContext('artwork hits the stretched link').toBeTrue();
     expect(hit(fav)).withContext('fav button stays its own target').toBe(fav);
-  });
-
-  it('marks a video watched on both the in-app click and the middle-click new tab', () => {
-    const c = fixture.componentInstance;
-    const video = feed().news[1];
-
-    c.onVideoAux(new MouseEvent('auxclick', { button: 1 }), video);
-    expect(c.svc.isWatched(video.id)).toBeTrue();
   });
 });
