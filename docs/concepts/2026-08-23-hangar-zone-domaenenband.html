@@ -1557,6 +1557,69 @@ body[data-single-design="true"] .screen-nav-group .screen-nav-item { margin-left
 .finalize-wizard #wizard-issues-none { color: var(--warning-color); }
 .finalize-wizard .dispose-fieldset { margin-top: 0; border-radius: 10px; }
 
+
+/* ── Iteration 2 ──────────────────────────────────────────────────────── */
+/* Die Hangar-Zone ist real EINE Spalte der zweispaltigen Fläche (~600px auf
+   einem 1180px-Layout). Die Mockups auf die echte Breite klemmen, sonst
+   liest sich der Hero doppelt so gross wie er je wird. */
+section[data-iteration="2"] .hz-surface.one { max-width: 620px; }
+
+/* KPI-Chips liegen IM Bild (Feedback: „direkt daran und nicht darunter"). */
+.hz-cine .scrim .kpis { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+.hz-kchip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px 4px 7px;
+  border-radius: 3px; border: 1px solid rgba(242,247,251,.22); background: rgba(3,12,20,.55); }
+.hz-kchip .ic { width: 15px; height: 15px; flex: 0 0 15px; }
+.hz-kchip .tx { display: flex; flex-direction: column; line-height: 1.05; }
+.hz-kchip .l { font-size: .56rem; letter-spacing: .04em; color: rgba(242,247,251,.62); }
+.hz-kchip .v { font-family: var(--font-mono); font-size: .78rem; color: #f2f7fb; }
+.hz-kchip.warn { border-color: color-mix(in srgb, var(--accent-warning) 62%, transparent); }
+.hz-kchip.warn .v { color: var(--accent-warning); }
+.hz-cine .mark { position: absolute; top: 8px; left: 10px; font-family: var(--font-mono);
+  font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; padding: 3px 8px;
+  border-radius: 999px; border: 1px solid color-mix(in srgb, var(--band-cyan) 50%, transparent);
+  background: rgba(3,12,20,.6); color: var(--band-cyan); }
+.hz-cine .schema { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 6px 0 34px; }
+.hz-cine .schema svg { max-height: 100%; width: auto; }
+
+/* Flotten-/Konfigurations-Kacheln — dasselbe Format wie die Reißbrett-Reihe. */
+.hz-lane { display: flex; flex-direction: column; gap: 6px; }
+.hz-lane-head { display: flex; align-items: center; gap: 10px; }
+.hz-lane-title { font-family: var(--font-display); font-size: .6rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--text-tertiary); }
+.hz-sortbar { margin-left: auto; display: flex; gap: 3px; }
+.hz-sortbar span { font-size: .62rem; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--border-subtle); color: var(--text-tertiary); }
+.hz-sortbar span.on { border-color: color-mix(in srgb, var(--band-cyan) 55%, transparent); color: var(--band-cyan); }
+.hz-tilerow { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 3px; }
+.hz-tile { position: relative; flex: 0 0 var(--tw, 150px); aspect-ratio: 16/9; border-radius: 3px;
+  overflow: hidden; border: 1px solid var(--border-subtle); text-decoration: none;
+  background: radial-gradient(circle at 52% 44%, var(--surface-canvas-alt), var(--surface-canvas));
+  display: flex; align-items: center; justify-content: center; }
+.hz-tile.flag { border-color: color-mix(in srgb, var(--band-cyan) 55%, transparent); }
+.hz-tile .art { position: absolute; inset: 0; }
+.hz-tile .cap { position: absolute; inset: auto 0 0 0; padding: 14px 8px 6px; display: flex; flex-direction: column; gap: 1px;
+  background: linear-gradient(to top, rgba(3,12,20,.93) 0%, rgba(3,12,20,.7) 48%, transparent 100%); }
+.hz-tile .cap .m { font-family: var(--font-mono); font-size: .55rem; letter-spacing: .12em;
+  text-transform: uppercase; color: color-mix(in srgb, var(--accent-primary) 78%, #f2f7fb); }
+.hz-tile .cap .n { font-size: .7rem; font-weight: 600; color: #f2f7fb; line-height: 1.15; }
+.hz-tile .badge { position: absolute; top: 5px; right: 6px; font-family: var(--font-mono);
+  font-size: .52rem; padding: 1px 5px; border-radius: 999px; background: rgba(3,12,20,.66);
+  border: 1px solid color-mix(in srgb, var(--accent-warning) 55%, transparent); color: var(--accent-warning); }
+.hz-tile .badge.flag { border-color: color-mix(in srgb, var(--band-cyan) 60%, transparent); color: var(--band-cyan); }
+.hz-group { font-family: var(--font-mono); font-size: .58rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-tertiary); margin: 4px 0 2px; }
+
+/* Domänenband ohne Balken */
+.hz-dom-rows { display: flex; flex-direction: column; }
+.hz-dr { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 11px; align-items: center;
+  padding: 7px 8px; border-bottom: 1px solid var(--border-subtle); text-decoration: none; }
+.hz-dr:last-child { border-bottom: none; }
+.hz-dr:hover { background: color-mix(in srgb, var(--accent-primary) 8%, transparent); }
+.hz-dr .ic { width: 20px; height: 20px; }
+.hz-dr .l { font-size: .78rem; color: var(--text-secondary); }
+.hz-dr .c { font-family: var(--font-mono); font-size: .95rem; font-weight: 700; color: var(--text-primary);
+  font-variant-numeric: tabular-nums; }
+
 </style>
 </head>
 <body style="overflow: hidden">
@@ -1571,7 +1634,10 @@ body[data-single-design="true"] .screen-nav-group .screen-nav-item { margin-left
     </header>
 
     <main>
-      <section data-iteration="1" data-iteration-template="design" data-active>
+      <section data-iteration="1" data-iteration-template="design" hidden>
+        <script type="application/json" data-frozen-feedback>
+{"general": "", "designs": {"hull": "Gute Idee, aber das sollte dann sozusagen ein vorschaubild sein, welches analog zur Detailsseite ist, gern das so markieren mit rumpfschema  aber dann direkt dardran die wesentlichen punkte und nicht darunter. Zudem die anderen konfigurationen von gespeicherten im hangar schiffen gern im stil machen wie in der detailsseite bzw. die schiffe die noch kommen kacheln.", "cine": "Das ist schon schon viel besser mit dem bild!\"", "deck": "Flottendeck cool aber dann eher in der anderen B darstellung darutner die flotte und dann eher nach hersteller, einsatzzweck sortierbar"}, "screens": {"a-s1": "ganze fläche macht keinen Sinn ist ja nur ein Teil.", "d-s2": "Daf finde ich so eine ansicht am bestenm für, aber nur so nach zahlen => balken macht keinen sinn"}}
+        </script>
         <header class="iteration-intro">
           <h2>Iteration 1 · Die Hangar-Zone und das Versum-Band</h2>
           <p>Die <strong>An-Bord</strong>-Seite bleibt wie sie ist — sie ist hier nur als Referenz mitgezeichnet, weil sie den Qualitätsmaßstab setzt. Drei Richtungen für <strong>Im Hangar</strong> (Ⓐ Ⓑ Ⓒ), drei für das <strong>Versum-Band</strong> (Ⓓ). Ⓔ zeigt den Ist-Zustand und den Befund dahinter. Alle Zahlen stammen aus dem Screenshot vom 23.08.2026 und aus <code>codex-landing-kpi.ts</code>; nichts ist erfunden außer der Anordnung.</p>
@@ -1959,14 +2025,129 @@ body[data-single-design="true"] .screen-nav-group .screen-nav-item { margin-left
 </section>
 </section>
       </section>
+      <section data-iteration="2" data-iteration-template="design" data-active>
+        <header class="iteration-intro">
+          <h2>Iteration 2 · Ein Bild-Hero mit Instrumenten drin, Flotte als Kacheln</h2>
+          <p>Dein Feedback zusammengezogen: <strong>Ⓑ war „viel besser mit dem Bild"</strong> und bleibt die Basis. Die Kennzahlen sitzen jetzt <strong>im Bild</strong> statt darunter. Das <strong>Rumpfschema</strong> aus Ⓐ überlebt als markiertes Vorschaubild im selben Rahmen. Aus Ⓒ bleibt die Flotte — aber als <strong>Kacheln im Reißbrett-Format</strong>, sortierbar nach Hersteller und Einsatzzweck, und die Konfigurationen sind jetzt genauso Kacheln. Die An-Bord-Seite ist raus, wie gewünscht („ist ja nur ein Teil"). Ⓖ zeigt das Domänenband als Zeilen <strong>ohne Balken</strong>.</p>
+        </header>
+<section data-design="synth" data-nav-label="Ⓕ Bild-Hero + Flotte" data-design-active="true">
+<section id="f-s1" data-screen data-nav-label="1 · Bild-Hero, KPIs im Bild" data-screen-active="true">
+<div class="device-frame" style="overflow:auto;padding:18px"><p class="hz-cap">Ⓑ als Basis („viel besser mit dem Bild"), aber die vier wesentlichen Kennzahlen sitzen jetzt <b>im Bild auf dem Scrim</b> statt in Karten darunter. Konfigurationen und Flotte sind Kacheln im Reißbrett-Format.</p><div class="hz"><div class="hz-surface one"><article class="hz-zone hangar">
+  <span class="hz-eyebrow">Im Hangar</span>
+  <div class="hz-cine" style="aspect-ratio:16/9">
+  <span class="art" style="background:radial-gradient(ellipse at 42% 52%, #2d5f7a 0%, #16394f 38%, #0a1d2b 78%)"></span><span class="pin">☆</span>
+  <span class="scrim">
+    <span class="hz-mfr">AEGS · Abfangjäger</span>
+    <span class="hz-name">Aegis Avenger Stalker</span>
+    <span class="kpis"><span class="hz-kchip"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#52c1e6" aria-hidden="true"><path d="M12 2 L20 5 V11 C20 16 16.4 20 12 22 C7.6 20 4 16 4 11 V5 Z"/></svg><span class="tx"><span class="l">Schild</span><span class="v">4.488 HP</span></span></span><span class="hz-kchip warn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-hot)" aria-hidden="true"><path d="M12 2 V6 M12 18 V22 M2 12 H6 M18 12 H22 M8 12 A4 4 0 0 1 16 12 A4 4 0 0 1 8 12 M12 12 H12.01"/></svg><span class="tx"><span class="l">Unbestückt</span><span class="v">2× S3</span></span></span><span class="hz-kchip"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#a674ff" aria-hidden="true"><path d="M12 9 A3 3 0 1 1 11.99 9 M4 12 C8 8.6 16 8.6 20 12 C16 15.4 8 15.4 4 12 M10.3 4.3 C13.7 8.3 13.7 15.7 10.3 19.7"/></svg><span class="tx"><span class="l">Quantum</span><span class="v">XL-1 · S1</span></span></span><span class="hz-kchip"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#f0c419" aria-hidden="true"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg><span class="tx"><span class="l">Bestückung</span><span class="v">98%</span></span></span></span>
+  </span>
+</div>
+  <div class="hz-lane"><div class="hz-lane-head"><span class="hz-lane-title">Konfigurationen</span></div><div class="hz-tilerow"><a class="hz-tile flag" href="#" style="--tw:124px"><span class="art" style="background:radial-gradient(ellipse at 50% 50%, #7a2d3a 0%, #4a1a24 42%, #220a10 82%)"></span><span class="cap"><span class="m">Konfiguration</span><span class="n">Kampfbereit</span></span></a><a class="hz-tile" href="#" style="--tw:124px"><span class="art" style="background:radial-gradient(ellipse at 50% 50%, #2d5f7a 0%, #1a3f4f 42%, #0a1d2b 82%)"></span><span class="cap"><span class="m">Konfiguration</span><span class="n">Allzweck</span></span></a></div></div>
+  <div class="hz-lane"><div class="hz-lane-head"><span class="hz-lane-title">Flotte · 6 Schiffe</span><span class="hz-sortbar"><span class="on">Hersteller</span><span class="">Einsatzzweck</span><span class="">Zuletzt geöffnet</span></span></div><div class="hz-group">AEGS</div><div class="hz-tilerow"><a class="hz-tile flag" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 42% 52%, #2d5f7a 0%, #16394f 38%, #0a1d2b 78%)"></span><span class="badge flag">★</span><span class="cap"><span class="m">AEGS</span><span class="n">Avenger Stalker</span></span></a><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 58% 46%, #3a6b52 0%, #1b3b30 40%, #0a1d1a 80%)"></span><span class="cap"><span class="m">AEGS</span><span class="n">Gladius</span></span></a></div><div class="hz-group">DRAK</div><div class="hz-tilerow"><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 46% 56%, #7a4a2d 0%, #4a2a1a 40%, #22110a 80%)"></span><span class="badge">1× S4</span><span class="cap"><span class="m">DRAK</span><span class="n">Cutlass Black</span></span></a><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 52% 48%, #6b5a3a 0%, #3b3120 40%, #1a1610 80%)"></span><span class="cap"><span class="m">DRAK</span><span class="n">Caterpillar</span></span></a></div><div class="hz-group">RSIN</div><div class="hz-tilerow"><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 40% 50%, #4a4a7a 0%, #2a2a4f 40%, #12122b 80%)"></span><span class="badge">2× S5</span><span class="cap"><span class="m">RSIN</span><span class="n">Constellation Andromeda</span></span></a></div><div class="hz-group">ANVL</div><div class="hz-tilerow"><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 56% 44%, #2f6a72 0%, #1a3f45 40%, #0c1f22 80%)"></span><span class="cap"><span class="m">ANVL</span><span class="n">Carrack</span></span></a></div></div>
+</article></div></div><div class="hz-pro"><div class="plus"><h5>Dafür</h5><ul><li>Die Zone hat einen Helden und trotzdem ihre Instrumente — nichts wandert unter das Bild.</li><li>Konfigurationen und Flotte benutzen exakt das Kachelformat aus v0.67.0; ein Bauteil, drei Einsatzorte.</li><li>Die Warn-Kennzahl (unbestückte Aufhängungen) trägt ihre Farbe mit ins Bild.</li></ul></div><div class="minus"><h5>Dagegen</h5><ul><li>Vier Chips auf dem Scrim sind das Maximum — eine fünfte Kennzahl bricht um oder verdrängt den Namen.</li><li>Über sehr hellem Artwork trägt allein der Scrim die Lesbarkeit; ein zu heller Render braucht mehr Deckkraft.</li></ul></div></div></div>
+</section>
+<section id="f-s2" data-screen data-nav-label="2 · Hero als Rumpfschema" hidden>
+<div class="device-frame" style="overflow:auto;padding:18px"><p class="hz-cap">Dasselbe Vorschaubild-Fenster, nur mit dem Schema statt dem Render — <b>als „Rumpfschema" markiert</b>, die Fakten hängen direkt an den Markern. So sieht die Zone aus, wenn kein Render existiert; als Umschalter ginge es genauso.</p><div class="hz"><div class="hz-surface one"><article class="hz-zone hangar">
+  <span class="hz-eyebrow">Im Hangar</span>
+  <div class="hz-cine" style="aspect-ratio:16/9">
+  <span class="mark">Rumpfschema</span><span class="schema"><svg viewBox="0 0 340 214" role="img" aria-label="Rumpfschema mit Aufhängungen">
+  <path class="hull" d="M170,16 L183,50 L187,94 L209,102 L214,120 L189,124 L187,150 L177,172 L163,172 L153,150 L151,124 L126,120 L131,102 L153,94 L157,50 Z"/>
+  <circle class="mount" cx="209" cy="110" r="6"/>
+  <circle class="mount" cx="131" cy="110" r="6"/>
+  <circle class="mount free" cx="163" cy="42" r="5"/>
+  <circle class="mount free" cx="177" cy="42" r="5"/>
+  <rect class="mount" x="161" y="88" width="18" height="16" rx="2"/>
+  <rect class="mount" x="161" y="130" width="18" height="14" rx="2"/>
+  <rect class="mount" x="192" y="128" width="11" height="10" rx="1.5"/>
+  <rect class="mount" x="137" y="128" width="11" height="10" rx="1.5"/>
+  <line class="lead" x1="209" y1="110" x2="268" y2="62"/>
+  <line class="lead" x1="131" y1="110" x2="66" y2="62"/>
+  <line class="lead" x1="170" y1="42" x2="66" y2="26"/>
+  <line class="lead" x1="179" y1="96" x2="268" y2="120"/>
+  <line class="lead" x1="170" y1="137" x2="66" y2="140"/>
+  <line class="lead" x1="197" y1="133" x2="268" y2="182"/>
+  <text class="warn" x="4" y="22">BUGWAFFEN</text><text class="warn" x="4" y="32">2× S3 frei</text>
+  <text class="on" x="4" y="58">FLÜGEL BB</text><text x="4" y="68">2× S4 bestückt</text>
+  <text class="on" x="4" y="136">QUANTUM</text><text x="4" y="146">XL-1 · S1 · Grad A</text>
+  <text class="on" x="272" y="58">FLÜGEL SB</text><text x="272" y="68">2× S4 bestückt</text>
+  <text class="on" x="272" y="116">SCHILD</text><text x="272" y="126">4.488 HP</text>
+  <text class="on" x="272" y="178">RAKETEN</text><text x="272" y="188">4× S2</text>
+</svg></span>
+  <span class="scrim">
+    <span class="hz-mfr">AEGS · Abfangjäger</span>
+    <span class="hz-name">Aegis Avenger Stalker</span>
+    <span class="kpis"><span class="hz-kchip"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#52c1e6" aria-hidden="true"><path d="M12 2 L20 5 V11 C20 16 16.4 20 12 22 C7.6 20 4 16 4 11 V5 Z"/></svg><span class="tx"><span class="l">Schild</span><span class="v">4.488 HP</span></span></span><span class="hz-kchip warn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-hot)" aria-hidden="true"><path d="M12 2 V6 M12 18 V22 M2 12 H6 M18 12 H22 M8 12 A4 4 0 0 1 16 12 A4 4 0 0 1 8 12 M12 12 H12.01"/></svg><span class="tx"><span class="l">Unbestückt</span><span class="v">2× S3</span></span></span><span class="hz-kchip"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#a674ff" aria-hidden="true"><path d="M12 9 A3 3 0 1 1 11.99 9 M4 12 C8 8.6 16 8.6 20 12 C16 15.4 8 15.4 4 12 M10.3 4.3 C13.7 8.3 13.7 15.7 10.3 19.7"/></svg><span class="tx"><span class="l">Quantum</span><span class="v">XL-1 · S1</span></span></span><span class="hz-kchip"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#f0c419" aria-hidden="true"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg><span class="tx"><span class="l">Bestückung</span><span class="v">98%</span></span></span></span>
+  </span>
+</div>
+  <div class="hz-lane"><div class="hz-lane-head"><span class="hz-lane-title">Konfigurationen</span></div><div class="hz-tilerow"><a class="hz-tile flag" href="#" style="--tw:124px"><span class="art" style="background:radial-gradient(ellipse at 50% 50%, #7a2d3a 0%, #4a1a24 42%, #220a10 82%)"></span><span class="cap"><span class="m">Konfiguration</span><span class="n">Kampfbereit</span></span></a><a class="hz-tile" href="#" style="--tw:124px"><span class="art" style="background:radial-gradient(ellipse at 50% 50%, #2d5f7a 0%, #1a3f4f 42%, #0a1d2b 82%)"></span><span class="cap"><span class="m">Konfiguration</span><span class="n">Allzweck</span></span></a></div></div>
+  <div class="hz-lane"><div class="hz-lane-head"><span class="hz-lane-title">Flotte · 6 Schiffe</span><span class="hz-sortbar"><span class="on">Hersteller</span><span class="">Einsatzzweck</span><span class="">Zuletzt geöffnet</span></span></div><div class="hz-group">AEGS</div><div class="hz-tilerow"><a class="hz-tile flag" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 42% 52%, #2d5f7a 0%, #16394f 38%, #0a1d2b 78%)"></span><span class="badge flag">★</span><span class="cap"><span class="m">AEGS</span><span class="n">Avenger Stalker</span></span></a><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 58% 46%, #3a6b52 0%, #1b3b30 40%, #0a1d1a 80%)"></span><span class="cap"><span class="m">AEGS</span><span class="n">Gladius</span></span></a></div><div class="hz-group">DRAK</div><div class="hz-tilerow"><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 46% 56%, #7a4a2d 0%, #4a2a1a 40%, #22110a 80%)"></span><span class="badge">1× S4</span><span class="cap"><span class="m">DRAK</span><span class="n">Cutlass Black</span></span></a><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 52% 48%, #6b5a3a 0%, #3b3120 40%, #1a1610 80%)"></span><span class="cap"><span class="m">DRAK</span><span class="n">Caterpillar</span></span></a></div><div class="hz-group">RSIN</div><div class="hz-tilerow"><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 40% 50%, #4a4a7a 0%, #2a2a4f 40%, #12122b 80%)"></span><span class="badge">2× S5</span><span class="cap"><span class="m">RSIN</span><span class="n">Constellation Andromeda</span></span></a></div><div class="hz-group">ANVL</div><div class="hz-tilerow"><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 56% 44%, #2f6a72 0%, #1a3f45 40%, #0c1f22 80%)"></span><span class="cap"><span class="m">ANVL</span><span class="n">Carrack</span></span></a></div></div>
+</article></div></div><p class="hz-note"><strong>Offene Frage:</strong> ist das Schema der <em>Fallback</em> (kein Render vorhanden) oder ein <em>Umschalter</em> neben dem Bild? Fallback ist billiger und ehrlicher; Umschalter gibt dir die Aufhängungs-Positionen auf Wunsch auch dann, wenn ein Render da ist. Sag mir welches — beides ist gebaut identisch.</p></div>
+</section>
+<section id="f-s3" data-screen data-nav-label="3 · Flotte nach Einsatzzweck" hidden>
+<div class="device-frame" style="overflow:auto;padding:18px"><p class="hz-cap">Dieselbe Kachelreihe, nach <b>Einsatzzweck</b> gruppiert statt nach Hersteller. Die Sortierleiste rechts oben schaltet um.</p><div class="hz"><div class="hz-surface one"><article class="hz-zone hangar">
+  <span class="hz-eyebrow">Im Hangar</span>
+  <div class="hz-cine" style="aspect-ratio:16/9">
+  <span class="art" style="background:radial-gradient(ellipse at 42% 52%, #2d5f7a 0%, #16394f 38%, #0a1d2b 78%)"></span><span class="pin">☆</span>
+  <span class="scrim">
+    <span class="hz-mfr">AEGS · Abfangjäger</span>
+    <span class="hz-name">Aegis Avenger Stalker</span>
+    <span class="kpis"><span class="hz-kchip"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#52c1e6" aria-hidden="true"><path d="M12 2 L20 5 V11 C20 16 16.4 20 12 22 C7.6 20 4 16 4 11 V5 Z"/></svg><span class="tx"><span class="l">Schild</span><span class="v">4.488 HP</span></span></span><span class="hz-kchip warn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-hot)" aria-hidden="true"><path d="M12 2 V6 M12 18 V22 M2 12 H6 M18 12 H22 M8 12 A4 4 0 0 1 16 12 A4 4 0 0 1 8 12 M12 12 H12.01"/></svg><span class="tx"><span class="l">Unbestückt</span><span class="v">2× S3</span></span></span><span class="hz-kchip"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#a674ff" aria-hidden="true"><path d="M12 9 A3 3 0 1 1 11.99 9 M4 12 C8 8.6 16 8.6 20 12 C16 15.4 8 15.4 4 12 M10.3 4.3 C13.7 8.3 13.7 15.7 10.3 19.7"/></svg><span class="tx"><span class="l">Quantum</span><span class="v">XL-1 · S1</span></span></span><span class="hz-kchip"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#f0c419" aria-hidden="true"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg><span class="tx"><span class="l">Bestückung</span><span class="v">98%</span></span></span></span>
+  </span>
+</div>
+  <div class="hz-lane"><div class="hz-lane-head"><span class="hz-lane-title">Konfigurationen</span></div><div class="hz-tilerow"><a class="hz-tile flag" href="#" style="--tw:124px"><span class="art" style="background:radial-gradient(ellipse at 50% 50%, #7a2d3a 0%, #4a1a24 42%, #220a10 82%)"></span><span class="cap"><span class="m">Konfiguration</span><span class="n">Kampfbereit</span></span></a><a class="hz-tile" href="#" style="--tw:124px"><span class="art" style="background:radial-gradient(ellipse at 50% 50%, #2d5f7a 0%, #1a3f4f 42%, #0a1d2b 82%)"></span><span class="cap"><span class="m">Konfiguration</span><span class="n">Allzweck</span></span></a></div></div>
+  <div class="hz-lane"><div class="hz-lane-head"><span class="hz-lane-title">Flotte · 6 Schiffe</span><span class="hz-sortbar"><span class="">Hersteller</span><span class="on">Einsatzzweck</span><span class="">Zuletzt geöffnet</span></span></div><div class="hz-group">Abfangjäger · Jäger</div><div class="hz-tilerow"><a class="hz-tile flag" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 42% 52%, #2d5f7a 0%, #16394f 38%, #0a1d2b 78%)"></span><span class="badge flag">★</span><span class="cap"><span class="m">AEGS</span><span class="n">Avenger Stalker</span></span></a><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 58% 46%, #3a6b52 0%, #1b3b30 40%, #0a1d1a 80%)"></span><span class="cap"><span class="m">AEGS</span><span class="n">Gladius</span></span></a></div><div class="hz-group">Mehrzweck</div><div class="hz-tilerow"><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 46% 56%, #7a4a2d 0%, #4a2a1a 40%, #22110a 80%)"></span><span class="badge">1× S4</span><span class="cap"><span class="m">DRAK</span><span class="n">Cutlass Black</span></span></a><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 40% 50%, #4a4a7a 0%, #2a2a4f 40%, #12122b 80%)"></span><span class="badge">2× S5</span><span class="cap"><span class="m">RSIN</span><span class="n">Constellation Andromeda</span></span></a></div><div class="hz-group">Fracht · Expedition</div><div class="hz-tilerow"><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 52% 48%, #6b5a3a 0%, #3b3120 40%, #1a1610 80%)"></span><span class="cap"><span class="m">DRAK</span><span class="n">Caterpillar</span></span></a><a class="hz-tile" href="#" style="--tw:150px"><span class="art" style="background:radial-gradient(ellipse at 56% 44%, #2f6a72 0%, #1a3f45 40%, #0c1f22 80%)"></span><span class="cap"><span class="m">ANVL</span><span class="n">Carrack</span></span></a></div></div>
+</article></div></div></div>
+</section>
+<section id="f-s4" data-screen data-nav-label="4 · Leerer Hangar" hidden>
+<div class="device-frame" style="overflow:auto;padding:18px"><p class="hz-cap">Der Leerzustand behält den Rahmen: gestricheltes Schema statt Render, darunter der Weg ins Archiv.</p><div class="hz"><div class="hz-surface one"><article class="hz-zone hangar"><span class="hz-eyebrow">Im Hangar</span><div class="hz-cine" style="aspect-ratio:16/9">
+  <span class="mark">Rumpfschema</span>
+  <span class="schema"><svg viewBox="0 0 340 214" role="img" aria-label="Rumpfschema mit Aufhängungen">
+  <path class="hull" d="M170,16 L183,50 L187,94 L209,102 L214,120 L189,124 L187,150 L177,172 L163,172 L153,150 L151,124 L126,120 L131,102 L153,94 L157,50 Z"/>
+  <circle class="mount free" cx="209" cy="110" r="6"/>
+  <circle class="mount free" cx="131" cy="110" r="6"/>
+  <circle class="mount free" cx="163" cy="42" r="5"/>
+  <circle class="mount free" cx="177" cy="42" r="5"/>
+  <rect class="mount free" x="161" y="88" width="18" height="16" rx="2"/>
+  <rect class="mount free" x="161" y="130" width="18" height="14" rx="2"/>
+  <rect class="mount free" x="192" y="128" width="11" height="10" rx="1.5"/>
+  <rect class="mount free" x="137" y="128" width="11" height="10" rx="1.5"/>
+  <line class="lead" x1="209" y1="110" x2="268" y2="62"/>
+  <line class="lead" x1="131" y1="110" x2="66" y2="62"/>
+  <line class="lead" x1="170" y1="42" x2="66" y2="26"/>
+  <line class="lead" x1="179" y1="96" x2="268" y2="120"/>
+  <line class="lead" x1="170" y1="137" x2="66" y2="140"/>
+  <line class="lead" x1="197" y1="133" x2="268" y2="182"/>
+  <text  x="4" y="22">BUGWAFFEN</text><text  x="4" y="32">2× S3 frei</text>
+  <text  x="4" y="58">FLÜGEL BB</text><text x="4" y="68">2× S4 bestückt</text>
+  <text  x="4" y="136">QUANTUM</text><text x="4" y="146">XL-1 · S1 · Grad A</text>
+  <text  x="272" y="58">FLÜGEL SB</text><text x="272" y="68">2× S4 bestückt</text>
+  <text  x="272" y="116">SCHILD</text><text x="272" y="126">4.488 HP</text>
+  <text  x="272" y="178">RAKETEN</text><text x="272" y="188">4× S2</text>
+</svg></span>
+  <span class="scrim"><span class="hz-name" style="font-size:1.05rem">Noch kein Schiff beansprucht</span>
+  <span class="hz-mfr" style="color:var(--text-tertiary)">Der Rahmen bleibt stehen — leer, nicht weg.</span></span>
+</div>
+<div class="hz-lane"><div class="hz-lane-head"><span class="hz-lane-title">Erstes Schiff beanspruchen</span></div>
+<div class="hz-tilerow"><a class="hz-tile" href="#" style="--tw:150px"><span style="font-family:var(--font-mono);font-size:.55rem;color:var(--text-tertiary)">kein Render</span><span class="cap"><span class="m">CODEX</span><span class="n">353 Schiffe im Archiv</span></span></a></div></div></article></div></div></div>
+</section>
+</section>
+<section data-design="band2" data-nav-label="Ⓖ Domänenband ohne Balken" data-design-active="false" hidden>
+<section id="g-s1" data-screen data-nav-label="1 · Zeilen, nach Zahl absteigend" hidden>
+<div class="device-frame" style="overflow:auto;padding:18px"><p class="hz-cap">Ⓓ2 ohne Balken — Icon, Name, Zahl. <b>Nach Bestand absteigend</b>, damit die Reihenfolge selbst die Größenordnung trägt.</p><div class="hz"><div class="hz-band-head"><span class="eb">Im Versum</span></div><div class="hz-dom-rows"><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#c8a84b" aria-hidden="true"><path d="M4 7 L12 3 L20 7 L20 17 L12 21 L4 17 Z M4 7 L12 11 L20 7 M12 11 V21"/></svg><span class="l">Items</span><span class="c">20.015</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-primary)" aria-hidden="true"><path d="M9 2 V5 M15 2 V5 M9 19 V22 M15 19 V22 M2 9 H5 M2 15 H5 M19 9 H22 M19 15 H22 M5 5 H19 V19 H5 Z M9 9 H15 V15 H9 Z"/></svg><span class="l">Komponenten</span><span class="c">2.172</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#8a92a0" aria-hidden="true"><path d="M5 4 C5 3.4 5.4 3 6 3 H18 C18.6 3 19 3.4 19 4 V20 C19 20.6 18.6 21 18 21 H6 C5.4 21 5 20.6 5 20 Z M9 3 V21 M12 8 H16 M12 12 H16"/></svg><span class="l">Baupläne</span><span class="c">1.595</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-hot)" aria-hidden="true"><path d="M12 2 V6 M12 18 V22 M2 12 H6 M18 12 H22 M8 12 A4 4 0 0 1 16 12 A4 4 0 0 1 8 12 M12 12 H12.01"/></svg><span class="l">Waffen</span><span class="c">1.312</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-secondary)" aria-hidden="true"><path d="M3 21 V10 L9 13 V10 L15 13 V7 L21 10 V21 Z M3 21 H21 M7 17 H8 M11 17 H12 M15 17 H16"/></svg><span class="l">Hersteller</span><span class="c">1.148</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-primary)" aria-hidden="true"><path d="M12 2 C13.6 4.3 14.5 7.4 14.5 11 L14.5 15 L18 19 L14.5 18 L13 22 L11 22 L9.5 18 L6 19 L9.5 15 L9.5 11 C9.5 7.4 10.4 4.3 12 2 Z"/></svg><span class="l">Schiffe</span><span class="c">353</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#ff8282" aria-hidden="true"><path d="M9 2 H15 V5 L17 8 V20 A2 2 0 0 1 15 22 H9 A2 2 0 0 1 7 20 V8 L9 5 Z M7 11 H17"/></svg><span class="l">Munition</span><span class="c">238</span></a></div></div><div class="hz-pro"><div class="plus"><h5>Dafür</h5><ul><li>Die Sortierung sagt, was der Balken sagen sollte — ohne eine Wertung zu suggerieren.</li><li>Monospace-Zahlen mit tabular-nums stehen bündig; Größenordnungen sind ablesbar.</li><li>Zeilen brechen auf schmalen Fenstern nicht um.</li></ul></div><div class="minus"><h5>Dagegen</h5><ul><li>Die Reihenfolge wackelt zwischen Builds, wenn zwei Domänen nahe beieinander liegen.</li><li>Schiffe — fachlich die wichtigste Domäne — rutschen auf Platz 6.</li></ul></div></div></div>
+</section>
+<section id="g-s2" data-screen data-nav-label="2 · Zeilen, in fachlicher Reihenfolge" hidden>
+<div class="device-frame" style="overflow:auto;padding:18px"><p class="hz-cap">Dieselben Zeilen in der <b>heutigen fachlichen Reihenfolge</b> (Schiffe zuerst). Stabil über Builds hinweg, dafür trägt nur die Zahl selbst die Größenordnung.</p><div class="hz"><div class="hz-band-head"><span class="eb">Im Versum</span></div><div class="hz-dom-rows"><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-primary)" aria-hidden="true"><path d="M12 2 C13.6 4.3 14.5 7.4 14.5 11 L14.5 15 L18 19 L14.5 18 L13 22 L11 22 L9.5 18 L6 19 L9.5 15 L9.5 11 C9.5 7.4 10.4 4.3 12 2 Z"/></svg><span class="l">Schiffe</span><span class="c">353</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#c8a84b" aria-hidden="true"><path d="M4 7 L12 3 L20 7 L20 17 L12 21 L4 17 Z M4 7 L12 11 L20 7 M12 11 V21"/></svg><span class="l">Items</span><span class="c">20.015</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-primary)" aria-hidden="true"><path d="M9 2 V5 M15 2 V5 M9 19 V22 M15 19 V22 M2 9 H5 M2 15 H5 M19 9 H22 M19 15 H22 M5 5 H19 V19 H5 Z M9 9 H15 V15 H9 Z"/></svg><span class="l">Komponenten</span><span class="c">2.172</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-hot)" aria-hidden="true"><path d="M12 2 V6 M12 18 V22 M2 12 H6 M18 12 H22 M8 12 A4 4 0 0 1 16 12 A4 4 0 0 1 8 12 M12 12 H12.01"/></svg><span class="l">Waffen</span><span class="c">1.312</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#8a92a0" aria-hidden="true"><path d="M5 4 C5 3.4 5.4 3 6 3 H18 C18.6 3 19 3.4 19 4 V20 C19 20.6 18.6 21 18 21 H6 C5.4 21 5 20.6 5 20 Z M9 3 V21 M12 8 H16 M12 12 H16"/></svg><span class="l">Baupläne</span><span class="c">1.595</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-secondary)" aria-hidden="true"><path d="M3 21 V10 L9 13 V10 L15 13 V7 L21 10 V21 Z M3 21 H21 M7 17 H8 M11 17 H12 M15 17 H16"/></svg><span class="l">Hersteller</span><span class="c">1.148</span></a><a class="hz-dr" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#ff8282" aria-hidden="true"><path d="M9 2 H15 V5 L17 8 V20 A2 2 0 0 1 15 22 H9 A2 2 0 0 1 7 20 V8 L9 5 Z M7 11 H17"/></svg><span class="l">Munition</span><span class="c">238</span></a></div></div><p class="hz-note">Beide Screens sind dieselbe Komponente — der Unterschied ist eine Zeile Sortierung. Sag mir, welche Reihenfolge du willst.</p></div>
+</section>
+</section>
+      </section>
     </main>
   </div>
 
   <div class="screen-indicator" id="screen-indicator">
     <span id="indicator-iteration" hidden>Iteration <strong id="active-iteration-idx">1</strong> · </span>
-    <span id="indicator-design" hidden><strong id="active-design-label">Rumpfschema</strong> · </span>
-    Seite <strong id="active-screen-idx">1</strong> / <span id="total-screens">11</span>
-    · <span id="active-screen-label">Ganze Fläche · An Bord + Im Hangar</span>
+    <span id="indicator-design" hidden><strong id="active-design-label">Bild-Hero + Flotte</strong> · </span>
+    Seite <strong id="active-screen-idx">1</strong> / <span id="total-screens">6</span>
+    · <span id="active-screen-label">Bild-Hero, KPIs im Bild</span>
   </div>
 
   <nav class="design-switcher" id="design-switcher" aria-label="Design wechseln">
@@ -1983,7 +2164,8 @@ body[data-single-design="true"] .screen-nav-group .screen-nav-item { margin-left
   <aside class="concept-decision-panel overlay" id="decision-panel">
     <button id="panel-close" class="panel-close-btn" aria-label="Schliessen">✕</button>
     <nav class="iteration-tabs" role="tablist" aria-label="Iterationen">
-      <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="true" aria-controls="iter-1">Iteration 1</button>
+      <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Iteration 1</button>
+      <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="true" aria-controls="iter-2">Iteration 2</button>
     </nav>
     <nav class="screen-nav" id="screen-nav" aria-label="Screens">
       <!-- auto-populated -->
@@ -2181,8 +2363,8 @@ body[data-single-design="true"] .screen-nav-group .screen-nav-item { margin-left
      title="Schimmer entfernen" hidden></div>
 
 <script type="application/json" id="concept-decisions">
-{"submitted": false, "decisions": [], "comments": []}
-</script>
+    {"submitted": false, "decisions": [], "comments": []}
+  </script>
 <script>
 /* ============================================================
    State persistence (localStorage + TTL)
