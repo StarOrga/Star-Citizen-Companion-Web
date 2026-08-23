@@ -2470,6 +2470,18 @@
     "next": "Nächstes Bild",
     "counter": "{{i}} von {{n}}"
   },
+  "appMenu": {
+    "trigger": "{{app}} herunterladen",
+    "versions": "Versionen",
+    "recommended": "Empfohlen",
+    "conn": {
+      "connected": "Desktop-App verbunden",
+      "expired": "Verbindung abgelaufen — seit über 30 Tagen kein Kontakt",
+      "never": "Desktop-App noch nicht verbunden",
+      "since": "· zuletzt vor {{days}} Tagen",
+      "today": "· zuletzt heute"
+    }
+  },
   "appPanel": {
     "version": "Aktuell veröffentlichte Version",
     "details": "Details, Hinweise und Release-Notes anzeigen"

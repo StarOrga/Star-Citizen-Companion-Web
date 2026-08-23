@@ -31,6 +31,7 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout, HangarShipConfig } from '../hangar/hangar.types';
 import { AuthService } from '../auth/auth.service';
+import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component';
 import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
 
@@ -73,11 +74,12 @@ interface PaperdollSlotView {
     CodexCompareTrayComponent,
     CodexCategoryIconComponent,
     FallbackImageComponent,
+    AppDownloadMenuComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="landing">
-      <!-- ── TOP: Archive Terminal + status pill + patch disclosure ─────────── -->
+      <!-- ── TOP: Archive Terminal + patch + status pill + app menu ─────────── -->
       <header class="terminal">
         <div class="terminal-bar">
           <svg class="icon terminal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -107,16 +109,6 @@ interface PaperdollSlotView {
           }
         </div>
 
-        <div class="status-pill" [class.stale]="svc.stale()">
-          <span class="live-dot" aria-hidden="true"></span>
-          <span class="status-online">{{ 'codex.landing.status.online' | translate }}</span>
-          @if (svc.stale()) {
-            <a class="status-stale" routerLink="/uploader">{{
-              'codex.landing.status.stale' | translate
-            }}</a>
-          }
-        </div>
-
         <!-- Patch badge: resting shows just the patch label. build_number is
              literally the string "desktop" (a placeholder) — never shown as a
              real build number, only inside the expanded panel as provenance. -->
@@ -137,6 +129,22 @@ interface PaperdollSlotView {
             </div>
           </details>
         }
+
+        <div class="status-pill" [class.stale]="svc.stale()">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span class="status-online">{{ 'codex.landing.status.online' | translate }}</span>
+          @if (svc.stale()) {
+            <a class="status-stale" routerLink="/uploader">{{
+              'codex.landing.status.stale' | translate
+            }}</a>
+          }
+        </div>
+
+        <!-- Far right of the terminal row: the Data-Uploader download control
+             (admin feedback 924bf1d8). Collaborator+ only, so a viewer sees
+             nothing here and the Verse-online pill ends the row. Same component
+             as the Starscape one in /starscape, on purpose. -->
+        <sc-app-download-menu class="terminal-menu" [product]="'uploader'" />
       </header>
 
       @if (error(); as err) {

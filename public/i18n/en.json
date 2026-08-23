@@ -2470,6 +2470,18 @@
     "next": "Next image",
     "counter": "{{i}} of {{n}}"
   },
+  "appMenu": {
+    "trigger": "Download {{app}}",
+    "versions": "Versions",
+    "recommended": "Recommended",
+    "conn": {
+      "connected": "Desktop app connected",
+      "expired": "Connection expired — no contact for over 30 days",
+      "never": "Desktop app not connected yet",
+      "since": "· last seen {{days}} days ago",
+      "today": "· last seen today"
+    }
+  },
   "appPanel": {
     "version": "Currently published version",
     "details": "Show details, notes and release notes"

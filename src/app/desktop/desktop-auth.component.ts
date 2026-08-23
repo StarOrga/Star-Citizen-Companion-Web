@@ -5,6 +5,7 @@ import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { DesktopConnectionService } from './desktop-connection.service';
 import { isLoopbackCallback } from './loopback.util';
 
 type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'unauthorized' | 'error';
@@ -95,6 +96,7 @@ export class DesktopAuthComponent implements OnInit {
   private readonly roles = inject(RoleService);
   private readonly route = inject(ActivatedRoute);
   private readonly sb = inject(SupabaseClientProvider);
+  private readonly conn = inject(DesktopConnectionService);
   private readonly translate = inject(TranslateService);
   private readonly imp = inject(ImpersonationService);
 
@@ -182,6 +184,12 @@ export class DesktopAuthComponent implements OnInit {
 
     this.status.set('redirecting');
     const email = this.auth.user()?.email ?? '';
+
+    // Record the check-in BEFORE the form navigates away — this handoff is the
+    // moment the Data Uploader becomes connected to this account, and it is the
+    // only such event the website can observe itself. Never throws; a failed
+    // bookkeeping write must not cost the user the handoff (924bf1d8).
+    await this.conn.touch('uploader');
 
     // Hand the JWT to the loopback via a TOP-LEVEL form-POST navigation —
     // NOT a background fetch(). Chrome's Private/Local Network Access blocks
