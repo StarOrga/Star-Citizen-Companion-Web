@@ -142,8 +142,10 @@
       "resumeBannerRich": "Unterbrochener Upload · {{macro}}: {{stages}} — fortsetzen?",
       "stagePending": "offen",
       "stageSkinsDone": "{{count}} Schiffe fertig",
-      "pauseShort": "pausiert"
-    }
+      "pauseShort": "pausiert",
+      "pausingShort": "Pausiere…"
+    },
+    "technicalDetails": "Technische Details"
   },
   "update": {
     "available": "Update verfügbar: v{{version}} — wird im Hintergrund geladen…",
@@ -199,7 +201,19 @@
     "published": "Codex aktualisiert",
     "ships": "Schiffe",
     "failed": "Codex-Veröffentlichung fehlgeschlagen",
-    "step": "Schritt {{current}} / {{total}} wird veröffentlicht"
+    "step": "Schritt {{current}} / {{total}} wird veröffentlicht",
+    "err": {
+      "timeout": "Die Datenbank hat einen Schreibvorgang abgebrochen (Zeitlimit) — der Codex ist unverändert geblieben.",
+      "network": "Der Server war nicht erreichbar — der Codex ist unverändert geblieben.",
+      "unauthorized": "Deine Sitzung ist abgelaufen — der Codex wurde nicht aktualisiert.",
+      "forbidden": "Deinem Konto fehlt die Berechtigung, den Codex zu aktualisieren.",
+      "server": "Der Server konnte den Codex nicht aktualisieren.",
+      "empty": "Die Extraktion enthält keine Schiffe oder Hersteller — der bisherige Codex bleibt aktiv.",
+      "missingData": "Die extrahierten Daten sind nicht mehr vorhanden.",
+      "resumeHint": "Nichts ist verloren — der Fortschritt ist gespeichert. „Upload fortsetzen“ macht genau an dieser Stelle weiter.",
+      "reextractHint": "Bitte die Extraktion erneut ausführen.",
+      "atPhase": "Abgebrochen bei: {{phase}}"
+    }
   },
   "skins": {
     "tools": "Build-Tools werden sichergestellt…",

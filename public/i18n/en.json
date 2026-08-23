@@ -1,4 +1,9 @@
 {
+  "common": {
+    "select": {
+      "none": "No selection"
+    }
+  },
   "update": {
     "available": "A new version is available",
     "reload": "Reload",
@@ -180,7 +185,6 @@
       "versum": {
         "eyebrow": "In the Verse",
         "title": "Domains",
-        "showroom": "Showroom",
         "keybinds": "Keybindings",
         "domain": {
           "ship": "Ships",
@@ -192,7 +196,7 @@
           "ammunition": "Ammunition"
         },
         "upcomingRail": {
-          "title": "What's new",
+          "title": "On the Drawing Board",
           "badgeAria": "{{count}} new ships since your last visit"
         }
       }
@@ -655,23 +659,6 @@
       "nose": "Nose",
       "readoutIdle": "No hardpoint selected"
     },
-    "showroom": {
-      "title": "Showroom",
-      "subtitle": "Inspect real ship liveries in interactive 3D — datamined hull and textures from the current build.",
-      "count": "{{liveries}} liveries in 3D across {{ships}} ship(s)",
-      "spotlight": "Now in the Showroom",
-      "gallery": "All liveries",
-      "liveryCount": "{{count}} liveries",
-      "billboard": {
-        "eyebrow": "New",
-        "title": "Rotate real ship liveries in 3D — {{count}} ready",
-        "cta": "Enter the Showroom"
-      },
-      "empty": {
-        "title": "No 3D liveries yet",
-        "body": "3D liveries are extracted per game build and appear here as they land."
-      }
-    },
     "skins": {
       "title": "Liveries",
       "source": "From Data.p4k · real hull + real textures",
@@ -1044,8 +1031,7 @@
       "comm-link": "Comm-Link",
       "spectrum": "Spectrum",
       "youtube": "YouTube",
-      "patch": "Patch notes",
-      "favorites": "Favorites"
+      "patch": "Patch notes"
     },
     "filter": {
       "label": "Filter",
@@ -1053,9 +1039,8 @@
       "groupAria": "Channel filter"
     },
     "favorite": {
-      "toggle": "Save",
-      "save": "★ Save",
-      "saved": "★ Saved"
+      "save": "Save",
+      "saved": "Saved"
     },
     "share": {
       "label": "Share",
@@ -1160,7 +1145,7 @@
         "inWeeks": "in ~{{n}} weeks",
         "overdueDays": "overdue by {{n}}d",
         "overdueWeeks": "overdue by {{n}}w",
-        "basis": "Median {{median}}d · n={{n}} · from {{version}}"
+        "basis": "Median {{median}}d · from {{version}}"
       },
       "board": {
         "title": "Patch history",
@@ -1172,7 +1157,7 @@
       }
     },
     "detail": {
-      "close": "Close"
+      "back": "Back"
     },
     "via": "via {{source}}",
     "openExternal": "Opens {{host}}",
@@ -1200,8 +1185,9 @@
     },
     "stream": {
       "title": "Stream",
-      "count": "{{count}} posts",
-      "more": "Show {{count}} more"
+      "more": "Show {{count}} more",
+      "all": "Posts",
+      "filterAria": "Filter the stream"
     },
     "verdict": {
       "label": "Build status",
@@ -1209,8 +1195,8 @@
       "due": "{{line}} is live · next main patch in {{days}} days",
       "today": "{{line}} is live · next main patch due today",
       "overdue": "{{line}} is live · next main patch {{days}} days overdue",
-      "basis": "Median {{median}} d · n = {{n}}",
-      "basisWithTest": "Median {{median}} d · n = {{n}} · {{test}} in testing",
+      "basis": "Median {{median}} d",
+      "basisWithTest": "Median {{median}} d · {{test}} in testing",
       "toBoard": "Patch history"
     }
   },

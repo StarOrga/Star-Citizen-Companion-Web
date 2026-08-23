@@ -237,6 +237,23 @@ describe('KeybindsComponent', () => {
     expect(fixture.nativeElement.querySelector('.assign-bar')).not.toBeNull();
   });
 
+  it('builds the hierarchy pickers as themed listboxes, not native selects', async () => {
+    const fixture = await setup({ binds: SAMPLE, labels: LABELS, admin: true });
+    fixture.componentInstance.toggleAssignMode();
+    fixture.detectChanges();
+
+    // A native <select> draws its open state through the OS, which is what
+    // round 2 of fd58a5eb rejected — there must not be one left in the bar.
+    expect(fixture.nativeElement.querySelectorAll('.assign-bar select').length).toBe(0);
+    expect(fixture.nativeElement.querySelectorAll('.pickers sc-select').length).toBe(5);
+    const combos = fixture.nativeElement.querySelectorAll(
+      '.pickers [role="combobox"]',
+    ) as NodeListOf<HTMLButtonElement>;
+    expect(combos.length).toBe(5);
+    // L2/L3 stay disabled until their parent narrows them.
+    expect(combos[1].disabled).toBeTrue();
+  });
+
   it('cascades the pickers and forgets a child its new parent forbids', async () => {
     const cmp = (await setup({ binds: SAMPLE, labels: LABELS, admin: true })).componentInstance;
     cmp.setLayer('scope', 'verse');

@@ -62,6 +62,19 @@
   /* Minimum hit area. 0 on a fine pointer, so mouse-precision layouts keep
      their compact controls. */
   --sc-tap-min: 0px;
+
+  /* Optical head room, on top of `.content`'s 26px padding.
+     Nearly every top-level page opens on an <h1>, and a heading's glyphs do NOT
+     start at the top of its box: the line box adds half-leading and the font
+     adds the gap between its ascender and the cap line — together ~10px at the
+     h1 size used here. A page that instead opens on a hard edge (a card border,
+     a full-bleed hero) lands exactly on the padding line and therefore reads as
+     sitting tighter under the nav bar than its neighbours, which is what Verse
+     News did against Starscape. Such a page adds this offset so both start on
+     the same optical line. A page that opens on a heading must NOT use it.
+     Measured, not guessed: on /starscape the h1 cap line sits 37.0px below the
+     content box; the Verse News stage border sits at 26px + this. */
+  --sc-page-lead: 11px;
 }
 
 @media (pointer: coarse) {
@@ -99,56 +112,87 @@
     min-height: var(--sc-tap-min);
   }
 
-  /* Native checkboxes/radios cannot carry a hit area larger than their own box,
-     so the element becomes the invisible 48px target and the visible 22px
-     control is drawn in ::before, with its mark in ::after. Both pseudo-elements
-     share one grid cell so the mark sits centred on the control.
-     (Painting the control via the element's own background would tie its shape
-     to the 48px border box — a radio would then render square, because
-     `border-radius` clips at the border box while `background-clip: content-box`
-     paints the inner 22px.) */
-  input[type='checkbox'],
-  input[type='radio'] {
-    appearance: none;
-    -webkit-appearance: none;
-    inline-size: var(--sc-tap-min);
-    block-size: var(--sc-tap-min);
-    margin: 0;
-    padding: 0;
-    border: none;
-    background: none;
-    display: grid;
-    place-content: center;
-  }
+}
+
+/* Native checkboxes/radios cannot carry a hit area larger than their own box,
+   so the element becomes the invisible target (48px on a coarse pointer, the
+   bare control size on a fine one) and the visible 22px control is drawn in
+   ::before, with its mark in ::after. Both pseudo-elements share one grid cell
+   so the mark sits centred on the control.
+   (Painting the control via the element's own background would tie its shape
+   to the border box — a radio would then render square on touch, because
+   `border-radius` clips at the border box while `background-clip: content-box`
+   paints the inner 22px.)
+
+   This used to live inside the `(pointer: coarse)` block, so a mouse user got
+   the raw platform control — a light, square, OS-drawn box that reads as
+   foreign on a dark panel next to the app's own rounded, accent-tinted
+   affordances. `accent-color` alone never fixed that: it recolours the tick,
+   not the box, its border, or its unchecked state. Admin feedback fd58a5eb
+   ("die Checkboxen … wirklich hässlich und not in theme") is about the desktop
+   look, so the painting is global now and the media query only decides how big
+   the hit area around it gets. */
+input[type='checkbox'],
+input[type='radio'] {
+  appearance: none;
+  -webkit-appearance: none;
+  inline-size: max(22px, var(--sc-tap-min));
+  block-size: max(22px, var(--sc-tap-min));
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  flex: none;
+}
+input[type='checkbox']::before,
+input[type='radio']::before,
+input[type='checkbox']::after,
+input[type='radio']::after {
+  content: '';
+  grid-area: 1 / 1;
+  place-self: center;
+}
+input[type='checkbox']::before,
+input[type='radio']::before {
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 4px;
+  background: var(--sc-bg-1);
+  box-shadow: inset 0 0 0 1px var(--sc-border);
+  transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+input[type='radio']::before { border-radius: 50%; }
+input[type='checkbox']:hover:not(:disabled)::before,
+input[type='radio']:hover:not(:disabled)::before {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 60%, var(--sc-border));
+}
+input[type='checkbox']:checked::before,
+input[type='radio']:checked::before {
+  background: color-mix(in srgb, var(--sc-accent) 16%, var(--sc-bg-1));
+  box-shadow: inset 0 0 0 1px var(--sc-accent);
+}
+input[type='checkbox']:disabled,
+input[type='radio']:disabled { cursor: not-allowed; opacity: 0.45; }
+input[type='checkbox']::after,
+input[type='radio']::after {
+  inline-size: 12px;
+  block-size: 12px;
+  transform: scale(0);
+  transition: transform 0.12s ease;
+  background: var(--sc-accent);
+  clip-path: polygon(14% 44%, 0 60%, 40% 100%, 100% 18%, 84% 0, 38% 68%);
+}
+input[type='radio']::after { clip-path: none; border-radius: 50%; }
+input[type='checkbox']:checked::after,
+input[type='radio']:checked::after { transform: scale(1); }
+@media (prefers-reduced-motion: reduce) {
   input[type='checkbox']::before,
   input[type='radio']::before,
   input[type='checkbox']::after,
-  input[type='radio']::after {
-    content: '';
-    grid-area: 1 / 1;
-    place-self: center;
-  }
-  input[type='checkbox']::before,
-  input[type='radio']::before {
-    inline-size: 22px;
-    block-size: 22px;
-    border-radius: 4px;
-    background: var(--sc-bg-1);
-    box-shadow: inset 0 0 0 1px var(--sc-border);
-  }
-  input[type='radio']::before { border-radius: 50%; }
-  input[type='checkbox']::after,
-  input[type='radio']::after {
-    inline-size: 12px;
-    block-size: 12px;
-    transform: scale(0);
-    transition: transform 0.12s ease;
-    background: var(--sc-accent);
-    clip-path: polygon(14% 44%, 0 60%, 40% 100%, 100% 18%, 84% 0, 38% 68%);
-  }
-  input[type='radio']::after { clip-path: none; border-radius: 50%; }
-  input[type='checkbox']:checked::after,
-  input[type='radio']:checked::after { transform: scale(1); }
+  input[type='radio']::after { transition: none; }
 }
 
 * {
@@ -236,14 +280,10 @@ button {
   }
 }
 
-/* Native form controls — theme every native checkbox/radio to the accent
-   colour so they adopt the StarOrga language instead of the OS default look
-   (previously each control fell back to the platform blue). */
-input[type='checkbox'],
-input[type='radio'] {
-  accent-color: var(--sc-accent);
-  cursor: pointer;
-}
+/* `accent-color` used to sit here as the whole of the checkbox/radio theming.
+   It is gone on purpose: the controls are now painted by the app itself (see
+   the `appearance: none` block above), where `accent-color` has no effect at
+   all — keeping it would only suggest the platform control is still in play. */
 
 /* Scrollbars — align the browser scroll chrome with the dark surface. WebKit/
    Blink via ::-webkit-scrollbar, Firefox via scrollbar-* on the element. The

@@ -486,16 +486,20 @@ interface PaperdollSlotView {
           }
         </div>
 
-        <!-- "Kommende Schiffe" folded into the Schiffe domain (feedback,
-             2026-08-16) — a Netflix-style horizontal rail right under the
-             domain tiles, not a separate domain entry of its own anymore.
+        <!-- "Auf dem Reissbrett" — announced-but-unbuilt ships, folded into
+             the Schiffe domain (feedback, 2026-08-16) as a horizontal rail
+             right under the domain tiles rather than a domain entry of its
+             own. NOT a "what's new" feed: these are RSI ship-matrix entries
+             the rsi-upcoming-ships diff found NO game-data match for, i.e.
+             concept hulls that are meant to be built some day, newest
+             announcement first (feedback, 2026-08-23 — the old "Was ist neu"
+             title claimed a recency that the list does not carry).
              Renders nothing while the feed is loading/empty (honest empty
              state, no skeleton promising a rail that never fills). Every tile
-             is a real RSI anchor: these ships are, by construction, the ones
-             the rsi-upcoming-ships diff found NO game-data match for, so an
-             internal /codex/ship/:className route never applies with the
-             current feed shape (no classNameSlug is returned for them) —
-             external is not a fallback here, it is the only correct target. -->
+             is a real RSI anchor: with the current feed shape no classNameSlug
+             is returned for these ships, so an internal /codex/ship/:className
+             route never applies — external is not a fallback here, it is the
+             only correct target. -->
         @if (upcomingRailShips().length > 0) {
           <div class="upcoming-rail">
             <header class="upcoming-rail__head">
@@ -512,27 +516,30 @@ interface PaperdollSlotView {
                 <a
                   class="upcoming-tile"
                   role="listitem"
+                  [class.icon-only]="upcomingThumbs(ship).length === 0"
                   [href]="ship.rsiUrl || upcomingFallbackUrl"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <span class="upcoming-tile__thumb" [class.icon-only]="upcomingThumbs(ship).length === 0">
-                    <sc-fallback-image [candidates]="upcomingThumbs(ship)" [alt]="ship.name">
-                      <sc-codex-icon kind="ship" />
-                    </sc-fallback-image>
+                  <sc-fallback-image [candidates]="upcomingThumbs(ship)" [alt]="ship.name">
+                    <sc-codex-icon kind="ship" />
+                  </sc-fallback-image>
+                  <span class="upcoming-tile__caption">
+                    @if (ship.manufacturerCode) {
+                      <span class="upcoming-tile__mfr">{{ ship.manufacturerCode }}</span>
+                    }
+                    <span class="upcoming-tile__name">{{ ship.name }}</span>
                   </span>
-                  <span class="upcoming-tile__name">{{ ship.name }}</span>
-                  @if (ship.manufacturerCode) {
-                    <span class="upcoming-tile__mfr">{{ ship.manufacturerCode }}</span>
-                  }
                 </a>
               }
             </div>
           </div>
         }
 
+        <!-- The Showroom entry is gone (feedback, 2026-08-23): a livery-first
+             ship gallery is not a destination of its own — skins and the 3D
+             model already live ON the ship, reachable via the hangar. -->
         <nav class="versum-rail">
-          <a routerLink="/codex/showroom">{{ 'codex.landing.versum.showroom' | translate }}</a>
           <a
             class="rail-icon"
             routerLink="/codex/keybinds"
@@ -1053,10 +1060,14 @@ interface PaperdollSlotView {
       .domain-label { font-size: 0.74rem; color: var(--sc-fg-2); }
       .domain-count { font-size: 1.15rem; font-weight: 700; color: var(--sc-fg-0); }
 
-      /* ── "Was ist neu" — Netflix-style upcoming-ships rail, folded into the
-           Schiffe domain (2026-08-16, replaces the standalone "Kommende
+      /* ── "Auf dem Reissbrett" — cinematic upcoming-ships rail, folded into
+           the Schiffe domain (2026-08-16, replaces the standalone "Kommende
            Schiffe" tile). Own overflow-x container so the PAGE never scrolls
-           sideways — the mobile gate fails on horizontal page overflow. ── */
+           sideways — the mobile gate fails on horizontal page overflow.
+           2026-08-23: the tile is now the artwork itself — a 16:9 bleed crop
+           with the name/manufacturer riding a bottom scrim, the same
+           art-first treatment the ship pages use — instead of a boxed thumb
+           with a caption stacked under it. ── */
       .upcoming-rail { display: flex; flex-direction: column; gap: 8px; }
       .upcoming-rail__head { display: flex; align-items: center; gap: 8px; }
       .upcoming-rail__title { margin: 0; font-size: 0.92rem; }
@@ -1079,38 +1090,69 @@ interface PaperdollSlotView {
         margin: 0 -2px;
       }
       .upcoming-tile {
-        flex: 0 0 132px;
+        position: relative;
+        flex: 0 0 208px;
+        aspect-ratio: 16 / 9;
         display: flex;
-        flex-direction: column;
-        gap: 4px;
-        padding: 8px;
-        border-radius: 3px;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 4px;
         border: 1px solid var(--sc-border);
-        background: var(--sc-bg-1);
+        background: radial-gradient(circle at 50% 42%, var(--sc-bg-2), var(--sc-bg-0));
         color: inherit;
         text-decoration: none;
         scroll-snap-align: start;
         min-height: var(--sc-tap-min, 44px);
         transition: border-color 0.16s ease, box-shadow 0.16s ease;
+        /* Bleed crop: the art IS the tile. See fallback-image.component.ts —
+           these custom properties cross the component boundary, a plain
+           .upcoming-tile img rule could not reach the projected <img>. */
+        --sc-img-w: 100%;
+        --sc-img-h: 100%;
+        --sc-img-max-h: 100%;
+        --sc-img-fit: cover;
+        --sc-img-shadow: none;
       }
       .upcoming-tile:hover, .upcoming-tile:focus-visible {
         outline: none;
         border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
         box-shadow: var(--shadow-glow);
       }
-      .upcoming-tile__thumb {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 72px;
-        border-radius: 3px;
-        background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0));
-        overflow: hidden;
-        --sc-img-max-h: 68px;
+      /* Art-less hull: lift the placeholder glyph clear of the caption scrim
+         so it reads centred in the visible area, not half-swallowed by it. */
+      .upcoming-tile.icon-only sc-codex-icon {
+        width: 32%; height: 32%; opacity: 0.55; color: var(--sc-accent); transform: translateY(-14%);
       }
-      .upcoming-tile__thumb.icon-only sc-codex-icon { width: 50%; height: 50%; opacity: 0.6; color: var(--sc-accent); }
-      .upcoming-tile__name { font-size: 0.76rem; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-      .upcoming-tile__mfr { font-size: 0.64rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sc-fg-2); }
+      .upcoming-tile__caption {
+        position: absolute;
+        inset: auto 0 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        padding: 16px 10px 8px;
+        /* Scrim, not a bar: the art keeps breathing above the type while the
+           name stays AA-legible over a bright render. */
+        background: linear-gradient(to top, rgba(2, 8, 14, 0.92) 0%, rgba(2, 8, 14, 0.72) 46%, transparent 100%);
+      }
+      .upcoming-tile__name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        line-height: 1.15;
+        color: #f2f7fb;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      .upcoming-tile__mfr {
+        font-family: var(--sc-font-display);
+        font-size: max(0.62rem, var(--sc-fs-floor));
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
+      }
 
       .versum-rail { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
       .versum-rail a:not(.rail-icon) { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; }

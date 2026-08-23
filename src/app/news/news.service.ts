@@ -92,16 +92,10 @@ export class NewsService {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
-  // Saved ("Merken") article ids, persisted in localStorage.
+  // Saved ("Gemerkt") article ids, persisted in localStorage.
   readonly favoriteIds = signal<Set<string>>(this.loadFavoritesFromStorage());
   // When true, the stream shows only saved items (overrides channel filters).
   readonly favoritesOnly = signal(false);
-  // How many saved items are present in the current feed (drives the chip count).
-  readonly favoriteCount = computed(() => {
-    const f = this.feed();
-    const favs = this.favoriteIds();
-    return f ? f.news.filter((n) => favs.has(n.id)).length : 0;
-  });
 
   /**
    * Patch notes grouped by main patch line, newest line first (44e90e30).
@@ -127,12 +121,30 @@ export class NewsService {
   );
 
   /**
+   * The flat, reverse-chronological stream BEFORE the saved-only filter. Both
+   * halves of the stream toggle count against this same base, so "Gemerkt 3"
+   * can never open a list holding two items (the staged article and the patch
+   * notes are not part of the stream, and were double-counted before).
+   */
+  private readonly streamAll = computed<VerseNewsItem[]>(
+    () => buildStream(this.feed()?.news ?? [], this.stage()),
+  );
+
+  /** Everything in the stream — the left half of the toggle. */
+  readonly streamCount = computed(() => this.streamAll().length);
+
+  /** The saved slice of the stream — the right half of the toggle. */
+  readonly favoriteCount = computed(() => {
+    const favs = this.favoriteIds();
+    return this.streamAll().filter((n) => favs.has(n.id)).length;
+  });
+
+  /**
    * The flat, reverse-chronological stream — everything editorial except the
    * item already on the stage. Honours the "saved only" toggle.
    */
   readonly stream = computed<VerseNewsItem[]>(() => {
-    const news = this.feed()?.news ?? [];
-    const items = buildStream(news, this.stage());
+    const items = this.streamAll();
     if (!this.favoritesOnly()) return items;
     const favs = this.favoriteIds();
     return items.filter((n) => favs.has(n.id));
@@ -200,9 +212,15 @@ export class NewsService {
     if (this.favoritesOnly() && next.size === 0) this.favoritesOnly.set(false);
   }
 
-  /** Switch the stream between "all channels" and "saved only". */
-  toggleFavoritesOnly(): void {
-    this.favoritesOnly.update((v) => !v);
+  /**
+   * Switch the stream between "everything" and "saved only".
+   *
+   * Set, not toggled: the stream header is a segmented control that STATES
+   * which half is active, so pressing the active half again must be a no-op —
+   * a toggle there would flip it and contradict its own `aria-pressed`.
+   */
+  setFavoritesOnly(only: boolean): void {
+    this.favoritesOnly.set(only);
   }
 
   startPolling(): void {
