@@ -24,10 +24,17 @@ import { RoleService } from '../auth/role.service';
  * Placement: a full-width TOP strip. `ShellComponent`'s sticky header and its
  * nav-loading sweep both read the `--sc-imp-banner-h` custom property this
  * component sets on the document root, so they slide down under the banner
- * instead of fighting it for the top of the viewport. Every OTHER fixed
- * overlay in the app (consent banner, SW-update toast, nav-scan "weak
- * signal" label) is bottom-anchored, so a top strip collides with none of
- * them by construction.
+ * instead of fighting it for the top of the viewport.
+ *
+ * Layering: several `position: fixed; inset: 0` dialogs (feedback attachment
+ * viewer z-index 1300; starscape, uploader-access, desktop-download z-index
+ * 1200; codex-swap-picker 150; quick-search 100) cover the full viewport,
+ * banner included, while open. The banner therefore sits BELOW that entire
+ * modal band (z-index 60 — above the sticky topbar/nav-scan, below the
+ * lowest dialog) instead of on top of it: a dialog open during a preview
+ * must keep its own clicks, not have them swallowed by the banner's Exit
+ * button. On ordinary (non-modal) routes the banner is still the topmost
+ * thing in the viewport, so Exit stays reachable there.
  */
 @Component({
   selector: 'sc-impersonation-banner',
@@ -54,7 +61,11 @@ import { RoleService } from '../auth/role.service';
       top: 0;
       left: 0;
       right: 0;
-      z-index: 2000;
+      /* Below every position:fixed;inset:0 dialog in the app (lowest is
+         quick-search at 100) so an open dialog keeps its own clicks instead
+         of losing them to this banner's Exit button — see class doc comment.
+         Still above the sticky topbar (10) / nav-scan sweep (50). */
+      z-index: 60;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -120,8 +131,23 @@ export class ImpersonationBannerComponent {
 
   /** i18n key for the previewed view — `nav.viewAs.anon` for the signed-out preview, `profile.roles.*` otherwise. */
   readonly viewingLabelKey = computed(() => this.roleLabelKey(this.imp.viewAs()));
-  /** i18n key for the real (DB) role — always `profile.roles.*`, never `anon`. */
-  readonly realRoleLabelKey = computed(() => this.roleLabelKey(this.roles.realRole()));
+  /**
+   * i18n key for the real (DB) role — always `profile.roles.*`, never `anon`.
+   *
+   * `realRole()` reads `null` until the `profiles` round trip resolves on
+   * boot. Falling back to a real role (e.g. `viewer`) there would assert a
+   * false fact about the admin's own permissions, so this renders a neutral
+   * placeholder instead. It is not a translation key: `TranslatePipe`
+   * returns its input unchanged when no matching key exists (no
+   * `missingTranslationHandler` is configured), so an em dash passed as the
+   * "key" simply renders as an em dash — deliberately reusing that fallback
+   * rather than adding a new i18n entry, since this component may not touch
+   * `public/i18n/*.json`.
+   */
+  readonly realRoleLabelKey = computed(() => {
+    const role = this.roles.realRole();
+    return role === null ? '—' : this.roleLabelKey(role);
+  });
 
   /** Which fidelity note applies — 'anon' is the exact case, everything else shares the caveat. */
   readonly fidelityKey = computed(() => {
