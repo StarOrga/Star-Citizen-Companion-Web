@@ -1,4 +1,9 @@
 {
+  "common": {
+    "select": {
+      "none": "Keine Auswahl"
+    }
+  },
   "update": {
     "available": "Neue Version verfügbar",
     "reload": "Neu laden",

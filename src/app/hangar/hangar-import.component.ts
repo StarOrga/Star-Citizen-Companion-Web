@@ -152,7 +152,6 @@ const MAX_ENTRIES = 200;
       padding: 6px 8px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
     .row.disabled { opacity: 0.65; }
     .row label { display: flex; align-items: center; gap: 8px; min-width: 0; cursor: pointer; }
-    .row input { accent-color: var(--sc-accent); }
     .src { font-size: 0.85rem; color: var(--sc-fg-0); }
     .nick { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .badge { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 2px 8px; border-radius: 999px; white-space: nowrap;
