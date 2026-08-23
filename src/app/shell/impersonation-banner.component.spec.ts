@@ -90,14 +90,23 @@ describe('ImpersonationBannerComponent', () => {
     imp.setActualRole('admin', true);
     fixture.detectChanges();
 
-    // `realRoleLabelKey()` is what's fed as the `role` interpolation param to
-    // the `impersonation.banner.realRole` translation (this spec's bare
+    // `realRoleLabelKey()` is the i18n key fed to the
+    // `impersonation.banner.realRole` interpolation, or `null` while the real
+    // role is still unknown — the template branches on that `null` and passes
+    // a literal em dash as the interpolation VALUE. This spec's bare
     // `TranslateModule.forRoot()` has no loaded translations, so the DOM only
-    // ever shows raw, un-interpolated keys — asserting on the signal itself
-    // is the meaningful check here).
+    // ever shows raw, un-interpolated keys; asserting on the signal is the
+    // meaningful check.
     const component = fixture.componentInstance;
-    expect(component.realRoleLabelKey()).toBe('—');
-    expect(component.realRoleLabelKey().toLowerCase()).not.toContain('viewer');
+    expect(component.realRoleLabelKey()).toBeNull();
+
+    // Guards the reason this is `null` rather than a pseudo-key like '—':
+    // anything returned here IS passed through TranslatePipe, so a non-key
+    // value would only render by accident, and only for as long as no
+    // `missingTranslationHandler` is configured globally.
+    const key = component.realRoleLabelKey();
+    expect(key === null || key.startsWith('profile.roles.')).toBe(true);
+    expect(fixture.nativeElement.textContent.toLowerCase()).not.toContain('viewer');
   });
 
   it('keeps the "real role" fallback keyed to a real profile.roles.* key once realRole() resolves', () => {

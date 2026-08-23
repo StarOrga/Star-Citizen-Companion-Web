@@ -46,7 +46,11 @@ import { RoleService } from '../auth/role.service';
       <div #banner class="imp-banner" role="status" [attr.aria-label]="'impersonation.banner.aria' | translate">
         <span class="imp-banner__msg">
           <strong>{{ 'impersonation.banner.viewingAs' | translate: { role: (viewingLabelKey() | translate) } }}</strong>
-          <span class="imp-banner__real">{{ 'impersonation.banner.realRole' | translate: { role: (realRoleLabelKey() | translate) } }}</span>
+          @if (realRoleLabelKey(); as roleKey) {
+            <span class="imp-banner__real">{{ 'impersonation.banner.realRole' | translate: { role: (roleKey | translate) } }}</span>
+          } @else {
+            <span class="imp-banner__real">{{ 'impersonation.banner.realRole' | translate: { role: '—' } }}</span>
+          }
           <span class="imp-banner__fidelity">{{ fidelityKey() | translate }}</span>
         </span>
         <button type="button" class="imp-banner__exit" (click)="imp.exit()">
@@ -132,21 +136,24 @@ export class ImpersonationBannerComponent {
   /** i18n key for the previewed view — `nav.viewAs.anon` for the signed-out preview, `profile.roles.*` otherwise. */
   readonly viewingLabelKey = computed(() => this.roleLabelKey(this.imp.viewAs()));
   /**
-   * i18n key for the real (DB) role — always `profile.roles.*`, never `anon`.
+   * i18n key for the real (DB) role — always `profile.roles.*`, never `anon`
+   * — or `null` while it is still unknown.
    *
    * `realRole()` reads `null` until the `profiles` round trip resolves on
-   * boot. Falling back to a real role (e.g. `viewer`) there would assert a
-   * false fact about the admin's own permissions, so this renders a neutral
-   * placeholder instead. It is not a translation key: `TranslatePipe`
-   * returns its input unchanged when no matching key exists (no
-   * `missingTranslationHandler` is configured), so an em dash passed as the
-   * "key" simply renders as an em dash — deliberately reusing that fallback
-   * rather than adding a new i18n entry, since this component may not touch
-   * `public/i18n/*.json`.
+   * boot, and stays `null` if that read fails. Falling back to a real role
+   * (e.g. `viewer`) there would assert a false fact about the admin's own
+   * permissions, so the template branches on `null` and interpolates a
+   * neutral em dash as the *value* instead.
+   *
+   * Returning the em dash from here as a pseudo-key would also render (an
+   * unmatched key falls through `TranslatePipe` unchanged), but only for as
+   * long as no `missingTranslationHandler` is configured — a global i18n
+   * setting could silently turn this label into garbage. The value path has
+   * no such coupling.
    */
   readonly realRoleLabelKey = computed(() => {
     const role = this.roles.realRole();
-    return role === null ? '—' : this.roleLabelKey(role);
+    return role === null ? null : this.roleLabelKey(role);
   });
 
   /** Which fidelity note applies — 'anon' is the exact case, everything else shares the caveat. */
