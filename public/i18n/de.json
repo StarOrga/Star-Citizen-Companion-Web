@@ -173,7 +173,6 @@
       "versum": {
         "eyebrow": "Im Versum",
         "title": "Domänen",
-        "showroom": "Showroom",
         "keybinds": "Tastenbelegungen",
         "domain": {
           "ship": "Schiffe",
@@ -185,7 +184,7 @@
           "ammunition": "Munition"
         },
         "upcomingRail": {
-          "title": "Was ist neu",
+          "title": "Auf dem Reißbrett",
           "badgeAria": "{{count}} neue Schiffe seit deinem letzten Besuch"
         }
       }
@@ -647,23 +646,6 @@
       "viewSideAria": "Seitenansicht der Hülle mit {{count}} Hardpoint-Markern",
       "nose": "Bug",
       "readoutIdle": "Kein Hardpoint ausgewählt"
-    },
-    "showroom": {
-      "title": "Showroom",
-      "subtitle": "Echte Schiffs-Lackierungen in interaktivem 3D betrachten — datamined Hülle und Texturen aus dem aktuellen Build.",
-      "count": "{{liveries}} Lackierungen in 3D über {{ships}} Schiff(e)",
-      "spotlight": "Jetzt im Showroom",
-      "gallery": "Alle Lackierungen",
-      "liveryCount": "{{count}} Lackierungen",
-      "billboard": {
-        "eyebrow": "Neu",
-        "title": "Echte Schiffs-Lackierungen in 3D drehen — {{count}} verfügbar",
-        "cta": "Zum Showroom"
-      },
-      "empty": {
-        "title": "Noch keine 3D-Lackierungen",
-        "body": "3D-Lackierungen werden pro Spiel-Build extrahiert und erscheinen hier, sobald sie vorliegen."
-      }
     },
     "skins": {
       "title": "Lackierungen",
