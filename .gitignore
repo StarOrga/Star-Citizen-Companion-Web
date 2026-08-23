@@ -71,6 +71,9 @@ logs/
 # /run-burn + /concept + /claude-batch local-only state
 .claude/token-config.json
 .claude/concept-active.json
+# Concept-bridge durable store (journal, snapshots, pasted attachments) —
+# per-session runtime state, never a repo artefact.
+.claude/concepts/
 .claude/batch-activity
 
 # Python sidecar (data-uploader) — caches + embedded interpreter + real-P4K subsets
