@@ -4,6 +4,60 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.68.1] - 2026-08-23
+
+### Fixed
+
+- **The Verse News stage showed artwork and nothing else.** `sc-news-thumb` is
+  positioned but had `z-index: auto`, so it never opened a stacking context and
+  its internal ladder (image layer 1, channel pill 2) competed directly with the
+  host page — painting over the overline, the headline and the deck, which sit at
+  the default level. `isolation: isolate` confines it. The same leak had silently
+  blanked the stage scrim; both are back.
+- **The stage buttons only answered a click *below* themselves.** The "Lesen"
+  CTA was a `<span>` with `pointer-events: none`, so a click on it fell through
+  to the `<p>` wrapping the row, which has no handler — only the padding strip
+  underneath, still covered by the stretched stage link, ever responded. The CTA
+  is a real anchor to the source now, the row is transparent to the pointer, and
+  every control takes its own hits. Pinned by hit-tests.
+- **Every channel glyph rendered as nothing.** Angular's HTML sanitizer strips
+  `<svg>` out of an `[innerHTML]` binding, so the icons beside COMM-LINK /
+  SPECTRUM / YOUTUBE never existed on screen. The markup is a compile-time
+  constant in both components, so it is passed through `bypassSecurityTrustHtml`
+  and cached by source string to keep binding identity.
+- **The detail overlay had no styles at all** — its whole `.nd-*` block was lost
+  in the 0.66.0 rewrite, so it opened as a full-bleed image with its actions cut
+  off below the fold. It is sized to the viewport again: the art is the only
+  elastic row, so headline, summary and all three actions are on screen at every
+  window size without a scrollbar.
+
+### Changed
+
+- **One wording, one glyph for saving and sharing.** "Merken", "Gemerkt" and
+  "Favoriten" were three names for one state, and sharing was a bare `⤴` on the
+  stage but a text button in the detail view. The stage, every stream tile and
+  the detail view now carry the same star and the same share mark, with the same
+  label — dropped only on a tile, where the foot row has no room for it.
+- **The stream header is one segmented toggle.** "42 Beiträge" (a count pill) and
+  "★ Favoriten (0)" (a starred text button) named the same kind of thing in two
+  unrelated shapes, with the number in brackets. Both halves are now label plus
+  count badge, no parentheses, and both counts read from the same unfiltered
+  stream — a saved *staged* article can no longer promise an item the list cannot
+  show.
+- **The detail view closes through a "← Zurück" text link**, the same idiom as
+  the patch board's back link, instead of a floating ✕ disc.
+- **`n = 5` is gone** from the build verdict and the forecast basis. The sample
+  count stays where the numbers are the subject rather than a footnote: the patch
+  board's KPI panel still says "Basis: 5 Messwerte".
+- **The hero is larger and starts on the same line as every other page.** The
+  stage grew from a flat 340px to `clamp(380px, 34vw, 480px)`, cropping into the
+  artwork rather than letterboxing it. Every other top-level page opens on an
+  `<h1>`, whose glyphs start ~11px below its box, while Verse News opens on a card
+  border that lands exactly on the padding line — which is why it read as sitting
+  tighter under the nav bar. The new `--sc-page-lead` token closes that gap:
+  measured, not guessed, the Starscape heading's cap line sits 37.0px below the
+  content box and the stage now sits at 37px.
+
 ## [0.68.0] - 2026-08-23
 
 ### Fixed

@@ -62,6 +62,19 @@
   /* Minimum hit area. 0 on a fine pointer, so mouse-precision layouts keep
      their compact controls. */
   --sc-tap-min: 0px;
+
+  /* Optical head room, on top of `.content`'s 26px padding.
+     Nearly every top-level page opens on an <h1>, and a heading's glyphs do NOT
+     start at the top of its box: the line box adds half-leading and the font
+     adds the gap between its ascender and the cap line — together ~10px at the
+     h1 size used here. A page that instead opens on a hard edge (a card border,
+     a full-bleed hero) lands exactly on the padding line and therefore reads as
+     sitting tighter under the nav bar than its neighbours, which is what Verse
+     News did against Starscape. Such a page adds this offset so both start on
+     the same optical line. A page that opens on a heading must NOT use it.
+     Measured, not guessed: on /starscape the h1 cap line sits 37.0px below the
+     content box; the Verse News stage border sits at 26px + this. */
+  --sc-page-lead: 11px;
 }
 
 @media (pointer: coarse) {
