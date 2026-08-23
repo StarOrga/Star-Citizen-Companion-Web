@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AccessRequestService } from './access-request.service';
 import { ImpersonationService } from './impersonation.service';
 import { AnalyticsService } from '../core/analytics.service';
+import { safeRedirectTarget } from '../core/safe-redirect.util';
 
 /** Which panel the landing card currently shows. */
 type Panel = 'signIn' | 'apply';
@@ -456,14 +457,12 @@ export class LoginComponent {
 
   /**
    * Read the `?redirect=…` query param the auth guard set when bouncing
-   * an unauthenticated user. Only same-origin absolute paths are honored
-   * (must start with `/`); anything else falls back to `/news` to prevent
-   * open-redirect attacks via crafted login links.
+   * an unauthenticated user. Delegates the open-redirect check to the
+   * shared `safeRedirectTarget()` util — `publicOnlyGuard` reuses the exact
+   * same check for the "exit an impersonation preview" flow (Defect B).
    */
   private safeRedirectTarget(): string {
-    const raw = this.route.snapshot.queryParamMap.get('redirect');
-    if (raw && raw.startsWith('/') && !raw.startsWith('//')) return raw;
-    return '/news';
+    return safeRedirectTarget(this.route.snapshot.queryParamMap.get('redirect'));
   }
 
   /** Reuses `ImpersonationService.exit()` — the only sanctioned way out of a preview. */
