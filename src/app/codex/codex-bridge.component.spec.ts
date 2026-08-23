@@ -126,7 +126,7 @@ describe('CodexBridgeComponent', () => {
             artFor: () => [] as string[],
           },
         },
-        // Same reason: the Showroom billboard + Holo-Ready badge inject the real
+        // Same reason: the Holo-Ready badge injects the real
         // ShowroomService, whose load() hits Supabase and hangs whenStable. Stub
         // it empty — no liveries ⇒ billboard hidden, badges render nothing.
         {

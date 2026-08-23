@@ -55,8 +55,10 @@
       "discard": "Отменить",
       "cancelled": "Загрузка отменена — сохранённый прогресс удалён.",
       "resumeBanner": "Найдена прерванная загрузка ({{hint}}) — продолжить?",
-      "pauseShort": "пауза"
-    }
+      "pauseShort": "пауза",
+      "pausingShort": "Пауза…"
+    },
+    "technicalDetails": "Технические детали"
   },
   "skins": {
     "building": "Сборка 3D-скинов",
