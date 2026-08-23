@@ -307,7 +307,7 @@ describe('NewsService — patch notes live in their own section, not in the time
     const svc = makeService();
     svc.feed.set(feed);
     svc.toggleFavorite('p-49-live');
-    svc.toggleFavoritesOnly();
+    svc.setFavoritesOnly(true);
     // Saving a release note is allowed; the stream is editorial-only, so it
     // surfaces on the board rather than here. The point is that "Gemerkt" can
     // never resurrect the 70 % of the feed the rethink moved off this page.

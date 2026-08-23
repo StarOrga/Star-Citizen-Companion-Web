@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy, Component, Directive, ElementRef, OnDestroy,
   afterNextRender, computed, effect, inject, input, linkedSignal, output,
 } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { NewsChannel } from './news.service';
 import { newsDefaultSrc, newsSrcset } from './news-image-variants';
 import { environment } from '../../environments/environment';
@@ -337,7 +338,7 @@ export function isPixelReadable(url: string): boolean {
     }
 
     <span class="ch-pill" [class]="'ch-' + channel()">
-      <span class="ch-icon" [innerHTML]="channelIcon()"></span>{{ channelLabel() }}
+      <span class="ch-icon" [innerHTML]="safeChannelIcon()"></span>{{ channelLabel() }}
     </span>
 
     @if (mode() === 'carousel' && display().length > 1) {
@@ -354,6 +355,12 @@ export function isPixelReadable(url: string): boolean {
       width: 100%; aspect-ratio: 16 / 9;
       background-color: var(--sc-bg-0);
       overflow: hidden;
+      /* Keeps the internal ladder (skeleton 0 · image 1 · pill/dots 2) inside
+         this component. Without it the image layer z-index:1 competes in
+         the HOST page's stacking context and paints over anything the page put
+         beside the thumb at z-index:auto — which is exactly what buried the
+         Verse News stage headline behind its own artwork. */
+      isolation: isolate;
     }
     :host(.featured) { aspect-ratio: 21 / 9; }
 
@@ -431,6 +438,18 @@ export class NewsThumbComponent implements OnDestroy {
   readonly channelLabel = input('');
   readonly channelIcon = input('');
   readonly featured = input(false);
+
+  private readonly sanitizer = inject(DomSanitizer);
+  /**
+   * Angular's HTML sanitizer strips <svg> out of an [innerHTML] binding, so the
+   * pill has been showing its label with an empty box where the glyph belongs.
+   * The markup comes from a fixed switch in the parent component, never from the
+   * feed, so bypassing carries no injection surface. Computed, so the binding
+   * only changes when the input does.
+   */
+  readonly safeChannelIcon = computed<SafeHtml>(
+    () => this.sanitizer.bypassSecurityTrustHtml(this.channelIcon()),
+  );
 
   // Stable identity of the image set, keyed by url CONTENT (not array identity).
   // A silent feed refresh hands us a brand-new array with the SAME urls; keying the

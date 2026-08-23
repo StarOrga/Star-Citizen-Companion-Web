@@ -1024,8 +1024,7 @@
       "comm-link": "Comm-Link",
       "spectrum": "Spectrum",
       "youtube": "YouTube",
-      "patch": "Patch notes",
-      "favorites": "Favorites"
+      "patch": "Patch notes"
     },
     "filter": {
       "label": "Filter",
@@ -1033,9 +1032,8 @@
       "groupAria": "Channel filter"
     },
     "favorite": {
-      "toggle": "Save",
-      "save": "★ Save",
-      "saved": "★ Saved"
+      "save": "Save",
+      "saved": "Saved"
     },
     "share": {
       "label": "Share",
@@ -1140,7 +1138,7 @@
         "inWeeks": "in ~{{n}} weeks",
         "overdueDays": "overdue by {{n}}d",
         "overdueWeeks": "overdue by {{n}}w",
-        "basis": "Median {{median}}d · n={{n}} · from {{version}}"
+        "basis": "Median {{median}}d · from {{version}}"
       },
       "board": {
         "title": "Patch history",
@@ -1152,7 +1150,7 @@
       }
     },
     "detail": {
-      "close": "Close"
+      "back": "Back"
     },
     "via": "via {{source}}",
     "openExternal": "Opens {{host}}",
@@ -1180,8 +1178,9 @@
     },
     "stream": {
       "title": "Stream",
-      "count": "{{count}} posts",
-      "more": "Show {{count}} more"
+      "more": "Show {{count}} more",
+      "all": "Posts",
+      "filterAria": "Filter the stream"
     },
     "verdict": {
       "label": "Build status",
@@ -1189,8 +1188,8 @@
       "due": "{{line}} is live · next main patch in {{days}} days",
       "today": "{{line}} is live · next main patch due today",
       "overdue": "{{line}} is live · next main patch {{days}} days overdue",
-      "basis": "Median {{median}} d · n = {{n}}",
-      "basisWithTest": "Median {{median}} d · n = {{n}} · {{test}} in testing",
+      "basis": "Median {{median}} d",
+      "basisWithTest": "Median {{median}} d · {{test}} in testing",
       "toBoard": "Patch history"
     }
   },

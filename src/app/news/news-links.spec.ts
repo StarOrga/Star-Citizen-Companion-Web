@@ -144,6 +144,15 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     }
   });
 
+  // elementFromPoint is viewport-relative, and the Karma frame is short — bring
+  // each probe into view before measuring it.
+  function hit(target: HTMLElement): Element | null {
+    target.scrollIntoView({ block: 'center' });
+    const r = target.getBoundingClientRect();
+    expect(r.width * r.height).withContext('probe laid out').toBeGreaterThan(0);
+    return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  }
+
   // The tile link is stretched over the card via an absolutely positioned
   // overlay child. Real hit-testing is the only honest check that it covers the
   // artwork without burying the footer's own buttons.
@@ -153,21 +162,57 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     const fav = el<HTMLElement>('.card .act.fav')!;
     const thumb = el<HTMLElement>('.card .thumb-wrap')!;
 
-    // elementFromPoint is viewport-relative, and the Karma frame is short —
-    // bring each probe into view before measuring it.
-    function hit(target: HTMLElement): Element | null {
-      target.scrollIntoView({ block: 'center' });
-      const r = target.getBoundingClientRect();
-      expect(r.width * r.height).withContext('probe laid out').toBeGreaterThan(0);
-      return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    }
-
     expect(card.contains(hit(thumb))).withContext('artwork inside the card').toBeTrue();
     // Containment, not identity: the overlay is a real child element (so the
     // mobile gate can measure the true hit area), and hit-testing therefore
     // resolves to the overlay rather than to the anchor itself. Either way the
     // point belongs to the stretched link — which is what this asserts.
     expect(link.contains(hit(thumb))).withContext('artwork hits the stretched link').toBeTrue();
-    expect(hit(fav)).withContext('fav button stays its own target').toBe(fav);
+    expect(fav.contains(hit(fav))).withContext('fav button stays its own target').toBeTrue();
+  });
+
+  it('gives the stage CTA a real href instead of a decorated span', () => {
+    // It used to be a <span> with `pointer-events: none`, which is why it looked
+    // like the page's primary control and behaved like part of the background.
+    const cta = el<HTMLAnchorElement>('.stage .cta');
+    expect(cta).withContext('stage CTA').not.toBeNull();
+    expect(cta!.tagName).toBe('A');
+    expect(cta!.getAttribute('href')).toBe(STAGE_URL);
+    expect(cta!.getAttribute('target')).toBe('_blank');
+    expect(cta!.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
+  /**
+   * The reported defect: "in der Hero-Card sind die Buttons nur am unteren Rand
+   * klickbar und nicht auf dem Button." Each control in the stage's action row
+   * has to win the hit test at its own centre — not only in the strip beneath
+   * it, where the bare stretched stage link used to be the one thing that
+   * answered a click.
+   */
+  it('makes every control in the stage action row hit itself, not the layer behind it', () => {
+    for (const sel of ['.stage .cta', '.stage .act.fav', '.stage .act.share']) {
+      const control = el<HTMLElement>(sel)!;
+      expect(control).withContext(sel).not.toBeNull();
+      expect(control.contains(hit(control))).withContext(`${sel} takes its own hit`).toBeTrue();
+    }
+  });
+
+  it('lets the gaps in the action row fall through to the stretched stage link', () => {
+    // The row is `pointer-events: none` with its children switched back on, so
+    // the space between two controls still belongs to the article link rather
+    // than dying on a <p> that has no handler.
+    const row = el<HTMLElement>('.stage .stage-actions')!;
+    const link = el<HTMLAnchorElement>('.stage .stage-link')!;
+    const cta = el<HTMLElement>('.stage .cta')!;
+    const fav = el<HTMLElement>('.stage .act.fav')!;
+
+    row.scrollIntoView({ block: 'center' });
+    const a = cta.getBoundingClientRect();
+    const b = fav.getBoundingClientRect();
+    const gapX = (a.right + b.left) / 2;
+    expect(b.left - a.right).withContext('there is a real gap').toBeGreaterThan(2);
+
+    const target = document.elementFromPoint(gapX, a.top + a.height / 2);
+    expect(link.contains(target)).withContext('gap belongs to the stage link').toBeTrue();
   });
 });

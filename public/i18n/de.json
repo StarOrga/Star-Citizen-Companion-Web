@@ -1024,8 +1024,7 @@
       "comm-link": "Comm-Link",
       "spectrum": "Spectrum",
       "youtube": "YouTube",
-      "patch": "Patch-Notes",
-      "favorites": "Favoriten"
+      "patch": "Patch-Notes"
     },
     "filter": {
       "label": "Filter",
@@ -1033,9 +1032,8 @@
       "groupAria": "Kanalfilter"
     },
     "favorite": {
-      "toggle": "Merken",
-      "save": "★ Merken",
-      "saved": "★ Gemerkt"
+      "save": "Merken",
+      "saved": "Gemerkt"
     },
     "share": {
       "label": "Teilen",
@@ -1138,9 +1136,9 @@
         "today": "heute fällig",
         "inDays": "in ~{{n}} Tagen",
         "inWeeks": "in ~{{n}} Wochen",
-        "overdueDays": "überfällig ({{n}} T.)",
-        "overdueWeeks": "überfällig ({{n}} Wo.)",
-        "basis": "Median {{median}} T. · n={{n}} · ab {{version}}"
+        "overdueDays": "{{n}} T. überfällig",
+        "overdueWeeks": "{{n}} Wo. überfällig",
+        "basis": "Median {{median}} T. · ab {{version}}"
       },
       "board": {
         "title": "Patch-Historie",
@@ -1152,7 +1150,7 @@
       }
     },
     "detail": {
-      "close": "Schließen"
+      "back": "Zurück"
     },
     "via": "via {{source}}",
     "openExternal": "Öffnet {{host}}",
@@ -1180,8 +1178,9 @@
     },
     "stream": {
       "title": "Strom",
-      "count": "{{count}} Beiträge",
-      "more": "{{count}} weitere anzeigen"
+      "more": "{{count}} weitere anzeigen",
+      "all": "Beiträge",
+      "filterAria": "Strom filtern"
     },
     "verdict": {
       "label": "Build-Stand",
@@ -1189,8 +1188,8 @@
       "due": "{{line}} ist live · nächster Hauptpatch in {{days}} Tagen",
       "today": "{{line}} ist live · nächster Hauptpatch heute fällig",
       "overdue": "{{line}} ist live · nächster Hauptpatch seit {{days}} Tagen überfällig",
-      "basis": "Median {{median}} T · n = {{n}}",
-      "basisWithTest": "Median {{median}} T · n = {{n}} · {{test}} im Test",
+      "basis": "Median {{median}} T",
+      "basisWithTest": "Median {{median}} T · {{test}} im Test",
       "toBoard": "Patch-Historie"
     }
   },
