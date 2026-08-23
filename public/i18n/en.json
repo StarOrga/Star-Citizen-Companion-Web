@@ -5,6 +5,11 @@
     "dismiss": "Later"
   },
   "auth": {
+    "previewLocked": {
+      "title": "You are previewing as a signed-out visitor",
+      "body": "Signing in will not work here — the preview overrides what the app shows you, even after a successful sign-in. Leave the preview first.",
+      "exit": "Leave preview and sign in"
+    },
     "tagline": "Your terminal to the verse",
     "email": "Email",
     "password": "Password",
@@ -69,7 +74,7 @@
     }
   },
   "impersonation": {
-    "banner": {
+        "banner": {
       "aria": "Role preview active",
       "viewingAs": "Previewing as: {{role}}",
       "realRole": "Your real role: {{role}}",
@@ -79,7 +84,9 @@
         "viewer": "UI and routing preview only. You are still fetching data with your real permissions, so a viewer-only data restriction (an empty list, an RLS denial) will not reproduce here.",
         "collaborator": "UI and routing preview only. You are still fetching data with your real permissions, so a collaborator-only data restriction will not reproduce here."
       }
-    }
+    },
+    "enterFailed": "Could not switch preview — your browser blocked the change (private browsing or storage full). Nothing was reloaded.",
+    "enterFailedDismiss": "Dismiss"
   },
   "codex": {
     "title": "Codex",

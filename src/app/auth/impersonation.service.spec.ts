@@ -91,6 +91,59 @@ describe('ImpersonationService', () => {
     expect(svc.viewAs()).toBeNull();
   });
 
+  it('enter() does NOT reload and sets enterFailed() when setItem silently no-ops (defect A)', () => {
+    const svc = TestBed.inject(ImpersonationService);
+    const reload = spyOnReload(svc);
+    svc.setActualRole('admin', true);
+    expect(svc.enterFailed()).toBe(false);
+
+    spyOn(sessionStorage, 'setItem').and.callFake(() => {
+      /* silently do nothing — simulates a quota'd/blocked write that does
+         not throw (the throwing case is covered separately below) */
+    });
+
+    svc.enter('viewer');
+
+    // A write that did not verifiably stick must not be followed by a
+    // reload — the page would come back byte-identical with zero feedback.
+    expect(reload).not.toHaveBeenCalled();
+    expect(svc.enterFailed()).toBe(true);
+    expect(svc.viewAs()).toBeNull();
+  });
+
+  it('enter() does NOT reload and sets enterFailed() when setItem throws (defect A)', () => {
+    const svc = TestBed.inject(ImpersonationService);
+    const reload = spyOnReload(svc);
+    svc.setActualRole('admin', true);
+
+    spyOn(sessionStorage, 'setItem').and.throwError(
+      new DOMException('quota exceeded', 'QuotaExceededError'),
+    );
+
+    svc.enter('viewer');
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(svc.enterFailed()).toBe(true);
+  });
+
+  it('enter() clears a stale enterFailed() and reloads exactly once on the happy path (defect A)', () => {
+    const svc = TestBed.inject(ImpersonationService);
+    const reload = spyOnReload(svc);
+    svc.setActualRole('admin', true);
+
+    spyOn(sessionStorage, 'setItem').and.throwError(new DOMException('nope'));
+    svc.enter('viewer');
+    expect(svc.enterFailed()).toBe(true);
+    expect(reload).not.toHaveBeenCalled();
+
+    (sessionStorage.setItem as jasmine.Spy).and.callThrough();
+    svc.enter('viewer');
+
+    expect(svc.enterFailed()).toBe(false);
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem(VIEW_AS_STORAGE_KEY)).toBe(JSON.stringify('viewer'));
+  });
+
   it('sign-out (setActualRole(null, true)) clears the overlay', () => {
     // Enter no longer flips `_stored` itself (F3) — a real preview always
     // starts from a fresh construction reading storage after the reload, so

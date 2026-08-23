@@ -56,6 +56,17 @@ export class ImpersonationService {
   private readonly _actualLoaded = signal(false);
 
   /**
+   * Set when `enter()`'s write did not verifiably persist (private mode,
+   * full quota, disabled storage — `probeStorageAvailable()` only checks the
+   * property exists, not that `setItem` actually works). Without this, the
+   * unconditional reload that used to follow a swallowed write error landed
+   * the user back on a byte-identical page with zero feedback — "picking a
+   * target changes nothing". Cleared at the start of every `enter()` call.
+   */
+  private readonly _enterFailed = signal(false);
+  readonly enterFailed = this._enterFailed.asReadonly();
+
+  /**
    * Called by RoleService after every `refresh()` (and on sign-out) with the
    * live real role. Self-heals a demoted/logged-out/tampered overlay: once
    * the real role is known, any stored value outside its allow-list is wiped.
@@ -94,17 +105,32 @@ export class ImpersonationService {
 
   /**
    * No-op unless `target` is a member of `targets()` for the current real
-   * role. Writes storage, then reloads — does NOT touch `_stored` itself.
-   * The document that would observe the new value is about to be destroyed
-   * by the reload; synchronously flipping `_stored` first would flip
-   * `auth.user()` to null a beat early, in front of every effect that reads
-   * it (e.g. `FeedbackDraftService`'s identity effect), dropping in-flight
-   * drafts for no reason since the reload re-reads storage anyway.
+   * role. Writes storage, verifies the write actually stuck, then reloads —
+   * does NOT touch `_stored` itself. The document that would observe the new
+   * value is about to be destroyed by the reload; synchronously flipping
+   * `_stored` first would flip `auth.user()` to null a beat early, in front
+   * of every effect that reads it (e.g. `FeedbackDraftService`'s identity
+   * effect), dropping in-flight drafts for no reason since the reload
+   * re-reads storage anyway.
+   *
+   * Mirrors `exit()`'s degrade-instead-of-reload reasoning (F4), but in the
+   * opposite direction: a write that did not stick must NOT be followed by a
+   * reload — the page would come back byte-identical with no explanation.
+   * Surface `enterFailed()` instead so the UI can tell the user.
    */
   enter(target: ViewAs): void {
     if (!this.targets().includes(target)) return;
-    this.writeStorage(target);
-    this.reload();
+    this._enterFailed.set(false);
+    if (this.writeStorage(target)) {
+      this.reload();
+    } else {
+      this._enterFailed.set(true);
+    }
+  }
+
+  /** Lets the UI dismiss the `enterFailed()` notice without another attempt. */
+  clearEnterFailed(): void {
+    this._enterFailed.set(false);
   }
 
   /**
@@ -152,13 +178,22 @@ export class ImpersonationService {
     return null;
   }
 
-  private writeStorage(value: ViewAs): void {
+  /**
+   * Writes storage and reads it back to confirm the value is verifiably
+   * persisted. Returns `false` on a thrown write (private mode / disabled
+   * storage) AND on a silent no-op `setItem` (full quota in some browsers)
+   * — same "don't trust the call succeeded, check the read-back" shape as
+   * `wipeStorageOnly()`.
+   */
+  private writeStorage(value: ViewAs): boolean {
+    const encoded = JSON.stringify(value);
     try {
-      this.document.defaultView?.sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify(value));
+      const store = this.document.defaultView?.sessionStorage;
+      if (!store) return false;
+      store.setItem(VIEW_AS_STORAGE_KEY, encoded);
+      return store.getItem(VIEW_AS_STORAGE_KEY) === encoded;
     } catch {
-      // Write blocked (private mode / disabled storage) — the reload that
-      // follows will simply read nothing back, so the preview never takes
-      // effect. Nothing further to do here.
+      return false;
     }
   }
 

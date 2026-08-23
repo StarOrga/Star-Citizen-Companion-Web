@@ -234,6 +234,20 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       </div>
     </header>
 
+    @if (imp.enterFailed()) {
+      <!-- Defect A: enter() used to reload unconditionally even when the
+           sessionStorage write was silently dropped (private mode / full
+           quota), so picking a target looked like it did nothing. Now the
+           service refuses to reload on an unverified write and surfaces
+           this instead — dismissible so it doesn't linger past a retry. -->
+      <div class="imp-enter-error" role="alert">
+        <span>{{ 'impersonation.enterFailed' | translate }}</span>
+        <button type="button" class="imp-enter-error__dismiss" (click)="dismissEnterError()">
+          {{ 'impersonation.enterFailedDismiss' | translate }}
+        </button>
+      </div>
+    }
+
     <!-- Navigation "sensor sweep" — only appears once a switch runs past 250ms,
          so it covers the lazy-chunk/guard gap on real waits but never flashes on
          instant/cached routes. -->
@@ -525,6 +539,33 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       border-top: 1px solid var(--sc-border);
     }
 
+    /* Defect A notice: a preview whose sessionStorage write did not
+       verifiably stick. Sits as its own strip (not a floating toast) so it
+       reads deliberately, not like a transient status message. */
+    .imp-enter-error {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 8px 16px;
+      background: rgba(248, 113, 113, 0.1);
+      border-bottom: 1px solid var(--sc-danger);
+      color: var(--sc-danger);
+      font-size: max(0.82rem, var(--sc-fs-floor));
+      text-align: center;
+    }
+    .imp-enter-error__dismiss {
+      flex: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--sc-danger);
+      background: transparent;
+      color: var(--sc-danger);
+      font-size: max(0.76rem, var(--sc-fs-floor));
+      cursor: pointer;
+    }
+    .imp-enter-error__dismiss:hover { background: rgba(248, 113, 113, 0.15); }
+
     /* Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
        heading is not marooned in empty space (feedback #79, item 5). The
        reclaimed space is reused below the heading by the pages themselves. */
@@ -730,6 +771,11 @@ export class ShellComponent {
   exitViewAs() {
     this.closeMenu();
     this.imp.exit();
+  }
+
+  /** Dismisses the "preview did not persist" notice (defect A) without retrying. */
+  dismissEnterError() {
+    this.imp.clearEnterFailed();
   }
 
   async doSignOut() {
