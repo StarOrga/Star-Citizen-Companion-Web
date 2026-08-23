@@ -1620,6 +1620,22 @@ section[data-iteration="2"] .hz-surface.one { max-width: 620px; }
 .hz-dr .c { font-family: var(--font-mono); font-size: .95rem; font-weight: 700; color: var(--text-primary);
   font-variant-numeric: tabular-nums; }
 
+/* ── Abschlussbericht ─────────────────────────────────────────────────── */
+.open-questions-list { display: flex; flex-direction: column; gap: .5rem; margin-top: .6rem; }
+.open-questions-list label { display: flex; align-items: flex-start; gap: .6rem; padding: .55rem .7rem;
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-md); cursor: pointer;
+  font-size: .86rem; line-height: 1.5; }
+.open-questions-list label:hover { border-color: var(--accent-primary); }
+.open-questions-list input[type="checkbox"] { margin-top: .2rem; flex-shrink: 0; accent-color: var(--accent-primary); }
+.open-questions-list input:disabled + .oq-label { opacity: .6; text-decoration: line-through; }
+.oq-label { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.oq-issue-link { margin-left: .4rem; color: var(--accent-primary); font-size: .8rem; }
+/* Exactly one panel TOC is live at a time: screen list on a design
+   iteration, section list on every other. */
+html[data-template="design"] #section-nav { display: none; }
+html:not([data-template="design"]) #screen-nav { display: none; }
+html:not([data-template="design"]) #design-switcher,
+html:not([data-template="design"]) #screen-indicator { display: none; }
 </style>
 </head>
 <body style="overflow: hidden">
@@ -2025,7 +2041,10 @@ section[data-iteration="2"] .hz-surface.one { max-width: 620px; }
 </section>
 </section>
       </section>
-      <section data-iteration="2" data-iteration-template="design" data-active>
+      <section data-iteration="2" data-iteration-template="design" hidden>
+        <script type="application/json" data-frozen-feedback>
+{"general": "Konfigurationen braujchen wir nicht direkt zugreifbar, einfach direkt die flotte, das macht sinn", "designs": {}, "screens": {"f-s1": "so finde ich es super.", "f-s4": "Das muss noch wesentlich attraktiver werden bildlich, vllt. ein generiertes.", "g-s2": "ja lieber so, aber eher horizontal! und die Anzahl ist eine side Info. Stelle auch sicher das alle in die gleiche subseite gehen wo die filter dann vorbelgt sind. Zudem das auf der ebene des Im verse titels rechts das keybinding icon ist und nicht so blöd unten drunter"}}
+        </script>
         <header class="iteration-intro">
           <h2>Iteration 2 · Ein Bild-Hero mit Instrumenten drin, Flotte als Kacheln</h2>
           <p>Dein Feedback zusammengezogen: <strong>Ⓑ war „viel besser mit dem Bild"</strong> und bleibt die Basis. Die Kennzahlen sitzen jetzt <strong>im Bild</strong> statt darunter. Das <strong>Rumpfschema</strong> aus Ⓐ überlebt als markiertes Vorschaubild im selben Rahmen. Aus Ⓒ bleibt die Flotte — aber als <strong>Kacheln im Reißbrett-Format</strong>, sortierbar nach Hersteller und Einsatzzweck, und die Konfigurationen sind jetzt genauso Kacheln. Die An-Bord-Seite ist raus, wie gewünscht („ist ja nur ein Teil"). Ⓖ zeigt das Domänenband als Zeilen <strong>ohne Balken</strong>.</p>
@@ -2140,6 +2159,73 @@ section[data-iteration="2"] .hz-surface.one { max-width: 620px; }
 </section>
 </section>
       </section>
+      <section data-iteration="3" data-iteration-template="free" data-final-report data-active>
+        <header class="iteration-intro">
+          <h2>Abschlussbericht · Ⓕ und Ⓖ sind gebaut</h2>
+          <p>Iteration 2 kam mit <strong>Mit Feedback implementieren</strong> zurück. Die Hangar-Zone ist auf den Bild-Hero umgebaut, die Flotte auf Kacheln, das Versum-Band auf horizontale Chips. Commit <code>1431981</code> auf <code>claude/concept-design-devops-hangar-7bc548</code>, gepusht, noch nicht gemerged.</p>
+        </header>
+
+        <section id="fr-summary" data-nav-label="Zusammenfassung">
+          <h3>Zusammenfassung</h3>
+          <p class="hz-note">Die <strong>Hangar-Zone</strong> hat jetzt einen Helden: das Schiff ist ein 16:9-Bleed-Crop seines Artworks statt eines Textlinks mit drei bebilderten Trabanten darunter. Hersteller, Rolle, Name und die vier führenden Kennzahlen liegen auf einem Scrim <em>im</em> Rahmen; die Kennzahl-Kartenreihe darunter ist weg. Jeder Chip trägt sein Kategorie-Glyph aus <code>codex-category-icon</code>, damit die Zahlen als Schild / Waffe / Quantum / Bestückung lesen und nicht als vier gleiche Kästen.</p>
+          <p class="hz-note">Die <strong>Flotte</strong> benutzt dieselbe Kachel wie die Reißbrett-Reihe, gruppiert nach Hersteller, Einsatzzweck oder Hangar-Reihenfolge. Das Flaggschiff steht mit Stern <em>in</em> der Reihe — eine Gruppierung, die ihr wichtigstes Element auslässt, liest sich falsch. „Andere Konfigurationen" ist ersatzlos weg.</p>
+          <p class="hz-note">Das <strong>Versum-Band</strong> ist eine horizontale Chip-Leiste: Glyph und Name tragen den Chip, die Anzahl ist Nebeninformation. Alle sieben Domänen landen jetzt auf <em>derselben</em> Subseite mit vorbelegtem Facet — Baupläne sprangen vorher auf die separate Seite <code>/codex/blueprint</code> mit anderen Bedienelementen. Das Wort „Domänen" ist weg, das Keybinding-Icon sitzt auf der Titelzeile rechts.</p>
+          <div class="hz-facts">
+            <div class="hz-fact"><strong>4</strong><span>Kennzahlen im Bild statt in Karten darunter</span></div>
+            <div class="hz-fact"><strong>7 / 7</strong><span>Domänen auf derselben Subseite (vorher 6/7)</span></div>
+            <div class="hz-fact"><strong>1403</strong><span>Tests grün, Build grün, Mobile-Gate GREEN</span></div>
+            <div class="hz-fact"><strong>560px</strong><span>Breakpoint, unter dem die Chip-Labels weichen</span></div>
+          </div>
+        </section>
+
+        <section id="fr-files" data-nav-label="Geänderte Dateien">
+          <h3>Geänderte Dateien</h3>
+          <ul class="hz-note" style="line-height:1.75;">
+            <li><code>src/app/codex/codex-landing.component.ts</code> — Bild-Hero mit Scrim-KPIs, Flotten-Kacheln mit Sortierachsen (<code>fleetSort</code>, <code>fleetGroups</code>), Rollen-Auflösung für alle Rümpfe (<code>resolveFleetRoles</code>), KPI-Glyph-Mapping (<code>kpiIcon</code>), gezeichnete Leer-Bucht, Versum-Kopfzeile + Chip-Leiste. Konfigurationsliste und ihr Fetch entfernt.</li>
+            <li><code>src/app/codex/codex-landing.component.spec.ts</code> — Assertions auf Hero-Scrim, Flotten-Kacheln inkl. Flaggschiff-Stern und Sortierleiste, Chip-Leiste mit einheitlichem Ziel, Bucht-Szene im Leerzustand.</li>
+            <li><code>public/i18n/{de,en}.json</code> — <code>fleet.laneTitle/sortLabel/sortUnknown/sort.*/emptyLead/emptyArt</code> neu, <code>versum.title</code> („Domänen") entfernt.</li>
+          </ul>
+        </section>
+
+        <section id="fr-tests" data-nav-label="Tests &amp; Verifikation">
+          <h3>Tests &amp; Verifikation</h3>
+          <ul class="hz-note" style="line-height:1.75;">
+            <li><strong>npm test — 1403 SUCCESS, 0 FAILED.</strong></li>
+            <li><strong>npm run build + postbuild — grün.</strong> Der Build hat einen Fehler gefunden, den <code>tsc --noEmit</code> nicht sieht: das Template las <code>fleetRows()</code>, das <code>private</code> war. Template-Typprüfung läuft nur im AOT-Compiler — deshalb ist der Build hier kein optionaler Schritt.</li>
+            <li><strong>npm run gate:mobile — GREEN</strong>, 40 Page-Audits, 0 Findings, gegen das eigene <code>dist/</code>.</li>
+            <li><strong>Layout-Messung mit der echten Komponenten-CSS</strong> bei 390×844 und Coarse-Pointer-Tokens: Hero 307×173 px, Scrim 136 px (kein Überlauf), zwei Chip-Reihen, alle Schriftgrößen ≥ 12 px, Sortier-Buttons 48 px, kein horizontaler Seitenüberlauf.</li>
+            <li><strong>Nicht verifiziert:</strong> die Zone im laufenden Browser mit eingeloggter Session. <code>/codex</code> liegt hinter <code>authGuard</code>; das Mobile-Gate läuft dort gegen die Login-Wand. Struktur ist über DOM-Assertions geprüft, das Aussehen über ein Harness mit der aus der Komponente extrahierten CSS — nicht über die echte Seite.</li>
+          </ul>
+        </section>
+
+        <section id="fr-open" data-nav-label="Offene Punkte" data-open-questions>
+          <h3>Offene Fragen &amp; TODOs</h3>
+          <p class="hz-note">Standardmäßig angehakt — abwählen, was nicht als Issue laufen soll.</p>
+          <div class="open-questions-list">
+            <label><input type="checkbox" checked name="oq-kpi-gap"
+              data-issue-title="Ship-KPIs: nur 2 von 6 Zeilen rendern für die Avenger Stalker"
+              data-issue-type="bug"
+              data-issue-body="computeShipKpis (src/app/codex/codex-landing-kpi.ts) kann sechs Kennzahlen liefern: Schildsumme, unbestueckte Aufhaengungen, Waffenaufhaengungen, Raketenkapazitaet, Quantum-Antrieb, Bestueckungsgrad. Im Screenshot vom 23.08.2026 erschienen fuer die Aegis Avenger Stalker nur Schildsumme und Bestueckungsgrad. Die drei Aufhaengungs-Zeilen haengen an weaponPorts.length > 0 bzw. missilePorts.length > 0 — beide waren offenbar leer, obwohl das Schiff Waffenaufhaengungen hat. Pruefen, ob categorizePort (codex-format.ts) die itemPorts dieses Schiffs nicht klassifiziert oder ob payload.itemPorts fuer diese Huelle leer ankommt. Betrifft jede Huelle mit demselben Muster; kein Redesign repariert es."><span class="oq-label">Ship-KPIs: nur 2 von 6 Zeilen rendern — Mount-Kategorisierung prüfen</span></label>
+            <label><input type="checkbox" checked name="oq-blueprint-glyph"
+              data-issue-title="Eigenes Kategorie-Glyph für Baupläne"
+              data-issue-type="chore"
+              data-issue-body="categoryIconKey (src/app/codex/codex-category-icon.component.ts) hat keinen Zweig fuer 'blueprint' und faellt auf 'generic' zurueck. Seit dem Versum-Band traegt jede der sieben Domaenen ihr Glyph sichtbar nebeneinander — Bauplaene sind die einzige, die das generische Buch-Symbol zeigt. Einen eigenen Pfad in ICON_PATHS ergaenzen (plus Farbe in CAT_COLORS) und den Zweig in categoryIconKey nachziehen."><span class="oq-label">Eigenes Glyph für Baupläne — fällt derzeit auf „generic" zurück</span></label>
+            <label><input type="checkbox" checked name="oq-visual-login"
+              data-issue-title="Visuelle Verifikation der Codex-Startseite mit eingeloggter Session"
+              data-issue-type="chore"
+              data-issue-body="Die neue Hangar-Zone (Bild-Hero, Flotten-Kacheln, Sortierleiste, gezeichnete Leer-Bucht) und das Versum-Chip-Band sind ueber Unit-Specs, den Production-Build und ein CSS-Harness geprueft, aber nie mit einer echten eingeloggten Session im Browser gesehen worden — /codex liegt hinter authGuard und das Mobile-Gate laeuft dort gegen die Login-Wand. Lokalen Supabase-Stack nach .claude/deep-knowledge/local-dev.md hochziehen, einloggen, die Zone mit echtem RSI-Artwork auf Desktop und 390px sichten, Screenshots anhaengen. Besonders: wie liest sich der Scrim ueber einem hellen Render, und wie sehen die Gruppen aus, wenn der Hangar nur 1-2 Schiffe hat."><span class="oq-label">Visuelle Verifikation mit eingeloggter Session und echtem Artwork nachholen</span></label>
+            <label><input type="checkbox" checked name="oq-fleet-sort-persist"
+              data-issue-title="Flotten-Sortierung über Sitzungen hinweg merken"
+              data-issue-type="feature"
+              data-issue-body="fleetSort in codex-landing.component.ts ist bewusst nur Session-lokal (kein localStorage), damit der erste Wurf keine Preference-Kategorie anfasst. Wer immer nach Einsatzzweck sortiert, stellt das bei jedem Besuch neu ein. Falls gewuenscht: ueber ConsentService.preferencesAllowed() gaten und wie die Upcoming-Favoriten in localStorage ablegen."><span class="oq-label">Flotten-Sortierung merken (aktuell nur session-lokal)</span></label>
+          </div>
+        </section>
+
+        <section id="fr-next" data-nav-label="Nächste Schritte">
+          <h3>Nächste Schritte</h3>
+          <p class="hz-note">Der Zweig <code>claude/concept-design-devops-hangar-7bc548</code> trägt die Änderung und ist gepusht — noch kein PR, noch nicht gemerged. Über den Abschluss-Wizard rechts lässt sich in einem Rutsch entscheiden: Issues für die offenen Punkte, Ship-Pipeline starten, und was mit den Concept-Dateien passiert.</p>
+        </section>
+      </section>
     </main>
   </div>
 
@@ -2165,10 +2251,14 @@ section[data-iteration="2"] .hz-surface.one { max-width: 620px; }
     <button id="panel-close" class="panel-close-btn" aria-label="Schliessen">✕</button>
     <nav class="iteration-tabs" role="tablist" aria-label="Iterationen">
       <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Iteration 1</button>
-      <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="true" aria-controls="iter-2">Iteration 2</button>
+      <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Iteration 2</button>
+      <button class="iteration-tab" role="tab" data-iteration="3" data-final-report aria-selected="true" aria-controls="iter-3">Abschlussbericht</button>
     </nav>
     <nav class="screen-nav" id="screen-nav" aria-label="Screens">
-      <!-- auto-populated -->
+      <!-- auto-populated (design iterations) -->
+    </nav>
+    <nav class="section-nav" id="section-nav" aria-label="Abschnitte">
+      <!-- auto-populated (decision / free iterations, e.g. the final report) -->
     </nav>
     <div id="panel-ready">
       <div id="connection-status" class="connection-pill" data-state="connecting" role="status" aria-live="polite">
