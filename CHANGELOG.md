@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.0] - 2026-08-23
+
+### Changed
+
+- **"Was ist neu" is now "Auf dem Reißbrett".** The rail under the Codex domain
+  tiles never held news. It holds RSI ship-matrix entries our extracted game data
+  has no match for — announced concept hulls meant to be built some day, newest
+  announcement first. The old title promised a recency the list does not carry
+  (owner feedback, 2026-08-23).
+- **Its tiles are the artwork now.** Each entry was a boxed thumbnail with the
+  name and manufacturer stacked underneath; it is a 16:9 bleed crop with both
+  riding a bottom scrim, the art-first treatment the ship pages already use.
+  `sc-fallback-image` gained a `--sc-img-fit` / `--sc-img-w` / `--sc-img-h`
+  contract so a host can ask for a cover crop — the default stays the
+  letterboxed `contain` fit every other caller relies on.
+
+### Removed
+
+- **The Showroom.** Route, page, landing entry, Bridge billboard and nav link,
+  i18n block and mobile-gate route are gone. A livery-first ship gallery was
+  never a destination of its own: skins and the interactive 3D model already
+  live on the ship detail page, reachable through the hangar. `ShowroomService`
+  stays — the Holo-Ready badge reads the same discovery plane.
+
 ## [0.66.0] - 2026-08-22
 
 ### Changed
