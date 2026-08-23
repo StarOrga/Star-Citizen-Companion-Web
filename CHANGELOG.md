@@ -4,6 +4,47 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.68.0] - 2026-08-23
+
+### Fixed
+
+- **A cancelled Postgres statement no longer throws away a whole catalog
+  upload** (data-uploader 0.25.0). A LIVE 4.9.0 run died at
+  `upsert → HTTP 500 ingest_failed canceling statement due to statement
+  timeout`: the catalog bridge had no retry at all, so one over-heavy batch
+  ended a multi-hour stage. There are two causes and now two separate
+  recoveries — a flaky or momentarily busy server is retried with exponential
+  backoff, while a batch the database refuses to finish in time is **halved**
+  and re-sent, because retrying that one unchanged would time out forever. The
+  reduced batch size carries through the rest of the phase, so the remaining
+  chunks don't each rediscover the limit. Every op is an idempotent upsert, so
+  splitting costs nothing. `ingest-catalog` now returns `503 ingest_timeout`
+  for a cancelled statement instead of burying it in a generic
+  `ingest_failed`; the uploader also matches the raw wording, so the fix works
+  before the function redeploys.
+- **A failed Codex stage deleted the extract it needed to retry.** The stage is
+  deliberately non-fatal, so the run continued to `uploadJob.finish()` (job file
+  dropped) and `cleanup.extractDir()` (out_dir purged) — a transient timeout
+  therefore destroyed both the resume point and the extracted data, turning a
+  30-second retry into a full re-extraction. The job now stays resumable, and
+  the Codex error is re-asserted after the skin stage instead of being
+  overwritten by "3D-Skins fertig".
+- **The error message rendered on top of the running progress card.**
+  `.upload-actions` is a flex container whose children could shrink below their
+  own content; at a tight window height the progress card was handed 26 px for
+  118 px of content and the overflow painted straight through the message box.
+  Children now hold their natural height and the card scrolls instead. The
+  status itself became three separable things — what happened, what to do about
+  it, and the technical text, collapsed — replacing the raw one-line dump.
+- **Pause did nothing during the 3D-skin build.** The cooperative signal is
+  only checked between our own work units, but the skin build is a Python child
+  that runs for hours without asking; the button flipped the job state and the
+  machine kept grinding. Pause and cancel now kill that child, which is safe
+  because `skin_export_app` writes a ship's `skins.json` only once that ship is
+  fully exported and `--skip-existing` keys on exactly that file — a resume
+  rebuilds only the ship that was in flight. The kill reports as `paused`, not
+  as a build failure, and the button acknowledges the click immediately.
+
 ## [0.67.0] - 2026-08-23
 
 ### Changed
@@ -27,7 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never a destination of its own: skins and the interactive 3D model already
   live on the ship detail page, reachable through the hangar. `ShowroomService`
   stays — the Holo-Ready badge reads the same discovery plane.
-
 ## [0.66.0] - 2026-08-22
 
 ### Changed

@@ -55,8 +55,10 @@
       "discard": "Descartar",
       "cancelled": "Subida descartada: se eliminó el progreso guardado.",
       "resumeBanner": "Se encontró una subida interrumpida ({{hint}}). ¿Reanudarla?",
-      "pauseShort": "en pausa"
-    }
+      "pauseShort": "en pausa",
+      "pausingShort": "Pausando…"
+    },
+    "technicalDetails": "Detalles técnicos"
   },
   "skins": {
     "building": "Construyendo skins 3D",
