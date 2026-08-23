@@ -74,7 +74,7 @@ const DEFAULT_CONFIG = {
   baseUrl: null,
   devices: ['iphone-14', 'pixel-7', 'ipad-air', 'galaxy-tab-s9'],
   quickDevices: ['iphone-14', 'ipad-air'],
-  routes: ['/news', '/codex', '/codex/index', '/codex/showroom', '/starscape', '/hangar', '/login', '/about'],
+  routes: ['/news', '/codex', '/codex/index', '/starscape', '/hangar', '/login', '/about'],
   quickRoutes: ['/news', '/codex', '/hangar', '/about'],
   thresholds: { minTapTargetPx: 44, minFontSizePx: 12, overflowTolerancePx: 1, maxFindingsPerCheck: 8 },
   severity: {

@@ -33,12 +33,16 @@ import { ChangeDetectionStrategy, Component, computed, input, signal } from '@an
   // rule can no longer reach it under emulated encapsulation. Sizing therefore
   // travels as custom properties, which DO inherit across the boundary: a host
   // sets --sc-img-max-h (and optionally --sc-img-shadow) on its thumb container.
+  // A host that wants a bleed/cover crop instead of a letterboxed contain fit
+  // sets --sc-img-fit: cover together with --sc-img-w/--sc-img-h: 100%.
   styles: [`
     :host { display: contents; }
     img {
+      width: var(--sc-img-w, auto);
+      height: var(--sc-img-h, auto);
       max-width: 100%;
       max-height: var(--sc-img-max-h, 100%);
-      object-fit: contain;
+      object-fit: var(--sc-img-fit, contain);
       filter: var(--sc-img-shadow, drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5)));
     }
   `],
