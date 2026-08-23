@@ -26,7 +26,17 @@ export const approvedGuard: CanActivateFn = async (_route, state) => {
   await roles.waitReady();
   if (roles.approved()) return true;
 
-  // Not invited — drop the session and explain on the login page.
+  // `approved() === false` is not always the confirmed "not invited" fact
+  // it used to always be: it's also what a transient `profiles` read
+  // failure with no known-good data yet looks like (`identityUnknown()`),
+  // and what `waitReady()`'s timeout fallback looks like (`!loaded()`).
+  // Neither is grounds to destroy a real session — fail closed on THIS
+  // navigation only (block it, no redirect, no sign-out) and let a later
+  // refresh (next guarded nav, next token cycle) resolve it either way.
+  if (!roles.loaded() || roles.identityUnknown()) return false;
+
+  // Genuinely not invited (a real, DB-confirmed `is_approved = false`) —
+  // drop the session and explain on the login page.
   await auth.signOut(false);
   return router.createUrlTree(['/login'], { queryParams: { denied: 'invite' } });
 };
