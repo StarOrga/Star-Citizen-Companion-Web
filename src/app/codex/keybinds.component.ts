@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  Signal,
   computed,
   inject,
   signal,
@@ -21,6 +22,7 @@ import {
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { CodexKeybind, KeybindDevice } from './codex.types';
 import { RoleService } from '../auth/role.service';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { KeybindCategoryService, KeybindTarget, keybindKey } from './keybind-category.service';
 import {
   EMPTY_ASSIGNMENT,
@@ -65,6 +67,12 @@ interface KeybindGroup {
 /** Which rows the list shows — the admin's way through ~1.1k actions. */
 type AssignFilter = 'all' | 'unassigned' | 'assigned';
 
+/** Taxonomy values → themed-select options (value + i18n key, never literals). */
+const taxonomyOptions = (
+  layer: KeybindLayer,
+  values: readonly string[],
+): readonly ScSelectOption[] => values.map((v) => ({ value: v, labelKey: taxonomyKey(layer, v) }));
+
 const DEVICES: readonly KeybindDevice[] = ['keyboard', 'mouse', 'gamepad', 'joystick'] as const;
 const SKELETONS = Array.from({ length: 8 }, (_, i) => i);
 const FILTERS: readonly AssignFilter[] = ['all', 'unassigned', 'assigned'] as const;
@@ -87,7 +95,13 @@ const FILTERS: readonly AssignFilter[] = ['all', 'unassigned', 'assigned'] as co
 @Component({
   selector: 'sc-codex-keybinds',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule, CodexStatusBannerComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    TranslateModule,
+    CodexStatusBannerComponent,
+    ScSelectComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="kb">
@@ -160,59 +174,27 @@ const FILTERS: readonly AssignFilter[] = ['all', 'unassigned', 'assigned'] as co
               </span>
             </div>
 
+            <!-- Themed listboxes, not native <select>s: the OPEN state of a
+                 native select is drawn by the OS and cannot be styled, which is
+                 what made the first cut look off-theme (fd58a5eb, round 2). The
+                 label is a plain <span> + aria-label on the control, because a
+                 <label> cannot wrap a custom element into an implicit pair. -->
             <div class="pickers">
-              <label class="pick">
-                <span>{{ 'codex.keybinds.assign.layers.scope' | translate }}</span>
-                <select [ngModel]="draft().scope" (ngModelChange)="setLayer('scope', $event)">
-                  <option [ngValue]="null">{{ 'codex.keybinds.assign.none' | translate }}</option>
-                  @for (v of scopes; track v) {
-                    <option [ngValue]="v">{{ taxonomyLabel('scope', v) | translate }}</option>
-                  }
-                </select>
-              </label>
-
-              <label class="pick">
-                <span>{{ 'codex.keybinds.assign.layers.environment' | translate }}</span>
-                <select [ngModel]="draft().environment" [disabled]="environments().length === 0"
-                        (ngModelChange)="setLayer('environment', $event)">
-                  <option [ngValue]="null">{{ 'codex.keybinds.assign.none' | translate }}</option>
-                  @for (v of environments(); track v) {
-                    <option [ngValue]="v">{{ taxonomyLabel('environment', v) | translate }}</option>
-                  }
-                </select>
-              </label>
-
-              <label class="pick">
-                <span>{{ 'codex.keybinds.assign.layers.role' | translate }}</span>
-                <select [ngModel]="draft().role" [disabled]="rolesForDraft().length === 0"
-                        (ngModelChange)="setLayer('role', $event)">
-                  <option [ngValue]="null">{{ 'codex.keybinds.assign.none' | translate }}</option>
-                  @for (v of rolesForDraft(); track v) {
-                    <option [ngValue]="v">{{ taxonomyLabel('role', v) | translate }}</option>
-                  }
-                </select>
-              </label>
-
-              <label class="pick">
-                <span>{{ 'codex.keybinds.assign.layers.activity' | translate }}</span>
-                <select [ngModel]="draft().activity" (ngModelChange)="setLayer('activity', $event)">
-                  <option [ngValue]="null">{{ 'codex.keybinds.assign.none' | translate }}</option>
-                  @for (v of activities; track v) {
-                    <option [ngValue]="v">{{ taxonomyLabel('activity', v) | translate }}</option>
-                  }
-                </select>
-              </label>
-
-              <label class="pick">
-                <span>{{ 'codex.keybinds.assign.layers.actionGroup' | translate }}</span>
-                <select [ngModel]="draft().actionGroup"
-                        (ngModelChange)="setLayer('actionGroup', $event)">
-                  <option [ngValue]="null">{{ 'codex.keybinds.assign.none' | translate }}</option>
-                  @for (v of actionGroups; track v) {
-                    <option [ngValue]="v">{{ taxonomyLabel('actionGroup', v) | translate }}</option>
-                  }
-                </select>
-              </label>
+              @for (p of pickers; track p.layer) {
+                <div class="pick">
+                  <span class="pick-label">
+                    {{ 'codex.keybinds.assign.layers.' + p.layer | translate }}
+                  </span>
+                  <sc-select
+                    [options]="p.options()"
+                    [value]="draft()[p.layer]"
+                    [disabled]="p.options().length === 0"
+                    placeholderKey="codex.keybinds.assign.none"
+                    [ariaLabel]="'codex.keybinds.assign.layers.' + p.layer | translate"
+                    (valueChange)="setLayer(p.layer, $event)"
+                  />
+                </div>
+              }
             </div>
 
             <div class="assign-actions">
@@ -375,17 +357,10 @@ const FILTERS: readonly AssignFilter[] = ['all', 'unassigned', 'assigned'] as co
 
     .pickers { display: flex; gap: 10px; flex-wrap: wrap; }
     .pick { display: flex; flex-direction: column; gap: 4px; flex: 1 1 150px; min-width: 0; }
-    .pick > span {
+    .pick-label {
       font-family: var(--sc-font-display); font-size: max(0.64rem, var(--sc-fs-floor));
       letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2);
     }
-    .pick select {
-      padding: 10px 12px; border-radius: 8px; min-height: 48px;
-      background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
-      font-family: inherit; font-size: 0.88rem;
-    }
-    .pick select:disabled { opacity: 0.45; cursor: not-allowed; }
-    .pick select:focus { outline: none; border-color: var(--sc-accent); }
 
     .assign-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .sel-count { color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); margin-right: auto; }
@@ -416,7 +391,9 @@ const FILTERS: readonly AssignFilter[] = ['all', 'unassigned', 'assigned'] as co
     }
     .row:hover { background: var(--sc-bg-1); border-color: var(--sc-border); }
     .row.picked { background: color-mix(in srgb, var(--sc-accent) 10%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); }
-    .pick-box { flex: 0 0 auto; width: 20px; height: 20px; accent-color: var(--sc-accent); cursor: pointer; }
+    /* Sizing only — the box itself is painted by the global checkbox rules in
+       styles.scss, so it matches every other check in the app. */
+    .pick-box { flex: 0 0 auto; }
     .row-edit {
       flex: 0 0 auto; padding: 6px 12px; border-radius: 6px; min-height: 48px;
       background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2);
@@ -512,6 +489,19 @@ export class KeybindsComponent implements OnInit {
   readonly draftAssigned = computed(() => isAssigned(this.draft()));
   readonly environments = computed(() => environmentsFor(this.draft().scope));
   readonly rolesForDraft = computed(() => rolesFor(this.draft().environment));
+
+  /**
+   * The five hierarchy pickers in L1→L5 order. Declared as data rather than
+   * five near-identical template blocks — the only thing that differs per layer
+   * is its option list, and L2/L3 narrow with the layer above them.
+   */
+  readonly pickers: readonly { layer: KeybindLayer; options: Signal<readonly ScSelectOption[]> }[] = [
+    { layer: 'scope', options: computed(() => taxonomyOptions('scope', this.scopes)) },
+    { layer: 'environment', options: computed(() => taxonomyOptions('environment', this.environments())) },
+    { layer: 'role', options: computed(() => taxonomyOptions('role', this.rolesForDraft())) },
+    { layer: 'activity', options: computed(() => taxonomyOptions('activity', this.activities)) },
+    { layer: 'actionGroup', options: computed(() => taxonomyOptions('actionGroup', this.actionGroups)) },
+  ];
 
   /** How much of THIS build's profile is classified — the admin's progress. */
   readonly assignedTotal = computed(() => {
@@ -746,10 +736,6 @@ export class KeybindsComponent implements OnInit {
       if (v) out.push({ layer, key: taxonomyKey(layer, v) });
     }
     return out;
-  }
-
-  taxonomyLabel(layer: KeybindLayer, value: string): string {
-    return taxonomyKey(layer, value);
   }
 
   /**

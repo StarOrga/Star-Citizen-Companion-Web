@@ -298,7 +298,6 @@ type LangId = AppLanguage;
       font-size: 0.85rem;
       color: var(--sc-fg-0);
     }
-    .consent-toggle input { accent-color: var(--sc-accent); width: 16px; height: 16px; }
 
     .field-row {
       display: flex;
