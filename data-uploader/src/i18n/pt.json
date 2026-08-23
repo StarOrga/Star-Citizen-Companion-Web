@@ -55,8 +55,10 @@
       "discard": "Descartar",
       "cancelled": "Envio descartado — o progresso salvo foi removido.",
       "resumeBanner": "Envio interrompido encontrado ({{hint}}) — retomar?",
-      "pauseShort": "em pausa"
-    }
+      "pauseShort": "em pausa",
+      "pausingShort": "Pausando…"
+    },
+    "technicalDetails": "Detalhes técnicos"
   },
   "skins": {
     "building": "Construindo skins 3D",

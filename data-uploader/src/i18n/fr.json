@@ -55,8 +55,10 @@
       "discard": "Abandonner",
       "cancelled": "Téléversement abandonné — la progression enregistrée a été supprimée.",
       "resumeBanner": "Téléversement interrompu détecté ({{hint}}) — le reprendre ?",
-      "pauseShort": "en pause"
-    }
+      "pauseShort": "en pause",
+      "pausingShort": "Mise en pause…"
+    },
+    "technicalDetails": "Détails techniques"
   },
   "skins": {
     "building": "Construction des skins 3D",
