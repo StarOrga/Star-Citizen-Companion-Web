@@ -2,24 +2,35 @@
 //
 // Source: POST https://robertsspaceindustries.com/api/spectrum/forum/thread/nested
 //         { slug, channel_id: "190048", sort: "votes", page: 1 }, header X-Tavern-Id: 1
-// Public, unauthenticated. Same forum the patch-note TITLES already come from
-// (see .claude/deep-knowledge/verse-news-sources.md) — the list endpoint simply
-// never carries the post body, which is why the patch board knew every patch by
-// name and nothing about its contents.
+// Public, unauthenticated, verified against live data 2026-08-23. Same forum
+// the patch-note TITLES already come from (see
+// .claude/deep-knowledge/verse-news-sources.md) — the list endpoint simply never
+// carries the post body, which is why the patch board knew every patch by name
+// and nothing about its contents.
 //
-// The body arrives as Draft.js content blocks. RSI's authors use FOUR shapes and
-// they all have to survive, because the mix differs per note:
+// The body arrives as Draft.js content blocks, under
+// `data.content_blocks[] → {type:'text', data:{blocks, entityMap}}`. Block types
+// measured on the two notes that matter most, and the mix differs per note:
+//
+//   4.9 LIVE Release Notes    header-one ×4, blockquote ×5, unstyled ×24, ul-item ×5
+//   4.10 PTU RC1 Patch Notes  header-one ×2, unstyled ×6, ul-item ×28, blockquote ×0
+//
+// so all four have to survive:
 //
 //   header-one          → section heading   ("Features and Gameplay")
 //   blockquote          → sub-heading       ("Ships & Vehicles")
 //   unordered-list-item → bullet            ("Long Term Persistence: Preserved")
-//   unstyled            → prose … OR a bullet, when the author typed the bullet
-//                         glyph by hand ("► Vehicle Combat Hit Markers")
+//   unstyled            → prose, unless it is a whole-line-bold label
+//                         ("Testing/Feedback Focus" → sub-heading) or the author
+//                         typed a bullet glyph by hand ("► …" → bullet)
 //
-// That last case is not an edge case: the 4.9 LIVE release notes write EVERY
-// feature line as `unstyled` prefixed with `►`. Treating unstyled as prose would
-// have turned the entire feature list of the current patch into an unsearchable
-// wall of paragraphs.
+// The two `unstyled` rescues are why a note is not just a wall of paragraphs:
+// 4.10 PTU writes its section labels as bold `unstyled` lines with no heading
+// block at all, and older/hand-formatted notes mark list items with a glyph.
+// Neither is universal — 4.9 LIVE's "Important Build Info" carries no style
+// range and stays prose — which is exactly why both are heuristics applied on
+// top of the block type rather than a replacement for it. A miss costs a line
+// its label, never the line itself.
 
 /** What a line of a patch note is. */
 export type PatchOutlineKind = 'heading' | 'subheading' | 'bullet' | 'text';
@@ -64,7 +75,7 @@ const BULLET_GLYPHS = /^[►▶•▪●‣⁃»]+\s*/;
 
 /** Collapse Draft.js whitespace (RSI indents list items with four spaces). */
 function tidy(raw: string): string {
-  return raw.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+  return raw.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -103,11 +114,13 @@ function blockLinks(block: Record<string, unknown>, entityMap: unknown): string[
 /**
  * Is this `unstyled` block really a heading the author typed in bold?
  *
- * RSI writes "Important Build Info" and "Testing/Feedback Focus" as plain
+ * RSI writes labels like "Testing/Feedback Focus" and "Known Issues" as plain
  * paragraphs carrying a BOLD (usually also UNDERLINE) style range across the
- * WHOLE line. Read literally they are prose, and the bullets underneath them
- * lose the only label that says what they are about. The whole-line condition
- * is what keeps a sentence with one bold word out of the headings.
+ * WHOLE line — the 4.10 PTU notes have no heading block anywhere below the
+ * title and rely entirely on this. Read literally they are prose, and the
+ * bullets underneath them lose the only label that says what they are about.
+ * The whole-line condition is what keeps a sentence with one bold word out of
+ * the headings.
  */
 function isBoldWholeLine(ranges: unknown, rawLength: number): boolean {
   if (!Array.isArray(ranges) || ranges.length === 0 || rawLength === 0) return false;

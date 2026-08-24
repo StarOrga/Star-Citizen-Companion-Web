@@ -12,11 +12,27 @@ interface RoadmapResponse {
 }
 
 /**
- * How many slugs one request may carry. Mirrors MAX_NOTES_PER_REQUEST in the
- * edge function — asking for more would silently drop the tail, and the client
- * would keep re-requesting notes it is never sent.
+ * How many slugs one request may carry.
+ *
+ * Deliberately equal to the edge function's per-request UPSTREAM budget
+ * (`MAX_UPSTREAM_FETCHES`), not to its larger `MAX_NOTES_PER_REQUEST` accept
+ * limit. The function silently declines to fetch anything beyond that budget,
+ * and from the client a declined slug is indistinguishable from "this note has
+ * no contents" — it would be filed as permanently missing and never asked for
+ * again. Asking for exactly what the server is willing to fetch removes the
+ * ambiguity instead of trying to encode it on the wire.
  */
-const MAX_NOTES_PER_REQUEST = 12;
+const SLUGS_PER_REQUEST = 5;
+
+/**
+ * How many outline requests may be in flight at once.
+ *
+ * "Alle Notes ausklappen" over an unfiltered history asks for a hundred-odd
+ * notes. Firing that as twenty parallel requests would put ~100 concurrent
+ * Spectrum fetches on RSI from one click; two at a time fills the page
+ * progressively, top-down, at a rate a public API can be asked to serve.
+ */
+const MAX_CONCURRENT_REQUESTS = 2;
 
 /** `…/forum/190048/thread/<slug>` → `<slug>`; '' when the url is not a thread. */
 export function threadSlugOf(url: string): string {
@@ -115,12 +131,23 @@ export class RoadmapService {
   }
 
   /**
+   * Slugs waiting for a request slot, in the order they were asked for — so the
+   * notes at the top of the history fill in first.
+   */
+  private readonly queue: string[] = [];
+  private inFlight = 0;
+
+  /**
    * Make sure the contents of these notes are loaded.
    *
    * Fire-and-forget: callers are templates and effects, and there is nothing to
-   * await — the signals update when the answer lands. Already-loaded, in-flight
-   * and known-missing slugs are filtered out first, so calling this on every
-   * change detection pass is safe and costs one Set lookup per slug.
+   * await — the signals update when the answer lands. Already-loaded, queued,
+   * in-flight and known-missing slugs are filtered out first, so calling this on
+   * every change detection pass is safe and costs one Set lookup per slug.
+   *
+   * A slug is marked pending at ENQUEUE time, not when its request starts. That
+   * is what makes this idempotent while a hundred notes sit in the queue: the
+   * row shows its loading state immediately and no second render re-enqueues it.
    */
   requestOutlines(slugs: readonly string[]): void {
     const loaded = this.outlines();
@@ -133,17 +160,28 @@ export class RoadmapService {
     }
     if (wanted.length === 0) return;
 
-    for (let i = 0; i < wanted.length; i += MAX_NOTES_PER_REQUEST) {
-      void this.fetchOutlines(wanted.slice(i, i + MAX_NOTES_PER_REQUEST));
+    this.pending.update((set) => {
+      const next = new Set(set);
+      for (const s of wanted) next.add(s);
+      return next;
+    });
+    this.queue.push(...wanted);
+    this.pump();
+  }
+
+  /** Start as many queued batches as the concurrency budget allows. */
+  private pump(): void {
+    while (this.inFlight < MAX_CONCURRENT_REQUESTS && this.queue.length > 0) {
+      const batch = this.queue.splice(0, SLUGS_PER_REQUEST);
+      this.inFlight++;
+      void this.fetchOutlines(batch).finally(() => {
+        this.inFlight--;
+        this.pump();
+      });
     }
   }
 
   private async fetchOutlines(slugs: string[]): Promise<void> {
-    this.pending.update((set) => {
-      const next = new Set(set);
-      for (const s of slugs) next.add(s);
-      return next;
-    });
     try {
       const url = `${this.endpoint}?notes=${encodeURIComponent(slugs.join(','))}`;
       const res = await firstValueFrom(this.http.get<RoadmapResponse>(url));

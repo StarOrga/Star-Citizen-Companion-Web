@@ -64,11 +64,20 @@ const BOARD_TTL_MS = 60 * 60 * 1000;
 const NOTE_TTL_MS = 6 * 60 * 60 * 1000;
 
 /**
- * How many outlines one request may fetch from RSI. Cached slugs are served on
- * top of this for free — the cap bounds the UPSTREAM cost (~1 s each), not the
- * answer size, so a fully warmed history still returns in one round trip.
+ * How many slugs `?notes=` may name at all — the guard against a hand-built url
+ * asking for the entire history in one go.
  */
 const MAX_NOTES_PER_REQUEST = 12;
+/**
+ * How many of those may actually go upstream to RSI. Cached slugs are served on
+ * top of this for free — the cap bounds the UPSTREAM cost (~1 s each), not the
+ * answer size, so a fully warmed history still returns in one round trip.
+ *
+ * `RoadmapService.SLUGS_PER_REQUEST` is deliberately the SAME number: a slug the
+ * function declines to fetch comes back indistinguishable from a note that has
+ * no contents, so the client never asks for more than this in one request and
+ * the ambiguity cannot arise. The two constants must move together.
+ */
 const MAX_UPSTREAM_FETCHES = 5;
 
 const BOARD_TIMEOUT_MS = 15_000;
@@ -187,9 +196,12 @@ async function fetchOutline(slug: string): Promise<PatchOutline | null> {
  * Outlines for the requested slugs.
  *
  * Cached-and-fresh rows cost nothing. Everything else is fetched in parallel up
- * to MAX_UPSTREAM_FETCHES; slugs beyond that budget are simply not in the
- * answer, and the client asks again for what it did not get. A stale cached row
- * still ships when its refetch fails.
+ * to MAX_UPSTREAM_FETCHES; slugs beyond that budget fall back to their stale row
+ * if there is one and are otherwise absent from the answer. The app's own client
+ * never reaches that branch (it requests exactly MAX_UPSTREAM_FETCHES slugs at a
+ * time) — it exists so a hand-built `?notes=` with twelve cold slugs degrades to
+ * a partial answer instead of twelve serial upstream fetches inside one request.
+ * A stale cached row still ships when its refetch fails.
  */
 async function loadOutlines(slugs: string[], cache: Map<string, CacheRow>): Promise<PatchOutline[]> {
   const out: PatchOutline[] = [];

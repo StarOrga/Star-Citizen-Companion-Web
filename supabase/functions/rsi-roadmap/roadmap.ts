@@ -1,18 +1,31 @@
 // RSI Roadmap "Release View" → the trimmed payload the patch board renders.
 //
 // Source: https://robertsspaceindustries.com/api/roadmap/v1/boards/1
-// Public, unauthenticated JSON. It is the REST API the roadmap SPA itself uses
-// (`/api/roadmap/v1` is hardcoded in RSI's own roadmap/main.js); the GraphQL
-// endpoint behind the Progress Tracker answers `CFUException / Internal server
-// error` to every un-whitelisted operation and is therefore NOT usable from a
-// server. Verified 2026-08-23: `GET /api/roadmap/v1/boards/1` → 200, no cookie,
-// no token, no Cloudflare challenge.
+// Public, unauthenticated JSON, and the REST API the roadmap SPA itself uses.
+// Verified end-to-end 2026-08-23: `GET /api/roadmap/v1/boards/1` → 200,
+// 820,799 bytes, no cookie, no token, no Cloudflare challenge, and this parser
+// run over that exact response yields current 4.9 / next 4.10 with all eight
+// disciplines resolved.
+//
+// The Progress Tracker's GraphQL endpoint is deliberately NOT used: it masks
+// every error into an identical `CFUException`, including "no such field", so an
+// operation there cannot be probed or version-checked from outside — a shape
+// change would surface as an outage with no diagnosis. The REST board carries
+// everything this feature needs anyway.
 //
 // The upstream document is ~800 KB: 39 releases back to Alpha 3.1, each with
 // its full card list and a derivative map per thumbnail. We keep only the
 // releases the reader asked about — the one that is live and the ones that come
-// next — and one thumbnail url per card. That is the difference between a
-// 3 KB response and a 800 KB one.
+// next — and one thumbnail url per card. Measured on the live board that is
+// 820,799 bytes in, 10,316 bytes out.
+//
+// TWO FIELDS THAT LOOK RIGHT AND ARE NOT:
+//   - `releases[].released` is dead. The live 4.9 release reports `released: 0`
+//     with `status: "Released"`; only pre-4.x rows still set the integer. Every
+//     judgement here goes through `status`.
+//   - `releases[].description` is a free-text schedule note, not a date:
+//     "Q3 2026" for what is coming, "December 23rd, 2021" for what shipped. It
+//     is rendered verbatim and never parsed.
 //
 // Nothing here is hardcoded to a version. "Current" and "next" are derived from
 // the board itself, so 4.11 becomes the next patch the day RSI moves it without
@@ -132,6 +145,20 @@ export function releasePatchLine(name: string): string {
 }
 
 /**
+ * Image hosts a roadmap thumbnail may live on.
+ *
+ * This is the app's CSP `img-src` list for RSI (vercel.json), not "any RSI
+ * subdomain": a url outside it would pass this filter, reach the browser and be
+ * blocked there, which turns a data problem into a broken image. Keep the two in
+ * step — a new RSI image host needs both entries.
+ */
+const ALLOWED_IMAGE_HOSTS = new Set([
+  'robertsspaceindustries.com',
+  'media.robertsspaceindustries.com',
+  'theverse.robertsspaceindustries.com',
+]);
+
+/**
  * Only RSI-hosted image urls survive; the board is untrusted content and its
  * thumbnail map is the one field that carries a url we would put in an <img>.
  * Relative paths (older cards store `/media/…`) are resolved against RSI.
@@ -142,8 +169,7 @@ export function resolveMediaUrl(raw: unknown): string | null {
   try {
     const u = new URL(v.startsWith('//') ? 'https:' + v : v, RSI_BASE);
     if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
-    const host = u.hostname;
-    if (host !== 'robertsspaceindustries.com' && !host.endsWith('.robertsspaceindustries.com')) return null;
+    if (!ALLOWED_IMAGE_HOSTS.has(u.hostname)) return null;
     u.protocol = 'https:';
     return u.toString();
   } catch {

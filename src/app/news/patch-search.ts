@@ -22,7 +22,7 @@ export function normalizeSearchText(value: string): string {
   return value
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -65,7 +65,7 @@ export interface HighlightSegment {
  */
 export function highlightSegments(text: string, tokens: readonly string[]): HighlightSegment[] {
   if (tokens.length === 0 || !text) return [{ text, hit: false }];
-  const hay = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const hay = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   // Bail out if the length invariant does not hold (exotic scripts can change
   // length under NFD). Highlighting is a nicety; a wrong offset is not.
   if (hay.length !== text.length) return [{ text, hit: false }];

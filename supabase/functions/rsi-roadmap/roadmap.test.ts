@@ -104,6 +104,10 @@ test('media urls resolve relative paths and reject foreign hosts', () => {
     'https://media.robertsspaceindustries.com/xyz/x.jpg',
   );
   assert.equal(resolveMediaUrl('https://evil.example.com/x.jpg'), null);
+  // An RSI subdomain that is NOT in the app's CSP img-src is rejected here too:
+  // emitting it would only move the failure into the browser as a blocked image.
+  assert.equal(resolveMediaUrl('https://cdn.robertsspaceindustries.com/x.jpg'), null);
+  assert.equal(resolveMediaUrl('https://evil.robertsspaceindustries.com.attacker.net/x.jpg'), null);
   assert.equal(resolveMediaUrl('javascript:alert(1)'), null);
   assert.equal(resolveMediaUrl(''), null);
 });
