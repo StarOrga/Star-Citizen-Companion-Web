@@ -1151,11 +1151,54 @@
       },
       "board": {
         "title": "Patch history",
-        "sub": "Cadence, forecasts and every release note — grouped by main patch line",
+        "sub": "Roadmap, cadence, dates and every release note — searchable down to the single bullet point",
         "back": "Back to Verse News"
       },
       "waves": {
         "title": "{{count}} build waves of the same announcement"
+      },
+      "search": {
+        "label": "Search patch contents",
+        "placeholder": "e.g. Orison, hotfix, quantum drive",
+        "clear": "Clear search",
+        "summary": "{{notes}} notes across {{lines}} patch lines",
+        "scope": "Searches every title and the bullet points of {{loaded}} loaded notes"
+      },
+      "roadmap": {
+        "title": "What's in it",
+        "hint": "Planned content per the RSI roadmap (Release View)",
+        "expandAll": "Show all descriptions",
+        "collapseAll": "Collapse descriptions",
+        "source": "Roadmap on RSI ↗",
+        "showNotes": "Show patch notes for {{version}}",
+        "uncategorized": "Uncategorized",
+        "noDetail": "RSI published no description for this entry.",
+        "emptyRelease": "No roadmap entries for this search.",
+        "later": "Planned after that:",
+        "slot": {
+          "current": "Current patch",
+          "next": "Next patch"
+        },
+        "status": {
+          "released": "Released",
+          "committed": "Committed",
+          "tentative": "Tentative",
+          "unknown": "Open"
+        }
+      },
+      "detail": {
+        "loading": "Loading patch contents …",
+        "unavailable": "No contents available for this note — read it on RSI.",
+        "noMatch": "No match inside this note.",
+        "fullNotes": "Full notes ↗",
+        "linkOut": "Link ↗",
+        "openOnRsi": "Open on RSI ↗",
+        "openOnRsiAria": "Open {{title}} on RSI (new tab)",
+        "truncated": "Very long note — the rest is on RSI.",
+        "hits": "{{count}} hits",
+        "points": "{{count}} points",
+        "expandAll": "Expand all notes",
+        "collapseAll": "Collapse all notes"
       }
     },
     "detail": {
