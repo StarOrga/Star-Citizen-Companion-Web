@@ -29,13 +29,22 @@ import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
-import { HangarRoleLoadout, HangarShipConfig } from '../hangar/hangar.types';
+import { HangarRoleLoadout } from '../hangar/hangar.types';
 import { AuthService } from '../auth/auth.service';
 import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component';
 import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
 
 const SEARCH_DEBOUNCE_MS = 250;
+
+/** Axis the IM-HANGAR fleet strip groups by. */
+export type FleetSortAxis = 'manufacturer' | 'role' | 'recent';
+
+/** One rendered fleet group: a heading (empty for the ungrouped axis) + its ships. */
+export interface FleetGroup {
+  label: string;
+  rows: CodexListRow[];
+}
 
 /** One anatomical paperdoll marker's display state (see codex-landing-kpi.ts for the slot spec). */
 interface PaperdollSlotView {
@@ -366,23 +375,59 @@ interface PaperdollSlotView {
           @if (loading()) {
             <div class="identity skel"></div>
           } @else if (emptyHangar()) {
+            <!-- Empty bay, drawn not greyed out (feedback 2026-08-23: "muss
+                 noch wesentlich attraktiver werden bildlich"). A generated
+                 scene rather than a bitmap: floor grid in perspective, two
+                 service light cones and an empty docking ring. Pure SVG, so
+                 it costs no request, scales to any width and follows the
+                 accent token. -->
             <div class="hangar-empty">
+              <svg class="bay-scene" viewBox="0 0 420 210" role="img"
+                   [attr.aria-label]="'codex.landing.fleet.emptyArt' | translate">
+                <defs>
+                  <linearGradient id="bay-floor" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="currentColor" stop-opacity="0.02" />
+                    <stop offset="100%" stop-color="currentColor" stop-opacity="0.16" />
+                  </linearGradient>
+                  <linearGradient id="bay-beam" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="currentColor" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <path class="bay-fill" d="M120,96 H300 L400,196 H20 Z" fill="url(#bay-floor)" />
+                <path class="bay-beam" d="M132,20 L160,20 L214,196 L96,196 Z" fill="url(#bay-beam)" />
+                <path class="bay-beam" d="M260,20 L288,20 L324,196 L206,196 Z" fill="url(#bay-beam)" />
+                <g class="bay-grid">
+                  <path d="M120,96 L20,196 M156,96 L96,196 M192,96 L172,196 M228,96 L248,196 M264,96 L324,196 M300,96 L400,196" />
+                  <path d="M120,96 H300 M110,106 H310 M96,120 H324 M76,140 H344 M48,168 H372 M20,196 H400" />
+                </g>
+                <ellipse class="bay-ring" cx="210" cy="150" rx="76" ry="26" />
+                <ellipse class="bay-ring inner" cx="210" cy="150" rx="46" ry="15" />
+                <path class="bay-rig" d="M134,150 H164 M256,150 H286 M210,124 V112 M210,176 V188" />
+                <path class="bay-truss" d="M96,20 H324 M120,20 V44 M300,20 V44 M120,44 H300" />
+              </svg>
               <span class="empty-chip">{{ 'codex.landing.fleet.empty' | translate }}</span>
-              <a class="btn tint" routerLink="/codex/index">
+              <p class="me-lead">{{ 'codex.landing.fleet.emptyLead' | translate }}</p>
+              <a class="btn tint" routerLink="/codex/index" [queryParams]="{ kind: 'ship' }">
                 {{ 'codex.landing.fleet.cta' | translate }}
                 <span class="btn-goal">{{ 'codex.landing.fleet.ctaGoal' | translate }}</span>
               </a>
             </div>
           } @else if (flagshipRow(); as f) {
             <div class="identity">
-              <div class="identity-head">
-                <span class="identity-mfr">{{ f.manufacturerCode }}</span>
-                @if (shipRoleResolved(); as role) {
-                  <span class="identity-role">{{ role }}</span>
-                }
+              <!-- Cinematic hero: the artwork IS the ship, and the numbers ride
+                   a scrim INSIDE the frame rather than sitting in cards under
+                   it (feedback 2026-08-23: "direkt dardran die wesentlichen
+                   punkte und nicht darunter"). Same art-first treatment as the
+                   concept-ship rail. The pin stays a real <button> outside the
+                   anchor — nested interactive content is invalid HTML. -->
+              <div class="ship-hero" [class.icon-only]="thumbs(f).length === 0">
+                <sc-fallback-image [candidates]="thumbs(f)" [alt]="rowName(f)" [eager]="true">
+                  <sc-codex-icon kind="ship" />
+                </sc-fallback-image>
                 <button
                   type="button"
-                  class="pin identity-pin"
+                  class="pin hero-pin"
                   [class.pinned]="svc.isPinned('ship', f.classNameSlug)"
                   (click)="togglePin($event, 'ship', f.classNameSlug)"
                   [attr.aria-label]="
@@ -396,8 +441,30 @@ interface PaperdollSlotView {
                     <path d="M12 3 L14.7 9.2 L21.5 9.9 L16.4 14.3 L17.9 21 L12 17.4 L6.1 21 L7.6 14.3 L2.5 9.9 L9.3 9.2 Z" />
                   </svg>
                 </button>
+                <a class="hero-scrim identity-name" [routerLink]="['/codex', 'ship', f.classNameSlug]">
+                  <span class="identity-mfr">
+                    {{ f.manufacturerCode }}
+                    @if (shipRoleResolved(); as role) {
+                      <span class="identity-role">· {{ role }}</span>
+                    }
+                  </span>
+                  <span class="hero-name">{{ rowName(f) }}</span>
+                  @if (heroKpis().length) {
+                    <span class="hero-kpis">
+                      @for (k of heroKpis(); track k.labelKey) {
+                        <span class="hero-kpi" [class.warn]="k.warn"
+                              [attr.title]="k.labelKey | translate">
+                          <sc-codex-icon [kind]="kpiIcon(k.labelKey).kind" [sub]="kpiIcon(k.labelKey).sub" />
+                          <span class="hero-kpi__text">
+                            <span class="hero-kpi__label">{{ k.labelKey | translate }}</span>
+                            <span class="hero-kpi__value mono">{{ k.value }}</span>
+                          </span>
+                        </span>
+                      }
+                    </span>
+                  }
+                </a>
               </div>
-              <a class="identity-name" [routerLink]="['/codex', 'ship', f.classNameSlug]">{{ rowName(f) }}</a>
 
               @if (deltasFor(f.classNameSlug).length) {
                 <span class="delta-row">
@@ -413,65 +480,69 @@ interface PaperdollSlotView {
                 </span>
               }
 
-              <!-- Ship KPIs (max 7) — never crew/cargo/mass/flight.*, all null
-                   for every ship in this build; derived purely from mount
-                   structure + fitted-component payloads. -->
-              <div class="kpi-row">
-                @for (k of shipKpis(); track k.labelKey) {
-                  <div class="kpi" [class.warn]="k.warn">
-                    <span class="kpi-label">{{ k.labelKey | translate }}</span>
-                    <span class="kpi-value mono">{{ k.value }}</span>
-                  </div>
-                }
-              </div>
-
-              @if (otherShipConfigs().length) {
-                <div class="config-list">
-                  <span class="config-list__label">{{ 'codex.landing.configs.otherShip' | translate }}</span>
-                  @for (c of otherShipConfigs(); track c.id) {
-                    <details class="config-row">
-                      <summary>
-                        <span class="config-row__name">{{ c.name }}</span>
-                        <span class="config-row__role">{{ 'hangar.roles.' + c.role | translate }}</span>
-                        @if (c.isActive) {
-                          <span class="config-row__active">{{ 'codex.landing.configs.active' | translate }}</span>
-                        }
-                      </summary>
-                      <div class="config-row__body">
-                        <a [routerLink]="['/hangar', 'ship', selectedHangarShipId()]">{{
-                          'codex.landing.configs.openDetail' | translate: { name: c.name }
-                        }}</a>
-                      </div>
-                    </details>
-                  }
-                </div>
-              }
-
-              @if (fleetOthers().length) {
-                <div class="fleet-others">
-                  @for (r of fleetOthers(); track r.classNameSlug) {
-                    <a
-                      class="fleet-thumb"
-                      [class.icon-only]="thumbs(r).length === 0"
-                      [routerLink]="['/codex', 'ship', r.classNameSlug]"
-                      [attr.aria-label]="'codex.landing.fleet.open' | translate: { ship: rowName(r) }"
-                    >
-                      <sc-fallback-image [candidates]="thumbs(r)" [alt]="rowName(r)">
-                        <sc-codex-icon kind="ship" />
-                      </sc-fallback-image>
-                      <span class="thumb-name">{{ rowName(r) }}</span>
-                      @if (deltasFor(r.classNameSlug).length) {
-                        <span
-                          class="thumb-delta"
-                          [class]="'dir-' + deltasFor(r.classNameSlug)[0].direction"
-                          aria-hidden="true"
-                        >
-                          <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M12 4 L20.5 19 H3.5 Z" />
-                          </svg>
-                        </span>
+              <!-- The fleet in the same 16:9 art-tile format the concept-ship
+                   rail uses, grouped by the chosen sort axis. The flagship is
+                   part of it (starred) rather than excluded — the grouping only
+                   reads right when every owned hull is in it. -->
+              @if (fleetRows().length) {
+                <div class="fleet-lane">
+                  <div class="fleet-lane__head">
+                    <span class="fleet-lane__title">{{
+                      'codex.landing.fleet.laneTitle' | translate: { count: fleetRows().length }
+                    }}</span>
+                    <div class="fleet-sort" role="group"
+                         [attr.aria-label]="'codex.landing.fleet.sortLabel' | translate">
+                      @for (axis of fleetSortAxes; track axis) {
+                        <button
+                          type="button"
+                          class="fleet-sort__btn"
+                          [class.on]="fleetSort() === axis"
+                          [attr.aria-pressed]="fleetSort() === axis"
+                          (click)="fleetSort.set(axis)"
+                        >{{ 'codex.landing.fleet.sort.' + axis | translate }}</button>
                       }
-                    </a>
+                    </div>
+                  </div>
+                  @for (g of fleetGroups(); track g.label) {
+                    @if (g.label) {
+                      <span class="fleet-group">{{ g.label }}</span>
+                    }
+                    <div class="fleet-strip" role="list">
+                      @for (r of g.rows; track r.classNameSlug) {
+                        <a
+                          class="fleet-tile"
+                          role="listitem"
+                          [class.icon-only]="thumbs(r).length === 0"
+                          [class.flag]="r.classNameSlug === f.classNameSlug"
+                          [routerLink]="['/codex', 'ship', r.classNameSlug]"
+                          [attr.aria-label]="'codex.landing.fleet.open' | translate: { ship: rowName(r) }"
+                        >
+                          <sc-fallback-image [candidates]="thumbs(r)" [alt]="rowName(r)">
+                            <sc-codex-icon kind="ship" />
+                          </sc-fallback-image>
+                          @if (r.classNameSlug === f.classNameSlug) {
+                            <span class="fleet-tile__badge flag"
+                                  [attr.title]="'codex.landing.fleet.flagship' | translate">★</span>
+                          } @else if (deltasFor(r.classNameSlug).length) {
+                            <span
+                              class="fleet-tile__badge"
+                              [class]="'fleet-tile__badge dir-' + deltasFor(r.classNameSlug)[0].direction"
+                              aria-hidden="true"
+                            >
+                              <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M12 4 L20.5 19 H3.5 Z" />
+                              </svg>
+                            </span>
+                          }
+                          <span class="fleet-tile__cap">
+                            @if (r.manufacturerCode) {
+                              <span class="fleet-tile__mfr">{{ r.manufacturerCode }}</span>
+                            }
+                            <span class="fleet-tile__name">{{ rowName(r) }}</span>
+                          </span>
+                        </a>
+                      }
+                    </div>
                   }
                 </div>
               }
@@ -486,31 +557,52 @@ interface PaperdollSlotView {
 
       <!-- ── IM VERSUM: frameless domain entry points ────────────────────────── -->
       <section class="versum" [class.dimmed]="searchActive()">
+        <!-- The "Domänen" headline is gone (feedback 2026-08-23) — the
+             eyebrow is the heading now, and the keybindings entry sits on that
+             same line instead of below the rail. -->
         <header class="versum-head">
-          <div class="versum-locate">
-            <span class="versum-eyebrow">{{ 'codex.landing.versum.eyebrow' | translate }}</span>
-            <h2 class="versum-title">{{ 'codex.landing.versum.title' | translate }}</h2>
-          </div>
+          <span class="versum-eyebrow">{{ 'codex.landing.versum.eyebrow' | translate }}</span>
+          <a
+            class="rail-icon"
+            routerLink="/codex/keybinds"
+            [attr.aria-label]="'codex.landing.versum.keybinds' | translate"
+            [attr.title]="'codex.landing.versum.keybinds' | translate"
+          >
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 3a5 5 0 0 0-4.9 6.1L3 15.2V19h3.8l1-1h2v-2h2l1.1-1.1A5 5 0 1 0 14 3z" />
+              <circle cx="16.6" cy="7.4" r="1.1" />
+            </svg>
+          </a>
         </header>
-        <div class="domain-row">
+        <!-- Horizontal chip strip: glyph + domain, the count as side info
+             (feedback 2026-08-23 — "die Anzahl ist eine side Info"). Every
+             chip lands on the SAME subview with its filter preselected, so
+             the seven entries behave identically. -->
+        <nav class="domain-strip" [attr.aria-label]="'codex.landing.versum.eyebrow' | translate">
           @for (d of versumDomains(); track d.kind) {
-            <a class="domain-tile" [routerLink]="d.route" [queryParams]="d.queryParams ?? null">
+            <a class="domain-chip" routerLink="/codex/index" [queryParams]="{ kind: d.kind }">
+              <sc-codex-icon [kind]="d.kind" />
               <span class="domain-label">{{ d.labelKey | translate }}</span>
               <span class="domain-count mono">{{ formatNum(d.count!) }}</span>
             </a>
           }
-        </div>
+        </nav>
 
-        <!-- "Kommende Schiffe" folded into the Schiffe domain (feedback,
-             2026-08-16) — a Netflix-style horizontal rail right under the
-             domain tiles, not a separate domain entry of its own anymore.
+        <!-- "Auf dem Reissbrett" — announced-but-unbuilt ships, folded into
+             the Schiffe domain (feedback, 2026-08-16) as a horizontal rail
+             right under the domain tiles rather than a domain entry of its
+             own. NOT a "what's new" feed: these are RSI ship-matrix entries
+             the rsi-upcoming-ships diff found NO game-data match for, i.e.
+             concept hulls that are meant to be built some day, newest
+             announcement first (feedback, 2026-08-23 — the old "Was ist neu"
+             title claimed a recency that the list does not carry).
              Renders nothing while the feed is loading/empty (honest empty
              state, no skeleton promising a rail that never fills). Every tile
-             is a real RSI anchor: these ships are, by construction, the ones
-             the rsi-upcoming-ships diff found NO game-data match for, so an
-             internal /codex/ship/:className route never applies with the
-             current feed shape (no classNameSlug is returned for them) —
-             external is not a fallback here, it is the only correct target. -->
+             is a real RSI anchor: with the current feed shape no classNameSlug
+             is returned for these ships, so an internal /codex/ship/:className
+             route never applies — external is not a fallback here, it is the
+             only correct target. -->
         @if (upcomingRailShips().length > 0) {
           <div class="upcoming-rail">
             <header class="upcoming-rail__head">
@@ -527,40 +619,26 @@ interface PaperdollSlotView {
                 <a
                   class="upcoming-tile"
                   role="listitem"
+                  [class.icon-only]="upcomingThumbs(ship).length === 0"
                   [href]="ship.rsiUrl || upcomingFallbackUrl"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <span class="upcoming-tile__thumb" [class.icon-only]="upcomingThumbs(ship).length === 0">
-                    <sc-fallback-image [candidates]="upcomingThumbs(ship)" [alt]="ship.name">
-                      <sc-codex-icon kind="ship" />
-                    </sc-fallback-image>
+                  <sc-fallback-image [candidates]="upcomingThumbs(ship)" [alt]="ship.name">
+                    <sc-codex-icon kind="ship" />
+                  </sc-fallback-image>
+                  <span class="upcoming-tile__caption">
+                    @if (ship.manufacturerCode) {
+                      <span class="upcoming-tile__mfr">{{ ship.manufacturerCode }}</span>
+                    }
+                    <span class="upcoming-tile__name">{{ ship.name }}</span>
                   </span>
-                  <span class="upcoming-tile__name">{{ ship.name }}</span>
-                  @if (ship.manufacturerCode) {
-                    <span class="upcoming-tile__mfr">{{ ship.manufacturerCode }}</span>
-                  }
                 </a>
               }
             </div>
           </div>
         }
 
-        <nav class="versum-rail">
-          <a routerLink="/codex/showroom">{{ 'codex.landing.versum.showroom' | translate }}</a>
-          <a
-            class="rail-icon"
-            routerLink="/codex/keybinds"
-            [attr.aria-label]="'codex.landing.versum.keybinds' | translate"
-            [attr.title]="'codex.landing.versum.keybinds' | translate"
-          >
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M14 3a5 5 0 0 0-4.9 6.1L3 15.2V19h3.8l1-1h2v-2h2l1.1-1.1A5 5 0 1 0 14 3z" />
-              <circle cx="16.6" cy="7.4" r="1.1" />
-            </svg>
-          </a>
-        </nav>
       </section>
 
       <sc-codex-compare-tray />
@@ -949,22 +1027,89 @@ interface PaperdollSlotView {
         animation: skel 1.4s linear infinite;
       }
       @keyframes skel { to { background-position: -200% 0; } }
-      .identity-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      /* ── ship hero — the artwork IS the ship ──────────────────────────
+         A 16:9 bleed crop with the identity and the KPI chips on a bottom
+         scrim, the same art-first treatment the concept-ship rail uses.
+         The custom properties cross into sc-fallback-image (a plain
+         .ship-hero img rule cannot reach the projected <img>). */
+      .ship-hero {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 4px;
+        border: 1px solid var(--sc-border);
+        background: radial-gradient(circle at 52% 42%, var(--sc-bg-2), var(--sc-bg-0));
+        --sc-img-w: 100%;
+        --sc-img-h: 100%;
+        --sc-img-max-h: 100%;
+        --sc-img-fit: cover;
+        --sc-img-shadow: none;
+      }
+      .ship-hero.icon-only sc-codex-icon {
+        width: 26%;
+        height: 26%;
+        opacity: 0.55;
+        color: var(--sc-accent);
+        transform: translateY(-16%);
+      }
+      .hero-pin {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        z-index: 2;
+        color: color-mix(in srgb, #f2f7fb 72%, transparent);
+      }
+      .hero-pin.pinned { color: var(--sc-accent); }
+      .hero-scrim {
+        position: absolute;
+        inset: auto 0 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 26px 12px 10px;
+        text-decoration: none;
+        color: inherit;
+        background: linear-gradient(to top, rgba(2, 8, 14, 0.94) 0%, rgba(2, 8, 14, 0.74) 52%, transparent 100%);
+      }
       .identity-mfr {
         font-family: var(--sc-font-display);
-        font-size: 0.74rem;
-        letter-spacing: 0.04em;
-        color: var(--sc-fg-1);
+        font-size: max(0.66rem, var(--sc-fs-floor));
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
       }
-      .identity-role { font-size: 0.72rem; color: var(--sc-fg-2); }
-      .identity-pin { margin-left: auto; }
-      .identity-name {
+      .identity-role { color: color-mix(in srgb, #f2f7fb 72%, transparent); }
+      .hero-name {
         font-size: 1.15rem;
         font-weight: 700;
-        color: var(--sc-fg-0);
-        text-decoration: none;
+        line-height: 1.15;
+        color: #f2f7fb;
       }
-      .identity-name:hover { color: var(--sc-accent); }
+      .hero-scrim:hover .hero-name,
+      .hero-scrim:focus-visible .hero-name { color: var(--sc-accent); }
+      .hero-kpis { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+      .hero-kpi {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 8px 3px 6px;
+        border-radius: 3px;
+        border: 1px solid rgba(242, 247, 251, 0.22);
+        background: rgba(2, 8, 14, 0.55);
+      }
+      .hero-kpi sc-codex-icon { width: 14px; height: 14px; flex: 0 0 14px; }
+      .hero-kpi__text { display: flex; flex-direction: column; line-height: 1.05; min-width: 0; }
+      .hero-kpi__label {
+        font-size: max(0.56rem, var(--sc-fs-floor));
+        letter-spacing: 0.03em;
+        color: color-mix(in srgb, #f2f7fb 62%, transparent);
+      }
+      .hero-kpi__value { font-size: max(0.74rem, var(--sc-fs-floor)); color: #f2f7fb; }
+      .hero-kpi.warn { border-color: color-mix(in srgb, var(--sc-warn, #e8a33d) 62%, transparent); }
+      .hero-kpi.warn .hero-kpi__value { color: var(--sc-warn, #e8a33d); }
       .delta-row { display: flex; flex-wrap: wrap; gap: 6px; }
       .delta { display: inline-flex; gap: 5px; align-items: baseline; padding: 2px 7px; border-radius: 3px; font-size: 0.72rem; background: var(--sc-bg-2); }
       .delta-label { color: var(--sc-fg-2); }
@@ -973,30 +1118,157 @@ interface PaperdollSlotView {
       .dir-down .delta-val { color: var(--sc-danger, #ff6b6b); }
       .dir-neutral .delta-val { color: var(--sc-fg-1); }
 
-      /* ── fleet thumbnails (kept from today's page) ────────────────────── */
-      .fleet-others { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
-      .fleet-thumb {
-        position: relative;
+      /* ── fleet strip — the same art tile as the concept-ship rail ────── */
+      .fleet-lane { display: flex; flex-direction: column; gap: 6px; }
+      .fleet-lane__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .fleet-lane__title {
+        font-family: var(--sc-font-display);
+        font-size: max(0.62rem, var(--sc-fs-floor));
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--sc-fg-2);
+      }
+      .fleet-sort { display: flex; gap: 3px; margin-left: auto; flex-wrap: wrap; }
+      .fleet-sort__btn {
+        padding: 3px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--sc-border);
+        background: none;
+        cursor: pointer;
+        font: inherit;
+        font-size: max(0.64rem, var(--sc-fs-floor));
+        color: var(--sc-fg-2);
+        min-height: var(--sc-tap-min, 26px);
+        transition: border-color 0.16s, color 0.16s;
+      }
+      .fleet-sort__btn:hover { color: var(--sc-fg-1); }
+      .fleet-sort__btn.on {
+        border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
+        color: var(--sc-accent);
+      }
+      .fleet-group {
+        font-family: var(--sc-font-display);
+        font-size: max(0.58rem, var(--sc-fs-floor));
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sc-fg-2);
+        margin-top: 2px;
+      }
+      /* Own overflow-x container — the PAGE must never scroll sideways. */
+      .fleet-strip {
         display: flex;
-        flex-direction: column;
-        gap: 4px;
-        padding: 6px;
+        gap: 7px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        padding: 2px 2px 4px;
+        margin: 0 -2px;
+      }
+      .fleet-tile {
+        position: relative;
+        flex: 0 0 150px;
+        aspect-ratio: 16 / 9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
         border-radius: 3px;
+        border: 1px solid var(--sc-border);
+        background: radial-gradient(circle at 52% 44%, var(--sc-bg-2), var(--sc-bg-0));
         text-decoration: none;
         color: inherit;
-        border: 1px solid var(--sc-border);
-        background: var(--sc-bg-2);
-        --sc-img-max-h: 56px;
-        transition: border-color 0.16s;
+        scroll-snap-align: start;
+        min-height: var(--sc-tap-min, 44px);
+        transition: border-color 0.16s ease, box-shadow 0.16s ease;
+        --sc-img-w: 100%;
+        --sc-img-h: 100%;
+        --sc-img-max-h: 100%;
+        --sc-img-fit: cover;
+        --sc-img-shadow: none;
       }
-      .fleet-thumb:hover { border-color: var(--sc-accent); }
-      .fleet-thumb.icon-only { color: var(--sc-accent); }
-      .thumb-name { font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .thumb-delta { position: absolute; top: 6px; right: 6px; width: 12px; height: 12px; }
-      .thumb-delta.dir-up { color: var(--sc-success, #5fd698); }
-      .thumb-delta.dir-down { color: var(--sc-danger, #ff6b6b); }
-      .thumb-delta.dir-neutral { color: var(--sc-fg-2); }
+      .fleet-tile:hover, .fleet-tile:focus-visible {
+        outline: none;
+        border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
+        box-shadow: var(--shadow-glow);
+      }
+      .fleet-tile.flag { border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border)); }
+      .fleet-tile.icon-only sc-codex-icon {
+        width: 30%; height: 30%; opacity: 0.55; color: var(--sc-accent); transform: translateY(-14%);
+      }
+      .fleet-tile__cap {
+        position: absolute;
+        inset: auto 0 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        padding: 14px 8px 6px;
+        background: linear-gradient(to top, rgba(2, 8, 14, 0.93) 0%, rgba(2, 8, 14, 0.72) 48%, transparent 100%);
+      }
+      .fleet-tile__mfr {
+        font-family: var(--sc-font-display);
+        font-size: max(0.56rem, var(--sc-fs-floor));
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
+      }
+      .fleet-tile__name {
+        font-size: max(0.7rem, var(--sc-fs-floor));
+        font-weight: 600;
+        line-height: 1.15;
+        color: #f2f7fb;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      .fleet-tile__badge {
+        position: absolute;
+        top: 5px;
+        right: 6px;
+        width: 14px;
+        height: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.66rem;
+        line-height: 1;
+        color: var(--sc-fg-2);
+      }
+      .fleet-tile__badge.flag { color: var(--sc-accent); width: auto; }
+      .fleet-tile__badge.dir-up { color: var(--sc-success, #5fd698); }
+      .fleet-tile__badge.dir-down { color: var(--sc-danger, #ff6b6b); }
+      .fleet-tile__badge.dir-neutral { color: var(--sc-fg-2); }
       .compare-hint { margin: 0; font-size: 0.74rem; color: var(--sc-fg-2); }
+
+      /* ── empty bay — drawn, not greyed out ───────────────────────────── */
+      .bay-scene {
+        width: 100%;
+        max-width: 380px;
+        height: auto;
+        align-self: center;
+        color: var(--sc-accent);
+        margin-bottom: 2px;
+      }
+      .bay-grid path { fill: none; stroke: currentColor; stroke-width: 0.6; opacity: 0.28; }
+      .bay-ring {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.1;
+        opacity: 0.5;
+        stroke-dasharray: 5 6;
+      }
+      .bay-ring.inner { opacity: 0.3; stroke-dasharray: 3 5; }
+      .bay-rig, .bay-truss { fill: none; stroke: currentColor; stroke-width: 1.2; opacity: 0.42; }
+      .bay-truss { opacity: 0.26; }
+      @media (prefers-reduced-motion: no-preference) {
+        .bay-ring { animation: bay-pulse 5s ease-in-out infinite; }
+      }
+      @keyframes bay-pulse {
+        0%, 100% { opacity: 0.34; }
+        50% { opacity: 0.62; }
+      }
 
       /* shared pin button */
       .pin {
@@ -1018,7 +1290,7 @@ interface PaperdollSlotView {
 
       /* ── IM VERSUM (frameless) ────────────────────────────────────────── */
       .versum { display: flex; flex-direction: column; gap: 12px; }
-      .versum-locate { display: flex; flex-direction: column; gap: 2px; }
+      .versum-head { display: flex; align-items: center; gap: 12px; }
       .versum-eyebrow {
         font-family: var(--sc-font-display);
         font-size: 0.68rem;
@@ -1026,38 +1298,54 @@ interface PaperdollSlotView {
         text-transform: uppercase;
         color: var(--sc-fg-2);
       }
-      .versum-title { margin: 0; font-size: 1.1rem; }
-      .domain-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+      /* Horizontal chip strip. The count is deliberately secondary — the
+         glyph and the domain name carry the row, the number is side info. */
+      .domain-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
       /* Frameless at rest, framed on interaction ("rahmenlos bzw. mit dem
          highlight rahmen", 2026-08-16 correction): no resting border/panel —
          a transparent 1px border keeps the box size stable — only hover/focus
          paints the accent frame + glow. */
-      .domain-tile {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        padding: 12px;
-        border-radius: 3px;
+      .domain-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px 7px 9px;
+        border-radius: 999px;
         border: 1px solid transparent;
         text-decoration: none;
         color: inherit;
         background: transparent;
         transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
       }
-      .domain-tile:hover,
-      .domain-tile:focus-visible {
+      .domain-chip:hover,
+      .domain-chip:focus-visible {
         outline: none;
         border-color: color-mix(in srgb, var(--sc-accent) 60%, transparent);
         background: color-mix(in srgb, var(--sc-accent) 6%, transparent);
         box-shadow: var(--shadow-glow);
       }
-      .domain-label { font-size: 0.74rem; color: var(--sc-fg-2); }
-      .domain-count { font-size: 1.15rem; font-weight: 700; color: var(--sc-fg-0); }
+      .domain-chip sc-codex-icon { width: 17px; height: 17px; flex: 0 0 17px; }
+      .domain-label { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-0); }
+      /* Side info, not the headline (feedback 2026-08-23). */
+      .domain-count {
+        font-size: max(0.68rem, var(--sc-fs-floor));
+        font-weight: 400;
+        color: var(--sc-fg-2);
+        font-variant-numeric: tabular-nums;
+      }
 
-      /* ── "Was ist neu" — Netflix-style upcoming-ships rail, folded into the
-           Schiffe domain (2026-08-16, replaces the standalone "Kommende
+      /* ── "Auf dem Reissbrett" — cinematic upcoming-ships rail, folded into
+           the Schiffe domain (2026-08-16, replaces the standalone "Kommende
            Schiffe" tile). Own overflow-x container so the PAGE never scrolls
-           sideways — the mobile gate fails on horizontal page overflow. ── */
+           sideways — the mobile gate fails on horizontal page overflow.
+           2026-08-23: the tile is now the artwork itself — a 16:9 bleed crop
+           with the name/manufacturer riding a bottom scrim, the same
+           art-first treatment the ship pages use — instead of a boxed thumb
+           with a caption stacked under it. ── */
       .upcoming-rail { display: flex; flex-direction: column; gap: 8px; }
       .upcoming-rail__head { display: flex; align-items: center; gap: 8px; }
       .upcoming-rail__title { margin: 0; font-size: 0.92rem; }
@@ -1080,42 +1368,72 @@ interface PaperdollSlotView {
         margin: 0 -2px;
       }
       .upcoming-tile {
-        flex: 0 0 132px;
+        position: relative;
+        flex: 0 0 208px;
+        aspect-ratio: 16 / 9;
         display: flex;
-        flex-direction: column;
-        gap: 4px;
-        padding: 8px;
-        border-radius: 3px;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 4px;
         border: 1px solid var(--sc-border);
-        background: var(--sc-bg-1);
+        background: radial-gradient(circle at 50% 42%, var(--sc-bg-2), var(--sc-bg-0));
         color: inherit;
         text-decoration: none;
         scroll-snap-align: start;
         min-height: var(--sc-tap-min, 44px);
         transition: border-color 0.16s ease, box-shadow 0.16s ease;
+        /* Bleed crop: the art IS the tile. See fallback-image.component.ts —
+           these custom properties cross the component boundary, a plain
+           .upcoming-tile img rule could not reach the projected <img>. */
+        --sc-img-w: 100%;
+        --sc-img-h: 100%;
+        --sc-img-max-h: 100%;
+        --sc-img-fit: cover;
+        --sc-img-shadow: none;
       }
       .upcoming-tile:hover, .upcoming-tile:focus-visible {
         outline: none;
         border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
         box-shadow: var(--shadow-glow);
       }
-      .upcoming-tile__thumb {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 72px;
-        border-radius: 3px;
-        background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0));
-        overflow: hidden;
-        --sc-img-max-h: 68px;
+      /* Art-less hull: lift the placeholder glyph clear of the caption scrim
+         so it reads centred in the visible area, not half-swallowed by it. */
+      .upcoming-tile.icon-only sc-codex-icon {
+        width: 32%; height: 32%; opacity: 0.55; color: var(--sc-accent); transform: translateY(-14%);
       }
-      .upcoming-tile__thumb.icon-only sc-codex-icon { width: 50%; height: 50%; opacity: 0.6; color: var(--sc-accent); }
-      .upcoming-tile__name { font-size: 0.76rem; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-      .upcoming-tile__mfr { font-size: 0.64rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sc-fg-2); }
+      .upcoming-tile__caption {
+        position: absolute;
+        inset: auto 0 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        padding: 16px 10px 8px;
+        /* Scrim, not a bar: the art keeps breathing above the type while the
+           name stays AA-legible over a bright render. */
+        background: linear-gradient(to top, rgba(2, 8, 14, 0.92) 0%, rgba(2, 8, 14, 0.72) 46%, transparent 100%);
+      }
+      .upcoming-tile__name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        line-height: 1.15;
+        color: #f2f7fb;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      .upcoming-tile__mfr {
+        font-family: var(--sc-font-display);
+        font-size: max(0.62rem, var(--sc-fs-floor));
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
+      }
 
-      .versum-rail { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-      .versum-rail a:not(.rail-icon) { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; }
-      .versum-rail a:not(.rail-icon):hover { text-decoration: underline; }
+      /* Sits on the "Im Versum" line, right-aligned — no longer a lane of
+         its own below the rail (feedback 2026-08-23). */
       .rail-icon {
         margin-left: auto;
         width: 22px;
@@ -1133,9 +1451,18 @@ interface PaperdollSlotView {
       @media (max-width: 760px) {
         .surface { grid-template-columns: 1fr; }
       }
+      /* On a phone the zone is ~360px wide, where four labelled KPI chips
+         stack three rows deep and the scrim grows TALLER than the 16:9 hero
+         frame — the manufacturer line then gets clipped out of the top of it.
+         Drop to glyph + value there; the full label stays on the chip's
+         title, so nothing is lost. */
+      @media (max-width: 560px) {
+        .hero-kpi__label { display: none; }
+        .hero-kpi { padding: 4px 8px; }
+      }
       @media (prefers-reduced-motion: reduce) {
-        .hit, .surface, .fleet-thumb, .domain-tile, .zone-entry::after, .upcoming-tile { transition: none; }
-        .live-dot, .identity.skel { animation: none; }
+        .hit, .surface, .fleet-tile, .fleet-sort__btn, .domain-chip, .zone-entry::after, .upcoming-tile { transition: none; }
+        .live-dot, .identity.skel, .bay-ring { animation: none; }
       }
     `,
   ],
@@ -1161,15 +1488,26 @@ export class CodexLandingComponent implements OnInit {
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private searchSeq = 0;
 
-  // Fleet
-  private readonly fleetRows = signal<CodexListRow[]>([]);
+  // Fleet — public: the template's fleet lane reads the raw row list for its
+  // count and its "is the fleet empty" guard.
+  readonly fleetRows = signal<CodexListRow[]>([]);
   private readonly fleetDeltas = signal<Map<string, ShipStatDelta[]>>(new Map());
 
   // IM HANGAR extras (flagship-scoped, best-effort)
   readonly shipComponentPayloads = signal<Map<string, EntityPayloadEntry>>(new Map());
   readonly shipRoleResolved = signal<string | null>(null);
   readonly selectedHangarShipId = signal<string | null>(null);
-  readonly otherShipConfigs = signal<HangarShipConfig[]>([]);
+
+  /**
+   * classNameSlug → resolved role label for EVERY owned hull, not just the
+   * flagship: the fleet strip groups by role, so a `@`-locale key that was
+   * never resolved would render as its raw token in a group heading.
+   */
+  readonly fleetRoleLabels = signal<Map<string, string>>(new Map());
+
+  /** Grouping axis of the fleet strip. Session-local — deliberately not persisted. */
+  readonly fleetSortAxes: readonly FleetSortAxis[] = ['manufacturer', 'role', 'recent'];
+  readonly fleetSort = signal<FleetSortAxis>('manufacturer');
 
   // AN BORD extras
   readonly personalLoadouts = signal<HangarRoleLoadout[]>([]);
@@ -1236,6 +1574,51 @@ export class CodexLandingComponent implements OnInit {
     computeShipKpis(this.flagshipRow()?.payload ?? null, this.shipComponentPayloads()),
   );
 
+  /**
+   * The KPIs that fit ON the hero scrim. Four is the ceiling: a fifth chip
+   * wraps onto its own row and starts eating the ship name underneath it.
+   * `computeShipKpis` already returns them in priority order (shield sum,
+   * then the actionable empty-mount count, then the rest).
+   */
+  readonly heroKpis = computed<KpiRow[]>(() => this.shipKpis().slice(0, 4));
+
+  /**
+   * The fleet strip's rows, grouped by the active axis. `manufacturer` and
+   * `role` emit real headings; `recent` keeps hangar order in one unlabelled
+   * group (the rows already arrive in that order, see resolveFleet).
+   */
+  readonly fleetGroups = computed<FleetGroup[]>(() => {
+    const rows = this.fleetRows();
+    if (rows.length === 0) return [];
+    const axis = this.fleetSort();
+    if (axis === 'recent') return [{ label: '', rows }];
+
+    const roles = this.fleetRoleLabels();
+    const unknown = this.t.instant('codex.landing.fleet.sortUnknown');
+    const keyOf = (r: CodexListRow) =>
+      axis === 'manufacturer'
+        ? r.manufacturerCode || unknown
+        : roles.get(r.classNameSlug) || unknown;
+
+    const groups = new Map<string, CodexListRow[]>();
+    for (const r of rows) {
+      const key = keyOf(r);
+      const bucket = groups.get(key);
+      if (bucket) bucket.push(r);
+      else groups.set(key, [r]);
+    }
+    // Named groups alphabetically, the catch-all last — a group whose heading
+    // is "unbekannt" sorting into the middle of the alphabet reads like a
+    // manufacturer nobody has heard of.
+    return [...groups.entries()]
+      .sort((a, b) => {
+        if (a[0] === unknown) return 1;
+        if (b[0] === unknown) return -1;
+        return a[0].localeCompare(b[0]);
+      })
+      .map(([label, groupRows]) => ({ label, rows: groupRows }));
+  });
+
   readonly archiveRecordCount = computed<number | null>(() => {
     const counts = this.svc.build()?.entityCounts as Record<string, unknown> | undefined;
     if (!counts) return null;
@@ -1262,19 +1645,19 @@ export class CodexLandingComponent implements OnInit {
       | (Record<string, number> & { seeded?: Record<string, number> })
       | undefined;
     if (!counts) return [];
-    const defs: {
-      kind: CodexKind;
-      labelKey: string;
-      route: string;
-      queryParams?: Record<string, string>;
-    }[] = [
-      { kind: 'ship', labelKey: 'codex.landing.versum.domain.ship', route: '/codex/index', queryParams: { kind: 'ship' } },
-      { kind: 'item', labelKey: 'codex.landing.versum.domain.item', route: '/codex/index', queryParams: { kind: 'item' } },
-      { kind: 'component', labelKey: 'codex.landing.versum.domain.component', route: '/codex/index', queryParams: { kind: 'component' } },
-      { kind: 'weapon', labelKey: 'codex.landing.versum.domain.weapon', route: '/codex/index', queryParams: { kind: 'weapon' } },
-      { kind: 'blueprint', labelKey: 'codex.landing.versum.domain.blueprint', route: '/codex/blueprint' },
-      { kind: 'manufacturer', labelKey: 'codex.landing.versum.domain.manufacturer', route: '/codex/index', queryParams: { kind: 'manufacturer' } },
-      { kind: 'ammunition', labelKey: 'codex.landing.versum.domain.ammunition', route: '/codex/index', queryParams: { kind: 'ammunition' } },
+    // Every domain lands on the SAME subview with its facet preselected
+    // (feedback 2026-08-23) — Baupläne used to jump to /codex/blueprint
+    // instead, which is a different page with different controls. `blueprint`
+    // is a first-class CODEX_KIND, so `?kind=blueprint` preselects it there
+    // exactly like the other six.
+    const defs: { kind: CodexKind; labelKey: string }[] = [
+      { kind: 'ship', labelKey: 'codex.landing.versum.domain.ship' },
+      { kind: 'item', labelKey: 'codex.landing.versum.domain.item' },
+      { kind: 'component', labelKey: 'codex.landing.versum.domain.component' },
+      { kind: 'weapon', labelKey: 'codex.landing.versum.domain.weapon' },
+      { kind: 'blueprint', labelKey: 'codex.landing.versum.domain.blueprint' },
+      { kind: 'manufacturer', labelKey: 'codex.landing.versum.domain.manufacturer' },
+      { kind: 'ammunition', labelKey: 'codex.landing.versum.domain.ammunition' },
     ];
     return defs
       .map((d) => {
@@ -1336,16 +1719,49 @@ export class CodexLandingComponent implements OnInit {
       this.fleetDeltas.set(new Map());
       this.shipComponentPayloads.set(new Map());
       this.shipRoleResolved.set(null);
-      this.otherShipConfigs.set([]);
+      this.fleetRoleLabels.set(new Map());
       return;
     }
     const byName = await this.svc.getShipsByClassNames(names);
     // Preserve hangar order, drop names absent from the current build.
     const rows = names.map((n) => byName.get(n)).filter((r): r is CodexListRow => !!r);
     this.fleetRows.set(rows);
+    void this.resolveFleetRoles(rows);
     // Best-effort inline patch-diff — degrades to an empty map (no error).
     this.fleetDeltas.set(await this.svc.ownedFleetDeltas(rows.map((r) => r.classNameSlug)));
     await this.resolveShipExtras();
+  }
+
+  /**
+   * Resolve the role label of every owned hull in ONE batch so the fleet strip
+   * can group by it. Best-effort: a failure leaves the map as-is and the
+   * grouping falls back to the "unknown" bucket rather than showing raw
+   * `@`-locale tokens as headings.
+   */
+  private async resolveFleetRoles(rows: readonly CodexListRow[]): Promise<void> {
+    const labels = new Map<string, string>();
+    const pending: string[] = [];
+    for (const r of rows) {
+      if (!r.role) continue;
+      if (r.role.startsWith('@')) pending.push(r.role);
+      else {
+        const clean = cleanLocaleValue(r.role);
+        if (clean) labels.set(r.classNameSlug, clean);
+      }
+    }
+    if (pending.length) {
+      try {
+        const resolved = await this.svc.resolveLocaleKeys([...new Set(pending)], this.lang());
+        for (const r of rows) {
+          if (!r.role?.startsWith('@')) continue;
+          const clean = cleanLocaleValue(resolved.get(r.role));
+          if (clean) labels.set(r.classNameSlug, clean);
+        }
+      } catch {
+        /* leave the unresolved hulls in the "unknown" bucket */
+      }
+    }
+    this.fleetRoleLabels.set(labels);
   }
 
   /** IM HANGAR extras for the selected (flagship) ship — best-effort, non-blocking. */
@@ -1355,7 +1771,6 @@ export class CodexLandingComponent implements OnInit {
       this.shipComponentPayloads.set(new Map());
       this.shipRoleResolved.set(null);
       this.selectedHangarShipId.set(null);
-      this.otherShipConfigs.set([]);
       return;
     }
     const payload = ship.payload as ShipPayload | null;
@@ -1381,18 +1796,11 @@ export class CodexLandingComponent implements OnInit {
       this.shipRoleResolved.set(cleanLocaleValue(ship.role) || null);
     }
 
-    const hangarShip = this.hangar.shipByClassName(ship.classNameSlug);
-    this.selectedHangarShipId.set(hangarShip?.id ?? null);
-    if (hangarShip) {
-      tasks.push(
-        this.hangar
-          .listConfigs(hangarShip.id)
-          .then((configs) => this.otherShipConfigs.set(sortByRecency(configs).slice(0, 3)))
-          .catch(() => this.otherShipConfigs.set([])),
-      );
-    } else {
-      this.otherShipConfigs.set([]);
-    }
+    // The saved per-ship configurations no longer render here (feedback
+    // 2026-08-23: "Konfigurationen brauchen wir nicht direkt zugreifbar,
+    // einfach direkt die Flotte") — the id stays because the hangar deep
+    // link still uses it.
+    this.selectedHangarShipId.set(this.hangar.shipByClassName(ship.classNameSlug)?.id ?? null);
 
     await Promise.all(tasks);
   }
@@ -1495,6 +1903,24 @@ export class CodexLandingComponent implements OnInit {
 
   formatNum(v: number): string {
     return formatNumber(v);
+  }
+
+  /**
+   * Category glyph for a ship KPI chip. Maps the KPI's i18n key onto the
+   * (kind, sub) pair `sc-codex-icon` already understands, so the chips reuse
+   * the catalog's existing glyph + colour vocabulary instead of inventing a
+   * second one. An unmapped key falls back to the generic component glyph
+   * rather than rendering nothing.
+   */
+  kpiIcon(labelKey: string): { kind: CodexKind; sub: string | null } {
+    if (labelKey.endsWith('.shieldTotal')) return { kind: 'component', sub: 'Shield' };
+    if (labelKey.endsWith('.quantumDrive')) return { kind: 'component', sub: 'QuantumDrive' };
+    if (labelKey.endsWith('.emptyMounts') || labelKey.endsWith('.weaponMounts')) {
+      return { kind: 'weapon', sub: null };
+    }
+    if (labelKey.endsWith('.missileCapacity')) return { kind: 'ammunition', sub: null };
+    if (labelKey.endsWith('.fillRate')) return { kind: 'component', sub: 'PowerPlant' };
+    return { kind: 'component', sub: null };
   }
 
   /** Ordered art candidates for an upcoming-ship rail tile; the fallback-image falls through them on load error. */

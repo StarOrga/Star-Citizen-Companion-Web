@@ -1,4 +1,9 @@
 {
+  "common": {
+    "select": {
+      "none": "Keine Auswahl"
+    }
+  },
   "update": {
     "available": "Neue Version verfügbar",
     "reload": "Neu laden",
@@ -123,7 +128,17 @@
         "cta": "Erstes Schiff beanspruchen",
         "ctaGoal": "→ Flugbereit",
         "open": "{{ship}} öffnen",
-        "compareHint": "Tipp: 2+ Schiffe anpinnen, um sie zu vergleichen."
+        "compareHint": "Tipp: 2+ Schiffe anpinnen, um sie zu vergleichen.",
+        "laneTitle": "Flotte · {{count}} Schiffe",
+        "sortLabel": "Flotte sortieren",
+        "sortUnknown": "Ohne Angabe",
+        "sort": {
+          "manufacturer": "Hersteller",
+          "role": "Einsatzzweck",
+          "recent": "Zuletzt geöffnet"
+        },
+        "emptyLead": "Der Hangar steht bereit — noch ohne Hülle darin.",
+        "emptyArt": "Leere Hangarbucht mit Andockring"
       },
       "diff": {
         "scm": "SCM",
@@ -171,8 +186,6 @@
       },
       "versum": {
         "eyebrow": "Im Versum",
-        "title": "Domänen",
-        "showroom": "Showroom",
         "keybinds": "Tastenbelegungen",
         "domain": {
           "ship": "Schiffe",
@@ -184,7 +197,7 @@
           "ammunition": "Munition"
         },
         "upcomingRail": {
-          "title": "Was ist neu",
+          "title": "Auf dem Reißbrett",
           "badgeAria": "{{count}} neue Schiffe seit deinem letzten Besuch"
         }
       }
@@ -647,23 +660,6 @@
       "nose": "Bug",
       "readoutIdle": "Kein Hardpoint ausgewählt"
     },
-    "showroom": {
-      "title": "Showroom",
-      "subtitle": "Echte Schiffs-Lackierungen in interaktivem 3D betrachten — datamined Hülle und Texturen aus dem aktuellen Build.",
-      "count": "{{liveries}} Lackierungen in 3D über {{ships}} Schiff(e)",
-      "spotlight": "Jetzt im Showroom",
-      "gallery": "Alle Lackierungen",
-      "liveryCount": "{{count}} Lackierungen",
-      "billboard": {
-        "eyebrow": "Neu",
-        "title": "Echte Schiffs-Lackierungen in 3D drehen — {{count}} verfügbar",
-        "cta": "Zum Showroom"
-      },
-      "empty": {
-        "title": "Noch keine 3D-Lackierungen",
-        "body": "3D-Lackierungen werden pro Spiel-Build extrahiert und erscheinen hier, sobald sie vorliegen."
-      }
-    },
     "skins": {
       "title": "Lackierungen",
       "source": "Aus Data.p4k · echtes Hull + echte Texturen",
@@ -1036,8 +1032,7 @@
       "comm-link": "Comm-Link",
       "spectrum": "Spectrum",
       "youtube": "YouTube",
-      "patch": "Patch-Notes",
-      "favorites": "Favoriten"
+      "patch": "Patch-Notes"
     },
     "filter": {
       "label": "Filter",
@@ -1045,9 +1040,8 @@
       "groupAria": "Kanalfilter"
     },
     "favorite": {
-      "toggle": "Merken",
-      "save": "★ Merken",
-      "saved": "★ Gemerkt"
+      "save": "Merken",
+      "saved": "Gemerkt"
     },
     "share": {
       "label": "Teilen",
@@ -1150,21 +1144,64 @@
         "today": "heute fällig",
         "inDays": "in ~{{n}} Tagen",
         "inWeeks": "in ~{{n}} Wochen",
-        "overdueDays": "überfällig ({{n}} T.)",
-        "overdueWeeks": "überfällig ({{n}} Wo.)",
-        "basis": "Median {{median}} T. · n={{n}} · ab {{version}}"
+        "overdueDays": "{{n}} T. überfällig",
+        "overdueWeeks": "{{n}} Wo. überfällig",
+        "basis": "Median {{median}} T. · ab {{version}}"
       },
       "board": {
         "title": "Patch-Historie",
-        "sub": "Takt, Termine und jede Release-Note — nach Hauptpatch gruppiert",
+        "sub": "Roadmap, Takt, Termine und jede Release-Note — durchsuchbar bis zum einzelnen Stichpunkt",
         "back": "Zurück zu Verse News"
       },
       "waves": {
         "title": "{{count}} Build-Wellen derselben Ankündigung"
+      },
+      "search": {
+        "label": "Patch-Inhalte durchsuchen",
+        "placeholder": "z. B. Orison, Hotfix, Quantum Drive",
+        "clear": "Suche löschen",
+        "summary": "{{notes}} Notes in {{lines}} Patch-Linien",
+        "scope": "Sucht in allen Titeln und in den Stichpunkten von {{loaded}} geladenen Notes"
+      },
+      "roadmap": {
+        "title": "Was steckt drin",
+        "hint": "Geplante Inhalte laut RSI-Roadmap (Release View)",
+        "expandAll": "Alle Beschreibungen zeigen",
+        "collapseAll": "Beschreibungen einklappen",
+        "source": "Roadmap auf RSI ↗",
+        "showNotes": "Patch-Notes zu {{version}} zeigen",
+        "uncategorized": "Ohne Kategorie",
+        "noDetail": "RSI hat zu diesem Eintrag keine Beschreibung veröffentlicht.",
+        "emptyRelease": "Keine Roadmap-Einträge für diese Suche.",
+        "later": "Danach geplant:",
+        "slot": {
+          "current": "Aktueller Patch",
+          "next": "Nächster Patch"
+        },
+        "status": {
+          "released": "Ausgeliefert",
+          "committed": "Zugesagt",
+          "tentative": "Vorläufig",
+          "unknown": "Offen"
+        }
+      },
+      "detail": {
+        "loading": "Patch-Inhalte werden geladen …",
+        "unavailable": "Zu dieser Note liegen keine Inhalte vor – auf RSI nachlesen.",
+        "noMatch": "Kein Treffer in dieser Note.",
+        "fullNotes": "Vollständige Notes ↗",
+        "linkOut": "Link ↗",
+        "openOnRsi": "Auf RSI öffnen ↗",
+        "openOnRsiAria": "{{title}} auf RSI öffnen (neuer Tab)",
+        "truncated": "Sehr lange Note – der Rest steht auf RSI.",
+        "hits": "{{count}} Treffer",
+        "points": "{{count}} Punkte",
+        "expandAll": "Alle Notes ausklappen",
+        "collapseAll": "Alle Notes einklappen"
       }
     },
     "detail": {
-      "close": "Schließen"
+      "back": "Zurück"
     },
     "via": "via {{source}}",
     "openExternal": "Öffnet {{host}}",
@@ -1192,8 +1229,9 @@
     },
     "stream": {
       "title": "Strom",
-      "count": "{{count}} Beiträge",
-      "more": "{{count}} weitere anzeigen"
+      "more": "{{count}} weitere anzeigen",
+      "all": "Beiträge",
+      "filterAria": "Strom filtern"
     },
     "verdict": {
       "label": "Build-Stand",
@@ -1201,8 +1239,8 @@
       "due": "{{line}} ist live · nächster Hauptpatch in {{days}} Tagen",
       "today": "{{line}} ist live · nächster Hauptpatch heute fällig",
       "overdue": "{{line}} ist live · nächster Hauptpatch seit {{days}} Tagen überfällig",
-      "basis": "Median {{median}} T · n = {{n}}",
-      "basisWithTest": "Median {{median}} T · n = {{n}} · {{test}} im Test",
+      "basis": "Median {{median}} T",
+      "basisWithTest": "Median {{median}} T · {{test}} im Test",
       "toBoard": "Patch-Historie"
     }
   },

@@ -655,6 +655,62 @@ h3 { font-size: 0.9rem; }
   overflow: auto;            /* long diff/counts scroll inside the card, not the page */
 }
 .upload-summary { flex: 1 1 0; }
+/* These cards are flex CONTAINERS, so their children inherit `flex-shrink: 1`
+   and get squeezed below their own content height once the card runs out of
+   room. Overflow on a block box is visible, so the squeezed content spilled
+   out and painted straight through the next sibling — which is how an error
+   message ended up sitting on top of the running progress card's numbers.
+   Pin every child at its natural height and let the card scroll instead. */
+.upload-actions > *,
+.upload-summary > * { flex: 0 0 auto; }
+
+/* ------- Upload status: what happened / what to do / the raw text ------- */
+.upload-status {
+  margin-top: 10px;
+  /* Server + transport strings are unbreakable technical soup; without this
+     they force the card wider than its column. */
+  overflow-wrap: anywhere;
+}
+.upload-status[hidden] { display: none; }
+.upload-status .upload-status-msg { margin: 0; font-weight: 600; }
+.upload-status-hint {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--sc-fg-1);
+  opacity: 0.9;
+}
+.upload-status-details { margin-top: 8px; font-size: 0.78rem; }
+.upload-status-details > summary {
+  cursor: pointer;
+  color: var(--sc-fg-2);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+.upload-status-details > summary:hover { color: var(--sc-fg-1); }
+.upload-status-details > code {
+  display: block;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--sc-bg-1);
+  color: var(--sc-fg-2);
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+/* `.ok` / `.warn` are plain colour classes elsewhere; as a status BLOCK they
+   need the same framed treatment `.error` already has, or a success and a
+   failure read as two different kinds of object. */
+.upload-status.ok,
+.upload-status.warn {
+  padding: 10px 14px;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+}
+.upload-status.ok { background: rgba(var(--status-success-rgb), 0.1); }
+.upload-status.warn { background: rgba(var(--accent-warning-rgb), 0.1); }
+.upload-status.error { margin-bottom: 0; }
 
 /* ------- bundle-summary + diff table ------- */
 .bundle-meta {

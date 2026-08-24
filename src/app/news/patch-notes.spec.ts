@@ -3,10 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { NewsService, VerseNewsItem } from './news.service';
 import { ConsentService } from '../core/consent.service';
 import type { PatchFacet, PatchNoteEntry } from './patch-notes';
+import { matchesTokens } from './patch-search';
 import {
   compareVersionsDesc,
   facetCounts,
   filterPatchLines,
+  filterPatchLinesByQuery,
   groupPatchNotes,
   groupWaves,
   isHotfixTitle,
@@ -307,7 +309,7 @@ describe('NewsService — patch notes live in their own section, not in the time
     const svc = makeService();
     svc.feed.set(feed);
     svc.toggleFavorite('p-49-live');
-    svc.toggleFavoritesOnly();
+    svc.setFavoritesOnly(true);
     // Saving a release note is allowed; the stream is editorial-only, so it
     // surfaces on the board rather than here. The point is that "Gemerkt" can
     // never resurrect the 70 % of the feed the rethink moved off this page.
@@ -377,5 +379,50 @@ describe('groupWaves — one announcement, many build waves (2026-08-20 rethink)
     const entries = ['a', 'b', 'c', 'd'].map((id) => entry(id, '4.10', 'ptu'));
     const total = groupWaves(entries).reduce((n, w) => n + w.entries.length, 0);
     expect(total).toBe(entries.length);
+  });
+});
+
+describe('filterPatchLinesByQuery — the third axis (961ab0a5)', () => {
+  const news: VerseNewsItem[] = [
+    patch('p-410-ptu', '[Wave 1] Star Citizen Alpha 4.10 PTU Patch Notes 12358556', '2026-07-30T00:00:00.000Z'),
+    patch('p-49-live', 'Star Citizen Alpha 4.9 LIVE Release Notes', '2026-07-15T00:00:00.000Z'),
+    patch('p-48-live', 'Star Citizen Alpha 4.8 LIVE Release Notes', '2026-05-13T00:00:00.000Z'),
+  ];
+  const groups = groupPatchNotes(news);
+
+  /** Stand-in for the real one: title, plus "bullet points" for one note only. */
+  const haystack = (e: PatchNoteEntry): string =>
+    e.item.id === 'p-49-live' ? `${e.item.title}\nOrison instancing improvements` : e.item.title;
+
+  it('returns everything untouched when the query is empty', () => {
+    expect(filterPatchLinesByQuery(groups, [], haystack, matchesTokens)).toBe(groups);
+  });
+
+  it('finds a note by its title', () => {
+    const out = filterPatchLinesByQuery(groups, ['ptu'], haystack, matchesTokens);
+    expect(out.flatMap((g) => g.entries).map((e) => e.item.id)).toEqual(['p-410-ptu']);
+  });
+
+  it('finds a note by a bullet point the title never mentions', () => {
+    const out = filterPatchLinesByQuery(groups, ['orison'], haystack, matchesTokens);
+    expect(out.flatMap((g) => g.entries).map((e) => e.item.id)).toEqual(['p-49-live']);
+  });
+
+  it('keeps a whole line when the LINE NAME matches — typing "4.9" asks for 4.9', () => {
+    const out = filterPatchLinesByQuery(groups, ['4.9'], haystack, matchesTokens);
+    expect(out.map((g) => g.line)).toEqual(['4.9']);
+    expect(out[0].entries.length).toBe(1);
+  });
+
+  it('drops lines that keep no note', () => {
+    expect(filterPatchLinesByQuery(groups, ['pyro'], haystack, matchesTokens)).toEqual([]);
+  });
+
+  it('carries the LIVE facts over unchanged — search does not rewrite what you can play', () => {
+    const before = groups.find((g) => g.isCurrentLive)!;
+    const after = filterPatchLinesByQuery(groups, ['release'], haystack, matchesTokens)
+      .find((g) => g.line === before.line)!;
+    expect(after.isCurrentLive).toBe(true);
+    expect(after.hasLive).toBe(before.hasLive);
   });
 });

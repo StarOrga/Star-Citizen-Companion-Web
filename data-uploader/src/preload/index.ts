@@ -229,6 +229,8 @@ export const api = {
     resume: (): Promise<JobView> => ipcRenderer.invoke('sc:upload:resume'),
     cancel: (): Promise<JobView> => ipcRenderer.invoke('sc:upload:cancel'),
     finish: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('sc:upload:finish'),
+    /** Mark the run failed but KEEP it resumable (unlike `finish`, which deletes it). */
+    fail: (error: string): Promise<JobView> => ipcRenderer.invoke('sc:upload:fail', error),
     onPaused: (cb: (v: JobView) => void): (() => void) => {
       const listener = (_e: unknown, payload: JobView): void => cb(payload);
       ipcRenderer.on('sc:upload:paused', listener);
@@ -323,8 +325,17 @@ export const api = {
     upload: (
       accessToken: string,
       outDir: string,
-    ): Promise<{ ok: boolean; buildId?: string; counts?: Record<string, number>; error?: string }> =>
-      ipcRenderer.invoke('sc:catalog:upload', accessToken, outDir),
+    ): Promise<{
+      ok: boolean;
+      buildId?: string;
+      counts?: Record<string, number>;
+      /** Raw technical text (logs / collapsed details), never a headline. */
+      error?: string;
+      /** Coarse failure class — see `CatalogErrorCode` in main/catalog-bridge. */
+      errorCode?: string;
+      /** Publish phase that failed, so the UI can name where it stopped. */
+      errorPhase?: string;
+    }> => ipcRenderer.invoke('sc:catalog:upload', accessToken, outDir),
     onEvent: (
       cb: (ev: { phase: string; current: number; total: number; phaseIndex?: number; phaseTotal?: number }) => void,
     ): (() => void) => {

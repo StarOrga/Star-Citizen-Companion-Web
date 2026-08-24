@@ -232,6 +232,44 @@ export function filterPatchLines(
   return out;
 }
 
+/**
+ * Narrow the grouped patch notes to a free-text query (feedback 961ab0a5).
+ *
+ * A third axis on top of the two chip filters, and deliberately a separate
+ * pass: the chips answer "which patch line / which ring", the query answers
+ * "where is the thing I remember reading". Composed rather than merged so each
+ * axis keeps its own meaning and the reader can drop either one.
+ *
+ * `haystackOf` is injected rather than read off the entry, because what a note
+ * is searchable BY grows over time: today it is the title plus the bullet
+ * points of whichever notes have been loaded, and a note whose contents are not
+ * loaded yet is still findable by its title. Keeping that out of here means
+ * this function has no opinion about loading, and the same rules apply whether
+ * a note's outline is in memory or not.
+ *
+ * `hasLive` / `isCurrentLive` are carried over UNCHANGED, exactly as in
+ * `filterPatchLines`: which build you can play is a fact about the game, not
+ * about the search box.
+ */
+export function filterPatchLinesByQuery(
+  groups: readonly PatchLineGroup[],
+  tokens: readonly string[],
+  haystackOf: (entry: PatchNoteEntry) => string,
+  matches: (haystack: string, tokens: readonly string[]) => boolean,
+): PatchLineGroup[] {
+  if (tokens.length === 0) return groups as PatchLineGroup[];
+  const out: PatchLineGroup[] = [];
+  for (const group of groups) {
+    // A line whose own name matches ("4.10") keeps all of its notes — that is
+    // what someone typing a version number is asking for.
+    const lineHit = !!group.line && matches(group.line, tokens);
+    const entries = lineHit ? group.entries : group.entries.filter((e) => matches(haystackOf(e), tokens));
+    if (entries.length === 0) continue;
+    out.push({ ...group, entries, latestAt: newestAt(entries) });
+  }
+  return out;
+}
+
 /** How many notes each facet holds — drives the chip counts. */
 export function facetCounts(groups: readonly PatchLineGroup[]): Map<PatchFacet, number> {
   const counts = new Map<PatchFacet, number>();

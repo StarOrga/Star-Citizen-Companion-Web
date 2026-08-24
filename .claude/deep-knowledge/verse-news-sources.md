@@ -73,6 +73,91 @@ Patch notes are excluded from the time buckets (`Heute / Diese Woche / Älter`) 
 every channel view — they own their own section, and the `patch` filter chip
 narrows the page down to it.
 
+## Patch CONTENT: `rsi-roadmap` edge function (feedback 961ab0a5)
+
+Everything above gives the patch board patch note **titles**. The `rsi-roadmap`
+function is where the board gets what a patch actually *contains* — the planned
+scope from RSI's roadmap and the published bullet points from the note itself.
+Two upstream sources, one function, one cache table (`public.rsi_patch_cache`),
+because they are one feature. The client never talks to RSI.
+
+### Roadmap "Release View"
+
+- Endpoint: `GET https://robertsspaceindustries.com/api/roadmap/v1/boards/1`
+- Public, unauthenticated, no cookie/token, no Cloudflare challenge.
+  **Verified 2026-08-23: 200, 820,799 bytes.** Envelope is
+  `{success, code, msg, data}`; `data.releases[]` holds 39 releases back to
+  Alpha 3.1 with their cards, `data.categories[]` the discipline id→name map
+  (AI, Characters, Core Tech, Gameplay, Locations, Missions and Events, Ships and
+  Vehicles, Weapons and Items).
+- The parser (`functions/rsi-roadmap/roadmap.ts`) keeps only the current and the
+  next release plus a two-name footnote: **820,799 bytes in, 10,316 bytes out.**
+
+Three traps it exists to avoid:
+
+1. **`releases[].released` is a dead field.** The live 4.9 release reports
+   `released: 0` alongside `status: "Released"`; only pre-4.x rows still set the
+   integer. Read `status` (`Released` / `Committed` / `Tentative`) and nothing
+   else — a `released`-based filter shows an empty "current patch".
+2. **Board order is ascending, so the current patch is at the TAIL.** `order` is
+   authoritative and the array is not guaranteed sorted. Which release is *live*
+   is read primarily from the hand-maintained status line in
+   `data.description` (`Live Version: 4.9.0 … ▪ PTU Version: Alpha 4.10 12442953`)
+   and only then from "last release with status Released".
+3. **`releases[].description` is not a date.** `"Q3 2026"` for what is coming,
+   `"December 23rd, 2021"` for what shipped. Rendered verbatim, never parsed.
+
+Thumbnails are absolute on modern cards and relative (`/media/…`) on 2018-era
+ones, so they are resolved against the RSI base and then **host-allowlisted
+against the app's CSP `img-src`** (`ALLOWED_IMAGE_HOSTS` in `roadmap.ts`) — a url
+outside it would only be blocked later, in the browser.
+
+The Progress Tracker GraphQL endpoint is deliberately unused: it masks every
+error into an identical `CFUException` (including "no such field"), so an
+operation there cannot be probed or version-checked from outside.
+
+### Patch-note bodies (Spectrum thread content)
+
+- Endpoint: `POST https://robertsspaceindustries.com/api/spectrum/forum/thread/nested`
+  with `{ slug, channel_id: "190048", sort: "votes", page: 1 }` and header
+  `X-Tavern-Id: 1` — the same community id as the list endpoint above.
+  **Verified 2026-08-23: 200, ~126–170 KB per thread.**
+- The `slug` is the last path segment of the permalink the feed already carries
+  (`…/forum/190048/thread/<slug>`), so no extra lookup is needed.
+- The body is Draft.js under `data.content_blocks[] → {type:'text',
+  data:{blocks, entityMap}}`. `entityMap` arrives as an **array**, not the
+  spec's object; both forms are read.
+
+Block types are not consistent between notes, which is the whole difficulty:
+
+| note | `header-one` | `blockquote` | `unordered-list-item` | `unstyled` |
+|---|---|---|---|---|
+| 4.9 LIVE Release Notes | 4 | 5 | 5 | 24 |
+| 4.10 PTU RC1 Patch Notes | 2 | 0 | 28 | 6 |
+
+`header-one` → heading, `blockquote` → sub-heading, `*-list-item` → bullet. An
+`unstyled` line is prose *unless* it carries a whole-line BOLD range (4.10 PTU
+writes every section label that way and has no heading block below the title) or
+starts with a hand-typed bullet glyph. Neither rescue is universal — 4.9 LIVE's
+"Important Build Info" has no style range and stays prose — so both sit on top of
+the block type rather than replacing it. A miss costs a line its label, never the
+line itself. Measured output: 170 KB thread → 4.6 KB outline, 28 bullets.
+
+Images and embeds inside a note are **not** read. A patch note's meaning is in
+its text, and pulling images in here would drag this function into the image
+pipeline that has repeatedly taken `fetch-verse-news` down (546 OOM).
+
+### Load shape
+
+The roadmap is one document per visit. Outlines are per note and lazy: the board
+seeds the newest note per channel and fetches the rest when a row is expanded.
+`RoadmapService.SLUGS_PER_REQUEST` (5) is deliberately equal to the function's
+`MAX_UPSTREAM_FETCHES` — a slug the function declines to fetch is
+indistinguishable from a note with no contents, so the client never asks for more
+than the server will fetch. The two constants must move together. At most two
+outline requests are in flight at once, which is what keeps "expand every note"
+from putting a hundred concurrent Spectrum fetches on RSI.
+
 ## Secondary: RSI status RSS
 
 - Endpoint: `https://status.robertsspaceindustries.com/index.xml`

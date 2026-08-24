@@ -92,6 +92,32 @@ weder abgebrochen noch neu gestartet.
 Das Umschalt-UI hängt auf Configure (groß, mit ETA) sowie auf der Run- und der
 Upload-View (kompakt) — überall derselbe Schreibpfad.
 
+## Pause, Fortsetzen & Fehlertoleranz
+
+Ein Voll-Upload läuft Stunden und besteht aus tausenden Requests. Beides —
+„der Operator will anhalten" und „ein Request geht schief" — darf den Lauf
+nicht wegwerfen.
+
+- **Pause wirkt auf zwei Wegen**, weil es zwei Arten von Arbeit gibt. Unsere
+  eigenen Schleifen (Catalog-Chunks, Skin-PUTs) prüfen zwischen den Work-Units
+  `PauseControl.checkpoint()` und rollen sauber aus. Der **3D-Skin-Build** ist
+  dagegen ein Python-Kind, das stundenlang niemanden fragt — `sc:upload:pause`
+  killt es deshalb aktiv (`interruptLocalSkinBuild`). Das ist unbedenklich,
+  weil `skin_export_app` die `skins.json` eines Schiffs erst nach dessen
+  vollständigem Export schreibt und `--skip-existing` genau darauf keyt: beim
+  Fortsetzen wird nur das eine angefangene Schiff neu gebaut.
+- **Transiente Serverfehler beenden keinen Lauf.** Jeder `ingest-catalog`-Request
+  wird bei einem vorübergehenden Fehler mit exponentiellem Backoff wiederholt
+  (5 Versuche). Meldet Postgres dagegen ein abgebrochenes Statement
+  (`503 ingest_timeout`, bzw. das rohe `canceling statement …` einer älteren
+  Function), hilft Wiederholen nie — der **Batch wird halbiert** und beide
+  Hälften gehen raus. Die reduzierte Größe gilt für den Rest der Phase weiter.
+  Alle Ops sind idempotente Upserts, das Aufteilen kostet also nichts.
+- **Ein gescheiterter Codex-Schritt bleibt fortsetzbar.** Der Job wird als
+  `error` markiert, aber weder die Job-Datei noch das `out_dir` werden gelöscht
+  — „Upload fortsetzen" macht am gespeicherten Cursor weiter. Aufgeräumt wird
+  ausschließlich nach einem vollständig bestätigten Lauf.
+
 ## Security-Modell (Iter 2 · § B2)
 
 1. **Loopback-OAuth**: App startet HTTP-Server auf 127.0.0.1:46821,

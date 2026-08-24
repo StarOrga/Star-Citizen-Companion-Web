@@ -203,14 +203,150 @@ describe('catalog upload — resume after a kill', () => {
   it('surfaces a real server failure as an error, not as a pause', async () => {
     const store = new UploadJobStore(diskIO());
     store.save(createJob('j1', outDir, { channel: 'LIVE', patchVersion: '4.0.0', buildNumber: '9999' }, 1));
-    vi.stubGlobal('fetch', async () => ({
-      ok: false,
-      status: 500,
-      json: async () => ({ error: 'boom' }),
-    }));
+    let calls = 0;
+    vi.stubGlobal('fetch', async () => {
+      calls++;
+      return { ok: false, status: 500, json: async () => ({ error: 'boom' }) };
+    });
 
-    const res = await uploadCatalog('token', outDir, () => {}, catalogHooks(store, createPauseControl()));
+    const res = await uploadCatalog('token', outDir, () => {}, {
+      ...catalogHooks(store, createPauseControl()),
+      backoffMs: () => 0,
+    });
     expect(res.ok).toBe(false);
     expect(res.error).toContain('500');
+    expect(res.errorCode).toBe('server');
+    // A permanently failing server is still retried before we give up — but a
+    // bounded number of times, so a broken deployment cannot hang the run.
+    expect(calls).toBe(5);
+  });
+});
+
+/**
+ * The failure that actually cost a full run: `upsert -> HTTP 500 ingest_failed
+ * canceling statement due to statement timeout` on ONE heavy batch aborted the
+ * whole catalog stage. Both escapes are contract, not implementation detail.
+ */
+describe('catalog upload — transient failures', () => {
+  it('retries a transient failure and still completes the run', async () => {
+    const store = new UploadJobStore(diskIO());
+    store.save(createJob('j1', outDir, { channel: 'LIVE', patchVersion: '4.0.0', buildNumber: '9999' }, 1));
+    let failed = false;
+    const sent: Sent[] = [];
+    vi.stubGlobal('fetch', async (_url: string, init: { body: string }) => {
+      const body = JSON.parse(init.body) as { op: string; table?: string; rows?: unknown[] };
+      // One dropped reply, on one ships upsert, exactly once.
+      if (!failed && body.op === 'upsert' && body.table === 'codex_ships') {
+        failed = true;
+        return { ok: false, status: 502, json: async () => ({ error: 'bad_gateway' }) };
+      }
+      sent.push({ op: body.op, table: body.table, rows: body.rows?.length ?? 0 });
+      return { ok: true, status: 200, json: async () => ({ build_id: 'build-fixed-1' }) };
+    });
+
+    const res = await uploadCatalog('token', outDir, () => {}, {
+      ...catalogHooks(store, createPauseControl()),
+      backoffMs: () => 0,
+    });
+    expect(res.ok).toBe(true);
+    expect(failed).toBe(true);
+    // The retried batch landed, and finalize was still reached.
+    expect(sent.filter((s) => s.table === 'codex_ships').reduce((a, b) => a + b.rows, 0)).toBe(3);
+    expect(sent.some((s) => s.op === 'finalize')).toBe(true);
+  });
+
+  it('halves a batch the database cannot finish in time, instead of failing', async () => {
+    // 6 ships in one chunk; the server refuses anything larger than 2 rows the
+    // way Postgres does — by cancelling the statement.
+    rmSync(outDir, { recursive: true, force: true });
+    outDir = makeOutDir(6);
+    const store = new UploadJobStore(diskIO());
+    store.save(createJob('j1', outDir, { channel: 'LIVE', patchVersion: '4.0.0', buildNumber: '9999' }, 1));
+    const landed: number[] = [];
+    vi.stubGlobal('fetch', async (_url: string, init: { body: string }) => {
+      const body = JSON.parse(init.body) as { op: string; table?: string; rows?: unknown[] };
+      if (body.op === 'upsert' && body.table === 'codex_ships') {
+        const n = body.rows?.length ?? 0;
+        if (n > 2) {
+          return {
+            ok: false,
+            status: 500,
+            json: async () => ({
+              error: 'ingest_failed',
+              message: 'canceling statement due to statement timeout',
+            }),
+          };
+        }
+        landed.push(n);
+      }
+      return { ok: true, status: 200, json: async () => ({ build_id: 'build-fixed-1' }) };
+    });
+
+    const res = await uploadCatalog('token', outDir, () => {}, {
+      ...catalogHooks(store, createPauseControl()),
+      backoffMs: () => 0,
+    });
+    expect(res.ok).toBe(true);
+    // Every ship still landed — just across smaller batches.
+    expect(landed.reduce((a, b) => a + b, 0)).toBe(6);
+    expect(Math.max(...landed)).toBeLessThanOrEqual(2);
+  });
+
+  it('keeps the reduced batch size for the rest of the phase', async () => {
+    // 600 rows = two default chunks. Once the first chunk proves 500 is too
+    // heavy, the SECOND one must not rediscover that the hard way — otherwise
+    // every chunk of a real 300-ship run pays another timeout + backoff.
+    rmSync(outDir, { recursive: true, force: true });
+    outDir = makeOutDir(600);
+    const store = new UploadJobStore(diskIO());
+    store.save(createJob('j1', outDir, { channel: 'LIVE', patchVersion: '4.0.0', buildNumber: '9999' }, 1));
+    let landed = 0;
+    let rejectionsAfterFirstChunk = 0;
+    vi.stubGlobal('fetch', async (_url: string, init: { body: string }) => {
+      const body = JSON.parse(init.body) as { op: string; table?: string; rows?: unknown[] };
+      if (body.op === 'upsert' && body.table === 'codex_ships') {
+        const n = body.rows?.length ?? 0;
+        if (n > 50) {
+          if (landed >= 500) rejectionsAfterFirstChunk++;
+          return {
+            ok: false,
+            status: 503,
+            json: async () => ({ error: 'ingest_timeout', message: 'canceling statement due to statement timeout' }),
+          };
+        }
+        landed += n;
+      }
+      return { ok: true, status: 200, json: async () => ({ build_id: 'build-fixed-1' }) };
+    });
+
+    const res = await uploadCatalog('token', outDir, () => {}, {
+      ...catalogHooks(store, createPauseControl()),
+      backoffMs: () => 0,
+    });
+    expect(res.ok).toBe(true);
+    expect(landed).toBe(600);
+    expect(rejectionsAfterFirstChunk).toBe(0);
+  });
+
+  it('reports a persistent timeout as `timeout`, so the UI can say "resume"', async () => {
+    const store = new UploadJobStore(diskIO());
+    store.save(createJob('j1', outDir, { channel: 'LIVE', patchVersion: '4.0.0', buildNumber: '9999' }, 1));
+    vi.stubGlobal('fetch', async (_url: string, init: { body: string }) => {
+      const body = JSON.parse(init.body) as { op: string };
+      if (body.op !== 'upsert') return { ok: true, status: 200, json: async () => ({ build_id: 'b1' }) };
+      return {
+        ok: false,
+        status: 503,
+        json: async () => ({ error: 'ingest_timeout', message: 'canceling statement due to statement timeout' }),
+      };
+    });
+
+    const res = await uploadCatalog('token', outDir, () => {}, {
+      ...catalogHooks(store, createPauseControl()),
+      backoffMs: () => 0,
+    });
+    expect(res.ok).toBe(false);
+    expect(res.errorCode).toBe('timeout');
+    expect(res.errorPhase).toBe('codex_manufacturers');
   });
 });

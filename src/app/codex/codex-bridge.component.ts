@@ -19,7 +19,6 @@ import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { ExtensionPromoComponent } from './extension-promo.component';
 import { UploaderAccessComponent } from '../desktop/uploader-access.component';
 import { HoloReadyBadgeComponent } from './holo-ready-badge.component';
-import { ShowroomService } from './showroom.service';
 import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
@@ -88,7 +87,6 @@ interface Lane {
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>
           <a class="index-link" routerLink="/codex/fps">{{ 'fps.bridgeLink' | translate }}</a>
           <a class="index-link" routerLink="/codex/blueprint">{{ 'blueprint.title' | translate }}</a>
-          <a class="index-link" routerLink="/codex/showroom">{{ 'codex.showroom.title' | translate }}</a>
           <a class="index-link" routerLink="/codex/keybinds">{{ 'codex.bridge.keybinds' | translate }}</a>
           <a class="index-link" routerLink="/hangar">{{ 'codex.bridge.hangar' | translate }}</a>
         </div>
@@ -101,18 +99,6 @@ interface Lane {
       <!-- Data Uploader access — one collapsed line, collaborator+ only, and the
            uploader's replacement for its former top-level nav entry (eb9c6ec3). -->
       <sc-uploader-access />
-
-      <!-- Showroom billboard — the top-level entry to 3D liveries. Poster/text only,
-           no live WebGL here (atmosphere-dose rule). Self-hides until coverage exists. -->
-      @if (showroomLiveries() > 0) {
-        <a class="showroom-billboard" routerLink="/codex/showroom">
-          <div class="sb-text">
-            <span class="sb-eyebrow">{{ 'codex.showroom.billboard.eyebrow' | translate }}</span>
-            <strong class="sb-title">{{ 'codex.showroom.billboard.title' | translate: { count: showroomLiveries() } }}</strong>
-            <span class="sb-cta">{{ 'codex.showroom.billboard.cta' | translate }} →</span>
-          </div>
-        </a>
-      }
 
       @if (error(); as err) {
         <div class="sc-card err">
@@ -343,22 +329,6 @@ interface Lane {
     }
     .index-link:hover { background: color-mix(in srgb, var(--sc-accent) 22%, transparent); }
 
-    /* Showroom billboard */
-    .showroom-billboard {
-      display: flex; align-items: center; justify-content: space-between; gap: 16px;
-      padding: 18px 22px; border-radius: 14px; text-decoration: none; color: inherit;
-      border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
-      background:
-        radial-gradient(120% 140% at 90% 20%, color-mix(in srgb, var(--sc-accent) 22%, transparent), transparent 55%),
-        var(--sc-bg-1);
-      transition: border-color 0.16s, box-shadow 0.16s;
-    }
-    .showroom-billboard:hover { border-color: var(--sc-accent); box-shadow: 0 0 24px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
-    .sb-text { display: flex; flex-direction: column; gap: 3px; }
-    .sb-eyebrow { font-family: var(--sc-font-display); font-size: max(0.64rem, var(--sc-fs-floor)); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent); }
-    .sb-title { font-size: 1.05rem; }
-    .sb-cta { font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; color: var(--sc-accent); }
-
     /* Hero */
     .hero {
       display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 4px;
@@ -493,7 +463,6 @@ export class CodexBridgeComponent implements OnInit {
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
   private readonly router = inject(Router);
-  private readonly showroom = inject(ShowroomService);
   private readonly rsi = inject(UpcomingShipsService);
 
   readonly skeletons = Array.from({ length: 6 }, (_, i) => i);
@@ -519,11 +488,6 @@ export class CodexBridgeComponent implements OnInit {
 
   // Class names already in the hangar — read-overlay over hangar.ships().
   readonly inHangarSet = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
-
-  /** Total liveries across all Showroom entries — drives the badge + billboard. */
-  readonly showroomLiveries = computed(() =>
-    this.showroom.entries().reduce((n, e) => n + e.liveryCount, 0),
-  );
 
   /**
    * Hero = the user's pinned flagship (if set AND resolvable in the current
@@ -620,7 +584,6 @@ export class CodexBridgeComponent implements OnInit {
     this.error.set(null);
     try {
       await this.svc.loadCurrentBuild();
-      void this.showroom.load();
       // RSI ship-matrix feed: artwork for hulls without a datamined render, plus
       // the upcoming lane. Advisory — a failure leaves both untouched.
       void this.rsi.ensureLoaded();

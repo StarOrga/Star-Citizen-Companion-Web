@@ -1,4 +1,9 @@
 {
+  "common": {
+    "select": {
+      "none": "No selection"
+    }
+  },
   "update": {
     "available": "A new version is available",
     "reload": "Reload",
@@ -123,7 +128,17 @@
         "cta": "Claim your first ship",
         "ctaGoal": "→ Flight-ready",
         "open": "Open {{ship}}",
-        "compareHint": "Tip: pin 2+ ships to compare them."
+        "compareHint": "Tip: pin 2+ ships to compare them.",
+        "laneTitle": "Fleet · {{count}} ships",
+        "sortLabel": "Sort the fleet",
+        "sortUnknown": "Unspecified",
+        "sort": {
+          "manufacturer": "Manufacturer",
+          "role": "Role",
+          "recent": "Recently opened"
+        },
+        "emptyLead": "The bay is ready — no hull in it yet.",
+        "emptyArt": "Empty hangar bay with a docking ring"
       },
       "diff": {
         "scm": "SCM",
@@ -171,8 +186,6 @@
       },
       "versum": {
         "eyebrow": "In the Verse",
-        "title": "Domains",
-        "showroom": "Showroom",
         "keybinds": "Keybindings",
         "domain": {
           "ship": "Ships",
@@ -184,7 +197,7 @@
           "ammunition": "Ammunition"
         },
         "upcomingRail": {
-          "title": "What's new",
+          "title": "On the Drawing Board",
           "badgeAria": "{{count}} new ships since your last visit"
         }
       }
@@ -647,23 +660,6 @@
       "nose": "Nose",
       "readoutIdle": "No hardpoint selected"
     },
-    "showroom": {
-      "title": "Showroom",
-      "subtitle": "Inspect real ship liveries in interactive 3D — datamined hull and textures from the current build.",
-      "count": "{{liveries}} liveries in 3D across {{ships}} ship(s)",
-      "spotlight": "Now in the Showroom",
-      "gallery": "All liveries",
-      "liveryCount": "{{count}} liveries",
-      "billboard": {
-        "eyebrow": "New",
-        "title": "Rotate real ship liveries in 3D — {{count}} ready",
-        "cta": "Enter the Showroom"
-      },
-      "empty": {
-        "title": "No 3D liveries yet",
-        "body": "3D liveries are extracted per game build and appear here as they land."
-      }
-    },
     "skins": {
       "title": "Liveries",
       "source": "From Data.p4k · real hull + real textures",
@@ -1036,8 +1032,7 @@
       "comm-link": "Comm-Link",
       "spectrum": "Spectrum",
       "youtube": "YouTube",
-      "patch": "Patch notes",
-      "favorites": "Favorites"
+      "patch": "Patch notes"
     },
     "filter": {
       "label": "Filter",
@@ -1045,9 +1040,8 @@
       "groupAria": "Channel filter"
     },
     "favorite": {
-      "toggle": "Save",
-      "save": "★ Save",
-      "saved": "★ Saved"
+      "save": "Save",
+      "saved": "Saved"
     },
     "share": {
       "label": "Share",
@@ -1152,19 +1146,62 @@
         "inWeeks": "in ~{{n}} weeks",
         "overdueDays": "overdue by {{n}}d",
         "overdueWeeks": "overdue by {{n}}w",
-        "basis": "Median {{median}}d · n={{n}} · from {{version}}"
+        "basis": "Median {{median}}d · from {{version}}"
       },
       "board": {
         "title": "Patch history",
-        "sub": "Cadence, forecasts and every release note — grouped by main patch line",
+        "sub": "Roadmap, cadence, dates and every release note — searchable down to the single bullet point",
         "back": "Back to Verse News"
       },
       "waves": {
         "title": "{{count}} build waves of the same announcement"
+      },
+      "search": {
+        "label": "Search patch contents",
+        "placeholder": "e.g. Orison, hotfix, quantum drive",
+        "clear": "Clear search",
+        "summary": "{{notes}} notes across {{lines}} patch lines",
+        "scope": "Searches every title and the bullet points of {{loaded}} loaded notes"
+      },
+      "roadmap": {
+        "title": "What's in it",
+        "hint": "Planned content per the RSI roadmap (Release View)",
+        "expandAll": "Show all descriptions",
+        "collapseAll": "Collapse descriptions",
+        "source": "Roadmap on RSI ↗",
+        "showNotes": "Show patch notes for {{version}}",
+        "uncategorized": "Uncategorized",
+        "noDetail": "RSI published no description for this entry.",
+        "emptyRelease": "No roadmap entries for this search.",
+        "later": "Planned after that:",
+        "slot": {
+          "current": "Current patch",
+          "next": "Next patch"
+        },
+        "status": {
+          "released": "Released",
+          "committed": "Committed",
+          "tentative": "Tentative",
+          "unknown": "Open"
+        }
+      },
+      "detail": {
+        "loading": "Loading patch contents …",
+        "unavailable": "No contents available for this note — read it on RSI.",
+        "noMatch": "No match inside this note.",
+        "fullNotes": "Full notes ↗",
+        "linkOut": "Link ↗",
+        "openOnRsi": "Open on RSI ↗",
+        "openOnRsiAria": "Open {{title}} on RSI (new tab)",
+        "truncated": "Very long note — the rest is on RSI.",
+        "hits": "{{count}} hits",
+        "points": "{{count}} points",
+        "expandAll": "Expand all notes",
+        "collapseAll": "Collapse all notes"
       }
     },
     "detail": {
-      "close": "Close"
+      "back": "Back"
     },
     "via": "via {{source}}",
     "openExternal": "Opens {{host}}",
@@ -1192,8 +1229,9 @@
     },
     "stream": {
       "title": "Stream",
-      "count": "{{count}} posts",
-      "more": "Show {{count}} more"
+      "more": "Show {{count}} more",
+      "all": "Posts",
+      "filterAria": "Filter the stream"
     },
     "verdict": {
       "label": "Build status",
@@ -1201,8 +1239,8 @@
       "due": "{{line}} is live · next main patch in {{days}} days",
       "today": "{{line}} is live · next main patch due today",
       "overdue": "{{line}} is live · next main patch {{days}} days overdue",
-      "basis": "Median {{median}} d · n = {{n}}",
-      "basisWithTest": "Median {{median}} d · n = {{n}} · {{test}} in testing",
+      "basis": "Median {{median}} d",
+      "basisWithTest": "Median {{median}} d · {{test}} in testing",
       "toBoard": "Patch history"
     }
   },

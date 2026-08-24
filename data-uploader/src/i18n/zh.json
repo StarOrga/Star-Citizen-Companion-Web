@@ -55,8 +55,10 @@
       "discard": "放弃",
       "cancelled": "已放弃上传 — 已保存的进度被清除。",
       "resumeBanner": "发现中断的上传（{{hint}}）— 是否继续？",
-      "pauseShort": "已暂停"
-    }
+      "pauseShort": "已暂停",
+      "pausingShort": "暂停中…"
+    },
+    "technicalDetails": "技术细节"
   },
   "skins": {
     "building": "正在构建 3D 涂装",

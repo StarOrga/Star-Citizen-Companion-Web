@@ -212,6 +212,9 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('.hangar-empty')).not.toBeNull();
     const cta = el.querySelector<HTMLAnchorElement>('.hangar-empty a.btn');
     expect(cta?.getAttribute('href')).toContain('/codex/index');
+    // The empty bay is drawn, not greyed out — a missing scene turns the state
+    // back into the blank card the redesign replaced.
+    expect(el.querySelector('.hangar-empty svg.bay-scene')).not.toBeNull();
   });
 
   it('renders the honest AN BORD empty state (uncommissioned) with an armour CTA when no personal loadout exists', async () => {
@@ -232,7 +235,7 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelectorAll('.doll-slot').length).toBe(7);
   });
 
-  it('shows the flagship identity (manufacturer · name) and mount-derived KPIs, never crew/cargo/mass/speed', async () => {
+  it('shows the flagship on a cinematic hero — identity and mount-derived KPIs ON the art, never crew/cargo/mass/speed', async () => {
     const gladius = shipRow({
       classNameSlug: 'AEGS_Gladius',
       payload: {
@@ -248,16 +251,21 @@ describe('CodexLandingComponent', () => {
       flagship: 'AEGS_Gladius',
     });
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.identity-mfr')?.textContent).toContain('AEGS');
-    const link = el.querySelector<HTMLAnchorElement>('a.identity-name');
+    expect(el.querySelector('.ship-hero')).not.toBeNull();
+    // Identity and KPIs live INSIDE the hero frame, on its scrim — not in a
+    // card row underneath it (feedback 2026-08-23).
+    expect(el.querySelector('.ship-hero .hero-scrim .identity-mfr')?.textContent).toContain('AEGS');
+    const link = el.querySelector<HTMLAnchorElement>('.ship-hero a.identity-name');
     expect(link?.getAttribute('href')).toContain('/codex/ship/AEGS_Gladius');
-    const kpiText = el.querySelector('.kpi-row')?.textContent ?? '';
+    // The ship KPI card row is gone; the on-foot zone keeps its own .kpi-row.
+    expect(el.querySelector('.ship-hero .kpi-row')).toBeNull();
+    const kpiText = el.querySelector('.ship-hero .hero-kpis')?.textContent ?? '';
     expect(kpiText).not.toMatch(/crew/i);
     expect(kpiText).not.toMatch(/cargo/i);
     expect(kpiText).not.toMatch(/\bspeed\b/i);
   });
 
-  it('keeps the flagship-led fleet field: other owned ships render as thumbs with inline patch deltas', async () => {
+  it('renders the whole fleet as art tiles with a sort bar, the flagship starred, deltas inline', async () => {
     const gladius = shipRow({ classNameSlug: 'AEGS_Gladius' });
     const arrow = shipRow({ classNameSlug: 'ANVL_Arrow' });
     const deltas = new Map<string, ShipStatDelta[]>([
@@ -278,8 +286,18 @@ describe('CodexLandingComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     const delta = el.querySelector('.delta.dir-up .delta-val');
     expect(delta?.textContent).toContain('+50');
-    const other = el.querySelector<HTMLAnchorElement>('.fleet-others a.fleet-thumb');
-    expect(other?.getAttribute('href')).toContain('/codex/ship/ANVL_Arrow');
+    const tiles = Array.from(el.querySelectorAll<HTMLAnchorElement>('.fleet-strip a.fleet-tile'));
+    // The flagship is part of the strip (starred), not excluded from it —
+    // grouping by manufacturer/role only reads right with every owned hull in.
+    expect(tiles.length).toBe(2);
+    const hrefs = tiles.map((a) => a.getAttribute('href'));
+    expect(hrefs.some((h) => h?.includes('/codex/ship/ANVL_Arrow'))).toBeTrue();
+    expect(hrefs.some((h) => h?.includes('/codex/ship/AEGS_Gladius'))).toBeTrue();
+    expect(el.querySelector('.fleet-tile.flag .fleet-tile__badge.flag')).not.toBeNull();
+    // Three grouping axes, exactly one active.
+    const sortBtns = Array.from(el.querySelectorAll<HTMLButtonElement>('.fleet-sort__btn'));
+    expect(sortBtns.length).toBe(3);
+    expect(sortBtns.filter((b) => b.classList.contains('on')).length).toBe(1);
     expect(el.querySelector('.compare-hint')).not.toBeNull();
   });
 
@@ -306,24 +324,27 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('a.hit .pin svg')).not.toBeNull();
   });
 
-  it('renders the IM VERSUM domain tiles as real anchors carrying the live entity counts', async () => {
+  it('renders the IM VERSUM domain chips as real anchors that all land on the same subview with the facet preselected', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
-    const tiles = Array.from(el.querySelectorAll<HTMLAnchorElement>('.domain-tile'));
-    expect(tiles.length).toBe(7);
-    const shipTile = tiles.find((a) => a.getAttribute('href')?.includes('kind=ship'));
-    expect(shipTile?.querySelector('.domain-count')?.textContent?.trim()).toBe('353');
-    const bpTile = tiles.find((a) => a.getAttribute('href') === '/codex/blueprint');
-    expect(bpTile).toBeTruthy();
-    // Keybinds and Showroom stay reachable directly; "Kommende Schiffe" no
-    // longer has its own rail entry (folded into the Schiffe domain, see the
-    // upcoming-rail tests below).
-    const railHrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('.versum-rail a')).map((a) =>
+    const chips = Array.from(el.querySelectorAll<HTMLAnchorElement>('.domain-strip a.domain-chip'));
+    expect(chips.length).toBe(7);
+    const shipChip = chips.find((a) => a.getAttribute('href')?.includes('kind=ship'));
+    expect(shipChip?.querySelector('.domain-count')?.textContent?.trim()).toBe('353');
+    // Every domain lands on the SAME subview with its facet preselected —
+    // Baupläne used to jump to the separate /codex/blueprint page.
+    expect(chips.every((a) => a.getAttribute('href')?.startsWith('/codex/index?kind='))).toBeTrue();
+    expect(chips.some((a) => a.getAttribute('href')?.includes('kind=blueprint'))).toBeTrue();
+    // The keybindings entry sits on the "Im Versum" heading line now, not in a
+    // rail of its own below the page. The Showroom is gone entirely.
+    const headHrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('.versum-head a')).map((a) =>
       a.getAttribute('href'),
     );
-    expect(railHrefs.some((h) => h?.includes('/codex/showroom'))).toBeTrue();
-    expect(railHrefs.some((h) => h?.includes('/codex/upcoming'))).toBeFalse();
-    expect(railHrefs.some((h) => h?.includes('/codex/keybinds'))).toBeTrue();
+    expect(headHrefs.some((h) => h?.includes('/codex/keybinds'))).toBeTrue();
+    expect(el.querySelector('.versum-rail')).toBeNull();
+    const allHrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('a')).map((a) => a.getAttribute('href'));
+    expect(allHrefs.some((h) => h?.includes('/codex/showroom'))).toBeFalse();
+    expect(allHrefs.some((h) => h?.includes('/codex/upcoming'))).toBeFalse();
   });
 
   it('AN BORD and IM HANGAR zones are each a real routerLink entrance into their subview', async () => {
@@ -367,12 +388,12 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('.identity .pin')).not.toBeNull();
   });
 
-  it('renders the "Was ist neu" rail inside Im Versum once the RSI feed has ships, each tile a real anchor', async () => {
+  it('renders the concept-ship rail inside Im Versum once the RSI feed has ships, each tile a real anchor carrying name + manufacturer over its art', async () => {
     const fixture = await setup({
       hangar: [],
       upcomingShips: [
-        upcomingShip({ id: 'polaris', name: 'RSI Polaris' }),
-        upcomingShip({ id: 'idris-m', name: 'Aegis Idris-M' }),
+        upcomingShip({ id: 'polaris', name: 'RSI Polaris', manufacturerCode: 'RSI' }),
+        upcomingShip({ id: 'idris-m', name: 'Aegis Idris-M', manufacturerCode: 'AEGS' }),
       ],
       upcomingNotificationCount: 2,
     });
@@ -385,6 +406,12 @@ describe('CodexLandingComponent', () => {
     expect(tiles[0].getAttribute('href')).toBe('https://robertsspaceindustries.com/pledge/ships/polaris');
     expect(tiles[0].getAttribute('target')).toBe('_blank');
     expect(tiles[0].getAttribute('rel')).toBe('noopener noreferrer');
+    // The tile IS the artwork: name + manufacturer ride a caption scrim on top
+    // of it rather than sitting in a separate text block under a boxed thumb.
+    expect(tiles[0].querySelector('.upcoming-tile__caption .upcoming-tile__name')?.textContent?.trim()).toBe(
+      'RSI Polaris',
+    );
+    expect(tiles[0].querySelector('.upcoming-tile__caption .upcoming-tile__mfr')?.textContent?.trim()).toBe('RSI');
     expect(el.querySelector('.upcoming-rail__badge')?.textContent?.trim()).toBe('2');
   });
 

@@ -200,7 +200,11 @@ type Slide =
                           <strong>{{ formatDate(row.at) }}</strong>
                           <span class="fc-rel">{{ untilLabel(row) }}</span>
                         </span>
-                        <span class="fc-basis">{{ 'news.patch.forecast.basis' | translate:{ version: row.basis, median: num(row.medianDays), n: row.samples } }}</span>
+                        <!-- The sample count behind the median is stated in
+                             words by the KPI panel's "Basis: n Messwerte"; as
+                             n=5 next to a date it read as notation, not as a
+                             caveat, so it is no longer repeated here. -->
+                        <span class="fc-basis">{{ 'news.patch.forecast.basis' | translate:{ version: row.basis, median: num(row.medianDays) } }}</span>
                       </li>
                     }
                   </ul>
