@@ -3,6 +3,7 @@ import { ActivatedRouteSnapshot, Router, RouterStateSnapshot } from '@angular/ro
 import { AnalyticsService } from '../core/analytics.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { approvedGuard } from './approved.guard';
+import { publicOrApprovedGuard } from './public-or-approved.guard';
 import { AuthService } from './auth.service';
 import { ImpersonationService, VIEW_AS_STORAGE_KEY } from './impersonation.service';
 import { ViewAs } from './impersonation-policy';
@@ -372,6 +373,35 @@ describe('RoleService failure paths (transient read errors)', () => {
 
     expect(result).toBe(false); // navigation blocked, not redirected
     expect(sb.realClient.auth.signOut).not.toHaveBeenCalled(); // session intact
+  });
+
+  it('publicOrApprovedGuard: an unresolved identity lets the public route render WITHOUT signing out', async () => {
+    const sb = fakeSupabaseQueued({ role: 'admin', approved: true }, []);
+    sb.realClient.from = () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: null, error: { message: 'down' } }),
+        }),
+      }),
+    });
+    configureQueued(sb);
+    const auth = TestBed.inject(AuthService);
+    auth.init();
+    await tick();
+    await tick();
+
+    const route = {} as ActivatedRouteSnapshot;
+    const state = { url: '/target' } as RouterStateSnapshot;
+    const result = await TestBed.runInInjectionContext(() =>
+      publicOrApprovedGuard(route, state),
+    );
+
+    // Differs from approvedGuard on purpose: this route is public by design,
+    // so the conservative answer is to render it (the component falls back to
+    // its teaser when `approved()` is false) rather than deny a page an
+    // anonymous visitor may see. What must NOT happen is the sign-out.
+    expect(result).toBe(true);
+    expect(sb.realClient.auth.signOut).not.toHaveBeenCalled();
   });
 
   it('a genuine is_approved=false profile is still denied and signed out (no over-correction)', async () => {

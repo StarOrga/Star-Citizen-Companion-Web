@@ -102,7 +102,7 @@ export class DesktopReadAuthComponent implements OnInit {
   async ngOnInit() {
     // A token handoff must never run under a presentation overlay — see the
     // identical guard in DesktopAuthComponent for the full rationale.
-    if (this.imp.active()) {
+    if (this.imp.activeOrPending()) {
       this.imp.exit();
       return;
     }

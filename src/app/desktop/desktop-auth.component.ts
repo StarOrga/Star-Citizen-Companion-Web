@@ -112,7 +112,7 @@ export class DesktopAuthComponent implements OnInit {
     // actually signed in), and under any preview `sb.client` may not be the
     // real session-bearing client. Bail out first — `exit()` reloads, which
     // lands the user back on this exact URL with the real session restored.
-    if (this.imp.active()) {
+    if (this.imp.activeOrPending()) {
       this.imp.exit();
       return;
     }
