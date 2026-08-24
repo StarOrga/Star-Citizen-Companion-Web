@@ -82,4 +82,60 @@ describe('ImpersonationBannerComponent', () => {
     const component = fixture.componentInstance;
     expect(component.fidelityKey()).toBe('impersonation.banner.fidelity.anon');
   });
+
+  it('renders a neutral placeholder for the real role while it is still unresolved, never "viewer"', () => {
+    sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify('collaborator'));
+    const fixture = setup(null);
+    const imp = TestBed.inject(ImpersonationService);
+    imp.setActualRole('admin', true);
+    fixture.detectChanges();
+
+    // `realRoleLabelKey()` is the i18n key fed to the
+    // `impersonation.banner.realRole` interpolation, or `null` while the real
+    // role is still unknown — the template branches on that `null` and passes
+    // a literal em dash as the interpolation VALUE. This spec's bare
+    // `TranslateModule.forRoot()` has no loaded translations, so the DOM only
+    // ever shows raw, un-interpolated keys; asserting on the signal is the
+    // meaningful check.
+    const component = fixture.componentInstance;
+    expect(component.realRoleLabelKey()).toBeNull();
+
+    // Guards the reason this is `null` rather than a pseudo-key like '—':
+    // anything returned here IS passed through TranslatePipe, so a non-key
+    // value would only render by accident, and only for as long as no
+    // `missingTranslationHandler` is configured globally.
+    const key = component.realRoleLabelKey();
+    expect(key === null || key.startsWith('profile.roles.')).toBe(true);
+    expect(fixture.nativeElement.textContent.toLowerCase()).not.toContain('viewer');
+  });
+
+  it('keeps the "real role" fallback keyed to a real profile.roles.* key once realRole() resolves', () => {
+    sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify('collaborator'));
+    const fixture = setup('viewer');
+    const imp = TestBed.inject(ImpersonationService);
+    imp.setActualRole('admin', true);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.realRoleLabelKey()).toBe('profile.roles.viewer');
+  });
+
+  it('layers below every position:fixed;inset:0 dialog band (lowest known z-index 100) so a dialog keeps its own clicks', () => {
+    sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify('viewer'));
+    const fixture = setup('admin');
+    const imp = TestBed.inject(ImpersonationService);
+    imp.setActualRole('admin', true);
+    fixture.detectChanges();
+
+    const banner: HTMLElement = fixture.nativeElement.querySelector('.imp-banner');
+    const bannerZ = Number(getComputedStyle(banner).zIndex);
+    expect(bannerZ).toBe(60);
+
+    // Modal band this banner must stay under (see class doc comment):
+    // quick-search 100, codex-swap-picker 150, starscape/uploader-access/
+    // desktop-download 1200, feedback-attachments 1300.
+    const modalBandZIndexes = [100, 150, 1200, 1300];
+    for (const modalZ of modalBandZIndexes) {
+      expect(bannerZ).toBeLessThan(modalZ);
+    }
+  });
 });

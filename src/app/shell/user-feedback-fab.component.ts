@@ -273,7 +273,7 @@ export class UserFeedbackFabComponent {
    * lives in `UserFeedbackService.submit()/reply()`; this only explains it up
    * front instead of letting the user type a message and then bounce.
    */
-  readonly blocked = computed(() => this.imp.active());
+  readonly blocked = computed(() => this.imp.activeOrPending());
 
   /** Topics where an admin's question is waiting on this user's answer. */
   readonly pendingQuestions = this.feedback.openQuestions;

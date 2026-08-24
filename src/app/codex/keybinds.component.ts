@@ -308,7 +308,9 @@ const FILTERS: readonly AssignFilter[] = ['all', 'unassigned', 'assigned'] as co
 
     .kb-controls {
       display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
-      position: sticky; top: 0; z-index: 2; padding: 8px 0;
+      /* Slides down under sc-impersonation-banner while a preview is active —
+         see that component's constructor, which owns this var (0px = no-op). */
+      position: sticky; top: var(--sc-imp-banner-h, 0px); z-index: 2; padding: 8px 0;
       background: color-mix(in srgb, var(--sc-bg-0) 88%, transparent);
       backdrop-filter: blur(6px);
     }
@@ -340,7 +342,9 @@ const FILTERS: readonly AssignFilter[] = ['all', 'unassigned', 'assigned'] as co
       display: flex; flex-direction: column; gap: 12px;
       padding: 14px 16px; border-radius: 12px;
       background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-      position: sticky; top: 60px; z-index: 2;
+      /* Parks below .kb-controls (its own sticky offset above), which itself
+         slides down under sc-impersonation-banner — see that comment. */
+      position: sticky; top: calc(var(--sc-imp-banner-h, 0px) + 60px); z-index: 2;
     }
     .assign-progress { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .ap-count { color: var(--sc-fg-1); font-size: max(0.78rem, var(--sc-fs-floor)); }
