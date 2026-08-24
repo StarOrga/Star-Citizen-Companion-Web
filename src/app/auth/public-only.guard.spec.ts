@@ -80,6 +80,25 @@ describe('publicOnlyGuard', () => {
     expect(parseUrl).toHaveBeenCalledWith('/news');
   });
 
+  it('falls back to /news for a backslash open-redirect payload (/\evil.example)', async () => {
+    // The WHATWG URL parser treats a backslash as a forward slash for special
+    // schemes, so a naive "starts with / but not //" check lets this through
+    // and a browser resolving it lands on //evil.example — a different origin.
+    const { parseUrl } = configure(true);
+    await TestBed.runInInjectionContext(() =>
+      publicOnlyGuard(routeWithRedirect('/\\evil.example'), {} as never),
+    );
+    expect(parseUrl).toHaveBeenCalledWith('/news');
+  });
+
+  it('still honors an ordinary same-origin path (no over-blocking)', async () => {
+    const { parseUrl } = configure(true);
+    await TestBed.runInInjectionContext(() =>
+      publicOnlyGuard(routeWithRedirect('/starscape'), {} as never),
+    );
+    expect(parseUrl).toHaveBeenCalledWith('/starscape');
+  });
+
   it('falls back to /news for an absolute-URL open-redirect payload (https://evil.example)', async () => {
     const { parseUrl } = configure(true);
     await TestBed.runInInjectionContext(() =>
