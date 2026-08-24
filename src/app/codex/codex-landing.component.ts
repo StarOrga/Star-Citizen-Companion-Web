@@ -31,6 +31,7 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout } from '../hangar/hangar.types';
 import { AuthService } from '../auth/auth.service';
+import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component';
 import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
 
@@ -82,11 +83,12 @@ interface PaperdollSlotView {
     CodexCompareTrayComponent,
     CodexCategoryIconComponent,
     FallbackImageComponent,
+    AppDownloadMenuComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="landing">
-      <!-- ── TOP: Archive Terminal + status pill + patch disclosure ─────────── -->
+      <!-- ── TOP: Archive Terminal + patch + status pill + app menu ─────────── -->
       <header class="terminal">
         <div class="terminal-bar">
           <svg class="icon terminal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -116,9 +118,22 @@ interface PaperdollSlotView {
           }
         </div>
 
+        <!-- The patch "what changed?" disclosure used to own the far right of
+             this row; the Data-Uploader control took that slot (admin feedback
+             924bf1d8). Nothing was thrown away: the patch label moved into the
+             status pill, where it is read far more often than it was expanded,
+             and the provenance lines moved into the uploader overlay below —
+             which is where they belong, because that tool is what produced
+             them. build_number is literally the string "desktop" (a
+             placeholder), so it stays a provenance footnote, never a headline. -->
         <div class="status-pill" [class.stale]="svc.stale()">
           <span class="live-dot" aria-hidden="true"></span>
           <span class="status-online">{{ 'codex.landing.status.online' | translate }}</span>
+          @if (svc.build(); as b) {
+            <span class="status-patch mono">{{
+              'codex.landing.status.patch' | translate: { patch: b.patchVersion }
+            }}</span>
+          }
           @if (svc.stale()) {
             <a class="status-stale" routerLink="/uploader">{{
               'codex.landing.status.stale' | translate
@@ -126,26 +141,26 @@ interface PaperdollSlotView {
           }
         </div>
 
-        <!-- Patch badge: resting shows just the patch label. build_number is
-             literally the string "desktop" (a placeholder) — never shown as a
-             real build number, only inside the expanded panel as provenance. -->
-        @if (svc.build(); as b) {
-          <details class="patch-badge">
-            <summary class="patch-summary">
-              <span class="patch-label mono">{{ 'codex.landing.status.patch' | translate: { patch: b.patchVersion } }}</span>
-              <span class="patch-ask">{{ 'codex.landing.patch.ask' | translate }}</span>
-            </summary>
-            <div class="patch-changes">
-              @if (archiveRecordCount(); as count) {
-                <span>{{ 'codex.landing.patch.archive' | translate: { count: formatNum(count) } }}</span>
-              }
-              @if (extractedAtLabel(); as date) {
-                <span>{{ 'codex.landing.patch.extracted' | translate: { date } }}</span>
-              }
-              <span>{{ 'codex.landing.patch.build' | translate: { build: b.buildNumber } }}</span>
-            </div>
-          </details>
-        }
+        <ng-template #codexProvenance>
+          @if (svc.build(); as b) {
+            @if (archiveRecordCount(); as count) {
+              <span>{{ 'codex.landing.patch.archive' | translate: { count: formatNum(count) } }}</span>
+            }
+            @if (extractedAtLabel(); as date) {
+              <span>{{ 'codex.landing.patch.extracted' | translate: { date } }}</span>
+            }
+            <span>{{ 'codex.landing.patch.build' | translate: { build: b.buildNumber } }}</span>
+          }
+        </ng-template>
+
+        <!-- Far right of the terminal row: the Data-Uploader download control.
+             Collaborator+ only, so a viewer sees nothing here and the
+             Verse-online pill ends the row. Same component as the Starscape one
+             in /starscape, on purpose — one control, two homes. -->
+        <sc-app-download-menu
+          class="terminal-menu"
+          [product]="'uploader'"
+          [extra]="codexProvenance" />
       </header>
 
       @if (error(); as err) {
@@ -729,32 +744,18 @@ interface PaperdollSlotView {
         50% { opacity: 0.35; }
       }
       .status-stale { color: var(--sc-warning, #ffc14d); text-decoration: underline; }
-
-      .patch-badge {
-        border: 1px solid var(--sc-border);
-        border-radius: 3px;
-        background: var(--sc-bg-1);
-      }
-      .patch-summary {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 7px 12px;
-        cursor: pointer;
-        list-style: none;
-        min-height: var(--sc-tap-min, 44px);
-      }
-      .patch-summary::-webkit-details-marker { display: none; }
-      .patch-label { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
-      .patch-ask { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-accent); }
-      .patch-changes {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        padding: 0 12px 10px;
-        font-size: max(0.7rem, var(--sc-fs-floor));
+      /* Patch label, now a chip in the pill instead of its own disclosure. */
+      .status-patch {
+        padding-left: 8px;
+        border-left: 1px solid color-mix(in srgb, var(--sc-fg-2) 35%, transparent);
         color: var(--sc-fg-2);
+        text-transform: none;
+        letter-spacing: 0;
       }
+
+      /* Far-right slot: never stretch, never wrap mid-control. The menu owns
+         its own overlay positioning (sc-app-download-menu). */
+      .terminal-menu { flex: 0 0 auto; }
 
       .sc-card.err {
         border: 1px solid var(--sc-danger);

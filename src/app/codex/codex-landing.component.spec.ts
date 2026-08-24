@@ -9,6 +9,7 @@ import { ShipStatDelta } from './codex-build-diff';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout, HangarShip, HangarShipConfig } from '../hangar/hangar.types';
 import { AuthService } from '../auth/auth.service';
+import { Role, RoleService } from '../auth/role.service';
 import { UpcomingShip, UpcomingShipsFeed, UpcomingShipsService } from './upcoming-ships.service';
 import { ShipPayload } from './codex.types';
 
@@ -92,6 +93,8 @@ describe('CodexLandingComponent', () => {
     resolvedEntities?: Map<string, ResolvedEntity>;
     upcomingShips?: UpcomingShip[];
     upcomingNotificationCount?: number;
+    /** Effective role — drives the Data-Uploader download control in the terminal row. */
+    role?: Role | null;
   }) {
     const compareKeys = signal<string[]>([]);
     const byClassName = opts.byClassName ?? new Map<string, CodexListRow>();
@@ -152,6 +155,18 @@ describe('CodexLandingComponent', () => {
 
     const auth: Partial<AuthService> = {
       user: signal(opts.user === undefined ? { id: 'u1' } : opts.user) as never,
+      realUser: signal(opts.user === undefined ? { id: 'u1' } : opts.user) as never,
+    };
+
+    // The terminal row hosts `sc-app-download-menu`, which reads the effective
+    // role. Stubbed so no test ever reaches the real profile lookup.
+    const role = signal<Role | null>(opts.role ?? null);
+    const roles: Partial<RoleService> = {
+      role: role as never,
+      realRole: role as never,
+      loaded: signal(true) as never,
+      isAdmin: signal(opts.role === 'admin') as never,
+      isCollaborator: signal(opts.role === 'admin' || opts.role === 'collaborator') as never,
     };
 
     await TestBed.configureTestingModule({
@@ -162,6 +177,7 @@ describe('CodexLandingComponent', () => {
         { provide: CodexService, useValue: codex },
         { provide: HangarService, useValue: hangar },
         { provide: AuthService, useValue: auth },
+        { provide: RoleService, useValue: roles },
         {
           provide: UpcomingShipsService,
           useValue: {
@@ -416,15 +432,43 @@ describe('CodexLandingComponent', () => {
     expect(scroller?.closest('.upcoming-rail')).not.toBeNull();
   });
 
-  it('shows only the live dot + Verse-online text in the status pill; patch/build move behind the details disclosure', async () => {
+  it('retires the patch disclosure and carries the patch label in the status pill instead', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.status-pill .live-dot')).not.toBeNull();
     expect(el.querySelector('.status-pill .status-build')).toBeNull();
-    const badge = el.querySelector<HTMLDetailsElement>('details.patch-badge');
-    expect(badge).not.toBeNull();
-    expect(badge?.hasAttribute('open')).toBeFalse();
+    // The far right of the terminal row belongs to the download control now.
+    expect(el.querySelector('details.patch-badge')).toBeNull();
+    expect(el.querySelector('.status-pill .status-patch')).not.toBeNull();
     expect(fixture.componentInstance.svc.build()?.patchVersion).toBe('4.2');
+  });
+
+  it('gives an admin the Data-Uploader download control at the far right of the terminal row', async () => {
+    const fixture = await setup({ hangar: [], role: 'admin' });
+    const el: HTMLElement = fixture.nativeElement;
+    const trigger = el.querySelector<HTMLButtonElement>('sc-app-download-menu .dlm-trigger');
+    expect(trigger).not.toBeNull();
+    expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+    expect(trigger?.getAttribute('aria-haspopup')).toBe('dialog');
+    // Last element in the row — the Verse-online pill sits to its left.
+    const row = el.querySelector('.terminal');
+    expect(row?.lastElementChild?.tagName.toLowerCase()).toBe('sc-app-download-menu');
+    expect(el.querySelector('.dlm-pop')).toBeNull();
+  });
+
+  it('gives a collaborator the same control', async () => {
+    const fixture = await setup({ hangar: [], role: 'collaborator' });
+    expect(fixture.nativeElement.querySelector('.dlm-trigger')).not.toBeNull();
+  });
+
+  it('renders NO uploader control for a viewer or an anonymous visitor', async () => {
+    for (const role of ['viewer', null] as const) {
+      const fixture = await setup({ hangar: [], role });
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.dlm-trigger')).withContext(String(role)).toBeNull();
+      expect(el.querySelector('.status-pill')).not.toBeNull();
+      TestBed.resetTestingModule();
+    }
   });
 
   it('never renders the removed Zyklus-Report line', async () => {

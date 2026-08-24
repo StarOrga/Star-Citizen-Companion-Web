@@ -108,7 +108,6 @@
         "stale": "Daten-Upload nötig"
       },
       "patch": {
-        "ask": "Was hat sich geändert?",
         "archive": "{{count}} Datensätze im Archiv",
         "extracted": "Eingelesen {{date}}",
         "build": "Build „{{build}}“ (Platzhalter)"
@@ -2459,7 +2458,6 @@
     "attribution": "Alle Bilder © Cloud Imperium Games — direkt vom RSI-CDN ausgeliefert, mit Verweis auf den Quell-Comm-Link. Fan-Galerie, kein Weiterverkauf, kein Re-Hosting.",
     "appTitle": "Desktop-Wallpaper-App",
     "appDesc": "Dein Desktop rotiert durch Starscape — winzige Tray-App mit Vorladen, Überblendung und Autostart per Klick.",
-    "appDownload": "Für Windows herunterladen",
     "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)",
     "appRingLock": "Der Kanal wird mit dem Download festgelegt und lässt sich in der App nicht umstellen — für einen anderen Kanal einfach den passenden Download hier erneut holen.",
     "appAutoUpdate": "Aktualisiert sich still im Hintergrund; der Versionsstand steht im Tray-Menü.",
@@ -2514,6 +2512,19 @@
     "prev": "Vorheriges Bild",
     "next": "Nächstes Bild",
     "counter": "{{i}} von {{n}}"
+  },
+  "appMenu": {
+    "trigger": "{{app}} herunterladen",
+    "versions": "Versionen",
+    "recommended": "Empfohlen",
+    "conn": {
+      "connected": "Desktop-App verbunden",
+      "expired": "Verbindung abgelaufen — seit über 30 Tagen kein Kontakt",
+      "never": "Desktop-App noch nicht verbunden",
+      "since": "· zuletzt vor {{days}} Tagen",
+      "today": "· zuletzt heute"
+    },
+    "fallback": "Herunterladen (aktuell)"
   },
   "appPanel": {
     "version": "Aktuell veröffentlichte Version",

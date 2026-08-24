@@ -14,10 +14,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { StarscapeService, StarscapeRing, Wallpaper, ringsForRole } from './starscape.service';
 import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
 import { RoleService } from '../auth/role.service';
-import {
-  AppDownloadEntry,
-  AppDownloadPanelComponent,
-} from '../desktop/app-download-panel.component';
+import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component';
 import { StarscapeAppPromoComponent } from './starscape-app-promo.component';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
@@ -70,7 +67,7 @@ const IMAGE_STALL_MS = 20_000;
     TranslateModule,
     ScDatePipe,
     ImgReadyDirective,
-    AppDownloadPanelComponent,
+    AppDownloadMenuComponent,
     StarscapeAppPromoComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -82,20 +79,14 @@ const IMAGE_STALL_MS = 20_000;
           <p class="hint">{{ 'starscape.subtitle' | translate }}</p>
         </div>
         <!-- Desktop-only: a Windows tray app cannot be installed from a phone,
-             so the whole panel is hidden on small screens (admin feedback
-             52a5ef4c) — there, only the gallery matters. Since eb9c6ec3 this is
-             the SHARED panel the Data Uploader also uses, so both apps present
-             themselves identically; ring lock / platform notes moved behind its
-             ⓘ toggle. The ring is still chosen HERE, before the download: the
-             app reads it off the filename and locks to it, no in-app switch. -->
+             so the control is hidden on small screens (admin feedback 52a5ef4c)
+             - there, only the gallery matters. Since 924bf1d8 this is the SAME
+             component the Data Uploader uses on the Codex landing: a compact
+             trigger that expands into an overlay with one download per ring.
+             The ring is still chosen HERE, before the download: the app reads it
+             off the filename and locks to it, no in-app switch. -->
         <div class="app-cta">
-          <sc-app-download-panel
-            icon="🖥️"
-            title="starscape.appTitle"
-            desc="starscape.appDesc"
-            [version]="rings().length > 0 ? null : appVersion()"
-            [entries]="appEntries()"
-            [notes]="appNotes()" />
+          <sc-app-download-menu [product]="'starscape'" [fallbackUrl]="appDownloadUrl" />
         </div>
       </header>
 
@@ -318,9 +309,9 @@ const IMAGE_STALL_MS = 20_000;
     .head h1 { margin: 0; }
     .head .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 68ch; }
 
-    /* Slot for the shared app-download panel — the panel owns its own styling
-       (sc-app-download-panel), this only reserves the header column. */
-    .app-cta { min-width: 260px; max-width: 340px; flex: 0 1 auto; }
+    /* Slot for the shared app-download menu — the menu owns its own styling and
+       overlay positioning (sc-app-download-menu); this only aligns the column. */
+    .app-cta { display: flex; justify-content: flex-end; flex: 0 0 auto; }
 
     .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; }
     .chip {
@@ -567,33 +558,6 @@ export class StarscapeComponent implements OnInit {
   readonly downloadUrl = computed(() => this.svc.desktopRelease()?.downloadUrl ?? this.appDownloadUrl);
   /** Registered build version (e.g. "0.3.2"), or null before it loads / if unregistered. */
   readonly appVersion = computed(() => this.svc.desktopRelease()?.version ?? null);
-
-  /**
-   * Download buttons for the shared app panel: one per ring the visitor's role
-   * may take, or the never-stale alias link when no ring pointer is registered.
-   */
-  readonly appEntries = computed<AppDownloadEntry[]>(() => {
-    const rings = this.rings();
-    if (rings.length > 0) {
-      return rings.map((r) => ({
-        key: r.ring,
-        labelKey: `desktop.channel.${r.ring}`,
-        url: r.downloadUrl,
-        version: r.version,
-        sizeBytes: r.sizeBytes,
-        hash: r.sha256 ? r.sha256.slice(0, 12) : null,
-        secondary: r.ring !== 'stable',
-      }));
-    }
-    return [{ key: 'latest', labelKey: 'starscape.appDownload', url: this.downloadUrl() }];
-  });
-
-  /** Platform caveats + the ring-lock warning — all behind the panel's ⓘ. */
-  readonly appNotes = computed<string[]>(() => {
-    const notes = ['starscape.appNote', 'starscape.appAutoUpdate'];
-    if (this.rings().length > 1) notes.push('starscape.appRingLock');
-    return notes;
-  });
 
   /** Stills for the promo's mock desktop — real gallery images, once loaded. */
   readonly promoWallpapers = computed(() =>
