@@ -86,7 +86,7 @@ const IMAGE_STALL_MS = 20_000;
              The ring is still chosen HERE, before the download: the app reads it
              off the filename and locks to it, no in-app switch. -->
         <div class="app-cta">
-          <sc-app-download-menu [product]="'starscape'" />
+          <sc-app-download-menu [product]="'starscape'" [fallbackUrl]="appDownloadUrl" />
         </div>
       </header>
 
@@ -309,8 +309,8 @@ const IMAGE_STALL_MS = 20_000;
     .head h1 { margin: 0; }
     .head .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 68ch; }
 
-    /* Slot for the shared app-download panel — the panel owns its own styling
-       (sc-app-download-panel), this only reserves the header column. */
+    /* Slot for the shared app-download menu — the menu owns its own styling and
+       overlay positioning (sc-app-download-menu); this only aligns the column. */
     .app-cta { display: flex; justify-content: flex-end; flex: 0 0 auto; }
 
     .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; }

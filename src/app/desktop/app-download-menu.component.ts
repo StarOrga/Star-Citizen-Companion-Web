@@ -1,8 +1,10 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
   HostListener,
+  TemplateRef,
   computed,
   effect,
   inject,
@@ -14,7 +16,7 @@ import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
-import { DesktopProduct, ringsForRole } from './desktop-access';
+import { DesktopProduct, daysSinceSeen, ringsForRole } from './desktop-access';
 import { DesktopConnectionService } from './desktop-connection.service';
 import { DesktopReleaseService, RingRelease } from './desktop-release.service';
 
@@ -61,7 +63,7 @@ let nextId = 0;
 @Component({
   selector: 'sc-app-download-menu',
   standalone: true,
-  imports: [RouterLink, TranslateModule],
+  imports: [NgTemplateOutlet, RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (rings().length > 0) {
@@ -146,10 +148,31 @@ let nextId = 0;
               </div>
             } @else if (busy()) {
               <p class="pop-state">{{ 'desktop.loading' | translate }}</p>
+            } @else if (fallbackUrl(); as url) {
+              <!-- No ring pointer resolved, but the host knows a never-stale
+                   alias asset. A working download beats an error banner. -->
+              <div class="pop-list">
+                <a
+                  class="pop-dl"
+                  [href]="url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  (click)="onDownload()">
+                  <span class="dl-arrow" aria-hidden="true">↓</span>
+                  <span class="dl-ring">{{ 'appMenu.fallback' | translate }}</span>
+                </a>
+              </div>
             } @else if (errorMsg(); as e) {
               <p class="pop-state err">{{ e }}</p>
             } @else {
               <p class="pop-state">{{ 'desktop.noRelease' | translate }}</p>
+            }
+
+            @if (extra(); as tpl) {
+              <div class="pop-extra">
+                <ng-container [ngTemplateOutlet]="tpl" />
+              </div>
             }
 
             @for (n of notes(); track n) {
@@ -275,6 +298,14 @@ let nextId = 0;
       letter-spacing: 0.08em; opacity: 0.8;
     }
 
+    /* Host slot for caller-supplied context (the Codex landing puts its patch /
+       archive provenance here — the data this very tool produces). */
+    .pop-extra {
+      display: flex; flex-direction: column; gap: 3px;
+      padding-top: 9px; border-top: 1px solid var(--sc-border);
+      font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.4;
+    }
+
     .pop-state { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .pop-state.err { color: var(--sc-danger); }
     .pop-note {
@@ -313,6 +344,24 @@ export class AppDownloadMenuComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly product = input.required<DesktopProduct>();
+  /**
+   * Optional block rendered at the bottom of the overlay, for context only the
+   * host knows — the Codex landing passes the patch / archive provenance it used
+   * to show in the retired "what changed?" disclosure. A TemplateRef rather than
+   * `<ng-content>` on purpose: the overlay lives inside an `@if`, and projected
+   * content in a conditional view is created eagerly and survives toggling only
+   * by accident. This renders exactly when the overlay does.
+   */
+  readonly extra = input<TemplateRef<unknown> | null>(null);
+  /**
+   * Never-stale alias asset, offered only when NO ring pointer resolved. The
+   * Starscape header passes its `wallpaper-app-latest` release URL, which is
+   * what the retired panel fell back to — losing that would have turned an
+   * unregistered (or briefly failing) resolver into "no download at all".
+   * Role-gated all the same: the menu renders nothing when `rings()` is empty,
+   * so this never reaches somebody who may not download the product.
+   */
+  readonly fallbackUrl = input<string | null>(null);
 
   /** Stable per-instance id — two menus can live on one page. */
   readonly panelId = `dlm-panel-${nextId++}`;
@@ -346,10 +395,8 @@ export class AppDownloadMenuComponent {
   readonly connectionState = computed(() => this.conn.stateFor(this.product(), this.now()));
   /** Whole days since the last check-in, or null for "today" / never. */
   readonly seenDays = computed(() => {
-    const seen = this.conn.for(this.product())?.lastSeenAt;
-    if (!seen) return null;
-    const days = Math.floor((this.now() - Date.parse(seen)) / 86_400_000);
-    return days > 0 ? days : null;
+    const days = daysSinceSeen(this.conn.for(this.product())?.lastSeenAt ?? null, this.now());
+    return days != null && days > 0 ? days : null;
   });
 
   constructor() {
