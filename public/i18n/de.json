@@ -1,4 +1,9 @@
 {
+  "common": {
+    "select": {
+      "none": "Keine Auswahl"
+    }
+  },
   "update": {
     "available": "Neue Version verfügbar",
     "reload": "Neu laden",
@@ -173,7 +178,6 @@
       "versum": {
         "eyebrow": "Im Versum",
         "title": "Domänen",
-        "showroom": "Showroom",
         "keybinds": "Tastenbelegungen",
         "domain": {
           "ship": "Schiffe",
@@ -185,7 +189,7 @@
           "ammunition": "Munition"
         },
         "upcomingRail": {
-          "title": "Was ist neu",
+          "title": "Auf dem Reißbrett",
           "badgeAria": "{{count}} neue Schiffe seit deinem letzten Besuch"
         }
       }
@@ -648,23 +652,6 @@
       "nose": "Bug",
       "readoutIdle": "Kein Hardpoint ausgewählt"
     },
-    "showroom": {
-      "title": "Showroom",
-      "subtitle": "Echte Schiffs-Lackierungen in interaktivem 3D betrachten — datamined Hülle und Texturen aus dem aktuellen Build.",
-      "count": "{{liveries}} Lackierungen in 3D über {{ships}} Schiff(e)",
-      "spotlight": "Jetzt im Showroom",
-      "gallery": "Alle Lackierungen",
-      "liveryCount": "{{count}} Lackierungen",
-      "billboard": {
-        "eyebrow": "Neu",
-        "title": "Echte Schiffs-Lackierungen in 3D drehen — {{count}} verfügbar",
-        "cta": "Zum Showroom"
-      },
-      "empty": {
-        "title": "Noch keine 3D-Lackierungen",
-        "body": "3D-Lackierungen werden pro Spiel-Build extrahiert und erscheinen hier, sobald sie vorliegen."
-      }
-    },
     "skins": {
       "title": "Lackierungen",
       "source": "Aus Data.p4k · echtes Hull + echte Texturen",
@@ -1037,8 +1024,7 @@
       "comm-link": "Comm-Link",
       "spectrum": "Spectrum",
       "youtube": "YouTube",
-      "patch": "Patch-Notes",
-      "favorites": "Favoriten"
+      "patch": "Patch-Notes"
     },
     "filter": {
       "label": "Filter",
@@ -1046,9 +1032,8 @@
       "groupAria": "Kanalfilter"
     },
     "favorite": {
-      "toggle": "Merken",
-      "save": "★ Merken",
-      "saved": "★ Gemerkt"
+      "save": "Merken",
+      "saved": "Gemerkt"
     },
     "share": {
       "label": "Teilen",
@@ -1151,9 +1136,9 @@
         "today": "heute fällig",
         "inDays": "in ~{{n}} Tagen",
         "inWeeks": "in ~{{n}} Wochen",
-        "overdueDays": "überfällig ({{n}} T.)",
-        "overdueWeeks": "überfällig ({{n}} Wo.)",
-        "basis": "Median {{median}} T. · n={{n}} · ab {{version}}"
+        "overdueDays": "{{n}} T. überfällig",
+        "overdueWeeks": "{{n}} Wo. überfällig",
+        "basis": "Median {{median}} T. · ab {{version}}"
       },
       "board": {
         "title": "Patch-Historie",
@@ -1208,7 +1193,7 @@
       }
     },
     "detail": {
-      "close": "Schließen"
+      "back": "Zurück"
     },
     "via": "via {{source}}",
     "openExternal": "Öffnet {{host}}",
@@ -1236,8 +1221,9 @@
     },
     "stream": {
       "title": "Strom",
-      "count": "{{count}} Beiträge",
-      "more": "{{count}} weitere anzeigen"
+      "more": "{{count}} weitere anzeigen",
+      "all": "Beiträge",
+      "filterAria": "Strom filtern"
     },
     "verdict": {
       "label": "Build-Stand",
@@ -1245,8 +1231,8 @@
       "due": "{{line}} ist live · nächster Hauptpatch in {{days}} Tagen",
       "today": "{{line}} ist live · nächster Hauptpatch heute fällig",
       "overdue": "{{line}} ist live · nächster Hauptpatch seit {{days}} Tagen überfällig",
-      "basis": "Median {{median}} T · n = {{n}}",
-      "basisWithTest": "Median {{median}} T · n = {{n}} · {{test}} im Test",
+      "basis": "Median {{median}} T",
+      "basisWithTest": "Median {{median}} T · {{test}} im Test",
       "toBoard": "Patch-Historie"
     }
   },

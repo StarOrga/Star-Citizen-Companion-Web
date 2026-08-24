@@ -4,6 +4,124 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.68.1] - 2026-08-23
+
+### Fixed
+
+- **The Verse News stage showed artwork and nothing else.** `sc-news-thumb` is
+  positioned but had `z-index: auto`, so it never opened a stacking context and
+  its internal ladder (image layer 1, channel pill 2) competed directly with the
+  host page — painting over the overline, the headline and the deck, which sit at
+  the default level. `isolation: isolate` confines it. The same leak had silently
+  blanked the stage scrim; both are back.
+- **The stage buttons only answered a click *below* themselves.** The "Lesen"
+  CTA was a `<span>` with `pointer-events: none`, so a click on it fell through
+  to the `<p>` wrapping the row, which has no handler — only the padding strip
+  underneath, still covered by the stretched stage link, ever responded. The CTA
+  is a real anchor to the source now, the row is transparent to the pointer, and
+  every control takes its own hits. Pinned by hit-tests.
+- **Every channel glyph rendered as nothing.** Angular's HTML sanitizer strips
+  `<svg>` out of an `[innerHTML]` binding, so the icons beside COMM-LINK /
+  SPECTRUM / YOUTUBE never existed on screen. The markup is a compile-time
+  constant in both components, so it is passed through `bypassSecurityTrustHtml`
+  and cached by source string to keep binding identity.
+- **The detail overlay had no styles at all** — its whole `.nd-*` block was lost
+  in the 0.66.0 rewrite, so it opened as a full-bleed image with its actions cut
+  off below the fold. It is sized to the viewport again: the art is the only
+  elastic row, so headline, summary and all three actions are on screen at every
+  window size without a scrollbar.
+
+### Changed
+
+- **One wording, one glyph for saving and sharing.** "Merken", "Gemerkt" and
+  "Favoriten" were three names for one state, and sharing was a bare `⤴` on the
+  stage but a text button in the detail view. The stage, every stream tile and
+  the detail view now carry the same star and the same share mark, with the same
+  label — dropped only on a tile, where the foot row has no room for it.
+- **The stream header is one segmented toggle.** "42 Beiträge" (a count pill) and
+  "★ Favoriten (0)" (a starred text button) named the same kind of thing in two
+  unrelated shapes, with the number in brackets. Both halves are now label plus
+  count badge, no parentheses, and both counts read from the same unfiltered
+  stream — a saved *staged* article can no longer promise an item the list cannot
+  show.
+- **The detail view closes through a "← Zurück" text link**, the same idiom as
+  the patch board's back link, instead of a floating ✕ disc.
+- **`n = 5` is gone** from the build verdict and the forecast basis. The sample
+  count stays where the numbers are the subject rather than a footnote: the patch
+  board's KPI panel still says "Basis: 5 Messwerte".
+- **The hero is larger and starts on the same line as every other page.** The
+  stage grew from a flat 340px to `clamp(380px, 34vw, 480px)`, cropping into the
+  artwork rather than letterboxing it. Every other top-level page opens on an
+  `<h1>`, whose glyphs start ~11px below its box, while Verse News opens on a card
+  border that lands exactly on the padding line — which is why it read as sitting
+  tighter under the nav bar. The new `--sc-page-lead` token closes that gap:
+  measured, not guessed, the Starscape heading's cap line sits 37.0px below the
+  content box and the stage now sits at 37px.
+
+## [0.68.0] - 2026-08-23
+
+### Fixed
+
+- **A cancelled Postgres statement no longer throws away a whole catalog
+  upload** (data-uploader 0.25.0). A LIVE 4.9.0 run died at
+  `upsert → HTTP 500 ingest_failed canceling statement due to statement
+  timeout`: the catalog bridge had no retry at all, so one over-heavy batch
+  ended a multi-hour stage. There are two causes and now two separate
+  recoveries — a flaky or momentarily busy server is retried with exponential
+  backoff, while a batch the database refuses to finish in time is **halved**
+  and re-sent, because retrying that one unchanged would time out forever. The
+  reduced batch size carries through the rest of the phase, so the remaining
+  chunks don't each rediscover the limit. Every op is an idempotent upsert, so
+  splitting costs nothing. `ingest-catalog` now returns `503 ingest_timeout`
+  for a cancelled statement instead of burying it in a generic
+  `ingest_failed`; the uploader also matches the raw wording, so the fix works
+  before the function redeploys.
+- **A failed Codex stage deleted the extract it needed to retry.** The stage is
+  deliberately non-fatal, so the run continued to `uploadJob.finish()` (job file
+  dropped) and `cleanup.extractDir()` (out_dir purged) — a transient timeout
+  therefore destroyed both the resume point and the extracted data, turning a
+  30-second retry into a full re-extraction. The job now stays resumable, and
+  the Codex error is re-asserted after the skin stage instead of being
+  overwritten by "3D-Skins fertig".
+- **The error message rendered on top of the running progress card.**
+  `.upload-actions` is a flex container whose children could shrink below their
+  own content; at a tight window height the progress card was handed 26 px for
+  118 px of content and the overflow painted straight through the message box.
+  Children now hold their natural height and the card scrolls instead. The
+  status itself became three separable things — what happened, what to do about
+  it, and the technical text, collapsed — replacing the raw one-line dump.
+- **Pause did nothing during the 3D-skin build.** The cooperative signal is
+  only checked between our own work units, but the skin build is a Python child
+  that runs for hours without asking; the button flipped the job state and the
+  machine kept grinding. Pause and cancel now kill that child, which is safe
+  because `skin_export_app` writes a ship's `skins.json` only once that ship is
+  fully exported and `--skip-existing` keys on exactly that file — a resume
+  rebuilds only the ship that was in flight. The kill reports as `paused`, not
+  as a build failure, and the button acknowledges the click immediately.
+
+## [0.67.0] - 2026-08-23
+
+### Changed
+
+- **"Was ist neu" is now "Auf dem Reißbrett".** The rail under the Codex domain
+  tiles never held news. It holds RSI ship-matrix entries our extracted game data
+  has no match for — announced concept hulls meant to be built some day, newest
+  announcement first. The old title promised a recency the list does not carry
+  (owner feedback, 2026-08-23).
+- **Its tiles are the artwork now.** Each entry was a boxed thumbnail with the
+  name and manufacturer stacked underneath; it is a 16:9 bleed crop with both
+  riding a bottom scrim, the art-first treatment the ship pages already use.
+  `sc-fallback-image` gained a `--sc-img-fit` / `--sc-img-w` / `--sc-img-h`
+  contract so a host can ask for a cover crop — the default stays the
+  letterboxed `contain` fit every other caller relies on.
+
+### Removed
+
+- **The Showroom.** Route, page, landing entry, Bridge billboard and nav link,
+  i18n block and mobile-gate route are gone. A livery-first ship gallery was
+  never a destination of its own: skins and the interactive 3D model already
+  live on the ship detail page, reachable through the hangar. `ShowroomService`
+  stays — the Holo-Ready badge reads the same discovery plane.
 ## [0.66.0] - 2026-08-22
 
 ### Changed

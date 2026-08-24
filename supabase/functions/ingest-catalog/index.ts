@@ -31,7 +31,9 @@
 //       public.codex_seed_tokens (used by supabase/scripts/seed-codex via the
 //       edge function so the local machine never needs the service-role key).
 //
-// Response codes: 200 ok; 400 invalid_body; 401 unauthorized; 403 forbidden.
+// Response codes: 200 ok; 400 invalid_body; 401 unauthorized; 403 forbidden;
+//   500 ingest_failed; 503 ingest_timeout (Postgres cancelled the statement —
+//   the caller should halve the batch and retry, see catalog-bridge.ts).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
@@ -312,6 +314,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     return json({ error: 'invalid_body', message: `unknown op '${op}'` }, 400);
   } catch (e) {
-    return json({ error: 'ingest_failed', message: (e as Error).message }, 500);
+    // A cancelled statement is NOT a broken request: the batch was simply too
+    // heavy for the role's statement budget. Classifying it separately lets the
+    // uploader do the only thing that actually helps — halve the batch and
+    // retry — instead of treating a whole multi-hour run as failed. 503 +
+    // Retry-After also stops any generic client from hammering it.
+    const err = e as { code?: string; message?: string };
+    const msg = err?.message ?? String(e);
+    const timedOut = err?.code === '57014' || /statement timeout|canceling statement/i.test(msg);
+    if (timedOut) {
+      return new Response(
+        JSON.stringify({ error: 'ingest_timeout', code: err?.code ?? '57014', message: msg }),
+        { status: 503, headers: { 'content-type': 'application/json', 'retry-after': '2', ...CORS } },
+      );
+    }
+    return json({ error: 'ingest_failed', code: err?.code ?? null, message: msg }, 500);
   }
 });

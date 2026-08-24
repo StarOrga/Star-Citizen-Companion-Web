@@ -299,13 +299,14 @@ describe('CodexLandingComponent', () => {
     expect(shipTile?.querySelector('.domain-count')?.textContent?.trim()).toBe('353');
     const bpTile = tiles.find((a) => a.getAttribute('href') === '/codex/blueprint');
     expect(bpTile).toBeTruthy();
-    // Keybinds and Showroom stay reachable directly; "Kommende Schiffe" no
-    // longer has its own rail entry (folded into the Schiffe domain, see the
-    // upcoming-rail tests below).
+    // Keybinds stays reachable directly. "Kommende Schiffe" no longer has its
+    // own rail entry (folded into the Schiffe domain, see the upcoming-rail
+    // tests below), and the Showroom is gone entirely — liveries and the 3D
+    // model live on the ship itself, reachable via the hangar.
     const railHrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('.versum-rail a')).map((a) =>
       a.getAttribute('href'),
     );
-    expect(railHrefs.some((h) => h?.includes('/codex/showroom'))).toBeTrue();
+    expect(railHrefs.some((h) => h?.includes('/codex/showroom'))).toBeFalse();
     expect(railHrefs.some((h) => h?.includes('/codex/upcoming'))).toBeFalse();
     expect(railHrefs.some((h) => h?.includes('/codex/keybinds'))).toBeTrue();
   });
@@ -351,12 +352,12 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('.identity .pin')).not.toBeNull();
   });
 
-  it('renders the "Was ist neu" rail inside Im Versum once the RSI feed has ships, each tile a real anchor', async () => {
+  it('renders the concept-ship rail inside Im Versum once the RSI feed has ships, each tile a real anchor carrying name + manufacturer over its art', async () => {
     const fixture = await setup({
       hangar: [],
       upcomingShips: [
-        upcomingShip({ id: 'polaris', name: 'RSI Polaris' }),
-        upcomingShip({ id: 'idris-m', name: 'Aegis Idris-M' }),
+        upcomingShip({ id: 'polaris', name: 'RSI Polaris', manufacturerCode: 'RSI' }),
+        upcomingShip({ id: 'idris-m', name: 'Aegis Idris-M', manufacturerCode: 'AEGS' }),
       ],
       upcomingNotificationCount: 2,
     });
@@ -369,6 +370,12 @@ describe('CodexLandingComponent', () => {
     expect(tiles[0].getAttribute('href')).toBe('https://robertsspaceindustries.com/pledge/ships/polaris');
     expect(tiles[0].getAttribute('target')).toBe('_blank');
     expect(tiles[0].getAttribute('rel')).toBe('noopener noreferrer');
+    // The tile IS the artwork: name + manufacturer ride a caption scrim on top
+    // of it rather than sitting in a separate text block under a boxed thumb.
+    expect(tiles[0].querySelector('.upcoming-tile__caption .upcoming-tile__name')?.textContent?.trim()).toBe(
+      'RSI Polaris',
+    );
+    expect(tiles[0].querySelector('.upcoming-tile__caption .upcoming-tile__mfr')?.textContent?.trim()).toBe('RSI');
     expect(el.querySelector('.upcoming-rail__badge')?.textContent?.trim()).toBe('2');
   });
 
