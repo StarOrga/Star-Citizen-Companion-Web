@@ -14,13 +14,20 @@ import {
   PATCH_FACETS,
   PatchFacet,
   PatchLineGroup,
+  PatchNoteEntry,
   PatchWaveGroup,
   facetCounts,
   filterPatchLines,
+  filterPatchLinesByQuery,
   groupWaves,
   latestPerFacet,
 } from './patch-notes';
 import { PatchCadenceComponent } from './patch-cadence.component';
+import { PatchRoadmapBandComponent } from './patch-roadmap-band.component';
+import { PatchEntryRowComponent } from './patch-entry-row.component';
+import { RoadmapService, threadSlugOf } from './roadmap.service';
+import { outlineHaystack } from './patch-outline';
+import { matchesTokens, tokenizeQuery } from './patch-search';
 import { relativeTime } from './relative-time';
 
 /** Add/remove one member of a multi-select filter set, returning a new set. */
@@ -31,24 +38,51 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
 }
 
 /**
- * The patch-notes surface of Verse News (feedback 44e90e30 and its follow-up).
+ * The patch-notes surface (feedback 44e90e30, its follow-up, and 961ab0a5).
  *
  * Reading order top to bottom, which is the order the questions get asked:
- *   1. how is CIG doing right now  → the rotating cadence KPIs
- *   2. what is the newest thing    → one card per channel, at most one each
- *   3. what happened before        → the full history, grouped by patch line
- * with the two filters (version, channel) sitting between 2 and 3, because they
- * narrow the history — and, with it, the at-a-glance row, so the two can never
- * contradict each other.
+ *   0. find one specific thing     → the search box, which narrows EVERYTHING
+ *   1. what is in the patch I play,
+ *      and in the next one         → the roadmap band (RSI Release View)
+ *   2. how is CIG doing right now  → the rotating cadence KPIs
+ *   3. what is the newest thing    → one card per channel, at most one each
+ *   4. what happened before        → the full history, grouped by patch line,
+ *                                    every note expandable to its bullet points
+ * with the two chip filters (version, channel) sitting between 3 and 4, because
+ * they narrow the history — and, with it, the at-a-glance row, so the two can
+ * never contradict each other.
  *
- * Its own component rather than more of `news-list`: the section owns four
+ * 961ab0a5 added the two ends of that list. The board used to be able to say
+ * that 4.9 shipped and that 4.10 is in PTU, and nothing at all about what
+ * either of them contains — every note was a title and a link off to Spectrum.
+ * Now the roadmap says what is planned and an expanded row says what actually
+ * shipped, and one query box searches across both.
+ *
+ * THREE FILTER AXES, ONE MEANING EACH. The version chips ask "which patch
+ * line", the channel chips ask "which ring", the query asks "where is the thing
+ * I remember reading". They compose, and each can be dropped on its own — which
+ * is why the query is a separate pass over the already-chip-filtered groups
+ * rather than another term folded into `PatchFilter`.
+ *
+ * WHAT THE SEARCH CAN SEE. Titles, always — they arrive with the feed. Bullet
+ * points, for the notes whose contents have been loaded: the newest note per
+ * channel is seeded on arrival and any note is loaded the moment it is
+ * expanded. That asymmetry is stated in the UI rather than hidden, because the
+ * alternative is fetching a hundred Spectrum threads to open a page.
+ *
+ * Its own component rather than more of `news-list`: the section owns six
  * pieces of state now, and its stylesheet was pushing the list component over
  * the per-component CSS budget.
  */
 @Component({
   selector: 'sc-patch-notes-section',
   standalone: true,
-  imports: [TranslateModule, PatchCadenceComponent],
+  imports: [
+    TranslateModule,
+    PatchCadenceComponent,
+    PatchRoadmapBandComponent,
+    PatchEntryRowComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="patch-notes" [attr.aria-label]="'news.patch.title' | translate">
@@ -57,6 +91,40 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
         <span class="bucket-ct">{{ svc.patchCount() }}</span>
         <span class="rail-note">{{ 'news.patch.hint' | translate }}</span>
       </div>
+
+      <!-- One query box for the whole page: it narrows the roadmap band, the
+           at-a-glance row and the history alike, and marks its hits inside an
+           expanded note. A label, not a placeholder — a placeholder disappears
+           the moment you type, taking the only description of the field with
+           it. Escape clears, which is what every reader tries first. -->
+      <div class="patch-search">
+        <label class="ps-label" for="patch-search-input">
+          {{ 'news.patch.search.label' | translate }}
+        </label>
+        <div class="ps-field">
+          <input id="patch-search-input" type="search" class="ps-input"
+                 autocomplete="off" spellcheck="false"
+                 [attr.placeholder]="'news.patch.search.placeholder' | translate"
+                 [value]="query()"
+                 (input)="onQuery($event)"
+                 (keydown.escape)="clearQuery()" />
+          @if (query()) {
+            <button type="button" class="ps-clear"
+                    [attr.aria-label]="'news.patch.search.clear' | translate"
+                    (click)="clearQuery()">×</button>
+          }
+        </div>
+        @if (tokens().length > 0) {
+          <p class="ps-summary" role="status">
+            {{ 'news.patch.search.summary' | translate:{ notes: filteredCount(), lines: groups().length } }}
+            <span class="ps-scope">{{ 'news.patch.search.scope' | translate:{ loaded: roadmap.loadedOutlineCount() } }}</span>
+          </p>
+        }
+      </div>
+
+      <!-- What RSI says is IN the current and the next patch. Hides itself when
+           the roadmap cannot be reached — see PatchRoadmapBandComponent. -->
+      <sc-patch-roadmap-band [tokens]="tokens()" (showLine)="focusLine($event)" />
 
       <!-- Patch performance, rotating. Always fed the FULL, unfiltered patch
            lines, never the filtered view: it answers "how is CIG doing", which a
@@ -133,6 +201,16 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
       <div class="patch-sub-head">
         <h3>{{ 'news.patch.history.title' | translate }}</h3>
         <span class="bucket-ct">{{ filteredCount() }}</span>
+        <!-- The collapsed/expanded switch for the notes themselves. Separate
+             from the per-line folds above it: a line groups notes, this opens
+             their contents, and conflating the two would make "alles
+             ausklappen" mean two different things depending on where you are. -->
+        <button type="button" class="expand-all"
+                [class.active]="expandAll()"
+                [attr.aria-pressed]="expandAll()"
+                (click)="toggleExpandAll()">
+          {{ (expandAll() ? 'news.patch.detail.collapseAll' : 'news.patch.detail.expandAll') | translate }}
+        </button>
       </div>
 
       @if (groups().length === 0) {
@@ -173,9 +251,11 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
                            to twenty near-identical rows — measured at 1,215 px
                            for the open 4.10 line alone. Native <details>: the
                            run costs one row until someone wants all of it, and
-                           it keeps keyboard + find-in-page behaviour for free. -->
+                           it keeps keyboard + find-in-page behaviour for free.
+                           Force-opened while a query is active, because a
+                           collapsed run would hide the very hit it contains. -->
                       <li class="patch-entry wave">
-                        <details>
+                        <details [open]="tokens().length > 0">
                           <summary>
                             <span class="entry-title">
                               {{ 'news.patch.waves.title' | translate:{ count: wave.entries.length } }}
@@ -191,13 +271,13 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
                           <ul class="wave-entries">
                             @for (entry of wave.entries; track entry.item.id) {
                               <li>
-                                <a class="entry-link" [href]="entry.item.url"
-                                   target="_blank" rel="noopener noreferrer">
-                                  <span class="entry-title">{{ entry.item.title }}</span>
-                                  <span class="entry-meta">
-                                    <time>{{ relTime(entry.item.publishedAt) }}</time>
-                                  </span>
-                                </a>
+                                <sc-patch-entry-row
+                                  [entry]="entry"
+                                  [when]="relTime(entry.item.publishedAt)"
+                                  [tokens]="tokens()"
+                                  [open]="isEntryOpen(entry)"
+                                  [compact]="true"
+                                  (toggled)="toggleEntry($event)" />
                               </li>
                             }
                           </ul>
@@ -205,26 +285,14 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
                       </li>
                     } @else {
                       @for (entry of wave.entries; track entry.item.id) {
-                    <li class="patch-entry">
-                      <!-- Real anchor: the notes live on RSI, so middle click and
-                           "open in new tab" must just work. -->
-                      <a class="entry-link" [href]="entry.item.url"
-                         target="_blank" rel="noopener noreferrer">
-                        <span class="entry-title">{{ entry.item.title }}</span>
-                        <span class="entry-meta">
-                          @if (entry.version) {
-                            <span class="tag ver">{{ entry.version }}</span>
-                          }
-                          @if (entry.stage) {
-                            <span class="tag" [attr.data-stage]="entry.stage">{{ ('news.patch.stage.' + entry.stage) | translate }}</span>
-                          }
-                          @if (entry.hotfix) {
-                            <span class="tag hotfix">{{ 'news.patch.hotfix' | translate }}</span>
-                          }
-                          <time>{{ relTime(entry.item.publishedAt) }}</time>
-                        </span>
-                      </a>
-                    </li>
+                        <li class="patch-entry">
+                          <sc-patch-entry-row
+                            [entry]="entry"
+                            [when]="relTime(entry.item.publishedAt)"
+                            [tokens]="tokens()"
+                            [open]="isEntryOpen(entry)"
+                            (toggled)="toggleEntry($event)" />
+                        </li>
                       }
                     }
                   }
@@ -257,6 +325,54 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
       background: var(--sc-bg-1); border: 1px solid var(--sc-border);
     }
     .rail-note { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); margin-left: auto; }
+
+    /* ---------- Search (961ab0a5) ----------
+       Full width and above everything it filters, so its scope reads as "this
+       page" rather than "the list underneath". */
+    .patch-search { display: flex; flex-direction: column; gap: 5px; }
+    .ps-label {
+      font-size: max(0.68rem, var(--sc-fs-floor)); letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--sc-fg-2);
+    }
+    .ps-field { position: relative; display: flex; }
+    .ps-input {
+      flex: 1 1 auto; min-width: 0; min-height: var(--sc-tap-min);
+      padding: 8px 40px 8px 12px; border-radius: 8px;
+      border: 1px solid var(--sc-border); background: var(--sc-bg-1);
+      color: var(--sc-fg-0); font-family: inherit;
+      font-size: max(0.86rem, var(--sc-fs-floor));
+    }
+    .ps-input::placeholder { color: var(--sc-fg-2); }
+    .ps-input:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+    /* The UA's own clear affordance would sit under ours on WebKit. */
+    .ps-input::-webkit-search-cancel-button { display: none; }
+    .ps-clear {
+      position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: var(--sc-tap-min); min-height: var(--sc-tap-min);
+      background: transparent; border: 0; color: var(--sc-fg-2);
+      font-size: 1.25rem; line-height: 1; cursor: pointer;
+    }
+    .ps-clear:hover { color: var(--sc-accent); }
+    .ps-clear:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -4px; border-radius: 6px; }
+    .ps-summary {
+      display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 0;
+      font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
+    }
+    .ps-scope { color: color-mix(in srgb, var(--sc-fg-2) 80%, transparent); }
+
+    .expand-all {
+      margin-left: auto; padding: 5px 11px; min-height: var(--sc-tap-min);
+      background: transparent; border: 1px solid var(--sc-border);
+      color: var(--sc-fg-2); border-radius: 999px;
+      font-family: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer;
+    }
+    .expand-all:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .expand-all:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .expand-all.active {
+      background: color-mix(in srgb, var(--sc-accent) 18%, transparent);
+      border-color: var(--sc-accent); color: var(--sc-fg-0);
+    }
 
     /* ---------- Filters ---------- */
     .patch-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -340,8 +456,8 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
       background: var(--sc-bg-1); overflow: hidden;
     }
     .patch-line.open { border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border)); }
-    .line-head, .entry-link { min-height: var(--sc-tap-min); text-align: left; }
-    .line-head:focus-visible, .entry-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -3px; }
+    .line-head { min-height: var(--sc-tap-min); text-align: left; }
+    .line-head:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -3px; }
     .line-head {
       display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px;
       background: transparent; border: 0; color: var(--sc-fg-0);
@@ -354,11 +470,6 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
 
     .patch-entries { border-top: 1px dashed color-mix(in srgb, var(--sc-border) 70%, transparent); }
     .patch-entry + .patch-entry { border-top: 1px solid color-mix(in srgb, var(--sc-border) 40%, transparent); }
-    .entry-link {
-      display: flex; flex-direction: column; gap: 4px;
-      padding: 9px 12px 9px 34px; color: inherit; text-decoration: none;
-    }
-    .entry-link:hover { background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
 
     /* ---------- Folded build waves ----------
        One announcement published as a run of near-identical build notes. The
@@ -379,8 +490,7 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
     .patch-entry.wave > details > summary:hover { background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
     .patch-entry.wave > details > summary:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -3px; }
     .wave-entries { list-style: none; margin: 0; padding: 0 0 4px; }
-    .wave-entries .entry-link { padding-left: 52px; }
-    .wave-entries .entry-title { color: var(--sc-fg-2); font-size: 0.82rem; }
+    .wave-entries sc-patch-entry-row { padding-left: 18px; display: block; }
     .entry-title { font-size: 0.86rem; line-height: 1.35; }
     .entry-meta {
       display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
@@ -404,7 +514,18 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
 })
 export class PatchNotesSectionComponent implements OnDestroy {
   readonly svc = inject(NewsService);
+  readonly roadmap = inject(RoadmapService);
   private readonly t = inject(TranslateService);
+
+  // ── Free-text search (961ab0a5) ──────────────────────────────────────────
+  /** Raw query as typed; `tokens()` is the normalized form everything uses. */
+  readonly query = signal('');
+  readonly tokens = computed(() => tokenizeQuery(this.query()));
+
+  /** Notes the reader has opened, by feed-item id. */
+  private readonly entryOverride = signal<ReadonlyMap<string, boolean>>(new Map());
+  /** The "open every note" switch; per-note overrides sit on top of it. */
+  readonly expandAll = signal(false);
 
   // ── Filters (44e90e30 follow-up) ─────────────────────────────────────────
   // Two independent axes: which patch LINE (4.10, 4.9 …) and which CHANNEL
@@ -417,10 +538,18 @@ export class PatchNotesSectionComponent implements OnDestroy {
   readonly lineFilter = signal<ReadonlySet<string>>(new Set());
   readonly facetFilter = signal<ReadonlySet<PatchFacet>>(new Set());
 
-  /** The history, narrowed to the current selection. */
-  readonly groups = computed(() =>
-    filterPatchLines(this.svc.patchLines(), { lines: this.lineFilter(), facets: this.facetFilter() }),
-  );
+  /**
+   * The history, narrowed to the current selection: chips first, then the
+   * query. Two passes rather than one combined predicate, so a reader can
+   * clear either axis and get exactly the other one back.
+   */
+  readonly groups = computed(() => {
+    const chipped = filterPatchLines(
+      this.svc.patchLines(),
+      { lines: this.lineFilter(), facets: this.facetFilter() },
+    );
+    return filterPatchLinesByQuery(chipped, this.tokens(), (e) => this.haystackOf(e), matchesTokens);
+  });
   readonly filteredCount = computed(() =>
     this.groups().reduce((n, g) => n + g.entries.length, 0),
   );
@@ -466,6 +595,33 @@ export class PatchNotesSectionComponent implements OnDestroy {
     });
   });
 
+  /**
+   * Pull the RSI roadmap once the section exists. Not in the board component:
+   * this section is what renders the band, and the service coalesces concurrent
+   * callers, so the request belongs to the thing that needs it.
+   */
+  private readonly loadRoadmapOnce = effect(() => {
+    void this.roadmap.loadRoadmap();
+  });
+
+  /**
+   * Seed the contents of the notes a reader is most likely to search for: the
+   * newest one per channel — the same handful the "Neueste je Kanal" row shows.
+   *
+   * The alternative was fetching all hundred-odd notes to open the page, or
+   * shipping a search that finds nothing until something is expanded. Five
+   * cached outlines cost one request and a few kilobytes, and they cover the
+   * LIVE notes and the current PTU wave, which is what "search the patch notes"
+   * means in practice. The count of loaded notes is shown next to the box, so
+   * the boundary is stated rather than implied.
+   */
+  private readonly seedNewestOutlines = effect(() => {
+    const slugs = latestPerFacet(this.svc.patchLines())
+      .map((h) => threadSlugOf(h.entry.item.url))
+      .filter(Boolean);
+    if (slugs.length > 0) untracked(() => this.roadmap.requestOutlines(slugs));
+  });
+
   ngOnDestroy(): void {
     clearInterval(this.clockTimer);
   }
@@ -495,6 +651,9 @@ export class PatchNotesSectionComponent implements OnDestroy {
   resetFilter(): void {
     this.clearLines();
     this.clearFacets();
+    // The empty-state button says "reset the filter"; leaving the query in
+    // place would keep the list empty and make the button look broken.
+    this.clearQuery();
   }
 
   /**
@@ -508,5 +667,70 @@ export class PatchNotesSectionComponent implements OnDestroy {
 
   relTime(iso: string): string {
     return relativeTime(iso, this.now(), (k, p) => this.t.instant(k, p));
+  }
+
+  // ── Search ────────────────────────────────────────────────────────────────
+
+  onQuery(event: Event): void {
+    this.query.set((event.target as HTMLInputElement).value);
+  }
+
+  clearQuery(): void {
+    this.query.set('');
+  }
+
+  /**
+   * Everything one note can be found by: its title always, plus its bullet
+   * points once they are loaded.
+   *
+   * Title-only for an unloaded note is a deliberate floor, not a gap — it means
+   * a note is never invisible to the search, and the count of notes whose
+   * contents ARE searchable is stated next to the box rather than left for the
+   * reader to guess.
+   */
+  private haystackOf(entry: PatchNoteEntry): string {
+    const outline = this.roadmap.outlineFor(threadSlugOf(entry.item.url));
+    return outline ? `${entry.item.title}
+${outlineHaystack(outline)}` : entry.item.title;
+  }
+
+  // ── Expanded notes ───────────────────────────────────────────────────────
+
+  isEntryOpen(entry: PatchNoteEntry): boolean {
+    return this.entryOverride().get(entry.item.id) ?? this.expandAll();
+  }
+
+  toggleEntry(id: string): void {
+    const next = new Map(this.entryOverride());
+    const current = next.get(id) ?? this.expandAll();
+    next.set(id, !current);
+    this.entryOverride.set(next);
+  }
+
+  /**
+   * Open or close every note at once.
+   *
+   * Per-note overrides are dropped, deliberately: "alles ausklappen" that
+   * leaves three notes closed because they were toggled earlier does not do
+   * what it says. Expanding all is bounded by what is on screen — the chip
+   * filters and the query decide how many notes that is — and each newly
+   * visible note requests its own contents, which the service batches.
+   */
+  toggleExpandAll(): void {
+    this.expandAll.update((v) => !v);
+    this.entryOverride.set(new Map());
+  }
+
+  /**
+   * "Show me the patch notes for this line", from the roadmap band.
+   *
+   * Sets the version chip rather than scrolling somewhere: the chips ARE the
+   * page's idea of "show me this line", and reusing them means the reader can
+   * see what happened and undo it with the same control they would have used
+   * themselves.
+   */
+  focusLine(line: string): void {
+    this.lineFilter.set(new Set([line]));
+    this.facetFilter.set(new Set());
   }
 }

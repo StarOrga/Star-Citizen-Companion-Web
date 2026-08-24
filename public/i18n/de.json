@@ -1158,11 +1158,54 @@
       },
       "board": {
         "title": "Patch-Historie",
-        "sub": "Takt, Termine und jede Release-Note — nach Hauptpatch gruppiert",
+        "sub": "Roadmap, Takt, Termine und jede Release-Note — durchsuchbar bis zum einzelnen Stichpunkt",
         "back": "Zurück zu Verse News"
       },
       "waves": {
         "title": "{{count}} Build-Wellen derselben Ankündigung"
+      },
+      "search": {
+        "label": "Patch-Inhalte durchsuchen",
+        "placeholder": "z. B. Orison, Hotfix, Quantum Drive",
+        "clear": "Suche löschen",
+        "summary": "{{notes}} Notes in {{lines}} Patch-Linien",
+        "scope": "Sucht in allen Titeln und in den Stichpunkten von {{loaded}} geladenen Notes"
+      },
+      "roadmap": {
+        "title": "Was steckt drin",
+        "hint": "Geplante Inhalte laut RSI-Roadmap (Release View)",
+        "expandAll": "Alle Beschreibungen zeigen",
+        "collapseAll": "Beschreibungen einklappen",
+        "source": "Roadmap auf RSI ↗",
+        "showNotes": "Patch-Notes zu {{version}} zeigen",
+        "uncategorized": "Ohne Kategorie",
+        "noDetail": "RSI hat zu diesem Eintrag keine Beschreibung veröffentlicht.",
+        "emptyRelease": "Keine Roadmap-Einträge für diese Suche.",
+        "later": "Danach geplant:",
+        "slot": {
+          "current": "Aktueller Patch",
+          "next": "Nächster Patch"
+        },
+        "status": {
+          "released": "Ausgeliefert",
+          "committed": "Zugesagt",
+          "tentative": "Vorläufig",
+          "unknown": "Offen"
+        }
+      },
+      "detail": {
+        "loading": "Patch-Inhalte werden geladen …",
+        "unavailable": "Zu dieser Note liegen keine Inhalte vor – auf RSI nachlesen.",
+        "noMatch": "Kein Treffer in dieser Note.",
+        "fullNotes": "Vollständige Notes ↗",
+        "linkOut": "Link ↗",
+        "openOnRsi": "Auf RSI öffnen ↗",
+        "openOnRsiAria": "{{title}} auf RSI öffnen (neuer Tab)",
+        "truncated": "Sehr lange Note – der Rest steht auf RSI.",
+        "hits": "{{count}} Treffer",
+        "points": "{{count}} Punkte",
+        "expandAll": "Alle Notes ausklappen",
+        "collapseAll": "Alle Notes einklappen"
       }
     },
     "detail": {
