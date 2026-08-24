@@ -136,7 +136,17 @@
         "cta": "Claim your first ship",
         "ctaGoal": "→ Flight-ready",
         "open": "Open {{ship}}",
-        "compareHint": "Tip: pin 2+ ships to compare them."
+        "compareHint": "Tip: pin 2+ ships to compare them.",
+        "laneTitle": "Fleet · {{count}} ships",
+        "sortLabel": "Sort the fleet",
+        "sortUnknown": "Unspecified",
+        "sort": {
+          "manufacturer": "Manufacturer",
+          "role": "Role",
+          "recent": "Recently opened"
+        },
+        "emptyLead": "The bay is ready — no hull in it yet.",
+        "emptyArt": "Empty hangar bay with a docking ring"
       },
       "diff": {
         "scm": "SCM",
@@ -184,7 +194,6 @@
       },
       "versum": {
         "eyebrow": "In the Verse",
-        "title": "Domains",
         "keybinds": "Keybindings",
         "domain": {
           "ship": "Ships",

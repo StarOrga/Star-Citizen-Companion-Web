@@ -136,7 +136,17 @@
         "cta": "Erstes Schiff beanspruchen",
         "ctaGoal": "→ Flugbereit",
         "open": "{{ship}} öffnen",
-        "compareHint": "Tipp: 2+ Schiffe anpinnen, um sie zu vergleichen."
+        "compareHint": "Tipp: 2+ Schiffe anpinnen, um sie zu vergleichen.",
+        "laneTitle": "Flotte · {{count}} Schiffe",
+        "sortLabel": "Flotte sortieren",
+        "sortUnknown": "Ohne Angabe",
+        "sort": {
+          "manufacturer": "Hersteller",
+          "role": "Einsatzzweck",
+          "recent": "Zuletzt geöffnet"
+        },
+        "emptyLead": "Der Hangar steht bereit — noch ohne Hülle darin.",
+        "emptyArt": "Leere Hangarbucht mit Andockring"
       },
       "diff": {
         "scm": "SCM",
@@ -184,7 +194,6 @@
       },
       "versum": {
         "eyebrow": "Im Versum",
-        "title": "Domänen",
         "keybinds": "Tastenbelegungen",
         "domain": {
           "ship": "Schiffe",
