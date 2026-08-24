@@ -109,7 +109,7 @@ export class UserFeedbackService {
    * key bindings from the outside.
    */
   private blockedByPreview(): boolean {
-    if (!this.imp.active()) return false;
+    if (!this.imp.activeOrPending()) return false;
     this._error.set('preview');
     return true;
   }

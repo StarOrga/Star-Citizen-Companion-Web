@@ -115,19 +115,20 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
         <sc-verse-status-chip />
         <sc-quick-search />
 
-        @if (!auth.user()) {
-          <!-- Signed-out (#131): the account menu is meaningless — offer the
-               sign-in CTA instead (redirects back after login via authGuard). -->
-          <a class="sc-btn signin-btn" routerLink="/login">{{ 'nav.signIn' | translate }}</a>
-          @if (imp.active()) {
-            <!-- The signed-out visitor preview puts the WHOLE account menu out of
-                 reach (auth.user() is null by design — see impersonation.service),
-                 so this is the only way back while on this branch. -->
-            <button type="button" class="sc-btn exit-preview-btn" (click)="imp.exit()">
-              {{ 'impersonation.banner.exit' | translate }}
-            </button>
-          }
-        } @else {
+        <!--
+          Defect A (dead-code sweep): an "@if (!auth.user())" branch used to
+          live here with a sign-in CTA and a redundant "exit-preview" button,
+          commented as "the only way back" while signed out. It never
+          rendered: every shell child route carries canActivateChild:
+          [authGuard, approvedGuard] (app.routes.ts), and authGuard bounces
+          to /login before the shell mounts a route at all — including during
+          an 'anon' preview, since auth.user()/isAuthenticated() are
+          shadowed to null/false in that case too (auth.service.ts), so the
+          bounce happens then as well. The shell therefore never renders with
+          auth.user() null; the actual (and only) way back during an 'anon'
+          preview is ImpersonationBannerComponent, mounted app-level in
+          app.component.ts and reachable from every route including /login.
+        -->
         <div class="profile-menu">
           <button
             type="button"
@@ -230,9 +231,22 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
             </div>
           }
         </div>
-        }
       </div>
     </header>
+
+    @if (imp.enterFailed()) {
+      <!-- Defect A: enter() used to reload unconditionally even when the
+           sessionStorage write was silently dropped (private mode / full
+           quota), so picking a target looked like it did nothing. Now the
+           service refuses to reload on an unverified write and surfaces
+           this instead — dismissible so it doesn't linger past a retry. -->
+      <div class="imp-enter-error" role="alert">
+        <span>{{ 'impersonation.enterFailed' | translate }}</span>
+        <button type="button" class="imp-enter-error__dismiss" (click)="dismissEnterError()">
+          {{ 'impersonation.enterFailedDismiss' | translate }}
+        </button>
+      </div>
+    }
 
     <!-- Navigation "sensor sweep" — only appears once a switch runs past 250ms,
          so it covers the lazy-chunk/guard gap on real waits but never flashes on
@@ -396,20 +410,6 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       flex: 1 1 0;
       justify-content: flex-end;
     }
-    .signin-btn {
-      text-decoration: none;
-      color: var(--sc-accent);
-      border-color: var(--sc-accent);
-      white-space: nowrap;
-    }
-    .signin-btn:hover { background: var(--sc-accent); color: var(--sc-bg-0); }
-    .exit-preview-btn {
-      color: var(--sc-accent-hot);
-      border-color: var(--sc-accent-hot);
-      white-space: nowrap;
-    }
-    .exit-preview-btn:hover { background: var(--sc-accent-hot); color: var(--sc-bg-0); }
-
     .profile-menu { position: relative; }
     .avatar-btn {
       display: inline-flex;
@@ -524,6 +524,33 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       border: 0;
       border-top: 1px solid var(--sc-border);
     }
+
+    /* Defect A notice: a preview whose sessionStorage write did not
+       verifiably stick. Sits as its own strip (not a floating toast) so it
+       reads deliberately, not like a transient status message. */
+    .imp-enter-error {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 8px 16px;
+      background: rgba(248, 113, 113, 0.1);
+      border-bottom: 1px solid var(--sc-danger);
+      color: var(--sc-danger);
+      font-size: max(0.82rem, var(--sc-fs-floor));
+      text-align: center;
+    }
+    .imp-enter-error__dismiss {
+      flex: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--sc-danger);
+      background: transparent;
+      color: var(--sc-danger);
+      font-size: max(0.76rem, var(--sc-fs-floor));
+      cursor: pointer;
+    }
+    .imp-enter-error__dismiss:hover { background: rgba(248, 113, 113, 0.15); }
 
     /* Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
        heading is not marooned in empty space (feedback #79, item 5). The
@@ -730,6 +757,11 @@ export class ShellComponent {
   exitViewAs() {
     this.closeMenu();
     this.imp.exit();
+  }
+
+  /** Dismisses the "preview did not persist" notice (defect A) without retrying. */
+  dismissEnterError() {
+    this.imp.clearEnterFailed();
   }
 
   async doSignOut() {

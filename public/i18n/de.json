@@ -10,6 +10,11 @@
     "dismiss": "Später"
   },
   "auth": {
+    "previewLocked": {
+      "title": "Du siehst gerade die Vorschau als abgemeldeter Besucher",
+      "body": "Anmelden funktioniert hier nicht — die Vorschau überschreibt weiterhin, was dir die App anzeigt, auch nach erfolgreicher Anmeldung. Beende zuerst die Vorschau.",
+      "exit": "Vorschau beenden und anmelden"
+    },
     "tagline": "Dein Terminal zum Verse",
     "email": "E-Mail",
     "password": "Passwort",
@@ -74,7 +79,7 @@
     }
   },
   "impersonation": {
-    "banner": {
+        "banner": {
       "aria": "Rollenvorschau aktiv",
       "viewingAs": "Vorschau als: {{role}}",
       "realRole": "Deine echte Rolle: {{role}}",
@@ -84,7 +89,9 @@
         "viewer": "Nur Oberfläche und Routing als Vorschau. Daten werden weiterhin mit deinen echten Rechten geladen — eine Einschränkung, die nur ein echter Viewer trifft (leere Liste, RLS-Ablehnung), zeigt sich hier nicht.",
         "collaborator": "Nur Oberfläche und Routing als Vorschau. Daten werden weiterhin mit deinen echten Rechten geladen — eine Einschränkung, die nur einen echten Collaborator trifft, zeigt sich hier nicht."
       }
-    }
+    },
+    "enterFailed": "Vorschau konnte nicht gewechselt werden — dein Browser hat die Änderung blockiert (privates Surfen oder Speicher voll). Es wurde nichts neu geladen.",
+    "enterFailedDismiss": "Verwerfen"
   },
   "codex": {
     "title": "Codex",

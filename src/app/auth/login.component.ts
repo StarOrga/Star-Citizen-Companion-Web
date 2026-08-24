@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from './auth.service';
 import { AccessRequestService } from './access-request.service';
+import { ImpersonationService } from './impersonation.service';
 import { AnalyticsService } from '../core/analytics.service';
+import { safeRedirectTarget } from '../core/safe-redirect.util';
 
 /** Which panel the landing card currently shows. */
 type Panel = 'signIn' | 'apply';
@@ -59,6 +61,24 @@ type Panel = 'signIn' | 'apply';
 
               @if (denied()) {
                 <div class="notice denied">{{ 'auth.deniedInvite' | translate }}</div>
+              }
+
+              @if (previewLocked()) {
+                <!--
+                  Defect B: while previewing as the signed-out visitor, auth.isAuthenticated()
+                  is shadowed to false (see auth.service.ts), so authGuard bounces every
+                  private route right back here even after a REAL, successful sign-in — the
+                  form would just silently reset in a loop with no explanation. The page
+                  itself still renders exactly as a visitor sees it (that fidelity is the
+                  point of the preview); only the sign-in ATTEMPT is refused, with a way out.
+                -->
+                <div class="notice preview-locked" role="status">
+                  <p class="preview-locked__title">{{ 'auth.previewLocked.title' | translate }}</p>
+                  <p class="preview-locked__body">{{ 'auth.previewLocked.body' | translate }}</p>
+                  <button type="button" class="sc-btn sc-btn-primary" (click)="leavePreview()">
+                    {{ 'auth.previewLocked.exit' | translate }}
+                  </button>
+                </div>
               }
 
               <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
@@ -258,6 +278,20 @@ type Panel = 'signIn' | 'apply';
       border: 1px solid var(--sc-success);
       color: var(--sc-success);
     }
+    .notice.preview-locked {
+      background: rgba(0, 212, 255, 0.08);
+      border: 1px solid var(--sc-accent);
+      color: var(--sc-fg-0);
+    }
+    .preview-locked__title {
+      margin: 0 0 4px;
+      font-weight: 600;
+    }
+    .preview-locked__body {
+      margin: 0 0 12px;
+      color: var(--sc-fg-2);
+    }
+    .notice.preview-locked .sc-btn { width: 100%; justify-content: center; }
     .back-btn { width: 100%; justify-content: center; }
     .invite-only {
       margin: 18px 0 0;
@@ -367,6 +401,18 @@ export class LoginComponent {
   private readonly analytics = inject(AnalyticsService);
   private readonly accessRequests = inject(AccessRequestService);
   private readonly translate = inject(TranslateService);
+  private readonly imp = inject(ImpersonationService);
+
+  /**
+   * True while previewing as the signed-out visitor (defect B). Only `'anon'`
+   * matters here — it is the sole preview value that shadows
+   * `auth.isAuthenticated()` (see auth.service.ts's `session`/`user`
+   * projections); a `'viewer'`/`'collaborator'` preview never blocks a real
+   * sign-in. Deliberately NOT auto-exited on load — a visitor preview
+   * rendering `/login` exactly as a real visitor sees it is the entire point
+   * of the feature. Only the sign-in attempt itself is refused.
+   */
+  readonly previewLocked = computed(() => this.imp.viewAs() === 'anon');
 
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
@@ -411,18 +457,29 @@ export class LoginComponent {
 
   /**
    * Read the `?redirect=…` query param the auth guard set when bouncing
-   * an unauthenticated user. Only same-origin absolute paths are honored
-   * (must start with `/`); anything else falls back to `/news` to prevent
-   * open-redirect attacks via crafted login links.
+   * an unauthenticated user. Delegates the open-redirect check to the
+   * shared `safeRedirectTarget()` util — `publicOnlyGuard` reuses the exact
+   * same check for the "exit an impersonation preview" flow (Defect B).
    */
   private safeRedirectTarget(): string {
-    const raw = this.route.snapshot.queryParamMap.get('redirect');
-    if (raw && raw.startsWith('/') && !raw.startsWith('//')) return raw;
-    return '/news';
+    return safeRedirectTarget(this.route.snapshot.queryParamMap.get('redirect'));
+  }
+
+  /** Reuses `ImpersonationService.exit()` — the only sanctioned way out of a preview. */
+  leavePreview(): void {
+    this.imp.exit();
   }
 
   async onSubmit() {
     if (this.form.invalid) return;
+    if (this.previewLocked()) {
+      // Defect B: signInWithPassword would succeed against the real client,
+      // but navigateByUrl would still be bounced by authGuard back to /login
+      // (viewAs() === 'anon' shadows isAuthenticated()) — a silent loop with
+      // no feedback. Refuse before attempting it at all.
+      this.errorMsg.set(this.translate.instant('auth.previewLocked.body'));
+      return;
+    }
     this.busy.set(true);
     this.errorMsg.set(null);
     const { email, password } = this.form.getRawValue();
@@ -469,6 +526,12 @@ export class LoginComponent {
   }
 
   async signInWithGoogle() {
+    if (this.previewLocked()) {
+      // Same reasoning as onSubmit(): sc.viewAs is sessionStorage, so it
+      // survives the OAuth round trip and would loop back to /login too.
+      this.errorMsg.set(this.translate.instant('auth.previewLocked.body'));
+      return;
+    }
     this.busy.set(true);
     this.errorMsg.set(null);
     let target = this.safeRedirectTarget();

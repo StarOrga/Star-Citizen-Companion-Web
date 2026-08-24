@@ -4,6 +4,50 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.69.1] - 2026-08-24
+
+### Fixed
+
+- **"Ansehen als" works.** Picking Collaborator, Viewer or Abgemeldeter
+  Besucher reloaded the page and changed nothing — the admin nav entries stayed
+  right where they were. `RoleService`'s constructor effect fired before the
+  Supabase session was restored, reported that momentary "no user" as a settled
+  fact, and the preview's self-heal read it as a genuine sign-out and wiped the
+  target that had just been written. Every target was affected, every time.
+  Auth readiness is now the discriminator between "not signed in" and "haven't
+  found out yet".
+- **A preview that cannot be stored says so.** Entering one reloaded
+  unconditionally, even when the write had been swallowed (private mode, full
+  quota) — landing the user on a byte-identical page with no explanation, the
+  exact symptom the bug above produced. The write is now read back and the
+  reload only happens once it verifiably stuck.
+- **Signing in while previewing as a visitor no longer loops in silence.** The
+  shadowed session bounced every route to `/login`, the sign-in succeeded
+  against the real client, and the guard bounced it straight back. Both
+  credential paths now refuse with an explanation and an exit control; the
+  login page still renders exactly as a visitor sees it.
+- **Leaving a preview returns you where you started.** Exit landed on Verse
+  News regardless of origin, because `publicOnlyGuard` ignored the `redirect`
+  param it was standing on. It now honours it, through a shared same-origin
+  check that rejects protocol-relative, absolute-URL and backslash payloads.
+- **A momentary profile-read failure no longer ends the session.** A 401 during
+  token rotation or an RLS hiccup pinned the role to `viewer` and `approved` to
+  false, which wiped any active preview and made the next guarded navigation
+  sign the real admin out. An unresolved identity is now distinct from a
+  confirmed `is_approved = false`: the first blocks a navigation, only the
+  second ends a session. A thrown read also settles instead of leaving every
+  guarded navigation waiting forever.
+- **Preview blocks hold during the load window.** Privileged write paths and
+  the desktop token handoffs read "is a preview active", which was false for
+  the whole profile round trip on a viewer/collaborator preview. They were safe
+  only because their routes happened to carry a guard that serialised it — a
+  property of the routing table, not of the code. They now fail closed on their
+  own.
+- **The impersonation banner stays out of the way.** It sat above every
+  full-screen dialog and swallowed clicks meant for them, and it claimed
+  "Deine echte Rolle: Viewer" while the real role was still loading. Both
+  sticky bars on the Codex keybinds page now clear it as well.
+
 ## [0.69.0] - 2026-08-24
 
 ### Changed
