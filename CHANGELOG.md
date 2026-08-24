@@ -4,6 +4,40 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.69.0] - 2026-08-24
+
+### Changed
+
+- **The hangar zone leads with the ship, not with its name.** The flagship was
+  a text link whose only illustrated company were the three small fleet
+  thumbnails beneath it — the eye landed on the satellites, not on the subject.
+  It is now a 16:9 bleed crop of the ship's artwork, with manufacturer, role,
+  name and the four leading KPIs on a scrim **inside** the frame; the KPI card
+  row under the ship is gone. Each chip carries its category glyph from
+  `codex-category-icon`, so the numbers read as shield / weapon / quantum /
+  fill instead of four identical boxes.
+- **The fleet is a strip of art tiles**, the same tile the concept-ship rail
+  uses, grouped by manufacturer, role, or hangar order through a sort bar. The
+  flagship sits in the strip with a star rather than being excluded from it —
+  a grouping that omits its most important member reads wrong. Roles for every
+  owned hull now resolve in one batch, so a group heading can never show a raw
+  `@`-locale token.
+- **The Versum band is a horizontal chip strip.** The "Domänen" headline is
+  gone (the eyebrow is the heading), the keybindings entry moved onto that same
+  line, and each chip leads with its category glyph and name while the count
+  became side information. All seven domains now open the **same** subview with
+  their facet preselected — Baupläne used to jump to `/codex/blueprint`, a
+  separate page with different controls.
+- **The empty bay is drawn, not greyed out** — an inline SVG scene (perspective
+  floor grid, two service light cones, an empty docking ring) that costs no
+  request and follows the accent token.
+
+### Removed
+
+- **"Andere Konfigurationen" on the landing page** — a `<details>` whose body
+  was a single link. Choosing between saved loadouts belongs in the hangar, not
+  on the front door.
+
 ## [0.68.1] - 2026-08-23
 
 ### Fixed
