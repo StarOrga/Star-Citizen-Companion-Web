@@ -147,14 +147,19 @@ const SAFE_SVG = new Map<string, SafeHtml>();
                of "where does the build stand" above the fold, in one sentence
                plus its basis — and it never appears again further down. -->
           @if (verdictReady()) {
-            <aside class="verdict" [attr.aria-label]="'news.verdict.label' | translate">
-              <p class="verdict-label">{{ 'news.verdict.label' | translate }}</p>
+            <aside class="verdict" [class.fresh]="!!verdictFresh()"
+                   [attr.data-fresh]="verdictFresh()"
+                   [attr.aria-label]="verdictLabelKey() | translate">
+              <p class="verdict-label">
+                @if (verdictFresh()) { <span class="pulse" aria-hidden="true"></span> }
+                {{ verdictLabelKey() | translate }}
+              </p>
               <p class="verdict-line" [innerHTML]="verdictLine()"></p>
               @if (verdictBasis(); as basis) {
                 <p class="verdict-basis">{{ basis }}</p>
               }
               <a class="verdict-link" routerLink="/news/patches">
-                {{ 'news.verdict.toBoard' | translate }} →
+                {{ verdictLinkKey() | translate }} →
               </a>
             </aside>
           }
@@ -450,6 +455,50 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     .verdict-line { margin: 6px 0 4px; font-size: 0.94rem; line-height: 1.35; color: var(--sc-fg-0); }
     .verdict-line ::ng-deep b { font-family: var(--sc-font-display); color: var(--sc-accent); font-weight: 600; }
     .verdict-line ::ng-deep b.late { color: var(--sc-warning); }
+
+    /* ---------- 2a · Verdict, fresh release ----------
+       A main patch reaching LIVE (or a new line entering the PTU) is the biggest
+       event this card ever reports, and for FRESH_RELEASE_DAYS it says so: the
+       surface takes the ring's own colour — success for LIVE, warning for PTU,
+       the same pairing the patch badges use across the app — the heading names
+       the event, and the version is set a step larger. Nothing moves position,
+       so the card falls back to the standard read on day four without the page
+       reflowing around it. */
+    .verdict.fresh {
+      --sc-verdict-accent: var(--sc-success);
+      border-color: var(--sc-verdict-accent);
+      background:
+        linear-gradient(180deg,
+          color-mix(in srgb, var(--sc-verdict-accent) 17%, transparent),
+          transparent 62%),
+        color-mix(in srgb, var(--sc-bg-1) 90%, transparent);
+      box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.42),
+        inset 0 0 0 1px color-mix(in srgb, var(--sc-verdict-accent) 28%, transparent),
+        0 0 26px color-mix(in srgb, var(--sc-verdict-accent) 30%, transparent);
+    }
+    .verdict.fresh[data-fresh='ptu'] { --sc-verdict-accent: var(--sc-warning); }
+    .verdict.fresh .verdict-label { color: var(--sc-verdict-accent); }
+    .verdict.fresh .verdict-line { font-size: 1.06rem; margin-top: 8px; }
+    .verdict.fresh .verdict-line ::ng-deep b { color: var(--sc-verdict-accent); }
+    .verdict.fresh .verdict-link { color: var(--sc-verdict-accent); }
+    .verdict.fresh .verdict-link:hover { color: color-mix(in srgb, var(--sc-verdict-accent) 80%, white); }
+
+    /* Live dot in the heading. Decorative only — the label already says "Neuer
+       Patch", so a screen reader loses nothing by not seeing it. */
+    .verdict .pulse {
+      display: inline-block; width: 7px; height: 7px; margin-right: 7px;
+      border-radius: 50%; vertical-align: 1px;
+      background: var(--sc-verdict-accent);
+      animation: verdict-pulse 2.4s ease-out infinite;
+    }
+    @keyframes verdict-pulse {
+      0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sc-verdict-accent) 60%, transparent); }
+      70%, 100% { box-shadow: 0 0 0 6px transparent; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .verdict .pulse { animation: none; }
+    }
     .verdict-basis {
       margin: 0; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
       font-variant-numeric: tabular-nums;
@@ -821,14 +870,45 @@ export class NewsListComponent implements OnInit, OnDestroy {
   readonly verdictReady = computed(() => !!this.verdict().liveLine);
 
   /**
+   * Which release, if any, currently owns the card — `'live'` for the first
+   * days after a main patch reaches players, `'ptu'` for the first days after a
+   * new line enters the test ring, `null` for the standard read.
+   */
+  readonly verdictFresh = computed(() => this.verdict().fresh);
+
+  /** Card heading: the event while it is fresh, "Build-Stand" the rest of the time. */
+  readonly verdictLabelKey = computed(() => {
+    switch (this.verdictFresh()) {
+      case 'live': return 'news.verdict.freshLiveLabel';
+      case 'ptu': return 'news.verdict.freshPtuLabel';
+      default: return 'news.verdict.label';
+    }
+  });
+
+  /** The board reads as history in the standard state and as "the notes" while fresh. */
+  readonly verdictLinkKey = computed(() =>
+    this.verdictFresh() ? 'news.verdict.toNotes' : 'news.verdict.toBoard',
+  );
+
+  /**
    * The verdict sentence. Built through `translate.instant` with the numbers
    * already resolved, so German and English can order "live" and "overdue"
    * however each language wants — the component never concatenates fragments.
+   *
+   * While a release is fresh the sentence IS the event ("Alpha 4.10 ist jetzt
+   * live") and carries no countdown: three days after a patch landed, "the next
+   * one is due in 48 days" is neither the news nor what anyone opened the page
+   * for — and it is the same number the estimate's own basis line would print.
    */
   readonly verdictLine = computed(() => {
     const v = this.verdict();
     this.clock();
     const live = `<b>${this.t.instant('news.patch.line', { version: v.liveLine })}</b>`;
+    if (v.fresh === 'live') return this.t.instant('news.verdict.freshLive', { line: live });
+    if (v.fresh === 'ptu') {
+      const test = `<b>${this.t.instant('news.patch.line', { version: v.testLine })}</b>`;
+      return this.t.instant('news.verdict.freshPtu', { line: test });
+    }
     const days = v.daysUntilLive;
     if (days === null) return this.t.instant('news.verdict.liveOnly', { line: live });
     if (days < 0) {
@@ -842,22 +922,51 @@ export class NewsListComponent implements OnInit, OnDestroy {
   });
 
   /**
-   * "Median 22 T · 4.10 im Test" — the caveat behind the estimate.
+   * The second line under the sentence.
    *
-   * The sample count still gates the line (no samples, no basis) but is no
-   * longer printed as `n = 3`: on a landing card that reads as notation, not as
-   * a caveat. Where the numbers are the subject rather than a footnote — the
-   * patch board's KPI panel — it is spelled out as "Basis: 3 Messwerte".
+   * Standard state: what the estimate rests on. It used to print "Median 49 T"
+   * — but the estimate IS the last release plus that median, so in the days
+   * right after a patch the two lines stated the same number twice ("in 48
+   * Tagen" over "Median 49 T"). The basis now names its nature, not its
+   * arithmetic; the median itself is on the patch board, where the numbers are
+   * the subject rather than a footnote. The sample count still gates the line —
+   * no samples, no basis.
+   *
+   * Fresh state: how long the release has been up, plus the other ring, so the
+   * card stays a complete build status while it celebrates.
    */
   readonly verdictBasis = computed(() => {
     const v = this.verdict();
+    this.clock();
+    if (v.fresh === 'live') {
+      const since = this.sinceLabel(v.daysSinceLive);
+      if (!v.testLine) return since;
+      return this.t.instant('news.verdict.freshLiveSub', {
+        since,
+        test: this.t.instant('news.patch.line', { version: v.testLine }),
+      });
+    }
+    if (v.fresh === 'ptu') {
+      const since = this.sinceLabel(v.daysSinceTest);
+      if (!v.liveLine) return since;
+      return this.t.instant('news.verdict.freshPtuSub', {
+        since,
+        live: this.t.instant('news.patch.line', { version: v.liveLine }),
+      });
+    }
     if (v.medianDays === null || v.samples === null) return '';
     const key = v.testLine ? 'news.verdict.basisWithTest' : 'news.verdict.basis';
     return this.t.instant(key, {
-      median: v.medianDays,
       test: this.t.instant('news.patch.line', { version: v.testLine }),
     });
   });
+
+  /** "Seit heute" / "Seit gestern" / "Seit 3 Tagen" — no plural rule needed. */
+  private sinceLabel(days: number | null): string {
+    if (days === null || days <= 0) return this.t.instant('news.verdict.sinceToday');
+    if (days === 1) return this.t.instant('news.verdict.sinceYesterday');
+    return this.t.instant('news.verdict.sinceDays', { days });
+  }
 
   readonly updatedRel = computed(() => {
     const f = this.svc.feed();

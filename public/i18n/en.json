@@ -1235,10 +1235,10 @@
       "watch": "Watch"
     },
     "stream": {
-      "title": "Stream",
+      "title": "News Feed",
       "more": "Show {{count}} more",
       "all": "Posts",
-      "filterAria": "Filter the stream"
+      "filterAria": "Filter the news feed"
     },
     "verdict": {
       "label": "Build status",
@@ -1246,9 +1246,19 @@
       "due": "{{line}} is live · next main patch in {{days}} days",
       "today": "{{line}} is live · next main patch due today",
       "overdue": "{{line}} is live · next main patch {{days}} days overdue",
-      "basis": "Median {{median}} d",
-      "basisWithTest": "Median {{median}} d · {{test}} in testing",
-      "toBoard": "Patch history"
+      "basis": "Estimate from the patch cadence so far",
+      "basisWithTest": "{{test}} in testing · estimate from the cadence",
+      "freshLiveLabel": "New patch live",
+      "freshPtuLabel": "New in the PTU",
+      "freshLive": "{{line}} is now live",
+      "freshPtu": "{{line}} has entered the PTU",
+      "freshLiveSub": "{{since}} · {{test}} in testing",
+      "freshPtuSub": "{{since}} · {{live}} stays live",
+      "sinceToday": "Since today",
+      "sinceYesterday": "Since yesterday",
+      "sinceDays": "For {{days}} days",
+      "toBoard": "Patch history",
+      "toNotes": "Read the patch notes"
     }
   },
   "p4k": {

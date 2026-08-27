@@ -1235,10 +1235,10 @@
       "watch": "Ansehen"
     },
     "stream": {
-      "title": "Strom",
+      "title": "News Feed",
       "more": "{{count}} weitere anzeigen",
       "all": "Beiträge",
-      "filterAria": "Strom filtern"
+      "filterAria": "News Feed filtern"
     },
     "verdict": {
       "label": "Build-Stand",
@@ -1246,9 +1246,19 @@
       "due": "{{line}} ist live · nächster Hauptpatch in {{days}} Tagen",
       "today": "{{line}} ist live · nächster Hauptpatch heute fällig",
       "overdue": "{{line}} ist live · nächster Hauptpatch seit {{days}} Tagen überfällig",
-      "basis": "Median {{median}} T",
-      "basisWithTest": "Median {{median}} T · {{test}} im Test",
-      "toBoard": "Patch-Historie"
+      "basis": "Schätzung aus der bisherigen Patch-Kadenz",
+      "basisWithTest": "{{test}} im Test · Schätzung aus der Kadenz",
+      "freshLiveLabel": "Neuer Patch live",
+      "freshPtuLabel": "Neu im PTU",
+      "freshLive": "{{line}} ist jetzt live",
+      "freshPtu": "{{line}} ist im PTU angekommen",
+      "freshLiveSub": "{{since}} · {{test}} im Test",
+      "freshPtuSub": "{{since}} · {{live}} bleibt live",
+      "sinceToday": "Seit heute",
+      "sinceYesterday": "Seit gestern",
+      "sinceDays": "Seit {{days}} Tagen",
+      "toBoard": "Patch-Historie",
+      "toNotes": "Patch-Notes lesen"
     }
   },
   "p4k": {

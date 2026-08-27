@@ -180,4 +180,73 @@ describe('buildVerdict — the one sentence the landing page owes the reader', (
     expect(v.nextLiveAt).toBeNull();
     expect(v.daysUntilLive).toBeNull();
   });
+
+  /**
+   * The celebration window. A main line reaching LIVE — or a new one entering
+   * the PTU — owns the card for FRESH_RELEASE_DAYS; after that the card is the
+   * standard read again, with nothing left over.
+   */
+  describe('fresh release window', () => {
+    /** 4.9 live 60 days back, 4.10 into the PTU `ptuDaysAgo` back, live `liveDaysAgo` back. */
+    function timeline(ptuDaysAgo: number, liveDaysAgo: number | null): PatchLineGroup[] {
+      const notes = [
+        note('l1', 'Star Citizen Alpha 4.8 LIVE Release Notes', daysAgo(120)),
+        note('l2', 'Star Citizen Alpha 4.9 LIVE Release Notes', daysAgo(60)),
+        note('p2', 'Star Citizen Alpha 4.10 PTU Patch Notes 12479687', daysAgo(ptuDaysAgo)),
+      ];
+      if (liveDaysAgo !== null) {
+        notes.push(note('l3', 'Star Citizen Alpha 4.10 LIVE Release Notes', daysAgo(liveDaysAgo)));
+      }
+      return groupPatchNotes(notes);
+    }
+
+    it('celebrates a main patch on the day it lands', () => {
+      const v = buildVerdict(timeline(20, 0), NOW);
+      expect(v.fresh).toBe('live');
+      expect(v.liveLine).toBe('4.10');
+      expect(v.daysSinceLive).toBe(0);
+    });
+
+    it('still celebrates on day three and stops on day four', () => {
+      expect(buildVerdict(timeline(20, 2), NOW).fresh).toBe('live');
+      expect(buildVerdict(timeline(20, 3), NOW).fresh).toBeNull();
+    });
+
+    it('celebrates a new line entering the PTU', () => {
+      const v = buildVerdict(timeline(1, null), NOW);
+      expect(v.fresh).toBe('ptu');
+      expect(v.testLine).toBe('4.10');
+      expect(v.daysSinceTest).toBe(1);
+    });
+
+    it('lets the LIVE release outrank a PTU that is fresh at the same time', () => {
+      // 4.10 shipped today; 4.11 hit the PTU yesterday — both inside the window.
+      const groups = groupPatchNotes([
+        note('l2', 'Star Citizen Alpha 4.9 LIVE Release Notes', daysAgo(60)),
+        note('l3', 'Star Citizen Alpha 4.10 LIVE Release Notes', daysAgo(0)),
+        note('p3', 'Star Citizen Alpha 4.11 PTU Patch Notes 12600000', daysAgo(1)),
+      ]);
+      expect(buildVerdict(groups, NOW).fresh).toBe('live');
+    });
+
+    it('dates the window off the MAIN release, not a later point patch', () => {
+      // 4.10 landed 30 days ago; 4.10.1 shipped today. The line is not new.
+      const groups = groupPatchNotes([
+        note('l2', 'Star Citizen Alpha 4.9 LIVE Release Notes', daysAgo(90)),
+        note('l3', 'Star Citizen Alpha 4.10 LIVE Release Notes', daysAgo(30)),
+        note('l4', 'Star Citizen Alpha 4.10.1 LIVE Release Notes', daysAgo(0)),
+      ]);
+      const v = buildVerdict(groups, NOW);
+      expect(v.fresh).toBeNull();
+      expect(v.daysSinceLive).toBe(30);
+    });
+
+    it('never celebrates a release dated in the future', () => {
+      const groups = groupPatchNotes([
+        note('l2', 'Star Citizen Alpha 4.9 LIVE Release Notes', daysAgo(60)),
+        note('l3', 'Star Citizen Alpha 4.10 LIVE Release Notes', daysAgo(-2)),
+      ]);
+      expect(buildVerdict(groups, NOW).fresh).toBeNull();
+    });
+  });
 });

@@ -1,6 +1,6 @@
 import type { VerseNewsItem } from './news.service';
 import type { PatchLineGroup } from './patch-notes';
-import { computePatchForecast } from './patch-stats';
+import { computePatchForecast, firstTestAt, liveReleaseAt } from './patch-stats';
 
 /**
  * The Verse News entry — "Bühne · Befund · Strom" (design Ⓐ of the 2026-08-20
@@ -99,6 +99,19 @@ export function buildStream(
     .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 }
 
+/**
+ * How long a main-line release owns the card.
+ *
+ * A main patch reaching LIVE — or a new line entering the PTU — is the single
+ * biggest thing that happens to this game's build, and for the first days it is
+ * the answer to "where does the build stand", not a countdown to the next one.
+ * After the window the card returns to the standard read, unchanged.
+ */
+export const FRESH_RELEASE_DAYS = 3;
+
+/** Which main-line release, if any, is fresh enough to headline the card. */
+export type FreshRelease = 'live' | 'ptu';
+
 /** What the verdict card states, in one object. */
 export interface BuildVerdict {
   /** The line you can play right now, e.g. `4.9`. Empty when unknown. */
@@ -113,6 +126,27 @@ export interface BuildVerdict {
   medianDays: number | null;
   /** Sample count behind the median — the honest caveat, never dropped. */
   samples: number | null;
+  /** Whole days since `liveLine` reached players (0 = today). Null when unknown. */
+  daysSinceLive: number | null;
+  /** Whole days since `testLine` first entered a test ring. Null when unknown. */
+  daysSinceTest: number | null;
+  /** Set while a release is inside `FRESH_RELEASE_DAYS`; LIVE outranks PTU. */
+  fresh: FreshRelease | null;
+}
+
+/** Whole days elapsed since `at`, or null when there is no usable instant. */
+function daysSince(at: number | null, now: number): number | null {
+  if (at === null || !Number.isFinite(at)) return null;
+  return Math.floor((now - at) / DAY_MS);
+}
+
+/**
+ * Inside the celebration window. The `>= 0` guard is not pedantry: RSI stamps a
+ * note at publication, and a feed read against a slow clock (or a note dated a
+ * few hours ahead) would otherwise present a release that has not happened.
+ */
+function withinFreshWindow(days: number | null): boolean {
+  return days !== null && days >= 0 && days < FRESH_RELEASE_DAYS;
 }
 
 /**
@@ -127,10 +161,16 @@ export interface BuildVerdict {
 export function buildVerdict(groups: readonly PatchLineGroup[], now: number): BuildVerdict {
   const live = groups.find((g) => g.isCurrentLive);
   // The newest line above the live one that has not shipped yet — that is the
-  // build in testing. Groups are already sorted newest line first.
-  const test = groups.find((g) => !g.hasLive);
+  // build in testing. Groups are already sorted newest line first; the `g.line`
+  // guard keeps the trailing unversioned bucket from posing as a test ring.
+  const test = groups.find((g) => g.line && !g.hasLive);
   const row = computePatchForecast(groups).find((r) => r.key === 'live') ?? null;
   const at = row ? Date.parse(row.at) : NaN;
+  // Both instants are read off the MAIN line, so a point release (4.10.1) does
+  // not re-open the window its parent line opened weeks earlier: liveReleaseAt
+  // is the line's EARLIEST live note, firstTestAt its earliest test note.
+  const daysSinceLive = daysSince(live ? liveReleaseAt(live) : null, now);
+  const daysSinceTest = daysSince(test ? firstTestAt(test) : null, now);
   return {
     liveLine: live?.line ?? '',
     testLine: test?.line ?? '',
@@ -138,5 +178,12 @@ export function buildVerdict(groups: readonly PatchLineGroup[], now: number): Bu
     daysUntilLive: Number.isFinite(at) ? Math.round((at - now) / DAY_MS) : null,
     medianDays: row?.medianDays ?? null,
     samples: row?.samples ?? null,
+    daysSinceLive,
+    daysSinceTest,
+    fresh: withinFreshWindow(daysSinceLive)
+      ? 'live'
+      : withinFreshWindow(daysSinceTest)
+        ? 'ptu'
+        : null,
   };
 }
