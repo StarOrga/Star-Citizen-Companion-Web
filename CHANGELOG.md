@@ -4,6 +4,43 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.70.0] - 2026-08-27
+
+### Fixed
+
+- **Verse News cards show the article's real artwork again.** "Letter From The
+  Chairman" rendered as a blank navy panel while the RSI page showed a banner.
+  The upstream API returns an article's media in document order rather than as
+  an editorial pick, so the first image is the hero only by luck — here it was a
+  3671×956 lower third (the portrait sits in the left fifth, the rest is flat
+  background) followed by two 3840×114 divider rules. All three passed the old
+  "wide enough ⇒ title image" test, which had no upper bound, and the tile
+  cover-cropped the empty middle of the first one. Two independent fixes: the
+  feed now promotes the page's own `og:image` — RSI's editorial pick, present on
+  every comm-link — to the front of the media list, and the tile rejects strips
+  and decorative rules outright, measuring candidates one at a time until it
+  finds real artwork.
+
+### Added
+
+- **A patch that just landed says so.** For its first three days, a main patch
+  reaching LIVE (green) or a new line entering the PTU (orange) takes over the
+  build-status card: the heading names the event, the version is set larger, and
+  the card carries how long it has been up. On day four it returns to the
+  standard read with nothing left over. Dated off the main line, so a point
+  release does not re-open the window.
+
+### Changed
+
+- **The days to the next patch are stated once, not twice.** The estimate is
+  "last release plus the median cadence", so right after a patch the card read
+  "in 48 Tagen" directly above "Median 49 T" — the same number twice. The basis
+  line now names what it is rather than the arithmetic behind it; the median
+  itself stays on the patch board, where the numbers are the subject.
+- **The stream section is called "News Feed".** In German "Strom" reads as
+  electricity before it reads as a feed. The name is now identical in both
+  languages.
+
 ## [0.69.1] - 2026-08-24
 
 ### Fixed
