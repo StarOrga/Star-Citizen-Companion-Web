@@ -11,6 +11,7 @@ import { PNG } from 'npm:pngjs@7.0.0';
 import { scoreWallpaper } from './wallpaper-quality.ts';
 import { isNearDuplicate, perceptualHash } from './perceptual-hash.ts';
 import { isCommLinkArticleUrl } from './comm-link-url.ts';
+import { heroOgTargets, promoteHero } from './hero-image.ts';
 import { isWithinVideoRetention, videoRetentionCutoff } from './video-retention.ts';
 import { isImageUrl } from './media-urls.ts';
 import {
@@ -133,7 +134,7 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
     // /comm-link index fallback — both hand the user a card whose external link lands on
     // a dead or redirecting RSI error page instead of an article (the reported link bug).
     const articles = items.filter((it) => isCommLinkArticleUrl(it.url));
-    await backfillMissingImages(articles);
+    await resolveHeroImages(articles);
     return articles;
   } catch (err) {
     console.error('fetchCommLinks failed:', err);
@@ -141,25 +142,71 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
   }
 }
 
-// Some comm-links come back from the wiki API with an empty `images` array even
-// though the RSI page has a hero image — the "Roadmap Roundup" series is the
-// recurring offender (every entry: images_count 0). For those, scrape the
-// permalink's og:image so the card still gets a thumbnail. The og:image is a
-// media-CDN url, so the existing variant/cache pipeline handles it unchanged.
+/* ---------------------------------------------------------------- *
+ * Hero image resolution — RSI's own og:image, not "whatever came first"
+ *
+ * The wiki API's `images` array is the article's MEDIA LIST in document order,
+ * not an editorial pick, so `images[0]` is only the hero by coincidence. "Letter
+ * From The Chairman" (21301, 2026-08-27) is the case that broke: 8 images whose
+ * first three are a portrait headshot and two `dividing-lines-*.webp` ornaments
+ * — a 1000×8 rule. Cover-cropped into a 16/9 tile the ornament paints an empty
+ * bar, so the card read as "no image" while the RSI page showed a banner. The
+ * real hero (`lftcm-headerbanner-1.jpg`) sat at index 3.
+ *
+ * The page's own `og:image` IS the editorial pick — RSI publishes one on every
+ * comm-link (verified across transmissions, Comm-links and Roadmap Roundups),
+ * always as a `media.robertsspaceindustries.com/<id>/heap_thumb.jpg`, which the
+ * existing variant-swap resolves to the ≤1140w `cover` copy. So we no longer
+ * scrape it only as a last resort for entries with NO images: for the newest
+ * entries — the ones a reader actually sees — it is fetched up front and put in
+ * front of the media list.
+ *
+ * Cost is bounded three ways: only the newest `HERO_OG_LOOKAHEAD` entries plus
+ * the still-imageless tail, a shared wall-clock budget, and a module-scope memo
+ * that survives between requests on a warm isolate (a comm-link's og:image never
+ * changes, so a hit is free and correct).
+ * ---------------------------------------------------------------- */
 const OG_FETCH_TIMEOUT_MS = 6000;
+/** Newest entries whose hero is resolved from the page even if they have images. */
+const HERO_OG_LOOKAHEAD = 12;
+/** Additional older entries that have NO image at all (the historic fallback). */
 const MAX_OG_FALLBACK = 10;
+/** Hard ceiling on the whole og phase — callers wait on this request. */
+const OG_PHASE_BUDGET_MS = 5000;
+/** og:image sits ~8 KB into a ~34 KB page; stop reading well before the body. */
+const OG_HEAD_BYTES = 64 * 1024;
+/** A comm-link's og:image is immutable, so a memo hit needs no freshness proof. */
+const OG_MEMO_TTL_MS = 6 * 60 * 60 * 1000;
+const OG_MEMO_MAX = 300;
 
-async function backfillMissingImages(items: VerseNewsItem[]): Promise<void> {
-  const missing = items
-    .filter((it) => !it.images?.length && it.url.startsWith(RSI_BASE))
-    .slice(0, MAX_OG_FALLBACK);
-  if (!missing.length) return;
-  await Promise.allSettled(missing.map(async (it) => {
-    const og = await fetchOgImage(it.url);
-    if (og) {
-      it.images = [og];
-      it.thumbnail = og;
-    }
+const ogMemo = new Map<string, { url: string | undefined; at: number }>();
+
+async function memoizedOgImage(pageUrl: string, deadline: number): Promise<string | undefined> {
+  const hit = ogMemo.get(pageUrl);
+  if (hit && Date.now() - hit.at < OG_MEMO_TTL_MS) return hit.url;
+  const budget = deadline - Date.now();
+  if (budget <= 0) return hit?.url;
+  const url = await fetchOgImage(pageUrl, Math.min(OG_FETCH_TIMEOUT_MS, budget));
+  // A miss is memoized too — a page that has no usable og tag would otherwise be
+  // re-fetched on every single request forever. Not memoized on a spent budget:
+  // that is a timeout, not a verdict about the page.
+  if (Date.now() < deadline || url) {
+    if (ogMemo.size >= OG_MEMO_MAX) ogMemo.delete(ogMemo.keys().next().value as string);
+    ogMemo.set(pageUrl, { url, at: Date.now() });
+  }
+  return url;
+}
+
+async function resolveHeroImages(items: VerseNewsItem[]): Promise<void> {
+  const targets = heroOgTargets(items, RSI_BASE, HERO_OG_LOOKAHEAD, MAX_OG_FALLBACK);
+  if (!targets.length) return;
+
+  const deadline = Date.now() + OG_PHASE_BUDGET_MS;
+  await Promise.allSettled(targets.map(async (it) => {
+    const og = await memoizedOgImage(it.url, deadline);
+    if (!og) return;
+    it.images = promoteHero(it.images, og, MAX_IMAGE_URLS);
+    it.thumbnail = og;
   }));
 }
 
@@ -168,16 +215,16 @@ async function backfillMissingImages(items: VerseNewsItem[]): Promise<void> {
 // hero never appears in the static body — this <head> meta is the only image we can
 // scrape server-side. Only RSI-hosted urls are accepted: the page is untrusted
 // content, so we never surface an arbitrary external image url from it.
-async function fetchOgImage(pageUrl: string): Promise<string | undefined> {
+async function fetchOgImage(pageUrl: string, timeoutMs = OG_FETCH_TIMEOUT_MS): Promise<string | undefined> {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), OG_FETCH_TIMEOUT_MS);
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(pageUrl, {
       headers: { 'Accept': 'text/html', 'User-Agent': 'SC-Companion/0.3 (+news-og-fallback)' },
       signal: ctrl.signal,
     });
     if (!res.ok) return undefined;
-    const html = await res.text();
+    const html = await readHead(res, OG_HEAD_BYTES);
     // property/name and content can appear in either order; og:image may also be
     // exposed as og:image:secure_url / og:image:url, or a <link rel="image_src">.
     const PROP = 'og:image(?::secure_url|:url)?|twitter:image(?::src)?';
@@ -192,6 +239,36 @@ async function fetchOgImage(pageUrl: string): Promise<string | undefined> {
   } finally {
     clearTimeout(t);
   }
+}
+
+/**
+ * First `limit` bytes of a response as text, then hang up.
+ *
+ * The meta tags we want live in the `<head>`; reading the rest of a page we
+ * immediately throw away is pure egress. Cancelling the reader also releases the
+ * connection instead of leaving it draining in the background. Falls back to a
+ * plain `.text()` where the body is not a readable stream.
+ */
+async function readHead(res: Response, limit: number): Promise<string> {
+  const body = res.body;
+  if (!body) return res.text();
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (size < limit) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      size += value.length;
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+  }
+  const buf = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) { buf.set(c, at); at += c.length; }
+  return new TextDecoder('utf-8', { fatal: false }).decode(buf);
 }
 
 // Decode the handful of HTML entities RSI emits inside attribute values (media urls

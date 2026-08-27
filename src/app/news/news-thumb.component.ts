@@ -82,6 +82,52 @@ export class ImgReadyDirective implements OnDestroy {
 // Portrait posters (e.g. the DefenseCon schedule, 3840×7389 → 0.52) fall below it
 // and get cover-cropped into an unreadable sliver — those trigger the slideshow instead.
 const MIN_LANDSCAPE_RATIO = 1.2;
+/**
+ * Upper bound of the same test — and the half that was missing.
+ *
+ * "Wide" was treated as unconditionally good, so anything from a 21:9 hero to a
+ * 33:1 divider rule qualified as the title image. Cover-cropping a strip that
+ * wide into a 16/9 tile keeps a sliver of its middle, which for the assets that
+ * actually look like this (lower thirds, section rules, ornament bars) is the
+ * empty part: "Letter From The Chairman" (2026-08-27) led with a 3671×956 lower
+ * third whose left fifth carries the portrait and whose remaining 80% is flat
+ * navy — the card rendered as a blank panel while RSI's page showed a banner.
+ *
+ * 3.0 keeps every real hero shape (16:9 = 1.78, 2:1, 21:9 = 2.33 — the ratio
+ * RSI's own og:image comes in) and rejects the strips. A tile only ever shows
+ * S/R of a wider image's width, so at 3.0 in the 16/9 slot at least ~59% of the
+ * picture survives the crop; past it the tile is mostly whatever the middle
+ * happens to be.
+ */
+const MAX_HERO_RATIO = 3;
+/**
+ * Below this the asset is furniture, not artwork, and never enters the tile at
+ * all — not as a hero and not as a slide. Both dividing rules of the Chairman
+ * letter are 3840×114/126.
+ */
+const MIN_ART_HEIGHT = 140;
+/** Ratio past which an image is a rule/ornament rather than a wide photograph. */
+const MAX_ART_RATIO = 8;
+/**
+ * How many candidates the hero scan may measure before falling back to the
+ * slideshow. The scan loads them ONE AT A TIME (a rejected candidate is what
+ * mounts the next), so this is a bandwidth bound, not just a loop bound.
+ */
+const MAX_HERO_SCAN = 5;
+
+/** Natural pixel size of a decoded image. */
+export interface ImageDims { w: number; h: number; }
+
+/** Artwork at all — anything below is a rule, a spacer or an icon. */
+export function isArtwork({ w, h }: ImageDims): boolean {
+  return h >= MIN_ART_HEIGHT && w / h <= MAX_ART_RATIO;
+}
+
+/** Usable as the single, static title image of a tile. */
+export function isHeroImage(dims: ImageDims): boolean {
+  const ratio = dims.w / dims.h;
+  return isArtwork(dims) && ratio >= MIN_LANDSCAPE_RATIO && ratio <= MAX_HERO_RATIO;
+}
 // How long each slide stays before crossfading to the next.
 const SLIDE_DWELL_MS = 5000;
 // Hard cap so a 45-image comm-link doesn't spin through everything.
@@ -301,14 +347,16 @@ export function isPixelReadable(url: string): boolean {
  * Thumbnail for a news card.
  *
  * - 0 images → gradient placeholder.
- * - First image is a clear landscape title → show it statically (the common case).
- * - First image is NOT a usable title (portrait/square) but more images exist →
- *   auto-advancing crossfade slideshow through the landscape images, looping.
+ * - The FIRST candidate that measures up as a title image (landscape, not a
+ *   strip, real artwork) → show it statically. Usually that is image 0; when it
+ *   is not, the ones before it were furniture, not artwork.
+ * - No candidate qualifies → auto-advancing crossfade slideshow through what is
+ *   left (portraits, near-squares), looping.
  * - Broken images (404 / decode error) drop out of rotation automatically.
  *
- * Aspect ratios are measured client-side from the decoded image — the upstream
- * comm-link API gives no dimensions, and ratio is the only reliable signal for
- * "is this a banner or a poster" across both RSI media hosts.
+ * Pixel sizes are measured client-side from the decoded image — the upstream
+ * comm-link API gives no dimensions, and shape is the only reliable signal for
+ * "is this a banner, a poster or a divider rule" across both RSI media hosts.
  */
 @Component({
   selector: 'sc-news-thumb',
@@ -325,14 +373,14 @@ export function isPixelReadable(url: string): boolean {
            image is never hidden behind the placeholder. -->
       <div class="skel" aria-hidden="true" [class.hide]="loaded()"></div>
       @for (url of display(); track url; let i = $index) {
-        <img class="layer" [class.show]="i === active() && isDecoded(url)"
+        <img class="layer" [class.show]="revealable() && i === active() && isDecoded(url)"
              [srcset]="srcsetFor(url)" [src]="defaultSrcFor(url)" [sizes]="sizes()"
              [style.--sc-thumb-zoom]="zoomFor(url)"
              alt="" decoding="async"
              [attr.crossorigin]="crossOriginFor(url)"
              [attr.loading]="i === 0 ? 'eager' : 'lazy'"
              [attr.fetchpriority]="i === 0 ? 'high' : null"
-             scImgReady (ready)="onReady(url, $event)"
+             scImgReady (ready)="onReady(url, $event)" (failed)="onError(url)"
              (load)="onReady(url, $any($event.target))" (error)="onError(url)" />
       }
     }
@@ -459,10 +507,18 @@ export class NewsThumbComponent implements OnDestroy {
   // content change.
   private readonly imagesKey = computed(() => this.images().join('\n'));
 
-  // Measured natural aspect ratios, keyed by url. Resets when the image set changes.
-  private readonly ratios = linkedSignal<string, Record<string, number>>({
+  // Measured natural pixel sizes, keyed by url. Resets when the image set changes.
+  // Size, not just ratio: "is this artwork or a 3840×114 rule" needs the height,
+  // and a ratio alone cannot tell a wide photo from a hairline.
+  private readonly dims = linkedSignal<string, Record<string, ImageDims>>({
     source: this.imagesKey,
     computation: () => ({}),
+  });
+  /** Aspect ratios derived from `dims` — what the frame-trim maths works in. */
+  private readonly ratios = computed<Record<string, number>>(() => {
+    const out: Record<string, number> = {};
+    for (const [url, d] of Object.entries(this.dims())) out[url] = d.w / d.h;
+    return out;
   });
   // Images that failed to load. Resets when the image set changes.
   private readonly errored = linkedSignal<string, Set<string>>({
@@ -504,6 +560,7 @@ export class NewsThumbComponent implements OnDestroy {
   // Shimmer is hidden once the currently active layer has decoded. While probing
   // (first ratio unknown) we keep showing it so no black/unstyled tile flashes.
   readonly loaded = computed(() => {
+    if (!this.revealable()) return false;   // still scanning — keep the shimmer
     const shown = this.display();
     if (!shown.length) return false;
     const url = shown[this.active()];
@@ -524,26 +581,67 @@ export class NewsThumbComponent implements OnDestroy {
     return out;
   });
 
-  readonly mode = computed<'empty' | 'probing' | 'hero' | 'carousel'>(() => {
+  /**
+   * The hero scan: the first candidate that measures up as a title image.
+   *
+   * The feed's image list is the article's media in DOCUMENT order, not an
+   * editorial pick, so `images[0]` is the hero only by luck (`fetch-verse-news`
+   * now promotes the page's own og:image to the front, which makes that luck the
+   * common case — this is the guard for when it cannot). Candidates are measured
+   * strictly in order and one at a time: `index` is what `display()` mounts, so
+   * a rejected candidate is what pulls the next one in. Nothing is downloaded
+   * speculatively, and the scan stops at MAX_HERO_SCAN.
+   */
+  private readonly scan = computed<{ kind: 'probing' | 'hero' | 'exhausted'; index: number }>(() => {
     const p = this.pool();
-    if (!p.length) return 'empty';
-    const firstRatio = this.ratios()[p[0]];
-    if (firstRatio === undefined) return 'probing';           // measuring first image
-    if (firstRatio >= MIN_LANDSCAPE_RATIO || p.length < 2) return 'hero';
-    return 'carousel';                                        // no clear title + more images
+    const d = this.dims();
+    const limit = Math.min(p.length, MAX_HERO_SCAN);
+    for (let i = 0; i < limit; i++) {
+      const dims = d[p[i]];
+      if (!dims) return { kind: 'probing', index: i };
+      if (isHeroImage(dims)) return { kind: 'hero', index: i };
+    }
+    return { kind: 'exhausted', index: 0 };
   });
 
-  /** Images actually rendered: single hero, or the landscape subset for the slideshow. */
+  /**
+   * Candidates the tile may show at all. Rules, spacers and hairline ornaments
+   * are dropped outright — they are not a compromise title image, they are
+   * furniture, and a slideshow that stops on one shows an empty panel.
+   * Unmeasured urls stay in until proven otherwise, so slides appear at once.
+   */
+  private readonly slides = computed(() => {
+    const d = this.dims();
+    return this.pool().filter((u) => {
+      const dims = d[u];
+      return !dims || isArtwork(dims);
+    });
+  });
+
+  readonly mode = computed<'empty' | 'probing' | 'hero' | 'carousel'>(() => {
+    if (!this.pool().length) return 'empty';
+    const scan = this.scan();
+    if (scan.kind !== 'exhausted') return scan.kind;
+    // Nothing qualifies as a static title image — rotate through what is left
+    // (portraits, near-squares), which is what the slideshow exists for.
+    return this.slides().length ? 'carousel' : 'empty';
+  });
+
+  /** Images actually rendered: the scanned hero candidate, or the slideshow set. */
   readonly display = computed(() => {
-    const p = this.pool();
     const m = this.mode();
     if (m === 'empty') return [];
-    if (m !== 'carousel') return p.slice(0, 1);
-    const r = this.ratios();
-    // Unmeasured (?? 99) stay in until proven portrait, so slides appear immediately.
-    const good = p.filter((u) => (r[u] ?? 99) >= MIN_LANDSCAPE_RATIO);
-    return good.length ? good : p;
+    if (m === 'carousel') return this.slides();
+    const url = this.pool()[this.scan().index];
+    return url ? [url] : [];
   });
+
+  /**
+   * Whether the active layer may be revealed. A candidate still under the scan
+   * is being MEASURED, not shown: without this gate a rejected lower third would
+   * paint for a frame before the next candidate replaces it.
+   */
+  readonly revealable = computed(() => this.mode() === 'hero' || this.mode() === 'carousel');
 
   readonly active = computed(() => {
     const n = this.display().length;
@@ -610,8 +708,8 @@ export class NewsThumbComponent implements OnDestroy {
       return next;
     });
     if (!img.naturalWidth || !img.naturalHeight) return;
-    const ratio = img.naturalWidth / img.naturalHeight;
-    this.ratios.update((m) => (m[url] === ratio ? m : { ...m, [url]: ratio }));
+    const w = img.naturalWidth, h = img.naturalHeight;
+    this.dims.update((m) => (m[url]?.w === w && m[url]?.h === h ? m : { ...m, [url]: { w, h } }));
     this.measureFrame(url, img);
   }
 
