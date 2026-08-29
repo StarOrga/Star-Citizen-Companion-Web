@@ -4,6 +4,50 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.71.0] - 2026-08-29
+
+### Changed
+
+- **One loading animation instead of two competing ones.** The app ran two
+  skeleton systems at different tempos — a local shimmer at 1.4s copied into 11
+  component files, and the global phosphor sweep at 1.6s used by 3 more. Verse
+  News shipped both in the same file. The two tempos share no common multiple in
+  the seconds range, so they drifted apart permanently and never resynchronised;
+  that mismatch is what read as restless. There is now a single system, split
+  strictly by what the surface is about:
+  - **Content tiles** (Codex thumbnails, the Verse News stage and cards,
+    Starscape tiles) get a **neural field**: soft blobs drift and pulse, a
+    near-invisible mesh links the close ones, and every second or two a jagged
+    discharge builds, holds and fades between two of them. It reproduces the
+    mechanic of the desktop app's setup wizard, because a placeholder for an
+    unknown image should look like something working, not like a swept bar.
+  - **Structure and chrome** (header, navigation, avatar, KPI boxes, table rows)
+    get an **inference layer** that resolves in four hard steps. Steps read as a
+    state; a soft fade can be at any point and says nothing.
+  - **Text lines** enter in seven blocks, like arriving packets.
+- **The stagger no longer breaks in the middle of a grid.** It was wired to
+  `nth-child(2..4)`, so from the fifth card on every tile animated in lockstep.
+  It now derives from the tile's position in the grid and is capped at six
+  steps — the 24th Starscape tile never waits 1.4s to start.
+- **Loading placeholders keep the shape of what is coming.** The Codex fleet
+  panel showed a single grey box, so the layout jumped once data landed.
+
+### Fixed
+
+- **Dropped the most expensive property from both reveals.** `filter: blur()`
+  animated on the Starscape image reveal across up to 24 tiles at once, and on
+  the shared content reveal. Opacity and a small translate carry it now.
+- **Removed dead motion code.** `.sc-hud-frame` was fully defined, documented
+  and used by exactly zero components.
+
+### Notes
+
+- The reading-order cascade and the 200/400 ms skeleton thresholds are designed
+  and decided but **not** in this release — regions still resolve in the order
+  their requests return. Both are tracked as follow-ups.
+- Design decided over four rounds in
+  `docs/concepts/2026-08-27-ladeanimationen-seitenaufbau.html`.
+
 ## [0.70.0] - 2026-08-27
 
 ### Fixed
