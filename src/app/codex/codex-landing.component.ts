@@ -34,6 +34,7 @@ import { AuthService } from '../auth/auth.service';
 import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component';
 import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -76,7 +77,7 @@ interface PaperdollSlotView {
 @Component({
   selector: 'sc-codex-landing',
   standalone: true,
-  imports: [
+  imports: [NeuroFieldDirective, 
     FormsModule,
     RouterLink,
     TranslateModule,
@@ -373,7 +374,7 @@ interface PaperdollSlotView {
           </a>
 
           @if (loading()) {
-            <div class="identity skel"></div>
+            <div class="identity skel sc-skel-field" scNeuroField></div>
           } @else if (emptyHangar()) {
             <!-- Empty bay, drawn not greyed out (feedback 2026-08-23: "muss
                  noch wesentlich attraktiver werden bildlich"). A generated
@@ -1019,14 +1020,7 @@ interface PaperdollSlotView {
 
       /* ── identity (IM HANGAR) ─────────────────────────────────────────── */
       .identity { display: flex; flex-direction: column; gap: 10px; }
-      .identity.skel {
-        min-height: 140px;
-        border-radius: 3px;
-        background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%);
-        background-size: 200% 100%;
-        animation: skel 1.4s linear infinite;
-      }
-      @keyframes skel { to { background-position: -200% 0; } }
+      .identity.skel { min-height: 140px; border-radius: 3px; }
       /* ── ship hero — the artwork IS the ship ──────────────────────────
          A 16:9 bleed crop with the identity and the KPI chips on a bottom
          scrim, the same art-first treatment the concept-ship rail uses.
@@ -1462,7 +1456,7 @@ interface PaperdollSlotView {
       }
       @media (prefers-reduced-motion: reduce) {
         .hit, .surface, .fleet-tile, .fleet-sort__btn, .domain-chip, .zone-entry::after, .upcoming-tile { transition: none; }
-        .live-dot, .identity.skel, .bay-ring { animation: none; }
+        .live-dot, .bay-ring { animation: none; }
       }
     `,
   ],

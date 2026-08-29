@@ -26,6 +26,7 @@ import { NewsThumbComponent } from './news-thumb.component';
 import { UpcomingShipsNoticeComponent } from './upcoming-ships-notice.component';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 /** How many stream tiles the first serving holds, and how many each "more" adds. */
 const STREAM_PAGE = 12;
@@ -68,7 +69,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
 @Component({
   selector: 'sc-news-list',
   standalone: true,
-  imports: [TranslateModule, RouterLink, NewsThumbComponent, UpcomingShipsNoticeComponent],
+  imports: [NeuroFieldDirective, TranslateModule, RouterLink, NewsThumbComponent, UpcomingShipsNoticeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="news-page">
@@ -79,11 +80,11 @@ const SAFE_SVG = new Map<string, SafeHtml>();
            set out to remove. -->
       @if (svc.loading() && !svc.feed()) {
         <div class="stage skel" aria-hidden="true">
-          <span class="skel-art shimmer"></span>
+          <span class="skel-art sc-skel-field" scNeuroField></span>
           <span class="stage-body">
-            <span class="skel-line shimmer sm"></span>
-            <span class="skel-line shimmer lg"></span>
-            <span class="skel-line shimmer"></span>
+            <span class="skel-line sc-skel-line sm"></span>
+            <span class="skel-line sc-skel-line lg" style="--sc-skel-i: 1"></span>
+            <span class="skel-line sc-skel-line" style="--sc-skel-i: 2"></span>
           </span>
         </div>
       } @else if (stage(); as item) {
@@ -216,12 +217,12 @@ const SAFE_SVG = new Map<string, SafeHtml>();
 
         @if (svc.loading() && !svc.feed()) {
           <div class="cards" aria-hidden="true">
-            @for (n of [1, 2, 3, 4, 5, 6]; track n) {
-              <div class="card skel">
-                <span class="skel-thumb shimmer"></span>
+            @for (n of [1, 2, 3, 4, 5, 6]; track n; let i = $index) {
+              <div class="card skel" [style.--sc-skel-i]="i">
+                <span class="skel-thumb sc-skel-field" scNeuroField [neuroIndex]="i"></span>
                 <span class="skel-body">
-                  <span class="skel-line shimmer lg"></span>
-                  <span class="skel-line shimmer sm"></span>
+                  <span class="skel-line sc-skel-line lg"></span>
+                  <span class="skel-line sc-skel-line sm" style="--sc-skel-i: 1"></span>
                 </span>
               </div>
             }
@@ -713,21 +714,10 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     .card.skel:hover { transform: none; box-shadow: none; border-color: var(--sc-border); }
     .skel-thumb { width: 100%; aspect-ratio: 16 / 9; display: block; }
     .skel-body { display: flex; flex-direction: column; gap: 9px; padding: 14px; flex: 1; }
-    .skel-line { display: block; height: 11px; border-radius: 5px; width: 100%; }
+    .skel-line { display: block; height: 11px; width: 100%; }
     .skel-line.lg { height: 20px; width: 78%; }
     .skel-line.sm { width: 42%; }
-    .shimmer {
-      background: linear-gradient(110deg, var(--sc-skel-base) 30%, var(--sc-skel-hi) 50%, var(--sc-skel-base) 70%);
-      background-size: 200% 100%;
-      animation: skel 1.4s ease-in-out infinite;
-    }
-    .card.skel:nth-child(2) .shimmer { animation-delay: 0.12s; }
-    .card.skel:nth-child(3) .shimmer { animation-delay: 0.24s; }
-    .card.skel:nth-child(4) .shimmer { animation-delay: 0.36s; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    @media (prefers-reduced-motion: reduce) {
-      .shimmer { animation: none; background-position: 0 0; }
-    }
+
 
     .empty { text-align: center; color: var(--sc-fg-2); padding: 36px; margin: 0; }
     .err { color: var(--sc-danger); padding: 16px; }

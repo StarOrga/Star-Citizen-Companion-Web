@@ -20,6 +20,7 @@ import {
   ROLE_LOADOUT_ROLES,
   RoleLoadoutRole,
 } from './hangar.types';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -31,7 +32,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 @Component({
   selector: 'sc-hangar-dashboard',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule, HangarImportComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslateModule, HangarImportComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -144,7 +145,9 @@ const SEARCH_DEBOUNCE_MS = 250;
         <h2>{{ 'hangar.fleet.title' | translate }}</h2>
         @if (hangar.loading() && hangar.ships().length === 0) {
           <div class="grid">
-            @for (s of skeletons; track s) { <div class="card skel"></div> }
+            @for (s of skeletons; track s; let i = $index) {
+              <div class="card skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
+            }
           </div>
         } @else if (hangar.ships().length === 0) {
           <div class="sc-card empty">
@@ -380,8 +383,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .badge.wishlist { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); }
     .badge[class*='role-'] { text-transform: uppercase; letter-spacing: 0.05em; }
 
-    .card.skel { min-height: 140px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .card.skel { min-height: 140px; }
 
     .loadouts-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
     .loadouts-head h2 { margin: 0; }

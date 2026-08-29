@@ -18,6 +18,7 @@ import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component
 import { StarscapeAppPromoComponent } from './starscape-app-promo.component';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 // Believable, varied masonry-tile shapes for the loading skeletons. The gallery
 // rows carry no dimension metadata, so a fixed cycle of plausible shapes gives
@@ -63,7 +64,7 @@ const IMAGE_STALL_MS = 20_000;
 @Component({
   selector: 'sc-starscape',
   standalone: true,
-  imports: [
+  imports: [NeuroFieldDirective, 
     TranslateModule,
     ScDatePipe,
     ImgReadyDirective,
@@ -147,7 +148,8 @@ const IMAGE_STALL_MS = 20_000;
         <p class="wall-status" role="status" aria-live="polite">{{ 'starscape.loadingImages' | translate }}</p>
         <div class="wall" aria-hidden="true">
           @for (i of skeletonSlots; track i) {
-            <span class="tile skel-tile sc-skel" [style.aspectRatio]="skelRatio(i)"></span>
+            <span class="tile skel-tile sc-skel-field" scNeuroField [neuroIndex]="i"
+                  [style.aspectRatio]="skelRatio(i)" [style.--sc-skel-i]="i"></span>
           }
         </div>
       }
@@ -177,7 +179,8 @@ const IMAGE_STALL_MS = 20_000;
                  the column never collapses to a border stripe. Dropped once the
                  image is ready (or has failed) — then the image defines height. -->
             @if (!loaded().has(w.imageId) && !broken().has(w.imageId)) {
-              <span class="tile-skel sc-skel" [style.aspectRatio]="skelRatio(i)" aria-hidden="true"></span>
+              <span class="tile-skel sc-skel-field" scNeuroField [neuroIndex]="i"
+                    [style.aspectRatio]="skelRatio(i)" [style.--sc-skel-i]="i" aria-hidden="true"></span>
             }
             <!-- Broken preview: keep the tile's shape and SAY so, with a retry.
                  Before this, a failed image dropped its skeleton and hid the
@@ -345,13 +348,13 @@ const IMAGE_STALL_MS = 20_000;
        it decodes, instead of popping in. While undecoded the <img> carries no
        height — the sibling skeleton reserves the box. */
     .tile-img {
-      opacity: 0; filter: blur(12px); transform: scale(1.03);
-      transition: opacity 0.55s ease, filter 0.55s ease, transform 0.55s ease;
+      opacity: 0; transform: scale(1.03);
+      transition: opacity 0.42s ease, transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    .tile-img.ready { opacity: 1; filter: blur(0); transform: none; }
+    .tile-img.ready { opacity: 1; transform: none; }
 
     /* Skeleton layer (per-tile + the first-load grid) — holds height and runs
-       the shared phosphor sweep from .sc-skel (styles.scss). */
+       das gemeinsame Neuronenfeld aus .sc-skel-field (styles.scss). */
     .tile-skel { display: block; width: 100%; border-radius: inherit; }
     .skel-tile {
       display: block; width: 100%; margin: 0 0 12px;
