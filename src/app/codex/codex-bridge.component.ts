@@ -22,6 +22,7 @@ import { HoloReadyBadgeComponent } from './holo-ready-badge.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 const SEARCH_DEBOUNCE_MS = 250;
 const LANE_SIZE = 18;
@@ -55,7 +56,7 @@ interface Lane {
 @Component({
   selector: 'sc-codex-bridge',
   standalone: true,
-  imports: [
+  imports: [NeuroFieldDirective, 
     NgTemplateOutlet,
     FormsModule,
     RouterLink,
@@ -114,7 +115,9 @@ interface Lane {
         </div>
         @if (searching()) {
           <div class="lane-track">
-            @for (s of skeletons; track s) { <div class="lane-card skel"></div> }
+            @for (s of skeletons; track s; let i = $index) {
+              <div class="lane-card skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
+            }
           </div>
         } @else if (searchResults().length === 0) {
           <div class="sc-card empty">
@@ -203,7 +206,7 @@ interface Lane {
             </div>
           </article>
         } @else if (loading()) {
-          <div class="hero skel-hero"></div>
+          <div class="hero skel-hero sc-skel-field" scNeuroField></div>
         }
 
         <!-- Lanes -->
@@ -434,10 +437,8 @@ interface Lane {
     .in-hangar { font-size: 0.92rem; color: var(--sc-success, #5fd698); line-height: 1; padding: 0 4px; }
 
     /* Skeletons */
-    .skel, .skel-hero { background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
-    .lane-card.skel { min-height: 200px; }
+        .lane-card.skel { min-height: 200px; }
     .skel-hero { min-height: 300px; border-radius: 16px; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
@@ -454,7 +455,6 @@ interface Lane {
     @media (prefers-reduced-motion: reduce) {
       .lane-card, .btn.primary { transition: none; }
       .lane-track { scroll-behavior: auto; }
-      .skel, .skel-hero { animation: none; }
     }
   `],
 })

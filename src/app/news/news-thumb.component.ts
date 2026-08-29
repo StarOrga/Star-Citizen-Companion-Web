@@ -6,6 +6,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { NewsChannel } from './news.service';
 import { newsDefaultSrc, newsSrcset } from './news-image-variants';
 import { environment } from '../../environments/environment';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 // Re-check schedule (ms after the first render) for the decode watchdog below.
 // Bounded on purpose: it exists to recover a MISSED event, not to poll forever —
@@ -361,7 +362,7 @@ export function isPixelReadable(url: string): boolean {
 @Component({
   selector: 'sc-news-thumb',
   standalone: true,
-  imports: [ImgReadyDirective],
+  imports: [NeuroFieldDirective, ImgReadyDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.featured]': 'featured()' },
   template: `
@@ -371,7 +372,7 @@ export function isPixelReadable(url: string): boolean {
       <!-- Shimmer sits BEHIND the image layers and fades out once the active layer
            has decoded — so even if the decode signal is ever missed, a painted
            image is never hidden behind the placeholder. -->
-      <div class="skel" aria-hidden="true" [class.hide]="loaded()"></div>
+      <div class="skel sc-skel-field" scNeuroField aria-hidden="true" [class.hide]="loaded()"></div>
       @for (url of display(); track url; let i = $index) {
         <img class="layer" [class.show]="revealable() && i === active() && isDecoded(url)"
              [srcset]="srcsetFor(url)" [src]="defaultSrcFor(url)" [sizes]="sizes()"
@@ -418,16 +419,9 @@ export function isPixelReadable(url: string): boolean {
        once the active image has decoded (kept mounted so the fade can play). */
     .skel {
       position: absolute; inset: 0; z-index: 0;
-      background: linear-gradient(110deg, var(--sc-skel-base) 30%, var(--sc-skel-hi) 50%, var(--sc-skel-base) 70%);
-      background-size: 200% 100%;
-      animation: thumb-skel 1.4s ease-in-out infinite;
       opacity: 1; transition: opacity 0.45s ease; pointer-events: none;
     }
-    .skel.hide { opacity: 0; animation: none; }
-    @keyframes thumb-skel {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
+    .skel.hide { opacity: 0; }
 
     .layer {
       position: absolute; inset: 0; z-index: 1;

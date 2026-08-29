@@ -446,91 +446,170 @@ button {
    nothing left for a stale or missing stylesheet to expose. */
 
 /* ============================================================
-   SENSOR-SWEEP MOTION SYSTEM
-   One shared loading/transition vocabulary for every "waiting"
-   moment across the app — nav view-switch, skeleton placeholders
-   and content reveal. The metaphor is the ship's sensor sweep /
-   quantum-drive spool-up: a cyan scan band travels across a
-   surface and structure resolves in its wake. GPU-light by design
-   (transform/opacity only). The global prefers-reduced-motion rule
-   above already neutralises the loops; each piece degrades to a
-   calm, static state.
+   LADE-MOTION-SYSTEM
+   Eine Sprache fuer jeden Wartemoment, aus dem Concept
+   docs/concepts/2026-08-27-ladeanimationen-seitenaufbau.html
+   (vier Runden). Drei Bausteine, streng nach Flaechenart:
+
+     .sc-skel-field  Inhaltskachel  -> Neuronenfeld (Canvas,
+                     scNeuroField-Direktive; CSS liefert Grund
+                     und Rueckfallebene)
+     .sc-skel        Struktur/Chrome -> Inferenz-Schicht, vier
+                     harte Stufen, kein Dauerschimmer
+     .sc-skel-line   Textzeile      -> Blockeinlauf in 7 Stufen
+
+   Loest die 11 lokalen @keyframes-skel-Kopien ab, die mit 1,4 s
+   gegen die 1,6 s des alten globalen Sweeps liefen. Es gibt
+   jetzt genau einen Takt. Die Staffelung kommt aus --sc-skel-i
+   (Position im Raster), nicht mehr aus nth-child, und ist bei
+   6 Schritten gedeckelt: ohne Deckel bekaeme die 24. Kachel
+   1,4 s Verzoegerung und wirkte haengengeblieben.
    ============================================================ */
 
 :root {
-  /* Skeleton base is a touch darker than a panel so the phosphor sweep
-     reads against it; the sweep itself is accent-tinted so it is actually
-     visible on the near-black surfaces (a plain bg-1↔bg-2 sweep vanished
-     in the dark theme — the root cause of "no loading animation"). */
   --sc-skel-base: color-mix(in srgb, var(--sc-bg-1) 82%, var(--sc-bg-0));
-  --sc-skel-glow: color-mix(in srgb, var(--sc-accent) 26%, transparent);
-  /* Opaque phosphor highlight for background-position shimmers (news cards). */
+  /* Opaker Phosphor-Ton, den einzelne Komponenten noch direkt lesen. */
   --sc-skel-hi: color-mix(in srgb, var(--sc-accent) 22%, var(--sc-bg-2));
+  /* Grund der Inhaltskacheln — dunkler als ein Panel, damit das Feld traegt. */
+  --sc-skel-field-bg: color-mix(in srgb, var(--sc-bg-0) 92%, #000);
+
+  /* Akzent als RGB-Tripel — die Canvas-Direktive baut daraus ihre rgba(). */
+  --sc-neuro-rgb: var(--accent-primary-rgb, 82, 193, 230);
+
+  --sc-skel-step: 55ms;   /* Staffelung je Position */
+  --sc-skel-cap: 6;       /* ... gedeckelt bei so vielen Schritten */
+  --sc-wait: 2.2s;        /* Dauer eines Aufbauzyklus */
+  --sc-reveal-ms: 260ms;
+  --sc-snap-ms: 420ms;
 }
 
-/* HUD contact frame — two corner reticles that frame a loading placeholder so
-   the wait reads as a sensor locking on, not an empty box. Shared by any
-   skeleton surface (applied via class) to keep per-component CSS lean. */
-.sc-hud-frame { position: relative; }
-.sc-hud-frame::before, .sc-hud-frame::after {
-  content: ''; position: absolute; width: 13px; height: 13px; z-index: 2;
-  border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent);
-  pointer-events: none;
+/* Gemeinsame Staffelung. Komponenten setzen --sc-skel-i auf den Index im
+   Raster; ohne die Variable ist die Verzoegerung 0 und alles bleibt gueltig. */
+@mixin sc-skel-delay {
+  /* Als String interpoliert: Dart Sass wuerde min() sonst als eigene Funktion
+     parsen und ueber die var()-Argumente stolpern. So landet es unveraendert
+     als CSS-min() im Ausgabe-Stylesheet. */
+  animation-delay: #{"calc(min(var(--sc-skel-i, 0), var(--sc-skel-cap)) * var(--sc-skel-step))"};
 }
-.sc-hud-frame::before { top: 7px; left: 7px; border-right: 0; border-bottom: 0; }
-.sc-hud-frame::after { bottom: 7px; right: 7px; border-left: 0; border-top: 0; }
 
-/* A skeleton surface: dark base + a single travelling phosphor band.
-   Uses ::after so any box becomes a skeleton without an extra node. */
+/* ---- Struktur / Chrome: Inferenz-Schicht ----
+   Vier Stufen ueber transform: scaleX. Bewusst steps(1, end): eine weiche
+   Blende kann an jedem Punkt stehen, Stufen sind ein ablesbarer Zustand.
+   Als Pseudoelement, damit die Klasse auf jede Box passt — auch auf eine
+   9 px hohe Navigationszeile, wo Kindelemente keinen Platz haetten. */
 .sc-skel {
   position: relative;
   overflow: hidden;
   background: var(--sc-skel-base);
 }
-.sc-skel::after {
+.sc-skel::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    100deg,
-    transparent 20%,
-    color-mix(in srgb, var(--sc-accent) 12%, transparent) 42%,
-    var(--sc-skel-glow) 50%,
-    color-mix(in srgb, var(--sc-accent) 12%, transparent) 58%,
-    transparent 80%
-  );
-  transform: translateX(-100%);
-  animation: sc-sweep 1.6s ease-in-out infinite;
-  will-change: transform;
+  background:
+    repeating-linear-gradient(180deg,
+      transparent 0 calc(100% / 5 - 1px),
+      color-mix(in srgb, var(--sc-accent) 28%, transparent) calc(100% / 5 - 1px) calc(100% / 5)),
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--sc-accent) 26%, var(--sc-skel-base)),
+      var(--sc-skel-base) 55%,
+      color-mix(in srgb, var(--sc-accent) 14%, var(--sc-skel-base)));
+  transform-origin: left center;
+  animation: sc-infer var(--sc-wait) steps(1, end) infinite both;
+  @include sc-skel-delay;
   pointer-events: none;
 }
-@keyframes sc-sweep {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+@keyframes sc-infer {
+  0%   { transform: scaleX(0.12); opacity: 0.40; }
+  25%  { transform: scaleX(0.45); opacity: 0.62; }
+  50%  { transform: scaleX(0.78); opacity: 0.82; }
+  75%, 100% { transform: scaleX(1); opacity: 1; }
 }
 
-/* Content/item reveal: "develops" into focus like a scanner locking on —
-   fades in, rises a touch and sharpens out of a blur. */
-@keyframes sc-reveal-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.994); filter: blur(6px); }
-  to { opacity: 1; transform: none; filter: blur(0); }
+/* ---- Textzeile: Blockeinlauf ----
+   Sieben harte Stufen statt eines Schimmers: Text trifft paketweise ein. */
+.sc-skel-line {
+  position: relative;
+  overflow: hidden;
+  background: var(--sc-skel-base);
+  border-radius: 5px;
+  animation: sc-line-in var(--sc-wait) steps(7, end) infinite both;
+  @include sc-skel-delay;
 }
+@keyframes sc-line-in {
+  0%   { clip-path: inset(0 100% 0 0); }
+  75%, 100% { clip-path: inset(0 0 0 0); }
+}
+
+/* ---- Inhaltskachel: Neuronenfeld ----
+   Die Bewegung liefert die scNeuroField-Direktive auf einem Canvas
+   (Blobs driften, Entladungen springen). Hier steht nur der Grund und
+   das, was ohne JavaScript uebrig bleiben muss. */
+.sc-skel-field {
+  position: relative;
+  overflow: hidden;
+  background: var(--sc-skel-field-bg);
+  border: 1px solid color-mix(in srgb, var(--sc-accent) 16%, transparent);
+}
+.sc-skel-field > canvas.sc-neuro {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* Rueckfallebene, solange die Direktive nichts gezeichnet hat (kein JS,
+   Canvas nicht verfuegbar, erster Frame): ein ruhiger Puls, kein leeres Loch. */
+.sc-skel-field:not([data-neuro-ready])::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 38% 42%, color-mix(in srgb, var(--sc-accent) 12%, transparent), transparent 62%);
+  animation: sc-breathe 2.4s ease-in-out infinite;
+}
+@keyframes sc-breathe { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.82; } }
+
+/* ---- Auflösung ----
+   Ohne blur(): das war die teuerste Eigenschaft im Bunde und lief bei
+   Starscape auf bis zu 24 Kacheln gleichzeitig. */
 .sc-reveal {
-  animation: sc-reveal-in 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: sc-reveal-in var(--sc-reveal-ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  @include sc-skel-delay;
+}
+@keyframes sc-reveal-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
 }
 
-/* Contact-lock flash: the reticle briefly flares the hot accent the instant
-   an item's data lands, then settles to cyan — the shared "signal acquired"
-   punctuation used by both news cards and starscape tiles. */
-@keyframes sc-lock {
-  0% { opacity: 0; }
-  30% { opacity: 1; border-color: var(--sc-accent-hot); box-shadow: 0 0 10px color-mix(in srgb, var(--sc-accent-hot) 40%, transparent); }
-  100% { opacity: 0; border-color: var(--sc-accent); box-shadow: none; }
+/* ---- Einrasten ----
+   Der Moment, in dem die Daten landen — in Akzent, nicht in Rot
+   (Entscheidung Runde 2). Opt-in per Klasse, nur auf Medienflaechen. */
+.sc-snap { position: relative; }
+.sc-snap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid transparent;
+  pointer-events: none;
+  animation: sc-snap-in var(--sc-snap-ms) ease-out both;
+}
+@keyframes sc-snap-in {
+  0%   { opacity: 0; }
+  35%  { opacity: 1; border-color: var(--sc-accent);
+         box-shadow: 0 0 12px color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+  100% { opacity: 0; border-color: transparent; box-shadow: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* No travelling band, no reveal motion — a calm static base is enough. */
-  .sc-skel::after { animation: none; opacity: 0.5; transform: none;
-    background: linear-gradient(100deg, transparent 30%, var(--sc-skel-glow) 50%, transparent 70%); }
-  .sc-reveal { animation: none; }
+  /* Ruhepuls als gemeinsame Rueckfallebene: die Flaeche atmet, nichts wandert,
+     nichts springt. Das globale reduced-motion-Regelwerk weiter oben kappt
+     zusaetzlich jede Dauer — hier steht, was danach sichtbar bleiben soll. */
+  .sc-skel::before,
+  .sc-skel-line { animation: none; }
+  .sc-skel::before { transform: scaleX(1); opacity: 0.6; }
+  .sc-skel-line { clip-path: none; }
+  .sc-skel, .sc-skel-line, .sc-skel-field { animation: sc-breathe 2.4s ease-in-out infinite; }
+  .sc-reveal, .sc-snap::after { animation: none; }
+  .sc-snap::after { opacity: 0; }
 }

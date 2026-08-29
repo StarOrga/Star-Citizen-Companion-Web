@@ -122,7 +122,9 @@ const FILTERS: readonly AssignFilter[] = ['all', 'unassigned', 'assigned'] as co
       }
 
       @if (loading()) {
-        @for (s of skeletons; track s) { <div class="skel row-skel"></div> }
+        @for (s of skeletons; track s; let i = $index) {
+          <div class="row-skel sc-skel" [style.--sc-skel-i]="i"></div>
+        }
       } @else if (total() === 0) {
         <div class="sc-card empty">
           <strong>{{ 'codex.empty.title' | translate }}</strong>
@@ -444,15 +446,12 @@ const FILTERS: readonly AssignFilter[] = ['all', 'unassigned', 'assigned'] as co
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
 
-    .skel { background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
     .row-skel { height: 40px; border-radius: 8px; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
     @media (max-width: 640px) {
       .assign-bar { position: static; }
       .sel-count { margin-right: 0; flex: 1 1 100%; }
     }
-    @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
   `],
 })
 export class KeybindsComponent implements OnInit {

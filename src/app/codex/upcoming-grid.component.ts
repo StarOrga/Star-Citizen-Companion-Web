@@ -4,6 +4,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 /**
  * The "Kommende Schiffe" card grid — toolbar, the two status blocks and the
@@ -19,7 +20,7 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
 @Component({
   selector: 'sc-upcoming-grid',
   standalone: true,
-  imports: [NgTemplateOutlet, TranslateModule, CodexCategoryIconComponent, FallbackImageComponent],
+  imports: [NeuroFieldDirective, NgTemplateOutlet, TranslateModule, CodexCategoryIconComponent, FallbackImageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (feed()) {
@@ -58,7 +59,9 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
 
     @if (loading() && !feed()) {
       <div class="grid">
-        @for (s of skeletons; track s) { <div class="card skel"></div> }
+        @for (s of skeletons; track s; let i = $index) {
+              <div class="card skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
+            }
       </div>
     } @else if (feed(); as f) {
       @if (f.ships.length === 0) {
@@ -199,8 +202,7 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
     .fav.on { color: var(--sc-accent); }
     .fav:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
-    .skel { background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; min-height: 210px; border-radius: 10px; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skel { min-height: 210px; border-radius: 10px; }
 
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
