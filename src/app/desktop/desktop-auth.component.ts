@@ -7,6 +7,7 @@ import { RoleService } from '../auth/role.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { DesktopConnectionService } from './desktop-connection.service';
 import { isLoopbackCallback } from './loopback.util';
+import { mintDesktopSession } from './desktop-session.util';
 
 type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'unauthorized' | 'error';
 
@@ -175,12 +176,18 @@ export class DesktopAuthComponent implements OnInit {
       this.errorMsg.set(error?.message ?? this.translate.instant('desktopAuth.errorNoToken'));
       return;
     }
-    // Hand over the refresh token + expiry too, so the desktop tool can persist
-    // the session (encrypted) and stay connected across the ~1h access-token TTL
-    // without a new browser login. Older tool builds simply ignore the extra
-    // body fields. Still NEVER in the URL — these ride in the form-POST body.
-    const refreshToken = data.session?.refresh_token ?? '';
-    const expiresAt = data.session?.expires_at != null ? String(data.session.expires_at) : '';
+    // Hand over a session that belongs to the TOOL, not the browser's own, so it
+    // can persist it (encrypted) and stay connected past the ~1h access-token TTL
+    // without a new browser login — and so the two do not share one rotation
+    // chain. See `mintDesktopSession` for what that hardens against, and why a
+    // failed mint falls back to the old behaviour instead of breaking the
+    // hand-off. Older tool builds simply ignore the extra body fields. Still
+    // NEVER in the URL — these ride in the form-POST body.
+    const handoff = (await mintDesktopSession(this.sb.realClient)) ?? {
+      access_token: token,
+      refresh_token: data.session?.refresh_token ?? '',
+      expires_at: data.session?.expires_at != null ? String(data.session.expires_at) : '',
+    };
 
     this.status.set('redirecting');
     const email = this.auth.user()?.email ?? '';
@@ -218,10 +225,10 @@ export class DesktopAuthComponent implements OnInit {
       form.appendChild(input);
     };
     addField('state', this.state);
-    addField('token', token);
+    addField('token', handoff.access_token);
     addField('email', email);
-    if (refreshToken) addField('refresh_token', refreshToken);
-    if (expiresAt) addField('expires_at', expiresAt);
+    if (handoff.refresh_token) addField('refresh_token', handoff.refresh_token);
+    if (handoff.expires_at) addField('expires_at', handoff.expires_at);
     document.body.appendChild(form);
     form.submit();
   }

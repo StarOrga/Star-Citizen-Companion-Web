@@ -4,6 +4,53 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.71.2] - 2026-08-30
+
+### Fixed
+
+- **Starscape could not tell you whether it was up to date without signing in.**
+  The update feed resolves the release ring server-side from your role — anyone
+  signed out gets stable. An alpha-locked install therefore only ever learned
+  what *stable* serves, and since alpha runs ahead of stable by definition, the
+  app's "even stable is newer than me" hint could never fire. The tray had
+  exactly one thing to say, forever: *sign in for alpha updates* — whether an
+  update was waiting or the install was already current. The resolver now also
+  reports the version your own ring is on, resolved without the role clamp. That
+  is a version string and nothing else: the download payload stays clamped, so
+  this cannot install across rings, and Starscape's binaries are assets of a
+  public GitHub mirror anyway, so the number was never a secret. A current
+  install now simply reads `◈ Aktuell · v0.4.3 · Alpha`, and the sign-in entry
+  appears only when the ring is genuinely ahead — naming the version to install.
+- **A moment without internet signed you out of Starscape for the day.** The
+  session refresh returned the same "no" for *offline*, *DNS not ready*, *server
+  error* and *your token is dead*, and the caller discarded the stored login on
+  any of them. The first update check runs 20 seconds after start, which on a
+  cold boot routinely lands before Wi-Fi, VPN or DNS are up. A verdict from the
+  auth server (4xx) is now distinguished from a failure to reach it; only a
+  verdict discards the login. Note what this was *not*: the project sets no
+  session timebox and no inactivity timeout, so a Supabase session never expires
+  on its own — there was never a lifetime to extend.
+- **The same code path failed silently, which is why this took so long to
+  find.** Loading the stored session returned "nothing" without a word when the
+  file was unreadable, the OS could not unseal it, or its contents were corrupt,
+  and a refresh that never left the machine logged nothing at all. A month of
+  logs from a real install contained not one line about the session while the
+  user re-authenticated almost daily. Every one of those paths now says what
+  happened and why.
+
+### Changed
+
+- **Desktop sign-ins hand the app its own session instead of the browser's.**
+  Both hand-offs (Starscape, Data Uploader) used to pass along the browser's own
+  refresh token, putting two independent clients on a single rotation chain
+  where whoever refreshes second presents a spent token. Measured against this
+  project that is not currently what signs anyone out — a spent token was still
+  accepted well past the reuse window — so this is hardening rather than a fix,
+  and the code says so plainly. It removes a race that a single dashboard toggle
+  would otherwise turn into a daily sign-out. If minting a session fails, the
+  hand-off falls back to the previous behaviour rather than becoming the one
+  thing standing between you and a connected app.
+
 ## [0.71.1] - 2026-08-30
 
 ### Fixed

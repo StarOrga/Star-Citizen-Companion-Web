@@ -56,6 +56,18 @@ The differences that matter:
   token path it is **never** a channel bypass. An unauthenticated app therefore
   silently self-updates on stable; beta/alpha need a website sign-in
   (`/desktop/connect`, the loopback handshake, session DPAPI-sealed on disk).
+- **The clamp costs the download, not the verdict.** Since
+  `20260830120000_starscape_ring_version_hint` the resolver also returns
+  `requested_version` — the version the caller's OWN ring is on, resolved
+  *without* the clamp — and the feed forwards it as `requestedVersion`. A
+  signed-out alpha install can therefore answer "am I up to date?" on its own and
+  reports plain `Current`; the sign-in entry appears only when that ring is
+  genuinely ahead. Only a version STRING crosses the clamp — no url, no sha256,
+  no size — and Starscape's binaries are public mirror assets anyway, so the
+  number was never a secret. Before this, alpha (which by definition runs ahead
+  of stable) could never trigger the old "even stable is newer" hint, so the tray
+  had nothing to say but "sign in for alpha updates" whether or not anything was
+  waiting.
 - **Platform keys**: `win-x64` (canonical, kept for back-compat) plus
   `win-x64-stable` / `win-x64-beta` / `win-x64-alpha`. Use `sha256` — the app
   verifies size + SHA-256 against the catalog before overwriting itself, and there
@@ -101,20 +113,58 @@ entry is the version readout, greyed unless clicking it actually does something:
 
 | state | tray reads | clickable |
 |---|---|---|
-| up to date | `◈ Aktuell · v0.4.0 · Stable` | no |
+| up to date — **including signed-out on beta/alpha** | `◈ Aktuell · v0.4.0 · Stable` | no |
 | newer build on the ring | `▲ Update verfügbar · v0.4.1` → downloads at once | no (already running) |
 | staged, relaunch deferred | `◈ v0.4.1 installiert · aktiv beim nächsten Start` | no |
-| ring > anon tier, no session | `◈ Anmelden für Beta-Updates` | **yes** → browser sign-in |
+| ring > anon tier, no session, ring **is** ahead | `▲ v0.4.0 → v0.4.1 · Anmelden zum Installieren` | **yes** → browser sign-in |
+| ring > anon tier, no session, feed cannot say (pre-`requestedVersion`) | `◈ v0.4.0 · Anmelden für Beta-Updates` | **yes** → browser sign-in |
 | signed in, role too low | `◈ v0.4.0 · Beta für dieses Konto nicht freigegeben` | no (a click cannot grant a role) |
 | download/verify failed | `▲ Update fehlgeschlagen · erneut versuchen` | **yes** → retry |
 | feed unreachable | `◈ Starscape v0.4.0 · Stable` | no |
 
 A **valid stored session updates beta/alpha with no click at all**: the poll calls
 `session::ensure_access_token()`, which silently refreshes through GoTrue, so the
-sign-in entry only ever appears once the refresh token is gone too. After an
-interactive sign-in the app forces itself to the foreground (`util::force_foreground`,
-`AttachThreadInput`) and re-opens the tray menu, so the user lands back where they
-started instead of hunting for the tray icon.
+sign-in entry only ever appears once the refresh token is gone too.
+
+That used to happen about daily. Findings from digging into it on 2026-08-30,
+because the obvious explanations are all wrong and the next person will reach for
+them too:
+
+- **It is not an expiry.** The project runs `sessions_timebox = 0` and
+  `sessions_inactivity_timeout = 0` (`jwt_exp = 3600`), so an untouched session
+  never ends. There is no "make it last a year" setting missing — it already
+  lasts forever until something actively kills it.
+- **It is not (currently) the shared refresh token.** `/desktop/connect` handed
+  the app the BROWSER'S OWN `refresh_token`, so both clients rode one rotation
+  chain and the second to refresh presents a spent token. Tested directly against
+  this project: the spent token was still accepted 12 s later, well past the 10 s
+  reuse window. Reuse-detection is not biting here, so this was a race waiting to
+  happen, not the reported bug. Fixed anyway (`desktop-session` mints an
+  independent session per client, verified by rotating one and refreshing the
+  other) because the toggle that arms it is one dashboard click away.
+- **The store was discarded on transport failures.** `session::refresh()`
+  returned a bare `None` for "offline", "DNS", "5xx" and "401" alike, and
+  `ensure_access_token()` cleared the store on any of them. The first update poll
+  runs 20 s after start, which on a cold boot routinely lands before Wi-Fi, VPN or
+  DNS are up. Now `RefreshError::{Rejected,Unavailable}` splits a verdict (4xx)
+  from an outage, and only a verdict clears the store.
+- **The whole path was mute.** `Session::load()` returned `None` without a word
+  on an unreadable file, a failed DPAPI unseal, or bad UTF-8, and `refresh()`
+  logged nothing when the request could not be sent at all. Forensics on the real
+  install showed `session.bin` untouched since 29 Jul (decryptable, expired,
+  refresh token intact) and **not one `session:` line** in a month of logs — even
+  though every branch of `ensure_access_token()` is supposed to log one. That
+  contradiction is still unexplained; the logging added here is what answers it on
+  the next occurrence instead of another round of guessing.
+
+A failed mint falls back to posting the browser session rather than breaking the
+only way to connect an app. The uploader's `/uploader/auth` hand-off shared the
+same shape and uses the same function. A global `signOut()` on the website still
+revokes the minted session — signing out is supposed to disconnect the apps.
+
+After an interactive sign-in the app forces itself to the foreground
+(`util::force_foreground`, `AttachThreadInput`) and re-opens the tray menu, so the
+user lands back where they started instead of hunting for the tray icon.
 
 ## Registration needs Supabase write — but the routine env is authenticated
 
