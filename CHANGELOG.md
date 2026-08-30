@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.71.3] - 2026-08-30
+
+### Fixed
+
+- **A fully promoted build could not reach the installs that needed it most.**
+  Starscape refuses to install a release the server handed back on a different
+  ring than the one a copy is locked to — the guard that stops a beta build
+  landing on a stable machine. It compared ring *names*, never versions. So once
+  0.4.3 was promoted all the way to stable and every ring pointed at the same
+  build, a signed-out beta or alpha install still saw "a stable payload, not
+  mine" and refused it — a build the server was at that moment handing out to
+  anyone, unauthenticated. The copy most likely to be signed out (an alpha
+  install whose stored session had broken) was exactly the one that could not
+  take the fix for it. A clamp is now treated as nominal when the ring we asked
+  for is on the very same version as the one served: there is no gap to cross,
+  the payload *is* our build, and the asset picked is still `win-x64-<our ring>`
+  so the file keeps its ring-marked name and the install stays on its ring. The
+  moment the versions differ in either direction the response is refused exactly
+  as before — a viewer asking for alpha while alpha leads stable still gets
+  nothing.
+
 ## [0.71.2] - 2026-08-30
 
 ### Fixed
