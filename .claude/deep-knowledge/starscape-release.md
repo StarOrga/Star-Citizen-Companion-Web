@@ -105,8 +105,15 @@ host-pinned mirror, checked against the catalog's `size_bytes` + `sha256` (CNG)
 and for a `MZ` header, then written over the running exe (rename-aside + rollback
 on failure) and the app relaunches — silently, unless the screensaver is up or the
 tray menu is open, in which case it is deferred (the new build is already on disk).
-A clamped response is never installed (no ring switch), and an equal-or-older
-version is never installed (no downgrade).
+A clamped response is never installed (no ring switch) — with one exception since
+0.4.4: when the served ring is on the SAME version as ours there is no gap left to
+cross, the payload IS our own build, and refusing it was a pure deadlock (an alpha
+install with a broken session could not take a build the server was already
+handing out unauthenticated). `clamp_is_only_nominal` turns false the instant the
+two versions differ in either direction, so a viewer asking for alpha while alpha
+leads stable still gets nothing, and the asset picked is `win-x64-<our ring>` so
+the file keeps its ring-marked name. An equal-or-older version is never installed
+(no downgrade).
 
 The tray menu is the only surface — no balloons, no toasts, no dialogs. Its first
 entry is the version readout, greyed unless clicking it actually does something:

@@ -27,7 +27,11 @@
 //!   * A version that is not strictly newer is never installed (no downgrade), and
 //!     a response the server clamped to a lower ring is never installed at all (no
 //!     ring switch). The clamp is detected by comparing the ring we asked for
-//!     against the `channel` the feed reports it actually served.
+//!     against the `channel` the feed reports it actually served. The one
+//!     exception is a clamp with nothing left to cross — the served ring is on
+//!     the very same version ours is, so the payload IS our build; see
+//!     [`clamp_is_only_nominal`], which stays false the moment the versions
+//!     differ in either direction.
 //!   * The swap itself is crash-safe: staged and flushed to `<exe>.new` first, then
 //!     two metadata-only renames. See [`swap_running_exe`].
 //!
@@ -372,7 +376,7 @@ fn check(channel: Channel, access_token: Option<&str>) -> Outcome {
     // The server echoes the ring it actually resolved. A lower one means the
     // caller's tier was clamped — never install across rings on that basis.
     let served = net::json_str(&text, "channel").unwrap_or_default();
-    if !served.is_empty() && served != channel.as_key() {
+    if !served.is_empty() && served != channel.as_key() && !clamp_is_only_nominal(&text) {
         // Clamped: the PAYLOAD is a lower ring's and must never be installed. The
         // feed still reports what our own ring is on (`requestedVersion` — a bare
         // version string, no url/sha/size), so being signed out costs the
@@ -433,6 +437,39 @@ fn check(channel: Channel, access_token: Option<&str>) -> Outcome {
         return Outcome::Failed;
     };
     Outcome::Newer(Release { version, url, sha256, size_bytes })
+}
+
+/// Whether a clamp is nominal — the response came back on a different ring, but
+/// that ring is serving the very same version ours is.
+///
+/// Once a build is promoted all the way to stable, every ring points at it, and
+/// a signed-out beta/alpha install then gets "clamped" to a payload that is
+/// byte-for-byte what its own ring would have handed over. Refusing that was a
+/// deadlock with no upside: the tray said "sign in to install" for a build the
+/// server was already offering unauthenticated, so the copy that most needed the
+/// update (an alpha install whose stored session broke) was the one that could
+/// not take it.
+///
+/// This cannot become a ring escalation, because it is only ever true when there
+/// is no ring gap left to cross. The moment our ring moves ahead —
+/// `requestedVersion` > the clamped `version`, the case the guard actually
+/// exists for — the versions differ and the response is refused exactly as
+/// before. A viewer asking for alpha while alpha leads stable still gets
+/// nothing. And the install keeps its ring: the asset picked below is
+/// `win-x64-<our ring>`, so the file lands under its own ring-marked name and
+/// `resolve_channel` still reads the same ring on the next start.
+///
+/// It rests on the release catalog being the trust anchor, which is already this
+/// module's stated model (see the header): two DIFFERENT builds registered under
+/// one version string would defeat it — but whoever can write that row can serve
+/// arbitrary bytes on our own ring anyway, so it opens no new surface.
+fn clamp_is_only_nominal(feed_text: &str) -> bool {
+    match (net::json_str(feed_text, "requestedVersion"), net::json_str(feed_text, "version")) {
+        // Both present AND equal. A feed too old to report `requestedVersion`
+        // proves nothing, so it keeps the strict behaviour.
+        (Some(ring), Some(payload)) => !ring.is_empty() && ring == payload,
+        _ => false,
+    }
 }
 
 /// What a clamped feed response says about the ring we are actually locked to.
@@ -852,6 +889,43 @@ mod tests {
             clamp_verdict(r#"{"version":"0.0.1","channel":"stable"}"#),
             ClampVerdict::Behind(None)
         );
+    }
+
+    #[test]
+    fn a_clamp_is_nominal_only_when_both_rings_serve_the_same_version() {
+        // Everything promoted to stable: the clamped payload IS our ring's build.
+        // This is the deadlock case — an alpha install must be able to take it.
+        assert!(clamp_is_only_nominal(
+            r#"{"version":"0.4.3","channel":"stable","requestedVersion":"0.4.3"}"#
+        ));
+        // Our ring leads — the case the cross-ring guard exists for. Refuse.
+        assert!(!clamp_is_only_nominal(
+            r#"{"version":"0.4.3","channel":"stable","requestedVersion":"0.4.5"}"#
+        ));
+        // Our ring trails (a rolled-back pointer): still not our build.
+        assert!(!clamp_is_only_nominal(
+            r#"{"version":"0.4.5","channel":"stable","requestedVersion":"0.4.3"}"#
+        ));
+        // A feed too old to report the field proves nothing — stay strict.
+        assert!(!clamp_is_only_nominal(r#"{"version":"0.4.3","channel":"stable"}"#));
+        // Neither an empty value nor a missing payload version counts as a match.
+        assert!(!clamp_is_only_nominal(
+            r#"{"version":"","channel":"stable","requestedVersion":""}"#
+        ));
+        assert!(!clamp_is_only_nominal(r#"{"channel":"stable","requestedVersion":"0.4.3"}"#));
+    }
+
+    #[test]
+    fn a_nominal_clamp_never_widens_what_gets_installed() {
+        // The guard that actually blocks a ring jump is the version comparison,
+        // so re-assert it from the other side: for every case where the rings
+        // disagree, the response stays refused no matter which way it leans.
+        for (payload, ring) in [("0.4.3", "0.4.4"), ("0.4.4", "0.4.3"), ("1.0.0", "0.9.9")] {
+            let feed = format!(
+                r#"{{"version":"{payload}","channel":"stable","requestedVersion":"{ring}"}}"#
+            );
+            assert!(!clamp_is_only_nominal(&feed), "payload {payload} vs ring {ring}");
+        }
     }
 
     #[test]
