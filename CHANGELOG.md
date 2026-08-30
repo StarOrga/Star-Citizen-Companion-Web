@@ -4,6 +4,33 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.71.1] - 2026-08-30
+
+### Fixed
+
+- **Verse News cards that stayed empty no matter how long you waited.** Two
+  unrelated causes, one symptom.
+  - **A card threw away its own picture.** A tile measures each image and drops
+    "furniture" — divider rules, spacers, ornaments — using a minimum pixel
+    height calibrated against *original* sizes. What it actually measured was
+    whichever responsive variant the browser had picked, which on a regular card
+    is the 400px rung, shrunk once more by the density correction the browser
+    applies to `srcset` candidates. The 1140×228 banner of *"Improving the Live
+    Experience"* arrived as 320×64, fell under the floor, was filed as a divider
+    rule, and — being the card's only image — left the empty gradient behind.
+    The same card on a high-density phone loaded the 800px rung and showed the
+    picture, so the verdict tracked the display rather than the image.
+    Measurements are now read back at the width where the picture exists in
+    full. Sources whose full width cannot be known keep their raw measurement;
+    inventing a reference there would promote a small site logo into artwork.
+  - **YouTube thumbnails were blocked outright.** Video artwork is mirrored into
+    our own bucket only a few images per run, so a freshly published video
+    reaches the browser as a raw `ytimg.com` url until the mirror catches up —
+    and that host was in no Content-Security-Policy directive, so the browser
+    refused it. This is why waiting never helped. Granted now in both `img-src`
+    and `connect-src`, since the service worker re-issues every subresource
+    under the latter.
+
 ## [0.71.0] - 2026-08-29
 
 ### Changed
