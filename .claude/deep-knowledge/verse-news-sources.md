@@ -225,6 +225,17 @@ Not done on purpose: skipping the `news-images` cache for `i.ytimg.com` urls
 entirely. YouTube's CDN has no referer/expiry problem, so caching those thumbs
 buys nothing — but that is a change to the shared cache path, tracked separately.
 
+**`*.ytimg.com` must stay in the CSP either way.** The mirror only downloads a
+handful of images per run, so a freshly published video always reaches the
+client as a raw `i<n>.ytimg.com` url for a while — and until 2026-08-30 that
+host was in no directive, so the browser blocked it and the card showed an
+empty tile that never recovered (waiting does not help; only the mirror catching
+up does). It is granted in **both** `img-src` and `connect-src`: ngsw re-issues
+every subresource inside the worker, where only `connect-src` applies. Dropping
+the cache for these urls would make the CSP grant the *only* thing standing
+between a new video and a blank thumbnail — so that grant is a precondition of
+the change above, not an alternative to it.
+
 ## Caching strategy
 
 - Edge function: `Cache-Control: public, max-age=300, s-maxage=900` — Supabase CDN caches for 15 min.
