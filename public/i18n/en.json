@@ -26,6 +26,12 @@
     "continueGoogle": "Continue with Google",
     "inviteOnly": "Access is invite-only. Ask an admin to invite you.",
     "deniedInvite": "This account hasn't been invited yet. The site is invite-only — ask an admin to send you an invitation.",
+    "unavailable": {
+      "title": "We couldn't verify your access",
+      "body": "Your profile could not be loaded just now — usually a brief hiccup right after signing in. You are still signed in.",
+      "retry": "Try again",
+      "retrying": "Checking …"
+    },
     "landing": {
       "appName": "Star Citizen Companion",
       "join": "Join the Club.",

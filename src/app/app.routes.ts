@@ -47,6 +47,17 @@ export const routes: Routes = [
         path: 'legal/imprint',
         loadComponent: () => import('./legal/imprint.component').then((m) => m.ImprintComponent),
       },
+      {
+        // Where `approvedGuard` sends a session whose approval it could not
+        // read (see that guard + AccessUnavailableComponent). It MUST stay
+        // on this ungated layout: gated, it would be bounced by the very
+        // guard that routed here, and `/login` is no good either —
+        // `publicOnlyGuard` sends an authenticated visitor straight back
+        // into the gated routes, i.e. a redirect loop.
+        path: 'unavailable',
+        loadComponent: () =>
+          import('./auth/access-unavailable.component').then((m) => m.AccessUnavailableComponent),
+      },
     ],
   },
   {

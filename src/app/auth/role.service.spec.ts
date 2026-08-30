@@ -352,7 +352,45 @@ describe('RoleService failure paths (transient read errors)', () => {
     expect(roles.realRole()).toBeNull(); // never fabricated a role
   });
 
-  it('approvedGuard: an unresolved identity (read failure, no known-good data) denies THIS navigation without signing out', async () => {
+  /**
+   * The post-OAuth 401 race (observed live 2026-08-30, 18:53:44 UTC): the
+   * very first `profiles` read fired right after the PKCE code exchange
+   * came back 401, the next one ~1s later came back 200. Without a retry
+   * that blip is recorded as `identityUnknown` — and `approvedGuard` then
+   * strands the whole (initial) navigation on it.
+   */
+  it('a transient failure on the very FIRST read is retried, not recorded as an unknown identity', async () => {
+    const sb = fakeSupabaseQueued({ role: 'admin', approved: true }, []);
+    let call = 0;
+    sb.realClient.from = () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () =>
+            call++ === 0
+              ? { data: null, error: { message: 'JWT expired' } }
+              : { data: { role: 'admin', is_approved: true }, error: null },
+        }),
+      }),
+    });
+    configureQueued(sb);
+    const roles = TestBed.inject(RoleService);
+    const auth = TestBed.inject(AuthService);
+    auth.init();
+
+    await roles.waitReady();
+
+    expect(call).toBeGreaterThan(1); // the failed read was actually retried
+    expect(roles.identityUnknown()).toBe(false);
+    expect(roles.approved()).toBe(true);
+    expect(roles.realRole()).toBe('admin');
+
+    const route = {} as ActivatedRouteSnapshot;
+    const state = { url: '/news' } as RouterStateSnapshot;
+    const result = await TestBed.runInInjectionContext(() => approvedGuard(route, state));
+    expect(result).toBe(true); // navigation goes through — no blank screen
+  });
+
+  it('approvedGuard: an identity that stays unresolved sends the user to a VISIBLE page, without signing out', async () => {
     const sb = fakeSupabaseQueued({ role: 'admin', approved: true }, []);
     sb.realClient.from = () => ({
       select: () => ({
@@ -369,9 +407,18 @@ describe('RoleService failure paths (transient read errors)', () => {
 
     const route = {} as ActivatedRouteSnapshot;
     const state = { url: '/target' } as RouterStateSnapshot;
+    const router = TestBed.inject(Router);
     const result = await TestBed.runInInjectionContext(() => approvedGuard(route, state));
 
-    expect(result).toBe(false); // navigation blocked, not redirected
+    // `false` used to be the answer here: the router then abandons the
+    // navigation, and on the FIRST navigation of a page load that leaves an
+    // empty document with no route, no UI and no way back except a manual
+    // reload — exactly what a user hit after a Google sign-in. Deny by
+    // routing somewhere visible instead; the session still stays intact.
+    expect(result).not.toBe(false);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/unavailable'], {
+      queryParams: { redirect: '/target' },
+    });
     expect(sb.realClient.auth.signOut).not.toHaveBeenCalled(); // session intact
   });
 
