@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { NewsChannel } from './news.service';
-import { newsDefaultSrc, newsSrcset } from './news-image-variants';
+import { newsDefaultSrc, newsSrcset, sourceWidth } from './news-image-variants';
 import { environment } from '../../environments/environment';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
@@ -122,6 +122,34 @@ export interface ImageDims { w: number; h: number; }
 /** Artwork at all — anything below is a rule, a spacer or an icon. */
 export function isArtwork({ w, h }: ImageDims): boolean {
   return h >= MIN_ART_HEIGHT && w / h <= MAX_ART_RATIO;
+}
+
+/**
+ * Read a decoded element's size back at the width its srcset advertises.
+ *
+ * The shape tests above draw their furniture line at an ABSOLUTE pixel height —
+ * a 3840×114 rule is a rule, and no ratio alone separates it from a wide
+ * photograph. That constant is calibrated against the picture, but what a tile
+ * decodes is whichever rung the browser picked for the slot: `w400` on a regular
+ * card at DPR 1, `w800` at DPR 2, `post` (≤500w) on a legacy RSI url. Measuring
+ * that directly applies the threshold to a thumbnail, so the same image is
+ * artwork on one screen and furniture on another.
+ *
+ * Live case (2026-08-30): the comm-link "Improving the Live Experience" carries
+ * a single 1140×228 banner — 5:1, too wide for a hero but plainly artwork. Its
+ * `w400` rung measures 400×80, 80 fell under MIN_ART_HEIGHT, the tile's only
+ * candidate was dropped as a divider rule and the card rendered empty.
+ *
+ * Only urls whose full width is knowable are corrected (`sourceWidth`); the rest
+ * keep their raw measurement, since a guessed reference would promote small
+ * furniture into artwork. Scaling is one-way for the same reason: an element
+ * wider than the recorded top is already the picture.
+ */
+export function sourceDims(url: string, decoded: ImageDims): ImageDims {
+  const top = sourceWidth(url);
+  const { w, h } = decoded;
+  if (!(w > 0) || !(h > 0) || !(w < top)) return decoded;
+  return { w: top, h: h * top / w };
 }
 
 /** Usable as the single, static title image of a tile. */
@@ -702,7 +730,9 @@ export class NewsThumbComponent implements OnDestroy {
       return next;
     });
     if (!img.naturalWidth || !img.naturalHeight) return;
-    const w = img.naturalWidth, h = img.naturalHeight;
+    // Recorded at the source's advertised width, not the rung that happened to
+    // load — the shape tests must judge the picture, not the viewport.
+    const { w, h } = sourceDims(url, { w: img.naturalWidth, h: img.naturalHeight });
     this.dims.update((m) => (m[url]?.w === w && m[url]?.h === h ? m : { ...m, [url]: { w, h } }));
     this.measureFrame(url, img);
   }
