@@ -76,9 +76,12 @@ pub enum State {
     /// Only ever seen when the relaunch was deferred (screensaver on screen).
     Installed(String),
     /// The locked ring is above the anonymous tier — a website sign-in is needed
-    /// before this ring's builds are served. `newer` carries the version the
-    /// clamped (lower-ring) response actually served, when even THAT is newer
-    /// than this build: proof of being outdated that needs no sign-in at all.
+    /// before this ring's builds are INSTALLED. Only ever reached when the build
+    /// is actually behind: the feed reports the locked ring's version even to a
+    /// clamped caller, so "am I up to date?" is answered without signing in and
+    /// a current install reports [`State::Current`] instead. `newer` carries the
+    /// version to install, or `None` against a pre-`requestedVersion` feed that
+    /// could not say (then the state is a plain "sign in to find out").
     SignInRequired { newer: Option<String> },
     /// Signed in, but the account's role does not reach the locked ring (e.g. a
     /// beta copy on a viewer account). Deliberately NOT actionable: clicking
@@ -217,8 +220,8 @@ fn label_for(state: State, channel: Channel) -> String {
             &format!("◈ v{v} installed · active on next start"),
         ),
         State::SignInRequired { newer: Some(v) } => util::t(
-            &format!("▲ v{CURRENT_VERSION} veraltet (≥ v{v}) · Anmelden für {ring}-Updates"),
-            &format!("▲ v{CURRENT_VERSION} outdated (≥ v{v}) · sign in for {ring} updates"),
+            &format!("▲ v{CURRENT_VERSION} → v{v} · Anmelden zum Installieren"),
+            &format!("▲ v{CURRENT_VERSION} → v{v} · sign in to install"),
         ),
         State::SignInRequired { newer: None } => util::t(
             &format!("◈ v{CURRENT_VERSION} · Anmelden für {ring}-Updates"),
@@ -370,7 +373,14 @@ fn check(channel: Channel, access_token: Option<&str>) -> Outcome {
     // caller's tier was clamped — never install across rings on that basis.
     let served = net::json_str(&text, "channel").unwrap_or_default();
     if !served.is_empty() && served != channel.as_key() {
-        return Outcome::Clamped { newer: clamp_newer_hint(&text) };
+        // Clamped: the PAYLOAD is a lower ring's and must never be installed. The
+        // feed still reports what our own ring is on (`requestedVersion` — a bare
+        // version string, no url/sha/size), so being signed out costs the
+        // download, not the answer to "am I up to date?".
+        return match clamp_verdict(&text) {
+            ClampVerdict::UpToDate => Outcome::Current,
+            ClampVerdict::Behind(newer) => Outcome::Clamped { newer },
+        };
     }
 
     let Some(version) = net::json_str(&text, "version") else {
@@ -425,14 +435,42 @@ fn check(channel: Channel, access_token: Option<&str>) -> Outcome {
     Outcome::Newer(Release { version, url, sha256, size_bytes })
 }
 
-/// The "you are provably outdated" hint carried by a clamped feed response.
+/// What a clamped feed response says about the ring we are actually locked to.
+#[derive(Debug, PartialEq, Eq)]
+enum ClampVerdict {
+    /// Our own ring is provably not ahead of this build. Being clamped cost us
+    /// the download URL, not the verdict — so report "up to date" and leave the
+    /// tray silent instead of nagging for a sign-in that has nothing to fetch.
+    UpToDate,
+    /// Our ring is ahead, or nothing could be learned about it. `Some(v)` is the
+    /// version to install once signed in; `None` means the feed could not say.
+    Behind(Option<String>),
+}
+
+/// Read that verdict out of the response body.
 ///
-/// A clamp serves the LOWER ring's release, and rings only ever trail each
-/// other — stable is the slowest. So when even the clamped version beats the
-/// running build, the build is outdated no matter what the locked ring would
-/// say; that fact is worth showing to a signed-out user. When the clamped
-/// version is not newer, nothing is known about the locked ring and the hint
-/// stays empty — never installed from, only displayed.
+/// `requestedVersion` is the authoritative answer: the version OUR ring serves,
+/// resolved without the role clamp (see the `starscape_ring_version_hint`
+/// migration). It is only ever displayed and compared — the payload it comes
+/// with belongs to a lower ring and is still never installed.
+///
+/// Older feeds omit it, so the previous heuristic stays as the fallback: a clamp
+/// serves the LOWER ring's release, and rings only ever trail each other, so when
+/// even the clamped version beats the running build, the build is outdated no
+/// matter what the locked ring would say. When it does not, nothing is known —
+/// and "unknown" must stay [`ClampVerdict::Behind(None)`], never `UpToDate`.
+fn clamp_verdict(feed_text: &str) -> ClampVerdict {
+    if let Some(ring) = net::json_str(feed_text, "requestedVersion") {
+        return if is_newer(&ring, CURRENT_VERSION) {
+            ClampVerdict::Behind(Some(ring))
+        } else {
+            ClampVerdict::UpToDate
+        };
+    }
+    ClampVerdict::Behind(clamp_newer_hint(feed_text))
+}
+
+/// Pre-`requestedVersion` fallback — see [`clamp_verdict`].
 fn clamp_newer_hint(feed_text: &str) -> Option<String> {
     net::json_str(feed_text, "version").filter(|v| is_newer(v, CURRENT_VERSION))
 }
@@ -779,6 +817,41 @@ mod tests {
         );
         // A malformed feed carries no hint rather than a bogus one.
         assert_eq!(clamp_newer_hint(r#"{"channel":"stable"}"#), None);
+    }
+
+    #[test]
+    fn the_locked_rings_own_version_decides_the_clamp_verdict() {
+        // The whole point: an alpha install that IS current must say so without
+        // a sign-in, even though the payload it got back is stable's.
+        assert_eq!(
+            clamp_verdict(&format!(
+                r#"{{"version":"0.0.1","channel":"stable","requestedVersion":"{CURRENT_VERSION}"}}"#
+            )),
+            ClampVerdict::UpToDate
+        );
+        // Our ring moved ahead → name the exact version to install.
+        assert_eq!(
+            clamp_verdict(
+                r#"{"version":"0.0.1","channel":"stable","requestedVersion":"99.0.0"}"#
+            ),
+            ClampVerdict::Behind(Some("99.0.0".to_string()))
+        );
+        // Our ring trails this build (a downgraded pointer): never "install",
+        // and never a nag either.
+        assert_eq!(
+            clamp_verdict(r#"{"version":"0.0.1","channel":"stable","requestedVersion":"0.0.2"}"#),
+            ClampVerdict::UpToDate
+        );
+        // Pre-`requestedVersion` feed: fall back to the lower ring's version,
+        // and keep "unknown" firmly on the Behind side.
+        assert_eq!(
+            clamp_verdict(r#"{"version":"99.0.0","channel":"stable"}"#),
+            ClampVerdict::Behind(Some("99.0.0".to_string()))
+        );
+        assert_eq!(
+            clamp_verdict(r#"{"version":"0.0.1","channel":"stable"}"#),
+            ClampVerdict::Behind(None)
+        );
     }
 
     #[test]
