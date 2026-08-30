@@ -30,10 +30,19 @@ export const approvedGuard: CanActivateFn = async (_route, state) => {
   // it used to always be: it's also what a transient `profiles` read
   // failure with no known-good data yet looks like (`identityUnknown()`),
   // and what `waitReady()`'s timeout fallback looks like (`!loaded()`).
-  // Neither is grounds to destroy a real session — fail closed on THIS
-  // navigation only (block it, no redirect, no sign-out) and let a later
-  // refresh (next guarded nav, next token cycle) resolve it either way.
-  if (!roles.loaded() || roles.identityUnknown()) return false;
+  // Neither is grounds to destroy a real session — so fail closed on
+  // GRANTING access without touching the session.
+  //
+  // How that denial is expressed matters: returning `false` makes the
+  // router abandon the navigation, and when it is the FIRST navigation of a
+  // page load there is then no active route at all — an empty window, no
+  // message, no way out but a manual reload. That is what a user hit on
+  // 2026-08-30 after a Google sign-in (`RoleService.refresh()` now retries
+  // the 401 that caused it). Route to a page that says so instead; it lives
+  // outside these gated routes, so it cannot bounce back here in a loop.
+  if (!roles.loaded() || roles.identityUnknown()) {
+    return router.createUrlTree(['/unavailable'], { queryParams: { redirect: state.url } });
+  }
 
   // Genuinely not invited (a real, DB-confirmed `is_approved = false`) —
   // drop the session and explain on the login page.

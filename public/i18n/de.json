@@ -26,6 +26,12 @@
     "continueGoogle": "Mit Google fortfahren",
     "inviteOnly": "Zugang nur auf Einladung. Bitte einen Admin um eine Einladung.",
     "deniedInvite": "Dieser Account wurde noch nicht eingeladen. Die Seite ist nur auf Einladung zugänglich — bitte einen Admin um eine Einladung.",
+    "unavailable": {
+      "title": "Dein Zugang konnte nicht geprüft werden",
+      "body": "Dein Profil ließ sich gerade nicht laden — meist ein kurzer Aussetzer direkt nach der Anmeldung. Du bist weiterhin angemeldet.",
+      "retry": "Erneut versuchen",
+      "retrying": "Wird geprüft …"
+    },
     "landing": {
       "appName": "Star Citizen Companion",
       "join": "Join the Club.",

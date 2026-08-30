@@ -124,21 +124,38 @@ export class RoleService {
     // used to (a) make the self-heal see "role demoted to viewer" and wipe
     // an active preview, and (b) make `approvedGuard` see `approved() ===
     // false` and sign the real user out — both authoritative reactions to
-    // information we don't actually have. `try/catch` here also folds a
-    // THROWN fetch (offline, DNS, CSP) into the exact same handling as a
-    // returned `{ error }` — previously only the latter was covered, and
+    // information we don't actually have. `readProfile()`'s `try/catch`
+    // also folds a THROWN fetch (offline, DNS, CSP) into the exact same
+    // handling as a returned `{ error }` — previously only the latter was covered, and
     // the former left `_loaded` stuck at `false` forever (`waitReady()`
     // polling with no exit).
-    let result: { data: Record<string, unknown> | null; error: unknown } | null = null;
-    try {
-      result = await this.sb.realClient
-        .from('profiles')
-        .select('role, is_approved')
-        .eq('id', user.id)
-        .maybeSingle();
-    } catch {
-      result = null;
+    let result = await this.readProfile(user.id);
+
+    // A failure on the very FIRST load is the one that flips
+    // `identityUnknown` — and `approvedGuard` has to fail closed on that,
+    // stranding the navigation the user is on. The OAuth callback produces
+    // exactly that shape: the read fired immediately after the PKCE code
+    // exchange can come back 401 while the very next one, ~1s later,
+    // succeeds (observed live 2026-08-30, 18:53:44 UTC — a Google sign-in
+    // whose first `role,is_approved` read 401'd and left the app on an
+    // empty screen until a manual reload). So retry briefly before
+    // recording any verdict at all.
+    //
+    // Deliberately ONLY on the first load: once known-good data exists, the
+    // branch below already absorbs a blip without changing anything, and
+    // since `refresh()` re-runs on every token rotation, retrying there
+    // would turn a routine 401 into a burst of requests for no gain.
+    for (const delay of RoleService.FIRST_LOAD_RETRY_DELAYS_MS) {
+      if (result && !result.error) break;
+      if (this._hasKnownGood()) break;
+      await new Promise<void>((resolve) => setTimeout(resolve, delay));
+      // A sign-out (or a user switch) while we waited makes this run stale:
+      // the effect has already reset the signals for whoever is current
+      // now, and writing this run's outcome would clobber that.
+      if (this.auth.realUser()?.id !== user.id) return;
+      result = await this.readProfile(user.id);
     }
+
     if (!result || result.error) {
       // Always settle `_loaded` — a failed read still resolves `waitReady()`
       // one way or another; hanging every guard indefinitely is strictly
@@ -174,6 +191,33 @@ export class RoleService {
     this._identityUnknown.set(false);
     this._loaded.set(true);
     this.imp.setActualRole(role, true);
+  }
+
+  /**
+   * Backoff between retries of the very first `profiles` read (see
+   * `refresh()`). Two extra attempts, ~1s of waiting in total — enough to
+   * ride out the post-sign-in token race, and far short of
+   * `WAIT_READY_TIMEOUT_MS`, which every guard is polling against
+   * meanwhile.
+   */
+  private static readonly FIRST_LOAD_RETRY_DELAYS_MS = [250, 750];
+
+  /**
+   * One `profiles` read. A THROWN fetch (offline, DNS, CSP) folds into
+   * `null` so callers handle it identically to a returned `{ error }`.
+   */
+  private async readProfile(
+    userId: string,
+  ): Promise<{ data: Record<string, unknown> | null; error: unknown } | null> {
+    try {
+      return await this.sb.realClient
+        .from('profiles')
+        .select('role, is_approved')
+        .eq('id', userId)
+        .maybeSingle();
+    } catch {
+      return null;
+    }
   }
 
   /**
