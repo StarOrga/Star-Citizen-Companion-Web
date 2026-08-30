@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.71.4] - 2026-08-30
+
+### Fixed
+
+- **Signing in with Google could leave you on an empty window.** The app came
+  back from Google to a blank screen — no message, no way on, and only Ctrl+R
+  got it back. What happens first after a sign-in is a read of your profile
+  row, to learn whether your account is approved; that very first read raced
+  the freshly minted token and came back 401, while the next one a second
+  later came back fine. A failed read is not a fact about who you are, so the
+  access gate refuses to grant on it — correct — but it refused by cancelling
+  the navigation outright, and cancelling the FIRST navigation of a page load
+  leaves no route at all: an empty document with the session still perfectly
+  intact and nothing on screen. The profile read is now retried briefly
+  (twice, about a second) before any verdict is recorded, which is exactly the
+  window that race lives in. And when an identity genuinely cannot be
+  resolved — the service is down, not just blinking — the refusal now lands on
+  a page that says so and offers a retry, instead of on nothing at all.
+
 ## [0.71.3] - 2026-08-30
 
 ### Fixed
