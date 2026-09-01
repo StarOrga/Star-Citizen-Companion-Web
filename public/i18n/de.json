@@ -2004,7 +2004,7 @@
   },
   "telemetry": {
     "title": "Telemetrie & Crash-Statistik",
-    "subtitle": "Anonyme Crash-Reports und Opt-in-Nutzung aus der Desktop-App.",
+    "subtitle": "Anonyme Crash-Reports und Opt-in-Nutzung aus allen Desktop-Clients.",
     "refresh": "Aktualisieren",
     "loading": "Telemetrie wird geladen…",
     "empty": "Keine Daten in diesem Zeitraum.",
@@ -2051,7 +2051,8 @@
       "label": "Produkt",
       "scc-app": "SCC-App",
       "data-uploader": "Data Uploader",
-      "all": "Alle"
+      "all": "Alle",
+      "starscape": "Starscape"
     },
     "col": {
       "at": "Wann",
@@ -2059,6 +2060,26 @@
       "role": "Prozess",
       "name": "Fehler",
       "message": "Nachricht"
+    },
+    "products": {
+      "title": "Produkte im Vergleich",
+      "hint": "Alle Clients im gewählten Zeitraum. Eine Karte anklicken, um nur dieses Produkt auszuwerten.",
+      "crashesShort": "Abstürze",
+      "healthy": "Ohne Absturz",
+      "silent": "Keine Daten",
+      "lastSeen": "Zuletzt",
+      "never": "Noch nie gemeldet"
+    },
+    "detail": {
+      "title": "Details"
+    },
+    "byChannel": "Nach Release-Ring",
+    "usageByMetric": "Nutzung nach Ereignis",
+    "channel": {
+      "stable": "Stable",
+      "beta": "Beta",
+      "alpha": "Alpha",
+      "dev": "Dev"
     }
   },
   "adminFeedback": {

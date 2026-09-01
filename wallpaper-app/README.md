@@ -25,6 +25,8 @@ with an optional crossfade and one-click autostart.
   first wallpaper after boot/login (once per day, on by default)
 - **Start with Windows** — autostart via `HKCU\…\Run` (**on by default for new
   installs**; existing installs keep whatever they already had)
+- **Send anonymous diagnostics** — anonymous crash + launch telemetry
+  (**on by default, opt-out**); see [Telemetry](#telemetry)
 - **Show Verse News summary now** — re-fetch the summary and set it as the
   wallpaper immediately, useful for testing without a reboot
 - **Open Starscape website** — the web gallery
@@ -69,6 +71,34 @@ fade, paused, mode, screensaver delay, autostart-initialized flag, weekly-summar
 opt-in + last-shown date); prefetched images and the cached summary image in
 `…\cache`. Old config files (only `interval_min`/`fade`/`paused`) still load fine —
 missing keys fall back to their defaults.
+
+## Telemetry
+
+Starscape reports through the **same** signed ingest path as the SCC app and the
+Data Uploader — one endpoint, one table, one signature scheme (`src/telemetry.rs`,
+`supabase/functions/ingest-telemetry`). Rows are tagged `product='starscape'`,
+which is what the admin dashboard's per-product view filters on.
+
+What is sent, and only this:
+
+| When | Wire | Content |
+| --- | --- | --- |
+| Every launch (~20 s in) | `usage` | metric `app_start`, plus the configuration: mode, fade, paused, interval, screensaver delay, Verse-News-on-start |
+| Next launch after a panic | `crash` | the panic message + its `src/*.rs:line`, bucketed as `errorType=panic` |
+
+- **Opt-out** via the tray menu (*Send anonymous diagnostics*, on by default —
+  the same default the Data Uploader uses). Switching it off deletes any stored
+  crash record immediately; it does not just stop the sending.
+- A panic is **written to disk and reported on the next start**, never from
+  inside the dying process — this binary is built with `panic = "abort"` and a
+  blocking HTTPS call in the panic hook would hang a crash.
+- `installId` / `sessionId` are opaque random hex; the server only ever stores
+  salted hashes of them. There is no account, no IP, and no file path beyond
+  this crate's own source locations.
+- Signing key: `SC_TELEMETRY_HMAC_KEY`, baked in at build time via `option_env!`
+  (mirroring the uploader's Vite define). It is a shared anti-abuse secret, not
+  a credential — writes are service-role-only and reads are admin-RPC-only. A
+  local `cargo build` gets the public dev fallback and its reports are rejected.
 
 ## Troubleshooting
 

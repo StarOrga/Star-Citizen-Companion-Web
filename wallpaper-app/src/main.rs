@@ -17,6 +17,7 @@ mod log;
 mod net;
 mod screensaver;
 mod session;
+mod telemetry;
 mod update;
 mod util;
 
@@ -82,6 +83,7 @@ const ID_DELAY_60: usize = 14;
 const ID_SUMMARY_ON_BOOT: usize = 15;
 const ID_SUMMARY_NOW: usize = 16;
 const ID_UPDATE: usize = 17;
+const ID_TELEMETRY: usize = 18;
 
 const STARSCAPE_URL: &str = "https://sc-companion.vercel.app/starscape";
 /// Filename of the fetched weekly Verse-News summary image inside the cache dir.
@@ -141,6 +143,11 @@ fn main() {
     let token = gfx::startup();
     util::set_fill_style();
     let (mut cfg, existed) = Config::load();
+    // Arm the panic recorder as early as the config allows. The hook above is
+    // already installed, but it refuses to write anything until consent is
+    // known — and a crash during tray/window setup ("it just doesn't start") is
+    // exactly the one worth having.
+    telemetry::set_enabled(cfg.telemetry);
     if !existed {
         // Brand-new install → default to autostart ON (net effect: new installs
         // get it; nobody with an existing config is silently opted in later).
@@ -250,6 +257,12 @@ unsafe fn run(cfg: Config) {
     // never shows a notification. Its only visible effect is the tray-menu
     // readout, plus a seamless relaunch when a verified newer build lands.
     spawn_update_loop(hwnd_isize, cfg.channel);
+
+    // Anonymous telemetry: flush a panic the previous run recorded, then report
+    // this launch. Same signed ingest path and same opt-out contract as the
+    // other desktop clients (see src/telemetry.rs). Its own thread, delayed, so
+    // it never competes with the first wallpaper fetch.
+    telemetry::start(cfg);
 
     // Message loop.
     let mut msg: MSG = std::mem::zeroed();
@@ -512,7 +525,7 @@ fn apply_next() {
 }
 
 unsafe fn show_menu(hwnd: HWND) {
-    let (paused, fade, mode, delay, summary_on_boot, channel) = {
+    let (paused, fade, mode, delay, summary_on_boot, channel, telemetry_on) = {
         let u = ui().lock().unwrap();
         (
             u.cfg.paused,
@@ -521,6 +534,7 @@ unsafe fn show_menu(hwnd: HWND) {
             u.cfg.screensaver_after_min,
             u.cfg.summary_on_boot,
             u.cfg.channel,
+            u.cfg.telemetry,
         )
     };
     let autostart = util::autostart_enabled();
@@ -554,6 +568,8 @@ unsafe fn show_menu(hwnd: HWND) {
     let l_fade = util::wide(&t("Übergangseffekt", "Fade transition"));
     let l_summary_boot = util::wide(&t("Verse-News beim Start", "Weekly Verse News on start"));
     let l_auto = util::wide(&t("Mit Windows starten", "Start with Windows"));
+    let l_telemetry =
+        util::wide(&t("Anonyme Diagnose senden", "Send anonymous diagnostics"));
     let l_summary_now =
         util::wide(&t("Verse-News-Zusammenfassung jetzt zeigen", "Show Verse News summary now"));
     let l_star = util::wide(&t("Starscape Website öffnen", "Open Starscape website"));
@@ -576,6 +592,8 @@ unsafe fn show_menu(hwnd: HWND) {
     AppendMenuW(menu, chk(fade), ID_FADE, l_fade.as_ptr());
     AppendMenuW(menu, chk(summary_on_boot), ID_SUMMARY_ON_BOOT, l_summary_boot.as_ptr());
     AppendMenuW(menu, chk(autostart), ID_AUTOSTART, l_auto.as_ptr());
+    // Telemetry opt-OUT (ticked by default), same contract as the data-uploader.
+    AppendMenuW(menu, chk(telemetry_on), ID_TELEMETRY, l_telemetry.as_ptr());
     AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
     AppendMenuW(menu, MF_STRING, ID_SUMMARY_NOW, l_summary_now.as_ptr());
     AppendMenuW(menu, MF_STRING, ID_STARSCAPE, l_star.as_ptr());
@@ -617,6 +635,13 @@ unsafe fn show_menu(hwnd: HWND) {
         ID_DELAY_30 => toggle(|c| c.screensaver_after_min = 30),
         ID_DELAY_60 => toggle(|c| c.screensaver_after_min = 60),
         ID_SUMMARY_ON_BOOT => toggle(|c| c.summary_on_boot = !c.summary_on_boot),
+        ID_TELEMETRY => {
+            toggle(|c| c.telemetry = !c.telemetry);
+            // Also apply it to the LIVE reporter, not just the persisted config:
+            // switching it off drops anything already recorded, on the spot.
+            telemetry::set_enabled(!telemetry_on);
+            log::line(&format!("telemetry: user set enabled={}", !telemetry_on));
+        }
         ID_SUMMARY_NOW => {
             log::line("summary: on-demand fetch requested from tray");
             spawn_summary_fetch(hwnd as isize, false);

@@ -62,6 +62,18 @@ pub const RELEASE_TOKEN: &str = match option_env!("SC_RELEASE_TOKEN") {
 
 const DEV_TOKEN: &str = "dev-token-unsigned";
 
+/// Coarse build id for telemetry (audit only): the release token's 8-character
+/// fingerprint, mirroring the data-uploader's `RELEASE_TOKEN.slice(0, 8)`.
+///
+/// `None` for an unsigned local build — and never the token itself: the full
+/// UUID is the update feed's credential and must not travel on any other wire.
+pub fn build_id() -> Option<&'static str> {
+    if RELEASE_TOKEN == DEV_TOKEN {
+        return None;
+    }
+    RELEASE_TOKEN.get(..8)
+}
+
 /// Update-feed path. `product=starscape` selects the Starscape rings; the edge
 /// function always resolves them through the role-clamped SQL resolver.
 const FEED_PATH: &str = "/functions/v1/desktop-latest?product=starscape&channel=";

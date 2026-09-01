@@ -69,7 +69,9 @@ pub enum Mode {
 }
 
 impl Mode {
-    fn as_str(self) -> &'static str {
+    /// Config/wire value (`wallpaper` | `screensaver` | `both`). Also what the
+    /// launch telemetry event reports, so it must stay stable.
+    pub fn as_str(self) -> &'static str {
         match self {
             Mode::Wallpaper => "wallpaper",
             Mode::Screensaver => "screensaver",
@@ -155,6 +157,9 @@ pub struct Config {
     /// the derivation so a later rename of the exe can never move an install to
     /// another ring.
     pub channel_locked: bool,
+    /// Send anonymous crash + launch telemetry. OPT-OUT (default on), matching
+    /// the data-uploader's `telemetryEnabled`. Toggled from the tray menu.
+    pub telemetry: bool,
 }
 
 impl Default for Config {
@@ -170,6 +175,7 @@ impl Default for Config {
             summary_last_shown: 0,
             channel: Channel::Stable,
             channel_locked: false,
+            telemetry: true,
         }
     }
 }
@@ -234,6 +240,9 @@ impl Config {
                     "channel_locked" => {
                         cfg.channel_locked = v == "1" || v.eq_ignore_ascii_case("true");
                     }
+                    "telemetry" => {
+                        cfg.telemetry = v == "1" || v.eq_ignore_ascii_case("true");
+                    }
                     _ => {}
                 }
             }
@@ -243,7 +252,7 @@ impl Config {
 
     pub fn save(&self) {
         let text = format!(
-            "interval_min={}\nfade={}\npaused={}\nmode={}\nscreensaver_after_min={}\nautostart_initialized={}\nsummary_on_boot={}\nsummary_last_shown={}\nchannel={}\nchannel_locked={}\n",
+            "interval_min={}\nfade={}\npaused={}\nmode={}\nscreensaver_after_min={}\nautostart_initialized={}\nsummary_on_boot={}\nsummary_last_shown={}\nchannel={}\nchannel_locked={}\ntelemetry={}\n",
             self.interval_min,
             self.fade as u8,
             self.paused as u8,
@@ -254,6 +263,7 @@ impl Config {
             self.summary_last_shown,
             self.channel.as_key(),
             self.channel_locked as u8,
+            self.telemetry as u8,
         );
         let _ = fs::write(Config::path(), text);
     }
