@@ -18,8 +18,39 @@ interface AdminUserRow {
    * Optional so a client running against a pre-migration DB still parses.
    */
   protected?: boolean | null;
+  /**
+   * Open `user_reports` rows targeting this account (migration
+   * 20260901181500). Optional so a client running against a pre-migration DB
+   * still parses; `reportCount()` normalizes it to 0.
+   */
+  report_count?: number | null;
   created_at: string;
   last_sign_in_at: string | null;
+}
+
+/**
+ * Row from `list_reports_for_admin()` — one OPEN user report.
+ * Phase 1 is read-only: there is no RPC that resolves or acts on a report,
+ * and no ban/grace-period action here (that decision is still with the admin).
+ */
+interface UserReportRow {
+  id: string;
+  target_id: string;
+  target_name: string | null;
+  target_username: string | null;
+  reporter_id: string;
+  reporter_name: string | null;
+  reporter_username: string | null;
+  category: string;
+  reason: string | null;
+  created_at: string;
+}
+
+/** A reported account, aggregated for the "conspicuous accounts" card. */
+interface FlaggedUser {
+  user: AdminUserRow;
+  count: number;
+  reports: UserReportRow[];
 }
 
 /** Row from the `list_allowed_emails()` RPC (C4/C6 — email allowlist). */
@@ -49,7 +80,7 @@ interface AccessRequestRow {
   joined: boolean;
 }
 
-type SortKey = 'user' | 'email' | 'role' | 'joined' | 'lastSeen';
+type SortKey = 'user' | 'email' | 'role' | 'reports' | 'joined' | 'lastSeen';
 type SortDir = 'asc' | 'desc';
 type RoleFilter = 'all' | Role;
 
@@ -157,6 +188,62 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
           </div>
         }
       </div>
+
+      <!--
+        Conspicuous accounts (feedback cf0ddf7d, phase 1). READ-ONLY on
+        purpose: it surfaces who is being reported and why, so an admin can
+        judge it. The decision itself — grace period vs. suspending the
+        account and killing its sessions across products — is phase 2 and is
+        still with the admin, so there is deliberately no action button here.
+      -->
+      @if (flaggedUsers().length > 0) {
+        <div class="sc-card reports-card">
+          <div class="invite-head">
+            <h2>
+              {{ 'admin.reports.title' | translate }}
+              <span class="req-count">{{ flaggedUsers().length }}</span>
+            </h2>
+            <p class="hint">{{ 'admin.reports.subtitle' | translate }}</p>
+          </div>
+
+          @if (reportsErrorMsg()) {
+            <div class="err">
+              <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ reportsErrorMsg() }}
+            </div>
+          }
+
+          <ul class="req-list">
+            @for (f of flaggedUsers(); track f.user.id) {
+              <li class="req flagged">
+                <div class="req-main">
+                  <div class="req-line">
+                    <span class="req-email">{{ displayNameOf(f.user.display_name, f.user.username) }}</span>
+                    <span class="pill danger-pill">
+                      {{ 'admin.reports.count' | translate: { count: f.count } }}
+                    </span>
+                    <span class="role-pill" [class]="f.user.role">
+                      {{ ('profile.roles.' + f.user.role) | translate }}
+                    </span>
+                  </div>
+                  <ul class="report-lines">
+                    @for (r of f.reports; track r.id) {
+                      <li class="report-line">
+                        <span class="rl-cat">{{ 'friends.report.categories.' + r.category | translate }}</span>
+                        <span class="rl-by">
+                          {{ 'admin.reports.by' | translate: { name: displayNameOf(r.reporter_name, r.reporter_username) } }}
+                        </span>
+                        <span class="rl-date">{{ r.created_at | scDate: 'datetime' }}</span>
+                        @if (r.reason) { <span class="rl-reason">{{ r.reason }}</span> }
+                      </li>
+                    }
+                  </ul>
+                </div>
+              </li>
+            }
+          </ul>
+          <p class="hint deferred-note">{{ 'admin.reports.deferred' | translate }}</p>
+        </div>
+      }
 
       <div class="sc-card invite-card">
         <div class="invite-head">
@@ -363,6 +450,11 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                   tabindex="0" [attr.aria-sort]="ariaSort('role')" [class.active]="sortKey() === 'role'">
                 {{ 'admin.col.role' | translate }}<span class="sort-ind">{{ sortIndicator('role') }}</span>
               </th>
+              <th class="sortable" (click)="toggleSort('reports')"
+                  (keydown.enter)="toggleSort('reports')" (keydown.space)="$event.preventDefault(); toggleSort('reports')"
+                  tabindex="0" [attr.aria-sort]="ariaSort('reports')" [class.active]="sortKey() === 'reports'">
+                {{ 'admin.col.reports' | translate }}<span class="sort-ind">{{ sortIndicator('reports') }}</span>
+              </th>
               <th class="sortable" (click)="toggleSort('joined')"
                   (keydown.enter)="toggleSort('joined')" (keydown.space)="$event.preventDefault(); toggleSort('joined')"
                   tabindex="0" [attr.aria-sort]="ariaSort('joined')" [class.active]="sortKey() === 'joined'">
@@ -397,6 +489,13 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                     <span class="role-pill protected" [title]="'admin.protectedTip' | translate">
                       {{ 'admin.protected' | translate }}
                     </span>
+                  }
+                </td>
+                <td>
+                  @if (reportCount(u) > 0) {
+                    <span class="role-pill reported">{{ reportCount(u) }}</span>
+                  } @else {
+                    <span class="muted-zero">0</span>
                   }
                 </td>
                 <td>{{ u.created_at | scDate }}</td>
@@ -436,7 +535,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="no-matches">{{ 'admin.filter.noMatches' | translate }}</td>
+                <td colspan="7" class="no-matches">{{ 'admin.filter.noMatches' | translate }}</td>
               </tr>
             }
           </tbody>
@@ -506,7 +605,8 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
         -webkit-overflow-scrolling: touch;
         white-space: nowrap;
       }
-      .table thead, .table tbody { display: table; width: 100%; min-width: 640px; }
+      /* 720, not 640: the reports column (feedback cf0ddf7d) added a track. */
+      .table thead, .table tbody { display: table; width: 100%; min-width: 720px; }
     }
 
     .table { width: 100%; padding: 0; border-collapse: collapse; overflow: hidden; }
@@ -567,6 +667,31 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       &.pending { background: rgba(251, 191, 36, 0.18); color: var(--sc-warning); }
     }
     .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    /* Conspicuous accounts (feedback cf0ddf7d) */
+    .reports-card { display: flex; flex-direction: column; gap: 12px; }
+    .reports-card .req.flagged { align-items: flex-start; }
+    .danger-pill {
+      background: rgba(248, 113, 113, 0.16) !important;
+      color: var(--sc-danger) !important;
+      border-color: var(--sc-danger) !important;
+    }
+    .report-lines { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .report-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px;
+      font-size: max(0.8rem, var(--sc-fs-floor));
+      color: var(--sc-fg-2);
+    }
+    .rl-cat { color: var(--sc-fg-0); font-weight: 600; }
+    /* A report reason is user-supplied text: interpolated only, never
+       innerHTML, and it wraps instead of stretching the card. */
+    .rl-reason { flex: 1 1 100%; color: var(--sc-fg-1); overflow-wrap: anywhere; }
+    .deferred-note { font-style: italic; }
+    .role-pill.reported { background: rgba(248, 113, 113, 0.18); color: var(--sc-danger); }
+    .muted-zero { color: var(--sc-fg-2); }
+
     .sc-btn.micro {
       padding: 4px 10px;
       font-size: max(0.7rem, var(--sc-fs-floor));
@@ -708,10 +833,33 @@ export class AdminComponent implements OnInit {
   readonly errorMsg = signal<string | null>(null);
   readonly selfId = computed(() => this.auth.user()?.id ?? null);
 
+  // Open user reports (migration 20260901181500). Read-only in phase 1.
+  readonly reports = signal<UserReportRow[]>([]);
+  readonly reportsErrorMsg = signal<string | null>(null);
+
+  /**
+   * Accounts with at least one open report, most-reported first — the
+   * "conspicuous accounts" surface the feedback asked for. Derived from
+   * users() + reports(), so it needs no extra refresh cadence of its own.
+   */
+  readonly flaggedUsers = computed<FlaggedUser[]>(() => {
+    const byTarget = new Map<string, UserReportRow[]>();
+    for (const r of this.reports()) {
+      const list = byTarget.get(r.target_id);
+      if (list) list.push(r);
+      else byTarget.set(r.target_id, [r]);
+    }
+    return this.users()
+      .filter((u) => this.reportCount(u) > 0)
+      .map((u) => ({ user: u, count: this.reportCount(u), reports: byTarget.get(u.id) ?? [] }))
+      .sort((a, b) => b.count - a.count || a.user.created_at.localeCompare(b.user.created_at));
+  });
+
   constructor() {
     useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
     useAutoRefresh(() => this.refreshAllowlist(), { enabled: () => !this.allowlistBusy() });
     useAutoRefresh(() => this.refreshAccessRequests(), { enabled: () => !this.accessBusy() });
+    useAutoRefresh(() => this.refreshReports(), { enabled: () => !this.busy() });
   }
   readonly adminCount = computed(() => this.users().filter((u) => u.role === 'admin').length);
 
@@ -758,6 +906,9 @@ export class AdminComponent implements OnInit {
         case 'user': return u.display_name ?? u.username ?? null;
         case 'email': return u.email;
         case 'role': return ROLE_RANK[u.role];
+        // 0 is a real value here, not "missing" — a user with no reports must
+        // not be pushed to the bottom by the nulls-last rule in cmp().
+        case 'reports': return this.reportCount(u);
         case 'joined': return u.created_at;
         case 'lastSeen': return u.last_sign_in_at;
       }
@@ -1033,7 +1184,21 @@ export class AdminComponent implements OnInit {
   }
 
   async ngOnInit() {
-    await Promise.all([this.refresh(), this.refreshAllowlist(), this.refreshAccessRequests()]);
+    await Promise.all([
+      this.refresh(),
+      this.refreshAllowlist(),
+      this.refreshAccessRequests(),
+      this.refreshReports(),
+    ]);
+  }
+
+  /** Open reports against `u`; 0 when the DB predates migration 20260901181500. */
+  reportCount(u: AdminUserRow): number {
+    return Number(u.report_count ?? 0);
+  }
+
+  displayNameOf(name: string | null, handle: string | null): string {
+    return handle ?? name ?? '—';
   }
 
   requestRole(id: string): Role {
@@ -1134,6 +1299,16 @@ export class AdminComponent implements OnInit {
       this.users.set(((data ?? []) as AdminUserRow[]));
     }
     this.busy.set(false);
+  }
+
+  async refreshReports() {
+    this.reportsErrorMsg.set(null);
+    const { data, error } = await this.sb.client.rpc('list_reports_for_admin');
+    if (error) {
+      this.reportsErrorMsg.set(error.message);
+      return;
+    }
+    this.reports.set((data ?? []) as UserReportRow[]);
   }
 
   async refreshAllowlist() {
