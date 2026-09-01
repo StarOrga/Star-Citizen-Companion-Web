@@ -267,6 +267,14 @@ export const routes: Routes = [
           import('./settings/settings.component').then((m) => m.SettingsComponent),
       },
       {
+        // Friends: the social graph (requests, friends, blocked). Sits next to
+        // /settings because that is where the account-scoped surfaces live and
+        // where both entry points (account menu, settings card) point.
+        path: 'friends',
+        loadComponent: () =>
+          import('./social/friends.component').then((m) => m.FriendsComponent),
+      },
+      {
         // Install + privacy page for the hangar-import browser extension.
         // Gated by the blanket rule now (access-control redesign): the
         // install instructions reference an authenticated feature, so this no

@@ -6,6 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
@@ -28,7 +29,7 @@ type LangId = AppLanguage;
 @Component({
   selector: 'sc-settings',
   standalone: true,
-  imports: [TranslateModule, ScDatePipe],
+  imports: [RouterLink, TranslateModule, ScDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -127,6 +128,17 @@ type LangId = AppLanguage;
           @if (usernameError(); as e) {
             <div class="flash error">{{ e | translate }}</div>
           }
+        </div>
+
+        <!-- 2b. Friends — the entry point into the social graph. A real
+             anchor, not a button: it takes you somewhere, so middle-click and
+             "open in new tab" have to work. -->
+        <div class="sc-card section">
+          <h2>{{ 'settings.friends.title' | translate }}</h2>
+          <p class="hint">{{ 'settings.friends.hint' | translate }}</p>
+          <a class="sc-btn sc-btn-primary link-btn" routerLink="/friends">
+            {{ 'settings.friends.open' | translate }}
+          </a>
         </div>
 
         <!-- 3. Language & region (feedback 38b3d25a) -->
@@ -291,6 +303,9 @@ type LangId = AppLanguage;
       letter-spacing: 0.04em;
     }
     .account h2 { margin-bottom: 2px; }
+    /* The friends entry point is an <a>, so it needs the bits .sc-btn assumes
+       a <button> already brings. */
+    .link-btn { margin-top: 12px; align-self: flex-start; text-decoration: none; width: fit-content; }
     .row {
       display: flex;
       justify-content: space-between;

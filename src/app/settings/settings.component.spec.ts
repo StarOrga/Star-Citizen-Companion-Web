@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import type { User } from '@supabase/supabase-js';
 import { AuthService } from '../auth/auth.service';
@@ -43,6 +44,9 @@ describe('SettingsComponent layout', () => {
     TestBed.configureTestingModule({
       imports: [SettingsComponent, TranslateModule.forRoot()],
       providers: [
+        // The friends card is a real <a [routerLink]>, so RouterLink needs an
+        // ActivatedRoute to resolve against.
+        provideRouter([]),
         {
           provide: AuthService,
           useValue: { user: signal(user), signOut: async () => undefined },

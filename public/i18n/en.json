@@ -82,7 +82,8 @@
     },
     "loading": {
       "weak": "Weak signal · retuning"
-    }
+    },
+    "friends": "Friends"
   },
   "impersonation": {
     "banner": {
@@ -1477,6 +1478,11 @@
       "deleting": "Deleting…",
       "confirm": "Your account ({{email}}) will be permanently deleted. Your uploads + bundles go too. You'll be signed out afterwards. Sure?",
       "failed": "Delete failed"
+    },
+    "friends": {
+      "title": "Friends",
+      "hint": "Manage friend requests, your friend list and blocked accounts.",
+      "open": "Open friends"
     }
   },
   "admin": {
@@ -1528,7 +1534,8 @@
       "role": "Role",
       "joined": "Joined",
       "lastSeen": "Last seen",
-      "actions": "Actions"
+      "actions": "Actions",
+      "reports": "Reports"
     },
     "actions": {
       "promoteCollab": "→ Collaborator",
@@ -1626,6 +1633,13 @@
       "declined": "Request from {{email}} declined.",
       "allowlisted": "Already allowlisted",
       "joined": "Already has an account"
+    },
+    "reports": {
+      "title": "Conspicuous accounts",
+      "subtitle": "Accounts with open reports, most-reported first.",
+      "count": "{{count}} reports",
+      "by": "reported by {{name}}",
+      "deferred": "Read-only: a grace period and account suspension (including kicking all sessions) are not decided yet and follow in their own round."
     }
   },
   "desktop": {
@@ -2617,5 +2631,85 @@
   "appPanel": {
     "version": "Currently published version",
     "details": "Show details, notes and release notes"
+  },
+  "friends": {
+    "title": "Friends",
+    "subtitle": "Connect with other pilots. Requests, friend list and blocked accounts.",
+    "loading": "Loading …",
+    "add": {
+      "title": "Add a friend",
+      "hint": "Enter the exact username. There is deliberately no search across all accounts.",
+      "placeholder": "Username",
+      "search": "Search",
+      "notFound": "No account with that username.",
+      "send": "Send request"
+    },
+    "incoming": {
+      "title": "Incoming requests",
+      "empty": "No open requests."
+    },
+    "outgoing": {
+      "title": "Sent requests",
+      "empty": "You have no request pending."
+    },
+    "list": {
+      "title": "Your friends",
+      "empty": "No friends yet. Add someone by username above.",
+      "since": "Friends since {{date}}"
+    },
+    "blocked": {
+      "title": "Blocked",
+      "hint": "Blocked accounts cannot see you and cannot send you a request.",
+      "empty": "You have not blocked anyone."
+    },
+    "actions": {
+      "accept": "Accept",
+      "decline": "Decline",
+      "withdraw": "Withdraw",
+      "remove": "Remove",
+      "block": "Block",
+      "unblock": "Unblock",
+      "report": "Report"
+    },
+    "report": {
+      "title": "Report {{name}}",
+      "hint": "Your report goes to the admins. You can have one open report per account.",
+      "category": "Reason",
+      "categories": {
+        "spam": "Spam",
+        "harassment": "Harassment",
+        "impersonation": "Impersonation",
+        "inappropriate": "Inappropriate content",
+        "other": "Other"
+      },
+      "reason": "Description (optional)",
+      "reasonPlaceholder": "What happened?",
+      "submit": "Submit report",
+      "cancel": "Cancel"
+    },
+    "flash": {
+      "requestSent": "Request sent.",
+      "nowFriends": "You are friends now.",
+      "alreadyFriends": "You are already friends.",
+      "declined": "Request declined.",
+      "withdrawn": "Request withdrawn.",
+      "removed": "Friend removed.",
+      "blocked": "Account blocked.",
+      "unblocked": "Block removed.",
+      "reported": "Report submitted.",
+      "reportDuplicate": "You already reported this account."
+    },
+    "error": {
+      "generic": "That did not work. Please try again.",
+      "blocked": "That is not possible.",
+      "userNotFound": "Account not found.",
+      "requestNotFound": "That request no longer exists.",
+      "invalidTarget": "Invalid account.",
+      "invalidCategory": "Invalid report category.",
+      "reasonTooLong": "The description is too long.",
+      "noRelation": "You can only report accounts you have interacted with.",
+      "reportLimit": "You have too many open reports. Wait until they have been reviewed.",
+      "notApproved": "Your account is not approved yet."
+    }
   }
 }
