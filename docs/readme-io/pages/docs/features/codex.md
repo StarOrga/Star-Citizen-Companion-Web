@@ -117,6 +117,15 @@ pages, and an item page links back to the blueprints that consume it.
 `/codex/keybinds` renders the game's keybinding tables from the extracted
 default profile — useful when a patch quietly moves a binding.
 
+Action and category names are shown in your app language, with a **DE | EN
+switch** next to the search box to read them in the **English original**
+instead. Most players run the game client in English, so the original wording
+is what you actually see in-game. Both name sets come from the datamined
+language files — nothing is translated by us — so an action the game never
+localized falls back to a readable name derived from its internal key, in
+either mode. The switch also applies to the curated category labels, and it
+disappears when the app already runs in English.
+
 ## Upcoming Ships
 
 Upcoming ships are a **category of the Codex**, not a separate page: pick
