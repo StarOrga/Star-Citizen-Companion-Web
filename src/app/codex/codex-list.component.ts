@@ -16,6 +16,7 @@ import {
   CodexListFilters,
   CodexListRow,
   CodexService,
+  manufacturerLabel,
   pickLocalizedDistinct,
   toLang,
 } from './codex.service';
@@ -117,7 +118,9 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
               <span>{{ 'codex.filters.manufacturer' | translate }}</span>
               <select class="sc-select" [ngModel]="manufacturer()" (ngModelChange)="setManufacturer($event)">
                 <option value="">{{ 'codex.filters.all' | translate }}</option>
-                @for (m of manufacturerOptions(); track m) { <option [value]="m">{{ m }}</option> }
+                @for (m of manufacturerOptions(); track m.code) {
+                  <option [value]="m.code">{{ m.label }}</option>
+                }
               </select>
             </label>
           }
@@ -244,7 +247,7 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
                 </div>
                 <code class="cls">{{ r.classNameSlug }}</code>
                 <div class="badges">
-                  @if (r.manufacturerCode) { <span class="badge mfr">{{ r.manufacturerCode }}</span> }
+                  @if (cardMfr(r); as mfr) { <span class="badge mfr" [attr.title]="mfr">{{ mfr }}</span> }
                   @if (r.componentKind) { <span class="badge">{{ ('codex.componentKind.' + r.componentKind) | translate }}</span> }
                   @if (r.weaponClass) { <span class="badge">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
                   @if (r.subType) { <span class="badge subtle">{{ r.subType }}</span> }
@@ -471,6 +474,15 @@ export class CodexListComponent implements OnInit {
    * Card title in the app language with EN fallback (UC-08), then the
    * denormalized name, then the raw class name.
    */
+  /**
+   * Manufacturer badge text — the full name from the extracted payload
+   * ("Aegis Dynamics"), falling back to the promoted code when the game data
+   * has no resolvable name. See `manufacturerLabel`.
+   */
+  cardMfr(r: CodexListRow): string | null {
+    return manufacturerLabel(r, this.dataLang());
+  }
+
   cardName(r: CodexListRow): string {
     const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
     // Distinct-pick: DE only when genuinely translated, EN otherwise. (#50)
@@ -512,9 +524,25 @@ export class CodexListComponent implements OnInit {
   private loadSeq = 0;
 
   // Facet options derived from the rows actually loaded for the active kind.
-  readonly manufacturerOptions = computed(() =>
-    uniqSorted(this.rows().map((r) => r.manufacturerCode)),
-  );
+  /**
+   * Manufacturer facet: the option VALUE stays the promoted `manufacturer_code`
+   * (that is what the server filters on), only the label is spelled out from the
+   * row payload's extracted name. Codes with no resolvable name keep the code as
+   * their label. Sorted by what the user reads.
+   */
+  readonly manufacturerOptions = computed<{ code: string; label: string }[]>(() => {
+    const byCode = new Map<string, string>();
+    for (const r of this.rows()) {
+      if (!r.manufacturerCode) continue;
+      const label = manufacturerLabel(r, this.dataLang()) ?? r.manufacturerCode;
+      const existing = byCode.get(r.manufacturerCode);
+      // First resolved name wins; never let a later code-only row overwrite it.
+      if (!existing || existing === r.manufacturerCode) byCode.set(r.manufacturerCode, label);
+    }
+    return [...byCode.entries()]
+      .map(([code, label]) => ({ code, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  });
   readonly sizeOptions = computed(() =>
     uniqSorted(this.rows().map((r) => (r.size != null ? String(r.size) : null))).sort(
       (a, b) => Number(a) - Number(b),

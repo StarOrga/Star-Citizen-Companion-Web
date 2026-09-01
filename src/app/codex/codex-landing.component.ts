@@ -10,7 +10,15 @@ import {
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { CodexListRow, CodexKind, CodexService, ResolvedEntity, pickLocalized, toLang } from './codex.service';
+import {
+  CodexListRow,
+  CodexKind,
+  CodexService,
+  ResolvedEntity,
+  manufacturerLabel,
+  pickLocalized,
+  toLang,
+} from './codex.service';
 import { cleanLocaleValue, formatNumber, humanizeClassName } from './codex-format';
 import { LocalizedText, Lang, ShipPayload } from './codex.types';
 import { PolySearchHit, polyHitLink } from './codex-poly-search';
@@ -197,8 +205,8 @@ interface PaperdollSlotView {
                       <span class="hit-kind">{{
                         'codex.kindSingular.' + hit.kind | translate
                       }}</span>
-                      @if (hit.manufacturerCode) {
-                        <span class="hit-mfr">{{ hit.manufacturerCode }}</span>
+                      @if (hitMfr(hit); as mfr) {
+                        <span class="hit-mfr" [attr.title]="mfr">{{ mfr }}</span>
                       }
                       @if (hit.size != null) {
                         <span class="hit-badge">{{
@@ -444,7 +452,7 @@ interface PaperdollSlotView {
                 </button>
                 <a class="hero-scrim identity-name" [routerLink]="['/codex', 'ship', f.classNameSlug]">
                   <span class="identity-mfr">
-                    {{ f.manufacturerCode }}
+                    {{ rowMfr(f) }}
                     @if (shipRoleResolved(); as role) {
                       <span class="identity-role">· {{ role }}</span>
                     }
@@ -536,8 +544,8 @@ interface PaperdollSlotView {
                             </span>
                           }
                           <span class="fleet-tile__cap">
-                            @if (r.manufacturerCode) {
-                              <span class="fleet-tile__mfr">{{ r.manufacturerCode }}</span>
+                            @if (rowMfr(r); as mfr) {
+                              <span class="fleet-tile__mfr" [attr.title]="mfr">{{ mfr }}</span>
                             }
                             <span class="fleet-tile__name">{{ rowName(r) }}</span>
                           </span>
@@ -629,8 +637,8 @@ interface PaperdollSlotView {
                     <sc-codex-icon kind="ship" />
                   </sc-fallback-image>
                   <span class="upcoming-tile__caption">
-                    @if (ship.manufacturerCode) {
-                      <span class="upcoming-tile__mfr">{{ ship.manufacturerCode }}</span>
+                    @if (upcomingMfr(ship); as mfr) {
+                      <span class="upcoming-tile__mfr" [attr.title]="mfr">{{ mfr }}</span>
                     }
                     <span class="upcoming-tile__name">{{ ship.name }}</span>
                   </span>
@@ -798,7 +806,10 @@ interface PaperdollSlotView {
       .hit.meta .hit-icon { color: var(--meta); }
       .hit-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
       .hit-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .hit-meta { display: flex; gap: 6px; align-items: center; font-size: 0.72rem; color: var(--sc-fg-2); }
+      /* Wraps since the manufacturer is spelled out now — "Consolidated Outland"
+         next to the kind and size chips overruns a single line on a narrow card. */
+      .hit-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 0.72rem; color: var(--sc-fg-2); }
+      .hit-mfr { overflow: hidden; text-overflow: ellipsis; }
       .hit-kind { font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.04em; color: var(--sc-accent); }
       .hit.meta .hit-kind { color: var(--meta); }
 
@@ -1068,12 +1079,17 @@ interface PaperdollSlotView {
         color: inherit;
         background: linear-gradient(to top, rgba(2, 8, 14, 0.94) 0%, rgba(2, 8, 14, 0.74) 52%, transparent 100%);
       }
+      /* Holds a spelled-out manufacturer ("Roberts Space Industries") plus the
+         role, so it needs the clamp the 3-letter code never did. */
       .identity-mfr {
         font-family: var(--sc-font-display);
         font-size: max(0.66rem, var(--sc-fs-floor));
-        letter-spacing: 0.12em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .identity-role { color: color-mix(in srgb, #f2f7fb 72%, transparent); }
       .hero-name {
@@ -1202,9 +1218,12 @@ interface PaperdollSlotView {
       .fleet-tile__mfr {
         font-family: var(--sc-font-display);
         font-size: max(0.56rem, var(--sc-fs-floor));
-        letter-spacing: 0.12em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .fleet-tile__name {
         font-size: max(0.7rem, var(--sc-fs-floor));
@@ -1421,9 +1440,12 @@ interface PaperdollSlotView {
       .upcoming-tile__mfr {
         font-family: var(--sc-font-display);
         font-size: max(0.62rem, var(--sc-fs-floor));
-        letter-spacing: 0.14em;
+        letter-spacing: 0.07em;
         text-transform: uppercase;
         color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       /* Sits on the "Im Versum" line, right-aligned — no longer a lane of
@@ -1589,9 +1611,12 @@ export class CodexLandingComponent implements OnInit {
 
     const roles = this.fleetRoleLabels();
     const unknown = this.t.instant('codex.landing.fleet.sortUnknown');
+    // Group headings spell the manufacturer out ("Aegis Dynamics"), same as the
+    // tiles under them — grouping still collapses per manufacturer because the
+    // name is resolved from the same record for every hull of that make.
     const keyOf = (r: CodexListRow) =>
       axis === 'manufacturer'
-        ? r.manufacturerCode || unknown
+        ? manufacturerLabel(r, this.lang()) || unknown
         : roles.get(r.classNameSlug) || unknown;
 
     const groups = new Map<string, CodexListRow[]>();
@@ -1869,6 +1894,11 @@ export class CodexLandingComponent implements OnInit {
     return cleanLocaleValue(hit.nameLocalized) || humanizeClassName(hit.classNameSlug);
   }
 
+  /** Full manufacturer name of a search hit, code-only as the honest fallback. */
+  hitMfr(hit: PolySearchHit): string | null {
+    return pickLocalized(hit.manufacturerName, this.lang()) || hit.manufacturerCode || null;
+  }
+
   // ── compare tray ──────────────────────────────────────────────────────────
   togglePin(ev: Event, kind: CodexKind, className: string): void {
     ev.preventDefault();
@@ -1885,6 +1915,22 @@ export class CodexLandingComponent implements OnInit {
     const p = r.payload as { name?: LocalizedText } | null;
     const localized = p?.name ? pickLocalized(p.name, this.lang()) : '';
     return localized || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
+  }
+
+  /**
+   * Manufacturer of a hull, spelled out ("Aegis Dynamics", not "AEG"). The name
+   * is extracted game data carried on the row payload — see `manufacturerLabel`.
+   */
+  rowMfr(r: CodexListRow): string | null {
+    return manufacturerLabel(r, this.lang());
+  }
+
+  /**
+   * Manufacturer of an RSI ship-matrix entry. The matrix ships the full name
+   * next to the code, so the code is only ever the fallback.
+   */
+  upcomingMfr(ship: UpcomingShip): string | null {
+    return ship.manufacturer?.trim() || ship.manufacturerCode || null;
   }
 
   thumbs(r: CodexListRow): string[] {

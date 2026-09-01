@@ -11,7 +11,13 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { CodexListRow, CodexService, pickLocalized, toLang } from './codex.service';
+import {
+  CodexListRow,
+  CodexService,
+  manufacturerLabel,
+  pickLocalized,
+  toLang,
+} from './codex.service';
 import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
@@ -160,8 +166,8 @@ interface Lane {
               <h1 class="hero-name">
                 <a class="hero-name-link" [routerLink]="['/codex', 'ship', h.classNameSlug]">{{ rowName(h) }}</a>
               </h1>
-              @if (h.manufacturerCode) {
-                <p class="hero-mfr">{{ h.manufacturerCode }}</p>
+              @if (rowMfr(h); as mfr) {
+                <p class="hero-mfr">{{ mfr }}</p>
               }
               <div class="hero-stats">
                 @if (heroHeadline(); as stat) {
@@ -246,7 +252,7 @@ interface Lane {
                   </div>
                   <div class="lane-info">
                     <h3 class="lane-name">{{ ship.name }}</h3>
-                    @if (ship.manufacturerCode) { <span class="lane-mfr">{{ ship.manufacturerCode }}</span> }
+                    @if (upcomingMfr(ship); as mfr) { <span class="lane-mfr" [attr.title]="mfr">{{ mfr }}</span> }
                   </div>
                   <div class="lane-actions">
                     <span class="upcoming-tag" [class.concept]="!ship.flightReadyButMissing">
@@ -278,7 +284,7 @@ interface Lane {
           <div class="lane-info">
             <h3 class="lane-name">{{ rowName(r) }}</h3>
             <sc-holo-ready-badge [shipId]="r.classNameSlug" />
-            @if (r.manufacturerCode) { <span class="lane-mfr">{{ r.manufacturerCode }}</span> }
+            @if (rowMfr(r); as mfr) { <span class="lane-mfr" [attr.title]="mfr">{{ mfr }}</span> }
           </div>
           <div class="lane-actions">
             @if (inHangarSet().has(r.classNameSlug)) {
@@ -423,7 +429,8 @@ interface Lane {
     .lane-thumb.icon-only sc-codex-icon { width: 100%; height: 100%; }
     .lane-info { display: flex; flex-direction: column; gap: 2px; min-height: 40px; }
     .lane-name { margin: 0; font-size: 0.9rem; font-weight: 600; line-height: 1.2; }
-    .lane-mfr { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
+    /* Spelled-out manufacturer ("Drake Interplanetary") — clamp to the card. */
+    .lane-mfr { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.04em; color: var(--sc-fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .lane-actions { display: flex; align-items: center; gap: 8px; margin-top: auto; }
     .chip-btn { border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-2);
       font-size: 0.82rem; line-height: 1; min-width: max(30px, var(--sc-tap-min));
@@ -655,6 +662,14 @@ export class CodexBridgeComponent implements OnInit {
   }
 
   /**
+   * Manufacturer of a hull, spelled out ("Drake Interplanetary", not "DRAK") —
+   * extracted game data off the row payload, see `manufacturerLabel`.
+   */
+  rowMfr(r: CodexListRow): string | null {
+    return manufacturerLabel(r, toLang(this.t.currentLang));
+  }
+
+  /**
    * Ordered art candidates for a ship row, best-looking first: RSI's own store
    * render, then our datamined preview. The datamined "preview" is the game's
    * flat white UI silhouette — it identifies a hull without showing it — so it
@@ -685,6 +700,11 @@ export class CodexBridgeComponent implements OnInit {
 
   upcomingThumbs(ship: UpcomingShip): string[] {
     return thumbnailCandidates(ship);
+  }
+
+  /** RSI's ship-matrix carries the full manufacturer name; code is the fallback. */
+  upcomingMfr(ship: UpcomingShip): string | null {
+    return ship.manufacturer?.trim() || ship.manufacturerCode || null;
   }
 
   upcomingStatus(ship: UpcomingShip): string {
