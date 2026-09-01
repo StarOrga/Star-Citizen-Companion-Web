@@ -187,6 +187,56 @@ describe('SettingsComponent layout', () => {
     ).toBe(2);
   });
 
+  it('lists every section in the table of contents as a real fragment anchor', () => {
+    const fixture = setup(makeUser(), '1100px');
+    const el: HTMLElement = fixture.nativeElement;
+    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link'));
+    const groups = fixture.componentInstance.groups;
+    expect(links.length).toBe(groups.length);
+    links.forEach((link, i) => {
+      // Real anchors: middle click / Ctrl+click must stay a browser feature.
+      expect(link.tagName).toBe('A');
+      expect(link.getAttribute('href')).toBe(`#${groups[i].anchor}`);
+      // …and the target has to exist, or the rail is a set of dead links.
+      expect(el.querySelector(`#${groups[i].anchor}`)).toBeTruthy();
+    });
+  });
+
+  it('groups the cards thematically instead of one flat grid', () => {
+    const fixture = setup(makeUser(), '1100px');
+    const el: HTMLElement = fixture.nativeElement;
+    const sections = Array.from(el.querySelectorAll<HTMLElement>('.sections > .group'));
+    expect(sections.map((s) => s.id)).toEqual([
+      'settings-account',
+      'settings-preferences',
+      'settings-privacy',
+      'settings-danger',
+    ]);
+    // Every group is headed and holds at least one card.
+    for (const section of sections) {
+      expect(section.querySelector('.group-title')).toBeTruthy();
+      expect(section.querySelectorAll('.sc-card').length).toBeGreaterThan(0);
+    }
+    // The irreversible action is the last thing on the page.
+    expect(sections[sections.length - 1].querySelector('.danger-zone')).toBeTruthy();
+    // Account identity and the username editor belong to the same group.
+    expect(sections[0].querySelector('.account')).toBeTruthy();
+    expect(sections[0].querySelectorAll('.sc-card').length).toBe(2);
+    expect(sections[1].querySelector('.locale-grid')).toBeTruthy();
+  });
+
+  it('marks exactly one section as the active one in the rail', () => {
+    const fixture = setup(makeUser(), '1100px');
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelectorAll('.toc-link.active').length).toBe(1);
+
+    fixture.componentInstance.activeGroup.set('privacy');
+    fixture.detectChanges();
+    const active = el.querySelector<HTMLAnchorElement>('.toc-link.active')!;
+    expect(active.getAttribute('href')).toBe('#settings-privacy');
+    expect(active.getAttribute('aria-current')).toBe('true');
+  });
+
   it('shows the membership age as a single coarse unit with an exact tooltip', () => {
     const fixture = setup();
     const component = fixture.componentInstance;

@@ -1389,6 +1389,23 @@
   },
   "settings": {
     "title": "Settings",
+    "toc": {
+      "label": "Sections"
+    },
+    "groups": {
+      "account": {
+        "title": "Account & identity"
+      },
+      "preferences": {
+        "title": "Language & controls"
+      },
+      "privacy": {
+        "title": "Data & privacy"
+      },
+      "danger": {
+        "title": "Danger zone"
+      }
+    },
     "account": {
       "title": "Account"
     },
