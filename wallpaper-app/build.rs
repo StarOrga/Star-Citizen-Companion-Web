@@ -16,6 +16,8 @@ fn main() {
     // resolved at compile time. Without this, a cached build would keep an older
     // (or absent) token when CI rotates it.
     println!("cargo:rerun-if-env-changed=SC_RELEASE_TOKEN");
+    // Same story for the telemetry signing key baked in by src/telemetry.rs.
+    println!("cargo:rerun-if-env-changed=SC_TELEMETRY_HMAC_KEY");
 
     // The resource compiler only exists for Windows targets; skip elsewhere so a
     // non-Windows toolchain (e.g. a docs/lint job) can still build the crate.

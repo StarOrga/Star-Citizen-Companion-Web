@@ -85,7 +85,7 @@
     }
   },
   "impersonation": {
-        "banner": {
+    "banner": {
       "aria": "Role preview active",
       "viewingAs": "Previewing as: {{role}}",
       "realRole": "Your real role: {{role}}",
@@ -1989,7 +1989,7 @@
   },
   "telemetry": {
     "title": "Telemetry & Crash Stats",
-    "subtitle": "Anonymous crash reports and opt-in usage from the desktop app.",
+    "subtitle": "Anonymous crash reports and opt-in usage from every desktop client.",
     "refresh": "Refresh",
     "loading": "Loading telemetry…",
     "empty": "No data in this window.",
@@ -2036,7 +2036,8 @@
       "label": "Product",
       "scc-app": "SCC App",
       "data-uploader": "Data Uploader",
-      "all": "All"
+      "all": "All",
+      "starscape": "Starscape"
     },
     "col": {
       "at": "When",
@@ -2044,6 +2045,26 @@
       "role": "Process",
       "name": "Error",
       "message": "Message"
+    },
+    "products": {
+      "title": "Products side by side",
+      "hint": "Every client in the selected window. Pick a card to scope everything below to that product.",
+      "crashesShort": "crashes",
+      "healthy": "No crashes",
+      "silent": "No data",
+      "lastSeen": "Last seen",
+      "never": "Never reported"
+    },
+    "detail": {
+      "title": "Details"
+    },
+    "byChannel": "By release ring",
+    "usageByMetric": "Usage by event",
+    "channel": {
+      "stable": "Stable",
+      "beta": "Beta",
+      "alpha": "Alpha",
+      "dev": "Dev"
     }
   },
   "adminFeedback": {

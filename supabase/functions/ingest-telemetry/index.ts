@@ -1,7 +1,13 @@
 // supabase/functions/ingest-telemetry
 // ---------------------------------------------------------------
-// Anonymous crash + opt-in usage telemetry ingest for the desktop app
+// Anonymous crash + opt-in usage telemetry ingest for every desktop client
 // (StarOrga/Star-Citizen-Companion-App#21). Wire contract v1.
+//
+// PRODUCTS — one endpoint, one table, one signature scheme for all of them:
+//   scc-app       — the main Star Citizen Companion desktop app
+//   data-uploader — the P4K extraction & upload tool (Electron)
+//   starscape     — the native Windows wallpaper/screensaver tray app (Rust)
+// `product` on the wire is what separates them in the admin dashboard.
 //
 // AUTH — no JWT (verify_jwt = false). The desktop app is an unauthenticated
 // machine client; this function does its own HMAC auth:
@@ -64,8 +70,12 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 const ROLES = new Set(['host', 'daemon', 'overlay', 'desktop', 'renderer']);
-const CHANNELS = new Set(['stable', 'beta', 'dev']);
-const PRODUCTS = new Set(['scc-app', 'data-uploader']);
+// 'alpha' exists because Starscape ships stable/beta/ALPHA rings. Without it an
+// alpha install would be normalised to 'dev' below and the ring signal lost.
+const CHANNELS = new Set(['stable', 'beta', 'alpha', 'dev']);
+// Every reporting client. Must stay in sync with the telemetry_events.product
+// CHECK constraint — an id accepted here but rejected there fails the INSERT.
+const PRODUCTS = new Set(['scc-app', 'data-uploader', 'starscape']);
 
 function clamp(s: unknown, n: number): string | null {
   if (s == null) return null;
@@ -138,8 +148,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const appVersion = clamp(body.appVersion, 40) ?? 'unknown';
   const channel = CHANNELS.has(String(body.channel)) ? String(body.channel) : 'dev';
   const role = ROLES.has(String(body.role)) ? String(body.role) : null;
-  // product identifies the sending client (scc-app | data-uploader). Unknown /
-  // absent → null (legacy readers coalesce NULL to 'scc-app').
+  // product identifies the sending client (scc-app | data-uploader | starscape).
+  // Unknown / absent → null (legacy readers coalesce NULL to 'scc-app').
   const product = PRODUCTS.has(String(body.product)) ? String(body.product) : null;
 
   const rows = (events as Record<string, unknown>[]).map((ev) => {

@@ -4,6 +4,41 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.72.0] - 2026-09-01
+
+### Added
+
+- **Starscape now reports how it is doing.** The wallpaper app was the one
+  desktop client that never said a word: if it crashed on your machine, or if a
+  released build never started for anybody, nothing about that reached us. It
+  now sends the same anonymous diagnostics the other two clients already send —
+  the same signed endpoint, the same rules, no separate channel. Exactly two
+  things go out: that it started, together with how it is set up (background,
+  screensaver or both, interval, crossfade), and, after a crash, the panic and
+  the source line — reported on the *next* start, never from inside the dying
+  process. There is no account, no address and no file of yours in any of it,
+  and the install and session identifiers are random values the server only
+  ever keeps as one-way hashes. It is on by default and off in one click, under
+  **Send anonymous diagnostics** in the tray menu; switching it off also
+  deletes the crash record still waiting on disk rather than merely silencing
+  it. Release rings are finally reported truthfully too — an alpha install used
+  to be filed under "dev", so the ring that most needs watching was the one
+  nobody could see.
+- **The telemetry page compares the products instead of switching between
+  them.** It used to ask "which one product do you want to look at?" and answer
+  everything else in that light — a question that stops working the moment
+  there is a third client. The page now opens on every product side by side:
+  one card each, with installs, sessions and usage, whether it has crashed, its
+  share of all traffic and when it was last heard from. A product that has
+  reported *nothing* gets a card too, which is the whole point — "did the build
+  we shipped yesterday ever check in?" is answered by a zero, not by an absent
+  tile. Picking a card scopes the whole page below it to that product, and the
+  choice lives in the address bar, so a view can be bookmarked, shared, or
+  middle-clicked into its own tab. Two things that were previously invisible
+  come with it: which release ring the events came from, and what the usage
+  events actually *are* rather than just how many. The page grows with the next
+  product without another rewrite.
+
 ## [0.71.4] - 2026-08-30
 
 ### Fixed

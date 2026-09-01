@@ -22,7 +22,10 @@ pub fn line(msg: &str) {
 }
 
 /// Record any panic (message + location) before the process aborts. Turns a
-/// silent crash into a diagnosable line in the log.
+/// silent crash into a diagnosable line in the log — and, so the maintainer
+/// learns about it at all, into a crash record the NEXT launch reports through
+/// the shared telemetry ingest (see `telemetry::record_panic`; the send itself
+/// is deferred and gated on the user's opt-out, this hook only writes a file).
 pub fn install_panic_hook() {
     std::panic::set_hook(Box::new(|info| {
         let loc = info
@@ -36,6 +39,7 @@ pub fn install_panic_hook() {
             .or_else(|| info.payload().downcast_ref::<String>().cloned())
             .unwrap_or_else(|| "unknown panic".to_string());
         line(&format!("PANIC at {loc}: {msg}"));
+        crate::telemetry::record_panic(&loc, &msg);
     }));
 }
 

@@ -1,7 +1,7 @@
-//! Windows CNG / DPAPI primitives used by the updater and the session store:
-//! SHA-256, cryptographic random, and at-rest protection for the persisted
-//! Supabase session. No crates — same rule as the rest of the app (see net.rs);
-//! everything here is raw `windows-sys`.
+//! Windows CNG / DPAPI primitives used by the updater, the telemetry reporter
+//! and the session store: SHA-256, HMAC-SHA-256, cryptographic random, and
+//! at-rest protection for the persisted Supabase session. No crates — same rule
+//! as the rest of the app (see net.rs); everything here is raw `windows-sys`.
 
 use std::ffi::c_void;
 
@@ -16,6 +16,9 @@ use crate::util::wide;
 
 /// `BCRYPT_USE_SYSTEM_PREFERRED_RNG` — lets us pass a null algorithm handle.
 const USE_SYSTEM_PREFERRED_RNG: u32 = 0x0000_0002;
+/// `BCRYPT_ALG_HANDLE_HMAC_FLAG` — opens the SHA-256 provider in HMAC mode so
+/// `BCryptCreateHash` accepts a secret and produces an HMAC, not a plain hash.
+const ALG_HANDLE_HMAC_FLAG: u32 = 0x0000_0008;
 /// SHA-256 digest length in bytes.
 const SHA256_LEN: usize = 32;
 /// Feed `BCryptHashData` in bounded chunks: its length parameter is a `u32`, and
@@ -39,16 +42,41 @@ const DPAPI_ENTROPY: &[u8] = b"StarscapeWallpaper/session/v1";
 /// Returns `None` if CNG refuses at any step. The updater treats that as
 /// "unverified" and refuses to install — never as "hash matched".
 pub fn sha256_hex(bytes: &[u8]) -> Option<String> {
-    let mut digest = [0u8; SHA256_LEN];
+    digest(bytes, None).map(|d| hex_lower(&d))
+}
+
+/// Lowercase-hex HMAC-SHA-256 of `msg` under `key`, via Windows CNG.
+///
+/// This is the `X-SCC-Signature` the shared `ingest-telemetry` edge function
+/// verifies over `"{timestamp}.{body}"` — byte-for-byte what node:crypto's
+/// `createHmac('sha256', key)` produces for the data-uploader, so both clients
+/// speak the identical wire contract. `None` on any CNG failure; the caller
+/// then simply drops the report rather than sending an unsigned one.
+pub fn hmac_sha256_hex(key: &[u8], msg: &[u8]) -> Option<String> {
+    digest(msg, Some(key)).map(|d| hex_lower(&d))
+}
+
+/// SHA-256 of `bytes` — keyed (i.e. HMAC-SHA-256) when `key` is `Some`.
+/// `None` whenever CNG refuses at any step; never a partial or fallback digest.
+fn digest(bytes: &[u8], key: Option<&[u8]>) -> Option<[u8; SHA256_LEN]> {
+    let mut out = [0u8; SHA256_LEN];
     unsafe {
         let algid = wide("SHA256");
         let mut alg: *mut c_void = std::ptr::null_mut();
-        if BCryptOpenAlgorithmProvider(&mut alg, algid.as_ptr(), std::ptr::null(), 0) != 0 {
+        // The HMAC flag has to be set when the PROVIDER is opened, not when the
+        // hash is created — a secret handed to a plain provider is ignored and
+        // would silently produce an ordinary SHA-256 the server then rejects.
+        let flags = if key.is_some() { ALG_HANDLE_HMAC_FLAG } else { 0 };
+        if BCryptOpenAlgorithmProvider(&mut alg, algid.as_ptr(), std::ptr::null(), flags) != 0 {
             return None;
         }
+        let (secret, secret_len): (*const u8, u32) = match key {
+            Some(k) => (k.as_ptr(), k.len() as u32),
+            None => (std::ptr::null(), 0),
+        };
         let mut hash: *mut c_void = std::ptr::null_mut();
         // Null hash-object buffer → CNG allocates and frees it internally (Win8+).
-        let created = BCryptCreateHash(alg, &mut hash, std::ptr::null_mut(), 0, std::ptr::null(), 0, 0);
+        let created = BCryptCreateHash(alg, &mut hash, std::ptr::null_mut(), 0, secret, secret_len, 0);
         if created != 0 {
             BCryptCloseAlgorithmProvider(alg, 0);
             return None;
@@ -60,7 +88,7 @@ pub fn sha256_hex(bytes: &[u8]) -> Option<String> {
                 break;
             }
         }
-        if ok && BCryptFinishHash(hash, digest.as_mut_ptr(), SHA256_LEN as u32, 0) != 0 {
+        if ok && BCryptFinishHash(hash, out.as_mut_ptr(), SHA256_LEN as u32, 0) != 0 {
             ok = false;
         }
         BCryptDestroyHash(hash);
@@ -69,7 +97,7 @@ pub fn sha256_hex(bytes: &[u8]) -> Option<String> {
             return None;
         }
     }
-    Some(hex_lower(&digest))
+    Some(out)
 }
 
 /// `len` cryptographically random bytes rendered as lowercase hex. Used for the
@@ -192,6 +220,32 @@ mod tests {
             sha256_hex(b"abc").as_deref(),
             Some("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
         );
+    }
+
+    #[test]
+    fn hmac_sha256_matches_rfc4231_vectors() {
+        // RFC 4231 test case 2 — proves the CNG provider really is in HMAC mode.
+        // A provider opened WITHOUT BCRYPT_ALG_HANDLE_HMAC_FLAG silently ignores
+        // the secret and returns the plain SHA-256, which the server would then
+        // reject as a bad signature with no local symptom whatsoever.
+        assert_eq!(
+            hmac_sha256_hex(b"Jefe", b"what do ya want for nothing?").as_deref(),
+            Some("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843")
+        );
+        // RFC 4231 test case 1.
+        assert_eq!(
+            hmac_sha256_hex(&[0x0bu8; 20], b"Hi There").as_deref(),
+            Some("b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7")
+        );
+    }
+
+    #[test]
+    fn hmac_is_keyed_and_differs_from_the_plain_hash() {
+        let msg = b"1750000000.{\"type\":\"usage\"}";
+        let a = hmac_sha256_hex(b"key-a", msg).expect("hmac");
+        let b = hmac_sha256_hex(b"key-b", msg).expect("hmac");
+        assert_ne!(a, b, "a different key must give a different signature");
+        assert_ne!(Some(a), sha256_hex(msg), "HMAC must not degrade to a plain hash");
     }
 
     #[test]

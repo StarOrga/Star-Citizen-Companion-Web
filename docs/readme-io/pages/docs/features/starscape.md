@@ -58,8 +58,27 @@ run (*More info → Run anyway*).
 | **Fade transition** | Toggle the crossfade |
 | **Weekly Verse News on start** | Show a weekly Verse-News summary image as the first wallpaper after boot or login, once per day. On by default |
 | **Start with Windows** | Autostart via the user's `Run` key. On by default for new installs; existing installs keep their current setting. When enabled, the entry always follows the copy you actually launched — downloading a newer build and starting it once is enough to make it the installed one |
+| **Send anonymous diagnostics** | Anonymous crash + launch telemetry, on by default. See [Diagnostics](#diagnostics) below — switching it off also deletes anything already recorded |
 | **◈ v… (update status)** | Always names the running version plus the update state: up to date, update available, downloading, or *sign in for `<ring>` updates*. A signed-out install on a locked ring even flags "outdated" when a newer build is already public. Click to sign in, install, or retry |
 | **Show Verse News summary now** | Re-fetch the summary and set it immediately |
 | **Open Starscape website** | The web gallery |
+
+### Diagnostics
+
+Starscape reports the same anonymous telemetry as the other desktop clients —
+one shared, signed endpoint, one table, and a `product` tag that keeps the
+three apart in the admin dashboard.
+
+Exactly two things are sent:
+
+- **Once per launch** — that it started, plus how it is configured (mode, fade,
+  paused, rotation interval, screensaver delay, Verse-News-on-start).
+- **After a crash** — the panic message and the source line, reported on the
+  *next* start. Nothing is sent from inside the crashing process.
+
+There is no account, no IP address and no file path in any of it. The install
+and session identifiers are random values that the server only ever stores as
+salted hashes. Turn it off any time via **Send anonymous diagnostics** in the
+tray menu; that also deletes any crash record still waiting on disk.
 
 See [Desktop tools](doc:desktop-tools) for the other companion binary.
