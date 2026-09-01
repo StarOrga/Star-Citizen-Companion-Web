@@ -82,9 +82,30 @@ run (*More info → Run anyway*).
 | **Weekly Verse News on start** | Show a weekly Verse-News summary image as the first wallpaper after boot or login, once per day. On by default |
 | **Start with Windows** | Autostart via the user's `Run` key. On by default for new installs; existing installs keep their current setting. When enabled, the entry always follows the copy you actually launched — downloading a newer build and starting it once is enough to make it the installed one |
 | **Send anonymous diagnostics** | Anonymous crash + launch telemetry, on by default. See [Diagnostics](#diagnostics) below — switching it off also deletes anything already recorded |
-| **◈ v… (update status)** | Always names the running version plus the update state: up to date, update available, downloading, or *sign in for `<ring>` updates*. A signed-out install on a locked ring even flags "outdated" when a newer build is already public. Click to sign in, install, or retry |
+| **◈ v… (update status)** | Always names the running version plus the update state: up to date, update available, downloading, or *sign in to check*. Click to sign in, install, or retry |
+| **Update channel ▸** | Which release ring the app follows. *Automatic (highest available)* is the default and picks the highest ring your account may use — alpha for admins, beta for collaborators, stable for everyone else — and re-checks that on every update poll. Pin *Stable*, *Beta* or *Alpha* instead if you want a fixed one; rings your account cannot use are shown greyed out rather than hidden |
 | **Show Verse News summary now** | Re-fetch the summary and set it immediately |
 | **Open Starscape website** | The web gallery |
+
+#### Update channels
+
+Starscape ships on three rings: **alpha** first, then **beta**, then **stable**.
+They are pointers at the same build, promoted one after another — the binary is
+identical, only *when* you receive it differs.
+
+Which ring you get is decided by your account role, and by default the app takes
+the **highest one you are entitled to**. Nothing has to be configured for that,
+but two things are worth knowing:
+
+- **Alpha and beta need a signed-in app.** Signed out, the update feed can only
+  serve you stable, so the tray shows *"v… on a pre-release ring · sign in to
+  check"* when a higher ring has moved ahead. Signing in through
+  **Open Starscape website** resolves it — either into the newer build, or into a
+  quiet "up to date" if your role does not reach that ring after all.
+- **Pinning is a one-click escape hatch.** Pick a specific ring under
+  **Update channel** to stop following the highest one; the choice survives
+  restarts and self-updates. Downloading a `-beta` or `-alpha` build from the
+  website also pins that ring, but only on a brand-new install.
 
 ### Diagnostics
 
