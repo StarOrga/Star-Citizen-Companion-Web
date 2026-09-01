@@ -384,6 +384,18 @@
       },
       "search": "Search keybindings",
       "searchPlaceholder": "Search action or key…",
+      "lang": {
+        "aria": "Language of the action names",
+        "note": "Many players run Star Citizen in English — switch to EN to see the actions the way the game names them.",
+        "short": {
+          "ui": "EN",
+          "en": "EN"
+        },
+        "hint": {
+          "ui": "Action names in your language",
+          "en": "Action names in the English original — as in-game"
+        }
+      },
       "count": "{{shown}} of {{total}} actions",
       "unbound": "—",
       "rawKey": "Internal action key",
@@ -408,7 +420,10 @@
         "debug": "Debug"
       },
       "assign": {
-        "toggle": "Assign categories",
+        "enter": "Assign categories",
+        "exit": "Leave assign mode",
+        "active": "Assignment mode active",
+        "help": "Click a row to select it (or a category heading for the whole group), then pick the layers below and press \"Assign\".",
         "progress": "{{assigned}} of {{total}} actions assigned",
         "filter": "Filter",
         "filters": {

@@ -384,6 +384,18 @@
       },
       "search": "Keybindings durchsuchen",
       "searchPlaceholder": "Aktion oder Taste suchen…",
+      "lang": {
+        "aria": "Sprache der Aktionsnamen",
+        "note": "Viele spielen Star Citizen auf Englisch — schalte auf EN, um die Aktionen so zu sehen wie im Spiel.",
+        "short": {
+          "ui": "DE",
+          "en": "EN"
+        },
+        "hint": {
+          "ui": "Aktionsnamen auf Deutsch",
+          "en": "Aktionsnamen im englischen Original — wie im Spiel"
+        }
+      },
       "count": "{{shown}} von {{total}} Aktionen",
       "unbound": "—",
       "rawKey": "Interner Aktionsschlüssel",
@@ -408,7 +420,10 @@
         "debug": "Debug"
       },
       "assign": {
-        "toggle": "Kategorien zuweisen",
+        "enter": "Kategorien zuweisen",
+        "exit": "Zuweisen beenden",
+        "active": "Zuweisungsmodus aktiv",
+        "help": "Zeile anklicken zum Auswählen (oder eine Kategorie-Überschrift für die ganze Gruppe), dann unten die Ebenen wählen und „Zuweisen“ drücken.",
         "progress": "{{assigned}} von {{total}} Aktionen zugeordnet",
         "filter": "Filter",
         "filters": {

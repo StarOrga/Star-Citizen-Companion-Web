@@ -14,6 +14,13 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 export interface ScSelectOption {
   readonly value: string;
   readonly labelKey: string;
+  /**
+   * Ready-made text that WINS over `labelKey`. For the rare caller that has to
+   * render a label in a language other than the UI's — e.g. the Codex input
+   * actions, where an English-original switch shows the taxonomy the way the
+   * game names it. Leave unset for the normal, translated case.
+   */
+  readonly label?: string;
 }
 
 /** Sentinel for "nothing picked" — `null` on the wire, `''` inside the list. */
@@ -64,7 +71,9 @@ let uid = 0;
       (click)="toggle()"
       (keydown)="onKeydown($event)"
     >
-      <span class="value" [class.none]="value() === null">{{ valueLabelKey() | translate }}</span>
+      <span class="value" [class.none]="value() === null">{{
+        valueLabel() ?? (valueLabelKey() | translate)
+      }}</span>
       <span class="chevron" aria-hidden="true"></span>
     </button>
 
@@ -82,7 +91,7 @@ let uid = 0;
             (click)="choose(i)"
           >
             <span class="tick" aria-hidden="true"></span>
-            <span class="label">{{ o.labelKey | translate }}</span>
+            <span class="label">{{ o.label ?? (o.labelKey | translate) }}</span>
           </li>
         }
       </ul>
@@ -156,6 +165,8 @@ export class ScSelectComponent {
   readonly disabled = input(false);
   /** i18n key for the "nothing picked" row (and the trigger's empty label). */
   readonly placeholderKey = input('common.select.none');
+  /** Ready-made text for that row, overriding `placeholderKey` — see `label`. */
+  readonly placeholderLabel = input<string | null>(null);
   readonly ariaLabel = input('');
 
   readonly valueChange = output<string | null>();
@@ -167,16 +178,20 @@ export class ScSelectComponent {
 
   /** Placeholder first, then the caller's options — index 0 is always "none". */
   readonly choices = computed<readonly ScSelectOption[]>(() => [
-    { value: NONE, labelKey: this.placeholderKey() },
+    { value: NONE, labelKey: this.placeholderKey(), label: this.placeholderLabel() ?? undefined },
     ...this.options(),
   ]);
 
   readonly currentValue = computed(() => this.value() ?? NONE);
 
-  readonly valueLabelKey = computed(
-    () =>
-      this.choices().find((o) => o.value === this.currentValue())?.labelKey ?? this.placeholderKey(),
+  private readonly currentChoice = computed(() =>
+    this.choices().find((o) => o.value === this.currentValue()),
   );
+
+  readonly valueLabelKey = computed(() => this.currentChoice()?.labelKey ?? this.placeholderKey());
+
+  /** Pre-translated text for the picked option, when the caller supplied one. */
+  readonly valueLabel = computed(() => this.currentChoice()?.label ?? null);
 
   optionId(i: number): string {
     return `${this.listId}-o${i}`;
@@ -281,7 +296,7 @@ export class ScSelectComponent {
     const from = this.open() ? this.activeIndex() + 1 : 0;
     for (let n = 0; n < items.length; n++) {
       const i = (from + n) % items.length;
-      const label = String(this.i18n.instant(items[i].labelKey) ?? '');
+      const label = items[i].label ?? String(this.i18n.instant(items[i].labelKey) ?? '');
       if (label.toLowerCase().startsWith(needle)) {
         ev.preventDefault();
         if (!this.open()) this.openList();
