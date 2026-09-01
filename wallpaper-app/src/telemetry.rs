@@ -491,7 +491,17 @@ mod tests {
                 extra: None,
             },
         );
-        assert!(body.contains(r#"called \"unwrap\"\non a\tNone\\value"#), "{body}");
+        // Each escape is checked on its own: one long literal is exactly the
+        // kind of assertion that is easier to typo than the code it guards.
+        for expected in [
+            "called \\\"unwrap\\\"", // a quote      becomes  backslash + quote
+            "\\non a",                // a newline    becomes  backslash + n
+            "\\tNone",                // a tab        becomes  backslash + t
+            "\\\\value",              // a backslash  becomes  two backslashes
+            "\\u0007",                // any other control char becomes \uXXXX
+        ] {
+            assert!(body.contains(expected), "missing {expected} in {body}");
+        }
         assert!(body.contains("\"extra\":null"), "{body}");
         // Nothing raw may survive into the body.
         assert!(!body.contains('\n'), "{body}");
