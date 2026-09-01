@@ -16,6 +16,8 @@ import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
 import { RoleService } from '../auth/role.service';
 import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component';
 import { StarscapeAppPromoComponent } from './starscape-app-promo.component';
+import { StarscapeVoteButtonComponent } from './starscape-vote-button.component';
+import { StarscapeVotesService } from './starscape-votes.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
@@ -70,6 +72,7 @@ const IMAGE_STALL_MS = 20_000;
     ImgReadyDirective,
     AppDownloadMenuComponent,
     StarscapeAppPromoComponent,
+    StarscapeVoteButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -91,25 +94,47 @@ const IMAGE_STALL_MS = 20_000;
         </div>
       </header>
 
-      @if (svc.seriesOptions().length > 0) {
-        <div class="filter-bar" role="tablist">
-          <button
-            type="button"
-            class="chip"
-            [class.active]="!svc.activeSeries()"
-            (click)="svc.setSeries('')">
-            {{ 'starscape.filterAll' | translate }}
-          </button>
-          @for (s of svc.seriesOptions(); track s) {
+      <div class="controls">
+        <!-- The series chips are a filter over the WHOLE gallery; the Top list is
+             a global ranking by definition, so the two cannot both be active. -->
+        @if (!votes.topOnly() && svc.seriesOptions().length > 0) {
+          <div class="filter-bar" role="tablist">
             <button
               type="button"
               class="chip"
-              [class.active]="svc.activeSeries() === s"
-              (click)="svc.setSeries(s)">
-              {{ s }}
+              [class.active]="!svc.activeSeries()"
+              (click)="svc.setSeries('')">
+              {{ 'starscape.filterAll' | translate }}
             </button>
-          }
-        </div>
+            @for (s of svc.seriesOptions(); track s) {
+              <button
+                type="button"
+                class="chip"
+                [class.active]="svc.activeSeries() === s"
+                (click)="svc.setSeries(s)">
+                {{ s }}
+              </button>
+            }
+          </div>
+        }
+        <!-- "Only the Top 7". A real switch, persisted per user: signed in it
+             lives on the profile (profiles.starscape_top_only) so the Starscape
+             desktop app can read the SAME preference; signed out it falls back
+             to local storage so a reload does not undo the choice. -->
+        <button
+          type="button"
+          class="top-toggle"
+          role="switch"
+          [class.active]="votes.topOnly()"
+          [attr.aria-checked]="votes.topOnly()"
+          (click)="toggleTopOnly()">
+          <span class="tt-track" aria-hidden="true"><span class="tt-knob"></span></span>
+          {{ 'starscape.top.label' | translate: { count: votes.topLimit } }}
+        </button>
+      </div>
+
+      @if (votes.topOnly()) {
+        <p class="hint top-hint">{{ 'starscape.top.hint' | translate: { count: votes.topLimit } }}</p>
       }
 
       <!-- A failed page load is a dead end without a way back in: the request is
@@ -134,7 +159,7 @@ const IMAGE_STALL_MS = 20_000;
         </div>
       }
 
-      @if (svc.wallpapers().length === 0 && !svc.loading() && !svc.error()) {
+      @if (tiles().length === 0 && !svc.loading() && !votes.topLoading() && !svc.error()) {
         <div class="sc-card empty">
           <p>{{ 'starscape.empty' | translate }}</p>
         </div>
@@ -144,7 +169,11 @@ const IMAGE_STALL_MS = 20_000;
            so the grid reads as "images incoming", never as collapsed stripes.
            The caption is what tells a visitor that the bars ARE the loading
            state — unlabelled, a screen of them just reads as broken content. -->
-      @if (svc.loading() && svc.wallpapers().length === 0) {
+      @if (votes.topOnly() && votes.topLoading() && tiles().length === 0) {
+        <p class="wall-status" role="status" aria-live="polite">{{ 'starscape.top.loading' | translate }}</p>
+      }
+
+      @if (!votes.topOnly() && svc.loading() && svc.wallpapers().length === 0) {
         <p class="wall-status" role="status" aria-live="polite">{{ 'starscape.loadingImages' | translate }}</p>
         <div class="wall" aria-hidden="true">
           @for (i of skeletonSlots; track i) {
@@ -166,7 +195,11 @@ const IMAGE_STALL_MS = 20_000;
       }
 
       <div class="wall">
-        @for (w of svc.wallpapers(); track w.imageId; let i = $index) {
+        @for (w of tiles(); track w.imageId; let i = $index) {
+        <!-- The wrapper exists so the thumbs-up can be a SIBLING of the tile
+             link: a <button> nested inside an <a> is invalid HTML and would eat
+             the anchor's middle-click / "open in new tab" behaviour. -->
+        <div class="tile-wrap">
           <!-- A tile is a link to the full-res source (d2171662): middle click,
                Ctrl/⌘+click and "open image in new tab" go straight to the CDN
                original; a plain left click keeps the in-page lightbox. -->
@@ -242,10 +275,15 @@ const IMAGE_STALL_MS = 20_000;
             </picture>
             @if (w.series) { <span class="tile-series">{{ w.series }}</span> }
           </a>
+          <!-- Thumbs-up. Revealed on hover on precise pointers, but ALWAYS
+               visible on touch (there is no hover to reveal it with) and always
+               visible once cast, so your own vote is legible without hovering. -->
+          <sc-vote-button class="tile-vote" [imageId]="w.imageId" [compact]="true" />
+        </div>
         }
       </div>
 
-      @if (svc.hasMore()) {
+      @if (!votes.topOnly() && svc.hasMore()) {
         <button type="button" class="sc-btn more" [disabled]="svc.loading()" (click)="svc.load()">
           {{ (svc.loading() ? 'starscape.loading' : 'starscape.loadMore') | translate }}
         </button>
@@ -284,6 +322,10 @@ const IMAGE_STALL_MS = 20_000;
               </span>
             </div>
             <div class="lb-actions">
+              <!-- Same control as on the tile, at full button height: on a phone
+                   the lightbox is where an image is actually looked at, so the
+                   vote has to be reachable from here too. -->
+              <sc-vote-button [imageId]="w.imageId" />
               <!-- A real ACTION, so a <button>: it opens the Android/iOS share
                    sheet via the Web Share API and only falls back to the
                    clipboard where that API is missing (desktop browsers). -->
@@ -316,7 +358,39 @@ const IMAGE_STALL_MS = 20_000;
        overlay positioning (sc-app-download-menu); this only aligns the column. */
     .app-cta { display: flex; justify-content: flex-end; flex: 0 0 auto; }
 
-    .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+    /* Filter chips and the Top toggle share one row; the toggle is pushed to
+       the trailing edge and wraps onto its own line when the chips fill up. */
+    .controls { display: flex; gap: 10px 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; }
+    .top-hint { color: var(--sc-fg-2); margin: -6px 0 0; max-width: 68ch;
+      font-size: max(0.76rem, var(--sc-fs-floor)); }
+
+    /* A switch, not a chip: it changes WHAT the gallery is, not which slice of
+       it you see, so it gets the on/off affordance rather than a filter pill. */
+    .top-toggle {
+      display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto;
+      padding: 4px 14px 4px 6px; border-radius: 999px; cursor: pointer;
+      font: inherit; font-size: max(0.76rem, var(--sc-fs-floor));
+      background: var(--sc-bg-1); color: var(--sc-fg-2);
+      border: 1px solid var(--sc-border);
+    }
+    .top-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .top-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .top-toggle.active { color: var(--sc-accent); border-color: var(--sc-accent);
+      background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
+    .tt-track {
+      display: inline-block; position: relative; width: 32px; height: 18px;
+      border-radius: 999px; background: var(--sc-bg-0);
+      border: 1px solid var(--sc-border); flex: 0 0 auto;
+    }
+    .tt-knob {
+      position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+      border-radius: 50%; background: var(--sc-fg-2);
+      transition: transform 0.16s ease, background 0.16s ease;
+    }
+    .top-toggle.active .tt-track { border-color: var(--sc-accent); }
+    .top-toggle.active .tt-knob { transform: translateX(14px); background: var(--sc-accent); }
+    @media (prefers-reduced-motion: reduce) { .tt-knob { transition: none; } }
     .chip {
       padding: 4px 12px; border-radius: 999px; font-size: max(0.76rem, var(--sc-fs-floor));
       background: var(--sc-bg-1); color: var(--sc-fg-2);
@@ -328,6 +402,11 @@ const IMAGE_STALL_MS = 20_000;
 
     /* Masonry via CSS columns — tiles keep their natural aspect ratio. */
     .wall { columns: 4 260px; column-gap: 12px; }
+    /* The masonry box is the WRAPPER (tile link + thumbs-up button), so the
+       column break and the hover lift apply to both together — the overlay
+       button is positioned against this element. */
+    .tile-wrap { position: relative; display: block; width: 100%; margin: 0 0 12px;
+      break-inside: avoid; transition: transform 0.16s ease; }
     .tile {
       position: relative; display: block; width: 100%; margin: 0 0 12px;
       padding: 0; border: 1px solid var(--sc-border); border-radius: 8px;
@@ -335,9 +414,26 @@ const IMAGE_STALL_MS = 20_000;
       break-inside: avoid; color: inherit; text-decoration: none;
       transition: transform 0.16s ease, box-shadow 0.16s ease;
     }
+    .tile-wrap > .tile { margin: 0; }
     .tile:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .tile:hover { transform: translateY(-2px);
+    .tile-wrap:hover { transform: translateY(-2px); }
+    .tile-wrap:hover > .tile {
       box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 14px color-mix(in srgb, var(--sc-accent) 25%, transparent); }
+
+    /* Thumbs-up overlay. Base state = VISIBLE: hiding it by default and
+       revealing it on hover would make it unreachable on every touch device,
+       which is most of this gallery's traffic. The hover reveal below is an
+       enhancement scoped to precise pointers only. */
+    .tile-vote { position: absolute; top: 8px; right: 8px; z-index: 2; }
+    @media (hover: hover) and (pointer: fine) {
+      .tile-vote { opacity: 0; transition: opacity 0.16s ease; }
+      /* …but a vote you already cast stays on screen — otherwise you cannot see
+         what you liked without hovering every tile. */
+      .tile-wrap:hover .tile-vote,
+      .tile-wrap:focus-within .tile-vote,
+      .tile-vote.is-voted { opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) { .tile-vote { transition: none; } }
     /* <picture> is inline by default — it has to become the tile's block box so
        the image keeps filling the column. */
     .tile picture { display: block; }
@@ -375,6 +471,8 @@ const IMAGE_STALL_MS = 20_000;
       .tile-img { transition: opacity 0.2s ease; filter: none; transform: none; }
       .tile-img.ready { filter: none; }
       .tile.loaded { animation: none; }
+      .tile-wrap { transition: none; }
+      .tile-wrap:hover { transform: none; }
     }
 
     .tile-series {
@@ -496,6 +594,12 @@ const IMAGE_STALL_MS = 20_000;
       figcaption { flex-direction: column; align-items: stretch; gap: 10px; }
       .lb-actions { flex-wrap: wrap; gap: 8px; }
       .lb-actions .sc-btn { flex: 1 1 auto; text-align: center; }
+      /* One full-width column on a phone: the thumbs-up sits on the artwork
+         with a safe inset and is never hidden behind a hover it cannot get. */
+      .tile-vote { top: 10px; right: 10px; }
+      /* The toggle spans the row on its own so its label is never truncated. */
+      .controls { gap: 10px; }
+      .top-toggle { flex: 1 1 100%; justify-content: center; }
       .lb-hint { text-align: left; }
     }
 
@@ -520,7 +624,9 @@ const IMAGE_STALL_MS = 20_000;
       .lb-close { min-width: 48px; min-height: 48px; }
       /* No hover on touch — the lift and the zoom-in cursor are mouse idioms. */
       .tile { cursor: pointer; }
-      .tile:hover { transform: none; box-shadow: none; }
+      .tile-wrap:hover { transform: none; }
+      .tile-wrap:hover > .tile { box-shadow: none; }
+      .top-toggle { min-height: 48px; }
     }
 
     /* A Windows tray app cannot be installed from a phone or tablet, so the
@@ -535,6 +641,7 @@ const IMAGE_STALL_MS = 20_000;
 })
 export class StarscapeComponent implements OnInit {
   readonly svc = inject(StarscapeService);
+  readonly votes = inject(StarscapeVotesService);
   private readonly roles = inject(RoleService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
@@ -572,6 +679,18 @@ export class StarscapeComponent implements OnInit {
   );
   readonly promoVersion = computed(
     () => this.rings().find((r) => r.ring === 'stable')?.version ?? this.appVersion(),
+  );
+
+  /**
+   * What the grid actually paints: the global Top-N ranking while the toggle is
+   * on, the normal (optionally series-filtered) page otherwise.
+   *
+   * The ranking is a SNAPSHOT — it is refetched when the toggle is switched on
+   * and on reload, never live while you vote. Re-sorting under the finger would
+   * make tiles jump away from the button that was just tapped.
+   */
+  readonly tiles = computed<readonly Wallpaper[]>(() =>
+    this.votes.topOnly() ? this.votes.topWallpapers() : this.svc.wallpapers(),
   );
 
   readonly active = signal<Wallpaper | null>(null);
@@ -621,6 +740,14 @@ export class StarscapeComponent implements OnInit {
     effect(() => {
       if (this.svc.wallpapers().length > 0) this.armStallWatch();
     });
+    // Vote counts follow whatever the grid currently shows — one aggregate call
+    // per page/ranking change, never one per tile. `starscape_top_wallpapers`
+    // already returns its own counts, so only the paged list needs this.
+    effect(() => {
+      if (this.votes.topOnly()) return;
+      const ids = this.svc.wallpapers().map((w) => w.imageId);
+      if (ids.length > 0) void this.votes.syncCounts(ids);
+    });
     this.destroyRef.onDestroy(() => {
       if (this.shareHintTimer) clearTimeout(this.shareHintTimer);
       if (this.stallTimer) clearTimeout(this.stallTimer);
@@ -630,7 +757,18 @@ export class StarscapeComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     void this.svc.loadDesktopRelease();
     if (this.svc.wallpapers().length === 0) await this.svc.load(true);
+    // Restore the per-user toggle, then fetch the ranking if it is on. Done
+    // after the first page so the gallery paints either way.
+    await this.votes.loadPreference();
+    if (this.votes.topOnly() && this.votes.topWallpapers().length === 0) {
+      await this.votes.loadTop();
+    }
     await this.openDeepLink();
+  }
+
+  /** Flip "only the Top N" — persisted per user, and it refetches the ranking. */
+  toggleTopOnly(): void {
+    void this.votes.setTopOnly(!this.votes.topOnly());
   }
 
   /** Start (or restart) the "no picture has arrived yet" deadline. */

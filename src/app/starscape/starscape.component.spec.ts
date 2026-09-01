@@ -6,6 +6,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { StarscapeComponent } from './starscape.component';
 import { StarscapeService, Wallpaper } from './starscape.service';
+import { StarscapeVotesService } from './starscape-votes.service';
 
 function wallpaper(id: string): Wallpaper {
   return {
@@ -40,18 +41,39 @@ function serviceStub(wallpapers: Wallpaper[]) {
   };
 }
 
+/** Only the surface the gallery + the vote button actually read. */
+function votesStub(opts: { canVote?: boolean; counts?: Record<string, number>; mine?: string[] } = {}) {
+  return {
+    counts: signal<ReadonlyMap<string, number>>(new Map(Object.entries(opts.counts ?? {}))),
+    mine: signal<ReadonlySet<string>>(new Set(opts.mine ?? [])),
+    busy: signal<ReadonlySet<string>>(new Set<string>()),
+    topOnly: signal(false),
+    topWallpapers: signal<readonly Wallpaper[]>([]),
+    topLoading: signal(false),
+    topLimit: 7,
+    canVote: signal(opts.canVote ?? true),
+    syncCounts: jasmine.createSpy('syncCounts').and.resolveTo(undefined),
+    toggle: jasmine.createSpy('toggle').and.resolveTo(undefined),
+    loadTop: jasmine.createSpy('loadTop').and.resolveTo(undefined),
+    loadPreference: jasmine.createSpy('loadPreference').and.resolveTo(undefined),
+    setTopOnly: jasmine.createSpy('setTopOnly').and.resolveTo(undefined),
+  };
+}
+
 describe('StarscapeComponent', () => {
   const first = wallpaper('abc123');
 
   function configure(
     svc: ReturnType<typeof serviceStub>,
     queryParams: Record<string, string> = {},
+    votes: ReturnType<typeof votesStub> = votesStub(),
   ): void {
     TestBed.configureTestingModule({
       imports: [StarscapeComponent, TranslateModule.forRoot()],
       providers: [
         provideNoopAnimations(),
         { provide: StarscapeService, useValue: svc },
+        { provide: StarscapeVotesService, useValue: votes },
         { provide: RoleService, useValue: { role: signal('viewer') } },
         {
           provide: ActivatedRoute,
@@ -64,8 +86,9 @@ describe('StarscapeComponent', () => {
   function setup(
     svc = serviceStub([first]),
     queryParams: Record<string, string> = {},
+    votes: ReturnType<typeof votesStub> = votesStub(),
   ): ComponentFixture<StarscapeComponent> {
-    configure(svc, queryParams);
+    configure(svc, queryParams, votes);
     const f = TestBed.createComponent(StarscapeComponent);
     f.detectChanges();
     return f;
@@ -273,4 +296,82 @@ describe('StarscapeComponent', () => {
     expect(f.nativeElement.querySelector('.stalled')).toBeNull();
     f.destroy();
   }));
+
+  /* ---------------------------------------------------------------- *
+   * Thumbs-up + "Top 7 only" (admin feedback 058468f7).
+   * ---------------------------------------------------------------- */
+
+  it('puts the thumbs-up NEXT TO the tile link, never inside it', () => {
+    const f = setup();
+    const button = f.nativeElement.querySelector('sc-vote-button .vote') as HTMLButtonElement;
+    expect(button).not.toBeNull();
+    // A <button> nested in the tile's <a> would be invalid HTML and would eat
+    // the anchor's middle-click / "open in new tab" behaviour.
+    expect(button.closest('a')).toBeNull();
+    expect(button.closest('.tile-wrap')).not.toBeNull();
+    expect(button.tagName).toBe('BUTTON');
+    f.destroy();
+  });
+
+  it('votes on click without following the tile link', () => {
+    const votes = votesStub();
+    const f = setup(serviceStub([first]), {}, votes);
+    const button = f.nativeElement.querySelector('sc-vote-button .vote') as HTMLButtonElement;
+    const ev = new MouseEvent('click', { cancelable: true, bubbles: true });
+    button.dispatchEvent(ev);
+    expect(votes.toggle).toHaveBeenCalledWith('abc123');
+    expect(ev.defaultPrevented).toBeTrue();
+    f.destroy();
+  });
+
+  it('shows the public tally to a signed-out visitor but disables the vote', () => {
+    const votes = votesStub({ canVote: false, counts: { abc123: 3 } });
+    const f = setup(serviceStub([first]), {}, votes);
+    const button = f.nativeElement.querySelector('sc-vote-button .vote') as HTMLButtonElement;
+    expect(button.disabled).toBeTrue();
+    expect(button.getAttribute('aria-label')).toContain('starscape.vote.signedOut');
+    expect(button.textContent).toContain('3');
+    f.destroy();
+  });
+
+  it('marks a cast vote as pressed so it reads as state, not decoration', () => {
+    const votes = votesStub({ counts: { abc123: 1 }, mine: ['abc123'] });
+    const f = setup(serviceStub([first]), {}, votes);
+    const button = f.nativeElement.querySelector('sc-vote-button .vote') as HTMLButtonElement;
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    expect(button.classList).toContain('voted');
+    // Kept visible on desktop too - otherwise you cannot see what you liked
+    // without hovering every tile.
+    expect((button.closest('sc-vote-button') as HTMLElement).classList).toContain('is-voted');
+    f.destroy();
+  });
+
+  it('persists the Top-N toggle through the service rather than locally', () => {
+    const votes = votesStub();
+    const f = setup(serviceStub([first]), {}, votes);
+    const toggle = f.nativeElement.querySelector('.top-toggle') as HTMLButtonElement;
+    expect(toggle.getAttribute('role')).toBe('switch');
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    toggle.click();
+    expect(votes.setTopOnly).toHaveBeenCalledWith(true);
+    f.destroy();
+  });
+
+  it('paints the server-side ranking (not the paged list) while Top-N is on', () => {
+    const votes = votesStub();
+    votes.topOnly.set(true);
+    votes.topWallpapers.set([wallpaper('top001')]);
+    const svc = serviceStub([first]);
+    svc.hasMore.set(true);
+    const f = setup(svc, {}, votes);
+    const tiles = f.nativeElement.querySelectorAll('.tile-wrap');
+    expect(tiles.length).toBe(1);
+    expect((tiles[0].querySelector('.tile') as HTMLAnchorElement).getAttribute('aria-label'))
+      .toBe('Wallpaper top001');
+    // A ranked Top-N is a complete list - "load more" would contradict it.
+    expect(f.nativeElement.querySelector('.more')).toBeNull();
+    // Series chips filter the whole gallery; the ranking is global by definition.
+    expect(f.nativeElement.querySelector('.filter-bar')).toBeNull();
+    f.destroy();
+  });
 });
