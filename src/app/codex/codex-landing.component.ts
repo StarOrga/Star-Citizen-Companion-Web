@@ -1215,15 +1215,21 @@ interface PaperdollSlotView {
         padding: 14px 8px 6px;
         background: linear-gradient(to top, rgba(2, 8, 14, 0.93) 0%, rgba(2, 8, 14, 0.72) 48%, transparent 100%);
       }
+      /* Spelled-out maker ("Drake Interplanetary") on a 150px tile: wrap to a
+         second line like the name does rather than cutting the word off, and
+         only ellipsize past that. */
       .fleet-tile__mfr {
         font-family: var(--sc-font-display);
         font-size: max(0.56rem, var(--sc-fs-floor));
         letter-spacing: 0.06em;
+        line-height: 1.2;
         text-transform: uppercase;
         color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
-        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
       }
       .fleet-tile__name {
         font-size: max(0.7rem, var(--sc-fs-floor));
@@ -1441,11 +1447,14 @@ interface PaperdollSlotView {
         font-family: var(--sc-font-display);
         font-size: max(0.62rem, var(--sc-fs-floor));
         letter-spacing: 0.07em;
+        line-height: 1.2;
         text-transform: uppercase;
         color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
-        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
       }
 
       /* Sits on the "Im Versum" line, right-aligned — no longer a lane of

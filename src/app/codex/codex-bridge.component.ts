@@ -429,8 +429,10 @@ interface Lane {
     .lane-thumb.icon-only sc-codex-icon { width: 100%; height: 100%; }
     .lane-info { display: flex; flex-direction: column; gap: 2px; min-height: 40px; }
     .lane-name { margin: 0; font-size: 0.9rem; font-weight: 600; line-height: 1.2; }
-    /* Spelled-out manufacturer ("Drake Interplanetary") — clamp to the card. */
-    .lane-mfr { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.04em; color: var(--sc-fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Spelled-out manufacturer ("Drake Interplanetary") on a 216px card: wrap
+       to a second line rather than cutting the word off, ellipsize past that. */
+    .lane-mfr { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.04em; color: var(--sc-fg-2); line-height: 1.2;
+      overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
     .lane-actions { display: flex; align-items: center; gap: 8px; margin-top: auto; }
     .chip-btn { border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-2);
       font-size: 0.82rem; line-height: 1; min-width: max(30px, var(--sc-tap-min));

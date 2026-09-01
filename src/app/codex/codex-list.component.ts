@@ -16,6 +16,7 @@ import {
   CodexListFilters,
   CodexListRow,
   CodexService,
+  manufacturerFacetOptions,
   manufacturerLabel,
   pickLocalizedDistinct,
   toLang,
@@ -365,7 +366,10 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
     .hangar-add:hover { color: var(--sc-success, #5fd698); border-color: var(--sc-success, #5fd698); }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
+    /* Holds a spelled-out manufacturer now ("Musashi Industrial & Starflight
+       Concern"), so the pill has to stay inside the card on a phone. */
+    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent);
+      max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.variant { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: var(--sc-fg-1); }
     .badge.grade[data-grade="A"] { background: color-mix(in srgb, #5fd698 18%, transparent); border-color: color-mix(in srgb, #5fd698 42%, transparent); color: #8fe5b5; }
@@ -471,10 +475,6 @@ export class CodexListComponent implements OnInit {
   }
 
   /**
-   * Card title in the app language with EN fallback (UC-08), then the
-   * denormalized name, then the raw class name.
-   */
-  /**
    * Manufacturer badge text — the full name from the extracted payload
    * ("Aegis Dynamics"), falling back to the promoted code when the game data
    * has no resolvable name. See `manufacturerLabel`.
@@ -483,6 +483,10 @@ export class CodexListComponent implements OnInit {
     return manufacturerLabel(r, this.dataLang());
   }
 
+  /**
+   * Card title in the app language with EN fallback (UC-08), then the
+   * denormalized name, then the raw class name.
+   */
   cardName(r: CodexListRow): string {
     const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
     // Distinct-pick: DE only when genuinely translated, EN otherwise. (#50)
@@ -525,24 +529,12 @@ export class CodexListComponent implements OnInit {
 
   // Facet options derived from the rows actually loaded for the active kind.
   /**
-   * Manufacturer facet: the option VALUE stays the promoted `manufacturer_code`
-   * (that is what the server filters on), only the label is spelled out from the
-   * row payload's extracted name. Codes with no resolvable name keep the code as
-   * their label. Sorted by what the user reads.
+   * Manufacturer facet — spelled-out labels over the promoted code as the
+   * filter value. See `manufacturerFacetOptions`.
    */
-  readonly manufacturerOptions = computed<{ code: string; label: string }[]>(() => {
-    const byCode = new Map<string, string>();
-    for (const r of this.rows()) {
-      if (!r.manufacturerCode) continue;
-      const label = manufacturerLabel(r, this.dataLang()) ?? r.manufacturerCode;
-      const existing = byCode.get(r.manufacturerCode);
-      // First resolved name wins; never let a later code-only row overwrite it.
-      if (!existing || existing === r.manufacturerCode) byCode.set(r.manufacturerCode, label);
-    }
-    return [...byCode.entries()]
-      .map(([code, label]) => ({ code, label }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  });
+  readonly manufacturerOptions = computed(() =>
+    manufacturerFacetOptions(this.rows(), this.dataLang()),
+  );
   readonly sizeOptions = computed(() =>
     uniqSorted(this.rows().map((r) => (r.size != null ? String(r.size) : null))).sort(
       (a, b) => Number(a) - Number(b),

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { CodexService, manufacturerLabel } from './codex.service';
+import { CodexService, manufacturerFacetOptions, manufacturerLabel } from './codex.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 
@@ -341,5 +341,47 @@ describe('manufacturerLabel', () => {
   it('returns null rather than inventing a name when nothing is known', () => {
     expect(manufacturerLabel({ manufacturerCode: null, payload: {} }, 'en')).toBeNull();
     expect(manufacturerLabel(null, 'en')).toBeNull();
+  });
+});
+
+/**
+ * The facet keeps FILTERING on the promoted code (`listByKind` does
+ * `.eq('manufacturer_code', …)`) while only the LABEL is spelled out, so a
+ * relabelling can never silently break the query.
+ */
+describe('manufacturerFacetOptions', () => {
+  const row = (code: string | null, name?: string) => ({
+    manufacturerCode: code,
+    payload: name
+      ? { manufacturer: { code, name: { de: name, en: name, key: `@manufacturer_Name${code}` } } }
+      : {},
+  });
+
+  it('labels each code with its extracted name and sorts by the label', () => {
+    expect(
+      manufacturerFacetOptions(
+        [row('RSI', 'Roberts Space Industries'), row('DRAK', 'Drake Interplanetary')],
+        'en',
+      ),
+    ).toEqual([
+      { code: 'DRAK', label: 'Drake Interplanetary' },
+      { code: 'RSI', label: 'Roberts Space Industries' },
+    ]);
+  });
+
+  it('keeps the code as its own label when no row of that code resolves a name', () => {
+    expect(manufacturerFacetOptions([row('XNAA'), row('XNAA')], 'en')).toEqual([
+      { code: 'XNAA', label: 'XNAA' },
+    ]);
+  });
+
+  it('lets a later row with a real name upgrade a code-only label', () => {
+    expect(manufacturerFacetOptions([row('AEG'), row('AEG', 'Aegis Dynamics')], 'en')).toEqual([
+      { code: 'AEG', label: 'Aegis Dynamics' },
+    ]);
+  });
+
+  it('drops rows without a code — there is nothing to filter on', () => {
+    expect(manufacturerFacetOptions([row(null, 'Nowhere Inc')], 'en')).toEqual([]);
   });
 });
