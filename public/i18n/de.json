@@ -1362,10 +1362,36 @@
       "viewer": "Viewer"
     },
     "username": "Benutzername",
-    "usernameUnset": "Nicht gesetzt"
+    "usernameUnset": "Nicht gesetzt",
+    "idCopy": "Kopieren",
+    "idCopied": "Kopiert",
+    "providers": {
+      "email": "E-Mail & Passwort",
+      "google": "Google"
+    },
+    "memberSince": {
+      "today": "Heute",
+      "unknown": "Unbekannt",
+      "exact": "Registriert am {{date}}",
+      "days": {
+        "one": "{{count}} Tag",
+        "other": "{{count}} Tage"
+      },
+      "months": {
+        "one": "{{count}} Monat",
+        "other": "{{count}} Monate"
+      },
+      "years": {
+        "one": "{{count}} Jahr",
+        "other": "{{count}} Jahre"
+      }
+    }
   },
   "settings": {
     "title": "Einstellungen",
+    "account": {
+      "title": "Konto"
+    },
     "username": {
       "title": "Benutzername",
       "label": "Benutzername",

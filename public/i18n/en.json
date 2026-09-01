@@ -1362,10 +1362,36 @@
       "viewer": "Viewer"
     },
     "username": "Username",
-    "usernameUnset": "Not set"
+    "usernameUnset": "Not set",
+    "idCopy": "Copy",
+    "idCopied": "Copied",
+    "providers": {
+      "email": "Email & password",
+      "google": "Google"
+    },
+    "memberSince": {
+      "today": "Today",
+      "unknown": "Unknown",
+      "exact": "Registered on {{date}}",
+      "days": {
+        "one": "{{count}} day",
+        "other": "{{count}} days"
+      },
+      "months": {
+        "one": "{{count}} month",
+        "other": "{{count}} months"
+      },
+      "years": {
+        "one": "{{count}} year",
+        "other": "{{count}} years"
+      }
+    }
   },
   "settings": {
     "title": "Settings",
+    "account": {
+      "title": "Account"
+    },
     "username": {
       "title": "Username",
       "label": "Username",
