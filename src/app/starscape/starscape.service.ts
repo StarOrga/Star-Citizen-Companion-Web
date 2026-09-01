@@ -196,7 +196,7 @@ export class StarscapeService {
       if (series) q = q.eq('series', series);
       const { data, error, count } = await q.abortSignal(abort.signal);
       if (error) throw new Error(error.message);
-      const mapped = (data ?? []).map(mapRow);
+      const mapped = (data ?? []).map(mapWallpaperRow);
       this.wallpapers.set(reset ? mapped : [...this.wallpapers(), ...mapped]);
       this.total.set(count ?? mapped.length);
     } catch (err) {
@@ -221,7 +221,7 @@ export class StarscapeService {
         .eq('image_id', imageId)
         .maybeSingle();
       if (error || !data) return null;
-      return mapRow(data as Record<string, unknown>);
+      return mapWallpaperRow(data as Record<string, unknown>);
     } catch {
       return null; // a dead link must not break the gallery behind it
     }
@@ -234,7 +234,12 @@ export class StarscapeService {
   }
 }
 
-function mapRow(r: Record<string, unknown>): Wallpaper {
+/**
+ * Shared row → {@link Wallpaper} mapper. Exported because the Top-N ranking RPC
+ * (`starscape_top_wallpapers`, see StarscapeVotesService) projects the exact
+ * same columns and must produce the exact same shape.
+ */
+export function mapWallpaperRow(r: Record<string, unknown>): Wallpaper {
   return {
     imageId: (r['image_id'] as string) ?? '',
     sourceUrl: (r['source_url'] as string) ?? '',

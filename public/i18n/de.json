@@ -2513,6 +2513,16 @@
     "title": "Starscape",
     "subtitle": "Hochauflösende Artworks aus RSI-Comm-Links, gesammelt beim News-Crawl. Jedes Bild verlinkt direkt aufs Original im RSI-CDN — Kachel anklicken für volle Auflösung und Download.",
     "filterAll": "Alle",
+    "vote": {
+      "add": "Daumen hoch geben — {{count}} Stimmen",
+      "remove": "Daumen hoch zurücknehmen — {{count}} Stimmen",
+      "signedOut": "Zum Bewerten anmelden — {{count}} Stimmen"
+    },
+    "top": {
+      "label": "Nur Top {{count}} anzeigen",
+      "hint": "Die {{count}} bestbewerteten Wallpaper aller Nutzer. Solange noch wenig bewertet wurde, füllen die neuesten Bilder die restlichen Plätze auf.",
+      "loading": "Top-Auswahl wird geladen…"
+    },
     "empty": "Noch keine Wallpaper erfasst — sie erscheinen, sobald der News-Crawl läuft.",
     "loadMore": "Mehr laden",
     "loading": "Lädt…",

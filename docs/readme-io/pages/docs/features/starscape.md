@@ -14,6 +14,29 @@ resolution, the download link, and the source Comm-Link.
 > linked with attribution to the source Comm-Link. Fan-made gallery — no
 > re-sale, no re-hosting.
 
+## Thumbs up, and the Top 7
+
+Every tile carries a **thumbs up** — the stacked double triangle Spectrum uses
+for an upvote. Hover a tile on a desktop to reveal it; on a phone or tablet it
+is simply always there, and it is also in the opened tile next to *Share*.
+
+One vote per person per image, and it is permanent until you take it back —
+tapping it again removes your vote. Signed-out visitors still see how many
+votes an image has; casting one needs an account.
+
+Nobody can see *who* voted. The gallery only ever publishes the tally: the
+votes themselves are readable by their owner and by no one else, and the count
+is served by a database function that never returns a user.
+
+**Show top 7 only** narrows the gallery to the seven highest-voted wallpapers
+across all users. Early on, when barely anything has been voted for, the
+newest images fill the remaining slots — the list is never short and never
+empty. The setting is remembered per account.
+
+> The same **Top 7** switch is planned for the desktop app's tray menu, so the
+> rotation can follow the community's favourites. It is not in the tray yet —
+> the ranking already lives in the database so both sides can share it.
+
 ## On a phone
 
 The gallery is a single full-width column you scroll straight through. Most of
