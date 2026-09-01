@@ -586,8 +586,12 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
       .assign-bar { position: static; }
       .sel-count { margin-right: 0; flex: 1 1 100%; }
       /* Phone: the search field takes the full row, the switch and the mode
-         button share the next one instead of squeezing into a 3-up line. */
+         button share the next one instead of squeezing into a 3-up line. The
+         switch grows rather than leaving a gap beside itself, which also puts
+         both halves on a comfortable half-width thumb target. */
       .search { flex: 1 1 100%; }
+      .seg.lang { flex: 1 1 auto; }
+      .seg.lang .seg-btn { flex: 1 1 0; }
       .assign-toggle { flex: 1 1 auto; }
       .assign-help { flex: 1 1 100%; }
       .assign-exit { flex: 1 1 100%; }
