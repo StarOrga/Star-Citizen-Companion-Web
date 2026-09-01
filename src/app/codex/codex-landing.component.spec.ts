@@ -73,6 +73,7 @@ function hit(kind: PolySearchHit['kind'], slug: string): PolySearchHit {
     classNameSlug: slug,
     nameLocalized: slug,
     manufacturerCode: 'AEGS',
+    manufacturerName: null,
     size: null,
     grade: null,
     scope: scopeForKind(kind),
@@ -299,6 +300,78 @@ describe('CodexLandingComponent', () => {
     expect(sortBtns.length).toBe(3);
     expect(sortBtns.filter((b) => b.classList.contains('on')).length).toBe(1);
     expect(el.querySelector('.compare-hint')).not.toBeNull();
+  });
+
+  it('spells the manufacturer out on an archive-terminal search hit too', async () => {
+    const fixture = await setup({
+      searchResults: [
+        {
+          ...hit('ship', 'AEGS_Gladius'),
+          manufacturerCode: 'AEG',
+          manufacturerName: { de: 'Aegis Dynamics', en: 'Aegis Dynamics', key: '@manufacturer_NameAEGS' },
+        },
+      ],
+    });
+    fixture.componentInstance.searchTerm.set('gla');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('a.hit .hit-mfr')?.textContent?.trim()).toBe('Aegis Dynamics');
+  });
+
+  // Feedback cdc69f53: the landing abbreviated every maker to its 3-4 letter
+  // code ("AEG", "DRAK") while the detail page already spelled it out. The full
+  // name is extracted game data on the row payload, so the landing reads it too.
+  it('spells the manufacturer out on the hero, the fleet tiles and the group heading', async () => {
+    const mfr = (code: string, en: string) => ({
+      manufacturer: { code, className: code, name: { de: en, en, key: `@manufacturer_Name${code}` } },
+    });
+    const gladius = shipRow({
+      classNameSlug: 'AEGS_Gladius',
+      manufacturerCode: 'AEG',
+      payload: mfr('AEGS', 'Aegis Dynamics') as never,
+    });
+    const cutlass = shipRow({
+      classNameSlug: 'DRAK_Cutlass_Black',
+      manufacturerCode: 'DRAK',
+      payload: mfr('DRAK', 'Drake Interplanetary') as never,
+    });
+    const fixture = await setup({
+      hangar: [hangarShip('AEGS_Gladius'), hangarShip('DRAK_Cutlass_Black')],
+      byClassName: new Map([
+        ['AEGS_Gladius', gladius],
+        ['DRAK_Cutlass_Black', cutlass],
+      ]),
+      flagship: 'AEGS_Gladius',
+    });
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(el.querySelector('.ship-hero .hero-scrim .identity-mfr')?.textContent).toContain(
+      'Aegis Dynamics',
+    );
+    const tileMfrs = Array.from(el.querySelectorAll('.fleet-tile__mfr')).map((n) =>
+      n.textContent?.trim(),
+    );
+    expect(tileMfrs).toContain('Aegis Dynamics');
+    expect(tileMfrs).toContain('Drake Interplanetary');
+    expect(tileMfrs.some((t) => t === 'AEG' || t === 'DRAK')).toBeFalse();
+    // Default sort axis is `manufacturer` — the headings read the same way.
+    const groups = Array.from(el.querySelectorAll('.fleet-group')).map((n) => n.textContent?.trim());
+    expect(groups).toContain('Aegis Dynamics');
+    expect(groups).toContain('Drake Interplanetary');
+  });
+
+  it('keeps the bare manufacturer code when the extract has no name for it', async () => {
+    const row = shipRow({ classNameSlug: 'AEGS_Gladius', manufacturerCode: 'AEG', payload: {} });
+    const fixture = await setup({
+      hangar: [hangarShip('AEGS_Gladius')],
+      byClassName: new Map([['AEGS_Gladius', row]]),
+      flagship: 'AEGS_Gladius',
+    });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.fleet-tile__mfr')?.textContent?.trim()).toBe('AEG');
   });
 
   it('stages cross-entity search results, scope-tinted, with correct per-kind links', async () => {

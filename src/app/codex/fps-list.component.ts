@@ -10,7 +10,16 @@ import {
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { CodexListRow, CodexService, fpsArmorAttachType, fpsArmorSlot, pickLocalizedDistinct, toLang } from './codex.service';
+import {
+  CodexListRow,
+  CodexService,
+  fpsArmorAttachType,
+  fpsArmorSlot,
+  manufacturerFacetOptions,
+  manufacturerLabel,
+  pickLocalizedDistinct,
+  toLang,
+} from './codex.service';
 import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
@@ -100,7 +109,9 @@ interface FpsRow extends CodexListRow {
               <span>{{ 'codex.filters.manufacturer' | translate }}</span>
               <select class="sc-select" [ngModel]="manufacturer()" (ngModelChange)="setManufacturer($event)">
                 <option value="">{{ 'codex.filters.all' | translate }}</option>
-                @for (m of manufacturerOptions(); track m) { <option [value]="m">{{ m }}</option> }
+                @for (m of manufacturerOptions(); track m.code) {
+                  <option [value]="m.code">{{ m.label }}</option>
+                }
               </select>
             </label>
           }
@@ -185,7 +196,7 @@ interface FpsRow extends CodexListRow {
                 </div>
                 <code class="cls">{{ r.classNameSlug }}</code>
                 <div class="badges">
-                  @if (r.manufacturerCode) { <span class="badge mfr">{{ r.manufacturerCode }}</span> }
+                  @if (cardMfr(r); as mfr) { <span class="badge mfr" [attr.title]="mfr">{{ mfr }}</span> }
                   <span class="badge cat">{{ ('fps.category.' + category()) | translate }}</span>
                   @if (armorSlotOf(r); as slot) { <span class="badge slot">{{ slot }}</span> }
                   @if (r.subType) { <span class="badge subtle">{{ r.subType }}</span> }
@@ -290,7 +301,10 @@ interface FpsRow extends CodexListRow {
     .pin.pinned { color: var(--sc-accent); }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
+    /* Holds a spelled-out manufacturer now ("Klaus & Werner"), so the pill has
+       to stay inside the card on a phone. */
+    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent);
+      max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .badge.cat { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1); }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.slot { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 32%, transparent); color: var(--sc-fg-1); }
@@ -351,8 +365,12 @@ export class FpsListComponent implements OnInit {
   // populated once the first page of each category has loaded at least once.
   private readonly counts = signal<Partial<Record<FpsCategory, number>>>({});
 
+  /**
+   * Manufacturer facet — spelled-out labels over the promoted code as the
+   * filter value. See `manufacturerFacetOptions`.
+   */
   readonly manufacturerOptions = computed(() =>
-    uniqSorted(this.rows().map((r) => r.manufacturerCode)),
+    manufacturerFacetOptions(this.rows(), this.dataLang()),
   );
   readonly sizeOptions = computed(() =>
     uniqSorted(this.rows().map((r) => (r.size != null ? String(r.size) : null))).sort(
@@ -401,6 +419,15 @@ export class FpsListComponent implements OnInit {
 
   categoryCount(c: FpsCategory): number | null {
     return this.counts()[c] ?? null;
+  }
+
+  /**
+   * Manufacturer badge text — the full name from the extracted payload
+   * ("Klaus & Werner"), falling back to the promoted code when the game data has
+   * no resolvable name. See `manufacturerLabel`.
+   */
+  cardMfr(r: FpsRow): string | null {
+    return manufacturerLabel(r, this.dataLang());
   }
 
   cardName(r: FpsRow): string {

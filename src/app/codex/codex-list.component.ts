@@ -16,6 +16,8 @@ import {
   CodexListFilters,
   CodexListRow,
   CodexService,
+  manufacturerFacetOptions,
+  manufacturerLabel,
   pickLocalizedDistinct,
   toLang,
 } from './codex.service';
@@ -117,7 +119,9 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
               <span>{{ 'codex.filters.manufacturer' | translate }}</span>
               <select class="sc-select" [ngModel]="manufacturer()" (ngModelChange)="setManufacturer($event)">
                 <option value="">{{ 'codex.filters.all' | translate }}</option>
-                @for (m of manufacturerOptions(); track m) { <option [value]="m">{{ m }}</option> }
+                @for (m of manufacturerOptions(); track m.code) {
+                  <option [value]="m.code">{{ m.label }}</option>
+                }
               </select>
             </label>
           }
@@ -244,7 +248,7 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
                 </div>
                 <code class="cls">{{ r.classNameSlug }}</code>
                 <div class="badges">
-                  @if (r.manufacturerCode) { <span class="badge mfr">{{ r.manufacturerCode }}</span> }
+                  @if (cardMfr(r); as mfr) { <span class="badge mfr" [attr.title]="mfr">{{ mfr }}</span> }
                   @if (r.componentKind) { <span class="badge">{{ ('codex.componentKind.' + r.componentKind) | translate }}</span> }
                   @if (r.weaponClass) { <span class="badge">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
                   @if (r.subType) { <span class="badge subtle">{{ r.subType }}</span> }
@@ -362,7 +366,10 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
     .hangar-add:hover { color: var(--sc-success, #5fd698); border-color: var(--sc-success, #5fd698); }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
+    /* Holds a spelled-out manufacturer now ("Musashi Industrial & Starflight
+       Concern"), so the pill has to stay inside the card on a phone. */
+    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent);
+      max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.variant { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: var(--sc-fg-1); }
     .badge.grade[data-grade="A"] { background: color-mix(in srgb, #5fd698 18%, transparent); border-color: color-mix(in srgb, #5fd698 42%, transparent); color: #8fe5b5; }
@@ -468,6 +475,15 @@ export class CodexListComponent implements OnInit {
   }
 
   /**
+   * Manufacturer badge text — the full name from the extracted payload
+   * ("Aegis Dynamics"), falling back to the promoted code when the game data
+   * has no resolvable name. See `manufacturerLabel`.
+   */
+  cardMfr(r: CodexListRow): string | null {
+    return manufacturerLabel(r, this.dataLang());
+  }
+
+  /**
    * Card title in the app language with EN fallback (UC-08), then the
    * denormalized name, then the raw class name.
    */
@@ -512,8 +528,12 @@ export class CodexListComponent implements OnInit {
   private loadSeq = 0;
 
   // Facet options derived from the rows actually loaded for the active kind.
+  /**
+   * Manufacturer facet — spelled-out labels over the promoted code as the
+   * filter value. See `manufacturerFacetOptions`.
+   */
   readonly manufacturerOptions = computed(() =>
-    uniqSorted(this.rows().map((r) => r.manufacturerCode)),
+    manufacturerFacetOptions(this.rows(), this.dataLang()),
   );
   readonly sizeOptions = computed(() =>
     uniqSorted(this.rows().map((r) => (r.size != null ? String(r.size) : null))).sort(

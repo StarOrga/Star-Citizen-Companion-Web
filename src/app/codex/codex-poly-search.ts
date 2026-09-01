@@ -9,7 +9,7 @@
 // `import type` only — no runtime import of codex.service, so there is no import
 // cycle (codex.service imports the runtime helpers below).
 
-import type { CodexKind, CodexListRow } from './codex.service';
+import type { CodexKind, CodexListRow, LocalizedText } from './codex.service';
 
 /**
  * Visual scope of a hit, driving the result tint:
@@ -24,6 +24,13 @@ export interface PolySearchHit {
   classNameSlug: string;
   nameLocalized: string | null;
   manufacturerCode: string | null;
+  /**
+   * The manufacturer's full name straight from the row payload (extracted game
+   * data), kept unresolved so the reader can pick the app language. Null when
+   * the row carries no manufacturer record — `manufacturerCode` is then the
+   * only thing we honestly know. See `manufacturerLabel` in codex.service.
+   */
+  manufacturerName: LocalizedText | null;
   size: number | null;
   grade: string | null;
   scope: PolyScope;
@@ -71,6 +78,9 @@ export function toPolyHit(kind: CodexKind, row: CodexListRow): PolySearchHit {
     classNameSlug: row.classNameSlug,
     nameLocalized: row.nameLocalized,
     manufacturerCode: row.manufacturerCode,
+    manufacturerName:
+      (row.payload as { manufacturer?: { name?: LocalizedText } } | undefined)?.manufacturer
+        ?.name ?? null,
     size: row.size,
     grade: row.grade,
     scope: scopeForKind(kind),

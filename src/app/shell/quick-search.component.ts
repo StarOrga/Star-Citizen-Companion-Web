@@ -18,6 +18,7 @@ import {
   CodexKind,
   CodexListRow,
   CodexService,
+  manufacturerLabel,
   pickLocalized,
 } from '../codex/codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
@@ -133,7 +134,7 @@ const PER_KIND_LIMIT = 6;
                   <span class="qs-kind">{{ ('codex.kindSingular.' + r.kind) | translate }}</span>
                   <span class="qs-name">{{ name(r.row) }}</span>
                   <span class="qs-chips">
-                    @if (r.row.manufacturerCode) { <span class="badge mfr">{{ r.row.manufacturerCode }}</span> }
+                    @if (r.row.manufacturerCode) { <span class="badge mfr" [attr.title]="mfrName(r.row)">{{ r.row.manufacturerCode }}</span> }
                     @if (r.row.componentKind) { <span class="badge">{{ r.row.componentKind }}</span> }
                     @if (r.row.weaponClass) { <span class="badge">{{ ('codex.weaponClass.' + r.row.weaponClass) | translate }}</span> }
                     @if (r.row.size != null) { <span class="badge">S{{ r.row.size }}</span> }
@@ -420,6 +421,17 @@ export class QuickSearchComponent {
   openActive(): void {
     const r = this.displayResults()[this.activeIndex()];
     if (r) this.openResult(r);
+  }
+
+  /**
+   * Full manufacturer name for the chip's tooltip. The chip itself stays the
+   * short code — this row is a dense one-liner (kind + name + up to five chips)
+   * where "Musashi Industrial & Starflight Concern" would push everything else
+   * off screen; the Codex landing and lists spell it out inline instead.
+   * EN-only, matching `name()` — quick search has no language plumbing.
+   */
+  mfrName(r: CodexListRow): string | null {
+    return manufacturerLabel(r, 'en');
   }
 
   name(r: CodexListRow): string {

@@ -37,6 +37,7 @@ function hit(kind: CodexKind, partial: Partial<PolySearchHit> = {}): PolySearchH
     classNameSlug: 'X',
     nameLocalized: 'X',
     manufacturerCode: null,
+    manufacturerName: null,
     size: null,
     grade: null,
     scope: scopeForKind(kind),
@@ -90,6 +91,23 @@ describe('codex-poly-search', () => {
       expect(h.size).toBe(2);
       expect(h.grade).toBe('B');
       expect(h.scope).toBe('equipment');
+    });
+
+    it('carries the payload manufacturer name so the hit can spell the maker out', () => {
+      const h = toPolyHit(
+        'ship',
+        row({
+          payload: {
+            manufacturer: { code: 'AEG', name: { de: 'Aegis Dynamics', en: 'Aegis Dynamics', key: '@manufacturer_NameAEGS' } },
+          },
+        }),
+      );
+      expect(h.manufacturerName?.en).toBe('Aegis Dynamics');
+    });
+
+    it('leaves the manufacturer name null when the payload carries no maker', () => {
+      expect(toPolyHit('ship', row({ payload: {} })).manufacturerName).toBeNull();
+      expect(toPolyHit('ship', row({ payload: null })).manufacturerName).toBeNull();
     });
   });
 

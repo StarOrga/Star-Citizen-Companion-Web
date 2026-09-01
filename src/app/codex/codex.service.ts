@@ -1252,6 +1252,56 @@ export function pickLocalizedDistinct(
 }
 
 /**
+ * Full manufacturer name for a catalog row, in the app language.
+ *
+ * The name is REAL extracted game data, never a hand-written expansion table:
+ * every entity payload carries `manufacturer.name`, the resolved
+ * `@manufacturer_Name…` global.ini string the uploader copies off the record's
+ * SCItemManufacturer (see `data-uploader/python/sc_extract/dataforge_extract.py`
+ * → `extract_manufacturers` / `_manufacturer_ref`, and the `codex_manufacturers`
+ * table that holds the same strings standalone). So "AEG" resolves to
+ * "Aegis Dynamics" because the game says so, not because we mapped it.
+ *
+ * Rows whose payload carries no manufacturer record at all (a handful of
+ * non-ship props in the ship table: comms probes, destructible objectives)
+ * fall back to the promoted `manufacturer_code` column, and to null when even
+ * that is empty — we never invent an expansion for an unknown code.
+ */
+export function manufacturerLabel(
+  row: { payload?: unknown; manufacturerCode?: string | null } | null | undefined,
+  lang: Lang,
+): string | null {
+  if (!row) return null;
+  const p = row.payload as { manufacturer?: { name?: LocalizedText } } | undefined;
+  return pickLocalized(p?.manufacturer?.name, lang) || row.manufacturerCode || null;
+}
+
+/**
+ * Manufacturer facet options for a list view: the option VALUE stays the
+ * promoted `manufacturer_code` (that is what `listByKind` filters on), only the
+ * LABEL is spelled out from the row payload's extracted name. A code whose rows
+ * carry no resolvable name keeps the code as its own label. Sorted by what the
+ * user actually reads, so the dropdown is alphabetical by manufacturer name.
+ */
+export function manufacturerFacetOptions(
+  rows: readonly { payload?: unknown; manufacturerCode?: string | null }[],
+  lang: Lang,
+): { code: string; label: string }[] {
+  const byCode = new Map<string, string>();
+  for (const r of rows) {
+    const code = r.manufacturerCode;
+    if (!code) continue;
+    const label = manufacturerLabel(r, lang) ?? code;
+    const existing = byCode.get(code);
+    // First resolved name wins; never let a later code-only row overwrite it.
+    if (!existing || existing === code) byCode.set(code, label);
+  }
+  return [...byCode.entries()]
+    .map(([code, label]) => ({ code, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/**
  * Map an ngx-translate language code ('de', 'en', 'de-DE', …) to a codex data
  * Lang. SC content exists in both DE and EN (DE is ~97.6% genuinely translated,
  * not an English copy), so catalog content is rendered in the app language with
@@ -1269,4 +1319,5 @@ export type {
   CodexItemRow,
   CodexAmmunitionRow,
   CodexManufacturerRow,
+  LocalizedText,
 };
