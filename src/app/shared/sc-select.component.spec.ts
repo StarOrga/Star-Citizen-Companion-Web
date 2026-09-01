@@ -170,3 +170,75 @@ describe('ScSelectComponent', () => {
     expect(trigger().disabled).toBeTrue();
   });
 });
+
+/**
+ * A caller that needs its labels in a language other than the UI's — the Codex
+ * input actions, where an English-original switch has to show the taxonomy the
+ * way the game names it. `label` is pre-resolved text and must beat `labelKey`.
+ */
+@Component({
+  standalone: true,
+  imports: [ScSelectComponent],
+  template: `
+    <sc-select
+      [options]="options()"
+      [value]="value()"
+      placeholderKey="tax.none"
+      [placeholderLabel]="placeholderLabel()"
+      (valueChange)="value.set($event)"
+    />
+  `,
+})
+class OverrideHostComponent {
+  readonly options = signal<readonly ScSelectOption[]>([
+    { value: 'verse', labelKey: 'tax.verse', label: 'Verse' },
+    { value: 'in_game', labelKey: 'tax.inGame', label: 'In-Game (UI)' },
+  ]);
+  readonly value = signal<string | null>(null);
+  readonly placeholderLabel = signal<string | null>('— none —');
+}
+
+describe('ScSelectComponent with pre-resolved labels', () => {
+  let fixture: ComponentFixture<OverrideHostComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [OverrideHostComponent],
+      providers: [provideTranslateService()],
+    }).compileComponents();
+    fixture = TestBed.createComponent(OverrideHostComponent);
+    fixture.detectChanges();
+  });
+
+  it('renders `label` over `labelKey` for the trigger and every option', () => {
+    const trigger = fixture.nativeElement.querySelector('.trigger') as HTMLButtonElement;
+    // Placeholder first: no value picked yet.
+    expect(trigger.textContent!.trim()).toBe('— none —');
+
+    trigger.click();
+    fixture.detectChanges();
+    const labels = Array.from(
+      fixture.nativeElement.querySelectorAll('.option .label') as NodeListOf<HTMLElement>,
+    ).map((e) => e.textContent!.trim());
+    expect(labels).toEqual(['— none —', 'Verse', 'In-Game (UI)']);
+
+    fixture.componentInstance.value.set('in_game');
+    fixture.detectChanges();
+    expect(trigger.textContent!.trim()).toBe('In-Game (UI)');
+  });
+
+  it('still falls back to the i18n key when no `label` is supplied', () => {
+    fixture.componentInstance.options.set([{ value: 'verse', labelKey: 'tax.verse' }]);
+    fixture.componentInstance.placeholderLabel.set(null);
+    fixture.detectChanges();
+
+    const trigger = fixture.nativeElement.querySelector('.trigger') as HTMLButtonElement;
+    trigger.click();
+    fixture.detectChanges();
+    const labels = Array.from(
+      fixture.nativeElement.querySelectorAll('.option .label') as NodeListOf<HTMLElement>,
+    ).map((e) => e.textContent!.trim());
+    // No translations loaded in this harness, so ngx-translate echoes the keys.
+    expect(labels).toEqual(['tax.none', 'tax.verse']);
+  });
+});
