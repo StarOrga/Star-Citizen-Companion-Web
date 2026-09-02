@@ -5,6 +5,10 @@
 // place, and optionally sends a Supabase Auth invite mail.
 //
 // Input:  POST { email: string, role: 'admin' | 'collaborator' | 'viewer', sendInvite: boolean }
+//         sendInvite=true mails a Supabase invite whose link lands on
+//         `<site>/set-password` — the invited account has no
+//         password until its owner sets one there. Nothing here ever creates,
+//         returns or logs a password.
 // Output: 200 { status: 'invited', ok: true, userId, email, role }
 //         200 { status: 'approved_existing', ok: true, userId, email, role }
 //         200 { status: 'allowlisted', ok: true, email, role }
@@ -27,6 +31,24 @@ interface RegisterBody {
 }
 
 const ALLOWED_ROLES = new Set(['admin', 'collaborator', 'viewer']);
+
+/**
+ * Where the invite mail's link should land. An invited account has NO password
+ * anybody knows — Supabase creates it without one — so dropping the applicant
+ * on the app's front page leaves them signed in exactly once, with no way back
+ * after that session. `/set-password` is the page that turns the invite
+ * session into a password its owner picked (feedback d93ddb05).
+ *
+ * Not taken from the request: a redirect target supplied by a caller is a
+ * redirect target an attacker could supply. GoTrue additionally validates this
+ * against the project's Redirect-URL allow list and silently falls back to the
+ * Site URL if it is not listed — in that case the app still routes an invite
+ * landing to /set-password itself (see src/app/auth/auth-link.ts), so a missing
+ * allow-list entry costs the direct link, not the flow.
+ */
+const SITE_URL = (Deno.env.get('PUBLIC_SITE_URL') ?? 'https://sc-companion.vercel.app')
+  .replace(/\/+$/, '');
+const INVITE_REDIRECT = `${SITE_URL}/set-password`;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -168,7 +190,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   const { data: inviteData, error: inviteErr } =
-    await adminClient.auth.admin.inviteUserByEmail(email);
+    await adminClient.auth.admin.inviteUserByEmail(email, {
+      redirectTo: INVITE_REDIRECT,
+    });
 
   if (inviteErr || !inviteData?.user) {
     const msg = inviteErr?.message ?? 'invite failed';

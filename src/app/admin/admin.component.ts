@@ -6,6 +6,7 @@ import { Role, RoleService } from '../auth/role.service';
 import { AuthService } from '../auth/auth.service';
 import { isDeleteBlocked, isProtectedAccount, isRoleChangeBlocked } from './admin-protection';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 
 interface AdminUserRow {
   id: string;
@@ -71,7 +72,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 @Component({
   selector: 'sc-admin',
   standalone: true,
-  imports: [ScDatePipe, TranslateModule],
+  imports: [ScDatePipe, ScSelectComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -129,14 +130,14 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                   <p class="req-date">{{ r.created_at | scDate: 'datetime' }}</p>
                 </div>
                 <div class="req-actions">
-                  <select [value]="requestRole(r.id)"
-                          (change)="setRequestRole(r.id, asSelectRole($event))"
-                          [attr.aria-label]="'admin.col.role' | translate"
-                          [disabled]="accessBusy()">
-                    <option value="viewer">{{ 'profile.roles.viewer' | translate }}</option>
-                    <option value="collaborator">{{ 'profile.roles.collaborator' | translate }}</option>
-                    <option value="admin">{{ 'profile.roles.admin' | translate }}</option>
-                  </select>
+                  <sc-select
+                    class="role-select"
+                    [options]="roleOptions"
+                    [allowEmpty]="false"
+                    [value]="requestRole(r.id)"
+                    (valueChange)="setRequestRole(r.id, asRole($event))"
+                    [ariaLabel]="'admin.col.role' | translate"
+                    [disabled]="accessBusy()" />
                   <button type="button" class="sc-btn sc-btn-primary"
                           (click)="acceptRequest(r)" [disabled]="accessBusy()">
                     {{ 'admin.requests.accept' | translate }}
@@ -171,14 +172,14 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                  [attr.aria-label]="'admin.register.emailPlaceholder' | translate"
                  [disabled]="inviteBusy()"
                  required>
-          <select [value]="inviteRole()"
-                  (change)="inviteRole.set(asSelectRole($event))"
-                  [attr.aria-label]="'admin.col.role' | translate"
-                  [disabled]="inviteBusy()">
-            <option value="viewer">{{ 'profile.roles.viewer' | translate }}</option>
-            <option value="collaborator">{{ 'profile.roles.collaborator' | translate }}</option>
-            <option value="admin">{{ 'profile.roles.admin' | translate }}</option>
-          </select>
+          <sc-select
+            class="role-select"
+            [options]="roleOptions"
+            [allowEmpty]="false"
+            [value]="inviteRole()"
+            (valueChange)="inviteRole.set(asRole($event))"
+            [ariaLabel]="'admin.col.role' | translate"
+            [disabled]="inviteBusy()" />
           <label class="send-invite">
             <input type="checkbox"
                    [checked]="sendInvite()"
@@ -234,14 +235,13 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                    (input)="allowlistSearch.set(asInput($event))"
                    [placeholder]="'admin.filter.searchPlaceholder' | translate"
                    [attr.aria-label]="'admin.filter.searchPlaceholder' | translate">
-            <select class="filter-role"
-                    [value]="allowlistStatusFilter()"
-                    (change)="allowlistStatusFilter.set(asAllowlistStatusFilter($event))"
-                    [attr.aria-label]="'admin.allowlist.col.status' | translate">
-              <option value="all">{{ 'admin.allowlist.status.all' | translate }}</option>
-              <option value="pending">{{ 'admin.allowlist.status.pending' | translate }}</option>
-              <option value="joined">{{ 'admin.allowlist.status.joined' | translate }}</option>
-            </select>
+            <sc-select
+              class="filter-role"
+              [options]="allowlistStatusOptions"
+              [allowEmpty]="false"
+              [value]="allowlistStatusFilter()"
+              (valueChange)="allowlistStatusFilter.set(asAllowlistStatus($event))"
+              [ariaLabel]="'admin.allowlist.col.status' | translate" />
             <span class="filter-count">
               {{ 'admin.filter.count' | translate: { shown: filteredSortedAllowlist().length, total: allowedEmails().length } }}
             </span>
@@ -326,15 +326,13 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                  (input)="search.set(asInput($event))"
                  [placeholder]="'admin.filter.searchPlaceholder' | translate"
                  [attr.aria-label]="'admin.filter.searchPlaceholder' | translate">
-          <select class="filter-role"
-                  [value]="roleFilter()"
-                  (change)="roleFilter.set(asRoleFilter($event))"
-                  [attr.aria-label]="'admin.col.role' | translate">
-            <option value="all">{{ 'admin.filter.allRoles' | translate }}</option>
-            <option value="admin">{{ 'profile.roles.admin' | translate }}</option>
-            <option value="collaborator">{{ 'profile.roles.collaborator' | translate }}</option>
-            <option value="viewer">{{ 'profile.roles.viewer' | translate }}</option>
-          </select>
+          <sc-select
+            class="filter-role"
+            [options]="roleFilterOptions"
+            [allowEmpty]="false"
+            [value]="roleFilter()"
+            (valueChange)="roleFilter.set(asRoleFilterValue($event))"
+            [ariaLabel]="'admin.col.role' | translate" />
           <span class="filter-count">
             {{ 'admin.filter.count' | translate: { shown: filteredSortedUsers().length, total: users().length } }}
           </span>
@@ -475,17 +473,12 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       font: inherit;
       font-size: 0.88rem;
     }
-    .filter-role {
-      padding: 8px 12px;
-      background: var(--sc-bg-1);
-      color: var(--sc-fg-0);
-      border: 1px solid var(--sc-border);
-      border-radius: 4px;
-      font: inherit;
-      font-size: 0.88rem;
-    }
-    .filter-search:focus,
-    .filter-role:focus {
+    /* The pickers are sc-select components, not native selects — a native one
+       draws its OPEN list through the OS, which lands as a bright system menu
+       on this dark surface (feedback d93ddb05). Only the box size is set here;
+       the control paints itself. */
+    sc-select.filter-role { flex: 0 0 auto; width: 190px; }
+    .filter-search:focus {
       outline: none;
       border-color: var(--sc-accent);
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
@@ -497,7 +490,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     }
     .no-matches { text-align: center; color: var(--sc-fg-2); padding: 24px !important; }
     @media (max-width: 640px) {
-      .filter-search, .filter-role { flex: 1 1 100%; }
+      .filter-search, sc-select.filter-role { flex: 1 1 100%; width: auto; }
       /* Make the wide user table scroll horizontally instead of pushing the page. */
       .table {
         display: block;
@@ -634,6 +627,13 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     }
     .req-date { margin: 6px 0 0; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
     .req-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    /* The role picker leads the two decision buttons, so it gets a fixed box
+       instead of stretching with the longest label. */
+    sc-select.role-select { flex: 0 0 auto; width: 170px; }
+    @media (max-width: 640px) {
+      .req-actions { align-items: stretch; }
+      sc-select.role-select { flex: 1 1 100%; width: auto; }
+    }
     .sc-btn.req-decline { color: var(--sc-danger); border-color: var(--sc-danger); }
     .sc-btn.req-decline:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
 
@@ -645,8 +645,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       gap: 10px;
       flex-wrap: wrap;
     }
-    .invite-form input[type=email],
-    .invite-form select {
+    .invite-form input[type=email] {
       padding: 8px 12px;
       background: var(--sc-bg-1);
       color: var(--sc-fg-0);
@@ -664,14 +663,12 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       font-size: max(0.8rem, var(--sc-fs-floor));
       white-space: nowrap;
     }
-    .invite-form input[type=email]:focus,
-    .invite-form select:focus {
+    .invite-form input[type=email]:focus {
       outline: none;
       border-color: var(--sc-accent);
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
     }
-    .invite-form input[type=email]:disabled,
-    .invite-form select:disabled {
+    .invite-form input[type=email]:disabled {
       opacity: 0.4;
       cursor: not-allowed;
     }
@@ -694,6 +691,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     @media (max-width: 640px) {
       .invite-form { flex-direction: column; align-items: stretch; }
       .invite-form input[type=email] { flex: 1 1 100%; }
+      .invite-form sc-select.role-select { width: auto; }
     }
   `],
 })
@@ -766,6 +764,30 @@ export class AdminComponent implements OnInit {
     return [...filtered].sort((a, b) => cmp(val(a), val(b)));
   });
 
+  /**
+   * The three role choices, shared by the access-request row and the register
+   * form. `sc-select` translates `labelKey` itself, so these stay data.
+   */
+  readonly roleOptions: readonly ScSelectOption[] = [
+    { value: 'viewer', labelKey: 'profile.roles.viewer' },
+    { value: 'collaborator', labelKey: 'profile.roles.collaborator' },
+    { value: 'admin', labelKey: 'profile.roles.admin' },
+  ];
+
+  /** Same three, prefixed by the "all roles" row the user table filters on. */
+  readonly roleFilterOptions: readonly ScSelectOption[] = [
+    { value: 'all', labelKey: 'admin.filter.allRoles' },
+    { value: 'admin', labelKey: 'profile.roles.admin' },
+    { value: 'collaborator', labelKey: 'profile.roles.collaborator' },
+    { value: 'viewer', labelKey: 'profile.roles.viewer' },
+  ];
+
+  readonly allowlistStatusOptions: readonly ScSelectOption[] = [
+    { value: 'all', labelKey: 'admin.allowlist.status.all' },
+    { value: 'pending', labelKey: 'admin.allowlist.status.pending' },
+    { value: 'joined', labelKey: 'admin.allowlist.status.joined' },
+  ];
+
   // Register-form state (C5/C6 — replaces the old plain invite form).
   readonly inviteEmail = signal('');
   readonly inviteRole = signal<Role>('collaborator');
@@ -834,16 +856,22 @@ export class AdminComponent implements OnInit {
     return (e.target as HTMLInputElement).checked;
   }
 
-  asSelectRole(e: Event): Role {
-    return (e.target as HTMLSelectElement).value as Role;
+  /**
+   * `sc-select` emits `string | null` because a filter may be cleared. Every
+   * picker on this page runs with `allowEmpty=false`, so null cannot actually
+   * arrive — these three keep the fallback explicit anyway rather than casting
+   * a null into a role the rest of the page would then act on.
+   */
+  asRole(v: string | null): Role {
+    return (v ?? 'viewer') as Role;
   }
 
-  asRoleFilter(e: Event): RoleFilter {
-    return (e.target as HTMLSelectElement).value as RoleFilter;
+  asRoleFilterValue(v: string | null): RoleFilter {
+    return (v ?? 'all') as RoleFilter;
   }
 
-  asAllowlistStatusFilter(e: Event): AllowlistStatusFilter {
-    return (e.target as HTMLSelectElement).value as AllowlistStatusFilter;
+  asAllowlistStatus(v: string | null): AllowlistStatusFilter {
+    return (v ?? 'all') as AllowlistStatusFilter;
   }
 
   /** Default sort direction per column — recency columns start descending. */
@@ -1066,10 +1094,15 @@ export class AdminComponent implements OnInit {
    */
   async acceptRequest(row: AccessRequestRow) {
     const role = this.requestRole(row.id);
+    // No mail for an address that already has an account: `inviteUserByEmail`
+    // refuses those, and there is nothing to invite them TO — they can already
+    // sign in. The admin is told so explicitly below, because "accepted" would
+    // otherwise read as "the applicant has been informed" when nobody was.
+    const invited = !row.joined;
     this.accessBusy.set(true);
     this.accessMsg.set(null);
     const { data, error } = await this.sb.client.functions.invoke('invite-user', {
-      body: { email: row.email, role, sendInvite: !row.joined },
+      body: { email: row.email, role, sendInvite: invited },
     });
     const payload = (data ?? {}) as RegisterResponse;
     if (error || payload.error) {
@@ -1092,7 +1125,10 @@ export class AdminComponent implements OnInit {
     }
     this.accessMsg.set({
       kind: 'success',
-      text: this.translate.instant('admin.requests.accepted', { email: row.email }),
+      text: this.translate.instant(
+        invited ? 'admin.requests.accepted' : 'admin.requests.acceptedNoMail',
+        { email: row.email },
+      ),
     });
     await Promise.all([this.refreshAccessRequests(), this.refreshAllowlist(), this.refresh()]);
   }

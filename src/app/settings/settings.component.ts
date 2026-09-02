@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
+import { PasswordFormComponent } from '../auth/password-form.component';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { ComposerPrefsService } from '../core/composer-prefs.service';
@@ -57,7 +58,7 @@ const SPY_LINE_PX = 140;
 @Component({
   selector: 'sc-settings',
   standalone: true,
-  imports: [TranslateModule, ScDatePipe],
+  imports: [PasswordFormComponent, ScDatePipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -185,6 +186,15 @@ const SPY_LINE_PX = 140;
                 @if (usernameError(); as e) {
                   <div class="flash error">{{ e | translate }}</div>
                 }
+              </div>
+
+              <!-- Password lives with identity, not in the danger zone: for an
+                   INVITED account this is not a change, it is the first one
+                   its owner ever picks (feedback d93ddb05). -->
+              <div class="sc-card section">
+                <h3>{{ 'settings.password.title' | translate }}</h3>
+                <p class="hint">{{ 'settings.password.hint' | translate }}</p>
+                <sc-password-form />
               </div>
             </div>
           </section>

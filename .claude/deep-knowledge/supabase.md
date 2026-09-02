@@ -90,6 +90,23 @@ optionally still send a Supabase invite mail.
   `sendInvite` is true, it also calls `inviteUserByEmail` (`invited`) —
   without `sendInvite` it stays allowlist-only (`allowlisted`). Response is
   a discriminated `{ status: 'allowlisted' | 'approved_existing' | 'invited', ... }`.
+- **Invited accounts have no password.** `inviteUserByEmail` creates the
+  `auth.users` row without one, so the mail's link is the *only* way in until
+  its owner picks a password. The function therefore passes
+  `redirectTo: <site>/set-password` (`PUBLIC_SITE_URL` env, default
+  `https://sc-companion.vercel.app`), and the app funnels the landing there
+  anyway: `src/app/auth/auth-link.ts` snapshots `type=invite|recovery` off the
+  URL in `main.ts` *before* `detectSessionInUrl` strips the fragment, and
+  `AuthService.init()` routes on that (plus the `PASSWORD_RECOVERY` event) to
+  `/set-password`, an ungated public route. If the redirect URL is not on the
+  project's Redirect-URL allow list GoTrue silently falls back to the Site URL
+  — the in-app routing still lands the user on the right page. No code path
+  ever generates, stores, logs or displays a password: the only writer is
+  `auth.updateUser({ password })` from the user's own session. Accepting an
+  applicant who ALREADY has an account sends no mail at all (nothing to invite
+  them to) — the admin UI says so explicitly (`admin.requests.acceptedNoMail`).
+  The GoTrue invite/recovery **mail templates** are dashboard config, not repo
+  config; they are the one piece of this flow not versioned here.
 
 ## Protected admin accounts (`protected_admins`)
 

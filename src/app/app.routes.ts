@@ -48,6 +48,15 @@ export const routes: Routes = [
         loadComponent: () => import('./legal/imprint.component').then((m) => m.ImprintComponent),
       },
       {
+        // Where an invite / password-reset mail lands (feedback d93ddb05).
+        // Ungated on purpose: the session such a link hands over may not be
+        // approved yet, and the page must also render with NO session at all
+        // (used-up or expired link) to offer a fresh mail.
+        path: 'set-password',
+        loadComponent: () =>
+          import('./auth/set-password.component').then((m) => m.SetPasswordComponent),
+      },
+      {
         // Where `approvedGuard` sends a session whose approval it could not
         // read (see that guard + AccessUnavailableComponent). It MUST stay
         // on this ungated layout: gated, it would be bounced by the very
