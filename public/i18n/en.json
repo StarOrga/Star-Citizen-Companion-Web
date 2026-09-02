@@ -213,6 +213,32 @@
           "title": "On the Drawing Board",
           "badgeAria": "{{count}} new ships since your last visit"
         }
+      },
+      "board": {
+        "open": "open",
+        "archiveCount": "{{count}} in the archive",
+        "classUnknown": "No class data in the archive",
+        "more": "more",
+        "moreCount": "{{count}} more",
+        "class": {
+          "light": "Light armour",
+          "medium": "Medium armour",
+          "heavy": "Heavy armour",
+          "superheavy": "Super-heavy armour",
+          "undersuit": "Undersuit",
+          "flightsuit": "Flight suit",
+          "utility": "Heavy utility armour"
+        },
+        "readyOn": "equipped",
+        "readyOff": "open",
+        "readiness": {
+          "primary": "Primary weapon",
+          "secondary": "Sidearm",
+          "melee": "Melee",
+          "throwable": "Throwables",
+          "gadget": "Gadget",
+          "medical": "Medical"
+        }
       }
     },
     "bridge": {
