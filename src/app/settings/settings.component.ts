@@ -10,6 +10,8 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { Location } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { PasswordFormComponent } from '../auth/password-form.component';
@@ -17,6 +19,7 @@ import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { ComposerPrefsService } from '../core/composer-prefs.service';
 import { ConsentService } from '../core/consent.service';
+import { isPlainLeftClick } from '../core/modified-click.util';
 import { AnalyticsService } from '../core/analytics.service';
 import { LocaleService } from '../core/locale/locale.service';
 import type { AppLanguage, RegionCode } from '../core/locale/locale.types';
@@ -65,12 +68,14 @@ const SPY_LINE_PX = 140;
       <h1>{{ 'settings.title' | translate }}</h1>
 
       <div class="layout">
-        <!-- Table of contents (feedback af058ca4 follow-up). Plain in-page
-             anchors on purpose: middle click, Ctrl/Cmd+click and "copy link
-             address" then work for free, the fragment is shareable, and the
-             browser owns the scrolling (each section carries a
-             scroll-margin-top for the sticky topbar). The only JS involved is
-             the scroll-spy that marks the section currently being read. -->
+        <!-- Table of contents (feedback af058ca4 follow-up). Real anchors on
+             purpose: middle click, Ctrl/Cmd+click and "copy link address" work
+             for free and the fragment is shareable. The href carries the PAGE
+             PATH — a bare "#settings-account" resolves against <base href="/">
+             instead of the current URL, which is why the rail used to dump the
+             user on the start page (feedback af058ca4, round 3). The plain
+             left click is intercepted so the page glides to the section
+             instead of jumping; every other kind of click falls through. -->
         <nav class="toc" [attr.aria-label]="'settings.toc.label' | translate">
           <ul class="toc-list">
             @for (g of groups; track g.id) {
@@ -78,7 +83,8 @@ const SPY_LINE_PX = 140;
                 <a
                   class="toc-link"
                   [class.active]="activeGroup() === g.id"
-                  [href]="'#' + g.anchor"
+                  [href]="tocHref(g.anchor)"
+                  (click)="onTocClick($event, g)"
                   [attr.aria-current]="activeGroup() === g.id ? 'true' : null">
                   <span class="toc-marker" aria-hidden="true"></span>
                   <span class="toc-text">{{ g.labelKey | translate }}</span>
@@ -91,7 +97,7 @@ const SPY_LINE_PX = 140;
         <div class="sections">
           <!-- 1. Account & identity — who the account is, plus the one field
                the user owns about themselves. -->
-          <section class="group" id="settings-account">
+          <section class="group" id="settings-account" tabindex="-1">
             <h2 class="group-title">{{ 'settings.groups.account.title' | translate }}</h2>
             <div class="grid">
               @if (auth.user(); as user) {
@@ -201,7 +207,7 @@ const SPY_LINE_PX = 140;
 
           <!-- 2. Language & controls — how the app speaks, and how it reacts to
                the keyboard. Both answer "how does the app behave for me". -->
-          <section class="group" id="settings-preferences">
+          <section class="group" id="settings-preferences" tabindex="-1">
             <h2 class="group-title">{{ 'settings.groups.preferences.title' | translate }}</h2>
             <div class="grid">
               <div class="sc-card section">
@@ -284,7 +290,7 @@ const SPY_LINE_PX = 140;
           </section>
 
           <!-- 3. Data & privacy — what the browser is allowed to keep (#130). -->
-          <section class="group" id="settings-privacy">
+          <section class="group" id="settings-privacy" tabindex="-1">
             <h2 class="group-title">{{ 'settings.groups.privacy.title' | translate }}</h2>
             <div class="grid">
               <div class="sc-card section wide">
@@ -328,7 +334,7 @@ const SPY_LINE_PX = 140;
           </section>
 
           <!-- 4. Danger zone — irreversible, therefore last. -->
-          <section class="group" id="settings-danger">
+          <section class="group" id="settings-danger" tabindex="-1">
             <h2 class="group-title danger-title">{{ 'settings.groups.danger.title' | translate }}</h2>
             <div class="grid">
               <div class="sc-card danger-zone wide">
@@ -377,8 +383,18 @@ const SPY_LINE_PX = 140;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      /* Clears the sticky topbar when the browser jumps to a #fragment. */
+      /* Clears the sticky topbar when the page scrolls to a #fragment. */
       scroll-margin-top: 96px;
+      /* The rail hands focus to the section it scrolled to (see onTocClick),
+         so a keyboard user continues INSIDE the section instead of at the top
+         of the rail. Only the keyboard gets a ring — a mouse click must not
+         paint a box around a third of the page. */
+      outline: none;
+    }
+    .group:focus-visible {
+      outline: 2px solid var(--sc-accent);
+      outline-offset: 6px;
+      border-radius: 4px;
     }
     .group-title {
       margin: 0;
@@ -772,6 +788,8 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly analytics = inject(AnalyticsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly zone = inject(NgZone);
+  private readonly location = inject(Location);
+  private readonly route = inject(ActivatedRoute);
 
   /** Single source of truth for both the rail and the section order. */
   readonly groups: readonly SettingsGroup[] = [
@@ -889,6 +907,81 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
       window.addEventListener('resize', this.scrollListener, { passive: true });
       this.syncActiveGroup();
     });
+    this.jumpToInitialFragment();
+  }
+
+  /**
+   * Honours a deep link (/settings#settings-privacy) once the sections exist.
+   *
+   * The router's own anchorScrolling runs on NavigationEnd, i.e. before this
+   * view has laid out, so it can land short. Re-running the jump here is a
+   * no-op when the router already got it right. No smooth scroll: arriving on
+   * a page mid-glide reads as a rendering glitch, not as guidance.
+   */
+  private jumpToInitialFragment() {
+    const anchor = this.route.snapshot.fragment;
+    if (!anchor || !this.groups.some((g) => g.anchor === anchor)) return;
+    requestAnimationFrame(() => {
+      this.host.nativeElement
+        .querySelector<HTMLElement>(`#${anchor}`)
+        ?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      this.syncActiveGroup();
+    });
+  }
+
+  /**
+   * Href of a rail entry — the current page path PLUS the fragment.
+   *
+   * A bare `#settings-account` is resolved against `<base href="/">` rather
+   * than against the current URL, so the browser left /settings and loaded the
+   * start page instead (feedback af058ca4, round 3). The path has to be in
+   * there for the anchor to mean what it looks like — including for middle
+   * click, "open in new tab" and "copy link address".
+   */
+  tocHref(anchor: string): string {
+    const internal = this.location.path(false);
+    const page = internal
+      ? this.location.prepareExternalUrl(internal)
+      : typeof window === 'undefined'
+        ? ''
+        : `${window.location.pathname}${window.location.search}`;
+    return `${page}#${anchor}`;
+  }
+
+  /**
+   * Plain left click on a rail entry: glide down to the section instead of
+   * letting the browser teleport there. Ctrl/⌘/middle/shift clicks are left
+   * alone so the href keeps opening a new tab or window.
+   */
+  onTocClick(ev: MouseEvent, group: SettingsGroup) {
+    if (!isPlainLeftClick(ev)) return;
+    const target = this.host.nativeElement.querySelector<HTMLElement>(`#${group.anchor}`);
+    // No target rendered → let the real href do its job rather than swallowing
+    // the click.
+    if (!target) return;
+    ev.preventDefault();
+
+    // Immediate feedback; the scroll-spy takes the highlight over again as the
+    // page travels and ends on this very section.
+    this.activeGroup.set(group.id);
+    target.scrollIntoView({ behavior: this.scrollBehavior(), block: 'start' });
+    // Intercepting the click also swallows the browser's own "move focus to
+    // the target" step, which would strand a keyboard user in the rail.
+    target.focus({ preventScroll: true });
+
+    // Keep the address bar on the section without a router navigation: that
+    // would re-run anchorScrolling and teleport past the glide.
+    const internal = this.location.path(false);
+    if (internal) this.location.replaceState(`${internal.split('#')[0]}#${group.anchor}`);
+  }
+
+  /** Users who asked the OS for less motion get the instant jump. */
+  private scrollBehavior(): ScrollBehavior {
+    const reduced =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return reduced ? 'auto' : 'smooth';
   }
 
   ngOnDestroy() {
