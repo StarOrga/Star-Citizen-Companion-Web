@@ -109,9 +109,22 @@
         "clear": "Suche löschen"
       },
       "status": {
-        "online": "Verse online",
         "patch": "Patch {{patch}}",
         "stale": "Daten-Upload nötig"
+      },
+      "patchSwitch": {
+        "title": "Patch wechseln",
+        "trigger": "Patch {{patch}} — anderen Patch wählen",
+        "live": "Live",
+        "past": "älter",
+        "hasData": "Daten vorhanden",
+        "hasDataCount": "{{count}} Datensätze",
+        "noData": "keine Daten",
+        "more": "Ältere laden",
+        "backToLive": "Zurück zum Live-Patch",
+        "loading": "Patches werden geladen …",
+        "empty": "Keine weiteren Patches bekannt.",
+        "note": "Ohne Daten lässt sich ein Patch nicht öffnen. Ein Neuladen der Seite kehrt zum Live-Patch zurück."
       },
       "patch": {
         "archive": "{{count}} Datensätze im Archiv",

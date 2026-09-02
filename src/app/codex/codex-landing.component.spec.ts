@@ -12,6 +12,7 @@ import { AuthService } from '../auth/auth.service';
 import { Role, RoleService } from '../auth/role.service';
 import { UpcomingShip, UpcomingShipsFeed, UpcomingShipsService } from './upcoming-ships.service';
 import { ShipPayload } from './codex.types';
+import { NewsService, VerseFeed } from '../news/news.service';
 
 function upcomingShip(over: Partial<UpcomingShip> & { id: string; name: string }): UpcomingShip {
   return {
@@ -116,6 +117,15 @@ describe('CodexLandingComponent', () => {
         extractedAt: '2026-08-02T20:29:00Z',
       }) as never,
       stale: signal(false) as never,
+      // The merged status/patch headline (sc-codex-patch-headline) rides in the
+      // terminal row, so the landing's CodexService double has to answer its
+      // patch-switch surface too. Nothing here is exercised by the landing's own
+      // assertions — the switch has its own spec.
+      liveBuild: signal(null) as never,
+      viewingPastPatch: signal(false) as never,
+      patchTimeline: signal([]) as never,
+      loadPatchTimeline: jasmine.createSpy('loadPatchTimeline').and.resolveTo([]),
+      selectBuild: jasmine.createSpy('selectBuild').and.returnValue(false),
       compareKeys: compareKeys.asReadonly(),
       compareRejectedKind: signal(null) as never,
       compareCount: signal(0) as never,
@@ -176,6 +186,15 @@ describe('CodexLandingComponent', () => {
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
+        // Playability comes from the verse feed the header chip keeps fresh —
+        // stubbed here so the landing never reaches the real HTTP client.
+        {
+          provide: NewsService,
+          useValue: {
+            feed: signal<VerseFeed | null>(null),
+            refresh: jasmine.createSpy('refresh').and.resolveTo(undefined),
+          },
+        },
         { provide: HangarService, useValue: hangar },
         { provide: AuthService, useValue: auth },
         { provide: RoleService, useValue: roles },
@@ -530,14 +549,21 @@ describe('CodexLandingComponent', () => {
     expect(scroller?.closest('.upcoming-rail')).not.toBeNull();
   });
 
-  it('retires the patch disclosure and carries the patch label in the status pill instead', async () => {
+  it('merges the playable state and the patch into ONE headline in the terminal row', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
+    const headline = el.querySelector('sc-codex-patch-headline');
+    expect(headline).not.toBeNull();
+    expect(headline?.closest('.terminal')).not.toBeNull();
     expect(el.querySelector('.status-pill .live-dot')).not.toBeNull();
+    expect(el.querySelector('.status-pill .status-online')).not.toBeNull();
     expect(el.querySelector('.status-pill .status-build')).toBeNull();
     // The far right of the terminal row belongs to the download control now.
     expect(el.querySelector('details.patch-badge')).toBeNull();
-    expect(el.querySelector('.status-pill .status-patch')).not.toBeNull();
+    // The patch label is the switch trigger, not a dead chip (463872dd).
+    const patch = el.querySelector<HTMLButtonElement>('.status-pill .status-patch');
+    expect(patch?.tagName.toLowerCase()).toBe('button');
+    expect(patch?.getAttribute('aria-haspopup')).toBe('listbox');
     expect(fixture.componentInstance.svc.build()?.patchVersion).toBe('4.2');
   });
 

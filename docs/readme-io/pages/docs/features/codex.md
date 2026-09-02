@@ -8,6 +8,19 @@ components, items, ammunition, manufacturers and crafting blueprints, extracted
 from the live game build rather than transcribed by hand. It is public — no
 account needed.
 
+## The headline: playable state and patch
+
+The top of `/codex` states two things in one line: whether Star Citizen is
+**playable right now** — the same live server status the app header reports —
+and **which game patch** the archive below it was extracted from.
+
+That patch label is also a switch. Open it for the last five patches, with
+*Load older* paging five more at a time. Every entry says whether we hold
+extracted data for it: patches with data can be selected and put the whole
+Codex on that build, while patches that only ever arrived as an upload are
+listed but marked *no data*, because there would be nothing to show. Reloading
+the page returns you to the live patch.
+
 ## The Bridge
 
 `/codex` opens on **The Bridge**, the browsing surface:

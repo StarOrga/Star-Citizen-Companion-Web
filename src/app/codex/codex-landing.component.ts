@@ -23,6 +23,8 @@ import { cleanLocaleValue, formatNumber, humanizeClassName } from './codex-forma
 import { LocalizedText, Lang, ShipPayload } from './codex.types';
 import { PolySearchHit, polyHitLink } from './codex-poly-search';
 import { CodexBoardPanelComponent } from './codex-board-panel.component';
+import { CodexPatchHeadlineComponent } from './codex-patch-headline.component';
+import { totalRecordCount } from './codex-patch-timeline';
 import { ShipStatDelta } from './codex-build-diff';
 import {
   ArmorSlotState,
@@ -87,11 +89,12 @@ export interface FleetGroup {
     FallbackImageComponent,
     AppDownloadMenuComponent,
     CodexBoardPanelComponent,
+    CodexPatchHeadlineComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="landing">
-      <!-- ── TOP: Archive Terminal + patch + status pill + app menu ─────────── -->
+      <!-- ── TOP: Archive Terminal + playable/patch headline + app menu ─────── -->
       <header class="terminal">
         <div class="terminal-bar">
           <svg class="icon terminal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -121,28 +124,12 @@ export interface FleetGroup {
           }
         </div>
 
-        <!-- The patch "what changed?" disclosure used to own the far right of
-             this row; the Data-Uploader control took that slot (admin feedback
-             924bf1d8). Nothing was thrown away: the patch label moved into the
-             status pill, where it is read far more often than it was expanded,
-             and the provenance lines moved into the uploader overlay below —
-             which is where they belong, because that tool is what produced
-             them. build_number is literally the string "desktop" (a
-             placeholder), so it stays a provenance footnote, never a headline. -->
-        <div class="status-pill" [class.stale]="svc.stale()">
-          <span class="live-dot" aria-hidden="true"></span>
-          <span class="status-online">{{ 'codex.landing.status.online' | translate }}</span>
-          @if (svc.build(); as b) {
-            <span class="status-patch mono">{{
-              'codex.landing.status.patch' | translate: { patch: b.patchVersion }
-            }}</span>
-          }
-          @if (svc.stale()) {
-            <a class="status-stale" routerLink="/uploader">{{
-              'codex.landing.status.stale' | translate
-            }}</a>
-          }
-        </div>
+        <!-- ONE headline (admin feedback 463872dd): the playable state — the
+             same "Spielbar" the header chip reports, from the same feed — and
+             the patch that produced everything below it, merged into a single
+             line. The patch doubles as the page's quiet time machine (last 5
+             patches, five more per page, data-less ones marked as such). -->
+        <sc-codex-patch-headline (patchChange)="reload()" />
 
         <ng-template #codexProvenance>
           @if (svc.build(); as b) {
@@ -612,50 +599,10 @@ export interface FleetGroup {
         justify-content: center;
       }
 
-      /* ── status pill + patch disclosure ───────────────────────────────── */
-      .status-pill {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 7px 12px;
-        border-radius: 3px;
-        font-family: var(--sc-font-display);
-        font-size: max(0.7rem, var(--sc-fs-floor, 0.68rem));
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--sc-fg-1);
-        border: 1px solid color-mix(in srgb, var(--sc-success, #5fd698) 30%, transparent);
-        background: color-mix(in srgb, var(--sc-success, #5fd698) 10%, transparent);
-      }
-      .status-pill.stale {
-        border-color: color-mix(in srgb, var(--sc-warning, #ffc14d) 40%, transparent);
-        background: color-mix(in srgb, var(--sc-warning, #ffc14d) 10%, transparent);
-      }
-      .live-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--sc-success, #5fd698);
-        box-shadow: 0 0 8px var(--sc-success, #5fd698);
-        animation: pulse 2.4s ease-in-out infinite;
-      }
-      .status-pill.stale .live-dot {
-        background: var(--sc-warning, #ffc14d);
-        box-shadow: 0 0 8px var(--sc-warning, #ffc14d);
-      }
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.35; }
-      }
-      .status-stale { color: var(--sc-warning, #ffc14d); text-decoration: underline; }
-      /* Patch label, now a chip in the pill instead of its own disclosure. */
-      .status-patch {
-        padding-left: 8px;
-        border-left: 1px solid color-mix(in srgb, var(--sc-fg-2) 35%, transparent);
-        color: var(--sc-fg-2);
-        text-transform: none;
-        letter-spacing: 0;
-      }
+      /* The merged status/patch headline is its own component now
+         (sc-codex-patch-headline) — it owns the pill chrome, the playability
+         dot and the patch-switch overlay. Only its slot in the row is ours. */
+      sc-codex-patch-headline { flex: 0 0 auto; }
 
       /* Far-right slot: never stretch, never wrap mid-control. The menu owns
          its own overlay positioning (sc-app-download-menu). */
@@ -1286,7 +1233,7 @@ export interface FleetGroup {
       }
       @media (prefers-reduced-motion: reduce) {
         .hit, .surface, .fleet-tile, .fleet-sort__btn, .domain-chip, .zone-entry::after, .upcoming-tile { transition: none; }
-        .live-dot, .bay-ring { animation: none; }
+        .bay-ring { animation: none; }
       }
     `,
   ],
@@ -1448,20 +1395,9 @@ export class CodexLandingComponent implements OnInit {
       .map(([label, groupRows]) => ({ label, rows: groupRows }));
   });
 
-  readonly archiveRecordCount = computed<number | null>(() => {
-    const counts = this.svc.build()?.entityCounts as Record<string, unknown> | undefined;
-    if (!counts) return null;
-    let total = 0;
-    let found = false;
-    for (const [k, v] of Object.entries(counts)) {
-      if (k === 'seeded') continue;
-      if (typeof v === 'number') {
-        total += v;
-        found = true;
-      }
-    }
-    return found ? total : null;
-  });
+  readonly archiveRecordCount = computed<number | null>(() =>
+    totalRecordCount(this.svc.build()?.entityCounts as Record<string, unknown> | undefined),
+  );
 
   readonly extractedAtLabel = computed<string | null>(() => {
     const at = this.svc.build()?.extractedAt;
