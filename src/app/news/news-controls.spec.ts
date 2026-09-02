@@ -19,6 +19,10 @@ import { UpcomingShipsService } from '../codex/upcoming-ships.service';
  * - The detail overlay lost its stylesheet in the 2026-08-20 rewrite and opened
  *   as a full-bleed image with its actions cut off below the fold. It is sized
  *   to the viewport again — everything visible, nothing to scroll to.
+ * - Saving the article on the stage wrote into the same store as every other
+ *   item and then fell out of both the count and the list, so "Gemerkt" read 0
+ *   next to a lit star (eda0e19b). The saved half is scoped by "is it saved",
+ *   never by "is it on the stage".
  */
 
 function item(over: Partial<VerseNewsItem> & Pick<VerseNewsItem, 'id'>): VerseNewsItem {
@@ -140,14 +144,62 @@ describe('Verse News — harmonised controls', () => {
     expect(after).toEqual(before);
   });
 
-  it('counts the saved half against the stream, not against the whole feed', () => {
-    // The staged article is not part of the stream, so saving it must not make
-    // the saved half promise an item the list cannot show.
+  // ── Saving the hero (feedback eda0e19b) ──────────────────────────────────
+
+  it('counts the staged article as saved — the star and the badge tell one story', () => {
+    // Reported as: "the hero is starred and Gemerkt still reads 0". The stage is
+    // a presentation surface, not a category, so it cannot scope the saved half.
     const staged = svc.stage()!;
     svc.toggleFavorite(staged.id);
     fixture.detectChanges();
+    expect(svc.favoriteCount()).toBe(1);
+    expect(svc.streamCount()).withContext('the unfiltered half is unchanged')
+      .toBe(feed().news.length - 1);
+  });
+
+  it('opens the staged article under the saved half, marked as the one on the stage', () => {
+    const staged = svc.stage()!;
+    svc.toggleFavorite(staged.id);
+    all('.stream-head .seg .seg-btn')[1].click();
+    fixture.detectChanges();
+
+    expect(svc.stream().map((n) => n.id)).toEqual([staged.id]);
+    const cards = all('.cards .card');
+    expect(cards.length).withContext('the saved hero is reachable as a tile').toBe(1);
+    expect(cards[0].querySelector('.stage-tag'))
+      .withContext('the tile says why it repeats the hero').not.toBeNull();
+    expect(el('.sc-card.empty')).withContext('no empty state next to "Gemerkt 1"').toBeNull();
+  });
+
+  it('never promises more saved items than the saved list renders', () => {
+    for (const n of feed().news) svc.toggleFavorite(n.id);
+    all('.stream-head .seg .seg-btn')[1].click();
+    fixture.detectChanges();
+
+    const badge = Number(all('.stream-head .seg .seg-num')[1].textContent!.trim());
+    expect(badge).toBe(feed().news.length);
+    expect(all('.cards .card').length).toBe(badge);
+  });
+
+  it('drops a tile out of the saved half when it is unsaved again', () => {
+    const staged = svc.stage()!;
+    svc.toggleFavorite(staged.id);
+    all('.stream-head .seg .seg-btn')[1].click();
+    fixture.detectChanges();
+    expect(svc.favoriteCount()).toBe(1);
+
+    svc.toggleFavorite(staged.id);
+    fixture.detectChanges();
     expect(svc.favoriteCount()).toBe(0);
-    expect(svc.streamCount()).toBe(feed().news.length - 1);
+    // Emptying the saved half strands nobody: the service falls back to "all".
+    expect(svc.favoritesOnly()).toBeFalse();
+  });
+
+  it('only tags the tile that mirrors the stage', () => {
+    for (const n of feed().news) svc.toggleFavorite(n.id);
+    all('.stream-head .seg .seg-btn')[1].click();
+    fixture.detectChanges();
+    expect(all('.cards .card .stage-tag').length).toBe(1);
   });
 
   // ── One wording, one glyph ───────────────────────────────────────────────

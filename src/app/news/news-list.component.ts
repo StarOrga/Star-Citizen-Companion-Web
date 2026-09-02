@@ -261,6 +261,12 @@ const SAFE_SVG = new Map<string, SafeHtml>();
                       @if (isVideo(item)) {
                         <span class="vid-tag">{{ 'news.videos.badge' | translate }}</span>
                       }
+                      <!-- The saved half can hold the item that is also on the
+                           stage (eda0e19b). Saying so is cheaper than leaving
+                           the reader to wonder why the hero repeats itself. -->
+                      @if (onStage(item)) {
+                        <span class="stage-tag">{{ 'news.stream.onStage' | translate }}</span>
+                      }
                       <time>{{ relTime(item.publishedAt) }}</time>
                     </span>
                     <!-- Same two controls, same glyphs, same labels as the stage
@@ -628,6 +634,14 @@ const SAFE_SVG = new Map<string, SafeHtml>();
       font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor));
       letter-spacing: 0.08em; color: var(--sc-danger);
       border: 1px solid color-mix(in srgb, var(--sc-danger) 55%, transparent);
+    }
+    /* Same shape as the video badge, in the normal accent — it marks a place,
+       not a problem, and nothing here is admin-only. */
+    .stage-tag {
+      margin-right: 6px; padding: 1px 6px; border-radius: 4px;
+      font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor));
+      letter-spacing: 0.08em; color: var(--sc-accent);
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent);
     }
     .actions {
       display: inline-flex; align-items: center; gap: 2px;
@@ -1011,6 +1025,15 @@ export class NewsListComponent implements OnInit, OnDestroy {
 
   showMore(): void {
     this.shown.update((n) => n + STREAM_PAGE);
+  }
+
+  /**
+   * True for the tile that mirrors the item currently on the stage. It can only
+   * reach the list through the saved half, where excluding it would drop a
+   * saved article out of the user's own list (eda0e19b).
+   */
+  onStage(item: VerseNewsItem): boolean {
+    return this.stage()?.id === item.id;
   }
 
   /** One half of the stream toggle. Re-pressing the active half is a no-op. */

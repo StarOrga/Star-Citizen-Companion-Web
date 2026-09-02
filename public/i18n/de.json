@@ -1285,7 +1285,8 @@
       "title": "News Feed",
       "more": "{{count}} weitere anzeigen",
       "all": "Beiträge",
-      "filterAria": "News Feed filtern"
+      "filterAria": "News Feed filtern",
+      "onStage": "Auf der Bühne"
     },
     "verdict": {
       "label": "Build-Stand",
