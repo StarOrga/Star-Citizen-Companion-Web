@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { Location } from '@angular/common';
+import { provideLocationMocks } from '@angular/common/testing';
 import { provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { TranslateModule } from '@ngx-translate/core';
 import type { User } from '@supabase/supabase-js';
 import { AuthService } from '../auth/auth.service';
@@ -40,13 +43,15 @@ describe('SettingsComponent layout', () => {
     } as unknown as User;
   }
 
-  function setup(user: User | null = makeUser(), width = '360px') {
+  function configure(user: User | null = makeUser()) {
     TestBed.configureTestingModule({
       imports: [SettingsComponent, TranslateModule.forRoot()],
       providers: [
-        // The friends card is a real <a [routerLink]>, so RouterLink needs an
-        // ActivatedRoute to resolve against.
-        provideRouter([]),
+        // The rail builds its hrefs from the CURRENT url, and the friends
+        // card is a real <a [routerLink]> — both need a router, and the rail
+        // also needs a location. Mocked, so nothing touches real history.
+        provideRouter([{ path: 'settings', component: SettingsComponent }]),
+        provideLocationMocks(),
         {
           provide: AuthService,
           useValue: { user: signal(user), signOut: async () => undefined },
@@ -99,11 +104,48 @@ describe('SettingsComponent layout', () => {
         },
       ],
     });
+  }
+
+  function setup(user: User | null = makeUser(), width = '360px') {
+    configure(user);
     const fixture = TestBed.createComponent(SettingsComponent);
     (fixture.nativeElement as HTMLElement).style.width = width;
     (fixture.nativeElement as HTMLElement).style.display = 'block';
     fixture.detectChanges();
     return fixture;
+  }
+
+  /**
+   * Same page, but reached through the router at its real url — the only way
+   * to see the href the browser would actually resolve.
+   */
+  async function setupRouted(width = '1100px') {
+    configure();
+    const harness = await RouterTestingHarness.create('/settings');
+    const el = harness.routeNativeElement!;
+    el.style.width = width;
+    el.style.display = 'block';
+    harness.detectChanges();
+    return { harness, el };
+  }
+
+  /**
+   * Dispatches a click the way the browser would, but never lets the anchor's
+   * default navigation actually run away with the Karma frame. Returns whether
+   * the component itself cancelled the event.
+   */
+  function clickLink(link: HTMLAnchorElement, init: MouseEventInit = {}): boolean {
+    let preventedByComponent = false;
+    // Registered after the component's own listener, so it observes the flag
+    // the component left behind before blocking the navigation for good.
+    const guard = (e: Event) => {
+      preventedByComponent = e.defaultPrevented;
+      e.preventDefault();
+    };
+    link.addEventListener('click', guard);
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...init }));
+    link.removeEventListener('click', guard);
+    return preventedByComponent;
   }
 
   function overlaps(a: DOMRect, b: DOMRect): boolean {
@@ -189,6 +231,121 @@ describe('SettingsComponent layout', () => {
     expect(
       fixture.nativeElement.querySelectorAll('.provider-pill').length,
     ).toBe(2);
+  });
+
+  it('lists every section in the table of contents as a real fragment anchor', () => {
+    const fixture = setup(makeUser(), '1100px');
+    const el: HTMLElement = fixture.nativeElement;
+    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link'));
+    const groups = fixture.componentInstance.groups;
+    expect(links.length).toBe(groups.length);
+    links.forEach((link, i) => {
+      // Real anchors: middle click / Ctrl+click must stay a browser feature.
+      expect(link.tagName).toBe('A');
+      const href = link.getAttribute('href')!;
+      expect(href.endsWith(`#${groups[i].anchor}`)).toBeTrue();
+      // A BARE "#anchor" is the bug from feedback af058ca4 round 3: it resolves
+      // against <base href="/">, i.e. against the start page, not against
+      // /settings. The href must always carry a path.
+      expect(href.startsWith('#')).toBeFalse();
+      // …and the target has to exist, or the rail is a set of dead links.
+      expect(el.querySelector(`#${groups[i].anchor}`)).toBeTruthy();
+    });
+  });
+
+  it('points the rail at the settings url, not at the app root', async () => {
+    const { harness, el } = await setupRouted();
+    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link'));
+    const groups = (harness.routeDebugElement!.componentInstance as SettingsComponent).groups;
+    expect(links.length).toBe(groups.length);
+    links.forEach((link, i) => {
+      expect(link.getAttribute('href')).toBe(`/settings#${groups[i].anchor}`);
+    });
+  });
+
+  it('glides to the section on a plain left click and stays on /settings', async () => {
+    const { harness, el } = await setupRouted();
+    const component = harness.routeDebugElement!.componentInstance as SettingsComponent;
+    const link = el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link')[3];
+    const target = el.querySelector<HTMLElement>('#settings-danger')!;
+    const scrollIntoView = spyOn(target, 'scrollIntoView');
+
+    expect(clickLink(link)).toBeTrue(); // the component owns this click…
+    // …and moves the page itself instead of letting the browser jump.
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    const behaviour = scrollIntoView.calls.mostRecent().args[0] as ScrollIntoViewOptions;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    expect(behaviour.behavior).toBe(reduced ? 'auto' : 'smooth');
+    expect(behaviour.block).toBe('start');
+
+    // Highlight follows immediately, and the url keeps the section without a
+    // route change — still on the settings page, never on the start page.
+    harness.detectChanges();
+    expect(component.activeGroup()).toBe('danger');
+    const path = TestBed.inject(Location).path(true);
+    expect(path.startsWith('/settings')).toBeTrue();
+    expect(path).toContain('#settings-danger');
+  });
+
+  it('leaves a Ctrl/Cmd click to the browser so it can open a new tab', async () => {
+    const { el } = await setupRouted();
+    const link = el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link')[2];
+    const target = el.querySelector<HTMLElement>('#settings-privacy')!;
+    const scrollIntoView = spyOn(target, 'scrollIntoView');
+
+    expect(clickLink(link, { ctrlKey: true })).toBeFalse();
+    expect(clickLink(link, { metaKey: true })).toBeFalse();
+    expect(clickLink(link, { shiftKey: true })).toBeFalse();
+    expect(clickLink(link, { button: 1 })).toBeFalse();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it('groups the cards thematically instead of one flat grid', () => {
+    const fixture = setup(makeUser(), '1100px');
+    const el: HTMLElement = fixture.nativeElement;
+    const sections = Array.from(el.querySelectorAll<HTMLElement>('.sections > .group'));
+    expect(sections.map((s) => s.id)).toEqual([
+      'settings-account',
+      'settings-preferences',
+      'settings-privacy',
+      'settings-danger',
+    ]);
+    // Every group is headed and holds at least one card.
+    for (const section of sections) {
+      expect(section.querySelector('.group-title')).toBeTruthy();
+      expect(section.querySelectorAll('.sc-card').length).toBeGreaterThan(0);
+    }
+    // The irreversible action is the last thing on the page.
+    expect(sections[sections.length - 1].querySelector('.danger-zone')).toBeTruthy();
+    // Account identity and the username editor belong to the same group.
+    expect(sections[0].querySelector('.account')).toBeTruthy();
+    // Identity, the username editor and the friends entry point.
+    expect(sections[0].querySelectorAll('.sc-card').length).toBe(3);
+    expect(sections[1].querySelector('.locale-grid')).toBeTruthy();
+  });
+
+  it('offers friends from the account group as a real anchor', () => {
+    const fixture = setup(makeUser(), '1100px');
+    const el: HTMLElement = fixture.nativeElement;
+    const account = el.querySelector<HTMLElement>('#settings-account')!;
+    const link = account.querySelector<HTMLAnchorElement>('a.link-btn')!;
+    // A navigation, so it has to be an <a> with a resolvable href — middle
+    // click and "open in new tab" are browser features an <a> gets for free.
+    expect(link).toBeTruthy();
+    expect(link.tagName).toBe('A');
+    expect(link.getAttribute('href')).toBe('/friends');
+  });
+
+  it('marks exactly one section as the active one in the rail', () => {
+    const fixture = setup(makeUser(), '1100px');
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelectorAll('.toc-link.active').length).toBe(1);
+
+    fixture.componentInstance.activeGroup.set('privacy');
+    fixture.detectChanges();
+    const active = el.querySelector<HTMLAnchorElement>('.toc-link.active')!;
+    expect(active.getAttribute('href')!.endsWith('#settings-privacy')).toBeTrue();
+    expect(active.getAttribute('aria-current')).toBe('true');
   });
 
   it('shows the membership age as a single coarse unit with an exact tooltip', () => {

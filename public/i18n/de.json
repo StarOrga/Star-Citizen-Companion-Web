@@ -214,6 +214,32 @@
           "title": "Auf dem Reißbrett",
           "badgeAria": "{{count}} neue Schiffe seit deinem letzten Besuch"
         }
+      },
+      "board": {
+        "open": "offen",
+        "archiveCount": "{{count}} im Archiv",
+        "classUnknown": "Keine Klassendaten im Archiv",
+        "more": "mehr",
+        "moreCount": "{{count}} weitere",
+        "class": {
+          "light": "Leichte Rüstung",
+          "medium": "Mittlere Rüstung",
+          "heavy": "Schwere Rüstung",
+          "superheavy": "Sehr schwere Rüstung",
+          "undersuit": "Untersuit",
+          "flightsuit": "Flugkombi",
+          "utility": "Schwere Arbeitsrüstung"
+        },
+        "readyOn": "angelegt",
+        "readyOff": "offen",
+        "readiness": {
+          "primary": "Primärwaffe",
+          "secondary": "Sekundärwaffe",
+          "melee": "Nahkampf",
+          "throwable": "Wurfwaffen",
+          "gadget": "Gadget",
+          "medical": "Medizin"
+        }
       }
     },
     "bridge": {
@@ -1390,6 +1416,23 @@
   },
   "settings": {
     "title": "Einstellungen",
+    "toc": {
+      "label": "Abschnitte"
+    },
+    "groups": {
+      "account": {
+        "title": "Konto & Identität"
+      },
+      "preferences": {
+        "title": "Sprache & Bedienung"
+      },
+      "privacy": {
+        "title": "Daten & Privatsphäre"
+      },
+      "danger": {
+        "title": "Gefahrenzone"
+      }
+    },
     "account": {
       "title": "Konto"
     },
@@ -2528,13 +2571,17 @@
     "subtitle": "Hochauflösende Artworks aus RSI-Comm-Links, gesammelt beim News-Crawl. Jedes Bild verlinkt direkt aufs Original im RSI-CDN — Kachel anklicken für volle Auflösung und Download.",
     "filterAll": "Alle",
     "vote": {
-      "add": "Daumen hoch geben — {{count}} Stimmen",
-      "remove": "Daumen hoch zurücknehmen — {{count}} Stimmen",
-      "signedOut": "Zum Bewerten anmelden — {{count}} Stimmen"
+      "add": "Daumen hoch geben",
+      "remove": "Daumen hoch zurücknehmen",
+      "signedOut": "Zum Bewerten anmelden",
+      "totalNone": "Noch keine Stimmen",
+      "totalOne": "1 Stimme insgesamt (alle Nutzer)",
+      "total": "{{count}} Stimmen insgesamt (alle Nutzer)",
+      "mine": "deine Stimme ist dabei"
     },
     "top": {
       "label": "Nur Top {{count}} anzeigen",
-      "hint": "Die {{count}} bestbewerteten Wallpaper aller Nutzer. Solange noch wenig bewertet wurde, füllen die neuesten Bilder die restlichen Plätze auf.",
+      "hint": "Die {{count}} bestbewerteten Wallpaper aller Nutzer. Die Zahl am Daumen ist die Gesamtzahl der Stimmen aller Nutzer. Solange noch wenig bewertet wurde, füllen die neuesten Bilder die restlichen Plätze auf.",
       "loading": "Top-Auswahl wird geladen…"
     },
     "empty": "Noch keine Wallpaper erfasst — sie erscheinen, sobald der News-Crawl läuft.",
@@ -2558,7 +2605,7 @@
     },
     "close": "Schließen",
     "attribution": "Alle Bilder © Cloud Imperium Games — direkt vom RSI-CDN ausgeliefert, mit Verweis auf den Quell-Comm-Link. Fan-Galerie, kein Weiterverkauf, kein Re-Hosting.",
-    "appTitle": "Desktop-Wallpaper-App",
+    "appTitle": "Starscape App",
     "appDesc": "Dein Desktop rotiert durch Starscape — winzige Tray-App mit Vorladen, Überblendung und Autostart per Klick.",
     "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)",
     "appRingLock": "Der Kanal wird mit dem Download festgelegt und lässt sich in der App nicht umstellen — für einen anderen Kanal einfach den passenden Download hier erneut holen.",
@@ -2619,6 +2666,7 @@
     "trigger": "{{app}} herunterladen",
     "versions": "Versionen",
     "recommended": "Empfohlen",
+    "adminOnly": "Nur Admin",
     "conn": {
       "connected": "Desktop-App verbunden",
       "expired": "Verbindung abgelaufen — seit über 30 Tagen kein Kontakt",

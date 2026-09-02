@@ -214,6 +214,32 @@
           "title": "On the Drawing Board",
           "badgeAria": "{{count}} new ships since your last visit"
         }
+      },
+      "board": {
+        "open": "open",
+        "archiveCount": "{{count}} in the archive",
+        "classUnknown": "No class data in the archive",
+        "more": "more",
+        "moreCount": "{{count}} more",
+        "class": {
+          "light": "Light armour",
+          "medium": "Medium armour",
+          "heavy": "Heavy armour",
+          "superheavy": "Super-heavy armour",
+          "undersuit": "Undersuit",
+          "flightsuit": "Flight suit",
+          "utility": "Heavy utility armour"
+        },
+        "readyOn": "equipped",
+        "readyOff": "open",
+        "readiness": {
+          "primary": "Primary weapon",
+          "secondary": "Sidearm",
+          "melee": "Melee",
+          "throwable": "Throwables",
+          "gadget": "Gadget",
+          "medical": "Medical"
+        }
       }
     },
     "bridge": {
@@ -1390,6 +1416,23 @@
   },
   "settings": {
     "title": "Settings",
+    "toc": {
+      "label": "Sections"
+    },
+    "groups": {
+      "account": {
+        "title": "Account & identity"
+      },
+      "preferences": {
+        "title": "Language & controls"
+      },
+      "privacy": {
+        "title": "Data & privacy"
+      },
+      "danger": {
+        "title": "Danger zone"
+      }
+    },
     "account": {
       "title": "Account"
     },
@@ -2528,13 +2571,17 @@
     "subtitle": "High-resolution artwork from RSI Comm-Links, collected from the news crawl. Every image links straight to the original on the RSI CDN — click a tile for full resolution and download.",
     "filterAll": "All",
     "vote": {
-      "add": "Give this a thumbs up — {{count}} votes",
-      "remove": "Take back your thumbs up — {{count}} votes",
-      "signedOut": "Sign in to vote — {{count}} votes"
+      "add": "Give this a thumbs up",
+      "remove": "Take back your thumbs up",
+      "signedOut": "Sign in to vote",
+      "totalNone": "No votes yet",
+      "totalOne": "1 vote in total (all users)",
+      "total": "{{count}} votes in total (all users)",
+      "mine": "your vote is included"
     },
     "top": {
       "label": "Show top {{count}} only",
-      "hint": "The {{count}} highest-voted wallpapers across all users. While few images have been voted for, the newest ones fill the remaining slots.",
+      "hint": "The {{count}} highest-voted wallpapers across all users. The number beside each thumbs up is the total across all users. While few images have been voted for, the newest ones fill the remaining slots.",
       "loading": "Loading the top picks…"
     },
     "empty": "No wallpapers captured yet — they appear as the news crawl runs.",
@@ -2558,7 +2605,7 @@
     },
     "close": "Close",
     "attribution": "All imagery © Cloud Imperium Games — served directly from the RSI CDN, linked with attribution to the source Comm-Link. Fan-made gallery, no re-sale, no re-hosting.",
-    "appTitle": "Desktop Wallpaper App",
+    "appTitle": "Starscape App",
     "appDesc": "Rotate your desktop through Starscape — a tiny tray app with prefetch, crossfade and one-click autostart.",
     "appNote": "Windows only · ~0.3 MB · unsigned (SmartScreen: More info → Run anyway)",
     "appRingLock": "The channel is fixed by the download and cannot be switched inside the app — to change it, just grab the other download here again.",
@@ -2619,6 +2666,7 @@
     "trigger": "Download {{app}}",
     "versions": "Versions",
     "recommended": "Recommended",
+    "adminOnly": "Admin only",
     "conn": {
       "connected": "Desktop app connected",
       "expired": "Connection expired — no contact for over 30 days",

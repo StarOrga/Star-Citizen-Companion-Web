@@ -44,7 +44,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     WM_LBUTTONDBLCLK, WM_RBUTTONUP, WM_TIMER, WNDCLASSW, WS_OVERLAPPED,
 };
 
-use util::{Channel, Config, Mode};
+use util::{Channel, Config, Mode, RingPref};
 
 // ---- messages / ids ----
 const WM_TRAY: u32 = WM_APP + 1;
@@ -84,6 +84,12 @@ const ID_SUMMARY_ON_BOOT: usize = 15;
 const ID_SUMMARY_NOW: usize = 16;
 const ID_UPDATE: usize = 17;
 const ID_TELEMETRY: usize = 18;
+// Update-ring picker. `ID_RING_AUTO` is the default and the first entry; the
+// three pinned rings follow in alpha → beta → stable order.
+const ID_RING_AUTO: usize = 19;
+const ID_RING_ALPHA: usize = 20;
+const ID_RING_BETA: usize = 21;
+const ID_RING_STABLE: usize = 22;
 
 const STARSCAPE_URL: &str = "https://sc-companion.vercel.app/starscape";
 /// Filename of the fetched weekly Verse-News summary image inside the cache dir.
@@ -169,18 +175,21 @@ fn main() {
         log::line("startup: autostart re-pointed at this exe (it registered a different path)");
     }
 
-    // Channel lock: the update ring is decided by the DOWNLOAD, never in the app
-    // (see `update::resolve_channel` for the precedence and why). An unmarked
-    // copy — the `latest` alias, a user rename, a self-updated exe — keeps the
-    // ring already on file; only a fresh per-ring download re-locks it.
-    let stored = if cfg.channel_locked { Some(cfg.channel) } else { None };
-    let resolved = update::resolve_channel(stored);
-    if !cfg.channel_locked || resolved != cfg.channel {
-        cfg.channel = resolved;
-        cfg.channel_locked = true;
+    // Update ring: the PREFERENCE decides (see `update::resolve_preference`).
+    // Default is "follow the highest ring this account's role allows", which the
+    // server's own clamp resolves — a `-beta`/`-alpha` download still pins that
+    // ring, but only on a genuine first run, and the tray can change it later.
+    let pref = update::resolve_preference(cfg.channel_pref, !existed);
+    if pref != cfg.channel_pref {
+        cfg.channel_pref = pref;
         cfg.save();
-        log::line(&format!("startup: update ring locked to {}", cfg.channel.as_str()));
     }
+    update::init(cfg.channel_pref, cfg.channel);
+    log::line(&format!(
+        "startup: update ring preference {} (last resolved: {})",
+        cfg.channel_pref.as_key(),
+        cfg.channel.as_str()
+    ));
 
     QUEUE.get_or_init(|| Arc::new(Mutex::new(VecDeque::new())));
 
@@ -256,7 +265,7 @@ unsafe fn run(cfg: Config) {
     // Background update thread — silent by design: it never opens a browser and
     // never shows a notification. Its only visible effect is the tray-menu
     // readout, plus a seamless relaunch when a verified newer build lands.
-    spawn_update_loop(hwnd_isize, cfg.channel);
+    spawn_update_loop(hwnd_isize);
 
     // Anonymous telemetry: flush a panic the previous run recorded, then report
     // this launch. Same signed ingest path and same opt-out contract as the
@@ -466,11 +475,15 @@ fn spawn_summary_fetch(hwnd_isize: isize, boot_flow: bool) {
 // ---------------- Self-update ----------------
 
 /// Periodic, entirely silent update poll on its own thread.
-fn spawn_update_loop(hwnd_isize: isize, channel: Channel) {
+///
+/// The ring is deliberately NOT captured here: this thread sleeps for 6 h at a
+/// time, and a ring picked in the tray meanwhile has to take effect on the next
+/// poll. `update::run_cycle` reads the live preference instead.
+fn spawn_update_loop(hwnd_isize: isize) {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(UPDATE_FIRST_DELAY_SECS));
         loop {
-            run_update_cycle(hwnd_isize, false, channel);
+            run_update_cycle(hwnd_isize, false);
             std::thread::sleep(Duration::from_secs(UPDATE_POLL_SECS));
         }
     });
@@ -478,12 +491,12 @@ fn spawn_update_loop(hwnd_isize: isize, channel: Channel) {
 
 /// Run one check/install cycle and post the UI-thread follow-ups it asks for.
 /// `interactive` (tray click only) additionally permits a browser sign-in.
-fn run_update_cycle(hwnd_isize: isize, interactive: bool, channel: Channel) {
+fn run_update_cycle(hwnd_isize: isize, interactive: bool) {
     let hwnd = hwnd_isize as *mut c_void;
     let signed_in = || unsafe {
         PostMessageW(hwnd, WM_UPDATE_FOREGROUND, 0, 0);
     };
-    if update::run_cycle(interactive, channel, &signed_in) {
+    if update::run_cycle(interactive, &signed_in) {
         unsafe {
             PostMessageW(hwnd, WM_UPDATE_RESTART, 0, 0);
         }
@@ -525,15 +538,24 @@ fn apply_next() {
 }
 
 unsafe fn show_menu(hwnd: HWND) {
-    let (paused, fade, mode, delay, summary_on_boot, channel, telemetry_on) = {
-        let u = ui().lock().unwrap();
+    // Fold the ring the updater has since resolved back into the config, so the
+    // readout and the launch telemetry name the right one after a restart —
+    // under `RingPref::Auto` the effective ring is only known once a check has
+    // run, and that happens on a worker thread that owns no config.
+    let resolved_ring = update::effective_ring();
+    let (paused, fade, mode, delay, summary_on_boot, ring_pref, telemetry_on) = {
+        let mut u = ui().lock().unwrap();
+        if u.cfg.channel != resolved_ring {
+            u.cfg.channel = resolved_ring;
+            u.cfg.save();
+        }
         (
             u.cfg.paused,
             u.cfg.fade,
             u.cfg.mode,
             u.cfg.screensaver_after_min,
             u.cfg.summary_on_boot,
-            u.cfg.channel,
+            u.cfg.channel_pref,
             u.cfg.telemetry,
         )
     };
@@ -561,6 +583,50 @@ unsafe fn show_menu(hwnd: HWND) {
         AppendMenuW(delay_menu, chk(*m == delay), *id, delay_labels[i].as_ptr());
     }
 
+    // ---- Update-ring submenu ----
+    //
+    // The ring picker the app never had. "Automatisch" is first and is the
+    // default: it follows the highest ring the account's role grants, re-resolved
+    // on every check. The three pinned rings follow, widest first, each GREYED
+    // when the last check showed this account cannot reach it — visible rather
+    // than hidden, so the ring exists as a fact the user can see and understand
+    // ("Alpha is a thing, my account just isn't in it") instead of a capability
+    // that silently differs between machines. Until a check has succeeded the
+    // reach is unknown and all three stay enabled: greying on a guess could hide
+    // the very entry that fixes a wrong ring.
+    let ring_menu = CreatePopupMenu();
+    let l_ring_auto = util::wide(&t(
+        "Automatisch (höchster verfügbarer)",
+        "Automatic (highest available)",
+    ));
+    AppendMenuW(ring_menu, chk(ring_pref.is_auto()), ID_RING_AUTO, l_ring_auto.as_ptr());
+    AppendMenuW(ring_menu, MF_SEPARATOR, 0, std::ptr::null());
+    let rings: [(Channel, usize); 3] = [
+        (Channel::Alpha, ID_RING_ALPHA),
+        (Channel::Beta, ID_RING_BETA),
+        (Channel::Stable, ID_RING_STABLE),
+    ];
+    let ring_labels: Vec<Vec<u16>> = rings
+        .iter()
+        .map(|(c, _)| {
+            let name = c.as_str();
+            if update::ring_is_available(*c) {
+                util::wide(name)
+            } else {
+                util::wide(&t(
+                    &format!("{name} · für dieses Konto nicht freigegeben"),
+                    &format!("{name} · not enabled for this account"),
+                ))
+            }
+        })
+        .collect();
+    for (i, (c, id)) in rings.iter().enumerate() {
+        let picked = ring_pref == RingPref::Pinned(*c);
+        let flags = chk(picked) | if update::ring_is_available(*c) { 0 } else { MF_GRAYED };
+        AppendMenuW(ring_menu, flags, *id, ring_labels[i].as_ptr());
+    }
+    let l_ring = util::wide(&update::ring_menu_label());
+
     let l_next = util::wide(&t("Nächstes Wallpaper", "Next wallpaper"));
     let l_pause = util::wide(&t("Pausiert", "Paused"));
     let l_mode = util::wide(&t("Modus", "Mode"));
@@ -578,11 +644,14 @@ unsafe fn show_menu(hwnd: HWND) {
     // Version readout, always first: "aktuell" when we are, "Update verfügbar"
     // only when there really is one. Greyed unless clicking it does something —
     // the tray menu is the updater's ONLY surface, no balloons, no toasts.
-    let l_update = util::wide(&update::tray_label(channel));
+    let l_update = util::wide(&update::tray_label());
     let update_flags = MF_STRING | if update::is_actionable() { 0 } else { MF_GRAYED };
 
     let menu = CreatePopupMenu();
     AppendMenuW(menu, update_flags, ID_UPDATE, l_update.as_ptr());
+    // Directly under the readout it explains: "Aktuell · v0.6.0 · Alpha" is only
+    // half an answer without "and Alpha is what I follow, automatically".
+    AppendMenuW(menu, MF_POPUP, ring_menu as usize, l_ring.as_ptr());
     AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
     AppendMenuW(menu, MF_STRING, ID_NEXT, l_next.as_ptr());
     AppendMenuW(menu, chk(paused), ID_PAUSE, l_pause.as_ptr());
@@ -647,12 +716,16 @@ unsafe fn show_menu(hwnd: HWND) {
             spawn_summary_fetch(hwnd as isize, false);
         }
         ID_UPDATE => {
-            // Interactive cycle: may open the website sign-in when the locked
-            // ring is above the anonymous tier, then install straight away.
+            // Interactive cycle: may open the website sign-in when the ring we
+            // follow is above the anonymous tier, then install straight away.
             log::line("update: tray entry clicked");
             let hwnd_isize = hwnd as isize;
-            std::thread::spawn(move || run_update_cycle(hwnd_isize, true, channel));
+            std::thread::spawn(move || run_update_cycle(hwnd_isize, true));
         }
+        ID_RING_AUTO => pick_ring(hwnd, RingPref::Auto),
+        ID_RING_ALPHA => pick_ring(hwnd, RingPref::Pinned(Channel::Alpha)),
+        ID_RING_BETA => pick_ring(hwnd, RingPref::Pinned(Channel::Beta)),
+        ID_RING_STABLE => pick_ring(hwnd, RingPref::Pinned(Channel::Stable)),
         ID_STARSCAPE => util::open_url(STARSCAPE_URL),
         ID_QUIT => {
             DestroyWindow(hwnd);
@@ -674,6 +747,28 @@ fn toggle(f: impl FnOnce(&mut Config)) {
     let mut u = ui().lock().unwrap();
     f(&mut u.cfg);
     u.cfg.save();
+}
+
+/// Apply an update-ring choice from the tray: persist it, hand it to the
+/// updater, and re-check right away.
+///
+/// The re-check is INTERACTIVE on purpose. Picking a ring above the anonymous
+/// tier is the one moment where a browser sign-in is clearly what the user just
+/// asked for; leaving it to the silent poll would answer a deliberate click with
+/// up to six hours of nothing. A no-op pick (same ring again) is skipped so the
+/// menu does not fire a network round trip for a mis-click.
+fn pick_ring(hwnd: HWND, pref: RingPref) {
+    // Bound to a `let` so the guard is provably released before `toggle` takes
+    // the same lock again — a temporary living to the end of the `if` statement
+    // would self-deadlock the UI thread.
+    let current = ui().lock().unwrap().cfg.channel_pref;
+    if current == pref {
+        return;
+    }
+    toggle(|c| c.channel_pref = pref);
+    update::set_preference(pref);
+    let hwnd_isize = hwnd as isize;
+    std::thread::spawn(move || run_update_cycle(hwnd_isize, true));
 }
 
 /// Background: fetch the list once, then keep ~3 images ready on disk.

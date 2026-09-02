@@ -222,18 +222,40 @@ describe('CodexLandingComponent', () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.board-empty')).not.toBeNull();
-    expect(el.querySelector('.paperdoll-wrap')).toBeNull();
+    expect(el.querySelector('.board-person')).toBeNull();
     const cta = el.querySelector<HTMLAnchorElement>('.board-empty a.btn');
     expect(cta?.getAttribute('href')).toContain('/codex/fps');
   });
 
-  it('renders the schematic paperdoll (not a list) once a personal loadout exists', async () => {
+  it('renders the figure with SIX individually clickable positions once a personal loadout exists', async () => {
     const fixture = await setup({ hangar: [], roleLoadouts: [fpsLoadout('set1', 'Boarding Kit')] });
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.paperdoll-wrap svg.paperdoll')).not.toBeNull();
+    expect(el.querySelector('.board-person svg.board-doll')).not.toBeNull();
     expect(el.querySelector('.board-empty')).toBeNull();
-    // Six anatomical slots: 1 circle (helmet) + 6 rects (torso/arms×2/legs×2/backpack) + undersuit path.
-    expect(el.querySelectorAll('.doll-slot').length).toBe(7);
+    // The whole point of the 2026-09-01 rethink: the zone stopped being one
+    // stretched link over a display case. Six anatomical positions, each a REAL
+    // anchor, so middle-click / "open in new tab" work.
+    const slots = el.querySelectorAll<HTMLAnchorElement>('a.board-slot');
+    expect(slots.length).toBe(6);
+    for (const a of Array.from(slots)) expect(a.getAttribute('href')).toContain('/codex/fps');
+  });
+
+  it('carries the equip intent in the slot URL, so equip controls cannot leak into ordinary browsing', async () => {
+    const fixture = await setup({ hangar: [], roleLoadouts: [fpsLoadout('set1', 'Boarding Kit')] });
+    const el: HTMLElement = fixture.nativeElement;
+    const href = el.querySelector<HTMLAnchorElement>('a.board-slot')?.getAttribute('href') ?? '';
+    expect(href).toContain('cat=armor');
+    expect(href).toContain('slot=');
+    expect(href).toContain('equipInto=set1');
+  });
+
+  it('never renders a numeric armour value — the archive carries none', async () => {
+    const fixture = await setup({ hangar: [], roleLoadouts: [fpsLoadout('set1', 'Boarding Kit')] });
+    const el: HTMLElement = fixture.nativeElement;
+    // Six squares, class encoded as bar HEIGHT (concept iteration 6, variant Ⓣ).
+    expect(el.querySelectorAll('a.board-sq').length).toBe(6);
+    // The two stale gap markers are gone with the KPI row they lived in.
+    expect(el.querySelector('.kpi-row')).toBeNull();
   });
 
   it('shows the flagship on a cinematic hero — identity and mount-derived KPIs ON the art, never crew/cargo/mass/speed', async () => {
@@ -258,7 +280,7 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('.ship-hero .hero-scrim .identity-mfr')?.textContent).toContain('AEGS');
     const link = el.querySelector<HTMLAnchorElement>('.ship-hero a.identity-name');
     expect(link?.getAttribute('href')).toContain('/codex/ship/AEGS_Gladius');
-    // The ship KPI card row is gone; the on-foot zone keeps its own .kpi-row.
+    // The ship KPI card row is gone (and since 2026-09-01 so is the on-foot one).
     expect(el.querySelector('.ship-hero .kpi-row')).toBeNull();
     const kpiText = el.querySelector('.ship-hero .hero-kpis')?.textContent ?? '';
     expect(kpiText).not.toMatch(/crew/i);
@@ -424,7 +446,10 @@ describe('CodexLandingComponent', () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
 
-    const boardEntry = el.querySelector<HTMLAnchorElement>('.zone.board a.zone-entry');
+    // AN BORD lost its stretched zone-wide link in the 2026-09-01 rethink — it
+    // was what made every anatomical position unclickable. The entrance now
+    // lives on the set name, and the positions carry their own links.
+    const boardEntry = el.querySelector<HTMLAnchorElement>('.zone.board a.board-name');
     expect(boardEntry?.getAttribute('href')).toBe('/codex/fps');
 
     const hangarEntry = el.querySelector<HTMLAnchorElement>('.zone.hangar a.zone-entry');
@@ -437,7 +462,7 @@ describe('CodexLandingComponent', () => {
       roleLoadouts: [fpsLoadout('fps-set-1', 'Boarding Kit')],
     });
     const el: HTMLElement = fixture.nativeElement;
-    const boardEntry = el.querySelector<HTMLAnchorElement>('.zone.board a.zone-entry');
+    const boardEntry = el.querySelector<HTMLAnchorElement>('.zone.board a.board-name');
     expect(boardEntry?.getAttribute('href')).toBe('/hangar/loadout/fps-set-1');
   });
 

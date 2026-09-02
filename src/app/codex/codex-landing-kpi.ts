@@ -223,6 +223,133 @@ export interface ResolvedArmorEntity {
 
 const WEIGHT_CLASS_RE = /(light|medium|heavy)/i;
 
+// ── armour class — the ONLY honest protection signal this build carries ──────
+//
+// Verified against production 2026-09-01: `SCItemSuitArmorParams.DamageReduction`
+// exists in 0 of 9.539 `Char_Armor_*` rows, and `damageResistance` is stored as
+// an UNRESOLVED macro reference, exactly as p4k-format.md §56 warns. So there is
+// no numeric protection value and there never was one — the old `gapArmor`
+// marker was right for the wrong reason.
+//
+// What IS real is the macro's NAME, and it is a clean ordinal class:
+//   Light 773 · Medium 575 · Heavy 560 · Undersuit 262 · HeavyArmorUtility 53
+//   · CombatFlightsuit 42 · SuperHeavy 4 · Default 1
+// Backpacks carry no armour params at all (0 of 540) — they resolve to null and
+// must render as an honest gap, never as a guessed class.
+
+export type ArmorClass =
+  | 'light' | 'medium' | 'heavy' | 'superheavy'
+  | 'undersuit' | 'flightsuit' | 'utility';
+
+const ARMOR_CLASS_BY_MACRO: Readonly<Record<string, ArmorClass>> = {
+  LightArmor: 'light',
+  MediumArmor: 'medium',
+  HeavyArmor: 'heavy',
+  SuperHeavyArmor: 'superheavy',
+  UndersuitArmor: 'undersuit',
+  CombatFlightsuitArmor: 'flightsuit',
+  HeavyArmorUtility: 'utility',
+};
+
+/**
+ * Height of the "Gewicht" bar, 0..1 — the chosen encoding (concept iteration 6,
+ * variant Ⓣ): the armour class is expressed by BAR HEIGHT, never by hue, so
+ * colour is free to mean only "equipped vs. open".
+ *
+ * The three off-scale classes are deliberately NOT invented into the ramp:
+ * undersuit and flightsuit sit at the light step, utility at the heavy step,
+ * and both are additionally marked as off-scale by the caller.
+ */
+export const ARMOR_CLASS_WEIGHT: Readonly<Record<ArmorClass, number>> = {
+  light: 0.28,
+  medium: 0.55,
+  heavy: 0.82,
+  superheavy: 1,
+  undersuit: 0.28,
+  flightsuit: 0.28,
+  utility: 0.82,
+};
+
+/** Classes that are a different KIND of piece, not a step on the light→heavy ramp. */
+export const ARMOR_CLASS_OFF_SCALE: ReadonlySet<ArmorClass> = new Set<ArmorClass>([
+  'undersuit',
+  'flightsuit',
+]);
+
+/**
+ * `DamageResistanceMacro.MediumArmor` → `'medium'`. Returns null when the piece
+ * carries no armour params (every backpack) or an unknown macro — the caller
+ * renders a gap, never a guess.
+ */
+export function armorClassFromPayload(payload: unknown): ArmorClass | null {
+  const stats = (payload as { stats?: Record<string, Record<string, unknown>> } | null | undefined)
+    ?.stats?.['SCItemSuitArmorParams'];
+  const raw = stats?.['damageResistance._RecordName_'];
+  if (typeof raw !== 'string') return null;
+  const macro = raw.startsWith('DamageResistanceMacro.')
+    ? raw.slice('DamageResistanceMacro.'.length)
+    : raw;
+  return ARMOR_CLASS_BY_MACRO[macro] ?? null;
+}
+
+// ── readiness — what the set actually carries, by real weapon class ──────────
+//
+// Verified 2026-09-01: personal gear has a clean sub_type taxonomy
+// (Medium 1105 · Small 297 · Gadget 163 · Knife 140 · Grenade 74 · Large 57)
+// plus `FPS_Consumable / Medical` (60) for medpens.
+//
+// There is deliberately NO mining/salvage/tractor entry: every `Mining*` and
+// `Tractor` hit in the archive is a SHIP component (turrets, seats,
+// `AEGS_Reclaimer_Salvage_Arm`), and a handheld multitool with attachments does
+// not exist as a personal-item category in this build. A "mining ready ✓" mark
+// would therefore be a fabricated claim.
+
+export const READINESS_KEYS = [
+  'primary', 'secondary', 'melee', 'throwable', 'gadget', 'medical',
+] as const;
+export type ReadinessKey = (typeof READINESS_KEYS)[number];
+
+const READINESS_BY_WEAPON_SUBTYPE: Readonly<Record<string, ReadinessKey>> = {
+  medium: 'primary',
+  large: 'primary',
+  small: 'secondary',
+  knife: 'melee',
+  grenade: 'throwable',
+  gadget: 'gadget',
+};
+
+export interface ReadinessSlot {
+  key: ReadinessKey;
+  /** True = the set carries at least one piece of this class. */
+  ok: boolean;
+}
+
+/**
+ * Which of the six honest readiness classes the set covers. Pure: takes the
+ * loadout's items plus the payload batch the zone already fetches.
+ */
+export function computeReadiness(
+  items: readonly { className: string | null }[],
+  payloads: ReadonlyMap<string, EntityPayloadEntry>,
+): ReadinessSlot[] {
+  const hit = new Set<ReadinessKey>();
+  for (const item of items) {
+    if (!item.className) continue;
+    const entry = payloads.get(item.className);
+    if (!entry) continue;
+    const subType = (entry.payload as { subType?: string | null } | null)?.subType ?? null;
+    if (!subType) continue;
+    const key = subType.toLowerCase();
+    if (entry.kind === 'weapon') {
+      const mapped = READINESS_BY_WEAPON_SUBTYPE[key];
+      if (mapped) hit.add(mapped);
+    } else if (entry.kind === 'item' && key === 'medical') {
+      hit.add('medical');
+    }
+  }
+  return READINESS_KEYS.map((key) => ({ key, ok: hit.has(key) }));
+}
+
 /**
  * On-foot KPI budget (max 7): Belegte Slots, Grad-Mix, Gewichtsklasse,
  * Hersteller, Archivtiefe (for the still-empty slots), plus two HONEST GAP

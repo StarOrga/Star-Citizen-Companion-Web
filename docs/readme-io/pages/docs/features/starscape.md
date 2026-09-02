@@ -1,6 +1,6 @@
 ---
 title: Starscape
-excerpt: A gallery of original-resolution RSI artwork harvested from the news crawl, plus a 0.3 MB Windows wallpaper app.
+excerpt: A gallery of original-resolution RSI artwork harvested from the news crawl, plus the 0.3 MB Windows Starscape App.
 ---
 
 **Starscape** is the artwork side of the news crawl: high-resolution imagery
@@ -24,6 +24,11 @@ One vote per person per image, and it is permanent until you take it back —
 tapping it again removes your vote. Signed-out visitors still see how many
 votes an image has; casting one needs an account.
 
+**The number beside the thumbs up is the total across all users** — not your
+own vote. It is shown even when it is zero, and hovering (or focusing) the
+button spells it out: *“12 votes in total (all users) · your vote is
+included”*. Your own vote is the *filled* mark, never the digit.
+
 Nobody can see *who* voted. The gallery only ever publishes the tally: the
 votes themselves are readable by their owner and by no one else, and the count
 is served by a database function that never returns a user.
@@ -31,7 +36,9 @@ is served by a database function that never returns a user.
 **Show top 7 only** narrows the gallery to the seven highest-voted wallpapers
 across all users. Early on, when barely anything has been voted for, the
 newest images fill the remaining slots — the list is never short and never
-empty. The setting is remembered per account.
+empty. The setting is remembered per account. While that view is on, every
+tile keeps its tally on screen without hovering, so you can see at a glance
+which of the seven are genuinely voted for and which are newest-image filler.
 
 > The same **Top 7** switch is planned for the desktop app's tray menu, so the
 > rotation can follow the community's favourites. It is not in the tray yet —
@@ -55,10 +62,10 @@ sheet, so it can go straight into a chat, a note or your own timeline. The link
 it shares reopens exactly that wallpaper. Browsers without a share sheet
 (most desktops) copy the link to the clipboard instead.
 
-## Desktop wallpaper app
+## Starscape App
 
-A tiny native Windows tray app rotates your desktop background through the same
-gallery.
+The **Starscape App** is a tiny native Windows tray app that rotates your desktop
+background through the same gallery.
 
 - **Native, no runtime.** Pure Win32 — the release binary is about **0.3 MB**
   and idles in the low single-digit MB of memory.
@@ -82,9 +89,30 @@ run (*More info → Run anyway*).
 | **Weekly Verse News on start** | Show a weekly Verse-News summary image as the first wallpaper after boot or login, once per day. On by default |
 | **Start with Windows** | Autostart via the user's `Run` key. On by default for new installs; existing installs keep their current setting. When enabled, the entry always follows the copy you actually launched — downloading a newer build and starting it once is enough to make it the installed one |
 | **Send anonymous diagnostics** | Anonymous crash + launch telemetry, on by default. See [Diagnostics](#diagnostics) below — switching it off also deletes anything already recorded |
-| **◈ v… (update status)** | Always names the running version plus the update state: up to date, update available, downloading, or *sign in for `<ring>` updates*. A signed-out install on a locked ring even flags "outdated" when a newer build is already public. Click to sign in, install, or retry |
+| **◈ v… (update status)** | Always names the running version plus the update state: up to date, update available, downloading, or *sign in to check*. Click to sign in, install, or retry |
+| **Update channel ▸** | Which release ring the app follows. *Automatic (highest available)* is the default and picks the highest ring your account may use — alpha for admins, beta for collaborators, stable for everyone else — and re-checks that on every update poll. Pin *Stable*, *Beta* or *Alpha* instead if you want a fixed one; rings your account cannot use are shown greyed out rather than hidden |
 | **Show Verse News summary now** | Re-fetch the summary and set it immediately |
 | **Open Starscape website** | The web gallery |
+
+#### Update channels
+
+Starscape ships on three rings: **alpha** first, then **beta**, then **stable**.
+They are pointers at the same build, promoted one after another — the binary is
+identical, only *when* you receive it differs.
+
+Which ring you get is decided by your account role, and by default the app takes
+the **highest one you are entitled to**. Nothing has to be configured for that,
+but two things are worth knowing:
+
+- **Alpha and beta need a signed-in app.** Signed out, the update feed can only
+  serve you stable, so the tray shows *"v… on a pre-release ring · sign in to
+  check"* when a higher ring has moved ahead. Signing in through
+  **Open Starscape website** resolves it — either into the newer build, or into a
+  quiet "up to date" if your role does not reach that ring after all.
+- **Pinning is a one-click escape hatch.** Pick a specific ring under
+  **Update channel** to stop following the highest one; the choice survives
+  restarts and self-updates. Downloading a `-beta` or `-alpha` build from the
+  website also pins that ring, but only on a brand-new install.
 
 ### Diagnostics
 

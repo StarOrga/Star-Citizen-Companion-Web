@@ -52,7 +52,7 @@ so it follows you to every device you sign in on.
   update.
 - **Build on the data.** The [Public API](doc:getting-started) is read-only and
   token-authenticated.
-- **Decorate your desktop.** The [Starscape](doc:starscape) wallpaper app is a
+- **Decorate your desktop.** The [Starscape](doc:starscape) App is a
   ~0.3 MB Windows tray app.
 
 ## Something looks wrong?

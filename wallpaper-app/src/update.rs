@@ -35,8 +35,14 @@
 //!   * The swap itself is crash-safe: staged and flushed to `<exe>.new` first, then
 //!     two metadata-only renames. See [`swap_running_exe`].
 //!
-//! Channel lock: the ring is decided by the download, never in the app — see
-//! [`resolve_channel`]. There is deliberately no in-app channel picker.
+//! Ring selection (rewritten in 0.6.0 — see [`resolve_preference`]): the ring is
+//! no longer pinned by the download. The default is [`RingPref::Auto`], which
+//! asks the feed for the TOP ring and lets the server's role clamp answer with
+//! the highest one this account actually reaches — `alpha → beta → stable`. The
+//! tray menu can pin a specific ring instead. What the old model got wrong: an
+//! admin who took the website's default `…-stable.exe` was locked to stable for
+//! good and told "up to date" on 0.4.4 while alpha served 0.5.0, because nothing
+//! ever asked for the ring they were entitled to.
 //!
 //! Surface: the tray menu, and nothing else. No balloons, no toasts, no dialogs.
 
@@ -47,7 +53,7 @@ use crate::crypto;
 use crate::log;
 use crate::net;
 use crate::session;
-use crate::util::{self, Channel};
+use crate::util::{self, Channel, RingPref};
 
 /// The running build's version, from Cargo (also what CI bakes into VERSIONINFO).
 pub const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -84,30 +90,53 @@ pub enum State {
     /// No successful check yet (fresh start, or the feed was unreachable).
     Unknown,
     Checking,
-    /// Confirmed up to date on the locked ring.
+    /// Confirmed up to date on the ring this install follows.
     Current,
     Available(String),
     Downloading,
     /// Verified and written over the running exe; active after the next start.
     /// Only ever seen when the relaunch was deferred (screensaver on screen).
     Installed(String),
-    /// The locked ring is above the anonymous tier — a website sign-in is needed
+    /// The PINNED ring is above the anonymous tier — a website sign-in is needed
     /// before this ring's builds are INSTALLED. Only ever reached when the build
-    /// is actually behind: the feed reports the locked ring's version even to a
+    /// is actually behind: the feed reports the pinned ring's version even to a
     /// clamped caller, so "am I up to date?" is answered without signing in and
     /// a current install reports [`State::Current`] instead. `newer` carries the
     /// version to install, or `None` against a pre-`requestedVersion` feed that
     /// could not say (then the state is a plain "sign in to find out").
     SignInRequired { newer: Option<String> },
-    /// Signed in, but the account's role does not reach the locked ring (e.g. a
+    /// Signed in, but the account's role does not reach the PINNED ring (e.g. a
     /// beta copy on a viewer account). Deliberately NOT actionable: clicking
     /// would only re-open a browser sign-in that cannot change the outcome.
+    /// Unreachable in [`RingPref::Auto`], where being clamped is the answer
+    /// rather than a refusal.
     NotEntitled,
+    /// [`RingPref::Auto`], signed out, and a ring above the anonymous tier is
+    /// ahead of this build. Distinct from [`State::SignInRequired`] on purpose:
+    /// there the user PICKED that ring, so "sign in to install" is a promise the
+    /// app can keep; here the app does not yet know whether this account reaches
+    /// the ring at all, so the label offers to find out and nothing more.
+    PreRelease(String),
     /// Download / verification / install failed; clicking retries.
     Failed,
 }
 
 static STATE: Mutex<State> = Mutex::new(State::Unknown);
+
+/// Which ring the user wants followed. Owned here rather than passed in per call
+/// because the tray can change it at any moment while the 6 h poll thread is
+/// asleep holding a copy of the old one.
+static PREFERENCE: Mutex<RingPref> = Mutex::new(RingPref::Auto);
+
+/// Ring the last check actually resolved to — under [`RingPref::Auto`] that is
+/// whatever the server clamp handed back, which is the whole point.
+static EFFECTIVE: Mutex<Channel> = Mutex::new(Channel::Stable);
+
+/// Highest ring this account is known to reach, learned from the feed's own
+/// clamp. `None` until a check has succeeded (offline, or first 20 s of a run),
+/// and the tray then enables every ring rather than guessing a ceiling that
+/// would lock the user out of the very menu that fixes it.
+static MAX_RING: Mutex<Option<Channel>> = Mutex::new(None);
 
 /// True while a cycle owns the update path. `STATE` cannot serve as the in-flight
 /// lock: reading it and then setting `Checking` is check-then-act, so the 6 h poll
@@ -172,38 +201,149 @@ fn channel_from_exe_name() -> Option<Channel> {
         .and_then(channel_from_stem)
 }
 
-/// Decide the ring this install follows, given whatever was persisted before.
+/// Decide which ring this install should follow, given whatever was persisted.
 ///
 /// Precedence, and why:
-///   1. **An explicit ring marker in our own filename wins.** That marker only
-///      exists on a file downloaded from the website's per-ring link, i.e. it is
-///      a ring choice the user made — before the download, on the website, which
-///      is exactly where the choice is supposed to be made. A stable user who
-///      deliberately fetches `…-beta.exe` therefore lands on beta instead of
-///      having their download silently ignored. It cannot be an escalation: the
-///      feed clamps every response to the account's role, so marking a copy
-///      `-alpha` as a viewer buys nothing but [`State::NotEntitled`].
-///   2. **Otherwise the persisted ring.** The version-less `latest` alias, a
-///      `starscape-wallpaper (1).exe`, or a user rename carries no marker, so it
-///      must never move an existing install between rings.
-///   3. **Otherwise stable** — the safest ring, and the documented default.
-///
-/// There is still no in-app switch, which is the deliberate difference from the
-/// data-uploader's runtime channel picker.
-pub fn resolve_channel(stored: Option<Channel>) -> Channel {
-    pick_channel(channel_from_exe_name(), stored)
+///   1. **The persisted preference wins**, always. It is either an explicit tray
+///      pick or the [`RingPref::Auto`] default, and both must outrank the
+///      filename: a self-update overwrites the exe *in place*, so the name it
+///      was first downloaded under survives forever. Letting that name keep
+///      overriding a later in-app choice would make the tray picker silently
+///      revert on every restart.
+///   2. **On a genuine first run only**, a `-beta` / `-alpha` marker in our own
+///      filename pins that ring. Those assets are only reachable through the
+///      website's per-ring overlay, and only for roles that already reach them,
+///      so the marker is a real choice made minutes earlier — including the
+///      deliberate choice to sit BELOW the top ring.
+///   3. A `-stable` marker deliberately pins nothing. It is what the website's
+///      default download CTA hands to every visitor, so it is evidence of
+///      clicking the big button, not of wanting stable specifically — and
+///      treating it as a pin is exactly what left an admin stranded on 0.4.4.
+///      Falling through to auto costs a viewer nothing: their clamp is stable.
+pub fn resolve_preference(stored: RingPref, first_run: bool) -> RingPref {
+    pick_preference(stored, channel_from_exe_name(), first_run)
 }
 
-/// The precedence rule of [`resolve_channel`], separated from the filesystem so
-/// it can be tested exhaustively.
-fn pick_channel(from_name: Option<Channel>, stored: Option<Channel>) -> Channel {
-    from_name.or(stored).unwrap_or(Channel::Stable)
+/// The precedence rule of [`resolve_preference`], separated from the filesystem
+/// so it can be tested exhaustively.
+fn pick_preference(stored: RingPref, from_name: Option<Channel>, first_run: bool) -> RingPref {
+    if !first_run {
+        return stored;
+    }
+    match from_name {
+        Some(c) if c > Channel::Stable => RingPref::Pinned(c),
+        _ => stored,
+    }
+}
+
+/// Seed the updater's view of the world from the persisted config, before the
+/// first check has had a chance to run.
+pub fn init(pref: RingPref, last_effective: Channel) {
+    set_preference_inner(pref);
+    set_effective(last_effective);
+}
+
+pub fn preference() -> RingPref {
+    PREFERENCE.lock().map(|p| *p).unwrap_or(RingPref::Auto)
+}
+
+/// Apply a ring choice made in the tray. Drops the cached verdict too: it was
+/// reached on the previous ring and would otherwise keep claiming "up to date"
+/// about a ring the user just left.
+pub fn set_preference(pref: RingPref) {
+    set_preference_inner(pref);
+    set_state(State::Unknown);
+    if let RingPref::Pinned(c) = pref {
+        set_effective(c);
+    }
+    log::line(&format!("update: ring preference set to {}", pref.as_key()));
+}
+
+fn set_preference_inner(pref: RingPref) {
+    if let Ok(mut p) = PREFERENCE.lock() {
+        *p = pref;
+    }
+}
+
+/// Ring the updater is currently following. Equals the pinned ring, or — under
+/// [`RingPref::Auto`] — the highest ring the last check was actually served.
+pub fn effective_ring() -> Channel {
+    EFFECTIVE.lock().map(|c| *c).unwrap_or(Channel::Stable)
+}
+
+fn set_effective(channel: Channel) {
+    if let Ok(mut c) = EFFECTIVE.lock() {
+        *c = channel;
+    }
+}
+
+/// Highest ring this account is known to reach, or `None` while no check has
+/// succeeded yet. See [`MAX_RING`].
+pub fn max_ring() -> Option<Channel> {
+    MAX_RING.lock().map(|m| *m).unwrap_or(None)
+}
+
+/// Record what a feed response revealed about the account's reach.
+///
+/// A clamp is EXACT — the server named the ceiling. An un-clamped answer is only
+/// a lower bound ("your role reaches at least the ring you asked for"), so it may
+/// widen what we know but never narrow it.
+fn note_max_ring(requested: Channel, served: Channel, clamped: bool) {
+    if let Ok(mut m) = MAX_RING.lock() {
+        let known = *m;
+        *m = Some(widened_max(known, requested, served, clamped));
+    }
+}
+
+/// The rule of [`note_max_ring`], separated from the global so it can be tested
+/// without racing the other tests over `MAX_RING`.
+fn widened_max(
+    known: Option<Channel>,
+    requested: Channel,
+    served: Channel,
+    clamped: bool,
+) -> Channel {
+    match (known, clamped) {
+        (_, true) => served,
+        (Some(known), false) => known.max(requested),
+        (None, false) => requested,
+    }
+}
+
+/// Whether `ring` may be picked in the tray, given what the last check revealed.
+pub fn ring_is_available(ring: Channel) -> bool {
+    ring_within(ring, max_ring())
+}
+
+/// Unknown reach ⇒ everything is offered: greying out a ring on a guess would
+/// hide the one control that fixes a wrong ring.
+fn ring_within(ring: Channel, max: Option<Channel>) -> bool {
+    match max {
+        None => true,
+        Some(max) => ring <= max,
+    }
 }
 
 /// Tray label for the current state — the SCC "status readout" voice, and the
 /// only place the updater ever talks to the user.
-pub fn tray_label(channel: Channel) -> String {
-    label_for(state(), channel)
+pub fn tray_label() -> String {
+    label_for(state(), effective_ring())
+}
+
+/// Label for the ring submenu's parent entry: which ring is followed, and
+/// whether that was chosen or resolved.
+pub fn ring_menu_label() -> String {
+    let ring = effective_ring().as_str();
+    match preference() {
+        RingPref::Auto => util::t(
+            &format!("Update-Kanal: {ring} (automatisch)"),
+            &format!("Update channel: {ring} (automatic)"),
+        ),
+        RingPref::Pinned(_) => util::t(
+            &format!("Update-Kanal: {ring}"),
+            &format!("Update channel: {ring}"),
+        ),
+    }
 }
 
 /// [`tray_label`] separated from the global state so it can be tested for every
@@ -247,6 +387,14 @@ fn label_for(state: State, channel: Channel) -> String {
             &format!("◈ v{CURRENT_VERSION} · {ring} für dieses Konto nicht freigegeben"),
             &format!("◈ v{CURRENT_VERSION} · {ring} not enabled for this account"),
         ),
+        // Deliberately promises a CHECK, not an install: signed out, the app
+        // cannot know whether this account reaches the ring that build sits on.
+        // Signing in resolves it either way — into a download, or into a quiet
+        // "up to date" on whatever ring the role does reach.
+        State::PreRelease(v) => util::t(
+            &format!("▲ v{CURRENT_VERSION} · v{v} im Vorab-Ring · anmelden zum Prüfen"),
+            &format!("▲ v{CURRENT_VERSION} · v{v} on a pre-release ring · sign in to check"),
+        ),
         State::Failed => util::t(
             &format!("▲ v{CURRENT_VERSION} · Update fehlgeschlagen · erneut versuchen"),
             &format!("▲ v{CURRENT_VERSION} · update failed · retry"),
@@ -260,11 +408,18 @@ fn label_for(state: State, channel: Channel) -> String {
 
 /// True when clicking the tray entry does something.
 pub fn is_actionable() -> bool {
-    matches!(state(), State::Available(_) | State::SignInRequired { .. } | State::Failed)
+    matches!(
+        state(),
+        State::Available(_) | State::SignInRequired { .. } | State::PreRelease(_) | State::Failed
+    )
 }
 
 /// One full cycle: resolve the ring, and install straight away when a genuinely
 /// newer build is offered. Runs on a worker thread; never touches the UI.
+///
+/// The ring comes from [`PREFERENCE`], read fresh here rather than passed in:
+/// the poll thread sleeps for 6 h at a time and would otherwise keep using the
+/// ring that was current when it went to sleep.
 ///
 /// `interactive` marks a cycle the user started from the tray — only then may a
 /// browser sign-in be opened. The periodic poll stays completely silent.
@@ -272,7 +427,7 @@ pub fn is_actionable() -> bool {
 /// Returns `true` when a new build was written over the running exe and the app
 /// should relaunch. The caller owns the relaunch because only the UI thread may
 /// drop the tray icon and release the single-instance mutex first.
-pub fn run_cycle(interactive: bool, channel: Channel, on_signed_in: &dyn Fn()) -> bool {
+pub fn run_cycle(interactive: bool, on_signed_in: &dyn Fn()) -> bool {
     // Single-flight, atomically: the poll thread and a tray click race here.
     if CYCLE_RUNNING.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
         return false;
@@ -287,43 +442,65 @@ pub fn run_cycle(interactive: bool, channel: Channel, on_signed_in: &dyn Fn()) -
     }
     set_state(State::Checking);
 
+    let pref = preference();
     let mut token = session::ensure_access_token();
-    let mut outcome = check(channel, token.as_deref());
+    let mut outcome = check(pref, token.as_deref());
 
-    // Clamped while we believed we were signed in? A locally-unexpired JWT proves
-    // nothing about server-side state — a web logout or password change revokes it
-    // and the feed then reads us as anonymous, which looks exactly like "your role
-    // is too low". Ask the auth server once: a rejected refresh clears the store
-    // and turns this into the sign-in case below, which is the honest answer.
-    if matches!(outcome, Outcome::Clamped { .. }) && token.is_some() {
+    // Held back while we believed we were signed in? A locally-unexpired JWT
+    // proves nothing about server-side state — a web logout or password change
+    // revokes it and the feed then reads us as anonymous, which looks exactly
+    // like "your role is too low". Ask the auth server once: a rejected refresh
+    // clears the store and turns this into the sign-in case below, which is the
+    // honest answer. Applies to the auto path too: an admin whose session died
+    // silently would otherwise just settle onto stable and say nothing.
+    if token.is_some() && matches!(outcome, Outcome::Clamped { .. } | Outcome::PreRelease(_)) {
         token = session::revalidate();
         if token.is_some() {
-            outcome = check(channel, token.as_deref());
+            outcome = check(pref, token.as_deref());
         }
     }
 
-    // Ring above our tier and the user asked for it → sign in, then retry once.
-    // Only worth a browser trip when we have NO usable session: being clamped with
-    // a live one means the account's role, not its sign-in state, is the limit, and
+    // A ring we cannot reach unauthenticated → sign in, then retry once. Only
+    // worth a browser trip when we have NO usable session: being held back with a
+    // live one means the account's role, not its sign-in state, is the limit, and
     // re-authenticating as the same user cannot change that.
-    if interactive && token.is_none() && matches!(outcome, Outcome::Clamped { .. }) {
+    if interactive
+        && token.is_none()
+        && matches!(outcome, Outcome::Clamped { .. } | Outcome::PreRelease(_))
+    {
         if let Some(fresh) = crate::auth::run_oauth_flow() {
             fresh.save();
             on_signed_in();
             token = Some(fresh.access_token);
-            outcome = check(channel, token.as_deref());
+            outcome = check(pref, token.as_deref());
         }
     }
 
     match outcome {
         Outcome::Clamped { .. } if token.is_some() => {
-            log::line("update: signed in, but this account's role does not reach the locked ring");
+            log::line("update: signed in, but this account's role does not reach the pinned ring");
             set_state(State::NotEntitled);
             false
         }
         Outcome::Clamped { newer } => {
-            log::line("update: ring above the anonymous tier — website sign-in required");
+            log::line("update: pinned ring above the anonymous tier — website sign-in required");
             set_state(State::SignInRequired { newer });
+            false
+        }
+        // Auto mode with a session that just survived re-validation: the ROLE is
+        // the ceiling, and we are already on the highest ring it grants. There is
+        // nothing to click, and the ring we are on is current — say exactly that
+        // instead of nagging about a build this account cannot have.
+        Outcome::PreRelease(_) if token.is_some() => {
+            log::line(
+                "update: already on the highest ring this account reaches; a higher ring leads it",
+            );
+            set_state(State::Current);
+            false
+        }
+        Outcome::PreRelease(v) => {
+            log::line(&format!("update: v{v} waiting on a ring above the anonymous tier"));
+            set_state(State::PreRelease(v));
             false
         }
         Outcome::Failed => {
@@ -337,7 +514,11 @@ pub fn run_cycle(interactive: bool, channel: Channel, on_signed_in: &dyn Fn()) -
             false
         }
         Outcome::Newer(rel) => {
-            log::line(&format!("update: v{} available on {}", rel.version, channel.as_str()));
+            log::line(&format!(
+                "update: v{} available on {}",
+                rel.version,
+                effective_ring().as_str()
+            ));
             set_state(State::Available(rel.version.clone()));
             install(&rel)
         }
@@ -347,16 +528,29 @@ pub fn run_cycle(interactive: bool, channel: Channel, on_signed_in: &dyn Fn()) -
 enum Outcome {
     /// Feed unreachable or unparseable.
     Failed,
-    /// The server clamped us to a lower ring than the locked one. `newer` is
-    /// the version that lower ring serves, kept only when it beats the running
-    /// build — see [`clamp_newer_hint`].
+    /// The server clamped us below the PINNED ring. `newer` is the version that
+    /// lower ring serves, kept only when it beats the running build — see
+    /// [`clamp_newer_hint`]. Never produced in [`RingPref::Auto`], where a clamp
+    /// is the answer to the question asked, not a refusal.
     Clamped { newer: Option<String> },
+    /// [`RingPref::Auto`]: the ring we were served is up to date, but a higher
+    /// ring — the one we asked for — carries a newer build that this caller was
+    /// clamped away from. Carries that version.
+    PreRelease(String),
     Current,
     Newer(Release),
 }
 
-/// Ask the release catalog what the locked ring currently serves.
-fn check(channel: Channel, access_token: Option<&str>) -> Outcome {
+/// Ask the release catalog what this install's ring currently serves.
+///
+/// Under [`RingPref::Auto`] the request is always for [`Channel::TOP`]. The
+/// server's role clamp (`starscape_release_for_channel`) then resolves it down
+/// to the highest ring the caller actually reaches and reports which one that
+/// was — so "the maximum ring my role allows, in alpha → beta → stable order" is
+/// answered by the existing server rule, in one request, with no new endpoint
+/// and no client-side role logic to keep in sync.
+fn check(pref: RingPref, access_token: Option<&str>) -> Outcome {
+    let channel = pref.requested();
     let mut headers = vec![
         format!("apikey: {}", net::API_KEY),
         "Accept: application/json".to_string(),
@@ -385,21 +579,61 @@ fn check(channel: Channel, access_token: Option<&str>) -> Outcome {
         return Outcome::Failed;
     }
 
-    // The server echoes the ring it actually resolved. A lower one means the
-    // caller's tier was clamped — never install across rings on that basis.
-    let served = net::json_str(&text, "channel").unwrap_or_default();
-    if !served.is_empty() && served != channel.as_key() && !clamp_is_only_nominal(&text) {
-        // Clamped: the PAYLOAD is a lower ring's and must never be installed. The
-        // feed still reports what our own ring is on (`requestedVersion` — a bare
-        // version string, no url/sha/size), so being signed out costs the
-        // download, not the answer to "am I up to date?".
+    // The server echoes the ring it actually resolved — the CLAMPED one, which is
+    // the only authoritative statement about how far this account reaches.
+    let served_key = net::json_str(&text, "channel").unwrap_or_default();
+    let served = Channel::from_key(&served_key).unwrap_or(channel);
+    let clamped = !served_key.is_empty() && served_key != channel.as_key();
+    note_max_ring(channel, served, clamped);
+
+    if pref.is_auto() {
+        // We asked for the top ring on purpose, so the clamp is the ANSWER, not a
+        // refusal: whatever came back is the highest ring this caller reaches, and
+        // following it is precisely "take the maximum alpha → beta → stable the
+        // role allows". No cross-ring guard is needed or wanted here — there is no
+        // ring the user pinned that this could be silently moving them off.
+        set_effective(served);
+        return auto_outcome(&text, served);
+    }
+
+    set_effective(channel);
+    if clamped && !clamp_is_only_nominal(&text) {
+        // Clamped below a PINNED ring: the payload is a lower ring's and must
+        // never be installed. The feed still reports what our own ring is on
+        // (`requestedVersion` — a bare version string, no url/sha/size), so being
+        // signed out costs the download, not the answer to "am I up to date?".
         return match clamp_verdict(&text) {
             ClampVerdict::UpToDate => Outcome::Current,
             ClampVerdict::Behind(newer) => Outcome::Clamped { newer },
         };
     }
 
-    let Some(version) = net::json_str(&text, "version") else {
+    release_outcome(&text, channel)
+}
+
+/// Verdict for [`RingPref::Auto`], where `served` is the highest ring this
+/// caller reaches and is therefore the ring to install from.
+///
+/// The one thing auto still owes the user is the case it exists to fix from the
+/// other side: signed out, the clamp lands on stable, stable is current, and a
+/// build this account may well be entitled to sits on a higher ring. The feed's
+/// `requestedVersion` names it (that is the ring we ASKED for, resolved without
+/// the clamp), so the tray can offer to find out. Installing what we can
+/// actually have comes first — a real update always beats a hint about one.
+fn auto_outcome(text: &str, served: Channel) -> Outcome {
+    match release_outcome(text, served) {
+        Outcome::Current => match net::json_str(text, "requestedVersion") {
+            Some(top) if is_newer(&top, CURRENT_VERSION) => Outcome::PreRelease(top),
+            _ => Outcome::Current,
+        },
+        other => other,
+    }
+}
+
+/// Turn a feed body into "nothing to do" or a verified-installable [`Release`],
+/// reading the asset for `ring`.
+fn release_outcome(text: &str, channel: Channel) -> Outcome {
+    let Some(version) = net::json_str(text, "version") else {
         log::line("update: feed carried no version");
         return Outcome::Failed;
     };
@@ -424,7 +658,7 @@ fn check(channel: Channel, access_token: Option<&str>) -> Outcome {
     // per-ring assets existed. No `platforms` object at all is a malformed feed —
     // scanning the whole document instead would let a sibling field masquerade as
     // an asset.
-    let Some(platforms) = net::json_object(&text, "platforms") else {
+    let Some(platforms) = net::json_object(text, "platforms") else {
         log::line("update: feed carried no platforms object");
         return Outcome::Failed;
     };
@@ -468,8 +702,10 @@ fn check(channel: Channel, access_token: Option<&str>) -> Outcome {
 /// exists for — the versions differ and the response is refused exactly as
 /// before. A viewer asking for alpha while alpha leads stable still gets
 /// nothing. And the install keeps its ring: the asset picked below is
-/// `win-x64-<our ring>`, so the file lands under its own ring-marked name and
-/// `resolve_channel` still reads the same ring on the next start.
+/// `win-x64-<our ring>`, so the file lands under its own ring-marked name.
+///
+/// Only ever consulted under [`RingPref::Pinned`]: auto mode follows the served
+/// ring by design, so it has no cross-ring clamp to excuse in the first place.
 ///
 /// It rests on the release catalog being the trust anchor, which is already this
 /// module's stated model (see the header): two DIFFERENT builds registered under
@@ -705,6 +941,17 @@ fn parse_version(v: &str) -> [u64; 3] {
 mod tests {
     use super::*;
 
+    /// `STATE`, `PREFERENCE` and `EFFECTIVE` are process globals and `cargo test`
+    /// runs tests on parallel threads, so everything that drives them takes this
+    /// first. Poison is stepped over: a failing test must not cascade into
+    /// unrelated ones. (Tests that can avoid the globals do — see `label_for`,
+    /// `widened_max` and `ring_within`.)
+    static SERIAL: Mutex<()> = Mutex::new(());
+
+    fn serial() -> std::sync::MutexGuard<'static, ()> {
+        SERIAL.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
     #[test]
     fn newer_versions_are_detected() {
         assert!(is_newer("0.4.0", "0.3.3"));
@@ -803,6 +1050,7 @@ mod tests {
 
     #[test]
     fn actionable_states_are_the_clickable_ones() {
+        let _serial = serial();
         set_state(State::Current);
         assert!(!is_actionable());
         set_state(State::Available("0.4.0".into()));
@@ -811,6 +1059,10 @@ mod tests {
         assert!(is_actionable());
         // The outdated-hint variant is the same click target.
         set_state(State::SignInRequired { newer: Some("9.9.9".into()) });
+        assert!(is_actionable());
+        // Auto mode's "a higher ring is ahead" hint must be clickable, or the
+        // signed-out admin it exists for has no way to act on it.
+        set_state(State::PreRelease("9.9.9".into()));
         assert!(is_actionable());
         set_state(State::Downloading);
         assert!(!is_actionable());
@@ -835,6 +1087,7 @@ mod tests {
             State::SignInRequired { newer: None },
             State::SignInRequired { newer: Some("9.9.9".into()) },
             State::NotEntitled,
+            State::PreRelease("9.9.9".into()),
             State::Failed,
         ];
         for s in all {
@@ -953,22 +1206,161 @@ mod tests {
         assert_eq!(channel_from_stem(""), None);
     }
 
+    /// The bug this whole change exists for: an install whose only ring signal
+    /// is the website's default `-stable.exe` download must NOT be pinned to
+    /// stable. Under the old rule that name was a lock, so an admin sat on 0.4.4
+    /// and was told "up to date" while alpha served 0.5.0.
     #[test]
-    fn a_ring_marked_download_wins_over_the_stored_ring() {
-        // A deliberate per-ring download re-locks the install…
-        assert_eq!(pick_channel(Some(Channel::Beta), Some(Channel::Stable)), Channel::Beta);
-        assert_eq!(pick_channel(Some(Channel::Stable), Some(Channel::Alpha)), Channel::Stable);
+    fn the_default_stable_download_does_not_pin_a_ring() {
+        assert_eq!(
+            pick_preference(RingPref::Auto, Some(Channel::Stable), true),
+            RingPref::Auto,
+            "the default CTA's filename is not a deliberate ring choice"
+        );
+        assert_eq!(RingPref::Auto.requested(), Channel::Alpha);
     }
 
     #[test]
-    fn an_unmarked_copy_never_moves_an_install_between_rings() {
-        // …but an unmarked file (the `latest` alias, a rename) does not.
-        assert_eq!(pick_channel(None, Some(Channel::Beta)), Channel::Beta);
-        assert_eq!(pick_channel(None, Some(Channel::Alpha)), Channel::Alpha);
+    fn a_first_run_beta_or_alpha_download_pins_that_ring() {
+        // Those assets only exist behind the per-ring overlay, and only for roles
+        // that already reach them — so the marker IS a choice, including the
+        // choice to sit below the top ring.
+        assert_eq!(
+            pick_preference(RingPref::Auto, Some(Channel::Beta), true),
+            RingPref::Pinned(Channel::Beta)
+        );
+        assert_eq!(
+            pick_preference(RingPref::Auto, Some(Channel::Alpha), true),
+            RingPref::Pinned(Channel::Alpha)
+        );
     }
 
     #[test]
-    fn a_first_start_with_no_signal_at_all_is_stable() {
-        assert_eq!(pick_channel(None, None), Channel::Stable);
+    fn a_first_run_with_no_marker_at_all_follows_the_highest_ring() {
+        assert_eq!(pick_preference(RingPref::Auto, None, true), RingPref::Auto);
+    }
+
+    /// After the first run the filename is meaningless: a self-update overwrites
+    /// the exe in place, so a `-beta.exe` name outlives any later tray choice and
+    /// would silently revert it on every restart.
+    #[test]
+    fn the_stored_preference_outranks_the_filename_after_the_first_run() {
+        for name in [None, Some(Channel::Stable), Some(Channel::Beta), Some(Channel::Alpha)] {
+            assert_eq!(pick_preference(RingPref::Auto, name, false), RingPref::Auto);
+            assert_eq!(
+                pick_preference(RingPref::Pinned(Channel::Stable), name, false),
+                RingPref::Pinned(Channel::Stable)
+            );
+        }
+    }
+
+    /// A clamp names the ceiling exactly; an un-clamped answer only proves the
+    /// role reaches at least the ring that was asked for.
+    #[test]
+    fn the_known_ring_ceiling_comes_from_the_servers_clamp() {
+        // Auto asks for alpha and is clamped to stable → the ceiling IS stable.
+        let c = widened_max(None, Channel::Alpha, Channel::Stable, true);
+        assert_eq!(c, Channel::Stable);
+        assert!(ring_within(Channel::Stable, Some(c)));
+        assert!(!ring_within(Channel::Beta, Some(c)));
+        assert!(!ring_within(Channel::Alpha, Some(c)));
+
+        // Un-clamped alpha → admin. A later un-clamped stable request must not
+        // narrow that back down: it proves nothing about the ceiling.
+        let c = widened_max(Some(c), Channel::Alpha, Channel::Alpha, false);
+        assert_eq!(c, Channel::Alpha);
+        assert_eq!(widened_max(Some(c), Channel::Stable, Channel::Stable, false), Channel::Alpha);
+
+        // …but a fresh clamp does narrow it — that is the server speaking, and a
+        // demoted account must lose the rings it no longer reaches.
+        assert_eq!(widened_max(Some(c), Channel::Alpha, Channel::Beta, true), Channel::Beta);
+    }
+
+    /// Nothing learned yet (offline, or the first 20 s of a run) must leave every
+    /// ring pickable — greying them on a guess would hide the control that fixes
+    /// a wrong ring.
+    #[test]
+    fn an_unknown_ceiling_offers_every_ring() {
+        for c in Channel::ALL_DESCENDING {
+            assert!(ring_within(c, None));
+        }
+    }
+
+    /// Auto mode, signed out: stable is current, but the ring we asked for
+    /// (alpha) is ahead. That must surface as the sign-in-to-check hint — this is
+    /// literally the reported symptom, "why does it still say 0.4.4 is current".
+    #[test]
+    fn auto_mode_surfaces_a_higher_ring_that_leads_the_served_one() {
+        let feed = format!(
+            r#"{{"version":"{CURRENT_VERSION}","channel":"stable","requestedVersion":"99.0.0"}}"#
+        );
+        assert!(matches!(auto_outcome(&feed, Channel::Stable), Outcome::PreRelease(v) if v == "99.0.0"));
+    }
+
+    #[test]
+    fn auto_mode_stays_quiet_when_no_ring_is_ahead() {
+        // Everything promoted: the ring we were served already has it.
+        let feed = format!(
+            r#"{{"version":"{CURRENT_VERSION}","channel":"alpha","requestedVersion":"{CURRENT_VERSION}"}}"#
+        );
+        assert!(matches!(auto_outcome(&feed, Channel::Alpha), Outcome::Current));
+        // A feed too old to report the field can say nothing — so it says nothing.
+        let old = format!(r#"{{"version":"{CURRENT_VERSION}","channel":"stable"}}"#);
+        assert!(matches!(auto_outcome(&old, Channel::Stable), Outcome::Current));
+        // A higher ring that TRAILS this build is not a hint either.
+        let behind = format!(
+            r#"{{"version":"{CURRENT_VERSION}","channel":"stable","requestedVersion":"0.0.1"}}"#
+        );
+        assert!(matches!(auto_outcome(&behind, Channel::Stable), Outcome::Current));
+    }
+
+    /// An installable build on the ring we CAN have always wins over a hint about
+    /// one we might not — otherwise a signed-out install would sit on a nag
+    /// instead of taking the update that was right there.
+    #[test]
+    fn auto_mode_installs_the_reachable_build_before_hinting_at_a_higher_ring() {
+        let feed = r#"{"version":"99.0.0","channel":"stable","requestedVersion":"99.9.9",
+            "platforms":{"win-x64-stable":{"url":"https://example.invalid/a.exe",
+            "sha256":"ab","size_bytes":7}}}"#;
+        match auto_outcome(feed, Channel::Stable) {
+            Outcome::Newer(rel) => {
+                assert_eq!(rel.version, "99.0.0");
+                assert_eq!(rel.url, "https://example.invalid/a.exe");
+            }
+            _ => panic!("a newer build on the served ring must be installed, not hinted at"),
+        }
+    }
+
+    /// The asset picked must belong to the ring actually being followed, so the
+    /// installed file keeps its ring-marked name.
+    #[test]
+    fn the_asset_follows_the_ring_being_installed_from() {
+        let feed = r#"{"version":"99.0.0","platforms":{
+            "win-x64-stable":{"url":"https://example.invalid/s.exe","sha256":"ab","size_bytes":1},
+            "win-x64-alpha":{"url":"https://example.invalid/a.exe","sha256":"cd","size_bytes":2}}}"#;
+        match release_outcome(feed, Channel::Alpha) {
+            Outcome::Newer(rel) => assert_eq!(rel.url, "https://example.invalid/a.exe"),
+            _ => panic!("expected the alpha asset"),
+        }
+        match release_outcome(feed, Channel::Stable) {
+            Outcome::Newer(rel) => assert_eq!(rel.url, "https://example.invalid/s.exe"),
+            _ => panic!("expected the stable asset"),
+        }
+    }
+
+    #[test]
+    fn a_tray_ring_pick_drops_the_previous_rings_verdict() {
+        let _serial = serial();
+        set_state(State::Current);
+        set_preference(RingPref::Pinned(Channel::Alpha));
+        assert!(matches!(state(), State::Unknown), "a stale 'up to date' must not survive");
+        assert_eq!(preference(), RingPref::Pinned(Channel::Alpha));
+        // A pinned pick also fixes the readout immediately, before any check.
+        assert_eq!(effective_ring(), Channel::Alpha);
+        set_preference(RingPref::Auto);
+        assert_eq!(preference(), RingPref::Auto);
+        // Restore the process defaults for whatever test runs next.
+        init(RingPref::Auto, Channel::Stable);
+        set_state(State::Unknown);
     }
 }

@@ -105,7 +105,10 @@ pub struct Meta {
     /// Release-token fingerprint, or `None` for an unsigned local build.
     pub build_id: Option<String>,
     /// Release ring: `stable` | `beta` | `alpha` (`dev` never applies here —
-    /// every install follows a ring, see `update::resolve_channel`).
+    /// every install follows a ring, see `update::resolve_preference`). Under
+    /// the `auto` preference this is the ring the last check actually RESOLVED
+    /// to, not the preference itself: which ring a build came from is the useful
+    /// fact for triage, and "auto" alone would not say.
     pub channel: String,
     pub os: String,
     pub arch: String,

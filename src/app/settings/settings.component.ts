@@ -1,18 +1,24 @@
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
+  NgZone,
+  OnDestroy,
   OnInit,
   computed,
   inject,
   signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { ComposerPrefsService } from '../core/composer-prefs.service';
 import { ConsentService } from '../core/consent.service';
+import { isPlainLeftClick } from '../core/modified-click.util';
 import { AnalyticsService } from '../core/analytics.service';
 import { LocaleService } from '../core/locale/locale.service';
 import type { AppLanguage, RegionCode } from '../core/locale/locale.types';
@@ -26,6 +32,31 @@ import { memberSince } from './member-since';
 // fell back to English, which read as "translation exists but is broken".
 type LangId = AppLanguage;
 
+/**
+ * Thematic order of the page (feedback af058ca4, follow-up to PR #435).
+ *
+ * The cards used to sit in one flat grid, which read as an unsorted pile. They
+ * are now grouped by what the user is actually doing — who am I (account),
+ * how does the app talk to me (language + input), what does it keep (privacy),
+ * and the irreversible bit last. The same list drives the table-of-contents
+ * rail, so a new section can never appear in one place and not the other.
+ */
+type GroupId = 'account' | 'preferences' | 'privacy' | 'danger';
+
+interface SettingsGroup {
+  readonly id: GroupId;
+  /** DOM id = link fragment. Prefixed so it cannot clash with another page. */
+  readonly anchor: string;
+  readonly labelKey: string;
+}
+
+/**
+ * Distance from the viewport top at which a section counts as "the one being
+ * read". Roughly the sticky topbar height plus a little breathing room, so the
+ * rail highlight flips at the moment a heading clears the header.
+ */
+const SPY_LINE_PX = 140;
+
 @Component({
   selector: 'sc-settings',
   standalone: true,
@@ -35,244 +66,296 @@ type LangId = AppLanguage;
     <section class="page">
       <h1>{{ 'settings.title' | translate }}</h1>
 
-      <div class="grid">
-        <!-- 1. Account info (read-only) -->
-        @if (auth.user(); as user) {
-          <div class="sc-card section account">
-            <h2>{{ 'settings.account.title' | translate }}</h2>
-            <div class="row">
-              <span class="label">{{ 'profile.username' | translate }}</span>
-              <span class="value">
-                @if (profile.username(); as name) {
-                  {{ name }}
-                } @else {
-                  <span class="muted">{{ 'profile.usernameUnset' | translate }}</span>
-                }
-              </span>
-            </div>
-            <div class="row">
-              <span class="label">{{ 'profile.email' | translate }}</span>
-              <span class="value">{{ user.email }}</span>
-            </div>
-            <div class="row">
-              <span class="label">{{ 'profile.role' | translate }}</span>
-              <span class="value">
-                <span class="role-pill" [class]="roles.role() ?? 'viewer'">
-                  {{ ('profile.roles.' + (roles.role() ?? 'viewer')) | translate }}
-                </span>
-              </span>
-            </div>
-            <!-- An account can hold several linked identities at once (signed up
-                 with Google, then added a password, or the other way round), so
-                 this lists every identity instead of one derived provider. -->
-            <div class="row">
-              <span class="label">{{ 'profile.provider' | translate }}</span>
-              <span class="value pills">
-                @for (p of providers(); track p) {
-                  <span class="provider-pill">{{ providerLabel(p) }}</span>
-                }
-              </span>
-            </div>
-            <div class="row">
-              <span class="label">{{ 'profile.created' | translate }}</span>
-              <span
-                class="value"
-                [title]="
-                  'profile.memberSince.exact'
-                    | translate: { date: (user.created_at | scDate: 'datetime') }
-                ">
-                @if (memberSinceLabel(); as since) {
-                  {{ since.key | translate: { count: since.count } }}
-                } @else {
-                  <span class="muted">{{ 'profile.memberSince.unknown' | translate }}</span>
-                }
-              </span>
-            </div>
-            <!-- The user id is support/debug metadata, not account identity — it
-                 stays copyable but must not read as a peer of e-mail or role. -->
-            <p class="id-line">
-              <span class="id-label">{{ 'profile.id' | translate }}</span>
-              <code class="id-value">{{ user.id }}</code>
-              <button type="button" class="id-copy" (click)="copyUserId(user.id)">
-                {{ (idCopied() ? 'profile.idCopied' : 'profile.idCopy') | translate }}
-              </button>
-            </p>
-          </div>
-        }
+      <div class="layout">
+        <!-- Table of contents (feedback af058ca4 follow-up). Real anchors on
+             purpose: middle click, Ctrl/Cmd+click and "copy link address" work
+             for free and the fragment is shareable. The href carries the PAGE
+             PATH — a bare "#settings-account" resolves against <base href="/">
+             instead of the current URL, which is why the rail used to dump the
+             user on the start page (feedback af058ca4, round 3). The plain
+             left click is intercepted so the page glides to the section
+             instead of jumping; every other kind of click falls through. -->
+        <nav class="toc" [attr.aria-label]="'settings.toc.label' | translate">
+          <ul class="toc-list">
+            @for (g of groups; track g.id) {
+              <li>
+                <a
+                  class="toc-link"
+                  [class.active]="activeGroup() === g.id"
+                  [href]="tocHref(g.anchor)"
+                  (click)="onTocClick($event, g)"
+                  [attr.aria-current]="activeGroup() === g.id ? 'true' : null">
+                  <span class="toc-marker" aria-hidden="true"></span>
+                  <span class="toc-text">{{ g.labelKey | translate }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </nav>
 
-        <!-- 2. Username -->
-        <div class="sc-card section">
-          <h2>{{ 'settings.username.title' | translate }}</h2>
-          <p class="hint">{{ 'settings.username.hint' | translate }}</p>
-          <form class="field-row" (submit)="saveUsername($event)">
-            <input
-              type="text"
-              class="text-input"
-              [value]="usernameInput()"
-              (input)="usernameInput.set(asInput($event))"
-              [placeholder]="'settings.username.placeholder' | translate"
-              [disabled]="usernameSaving()"
-              maxlength="20"
-              autocomplete="off"
-              spellcheck="false" />
-            <button
-              type="submit"
-              class="sc-btn sc-btn-primary"
-              [disabled]="usernameSaving() || !usernameDirty()">
-              {{ (usernameSaving() ? 'settings.username.saving' : 'settings.username.save') | translate }}
-            </button>
-          </form>
-          @if (usernameOk()) {
-            <div class="flash success">{{ 'settings.username.saved' | translate }}</div>
-          }
-          @if (usernameError(); as e) {
-            <div class="flash error">{{ e | translate }}</div>
-          }
-        </div>
-
-        <!-- 2b. Friends — the entry point into the social graph. A real
-             anchor, not a button: it takes you somewhere, so middle-click and
-             "open in new tab" have to work. -->
-        <div class="sc-card section">
-          <h2>{{ 'settings.friends.title' | translate }}</h2>
-          <p class="hint">{{ 'settings.friends.hint' | translate }}</p>
-          <a class="sc-btn sc-btn-primary link-btn" routerLink="/friends">
-            {{ 'settings.friends.open' | translate }}
-          </a>
-        </div>
-
-        <!-- 3. Language & region (feedback 38b3d25a) -->
-        <div class="sc-card section wide">
-          <h2>{{ 'settings.locale.title' | translate }}</h2>
-          <p class="hint">{{ 'settings.locale.hint' | translate }}</p>
-
-          <!-- One grid track per control: the two selects sit in separate cells,
-               so they can never share a line partially and collide, at any
-               viewport (feedback af058ca4). -->
-          <div class="locale-grid">
-            <label class="locale-field">
-              <span class="inline-label">{{ 'settings.locale.language.label' | translate }}</span>
-              <select
-                class="sc-select"
-                [value]="locale.languageSetting()"
-                (change)="onLanguageChange($event)"
-                [attr.aria-label]="'settings.locale.language.label' | translate">
-                <option value="auto">{{ 'settings.locale.auto' | translate }}</option>
-                @for (l of languages; track l) {
-                  <option [value]="l">{{ 'settings.locale.languages.' + l | translate }}</option>
-                }
-              </select>
-              @if (locale.languageIsAuto()) {
-                <span class="field-note">
-                  {{ 'settings.locale.detected' | translate: { value: languageLabel(locale.language()) } }}
-                </span>
+        <div class="sections">
+          <!-- 1. Account & identity — who the account is, plus the one field
+               the user owns about themselves. -->
+          <section class="group" id="settings-account" tabindex="-1">
+            <h2 class="group-title">{{ 'settings.groups.account.title' | translate }}</h2>
+            <div class="grid">
+              @if (auth.user(); as user) {
+                <div class="sc-card section account">
+                  <h3>{{ 'settings.account.title' | translate }}</h3>
+                  <div class="row">
+                    <span class="label">{{ 'profile.username' | translate }}</span>
+                    <span class="value">
+                      @if (profile.username(); as name) {
+                        {{ name }}
+                      } @else {
+                        <span class="muted">{{ 'profile.usernameUnset' | translate }}</span>
+                      }
+                    </span>
+                  </div>
+                  <div class="row">
+                    <span class="label">{{ 'profile.email' | translate }}</span>
+                    <span class="value">{{ user.email }}</span>
+                  </div>
+                  <div class="row">
+                    <span class="label">{{ 'profile.role' | translate }}</span>
+                    <span class="value">
+                      <span class="role-pill" [class]="roles.role() ?? 'viewer'">
+                        {{ ('profile.roles.' + (roles.role() ?? 'viewer')) | translate }}
+                      </span>
+                    </span>
+                  </div>
+                  <!-- An account can hold several linked identities at once
+                       (signed up with Google, then added a password, or the
+                       other way round), so this lists every identity instead
+                       of one derived provider. -->
+                  <div class="row">
+                    <span class="label">{{ 'profile.provider' | translate }}</span>
+                    <span class="value pills">
+                      @for (p of providers(); track p) {
+                        <span class="provider-pill">{{ providerLabel(p) }}</span>
+                      }
+                    </span>
+                  </div>
+                  <div class="row">
+                    <span class="label">{{ 'profile.created' | translate }}</span>
+                    <span
+                      class="value"
+                      [title]="
+                        'profile.memberSince.exact'
+                          | translate: { date: (user.created_at | scDate: 'datetime') }
+                      ">
+                      @if (memberSinceLabel(); as since) {
+                        {{ since.key | translate: { count: since.count } }}
+                      } @else {
+                        <span class="muted">{{ 'profile.memberSince.unknown' | translate }}</span>
+                      }
+                    </span>
+                  </div>
+                  <!-- The user id is support/debug metadata, not account
+                       identity — it stays copyable but must not read as a peer
+                       of e-mail or role. -->
+                  <p class="id-line">
+                    <span class="id-label">{{ 'profile.id' | translate }}</span>
+                    <code class="id-value">{{ user.id }}</code>
+                    <button type="button" class="id-copy" (click)="copyUserId(user.id)">
+                      {{ (idCopied() ? 'profile.idCopied' : 'profile.idCopy') | translate }}
+                    </button>
+                  </p>
+                </div>
               }
-            </label>
 
-            <label class="locale-field">
-              <span class="inline-label">{{ 'settings.locale.region.label' | translate }}</span>
-              <select
-                class="sc-select"
-                [value]="locale.regionSetting()"
-                (change)="onRegionChange($event)"
-                [attr.aria-label]="'settings.locale.region.label' | translate">
-                <option value="auto">{{ 'settings.locale.auto' | translate }}</option>
-                @for (r of regions; track r) {
-                  <option [value]="r">{{ 'settings.locale.regions.' + r | translate }}</option>
+              <div class="sc-card section">
+                <h3>{{ 'settings.username.title' | translate }}</h3>
+                <p class="hint">{{ 'settings.username.hint' | translate }}</p>
+                <form class="field-row" (submit)="saveUsername($event)">
+                  <input
+                    type="text"
+                    class="text-input"
+                    [value]="usernameInput()"
+                    (input)="usernameInput.set(asInput($event))"
+                    [placeholder]="'settings.username.placeholder' | translate"
+                    [disabled]="usernameSaving()"
+                    maxlength="20"
+                    autocomplete="off"
+                    spellcheck="false" />
+                  <button
+                    type="submit"
+                    class="sc-btn sc-btn-primary"
+                    [disabled]="usernameSaving() || !usernameDirty()">
+                    {{ (usernameSaving() ? 'settings.username.saving' : 'settings.username.save') | translate }}
+                  </button>
+                </form>
+                @if (usernameOk()) {
+                  <div class="flash success">{{ 'settings.username.saved' | translate }}</div>
                 }
-              </select>
-              @if (locale.regionIsAuto()) {
-                <span class="field-note">
-                  {{ 'settings.locale.detected' | translate: { value: regionLabel(locale.region()) } }}
-                </span>
-              }
-            </label>
-          </div>
+                @if (usernameError(); as e) {
+                  <div class="flash error">{{ e | translate }}</div>
+                }
+              </div>
 
-          <div class="row">
-            <span class="label">{{ 'settings.locale.preview' | translate }}</span>
-            <span class="value">{{ sampleDate | scDate: 'datetime' }}</span>
-          </div>
-        </div>
+              <!-- Friends — the entry point into the social graph. It belongs
+                   with the account: it is about who you are and who you are
+                   connected to. A real anchor, not a button: it takes you
+                   somewhere, so middle-click and "open in new tab" have to
+                   work. -->
+              <div class="sc-card section">
+                <h3>{{ 'settings.friends.title' | translate }}</h3>
+                <p class="hint">{{ 'settings.friends.hint' | translate }}</p>
+                <a class="sc-btn sc-btn-primary link-btn" routerLink="/friends">
+                  {{ 'settings.friends.open' | translate }}
+                </a>
+              </div>
+            </div>
+          </section>
 
-        <!-- 4. Input / composer keyboard (feedback aa8d5b18) -->
-        <div class="sc-card section">
-          <h2>{{ 'settings.composer.title' | translate }}</h2>
-          <p class="hint">{{ 'settings.composer.hint' | translate }}</p>
-          <div class="row">
-            <span class="label">{{ 'settings.composer.sendOnEnter.label' | translate }}</span>
-            <span class="value">
-              <label class="consent-toggle">
-                <input
-                  type="checkbox"
-                  [checked]="composerPrefs.sendOnEnter()"
-                  (change)="onSendOnEnterToggle($event)" />
-                {{ (composerPrefs.sendOnEnter() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
-              </label>
-            </span>
-          </div>
-          <p class="consent-desc">
-            {{
-              (composerPrefs.sendOnEnter()
-                ? 'settings.composer.sendOnEnter.descOn'
-                : 'settings.composer.sendOnEnter.descOff') | translate
-            }}
-          </p>
-        </div>
+          <!-- 2. Language & controls — how the app speaks, and how it reacts to
+               the keyboard. Both answer "how does the app behave for me". -->
+          <section class="group" id="settings-preferences" tabindex="-1">
+            <h2 class="group-title">{{ 'settings.groups.preferences.title' | translate }}</h2>
+            <div class="grid">
+              <div class="sc-card section">
+                <h3>{{ 'settings.locale.title' | translate }}</h3>
+                <p class="hint">{{ 'settings.locale.hint' | translate }}</p>
 
-        <!-- 5. Browser storage / consent (#130) -->
-        <div class="sc-card section">
-          <h2>{{ 'consent.settings.title' | translate }}</h2>
-          <p class="hint">{{ 'consent.settings.hint' | translate }}</p>
-          <div class="row">
-            <span class="label">{{ 'consent.settings.essential.label' | translate }}</span>
-            <span class="value">
-              <span class="consent-pill locked">{{ 'consent.settings.alwaysOn' | translate }}</span>
-            </span>
-          </div>
-          <p class="consent-desc">{{ 'consent.settings.essential.desc' | translate }}</p>
-          <div class="row">
-            <span class="label">{{ 'consent.settings.preferences.label' | translate }}</span>
-            <span class="value">
-              <label class="consent-toggle">
-                <input
-                  type="checkbox"
-                  [checked]="consent.preferencesAllowed()"
-                  (change)="onConsentToggle($event)" />
-                {{ (consent.preferencesAllowed() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
-              </label>
-            </span>
-          </div>
-          <p class="consent-desc">{{ 'consent.settings.preferences.desc' | translate }}</p>
-          <div class="row">
-            <span class="label">{{ 'consent.settings.statistics.label' | translate }}</span>
-            <span class="value">
-              <label class="consent-toggle">
-                <input
-                  type="checkbox"
-                  [checked]="consent.statisticsAllowed()"
-                  (change)="onStatisticsToggle($event)" />
-                {{ (consent.statisticsAllowed() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
-              </label>
-            </span>
-          </div>
-          <p class="consent-desc">{{ 'consent.settings.statistics.desc' | translate }}</p>
-        </div>
+                <!-- One grid track per control: the two selects sit in separate
+                     cells, so they can never share a line partially and
+                     collide, at any viewport (feedback af058ca4). -->
+                <div class="locale-grid">
+                  <label class="locale-field">
+                    <span class="inline-label">{{ 'settings.locale.language.label' | translate }}</span>
+                    <select
+                      class="sc-select"
+                      [value]="locale.languageSetting()"
+                      (change)="onLanguageChange($event)"
+                      [attr.aria-label]="'settings.locale.language.label' | translate">
+                      <option value="auto">{{ 'settings.locale.auto' | translate }}</option>
+                      @for (l of languages; track l) {
+                        <option [value]="l">{{ 'settings.locale.languages.' + l | translate }}</option>
+                      }
+                    </select>
+                    @if (locale.languageIsAuto()) {
+                      <span class="field-note">
+                        {{ 'settings.locale.detected' | translate: { value: languageLabel(locale.language()) } }}
+                      </span>
+                    }
+                  </label>
 
-        <!-- 6. Danger zone -->
-        <div class="sc-card danger-zone wide">
-          <h2>{{ 'settings.danger.title' | translate }}</h2>
-          <p class="hint">{{ 'settings.danger.warning' | translate }}</p>
-          @if (deleteError(); as e) {
-            <div class="flash error">{{ e }}</div>
-          }
-          <button
-            type="button"
-            class="sc-btn danger-btn"
-            [disabled]="deleting()"
-            (click)="deleteAccount()">
-            {{ (deleting() ? 'settings.danger.deleting' : 'settings.danger.deleteBtn') | translate }}
-          </button>
+                  <label class="locale-field">
+                    <span class="inline-label">{{ 'settings.locale.region.label' | translate }}</span>
+                    <select
+                      class="sc-select"
+                      [value]="locale.regionSetting()"
+                      (change)="onRegionChange($event)"
+                      [attr.aria-label]="'settings.locale.region.label' | translate">
+                      <option value="auto">{{ 'settings.locale.auto' | translate }}</option>
+                      @for (r of regions; track r) {
+                        <option [value]="r">{{ 'settings.locale.regions.' + r | translate }}</option>
+                      }
+                    </select>
+                    @if (locale.regionIsAuto()) {
+                      <span class="field-note">
+                        {{ 'settings.locale.detected' | translate: { value: regionLabel(locale.region()) } }}
+                      </span>
+                    }
+                  </label>
+                </div>
+
+                <div class="row">
+                  <span class="label">{{ 'settings.locale.preview' | translate }}</span>
+                  <span class="value">{{ sampleDate | scDate: 'datetime' }}</span>
+                </div>
+              </div>
+
+              <div class="sc-card section">
+                <h3>{{ 'settings.composer.title' | translate }}</h3>
+                <p class="hint">{{ 'settings.composer.hint' | translate }}</p>
+                <div class="row">
+                  <span class="label">{{ 'settings.composer.sendOnEnter.label' | translate }}</span>
+                  <span class="value">
+                    <label class="consent-toggle">
+                      <input
+                        type="checkbox"
+                        [checked]="composerPrefs.sendOnEnter()"
+                        (change)="onSendOnEnterToggle($event)" />
+                      {{ (composerPrefs.sendOnEnter() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
+                    </label>
+                  </span>
+                </div>
+                <p class="consent-desc">
+                  {{
+                    (composerPrefs.sendOnEnter()
+                      ? 'settings.composer.sendOnEnter.descOn'
+                      : 'settings.composer.sendOnEnter.descOff') | translate
+                  }}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. Data & privacy — what the browser is allowed to keep (#130). -->
+          <section class="group" id="settings-privacy" tabindex="-1">
+            <h2 class="group-title">{{ 'settings.groups.privacy.title' | translate }}</h2>
+            <div class="grid">
+              <div class="sc-card section wide">
+                <h3>{{ 'consent.settings.title' | translate }}</h3>
+                <p class="hint">{{ 'consent.settings.hint' | translate }}</p>
+                <div class="row">
+                  <span class="label">{{ 'consent.settings.essential.label' | translate }}</span>
+                  <span class="value">
+                    <span class="consent-pill locked">{{ 'consent.settings.alwaysOn' | translate }}</span>
+                  </span>
+                </div>
+                <p class="consent-desc">{{ 'consent.settings.essential.desc' | translate }}</p>
+                <div class="row">
+                  <span class="label">{{ 'consent.settings.preferences.label' | translate }}</span>
+                  <span class="value">
+                    <label class="consent-toggle">
+                      <input
+                        type="checkbox"
+                        [checked]="consent.preferencesAllowed()"
+                        (change)="onConsentToggle($event)" />
+                      {{ (consent.preferencesAllowed() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
+                    </label>
+                  </span>
+                </div>
+                <p class="consent-desc">{{ 'consent.settings.preferences.desc' | translate }}</p>
+                <div class="row">
+                  <span class="label">{{ 'consent.settings.statistics.label' | translate }}</span>
+                  <span class="value">
+                    <label class="consent-toggle">
+                      <input
+                        type="checkbox"
+                        [checked]="consent.statisticsAllowed()"
+                        (change)="onStatisticsToggle($event)" />
+                      {{ (consent.statisticsAllowed() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
+                    </label>
+                  </span>
+                </div>
+                <p class="consent-desc">{{ 'consent.settings.statistics.desc' | translate }}</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 4. Danger zone — irreversible, therefore last. -->
+          <section class="group" id="settings-danger" tabindex="-1">
+            <h2 class="group-title danger-title">{{ 'settings.groups.danger.title' | translate }}</h2>
+            <div class="grid">
+              <div class="sc-card danger-zone wide">
+                <h3>{{ 'settings.danger.title' | translate }}</h3>
+                <p class="hint">{{ 'settings.danger.warning' | translate }}</p>
+                @if (deleteError(); as e) {
+                  <div class="flash error">{{ e }}</div>
+                }
+                <button
+                  type="button"
+                  class="sc-btn danger-btn"
+                  [disabled]="deleting()"
+                  (click)="deleteAccount()">
+                  {{ (deleting() ? 'settings.danger.deleting' : 'settings.danger.deleteBtn') | translate }}
+                </button>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </section>
@@ -284,6 +367,110 @@ type LangId = AppLanguage;
        card grid instead of stretching label/value rows across 1280px. */
     .page { display: flex; flex-direction: column; gap: 20px; }
     h1 { margin: 0; }
+
+    /* Rail + content. The rail is a fixed, narrow track so the card column
+       keeps a predictable width; below 1080px it collapses into a horizontal
+       chip strip above the content (see the media query at the bottom). */
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    @media (min-width: 1080px) {
+      .layout { grid-template-columns: 176px minmax(0, 1fr); gap: 32px; }
+    }
+
+    .sections { display: flex; flex-direction: column; gap: 32px; min-width: 0; }
+    .group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      /* Clears the sticky topbar when the page scrolls to a #fragment. */
+      scroll-margin-top: 96px;
+      /* The rail hands focus to the section it scrolled to (see onTocClick),
+         so a keyboard user continues INSIDE the section instead of at the top
+         of the rail. Only the keyboard gets a ring — a mouse click must not
+         paint a box around a third of the page. */
+      outline: none;
+    }
+    .group:focus-visible {
+      outline: 2px solid var(--sc-accent);
+      outline-offset: 6px;
+      border-radius: 4px;
+    }
+    .group-title {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--sc-font-display);
+      font-size: max(0.8rem, var(--sc-fs-floor));
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--sc-fg-2);
+    }
+    /* Hairline that runs out to the card edge — enough to read as a section
+       break without adding another boxed container around the cards. */
+    .group-title::after {
+      content: '';
+      flex: 1 1 auto;
+      height: 1px;
+      background: var(--sc-border);
+    }
+    .group-title.danger-title { color: var(--sc-danger); }
+    .group-title.danger-title::after { background: rgba(248, 113, 113, 0.3); }
+
+    /* Quiet table of contents: text links on the page background, one accent
+       marker for the section being read. Deliberately not a boxed sidebar —
+       the ask was "dezent". */
+    .toc { min-width: 0; }
+    .toc-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .toc-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 4px;
+      min-height: 36px;
+      color: var(--sc-fg-2);
+      text-decoration: none;
+      font-family: var(--sc-font-display);
+      font-size: max(0.74rem, var(--sc-fs-floor));
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-radius: 4px;
+      transition: color 0.16s ease;
+    }
+    .toc-marker {
+      flex: 0 0 auto;
+      width: 2px;
+      align-self: stretch;
+      border-radius: 999px;
+      background: var(--sc-border);
+      transition: background 0.16s ease;
+    }
+    .toc-text { min-width: 0; overflow-wrap: anywhere; }
+    .toc-link:hover { color: var(--sc-fg-0); }
+    .toc-link:hover .toc-marker { background: var(--sc-fg-2); }
+    .toc-link.active { color: var(--sc-accent); }
+    .toc-link.active .toc-marker { background: var(--sc-accent); }
+
+    @media (min-width: 1080px) {
+      /* Follows the reader down the page, parked below the sticky topbar. */
+      .toc {
+        position: sticky;
+        top: calc(var(--sc-imp-banner-h, 0px) + 96px);
+      }
+    }
+
     .grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
@@ -292,17 +479,17 @@ type LangId = AppLanguage;
     }
     @media (min-width: 900px) {
       .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      /* Cards that need the whole line: the locale card carries two selects,
-         the danger zone must not read as an equal sibling of a preference. */
+      /* Cards that own their group alone: stretching one card across both
+         tracks beats leaving a ragged empty cell next to it. */
       .wide { grid-column: 1 / -1; }
     }
-    .section h2, .danger-zone h2 {
+    .section h3, .danger-zone h3 {
       margin: 0 0 6px;
       font-size: 1rem;
       font-family: var(--sc-font-display);
       letter-spacing: 0.04em;
     }
-    .account h2 { margin-bottom: 2px; }
+    .account h3 { margin-bottom: 2px; }
     /* The friends entry point is an <a>, so it needs the bits .sc-btn assumes
        a <button> already brings. */
     .link-btn { margin-top: 12px; align-self: flex-start; text-decoration: none; width: fit-content; }
@@ -519,7 +706,7 @@ type LangId = AppLanguage;
       border-color: var(--sc-danger);
       box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.15);
     }
-    .danger-zone h2 { color: var(--sc-danger); }
+    .danger-zone h3 { color: var(--sc-danger); }
     .danger-btn {
       color: var(--sc-danger);
       border-color: var(--sc-danger);
@@ -529,11 +716,56 @@ type LangId = AppLanguage;
       color: var(--sc-bg-0);
     }
 
+    /* Below the two-column breakpoint the rail cannot sit beside anything, so
+       it degrades into a horizontally scrollable chip strip above the first
+       section — same links, same order, no vertical space wasted. It scrolls
+       with the page instead of sticking: the shell's own header already wraps
+       to two or three rows on a phone, and a second sticky bar under it would
+       eat most of the viewport. */
+    @media (max-width: 1079px) {
+      .toc-list {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        margin: 0 -4px;
+        padding: 2px 4px;
+      }
+      .toc-list::-webkit-scrollbar { display: none; }
+      .toc-link {
+        flex: 0 0 auto;
+        gap: 8px;
+        padding: 8px 14px;
+        min-height: 40px;
+        white-space: nowrap;
+        border: 1px solid var(--sc-border);
+        border-radius: 999px;
+        background: var(--sc-bg-1);
+      }
+      .toc-text { overflow-wrap: normal; }
+      .toc-marker {
+        width: 6px;
+        height: 6px;
+        align-self: center;
+        border-radius: 999px;
+      }
+      .toc-link.active { border-color: var(--sc-accent); }
+    }
+
     /* Touch baseline: 44px is the project threshold, but the shell's loading
        scale animations shave a pixel off a measured target — so ask for 48. */
     @media (pointer: coarse) {
       .sc-select { min-height: 48px; }
       .id-copy { min-height: 48px; padding: 8px 16px; }
+      .toc-link { min-height: 48px; }
+    }
+
+    @media (max-width: 720px) {
+      /* The shell's topbar wraps its nav onto a third row down here, so a
+         fragment jump needs more clearance than on desktop. */
+      .group { scroll-margin-top: 132px; }
     }
 
     @media (max-width: 560px) {
@@ -550,7 +782,7 @@ type LangId = AppLanguage;
     }
   `],
 })
-export class SettingsComponent implements OnInit {
+export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
   readonly profile = inject(ProfileService);
@@ -560,6 +792,33 @@ export class SettingsComponent implements OnInit {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
   private readonly analytics = inject(AnalyticsService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly zone = inject(NgZone);
+  private readonly location = inject(Location);
+  private readonly route = inject(ActivatedRoute);
+
+  /** Single source of truth for both the rail and the section order. */
+  readonly groups: readonly SettingsGroup[] = [
+    { id: 'account', anchor: 'settings-account', labelKey: 'settings.groups.account.title' },
+    {
+      id: 'preferences',
+      anchor: 'settings-preferences',
+      labelKey: 'settings.groups.preferences.title',
+    },
+    { id: 'privacy', anchor: 'settings-privacy', labelKey: 'settings.groups.privacy.title' },
+    { id: 'danger', anchor: 'settings-danger', labelKey: 'settings.groups.danger.title' },
+  ];
+
+  /** Section the rail highlights — driven by the scroll position, not by clicks. */
+  readonly activeGroup = signal<GroupId>('account');
+
+  /**
+   * Scroll-spy plumbing. The listener runs OUTSIDE Angular and only re-enters
+   * the zone when the highlighted section actually changes, so scrolling the
+   * settings page costs one rAF-throttled measurement and no change detection.
+   */
+  private scrollListener?: () => void;
+  private spyFrame = 0;
 
   readonly languages: readonly LangId[] = ['de', 'en'];
   readonly regions: readonly RegionCode[] = PICKER_REGIONS;
@@ -638,6 +897,127 @@ export class SettingsComponent implements OnInit {
     // Seed the edit field from the shared handle (loaded once by ProfileService).
     if (!this.profile.loaded()) await this.profile.refresh();
     this.usernameInput.set(this.profile.username() ?? '');
+  }
+
+  ngAfterViewInit() {
+    if (typeof window === 'undefined') return;
+    this.zone.runOutsideAngular(() => {
+      this.scrollListener = () => {
+        if (this.spyFrame) return;
+        this.spyFrame = requestAnimationFrame(() => {
+          this.spyFrame = 0;
+          this.syncActiveGroup();
+        });
+      };
+      window.addEventListener('scroll', this.scrollListener, { passive: true });
+      window.addEventListener('resize', this.scrollListener, { passive: true });
+      this.syncActiveGroup();
+    });
+    this.jumpToInitialFragment();
+  }
+
+  /**
+   * Honours a deep link (/settings#settings-privacy) once the sections exist.
+   *
+   * The router's own anchorScrolling runs on NavigationEnd, i.e. before this
+   * view has laid out, so it can land short. Re-running the jump here is a
+   * no-op when the router already got it right. No smooth scroll: arriving on
+   * a page mid-glide reads as a rendering glitch, not as guidance.
+   */
+  private jumpToInitialFragment() {
+    const anchor = this.route.snapshot.fragment;
+    if (!anchor || !this.groups.some((g) => g.anchor === anchor)) return;
+    requestAnimationFrame(() => {
+      this.host.nativeElement
+        .querySelector<HTMLElement>(`#${anchor}`)
+        ?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      this.syncActiveGroup();
+    });
+  }
+
+  /**
+   * Href of a rail entry — the current page path PLUS the fragment.
+   *
+   * A bare `#settings-account` is resolved against `<base href="/">` rather
+   * than against the current URL, so the browser left /settings and loaded the
+   * start page instead (feedback af058ca4, round 3). The path has to be in
+   * there for the anchor to mean what it looks like — including for middle
+   * click, "open in new tab" and "copy link address".
+   */
+  tocHref(anchor: string): string {
+    const internal = this.location.path(false);
+    const page = internal
+      ? this.location.prepareExternalUrl(internal)
+      : typeof window === 'undefined'
+        ? ''
+        : `${window.location.pathname}${window.location.search}`;
+    return `${page}#${anchor}`;
+  }
+
+  /**
+   * Plain left click on a rail entry: glide down to the section instead of
+   * letting the browser teleport there. Ctrl/⌘/middle/shift clicks are left
+   * alone so the href keeps opening a new tab or window.
+   */
+  onTocClick(ev: MouseEvent, group: SettingsGroup) {
+    if (!isPlainLeftClick(ev)) return;
+    const target = this.host.nativeElement.querySelector<HTMLElement>(`#${group.anchor}`);
+    // No target rendered → let the real href do its job rather than swallowing
+    // the click.
+    if (!target) return;
+    ev.preventDefault();
+
+    // Immediate feedback; the scroll-spy takes the highlight over again as the
+    // page travels and ends on this very section.
+    this.activeGroup.set(group.id);
+    target.scrollIntoView({ behavior: this.scrollBehavior(), block: 'start' });
+    // Intercepting the click also swallows the browser's own "move focus to
+    // the target" step, which would strand a keyboard user in the rail.
+    target.focus({ preventScroll: true });
+
+    // Keep the address bar on the section without a router navigation: that
+    // would re-run anchorScrolling and teleport past the glide.
+    const internal = this.location.path(false);
+    if (internal) this.location.replaceState(`${internal.split('#')[0]}#${group.anchor}`);
+  }
+
+  /** Users who asked the OS for less motion get the instant jump. */
+  private scrollBehavior(): ScrollBehavior {
+    const reduced =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return reduced ? 'auto' : 'smooth';
+  }
+
+  ngOnDestroy() {
+    if (this.spyFrame) cancelAnimationFrame(this.spyFrame);
+    if (!this.scrollListener) return;
+    window.removeEventListener('scroll', this.scrollListener);
+    window.removeEventListener('resize', this.scrollListener);
+    this.scrollListener = undefined;
+  }
+
+  /**
+   * Last section whose heading has passed the reading line wins — that is the
+   * one filling the screen. The bottom of the document is special-cased: the
+   * final section is often too short to ever reach the line, and a rail that
+   * highlights nothing at the end of the page reads as broken.
+   */
+  private syncActiveGroup() {
+    const root = this.host.nativeElement;
+    let next = this.groups[0].id;
+    for (const group of this.groups) {
+      const el = root.querySelector<HTMLElement>(`#${group.anchor}`);
+      if (el && el.getBoundingClientRect().top <= SPY_LINE_PX) next = group.id;
+    }
+    const doc = document.documentElement;
+    const scrollable = doc.scrollHeight - window.innerHeight > 4;
+    if (scrollable && window.innerHeight + window.scrollY >= doc.scrollHeight - 4) {
+      next = this.groups[this.groups.length - 1].id;
+    }
+    if (next === this.activeGroup()) return;
+    this.zone.run(() => this.activeGroup.set(next));
   }
 
   asInput(e: Event): string {

@@ -4,6 +4,42 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.73.0] - 2026-09-02
+
+### Changed
+
+- **"An Bord" on the Codex start page is a tool now, not a display case.** The
+  zone that shows what your character is wearing could be looked at and nothing
+  else: the whole area was a single link, and the six positions on the figure —
+  helmet, torso, arms, legs, undersuit, backpack — were drawing, not controls.
+  Changing a helmet meant leaving the page, opening a different part of the app,
+  and searching a list that offered every item in the game at once with no way
+  to narrow it to helmets. Seven releases in a row had reworked how this looked
+  and never once what it did. Every position is now its own link: click the
+  helmet and you land in a list that *cannot* contain anything but helmets, with
+  a way back. The set name stays the way into the full on-foot section.
+- **The numbers under the figure answer a question instead of proving we have
+  data.** They used to read "Occupied slots 0 / 6", six raw archive counts, and
+  two blanks where an armour value and a weapon value should have been. The
+  counts moved to the empty positions themselves, where they read as a promise
+  ("460 in the archive") rather than trivia. In their place each position now
+  carries its **armour class** — light through super-heavy — drawn as the height
+  of a bar rather than as a colour, so a set has a shape you recognise at a
+  glance and colour is free to mean one single thing: worn, or open. Next to the
+  figure, six small marks say what the set actually carries — primary weapon,
+  sidearm, melee, throwables, gadget, medical — lighting up only for what is
+  really there.
+- **What we do not know is now said out loud rather than shown as a dash.** The
+  game files carry no protection value for personal armour at all: the field is
+  empty in every one of the 9,539 pieces, and the resistance entry is a
+  reference that was never resolved. So the old "Armour value —" was not a gap
+  waiting to be filled, it was a number that does not exist. It is gone. What
+  the files *do* carry is the armour class, and that is what you see. A piece the
+  archive knows no class for — every backpack — shows a hatched marker instead
+  of a guessed bar. There are deliberately no "mining ready" or "tractor ready"
+  marks either: nothing of that kind exists as personal equipment in this build,
+  only as ship parts, so claiming it would have been an invention.
+
 ## [0.72.0] - 2026-09-01
 
 ### Added

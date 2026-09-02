@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   CodexListRow,
@@ -344,7 +344,11 @@ export class FpsListComponent implements OnInit {
   readonly categories: readonly FpsCategory[] = ['weapon', 'armor'];
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
 
+  private readonly route = inject(ActivatedRoute);
+
   readonly category = signal<FpsCategory>('weapon');
+  /** Target set id from `?equipInto=` — the equip intent, see applyDeepLink(). */
+  readonly equipInto = signal<string | null>(null);
   readonly searchInput = signal('');
   private readonly searchTerm = signal('');
   readonly manufacturer = signal('');
@@ -414,7 +418,31 @@ export class FpsListComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    this.applyDeepLink();
     await this.svc.loadCurrentBuild();
+  }
+
+  /**
+   * AN-BORD deep link: `?cat=armor&slot=Helmet` opens this page already narrowed
+   * to one anatomical position, so clicking the helmet on the Codex landing
+   * lands in a list that can only contain helmets.
+   *
+   * `equipInto` (the target set id) is read here too — it carries the EQUIP
+   * INTENT. Keeping the intent in the URL is what makes requirement 4 of the
+   * rethink structural rather than a mode flag: an equip control cannot be
+   * rendered during ordinary browsing, because ordinary browsing has no
+   * `equipInto` in its URL.
+   */
+  private applyDeepLink(): void {
+    const q = this.route.snapshot.queryParamMap;
+    const cat = q.get('cat');
+    if (cat === 'armor' || cat === 'weapon') this.category.set(cat);
+    const slot = q.get('slot');
+    // Only accept a facet the current category can actually offer, so a stale
+    // link never leaves the list filtered to a value with zero rows.
+    if (slot && this.category() === 'armor' && fpsArmorAttachType(slot)) this.subType.set(slot);
+    else if (slot && this.category() === 'weapon') this.subType.set(slot);
+    this.equipInto.set(q.get('equipInto'));
   }
 
   categoryCount(c: FpsCategory): number | null {

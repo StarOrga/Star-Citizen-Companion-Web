@@ -7,8 +7,7 @@ excerpt: What SC Companion is, what the API is for, and the project's alpha-phas
 *Star Citizen*. It aggregates the Verse News (Comm-Link, Spectrum, RSI status,
 patch notes, YouTube), tracks patch versions across LIVE / PTU / EPTU, renders a
 browsable Codex of ships and components datamined from the live build, gives you
-a personal Hangar, and hosts companion tools like the Starscape desktop
-wallpaper app.
+a personal Hangar, and hosts companion tools like the Starscape App.
 
 - **Web app:** <https://sc-companion.vercel.app>
 - **Source:** [StarOrga/Star-Citizen-Companion-Web](https://github.com/StarOrga/Star-Citizen-Companion-Web)

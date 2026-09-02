@@ -346,6 +346,55 @@ describe('StarscapeComponent', () => {
     f.destroy();
   });
 
+  /* ---------------------------------------------------------------- *
+   * The tally is EVERYBODY'S (admin feedback bfd2149a).
+   * ---------------------------------------------------------------- */
+
+  it('shows the public tally even at zero, so a missing count cannot pass for none', () => {
+    const f = setup(serviceStub([first]), {}, votesStub({ counts: {} }));
+    const button = f.nativeElement.querySelector('sc-vote-button .vote') as HTMLButtonElement;
+    expect(button.querySelector('.vote-count')).not.toBeNull();
+    expect(button.textContent).toContain('0');
+    expect(button.getAttribute('aria-label')).toContain('starscape.vote.totalNone');
+    f.destroy();
+  });
+
+  it("says the number is everyone's total, and separately that the caller voted", () => {
+    const votes = votesStub({ counts: { abc123: 5 }, mine: ['abc123'] });
+    const f = setup(serviceStub([first]), {}, votes);
+    const button = f.nativeElement.querySelector('sc-vote-button .vote') as HTMLButtonElement;
+    const label = button.getAttribute('aria-label') ?? '';
+    // The count phrase and the "your vote is included" phrase are distinct: the
+    // whole complaint was that one bare digit cannot say which of the two it is.
+    expect(label).toContain('starscape.vote.total');
+    expect(label).toContain('starscape.vote.mine');
+    // Hover has no touch equivalent, so the number itself stays on the button.
+    expect(button.textContent).toContain('5');
+    // title mirrors aria-label - the tooltip is the desktop surface for it.
+    expect(button.getAttribute('title')).toBe(label);
+    f.destroy();
+  });
+
+  it("singular tally does not read '1 votes'", () => {
+    const f = setup(serviceStub([first]), {}, votesStub({ counts: { abc123: 1 } }));
+    const button = f.nativeElement.querySelector('sc-vote-button .vote') as HTMLButtonElement;
+    expect(button.getAttribute('aria-label')).toContain('starscape.vote.totalOne');
+    f.destroy();
+  });
+
+  it('keeps the ranking tallies visible without hover while Top-N is on', () => {
+    const votes = votesStub({ counts: { top001: 4 } });
+    votes.topOnly.set(true);
+    votes.topWallpapers.set([wallpaper('top001')]);
+    const f = setup(serviceStub([first]), {}, votes);
+    const host = f.nativeElement.querySelector('sc-vote-button.tile-vote') as HTMLElement;
+    // Hovering seven tiles one by one is not a way to check whether the Top 7
+    // reflects everyone's votes.
+    expect(host.classList).toContain('always-on');
+    expect(host.textContent).toContain('4');
+    f.destroy();
+  });
+
   it('persists the Top-N toggle through the service rather than locally', () => {
     const votes = votesStub();
     const f = setup(serviceStub([first]), {}, votes);
