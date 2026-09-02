@@ -496,10 +496,10 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       background: rgba(0, 212, 255, 0.1);
     }
     .dropdown-item:disabled { opacity: 0.5; cursor: default; }
-    .dropdown-item.is-current {
-      color: var(--sc-accent-hot);
-      background: rgba(255, 87, 34, 0.1);
-    }
+    /* A .dropdown-item.is-current rule used to paint an account-menu entry in
+       the hot accent. Nothing ever set is-current, so it was dead — and
+       reviving it would have painted an ungated menu item red, which now means
+       "admin only" (admin feedback b8b31f24). Removed rather than recoloured. */
     /* Deliberately not .dropdown-item — kept out of onMenuKeydown()'s
        ArrowUp/ArrowDown roving-focus query. */
     .dropdown-sep {

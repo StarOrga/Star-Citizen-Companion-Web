@@ -16,7 +16,14 @@ import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
-import { DesktopProduct, daysSinceSeen, ringsForRole } from './desktop-access';
+import {
+  DesktopProduct,
+  ReleaseRing,
+  daysSinceSeen,
+  isAdminOnlyRing,
+  isRestrictedProduct,
+  ringsForRole,
+} from './desktop-access';
 import { DesktopConnectionService } from './desktop-connection.service';
 import { DesktopReleaseService, RingRelease } from './desktop-release.service';
 
@@ -67,7 +74,12 @@ let nextId = 0;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (rings().length > 0) {
-      <div class="dlm">
+      <!-- .restricted paints the whole control in the hot accent. Red is the
+           app's "not for everyone" marker (admin feedback b8b31f24), so it is
+           bound to the actual gate instead of being baked into the chrome:
+           Starscape is a public download and therefore reads in the normal
+           accent, while the collaborator-gated Data Uploader keeps the red box. -->
+      <div class="dlm" [class.restricted]="restricted()">
         <button
           #trigger
           type="button"
@@ -128,9 +140,15 @@ let nextId = 0;
             @if (releases().length > 0) {
               <div class="pop-list">
                 @for (r of releases(); track r.ring) {
+                  <!-- Per-entry accent: a ring nobody below admin is ever
+                       offered is red, every other ring stays in the normal
+                       accent — even inside a red (restricted) box. The colour
+                       never carries the meaning alone; the admin-only ring also
+                       says so in words. -->
                   <a
                     class="pop-dl"
                     [class.secondary]="r.ring !== 'stable'"
+                    [class.admin-only]="adminOnlyRing(r.ring)"
                     [href]="r.url"
                     [title]="tooltip(r)"
                     target="_blank"
@@ -142,6 +160,8 @@ let nextId = 0;
                     <span class="dl-ver">v{{ r.version }}</span>
                     @if (r.ring === 'stable') {
                       <span class="dl-tag">{{ 'appMenu.recommended' | translate }}</span>
+                    } @else if (adminOnlyRing(r.ring)) {
+                      <span class="dl-tag">{{ 'appMenu.adminOnly' | translate }}</span>
                     }
                   </a>
                 }
@@ -191,7 +211,13 @@ let nextId = 0;
   `,
   styles: [`
     :host { display: block; position: relative; }
-    .dlm { position: relative; }
+    /* Colour semantics (admin feedback b8b31f24): the hot accent means "you are
+       seeing this because of elevated access". The whole control paints from
+       ONE variable so the meaning cannot drift between the trigger, the overlay
+       and the entries — the box sets it, and an admin-only entry overrides it
+       for itself. Everything public reads in the normal accent. */
+    .dlm { position: relative; --dlm-accent: var(--sc-accent); }
+    .dlm.restricted { --dlm-accent: var(--sc-accent-hot, #ff9f43); }
 
     .dlm-trigger {
       display: inline-flex; align-items: center; gap: 8px;
@@ -199,21 +225,21 @@ let nextId = 0;
       min-height: var(--sc-tap-min, 44px);
       font: inherit; cursor: pointer;
       color: var(--sc-fg-1); background: var(--sc-bg-1);
-      border: 1px solid color-mix(in srgb, var(--sc-accent-hot, #ff9f43) 40%, var(--sc-border));
+      border: 1px solid color-mix(in srgb, var(--dlm-accent) 40%, var(--sc-border));
       transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
     }
     .dlm-trigger:hover, .dlm-trigger:focus-visible, .dlm-trigger.on {
       outline: none;
       color: var(--sc-fg-0);
-      border-color: var(--sc-accent-hot, #ff9f43);
-      background: color-mix(in srgb, var(--sc-accent-hot, #ff9f43) 10%, var(--sc-bg-1));
+      border-color: var(--dlm-accent);
+      background: color-mix(in srgb, var(--dlm-accent) 10%, var(--sc-bg-1));
     }
     .dlm-icon { font-size: 0.9rem; line-height: 1; }
     .dlm-name {
       font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor, 0.68rem));
       letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
     }
-    .dlm-arrow { color: var(--sc-accent-hot, #ff9f43); font-size: 0.8rem; }
+    .dlm-arrow { color: var(--dlm-accent); font-size: 0.8rem; }
     .dlm-chev { font-size: 0.7rem; color: var(--sc-fg-2); transition: transform 0.16s ease; }
     .dlm-chev.on { transform: rotate(180deg); }
     .dlm-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sc-fg-2); flex: none; }
@@ -230,7 +256,7 @@ let nextId = 0;
       display: flex; flex-direction: column; gap: 10px;
       padding: 12px 14px; border-radius: 10px;
       background: var(--sc-bg-1);
-      border: 1px solid color-mix(in srgb, var(--sc-accent-hot, #ff9f43) 45%, var(--sc-border));
+      border: 1px solid color-mix(in srgb, var(--dlm-accent) 45%, var(--sc-border));
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
       animation: dlm-in 0.14s ease-out both;
     }
@@ -278,19 +304,22 @@ let nextId = 0;
       display: flex; align-items: center; gap: 8px;
       padding: 8px 10px; border-radius: 6px; min-height: 40px;
       text-decoration: none; font-size: max(0.78rem, var(--sc-fs-floor));
-      color: var(--sc-bg-0); background: var(--sc-accent-hot, #ff9f43);
-      border: 1px solid var(--sc-accent-hot, #ff9f43);
+      color: var(--sc-bg-0); background: var(--dlm-accent);
+      border: 1px solid var(--dlm-accent);
       transition: filter 0.16s ease;
     }
     .pop-dl:hover, .pop-dl:focus-visible { filter: brightness(1.1); outline: none; }
     .pop-dl.secondary {
       color: var(--sc-fg-1); background: transparent;
-      border-color: color-mix(in srgb, var(--sc-accent-hot, #ff9f43) 40%, var(--sc-border));
+      border-color: color-mix(in srgb, var(--dlm-accent) 40%, var(--sc-border));
     }
     .pop-dl.secondary:hover, .pop-dl.secondary:focus-visible {
-      color: var(--sc-fg-0); border-color: var(--sc-accent-hot, #ff9f43);
-      background: color-mix(in srgb, var(--sc-accent-hot, #ff9f43) 10%, transparent);
+      color: var(--sc-fg-0); border-color: var(--dlm-accent);
+      background: color-mix(in srgb, var(--dlm-accent) 10%, transparent);
     }
+    /* The one sub-entry that is genuinely admin-only re-declares the variable
+       for itself, so it reads red inside an otherwise normal-accent box. */
+    .pop-dl.admin-only { --dlm-accent: var(--sc-accent-hot, #ff9f43); }
     .dl-ring { font-family: var(--sc-font-display); letter-spacing: 0.05em; flex: 1 1 auto; }
     .dl-ver { font-variant-numeric: tabular-nums; opacity: 0.85; }
     .dl-tag {
@@ -316,7 +345,7 @@ let nextId = 0;
       font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-accent);
       text-decoration: underline; text-underline-offset: 2px;
     }
-    .pop-link:hover { color: var(--sc-accent-hot, #ff9f43); }
+    .pop-link:hover { color: var(--dlm-accent); }
 
     /* Coarse pointers: 48px for every hit target — a 44px box measures short
        under overlapping scale animations (see the mobile gate baseline). */
@@ -390,6 +419,14 @@ export class AppDownloadMenuComponent {
   });
   /** Rings this visitor may take — empty means the control is not rendered. */
   readonly rings = computed(() => ringsForRole(this.product(), this.roles.role()));
+  /**
+   * Does the hot ("restricted") accent apply to this control? A product every
+   * visitor may download is never painted red — that is the whole point of the
+   * colour. Deliberately a property of the PRODUCT, not of the current role: a
+   * collaborator-gated tool stays recognisably red for the people who can open
+   * it, rather than changing colour per viewer.
+   */
+  readonly restricted = computed(() => isRestrictedProduct(this.product()));
   /** Connection state is an account fact — nothing to say to an anonymous visitor. */
   readonly showConnection = computed(() => !!this.auth.user());
   readonly connectionState = computed(() => this.conn.stateFor(this.product(), this.now()));
@@ -434,6 +471,15 @@ export class AppDownloadMenuComponent {
    */
   onDownload(): void {
     this.close();
+  }
+
+  /**
+   * Is this ring offered to admins only? Drives both the red accent and the
+   * "Admin only" tag on the entry, so the colour is never the only carrier of
+   * the meaning (admin feedback b8b31f24).
+   */
+  adminOnlyRing(ring: ReleaseRing): boolean {
+    return isAdminOnlyRing(this.product(), ring);
   }
 
   /** Technical detail belongs in the tooltip, not on the button. */
