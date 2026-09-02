@@ -213,6 +213,32 @@
           "title": "Auf dem Reißbrett",
           "badgeAria": "{{count}} neue Schiffe seit deinem letzten Besuch"
         }
+      },
+      "board": {
+        "open": "offen",
+        "archiveCount": "{{count}} im Archiv",
+        "classUnknown": "Keine Klassendaten im Archiv",
+        "more": "mehr",
+        "moreCount": "{{count}} weitere",
+        "class": {
+          "light": "Leichte Rüstung",
+          "medium": "Mittlere Rüstung",
+          "heavy": "Schwere Rüstung",
+          "superheavy": "Sehr schwere Rüstung",
+          "undersuit": "Untersuit",
+          "flightsuit": "Flugkombi",
+          "utility": "Schwere Arbeitsrüstung"
+        },
+        "readyOn": "angelegt",
+        "readyOff": "offen",
+        "readiness": {
+          "primary": "Primärwaffe",
+          "secondary": "Sekundärwaffe",
+          "melee": "Nahkampf",
+          "throwable": "Wurfwaffen",
+          "gadget": "Gadget",
+          "medical": "Medizin"
+        }
       }
     },
     "bridge": {

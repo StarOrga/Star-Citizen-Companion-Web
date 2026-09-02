@@ -22,16 +22,17 @@ import {
 import { cleanLocaleValue, formatNumber, humanizeClassName } from './codex-format';
 import { LocalizedText, Lang, ShipPayload } from './codex.types';
 import { PolySearchHit, polyHitLink } from './codex-poly-search';
+import { CodexBoardPanelComponent } from './codex-board-panel.component';
 import { ShipStatDelta } from './codex-build-diff';
 import {
   ArmorSlotState,
   EntityPayloadEntry,
   armorSlotsFromLoadout,
-  computeFpsKpis,
   computeShipKpis,
   KpiRow,
   sortByRecency,
 } from './codex-landing-kpi';
+
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
@@ -53,14 +54,6 @@ export type FleetSortAxis = 'manufacturer' | 'role' | 'recent';
 export interface FleetGroup {
   label: string;
   rows: CodexListRow[];
-}
-
-/** One anatomical paperdoll marker's display state (see codex-landing-kpi.ts for the slot spec). */
-interface PaperdollSlotView {
-  filled: boolean;
-  name: string;
-  detail: string;
-  archiveCount: number | null;
 }
 
 /**
@@ -93,6 +86,7 @@ interface PaperdollSlotView {
     CodexCategoryIconComponent,
     FallbackImageComponent,
     AppDownloadMenuComponent,
+    CodexBoardPanelComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -242,131 +236,32 @@ interface PaperdollSlotView {
 
       <!-- ── SURFACE: AN BORD + IM HANGAR, one continuous surface ────────────── -->
       <div class="surface" [class.dimmed]="searchActive()">
-        <!-- AN BORD — amber, on-foot character. The WHOLE zone is an entrance
-             into the on-foot subview (feedback, 2026-08-16: "wenn man dort
-             irgendwo drauf klickt"). Nested anchors are invalid HTML and the
-             zone already hosts real interactive children (the pin button, the
-             config <details> list, its own deep links), so we cannot wrap the
-             whole zone in one <a>. Instead a.zone-entry carries the
-             heading/eyebrow and is stretched over the WHOLE zone via its
-             ::after (position:absolute; inset:0 — resolves against .zone,
-             the nearest positioned ancestor, since .zone-entry itself stays
-             unpositioned). Every sibling that holds real controls gets
-             position:relative + a higher z-index so it stays clickable; empty
-             chrome (paperdoll, KPI cards) is allowed to fall through to the
-             entrance link, which is exactly the "click anywhere" goal. -->
+        <!-- AN BORD — the on-foot plane. Rebuilt in the /tune-rethink round of
+             2026-09-01 (concept: docs/concepts/2026-09-01-codex-an-bord-neu.html,
+             6 iterations, chosen variant Ⓣ "Gewicht" on the Ⓜ light panel with
+             the Ⓟ plinth).
+             THE STRETCHED ZONE LINK IS GONE ON PURPOSE. It used to swallow the
+             whole zone so "click anywhere" opened the on-foot subview — which is
+             exactly what made this a display case: no individual position could
+             ever be clicked. Now every anatomical position is its own real
+             <a routerLink> carrying an EQUIP INTENT in the URL
+             (?cat=armor&slot=Helmet&equipInto=<setId>), read by
+             FpsListComponent.applyDeepLink(). The zone entrance survives as the
+             set-name link in the header only.
+             DESIGN SYSTEM (concept iteration 6 — the panel had four meanings on
+             amber and two on cyan, which is what made it read as noise):
+               · amber   = "equipped / yours", and nothing else
+               · blue-grey = "open", and nothing else
+               · armour class is encoded as BAR HEIGHT, never as hue
+               · three type roles only: label / value / name
+               · the role is named ONCE, on the plinth. -->
         <article class="zone board" aria-labelledby="board-title">
-          <a class="zone-entry" [routerLink]="boardEntryLink()">
-            <header class="zone-head">
-              <span class="zone-eyebrow" id="board-title">{{ 'codex.landing.me.eyebrow' | translate }}</span>
-              @if (!hasPersonalSet()) {
-                <h2>{{ 'codex.landing.me.title' | translate }}</h2>
-              }
-            </header>
-          </a>
-
-          @if (!hasPersonalSet()) {
-            <div class="board-empty">
-              <span class="empty-chip">{{ 'codex.landing.me.uncommissioned' | translate }}</span>
-              <p class="me-lead">{{ 'codex.landing.me.emptyLead' | translate }}</p>
-              <a class="btn tint" routerLink="/codex/fps">
-                {{ 'codex.landing.me.cta' | translate }}
-                <span class="btn-goal">{{ 'codex.landing.me.ctaGoal' | translate }}</span>
-              </a>
-            </div>
-          } @else {
-            <div class="ready-row">
-              <span class="ready-chip">{{ 'codex.landing.me.ready' | translate }}</span>
-              <span class="me-set-name">{{ activeLoadout()!.name }}</span>
-            </div>
-
-            <!-- Schematic paperdoll: six slots at their anatomical position,
-                 leader lines to labels. Filled markers tint amber; empty
-                 markers stay dashed outlines — a labelled instrument, not a
-                 greyed-out gap. -->
-            <div class="paperdoll-wrap">
-              <svg class="paperdoll" viewBox="0 0 320 264" role="img"
-                   [attr.aria-label]="'codex.landing.paperdoll.aria' | translate">
-                <path class="doll-undersuit" [class.filled]="paperdollSlot('undersuit').filled"
-                  d="M160,24 c10,0 17,7 17,17 c0,6 -3,11 -7,14 l0,3 c14,3 23,12 23,12 l0,58 c0,4 -3,7 -7,7 l-4,0 l0,90 c0,4 -3,7 -7,7 l-30,0 c-4,0 -7,-3 -7,-7 l0,-90 l-4,0 c-4,0 -7,-3 -7,-7 l0,-58 c0,0 9,-9 23,-12 l0,-3 c-4,-3 -7,-8 -7,-14 c0,-10 7,-17 17,-17 z" />
-                <rect class="doll-slot doll-slot--rucksack" [class.filled]="paperdollSlot('backpack').filled" x="188" y="82" width="30" height="54" rx="2" />
-                <rect class="doll-slot" [class.filled]="paperdollSlot('legs').filled" x="136" y="154" width="22" height="100" rx="2" />
-                <rect class="doll-slot" [class.filled]="paperdollSlot('legs').filled" x="162" y="154" width="22" height="100" rx="2" />
-                <rect class="doll-slot" [class.filled]="paperdollSlot('arms').filled" x="104" y="76" width="20" height="70" rx="2" />
-                <rect class="doll-slot" [class.filled]="paperdollSlot('arms').filled" x="196" y="76" width="20" height="70" rx="2" />
-                <rect class="doll-slot" [class.filled]="paperdollSlot('torso').filled" x="132" y="70" width="56" height="90" rx="2" />
-                <circle class="doll-slot" [class.filled]="paperdollSlot('helmet').filled" cx="160" cy="40" r="19" />
-                <line class="doll-leader" [class.empty]="!paperdollSlot('helmet').filled" x1="160" y1="40" x2="45" y2="34" />
-                <line class="doll-leader" [class.empty]="!paperdollSlot('torso').filled" x1="176" y1="100" x2="275" y2="60" />
-                <line class="doll-leader" [class.empty]="!paperdollSlot('arms').filled" x1="108" y1="108" x2="45" y2="140" />
-                <line class="doll-leader" [class.empty]="!paperdollSlot('undersuit').filled" x1="212" y1="108" x2="108" y2="108" stroke-dasharray="2 3" />
-                <line class="doll-leader" [class.empty]="!paperdollSlot('legs').filled" x1="160" y1="200" x2="45" y2="228" />
-                <line class="doll-leader" [class.empty]="!paperdollSlot('arms').filled" x1="120" y1="150" x2="275" y2="138" />
-                <line class="doll-leader" [class.empty]="!paperdollSlot('backpack').filled" x1="203" y1="108" x2="275" y2="226" />
-                <foreignObject x="0" y="10" width="90" height="46"><div xmlns="http://www.w3.org/1999/xhtml" class="doll-label" [class.empty]="!paperdollSlot('helmet').filled">
-                  <span class="doll-label__slot">{{ 'codex.landing.paperdoll.helmet' | translate }}</span>
-                  <span class="doll-label__item">{{ paperdollItemLabel('helmet') }}</span>
-                  <span class="doll-label__state">{{ paperdollSubLabel('helmet') }}</span>
-                </div></foreignObject>
-                <foreignObject x="230" y="34" width="90" height="46"><div xmlns="http://www.w3.org/1999/xhtml" class="doll-label" [class.empty]="!paperdollSlot('torso').filled">
-                  <span class="doll-label__slot">{{ 'codex.landing.paperdoll.torso' | translate }}</span>
-                  <span class="doll-label__item">{{ paperdollItemLabel('torso') }}</span>
-                  <span class="doll-label__state">{{ paperdollSubLabel('torso') }}</span>
-                </div></foreignObject>
-                <foreignObject x="0" y="118" width="90" height="46"><div xmlns="http://www.w3.org/1999/xhtml" class="doll-label" [class.empty]="!paperdollSlot('arms').filled">
-                  <span class="doll-label__slot">{{ 'codex.landing.paperdoll.arms' | translate }}</span>
-                  <span class="doll-label__item">{{ paperdollItemLabel('arms') }}</span>
-                  <span class="doll-label__state">{{ paperdollSubLabel('arms') }}</span>
-                </div></foreignObject>
-                <foreignObject x="0" y="206" width="90" height="46"><div xmlns="http://www.w3.org/1999/xhtml" class="doll-label" [class.empty]="!paperdollSlot('legs').filled">
-                  <span class="doll-label__slot">{{ 'codex.landing.paperdoll.legs' | translate }}</span>
-                  <span class="doll-label__item">{{ paperdollItemLabel('legs') }}</span>
-                  <span class="doll-label__state">{{ paperdollSubLabel('legs') }}</span>
-                </div></foreignObject>
-                <foreignObject x="230" y="112" width="90" height="50"><div xmlns="http://www.w3.org/1999/xhtml" class="doll-label" [class.empty]="!paperdollSlot('undersuit').filled">
-                  <span class="doll-label__slot">{{ 'codex.landing.paperdoll.undersuit' | translate }}</span>
-                  <span class="doll-label__item">{{ paperdollItemLabel('undersuit') }}</span>
-                  <span class="doll-label__state">{{ paperdollSubLabel('undersuit') }}</span>
-                </div></foreignObject>
-                <foreignObject x="230" y="200" width="90" height="50"><div xmlns="http://www.w3.org/1999/xhtml" class="doll-label" [class.empty]="!paperdollSlot('backpack').filled">
-                  <span class="doll-label__slot">{{ 'codex.landing.paperdoll.backpack' | translate }}</span>
-                  <span class="doll-label__item">{{ paperdollItemLabel('backpack') }}</span>
-                  <span class="doll-label__state">{{ paperdollSubLabel('backpack') }}</span>
-                </div></foreignObject>
-              </svg>
-            </div>
-
-            <!-- On-foot KPIs (max 7) — never fabricated: two honest gap markers
-                 stand where Stealth/Rüstung/Waffengewalt would sit, because
-                 armour carries no protection stat block in this build. -->
-            <div class="kpi-row">
-              @for (k of fpsKpis(); track k.labelKey) {
-                <div class="kpi" [class.gap]="k.gap" [attr.title]="k.gapTitleKey ? (k.gapTitleKey | translate) : null">
-                  <span class="kpi-label">{{ k.labelKey | translate }}</span>
-                  <span class="kpi-value mono">{{ k.value }}</span>
-                </div>
-              }
-            </div>
-
-            @if (otherLoadouts().length) {
-              <div class="config-list">
-                <span class="config-list__label">{{ 'codex.landing.configs.otherRoles' | translate }}</span>
-                @for (l of otherLoadouts(); track l.id) {
-                  <details class="config-row">
-                    <summary>
-                      <span class="config-row__name">{{ l.name }}</span>
-                      <span class="config-row__role">{{ 'hangar.roles.' + l.role | translate }}</span>
-                    </summary>
-                    <div class="config-row__body">
-                      <a routerLink="/hangar/loadout/{{ l.id }}">{{
-                        'codex.landing.configs.openDetail' | translate: { name: l.name }
-                      }}</a>
-                    </div>
-                  </details>
-                }
-              </div>
-            }
-          }
+          <sc-codex-board-panel
+            [loadouts]="personalLoadouts()"
+            [resolved]="resolvedArmor()"
+            [payloads]="armorPayloads()"
+            [archiveDepth]="archiveDepth()"
+            [boardEntryLink]="boardEntryLink()" />
         </article>
 
         <!-- IM HANGAR — cyan, ship identity + KPI + fleet field. Same
@@ -854,8 +749,7 @@ interface PaperdollSlotView {
          stretched to the zone's full bounds via inset:0 — the "click
          anywhere in the empty area" trick without nesting an <a> around the
          zone's own interactive children. Those children (board-empty,
-         ready-row, paperdoll-wrap, kpi-row, config-list, hangar-empty,
-         identity) get position:relative + z-index:1 below to stay above the
+         hangar-empty, identity) get position:relative + z-index:1 below to stay above the
          overlay and keep working (pin button, per-item deep links, the
          config <details> lists). */
       .zone-entry {
@@ -888,7 +782,6 @@ interface PaperdollSlotView {
       .zone-head { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2px; }
       /* Everything past the entrance header that carries real controls
          (buttons, nested <a>, <details>) must outrank the ::after overlay. */
-      .board-empty, .ready-row, .paperdoll-wrap, .kpi-row, .config-list,
       .hangar-empty, .identity {
         position: relative;
         z-index: 1;
@@ -902,13 +795,12 @@ interface PaperdollSlotView {
       }
       .zone-head h2 { margin: 0; font-size: 1.15rem; }
 
-      .board-empty, .ready-row, .hangar-empty {
+      .hangar-empty {
         display: flex;
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
       }
-      .ready-row { flex-direction: row; align-items: center; flex-wrap: wrap; }
       .empty-chip {
         font-family: var(--sc-font-display);
         font-size: 0.7rem;
@@ -919,17 +811,7 @@ interface PaperdollSlotView {
         color: var(--sc-fg-2);
         border: 1px dashed color-mix(in srgb, var(--tint) 45%, var(--sc-border));
       }
-      .ready-chip {
-        font-family: var(--sc-font-display);
-        font-size: 0.7rem;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        padding: 3px 9px;
-        border-radius: 3px;
-        color: var(--sc-bg-0);
-        background: var(--tint);
-      }
-      .me-lead, .me-set-name { margin: 0; color: var(--sc-fg-1); font-size: 0.9rem; }
+      .me-lead { margin: 0; color: var(--sc-fg-1); font-size: 0.9rem; }
       .btn {
         display: inline-flex;
         align-items: center;
@@ -945,89 +827,6 @@ interface PaperdollSlotView {
       .btn.tint { color: var(--sc-bg-0); background: var(--tint); border: 1px solid var(--tint); }
       .btn.tint:hover { box-shadow: 0 0 18px color-mix(in srgb, var(--tint) 40%, transparent); }
       .btn-goal { font-weight: 400; opacity: 0.8; }
-
-      /* ── paperdoll ─────────────────────────────────────────────────────── */
-      .paperdoll-wrap { display: flex; justify-content: center; padding: 4px 0; }
-      .paperdoll { width: 100%; max-width: 320px; height: auto; overflow: visible; }
-      .doll-undersuit {
-        fill: color-mix(in srgb, var(--tint) 10%, var(--sc-bg-2));
-        stroke: color-mix(in srgb, var(--tint) 30%, transparent);
-        stroke-width: 1;
-        stroke-dasharray: 3 3;
-        opacity: 0.35;
-      }
-      .doll-undersuit.filled { opacity: 0.55; stroke-dasharray: none; }
-      .doll-slot {
-        fill: color-mix(in srgb, var(--sc-bg-2) 92%, transparent);
-        stroke: color-mix(in srgb, var(--sc-fg-2) 50%, transparent);
-        stroke-width: 1.2;
-        stroke-dasharray: 3 3;
-      }
-      .doll-slot.filled {
-        fill: color-mix(in srgb, var(--tint) 22%, var(--sc-bg-2));
-        stroke: var(--tint);
-        stroke-dasharray: none;
-      }
-      .doll-leader { stroke: color-mix(in srgb, var(--sc-fg-2) 45%, transparent); stroke-width: 1; }
-      .doll-leader.empty { stroke-dasharray: 2 3; opacity: 0.6; }
-      .doll-label {
-        display: flex;
-        flex-direction: column;
-        font-family: var(--sc-font-body, inherit);
-        font-size: 0.62rem;
-        line-height: 1.25;
-        color: var(--sc-fg-1);
-      }
-      .doll-label__slot {
-        font-family: var(--sc-font-display);
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        font-size: 0.56rem;
-        color: var(--tint);
-      }
-      .doll-label__item { font-weight: 600; }
-      .doll-label.empty .doll-label__item { color: var(--sc-fg-2); font-weight: 400; font-style: italic; }
-      .doll-label__state { color: var(--sc-fg-2); font-size: 0.58rem; }
-
-      /* ── KPI row (used by both zones) ─────────────────────────────────── */
-      .kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
-      .kpi {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        padding: 8px 10px;
-        border-radius: 3px;
-        border: 1px solid var(--sc-border);
-        background: var(--sc-bg-2);
-      }
-      .kpi.warn { border-color: color-mix(in srgb, var(--sc-warning, #ffc14d) 55%, var(--sc-border)); }
-      .kpi.warn .kpi-value { color: var(--sc-warning, #ffc14d); }
-      .kpi.gap { border-style: dashed; opacity: 0.7; cursor: help; }
-      .kpi-label { font-size: 0.66rem; color: var(--sc-fg-2); }
-      .kpi-value { font-size: 0.86rem; font-weight: 600; color: var(--sc-fg-0); }
-
-      /* ── other saved configs ──────────────────────────────────────────── */
-      .config-list { display: flex; flex-direction: column; gap: 4px; }
-      .config-list__label { font-size: 0.68rem; color: var(--sc-fg-2); }
-      .config-row { border-top: 1px solid var(--sc-border); font-size: 0.8rem; }
-      .config-row summary {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        padding: 7px 2px;
-        cursor: pointer;
-        min-height: var(--sc-tap-min, 44px);
-      }
-      .config-row__name { font-weight: 600; }
-      .config-row__role { color: var(--sc-fg-2); font-size: 0.72rem; }
-      .config-row__active {
-        margin-left: auto;
-        font-size: 0.66rem;
-        text-transform: uppercase;
-        color: var(--tint);
-      }
-      .config-row__body { padding: 0 2px 8px; font-size: 0.78rem; color: var(--sc-fg-2); }
-      .config-row__body a { color: var(--sc-accent); }
 
       /* ── identity (IM HANGAR) ─────────────────────────────────────────── */
       .identity { display: flex; flex-direction: column; gap: 10px; }
@@ -1538,6 +1337,12 @@ export class CodexLandingComponent implements OnInit {
   readonly personalLoadouts = signal<HangarRoleLoadout[]>([]);
   readonly resolvedArmor = signal<Map<string, ResolvedEntity>>(new Map());
   readonly archiveDepth = signal<Map<string, number>>(new Map());
+  /**
+   * Payloads of everything the active set carries — the armour class lives in
+   * `stats.SCItemSuitArmorParams`, the readiness classes in `subType`, so ONE
+   * batch covers both. Same zero-to-one-extra-query budget as the ship zone.
+   */
+  readonly armorPayloads = signal<Map<string, EntityPayloadEntry>>(new Map());
 
   readonly searchActive = computed(() => this.searchTerm().trim().length > 0);
 
@@ -1591,10 +1396,6 @@ export class CodexLandingComponent implements OnInit {
     for (const s of this.paperdollSlots()) bySlot.set(s.roleSlot, s);
     return bySlot;
   });
-  readonly fpsKpis = computed<KpiRow[]>(() =>
-    computeFpsKpis(this.paperdollSlots(), this.resolvedArmor(), this.archiveDepth()),
-  );
-
   readonly shipKpis = computed<KpiRow[]>(() =>
     computeShipKpis(this.flagshipRow()?.payload ?? null, this.shipComponentPayloads()),
   );
@@ -1841,6 +1642,7 @@ export class CodexLandingComponent implements OnInit {
     if (!active) {
       this.resolvedArmor.set(new Map());
       this.archiveDepth.set(new Map());
+      this.armorPayloads.set(new Map());
       return;
     }
     const classNames = active.items.map((i) => i.className).filter((c): c is string => !!c);
@@ -1852,6 +1654,13 @@ export class CodexLandingComponent implements OnInit {
         .resolveEntities(classNames)
         .then((m) => this.resolvedArmor.set(m))
         .catch(() => this.resolvedArmor.set(new Map())),
+      // Armour class (stats.SCItemSuitArmorParams) + readiness (subType) both
+      // live on the payload, so one batch covers both. Best-effort: a failure
+      // degrades to "no class known", which renders as an honest hatch.
+      this.svc
+        .getEntityPayloads(classNames)
+        .then((m) => this.armorPayloads.set(m))
+        .catch(() => this.armorPayloads.set(new Map())),
       Promise.all(
         emptySlots.map((s) =>
           this.svc
@@ -1975,39 +1784,6 @@ export class CodexLandingComponent implements OnInit {
   /** Ordered art candidates for an upcoming-ship rail tile; the fallback-image falls through them on load error. */
   upcomingThumbs(ship: UpcomingShip): string[] {
     return thumbnailCandidates(ship);
-  }
-
-  // ── paperdoll rendering helpers ─────────────────────────────────────────────
-  paperdollSlot(key: string): PaperdollSlotView {
-    const spec = this.paperdollBySlot().get(key);
-    if (!spec || !spec.className) {
-      const count = spec ? this.archiveDepth().get(spec.attachType) ?? null : null;
-      return { filled: false, name: '', detail: '', archiveCount: count };
-    }
-    const resolved = this.resolvedArmor().get(spec.className);
-    const name =
-      cleanLocaleValue(resolved?.nameLocalized) || humanizeClassName(spec.className);
-    const detail = [
-      resolved?.manufacturerCode,
-      resolved?.grade ? `Grad ${resolved.grade}` : '',
-      resolved?.size != null ? `S${resolved.size}` : '',
-    ]
-      .filter(Boolean)
-      .join(' · ');
-    return { filled: true, name, detail, archiveCount: null };
-  }
-
-  paperdollItemLabel(key: string): string {
-    const s = this.paperdollSlot(key);
-    return s.filled ? s.name : this.t.instant('codex.landing.paperdoll.empty');
-  }
-
-  paperdollSubLabel(key: string): string {
-    const s = this.paperdollSlot(key);
-    if (s.filled) return s.detail;
-    return s.archiveCount != null
-      ? this.t.instant('codex.landing.paperdoll.archiveDepth', { count: formatNumber(s.archiveCount) })
-      : '';
   }
 
   private lang(): Lang {
