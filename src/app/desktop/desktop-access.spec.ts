@@ -2,6 +2,8 @@ import {
   DESKTOP_CONNECTION_WINDOW_MS,
   connectionState,
   daysSinceSeen,
+  isAdminOnlyRing,
+  isRestrictedProduct,
   ringsForRole,
 } from './desktop-access';
 
@@ -39,6 +41,48 @@ describe('ringsForRole', () => {
       for (const product of ['uploader', 'starscape'] as const) {
         const rings = ringsForRole(product, role);
         if (rings.length > 0) expect(rings[0]).toBe('stable');
+      }
+    }
+  });
+});
+
+describe('the red-accent rules (admin feedback b8b31f24)', () => {
+  it('calls the uploader restricted — a plain viewer is offered nothing', () => {
+    expect(isRestrictedProduct('uploader')).toBeTrue();
+  });
+
+  it('does NOT call Starscape restricted — every visitor may download it', () => {
+    expect(isRestrictedProduct('starscape')).toBeFalse();
+  });
+
+  it('agrees with ringsForRole about who sees nothing', () => {
+    for (const product of ['uploader', 'starscape'] as const) {
+      expect(isRestrictedProduct(product)).toBe(ringsForRole(product, 'viewer').length === 0);
+    }
+  });
+
+  it('marks alpha as admin-only for both products', () => {
+    expect(isAdminOnlyRing('uploader', 'alpha')).toBeTrue();
+    expect(isAdminOnlyRing('starscape', 'alpha')).toBeTrue();
+  });
+
+  it('does not mark beta admin-only — a collaborator is offered it too', () => {
+    expect(isAdminOnlyRing('uploader', 'beta')).toBeFalse();
+    expect(isAdminOnlyRing('starscape', 'beta')).toBeFalse();
+  });
+
+  it('never marks stable admin-only', () => {
+    expect(isAdminOnlyRing('uploader', 'stable')).toBeFalse();
+    expect(isAdminOnlyRing('starscape', 'stable')).toBeFalse();
+  });
+
+  it('means: in the admin ring set, and in no other roles ring set', () => {
+    for (const product of ['uploader', 'starscape'] as const) {
+      for (const ring of ['stable', 'beta', 'alpha'] as const) {
+        const belowAdmin = (['collaborator', 'viewer', null] as const).some((role) =>
+          ringsForRole(product, role).includes(ring),
+        );
+        expect(isAdminOnlyRing(product, ring)).toBe(!belowAdmin);
       }
     }
   });
