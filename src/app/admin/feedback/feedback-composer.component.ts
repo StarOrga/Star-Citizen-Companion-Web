@@ -49,11 +49,17 @@ const IMG_QUALITY = 0.85;
 const MAX_ATTACHMENTS = 10;
 
 /**
- * Rich markdown composer shared by the new-topic box and every thread reply.
+ * Markdown composer shared by the new-topic box and every thread reply.
  *
  * Extracted so the reply line gains full parity with the main input (feedback
- * 73dfa165): formatting toolbar, automatic list continuation, and image insert
- * via picker / paste / drag-and-drop.
+ * 73dfa165): automatic list continuation and image insert via picker / paste /
+ * drag-and-drop.
+ *
+ * There is deliberately NO formatting toolbar. Bold/list/code buttons shipped
+ * with the extraction and were dropped again (feedback fe69a821) as overkill —
+ * the body is still markdown and still renders the same, it is just typed. The
+ * only button above the field is the image picker, because attaching a file is
+ * the one thing typing cannot do.
  *
  * Keyboard mapping (feedback aa8d5b18) is the conventional chat one, identical
  * in every usage — new topic, thread reply, processing answer — and each user
@@ -98,20 +104,16 @@ const MAX_ATTACHMENTS = 10;
         <div class="c-err">{{ errorMsg() }}</div>
       }
 
-      <div class="toolbar">
-        <button type="button" class="tool" (click)="wrapSelection('**', '**')" [title]="'adminFeedback.compose.bold' | translate">
-          <strong>B</strong>
-        </button>
-        <button type="button" class="tool" (click)="prefixLines('- ')" [title]="'adminFeedback.compose.bullet' | translate">
-          • {{ 'adminFeedback.compose.list' | translate }}
-        </button>
-        <button type="button" class="tool" (click)="prefixLines('1. ')" [title]="'adminFeedback.compose.numbered' | translate">
-          1. {{ 'adminFeedback.compose.list' | translate }}
-        </button>
-        <button type="button" class="tool" (click)="wrapSelection('\`', '\`')" [title]="'adminFeedback.compose.code' | translate">
-          &lt;/&gt;
-        </button>
-        <button type="button" class="tool" (click)="fileInput.click()" [title]="'adminFeedback.compose.attach' | translate">
+      <!-- Action row: attaching an image is the one thing the field itself
+           cannot do (feedback fe69a821 removed the markdown buttons — typing
+           the markup is faster than hunting for a B). -->
+      <div class="actions">
+        <button
+          type="button"
+          class="attach"
+          (click)="fileInput.click()"
+          [title]="'adminFeedback.compose.attach' | translate"
+          [attr.aria-label]="'adminFeedback.compose.attach' | translate">
           🖼
         </button>
         <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFileInput($event)" />
@@ -219,8 +221,8 @@ const MAX_ATTACHMENTS = 10;
       font-size: max(0.78rem, var(--sc-fs-floor));
     }
 
-    .toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .tool {
+    .actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .attach {
       padding: 4px 9px;
       background: var(--sc-bg-1);
       color: var(--sc-fg-1);
@@ -230,7 +232,7 @@ const MAX_ATTACHMENTS = 10;
       font-size: max(0.78rem, var(--sc-fs-floor));
       cursor: pointer;
     }
-    .tool:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .attach:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .grow { flex: 1; }
     .draft-flag { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .draft-flag.warn { color: var(--sc-accent-hot); }
@@ -340,7 +342,7 @@ export class FeedbackComposerComponent implements OnDestroy {
     return !!scope && !!this.drafts.entries().get(scope)?.failed;
   });
 
-  /** One-line draft state next to the toolbar; null while there is nothing to say. */
+  /** One-line draft state in the action row; null while there is nothing to say. */
   readonly draftLabel = computed<string | null>(() => {
     const scope = this.draftScope();
     if (!scope) return null;
@@ -570,33 +572,6 @@ export class FeedbackComposerComponent implements OnDestroy {
     const next = value.slice(0, replaceFrom) + insert + value.slice(end);
     const caret = replaceFrom + insert.length;
     this.applyValue(el, next, caret);
-  }
-
-  // ---- Toolbar -----------------------------------------------------------
-
-  wrapSelection(before: string, after: string): void {
-    const el = this.ta()?.nativeElement;
-    if (!el) return;
-    const { selectionStart: s, selectionEnd: e, value } = el;
-    const sel = value.slice(s, e);
-    const next = value.slice(0, s) + before + sel + after + value.slice(e);
-    const caret = sel ? s + before.length + sel.length + after.length : s + before.length;
-    this.applyValue(el, next, caret);
-  }
-
-  prefixLines(marker: string): void {
-    const el = this.ta()?.nativeElement;
-    if (!el) return;
-    const { selectionStart: s, selectionEnd: e, value } = el;
-    const lineStart = value.lastIndexOf('\n', s - 1) + 1;
-    const block = value.slice(lineStart, e);
-    let n = 0;
-    const prefixed = block
-      .split('\n')
-      .map((line) => (marker === '1. ' ? `${++n}. ${line}` : `${marker}${line}`))
-      .join('\n');
-    const next = value.slice(0, lineStart) + prefixed + value.slice(e);
-    this.applyValue(el, next, lineStart + prefixed.length);
   }
 
   private applyValue(el: HTMLTextAreaElement, next: string, caret: number): void {
