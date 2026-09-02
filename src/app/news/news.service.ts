@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ConsentService } from '../core/consent.service';
 import { PatchLineGroup, groupPatchNotes } from './patch-notes';
-import { BuildVerdict, buildStream, buildVerdict, pickStage } from './news-stage';
+import { BuildVerdict, buildSaved, buildStream, buildVerdict, pickStage } from './news-stage';
 
 export type NewsChannel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 export type StatusLevel = 'operational' | 'degraded' | 'partial_outage' | 'major_outage' | 'maintenance' | 'unknown';
@@ -121,34 +121,40 @@ export class NewsService {
   );
 
   /**
-   * The flat, reverse-chronological stream BEFORE the saved-only filter. Both
-   * halves of the stream toggle count against this same base, so "Gemerkt 3"
-   * can never open a list holding two items (the staged article and the patch
-   * notes are not part of the stream, and were double-counted before).
+   * The unfiltered half of the toggle: everything editorial except the item
+   * already on the stage (which is on screen right above, in full bleed) and
+   * except the patch notes, which have their own page.
    */
   private readonly streamAll = computed<VerseNewsItem[]>(
     () => buildStream(this.feed()?.news ?? [], this.stage()),
   );
 
+  /**
+   * The saved half of the toggle — every saved editorial item, the staged one
+   * included (feedback eda0e19b).
+   *
+   * Each half is counted against the list that half actually renders, which is
+   * the invariant that matters: a badge never promises an item its list cannot
+   * show. Scoping the saved half by the stage instead was what made "Gemerkt"
+   * read 0 while the hero's star was lit.
+   */
+  private readonly savedAll = computed<VerseNewsItem[]>(
+    () => buildSaved(this.feed()?.news ?? [], this.favoriteIds()),
+  );
+
   /** Everything in the stream — the left half of the toggle. */
   readonly streamCount = computed(() => this.streamAll().length);
 
-  /** The saved slice of the stream — the right half of the toggle. */
-  readonly favoriteCount = computed(() => {
-    const favs = this.favoriteIds();
-    return this.streamAll().filter((n) => favs.has(n.id)).length;
-  });
+  /** How many items are saved — the right half of the toggle. */
+  readonly favoriteCount = computed(() => this.savedAll().length);
 
   /**
-   * The flat, reverse-chronological stream — everything editorial except the
-   * item already on the stage. Honours the "saved only" toggle.
+   * What the list below the toggle renders: the flat, reverse-chronological
+   * stream, or the saved slice when the saved half is active.
    */
-  readonly stream = computed<VerseNewsItem[]>(() => {
-    const items = this.streamAll();
-    if (!this.favoritesOnly()) return items;
-    const favs = this.favoriteIds();
-    return items.filter((n) => favs.has(n.id));
-  });
+  readonly stream = computed<VerseNewsItem[]>(
+    () => (this.favoritesOnly() ? this.savedAll() : this.streamAll()),
+  );
 
   /** Which build is live, and when the next one is due — the verdict card. */
   readonly verdict = computed<BuildVerdict>(() => buildVerdict(this.patchLines(), Date.now()));

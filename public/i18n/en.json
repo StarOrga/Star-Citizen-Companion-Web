@@ -1285,7 +1285,8 @@
       "title": "News Feed",
       "more": "Show {{count}} more",
       "all": "Posts",
-      "filterAria": "Filter the news feed"
+      "filterAria": "Filter the news feed",
+      "onStage": "On the stage"
     },
     "verdict": {
       "label": "Build status",

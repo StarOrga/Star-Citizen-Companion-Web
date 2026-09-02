@@ -1,7 +1,7 @@
 import type { VerseNewsItem, NewsChannel } from './news.service';
 import type { PatchLineGroup } from './patch-notes';
 import { groupPatchNotes } from './patch-notes';
-import { buildStream, buildVerdict, pickStage, stageEligible, stageScore } from './news-stage';
+import { buildSaved, buildStream, buildVerdict, pickStage, stageEligible, stageScore } from './news-stage';
 
 /**
  * The stage is the fix for the defect this whole rethink started from: measured
@@ -126,6 +126,36 @@ describe('buildStream', () => {
     const stage = pickStage(news, NOW)!;
     expect(stage.id).toBe('art');
     expect(buildStream(news, stage).map((n) => n.id)).toEqual(['plain']);
+  });
+});
+
+describe('buildSaved — the saved half of the toggle (eda0e19b)', () => {
+  it('keeps the staged item, because saving is not scoped by the stage', () => {
+    const news = [
+      item('b', 'comm-link', daysAgo(2)),
+      item('a', 'comm-link', daysAgo(1)),
+      item('c', 'spectrum', daysAgo(3)),
+    ];
+    const stage = pickStage(news, NOW)!;
+    expect(stage.id).toBe('a');
+    expect(buildSaved(news, new Set(['a'])).map((n) => n.id)).toEqual(['a']);
+    expect(buildSaved(news, new Set(['a', 'c'])).map((n) => n.id)).toEqual(['a', 'c']);
+  });
+
+  it('is reverse-chronological and drops what is not saved', () => {
+    const news = [
+      item('old', 'comm-link', daysAgo(5)),
+      item('new', 'comm-link', daysAgo(1)),
+      item('mid', 'spectrum', daysAgo(3)),
+    ];
+    expect(buildSaved(news, new Set(['old', 'new', 'mid'])).map((n) => n.id))
+      .toEqual(['new', 'mid', 'old']);
+    expect(buildSaved(news, new Set()).length).toBe(0);
+  });
+
+  it('still keeps patch notes out — they have their own page, saved or not', () => {
+    const news = [item('p', 'patch', daysAgo(0)), item('c', 'comm-link', daysAgo(1))];
+    expect(buildSaved(news, new Set(['p', 'c'])).map((n) => n.id)).toEqual(['c']);
   });
 });
 

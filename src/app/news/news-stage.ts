@@ -100,6 +100,26 @@ export function buildStream(
 }
 
 /**
+ * The saved slice — every editorial item the user marked, newest first,
+ * INCLUDING the one currently on the stage (feedback eda0e19b).
+ *
+ * The stage is a presentation surface, not a category: an article does not stop
+ * being saved because the page happens to lead with it today, and which item
+ * carries the stage is re-scored on every feed refresh. Marking the hero used to
+ * write into the same store as every other item and then fall out of both the
+ * count and the list, so "Gemerkt" read 0 right next to a filled star.
+ *
+ * Passing `null` as the stage to `buildStream` is the whole point: the saved
+ * half is scoped by "is it saved", never by "is it on the stage".
+ */
+export function buildSaved(
+  news: readonly VerseNewsItem[],
+  saved: ReadonlySet<string>,
+): VerseNewsItem[] {
+  return buildStream(news, null).filter((n) => saved.has(n.id));
+}
+
+/**
  * How long a main-line release owns the card.
  *
  * A main patch reaching LIVE — or a new line entering the PTU — is the single
