@@ -156,7 +156,11 @@ import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.comp
       align-items: center;
       justify-content: center;
       border-radius: 999px;
-      background: var(--sc-accent-hot);
+      /* Amber, not the hot accent: this FAB renders ONLY for non-admins (see
+         visible() below), so a red pill here would be the one red thing a viewer
+         ever sees — and red means "admin only" (admin feedback b8b31f24).
+         Amber still separates the unread count from the cyan chrome. */
+      background: var(--sc-warning);
       color: #10060a;
       font-size: max(0.66rem, var(--sc-fs-floor));
       font-weight: 700;
