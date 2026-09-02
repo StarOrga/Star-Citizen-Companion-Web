@@ -30,7 +30,7 @@ Admin-only surfaces, listed here so the map is complete:
 ## Languages and platforms
 
 The web app is a **PWA** and ships fully localised in **English and German** —
-switchable in Settings. The Data Uploader and the Starscape wallpaper app are
+switchable in Settings. The Data Uploader and the Starscape App are
 Windows desktop binaries; see [Desktop tools](doc:desktop-tools).
 
 **Language** and **region** are two separate settings, because they answer two

@@ -111,6 +111,47 @@ describe('AppDownloadMenuComponent', () => {
     expect(ringsFor).toHaveBeenCalledWith('starscape', ['stable']);
   });
 
+  // Colour semantics (admin feedback b8b31f24): red means "admin only". A
+  // viewer who is handed a perfectly public download must not be told, in the
+  // app's own colour language, that it is not for them.
+  describe('the red accent', () => {
+    it('does NOT paint the Starscape control red — every visitor may download it', () => {
+      const { el } = setup({ product: 'starscape', role: 'viewer' });
+      expect(el.querySelector('.dlm.restricted')).toBeNull();
+      expect(el.querySelector('.dlm')).not.toBeNull();
+    });
+
+    it('keeps the red box on the collaborator-gated Data Uploader', () => {
+      const { el } = setup({ product: 'uploader', role: 'collaborator' });
+      expect(el.querySelector('.dlm.restricted')).not.toBeNull();
+    });
+
+    it('leaves every non-admin-only ring in the normal accent, red box or not', async () => {
+      const { fixture, el } = setup({
+        product: 'uploader',
+        role: 'collaborator',
+        releases: [ring('stable', '1.2.0'), ring('beta', '1.3.0')],
+      });
+      await open(fixture, el);
+      expect(el.querySelectorAll('a.pop-dl').length).toBe(2);
+      expect(el.querySelector('a.pop-dl.admin-only')).toBeNull();
+    });
+
+    it('marks the admin-only alpha ring red AND says so in words', async () => {
+      const { fixture, el } = setup({
+        product: 'starscape',
+        role: 'admin',
+        releases: [ring('stable', '1.2.0'), ring('beta', '1.3.0'), ring('alpha', '1.4.0')],
+      });
+      await open(fixture, el);
+      const flagged = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.pop-dl.admin-only'));
+      expect(flagged.length).toBe(1);
+      expect(flagged[0].getAttribute('href')).toBe('https://example.test/app-alpha.exe');
+      // The colour is never the only carrier of the meaning.
+      expect(flagged[0].querySelector('.dl-tag')?.textContent).toContain('appMenu.adminOnly');
+    });
+  });
+
   it('opens an overlapping panel and renders every version as a real download anchor', async () => {
     const { fixture, el } = setup({ role: 'admin' });
     const trigger = el.querySelector('.dlm-trigger') as HTMLButtonElement;

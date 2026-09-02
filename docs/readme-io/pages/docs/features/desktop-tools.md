@@ -1,6 +1,6 @@
 ---
 title: Desktop tools
-excerpt: The Data Uploader that keeps the Codex current, and the Starscape wallpaper tray app.
+excerpt: The Data Uploader that keeps the Codex current, and the Starscape App that rotates your wallpaper.
 ---
 
 Two of SC Companion's pieces run on your own machine, because they need access
@@ -56,9 +56,9 @@ maximum 20 bundles overall** — older ones are removed.
 
 Uploads happen **only through the tool**, never from the website.
 
-## Starscape wallpaper app
+## Starscape App
 
-A ~0.3 MB native Windows tray app that rotates your desktop through the
+The **Starscape App** is a ~0.3 MB native Windows tray app that rotates your desktop through the
 Starscape gallery, with prefetch, an optional crossfade, a screensaver mode and
 one-click autostart. Full tray-menu reference on the
 [Starscape](doc:starscape) page.

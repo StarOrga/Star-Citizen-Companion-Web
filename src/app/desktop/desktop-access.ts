@@ -51,6 +51,33 @@ export function ringsForRole(
   return table[role ?? 'anon'] ?? table['anon'];
 }
 
+/**
+ * Is the download control for this product a RESTRICTED surface — i.e. does a
+ * plain, signed-in viewer get nothing at all from it?
+ *
+ * This is the app's "red box" test (admin feedback b8b31f24). The hot accent is
+ * reserved for surfaces a normal user never reaches; painting a control red that
+ * every visitor may use tells them "this is not for you" about something that
+ * plainly is. The Data Uploader answers true, Starscape false.
+ */
+export function isRestrictedProduct(product: DesktopProduct): boolean {
+  return ringsForRole(product, 'viewer').length === 0;
+}
+
+/**
+ * Is this ring of this product offered to ADMINS ONLY?
+ *
+ * Derived from the same table rather than hard-coded, so widening a ring to
+ * collaborators automatically stops marking it as admin-only. Today: `alpha`
+ * for both products; `beta` is a collaborator ring and therefore not admin-only.
+ */
+export function isAdminOnlyRing(product: DesktopProduct, ring: ReleaseRing): boolean {
+  const table = RINGS[product];
+  return Object.entries(table).every(
+    ([role, rings]) => role === 'admin' || !rings.includes(ring),
+  );
+}
+
 /** "Connected" means the desktop app checked in inside this window. */
 export const DESKTOP_CONNECTION_WINDOW_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;

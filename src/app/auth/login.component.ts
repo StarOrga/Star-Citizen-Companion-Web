@@ -311,7 +311,10 @@ type Panel = 'signIn' | 'apply';
       cursor: pointer;
       text-decoration: underline;
     }
-    .linkish:hover { color: var(--sc-accent-hot); }
+    /* Brighten the normal accent rather than shifting to the hot one — the
+       login page is the most public surface there is, and the hot accent is
+       reserved for admin-only affordances (admin feedback b8b31f24). */
+    .linkish:hover { color: color-mix(in srgb, var(--sc-accent) 78%, #fff); }
     .trust-links {
       display: flex;
       justify-content: center;

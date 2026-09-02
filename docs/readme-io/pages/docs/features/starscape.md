@@ -1,6 +1,6 @@
 ---
 title: Starscape
-excerpt: A gallery of original-resolution RSI artwork harvested from the news crawl, plus a 0.3 MB Windows wallpaper app.
+excerpt: A gallery of original-resolution RSI artwork harvested from the news crawl, plus the 0.3 MB Windows Starscape App.
 ---
 
 **Starscape** is the artwork side of the news crawl: high-resolution imagery
@@ -55,10 +55,10 @@ sheet, so it can go straight into a chat, a note or your own timeline. The link
 it shares reopens exactly that wallpaper. Browsers without a share sheet
 (most desktops) copy the link to the clipboard instead.
 
-## Desktop wallpaper app
+## Starscape App
 
-A tiny native Windows tray app rotates your desktop background through the same
-gallery.
+The **Starscape App** is a tiny native Windows tray app that rotates your desktop
+background through the same gallery.
 
 - **Native, no runtime.** Pure Win32 — the release binary is about **0.3 MB**
   and idles in the low single-digit MB of memory.

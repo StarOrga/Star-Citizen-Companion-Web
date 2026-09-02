@@ -26,7 +26,7 @@ and adds the tools that sit around them.
 | **Verse News** | Comm-Link, Spectrum, YouTube and patch notes in one feed, plus the live RSI service status. Auto-refreshes every 5 minutes. | [Verse News](doc:verse-news) |
 | **Codex** | Every ship, weapon, component, item, ammo and manufacturer — datamined from the live build and searchable. | [Codex](doc:codex) |
 | **Hangar** | Your personal fleet: owned/wishlist ships, named configurations, component loadouts and role kits. | [Hangar](doc:hangar) |
-| **Starscape** | A gallery of original-resolution RSI artwork harvested from the news crawl, plus a tiny Windows wallpaper app. | [Starscape](doc:starscape) |
+| **Starscape** | A gallery of original-resolution RSI artwork harvested from the news crawl, plus the tiny Windows Starscape App. | [Starscape](doc:starscape) |
 | **Data Uploader** | A desktop tool that scans your own `Data.p4k` and uploads a pre-digested bundle, which is what keeps the Codex current. | [Desktop tools](doc:desktop-tools) |
 | **Public API** | Read-only HTTP access to the aggregated data, for bots, dashboards and org tools. | [Getting Started](doc:getting-started) |
 
