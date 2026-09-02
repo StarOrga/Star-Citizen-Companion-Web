@@ -9,7 +9,7 @@ import {
 import { TranslateModule } from '@ngx-translate/core';
 // The composer and the markdown renderer live under admin/feedback for
 // historical reasons but are plain, admin-agnostic building blocks — reused
-// here so the non-admin box has the same toolbar, image paste/drop and
+// here so the non-admin box has the same draft handling, image paste/drop and
 // Ctrl/Cmd+Enter behaviour instead of a second, poorer implementation.
 import {
   ComposerPayload,

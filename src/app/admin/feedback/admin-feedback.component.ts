@@ -724,8 +724,8 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
               </section>
             }
 
-            <!-- Reply composer — full parity with the new-topic box (toolbar,
-                 Enter to send / Shift+Enter for a newline, image paste/drop,
+            <!-- Reply composer — full parity with the new-topic box (Enter to
+                 send / Shift+Enter for a newline, image paste/drop,
                  list continuation). On an archived topic a reply reopens it
                  (shipped: post-ship continuation; issue_created / declined /
                  rejected: the reopen trigger, migration 20260726180000) — so a
