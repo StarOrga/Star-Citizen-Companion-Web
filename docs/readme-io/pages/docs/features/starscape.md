@@ -24,6 +24,11 @@ One vote per person per image, and it is permanent until you take it back —
 tapping it again removes your vote. Signed-out visitors still see how many
 votes an image has; casting one needs an account.
 
+**The number beside the thumbs up is the total across all users** — not your
+own vote. It is shown even when it is zero, and hovering (or focusing) the
+button spells it out: *“12 votes in total (all users) · your vote is
+included”*. Your own vote is the *filled* mark, never the digit.
+
 Nobody can see *who* voted. The gallery only ever publishes the tally: the
 votes themselves are readable by their owner and by no one else, and the count
 is served by a database function that never returns a user.
@@ -31,7 +36,9 @@ is served by a database function that never returns a user.
 **Show top 7 only** narrows the gallery to the seven highest-voted wallpapers
 across all users. Early on, when barely anything has been voted for, the
 newest images fill the remaining slots — the list is never short and never
-empty. The setting is remembered per account.
+empty. The setting is remembered per account. While that view is on, every
+tile keeps its tally on screen without hovering, so you can see at a glance
+which of the seven are genuinely voted for and which are newest-image filler.
 
 > The same **Top 7** switch is planned for the desktop app's tray menu, so the
 > rotation can follow the community's favourites. It is not in the tray yet —
