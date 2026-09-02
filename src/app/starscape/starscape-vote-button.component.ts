@@ -11,6 +11,12 @@ import { StarscapeVotesService } from './starscape-votes.service';
  * makes the state readable at tile size without a colour-only cue. The mark is
  * an inline SVG written here on purpose; no RSI asset is fetched or copied.
  *
+ * The badge next to the mark is the AGGREGATE - every user's votes, served by
+ * `starscape_vote_state()` / `starscape_top_wallpapers()`, which count the
+ * self-read-only `wallpaper_votes` table without ever returning who voted. The
+ * filled mark is the caller's own state; the number never is (admin feedback
+ * bfd2149a).
+ *
  * A vote is a real ACTION, so this is a `<button>`, never an anchor — and it
  * lives OUTSIDE the tile's `<a>` (a button nested in an anchor is invalid HTML
  * and swallows the anchor's middle-click behaviour).
@@ -24,6 +30,14 @@ import { StarscapeVotesService } from './starscape-votes.service';
   // cast vote visible on a tile that is not being hovered.
   host: { '[class.is-voted]': 'voted()' },
   template: `
+    <!-- The number is EVERYBODY'S tally, never the caller's own state - and a
+         bare digit does not say which. So the tooltip/aria-label spells it out
+         ("12 votes in total (all users)") and, once the caller has voted, adds
+         "your vote is included". Admin feedback bfd2149a: without that you
+         cannot tell whether the Top 7 reflects everyone or only yourself. -->
+    @let tally = totalKey() | translate: { count: count() };
+    @let mine = voted() ? tally + ' · ' + ('starscape.vote.mine' | translate) : tally;
+    @let hint = mine + ' · ' + (label() | translate);
     <button
       type="button"
       class="vote"
@@ -32,16 +46,18 @@ import { StarscapeVotesService } from './starscape-votes.service';
       [class.compact]="compact()"
       [disabled]="!votes.canVote() || busy()"
       [attr.aria-pressed]="voted()"
-      [attr.aria-label]="label() | translate: { count: count() }"
-      [attr.title]="label() | translate: { count: count() }"
+      [attr.aria-label]="hint"
+      [attr.title]="hint"
       (click)="onClick($event)">
       <svg class="vote-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path d="M12 2.4 L20.6 11 L3.4 11 Z" />
         <path d="M12 13 L20.6 21.6 L3.4 21.6 Z" />
       </svg>
-      @if (count() > 0) {
-        <span class="vote-count">{{ count() }}</span>
-      }
+      <!-- Rendered at zero too. A blank badge is indistinguishable from "the
+           counts never loaded", which is exactly how the missing tally read on
+           a gallery where almost nothing has been voted for yet - and on touch
+           there is no tooltip to fall back on. -->
+      <span class="vote-count" [class.zero]="count() === 0">{{ count() }}</span>
     </button>
   `,
   styles: [`
@@ -69,6 +85,11 @@ import { StarscapeVotesService } from './starscape-votes.service';
     .vote.busy { opacity: 0.8; }
     .vote.voted { color: var(--sc-accent); border-color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 22%, rgba(0, 0, 0, 0.62)); }
+
+    /* The public tally. Kept legible-but-quiet at zero so an unvoted tile still
+       answers "how many votes does this have?" instead of staying silent. */
+    .vote-count { font-variant-numeric: tabular-nums; }
+    .vote-count.zero { opacity: 0.72; }
 
     .vote-mark { width: 15px; height: 15px; flex: 0 0 auto; display: block; }
     .vote-mark path {
@@ -105,9 +126,21 @@ export class StarscapeVoteButtonComponent {
   readonly voted = computed(() => this.votes.mine().has(this.imageId()));
   readonly busy = computed(() => this.votes.busy().has(this.imageId()));
 
+  /** What a click would DO - the action half of the tooltip. */
   readonly label = computed(() => {
     if (!this.votes.canVote()) return 'starscape.vote.signedOut';
     return this.voted() ? 'starscape.vote.remove' : 'starscape.vote.add';
+  });
+
+  /**
+   * How the public tally is phrased. ngx-translate has no plural selector here,
+   * so the three cases are three keys - "0 Stimmen" and "1 Stimmen" would both
+   * be wrong, and this string is the whole point of the feature.
+   */
+  readonly totalKey = computed(() => {
+    const n = this.count();
+    if (n === 0) return 'starscape.vote.totalNone';
+    return n === 1 ? 'starscape.vote.totalOne' : 'starscape.vote.total';
   });
 
   onClick(ev: Event): void {

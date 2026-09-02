@@ -2557,13 +2557,17 @@
     "subtitle": "High-resolution artwork from RSI Comm-Links, collected from the news crawl. Every image links straight to the original on the RSI CDN — click a tile for full resolution and download.",
     "filterAll": "All",
     "vote": {
-      "add": "Give this a thumbs up — {{count}} votes",
-      "remove": "Take back your thumbs up — {{count}} votes",
-      "signedOut": "Sign in to vote — {{count}} votes"
+      "add": "Give this a thumbs up",
+      "remove": "Take back your thumbs up",
+      "signedOut": "Sign in to vote",
+      "totalNone": "No votes yet",
+      "totalOne": "1 vote in total (all users)",
+      "total": "{{count}} votes in total (all users)",
+      "mine": "your vote is included"
     },
     "top": {
       "label": "Show top {{count}} only",
-      "hint": "The {{count}} highest-voted wallpapers across all users. While few images have been voted for, the newest ones fill the remaining slots.",
+      "hint": "The {{count}} highest-voted wallpapers across all users. The number beside each thumbs up is the total across all users. While few images have been voted for, the newest ones fill the remaining slots.",
       "loading": "Loading the top picks…"
     },
     "empty": "No wallpapers captured yet — they appear as the news crawl runs.",

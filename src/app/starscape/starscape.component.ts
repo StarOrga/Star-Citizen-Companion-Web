@@ -275,10 +275,17 @@ const IMAGE_STALL_MS = 20_000;
             </picture>
             @if (w.series) { <span class="tile-series">{{ w.series }}</span> }
           </a>
-          <!-- Thumbs-up. Revealed on hover on precise pointers, but ALWAYS
-               visible on touch (there is no hover to reveal it with) and always
-               visible once cast, so your own vote is legible without hovering. -->
-          <sc-vote-button class="tile-vote" [imageId]="w.imageId" [compact]="true" />
+          <!-- Thumbs-up + the PUBLIC tally (every user's votes, never just
+               yours). Revealed on hover on precise pointers, but ALWAYS visible
+               on touch (there is no hover to reveal it with), once cast, and
+               while the Top-N ranking is on screen - that list only answers
+               "is this really everyone's top 7?" if you can read its counts
+               without hovering all seven tiles (admin feedback bfd2149a). -->
+          <sc-vote-button
+            class="tile-vote"
+            [class.always-on]="votes.topOnly()"
+            [imageId]="w.imageId"
+            [compact]="true" />
         </div>
         }
       </div>
@@ -431,7 +438,10 @@ const IMAGE_STALL_MS = 20_000;
          what you liked without hovering every tile. */
       .tile-wrap:hover .tile-vote,
       .tile-wrap:focus-within .tile-vote,
-      .tile-vote.is-voted { opacity: 1; }
+      .tile-vote.is-voted,
+      /* ...and so does the whole ranking while "Top N only" is on: the counts
+         ARE the answer that view exists to give. */
+      .tile-vote.always-on { opacity: 1; }
     }
     @media (prefers-reduced-motion: reduce) { .tile-vote { transition: none; } }
     /* <picture> is inline by default — it has to become the tile's block box so
