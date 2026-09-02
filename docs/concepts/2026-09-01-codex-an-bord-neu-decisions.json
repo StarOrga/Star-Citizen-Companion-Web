@@ -1,0 +1,121 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "template": "design",
+    "version": 1,
+    "verdict": "Ⓒ Ausrüstungsbucht gewinnt; Ⓐ Figur-ist-Picker und Ⓑ Rig-Plate verworfen",
+    "comments": {
+      "general": "C ist das einzige was in die richtige richtung geht!",
+      "designs": {
+        "c-fittingbay": "Finde ich am Besten, wobei die umrüstung der verschiedenen rollen noch clunky ist. Die Fragen darutner sind zwar die richtigen aber die darstellung hmnmm. Mir würde es reichen wenn nur der obere teil mit der darstelluhng und dann kreativ die kpis das gefällt mir noch nicht so und teilen kann man ruhig als button machen, vergleichen eher nicht direkt, sondern eher im vergleich zu generell den helm zu sehen etc.... ist er eher ...."
+      }
+    },
+    "derived_requirements": [
+      "Oberer Teil von Ⓒ gesetzt — Figur, klickbare Positionen, hebende Ebene, zweistufiges Rückgängig",
+      "Rollenwechsel ist clunky → neu lösen",
+      "Fragen inhaltlich richtig, Darstellung nicht → KPIs kreativ statt Fragezeilen",
+      "Teilen wird ein Button",
+      "Vergleichen nicht als Knopf, sondern als Einordnung gegenüber allen Teilen der Position"
+    ],
+    "response": "Iteration 2: Ⓔ Einordnungsbänder, Ⓕ Der Fächer, Ⓖ Ein Satz.",
+    "data_basis": "Klassenverteilung je Position (Prod, 2026-09-01): Helm 197/169/167/142 Σ675 · Torso 199/135/133/2 Σ469 · Arme 185/135/130 Σ450 · Beine 192/136/130 Σ458 · Untersuit 176+42 Σ218 · Rucksack 0 von 540."
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "template": "design",
+    "version": 2,
+    "verdict": "Ⓕ Der Fächer gewinnt; Ⓔ und Ⓖ verworfen",
+    "comments": {
+      "general": "",
+      "designs": {
+        "f-faecher": "Das finde viel viel besser, cool. Vllt. auch noch eine Anzeige ala mining ausgerüstet check oder traktor ausgerüstet check..\nZudem neben den vordefinierten profilen sollte es auch freie zur auswahl geben, aber davon nur top drei markiert als favorit oder zuletztt editiert fallback und ein \"mehr\" wo sich z. B. die Seite sich dreht und man dann alle sieht aufgelistet, ähnlichen style wiue die dreier vorauswahl aber größer und ggf. scrollen bzw. mit hinzufügen button.\nDie legende finde ich unnötig, dann gern eher beim drüberzeigen auf den tooltip.\nKampfbereit ist unnötig, das sieht man ja auch an den darstellungen."
+      }
+    },
+    "derived_requirements": [
+      "GESETZT: Legende entfernen, Klassen per Tooltip beim Drüberzeigen",
+      "GESETZT: 'Kampfbereit'-Chip entfernen",
+      "GESETZT: Set-Wähler = Top-3 (Favoriten, Fallback zuletzt bearbeitet) + 'mehr' mit Seiten-Dreh, Vollansicht im Stil der Dreier-Vorauswahl, scrollbar, mit Hinzufügen-Button",
+      "ZUR WAHL: Form der Tätigkeits-/Ausrüstungsanzeige"
+    ],
+    "response": "Iteration 3: Ⓗ Zweiter Fächer, Ⓘ Bereitschaftszeile, Ⓙ Auftragszeilen; Ⓚ Set-Wähler nur zur Abnahme.",
+    "honest_limit": "Bergbau/Traktor am Mann existieren im Archiv NICHT — alle Mining*/Tractor-Treffer sind Schiffskomponenten, ein Multitool mit Aufsätzen fehlt als Personen-Item-Kategorie. Belegt: FPS-Klassen Medium 1105, Small 297, Gadget 163, Knife 140, Grenade 74, Large 57 sowie FPS_Consumable/Medical 60. Die Anzeige ist darauf gebaut; das Nichtwissen bleibt als eigene Zeile sichtbar.",
+    "open_question": "Fallback-Regel des Set-Wählers: Favoriten zuerst + zuletzt bearbeitet auffüllen, oder immer zuletzt benutzt?"
+  },
+  {
+    "iteration": 3,
+    "action": "iterate",
+    "template": "design",
+    "version": 3,
+    "verdict": "Ⓘ Bereitschaftszeile ist die Basis; Ⓗ und Ⓙ als Zeilenformen verworfen, Ⓙs Idee lebt als Wasserzeichen weiter",
+    "comments": {
+      "general": "",
+      "designs": {
+        "i-bereitschaft": "es reichen die quadrate daztu und oben die beschreibunb der person (gern noch nicht angelegtes dieses blau grau machen, das ist gut) \nAnsonsten gern einfach noch mehr sexy machen das panel, aber es soll trotzdem dazu passen."
+      },
+      "screens": {
+        "j-s1": "INTERESSANT WO FÜR DAS IST; ABER DAS GERN  oben bei der person irgendwie als watermark symobol dahinter oder so. Also je nachdem was für ein fokus das profil hat automatisch berefchnet und erkannt. \nBzgl. der 4 informationen ob man die entsprechenden gadgets hat, fände ich das besser wenn das einfach oben bei der person kleine icons mit toolitip sind und diie grau blau oder aktiv, je nachdem was man ausrüstet! Der Teilen button darf ruhig auch das icon sein stattdesssen. ..."
+      }
+    },
+    "derived_requirements": [
+      "Bereitschaft wandert nach oben zur Person: kleine Icons mit Tooltip, blaugrau wenn offen, aktiv wenn angelegt — Häkchen-Zeile entfällt",
+      "Fokus als Wasserzeichen hinter der Figur, automatisch erkannt",
+      "Teilen wird ein Icon statt eines Textknopfes",
+      "Unten nur noch die Quadrate — zweiter Fächer und Auftragszeilen entfallen",
+      "Blaugrau für nicht Angelegtes beibehalten",
+      "OFFEN: Panel soll \"mehr sexy\" wirken, aber im Haus-Look bleiben"
+    ],
+    "honesty_note": "Wasserzeichen zeigt die GESPEICHERTE Rolle (echte Tatsache). Widerspricht die Ausrüstung der Rolle, erscheint zusätzlich ein Hinweis als Beobachtung — die App benennt die Rolle nie um.",
+    "response": "Iteration 4: identische Anordnung in drei Materialsprachen — Ⓛ Tiefe, Ⓜ Licht, Ⓝ Linie, plus Direktvergleich."
+  },
+  {
+    "iteration": 4,
+    "action": "iterate",
+    "template": "design",
+    "version": 4,
+    "verdict": "Ⓜ Licht gewinnt; Ⓛ Tiefe und Ⓝ Linie verworfen. Wasserzeichen hinter der Figur abgelehnt — überlappt visuell.",
+    "comments": {
+      "general": "Licht gefällt mir defienit v am besten aber das watermark hinter dem strichmännchen funktioniert nicht, +überlappt visuell zusy ehr.",
+      "designs": {},
+      "screens": {}
+    },
+    "derived_requirements": [
+      "GESETZT: Licht-Materialsprache — warmer Einfall von links oben, Lichtkante auf belegten Quadraten, Halo an aktiven Icons, flaches Blaugrau für Offenes",
+      "Wasserzeichen darf NICHT hinter der Figur liegen — zwei Strichzeichnungen übereinander ergeben Matsch",
+      "Fokus-Zeichen-Idee bleibt, braucht einen anderen Ort"
+    ],
+    "decided_by_claude": "Set-Wähler-Fallback: Favoriten zuerst, aufgefüllt mit zuletzt bearbeiteten. Zweimal ohne Antwort gefragt; als Standard gesetzt, revidierbar.",
+    "response": "Iteration 5: drei Orte für das Fokus-Zeichen auf dem Licht-Panel — Ⓞ Siegel in der Kopfzeile, Ⓟ Sockel unter den Füßen, Ⓠ Randmarke aus der Ecke, plus Direktvergleich."
+  },
+  {
+    "iteration": 5,
+    "action": "iterate",
+    "template": "design",
+    "version": 5,
+    "verdict": "Ⓟ Sockel gewinnt („mega cool, sehr gut\"); Ⓞ Siegel und Ⓠ Randmarke verworfen",
+    "comments": {
+      "general": "",
+      "designs": {
+        "p-sockel": "Das finde ich mega cool, sehr gut! Aber mach es vllt. im gleichen style wie das FPS als info. Außerdem ist mir das zu viele fonts, zu viele farben die nicht das gleiche ausdrücken. Polish das nochmal sehr!"
+      },
+      "screens": {}
+    },
+    "derived_requirements": [
+      "GESETZT: Sockel unter der Figur als Ort des Fokus-Zeichens",
+      "Sockel im gleichen Stil wie die FPS-Info darstellen",
+      "Zu viele Fonts — auf wenige Schriftrollen reduzieren",
+      "Zu viele Farben, die nicht dasselbe ausdrücken — Bedeutungen entkoppeln",
+      "Gründlicher Polish-Durchgang"
+    ],
+    "diagnosis": "Nachgezählt: Bernstein war vierfach belegt (angelegt / Set-Name / Slot-Beschriftung / Klasse mittel), Cyan doppelt (Rolle / Untersuit), dazu Grün für leicht und Rot für schwer. Acht Schriftbehandlungen für sechs Textarten.",
+    "system_rules": [
+      "Ein Akzent (Bernstein) = nur „gehört dir / angelegt\"",
+      "Ein Ruhe-Ton (Blaugrau) = nur „offen\"",
+      "Rüstungsklasse bekommt keine eigene Bedeutungsfarbe mehr",
+      "Drei Schriftrollen: Beschriftung / Wert / Name",
+      "Rolle steht nur noch einmal auf dem Panel — als Beschriftung auf dem Sockel"
+    ],
+    "response": "Iteration 6: drei Codierungen der Rüstungsklasse unter identischem System — Ⓡ Dichte, Ⓢ Rampe, Ⓣ Gewicht, plus offengelegtes Systemblatt und Direktvergleich."
+  }
+]
