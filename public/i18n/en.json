@@ -109,9 +109,22 @@
         "clear": "Clear search"
       },
       "status": {
-        "online": "Verse online",
         "patch": "Patch {{patch}}",
         "stale": "Data upload needed"
+      },
+      "patchSwitch": {
+        "title": "Switch patch",
+        "trigger": "Patch {{patch}} — pick another patch",
+        "live": "Live",
+        "past": "older",
+        "hasData": "data available",
+        "hasDataCount": "{{count}} records",
+        "noData": "no data",
+        "more": "Load older",
+        "backToLive": "Back to the live patch",
+        "loading": "Loading patches …",
+        "empty": "No further patches known.",
+        "note": "A patch without data cannot be opened. Reloading the page returns you to the live patch."
       },
       "patch": {
         "archive": "{{count}} records in the archive",
