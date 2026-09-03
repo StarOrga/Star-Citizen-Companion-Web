@@ -2492,7 +2492,34 @@
       "placeholder": "Why is this not going to happen? The user will read this.",
       "confirm": "Decline",
       "cancel": "Cancel",
-      "noteRequired": "Please give a reason — the user gets to read it."
+      "noteRequired": "Please give a reason — the user gets to read it.",
+      "reasonsLabel": "Canned reasons",
+      "reasons": {
+        "duplicate": {
+          "label": "Duplicate",
+          "text": "We already have this one — the topic is being worked on elsewhere. Thanks for reporting it."
+        },
+        "alreadyShipped": {
+          "label": "Already shipped",
+          "text": "This is done and live by now. Have a look at the current version — if something still feels off, just file it again."
+        },
+        "notReproducible": {
+          "label": "Not reproducible",
+          "text": "We could not reproduce this. If it happens again, please report it once more with the steps you took, when it happened and — if you can — a screenshot."
+        },
+        "tooLittleInfo": {
+          "label": "Not enough info",
+          "text": "There is too little here for us to act on. Please describe again what you did, what happened and what you expected instead."
+        },
+        "offRoadmap": {
+          "label": "Off the roadmap",
+          "text": "This does not fit the direction we are taking the app in — we are deliberately not building it. Thanks for the suggestion all the same."
+        },
+        "noise": {
+          "label": "Not actionable",
+          "text": "We cannot do anything with this, sorry — there is no pointer in here we could work from."
+        }
+      }
     },
     "review": {
       "headlineShipped": "Shipped — please sign off",

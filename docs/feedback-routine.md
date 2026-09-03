@@ -1337,6 +1337,15 @@ author's own thread away. Admin-authored topics keep the plain delete button, an
 so does an **already archived** user topic — once it is declined/shipped and the
 author has the outcome, an admin can still purge the row from the Archive.
 
+The comment box is preceded by a row of **canned-reason chips** (feedback
+d5a779da): Duplikat, Schon umgesetzt, Nicht reproduzierbar, Zu wenig Info, Passt
+nicht zur Richtung, Kein verwertbares Feedback. A chip **pre-fills** the
+textarea, it does not replace it — the note stays free text, and the chip lights
+only for as long as the text still *is* that reason, so editing the sentence
+quietly drops the selection. Both the labels and the sentences are ordinary i18n
+keys (`adminFeedback.decline.reasons.*`), worded for the person who filed the
+topic, because that is who reads them.
+
 **The routine never sets `declined`** — like `rejected` and `issue_created`, that
 call belongs to the admin alone.
 
