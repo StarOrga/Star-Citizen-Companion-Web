@@ -34,8 +34,10 @@ import {
 } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { FoldedRow, foldVariantRows } from './codex-variant-fold';
 import { SkinGroupedRow, SkinVariantRef, groupSkinRows } from './codex-skin-group';
+import { EditionGroupedRow, EditionRef, groupEditionRows } from './codex-edition-group';
 import {
   WEAPON_SUPER_GROUPS,
   WeaponFacetRow,
@@ -47,8 +49,11 @@ import {
   weaponSuperGroup,
 } from './codex-weapon-taxonomy';
 
-/** A card in the grid: a list row after variant folding AND livery grouping. */
-type CodexGridRow = SkinGroupedRow<FoldedRow<CodexListRow>>;
+/**
+ * A card in the grid: a list row after variant folding, livery grouping (FPS
+ * weapons) and edition grouping (ships).
+ */
+type CodexGridRow = EditionGroupedRow<SkinGroupedRow<FoldedRow<CodexListRow>>>;
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { HangarService } from '../hangar/hangar.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
@@ -74,10 +79,45 @@ const COMPONENT_KINDS = [
 export const UPCOMING_CATEGORY = 'upcoming' as const;
 export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
 
+/** Blueprint browse taxonomy (prio 4, the board/hangar archive links): the flat
+ * category select stays, this only folds it into "on-foot" vs "vehicle" first —
+ * `''` is "Alle". */
+export type BlueprintGroup = '' | 'fps' | 'vehicle';
+
+const BLUEPRINT_GROUP_FALLBACK: Record<'fps' | 'vehicle', readonly string[]> = {
+  fps: ['FPSArmours', 'FPSWeapons'],
+  vehicle: [
+    'VehicleComponentS0', 'VehicleComponentS1', 'VehicleComponentS2',
+    'VehicleComponentS3', 'VehicleComponentS4',
+    'VehicleWeaponsS1', 'VehicleWeaponsS2', 'VehicleWeaponsS3',
+    'VehicleWeaponsS4', 'VehicleWeaponsS5', 'VehicleWeaponsS6',
+  ],
+};
+
+/**
+ * Pure mapping from a blueprint group to the `codex_blueprints.category`
+ * buckets it covers. Intersected against the categories the ACTIVE build
+ * actually seeded (`options`, from `blueprintCategories()`) so the filter never
+ * asks for a bucket that cannot exist; before that facet read lands (or if it
+ * comes back empty) the static S0–S4 / S1–S6 fallback keeps the group usable.
+ */
+export function blueprintCategoriesForGroup(
+  group: BlueprintGroup,
+  options: readonly string[],
+): string[] {
+  if (group === '') return [];
+  const present = options.filter((c) =>
+    group === 'fps'
+      ? c === 'FPSArmours' || c === 'FPSWeapons'
+      : c.startsWith('VehicleComponent') || c.startsWith('VehicleWeapons'),
+  );
+  return present.length > 0 ? present : [...BLUEPRINT_GROUP_FALLBACK[group]];
+}
+
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ScSegmentedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -208,6 +248,16 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
               </select>
             </label>
           }
+          @if (kind() === 'blueprint') {
+            <label class="facet">
+              <span>{{ 'codex.filters.blueprintGroup' | translate }}</span>
+              <sc-segmented
+                [options]="blueprintGroupOptions"
+                [value]="blueprintGroup() || 'all'"
+                [ariaLabel]="'codex.filters.blueprintGroup' | translate"
+                (valueChange)="setBlueprintGroup($event)" />
+            </label>
+          }
           @if (kind() === 'blueprint' && blueprintCategoryOptions().length > 0) {
             <label class="facet">
               <span>{{ 'blueprint.filters.category' | translate }}</span>
@@ -331,6 +381,12 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
                     <span class="badge skins"
                           [attr.title]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
                       {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
+                    </span>
+                  }
+                  @if (r.editions.length; as editions) {
+                    <span class="badge editions"
+                          [attr.title]="'codex.card.editionsTitle' | translate: { names: editionNames(r) }">
+                      {{ (editions === 1 ? 'codex.card.editionsOne' : 'codex.card.editionsMany') | translate: { count: editions } }}
                     </span>
                   }
                 </div>
@@ -486,9 +542,9 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
     /* "+n file variants folded" — a quiet note, not a warning: nothing is wrong,
        the catalog simply carries several records for one object. */
     .badge.folded { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); cursor: help; }
-    /* Liveries are a feature of the entry, not file noise like .folded — so the
-       accent, and the detail view picks them up in the skin picker. */
-    .badge.skins {
+    /* Liveries and ship editions are a feature of the entry, not file noise like
+       .folded — so the accent, and the detail view picks them up in a picker. */
+    .badge.skins, .badge.editions {
       background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
       border-color: color-mix(in srgb, var(--sc-accent) 42%, transparent);
       color: var(--sc-fg-0); cursor: help;
@@ -611,6 +667,11 @@ export class CodexListComponent implements OnInit {
     return r.skinVariants.map((s) => s.liveryName).join(', ');
   }
 
+  /** Edition names grouped into this ship card, for the badge tooltip. */
+  editionNames(r: CodexGridRow): string {
+    return r.editions.map((e) => e.editionName).join(', ');
+  }
+
   /**
    * Manufacturer badge text — the full name from the extracted payload
    * ("Aegis Dynamics"), falling back to the promoted code when the game data
@@ -665,29 +726,57 @@ export class CodexListComponent implements OnInit {
   readonly blueprintCategory = signal('');
   /** Buckets actually present in the build (loaded once, data-driven). */
   readonly blueprintCategoryOptions = signal<string[]>([]);
+  /**
+   * Blueprint-only sub-filter (prio 4): Alle · Zu Fuß · Fahrzeug, above the raw
+   * category select. `?group=fps|vehicle` presets it from the AN BORD / IM
+   * HANGAR archive links — see codex-landing.component.
+   */
+  readonly blueprintGroup = signal<BlueprintGroup>('');
+  readonly blueprintGroupOptions: readonly ScSegmentOption[] = [
+    { value: 'all', labelKey: 'blueprint.group.all' },
+    { value: 'fps', labelKey: 'blueprint.group.fps' },
+    { value: 'vehicle', labelKey: 'blueprint.group.vehicle' },
+  ];
+  /**
+   * Categories the active group covers. Empty for "Alle" (no extra filter). A
+   * single-category select value OUTSIDE the group wins over the group — see
+   * `buildFilters`.
+   */
+  readonly blueprintGroupCategories = computed(() =>
+    blueprintCategoriesForGroup(this.blueprintGroup(), this.blueprintCategoryOptions()),
+  );
 
   /** Rows exactly as the server returned them, before display-level folding. */
   private readonly rawRows = signal<CodexListRow[]>([]);
   private readonly serverTotal = signal(0);
 
   /**
-   * What the grid renders, after two display-level passes: near-identical
+   * What the grid renders, after three display-level passes: near-identical
    * variant records collapsed into one card each (admin feedback 8cd0aed7 —
    * see codex-variant-fold), then livery families collapsed into their base
-   * record (feedback d5e39f86 — see codex-skin-group). The order is
-   * load-bearing; the skin pass needs the base name to be unambiguous, which
-   * the variant fold is what makes it. Ticking "include variants" — the control
-   * that already means "show me the raw records" — turns BOTH off.
+   * record (feedback d5e39f86 — see codex-skin-group), then, for ships,
+   * edition families collapsed into theirs (feedback 77ecad2a — see
+   * codex-edition-group). The order is load-bearing; both grouping passes need
+   * the base name to be unambiguous, which the variant fold is what makes it.
+   * Ticking "include variants" — the control that already means "show me the
+   * raw records" — turns ALL of them off.
    */
-  readonly rows = computed<CodexGridRow[]>(() =>
-    this.includeVariants()
-      ? this.rawRows().map((r) => ({
-          ...r,
-          foldedClassNames: [] as readonly string[],
-          skinVariants: [] as readonly SkinVariantRef[],
-        }))
-      : groupSkinRows(foldVariantRows(this.rawRows(), (r) => this.cardName(r))),
-  );
+  readonly rows = computed<CodexGridRow[]>(() => {
+    if (this.includeVariants()) {
+      return this.rawRows().map((r) => ({
+        ...r,
+        foldedClassNames: [] as readonly string[],
+        skinVariants: [] as readonly SkinVariantRef[],
+        editions: [] as readonly EditionRef[],
+      }));
+    }
+    const grouped = groupSkinRows(foldVariantRows(this.rawRows(), (r) => this.cardName(r)));
+    // Edition grouping reads a class-name lineage only the vehicle catalog
+    // carries, so it stays off every other kind.
+    return this.kind() === 'ship'
+      ? groupEditionRows(grouped)
+      : grouped.map((r) => ({ ...r, editions: [] as readonly EditionRef[] }));
+  });
   /**
    * Result count with the folded-away duplicates subtracted. Only the loaded
    * pages can be folded, so this is a lower bound on the server count, never
@@ -763,6 +852,7 @@ export class CodexListComponent implements OnInit {
       !!this.componentKind() ||
       !!this.weaponGroup() ||
       !!this.blueprintCategory() ||
+      !!this.blueprintGroup() ||
       this.includeVariants(),
   );
 
@@ -803,12 +893,14 @@ export class CodexListComponent implements OnInit {
       this.weaponSubGroup();
       this.includeVariants();
       this.blueprintCategory();
+      this.blueprintGroup();
       this.runQuery(true);
     });
   }
 
   async ngOnInit(): Promise<void> {
     this.applyRouteCategory();
+    this.applyRouteFacets();
     this.applyRouteQuery();
     // RSI artwork for ship cards + the upcoming badge count. Advisory and
     // silent: a failure just leaves the datamined renders as they were.
@@ -844,6 +936,26 @@ export class CodexListComponent implements OnInit {
     const wanted = (snap.data['category'] ?? snap.queryParamMap.get('kind') ?? '') as string;
     const match = this.categories.find((c) => c === wanted);
     if (match) this.setCategory(match);
+  }
+
+  /**
+   * Presets from the AN BORD / IM HANGAR archive quick-access links (prio 3):
+   * `?group=fps|vehicle` narrows the blueprint category to that group,
+   * `?weaponClass=Ship|FPS` picks the matching weapon super category. Must
+   * run AFTER `applyRouteCategory` — `setKind` resets both facets, and a
+   * preset applied before that reset would just be wiped again.
+   */
+  private applyRouteFacets(): void {
+    const snap = this.route.snapshot;
+    if (this.kind() === 'blueprint') {
+      const group = snap.queryParamMap.get('group');
+      if (group === 'fps' || group === 'vehicle') this.blueprintGroup.set(group);
+    }
+    if (this.kind() === 'weapon') {
+      const weaponClass = snap.queryParamMap.get('weaponClass');
+      if (weaponClass === 'Ship') this.weaponGroup.set('ship');
+      else if (weaponClass === 'FPS') this.weaponGroup.set('fps');
+    }
   }
 
   /**
@@ -943,6 +1055,7 @@ export class CodexListComponent implements OnInit {
     this.weaponGroup.set('');
     this.weaponSubGroup.set('');
     this.blueprintCategory.set('');
+    this.blueprintGroup.set('');
     this.kind.set(k);
     if (k === 'weapon') void this.loadWeaponFacets();
   }
@@ -976,6 +1089,10 @@ export class CodexListComponent implements OnInit {
   }
   setIncludeVariants(v: boolean): void { this.includeVariants.set(v); }
   setBlueprintCategory(v: string): void { this.blueprintCategory.set(v); }
+  /** `sc-segmented` emits 'all' for the no-op choice; the signal stores '' for it. */
+  setBlueprintGroup(v: string): void {
+    this.blueprintGroup.set(v === 'fps' || v === 'vehicle' ? v : '');
+  }
 
   resetFilters(): void {
     this.manufacturer.set('');
@@ -985,6 +1102,7 @@ export class CodexListComponent implements OnInit {
     this.weaponGroup.set('');
     this.weaponSubGroup.set('');
     this.blueprintCategory.set('');
+    this.blueprintGroup.set('');
     this.includeVariants.set(false);
   }
 
@@ -1020,6 +1138,16 @@ export class CodexListComponent implements OnInit {
   }
 
   private buildFilters(): CodexListFilters {
+    // The single-category select wins when it names a category outside the
+    // active group (e.g. group=fps but the reader picked a Vehicle bucket by
+    // hand) — the group filter would otherwise silently empty the grid.
+    const category = this.blueprintCategory();
+    const groupCategories = this.blueprintGroupCategories();
+    const blueprintCategoryIn =
+      this.kind() === 'blueprint' && this.blueprintGroup() &&
+      (!category || groupCategories.includes(category))
+        ? groupCategories
+        : undefined;
     return {
       search: this.searchTerm() || undefined,
       manufacturer: this.manufacturer() || undefined,
@@ -1027,7 +1155,8 @@ export class CodexListComponent implements OnInit {
       grade: this.grade() || undefined,
       componentKind: this.componentKind() || undefined,
       ...(this.kind() === 'weapon' ? weaponGroupQuery(this.weaponGroup(), this.weaponSubGroup()) : {}),
-      category: this.blueprintCategory() || undefined,
+      category: category || undefined,
+      blueprintCategoryIn,
       includeVariants: this.includeVariants(),
       limit: PAGE_SIZE,
       offset: this.offset,

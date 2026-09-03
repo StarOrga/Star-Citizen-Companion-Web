@@ -14,20 +14,6 @@ import { UpcomingShip, UpcomingShipsFeed, UpcomingShipsService } from './upcomin
 import { ShipPayload } from './codex.types';
 import { NewsService, VerseFeed } from '../news/news.service';
 
-function upcomingShip(over: Partial<UpcomingShip> & { id: string; name: string }): UpcomingShip {
-  return {
-    manufacturer: null,
-    manufacturerCode: null,
-    productionStatus: 'in-concept',
-    type: null,
-    focus: null,
-    rsiUrl: `https://robertsspaceindustries.com/pledge/ships/${over.id}`,
-    thumbnail: null,
-    flightReadyButMissing: false,
-    ...over,
-  };
-}
-
 function shipRow(over: Partial<CodexListRow> & { classNameSlug: string }): CodexListRow {
   return {
     nameLocalized: over.classNameSlug,
@@ -186,8 +172,8 @@ describe('CodexLandingComponent', () => {
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
-        // Playability comes from the verse feed the header chip keeps fresh —
-        // stubbed here so the landing never reaches the real HTTP client.
+        // The landing itself no longer reads playability, but sibling pieces of
+        // the shell do — stubbed so no test reaches the real HTTP client.
         {
           provide: NewsService,
           useValue: {
@@ -459,27 +445,60 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('a.hit .pin svg')).not.toBeNull();
   });
 
-  it('renders the IM VERSUM domain chips as real anchors that all land on the same subview with the facet preselected', async () => {
+  // The "Im Versum" band is retired (concept docs/concepts/2026-09-02-codex-im-verse.html,
+  // decision Ⓔ): each zone now ends with its OWN quiet quick-access line into
+  // the full archive instead of a third plane below the surface.
+  it('renders the page without the retired "Im Versum" band', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
-    const chips = Array.from(el.querySelectorAll<HTMLAnchorElement>('.domain-strip a.domain-chip'));
-    expect(chips.length).toBe(7);
-    const shipChip = chips.find((a) => a.getAttribute('href')?.includes('kind=ship'));
-    expect(shipChip?.querySelector('.domain-count')?.textContent?.trim()).toBe('353');
-    // Every domain lands on the SAME subview with its facet preselected —
-    // Baupläne used to jump to the separate /codex/blueprint page.
-    expect(chips.every((a) => a.getAttribute('href')?.startsWith('/codex/index?kind='))).toBeTrue();
-    expect(chips.some((a) => a.getAttribute('href')?.includes('kind=blueprint'))).toBeTrue();
-    // The keybindings entry sits on the "Im Versum" heading line now, not in a
-    // rail of its own below the page. The Showroom is gone entirely.
-    const headHrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('.versum-head a')).map((a) =>
-      a.getAttribute('href'),
-    );
-    expect(headHrefs.some((h) => h?.includes('/codex/keybinds'))).toBeTrue();
-    expect(el.querySelector('.versum-rail')).toBeNull();
+    expect(el.querySelector('.versum')).toBeNull();
+    expect(el.querySelector('.domain-strip')).toBeNull();
+    expect(el.querySelector('.upcoming-rail')).toBeNull();
     const allHrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('a')).map((a) => a.getAttribute('href'));
     expect(allHrefs.some((h) => h?.includes('/codex/showroom'))).toBeFalse();
-    expect(allHrefs.some((h) => h?.includes('/codex/upcoming'))).toBeFalse();
+  });
+
+  it('keybindings sit in the terminal row now, not in a band of their own', async () => {
+    const fixture = await setup({ hangar: [] });
+    const el: HTMLElement = fixture.nativeElement;
+    const keybinds = el.querySelector<HTMLAnchorElement>('header.terminal a.terminal-tool');
+    expect(keybinds?.getAttribute('href')).toBe('/codex/keybinds');
+  });
+
+  it('IM HANGAR ends with an archive quick-access line, real anchors, honest counts, even with an empty hangar', async () => {
+    const fixture = await setup({ hangar: [], entityCounts: { ships: 353, components: 2172 } });
+    const el: HTMLElement = fixture.nativeElement;
+
+    const nav = el.querySelector<HTMLElement>('.zone.hangar nav.zone-archive');
+    expect(nav).not.toBeNull();
+    const links = Array.from(nav!.querySelectorAll<HTMLAnchorElement>('a'));
+    const hrefs = links.map((a) => a.getAttribute('href'));
+    expect(hrefs).toContain('/codex/index?kind=ship');
+    expect(hrefs).toContain('/codex/index?kind=component');
+    expect(hrefs).toContain('/codex/index?kind=weapon&weaponClass=Ship');
+    expect(hrefs).toContain('/codex/index?kind=blueprint&group=vehicle');
+
+    const shipLink = links.find((a) => a.getAttribute('href') === '/codex/index?kind=ship');
+    expect(shipLink?.querySelector('.zone-archive__count')?.textContent?.trim()).toBe('353');
+    const componentLink = links.find((a) => a.getAttribute('href') === '/codex/index?kind=component');
+    expect(componentLink?.querySelector('.zone-archive__count')?.textContent?.trim()).toBe('2,172');
+    // Weapons/Baupläne totals would be misleading once split FPS vs ship —
+    // never invent a number for them.
+    const weaponLink = links.find((a) => a.getAttribute('href') === '/codex/index?kind=weapon&weaponClass=Ship');
+    expect(weaponLink?.querySelector('.zone-archive__count')).toBeNull();
+  });
+
+  it('AN BORD ends with an archive quick-access line into the FPS categories', async () => {
+    const fixture = await setup({ hangar: [] });
+    openBoard(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+
+    const nav = el.querySelector<HTMLElement>('.zone.board nav.zone-archive');
+    expect(nav).not.toBeNull();
+    const hrefs = Array.from(nav!.querySelectorAll<HTMLAnchorElement>('a')).map((a) => a.getAttribute('href'));
+    expect(hrefs).toContain('/codex/fps?cat=armor');
+    expect(hrefs).toContain('/codex/fps?cat=weapon');
+    expect(hrefs).toContain('/codex/index?kind=blueprint&group=fps');
   });
 
   it('AN BORD and IM HANGAR zones are each a real routerLink entrance into their subview', async () => {
@@ -583,84 +602,15 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('.identity .pin')).not.toBeNull();
   });
 
-  it('renders the concept-ship rail inside Im Versum once the RSI feed has ships, each tile a real anchor carrying name + manufacturer over its art', async () => {
-    const fixture = await setup({
-      hangar: [],
-      upcomingShips: [
-        upcomingShip({ id: 'polaris', name: 'RSI Polaris', manufacturerCode: 'RSI' }),
-        upcomingShip({ id: 'idris-m', name: 'Aegis Idris-M', manufacturerCode: 'AEGS' }),
-      ],
-      upcomingNotificationCount: 2,
-    });
-    const el: HTMLElement = fixture.nativeElement;
-
-    const rail = el.querySelector('.upcoming-rail');
-    expect(rail).not.toBeNull();
-    const tiles = Array.from(el.querySelectorAll<HTMLAnchorElement>('.upcoming-tile'));
-    expect(tiles.length).toBe(2);
-    // #130: OUR codex gets first refusal — the tile is an in-app routerLink to
-    // the announced-ship page, not a one-way door to robertsspaceindustries.com
-    // (the RSI pledge page is a secondary link over there).
-    expect(tiles[0].getAttribute('href')).toBe('/codex/upcoming/polaris');
-    expect(tiles[0].getAttribute('target')).toBeNull();
-    // The tile IS the artwork: name + manufacturer ride a caption scrim on top
-    // of it rather than sitting in a separate text block under a boxed thumb.
-    expect(tiles[0].querySelector('.upcoming-tile__caption .upcoming-tile__name')?.textContent?.trim()).toBe(
-      'RSI Polaris',
-    );
-    expect(tiles[0].querySelector('.upcoming-tile__caption .upcoming-tile__mfr')?.textContent?.trim()).toBe('RSI');
-    expect(el.querySelector('.upcoming-rail__badge')?.textContent?.trim()).toBe('2');
-  });
-
-  it('marks a concept hull on the rail as not-flight-ready, and leaves a flight-ready-but-unindexed one unmarked', async () => {
-    const fixture = await setup({
-      hangar: [],
-      upcomingShips: [
-        upcomingShip({ id: 'polaris', name: 'RSI Polaris' }),
-        upcomingShip({
-          id: 'zeus-mk2',
-          name: 'RSI Zeus Mk II',
-          productionStatus: 'flight-ready',
-          flightReadyButMissing: true,
-        }),
-      ],
-    });
-    const el: HTMLElement = fixture.nativeElement;
-
-    const tiles = Array.from(el.querySelectorAll<HTMLAnchorElement>('.upcoming-tile'));
-    expect(tiles.length).toBe(2);
-    // Small badge, not a redesign of the card — and only where it is TRUE:
-    // a flight-ready hull we simply have not ingested yet must not be labelled
-    // "concept".
-    expect(tiles[0].querySelector('.upcoming-tile__wip')).not.toBeNull();
-    expect(tiles[1].querySelector('.upcoming-tile__wip')).toBeNull();
-  });
-
-  it('renders no upcoming-ships rail while the RSI feed is empty/unloaded (no rail placeholder)', async () => {
-    const fixture = await setup({ hangar: [], upcomingShips: [] });
-    const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.upcoming-rail')).toBeNull();
-  });
-
-  it('keeps the upcoming-ships rail scroll contained to its own overflow-x container', async () => {
-    const fixture = await setup({
-      hangar: [],
-      upcomingShips: [upcomingShip({ id: 'polaris', name: 'RSI Polaris' })],
-    });
-    const el: HTMLElement = fixture.nativeElement;
-    const scroller = el.querySelector('.upcoming-rail__scroll');
-    expect(scroller).not.toBeNull();
-    expect(scroller?.closest('.upcoming-rail')).not.toBeNull();
-  });
-
-  it('merges the playable state and the patch into ONE headline in the terminal row', async () => {
+  it('carries the patch headline in the terminal row, without repeating the playable state', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
     const headline = el.querySelector('sc-codex-patch-headline');
     expect(headline).not.toBeNull();
     expect(headline?.closest('.terminal')).not.toBeNull();
-    expect(el.querySelector('.status-pill .live-dot')).not.toBeNull();
-    expect(el.querySelector('.status-pill .status-online')).not.toBeNull();
+    // The header chip says "Spielbar" app-wide; the landing no longer echoes it.
+    expect(el.querySelector('.status-pill .live-dot')).toBeNull();
+    expect(el.querySelector('.status-pill .status-online')).toBeNull();
     expect(el.querySelector('.status-pill .status-build')).toBeNull();
     // The far right of the terminal row belongs to the download control now.
     expect(el.querySelector('details.patch-badge')).toBeNull();

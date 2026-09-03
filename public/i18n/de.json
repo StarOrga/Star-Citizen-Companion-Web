@@ -133,7 +133,16 @@
       "terminal": {
         "label": "Archiv durchsuchen",
         "placeholder": "Archiv-Terminal — Schiff, Komponente, Waffe, Item, Hersteller, Bauplan …",
-        "clear": "Suche löschen"
+        "clear": "Suche löschen",
+        "keybinds": "Tastenbelegungen"
+      },
+      "archive": {
+        "label": "Archiv",
+        "armor": "Rüstung",
+        "weapons": "Waffen",
+        "blueprints": "Baupläne",
+        "ships": "Schiffe",
+        "components": "Komponenten"
       },
       "status": {
         "patch": "Patch {{patch}}",
@@ -241,23 +250,6 @@
         "otherShip": "Andere Konfigurationen",
         "active": "aktiv",
         "openDetail": "Zur Detailseite „{{name}}“ →"
-      },
-      "versum": {
-        "eyebrow": "Im Versum",
-        "keybinds": "Tastenbelegungen",
-        "domain": {
-          "ship": "Schiffe",
-          "item": "Items",
-          "component": "Komponenten",
-          "weapon": "Waffen",
-          "blueprint": "Baupläne",
-          "manufacturer": "Hersteller",
-          "ammunition": "Munition"
-        },
-        "upcomingRail": {
-          "title": "Auf dem Reißbrett",
-          "badgeAria": "{{count}} neue Schiffe seit deinem letzten Besuch"
-        }
       },
       "board": {
         "open": "offen",
@@ -435,7 +427,8 @@
       "includeVariants": "KI-/Template-Varianten anzeigen",
       "reset": "Filter zurücksetzen",
       "anySize": "Beliebige Größe",
-      "anyGrade": "Beliebiger Grade"
+      "anyGrade": "Beliebiger Grade",
+      "blueprintGroup": "Bauplan-Gruppe"
     },
     "weaponClass": {
       "Ship": "Schiff",
@@ -498,10 +491,18 @@
       "foldedTitle": "Die Spieldateien führen mehrere fast identische Einträge dazu, deshalb steht hier nur eine Karte: {{names}}",
       "skinsOne": "+1 Skin",
       "skinsMany": "+{{count}} Skins",
-      "skinsTitle": "Alle Lackierungen dieser Waffe stehen in einer Karte. Im Eintrag lassen sie sich einzeln auswählen: {{names}}"
+      "skinsTitle": "Alle Lackierungen dieser Waffe stehen in einer Karte. Im Eintrag lassen sie sich einzeln auswählen: {{names}}",
+      "editionsOne": "+1 Variante",
+      "editionsMany": "+{{count}} Varianten",
+      "editionsTitle": "Die Spieldateien führen diesen Rumpf mehrfach — doppelte Einträge und Sondereditionen. Sie teilen sich eine Karte; im Eintrag lassen sie sich einzeln auswählen: {{names}}"
     },
     "skinPicker": {
       "label": "Skin",
+      "standard": "Standard",
+      "count": "{{count}} Varianten"
+    },
+    "editionPicker": {
+      "label": "Variante",
       "standard": "Standard",
       "count": "{{count}} Varianten"
     },
@@ -1106,6 +1107,11 @@
     },
     "filters": {
       "category": "Kategorie"
+    },
+    "group": {
+      "all": "Alle",
+      "fps": "Zu Fuß",
+      "vehicle": "Fahrzeug"
     },
     "category": {
       "FPSArmours": "FPS-Rüstung",
@@ -2427,7 +2433,11 @@
       "threadCollapse": "Ältere Nachrichten wieder ausblenden",
       "kindEmptyTitle": "Hier ist gerade nichts",
       "kindEmptyHint": "{{count}} Thema/Themen warten unter „Alle\".",
-      "kindShowAll": "Alle zeigen"
+      "kindShowAll": "Alle zeigen",
+      "swipeHint": "Tipp: Karte nach links wischen zum Überspringen, nach rechts für die Entscheidung.",
+      "swipeSkip": "Überspringen",
+      "swipeDone": "Erledigt",
+      "swipeAccept": "Abnehmen"
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",
@@ -2516,7 +2526,34 @@
       "placeholder": "Warum wird das nicht umgesetzt? Der Nutzer liest diesen Text.",
       "confirm": "Nicht umsetzen",
       "cancel": "Abbrechen",
-      "noteRequired": "Bitte eine Begründung angeben – der Nutzer bekommt sie zu lesen."
+      "noteRequired": "Bitte eine Begründung angeben – der Nutzer bekommt sie zu lesen.",
+      "reasonsLabel": "Vorgefertigte Begründungen",
+      "reasons": {
+        "duplicate": {
+          "label": "Duplikat",
+          "text": "Das gibt es hier schon einmal – wir bearbeiten das Thema bereits an anderer Stelle. Danke, dass du es gemeldet hast."
+        },
+        "alreadyShipped": {
+          "label": "Schon umgesetzt",
+          "text": "Das ist inzwischen umgesetzt und live. Schau es dir gern in der aktuellen Version an – wenn etwas noch nicht passt, melde dich einfach neu."
+        },
+        "notReproducible": {
+          "label": "Nicht reproduzierbar",
+          "text": "Wir konnten das nicht nachstellen. Falls es wieder auftritt: gern noch einmal melden, mit den Schritten davor, dem Zeitpunkt und – wenn möglich – einem Screenshot."
+        },
+        "tooLittleInfo": {
+          "label": "Zu wenig Info",
+          "text": "Für uns ist hier zu wenig greifbar, um etwas zu ändern. Beschreib gern noch einmal, was du gemacht hast, was passiert ist und was du stattdessen erwartet hättest."
+        },
+        "offRoadmap": {
+          "label": "Passt nicht zur Richtung",
+          "text": "Das passt nicht zu der Richtung, in die wir die App entwickeln – wir setzen es bewusst nicht um. Danke trotzdem für den Vorschlag."
+        },
+        "noise": {
+          "label": "Kein verwertbares Feedback",
+          "text": "Damit können wir leider nichts anfangen – hier steckt kein Hinweis drin, an dem wir arbeiten könnten."
+        }
+      }
     },
     "review": {
       "headlineShipped": "Geshipped — bitte abnehmen",

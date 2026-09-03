@@ -15,6 +15,7 @@ import {
   computeReadiness,
 } from './codex-landing-kpi';
 import { HangarRoleLoadout } from '../hangar/hangar.types';
+import { CodexBoardFigureComponent } from './codex-board-figure.component';
 
 /**
  * One anatomical position as the AN BORD zone renders it. `weight` is the
@@ -73,7 +74,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
 @Component({
   selector: 'sc-codex-board-panel',
   standalone: true,
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslateModule, CodexBoardFigureComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
           <header class="board-head">
@@ -108,125 +109,10 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
               </div>
 
               <div class="board-fig">
-                <!-- The figure: a hard-suit, not six boxes. Every position is
-                     drawn as its own plate stack (plate + seam lines + a rim on
-                     the lit edge), so helmet/arms/torso/legs read as body parts
-                     and each maps to the position link beside it. Depth is the
-                     #pd-plate ramp per plate — no 3D engine, no dependency, one
-                     inline SVG. Groups are ordered back-to-front: pack, suit,
-                     legs, torso, arms, helmet — the overlaps ARE the volume. -->
-                <svg class="board-doll" viewBox="0 0 120 184" role="img"
-                     [attr.aria-label]="'codex.landing.paperdoll.aria' | translate">
-                  <defs>
-                    <!-- One light, upper left. Each plate gets its own bbox ramp,
-                         which is what makes a plated suit out of flat shapes.
-                         Two copies rather than currentColor: a gradient stop
-                         resolves currentColor against the <defs>, not against the
-                         part that references it, so the hue has to come from the
-                         inherited custom property instead. -->
-                    <linearGradient id="pd-plate" class="pd-idle" x1="0" y1="0" x2="0.85" y2="1">
-                      <stop offset="0%" stop-opacity="0.62" />
-                      <stop offset="55%" stop-opacity="0.26" />
-                      <stop offset="100%" stop-opacity="0.08" />
-                    </linearGradient>
-                    <linearGradient id="pd-plate-on" class="pd-tint" x1="0" y1="0" x2="0.85" y2="1">
-                      <stop offset="0%" stop-opacity="0.72" />
-                      <stop offset="55%" stop-opacity="0.32" />
-                      <stop offset="100%" stop-opacity="0.1" />
-                    </linearGradient>
-                    <linearGradient id="pd-visor" class="pd-idle" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stop-opacity="0.72" />
-                      <stop offset="100%" stop-opacity="0.16" />
-                    </linearGradient>
-                    <linearGradient id="pd-visor-on" class="pd-tint" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stop-opacity="0.85" />
-                      <stop offset="100%" stop-opacity="0.2" />
-                    </linearGradient>
-                    <linearGradient id="pd-scan" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#fff" stop-opacity="0" />
-                      <stop offset="50%" stop-color="#fff" stop-opacity="0.14" />
-                      <stop offset="100%" stop-color="#fff" stop-opacity="0" />
-                    </linearGradient>
-                    <!-- The sweep must not leave the figure's box; the box
-                         itself stays overflow:visible for the equipped glow. -->
-                    <clipPath id="pd-clip"><rect x="0" y="0" width="120" height="184" /></clipPath>
-                  </defs>
-
-                  <!-- RUCKSACK — life-support tanks behind the shoulders plus the
-                       antenna; the torso covers their inner half, which is what
-                       puts them *behind* the figure. -->
-                  <g class="pd-part" [class.on]="slotFilled('backpack')" [attr.fill]="plateFill('backpack')">
-                    <rect class="plate" x="44" y="30" width="11" height="26" rx="5" />
-                    <rect class="plate" x="65" y="30" width="11" height="26" rx="5" />
-                    <path class="seam" d="M48 38h3M48 44h3M69 38h3M69 44h3M44 33h-7v-19" />
-                    <circle class="seam-dot" cx="37" cy="12" r="2.2" />
-                  </g>
-
-                  <!-- UNTERSUIT — the soft layer the plates ride on: neck seal,
-                       waist and hips. It was invisible before; the position is
-                       equippable, so it gets a body part like the other five. -->
-                  <g class="pd-part" [class.on]="slotFilled('undersuit')" [attr.fill]="plateFill('undersuit')">
-                    <path class="plate" d="M53 36h14v10c0 2-3 4-7 4s-7-2-7-4z" />
-                    <path class="plate" d="M47 100h26v9c0 3-2 5-5 5H52c-3 0-5-2-5-5z" />
-                    <path class="plate" d="M45 112h30v10c0 4-3 7-7 7H52c-4 0-7-3-7-7z" />
-                    <path class="seam" d="M60 102v10M50 118h20" />
-                  </g>
-
-                  <!-- BEINE — thigh, knee joint, shin, boot. -->
-                  <g class="pd-part" [class.on]="slotFilled('legs')" [attr.fill]="plateFill('legs')">
-                    <rect class="plate" x="46" y="122" width="12" height="26" rx="4" />
-                    <rect class="plate" x="62" y="122" width="12" height="26" rx="4" />
-                    <circle class="joint" cx="52" cy="151" r="5" />
-                    <circle class="joint" cx="68" cy="151" r="5" />
-                    <rect class="plate" x="47" y="154" width="10" height="16" rx="3" />
-                    <rect class="plate" x="63" y="154" width="10" height="16" rx="3" />
-                    <path class="plate" d="M47 168h10v4l1 6H44z" />
-                    <path class="plate" d="M73 168H63v4l-1 6h14z" />
-                    <path class="seam" d="M52 126v18M68 126v18M48 151h8M64 151h8" />
-                    <path class="rim" d="M47 128v16M47 157v10" />
-                  </g>
-
-                  <!-- TORSO — chest plate, collar, ribs and two abdomen bands. -->
-                  <g class="pd-part" [class.on]="slotFilled('core')" [attr.fill]="plateFill('core')">
-                    <path class="plate" d="M60 48c-8 0-15 2-20 6l-2 20 3 14h38l3-14-2-20c-5-4-12-6-20-6z" />
-                    <path class="plate" d="M45 90h30l-2 5H47z" />
-                    <path class="plate" d="M47 97h26l-2 5H49z" />
-                    <path class="seam" d="M60 58v28M44 70h9M67 70h9" />
-                    <path class="seam" d="M48 55c8-3 16-3 24 0" />
-                    <path class="rim" d="M41 56l-2 18" />
-                  </g>
-
-                  <!-- ARME — pauldron, upper arm, elbow joint, forearm, glove. -->
-                  <g class="pd-part" [class.on]="slotFilled('arms')" [attr.fill]="plateFill('arms')">
-                    <path class="plate" d="M41 49l-9 3c-4 1-6 5-6 9v7l15 3z" />
-                    <path class="plate" d="M79 49l9 3c4 1 6 5 6 9v7l-15 3z" />
-                    <rect class="plate" x="28" y="70" width="12" height="24" rx="5" />
-                    <rect class="plate" x="80" y="70" width="12" height="24" rx="5" />
-                    <circle class="joint" cx="34" cy="96" r="4.5" />
-                    <circle class="joint" cx="86" cy="96" r="4.5" />
-                    <rect class="plate" x="29" y="99" width="10" height="22" rx="4" />
-                    <rect class="plate" x="81" y="99" width="10" height="22" rx="4" />
-                    <path class="plate" d="M29 121h10v6c0 3-2 5-5 5s-5-2-5-5z" />
-                    <path class="plate" d="M81 121h10v6c0 3-2 5-5 5s-5-2-5-5z" />
-                    <path class="seam" d="M34 73v18M34 102v16M86 73v18M86 102v16" />
-                    <path class="rim" d="M29 76v14M29 103v14M28 60l-1 8" />
-                  </g>
-
-                  <!-- HELM — shell, visor, crest and comms nubs. -->
-                  <g class="pd-part" [class.on]="slotFilled('helmet')" [attr.fill]="plateFill('helmet')">
-                    <path class="plate" d="M60 6c-11 0-19 7-19 17v9c0 5 3 8 8 8h22c5 0 8-3 8-8v-9c0-10-8-17-19-17z" />
-                    <path class="visor" [attr.fill]="visorFill()" d="M45 22h30v8c0 4-3 6-7 6H52c-4 0-7-2-7-6z" />
-                    <path class="seam" d="M60 7v11M45 16h-4M75 16h4M52 36h16" />
-                    <path class="rim" d="M43 30v-7c0-8 6-14 13-15" />
-                    <path class="glint" d="M50 25l5 9" />
-                  </g>
-
-                  <!-- Holo sweep: the one motion in the zone, and only where
-                       motion is welcome (prefers-reduced-motion). -->
-                  <g clip-path="url(#pd-clip)">
-                    <rect class="pd-scan" x="24" y="-14" width="72" height="14" fill="url(#pd-scan)" />
-                  </g>
-                </svg>
+                <!-- The figure. Modelled, not drawn: a real 3D hard-suit, lit
+                     and rendered to a still image. The drawn SVG suit lives on
+                     inside that component as the no-WebGL fallback. -->
+                <sc-codex-board-figure [filled]="filledSlots()" />
 
                 <!-- Plinth: the set's role, named once, as a label — not a chip. -->
                 <div class="board-plinth">
@@ -379,68 +265,6 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
       }
 
       .board-fig { display: flex; flex-direction: column; align-items: center; }
-      .board-doll { width: 108px; max-width: 100%; height: auto; overflow: visible; }
-
-      /* ── The figure ──────────────────────────────────────────────────
-         Six flat black boxes before (feedback 2026-09-03: "einfach nur
-         schwarz … sieht nicht cool aus"), now a plated hard-suit. The
-         colour vocabulary is UNCHANGED — a part group carries the color property,
-         every stroke below is currentColor, and the plate ramp picks the
-         same two hues: --idle = open, --tint = equipped. Depth comes from
-         the per-plate gradient plus a white rim on the lit edge; white is
-         a specular highlight here, never a state.
-         Deliberately empty-state-first: with nothing equipped the suit is
-         still fully drawn in --idle, which is the whole point of the
-         seams and rims — an unequipped figure reads as a body, not a
-         silhouette. */
-      .pd-idle stop { stop-color: var(--idle); }
-      .pd-tint stop { stop-color: var(--tint); }
-      /* The open figure is LIT, not greyed out — the whole complaint was a
-         figure that vanished into the panel when nothing is equipped. Same
-         --idle hue, lifted with white so the suit is legible on its own. */
-      .pd-part { color: color-mix(in srgb, var(--idle) 62%, #fff); }
-      .pd-part.on {
-        color: color-mix(in srgb, var(--tint) 88%, #fff);
-        filter: drop-shadow(0 0 6px color-mix(in srgb, var(--tint) 32%, transparent));
-      }
-      .board-doll .plate, .board-doll .joint, .board-doll .visor {
-        stroke: currentColor;
-        stroke-width: 1.25;
-        stroke-opacity: 0.88;
-        stroke-linejoin: round;
-      }
-      .pd-part.on .plate, .pd-part.on .joint, .pd-part.on .visor {
-        stroke-width: 1.7;
-        stroke-opacity: 1;
-      }
-      /* Panel lines — the "mit einem strich angezeichnet" pass: sternum,
-         ribs, limb ridges, joint bands, tank vents. */
-      .board-doll .seam {
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 0.9;
-        stroke-opacity: 0.55;
-        stroke-linecap: round;
-      }
-      .board-doll .seam-dot { fill: currentColor; fill-opacity: 0.7; stroke: none; }
-      .board-doll .rim, .board-doll .glint {
-        fill: none;
-        stroke: #fff;
-        stroke-opacity: 0.2;
-        stroke-width: 1.1;
-        stroke-linecap: round;
-      }
-      .pd-part.on .rim, .pd-part.on .glint { stroke-opacity: 0.38; }
-      /* Holo sweep: hidden unless motion is welcome, so the resting state
-         of the zone is always a still image. */
-      .pd-scan { display: none; pointer-events: none; }
-      @media (prefers-reduced-motion: no-preference) {
-        .pd-scan { display: block; animation: pd-sweep 9s linear infinite; }
-      }
-      @keyframes pd-sweep {
-        from { transform: translateY(0); }
-        to { transform: translateY(198px); }
-      }
 
       /* Plinth — the focus mark lives UNDER the figure, never behind it
          (rejected in concept iteration 4: two line drawings on top of each
@@ -586,8 +410,6 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         .board-fig { order: -1; }
       }
 
-
-
       /* Shared chrome the parent also uses (zone eyebrow, empty-state CTA).
          Duplicated rather than imported: component styles are encapsulated, and
          these are eight short rules, not a design system. */
@@ -698,25 +520,10 @@ export class CodexBoardPanelComponent {
   );
   readonly moreSetCount = computed(() => Math.max(0, this.loadouts().length - 3));
 
-  slotFilled(roleSlot: string): boolean {
-    return this.boardSlots().some((s) => s.roleSlot === roleSlot && s.filled);
-  }
-
-  /**
-   * Which plate ramp one position's parts are filled with. A gradient stop
-   * resolves `currentColor` against the `<defs>` it lives in, not against the
-   * element referencing it, so the equipped/open hue cannot ride on the group's
-   * `color` the way every stroke does — it has to pick one of two gradients.
-   */
-  plateFill(roleSlot: string): string {
-    return this.slotFilled(roleSlot) ? 'url(#pd-plate-on)' : 'url(#pd-plate)';
-  }
-
-  /** Same two-gradient trick for the visor glass. */
-  visorFill(): string {
-    return this.slotFilled('helmet') ? 'url(#pd-visor-on)' : 'url(#pd-visor)';
-  }
-
+  /** The equipped positions, as the 3D figure and its SVG fallback want them. */
+  readonly filledSlots = computed<ReadonlySet<string>>(
+    () => new Set(this.boardSlots().filter((s) => s.filled).map((s) => s.roleSlot)),
+  );
   /**
    * The equip intent, in the URL. Keeping it there rather than in component
    * state is what makes "no equip buttons during ordinary browsing" structural:

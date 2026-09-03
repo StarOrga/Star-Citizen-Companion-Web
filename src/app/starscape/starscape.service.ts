@@ -51,6 +51,30 @@ export function ringsForRole(role: string | null | undefined): readonly Starscap
 const PAGE_SIZE = 24;
 
 /**
+ * The `verse_wallpapers.variant_role` values the gallery lists.
+ *
+ * RSI publishes one artwork in several crops — a 21:9 hero, a 16:9 version, a
+ * HUD-framed banner — under separate CDN ids, so the gallery showed the same
+ * picture two or three times. fetch-verse-news now groups those rows
+ * (`variant-signature.ts`) and marks one representative per artwork; the
+ * others stay in the table, addressable by a `?image=<id>` share link, but out
+ * of the grid. See migration 20260903170000.
+ *
+ * `single` is the default for every row the grouper has not reached, so a fresh
+ * capture is visible immediately and a failed grouping hides nothing.
+ */
+export const VISIBLE_VARIANT_ROLES = ['single', 'primary'] as const;
+
+/** Postgres `undefined_column`, which PostgREST forwards verbatim. */
+const UNDEFINED_COLUMN = '42703';
+
+/** True when a query failed only because the variant columns are not deployed yet. */
+function isMissingVariantColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === UNDEFINED_COLUMN || /variant_role/.test(error.message ?? '');
+}
+
+/**
  * How many rows the one-off series probe reads. Only the `series` column is
  * selected, so this is a few kB even at the ceiling, and the gallery grows by a
  * handful of comm-link images a week — the cap exists purely so the request can
@@ -262,17 +286,37 @@ export class StarscapeService {
       expired = true;
       abort.abort();
     }, LOAD_TIMEOUT_MS);
-    try {
+    const page = (hideVariants: boolean) => {
       let q = this.sb.client
         .from('verse_wallpapers')
         .select('image_id, source_url, preview_url, title, series, article_url, published_at', {
           count: 'exact',
-        })
+        });
+      if (hideVariants) q = q.in('variant_role', VISIBLE_VARIANT_ROLES);
+      q = q
         .order('published_at', { ascending: false, nullsFirst: false })
+        // Tiebreaker, and it is not cosmetic: a comm-link contributes up to six
+        // rows sharing one `published_at` to the second, and Postgres gives no
+        // stable order inside a tie. With plain `range()` paging, that let one
+        // row come back on page 1 AND page 2 while another never appeared —
+        // a duplicate tile with no duplicate data behind it.
+        .order('image_id', { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
       const series = this.activeSeries();
       if (series) q = q.eq('series', series);
-      const { data, error, count } = await q.abortSignal(abort.signal);
+      return q.abortSignal(abort.signal);
+    };
+    try {
+      let { data, error, count } = await page(true);
+      // Deploy-order guard: the bundle reaches visitors the moment Vercel
+      // finishes, but migration 20260903170000 is applied out of band. Without
+      // this the gallery would answer 42703 ("column variant_role does not
+      // exist") and show an error page for the whole gap. Costs one retry, only
+      // ever on that specific error, and disappears once the column is there.
+      if (error && isMissingVariantColumn(error)) {
+        console.warn('starscape: variant columns not deployed yet, listing every row');
+        ({ data, error, count } = await page(false));
+      }
       if (error) throw new Error(error.message);
       const mapped = (data ?? []).map(mapWallpaperRow);
       this.wallpapers.set(reset ? mapped : [...this.wallpapers(), ...mapped]);
@@ -290,6 +334,9 @@ export class StarscapeService {
    * A single wallpaper by image id — what a shared `?image=<id>` link resolves.
    * Fetched directly instead of paging the grid until it appears: the target is
    * usually hundreds of rows deep.
+   *
+   * Deliberately NOT filtered by `variant_role`: a link shared before its row
+   * became a hidden crop variant must still open the picture someone sent.
    */
   async loadOne(imageId: string): Promise<Wallpaper | null> {
     try {
@@ -330,6 +377,10 @@ export class StarscapeService {
           .from('verse_wallpapers')
           .select('series')
           .not('series', 'is', null)
+          // Same visibility rule as the grid, or the filter could offer a series
+          // whose every row is a hidden crop variant — an option that opens an
+          // empty gallery.
+          .in('variant_role', VISIBLE_VARIANT_ROLES)
           .limit(SERIES_PROBE_LIMIT);
         if (error) throw new Error(error.message);
         const set = new Set<string>();

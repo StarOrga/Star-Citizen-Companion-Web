@@ -4,6 +4,19 @@
  * near-duplicate rows captured before the filter existed.
  *
  * ---------------------------------------------------------------------------
+ * SUPERSEDED for day-to-day use (feedback fcd956cf, 2026-09-03)
+ *
+ * Its job is done: every live row carries a correct hash and the closest pair
+ * in the table is 78 bits apart, so `--apply` now finds nothing to delete.
+ *
+ * Visual duplicates are handled by GROUPING instead — `variant-signature.ts`
+ * plus `verse_wallpapers.variant_group`/`variant_role`, maintained by
+ * fetch-verse-news itself with no manual step. That path is crop-tolerant
+ * (which a dHash is not) and it never deletes a row, so a `?image=<id>` share
+ * link keeps resolving. Reach for this script only to re-hash after a decoder
+ * change; prefer `--hash-only` and leave the deletion half alone.
+ *
+ * ---------------------------------------------------------------------------
  * What it fixes
  *
  * The gallery deduped by CDN media id only, so one studio scene republished by
