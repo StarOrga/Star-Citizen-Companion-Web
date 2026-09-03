@@ -493,6 +493,10 @@ ipcMain.handle('sc:sync:start', async (event) =>
 
 ipcMain.handle('sc:upload:job', () => uploadJob.view());
 
+// After a restart the renderer has no extraction result to resume with — hand
+// it one rebuilt from the durable job + manifest (or say why that is impossible).
+ipcMain.handle('sc:upload:rehydrate', () => uploadJob.rehydrate());
+
 ipcMain.handle('sc:upload:begin', (_e, outDir: string, nat: { channel: string; patchVersion: string; buildNumber: string }) =>
   uploadJob.begin(outDir, nat),
 );
@@ -1034,7 +1038,9 @@ app.whenReady().then(() => {
   initAutoUpdater(getSettings().updateChannel);
   // Fire-and-forget: reclaim leftover extract dirs from prior failed/uploaded
   // runs. Non-blocking so it never delays window paint; errors are swallowed.
-  void scanAndCleanupDiscovered();
+  // The extract a paused/interrupted upload still needs is exempt — the sweep
+  // once deleted a day-old paused job's dir, leaving its resume nothing to send.
+  void scanAndCleanupDiscovered(resumableUploadOutDir());
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

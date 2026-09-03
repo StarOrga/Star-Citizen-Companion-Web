@@ -136,6 +136,8 @@
       "paused": "Upload paused — your progress is saved.",
       "resumeAction": "Resume upload",
       "resumed": "Resuming upload…",
+      "resumeLost": "The upload cannot be resumed — the extracted data is no longer available.",
+      "resumeLostHint": "Please discard the upload and run the extraction again.",
       "discard": "Discard",
       "cancelled": "Upload discarded — the saved progress was removed.",
       "resumeBanner": "Found an interrupted upload ({{hint}}) — resume it?",
