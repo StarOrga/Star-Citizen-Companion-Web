@@ -12,6 +12,7 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { StarscapeService, StarscapeRing, Wallpaper, ringsForRole } from './starscape.service';
+import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
 import { RoleService } from '../auth/role.service';
 import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component';
@@ -73,6 +74,7 @@ const IMAGE_STALL_MS = 20_000;
     AppDownloadMenuComponent,
     StarscapeAppPromoComponent,
     StarscapeVoteButtonComponent,
+    ScSegmentedComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -94,28 +96,21 @@ const IMAGE_STALL_MS = 20_000;
         </div>
       </header>
 
+      <!-- Two fixed slots, not a wrapping flex row: the source filter owns the
+           left one, the Top-N switch the right one, and the switch is pinned to
+           its column whatever the left slot contains — including nothing.
+           Before this the switch moved every time the source changed. -->
       <div class="controls">
-        <!-- The series chips are a filter over the WHOLE gallery; the Top list is
-             a global ranking by definition, so the two cannot both be active. -->
+        <!-- The source filter is a filter over the WHOLE gallery; the Top list
+             is a global ranking by definition, so the two cannot both be
+             active. Same segmented control as the telemetry time range. -->
         @if (!votes.topOnly() && svc.seriesOptions().length > 0) {
-          <div class="filter-bar" role="tablist">
-            <button
-              type="button"
-              class="chip"
-              [class.active]="!svc.activeSeries()"
-              (click)="svc.setSeries('')">
-              {{ 'starscape.filterAll' | translate }}
-            </button>
-            @for (s of svc.seriesOptions(); track s) {
-              <button
-                type="button"
-                class="chip"
-                [class.active]="svc.activeSeries() === s"
-                (click)="svc.setSeries(s)">
-                {{ s }}
-              </button>
-            }
-          </div>
+          <sc-segmented
+            class="source-filter"
+            [options]="sourceOptions()"
+            [value]="svc.activeSource()"
+            [ariaLabel]="'starscape.source.label' | translate"
+            (valueChange)="setSource($event)" />
         }
         <!-- "Only the Top 7". A real switch, persisted per user: signed in it
              lives on the profile (profiles.starscape_top_only) so the Starscape
@@ -365,21 +360,36 @@ const IMAGE_STALL_MS = 20_000;
        overlay positioning (sc-app-download-menu); this only aligns the column. */
     .app-cta { display: flex; justify-content: flex-end; flex: 0 0 auto; }
 
-    /* Filter chips and the Top toggle share one row; the toggle is pushed to
-       the trailing edge and wraps onto its own line when the chips fill up. */
-    .controls { display: flex; gap: 10px 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-    .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; }
+    /* The source filter and the Top switch share one row via a two-column GRID,
+       not a wrapping flex row. A flex row re-lays itself out whenever a child
+       changes width, so switching the source used to shove the Top switch
+       around (admin feedback 1f78e57f); with fixed columns the switch is
+       anchored to the trailing edge and the left column absorbs every width
+       change on its own. minmax(0, 1fr) lets the left column shrink below its
+       content — the filter scrolls sideways inside it rather than pushing the
+       switch off screen. The row also reserves its height, so the source filter
+       appearing or disappearing cannot move the gallery below it. */
+    .controls {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px 16px; align-items: center; min-height: 48px;
+    }
+    .source-filter { grid-column: 1; grid-row: 1; justify-self: start; }
+    .controls .top-toggle { grid-column: 2; grid-row: 1; justify-self: end; }
     .top-hint { color: var(--sc-fg-2); margin: -6px 0 0; max-width: 68ch;
       font-size: max(0.76rem, var(--sc-fs-floor)); }
 
     /* A switch, not a chip: it changes WHAT the gallery is, not which slice of
        it you see, so it gets the on/off affordance rather than a filter pill. */
     .top-toggle {
-      display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto;
-      padding: 4px 14px 4px 6px; border-radius: 999px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: 48px; padding: 4px 14px 4px 8px; border-radius: 999px; cursor: pointer;
       font: inherit; font-size: max(0.76rem, var(--sc-fs-floor));
       background: var(--sc-bg-1); color: var(--sc-fg-2);
       border: 1px solid var(--sc-border);
+      /* The label is the only thing in the row whose text can change length
+         (the count is interpolated), so it is not allowed to wrap — a two-line
+         switch would change the row height under the gallery. */
+      white-space: nowrap;
     }
     .top-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .top-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
@@ -398,14 +408,6 @@ const IMAGE_STALL_MS = 20_000;
     .top-toggle.active .tt-track { border-color: var(--sc-accent); }
     .top-toggle.active .tt-knob { transform: translateX(14px); background: var(--sc-accent); }
     @media (prefers-reduced-motion: reduce) { .tt-knob { transition: none; } }
-    .chip {
-      padding: 4px 12px; border-radius: 999px; font-size: max(0.76rem, var(--sc-fs-floor));
-      background: var(--sc-bg-1); color: var(--sc-fg-2);
-      border: 1px solid var(--sc-border); cursor: pointer;
-    }
-    .chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .chip.active { color: var(--sc-accent); border-color: var(--sc-accent);
-      background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
 
     /* Masonry via CSS columns — tiles keep their natural aspect ratio. */
     .wall { columns: 4 260px; column-gap: 12px; }
@@ -607,9 +609,15 @@ const IMAGE_STALL_MS = 20_000;
       /* One full-width column on a phone: the thumbs-up sits on the artwork
          with a safe inset and is never hidden behind a hover it cannot get. */
       .tile-vote { top: 10px; right: 10px; }
-      /* The toggle spans the row on its own so its label is never truncated. */
-      .controls { gap: 10px; }
-      .top-toggle { flex: 1 1 100%; justify-content: center; }
+      /* One control per row: side by side there is no width left for either.
+         The placement is left IMPLICIT here (grid-*: auto) on purpose — pinned rows
+         would leave a 48px hole where the source filter used to be whenever the
+         Top view hides it. Both stretch, so the source filter's segments share
+         the full width as thumb-sized targets and the switch label never
+         truncates. */
+      .controls { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+      .source-filter { grid-column: auto; grid-row: auto; justify-self: stretch; display: block; }
+      .controls .top-toggle { grid-column: auto; grid-row: auto; justify-self: stretch; }
       .lb-hint { text-align: left; }
     }
 
@@ -617,7 +625,6 @@ const IMAGE_STALL_MS = 20_000;
        reveal/press animations scale interactive elements by 0.994, which measures
        a 44px control as 43px. */
     @media (pointer: coarse) {
-      .chip { min-height: 48px; display: inline-flex; align-items: center; }
       .more { min-height: 48px; }
       .tf-retry { min-height: 48px; }
       .err .sc-btn, .stalled .sc-btn { min-height: 48px; }
@@ -703,6 +710,19 @@ export class StarscapeComponent implements OnInit {
     this.votes.topOnly() ? this.votes.topWallpapers() : this.svc.wallpapers(),
   );
 
+  /**
+   * The source filter's segments. The service owns the named states (`all`,
+   * `series:<name>`); this only paints them — the series name is data, so it
+   * ships as a ready-made label, "All" is ours and gets translated.
+   */
+  readonly sourceOptions = computed<readonly ScSegmentOption[]>(() =>
+    this.svc.sourceOptions().map((o) => ({
+      value: o.id,
+      label: o.label ?? undefined,
+      labelKey: o.labelKey ?? undefined,
+    })),
+  );
+
   readonly active = signal<Wallpaper | null>(null);
   /** Translation key of the clipboard-fallback confirmation, or null. */
   readonly shareHint = signal<string | null>(null);
@@ -774,6 +794,11 @@ export class StarscapeComponent implements OnInit {
       await this.votes.loadTop();
     }
     await this.openDeepLink();
+  }
+
+  /** Switch the gallery's source (see `StarscapeService.sourceOptions`). */
+  setSource(id: string): void {
+    void this.svc.setSource(id);
   }
 
   /** Flip "only the Top N" — persisted per user, and it refetches the ranking. */

@@ -2612,6 +2612,9 @@
     "title": "Starscape",
     "subtitle": "High-resolution artwork from RSI Comm-Links, collected from the news crawl. Every image links straight to the original on the RSI CDN — click a tile for full resolution and download.",
     "filterAll": "All",
+    "source": {
+      "label": "Image source"
+    },
     "vote": {
       "add": "Give this a thumbs up",
       "remove": "Take back your thumbs up",

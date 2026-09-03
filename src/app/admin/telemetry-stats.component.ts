@@ -3,6 +3,7 @@ import { DecimalPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
+import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { useAutoRefresh } from '../core/auto-refresh';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
@@ -71,7 +72,7 @@ const WINDOWS = [7, 30, 90] as const;
 @Component({
   selector: 'sc-telemetry-stats',
   standalone: true,
-  imports: [ScDatePipe, DecimalPipe, TranslateModule, RouterLink],
+  imports: [ScDatePipe, DecimalPipe, TranslateModule, RouterLink, ScSegmentedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -81,20 +82,13 @@ const WINDOWS = [7, 30, 90] as const;
           <p class="hint">{{ 'telemetry.subtitle' | translate }}</p>
         </div>
         <!-- Real anchors: the time range is part of the URL, so an admin can
-             bookmark "last 90 days" and middle-click it into a new tab. -->
-        <nav class="seg" [attr.aria-label]="'telemetry.window.label' | translate">
-          @for (w of windows; track w) {
-            <a
-              class="seg-btn"
-              [class.active]="windowDays() === w"
-              [attr.aria-current]="windowDays() === w ? 'true' : null"
-              [attr.title]="'telemetry.window.' + w | translate"
-              [routerLink]="[]"
-              [queryParams]="{ days: w }"
-              queryParamsHandling="merge"
-            >{{ 'telemetry.window.short.' + w | translate }}</a>
-          }
-        </nav>
+             bookmark "last 90 days" and middle-click it into a new tab. The
+             shared control keeps that link mode; see sc-segmented. -->
+        <sc-segmented
+          class="window-seg"
+          [options]="windowOptions"
+          [value]="windowValue()"
+          [ariaLabel]="'telemetry.window.label' | translate" />
       </header>
 
       @if (errorMsg()) {
@@ -328,16 +322,6 @@ const WINDOWS = [7, 30, 90] as const;
   styles: [`
     .page { padding: 1rem; max-width: 1100px; margin: 0 auto; }
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; }
-    .seg { display: inline-flex; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; overflow: hidden; }
-    .seg-btn {
-      background: transparent; color: var(--sc-text-dim, #8b97a8); text-decoration: none;
-      display: inline-flex; align-items: center; justify-content: center;
-      min-height: 48px; padding: 0 1rem; font-size: 0.82rem; white-space: nowrap;
-      border-right: 1px solid rgba(255,255,255,.12);
-    }
-    .seg-btn:last-child { border-right: 0; }
-    .seg-btn:hover { color: var(--sc-text, #e6edf3); background: rgba(255,255,255,.04); }
-    .seg-btn.active { background: var(--sc-accent, #52c1e6); color: #041016; font-weight: 600; }
     .hint { color: var(--sc-text-dim, #8b97a8); font-size: 0.85rem; }
     .err { background: rgba(248,81,73,.12); color: #f85149; padding: 0.6rem 0.9rem; border-radius: 8px; margin-bottom: 1rem; }
     .empty { text-align: center; color: var(--sc-text-dim, #8b97a8); }
@@ -405,9 +389,8 @@ const WINDOWS = [7, 30, 90] as const;
     @media (max-width: 560px) {
       .page { padding: 0; }
       .head { flex-direction: column; align-items: stretch; }
-      .seg { width: 100%; }
-      /* Equal thirds so all three ranges stay a comfortable thumb target. */
-      .seg-btn { flex: 1 1 0; padding: 0 0.5rem; }
+      /* Full width so all three ranges stay a comfortable thumb target. */
+      .window-seg { display: block; }
       .products { grid-template-columns: 1fr; }
       .stat .num { font-size: 1.45rem; }
       .bar-row { grid-template-columns: 90px 1fr 40px; gap: 0.4rem; }
@@ -427,6 +410,16 @@ export class TelemetryStatsComponent {
   private readonly route = inject(ActivatedRoute);
 
   readonly windows = WINDOWS;
+  /**
+   * The time range as segments. Links, not buttons: the range lives in the URL
+   * (see `windowDays`), so each one has to be openable in a new tab.
+   */
+  readonly windowOptions: readonly ScSegmentOption[] = WINDOWS.map((w) => ({
+    value: String(w),
+    labelKey: `telemetry.window.short.${w}`,
+    titleKey: `telemetry.window.${w}`,
+    link: { commands: [], queryParams: { days: w }, queryParamsHandling: 'merge' as const },
+  }));
 
   readonly stats = signal<TelemetryStats | null>(null);
   readonly busy = signal(false);
@@ -445,6 +438,8 @@ export class TelemetryStatsComponent {
     const raw = Number(this.params().get('days'));
     return (WINDOWS as readonly number[]).includes(raw) ? raw : 30;
   });
+  /** The active range as the segmented control's string id. */
+  readonly windowValue = computed(() => String(this.windowDays()));
 
   /** Products the server has actually seen — the accepted filter values. */
   private readonly reportedProducts = computed(() =>
