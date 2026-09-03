@@ -137,6 +137,10 @@
         "empty": "Keine Treffer für „{{term}}“.",
         "upcomingBadge": "Noch nicht im Spiel"
       },
+      "surface": {
+        "expandBoard": "An Bord aufklappen",
+        "expandHangar": "Hangar aufklappen"
+      },
       "me": {
         "eyebrow": "An Bord",
         "title": "Ich",
@@ -162,7 +166,7 @@
         "sort": {
           "manufacturer": "Hersteller",
           "role": "Einsatzzweck",
-          "recent": "Zuletzt geöffnet"
+          "recent": "Zuletzt bearbeitet"
         },
         "emptyLead": "Der Hangar steht bereit — noch ohne Hülle darin.",
         "emptyArt": "Leere Hangarbucht mit Andockring"
