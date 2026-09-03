@@ -3,6 +3,7 @@ import {
   diffUpcoming,
   matchesUpcomingQuery,
   normalizeShipName,
+  searchUpcoming,
   snapshotOf,
   thumbnailCandidates,
 } from './upcoming-ships.service';
@@ -154,5 +155,77 @@ describe('upcoming ships — game-name normalization', () => {
 
   it('is stable for names that are already normalized', () => {
     expect(normalizeShipName('rsiursa')).toBe('rsiursa');
+  });
+});
+
+describe('upcoming ships — ranked search (Codex cross-entity search)', () => {
+  // The hull from admin feedback 7b91c5ae: announced, no game data, so the
+  // Codex search used to answer nothing at all for it.
+  const ARRASTRA = ship({
+    id: 'drake-arrastra',
+    name: 'Arrastra',
+    manufacturer: 'Drake Interplanetary',
+    manufacturerCode: 'DRAK',
+    type: 'industrial',
+    focus: 'Mining',
+  });
+  const CORSAIR = ship({
+    id: 'drake-corsair',
+    name: 'Corsair',
+    manufacturer: 'Drake Interplanetary',
+    manufacturerCode: 'DRAK',
+  });
+  // Named so it sorts BEFORE "Corsair" while matching the query "corsair" only
+  // through its role — the fixture that proves score beats the alpha tiebreak.
+  const BALLISTA = ship({
+    id: 'drake-ballista',
+    name: 'Ballista',
+    manufacturer: 'Drake Interplanetary',
+    manufacturerCode: 'DRAK',
+    focus: 'Corsair escort',
+  });
+  const FLEET = [BALLISTA, CORSAIR, ARRASTRA];
+
+  it('finds the ship the user actually asked for', () => {
+    expect(searchUpcoming(FLEET, 'Arrastra').map((s) => s.id)).toEqual(['drake-arrastra']);
+  });
+
+  it('is case-insensitive and ignores surrounding whitespace', () => {
+    expect(searchUpcoming(FLEET, '  aRRaStRa ').map((s) => s.id)).toEqual(['drake-arrastra']);
+  });
+
+  it('ranks the ship NAMED like the query above one that merely mentions it', () => {
+    expect(searchUpcoming(FLEET, 'Corsair').map((s) => s.id)).toEqual([
+      'drake-corsair',
+      'drake-ballista',
+    ]);
+  });
+
+  it('keeps the name match when the limit truncates the weaker matches', () => {
+    // "Ballista" sorts first alphabetically, so only the score keeps Corsair.
+    expect(searchUpcoming(FLEET, 'Corsair', 1).map((s) => s.id)).toEqual(['drake-corsair']);
+  });
+
+  it('narrows on every whitespace token (AND), like the list filter', () => {
+    expect(searchUpcoming(FLEET, 'drake mining').map((s) => s.id)).toEqual(['drake-arrastra']);
+    expect(searchUpcoming(FLEET, 'drake nonesuch')).toEqual([]);
+  });
+
+  it('honours the limit and orders equal scores by name', () => {
+    // Manufacturer-only matches all round: pure alphabetical, capped at two.
+    expect(searchUpcoming(FLEET, 'Drake Interplanetary', 2).map((s) => s.name)).toEqual([
+      'Arrastra',
+      'Ballista',
+    ]);
+  });
+
+  it('returns nothing for an empty query — a blank box must not dump the matrix', () => {
+    expect(searchUpcoming(FLEET, '')).toEqual([]);
+    expect(searchUpcoming(FLEET, '   ')).toEqual([]);
+    expect(searchUpcoming(FLEET, 'Arrastra', 0)).toEqual([]);
+  });
+
+  it('survives a feed that is empty, still loading or errored', () => {
+    expect(searchUpcoming([], 'Arrastra')).toEqual([]);
   });
 });

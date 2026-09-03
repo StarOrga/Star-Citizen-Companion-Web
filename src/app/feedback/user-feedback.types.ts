@@ -55,6 +55,14 @@ export interface AuthorFeedbackRow {
   /** The admin's explanation, set when `author_status === 'declined'`. */
   decision_note: string | null;
   author_status: AuthorFeedbackStatus;
+  /**
+   * The area tag the author's own composer put on the topic (admin feedback
+   * 835fec58). Projected into `my_feedback` because it is the author's own
+   * statement about their topic — unlike every other admin-side column, showing
+   * it back to them reveals nothing they did not write. `null` on topics filed
+   * before the tag existed; optional so fixture rows keep compiling.
+   */
+  area?: string | null;
 }
 
 /**

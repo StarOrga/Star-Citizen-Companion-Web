@@ -182,6 +182,21 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
         </div>
       </div>
 
+      <!-- The catalog only knows what the extractor found in the build, so a
+           search for a CONCEPT hull ("Arrastra", admin feedback 7b91c5ae) came
+           up empty even though the app holds the ship in the RSI announcement
+           feed. Name the match and hand the reader a real link to it. -->
+      @if (upcomingMatchNames(); as names) {
+        <p class="upcoming-hint">
+          <span class="soon-badge">{{ 'codex.upcoming.badge' | translate }}</span>
+          <span>{{ 'codex.search.upcomingHint' | translate: { names } }}</span>
+          <a class="upcoming-link" [routerLink]="['/codex', 'upcoming']"
+             [queryParams]="{ q: searchInput() }">
+            {{ 'codex.search.upcomingLink' | translate }}
+          </a>
+        </p>
+      }
+
       <!-- Results -->
       @if (error(); as err) {
         <div class="sc-card err">
@@ -295,6 +310,24 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
     .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 60ch; }
 
     .upcoming-lede { margin: -4px 0 0; color: var(--sc-fg-2); font-size: 0.86rem; max-width: 72ch; }
+
+    /* Amber = announced, not in the build. Never the hot red (elevated access). */
+    .upcoming-hint {
+      --soon: #f0b44a;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      margin: 0; padding: 9px 12px; border-radius: 8px;
+      border: 1px solid color-mix(in srgb, var(--soon) 34%, var(--sc-border));
+      background: color-mix(in srgb, var(--soon) 9%, var(--sc-bg-1));
+      color: var(--sc-fg-1); font-size: max(0.82rem, var(--sc-fs-floor));
+    }
+    .upcoming-hint .soon-badge {
+      padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;
+      font-size: max(0.62rem, var(--sc-fs-floor)); color: var(--soon);
+      border: 1px solid color-mix(in srgb, var(--soon) 40%, transparent);
+      background: color-mix(in srgb, var(--soon) 14%, transparent);
+    }
+    .upcoming-hint .upcoming-link { margin-left: auto; color: var(--soon); font-weight: 600; }
+    .upcoming-hint .upcoming-link:hover { text-decoration: underline; }
 
     .kind-bar { display: flex; flex-wrap: wrap; gap: 6px; }
     .kind {
@@ -604,6 +637,7 @@ export class CodexListComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.applyRouteCategory();
+    this.applyRouteQuery();
     // RSI artwork for ship cards + the upcoming badge count. Advisory and
     // silent: a failure just leaves the datamined renders as they were.
     void this.rsi.ensureLoaded();
@@ -623,6 +657,25 @@ export class CodexListComponent implements OnInit {
     const wanted = (snap.data['category'] ?? snap.queryParamMap.get('kind') ?? '') as string;
     const match = this.categories.find((c) => c === wanted);
     if (match) this.setCategory(match);
+  }
+
+  /**
+   * Seed the search box from `?q=`, so a link can point at ONE entry instead of
+   * dropping the reader into an unfiltered list. Routed to whichever search box
+   * is actually on screen: the upcoming grid owns its own filter (on the shared
+   * feed service), every other category uses this component's box.
+   *
+   * Must run AFTER `applyRouteCategory` — it decides which box that is.
+   */
+  private applyRouteQuery(): void {
+    const q = (this.route.snapshot.queryParamMap.get('q') ?? '').trim();
+    if (!q) return;
+    if (this.isUpcoming()) {
+      this.rsi.query.set(q);
+      return;
+    }
+    this.searchInput.set(q);
+    this.searchTerm.set(q);
   }
 
   /** Facet source for the blueprint kind. Advisory — a failure just hides it. */
@@ -655,6 +708,24 @@ export class CodexListComponent implements OnInit {
     const v = seeded ?? total;
     return typeof v === 'number' ? v : null;
   }
+
+  /**
+   * Announced ships (RSI feed) matching the current SHIP search, capped at
+   * three names. `null` — not an empty array — when there is nothing to say, so
+   * the template's `@if (...; as names)` collapses the whole hint away.
+   *
+   * Ships only: the feed is a ship matrix, so offering it while the reader
+   * browses weapons would be noise. Reads the loaded feed without triggering a
+   * fetch — `ngOnInit` already asked for it, and a feed that never arrives (or
+   * errored) simply yields no hint.
+   */
+  readonly upcomingMatchNames = computed<string | null>(() => {
+    if (this.category() !== 'ship') return null;
+    const term = this.searchTerm().trim();
+    if (!term) return null;
+    const hits = this.rsi.searchLoadedShips(term, 3);
+    return hits.length > 0 ? hits.map((s) => s.name).join(', ') : null;
+  });
 
   /** Badge count for a strip entry; the upcoming one comes from the RSI feed. */
   categoryCount(k: CodexCategory): number | null {

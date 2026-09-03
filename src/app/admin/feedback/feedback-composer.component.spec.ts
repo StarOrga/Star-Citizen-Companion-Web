@@ -380,7 +380,7 @@ describe('FeedbackComposerComponent — account-bound drafts', () => {
     expect(cmp.draft()).toBe('second topic');
   });
 
-  it('reports the store state next to the toolbar', async () => {
+  it('reports the store state in the action row', async () => {
     await mount();
     expect(cmp.draftLabel()).toBeNull();
 

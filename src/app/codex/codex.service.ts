@@ -2,8 +2,10 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 import { isCatalogStale, comparePatchVersion } from './codex-format';
-import { PolySearchHit, rankPolyHits, toPolyHit } from './codex-poly-search';
+import { PolySearchHit, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-poly-search';
+import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
+import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
 import {
   CODEX_ENTITY_TABLES,
   BlueprintIngredientPayload,
@@ -165,6 +167,11 @@ export interface PortQuery {
 const PAGE_SIZE = 60;
 const SEARCH_LIMIT = 60;
 
+// How far back the patch switch can reach. ingest-catalog never prunes builds,
+// so this is a window, not the whole history: the switch pages through it five
+// at a time and nobody scrolls past a couple of patches in practice.
+const PATCH_TIMELINE_LIMIT = 40;
+
 // Facet scan for blueprint categories: PostgREST caps a response at 1000 rows,
 // so the column is paged. The cap bounds a pathological build (10k blueprints)
 // instead of looping forever.
@@ -229,8 +236,24 @@ const LIST_SELECT: Record<CodexKind, string> = {
 @Injectable({ providedIn: 'root' })
 export class CodexService {
   private readonly sb = inject(SupabaseClientProvider);
+  /**
+   * The RSI announcement feed, read-only from here. Injected purely so
+   * {@link searchAll} can cover ships that exist on a concept page but not in
+   * any build; it holds no reference back to this service, so there is no cycle.
+   */
+  private readonly upcoming = inject(UpcomingShipsService);
 
+  /**
+   * The build every codex query reads from — the LIVE one by default, or the
+   * older patch the reader picked in the landing's patch switch (463872dd).
+   */
   readonly build = signal<CodexBuild | null>(null);
+  /**
+   * The `is_current` LIVE build, kept separately from {@link build} so that
+   * viewing an older patch never rewrites what "live" means (the staleness nag
+   * and the patch switch both need the real one).
+   */
+  readonly liveBuild = signal<CodexBuild | null>(null);
   readonly buildLoading = signal(false);
   readonly buildError = signal<string | null>(null);
 
@@ -247,7 +270,27 @@ export class CodexService {
    * the provenance-banner "new server version" hint. Fails closed (never nags
    * when either version is unknown).
    */
-  readonly stale = computed(() => isCatalogStale(this.latestLivePatch(), this.build()?.patchVersion));
+  readonly stale = computed(() =>
+    isCatalogStale(this.latestLivePatch(), (this.liveBuild() ?? this.build())?.patchVersion),
+  );
+
+  /**
+   * True while the reader is looking at an older patch than the live one. Not a
+   * problem state — just a fact the UI has to say out loud, because every count
+   * on the page then describes that patch instead of the current one.
+   */
+  readonly viewingPastPatch = computed(() => {
+    const live = this.liveBuild();
+    const active = this.build();
+    return !!live && !!active && live.id !== active.id;
+  });
+
+  /**
+   * Selectable patch history for the landing's patch switch. Empty until the
+   * switch is opened for the first time — a resting control must cost the page
+   * nothing.
+   */
+  readonly patchTimeline = signal<readonly PatchTimelineEntry[]>([]);
 
   // Compare tray: pinned `${kind}:${className}` keys (max 4).
   private readonly _compare = signal<string[]>([]);
@@ -262,6 +305,7 @@ export class CodexService {
   readonly compareRejectedKind = this._compareRejected.asReadonly();
 
   private buildPromise: Promise<CodexBuild | null> | null = null;
+  private timelinePromise: Promise<readonly PatchTimelineEntry[]> | null = null;
 
   /** Loads (and caches) the current LIVE build. Idempotent across callers. */
   async loadCurrentBuild(): Promise<CodexBuild | null> {
@@ -290,6 +334,7 @@ export class CodexService {
       }
       const mapped = mapBuild(data);
       this.build.set(mapped);
+      this.liveBuild.set(mapped);
       // Fire-and-forget: freshness check must never block or fail the build load.
       void this.loadLatestLivePatch();
       return mapped;
@@ -308,20 +353,74 @@ export class CodexService {
    * simply means "no staleness nag" rather than surfacing an error.
    */
   private async loadLatestLivePatch(): Promise<void> {
+    const uploaded = await this.uploadedLivePatches();
+    const newest = uploaded.reduce((max, p) => (comparePatchVersion(p, max) > 0 ? p : max), '');
+    if (newest) this.latestLivePatch.set(newest);
+  }
+
+  /**
+   * Every LIVE patch anybody uploaded a bundle for, from the viewer-safe
+   * public-stats view (one row per patch, so this stays a tiny request).
+   * Best-effort: any failure yields an empty list.
+   */
+  private async uploadedLivePatches(): Promise<string[]> {
     try {
       const { data, error } = await this.sb.client
         .from('p4k_bundles_public_stats')
         .select('patch_version')
         .eq('channel', 'live');
-      if (error || !data?.length) return;
-      const newest = data
+      if (error || !data?.length) return [];
+      return data
         .map((r) => r.patch_version as string | null)
-        .filter((p): p is string => !!p)
-        .reduce((max, p) => (comparePatchVersion(p, max) > 0 ? p : max), '');
-      if (newest) this.latestLivePatch.set(newest);
+        .filter((p): p is string => !!p);
     } catch {
       /* freshness is advisory — never surface an error for it */
+      return [];
     }
+  }
+
+  /**
+   * Patch history for the landing's patch switch: the recent LIVE catalog
+   * builds merged with every uploaded patch, so the list can mark which patches
+   * we actually hold data for (admin feedback 463872dd). Loaded once, on the
+   * first open of the switch — never on page load. No new backend surface: both
+   * sources are tables the app already reads.
+   */
+  async loadPatchTimeline(): Promise<readonly PatchTimelineEntry[]> {
+    if (this.timelinePromise) return this.timelinePromise;
+    this.timelinePromise = this.fetchPatchTimeline();
+    return this.timelinePromise;
+  }
+
+  private async fetchPatchTimeline(): Promise<readonly PatchTimelineEntry[]> {
+    const [builds, uploaded] = await Promise.all([
+      this.recentLiveBuilds(PATCH_TIMELINE_LIMIT),
+      this.uploadedLivePatches(),
+    ]);
+    const live = this.liveBuild() ?? this.build();
+    const entries = buildPatchTimeline(builds, uploaded, live?.patchVersion ?? null);
+    this.patchTimeline.set(entries);
+    return entries;
+  }
+
+  /**
+   * Switch every following codex query to another uploaded build — `null` puts
+   * the reader back on the live patch. Session-scoped on purpose: a reload
+   * lands on live again, so nobody can get permanently stranded in an old
+   * patch. Callers reload their own view afterwards; already-rendered data is
+   * not retro-actively rewritten.
+   *
+   * @returns true when the active build actually changed.
+   */
+  selectBuild(build: CodexBuild | null): boolean {
+    const target = build ?? this.liveBuild();
+    if (!target || target.id === this.build()?.id) return false;
+    this.build.set(target);
+    // Keep the memoised loader in sync — `loadCurrentBuild` short-circuits on
+    // the signal, but a caller holding the old promise must not resurrect it.
+    this.buildPromise = Promise.resolve(target);
+    this.blueprintCategoryCache = null;
+    return true;
   }
 
   /**
@@ -607,20 +706,34 @@ export class CodexService {
    * cross-entity hits, and rank them deterministically (see codex-poly-search).
    * Zero model calls — server-ranked from our own data. A kind that errors is
    * skipped rather than failing the whole search.
+   *
+   * The build is not the whole truth about ships, so the RSI announcement feed
+   * is searched as an eighth source (admin feedback 7b91c5ae: "Arrastra" is a
+   * concept hull, present in the upcoming feed and in no `codex_ships` row, and
+   * the terminal answered with nothing at all). Those hits carry the `upcoming`
+   * pseudo-kind and are tinted + badged apart from anything you can fly today.
    */
   async searchAll(query: string, perKindLimit = 6): Promise<PolySearchHit[]> {
     const q = query.trim();
     if (!q) return [];
-    const results = await Promise.all(
-      CODEX_KINDS.map(async (kind) => {
+    const sources: Promise<PolySearchHit[]>[] = CODEX_KINDS.map(async (kind) => {
+      try {
+        const res = await this.listByKind(kind, { search: q, limit: perKindLimit });
+        return res.rows.map((r) => toPolyHit(kind, r));
+      } catch {
+        return [] as PolySearchHit[];
+      }
+    });
+    sources.push(
+      (async () => {
         try {
-          const res = await this.listByKind(kind, { search: q, limit: perKindLimit });
-          return res.rows.map((r) => toPolyHit(kind, r));
+          return (await this.upcoming.searchShips(q, perKindLimit)).map(toUpcomingHit);
         } catch {
           return [] as PolySearchHit[];
         }
-      }),
+      })(),
     );
+    const results = await Promise.all(sources);
     return rankPolyHits(q, results.flat());
   }
 

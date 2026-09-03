@@ -164,6 +164,43 @@ function normalize(value: string): string {
 }
 
 /**
+ * How well a ship's NAME answers the query: 3 exact, 2 prefix, 1 substring,
+ * 0 when only the manufacturer/role/status matched. Name matches must outrank
+ * "some Drake ship" so a limited result set keeps the ship actually asked for.
+ */
+function nameScore(name: string, query: string): number {
+  const n = normalize(name);
+  if (n === query) return 3;
+  if (n.startsWith(query)) return 2;
+  if (n.includes(query)) return 1;
+  return 0;
+}
+
+/**
+ * Best `limit` announced ships for a free-text query, name matches first.
+ *
+ * Pure so the Codex's cross-entity search can be unit-tested without the feed:
+ * it reuses `matchesUpcomingQuery` for the AND-token filter and only adds a
+ * deterministic ranking on top. An empty query matches nothing here (unlike the
+ * list filter, where empty means "show everything") — a search box with no
+ * input must not dump the whole matrix into the Archive Terminal.
+ */
+export function searchUpcoming(
+  ships: readonly UpcomingShip[],
+  query: string,
+  limit = 6,
+): UpcomingShip[] {
+  const q = normalize(query);
+  if (!q || limit <= 0) return [];
+  return ships
+    .filter((s) => matchesUpcomingQuery(s, query))
+    .map((s) => ({ ship: s, score: nameScore(s.name, q) }))
+    .sort((a, b) => b.score - a.score || a.ship.name.localeCompare(b.ship.name))
+    .slice(0, limit)
+    .map((e) => e.ship);
+}
+
+/**
  * Owns the whole `rsi-upcoming-ships` feed, which carries two products of the
  * same RSI ship-matrix scrape:
  *
@@ -241,6 +278,29 @@ export class UpcomingShipsService {
       });
     }
     return this.inFlight;
+  }
+
+  /**
+   * Announced ships matching a query, loading the feed first if needed.
+   *
+   * Deliberately total: a feed that is empty, still loading or outright failed
+   * yields an empty list, never a rejection. It backs the Codex's cross-entity
+   * search, and a dead RSI proxy must degrade to "no announced ships found"
+   * rather than taking the whole Archive Terminal down with it.
+   */
+  async searchShips(query: string, limit = 6): Promise<UpcomingShip[]> {
+    if (!query.trim()) return [];
+    try {
+      await this.ensureLoaded();
+    } catch {
+      return [];
+    }
+    return searchUpcoming(this.feed()?.ships ?? [], query, limit);
+  }
+
+  /** Synchronous variant over the already-loaded feed; never triggers a fetch. */
+  searchLoadedShips(query: string, limit = 6): UpcomingShip[] {
+    return searchUpcoming(this.feed()?.ships ?? [], query, limit);
   }
 
   /**

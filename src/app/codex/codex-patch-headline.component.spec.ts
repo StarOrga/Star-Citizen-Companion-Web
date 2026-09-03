@@ -1,0 +1,246 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { computed, signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
+import { CodexPatchHeadlineComponent } from './codex-patch-headline.component';
+import { CodexService } from './codex.service';
+import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
+import { CodexBuild } from './codex.types';
+import { NewsService, VerseFeed } from '../news/news.service';
+
+function build(patch: string, over: Partial<CodexBuild> = {}): CodexBuild {
+  return {
+    id: `build-${patch}`,
+    channel: 'LIVE',
+    patchVersion: patch,
+    buildNumber: 'desktop',
+    schemaVersion: 1,
+    qualityScore: null,
+    toolVersion: null,
+    entityCounts: { ships: 300, items: 700 },
+    isCurrent: false,
+    extractedAt: '2026-08-02T20:29:00Z',
+    ...over,
+  };
+}
+
+function feed(overall: 'operational' | 'major_outage', pu?: 'maintenance'): VerseFeed {
+  return {
+    status: {
+      overall,
+      label: overall,
+      components: pu ? [{ name: 'Persistent Universe', status: pu }] : [],
+      updatedAt: '2026-09-03T10:00:00Z',
+    },
+    news: [],
+    fetchedAt: '2026-09-03T10:00:00Z',
+  };
+}
+
+describe('CodexPatchHeadlineComponent', () => {
+  let selectSpy: jasmine.Spy;
+  let timeline: ReturnType<typeof signal<readonly PatchTimelineEntry[]>>;
+  let active: ReturnType<typeof signal<CodexBuild | null>>;
+
+  async function setup(opts: {
+    builds?: CodexBuild[];
+    uploaded?: string[];
+    live?: string;
+    verse?: VerseFeed | null;
+    stale?: boolean;
+  } = {}): Promise<ComponentFixture<CodexPatchHeadlineComponent>> {
+    const builds = opts.builds ?? [build('4.2'), build('4.1')];
+    const livePatch = opts.live ?? builds[0]?.patchVersion ?? null;
+    const liveBuild = builds.find((b) => b.patchVersion === livePatch) ?? null;
+
+    active = signal<CodexBuild | null>(liveBuild);
+    timeline = signal<readonly PatchTimelineEntry[]>([]);
+    const entries = buildPatchTimeline(builds, opts.uploaded ?? [], livePatch);
+
+    selectSpy = jasmine.createSpy('selectBuild').and.callFake((b: CodexBuild | null) => {
+      const target = b ?? liveBuild;
+      if (!target || target.id === active()?.id) return false;
+      active.set(target);
+      return true;
+    });
+
+    const codex: Partial<CodexService> = {
+      build: active as never,
+      liveBuild: signal(liveBuild) as never,
+      stale: signal(opts.stale ?? false) as never,
+      viewingPastPatch: computed(() => !!liveBuild && active()?.id !== liveBuild.id) as never,
+      patchTimeline: timeline as never,
+      loadPatchTimeline: jasmine
+        .createSpy('loadPatchTimeline')
+        .and.callFake(async () => {
+          timeline.set(entries);
+          return entries;
+        }),
+      selectBuild: selectSpy as never,
+    };
+
+    const news: Partial<NewsService> = {
+      feed: signal<VerseFeed | null>(opts.verse === undefined ? feed('operational') : opts.verse) as never,
+      refresh: jasmine.createSpy('refresh').and.resolveTo(undefined),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [CodexPatchHeadlineComponent],
+      providers: [
+        provideRouter([]),
+        provideTranslateService({ fallbackLang: 'en' }),
+        { provide: CodexService, useValue: codex },
+        { provide: NewsService, useValue: news },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(CodexPatchHeadlineComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  async function openSwitch(fixture: ComponentFixture<CodexPatchHeadlineComponent>): Promise<void> {
+    const el: HTMLElement = fixture.nativeElement;
+    el.querySelector<HTMLButtonElement>('.patch-trigger')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  it('carries the playable state and the live patch in ONE headline', async () => {
+    const fixture = await setup();
+    const el: HTMLElement = fixture.nativeElement;
+
+    // The playability word comes from the SAME feed the header chip reads.
+    expect(el.querySelector('.status-online')?.textContent).toContain('news.status.operational');
+    expect(el.querySelector('.live-dot')?.classList).toContain('lvl-operational');
+    // …and the patch rides in the same pill, as the switch trigger.
+    expect(el.querySelector('.status-pill .status-patch')).not.toBeNull();
+    expect(el.querySelector('.patch-trigger')?.getAttribute('aria-expanded')).toBe('false');
+    // Resting control: nothing loaded, nothing shown.
+    expect(el.querySelector('.patch-pop')).toBeNull();
+    expect(TestBed.inject(CodexService).loadPatchTimeline).not.toHaveBeenCalled();
+  });
+
+  it('escalates the headline to the Persistent-Universe state, like the header chip', async () => {
+    const fixture = await setup({ verse: feed('operational', 'maintenance') });
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(el.querySelector('.status-online')?.textContent).toContain('news.status.maintenance');
+    expect(el.querySelector('.live-dot')?.classList).toContain('lvl-maintenance');
+  });
+
+  it('says "unknown" rather than guessing while the verse feed has not arrived', async () => {
+    const fixture = await setup({ verse: null });
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(el.querySelector('.status-online')?.textContent).toContain('news.status.unknown');
+    expect(TestBed.inject(NewsService).refresh).toHaveBeenCalled();
+  });
+
+  it('loads the patch list on the FIRST open and shows five rows at a time', async () => {
+    const patches = ['4.9', '4.8', '4.7', '4.6', '4.5', '4.4', '4.3'];
+    const fixture = await setup({ builds: patches.map((p) => build(p)) });
+    await openSwitch(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(TestBed.inject(CodexService).loadPatchTimeline).toHaveBeenCalled();
+    let rows = Array.from(el.querySelectorAll<HTMLElement>('.patch-row .row-ver'));
+    expect(rows.map((r) => r.textContent?.trim())).toEqual(['4.9', '4.8', '4.7', '4.6', '4.5']);
+    expect(el.querySelector('.patch-more')).not.toBeNull();
+
+    // "Load older" APPENDS the next page instead of replacing the list.
+    el.querySelector<HTMLButtonElement>('.patch-more')!.click();
+    fixture.detectChanges();
+    rows = Array.from(el.querySelectorAll<HTMLElement>('.patch-row .row-ver'));
+    expect(rows.map((r) => r.textContent?.trim())).toEqual(patches);
+    // Nothing left to reveal → the pager is gone.
+    expect(el.querySelector('.patch-more')).toBeNull();
+  });
+
+  it('marks which patches have codex data and makes the data-less ones unselectable', async () => {
+    const fixture = await setup({
+      builds: [build('4.2'), build('4.1', { entityCounts: {} })],
+      uploaded: ['4.3'],
+      live: '4.2',
+    });
+    await openSwitch(fixture);
+    const rows = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.patch-row'),
+    );
+
+    const byVersion = new Map(rows.map((r) => [r.querySelector('.row-ver')!.textContent!.trim(), r]));
+    // Uploaded but never ingested: listed, marked, and inert.
+    const missing = byVersion.get('4.3')!;
+    expect(missing.disabled).toBeTrue();
+    expect(missing.classList).toContain('nodata');
+    expect(missing.querySelector('.row-data')?.textContent).toContain('patchSwitch.noData');
+    // With data: selectable, and the marking states the record count.
+    const withData = byVersion.get('4.2')!;
+    expect(withData.disabled).toBeFalse();
+    expect(withData.querySelector('.row-data')?.classList).toContain('has');
+    expect(withData.querySelector('.row-data')?.textContent).toContain('patchSwitch.hasDataCount');
+    expect(withData.querySelector('.row-tag')?.textContent).toContain('patchSwitch.live');
+    expect(withData.getAttribute('aria-selected')).toBe('true');
+    // Counts unknown (empty entity_counts) still reads as "data available".
+    expect(byVersion.get('4.1')?.querySelector('.row-data')?.textContent).toContain(
+      'patchSwitch.hasData',
+    );
+  });
+
+  it('switches the codex to the picked patch, closes, and tells the host to reload', async () => {
+    const fixture = await setup({ builds: [build('4.2'), build('4.1')], live: '4.2' });
+    const reloads = jasmine.createSpy('reload');
+    fixture.componentInstance.patchChange.subscribe(reloads);
+    await openSwitch(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+
+    const older = Array.from(el.querySelectorAll<HTMLButtonElement>('.patch-row')).find(
+      (r) => r.querySelector('.row-ver')?.textContent?.trim() === '4.1',
+    )!;
+    older.click();
+    fixture.detectChanges();
+
+    expect(selectSpy).toHaveBeenCalledWith(jasmine.objectContaining({ id: 'build-4.1' }));
+    expect(reloads).toHaveBeenCalledTimes(1);
+    expect(el.querySelector('.patch-pop')).toBeNull();
+    // Viewing an older patch is said out loud, and offers the way back.
+    expect(el.querySelector('.patch-past')).not.toBeNull();
+    await openSwitch(fixture);
+    expect(el.querySelector('.patch-back')).not.toBeNull();
+
+    el.querySelector<HTMLButtonElement>('.patch-back')!.click();
+    fixture.detectChanges();
+    expect(selectSpy).toHaveBeenCalledWith(null);
+    expect(reloads).toHaveBeenCalledTimes(2);
+    expect(el.querySelector('.patch-past')).toBeNull();
+  });
+
+  it('does nothing at all when a data-less patch is activated programmatically', async () => {
+    const fixture = await setup({ builds: [build('4.2')], uploaded: ['4.3'], live: '4.2' });
+    const reloads = jasmine.createSpy('reload');
+    fixture.componentInstance.patchChange.subscribe(reloads);
+    await openSwitch(fixture);
+
+    const entry = fixture.componentInstance.visible().find((e) => e.patchVersion === '4.3')!;
+    fixture.componentInstance.choose(entry);
+    fixture.detectChanges();
+
+    expect(selectSpy).not.toHaveBeenCalled();
+    expect(reloads).not.toHaveBeenCalled();
+  });
+
+  it('keeps the stale-catalog hint reachable from the merged pill', async () => {
+    const fixture = await setup({ stale: true });
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(el.querySelector('.status-pill')?.classList).toContain('stale');
+    expect(el.querySelector<HTMLAnchorElement>('.status-stale')?.getAttribute('href')).toContain(
+      '/uploader',
+    );
+  });
+});
