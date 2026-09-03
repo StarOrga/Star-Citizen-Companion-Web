@@ -1709,6 +1709,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
 /* ── Iteration 1 · shared mock foundation (scoped) ─────────────────── */
 [data-iteration="1"] .ii-note { border-left:3px solid var(--accent-primary); padding:.55rem .9rem; background:rgba(82,193,230,.07); font-size:.86rem; line-height:1.55; }
 [data-iteration="1"] section[data-screen] { align-items: flex-start; }
+/* the intro sits under the absolute screens and shows through during the .25s screen-in fade — keep it out of sight */
+[data-iteration="1"] .iteration-intro { visibility:hidden; }
 [data-iteration="1"] .cap { font-size:.84rem; line-height:1.6; color:var(--text-secondary); margin:0 0 14px; max-width: 1000px; }
 [data-iteration="1"] .cap b { color:var(--text-primary); }
 [data-iteration="1"] .why { margin-top:14px; padding:10px 12px; border:1px dashed var(--border-default); border-radius:4px; font-size:.78rem; line-height:1.6; color:var(--text-secondary); max-width: 1000px; }
@@ -1752,14 +1754,14 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
 [data-iteration="1"] .sr .fb { height:40px; padding:0 14px; border:1px solid rgba(82,193,230,.45); border-radius:8px; display:flex; align-items:center; gap:6px; color:var(--cyan); font-weight:600; }
 [data-iteration="1"] .sr .tok { height:40px; padding:0 10px; border-radius:8px; display:flex; align-items:center; gap:6px; background:var(--cyan-2); color:var(--cyan); font-size:.78rem; }
 /* bands */
-[data-iteration="1"] .band { display:flex; align-items:center; gap:8px; height:36px; padding:0 12px; border-left:3px solid var(--tint,var(--cyan)); background:linear-gradient(90deg, color-mix(in srgb, var(--tint,var(--cyan)) 14%, transparent), transparent); font-family:var(--font-display); font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--tint,var(--cyan)); position:sticky; top:0; }
-[data-iteration="1"] .band.hot { --tint:var(--hot); }
-[data-iteration="1"] .band.green { --tint:var(--green); }
-[data-iteration="1"] .band.dim { --tint:#7c93a8; }
-[data-iteration="1"] .band .n { font-family:var(--font-mono); font-size:.78rem; letter-spacing:0; }
-[data-iteration="1"] .band .sub { margin-left:auto; font-family:system-ui,sans-serif; text-transform:none; letter-spacing:0; font-size:.72rem; color:var(--ink-3); }
-[data-iteration="1"] .band .chev { margin-left:auto; color:var(--ink-3); font-size:.8rem; }
-[data-iteration="1"] .band.empty { color:var(--ink-3); border-left-color:var(--ink-3); background:none; height:28px; font-family:system-ui,sans-serif; text-transform:none; letter-spacing:0; font-size:.76rem; font-style:italic; }
+[data-iteration="1"] .bnd { display:flex; align-items:center; gap:8px; height:36px; padding:0 12px; border-left:3px solid var(--tint,var(--cyan)); background:linear-gradient(90deg, color-mix(in srgb, var(--tint,var(--cyan)) 14%, transparent), transparent); font-family:var(--font-display); font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--tint,var(--cyan)); position:sticky; top:0; }
+[data-iteration="1"] .bnd.hot { --tint:var(--hot); }
+[data-iteration="1"] .bnd.green { --tint:var(--green); }
+[data-iteration="1"] .bnd.dim { --tint:#7c93a8; }
+[data-iteration="1"] .bnd .n { font-family:var(--font-mono); font-size:.78rem; letter-spacing:0; }
+[data-iteration="1"] .bnd .sub { margin-left:auto; font-family:system-ui,sans-serif; text-transform:none; letter-spacing:0; font-size:.72rem; color:var(--ink-3); }
+[data-iteration="1"] .bnd .chev { margin-left:auto; color:var(--ink-3); font-size:.8rem; }
+[data-iteration="1"] .bnd.empty { color:var(--ink-3); border-left-color:var(--ink-3); background:none; height:28px; font-family:system-ui,sans-serif; text-transform:none; letter-spacing:0; font-size:.76rem; font-style:italic; }
 /* cards */
 [data-iteration="1"] .card { margin:8px 12px; border:1px solid var(--hair); border-radius:8px; background:rgba(16,50,70,.75); }
 [data-iteration="1"] .card.open { border-color:rgba(82,193,230,.5); box-shadow:0 0 0 1px rgba(82,193,230,.18); }
@@ -1902,6 +1904,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
 [data-iteration="1"] .variant-evaluation h4 { margin:0 0 .3rem; font-size:.9rem; }
 [data-iteration="1"] .variant-evaluation p { margin:0 0 .5rem; font-size:.8rem; line-height:1.5; color:var(--text-secondary); }
 [data-iteration="1"] .variant-evaluation .rec { font-size:.7rem; color:var(--status-success); }
+[data-iteration="1"] .variant-evaluation textarea { width:100%; min-height:56px; box-sizing:border-box; }
 </style>
 
 <!-- ═══════════════════════════════ Ⓐ Drei Bänder ═══════════════════════════════ -->
@@ -1914,7 +1917,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
         <div class="pnl a">
           <div class="ph"><span class="tt on"><span class="d"></span>Feedback</span><span class="sp"></span><span class="ic">⌕</span><span class="ic">◔</span><span class="ic shell">▢</span><span class="ic shell">–</span></div>
           <div class="pb">
-            <div class="band hot"><span>Dein Zug</span><span class="n">3</span></div>
+            <div class="bnd hot"><span>Dein Zug</span><span class="n">3</span></div>
             <div class="card hot open">
               <div class="ch"><span class="no">#187</span><span class="ti">Starscape-Filter springt manchmal zurück</span><span class="av">JT</span></div>
               <div class="st"><span class="dots"><i class="f"></i><i class="f"></i><i class="cur hot"></i><i></i><i></i></span><span class="tb du">Du</span><span class="ph2 du">Routine fragt</span></div>
@@ -1932,7 +1935,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <div class="ch"><span class="no">#194</span><span class="ti">Nutzerfeedback würde ich auch gern abarbeiten können</span><span class="av user">NV</span></div>
               <div class="st"><span class="dots"><i class="cur hot"></i><i></i><i></i><i></i><i></i></span><span class="tb du">Du</span><span class="ph2 du">von Nutzer · freigeben?</span></div>
             </div>
-            <div class="band"><span>Unterwegs</span><span class="n">4</span><span class="chev">▾</span></div>
+            <div class="bnd"><span>Unterwegs</span><span class="n">4</span><span class="chev">▾</span></div>
             <div class="card">
               <div class="ch"><span class="no">#172</span><span class="ti">Ergänze für alle Rollen die das Feedback-Panel haben …</span><span class="av">JT</span></div>
               <div class="st"><span class="dots"><i class="f"></i><i class="f"></i><i class="cur"></i><i></i><i></i></span><span class="tb ro">Routine</span><span class="ph2">arbeitet</span></div>
@@ -1945,7 +1948,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <div class="ch"><span class="no">#102</span><span class="ti">Produktentscheidungen aus der V2-Loadout-Migration</span><span class="av">?</span></div>
               <div class="st"><span class="dots"><i class="f"></i><i class="f"></i><i class="cur"></i><i></i><i></i></span><span class="tb ro">Routine</span><span class="ph2">beantwortet · nimmt wieder auf</span></div>
             </div>
-            <div class="band green"><span>Geliefert</span><span class="n">124</span><span class="sub">seit deinem letzten Blick <b style="color:var(--green)">3 neu</b></span><span class="chev" style="margin-left:8px">▸</span></div>
+            <div class="bnd green"><span>Geliefert</span><span class="n">124</span><span class="sub">seit deinem letzten Blick <b style="color:var(--green)">3 neu</b></span><span class="chev" style="margin-left:8px">▸</span></div>
           </div>
           <div class="pf"><div class="compose"><span class="plus">＋</span>Neues Thema …</div></div>
         </div>
@@ -2012,9 +2015,9 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
         <div class="pnl a">
           <div class="ph"><span class="tt on"><span class="d"></span>Feedback</span><span class="sp"></span><span class="ic">⌕</span><span class="ic">◔</span><span class="ic shell">▢</span><span class="ic shell">–</span></div>
           <div class="pb">
-            <div class="band hot"><span>Dein Zug</span><span class="n">3</span><span class="chev">▸</span></div>
-            <div class="band"><span>Unterwegs</span><span class="n">4</span><span class="chev">▸</span></div>
-            <div class="band green"><span>Geliefert</span><span class="n">124</span><span class="sub"><b style="color:var(--green)">3 neu</b> seit Mi 20:14</span><span class="chev" style="margin-left:8px">▾</span></div>
+            <div class="bnd hot"><span>Dein Zug</span><span class="n">3</span><span class="chev">▸</span></div>
+            <div class="bnd"><span>Unterwegs</span><span class="n">4</span><span class="chev">▸</span></div>
+            <div class="bnd green"><span>Geliefert</span><span class="n">124</span><span class="sub"><b style="color:var(--green)">3 neu</b> seit Mi 20:14</span><span class="chev" style="margin-left:8px">▾</span></div>
             <div class="day"><span class="new">Heute · Do 4. Sep</span><span style="color:var(--green)">3 neu</span></div>
             <div class="row"><span class="nd"></span><span class="no">#183</span><span class="ti">Loadout-Vergleich zeigt falsche SCU</span><span class="tag">Hangar</span><span class="chk">✓</span><span class="go">▸ Ansehen</span></div>
             <div class="row"><span class="nd"></span><span class="no">#181</span><span class="ti">Mobile: Inhalt bekommt seine Breite zurück</span><span class="tag">Feedback</span><span class="pr">#485</span><span class="go">▸ Ansehen</span></div>
@@ -2052,7 +2055,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
           <div class="pb">
             <div class="cols">
               <div>
-                <div class="band hot"><span>Dein Zug</span><span class="n">3</span></div>
+                <div class="bnd hot"><span>Dein Zug</span><span class="n">3</span></div>
                 <div class="card hot open">
                   <div class="ch"><span class="no">#187</span><span class="ti">Starscape-Filter springt manchmal zurück</span><span class="av">JT</span></div>
                   <div class="st"><span class="dots"><i class="f"></i><i class="f"></i><i class="cur hot"></i><i></i><i></i></span><span class="tb du">Du</span><span class="ph2 du">Routine fragt</span></div>
@@ -2064,12 +2067,12 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
                 </div>
                 <div class="card hot"><div class="ch"><span class="no">#183</span><span class="ti">Loadout-Vergleich zeigt falsche SCU</span><span class="av">JT</span></div><div class="st"><span class="dots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="cur hot"></i><i></i></span><span class="tb du">Du</span><span class="ph2 du">abnehmen</span></div></div>
                 <div class="card hot"><div class="ch"><span class="no">#194</span><span class="ti">Nutzerfeedback abarbeiten können</span><span class="av user">NV</span></div><div class="st"><span class="dots"><i class="cur hot"></i><i></i><i></i><i></i><i></i></span><span class="tb du">Du</span><span class="ph2 du">freigeben?</span></div></div>
-                <div class="band"><span>Unterwegs</span><span class="n">4</span></div>
+                <div class="bnd"><span>Unterwegs</span><span class="n">4</span></div>
                 <div class="card"><div class="ch"><span class="no">#172</span><span class="ti">Feedback-Panel für alle Rollen</span><span class="av">JT</span></div><div class="st"><span class="dots"><i class="f"></i><i class="f"></i><i class="cur"></i><i></i><i></i></span><span class="tb ro">Routine</span><span class="ph2">arbeitet</span></div></div>
                 <div class="card"><div class="ch"><span class="no">#109</span><span class="ti">Nutzer befreunden</span><span class="av">JT</span></div><div class="st"><span class="dots"><i class="f"></i><i class="cur"></i><i></i><i></i><i></i></span><span class="tb ro">Routine</span><span class="ph2">Schlange</span></div></div>
               </div>
               <div>
-                <div class="band green"><span>Geliefert</span><span class="sub"><b style="color:var(--green)">3 neu</b></span></div>
+                <div class="bnd green"><span>Geliefert</span><span class="sub"><b style="color:var(--green)">3 neu</b></span></div>
                 <div class="day"><span class="new">Heute</span></div>
                 <div class="row"><span class="nd"></span><span class="no">#183</span><span class="ti">Loadout-Vergleich SCU</span><span class="chk">✓</span><span class="go">▸</span></div>
                 <div class="row"><span class="nd"></span><span class="no">#181</span><span class="ti">Mobile-Breite zurück</span><span class="pr">#485</span><span class="go">▸</span></div>
@@ -2102,7 +2105,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
           <div class="ph"><span class="tt on"><span class="d"></span>Feedback</span><span class="sp"></span><span class="badge">Geliefert <b>4</b></span><span class="ic shell">▢</span><span class="ic shell">–</span></div>
           <div class="sr"><div class="in">⌕ <span>Suchen … oder #Nummer</span></div><div class="fb">⚲ Filter</div></div>
           <div class="pb">
-            <div class="band hot"><span>Du bist dran</span><span class="n">3</span></div>
+            <div class="bnd hot"><span>Du bist dran</span><span class="n">3</span></div>
             <div class="card hot open">
               <div class="ch"><span class="no">#187</span><span class="ti">Starscape-Filter springt manchmal zurück</span><span class="av">JT</span></div>
               <div class="st"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd halt"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span><span class="ph2 du">◆ Halt · Routine fragt dich</span></div>
@@ -2121,7 +2124,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <div class="ch"><span class="no">#194</span><span class="ti">Nutzerfeedback abarbeiten können</span><span class="av user">NV</span></div>
               <div class="st"><span class="fp"><span class="nd pre"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span><span class="ph2 usr">◇ von Nutzer · ▲ freigeben?</span></div>
             </div>
-            <div class="band"><span>Läuft</span><span class="n">3</span></div>
+            <div class="bnd"><span>Läuft</span><span class="n">3</span></div>
             <div class="card">
               <div class="ch"><span class="no">#172</span><span class="ti">Feedback-Panel für alle Rollen ergänzen</span><span class="av">JT</span></div>
               <div class="st"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd half"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span><span class="ph2">◐ Routine arbeitet</span></div>
@@ -2130,7 +2133,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <div class="ch"><span class="no">#102</span><span class="ti">Produktentscheidungen V2-Loadout-Migration</span><span class="av">?</span></div>
               <div class="st"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd half"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span><span class="ph2">◐ beantwortet ✓ · Routine nimmt auf</span></div>
             </div>
-            <div class="band dim"><span>Wartet auf Nutzer</span><span class="n">1</span><span class="chev">▾</span></div>
+            <div class="bnd dim"><span>Wartet auf Nutzer</span><span class="n">1</span><span class="chev">▾</span></div>
           </div>
           <div class="pf"><div class="compose"><span class="plus">✎</span>Neues Thema …</div></div>
         </div>
@@ -2205,17 +2208,17 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
           <div class="ph"><span class="ic" style="width:28px">‹</span><span class="tt on" style="color:var(--green)"><span class="d"></span>Geliefert</span><span class="sp"></span><span class="ic shell">▢</span><span class="ic shell">–</span></div>
           <div class="sr"><div class="in">⌕ <span>Im Geliefert suchen …</span></div><div class="fb">⚲</div></div>
           <div class="pb">
-            <div class="band green"><span>Heute · Do 4. Sep</span><span class="sub"><b style="color:var(--green)">3 neu</b> seit deinem letzten Blick</span></div>
+            <div class="bnd green"><span>Heute · Do 4. Sep</span><span class="sub"><b style="color:var(--green)">3 neu</b> seit deinem letzten Blick</span></div>
             <div class="row"><span class="nd"></span><span class="no">#183</span><span class="ti">Loadout-Vergleich zeigt falsche SCU</span><span class="tag">Hangar</span><span class="chk">✓</span><span class="go">▸ Ansehen</span></div>
             <div class="row"><span class="nd"></span><span class="no">#181</span><span class="ti">Mobile: Inhalt bekommt seine Breite zurück</span><span class="pr">#485</span><span class="go">▸ Ansehen</span></div>
             <div class="row"><span class="nd"></span><span class="no">#180</span><span class="ti">„Spielbar“ am Header-Chip</span><span class="pr">#486</span><span class="go">▸ Ansehen</span></div>
-            <div class="band green" style="--tint:#7c93a8"><span>Gestern · Mi 3. Sep</span><span class="n">2</span></div>
+            <div class="bnd green" style="--tint:#7c93a8"><span>Gestern · Mi 3. Sep</span><span class="n">2</span></div>
             <div class="row"><span class="no">#178</span><span class="ti">Archiv-Schnellzugriff je Zone</span><span class="pr">#484</span><span class="go">▸ Ansehen</span></div>
             <div class="row"><span class="no">#176</span><span class="ti">AN-BORD-Figur in 3D</span><span class="pr">#481</span><span class="go">▸ Ansehen</span></div>
-            <div class="band green" style="--tint:#7c93a8"><span>Vor 3 Tagen</span><span class="n">2</span></div>
+            <div class="bnd green" style="--tint:#7c93a8"><span>Vor 3 Tagen</span><span class="n">2</span></div>
             <div class="row quiet"><span class="no">#175</span><span class="ti">⊘ Abgelehnt: Sprachchat im Hangar</span><span class="pr">Grund ▾</span></div>
             <div class="row quiet"><span class="no">#169</span><span class="ti">⑂ Issue: Uploader Skins-Ansicht</span><span class="pr">#212 ↗</span></div>
-            <div class="band green" style="--tint:#7c93a8"><span>Fortschritt</span><span class="sub">Diesen Monat · All-time</span></div>
+            <div class="bnd green" style="--tint:#7c93a8"><span>Fortschritt</span><span class="sub">Diesen Monat · All-time</span></div>
             <div class="dash"><div><span class="don"></span>78 % erledigt</div><div>Median bis Ship <b style="color:var(--ink)">27 Std.</b><br>Rückfragen-Quote 23 %</div></div>
           </div>
           <div class="pf"><div class="compose" style="border-style:solid;color:var(--ink-3)">‹ Zurück zum Board</div></div>
@@ -2243,15 +2246,15 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
             <div class="md">
               <div class="rail">
                 <div class="sr"><div class="in">⌕ <span>Suchen …</span></div><div class="fb">⚲</div></div>
-                <div class="band hot"><span>Du bist dran</span><span class="n">3</span></div>
+                <div class="bnd hot"><span>Du bist dran</span><span class="n">3</span></div>
                 <div class="card hot open"><div class="ch"><span class="no">#187</span><span class="ti">Starscape-Filter springt zurück</span></div><div class="st"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd halt"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span></div></div>
                 <div class="card hot"><div class="ch"><span class="no">#183</span><span class="ti">Loadout-Vergleich SCU</span></div><div class="st"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd f"></span><span class="ln f"></span><span class="nd halt"></span><span class="ln"></span><span class="nd"></span></span></div></div>
                 <div class="card hot"><div class="ch"><span class="no">#194</span><span class="ti">Nutzerfeedback abarbeiten</span><span class="av user">NV</span></div><div class="st"><span class="fp"><span class="nd pre"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span></div></div>
-                <div class="band"><span>Läuft</span><span class="n">3</span></div>
+                <div class="bnd"><span>Läuft</span><span class="n">3</span></div>
                 <div class="card"><div class="ch"><span class="no">#172</span><span class="ti">Panel für alle Rollen</span></div><div class="st"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd half"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span></div></div>
                 <div class="card"><div class="ch"><span class="no">#109</span><span class="ti">Nutzer befreunden</span></div><div class="st"><span class="fp"><span class="nd f"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span></div></div>
                 <div class="card"><div class="ch"><span class="no">#102</span><span class="ti">V2-Loadout-Entscheidungen</span></div><div class="st"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd half"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span></div></div>
-                <div class="band dim"><span>Wartet auf Nutzer</span><span class="n">1</span></div>
+                <div class="bnd dim"><span>Wartet auf Nutzer</span><span class="n">1</span></div>
               </div>
               <div class="det">
                 <div style="display:flex;align-items:center;gap:10px"><span class="no" style="font-family:var(--font-mono);color:var(--ink-3)">#187</span><h3>Starscape-Filter springt manchmal zurück</h3><span class="btn ghost" style="margin-left:auto">⋯</span></div>
@@ -2282,7 +2285,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
         <div class="pnl c">
           <div class="ph"><span class="tt off"><span class="d"></span>Feedback <span class="w">· Routine offline seit 14:20</span></span><span class="sp"></span><span class="ic">⌕</span><span class="ic">◔</span><span class="ic">⋯</span><span class="ic shell">–</span></div>
           <div class="pb">
-            <div class="band hot"><span>Du bist dran</span><span class="n">2</span></div>
+            <div class="bnd hot"><span>Du bist dran</span><span class="n">2</span></div>
             <div class="card hot open">
               <div class="ch"><span class="no">#187</span><span class="ti">Starscape-Filter springt manchmal zurück</span><span class="av">JT</span></div>
               <div class="st"><span class="mt"><i class="f"></i><i class="cur hot"></i><i></i><i></i></span><span class="ph2 du">In Arbeit → Frage an dich</span></div>
@@ -2297,15 +2300,15 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <div class="ch"><span class="no">#183</span><span class="ti">Hangar: Loadout-Vergleich zeigt falsche SCU</span><span class="av">JT</span></div>
               <div class="st"><span class="mt"><i class="f"></i><i class="f"></i><i class="cur hot"></i><i></i></span><span class="ph2 du">Geliefert → wartet auf deinen Haken</span></div>
             </div>
-            <div class="band green"><span>Geliefert</span><span class="sub"><b style="color:var(--green)">3 neu</b> seit gestern</span></div>
+            <div class="bnd green"><span>Geliefert</span><span class="sub"><b style="color:var(--green)">3 neu</b> seit gestern</span></div>
             <div class="day"><span class="new">Heute</span></div>
             <div class="row"><span class="nd"></span><span class="no">#181</span><span class="ti">Mobile-Breite zurück · Panel gibt Inhalt Platz</span><span class="go">Im App ansehen</span></div>
             <div class="row"><span class="nd"></span><span class="no">#180</span><span class="ti">„Spielbar“ am Header-Chip</span><span class="go">Im App ansehen</span></div>
             <div class="day">Gestern</div>
             <div class="row"><span class="no">#178</span><span class="ti">Archiv-Schnellzugriff je Zone</span><span class="go">Im App ansehen</span></div>
             <div class="row quiet"><span class="no"></span><span class="ti">Ältere Tage …</span></div>
-            <div class="band"><span>Läuft</span><span class="n">4</span><span class="chev">▸</span></div>
-            <div class="band dim"><span>Archiv</span><span class="n">124</span><span class="chev">▸</span></div>
+            <div class="bnd"><span>Läuft</span><span class="n">4</span><span class="chev">▸</span></div>
+            <div class="bnd dim"><span>Archiv</span><span class="n">124</span><span class="chev">▸</span></div>
           </div>
           <div class="pf"><div class="compose"><span class="plus">✎</span>Neue Idee …</div></div>
         </div>
@@ -2330,7 +2333,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
         <div class="pnl c">
           <div class="ph"><span class="tt on"><span class="d"></span>Feedback</span><span class="sp"></span><span class="ic">⌕</span><span class="ic">◔</span><span class="ic">⋯</span><span class="ic shell">–</span></div>
           <div class="pb">
-            <div class="band hot"><span>Du bist dran</span><span class="n">1</span></div>
+            <div class="bnd hot"><span>Du bist dran</span><span class="n">1</span></div>
             <div class="card hot open">
               <div class="ch"><span class="no">#194</span><span class="ti">Nutzerfeedback würde ich auch gern abarbeiten können</span><span class="av user">NV</span></div>
               <div class="st"><span class="mt"><i class="cur hot"></i><i></i><i></i><i></i></span><span class="ph2 usr">Eingang → von einem Nutzer · noch nicht freigegeben</span></div>
@@ -2375,8 +2378,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
         <div class="pnl c">
           <div class="ph"><span class="tt on"><span class="d"></span>Feedback</span><span class="sp"></span><span class="ic">⌕</span><span class="ic">◔</span><span class="ic">⋯</span><span class="ic shell">–</span></div>
           <div class="pb">
-            <div class="band empty">✓ Nichts wartet auf dich.</div>
-            <div class="band green"><span>Geliefert</span><span class="sub"><b style="color:var(--green)">3 neu</b> seit gestern</span></div>
+            <div class="bnd empty">✓ Nichts wartet auf dich.</div>
+            <div class="bnd green"><span>Geliefert</span><span class="sub"><b style="color:var(--green)">3 neu</b> seit gestern</span></div>
             <div class="day"><span class="new">Heute</span></div>
             <div class="row"><span class="no">#183</span><span class="ti">Loadout-Vergleich zeigt falsche SCU</span><span class="tag" style="color:var(--green);border-color:rgba(95,214,152,.5)">✓ abgenommen</span><span class="go">Im App ansehen</span></div>
             <div class="row"><span class="nd"></span><span class="no">#181</span><span class="ti">Mobile-Breite zurück</span><span class="go">Im App ansehen</span></div>
@@ -2386,7 +2389,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
             <div class="row"><span class="no">#176</span><span class="ti">AN-BORD-Figur in 3D</span><span class="go">Im App ansehen</span></div>
             <div class="day">Mo 1. Sep</div>
             <div class="row"><span class="no">#171</span><span class="ti">Freunde, Blockieren, Melden (Phase 1)</span><span class="go">Im App ansehen</span></div>
-            <div class="band"><span>Läuft</span><span class="n">6</span><span class="chev">▾</span></div>
+            <div class="bnd"><span>Läuft</span><span class="n">6</span><span class="chev">▾</span></div>
             <div class="card">
               <div class="ch"><span class="no">#187</span><span class="ti">Starscape-Filter springt manchmal zurück</span><span class="av">JT</span></div>
               <div class="st"><span class="mt"><i class="f"></i><i class="cur"></i><i></i><i></i></span><span class="ph2 ok">Antwort raus — Routine ist wieder dran</span></div>
@@ -2399,7 +2402,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <div class="ch"><span class="no">#188</span><span class="ti">Codex: Vergleich zweier Schiffe</span><span class="av user">MK</span></div>
               <div class="st"><span class="mt"><i class="f"></i><i class="cur"></i><i></i><i></i></span><span class="ph2 usr">Wartet auf den Nutzer</span></div>
             </div>
-            <div class="band dim"><span>Archiv</span><span class="n">124</span><span class="chev">▸</span></div>
+            <div class="bnd dim"><span>Archiv</span><span class="n">124</span><span class="chev">▸</span></div>
           </div>
           <div class="pf"><div class="compose"><span class="plus">✎</span>Neue Idee …</div></div>
         </div>
@@ -2424,7 +2427,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
         <div class="pnl c phone">
           <div class="ph"><span class="tt on"><span class="d"></span>Feedback</span><span class="sp"></span><span class="ic">⌕</span><span class="ic">◔</span><span class="ic">⋯</span><span class="ic shell">–</span></div>
           <div class="pb">
-            <div class="band hot"><span>Du bist dran</span><span class="n">2</span></div>
+            <div class="bnd hot"><span>Du bist dran</span><span class="n">2</span></div>
             <div class="card hot open">
               <div class="ch"><span class="no">#187</span><span class="ti">Starscape-Filter springt zurück</span><span class="av">JT</span></div>
               <div class="st"><span class="mt"><i class="f"></i><i class="cur hot"></i><i></i><i></i></span><span class="ph2 du">Frage an dich</span></div>
@@ -2435,12 +2438,12 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               </div>
             </div>
             <div class="card hot"><div class="ch"><span class="no">#183</span><span class="ti">Loadout-Vergleich SCU</span><span class="av">JT</span></div><div class="st"><span class="mt"><i class="f"></i><i class="f"></i><i class="cur hot"></i><i></i></span><span class="ph2 du">Wartet auf deinen Haken</span></div></div>
-            <div class="band green"><span>Geliefert</span><span class="sub"><b style="color:var(--green)">3 neu</b></span></div>
+            <div class="bnd green"><span>Geliefert</span><span class="sub"><b style="color:var(--green)">3 neu</b></span></div>
             <div class="day"><span class="new">Heute</span></div>
             <div class="row" style="min-height:48px"><span class="nd"></span><span class="no">#181</span><span class="ti">Mobile-Breite zurück</span><span class="go">Ansehen</span></div>
             <div class="row" style="min-height:48px"><span class="nd"></span><span class="no">#180</span><span class="ti">„Spielbar“-Chip</span><span class="go">Ansehen</span></div>
-            <div class="band"><span>Läuft</span><span class="n">4</span><span class="chev">▸</span></div>
-            <div class="band dim"><span>Archiv</span><span class="n">124</span><span class="chev">▸</span></div>
+            <div class="bnd"><span>Läuft</span><span class="n">4</span><span class="chev">▸</span></div>
+            <div class="bnd dim"><span>Archiv</span><span class="n">124</span><span class="chev">▸</span></div>
           </div>
           <div class="pf"><div class="compose" style="height:48px"><span class="plus">✎</span>Neue Idee …</div></div>
         </div>
