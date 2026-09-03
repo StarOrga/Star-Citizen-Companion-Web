@@ -97,6 +97,52 @@ impl Mode {
     }
 }
 
+/// Which slice of the Starscape gallery the rotation draws from.
+///
+/// The gallery is one ordered list of every wallpaper, but "everything RSI ever
+/// published" is not the only thing a user wants on their desktop. Both other
+/// answers already exist server-side and are shared with the website, so no new
+/// endpoint and no client-side ranking is invented here:
+///   * [`WallpaperSource::Top`] → `starscape_top_wallpapers(7)`, the same
+///     community ranking the web gallery's "Top 7" toggle shows,
+///   * [`WallpaperSource::Mine`] → the caller's own `wallpaper_votes` rows,
+///     which need a signed-in session (see `crate::session`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum WallpaperSource {
+    /// Every wallpaper, newest first — the default and the pre-0.7.0 behaviour.
+    All,
+    /// Only the community-wide Top 7.
+    Top,
+    /// Only the images this account upvoted. The one selection that needs a
+    /// session; without one there is nothing to ask for, and the rotation falls
+    /// back to [`Self::All`] rather than showing an empty desktop.
+    Mine,
+}
+
+impl WallpaperSource {
+    /// Config/wire value (`all` | `top7` | `mine`).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            WallpaperSource::All => "all",
+            WallpaperSource::Top => "top7",
+            WallpaperSource::Mine => "mine",
+        }
+    }
+
+    fn from_str(s: &str) -> Option<WallpaperSource> {
+        match s {
+            "all" => Some(WallpaperSource::All),
+            "top7" => Some(WallpaperSource::Top),
+            "mine" => Some(WallpaperSource::Mine),
+            _ => None,
+        }
+    }
+}
+
+/// How many images the community ranking contributes — the website's own
+/// "Top 7", so both surfaces show the same seven.
+pub const TOP_LIMIT: u32 = 7;
+
 /// Release ring the in-app updater follows.
 ///
 /// A ring is a promotion pointer, not a build — the binaries are byte-identical
@@ -208,6 +254,10 @@ pub struct Config {
     pub fade: bool,
     pub paused: bool,
     pub mode: Mode,
+    /// Which slice of the gallery the rotation draws from. Absent from a
+    /// pre-0.7.0 config, and absence means [`WallpaperSource::All`] — exactly
+    /// what those installs already did.
+    pub wallpaper_source: WallpaperSource,
     pub screensaver_after_min: u32,
     pub autostart_initialized: bool,
     pub summary_on_boot: bool,
@@ -236,6 +286,7 @@ impl Default for Config {
             fade: true,
             paused: false,
             mode: Mode::Wallpaper,
+            wallpaper_source: WallpaperSource::All,
             screensaver_after_min: 10,
             autostart_initialized: false,
             summary_on_boot: true,
@@ -283,6 +334,11 @@ impl Config {
                             cfg.mode = m;
                         }
                     }
+                    "wallpaper_source" => {
+                        if let Some(s) = WallpaperSource::from_str(v) {
+                            cfg.wallpaper_source = s;
+                        }
+                    }
                     "screensaver_after_min" => {
                         if let Ok(n) = v.parse::<u32>() {
                             cfg.screensaver_after_min = n.clamp(1, 240);
@@ -325,11 +381,12 @@ impl Config {
 
     pub fn save(&self) {
         let text = format!(
-            "interval_min={}\nfade={}\npaused={}\nmode={}\nscreensaver_after_min={}\nautostart_initialized={}\nsummary_on_boot={}\nsummary_last_shown={}\nchannel={}\nchannel_pref={}\ntelemetry={}\n",
+            "interval_min={}\nfade={}\npaused={}\nmode={}\nwallpaper_source={}\nscreensaver_after_min={}\nautostart_initialized={}\nsummary_on_boot={}\nsummary_last_shown={}\nchannel={}\nchannel_pref={}\ntelemetry={}\n",
             self.interval_min,
             self.fade as u8,
             self.paused as u8,
             self.mode.as_str(),
+            self.wallpaper_source.as_str(),
             self.screensaver_after_min,
             self.autostart_initialized as u8,
             self.summary_on_boot as u8,
@@ -561,6 +618,37 @@ mod tests {
         for c in [Channel::Stable, Channel::Beta, Channel::Alpha] {
             assert_eq!(Channel::from_key(c.as_key()), Some(c));
         }
+    }
+
+    #[test]
+    fn wallpaper_sources_round_trip_and_default_to_everything() {
+        for s in [WallpaperSource::All, WallpaperSource::Top, WallpaperSource::Mine] {
+            assert_eq!(WallpaperSource::from_str(s.as_str()), Some(s));
+        }
+        assert_eq!(WallpaperSource::from_str("favourites"), None);
+        assert_eq!(WallpaperSource::from_str("All"), None); // case-sensitive on purpose
+        // A pre-0.7.0 config has no such key, and absence must keep the old
+        // behaviour — every wallpaper, exactly as before.
+        assert_eq!(Config::default().wallpaper_source, WallpaperSource::All);
+    }
+
+    /// `save()` and `load()` share no code, so nothing but a round-trip catches
+    /// a key that was renamed on one side only.
+    #[test]
+    fn the_saved_source_key_is_the_one_load_parses() {
+        let mut cfg = Config::default();
+        cfg.wallpaper_source = WallpaperSource::Top;
+        let text = format!("wallpaper_source={}\n", cfg.wallpaper_source.as_str());
+        assert!(text.contains("wallpaper_source=top7"));
+        let mut back = Config::default();
+        for line in text.lines() {
+            if let Some((k, v)) = line.split_once('=') {
+                if k == "wallpaper_source" {
+                    back.wallpaper_source = WallpaperSource::from_str(v).expect("parsable");
+                }
+            }
+        }
+        assert_eq!(back.wallpaper_source, WallpaperSource::Top);
     }
 
     #[test]

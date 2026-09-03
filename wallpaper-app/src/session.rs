@@ -16,6 +16,7 @@
 
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::crypto;
@@ -25,6 +26,23 @@ use crate::util;
 
 /// Clock skew allowance, in seconds — same value the uploader uses.
 const SKEW_SECS: i64 = 60;
+
+/// Serializes every refresh-token exchange in this process.
+///
+/// GoTrue ROTATES the refresh token, so two threads refreshing at once means
+/// the second one presents a token the first already spent — and a spent token
+/// comes back as a 4xx, which [`ensure_access_token`] correctly reads as a
+/// verdict and clears the store with. That was harmless while the update poll
+/// was the only caller; the gallery's "my upvotes" source is a second one. The
+/// loser of the race blocks, then re-reads the store inside the lock and finds
+/// the freshly rotated session already there, so it never refreshes at all.
+static REFRESH_GATE: Mutex<()> = Mutex::new(());
+
+/// Poison is stepped over: a panic in one refresh must not permanently wedge
+/// every later one (the data it guards lives on disk, not in the mutex).
+fn refresh_gate() -> MutexGuard<'static, ()> {
+    REFRESH_GATE.lock().unwrap_or_else(|e| e.into_inner())
+}
 
 #[derive(Clone, Default)]
 pub struct Session {
@@ -143,6 +161,16 @@ impl Session {
     }
 }
 
+/// The account a session is stored for, for the tray's account entry.
+///
+/// Purely local: no network, no refresh, no clearing — so it is safe to call on
+/// the UI thread while a menu is being built. `Some("")` is a stored session
+/// whose hand-off carried no email (the caller then says "signed in" without
+/// naming an address); `None` means nothing is stored at all.
+pub fn stored_email() -> Option<String> {
+    Session::load().map(|s| s.email)
+}
+
 /// Best-effort "give me a usable access token".
 ///
 /// Returns `None` when there is no stored session, or the refresh was REJECTED
@@ -155,6 +183,9 @@ impl Session {
 /// after start, which on a cold boot is routinely before Wi-Fi, VPN or DNS are
 /// up — the app then signed itself out for the rest of the day over nothing.
 pub fn ensure_access_token() -> Option<String> {
+    // Taken BEFORE the load: a thread that lost the race must re-read the store
+    // afterwards, or it would refresh with the token the winner just spent.
+    let _gate = refresh_gate();
     let session = Session::load()?;
     if session.is_fresh() {
         return Some(session.access_token);
@@ -196,6 +227,7 @@ pub fn ensure_access_token() -> Option<String> {
 ///
 /// A refresh we could not deliver proves neither, so it leaves the store intact.
 pub fn revalidate() -> Option<String> {
+    let _gate = refresh_gate();
     let session = Session::load()?;
     if !session.can_refresh() {
         Session::clear();

@@ -310,6 +310,21 @@ fn widened_max(
     }
 }
 
+/// Forget what any earlier check revealed about the account's reach, and drop
+/// the cached verdict with it.
+///
+/// Called when the identity behind those answers changes — a sign-out, or a
+/// sign-in. Everything `MAX_RING` holds was learned as somebody else (or as
+/// nobody), so keeping it would carry one account's ceiling into another's
+/// menu. `None` re-opens every ring, which is the honest state until the next
+/// check answers for the account that is actually signed in now.
+pub fn forget_entitlement() {
+    if let Ok(mut m) = MAX_RING.lock() {
+        *m = None;
+    }
+    set_state(State::Unknown);
+}
+
 /// Whether `ring` may be picked in the tray, given what the last check revealed.
 pub fn ring_is_available(ring: Channel) -> bool {
     ring_within(ring, max_ring())
@@ -584,7 +599,19 @@ fn check(pref: RingPref, access_token: Option<&str>) -> Outcome {
     let served_key = net::json_str(&text, "channel").unwrap_or_default();
     let served = Channel::from_key(&served_key).unwrap_or(channel);
     let clamped = !served_key.is_empty() && served_key != channel.as_key();
-    note_max_ring(channel, served, clamped);
+    // ONLY an authenticated answer says anything about this ACCOUNT's reach.
+    //
+    // A signed-out request is clamped to the anonymous tier by definition — the
+    // server was never told which account is asking, so the ceiling it reports
+    // is the anonymous one, not this user's. Recording it anyway is what told a
+    // signed-in admin "Alpha · not enabled for this account" and greyed the
+    // very entry that would have fixed it: the app had simply never asked as
+    // them. Signed out, the reach therefore stays UNKNOWN, every ring stays
+    // pickable, and the tray's account entry offers the sign-in that resolves
+    // it for real.
+    if access_token.is_some() {
+        note_max_ring(channel, served, clamped);
+    }
 
     if pref.is_auto() {
         // We asked for the top ring on purpose, so the clamp is the ANSWER, not a
@@ -1274,6 +1301,26 @@ mod tests {
         // …but a fresh clamp does narrow it — that is the server speaking, and a
         // demoted account must lose the rings it no longer reaches.
         assert_eq!(widened_max(Some(c), Channel::Alpha, Channel::Beta, true), Channel::Beta);
+    }
+
+    /// Signing out — or in — must drop everything the previous identity's
+    /// checks revealed: a viewer's stable ceiling has no business greying out
+    /// the rings in an admin's menu a moment later.
+    #[test]
+    fn forgetting_the_entitlement_reopens_every_ring() {
+        let _serial = serial();
+        note_max_ring(Channel::Alpha, Channel::Stable, true);
+        assert_eq!(max_ring(), Some(Channel::Stable));
+        assert!(!ring_is_available(Channel::Alpha));
+        set_state(State::Current);
+
+        forget_entitlement();
+
+        assert_eq!(max_ring(), None);
+        for c in Channel::ALL_DESCENDING {
+            assert!(ring_is_available(c), "{c:?} must be pickable again");
+        }
+        assert!(matches!(state(), State::Unknown), "the old identity's verdict must go too");
     }
 
     /// Nothing learned yet (offline, or the first 20 s of a run) must leave every
