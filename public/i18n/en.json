@@ -322,7 +322,39 @@
         "body": "No upcoming ship matches the search and filter — shorten the term or drop the favorites filter."
       },
       "laneSub": "Announced by RSI, with no entry in our game data yet",
-      "laneAll": "View all {{count}}"
+      "laneAll": "View all {{count}}",
+      "conceptBadge": "Concept",
+      "notFlightReady": "Not flight-ready yet"
+    },
+    "upcomingDetail": {
+      "back": "Back to the Codex",
+      "facts": "From the RSI ship-matrix",
+      "fact": {
+        "manufacturer": "Manufacturer",
+        "type": "Type",
+        "focus": "Role",
+        "status": "Status"
+      },
+      "notice": {
+        "concept": "RSI has announced this ship but is still building it — it is not flyable in game. That is why there are no hardpoints, components or stats here.",
+        "flightReady": "RSI lists this ship as flight-ready, but our datamined game data has no match for it yet — the stats arrive with one of the next build uploads."
+      },
+      "watch": {
+        "off": "Watch for my fleet",
+        "on": "Watched for my fleet",
+        "hint": "Watched ships show up at the top of your hangar, marked as not flight-ready.",
+        "inHangar": "View in the hangar"
+      },
+      "rsiLink": "View on robertsspaceindustries.com",
+      "noData": {
+        "title": "Why are there no stats here?",
+        "body": "Our Codex is built from the live build's data. While this ship is not in the game there is nothing to extract — once it lands it gets its full Codex entry automatically.",
+        "browse": "All announced ships"
+      },
+      "notFound": {
+        "title": "Announced ship not found",
+        "body": "This ship is no longer on the RSI ship-matrix — either it has shipped and now has a real Codex entry, or RSI removed the listing."
+      }
     },
     "categoriesAria": "Codex categories",
     "soon": "Coming soon — no data extracted yet.",
@@ -2013,6 +2045,12 @@
         "text": "Pin ships and components side by side and compare the numbers that matter."
       },
       "cta": "Sign in to open your hangar"
+    },
+    "drawingBoard": {
+      "title": "On the drawing board",
+      "note": "Watched ships — not flight-ready yet",
+      "browse": "Open the drawing board",
+      "empty": "You haven't watched an announced ship for your fleet yet."
     },
     "concept": {
       "title": "Concept wishlist",

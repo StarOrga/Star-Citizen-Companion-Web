@@ -3,6 +3,11 @@ import { AuthService } from '../auth/auth.service';
 import { AnalyticsService } from '../core/analytics.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { normalizeRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
+// One normalizer for "is this the same ship name", shared with the RSI
+// ship-matrix feed: the announced-ship page looks a concept-wishlist row up by
+// name, and two slightly different spellings of that rule would silently show
+// "not watched" for a ship the user just added.
+import { normalizeShipName } from '../codex/upcoming-ships.service';
 import {
   ConceptShip,
   ConfigLoadoutEntry,
@@ -22,6 +27,9 @@ import {
   mapHangarShipConfig,
 } from './hangar.types';
 
+/** Mirrors the `hangar_concept_ships.name` length CHECK (migration 20260711001000). */
+const CONCEPT_NAME_MAX = 80;
+
 /**
  * CRUD + signal store for the personal hangar (hangar_ships,
  * hangar_ship_configs, hangar_role_loadouts — all RLS self-only).
@@ -39,6 +47,14 @@ export class HangarService {
   readonly conceptShips = signal<ConceptShip[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+
+  // Concept-wishlist load state, so the Codex can ask for it standalone
+  // (`ensureConceptShipsLoaded`) without re-fetching what `loadAll` already
+  // has. Keyed by user id, never a bare boolean: a session swap inside one
+  // tab would otherwise leave the next user looking at the previous one's
+  // watchlist and a cache flag that says "already loaded".
+  private conceptsLoadedFor: string | null = null;
+  private conceptsInFlight: Promise<void> | null = null;
 
   // Flagship = the user's single pinned "standard ship" (a ship class name),
   // driving the Codex Bridge hero. Source of truth is
@@ -97,6 +113,7 @@ export class HangarService {
         this.conceptShips.set(
           ((conceptsRes.data ?? []) as Record<string, unknown>[]).map(mapConceptShip),
         );
+        this.conceptsLoadedFor = this.userId;
       }
       // Sync the flagship now the user id is guaranteed available (the
       // constructor may have run before auth resolved). DB-first, see below.
@@ -144,6 +161,51 @@ export class HangarService {
 
   // ── concept-ship wishlist (#135) ────────────────────────────────────────────
 
+  /**
+   * Load JUST the concept-ship wishlist, once per session.
+   *
+   * The Codex's announced-ship page needs the watch state ("is this already on
+   * my fleet list?") without dragging the whole hangar — ships, role loadouts
+   * and the flagship sync — behind it. Idempotent and dedupes concurrent
+   * callers; `loadAll` flips the same flag, so the two never fetch twice.
+   */
+  ensureConceptShipsLoaded(): Promise<void> {
+    const userId = this.userId;
+    if (userId && this.conceptsLoadedFor === userId) return Promise.resolve();
+    if (!this.conceptsInFlight) {
+      this.conceptsInFlight = this.loadConceptShips().finally(() => {
+        this.conceptsInFlight = null;
+      });
+    }
+    return this.conceptsInFlight;
+  }
+
+  private async loadConceptShips(): Promise<void> {
+    if (!this.userId) return;
+    const { data, error } = await this.sb.client
+      .from('hangar_concept_ships')
+      .select('*')
+      .order('created_at', { ascending: false });
+    // Best-effort like `loadAll`: this runs on a Codex page, and a missing
+    // relation or an RLS miss must degrade to "not watched", never to an error
+    // banner on a page that is really about the ship.
+    if (error) return;
+    this.conceptShips.set(((data ?? []) as Record<string, unknown>[]).map(mapConceptShip));
+    this.conceptsLoadedFor = this.userId;
+  }
+
+  /**
+   * The wishlist row for a ship NAME, compared the way the RSI feed normalizes
+   * names. Backs the announced-ship page's watch toggle, where the only stable
+   * handle between the matrix entry and the (catalog-less) wishlist row is the
+   * name itself.
+   */
+  conceptShipByName(name: string | null | undefined): ConceptShip | null {
+    const norm = normalizeShipName(name ?? '');
+    if (!norm) return null;
+    return this.conceptShips().find((c) => normalizeShipName(c.name) === norm) ?? null;
+  }
+
   async addConceptShip(input: {
     name: string;
     manufacturer?: string;
@@ -151,7 +213,9 @@ export class HangarService {
     notes?: string;
   }): Promise<ConceptShip | null> {
     const userId = this.userId;
-    const name = input.name.trim();
+    // The column CHECKs `length(trim(name)) between 1 and 80`; clamp here so a
+    // long matrix name comes back as a wishlist entry instead of a raw 23514.
+    const name = input.name.trim().slice(0, CONCEPT_NAME_MAX);
     if (!userId || !name) return null;
     const { data, error } = await this.sb.client
       .from('hangar_concept_ships')
@@ -172,7 +236,7 @@ export class HangarService {
     if (error) {
       // 23505 = duplicate (user_id, name) — already wishlisted, no-op.
       if ((error as { code?: string }).code === '23505') {
-        return this.conceptShips().find((c) => c.name === name) ?? null;
+        return this.conceptShips().find((c) => c.name === name) ?? this.conceptShipByName(name);
       }
       this.error.set(error.message);
       return null;

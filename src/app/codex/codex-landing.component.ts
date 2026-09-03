@@ -512,11 +512,13 @@ export interface FleetGroup {
              announcement first (feedback, 2026-08-23 — the old "Was ist neu"
              title claimed a recency that the list does not carry).
              Renders nothing while the feed is loading/empty (honest empty
-             state, no skeleton promising a rail that never fills). Every tile
-             is a real RSI anchor: with the current feed shape no classNameSlug
-             is returned for these ships, so an internal /codex/ship/:className
-             route never applies — external is not a fallback here, it is the
-             only correct target. -->
+             state, no skeleton promising a rail that never fills).
+             2026-09-03 (#130): every tile is a real routerLink into OUR codex
+             (/codex/upcoming/:id) instead of a one-way door to RSI. These ships
+             have no classNameSlug — the announced-ship page is their detail
+             view, and it keeps the RSI pledge page as a secondary link. Each
+             tile carries a small "Konzept" pill so the rail reads as
+             not-yet-flyable without burying the artwork. -->
         @if (upcomingRailShips().length > 0) {
           <div class="upcoming-rail">
             <header class="upcoming-rail__head">
@@ -534,13 +536,17 @@ export interface FleetGroup {
                   class="upcoming-tile"
                   role="listitem"
                   [class.icon-only]="upcomingThumbs(ship).length === 0"
-                  [href]="ship.rsiUrl || upcomingFallbackUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  [routerLink]="['/codex/upcoming', ship.id]"
                 >
                   <sc-fallback-image [candidates]="upcomingThumbs(ship)" [alt]="ship.name">
                     <sc-codex-icon kind="ship" />
                   </sc-fallback-image>
+                  @if (!ship.flightReadyButMissing) {
+                    <span
+                      class="upcoming-tile__wip"
+                      [attr.title]="'codex.upcoming.notFlightReady' | translate"
+                    >{{ 'codex.upcoming.conceptBadge' | translate }}</span>
+                  }
                   <span class="upcoming-tile__caption">
                     @if (upcomingMfr(ship); as mfr) {
                       <span class="upcoming-tile__mfr" [attr.title]="mfr">{{ mfr }}</span>
@@ -1207,6 +1213,29 @@ export interface FleetGroup {
       .upcoming-tile.icon-only sc-codex-icon {
         width: 32%; height: 32%; opacity: 0.55; color: var(--sc-accent); transform: translateY(-14%);
       }
+      /* "Noch nicht flugfaehig" marker (#130). A 3-char pill in the free top
+         corner, deliberately smaller than the caption type: the ask was a
+         badge that does NOT spoil the artwork, so it tints rather than blocks.
+         Only concept hulls carry it — a flight-ready-but-unindexed ship would
+         be mislabelled by it. */
+      .upcoming-tile__wip {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-family: var(--sc-font-display);
+        font-size: max(0.58rem, var(--sc-fs-floor));
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        line-height: 1.35;
+        color: color-mix(in srgb, var(--sc-accent) 88%, #f2f7fb);
+        background: rgba(2, 8, 14, 0.72);
+        border: 1px solid color-mix(in srgb, var(--sc-accent) 42%, transparent);
+        backdrop-filter: blur(2px);
+        pointer-events: none;
+      }
       .upcoming-tile__caption {
         position: absolute;
         inset: auto 0 0 0;
@@ -1284,8 +1313,6 @@ export class CodexLandingComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly t = inject(TranslateService);
   readonly rsi = inject(UpcomingShipsService);
-  /** External fallback when an upcoming ship carries no RSI url of its own. */
-  readonly upcomingFallbackUrl = 'https://robertsspaceindustries.com/pledge/ships';
   private readonly locale = inject(LocaleService);
 
   readonly loading = signal(true);

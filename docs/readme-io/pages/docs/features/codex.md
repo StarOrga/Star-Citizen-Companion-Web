@@ -156,6 +156,19 @@ in the datamined data yet. They are split into
 You can search this list, filter to favourites only, and star ships to be
 notified in [Verse News](doc:verse-news) when their status changes.
 
+### The announced-ship page
+
+Every announced ship — on the *On the Drawing Board* rail of the Codex landing
+page as well as on the Upcoming cards — opens **our own page** for it at
+`/codex/upcoming/:id`, not the RSI website. It shows everything the RSI ship
+matrix told us (manufacturer, type, role, production status), says plainly why
+there are no stats yet, and keeps the RSI pledge page as a secondary link.
+
+From there you can **watch the ship for your fleet**. A watched ship lands on
+the concept wishlist in [your hangar](doc:hangar), where it appears in the *On
+the drawing board* strip at the top — always marked as not flight-ready, both
+there and on the Codex rail.
+
 ## Ship artwork
 
 Ship cards show the ship's own artwork from the RSI website, matched by ship

@@ -322,7 +322,39 @@
         "body": "Kein kommendes Schiff passt zu Suche und Filter — Suchbegriff kürzen oder Favoritenfilter lösen."
       },
       "laneSub": "Von RSI angekündigt, in unseren Spieldaten noch ohne Eintrag",
-      "laneAll": "Alle {{count}} ansehen"
+      "laneAll": "Alle {{count}} ansehen",
+      "conceptBadge": "Konzept",
+      "notFlightReady": "Noch nicht flugfähig"
+    },
+    "upcomingDetail": {
+      "back": "Zurück zum Codex",
+      "facts": "Aus der RSI-Schiffsmatrix",
+      "fact": {
+        "manufacturer": "Hersteller",
+        "type": "Typ",
+        "focus": "Rolle",
+        "status": "Status"
+      },
+      "notice": {
+        "concept": "RSI hat dieses Schiff angekündigt, gebaut wird es noch — im Spiel ist es nicht flugfähig. Deshalb gibt es hier keine Hardpoints, Komponenten oder Werte.",
+        "flightReady": "RSI führt dieses Schiff als flugbereit, in unseren dataminten Spieldaten fehlt es aber noch — die Werte kommen mit einem der nächsten Build-Uploads."
+      },
+      "watch": {
+        "off": "Für die Flotte merken",
+        "on": "Für die Flotte gemerkt",
+        "hint": "Gemerkte Schiffe landen oben in deinem Hangar, markiert als noch nicht flugfähig.",
+        "inHangar": "Im Hangar ansehen"
+      },
+      "rsiLink": "Auf robertsspaceindustries.com ansehen",
+      "noData": {
+        "title": "Warum stehen hier keine Werte?",
+        "body": "Unser Codex wird aus den Daten des Live-Builds gebaut. Solange dieses Schiff nicht im Spiel ist, gibt es nichts zu extrahieren — sobald es landet, bekommt es automatisch seinen vollen Codex-Eintrag.",
+        "browse": "Alle angekündigten Schiffe"
+      },
+      "notFound": {
+        "title": "Angekündigtes Schiff nicht gefunden",
+        "body": "Dieses Schiff steht nicht mehr in der RSI-Schiffsmatrix — entweder ist es inzwischen im Spiel gelandet und hat einen richtigen Codex-Eintrag, oder RSI hat den Eintrag entfernt."
+      }
     },
     "categoriesAria": "Codex-Kategorien",
     "soon": "Kommt bald — noch keine Daten extrahiert.",
@@ -2013,6 +2045,12 @@
         "text": "Pinne Schiffe und Komponenten nebeneinander und vergleiche die Zahlen, die zählen."
       },
       "cta": "Anmelden und Hangar öffnen"
+    },
+    "drawingBoard": {
+      "title": "Auf dem Reißbrett",
+      "note": "Gemerkte Schiffe — noch nicht flugfähig",
+      "browse": "Reißbrett öffnen",
+      "empty": "Du hast dir noch kein angekündigtes Schiff für die Flotte gemerkt."
     },
     "concept": {
       "title": "Concept-Wunschliste",

@@ -336,6 +336,29 @@ export class UpcomingShipsService {
   }
 
   /**
+   * The announced ship carrying this feed id, or `null`.
+   *
+   * Ids come straight from RSI's ship-matrix and fall back to the normalized
+   * NAME when the matrix omits one, so a bookmarked `/codex/upcoming/:id` url
+   * can outlive the id it was minted from. The normalized-name second chance
+   * keeps those links resolving; `null` therefore means "genuinely gone from
+   * the matrix", which the detail page renders as an honest empty state rather
+   * than an error.
+   */
+  shipById(id: string): UpcomingShip | null {
+    if (!id) return null;
+    const ships = this.feed()?.ships ?? [];
+    return ships.find((s) => s.id === id) ?? this.shipByName(id);
+  }
+
+  /** The announced ship whose name matches `name` (normalized), or `null`. */
+  shipByName(name: string | null | undefined): UpcomingShip | null {
+    const norm = normalizeShipName(name ?? '');
+    if (!norm) return null;
+    return (this.feed()?.ships ?? []).find((s) => normalizeShipName(s.name) === norm) ?? null;
+  }
+
+  /**
    * Ordered RSI artwork candidates for an ingested game ship, matched on its
    * localized name. Empty when the feed is not loaded yet or the matrix has no
    * counterpart — the caller keeps its own placeholder in that case.
