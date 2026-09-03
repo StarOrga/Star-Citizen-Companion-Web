@@ -2403,7 +2403,11 @@
       "threadCollapse": "Ältere Nachrichten wieder ausblenden",
       "kindEmptyTitle": "Hier ist gerade nichts",
       "kindEmptyHint": "{{count}} Thema/Themen warten unter „Alle\".",
-      "kindShowAll": "Alle zeigen"
+      "kindShowAll": "Alle zeigen",
+      "swipeHint": "Tipp: Karte nach links wischen zum Überspringen, nach rechts für die Entscheidung.",
+      "swipeSkip": "Überspringen",
+      "swipeDone": "Erledigt",
+      "swipeAccept": "Abnehmen"
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",

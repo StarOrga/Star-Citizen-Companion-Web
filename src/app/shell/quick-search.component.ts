@@ -261,6 +261,26 @@ const PER_KIND_LIMIT = 6;
       .trigger:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 8px; }
       .trigger-icon { width: 26px; height: 26px; stroke-width: 1.9; }
       .qs-kind { width: auto; }
+
+      /* The overlay becomes a full-screen sheet (admin feedback 3bc01a3d).
+         Docked, it spent 12vh (97px on a 812px-tall phone) on an empty strip
+         above the field, 32px on side insets and another 2px + 8px radius on a
+         card frame drawn INSIDE a backdrop that is already a frame — while the
+         result rows below it were cut off at 70vh. None of that buys anything
+         on a screen the panel could simply own. */
+      .overlay { padding: 0; }
+      .panel {
+        max-width: none;
+        max-height: none;
+        height: 100%;
+        padding: var(--sc-pad-2);
+        border-radius: 0;
+        border-inline-width: 0;
+        border-block-width: 0;
+      }
+      /* With the whole screen to fill, the rows can breathe instead of being
+         pressed into 70vh: the list is the scroll port now. */
+      .qs-results { flex: 1 1 auto; }
     }
   `],
 })
