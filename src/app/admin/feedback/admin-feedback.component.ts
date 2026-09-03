@@ -833,7 +833,12 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                  until an admin looked at the result and decided, instead of
                  dropping into the archive unseen (migration 20260729130000). -->
             @if (inReview(m)) {
-              <section class="review-gate sc-nest">
+              <!-- sc-nest--rule, not the plain band: this box carries a
+                   3px green left edge that says "a decision is wanted here",
+                   and the plain de-nesting would drop exactly that edge. The
+                   rule variant keeps an inline-start border and gives up the
+                   other three. -->
+              <section class="review-gate sc-nest sc-nest--rule">
                 <div class="rg-head">
                   <span class="rg-badge">{{ 'adminFeedback.status.review' | translate }}</span>
                   <span class="rg-title">
