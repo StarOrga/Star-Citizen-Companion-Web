@@ -304,6 +304,7 @@ const ADVANCE_SLIDE_MS = 380;
                 <p class="rv-hint">{{ 'adminFeedback.review.reopenHint' | translate }}</p>
                 <div class="wf-compose">
                   <sc-feedback-composer
+                    [allowFiles]="true"
                     [compact]="true"
                     [draftScope]="reopenScope(item.row.id)"
                     [busy]="busy()"
@@ -344,6 +345,7 @@ const ADVANCE_SLIDE_MS = 380;
             } @else {
               <div class="wf-compose">
                 <sc-feedback-composer
+                  [allowFiles]="true"
                   [compact]="true"
                   [draftScope]="answerScope(item.row.id)"
                   [busy]="busy()"

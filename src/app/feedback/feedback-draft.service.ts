@@ -401,11 +401,11 @@ export class FeedbackDraftService {
    * Returns null when the upload fails — the image then lives in the composer
    * only, is still sent normally, and just does not survive a reload.
    */
-  async uploadAttachment(image: PendingImage): Promise<string | null> {
+  async uploadAttachment(image: PendingImage, allowFiles = false): Promise<string | null> {
     const uid = this.uid;
     if (!uid) return null;
     try {
-      const [url] = await uploadFeedbackImages(this.sb.client, uid, [image]);
+      const [url] = await uploadFeedbackImages(this.sb.client, uid, [image], allowFiles);
       return url ?? null;
     } catch {
       return null;

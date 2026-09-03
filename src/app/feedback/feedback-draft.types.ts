@@ -14,6 +14,12 @@ export interface DraftImageRef {
   id: string;
   name: string;
   url: string;
+  /**
+   * MIME type of the attachment. Absent means image — every draft written
+   * before admins could attach arbitrary files (admin feedback 312a4acc) has no
+   * such field, and must keep restoring as the image it is.
+   */
+  mime?: string;
 }
 
 /** A stored draft, as the app works with it. */
@@ -91,12 +97,13 @@ export function normalizeDraftImages(raw: unknown): DraftImageRef[] {
   const out: DraftImageRef[] = [];
   for (const entry of raw) {
     if (!entry || typeof entry !== 'object') continue;
-    const { id, name, url } = entry as Partial<DraftImageRef>;
+    const { id, name, url, mime } = entry as Partial<DraftImageRef>;
     if (typeof url !== 'string' || !url) continue;
     out.push({
       id: typeof id === 'string' && id ? id : crypto.randomUUID(),
       name: typeof name === 'string' ? name : 'image',
       url,
+      ...(typeof mime === 'string' && mime ? { mime } : {}),
     });
   }
   return out;

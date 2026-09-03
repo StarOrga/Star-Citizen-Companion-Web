@@ -18,6 +18,21 @@ import type { PendingImage } from '../admin/feedback/feedback-composer.component
 /** Storage bucket backing feedback screenshot attachments. */
 export const FEEDBACK_IMAGES_BUCKET = 'feedback-images';
 
+/**
+ * True for anything the app renders as a picture rather than as a file link.
+ *
+ * Lives here rather than next to `PendingImage` on purpose: this module is
+ * imported by the draft service, which the composer imports in turn, so a VALUE
+ * exported from the composer and used here would close a real runtime import
+ * cycle. The `PendingImage` type above is fine — types are erased.
+ */
+export function isImageAttachment(att: Pick<PendingImage, 'mime'>): boolean {
+  return !att.mime || att.mime.startsWith('image/');
+}
+
+/** Thrown when a non-admin tries to send something that is not an image. */
+export const ATTACHMENT_TYPE_BLOCKED = 'attachment-type-not-allowed';
+
 /** File extension for a known image MIME type (JPEG is the compressed default). */
 function extForType(mime: string): string {
   switch (mime) {
@@ -26,6 +41,38 @@ function extForType(mime: string): string {
     case 'image/webp': return 'webp';
     default: return 'jpg';
   }
+}
+
+/**
+ * Extension for a non-image attachment, taken from the file name rather than
+ * guessed from the MIME type — the name is what the admin will recognise in the
+ * thread, and `application/octet-stream` maps to nothing useful. Restricted to
+ * a conservative character set because it becomes part of a storage object path.
+ */
+function extForName(name: string, fallback: string): string {
+  const dot = name.lastIndexOf('.');
+  const raw = dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
+  return /^[a-z0-9]{1,8}$/.test(raw) ? raw : fallback;
+}
+
+/**
+ * The role gate for attachments (admin feedback 312a4acc), applied at the one
+ * place every send path funnels through.
+ *
+ * Viewers and collaborators may attach IMAGES ONLY. This is not merely a
+ * nicer-looking file picker: the composer's `accept` attribute is a hint the
+ * browser is free to ignore and a drag-and-drop bypasses it entirely, so the
+ * rule has to exist somewhere that is not the picker. The storage policy in
+ * migration 20260903193000 is the authoritative copy — this one turns the same
+ * refusal into an error the user can read before a request is even made.
+ */
+export function assertAttachmentsAllowed(
+  images: readonly PendingImage[],
+  allowFiles: boolean,
+): void {
+  if (allowFiles) return;
+  if (images.every((img) => isImageAttachment(img))) return;
+  throw new Error(ATTACHMENT_TYPE_BLOCKED);
 }
 
 /** Decode a `data:<mime>;base64,<data>` URI into a Blob for upload. */
@@ -51,7 +98,9 @@ export async function uploadFeedbackImages(
   client: SupabaseClient,
   uid: string | null,
   images: readonly PendingImage[],
+  allowFiles = false,
 ): Promise<string[]> {
+  assertAttachmentsAllowed(images, allowFiles);
   if (!uid || images.length === 0) return [];
   const bucket = client.storage.from(FEEDBACK_IMAGES_BUCKET);
   const urls: string[] = [];
@@ -60,9 +109,15 @@ export async function uploadFeedbackImages(
       urls.push(img.url);
       continue;
     }
-    const blob = dataUrlToBlob(img.dataUrl);
-    const path = `${uid}/${crypto.randomUUID()}.${extForType(blob.type)}`;
-    const { error } = await bucket.upload(path, blob, { contentType: blob.type, upsert: false });
+    // A non-image attachment (admins only) keeps its original bytes and its own
+    // extension; an image is the re-encoded data URI the composer produced.
+    const blob = img.file ?? dataUrlToBlob(img.dataUrl);
+    const ext = isImageAttachment(img)
+      ? extForType(blob.type)
+      : extForName(img.name, 'bin');
+    const path = `${uid}/${crypto.randomUUID()}.${ext}`;
+    const contentType = blob.type || img.mime || 'application/octet-stream';
+    const { error } = await bucket.upload(path, blob, { contentType, upsert: false });
     if (error) throw new Error(error.message);
     urls.push(bucket.getPublicUrl(path).data.publicUrl);
   }
@@ -81,12 +136,23 @@ export function feedbackImagePath(url: string): string | null {
   return path ? decodeURIComponent(path) : null;
 }
 
-/** Compose the stored body: text with any uploaded images appended as markdown. */
+/**
+ * Compose the stored body: text with any uploaded attachments appended as
+ * markdown.
+ *
+ * Images become `![name](url)`, which `renderFeedbackBody` lifts out into the
+ * thumbnail row. A non-image attachment becomes a plain `[name](url)` link, so
+ * it rides in the text flow as a real anchor the reader can open — there is no
+ * thumbnail to show for a log file, and inventing one would be a lie about what
+ * is behind it.
+ */
 export function buildFeedbackBody(
   text: string,
   images: readonly PendingImage[],
   urls: readonly string[],
 ): string {
-  const imgMd = urls.map((url, i) => `![${images[i].name}](${url})`).join('\n\n');
+  const imgMd = urls
+    .map((url, i) => (isImageAttachment(images[i]) ? `![${images[i].name}](${url})` : `[${images[i].name}](${url})`))
+    .join('\n\n');
   return [text, imgMd].filter((s) => s.length > 0).join('\n\n');
 }

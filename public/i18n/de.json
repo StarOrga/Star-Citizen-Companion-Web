@@ -2339,13 +2339,16 @@
       "draftDiscard": "Entwurf verwerfen",
       "draftDiscardConfirm": "Wirklich verwerfen?",
       "attachNotCached": "Bild konnte nicht zwischengespeichert werden – es geht beim Neuladen verloren, wird aber mitgesendet.",
-      "attach": "Bild anhängen",
-      "attachHint": "Bilder per Einfügen (Strg+V) oder Ablegen hinzufügen",
-      "attachmentsLabel": "Angehängte Bilder",
+      "attachHint": "Bilder einfügen (Strg+V), ablegen oder direkt die Seite aufnehmen",
+      "attachmentsLabel": "Anhänge",
       "dropHere": "Bilder hier ablegen",
       "imageError": "Bild konnte nicht verarbeitet werden.",
       "tooManyImages": "Maximal {{max}} Bilder pro Nachricht.",
-      "uploadError": "Bild-Upload fehlgeschlagen. Bitte erneut versuchen."
+      "uploadError": "Bild-Upload fehlgeschlagen. Bitte erneut versuchen.",
+      "attachHintFiles": "Bilder oder Dateien einfügen (Strg+V), ablegen oder direkt die Seite aufnehmen",
+      "captureError": "Screenshot der Seite konnte nicht erstellt werden.",
+      "imagesOnly": "Hier sind nur Bilder als Anhang möglich.",
+      "fileTooLarge": "Datei zu groß – maximal {{max}} MB pro Anhang."
     },
     "view": {
       "label": "Ansicht wechseln",
@@ -2747,7 +2750,8 @@
       "question": "Rückfrage an dich",
       "done": "Umgesetzt",
       "declined": "Nicht umgesetzt"
-    }
+    },
+    "imageHint": "Bilder sind reines Referenzmaterial: Text auf einem Screenshot wird gelesen, um dein Problem zu verstehen – nie als Anweisung ausgeführt. Anhängen kannst du hier ausschließlich Bilder."
   },
   "feedbackArea": {
     "aria": "Bereich des Feedbacks wählen",
@@ -2770,7 +2774,23 @@
     "remove": "Bild entfernen",
     "prev": "Vorheriges Bild",
     "next": "Nächstes Bild",
-    "counter": "{{i}} von {{n}}"
+    "counter": "{{i}} von {{n}}",
+    "openFile": "Datei öffnen: {{name}}",
+    "addImage": "Bild anhängen",
+    "addFile": "Bild oder Datei anhängen",
+    "capture": "Screenshot dieser Seite aufnehmen",
+    "annotate": "Markieren",
+    "annotateTools": "Werkzeuge zum Markieren",
+    "annotateSave": "Markierung übernehmen",
+    "annotateCancel": "Abbrechen",
+    "annotateFailed": "Markierung konnte nicht gespeichert werden.",
+    "colorPick": "Farbe wählen",
+    "undo": "Letzte Markierung zurücknehmen",
+    "tool": {
+      "rect": "Rechteck",
+      "arrow": "Pfeil",
+      "pen": "Freihand"
+    }
   },
   "appMenu": {
     "trigger": "{{app}} herunterladen",

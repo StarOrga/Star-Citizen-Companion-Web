@@ -830,6 +830,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
             }
             <div class="reply-compose">
               <sc-feedback-composer
+                [allowFiles]="true"
                 [compact]="true"
                 [draftScope]="threadScope(m.id)"
                 [busy]="busy()"
@@ -884,6 +885,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                     {{ 'adminFeedback.userTopic.asQuestion' | translate }}
                   </label>
                   <sc-feedback-composer
+                    [allowFiles]="true"
                     [compact]="true"
                     [draftScope]="authorScope(m.id)"
                     [busy]="busy()"
@@ -999,6 +1001,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       @if (view() === 'overview') {
         @if (!embedded()) {
           <sc-feedback-composer
+            [allowFiles]="true"
             class="main-composer"
             [draftScope]="draftScope"
             [busy]="busy()"
@@ -1017,6 +1020,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                 [attr.aria-label]="'adminFeedback.compose.collapse' | translate">✕</button>
             </div>
             <sc-feedback-composer
+              [allowFiles]="true"
               [draftScope]="draftScope"
               [busy]="busy()"
               [areaPicker]="true"
@@ -2851,7 +2855,11 @@ export class AdminFeedbackComponent implements OnInit {
    * panel (feedback 5920cf8c) attaches screenshots through the exact same path.
    */
   private uploadImages(images: PendingImage[]): Promise<string[]> {
-    return uploadFeedbackImages(this.sb.client, this.selfId(), images);
+    // `true` = the admin board may carry any file type (admin feedback
+    // 312a4acc). Every non-admin send path leaves the flag at its default and
+    // is refused a non-image before a request is made; the storage policy in
+    // migration 20260903193000 refuses it again server-side.
+    return uploadFeedbackImages(this.sb.client, this.selfId(), images, true);
   }
 
   private buildBody(text: string, images: PendingImage[], urls: string[]): string {
