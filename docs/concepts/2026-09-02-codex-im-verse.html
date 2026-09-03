@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="dark" data-page-version="2026-09-02T10:00:00" data-template="design">
+<html lang="de" data-theme="dark" data-page-version="2026-09-02T10:00:00" data-template="free">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2537,7 +2537,10 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
 
       </section>
 
-      <section data-iteration="3" data-iteration-template="design" data-active>
+      <section data-iteration="3" data-iteration-template="design" hidden>
+        <script type="application/json" data-frozen-feedback>
+{"general":"","designs":{"e-fuss":"Das finde ich am besten"},"screens":{}}
+        </script>
         <header class="iteration-intro">
           <h2>Iteration 3 · „Im Verse" fällt weg — der Archiv-Zugang zieht in die beiden Zonen</h2>
           <p><strong>Dein Votum zu Ⓒ:</strong> „dies finde ich am besten! … am Mann und am Schiff in die oberen Panel integrieren als Schnellzugang, dezent, Prio 3 … Baupläne bei beiden rein, mit Subfilterung im Subview … dann holen wir Im Verse komplett raus!"</p>
@@ -2848,6 +2851,101 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
 
       </section>
 
+      <section data-iteration="4" data-iteration-template="free" data-final-report data-active>
+        <header class="iteration-intro">
+          <h2>Abschlussbericht · Ⓔ ist gebaut — „Im Verse" gibt es nicht mehr</h2>
+          <p>Iteration 3 kam mit <strong>Mit Feedback implementieren</strong> zurück („Das finde ich am besten" zu Ⓔ). Umgesetzt auf dem aktuellen <code>main</code> (Basis <code>dcf4619</code>, inkl. AN BORD ⇄ IM HANGAR-Umschalter). Commit <code>f28bffc</code> auf <code>claude/devops-design-rethink-93d471</code>. Dein Chat-Auftrag „ship und promote stable" läuft im Anschluss über die Ship-Pipeline — der Wizard rechts ist dafür nicht mehr nötig.</p>
+        </header>
+
+<style>
+[data-iteration="4"] section[id] { margin: 2rem 0 0; padding-top: 1.2rem; border-top: 1px solid var(--border-subtle); }
+[data-iteration="4"] section[id] > h3 { font-size: 1.05rem; margin-bottom: .4rem; }
+[data-iteration="4"] .fr-note { font-size: .88rem; line-height: 1.65; color: var(--text-secondary); max-width: 82ch; margin: .3rem 0; }
+[data-iteration="4"] .fr-note strong, [data-iteration="4"] .fr-note code { color: var(--text-primary); }
+[data-iteration="4"] .fr-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .6rem; margin: 1rem 0 0; max-width: 900px; }
+[data-iteration="4"] .fr-fact { border: 1px solid var(--border-default); border-radius: 4px; background: var(--surface-panel); padding: .7rem .9rem; display: flex; flex-direction: column; gap: .2rem; }
+[data-iteration="4"] .fr-fact strong { font-family: var(--font-display); font-size: 1.1rem; color: var(--accent-strong); }
+[data-iteration="4"] .fr-fact span { font-size: .78rem; color: var(--text-secondary); }
+[data-iteration="4"] ul.fr-list { line-height: 1.75; font-size: .86rem; color: var(--text-secondary); max-width: 90ch; padding-left: 1.2rem; }
+[data-iteration="4"] ul.fr-list code, [data-iteration="4"] ul.fr-list strong { color: var(--text-primary); }
+[data-iteration="4"] .open-questions-list { display: flex; flex-direction: column; gap: .5rem; max-width: 90ch; }
+[data-iteration="4"] .open-questions-list label { display: flex; gap: .6rem; align-items: flex-start; font-size: .86rem; line-height: 1.5; padding: .5rem .7rem; border: 1px solid var(--border-subtle); border-radius: 4px; background: var(--surface-panel); cursor: pointer; }
+[data-iteration="4"] .open-questions-list input { margin-top: .25rem; flex: none; }
+[data-iteration="4"] .open-questions-list input:disabled + .oq-label { opacity: .7; }
+</style>
+
+        <section id="fr-summary" data-nav-label="Zusammenfassung">
+          <h3>Zusammenfassung</h3>
+          <p class="fr-note">Die <strong>dritte Ebene ist weg</strong>: kein Eyebrow „Im Versum", keine sieben Chips, kein Reißbrett-Band unter der Fläche — die Startseite endet mit dem Umschalter. Der Archiv-Zugang ist in die beiden Zonen gezogen: <strong>AN BORD</strong> und <strong>IM HANGAR</strong> enden je mit einer ruhigen Zeile <em>„Archiv › Rüstung · Waffen · Baupläne"</em> bzw. <em>„Archiv › Schiffe · Komponenten · Waffen · Baupläne"</em> — Beschriftungs-Schrift, gedämpft, Haarlinie darüber, Chevron in der Zonenfarbe, echte Anker mit vorbelegtem Filter. Zahlen nur dort, wo das Archiv sie schon liefert (Schiffe, Komponenten); für die aufgeteilten Waffen und Baupläne keine, damit keine Summe lügt.</p>
+          <p class="fr-note">Die <strong>Tastenbelegungen</strong> sitzen jetzt als Werkzeug-Icon in der Terminal-Zeile oben. Der Index versteht <code>?group=fps|vehicle</code> für Baupläne (FPS-Rüstung + FPS-Waffen bzw. Fahrzeug-Komponenten + Fahrzeug-Waffen) mit einem Segment-Schalter <em>Alle · Zu Fuß · Fahrzeug</em>, und <code>?weaponClass=</code> als Preset für den Hangar-Waffen-Link.</p>
+          <div class="fr-facts">
+            <div class="fr-fact"><strong>0</strong><span>Ebenen unter der Fläche (vorher 1)</span></div>
+            <div class="fr-fact"><strong>2 × 1</strong><span>Archiv-Zeilen, je Zone genau eine</span></div>
+            <div class="fr-fact"><strong>1888</strong><span>Tests grün, Typecheck grün, Build grün</span></div>
+            <div class="fr-fact"><strong>1</strong><span>Farbe pro Zone — keine Kategoriefarben mehr</span></div>
+          </div>
+        </section>
+
+        <section id="fr-files" data-nav-label="Geänderte Dateien">
+          <h3>Geänderte Dateien</h3>
+          <ul class="fr-list">
+            <li><code>src/app/codex/codex-landing.component.ts</code> — Versum-Sektion, Chip-Leiste, Reißbrett-Band und ihre Styles/Computeds entfernt; <code>&lt;nav class="zone-archive"&gt;</code> als letztes Kind beider Umschalter-Zonen; Keybinds-Icon in <code>header.terminal</code>.</li>
+            <li><code>src/app/codex/codex-landing.component.spec.ts</code> — Assertions auf die Archiv-Zeilen (echte Anker mit Query-Strings), Keybinds im Terminal, kein <code>.versum</code>/<code>.domain-strip</code>/<code>.upcoming-rail</code>.</li>
+            <li><code>src/app/codex/codex-list.component.ts</code> — Bauplan-Gruppe (<code>blueprintCategoriesForGroup</code>, Segment-Schalter), <code>applyRouteFacets()</code> liest <code>group</code> und <code>weaponClass</code>; Waffen-Taxonomie aus #470 unangetastet.</li>
+            <li><code>src/app/codex/codex-list.component.spec.ts</code> — <code>group=fps</code> → <code>blueprintCategoryIn</code>.</li>
+            <li><code>src/app/codex/codex.service.ts</code> — <code>blueprintCategoryIn</code>-Filter (<code>.in('category', …)</code>) für Baupläne.</li>
+            <li><code>public/i18n/{de,en}.json</code> — <code>codex.landing.versum.*</code> entfernt; <code>codex.landing.archive.*</code>, <code>codex.landing.terminal.keybinds</code>, <code>codex.filters.blueprintGroup</code>, <code>blueprint.group.*</code> neu.</li>
+            <li><code>docs/concepts/2026-09-02-codex-im-verse*</code>, <code>.claude/rethink/2026-09-02-codex-im-verse/</code> — Design-Akte (Dossier, Brief, Approaches, Codebase-Facts, Decision, Briefing) mit eingecheckt.</li>
+          </ul>
+        </section>
+
+        <section id="fr-tests" data-nav-label="Tests &amp; Verifikation">
+          <h3>Tests &amp; Verifikation</h3>
+          <ul class="fr-list">
+            <li><strong>npm run typecheck — 0 Fehler</strong> (nachdem <code>@types/three</code> aus #481 nachinstalliert war — die geteilten node_modules waren stale).</li>
+            <li><strong>npm test — 1888 SUCCESS, 0 FAILED</strong>; Landing-Spec zusätzlich isoliert 25/25, List-Spec 26/26 nach dem neuen Gruppen-Test.</li>
+            <li><strong>npm run build — grün</strong> (Application bundle generation complete); <code>release-notes.json</code> aus dem Prebuild verworfen, nicht committet.</li>
+            <li><strong>Mobile-Gate</strong> läuft in der Ship-Pipeline gegen das frische <code>dist/</code>.</li>
+            <li><strong>Nicht verifiziert:</strong> die Zonen im laufenden Browser mit eingeloggter Session — <code>/codex</code> liegt hinter <code>authGuard</code>; Struktur über DOM-Assertions geprüft.</li>
+            <li><strong>Prozess-Befund:</strong> der Worktree war während der Umsetzung still auf ein neueres <code>origin/main</code> synchronisiert (u. a. Umschalter #463). Branch hart auf <code>dcf4619</code> gesetzt, Änderungen als Patch wieder aufgelegt — die Mockups aus Iteration 3 zeigen noch die alte Zwei-Spalten-Fläche, die Umsetzung folgt dem Umschalter.</li>
+          </ul>
+        </section>
+
+        <section id="fr-open" data-nav-label="Offene Punkte" data-open-questions>
+          <h3>Offene Fragen &amp; TODOs</h3>
+          <p class="fr-note">Deine Ⓗ-Fragen blieben unbeantwortet; ich habe die Defaults gewählt, die Ⓔ zeigt (Seite endet mit der Fläche). Standardmäßig angehakt — abwählen, was nicht als Issue laufen soll.</p>
+          <div class="open-questions-list">
+            <label><input type="checkbox" checked name="oq-upcoming-rail"
+              data-issue-title="Reißbrett-Rail (angekündigte Schiffe) auf der Codex-Startseite: zurück in IM HANGAR oder bleibt es bei /codex/upcoming?"
+              data-issue-type="feature"
+              data-issue-body="Mit dem Wegfall der Im-Versum-Ebene (Concept 2026-09-02, Entscheidung E) ist die horizontale Rail der angekuendigten Schiffe von der Startseite verschwunden; sie bleibt ueber /codex/upcoming und die Index-Kategorie erreichbar. Der Badge 'N neue Schiffe seit deinem letzten Besuch' (UpcomingShipsService.notificationCount) hat damit keinen Ort mehr auf der Startseite. Entscheiden: (a) leise Zeile unter der Flotte in IM HANGAR, (b) eigene ruhige Zeile unter der Flaeche, (c) bleibt weg. Nichts davon war Teil von E."><span class="oq-label">Reißbrett-Rail: zurück unter die Flotte oder weg von der Startseite?</span></label>
+            <label><input type="checkbox" checked name="oq-patch-delta"
+              data-issue-title="Leise Patch-Delta-Zeile im Status-Pill der Codex-Startseite"
+              data-issue-type="feature"
+              data-issue-body="In Runde 1 des Concepts 2026-09-02 gewuenscht: eine leise Zeile 'seit Patch X: +N Schiffe, +N Eintraege'. CodexService.recentLiveBuilds(2) liefert bereits die zwei juengsten LIVE-Builds inklusive entityCounts, das Delta ist reine Arithmetik und rendert bei weniger als zwei Builds nichts. Mit dem Wegfall der dritten Ebene blieb sie ohne Platz; naheliegender Ort ist der Status-Pill in der Terminal-Zeile (dort steht die Patch-Nummer schon). Nie erfundene Zahlen, keine neue Datenquelle."><span class="oq-label">Patch-Delta („+N Schiffe seit 4.x") in den Status-Pill</span></label>
+            <label><input type="checkbox" checked name="oq-archive-entry"
+              data-issue-title="Ungefilterter Archiv-Einstieg in der Terminal-Zeile"
+              data-issue-type="feature"
+              data-issue-body="Es gibt keinen Weg zu /codex/index ohne vorbelegte Domaene (Runde 1, Concept 2026-09-02: 'Archiv-Einstieg ja'). Die Archiv-Zeilen der Zonen sind alle vorgefiltert. Vorschlag: ein kleiner 'Archiv >'-Link in der Terminal-Zeile neben dem Keybinds-Icon, der den Index ohne kind oeffnet; pruefen, ob codex-list ohne kind sinnvoll rendert (heute Default ship)."><span class="oq-label">„Archiv ›" ohne Filter neben dem Terminal</span></label>
+            <label><input type="checkbox" checked name="oq-fps-counts"
+              data-issue-title="Zahlen an den Archiv-Links für Rüstung und FPS-Waffen"
+              data-issue-type="chore"
+              data-issue-body="Die Archiv-Zeile in AN BORD zeigt fuer Ruestung / Waffen / Bauplaene keine Zahlen, weil entityCounts nur Familien-Totale kennt (items, weapons) und eine Summe nach der FPS/Schiff-Aufteilung luegen wuerde. fps-list.component.ts holt seine Kategorie-Zaehler ueber listFpsArmor/listFpsWeapons (res.count) — dieselben Aufrufe koennten die Landing einmal mit limit 0 nutzen. Kein neuer Endpunkt; nur real gelieferte Zahlen anzeigen."><span class="oq-label">Zahlen für Rüstung / FPS-Waffen an der Archiv-Zeile (vorhandene Count-Abfragen)</span></label>
+            <label><input type="checkbox" checked name="oq-visual-login"
+              data-issue-title="Visuelle Verifikation der Codex-Startseite (Archiv-Zeilen im Umschalter) mit eingeloggter Session"
+              data-issue-type="chore"
+              data-issue-body="Die Archiv-Zeilen in AN BORD und IM HANGAR (Concept 2026-09-02, E) sind ueber Unit-Specs und den Production-Build geprueft, aber nie mit einer echten eingeloggten Session gesehen worden — /codex liegt hinter authGuard, das Mobile-Gate laeuft dort gegen die Login-Wand. Sichten: Desktop (Umschalter beide Zustaende, Zeile bleibt unten, kein Ueberlauf im scrollenden Zonen-Inhalt) und 390px (Zeile bricht zweizeilig, Tap-Ziele >= 48px). Screenshots anhaengen."><span class="oq-label">Visuelle Verifikation mit eingeloggter Session nachholen</span></label>
+          </div>
+        </section>
+
+        <section id="fr-next" data-nav-label="Nächste Schritte">
+          <h3>Nächste Schritte</h3>
+          <p class="fr-note">Auf deinen Chat-Auftrag hin läuft jetzt die <strong>Ship-Pipeline</strong> (Preflight, Build, Mobile-Gate, Version-Bump, Release/Merge) und danach die <strong>Promotion auf stable</strong>. Der Wizard rechts kann zusätzlich die offenen Punkte als Issues anlegen; die Concept-Dateien sind bereits im Commit — „Im Projekt behalten" ist damit der passende Zustand.</p>
+        </section>
+      </section>
+
+
+
 
 
 
@@ -2878,7 +2976,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
     <nav class="iteration-tabs" role="tablist" aria-label="Iterationen">
       <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Iteration 1</button>
       <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Iteration 2</button>
-      <button class="iteration-tab" role="tab" data-iteration="3" aria-selected="true" aria-controls="iter-3">Iteration 3</button>
+      <button class="iteration-tab" role="tab" data-iteration="3" aria-selected="false" aria-controls="iter-3">Iteration 3</button>
+      <button class="iteration-tab" role="tab" data-iteration="4" data-final-report aria-selected="true" aria-controls="iter-4">Abschlussbericht</button>
     </nav>
     <nav class="screen-nav" id="screen-nav" aria-label="Screens">
       <!-- auto-populated (design iterations) -->

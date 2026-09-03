@@ -37,7 +37,11 @@
   {
     "iteration": 3,
     "template": "design",
-    "status": "open",
+    "status": "submitted",
+    "action": "implement",
+    "submitted_at": "2026-09-03T15:50:23Z",
+    "feedback": { "e-fuss": "Das finde ich am besten" },
+    "outcome": "Ⓔ implemented on origin/main dcf4619 → commit f28bffc (typecheck clean, 1888 tests, build green); final report appended as iteration 4; ship + promote stable requested by the owner in chat",
     "designs": {
       "e-fuss": "Fußzeile je Zone — prio-3 footer line with quiet counts in AN BORD and IM HANGAR",
       "f-kopf": "Kopfzeile rechts — quick access on the eyebrow line, no counts",
