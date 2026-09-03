@@ -6,6 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -13,9 +14,17 @@ import { AuthService } from '../auth/auth.service';
 import { isValidRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 import { CodexListRow, CodexService, pickLocalized } from '../codex/codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
+import { CodexCategoryIconComponent } from '../codex/codex-category-icon.component';
+import { FallbackImageComponent } from '../codex/fallback-image.component';
+import {
+  UpcomingShip,
+  UpcomingShipsService,
+  thumbnailCandidates,
+} from '../codex/upcoming-ships.service';
 import { HangarImportComponent } from './hangar-import.component';
 import { HangarService } from './hangar.service';
 import {
+  ConceptShip,
   HangarShip,
   ROLE_LOADOUT_ROLES,
   RoleLoadoutRole,
@@ -32,7 +41,16 @@ const SEARCH_DEBOUNCE_MS = 250;
 @Component({
   selector: 'sc-hangar-dashboard',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslateModule, HangarImportComponent],
+  imports: [
+    NeuroFieldDirective,
+    NgTemplateOutlet,
+    FormsModule,
+    RouterLink,
+    TranslateModule,
+    HangarImportComponent,
+    CodexCategoryIconComponent,
+    FallbackImageComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -105,6 +123,60 @@ const SEARCH_DEBOUNCE_MS = 250;
           }
         </div>
       }
+
+      <!-- "Auf dem Reissbrett" — the announced ships this user watches (#130).
+           The wishlist itself is the #135 hangar_concept_ships table; this is
+           its entrance at the TOP of the hangar, where the admin asked for it,
+           while the add/remove form stays in the section further down. Every
+           tile is a real anchor: into our own announced-ship page when the RSI
+           feed still knows the hull, otherwise onto the stored pledge link, and
+           a hull with neither renders as a plain (non-navigating) tile rather
+           than a dead link. Always rendered, so a user with an empty watchlist
+           still finds the drawing board from here. -->
+      <section class="drawing-board">
+        <header class="db-head">
+          <h2>{{ 'hangar.drawingBoard.title' | translate }}</h2>
+          <span class="db-note">{{ 'hangar.drawingBoard.note' | translate }}</span>
+          <a class="db-browse" routerLink="/codex/upcoming">{{ 'hangar.drawingBoard.browse' | translate }} →</a>
+        </header>
+
+        @if (hangar.conceptShips().length === 0) {
+          <p class="hint db-empty">{{ 'hangar.drawingBoard.empty' | translate }}</p>
+        } @else {
+          <div class="db-scroll" role="list">
+            @for (c of hangar.conceptShips(); track c.id) {
+              @if (announcedFor(c); as a) {
+                <a class="db-tile" role="listitem" [routerLink]="['/codex/upcoming', a.id]">
+                  <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: conceptArt(c) }" />
+                </a>
+              } @else if (c.rsiUrl) {
+                <a class="db-tile" role="listitem" [href]="c.rsiUrl" target="_blank" rel="noopener noreferrer nofollow">
+                  <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: [] }" />
+                </a>
+              } @else {
+                <div class="db-tile is-static" role="listitem">
+                  <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: [] }" />
+                </div>
+              }
+            }
+          </div>
+        }
+      </section>
+
+      <ng-template #dbBody let-c let-art="art">
+        <span class="db-art" [class.icon-only]="art.length === 0">
+          <sc-fallback-image [candidates]="art" [alt]="c.name">
+            <sc-codex-icon kind="ship" />
+          </sc-fallback-image>
+        </span>
+        <span class="db-caption">
+          @if (c.manufacturer) { <span class="db-mfr">{{ c.manufacturer }}</span> }
+          <span class="db-name">{{ c.name }}</span>
+        </span>
+        <span class="db-wip" [attr.title]="'codex.upcoming.notFlightReady' | translate">
+          {{ 'codex.upcoming.conceptBadge' | translate }}
+        </span>
+      </ng-template>
 
       <!-- Add ship -->
       <div class="sc-card add-ship">
@@ -321,6 +393,71 @@ const SEARCH_DEBOUNCE_MS = 250;
 
     .sc-card h2, .fleet h2, .loadouts h2, .concepts h2 { margin: 0 0 10px; font-size: 1rem; }
 
+    /* "Auf dem Reissbrett" strip (#130) — the watched announced ships, at the
+       top of the hangar. Same art-first tile language as the Codex rail, with
+       its own overflow-x container so the PAGE never scrolls sideways (the
+       mobile gate fails on horizontal page overflow). */
+    .drawing-board { display: flex; flex-direction: column; gap: 8px; }
+    .db-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .db-head h2 { margin: 0; font-size: 1rem; }
+    .db-note { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
+    .db-browse { margin-left: auto; color: var(--sc-accent); text-decoration: none; font-size: max(0.76rem, var(--sc-fs-floor)); }
+    .db-browse:hover { text-decoration: underline; }
+    .db-empty { margin: 0; }
+    .db-scroll {
+      display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden;
+      -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity;
+      padding: 2px 2px 6px; margin: 0 -2px;
+    }
+    .db-tile {
+      position: relative; flex: 0 0 196px; aspect-ratio: 16 / 9;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+      border-radius: 4px; border: 1px solid var(--sc-border);
+      background: radial-gradient(circle at 50% 42%, var(--sc-bg-2), var(--sc-bg-0));
+      color: inherit; text-decoration: none; scroll-snap-align: start;
+      min-height: var(--sc-tap-min, 44px);
+      transition: border-color 0.16s ease, box-shadow 0.16s ease;
+      /* sc-fallback-image owns the <img>; a bleed crop travels as custom
+         properties because they inherit across the component boundary. */
+      --sc-img-w: 100%; --sc-img-h: 100%; --sc-img-max-h: 100%;
+      --sc-img-fit: cover; --sc-img-shadow: none;
+    }
+    a.db-tile:hover, a.db-tile:focus-visible {
+      outline: none;
+      border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
+      box-shadow: 0 0 18px color-mix(in srgb, var(--sc-accent) 26%, transparent);
+    }
+    .db-tile.is-static { cursor: default; }
+    .db-art { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    .db-art.icon-only sc-codex-icon { width: 30%; height: 30%; opacity: 0.55; color: var(--sc-accent); transform: translateY(-14%); }
+    .db-caption {
+      position: absolute; inset: auto 0 0 0; display: flex; flex-direction: column; gap: 1px;
+      padding: 16px 10px 8px;
+      background: linear-gradient(to top, rgba(2, 8, 14, 0.92) 0%, rgba(2, 8, 14, 0.72) 46%, transparent 100%);
+    }
+    .db-mfr {
+      font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor));
+      letter-spacing: 0.07em; text-transform: uppercase; line-height: 1.2;
+      color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .db-name {
+      font-size: 0.8rem; font-weight: 600; line-height: 1.15; color: #f2f7fb;
+      overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    /* The "not flight-ready" marker the admin asked for: a small pill in the
+       free corner, tinting rather than covering the render. */
+    .db-wip {
+      position: absolute; top: 6px; left: 6px; padding: 2px 7px; border-radius: 999px;
+      font-family: var(--sc-font-display); font-size: max(0.56rem, var(--sc-fs-floor));
+      font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.35;
+      color: color-mix(in srgb, var(--sc-accent) 88%, #f2f7fb);
+      background: rgba(2, 8, 14, 0.72);
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 42%, transparent);
+      pointer-events: none;
+    }
+
     /* Concept-ship wishlist (#135) */
     .concepts .hint { color: var(--sc-fg-2); font-size: 0.85rem; margin: 0 0 10px; }
     .concept-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -423,6 +560,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 })
 export class HangarDashboardComponent implements OnInit {
   readonly hangar = inject(HangarService);
+  private readonly rsi = inject(UpcomingShipsService);
   readonly auth = inject(AuthService);
   private readonly codex = inject(CodexService);
 
@@ -449,8 +587,30 @@ export class HangarDashboardComponent implements OnInit {
     // Signed-out (#131): the teaser needs no data — and hangar RLS would
     // reject the queries anyway.
     if (!this.auth.user()) return;
+    // The RSI feed is fire-and-forget: it only enriches the drawing-board strip
+    // with artwork and an in-app target, so a dead proxy must not delay (or
+    // fail) the hangar itself. One CDN-cached GET, shared with the Codex.
+    void this.rsi.ensureLoaded();
     await Promise.all([this.hangar.loadAll(), this.codex.loadCurrentBuild()]);
     await this.refreshCards();
+  }
+
+  // ── "Auf dem Reissbrett" strip (#130) ──────────────────────────────────────
+
+  /**
+   * The announced ship behind a watched concept entry, matched on the
+   * normalized name — the only handle a catalog-less hull has. `null` for a
+   * hand-typed entry the RSI matrix does not (or no longer) list; the tile then
+   * falls back to the stored pledge link.
+   */
+  announcedFor(c: ConceptShip): UpcomingShip | null {
+    return this.rsi.shipByName(c.name);
+  }
+
+  /** Ordered RSI art candidates for a watched entry; empty when unmatched. */
+  conceptArt(c: ConceptShip): string[] {
+    const a = this.announcedFor(c);
+    return a ? thumbnailCandidates(a) : [];
   }
 
   cardFor(s: HangarShip): CodexListRow | null {

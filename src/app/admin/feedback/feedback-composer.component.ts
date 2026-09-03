@@ -447,6 +447,15 @@ export class FeedbackComposerComponent implements OnDestroy {
         this.draft.set('');
         this.draftRestored.set(false);
         this.attachments.set([]);
+        // The field is `resize: vertical`, so a drag leaves an inline height
+        // behind. After a send that height belongs to a message that is gone —
+        // hand the empty box back at its natural size instead of an arbitrary
+        // one (admin feedback 18e96ad3).
+        const el = this.ta()?.nativeElement;
+        if (el) {
+          el.style.height = '';
+          el.scrollTop = 0;
+        }
         // Clearing the tag re-arms the picker's auto-detection, so the NEXT
         // topic starts from the page the user is on rather than from the last
         // thing they happened to correct.

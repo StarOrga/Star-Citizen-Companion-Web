@@ -34,6 +34,21 @@ import {
 } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { FoldedRow, foldVariantRows } from './codex-variant-fold';
+import { SkinGroupedRow, SkinVariantRef, groupSkinRows } from './codex-skin-group';
+import {
+  WEAPON_SUPER_GROUPS,
+  WeaponFacetRow,
+  WeaponSubGroup,
+  WeaponSuperGroup,
+  countWeaponGroups,
+  weaponGroupKey,
+  weaponGroupQuery,
+  weaponSuperGroup,
+} from './codex-weapon-taxonomy';
+
+/** A card in the grid: a list row after variant folding AND livery grouping. */
+type CodexGridRow = SkinGroupedRow<FoldedRow<CodexListRow>>;
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { HangarService } from '../hangar/hangar.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
@@ -95,6 +110,47 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
         }
       </div>
 
+      <!-- Weapons hold BOTH the on-foot catalog and every ship hardpoint mount
+           in one table (admin feedback 7897bcb0), so the flat A-Z grid was
+           unbrowsable. Two levels of filter, both derived from columns the
+           catalog already promotes — see codex-weapon-taxonomy. -->
+      @if (showsWeaponGroups()) {
+        <div class="group-rail">
+          <div class="group-row" role="group" [attr.aria-label]="'codex.weaponGroup.superAria' | translate">
+            <button class="group" type="button" [class.active]="weaponGroup() === ''"
+                    [attr.aria-pressed]="weaponGroup() === ''"
+                    (click)="setWeaponGroup('')">
+              <span>{{ 'codex.weaponGroup.all' | translate }}</span>
+            </button>
+            @for (g of weaponSuperGroups; track g.id) {
+              <button class="group" type="button" [class.active]="weaponGroup() === g.id"
+                      [attr.aria-pressed]="weaponGroup() === g.id"
+                      (click)="setWeaponGroup(g.id)">
+                <span>{{ ('codex.weaponGroup.super.' + g.id) | translate }}</span>
+                @if (weaponGroupCount(g.id); as ct) { <span class="group-ct">{{ ct }}</span> }
+              </button>
+            }
+          </div>
+          @if (activeWeaponSubGroups(); as subs) {
+            <div class="group-row sub" role="group" [attr.aria-label]="'codex.weaponGroup.subAria' | translate">
+              <button class="group sub" type="button" [class.active]="weaponSubGroup() === ''"
+                      [attr.aria-pressed]="weaponSubGroup() === ''"
+                      (click)="setWeaponSubGroup('')">
+                <span>{{ 'codex.weaponGroup.allOf' | translate: { group: ('codex.weaponGroup.super.' + weaponGroup()) | translate } }}</span>
+              </button>
+              @for (s of subs; track s.id) {
+                <button class="group sub" type="button" [class.active]="weaponSubGroup() === s.id"
+                        [attr.aria-pressed]="weaponSubGroup() === s.id"
+                        (click)="setWeaponSubGroup(s.id)">
+                  <span>{{ ('codex.weaponGroup.' + weaponGroup() + '.' + s.id) | translate }}</span>
+                  @if (weaponGroupCount(weaponGroup(), s.id); as ct) { <span class="group-ct">{{ ct }}</span> }
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+
       @if (isUpcoming()) {
         <p class="hint upcoming-lede">{{ 'codex.upcoming.subtitle' | translate }}</p>
         <sc-upcoming-grid />
@@ -152,15 +208,6 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
               </select>
             </label>
           }
-          @if (kind() === 'weapon' && weaponClassOptions().length > 0) {
-            <label class="facet">
-              <span>{{ 'codex.filters.weaponClass' | translate }}</span>
-              <select class="sc-select" [ngModel]="weaponClass()" (ngModelChange)="setWeaponClass($event)">
-                <option value="">{{ 'codex.filters.all' | translate }}</option>
-                @for (w of weaponClassOptions(); track w) { <option [value]="w">{{ ('codex.weaponClass.' + w) | translate }}</option> }
-              </select>
-            </label>
-          }
           @if (kind() === 'blueprint' && blueprintCategoryOptions().length > 0) {
             <label class="facet">
               <span>{{ 'blueprint.filters.category' | translate }}</span>
@@ -208,7 +255,7 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
           <span class="count">
             {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
           </span>
-          @if (rows().length < total()) {
+          @if (hasMore()) {
             <span class="showing">{{ 'codex.results.showingOf' | translate: { shown: rows().length, total: total() } }}</span>
           }
         </div>
@@ -274,6 +321,18 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
                   @if (r.blueprintCategory) { <span class="badge">{{ categoryLabel(r.blueprintCategory) }}</span> }
                   @if (r.blueprintTier != null) { <span class="badge">{{ 'blueprint.card.tier' | translate: { tier: r.blueprintTier } }}</span> }
                   @if (craftTimeLabel(r); as ct) { <span class="badge subtle">{{ ct }}</span> }
+                  @if (r.foldedClassNames.length; as folded) {
+                    <span class="badge folded"
+                          [attr.title]="'codex.card.foldedTitle' | translate: { names: foldedNames(r) }">
+                      {{ (folded === 1 ? 'codex.card.foldedOne' : 'codex.card.foldedMany') | translate: { count: folded } }}
+                    </span>
+                  }
+                  @if (r.skinVariants.length; as skins) {
+                    <span class="badge skins"
+                          [attr.title]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
+                      {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
+                    </span>
+                  }
                 </div>
                 @if (r.size != null) {
                   <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
@@ -285,7 +344,7 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
             }
           </div>
 
-          @if (rows().length < total()) {
+          @if (hasMore()) {
             <div class="more-row">
               <button type="button" class="load-more" [disabled]="loading()" (click)="loadMore()">
                 {{ (loading() ? 'codex.results.loading' : 'codex.results.loadMore') | translate }}
@@ -346,6 +405,25 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
     .kind.soon:hover { color: var(--sc-fg-1); border-color: var(--sc-border); }
     .kind-ct.soon-tag { background: color-mix(in srgb, var(--sc-warning, #f0c419) 22%, transparent); color: var(--sc-warning, #f0c419); text-transform: uppercase; letter-spacing: 0.04em; }
 
+    /* Two-level weapon browse rail. Level 1 mirrors the kind-bar pill, level 2
+       is the quieter chip so the hierarchy reads at a glance. */
+    .group-rail { display: flex; flex-direction: column; gap: 8px; }
+    .group-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .group-row.sub { padding-left: 14px; border-left: 2px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
+    .group {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border-radius: 999px;
+      border: 1px solid var(--sc-border); background: transparent;
+      color: var(--sc-fg-1); font-family: var(--sc-font-display);
+      font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.16s;
+    }
+    .group:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .group.active { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .group.sub { padding: 5px 12px; text-transform: none; letter-spacing: 0.02em; font-family: inherit; }
+    .group-ct { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
+    .group.active .group-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-bg-0); }
+
     .controls { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; }
     .search-row { position: relative; display: flex; }
     .search {
@@ -405,6 +483,16 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
       max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.variant { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: var(--sc-fg-1); }
+    /* "+n file variants folded" — a quiet note, not a warning: nothing is wrong,
+       the catalog simply carries several records for one object. */
+    .badge.folded { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); cursor: help; }
+    /* Liveries are a feature of the entry, not file noise like .folded — so the
+       accent, and the detail view picks them up in the skin picker. */
+    .badge.skins {
+      background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
+      border-color: color-mix(in srgb, var(--sc-accent) 42%, transparent);
+      color: var(--sc-fg-0); cursor: help;
+    }
     .badge.grade[data-grade="A"] { background: color-mix(in srgb, #5fd698 18%, transparent); border-color: color-mix(in srgb, #5fd698 42%, transparent); color: #8fe5b5; }
     .badge.grade[data-grade="B"] { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); color: var(--sc-fg-0); }
     .badge.grade[data-grade="C"] { background: color-mix(in srgb, #f0c419 16%, transparent); border-color: color-mix(in srgb, #f0c419 40%, transparent); color: #f0d060; }
@@ -503,8 +591,24 @@ export class CodexListComponent implements OnInit {
   }
 
   /** Sub-category that refines the fallback icon (componentKind/weaponClass/subType). */
+  /**
+   * Sub-category that refines the fallback glyph. `sub_type` ranks ABOVE
+   * `weapon_class`: the class is only 'FPS'/'Ship' and refines nothing, while
+   * the sub-type is what tells a gadget from a gun — passing the class first
+   * put a crosshair on the APX Fire Extinguisher (admin feedback 8cd0aed7).
+   */
   iconSub(r: CodexListRow): string | null {
-    return r.componentKind || r.weaponClass || r.subType || null;
+    return r.componentKind || r.subType || r.weaponClass || null;
+  }
+
+  /** Class names of the records folded into this card, for the badge tooltip. */
+  foldedNames(r: FoldedRow<CodexListRow>): string {
+    return [r.classNameSlug, ...r.foldedClassNames].join(', ');
+  }
+
+  /** Livery names grouped into this card, for the badge tooltip. */
+  skinNames(r: CodexGridRow): string {
+    return r.skinVariants.map((s) => s.liveryName).join(', ');
   }
 
   /**
@@ -545,15 +649,55 @@ export class CodexListComponent implements OnInit {
   readonly size = signal('');
   readonly grade = signal('');
   readonly componentKind = signal('');
-  readonly weaponClass = signal('');
+  /**
+   * Weapon browse taxonomy (feedback 7897bcb0). `weaponGroup` is the super
+   * category ('' = all weapons), `weaponSubGroup` the finer bucket inside it.
+   * Together they replace the old flat "weapon class" dropdown — the super
+   * category IS that class, just promoted out of a select and given a second
+   * level. See codex-weapon-taxonomy for the column mapping.
+   */
+  readonly weaponGroup = signal('');
+  readonly weaponSubGroup = signal('');
+  /** Per-category record counts, from the build's weapon facet columns. */
+  private readonly weaponFacets = signal<readonly WeaponFacetRow[]>([]);
   readonly includeVariants = signal(false);
   /** Blueprint-only facet — raw CIG bucket, '' = all. */
   readonly blueprintCategory = signal('');
   /** Buckets actually present in the build (loaded once, data-driven). */
   readonly blueprintCategoryOptions = signal<string[]>([]);
 
-  readonly rows = signal<CodexListRow[]>([]);
-  readonly total = signal(0);
+  /** Rows exactly as the server returned them, before display-level folding. */
+  private readonly rawRows = signal<CodexListRow[]>([]);
+  private readonly serverTotal = signal(0);
+
+  /**
+   * What the grid renders, after two display-level passes: near-identical
+   * variant records collapsed into one card each (admin feedback 8cd0aed7 —
+   * see codex-variant-fold), then livery families collapsed into their base
+   * record (feedback d5e39f86 — see codex-skin-group). The order is
+   * load-bearing; the skin pass needs the base name to be unambiguous, which
+   * the variant fold is what makes it. Ticking "include variants" — the control
+   * that already means "show me the raw records" — turns BOTH off.
+   */
+  readonly rows = computed<CodexGridRow[]>(() =>
+    this.includeVariants()
+      ? this.rawRows().map((r) => ({
+          ...r,
+          foldedClassNames: [] as readonly string[],
+          skinVariants: [] as readonly SkinVariantRef[],
+        }))
+      : groupSkinRows(foldVariantRows(this.rawRows(), (r) => this.cardName(r))),
+  );
+  /**
+   * Result count with the folded-away duplicates subtracted. Only the loaded
+   * pages can be folded, so this is a lower bound on the server count, never
+   * below what is actually on screen.
+   */
+  readonly total = computed(() =>
+    Math.max(this.rows().length, this.serverTotal() - (this.rawRows().length - this.rows().length)),
+  );
+  /** More pages left on the server — measured on the RAW rows, not the folded ones. */
+  readonly hasMore = computed(() => this.rawRows().length < this.serverTotal());
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   private offset = 0;
@@ -578,7 +722,34 @@ export class CodexListComponent implements OnInit {
     const present = new Set(this.rows().map((r) => r.componentKind).filter(Boolean));
     return COMPONENT_KINDS.filter((k) => present.has(k));
   });
-  readonly weaponClassOptions = computed(() => uniqSorted(this.rows().map((r) => r.weaponClass)));
+  readonly weaponSuperGroups = WEAPON_SUPER_GROUPS;
+  /** The rail only makes sense on the weapon category. */
+  readonly showsWeaponGroups = computed(() => !this.isUpcoming() && this.kind() === 'weapon');
+  /**
+   * Counts per bucket, split by the variant toggle so the badge always matches
+   * what the query will return. Empty until the facet read lands (and after a
+   * failed one) — the template then simply renders a badge-less pill.
+   */
+  private readonly weaponGroupCounts = computed(() =>
+    countWeaponGroups(
+      this.includeVariants() ? this.weaponFacets() : this.weaponFacets().filter((r) => !r.isVariant),
+    ),
+  );
+  /**
+   * Sub-categories of the active super category, empty buckets dropped, or null
+   * when no super category is picked — the template's `@if (…; as subs)` then
+   * collapses the second level away entirely.
+   */
+  readonly activeWeaponSubGroups = computed<readonly WeaponSubGroup[] | null>(() => {
+    const sup: WeaponSuperGroup | null = weaponSuperGroup(this.weaponGroup());
+    if (!sup) return null;
+    const counts = this.weaponGroupCounts();
+    // Before the counts arrive there is nothing to prune against, so show the
+    // full set rather than an empty rail.
+    if (counts.size === 0) return sup.subGroups;
+    const present = sup.subGroups.filter((g) => (counts.get(weaponGroupKey(sup.id, g.id)) ?? 0) > 0);
+    return present.length > 0 ? present : null;
+  });
 
   readonly supportsVariants = computed(
     () => this.kind() !== 'ammunition' && this.kind() !== 'manufacturer' && this.kind() !== 'blueprint',
@@ -590,7 +761,7 @@ export class CodexListComponent implements OnInit {
       !!this.size() ||
       !!this.grade() ||
       !!this.componentKind() ||
-      !!this.weaponClass() ||
+      !!this.weaponGroup() ||
       !!this.blueprintCategory() ||
       this.includeVariants(),
   );
@@ -628,7 +799,8 @@ export class CodexListComponent implements OnInit {
       this.size();
       this.grade();
       this.componentKind();
-      this.weaponClass();
+      this.weaponGroup();
+      this.weaponSubGroup();
       this.includeVariants();
       this.blueprintCategory();
       this.runQuery(true);
@@ -645,6 +817,21 @@ export class CodexListComponent implements OnInit {
     // UC-02: hangar membership backs the in-hangar badge on ship cards.
     if (this.hangar.ships().length === 0) void this.hangar.loadAll();
     await this.loadBlueprintCategories();
+    if (this.kind() === 'weapon') await this.loadWeaponFacets();
+  }
+
+  /**
+   * Category counts for the weapon rail. Advisory: a failure (or a build with
+   * no weapons) just leaves the pills without a badge — the rail itself keeps
+   * filtering, because the filter runs on the server, not on these rows.
+   */
+  private async loadWeaponFacets(): Promise<void> {
+    if (this.weaponFacets().length > 0) return;
+    try {
+      this.weaponFacets.set(await this.svc.weaponFacets());
+    } catch {
+      this.weaponFacets.set([]);
+    }
   }
 
   /**
@@ -753,9 +940,11 @@ export class CodexListComponent implements OnInit {
     this.size.set('');
     this.grade.set('');
     this.componentKind.set('');
-    this.weaponClass.set('');
+    this.weaponGroup.set('');
+    this.weaponSubGroup.set('');
     this.blueprintCategory.set('');
     this.kind.set(k);
+    if (k === 'weapon') void this.loadWeaponFacets();
   }
 
   onSearchInput(value: string): void {
@@ -773,7 +962,18 @@ export class CodexListComponent implements OnInit {
   setSize(v: string): void { this.size.set(v); }
   setGrade(v: string): void { this.grade.set(v); }
   setComponentKind(v: string): void { this.componentKind.set(v); }
-  setWeaponClass(v: string): void { this.weaponClass.set(v); }
+  /** Picking a super category always drops the sub-category under the old one. */
+  setWeaponGroup(v: string): void {
+    if (v === this.weaponGroup()) return;
+    this.weaponGroup.set(v);
+    this.weaponSubGroup.set('');
+  }
+  setWeaponSubGroup(v: string): void { this.weaponSubGroup.set(v); }
+
+  /** Badge count for a rail entry, or null while the facet read is pending. */
+  weaponGroupCount(superId: string, subId?: string): number | null {
+    return this.weaponGroupCounts().get(weaponGroupKey(superId, subId)) ?? null;
+  }
   setIncludeVariants(v: boolean): void { this.includeVariants.set(v); }
   setBlueprintCategory(v: string): void { this.blueprintCategory.set(v); }
 
@@ -782,7 +982,8 @@ export class CodexListComponent implements OnInit {
     this.size.set('');
     this.grade.set('');
     this.componentKind.set('');
-    this.weaponClass.set('');
+    this.weaponGroup.set('');
+    this.weaponSubGroup.set('');
     this.blueprintCategory.set('');
     this.includeVariants.set(false);
   }
@@ -825,7 +1026,7 @@ export class CodexListComponent implements OnInit {
       size: this.size() ? Number(this.size()) : undefined,
       grade: this.grade() || undefined,
       componentKind: this.componentKind() || undefined,
-      weaponClass: this.weaponClass() || undefined,
+      ...(this.kind() === 'weapon' ? weaponGroupQuery(this.weaponGroup(), this.weaponSubGroup()) : {}),
       category: this.blueprintCategory() || undefined,
       includeVariants: this.includeVariants(),
       limit: PAGE_SIZE,
@@ -842,14 +1043,14 @@ export class CodexListComponent implements OnInit {
     try {
       const res = await this.svc.listByKind(activeKind, this.buildFilters());
       if (seq !== this.loadSeq) return;
-      this.rows.set(reset ? res.rows : [...this.rows(), ...res.rows]);
-      this.total.set(res.count);
+      this.rawRows.set(reset ? res.rows : [...this.rawRows(), ...res.rows]);
+      this.serverTotal.set(res.count);
     } catch (err) {
       if (seq !== this.loadSeq) return;
       this.error.set((err as Error).message ?? 'Unknown error');
       if (reset) {
-        this.rows.set([]);
-        this.total.set(0);
+        this.rawRows.set([]);
+        this.serverTotal.set(0);
       }
     } finally {
       if (seq === this.loadSeq) this.loading.set(false);

@@ -336,6 +336,38 @@ describe('SettingsComponent layout', () => {
     expect(active.getAttribute('aria-current')).toBe('true');
   });
 
+  /**
+   * The pinned phone bar shows a one-word label so four sections fit on a
+   * 375px screen (feedback af058ca4 round 4). Shortening what is READ must not
+   * shorten what is ANNOUNCED — the full section title stays the entry's
+   * accessible name in both shapes.
+   */
+  it('shortens the rail labels when the rail is the pinned bar, never their accessible names', () => {
+    const fixture = setup(makeUser(), '360px');
+    const component = fixture.componentInstance;
+    const el: HTMLElement = fixture.nativeElement;
+    const links = () => Array.from(el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link'));
+
+    component.compactRail.set(false);
+    fixture.detectChanges();
+    const full = links().map((a) => a.textContent!.trim());
+
+    component.compactRail.set(true);
+    fixture.detectChanges();
+    const short = links().map((a) => a.textContent!.trim());
+
+    expect(short.length).toBe(component.groups.length);
+    expect(short).not.toEqual(full);
+    // Both shapes read from the SAME group list, so a section can never appear
+    // in one and not the other.
+    expect(short).toEqual(component.groups.map((g) => g.shortKey));
+    expect(full).toEqual(component.groups.map((g) => g.labelKey));
+    // The full section title is what a screen reader gets, either way.
+    links().forEach((link, i) => {
+      expect(link.getAttribute('aria-label')).toBe(full[i]);
+    });
+  });
+
   it('shows the membership age as a single coarse unit with an exact tooltip', () => {
     const fixture = setup();
     const component = fixture.componentInstance;

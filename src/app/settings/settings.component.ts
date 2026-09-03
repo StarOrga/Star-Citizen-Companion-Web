@@ -49,14 +49,27 @@ interface SettingsGroup {
   /** DOM id = link fragment. Prefixed so it cannot clash with another page. */
   readonly anchor: string;
   readonly labelKey: string;
+  /**
+   * One-word label for the compact (phone) rail. A pinned bar has to fit on a
+   * 375px screen without becoming a scroll puzzle of its own; the full section
+   * title still travels with the entry as its accessible name.
+   */
+  readonly shortKey: string;
 }
 
 /**
- * Distance from the viewport top at which a section counts as "the one being
- * read". Roughly the sticky topbar height plus a little breathing room, so the
- * rail highlight flips at the moment a heading clears the header.
+ * Breathing room between whatever is parked at the top of the viewport and the
+ * heading of the section that counts as "the one being read". The parked height
+ * itself is measured, never assumed — see {@link SettingsComponent.readingLine}.
  */
-const SPY_LINE_PX = 140;
+const SPY_CLEARANCE_PX = 24;
+
+/**
+ * Viewport width at which the rail stops being a vertical column beside the
+ * cards and becomes the pinned horizontal bar above them. Mirrors the 1080px
+ * breakpoint in this component's stylesheet — the two must move together.
+ */
+const RAIL_STACK_QUERY = '(max-width: 1079px)';
 
 @Component({
   selector: 'sc-settings',
@@ -85,9 +98,14 @@ const SPY_LINE_PX = 140;
                   [class.active]="activeGroup() === g.id"
                   [href]="tocHref(g.anchor)"
                   (click)="onTocClick($event, g)"
+                  [attr.aria-label]="g.labelKey | translate"
                   [attr.aria-current]="activeGroup() === g.id ? 'true' : null">
                   <span class="toc-marker" aria-hidden="true"></span>
-                  <span class="toc-text">{{ g.labelKey | translate }}</span>
+                  <!-- Pinned to the top of a phone screen the bar has one row
+                       to work with, so it carries the short label there. The
+                       aria-label above keeps the full section title as the
+                       entry's accessible name either way. -->
+                  <span class="toc-text">{{ (compactRail() ? g.shortKey : g.labelKey) | translate }}</span>
                 </a>
               </li>
             }
@@ -365,17 +383,21 @@ const SPY_LINE_PX = 140;
     .page { display: flex; flex-direction: column; gap: 20px; }
     h1 { margin: 0; }
 
-    /* Rail + content. The rail is a fixed, narrow track so the card column
-       keeps a predictable width; below 1080px it collapses into a horizontal
-       chip strip above the content (see the media query at the bottom). */
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 16px;
-      align-items: start;
-    }
+    /* Rail + content. Below 1080px the rail collapses into a horizontal bar
+       above the content, and the layout is a plain BLOCK there on purpose: a
+       grid item's sticky travel is bounded by its own grid area, so as a
+       single-column grid item the bar could not have moved a pixel. As a block
+       child of .layout it sticks across the whole page (feedback af058ca4
+       round 4). Two columns above 1080px, where the rail's grid area is the
+       full-height row and sticky works out of the box. */
+    .layout { display: block; }
     @media (min-width: 1080px) {
-      .layout { grid-template-columns: 176px minmax(0, 1fr); gap: 32px; }
+      .layout {
+        display: grid;
+        grid-template-columns: 176px minmax(0, 1fr);
+        gap: 32px;
+        align-items: start;
+      }
     }
 
     .sections { display: flex; flex-direction: column; gap: 32px; min-width: 0; }
@@ -383,8 +405,13 @@ const SPY_LINE_PX = 140;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      /* Clears the sticky topbar when the page scrolls to a #fragment. */
-      scroll-margin-top: 96px;
+      /* Clears whatever is parked at the top of the viewport when the page
+         scrolls to a #fragment. --sc-topbar-h is measured and published by the
+         shell (0px whenever the header is not sticky), so this stays right
+         even when the header wraps onto a second row. */
+      scroll-margin-top: calc(
+        var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 24px
+      );
       /* The rail hands focus to the section it scrolled to (see onTocClick),
          so a keyboard user continues INSIDE the section instead of at the top
          of the rail. Only the keyboard gets a ring — a mouse click must not
@@ -464,7 +491,7 @@ const SPY_LINE_PX = 140;
       /* Follows the reader down the page, parked below the sticky topbar. */
       .toc {
         position: sticky;
-        top: calc(var(--sc-imp-banner-h, 0px) + 96px);
+        top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 24px);
       }
     }
 
@@ -711,41 +738,77 @@ const SPY_LINE_PX = 140;
     }
 
     /* Below the two-column breakpoint the rail cannot sit beside anything, so
-       it degrades into a horizontally scrollable chip strip above the first
-       section — same links, same order, no vertical space wasted. It scrolls
-       with the page instead of sticking: the shell's own header already wraps
-       to two or three rows on a phone, and a second sticky bar under it would
-       eat most of the viewport. */
+       it becomes a bar of chips above the first section — and that bar is what
+       stays PINNED down here, in the slot the shell header gave up (admin
+       feedback af058ca4 round 4: "mach eher die sub menu leiste sticky").
+       Before, the bar scrolled away with the page, so the very first tap on a
+       section took it off screen and left no way back to the other sections
+       short of scrolling to the top again. */
     @media (max-width: 1079px) {
+      .toc {
+        position: sticky;
+        top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px));
+        z-index: 5;
+        /* Runs edge to edge: a pinned bar that content slides past has to
+           cover the full width, or the cards travel visibly up its flanks.
+           --sc-content-pad-x is the shell's page gutter (shell.component.ts). */
+        margin: 0 calc(-1 * var(--sc-content-pad-x, 16px)) 20px;
+        padding: 8px var(--sc-content-pad-x, 16px);
+        background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--sc-border);
+      }
       .toc-list {
         flex-direction: row;
         flex-wrap: nowrap;
-        gap: 8px;
+        /* Never centre a row that can overflow: what spills past the START
+           edge is unreachable, because a scroll port cannot travel behind its
+           own origin. Same trap the shell nav fell into. */
+        justify-content: flex-start;
+        gap: 6px;
         overflow-x: auto;
+        overscroll-behavior-x: contain;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
-        margin: 0 -4px;
-        padding: 2px 4px;
+        margin: 0;
+        padding: 0;
       }
       .toc-list::-webkit-scrollbar { display: none; }
+      /* Segmented-control look rather than four outlined pills: unselected
+         entries are quiet fills with no border of their own, so the bar reads
+         as one object and the current section is the only thing that carries
+         colour. */
       .toc-link {
         flex: 0 0 auto;
-        gap: 8px;
-        padding: 8px 14px;
+        gap: 0;
+        padding: 9px 12px;
         min-height: 40px;
         white-space: nowrap;
-        border: 1px solid var(--sc-border);
         border-radius: 999px;
-        background: var(--sc-bg-1);
+        background: color-mix(in srgb, var(--sc-fg-2) 12%, transparent);
+        color: var(--sc-fg-1);
+        transition: color 0.16s ease, background 0.16s ease;
       }
       .toc-text { overflow-wrap: normal; }
-      .toc-marker {
-        width: 6px;
-        height: 6px;
-        align-self: center;
-        border-radius: 999px;
+      /* The dot was a second, weaker "you are here" signal next to the label
+         colour; the filled chip says it on its own. */
+      .toc-marker { display: none; }
+      .toc-link:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-fg-2) 20%, transparent); }
+      .toc-link.active,
+      .toc-link.active:hover {
+        background: var(--sc-accent);
+        color: var(--sc-bg-0);
+        font-weight: 600;
       }
-      .toc-link.active { border-color: var(--sc-accent); }
+      /* A fragment jump has to clear the pinned bar too, or it parks the
+         heading underneath the very control that sent you there. 88px covers
+         the bar at its tallest (48px touch chip + padding + rule). */
+      .group {
+        scroll-margin-top: calc(
+          var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 88px
+        );
+      }
     }
 
     /* Touch baseline: 44px is the project threshold, but the shell's loading
@@ -754,12 +817,6 @@ const SPY_LINE_PX = 140;
       .sc-select { min-height: 48px; }
       .id-copy { min-height: 48px; padding: 8px 16px; }
       .toc-link { min-height: 48px; }
-    }
-
-    @media (max-width: 720px) {
-      /* The shell's topbar wraps its nav onto a third row down here, so a
-         fragment jump needs more clearance than on desktop. */
-      .group { scroll-margin-top: 132px; }
     }
 
     @media (max-width: 560px) {
@@ -793,18 +850,43 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Single source of truth for both the rail and the section order. */
   readonly groups: readonly SettingsGroup[] = [
-    { id: 'account', anchor: 'settings-account', labelKey: 'settings.groups.account.title' },
+    {
+      id: 'account',
+      anchor: 'settings-account',
+      labelKey: 'settings.groups.account.title',
+      shortKey: 'settings.groups.account.short',
+    },
     {
       id: 'preferences',
       anchor: 'settings-preferences',
       labelKey: 'settings.groups.preferences.title',
+      shortKey: 'settings.groups.preferences.short',
     },
-    { id: 'privacy', anchor: 'settings-privacy', labelKey: 'settings.groups.privacy.title' },
-    { id: 'danger', anchor: 'settings-danger', labelKey: 'settings.groups.danger.title' },
+    {
+      id: 'privacy',
+      anchor: 'settings-privacy',
+      labelKey: 'settings.groups.privacy.title',
+      shortKey: 'settings.groups.privacy.short',
+    },
+    {
+      id: 'danger',
+      anchor: 'settings-danger',
+      labelKey: 'settings.groups.danger.title',
+      shortKey: 'settings.groups.danger.short',
+    },
   ];
 
   /** Section the rail highlights — driven by the scroll position, not by clicks. */
   readonly activeGroup = signal<GroupId>('account');
+
+  /**
+   * True while the rail is the pinned horizontal bar rather than the vertical
+   * column — i.e. below {@link RAIL_STACK_QUERY}. Only the chip LABEL depends
+   * on it; everything else about the two shapes is CSS.
+   */
+  readonly compactRail = signal(false);
+  private railQuery?: MediaQueryList;
+  private railQueryListener?: (e: MediaQueryListEvent) => void;
 
   /**
    * Scroll-spy plumbing. The listener runs OUTSIDE Angular and only re-enters
@@ -888,9 +970,19 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   });
 
   async ngOnInit() {
+    this.watchRailShape();
     // Seed the edit field from the shared handle (loaded once by ProfileService).
     if (!this.profile.loaded()) await this.profile.refresh();
     this.usernameInput.set(this.profile.username() ?? '');
+  }
+
+  /** Keeps {@link compactRail} in step with the stylesheet's rail breakpoint. */
+  private watchRailShape() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    this.railQuery = window.matchMedia(RAIL_STACK_QUERY);
+    this.compactRail.set(this.railQuery.matches);
+    this.railQueryListener = (e) => this.compactRail.set(e.matches);
+    this.railQuery.addEventListener('change', this.railQueryListener);
   }
 
   ngAfterViewInit() {
@@ -964,6 +1056,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
     // Immediate feedback; the scroll-spy takes the highlight over again as the
     // page travels and ends on this very section.
     this.activeGroup.set(group.id);
+    this.revealRailEntry(this.groups.indexOf(group));
     target.scrollIntoView({ behavior: this.scrollBehavior(), block: 'start' });
     // Intercepting the click also swallows the browser's own "move focus to
     // the target" step, which would strand a keyboard user in the rail.
@@ -986,6 +1079,11 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.spyFrame) cancelAnimationFrame(this.spyFrame);
+    if (this.railQuery && this.railQueryListener) {
+      this.railQuery.removeEventListener('change', this.railQueryListener);
+    }
+    this.railQuery = undefined;
+    this.railQueryListener = undefined;
     if (!this.scrollListener) return;
     window.removeEventListener('scroll', this.scrollListener);
     window.removeEventListener('resize', this.scrollListener);
@@ -1000,18 +1098,57 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   private syncActiveGroup() {
     const root = this.host.nativeElement;
-    let next = this.groups[0].id;
-    for (const group of this.groups) {
+    const line = this.readingLine();
+    let nextIndex = 0;
+    this.groups.forEach((group, i) => {
       const el = root.querySelector<HTMLElement>(`#${group.anchor}`);
-      if (el && el.getBoundingClientRect().top <= SPY_LINE_PX) next = group.id;
-    }
+      if (el && el.getBoundingClientRect().top <= line) nextIndex = i;
+    });
     const doc = document.documentElement;
     const scrollable = doc.scrollHeight - window.innerHeight > 4;
     if (scrollable && window.innerHeight + window.scrollY >= doc.scrollHeight - 4) {
-      next = this.groups[this.groups.length - 1].id;
+      nextIndex = this.groups.length - 1;
     }
+    const next = this.groups[nextIndex].id;
     if (next === this.activeGroup()) return;
     this.zone.run(() => this.activeGroup.set(next));
+    this.revealRailEntry(nextIndex);
+  }
+
+  /**
+   * Where the "currently being read" line sits, measured rather than assumed.
+   *
+   * It has to fall just below everything parked at the top of the viewport:
+   * the impersonation banner, the shell header WHEN it is sticky (it is not on
+   * phones — it publishes `--sc-topbar-h: 0px` then), and the rail itself once
+   * the rail is the pinned horizontal bar.
+   */
+  private readingLine(): number {
+    const style = getComputedStyle(document.documentElement);
+    const px = (name: string) => parseFloat(style.getPropertyValue(name)) || 0;
+    let line = px('--sc-imp-banner-h') + px('--sc-topbar-h') + SPY_CLEARANCE_PX;
+    const toc = this.host.nativeElement.querySelector<HTMLElement>('.toc');
+    // Pinned AND wider than it is tall = the horizontal bar, which covers the
+    // top of the page; the vertical rail sits beside the text and covers none.
+    if (toc && getComputedStyle(toc).position === 'sticky' && toc.offsetWidth > toc.offsetHeight) {
+      line += toc.offsetHeight;
+    }
+    return line;
+  }
+
+  /**
+   * Keeps the highlighted chip inside the pinned bar's scroll port. Without
+   * this the bar can highlight an entry that is off its own right edge, which
+   * looks like nothing is selected at all. No-op for the vertical rail and
+   * whenever the bar is short enough not to scroll.
+   */
+  private revealRailEntry(index: number) {
+    const list = this.host.nativeElement.querySelector<HTMLElement>('.toc-list');
+    if (!list || list.scrollWidth <= list.clientWidth + 1) return;
+    const entry = list.querySelectorAll<HTMLElement>('.toc-link')[index];
+    if (!entry) return;
+    const left = entry.offsetLeft - (list.clientWidth - entry.offsetWidth) / 2;
+    list.scrollTo({ left: Math.max(0, left), behavior: this.scrollBehavior() });
   }
 
   asInput(e: Event): string {

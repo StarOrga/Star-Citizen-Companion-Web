@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   OnInit,
   computed,
   inject,
@@ -80,6 +81,7 @@ import {
   isIndividualSection,
   shipPortFamily,
 } from './ship-module-sections';
+import { SkinOption, resolveSkinGroup } from './codex-skin-group';
 import { SummaryOccupant, equippedMass } from './ship-summary-panels';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexLoadoutSaveBarComponent } from './codex-loadout-save-bar.component';
@@ -159,6 +161,8 @@ import {
 } from './hardpoint-map';
 import { HardpointPortRef, ShipSkinViewerComponent } from './ship-skin-viewer.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { FallbackImageComponent } from './fallback-image.component';
+import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipLinkService } from './ship-link.service';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
@@ -249,7 +253,7 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent],
+  imports: [NeuroFieldDirective, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -264,18 +268,50 @@ interface GearRecipe {
       } @else {
         <!-- ── Hero (ships get the dim Bay scene — P2 frame, same content) ── -->
         <header class="hero sc-card" [class.bay]="kind() === 'ship'">
-          <figure class="hero-art" [class.icon-only]="!previewUrl()">
-            @if (previewUrl(); as src) {
-              <img [src]="src" [alt]="displayName()" loading="eager" (error)="onArtError()" />
-            } @else {
-              <sc-codex-icon class="hero-icon" [kind]="detail()!.kind" [sub]="heroSub()" />
-            }
+          <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
+            <div class="art">
+              <sc-fallback-image [candidates]="heroArt()" [alt]="displayName()" [eager]="true">
+                <span class="art-fallback">
+                  <sc-codex-icon class="hero-icon" [kind]="detail()!.kind" [sub]="heroSub()" />
+                  @if (kind() === 'ship') {
+                    <span class="art-note">{{ 'codex.detail.noArtwork' | translate }}</span>
+                  }
+                </span>
+              </sc-fallback-image>
+            </div>
           </figure>
           <div class="hero-body">
             <span class="kind-tag">{{ ('codex.kindSingular.' + detail()!.kind) | translate }}</span>
             <h1>{{ displayName() }}</h1>
             @if (manufacturerName(); as mfr) { <p class="mfr">{{ mfr }}</p> }
             <code class="cls">{{ detail()!.classNameSlug }}</code>
+
+            <!-- Skin picker (feedback d5e39f86). The list collapses a weapon's
+                 paint jobs into ONE entry, so this is where they stay
+                 reachable. Native <details> for the fold; every option is a
+                 real anchor to that record's own detail route, so a livery
+                 keeps a shareable URL and middle-click still opens a tab. -->
+            @if (skinOptions().length > 1) {
+              <details class="skin-picker">
+                <summary>
+                  <span class="sp-label">{{ 'codex.skinPicker.label' | translate }}</span>
+                  <span class="sp-current">{{ currentLivery() ?? ('codex.skinPicker.standard' | translate) }}</span>
+                  <span class="sp-count">{{ 'codex.skinPicker.count' | translate: { count: skinOptions().length } }}</span>
+                </summary>
+                <ul class="sp-list">
+                  @for (o of skinOptions(); track o.classNameSlug) {
+                    <li>
+                      <a class="sp-opt"
+                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
+                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
+                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
+                        {{ o.liveryName ?? ('codex.skinPicker.standard' | translate) }}
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </details>
+            }
 
             @if (facts().length > 0) {
               <ul class="facts">
@@ -809,30 +845,69 @@ interface GearRecipe {
 
     /* Hero */
     .hero { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
+    /* sc-fallback-image owns the <img>, so its sizing crosses the style
+       boundary as custom properties (it is display:contents — a transform on
+       it would do nothing, hence the .art wrapper carries the bay drift). */
     .hero-art { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 240px;
+      --sc-img-max-h: 320px;
+      --sc-img-shadow: drop-shadow(0 6px 24px rgba(0,0,0,0.55));
+      --sc-icon-max: 132px;
       background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--sc-accent) 12%, var(--sc-bg-1)), var(--sc-bg-0)); }
     .hero-art.icon-only { background: radial-gradient(circle at 50% 40%, var(--sc-bg-2), var(--sc-bg-0)); }
-    .hero-art img { max-width: 100%; max-height: 320px; object-fit: contain; filter: drop-shadow(0 6px 24px rgba(0,0,0,0.55)); }
+    .hero-art .art { flex: 1 1 auto; align-self: stretch; min-width: 0;
+      display: flex; align-items: center; justify-content: center; }
     /* Bay scene (ships): dim hangar light + rim glow around the hull. The
        frame gets atmospheric — every number stays on the calm right side. */
     .hero.bay .hero-art {
       background:
         radial-gradient(ellipse at 50% 62%, color-mix(in srgb, var(--sc-accent) 17%, #05080d), #04060a 78%);
-      border-right: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent); }
-    .hero.bay .hero-art img {
-      filter: drop-shadow(0 12px 34px rgba(0,0,0,0.72))
-              drop-shadow(0 0 22px color-mix(in srgb, var(--sc-accent) 28%, transparent)); }
+      border-right: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent);
+      --sc-img-shadow: drop-shadow(0 12px 34px rgba(0,0,0,0.72))
+                       drop-shadow(0 0 22px color-mix(in srgb, var(--sc-accent) 28%, transparent)); }
     @media (prefers-reduced-motion: no-preference) {
-      .hero.bay .hero-art img { animation: bay-drift 6s ease-in-out infinite alternate; }
+      .hero.bay .hero-art:not(.icon-only) .art { animation: bay-drift 6s ease-in-out infinite alternate; }
       @keyframes bay-drift { from { transform: translateY(-3px); } to { transform: translateY(3px); } }
     }
-    .hero-art .hero-icon { width: 100%; height: 100%; min-height: 200px; }
+    /* No artwork anywhere: say so instead of leaving a lost glyph in a big
+       empty frame — the catalog simply has no render for this hull yet. */
+    .hero-art .art-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; width: 100%; padding: 14px; box-sizing: border-box; }
+    .hero-art .art-note { font-size: max(0.72rem, var(--sc-fs-floor)); line-height: 1.35; text-align: center;
+      color: var(--sc-fg-2); max-width: 24ch; text-wrap: balance; }
+    .hero-art .hero-icon { width: 100%; min-height: 120px; }
     .hero-body { padding: 22px 24px 22px 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     .kind-tag { align-self: flex-start; font-size: max(0.64rem, var(--sc-fs-floor)); padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.1em;
       background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, transparent); color: var(--sc-accent); }
     .hero-body h1 { margin: 2px 0 0; font-size: 1.7rem; line-height: 1.15; overflow-wrap: anywhere; }
     .hero-body .mfr { margin: 0; color: var(--sc-fg-1); font-size: 0.96rem; overflow-wrap: anywhere; }
     .hero-body .cls { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
+
+    /* Skin picker — a native <details> dropdown, options are anchors. */
+    .skin-picker { margin-top: 10px; max-width: 320px; }
+    .skin-picker > summary {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      padding: 7px 12px; border-radius: 8px; list-style: none;
+      background: var(--sc-bg-1); border: 1px solid var(--sc-border);
+      transition: border-color 0.16s;
+    }
+    .skin-picker > summary::-webkit-details-marker { display: none; }
+    .skin-picker > summary::after { content: '▾'; margin-left: auto; color: var(--sc-fg-2); }
+    .skin-picker[open] > summary::after { content: '▴'; }
+    .skin-picker > summary:hover { border-color: var(--sc-accent); }
+    .skin-picker > summary:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .sp-label { font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+    .sp-current { font-size: max(0.82rem, var(--sc-fs-floor)); color: var(--sc-fg-0); }
+    .sp-count { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .sp-list {
+      list-style: none; margin: 4px 0 0; padding: 4px; max-height: 260px; overflow-y: auto;
+      border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border);
+    }
+    .sp-opt {
+      display: block; padding: 7px 10px; border-radius: 6px;
+      color: var(--sc-fg-1); text-decoration: none; font-size: max(0.82rem, var(--sc-fs-floor));
+    }
+    .sp-opt:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); }
+    .sp-opt.current { color: var(--sc-accent); font-weight: 600; }
 
     .facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
     .fact { display: flex; flex-direction: column; gap: 1px; padding: 6px 12px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
@@ -1028,8 +1103,11 @@ export class CodexDetailComponent implements OnInit {
   private readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
+  // RSI ship-matrix artwork — the hero's primary art source for ships.
+  private readonly rsi = inject(UpcomingShipsService);
   // User-supplied RSI pledge links (feedback f7d3bd9a) — public members because
   // the template reads `saving()` / `isAdmin()` / the signed-in user directly.
   readonly shipLinks = inject(ShipLinkService);
@@ -1079,6 +1157,16 @@ export class CodexDetailComponent implements OnInit {
     return d ? (this.shipLinks.globalLinks().get(d.classNameSlug) ?? null) : null;
   });
   readonly pledgeLink = computed(() => this.myPledgeLink() ?? this.globalPledgeLink());
+
+  // The livery family of this entity, base record first (feedback d5e39f86).
+  // Fewer than two entries means "nothing to pick" and hides the picker.
+  readonly skinOptions = signal<SkinOption[]>([]);
+  /** The picked entry's livery name, or null while the base record is open. */
+  readonly currentLivery = computed(
+    () =>
+      this.skinOptions().find((o) => o.classNameSlug === this.detail()?.classNameSlug)
+        ?.liveryName ?? null,
+  );
 
   // Reverse ingredient lookup: crafting blueprints that consume this entity.
   readonly usedInBlueprints = signal<BlueprintRef[]>([]);
@@ -1148,15 +1236,30 @@ export class CodexDetailComponent implements OnInit {
       .subscribe((e) => this.lang.set(toLang(e.lang)));
   }
 
-  async ngOnInit(): Promise<void> {
-    const kind = this.route.snapshot.paramMap.get('kind') as CodexKind | null;
-    const className = this.route.snapshot.paramMap.get('className');
-    if (!kind || !className) {
-      this.error.set('Invalid route');
-      this.loading.set(false);
-      return;
-    }
-    await this.load(kind, className);
+  /**
+   * Params are SUBSCRIBED, not snapshotted: `codex/:kind/:className` links to
+   * itself — from the compatible-items list, and now from the skin picker — and
+   * the router reuses this component across a params-only navigation, so a
+   * snapshot read leaves the URL pointing at the new entity while the page
+   * still renders the old one. The first emission is synchronous, so a deep
+   * link behaves exactly as before.
+   */
+  ngOnInit(): void {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const kind = params.get('kind') as CodexKind | null;
+      const className = params.get('className');
+      if (!kind || !className) {
+        this.error.set('Invalid route');
+        this.loading.set(false);
+        return;
+      }
+      // Deep links land here without ever touching the list, so the RSI art map
+      // would otherwise be empty and every ship hero would fall back to the
+      // datamined silhouette. `feed` is a signal — the hero repaints when it
+      // lands, and a failed fetch is absorbed by the service.
+      if (kind === 'ship') void this.rsi.ensureLoaded();
+      void this.load(kind, className);
+    });
   }
 
   private async load(kind: CodexKind, className: string): Promise<void> {
@@ -1171,7 +1274,6 @@ export class CodexDetailComponent implements OnInit {
     this.showEmptyLoadout.set(false);
     this.usedInBlueprints.set([]);
     this.recipe.set(null);
-    this.artBroken.set(false);
     this.swapTarget.set(null);
     this.showLinkForm.set(false);
     this.shipLinkInput.set('');
@@ -1189,6 +1291,7 @@ export class CodexDetailComponent implements OnInit {
     this.savedPaths.set(new Set());
     this.saveError.set(null);
     this.activeMissionId.set('all');
+    this.skinOptions.set([]);
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
@@ -1203,6 +1306,7 @@ export class CodexDetailComponent implements OnInit {
         }
         if (kind === 'ship') this.restoreDraftFromUrlOrStorage(className);
         if (kind === 'item' || kind === 'weapon') void this.loadWhereToBuy(d);
+        void this.loadSkinGroup(kind, d.classNameSlug);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
         if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug);
         // Ships are not craftable either, so skip the forward lookup as well.
@@ -1362,6 +1466,25 @@ export class CodexDetailComponent implements OnInit {
     }
   }
 
+  /**
+   * The livery family this entity belongs to (feedback d5e39f86). The list
+   * shows one entry per weapon, so the paint jobs it swallowed have to be
+   * reachable from here — `resolveSkinGroup` re-derives the same family from a
+   * prefix read, and returns null (→ no picker) for the ordinary case of an
+   * entity with no liveries. Best effort: a failed read just hides the picker.
+   */
+  private async loadSkinGroup(kind: CodexKind, className: string): Promise<void> {
+    try {
+      const siblings = await this.svc.listSkinSiblings(kind, className);
+      // Switching skins re-enters load() while this read is in flight; a late
+      // answer must not paint the previous entity's family.
+      if (this.detail()?.classNameSlug !== className) return;
+      this.skinOptions.set(resolveSkinGroup(siblings, className) ?? []);
+    } catch {
+      this.skinOptions.set([]);
+    }
+  }
+
   /** Reverse lookup: crafting blueprints that consume this entity as an ingredient. */
   private async loadUsedInBlueprints(className: string): Promise<void> {
     try {
@@ -1458,23 +1581,55 @@ export class CodexDetailComponent implements OnInit {
     return p?.source ?? null;
   });
 
-  // Set when the hero artwork fails to load → fall back to the category icon.
-  readonly artBroken = signal(false);
-  onArtError(): void {
-    this.artBroken.set(true);
-  }
-
-  readonly previewUrl = computed(() => {
-    if (this.artBroken()) return null;
-    const p = this.detail()?.payload as BaseEntityPayload | undefined;
-    return this.svc.previewUrl(p?.previewImage);
+  /**
+   * Ordered hero artwork, best-looking first — the same source chain the list
+   * cards use, which the hero previously did not consume at all.
+   *
+   * Why: the datamined `previewImage` is the game's flat UI silhouette, and the
+   * game only ships one for hulls that appear in the in-game vehicle UI. 129 of
+   * the 661 ship rows in the current LIVE build have `previewImage: null`
+   * (capital ships like the Javelin, most 2025+ hulls, every Wikelo variant),
+   * and for those the hero had nothing left to show but the category glyph —
+   * even though the card the user just clicked was showing RSI's store render
+   * of the very same hull. 95 of those 129 have RSI artwork; they now paint it.
+   *
+   * A single url would not be enough either: RSI advertises derivatives it has
+   * not always rendered, so the list goes to `sc-fallback-image`, which walks
+   * it and only projects the glyph once every candidate has actually failed.
+   */
+  readonly heroArt = computed<readonly string[]>(() => {
+    const d = this.detail();
+    if (!d) return [];
+    const out: string[] = [];
+    // Ships lead with the RSI render (a photo of the hull) and keep the
+    // datamined silhouette as the fallback. Other kinds have no RSI
+    // counterpart, so their datamined render is all there is.
+    if (d.kind === 'ship') out.push(...this.rsi.heroArtFor(this.heroArtKey()));
+    const local = this.svc.previewUrl((d.payload as BaseEntityPayload | undefined)?.previewImage);
+    if (local) out.push(local);
+    return out;
   });
 
-  /** Sub-category that refines the hero fallback icon (componentKind/weaponClass/subType). */
+  /**
+   * Lookup key into the RSI art map. Must be the denormalized `name_localized`
+   * — the very column the edge function keys `gameShipArt` by — so no second
+   * normalization dialect can open a gap between card and detail.
+   */
+  private heroArtKey(): string {
+    const raw = this.detail()?.row?.['name_localized'];
+    return (typeof raw === 'string' && raw ? cleanLocaleValue(raw) : '') || this.displayName();
+  }
+
+  /**
+   * Sub-category that refines the hero fallback icon (componentKind/subType/
+   * weaponClass). `sub_type` ranks above `weapon_class` for the same reason as
+   * in the list: 'FPS'/'Ship' refines nothing, while 'Gadget'/'Knife'/'Grenade'
+   * is what keeps a crosshair off a fire extinguisher (admin feedback 8cd0aed7).
+   */
   heroSub(): string | null {
     const row = this.detail()?.row;
     if (!row) return null;
-    return (row['kind'] as string) || (row['weapon_class'] as string) || (row['sub_type'] as string) || null;
+    return (row['kind'] as string) || (row['sub_type'] as string) || (row['weapon_class'] as string) || null;
   }
 
   // Original class_name (e.g. 'DRAK_Cutlass_Black') for the skin selector —

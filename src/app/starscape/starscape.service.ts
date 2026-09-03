@@ -51,6 +51,40 @@ export function ringsForRole(role: string | null | undefined): readonly Starscap
 const PAGE_SIZE = 24;
 
 /**
+ * How many rows the one-off series probe reads. Only the `series` column is
+ * selected, so this is a few kB even at the ceiling, and the gallery grows by a
+ * handful of comm-link images a week — the cap exists purely so the request can
+ * never become unbounded, not because it is expected to be reached.
+ */
+const SERIES_PROBE_LIMIT = 2000;
+
+/**
+ * The "which images" dimension of the gallery, as a set of NAMED states.
+ *
+ * `id` is a stable identity, not a label: `all` and `series:<name>`. The names
+ * matter beyond this page — the Starscape desktop app wants to offer the same
+ * dimensions in its tray menu, and a menu cannot key off a translated string.
+ */
+export interface StarscapeSourceOption {
+  /** Stable id — `all`, or `series:<series>`. */
+  readonly id: string;
+  /** The `verse_wallpapers.series` this selects, or null for "every series". */
+  readonly series: string | null;
+  /** Label straight from the data (an RSI series name), or null when it needs translating. */
+  readonly label: string | null;
+  /** i18n key for the label, or null when `label` carries it. */
+  readonly labelKey: string | null;
+}
+
+/** Id of the "no series filter" option. */
+export const STARSCAPE_SOURCE_ALL = 'all';
+
+/** Id for one concrete RSI series. */
+export function starscapeSourceId(series: string): string {
+  return `series:${series}`;
+}
+
+/**
  * Hard ceiling for a gallery page request.
  *
  * A plain `await` on the REST call has no deadline: on a flaky mobile
@@ -80,11 +114,52 @@ export class StarscapeService {
   readonly timedOut = signal(false);
   readonly activeSeries = signal<string>('');
 
-  /** Filter chips derived from the loaded pages (no extra distinct query). */
-  readonly seriesOptions = computed(() => {
+  /**
+   * Every series the table knows, resolved ONCE from the whole table.
+   *
+   * This used to be derived from the rows currently on screen, which made the
+   * filter rewrite itself on every pick: choosing "Release Info" reloads only
+   * Release Info rows, so every other option disappeared from the control. The
+   * row then changed width and the Top-N switch beside it visibly jumped
+   * (admin feedback 1f78e57f) — and a sibling series was only reachable by
+   * going back through "All" first. Empty until the probe answers.
+   */
+  private readonly seriesCatalogue = signal<readonly string[]>([]);
+  /** In-flight/finished probe — the catalogue is fetched at most once per session. */
+  private seriesProbe: Promise<void> | null = null;
+
+  /**
+   * Filter options, catalogue-backed. Falls back to whatever the loaded pages
+   * happen to show if the probe failed, so a dead probe costs completeness, not
+   * the filter itself.
+   */
+  readonly seriesOptions = computed<readonly string[]>(() => {
+    const catalogue = this.seriesCatalogue();
+    if (catalogue.length > 0) return catalogue;
     const set = new Set<string>();
     for (const w of this.wallpapers()) if (w.series) set.add(w.series);
     return [...set].sort((a, b) => a.localeCompare(b));
+  });
+
+  /**
+   * The source filter as named states — "all" plus one per series, in a fixed
+   * order. Stable across picks by construction, which is what keeps the
+   * controls row from reflowing.
+   */
+  readonly sourceOptions = computed<readonly StarscapeSourceOption[]>(() => [
+    { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
+    ...this.seriesOptions().map((series) => ({
+      id: starscapeSourceId(series),
+      series,
+      label: series,
+      labelKey: null,
+    })),
+  ]);
+
+  /** Id of the currently selected source. */
+  readonly activeSource = computed(() => {
+    const series = this.activeSeries();
+    return series ? starscapeSourceId(series) : STARSCAPE_SOURCE_ALL;
   });
 
   readonly hasMore = computed(() => this.wallpapers().length < this.total());
@@ -170,6 +245,9 @@ export class StarscapeService {
   }
 
   async load(reset = false): Promise<void> {
+    // Independent of the page request and never awaited: the gallery must paint
+    // as fast as it always did, the filter just fills in a beat later.
+    void this.ensureSeriesCatalogue();
     if (this.loading()) return;
     this.loading.set(true);
     this.error.set(null);
@@ -231,6 +309,41 @@ export class StarscapeService {
     if (this.activeSeries() === series) return;
     this.activeSeries.set(series);
     await this.load(true);
+  }
+
+  /** Pick a source by its stable id (see {@link StarscapeSourceOption}). */
+  async setSource(id: string): Promise<void> {
+    const option = this.sourceOptions().find((o) => o.id === id);
+    if (!option) return; // unknown id — leave the gallery as it is
+    await this.setSeries(option.series ?? '');
+  }
+
+  /**
+   * Read the distinct series once. Deliberately NOT filtered by the active
+   * series: the whole point is an option list that does not depend on what is
+   * currently shown. One column, capped at {@link SERIES_PROBE_LIMIT} rows.
+   */
+  private ensureSeriesCatalogue(): Promise<void> {
+    this.seriesProbe ??= (async () => {
+      try {
+        const { data, error } = await this.sb.client
+          .from('verse_wallpapers')
+          .select('series')
+          .not('series', 'is', null)
+          .limit(SERIES_PROBE_LIMIT);
+        if (error) throw new Error(error.message);
+        const set = new Set<string>();
+        for (const row of (data ?? []) as { series?: string | null }[]) {
+          if (row.series) set.add(row.series);
+        }
+        this.seriesCatalogue.set([...set].sort((a, b) => a.localeCompare(b)));
+      } catch {
+        // Silent: `seriesOptions` falls back to the loaded rows, and a retried
+        // page load gets a fresh attempt.
+        this.seriesProbe = null;
+      }
+    })();
+    return this.seriesProbe;
   }
 }
 
