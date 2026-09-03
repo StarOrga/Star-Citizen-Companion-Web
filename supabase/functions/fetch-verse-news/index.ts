@@ -1211,12 +1211,19 @@ async function contentCheck(row: {
  * How many of the newest rows take part in grouping.
  *
  * Grouping is O(n^2) pairs (~200 ms for 1176 pairs measured on the live data),
- * so it is capped rather than left to grow with the table. RSI re-crops an
- * artwork inside a release cycle, not a year later, so a window of the newest
- * rows loses nothing real — and an older row simply keeps the grouping it was
- * last given.
+ * so it is capped rather than left to grow with the table — and the cap is a
+ * CPU ceiling, not a guess about the data. 120 rows is 7 140 pairs, ~1.2 s at
+ * that rate, which fits the isolate's CPU budget with room to spare; 240 rows
+ * would already be ~5 s. This module runs after the response via waitUntil, but
+ * the isolate's CPU limit does not care that the client has been served, and
+ * this function's outage history is precisely "deferred image work took the
+ * whole news feed down".
+ *
+ * Nothing real is lost by the window: RSI re-crops an artwork inside a release
+ * cycle, not a year later, the live table holds 49 rows and grows by a few a
+ * week, and a row that falls out simply keeps the grouping it was last given.
  */
-const VARIANT_WINDOW_ROWS = 240;
+const VARIANT_WINDOW_ROWS = 120;
 
 /** One row of the grouping working set, as read from the table. */
 interface VariantRow {
