@@ -7,6 +7,7 @@ import { CodexListRow, CodexService } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { RoleService } from '../auth/role.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
+import { WeaponFacetRow } from './codex-weapon-taxonomy';
 
 function blueprintRow(className: string, category: string | null): CodexListRow {
   return {
@@ -33,7 +34,13 @@ function blueprintRow(className: string, category: string | null): CodexListRow 
 describe('CodexListComponent (Index mode)', () => {
   async function setup(
     entityCounts: Record<string, number>,
-    opts: { categories?: string[]; rows?: CodexListRow[]; art?: string[]; preview?: string | null } = {},
+    opts: {
+      categories?: string[];
+      rows?: CodexListRow[];
+      art?: string[];
+      preview?: string | null;
+      weaponFacets?: WeaponFacetRow[];
+    } = {},
   ): Promise<{
     fixture: ComponentFixture<CodexListComponent>;
     cmp: CodexListComponent;
@@ -59,6 +66,9 @@ describe('CodexListComponent (Index mode)', () => {
         .and.resolveTo(opts.categories ?? []),
       isPinned: () => false,
       previewUrl: () => opts.preview ?? null,
+      weaponFacets: jasmine
+        .createSpy('weaponFacets')
+        .and.resolveTo(opts.weaponFacets ?? []),
     };
 
     const hangar: Partial<HangarService> = {
@@ -172,6 +182,87 @@ describe('CodexListComponent (Index mode)', () => {
       'blueprint',
       jasmine.objectContaining({ category: 'FPSArmours' }),
     );
+  });
+
+  /**
+   * The weapons category holds BOTH the on-foot catalog and every ship mount
+   * (admin feedback 7897bcb0), so it browses through a two-level rail instead
+   * of the old flat weapon-class dropdown.
+   */
+  describe('CodexListComponent — weapon super categories', () => {
+    const facets: WeaponFacetRow[] = [
+      { weaponClass: 'FPS', attachType: 'WeaponPersonal', subType: 'Small', isVariant: false },
+      { weaponClass: 'FPS', attachType: 'WeaponPersonal', subType: 'Medium', isVariant: false },
+      { weaponClass: 'Ship', attachType: 'Turret', subType: 'GunTurret', isVariant: false },
+      { weaponClass: 'Ship', attachType: 'WeaponGun', subType: 'Gun', isVariant: true },
+    ];
+
+    it('shows the rail only on the weapon category', async () => {
+      const { cmp } = await setup({ ships: 300, weapons: 1312 }, { weaponFacets: facets });
+
+      expect(cmp.showsWeaponGroups()).toBe(false);
+      cmp.setKind('weapon');
+      expect(cmp.showsWeaponGroups()).toBe(true);
+    });
+
+    it('keeps the second level hidden until a super category is picked', async () => {
+      const { fixture, cmp } = await setup({ weapons: 1312 }, { weaponFacets: facets });
+      cmp.setKind('weapon');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(cmp.activeWeaponSubGroups()).toBeNull();
+      cmp.setWeaponGroup('fps');
+      expect(cmp.activeWeaponSubGroups()?.map((g) => g.id)).toEqual(['sidearm', 'primary']);
+    });
+
+    it('badges each category with the record count the build actually holds', async () => {
+      const { fixture, cmp } = await setup({ weapons: 1312 }, { weaponFacets: facets });
+      cmp.setKind('weapon');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(cmp.weaponGroupCount('fps')).toBe(2);
+      // The variant-only ship gun is excluded while "include variants" is off.
+      expect(cmp.weaponGroupCount('ship')).toBe(1);
+      cmp.setIncludeVariants(true);
+      expect(cmp.weaponGroupCount('ship')).toBe(2);
+      expect(cmp.weaponGroupCount('ship', 'gun')).toBe(1);
+    });
+
+    it('narrows the SERVER query, not just the loaded page', async () => {
+      const { fixture, cmp, listByKind } = await setup({ weapons: 1312 }, { weaponFacets: facets });
+      cmp.setKind('weapon');
+      cmp.setWeaponGroup('ship');
+      cmp.setWeaponSubGroup('turret');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(listByKind).toHaveBeenCalledWith(
+        'weapon',
+        jasmine.objectContaining({ weaponClass: 'Ship', attachTypeIn: ['Turret'] }),
+      );
+    });
+
+    it('drops the sub category when the super category changes', async () => {
+      const { cmp } = await setup({ weapons: 1312 }, { weaponFacets: facets });
+      cmp.setKind('weapon');
+      cmp.setWeaponGroup('ship');
+      cmp.setWeaponSubGroup('turret');
+      cmp.setWeaponGroup('fps');
+
+      expect(cmp.weaponSubGroup()).toBe('');
+    });
+
+    it('leaves the weapon filters behind when the reader switches kind', async () => {
+      const { cmp } = await setup({ ships: 300, weapons: 1312 }, { weaponFacets: facets });
+      cmp.setKind('weapon');
+      cmp.setWeaponGroup('fps');
+      cmp.setKind('ship');
+
+      expect(cmp.weaponGroup()).toBe('');
+      expect(cmp.hasActiveFilters()).toBe(false);
+    });
   });
 
   /**
