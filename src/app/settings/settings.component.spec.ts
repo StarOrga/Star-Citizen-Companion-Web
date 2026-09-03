@@ -47,8 +47,9 @@ describe('SettingsComponent layout', () => {
     TestBed.configureTestingModule({
       imports: [SettingsComponent, TranslateModule.forRoot()],
       providers: [
-        // The rail builds its hrefs from the CURRENT url, so the tests need a
-        // router and a location — mocked, so nothing touches real history.
+        // The rail builds its hrefs from the CURRENT url, and the friends
+        // card is a real <a [routerLink]> — both need a router, and the rail
+        // also needs a location. Mocked, so nothing touches real history.
         provideRouter([{ path: 'settings', component: SettingsComponent }]),
         provideLocationMocks(),
         {
@@ -319,9 +320,22 @@ describe('SettingsComponent layout', () => {
     // Account identity, the username editor and the password form belong to
     // the same group — all three are "who this account is".
     expect(sections[0].querySelector('.account')).toBeTruthy();
-    expect(sections[0].querySelector('sc-password-form')).toBeTruthy();
-    expect(sections[0].querySelectorAll('.sc-card').length).toBe(3);
+    expect(sections[0].querySelector(sc-password-form)).toBeTruthy();
+    // Identity, the username editor, the friends entry point and the password form.
+    expect(sections[0].querySelectorAll(.sc-card).length).toBe(4);
     expect(sections[1].querySelector('.locale-grid')).toBeTruthy();
+  });
+
+  it('offers friends from the account group as a real anchor', () => {
+    const fixture = setup(makeUser(), '1100px');
+    const el: HTMLElement = fixture.nativeElement;
+    const account = el.querySelector<HTMLElement>('#settings-account')!;
+    const link = account.querySelector<HTMLAnchorElement>('a.link-btn')!;
+    // A navigation, so it has to be an <a> with a resolvable href — middle
+    // click and "open in new tab" are browser features an <a> gets for free.
+    expect(link).toBeTruthy();
+    expect(link.tagName).toBe('A');
+    expect(link.getAttribute('href')).toBe('/friends');
   });
 
   it('marks exactly one section as the active one in the rail', () => {
