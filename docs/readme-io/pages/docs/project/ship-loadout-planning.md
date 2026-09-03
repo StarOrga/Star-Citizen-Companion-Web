@@ -55,11 +55,18 @@ candidate with sorting and filtering in the column headers, the same interaction
 pattern intended for every table in the app. Values are shown against the
 component currently fitted, switchable to the factory part.
 
-## It has to hold for every ship
+## One layout, every ship
 
-The design was worked out on a Nomad, because a concrete ship keeps the
-decisions honest. But the catalog holds ships that look nothing like it, and
-the layout has to survive all of them:
+The page is not a design per ship. It is a single layout that reads the
+catalog: a section appears because the ship has those hardpoints, a figure
+appears because the extract carries it, and a mission chip enables itself from
+what is actually fitted. Nothing in it is written for a particular hull — add a
+ship to the catalog and it renders, without a line of layout work.
+
+A Nomad served as the reference while the decisions were made. A concrete ship
+keeps a design honest: it is easier to argue about a real loadout than an
+imagined one. But the catalog holds ships that look nothing like it, and the
+same layout has to carry them:
 
 | Case | What it stresses |
 |---|---|
