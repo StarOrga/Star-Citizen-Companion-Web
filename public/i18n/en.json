@@ -441,7 +441,15 @@
       "inHangar": "In your hangar",
       "foldedOne": "+1 file variant",
       "foldedMany": "+{{count}} file variants",
-      "foldedTitle": "The game files carry several near-identical records for this entry, so they are shown as one card: {{names}}"
+      "foldedTitle": "The game files carry several near-identical records for this entry, so they are shown as one card: {{names}}",
+      "skinsOne": "+1 skin",
+      "skinsMany": "+{{count}} skins",
+      "skinsTitle": "Every livery of this weapon shares one card. Pick between them inside the entry: {{names}}"
+    },
+    "skinPicker": {
+      "label": "Skin",
+      "standard": "Standard",
+      "count": "{{count}} options"
     },
     "empty": {
       "title": "Nothing here yet",
@@ -2218,7 +2226,7 @@
     "topicNumber": "Topic #{{n}} — a fixed number you can refer to",
     "moreActions": "More actions",
     "filter": {
-      "label": "Filter by author",
+      "label": "Filter by user",
       "all": "All",
       "toggle": "Filter"
     },
@@ -2232,8 +2240,7 @@
       "clear": "Clear search",
       "results": "{{count}} results · by relevance",
       "empty": "No results for “{{query}}”.",
-      "inThread": "in thread",
-      "toggle": "Search"
+      "inThread": "in thread"
     },
     "tab": {
       "label": "Switch between active and finished topics",
@@ -2259,11 +2266,16 @@
     "delete": "Delete",
     "deleteConfirm": "Delete this message? This cannot be undone.",
     "issue": {
-      "mark": "Issue created",
+      "mark": "Create an issue",
       "placeholder": "GitHub issue URL",
-      "save": "Archive",
+      "save": "Attach",
       "cancel": "Cancel",
-      "invalidUrl": "Please enter a valid issue URL (http/https)."
+      "invalidUrl": "Please enter a valid issue URL (http/https).",
+      "pill": "Issue requested",
+      "pending": "Issue creation is queued — the routine will file it.",
+      "undo": "Undo",
+      "attach": "Attach an issue link",
+      "requestBody": "Please **do not implement** this topic — open a GitHub issue for it instead. Then set `status = issue_created` and put the issue URL into `ship_ref`; the topic goes through the usual sign-off from there like any other outcome."
     },
     "status": {
       "open": "ToDo",
@@ -2274,7 +2286,7 @@
       "issue_created": "Issue created",
       "answered": "Answered",
       "continued": "Continued",
-      "needs_input_author": "Asked the sender",
+      "needs_input_author": "Asked the user",
       "declined": "Not implemented",
       "review": "Sign-off"
     },
@@ -2398,8 +2410,8 @@
         "toReviewIssue": "Handed to a GitHub issue",
         "accepted": "You sign it off",
         "reopened": "You resume the conversation",
-        "askAuthor": "You ask the person who filed it",
-        "authorAnswered": "The author answers"
+        "askAuthor": "You ask the user",
+        "authorAnswered": "The user answers"
       },
       "fact": {
         "oldest": "oldest open topic: {{days}} days",
@@ -2417,7 +2429,7 @@
         "reviewIssues": "{{count}} handed to an issue, waiting for your sign-off",
         "reviewWhy": "Only your sign-off ends a topic — otherwise it goes back into the work loop",
         "doneTerminal": "End state — signed off and closed",
-        "declinedTerminal": "End state — deliberately not implemented, with a reason sent to the author"
+        "declinedTerminal": "End state — deliberately not implemented, with a reason sent to the user"
       },
       "todo": "ToDo",
       "done": "Shipped",
@@ -2430,23 +2442,23 @@
       "badge": "User feedback",
       "untriaged": "Not released",
       "release": "Release to the routine",
-      "channelTitle": "Channel to the author",
-      "channelHint": "Everything here is visible to the sender. The thread above (admin ↔ routine) is not.",
-      "seesStatus": "The sender sees:",
-      "asQuestion": "Send as a question to the sender (parks the topic until they answer)",
-      "messagePlaceholder": "Message to the sender…",
-      "messageSend": "Send to author",
+      "channelTitle": "Channel to the user",
+      "channelHint": "Everything here is visible to the user. The thread above (admin ↔ routine) is not.",
+      "seesStatus": "The user sees:",
+      "asQuestion": "Send as a question to the user (parks the topic until they answer)",
+      "messagePlaceholder": "Message to the user…",
+      "messageSend": "Send to user",
       "questionSend": "Send as a question",
       "questionBadge": "Question",
       "fromTeam": "Team",
-      "fromAuthor": "Sender"
+      "fromAuthor": "User"
     },
     "decline": {
       "mark": "Decline & remove",
-      "placeholder": "Why is this not going to happen? The sender will read this.",
+      "placeholder": "Why is this not going to happen? The user will read this.",
       "confirm": "Decline",
       "cancel": "Cancel",
-      "noteRequired": "Please give a reason — the sender gets to read it."
+      "noteRequired": "Please give a reason — the user gets to read it."
     },
     "review": {
       "headlineShipped": "Shipped — please sign off",
@@ -2458,6 +2470,12 @@
       "reopenPlaceholder": "What should be different?",
       "reopenSend": "Send & reopen",
       "reopenCancel": "Cancel"
+    },
+    "sourceFilter": {
+      "label": "Switch between admin topics and user feedback",
+      "admin": "Admins",
+      "user": "Users",
+      "untriagedHint": "User feedback here is still waiting to be released to the routine."
     }
   },
   "feedbackFab": {

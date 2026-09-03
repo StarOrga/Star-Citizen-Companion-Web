@@ -75,6 +75,21 @@ The differences that matter:
   ring persists it, drops the cached verdict (it belonged to the old ring) and
   fires an **interactive** cycle at once — so a deliberate click can open the
   sign-in instead of waiting up to 6 h for the silent poll.
+- **Only an AUTHENTICATED check may establish that ceiling** (0.7.0, feedback
+  e9ea9ad5). `note_max_ring` used to record the clamp from *every* response,
+  including one sent with no JWT at all — but a signed-out request is clamped to
+  the anonymous tier by definition, so the server had never been told which
+  account was asking. An admin who had not connected the app was therefore shown
+  "Alpha · für dieses Konto nicht freigegeben" and the entry was greyed, which is
+  a statement about nobody. Worse, it was a dead end: in `auto` on the current
+  build the outcome is `Current`, the readout is greyed too, and clicking the
+  ring did nothing a browser trip could fix. Signed out the reach now stays
+  `None` (every ring pickable), and the **`Konto ▸` / `Account ▸` submenu** is
+  the sign-in surface that resolves it — sign-in/sign-out both call
+  `update::forget_entitlement()`, because one identity's ceiling must never
+  survive into another's menu. Diagnosing this from a report: the app's session
+  lives in `%APPDATA%\StarscapeWallpaper\session.bin`, and its absence is NOT
+  logged (a missing file is the one silent branch of `Session::load`).
 - **The role clamp is always authoritative.** `desktop-latest?product=starscape`
   always resolves through `starscape_release_for_channel()` (viewer/anon→stable,
   collaborator→beta, admin→alpha). The release token is only proof of a known,

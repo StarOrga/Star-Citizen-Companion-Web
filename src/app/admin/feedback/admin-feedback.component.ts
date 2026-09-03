@@ -27,6 +27,7 @@ import {
   FeedbackMessage,
   FeedbackRow,
   FeedbackSearchHit,
+  FeedbackSource,
   BucketLabelKey,
   FeedbackStatus,
   WORKFLOW_SCOPES,
@@ -43,6 +44,8 @@ import {
   isArchived,
   isContinuedAfterShip,
   isUserSubmitted,
+  ISSUE_REQUEST_MARKER,
+  pendingIssueRequest,
   refKind,
   reviewSince,
   searchFeedback,
@@ -272,49 +275,25 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       } @else {
 
       <div class="board">
-        <!-- Board toolbar: status + author quick-filters on ONE compact row
-             (feedback 605d317d — no more doubled filter bars, no horizontal
-             TOC scroll strip). Per-chip counts are gone; the single motivating
-             totals line below carries the numbers instead. -->
+        <!-- Board toolbar (admin feedback 18e96ad3). Two rows, deliberately:
+             the FIRST carries what is always in play - the Aktiv/Erledigt
+             split, the Admins/Nutzer split, a compact search and, right-aligned,
+             the one control that acts on the whole list (alles auf/zu). The
+             SECOND is a single quiet text link that unrolls the rest. The chips
+             used to sit permanently unrolled on the full board and behind an
+             icon in the panel; one place, folded away by default, is both.
+             embedded() no longer changes the layout here - it only tightens the
+             spacing (see the styles). -->
         <div class="board-toolbar">
-          <!-- Fuzzy search across the whole conversation — topic body, processing
-               note, author and every thread reply (feedback 12476cec). Typing
-               narrows both tabs and re-orders the hits by relevance; the day
-               headings step aside for a single "N Treffer" heading while a query
-               is active, because relevance and date order contradict each other. -->
-          @if (!embedded() || searchOpen()) {
-          <div class="search-box">
-            <span class="search-icon" aria-hidden="true">⌕</span>
-            <input
-              #searchInput
-              type="search"
-              autocomplete="off"
-              [value]="searchQuery()"
-              (input)="setSearch($any($event.target).value)"
-              (keydown.escape)="clearSearch()"
-              [attr.placeholder]="'adminFeedback.search.placeholder' | translate"
-              [attr.aria-label]="'adminFeedback.search.label' | translate" />
-            <!-- Shown for any non-empty input, not just a *usable* query: a
-                 whitespace-only field has to be clearable too. -->
-            @if (searchQuery().length > 0) {
-              <button
-                type="button"
-                (click)="clearSearch(); searchInput.focus()"
-                [attr.aria-label]="'adminFeedback.search.clear' | translate">
-                ×
-              </button>
-            }
-          </div>
-          }
-          <div class="filters">
-            <!-- Active ↔ Archive tabs inside the overview (feedback eeba60e7).
-                 Active holds the working set (open / in Arbeit / Rückfrage);
-                 Archive holds the terminal ones — shipped and issue-created —
+          <div class="tb-row">
+            <!-- Active / Archive tabs inside the overview (feedback eeba60e7).
+                 Active holds the working set (open / in Arbeit / Rueckfrage);
+                 Archive holds the terminal ones - shipped and issue-created -
                  each with its link. -->
-            <div class="archive-switch" role="group" [attr.aria-label]="'adminFeedback.tab.label' | translate">
+            <div class="seg" role="group" [attr.aria-label]="'adminFeedback.tab.label' | translate">
               <button
                 type="button"
-                class="archive-tab"
+                class="seg-tab"
                 [class.active]="boardTab() === 'active'"
                 [attr.aria-pressed]="boardTab() === 'active'"
                 (click)="setBoardTab('active')">
@@ -323,7 +302,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
               </button>
               <button
                 type="button"
-                class="archive-tab"
+                class="seg-tab"
                 [class.active]="boardTab() === 'archive'"
                 [attr.aria-pressed]="boardTab() === 'archive'"
                 (click)="setBoardTab('archive')">
@@ -331,183 +310,234 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                 <span class="tab-count">{{ archiveCount() }}</span>
               </button>
             </div>
-            <!-- Docked panel only: reveal search / fold the chips / expand all,
-                 so the prime filter row stays a single line (feedback 3133f9).
-                 The full board gets its own expand-all at the end of the row —
-                 see below; its chips are never folded, so it has no cluster. -->
-            @if (embedded()) {
-              <div class="toolbar-icons">
-                <button
-                  type="button"
-                  class="tb-icon"
-                  [class.active]="searchOpen()"
-                  [attr.aria-pressed]="searchOpen()"
-                  (click)="toggleSearch()"
-                  [attr.aria-label]="'adminFeedback.search.toggle' | translate">
-                  <span aria-hidden="true">⌕</span>
-                </button>
-                <button
-                  type="button"
-                  class="tb-icon labelled"
-                  [class.active]="filtersOpen()"
-                  [attr.aria-pressed]="filtersOpen()"
-                  (click)="toggleFilters()"
-                  [attr.aria-label]="'adminFeedback.filter.toggle' | translate">
-                  <span aria-hidden="true">⚲</span>
-                  {{ 'adminFeedback.filter.toggle' | translate }}
-                  @if (!filtersOpen() && (statusFilter() !== null || authorFilter() !== null)) {
-                    <span class="dot" aria-hidden="true"></span>
-                  }
-                </button>
-                @if (visibleMessages().length > 1) {
-                  <button
-                    type="button"
-                    class="tb-icon"
-                    (click)="toggleExpandAll()"
-                    [attr.aria-pressed]="allExpanded()"
-                    [attr.aria-label]="(allExpanded() ? 'adminFeedback.collapseAll' : 'adminFeedback.expandAll') | translate">
-                    <span class="chev" [class.open]="allExpanded()" aria-hidden="true">▸</span>
-                  </button>
-                }
-              </div>
-            }
-            @if (!embedded() || filtersOpen()) {
-            <!-- Status chips narrow the CURRENT tab; their vocabulary differs
-                 per tab, so switching tabs clears the chip selection. -->
-            <div class="status-filter" role="group" [attr.aria-label]="'adminFeedback.statusFilter.label' | translate">
+
+            <!-- Admin board vs. user feedback (admin feedback 18e96ad3). Same
+                 switch as above because it is the same kind of decision: which
+                 pile am I looking at. Defaults to Admins; the Nutzer side keeps
+                 its count and grows a marker while something there still waits
+                 to be released, so the default can never hide a fresh report. -->
+            <div class="seg" role="group" [attr.aria-label]="'adminFeedback.sourceFilter.label' | translate">
               <button
                 type="button"
-                class="status-chip"
-                [class.active]="statusFilter() === null"
-                (click)="setStatusFilter(null)">
-                {{ 'adminFeedback.statusFilter.all' | translate }}
+                class="seg-tab"
+                [class.active]="sourceFilter() === 'admin'"
+                [attr.aria-pressed]="sourceFilter() === 'admin'"
+                (click)="setSourceFilter('admin')">
+                {{ 'adminFeedback.sourceFilter.admin' | translate }}
+                <span class="tab-count">{{ sourceCounts().admin }}</span>
               </button>
-              @if (boardTab() === 'active') {
-                @if (bucketCounts().awaiting_admin > 0) {
-                  <button
-                    type="button"
-                    class="status-chip needs_input"
-                    [class.active]="statusFilter() === 'awaiting_admin'"
-                    (click)="setStatusFilter('awaiting_admin')">
-                    {{ 'adminFeedback.status.needs_input' | translate }}
-                  </button>
+              <button
+                type="button"
+                class="seg-tab"
+                [class.active]="sourceFilter() === 'user'"
+                [attr.aria-pressed]="sourceFilter() === 'user'"
+                (click)="setSourceFilter('user')">
+                {{ 'adminFeedback.sourceFilter.user' | translate }}
+                <span class="tab-count">{{ sourceCounts().user }}</span>
+                @if (untriagedWaiting()) {
+                  <span
+                    class="dot"
+                    [attr.title]="'adminFeedback.sourceFilter.untriagedHint' | translate"></span>
                 }
-                @if (bucketCounts().todo > 0) {
-                  <button
-                    type="button"
-                    class="status-chip open"
-                    [class.active]="statusFilter() === 'todo'"
-                    (click)="setStatusFilter('todo')">
-                    {{ 'adminFeedback.status.open' | translate }}
-                  </button>
-                }
-                <!-- The mirror image of the Rückfrage chip: topics where the
-                     admin asked the person who filed them (feedback 5920cf8c). -->
-                @if (bucketCounts().awaiting_author > 0) {
-                  <button
-                    type="button"
-                    class="status-chip needs_input_author"
-                    [class.active]="statusFilter() === 'awaiting_author'"
-                    (click)="setStatusFilter('awaiting_author')">
-                    {{ 'adminFeedback.status.needs_input_author' | translate }}
-                  </button>
-                }
-                @if (bucketCounts().in_progress > 0) {
-                  <button
-                    type="button"
-                    class="status-chip in_progress"
-                    [class.active]="statusFilter() === 'in_progress'"
-                    (click)="setStatusFilter('in_progress')">
-                    {{ 'adminFeedback.status.in_progress' | translate }}
-                  </button>
-                }
-                <!-- Shipped / handed to an issue and waiting for the sign-off
-                     that ends the topic (migration 20260729130000). -->
-                @if (bucketCounts().review > 0) {
-                  <button
-                    type="button"
-                    class="status-chip review"
-                    [class.active]="statusFilter() === 'review'"
-                    (click)="setStatusFilter('review')">
-                    {{ 'adminFeedback.status.review' | translate }}
-                    <span class="chip-count">{{ bucketCounts().review }}</span>
-                  </button>
-                }
-              } @else {
-                @if (bucketCounts().shipped > 0) {
-                  <button
-                    type="button"
-                    class="status-chip shipped"
-                    [class.active]="statusFilter() === 'shipped'"
-                    (click)="setStatusFilter('shipped')">
-                    {{ 'adminFeedback.status.shipped' | translate }}
-                  </button>
-                }
-                @if (bucketCounts().issue_created > 0) {
-                  <button
-                    type="button"
-                    class="status-chip issue_created"
-                    [class.active]="statusFilter() === 'issue_created'"
-                    (click)="setStatusFilter('issue_created')">
-                    {{ 'adminFeedback.status.issue_created' | translate }}
-                  </button>
-                }
-                @if (bucketCounts().declined > 0) {
-                  <button
-                    type="button"
-                    class="status-chip declined"
-                    [class.active]="statusFilter() === 'declined'"
-                    (click)="setStatusFilter('declined')">
-                    {{ 'adminFeedback.status.declined' | translate }}
-                  </button>
-                }
-                @if (bucketCounts().rejected > 0) {
-                  <button
-                    type="button"
-                    class="status-chip rejected"
-                    [class.active]="statusFilter() === 'rejected'"
-                    (click)="setStatusFilter('rejected')">
-                    {{ 'adminFeedback.status.rejected' | translate }}
-                  </button>
-                }
-              }
+              </button>
             </div>
-            @if (authorOptions().length > 1) {
-              <div class="author-filter" role="group" [attr.aria-label]="'adminFeedback.filter.label' | translate">
+
+            <span class="tb-spacer"></span>
+
+            <!-- Fuzzy search across the whole conversation - topic body,
+                 processing note, author and every thread reply (feedback
+                 12476cec). It rests as a narrow pill and grows over its
+                 neighbours while it is in use, like the site-wide Ctrl+K search
+                 (admin feedback 18e96ad3); Escape, the x and a click elsewhere
+                 put it back. A query keeps it open, so the list is never
+                 narrowed by a box that has folded itself away. -->
+            <div
+              class="search-box"
+              [class.expanded]="searchExpanded()"
+              (focusin)="searchFocused.set(true)"
+              (focusout)="searchFocused.set(false)">
+              <span class="search-icon" aria-hidden="true">&#9099;</span>
+              <input
+                #searchInput
+                type="search"
+                autocomplete="off"
+                [value]="searchQuery()"
+                (input)="setSearch($any($event.target).value)"
+                (keydown.escape)="clearSearch(); searchInput.blur()"
+                [attr.placeholder]="'adminFeedback.search.placeholder' | translate"
+                [attr.aria-label]="'adminFeedback.search.label' | translate" />
+              <!-- Shown for any non-empty input, not just a *usable* query: a
+                   whitespace-only field has to be clearable too. -->
+              @if (searchQuery().length > 0) {
                 <button
                   type="button"
-                  class="author-chip"
-                  [class.active]="authorFilter() === null"
-                  (click)="setAuthorFilter(null)">
-                  {{ 'adminFeedback.filter.all' | translate }}
+                  class="search-clear"
+                  (click)="clearSearch(); searchInput.blur()"
+                  [attr.title]="'adminFeedback.search.clear' | translate"
+                  [attr.aria-label]="'adminFeedback.search.clear' | translate">
+                  &times;
                 </button>
-                @for (a of authorOptions(); track a.id) {
-                  <button
-                    type="button"
-                    class="author-chip"
-                    [class.active]="authorFilter() === a.id"
-                    (click)="setAuthorFilter(a.id)">
-                    {{ a.label }}
-                  </button>
-                }
-              </div>
-            }
-            }
-            <!-- Full board: fold every topic at once. The cards collapse here
-                 too since feedback 03d7e546, so the board needs the same
-                 "alles zu" the docked panel has had — it just sits at the end of
-                 the filter row instead of in the panel's icon cluster. -->
-            @if (!embedded() && visibleMessages().length > 1) {
+              }
+            </div>
+
+            <!-- Fold every topic at once. Right-aligned and icon-only, with the
+                 tooltip that names what the click will do (admin feedback
+                 18e96ad3) - it acts on the whole list, so it belongs at the far
+                 end rather than among the filters. -->
+            @if (visibleMessages().length > 1) {
               <button
                 type="button"
                 class="tb-icon expand-all"
                 (click)="toggleExpandAll()"
-                [attr.aria-pressed]="allExpanded()">
-                <span class="chev" [class.open]="allExpanded()" aria-hidden="true">▸</span>
-                {{ (allExpanded() ? 'adminFeedback.collapseAll' : 'adminFeedback.expandAll') | translate }}
+                [attr.aria-pressed]="allExpanded()"
+                [attr.title]="(allExpanded() ? 'adminFeedback.collapseAll' : 'adminFeedback.expandAll') | translate"
+                [attr.aria-label]="(allExpanded() ? 'adminFeedback.collapseAll' : 'adminFeedback.expandAll') | translate">
+                <span class="chev" [class.open]="allExpanded()" aria-hidden="true">&#9656;</span>
               </button>
             }
           </div>
+
+          <!-- Second row: one quiet text link for everything that is not
+               everyday. The dot says a hidden chip is still narrowing the list. -->
+          <div class="tb-row second">
+            <button
+              type="button"
+              class="filter-link"
+              [class.open]="filtersOpen()"
+              (click)="toggleFilters()"
+              [attr.aria-expanded]="filtersOpen()">
+              <span class="chev" [class.open]="filtersOpen()" aria-hidden="true">&#9656;</span>
+              {{ 'adminFeedback.filter.toggle' | translate }}
+              @if (!filtersOpen() && (statusFilter() !== null || authorFilter() !== null)) {
+                <span class="dot" aria-hidden="true"></span>
+              }
+            </button>
+          </div>
+
+          @if (filtersOpen()) {
+            <div class="filters">
+              <!-- Status chips narrow the CURRENT tab; their vocabulary differs
+                   per tab, so switching tabs clears the chip selection. -->
+              <div class="status-filter" role="group" [attr.aria-label]="'adminFeedback.statusFilter.label' | translate">
+                <button
+                  type="button"
+                  class="status-chip"
+                  [class.active]="statusFilter() === null"
+                  (click)="setStatusFilter(null)">
+                  {{ 'adminFeedback.statusFilter.all' | translate }}
+                </button>
+                @if (boardTab() === 'active') {
+                  @if (bucketCounts().awaiting_admin > 0) {
+                    <button
+                      type="button"
+                      class="status-chip needs_input"
+                      [class.active]="statusFilter() === 'awaiting_admin'"
+                      (click)="setStatusFilter('awaiting_admin')">
+                      {{ 'adminFeedback.status.needs_input' | translate }}
+                    </button>
+                  }
+                  @if (bucketCounts().todo > 0) {
+                    <button
+                      type="button"
+                      class="status-chip open"
+                      [class.active]="statusFilter() === 'todo'"
+                      (click)="setStatusFilter('todo')">
+                      {{ 'adminFeedback.status.open' | translate }}
+                    </button>
+                  }
+                  <!-- The mirror image of the Rueckfrage chip: topics where the
+                       admin asked the person who filed them (feedback 5920cf8c). -->
+                  @if (bucketCounts().awaiting_author > 0) {
+                    <button
+                      type="button"
+                      class="status-chip needs_input_author"
+                      [class.active]="statusFilter() === 'awaiting_author'"
+                      (click)="setStatusFilter('awaiting_author')">
+                      {{ 'adminFeedback.status.needs_input_author' | translate }}
+                    </button>
+                  }
+                  @if (bucketCounts().in_progress > 0) {
+                    <button
+                      type="button"
+                      class="status-chip in_progress"
+                      [class.active]="statusFilter() === 'in_progress'"
+                      (click)="setStatusFilter('in_progress')">
+                      {{ 'adminFeedback.status.in_progress' | translate }}
+                    </button>
+                  }
+                  <!-- Shipped / handed to an issue and waiting for the sign-off
+                       that ends the topic (migration 20260729130000). -->
+                  @if (bucketCounts().review > 0) {
+                    <button
+                      type="button"
+                      class="status-chip review"
+                      [class.active]="statusFilter() === 'review'"
+                      (click)="setStatusFilter('review')">
+                      {{ 'adminFeedback.status.review' | translate }}
+                      <span class="chip-count">{{ bucketCounts().review }}</span>
+                    </button>
+                  }
+                } @else {
+                  @if (bucketCounts().shipped > 0) {
+                    <button
+                      type="button"
+                      class="status-chip shipped"
+                      [class.active]="statusFilter() === 'shipped'"
+                      (click)="setStatusFilter('shipped')">
+                      {{ 'adminFeedback.status.shipped' | translate }}
+                    </button>
+                  }
+                  @if (bucketCounts().issue_created > 0) {
+                    <button
+                      type="button"
+                      class="status-chip issue_created"
+                      [class.active]="statusFilter() === 'issue_created'"
+                      (click)="setStatusFilter('issue_created')">
+                      {{ 'adminFeedback.status.issue_created' | translate }}
+                    </button>
+                  }
+                  @if (bucketCounts().declined > 0) {
+                    <button
+                      type="button"
+                      class="status-chip declined"
+                      [class.active]="statusFilter() === 'declined'"
+                      (click)="setStatusFilter('declined')">
+                      {{ 'adminFeedback.status.declined' | translate }}
+                    </button>
+                  }
+                  @if (bucketCounts().rejected > 0) {
+                    <button
+                      type="button"
+                      class="status-chip rejected"
+                      [class.active]="statusFilter() === 'rejected'"
+                      (click)="setStatusFilter('rejected')">
+                      {{ 'adminFeedback.status.rejected' | translate }}
+                    </button>
+                  }
+                }
+              </div>
+              @if (authorOptions().length > 1) {
+                <div class="author-filter" role="group" [attr.aria-label]="'adminFeedback.filter.label' | translate">
+                  <button
+                    type="button"
+                    class="author-chip"
+                    [class.active]="authorFilter() === null"
+                    (click)="setAuthorFilter(null)">
+                    {{ 'adminFeedback.filter.all' | translate }}
+                  </button>
+                  @for (a of authorOptions(); track a.id) {
+                    <button
+                      type="button"
+                      class="author-chip"
+                      [class.active]="authorFilter() === a.id"
+                      (click)="setAuthorFilter(a.id)">
+                      {{ a.label }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
         </div>
 
         <!-- One totals line for the current filtering (feedback 605d317d): what
@@ -600,6 +630,13 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
           @if (untriaged(m)) {
             <span class="status-pill untriaged">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span>
           }
+        }
+        <!-- An issue was ORDERED and not yet delivered (admin feedback
+             18e96ad3). It is not a status - the topic is a plain ToDo the
+             routine still owns - so it reads as the extra marker it is, next
+             to the bucket pill rather than instead of it. -->
+        @if (issueRequested(m)) {
+          <span class="status-pill issue_created">{{ 'adminFeedback.issue.pill' | translate }}</span>
         }
         @if (isAnsweredAwaitingRoutine(m)) {
           <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
@@ -893,6 +930,28 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                      outcome: the only decisions left are the two in the gate
                      above, so the "hand it to an issue" control stays away. -->
                 @if (!archived(m) && !inReview(m)) {
+                  <!-- "Issue erstellen" is an ORDER, not a record of one
+                       (admin feedback 18e96ad3): it asks the routine to open a
+                       GitHub issue for this topic instead of implementing it,
+                       and the topic stays exactly where it is - ToDo, in the
+                       queue - until the routine delivers. Which is what makes
+                       the misclick undoable: nothing has happened yet. -->
+                  @if (issueRequested(m)) {
+                    <div class="issue-pending">
+                      <span class="ip-text">{{ 'adminFeedback.issue.pending' | translate }}</span>
+                      <button class="sc-btn micro" (click)="undoIssueRequest(m)" [disabled]="busy()">
+                        &#8630; {{ 'adminFeedback.issue.undo' | translate }}
+                      </button>
+                    </div>
+                  } @else {
+                    <button class="sc-btn micro" (click)="requestIssue(m)" [disabled]="busy()">
+                      {{ 'adminFeedback.issue.mark' | translate }}
+                    </button>
+                  }
+                  <!-- The other half of what the single button used to do: an
+                       issue that ALREADY exists, recorded by hand. It ends the
+                       work the same way the routine's own hand-off does - the
+                       topic goes into the sign-off gate with its issue link. -->
                   @if (issueFormFor() === m.id) {
                     <form class="issue-form" (submit)="submitIssueRef(m, $event)">
                       <input
@@ -911,8 +970,8 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                       </button>
                     </form>
                   } @else {
-                    <button class="sc-btn micro" (click)="openIssueForm(m)" [disabled]="busy()">
-                      {{ 'adminFeedback.issue.mark' | translate }}
+                    <button class="sc-btn micro ghost" (click)="openIssueForm(m)" [disabled]="busy()">
+                      {{ 'adminFeedback.issue.attach' | translate }}
                     </button>
                   }
                 }
@@ -1001,6 +1060,22 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     </section>
   `,
   styles: [`
+    /* One focus ring for every control on the board — it was spelled out
+       eight times, in two shades that were never told apart on screen. */
+    .view-tab:focus-visible,
+    .status-chip:focus-visible,
+    .author-chip:focus-visible,
+    .seg-tab:focus-visible,
+    .tb-icon:focus-visible,
+    .filter-link:focus-visible,
+    .new-topic-bar:focus-visible,
+    .cs-close:focus-visible,
+    .load-more:focus-visible,
+    .thread-more:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.32);
+    }
+
     .page { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
     /* Embedded inside the FAB chat panel: fill the panel, scroll the history,
        and keep the composer pinned below it (never behind it). */
@@ -1146,7 +1221,6 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       color: var(--sc-accent);
       box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 45%, transparent);
     }
-    .view-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
     .tab-badge {
       display: inline-flex;
       align-items: center;
@@ -1183,17 +1257,22 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     /* Quick-access author filter: chip row that scopes the board to one creator.
        The chips themselves share their look with the status chips below. */
     .author-filter { display: flex; flex-wrap: wrap; gap: 6px; }
-    /* Board toolbar: filters (status + author) on the left, expand-all right. */
-    .board-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    /* Board toolbar (admin feedback 18e96ad3): the everyday row, then the
+       "Filter" disclosure alone on a second one. */
+    .board-toolbar { display: flex; flex-direction: column; gap: 6px; }
+    .tb-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; position: relative; }
+    .tb-row.second { gap: 6px; }
+    .tb-spacer { flex: 1 1 auto; }
 
-    /* Search field: its own full-width row above the filters, so it works in the
-       narrow docked panel and on the wide board alike (feedback 12476cec). The
-       UA's built-in clear cross is dropped for our own labelled button. */
+    /* Search: a narrow pill that grows over its neighbours while focused or
+       holding a query - the Ctrl+K gesture, toolbar-sized. Absolute only while
+       expanded, so opening it reflows nothing. */
     .search-box {
-      flex: 1 0 100%; display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; gap: 6px;
+      flex: 0 1 132px; min-width: 62px;
       padding: 0 10px; border-radius: 999px;
       background: var(--sc-bg-2); border: 1px solid var(--sc-border);
-      &:focus-within { border-color: var(--sc-accent); }
+      transition: width 0.18s ease, border-color 0.16s ease;
       .search-icon, button { color: var(--sc-fg-2); }
       input {
         flex: 1 1 auto; min-width: 0; padding: 6px 0; font: inherit; font-size: 0.8rem;
@@ -1205,6 +1284,40 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       button { padding: 0 4px; background: transparent; border: 0; font: inherit; cursor: pointer; }
       button:hover { color: var(--sc-fg-0); }
     }
+    .search-box.expanded {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+      width: min(340px, 100%);
+      border-color: var(--sc-accent);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    }
+    .search-box:not(.expanded) input { text-overflow: ellipsis; }
+
+    /* The advanced filters behind one quiet text link. Deliberately NOT a chip:
+       it is the least important control here and should look it. */
+    .filter-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: max(0.74rem, var(--sc-fs-floor));
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+    .filter-link:hover, .filter-link.open { color: var(--sc-accent); }
+    .filter-link:focus-visible { border-radius: 4px; }
+    .filter-link .chev { display: inline-block; font-size: max(0.68rem, var(--sc-fs-floor)); transition: transform 0.16s ease; }
+    .filter-link .chev.open { transform: rotate(90deg); }
+    .filter-link .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent-hot); }
+
     /* Status + author chip groups now share one wrapping row (feedback 605d317d);
        the wider column gap keeps the two groups visually distinct. */
     .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
@@ -1225,9 +1338,8 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       cursor: pointer;
       transition: all 0.16s ease;
     }
-    .status-chip:hover, .author-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .status-chip:hover, .author-chip:hover, .tb-icon:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .status-chip.active, .author-chip.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
-    .status-chip:focus-visible, .author-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     /* The needs_input filter carries the same violet accent as its status pill. */
     .status-chip.needs_input.active { color: #a78bfa; border-color: #a78bfa; background: rgba(167, 139, 250, 0.14); }
     /* "Rückfrage an Absender" — same rosé as its pill, so the two directions of
@@ -1237,17 +1349,16 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     .status-chip.shipped.active { color: var(--sc-success); border-color: var(--sc-success); background: rgba(74, 222, 128, 0.14); }
     .status-chip.issue_created.active { color: #818cf8; border-color: #818cf8; background: rgba(129, 140, 248, 0.14); }
 
-    /* Active ↔ Archive tabs leading the overview's filter row. Deliberately a
-       quieter segmented control than the top-level .view-switch — it splits one
-       list, it does not switch the board's mode. */
-    .archive-switch {
+    /* Aktiv/Erledigt and Admins/Nutzer: one look, same kind of decision.
+       Quieter than .view-switch — they split a list, not the board's mode. */
+    .seg {
       display: inline-flex;
       padding: 2px;
       background: var(--sc-bg-2);
       border: 1px solid var(--sc-border);
       border-radius: 999px;
     }
-    .archive-tab {
+    .seg-tab {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -1263,7 +1374,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       cursor: pointer;
       transition: all 0.16s ease;
     }
-    .archive-tab:hover { color: var(--sc-fg-0); }
+    .seg-tab:hover { color: var(--sc-fg-0); }
     /* ---- Review gate ----
        Deliberately loud: it is the one card state that asks for a decision
        rather than reporting one, and it sits between the thread and the reply
@@ -1302,21 +1413,19 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     .status-chip.review { border-color: var(--sc-success); color: var(--sc-success); }
     .status-chip .chip-count { margin-left: 5px; opacity: 0.75; }
 
-    .archive-tab.active { background: rgba(0, 212, 255, 0.14); color: var(--sc-accent); }
-    .archive-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
-    .archive-tab .tab-count {
+    .seg-tab.active { background: rgba(0, 212, 255, 0.14); color: var(--sc-accent); }
+    .seg-tab .tab-count {
       font-size: max(0.68rem, var(--sc-fs-floor));
       font-weight: 500;
       color: var(--sc-fg-2);
       font-variant-numeric: tabular-nums;
     }
-    .archive-tab.active .tab-count { color: inherit; }
+    .seg-tab.active .tab-count { color: inherit; }
+    /* "Something waits here" on the Nutzer half — the Filter link's hot dot. */
+    .seg-tab .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent-hot); }
 
-    /* ---- Compact toolbar icon cluster (docked panel, feedback 3133f9) ----
-       Reveal search · fold the status/author chips · expand-all, kept to the
-       right of the always-visible Aktiv/Archiv tabs so the prime row is one
-       line. On the full board this cluster never renders (chips are inline). */
-    .toolbar-icons { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+    /* Toolbar icon button — one user now, the expand/collapse-all. The old
+       three-icon cluster (feedback 3133f9) went with the two-row toolbar. */
     .tb-icon {
       display: inline-flex;
       align-items: center;
@@ -1333,14 +1442,8 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       cursor: pointer;
       transition: all 0.16s ease;
     }
-    .tb-icon:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .tb-icon.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
-    .tb-icon:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
     .tb-icon .chev { display: inline-block; font-size: max(0.72rem, var(--sc-fs-floor)); transition: transform 0.16s ease; }
     .tb-icon .chev.open { transform: rotate(90deg); }
-    /* Active-filter marker on the collapsed "Filter" button, so a fold that is
-       hiding an applied chip still reads as "narrowed". */
-    .tb-icon .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent-hot); }
 
     /* ---- Collapsed new-topic bar (docked panel) ----
        Stands in for the pinned composer: one tap opens the full compose sheet,
@@ -1364,7 +1467,6 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       transition: all 0.16s ease;
     }
     .new-topic-bar:hover { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.08); }
-    .new-topic-bar:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
     .new-topic-bar .nt-plus { font-size: 1.05rem; line-height: 1; color: var(--sc-accent); }
 
     /* ---- Expanded compose sheet (docked panel) ---- */
@@ -1401,7 +1503,6 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       transition: all 0.16s ease;
     }
     .cs-close:hover { color: var(--sc-fg-0); background: rgba(255, 255, 255, 0.06); }
-    .cs-close:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
 
     /* One motivating totals line under the filters (feedback 605d317d): open
        Rückfragen (violet, like their status pill) + shipped so far (accent).
@@ -1440,7 +1541,6 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       transition: all 0.16s ease;
     }
     .load-more:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .load-more:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3); }
 
     .msg { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
     .msg.is-self { box-shadow: inset 2px 0 0 var(--sc-accent); }
@@ -1587,7 +1687,6 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       transition: color 0.15s ease, border-color 0.15s ease;
     }
     .thread-more:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
-    .thread-more:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
     .thread-more .ellipsis {
       font-size: 1.1rem; font-weight: 700; line-height: 0.8;
       letter-spacing: 0.08em; color: var(--sc-fg-0);
@@ -1611,9 +1710,13 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       font-size: max(0.7rem, var(--sc-fs-floor)); transition: transform 0.16s ease;
     }
     .sc-btn.micro.ghost .chev.open { transform: rotate(90deg); }
-    /* Full board's expand-all: the panel's icon with its label spelled out. */
-    .tb-icon.expand-all { margin-left: auto; }
-    /* Inline "issue created" hand-off: paste the issue url, confirm, archived. */
+    /* Expand/collapse-all: icon only, hard right, tooltip carries the wording. */
+    .tb-icon.expand-all { flex: 0 0 auto; padding: 4px 8px; }
+    /* The ordered-but-undelivered issue, with its undo. Quiet: it reports a
+       state, the button next to it is the only thing to act on. */
+    .issue-pending { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .issue-pending .ip-text { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
+    /* Inline "issue link" hand-off: paste the issue url, confirm, archived. */
     .issue-form { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .issue-input {
       flex: 1 1 220px;
@@ -1991,6 +2094,52 @@ export class AdminFeedbackComponent implements OnInit {
     this.statusFilter.set(null);
   }
 
+  // ---- Source filter: admin topics vs. user feedback ----------------------
+
+  /**
+   * Which half of the inbox the overview shows (admin feedback 18e96ad3): the
+   * board the admins write for themselves, or what viewers sent in through
+   * their own feedback box. Same two-button switch as Aktiv/Erledigt, and it
+   * defaults to **Admins** because that is the pile an admin opens the board to
+   * work — user feedback is triaged, not authored, and it announces itself: the
+   * Nutzer button carries the count and a marker while anything there still
+   * waits to be released to the routine, so defaulting away from it can never
+   * hide an untouched report.
+   */
+  readonly sourceFilter = signal<FeedbackSource>('admin');
+
+  setSourceFilter(source: FeedbackSource): void {
+    if (this.sourceFilter() === source) return;
+    this.sourceFilter.set(source);
+    // The two halves have different status vocabularies in practice (only user
+    // topics are ever "nicht freigegeben" or "nicht umgesetzt"), so a chip
+    // carried across would silently filter the other half down to nothing.
+    this.statusFilter.set(null);
+    this.authorFilter.set(null);
+    this.archiveVisible.set(AdminFeedbackComponent.ARCHIVE_PAGE);
+  }
+
+  private matchesSource(m: FeedbackRow): boolean {
+    return this.sourceFilter() === 'user' ? isUserSubmitted(m) : !isUserSubmitted(m);
+  }
+
+  /** How many topics sit in each half, search-filtered (chip-independent). */
+  readonly sourceCounts = computed(() => {
+    let admin = 0;
+    let user = 0;
+    for (const m of this.messages()) {
+      if (!this.matchesSearch(m)) continue;
+      if (isUserSubmitted(m)) user++;
+      else admin++;
+    }
+    return { admin, user };
+  });
+
+  /** Something in the user half still waits for its release to the routine. */
+  readonly untriagedWaiting = computed(() =>
+    this.messages().some((m) => awaitsTriage(m) && !isArchived(m, this.threads().get(m.id))),
+  );
+
   /** Sentinel author-filter key for topics with no author (routine/orphaned). */
   private static readonly NO_AUTHOR = '__none__';
   /** Quick-access filter: an author_id (or NO_AUTHOR) to show only, or null for all. */
@@ -2000,6 +2149,7 @@ export class AdminFeedbackComponent implements OnInit {
   readonly authorOptions = computed(() => {
     const seen = new Map<string, { id: string; label: string; count: number }>();
     for (const m of this.messages()) {
+      if (!this.matchesSource(m)) continue;
       const id = m.author_id ?? AdminFeedbackComponent.NO_AUTHOR;
       const existing = seen.get(id);
       if (existing) existing.count++;
@@ -2104,7 +2254,7 @@ export class AdminFeedbackComponent implements OnInit {
       declined: 0,
     };
     for (const m of this.messages()) {
-      if (this.matchesAuthor(m) && this.matchesSearch(m)) counts[this.bucketOf(m)]++;
+      if (this.matchesSource(m) && this.matchesAuthor(m) && this.matchesSearch(m)) counts[this.bucketOf(m)]++;
     }
     return counts;
   });
@@ -2123,7 +2273,7 @@ export class AdminFeedbackComponent implements OnInit {
     let shipped = 0;
     let issues = 0;
     for (const m of this.messages()) {
-      if (!this.matchesAuthor(m)) continue;
+      if (!this.matchesSource(m) || !this.matchesAuthor(m)) continue;
       const bucket = this.bucketOf(m);
       if (bucket === 'awaiting_admin') rueckfragen++;
       else if (bucket === 'review') review++;
@@ -2166,6 +2316,7 @@ export class AdminFeedbackComponent implements OnInit {
       .filter(
         (m) =>
           !isArchived(m, this.threads().get(m.id)) &&
+          this.matchesSource(m) &&
           this.matchesAuthor(m) &&
           this.matchesStatus(m) &&
           this.matchesSearch(m),
@@ -2198,13 +2349,21 @@ export class AdminFeedbackComponent implements OnInit {
   readonly activeCount = computed(
     () =>
       this.messages().filter(
-        (m) => !isArchived(m, this.threads().get(m.id)) && this.matchesAuthor(m) && this.matchesSearch(m),
+        (m) =>
+          !isArchived(m, this.threads().get(m.id)) &&
+          this.matchesSource(m) &&
+          this.matchesAuthor(m) &&
+          this.matchesSearch(m),
       ).length,
   );
   readonly archiveCount = computed(
     () =>
       this.messages().filter(
-        (m) => isArchived(m, this.threads().get(m.id)) && this.matchesAuthor(m) && this.matchesSearch(m),
+        (m) =>
+          isArchived(m, this.threads().get(m.id)) &&
+          this.matchesSource(m) &&
+          this.matchesAuthor(m) &&
+          this.matchesSearch(m),
       ).length,
   );
 
@@ -2371,6 +2530,7 @@ export class AdminFeedbackComponent implements OnInit {
       .filter(
         (m) =>
           isArchived(m, this.threads().get(m.id)) &&
+          this.matchesSource(m) &&
           this.matchesAuthor(m) &&
           this.matchesStatus(m) &&
           this.matchesSearch(m),
@@ -2757,18 +2917,24 @@ export class AdminFeedbackComponent implements OnInit {
   openComposer(): void { this.composerOpen.set(true); }
   closeComposer(): void { this.composerOpen.set(false); }
 
-  /** Docked panel: status + author chips fold behind a "Filter" disclosure. */
+  /**
+   * The advanced filters (status + author chips) fold behind a quiet "Filter"
+   * text link on the toolbar's second row (admin feedback 18e96ad3). Both
+   * shells now: the full board had the chips permanently unrolled, which is the
+   * bulk the admin asked to be put away.
+   */
   readonly filtersOpen = signal(false);
   toggleFilters(): void { this.filtersOpen.update((v) => !v); }
 
-  /** Docked panel: the search field folds behind a search icon. Collapsing it
-   *  also drops any active query, so a hidden search never silently filters. */
-  readonly searchOpen = signal(false);
-  toggleSearch(): void {
-    const next = !this.searchOpen();
-    this.searchOpen.set(next);
-    if (!next) this.clearSearch();
-  }
+  /**
+   * The header search is a compact pill that grows over its neighbours while it
+   * has focus or holds a query — the same gesture as the site-wide Ctrl+K
+   * search (admin feedback 18e96ad3). It closes on Escape, on the × inside it
+   * and on a click elsewhere; a query keeps it open, so a filtered list can
+   * never be the work of a search box nobody can see.
+   */
+  readonly searchFocused = signal(false);
+  readonly searchExpanded = computed(() => this.searchFocused() || this.searchQuery().length > 0);
 
   /**
    * Compact new-topic submit: same as {@link createTopicBound}, but folds the
@@ -2865,7 +3031,73 @@ export class AdminFeedbackComponent implements OnInit {
 
   // ---- Issue hand-off ------------------------------------------------------
 
-  /** Topic id whose inline "issue created" url form is open (null = none). */
+  /**
+   * "Issue erstellen" — hand the topic to the routine as an INSTRUCTION to open
+   * a GitHub issue for it instead of implementing it (admin feedback 18e96ad3).
+   *
+   * The button used to read "Issue erstellt" and demanded a url on the spot,
+   * which is the opposite motion: it recorded an issue the admin had already
+   * filed by hand and archived the topic in the same click. The order the admin
+   * wants is the ordinary one — instruct → the routine works → fertig / zur
+   * Abnahme → Archiv — so this writes the instruction into the thread and
+   * otherwise leaves the topic exactly where it is: `open`, in the routine's
+   * queue, at its place in the oldest-first order.
+   *
+   * Recording an issue that already exists is still possible and now says so:
+   * it is the separate "Issue-Link eintragen" form below.
+   */
+  async requestIssue(m: FeedbackRow): Promise<void> {
+    const uid = this.selfId();
+    if (!uid) return;
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const body = `${ISSUE_REQUEST_MARKER} ${this.translate.instant('adminFeedback.issue.requestBody')}`;
+    const { error } = await this.sb.client
+      .from('admin_feedback_messages')
+      .insert({ feedback_id: m.id, author_id: uid, is_system: false, body });
+    if (error) {
+      this.errorMsg.set(error.message);
+      this.busy.set(false);
+      return;
+    }
+    await this.refresh();
+  }
+
+  /**
+   * Take the instruction back — the misclick the admin asked to be able to undo
+   * ("solange das issue noch nicht erstellt wurde sondern nur in todo ist").
+   * Deleting the message is the whole undo: the topic never left the queue, so
+   * there is no status or `ship_ref` to restore, and the conversation continues
+   * where it was.
+   */
+  async undoIssueRequest(m: FeedbackRow): Promise<void> {
+    const msg = this.issueRequest(m);
+    if (!msg) return;
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const { error } = await this.sb.client
+      .from('admin_feedback_messages')
+      .delete()
+      .eq('id', msg.id);
+    if (error) {
+      this.errorMsg.set(error.message);
+      this.busy.set(false);
+      return;
+    }
+    await this.refresh();
+  }
+
+  /** The topic's still-open issue request, or null. */
+  issueRequest(m: FeedbackRow): FeedbackMessage | null {
+    return pendingIssueRequest(m, this.threads().get(m.id));
+  }
+
+  /** Template-side alias: is an issue request waiting to be delivered? */
+  issueRequested(m: FeedbackRow): boolean {
+    return this.issueRequest(m) !== null;
+  }
+
+  /** Topic id whose inline "attach an existing issue url" form is open (null = none). */
   readonly issueFormFor = signal<string | null>(null);
   /** Draft issue url in that form. */
   readonly issueUrl = signal('');
