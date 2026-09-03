@@ -11,7 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { Location } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
@@ -73,7 +73,7 @@ const RAIL_STACK_QUERY = '(max-width: 1079px)';
 @Component({
   selector: 'sc-settings',
   standalone: true,
-  imports: [TranslateModule, ScDatePipe],
+  imports: [RouterLink, TranslateModule, ScDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -209,6 +209,19 @@ const RAIL_STACK_QUERY = '(max-width: 1079px)';
                 @if (usernameError(); as e) {
                   <div class="flash error">{{ e | translate }}</div>
                 }
+              </div>
+
+              <!-- Friends — the entry point into the social graph. It belongs
+                   with the account: it is about who you are and who you are
+                   connected to. A real anchor, not a button: it takes you
+                   somewhere, so middle-click and "open in new tab" have to
+                   work. -->
+              <div class="sc-card section">
+                <h3>{{ 'settings.friends.title' | translate }}</h3>
+                <p class="hint">{{ 'settings.friends.hint' | translate }}</p>
+                <a class="sc-btn sc-btn-primary link-btn" routerLink="/friends">
+                  {{ 'settings.friends.open' | translate }}
+                </a>
               </div>
             </div>
           </section>
@@ -504,6 +517,9 @@ const RAIL_STACK_QUERY = '(max-width: 1079px)';
       letter-spacing: 0.04em;
     }
     .account h3 { margin-bottom: 2px; }
+    /* The friends entry point is an <a>, so it needs the bits .sc-btn assumes
+       a <button> already brings. */
+    .link-btn { margin-top: 12px; align-self: flex-start; text-decoration: none; width: fit-content; }
     .row {
       display: flex;
       justify-content: space-between;

@@ -157,6 +157,13 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
                 (click)="closeMenu()">
                 {{ 'nav.settings' | translate }}
               </a>
+              <a
+                class="dropdown-item"
+                role="menuitem"
+                routerLink="/friends"
+                (click)="closeMenu()">
+                {{ 'nav.friends' | translate }}
+              </a>
               @if (roles.isAdmin()) {
                 <!-- Admin-gated (roleGuard('admin') on the route) — showing it to
                      everyone would only ever hand out a redirect. -->
