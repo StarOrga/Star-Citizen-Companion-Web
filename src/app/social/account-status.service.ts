@@ -114,13 +114,19 @@ export class AccountStatusService {
     try {
       const { data, error } = await this.sb.realClient.rpc('my_account_status');
       if (error) {
-        // "Function does not exist" is the pre-migration window and is
-        // permanent until the next deploy — stop asking. Anything else is a
-        // blip; leave `loaded` false so the next navigation retries.
+        // "Function does not exist" = the DB has not had migration
+        // 20260904020000 applied yet. `loaded` is set so guards stop
+        // re-asking on every navigation, but the POLL deliberately keeps
+        // running: that window closes when the migration is applied, minutes
+        // to hours after the deploy, and a tab that was already open must not
+        // stay blind to moderation until someone reloads it. One 404 every
+        // three minutes is not worth a stale client.
+        //
+        // Anything else is a blip: leave `loaded` false so the next
+        // navigation retries.
         if (isMissingFunction(error.message, (error as { code?: string }).code)) {
           this._unavailable.set(true);
           this._loaded.set(true);
-          this.stopPolling();
         }
         return;
       }

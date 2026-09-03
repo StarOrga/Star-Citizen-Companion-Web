@@ -325,7 +325,11 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                       @if (modMode() === 'suspend') {
                         <label class="mod-field">
                           <span class="inline-label">{{ 'admin.moderation.duration' | translate }}</span>
-                          <select class="sc-select" [value]="modDays()" (change)="onModDays($event)">
+                          <!-- modDaysValue, not modDays(): "indefinite" is
+                               null in the model and '' in the DOM, and binding
+                               the null straight in leaves the select matching
+                               no option at all — visibly blank. -->
+                          <select class="sc-select" [value]="modDaysValue()" (change)="onModDays($event)">
                             @for (d of durations; track d) {
                               <option [value]="d === null ? '' : d">
                                 {{ d === null
@@ -1051,6 +1055,12 @@ export class AdminComponent implements OnInit {
   readonly modMsg = signal<string | null>(null);
 
   readonly modReasonValid = computed(() => isValidModerationReason(this.modReason()));
+
+  /** `modDays()` as the `<option value>` strings — null (indefinite) is ''. */
+  readonly modDaysValue = computed(() => {
+    const d = this.modDays();
+    return d === null ? '' : String(d);
+  });
 
   /**
    * Accounts with at least one open report, most-reported first — the

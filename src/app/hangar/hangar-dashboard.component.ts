@@ -396,7 +396,10 @@ const SEARCH_DEBOUNCE_MS = 250;
                       <p class="hint">{{ 'share.view.emptyLoadout' | translate }}</p>
                     } @else {
                       <ul class="shared-items">
-                        @for (i of sharedItems(s); track i.slot) {
+                        <!-- track $index: these items are raw JSONB from a
+                             friend's row, and a duplicate slot label would
+                             make Angular throw on the duplicate key. -->
+                        @for (i of sharedItems(s); track $index) {
                           <li>
                             <span class="si-slot">{{ i.slot }}</span>
                             <span class="si-name">{{ i.className ? itemLabel(i.className) : '—' }}</span>

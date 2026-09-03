@@ -53,7 +53,11 @@ import { SharedLoadoutView, isValidShareToken, shareItems } from './loadout-shar
             <p class="state inline">{{ 'share.view.emptyLoadout' | translate }}</p>
           } @else {
             <ul class="slot-list">
-              @for (i of items(); track i.slot) {
+              <!-- track $index, not the slot: items is raw JSONB from
+                   another account's row, and a duplicate slot label there
+                   would make Angular throw on the duplicate key rather than
+                   render a slightly odd list. -->
+              @for (i of items(); track $index) {
                 <li class="slot">
                   <span class="slot-label">{{ i.slot }}</span>
                   <span class="slot-item">{{ i.className ? itemName(i.className) : '—' }}</span>
@@ -124,23 +128,15 @@ import { SharedLoadoutView, isValidShareToken, shareItems } from './loadout-shar
     .state__title { color: var(--sc-fg-0); font-weight: 600; margin: 0 0 6px; }
     .footnote { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); margin: 0; }
 
+    /* Deliberately only positioning + the touch height here: .sc-btn's look
+       is global (styles.scss) and this page renders on the bare public
+       layout, so it should look like /about's buttons, not like the
+       hangar's locally-restyled ones. */
     .sc-btn {
       align-self: flex-start;
-      padding: 10px 16px;
-      border-radius: 6px;
-      background: var(--sc-bg-1);
-      border: 1px solid var(--sc-accent);
-      color: var(--sc-accent);
-      font-family: var(--sc-font-display);
-      font-size: max(0.72rem, var(--sc-fs-floor));
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
       text-decoration: none;
-      display: inline-flex;
-      align-items: center;
       min-height: 48px;
     }
-    .sc-btn:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .state .sc-btn { align-self: center; margin-top: 14px; }
 
     @media (max-width: 560px) {

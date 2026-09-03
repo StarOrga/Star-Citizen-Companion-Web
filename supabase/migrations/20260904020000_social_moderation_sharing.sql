@@ -143,10 +143,17 @@ $$;
 
 grant execute on function public.list_my_friend_edges() to authenticated;
 
--- respond_friend_request — an over-age request is gone, not answerable.
--- It is stamped 'expired' on the way out so the row stops being ambiguous,
--- and the caller gets a distinct code so the UI can say "expired" rather
--- than the misleading "request not found".
+-- respond_friend_request — an over-age request is gone, not answerable. The
+-- caller gets a distinct code so the UI can say "expired" rather than the
+-- misleading "request not found".
+--
+-- It deliberately does NOT stamp the row 'expired' first: RAISE aborts the
+-- transaction, so that UPDATE would be rolled back with it — a write that
+-- looks like bookkeeping and never lands is worse than no write. The row
+-- stays 'pending', which costs nothing: every read path already treats an
+-- over-age pending row as gone, the pair-unique upsert in
+-- send_friend_request() reuses it, and expire_stale_friend_requests() stamps
+-- it if a cron is ever wired up.
 create or replace function public.respond_friend_request(request_id uuid, accept boolean)
 returns text language plpgsql security definer set search_path = public as $$
 declare
@@ -162,8 +169,6 @@ begin
   end if;
 
   if req.created_at <= now() - public.friend_request_ttl() then
-    update public.friend_requests
-    set status = 'expired', responded_at = now() where id = req.id;
     raise exception 'request_expired' using errcode = 'P0002';
   end if;
 
@@ -543,6 +548,10 @@ grant execute on function public.unsuspend_user(uuid, text) to authenticated;
 -- way it went ('reviewed' = acted on, 'dismissed' = no case), and the partial
 -- unique index frees the reporter/target slot either way, so the same account
 -- can be reported again if the behaviour continues.
+--
+-- Deliberately NOT behind moderation_target(): closing reports is not a
+-- sanction, and a bogus report filed AGAINST an admin has to be dismissable
+-- too. is_admin() is the whole gate here.
 create or replace function public.resolve_reports_for_user(target uuid, dismiss boolean default false)
 returns integer language plpgsql security definer set search_path = public as $$
 declare n integer;
@@ -833,6 +842,12 @@ language sql security definer set search_path = public stable as $$
   join public.profiles p on p.id = s.owner_id
   where s.shared_with = auth.uid()
     and s.revoked_at is null
+    -- Both ends are checked. The owner's suspension takes their loadout off
+    -- every surface at once; the CALLER's is checked here because this is the
+    -- one read path in the feature that does not go through social_actor()
+    -- (it is `language sql`, so it cannot raise) — without it a suspended
+    -- account could still pull friends' loadouts straight off PostgREST.
+    and not public.is_suspended(auth.uid())
     and public.are_friends(auth.uid(), s.owner_id)
     and not public.is_suspended(s.owner_id)
   order by s.created_at desc

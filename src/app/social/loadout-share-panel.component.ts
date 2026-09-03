@@ -235,6 +235,10 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
     }
     @media (max-width: 560px) {
       .pick-row, .link-row { flex-direction: column; align-items: stretch; }
+      /* The rows turn into COLUMNS here, and flex-basis follows the main
+         axis — so the "flex: 1 1 260px" above would become a 260px-TALL
+         input. Reset the basis before it becomes a height. */
+      .link-row .text-input, .pick-row .sc-select { flex: 0 0 auto; width: 100%; }
       .pick-row .sc-btn, .link-row .sc-btn { width: 100%; justify-content: center; }
       .share-row .sc-btn { width: 100%; justify-content: center; }
     }
