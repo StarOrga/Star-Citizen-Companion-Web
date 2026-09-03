@@ -49,7 +49,7 @@ type UserFeedbackTab = 'compose' | 'mine';
   imports: [ScDatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="panel-root">
+    <section class="panel-root sc-dense">
       <div class="tabs" role="tablist">
         <button
           type="button"
@@ -117,30 +117,38 @@ type UserFeedbackTab = 'compose' | 'mine';
                 class="topic sc-card"
                 [class.needs-answer]="t.author_status === 'question'"
                 [class.has-news]="isNew(t.id)">
+                <!-- Two lines, like the admin board's card head (admin
+                     feedback 3bc01a3d): the title on its own row so up to three
+                     pills can never squeeze it away, the pills wrapping under
+                     it. -->
                 <button
                   type="button"
                   class="topic-head"
                   (click)="toggle(t.id)"
                   [attr.aria-expanded]="isOpen(t.id)">
                   <span class="chev" [class.open]="isOpen(t.id)">▸</span>
-                  <span class="topic-title">{{ title(t) }}</span>
-                  <!-- What the FAB badge was counting: the topics that changed
-                       since this user last looked (admin feedback e684c946).
-                       Opening the panel already marked them read server-side, so
-                       this marker is what stops the list from being a
-                       needle-in-a-haystack for the rest of the visit. -->
-                  @if (isNew(t.id)) {
-                    <span class="status-pill new">{{ 'userFeedback.newBadge' | translate }}</span>
-                  }
-                  <!-- What the author said this was about (admin feedback
-                       835fec58) — their own tag read back to them. Absent on
-                       everything filed before the tag existed, and shown as
-                       nothing there rather than as a guessed section. -->
-                  @if (areaOf(t); as a) {
-                    <span class="status-pill area">{{ areaLabelKey(a) | translate }}</span>
-                  }
-                  <span class="status-pill" [class]="t.author_status">
-                    {{ ('userFeedback.status.' + t.author_status) | translate }}
+                  <span class="th-body">
+                    <span class="topic-title">{{ title(t) }}</span>
+                    <span class="th-meta">
+                      <!-- What the FAB badge was counting: the topics that
+                           changed since this user last looked (admin feedback
+                           e684c946). Opening the panel already marked them read
+                           server-side, so this marker is what stops the list from
+                           being a needle-in-a-haystack for the rest of the visit. -->
+                      @if (isNew(t.id)) {
+                        <span class="status-pill new">{{ 'userFeedback.newBadge' | translate }}</span>
+                      }
+                      <!-- What the author said this was about (admin feedback
+                           835fec58) — their own tag read back to them. Absent on
+                           everything filed before the tag existed, and shown as
+                           nothing there rather than as a guessed section. -->
+                      @if (areaOf(t); as a) {
+                        <span class="status-pill area">{{ areaLabelKey(a) | translate }}</span>
+                      }
+                      <span class="status-pill" [class]="t.author_status">
+                        {{ ('userFeedback.status.' + t.author_status) | translate }}
+                      </span>
+                    </span>
                   </span>
                 </button>
 
@@ -240,13 +248,17 @@ type UserFeedbackTab = 'compose' | 'mine';
     </section>
   `,
   styles: [`
+    /* Level 2 of the density scale (styles.scss): the sheet/panel shell around
+       this is level 1, so a flat 14px here was a frame inside a frame on a
+       phone (admin feedback 3bc01a3d). “sc-dense” on the same element lets the
+       composer inside it drop its own side frame down there. */
     .panel-root {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: var(--sc-gap-2);
       flex: 1 1 auto;
       min-height: 0;
-      padding: 14px;
+      padding: var(--sc-pad-2);
       box-sizing: border-box;
       overflow-y: auto;
     }
@@ -278,7 +290,7 @@ type UserFeedbackTab = 'compose' | 'mine';
 
     .intro { margin: 0; font-size: 0.84rem; color: var(--sc-fg-2); line-height: 1.5; }
     .privacy { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); opacity: 0.85; line-height: 1.45; }
-    .compose-pane, .mine-pane { display: flex; flex-direction: column; gap: 10px; }
+    .compose-pane, .mine-pane { display: flex; flex-direction: column; gap: var(--sc-gap-2); }
 
     .err {
       padding: 8px 10px;
@@ -298,14 +310,14 @@ type UserFeedbackTab = 'compose' | 'mine';
     }
     .muted { margin: 0; font-size: 0.84rem; color: var(--sc-fg-2); }
 
-    .topic { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .topic { padding: var(--sc-pad-2); display: flex; flex-direction: column; gap: var(--sc-gap-3); }
     .topic.has-news { border-color: var(--sc-accent); }
     /* Ordered after .has-news on purpose: an open question to the author is the
        stronger of the two states and keeps its own border when both apply. */
     .topic.needs-answer { border-color: var(--sc-accent-hot); }
     .topic-head {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 8px;
       width: 100%;
       padding: 0;
@@ -316,10 +328,11 @@ type UserFeedbackTab = 'compose' | 'mine';
       text-align: left;
       cursor: pointer;
     }
-    .chev { color: var(--sc-fg-2); transition: transform 0.16s ease; }
+    .chev { flex: 0 0 auto; margin-top: 1px; color: var(--sc-fg-2); transition: transform 0.16s ease; }
     .chev.open { transform: rotate(90deg); }
+    .th-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .th-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
     .topic-title {
-      flex: 1;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -352,7 +365,7 @@ type UserFeedbackTab = 'compose' | 'mine';
     .status-pill.done { border-color: var(--sc-accent); color: var(--sc-accent); }
     .status-pill.declined { opacity: 0.75; }
 
-    .topic-detail { display: flex; flex-direction: column; gap: 8px; }
+    .topic-detail { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
 
     /* Withdraw row (admin feedback 892013b6). Sits last in the card and stays
        quiet: one destructive button plus the sentence that says why it is only
@@ -360,10 +373,10 @@ type UserFeedbackTab = 'compose' | 'mine';
     .withdraw {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--sc-gap-3);
       flex-wrap: wrap;
       margin-top: 2px;
-      padding-top: 8px;
+      padding-top: var(--sc-gap-3);
       border-top: 1px solid var(--sc-border);
     }
     .withdraw-hint, .withdraw-ask {
@@ -379,7 +392,7 @@ type UserFeedbackTab = 'compose' | 'mine';
     /* Screenshots are not part of the body flow — see sc-feedback-attachments. */
 
     .decision {
-      padding: 8px 10px;
+      padding: var(--sc-pad-3);
       border-left: 3px solid var(--sc-border);
       background: var(--sc-bg-1);
       border-radius: 4px;
@@ -387,9 +400,9 @@ type UserFeedbackTab = 'compose' | 'mine';
     }
     .decision p { margin: 4px 0 0; color: var(--sc-fg-1); }
 
-    .thread { display: flex; flex-direction: column; gap: 8px; }
+    .thread { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
     .reply {
-      padding: 8px 10px;
+      padding: var(--sc-pad-3);
       border: 1px solid var(--sc-border);
       border-radius: 6px;
       background: var(--sc-bg-1);

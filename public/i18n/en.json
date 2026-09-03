@@ -106,7 +106,16 @@
       "terminal": {
         "label": "Search the archive",
         "placeholder": "Archive Terminal — ship, component, weapon, item, manufacturer, blueprint …",
-        "clear": "Clear search"
+        "clear": "Clear search",
+        "keybinds": "Keybindings"
+      },
+      "archive": {
+        "label": "Archive",
+        "armor": "Armour",
+        "weapons": "Weapons",
+        "blueprints": "Blueprints",
+        "ships": "Ships",
+        "components": "Components"
       },
       "status": {
         "patch": "Patch {{patch}}",
@@ -214,23 +223,6 @@
         "otherShip": "Other configurations",
         "active": "active",
         "openDetail": "Open detail page \"{{name}}\" →"
-      },
-      "versum": {
-        "eyebrow": "In the Verse",
-        "keybinds": "Keybindings",
-        "domain": {
-          "ship": "Ships",
-          "item": "Items",
-          "component": "Components",
-          "weapon": "Weapons",
-          "blueprint": "Blueprints",
-          "manufacturer": "Manufacturers",
-          "ammunition": "Ammunition"
-        },
-        "upcomingRail": {
-          "title": "On the Drawing Board",
-          "badgeAria": "{{count}} new ships since your last visit"
-        }
       },
       "board": {
         "open": "open",
@@ -408,7 +400,8 @@
       "includeVariants": "Show AI / template variants",
       "reset": "Reset filters",
       "anySize": "Any size",
-      "anyGrade": "Any grade"
+      "anyGrade": "Any grade",
+      "blueprintGroup": "Blueprint group"
     },
     "weaponClass": {
       "Ship": "Ship",
@@ -1087,6 +1080,11 @@
     },
     "filters": {
       "category": "Category"
+    },
+    "group": {
+      "all": "All",
+      "fps": "On foot",
+      "vehicle": "Vehicle"
     },
     "category": {
       "FPSArmours": "FPS Armor",
@@ -2403,7 +2401,11 @@
       "threadCollapse": "Hide earlier messages again",
       "kindEmptyTitle": "Nothing of this kind right now",
       "kindEmptyHint": "{{count}} topic(s) are waiting under \"All\".",
-      "kindShowAll": "Show all"
+      "kindShowAll": "Show all",
+      "swipeHint": "Tip: swipe the card left to skip, right to take the decision.",
+      "swipeSkip": "Skip",
+      "swipeDone": "Done",
+      "swipeAccept": "Accept"
     },
     "dashboard": {
       "thisMonth": "This month",

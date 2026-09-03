@@ -21,6 +21,7 @@ import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
 import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
+import { SwipeActionDirective } from '../../core/swipe-action.directive';
 import {
   FeedbackMessage,
   FeedbackRow,
@@ -82,7 +83,13 @@ const ADVANCE_SLIDE_MS = 380;
 @Component({
   selector: 'sc-feedback-workflow',
   standalone: true,
-  imports: [ScDatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
+  imports: [
+    ScDatePipe,
+    TranslateModule,
+    FeedbackAttachmentsComponent,
+    FeedbackComposerComponent,
+    SwipeActionDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="wf" [class.compact]="compact()">
@@ -124,6 +131,11 @@ const ADVANCE_SLIDE_MS = 380;
       </div>
 
       @if (current(); as item) {
+        <!-- Says the gesture exists, once, quietly, and only where it works —
+             the CSS hides this line on a fine pointer. A shortcut nobody is
+             told about is not a feature. -->
+        <p class="swipe-hint">{{ 'adminFeedback.workflow.swipeHint' | translate }}</p>
+
         <!-- Progress: "3 von 7" plus a filling rail, so the run has a visible end. -->
         <div class="wf-progress">
           <span class="wf-count">
@@ -161,51 +173,85 @@ const ADVANCE_SLIDE_MS = 380;
           </p>
         }
 
+        <!-- The run is one card at a time, which is exactly the shape a swipe
+             fits (admin feedback 3bc01a3d, "vllt. ein Tinder-Modus mit Swipe").
+             Left parks the topic for this lap, right takes its positive
+             decision — the same two things the buttons at the card's foot do,
+             and those buttons stay: the gesture is touch-only and additive, so
+             keyboard, mouse and assistive tech lose nothing. -->
         <article
           #card
           class="wf-card sc-card"
+          scSwipeAction
+          #swipe="scSwipeAction"
+          [swipeEnabled]="!busy() && !reopening()"
+          (swipeLeft)="skip()"
+          (swipeRight)="swipeCommit(item)"
           [class.celebrate]="celebrating()"
           [class.arrived]="advanced() !== null"
+          [class.swiping]="swipe.dragging()"
           [class.is-review]="isReview(item)">
+          <!-- What a release would do, on screen before the finger lifts.
+               aria-hidden: the buttons below are the accessible path and
+               announcing a drag state would only duplicate them. -->
+          @if (swipe.intent(); as armed) {
+            <div class="swipe-cue" [attr.data-intent]="armed" aria-hidden="true">
+              {{ (armed === 'left'
+                    ? 'adminFeedback.workflow.swipeSkip'
+                    : (isReview(item)
+                        ? 'adminFeedback.workflow.swipeAccept'
+                        : 'adminFeedback.workflow.swipeDone')) | translate }}
+            </div>
+          }
+          <!-- Two explicit rows since admin feedback 3bc01a3d: the badges (up
+               to four of them) plus the waiting-since date on one line, then #N
+               and the title on the next. They used to share a single wrapping
+               row in which only the title could shrink, so which line the topic
+               ended up on depended on how many badges it happened to carry. -->
           <header class="wf-head">
-            <!-- Which of the two steps is on screen (feedback d4990269) — the
-                 Rückfrage the routine asked, or an Abnahme waiting for the
-                 sign-off. The badge is the first thing in the card because the
-                 actions at its foot differ. -->
-            @if (isReview(item)) {
-              <span class="kind review">{{ 'adminFeedback.workflow.kind.review' | translate }}</span>
-              <!-- ...and how the topic got there: shipped, or handed to an issue.
-                   Same wording the Abnahme tab's tiles carry. -->
-              <span class="kind outcome">{{ ('adminFeedback.status.' + outcomeStatus(item)) | translate }}</span>
-            } @else {
-              <span class="kind question">{{ 'adminFeedback.workflow.kind.question' | translate }}</span>
-            }
-            <!-- Parked earlier in this lap and now back around — says why an
-                 already-seen item is in front of the admin again. -->
-            @if (isSkipped()) {
-              <span class="kind skipped">{{ 'adminFeedback.workflow.skippedBadge' | translate }}</span>
-            }
-            <!-- A topic a viewer/collaborator filed (feedback 5920cf8c). The
-                 author-facing controls — release, "nicht umsetzen", the channel to
-                 the author — live in the Übersicht, so flag it here rather than
-                 letting it read like an admin's own note. -->
-            @if (fromUser(item)) {
-              <span class="kind from-user">{{ 'adminFeedback.userTopic.badge' | translate }}</span>
-              @if (untriaged(item)) {
-                <span class="kind untriaged">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span>
+            <div class="wf-kinds">
+              <!-- Which of the two steps is on screen (feedback d4990269) — the
+                   Rückfrage the routine asked, or an Abnahme waiting for the
+                   sign-off. The badge is the first thing in the card because the
+                   actions at its foot differ. -->
+              @if (isReview(item)) {
+                <span class="kind review">{{ 'adminFeedback.workflow.kind.review' | translate }}</span>
+                <!-- ...and how the topic got there: shipped, or handed to an issue.
+                     Same wording the Abnahme tab's tiles carry. -->
+                <span class="kind outcome">{{ ('adminFeedback.status.' + outcomeStatus(item)) | translate }}</span>
+              } @else {
+                <span class="kind question">{{ 'adminFeedback.workflow.kind.question' | translate }}</span>
               }
-            }
-            <!-- Stable reference number (feedback 21587480), quiet and ahead of
-                 the title — the handle the admin can quote back. -->
-            @if (topicNo(item); as no) {
-              <span
-                class="wf-no"
-                [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
-            }
-            <span class="wf-title">{{ title(item) }}</span>
-            <!-- An Abnahme is dated by the moment its outcome landed, not by the
-                 day the topic was raised — that is how long it has been waiting. -->
-            <span class="wf-ts">{{ stamp(item) | scDate }}</span>
+              <!-- Parked earlier in this lap and now back around — says why an
+                   already-seen item is in front of the admin again. -->
+              @if (isSkipped()) {
+                <span class="kind skipped">{{ 'adminFeedback.workflow.skippedBadge' | translate }}</span>
+              }
+              <!-- A topic a viewer/collaborator filed (feedback 5920cf8c). The
+                   author-facing controls — release, "nicht umsetzen", the channel to
+                   the author — live in the Übersicht, so flag it here rather than
+                   letting it read like an admin's own note. -->
+              @if (fromUser(item)) {
+                <span class="kind from-user">{{ 'adminFeedback.userTopic.badge' | translate }}</span>
+                @if (untriaged(item)) {
+                  <span class="kind untriaged">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span>
+                }
+              }
+              <!-- An Abnahme is dated by the moment its outcome landed, not by
+                   the day the topic was raised — that is how long it has been
+                   waiting. -->
+              <span class="wf-ts">{{ stamp(item) | scDate }}</span>
+            </div>
+            <div class="wf-title-line">
+              <!-- Stable reference number (feedback 21587480), quiet and ahead of
+                   the title — the handle the admin can quote back. -->
+              @if (topicNo(item); as no) {
+                <span
+                  class="wf-no"
+                  [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
+              }
+              <span class="wf-title">{{ title(item) }}</span>
+            </div>
           </header>
 
           @let body = render(item.row.body);
@@ -397,7 +443,7 @@ const ADVANCE_SLIDE_MS = 380;
     </section>
   `,
   styles: [`
-    .wf { display: flex; flex-direction: column; gap: 12px; }
+    .wf { display: flex; flex-direction: column; gap: var(--sc-gap-2); }
 
     /* ---- Scope switch (whose topics are being worked) ---- */
     .wf-scope { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -494,15 +540,67 @@ const ADVANCE_SLIDE_MS = 380;
 
     /* ---- The one card in focus ---- */
     .wf-card {
-      display: flex; flex-direction: column; gap: 10px; padding: 14px 16px;
+      display: flex; flex-direction: column; gap: var(--sc-gap-2);
+      /* Level 2 for the same reason as the board's topic card: the run is a
+         reading surface and the width belongs to the text. */
+      padding: var(--sc-pad-2);
       transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      /* The swipe gesture below drags this card horizontally; the browser must
+         keep owning the vertical axis so the page still scrolls under a thumb. */
+      touch-action: pan-y;
     }
+    /* ---- Swipe (touch only, see SwipeActionDirective) ---- */
+    .wf-card { position: relative; }
+    /* While a drag is live the card must not also animate its own border, or
+       the two transitions fight over the same element. */
+    .wf-card.swiping { transition: none; }
+    .swipe-cue {
+      position: absolute;
+      top: 8px;
+      z-index: 3;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-family: var(--sc-font-display);
+      font-size: max(0.68rem, var(--sc-fs-floor));
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    /* The label sits on the side the card came FROM, i.e. where the finger has
+       just uncovered space — the same place the action's colour is revealed. */
+    .swipe-cue[data-intent='left'] {
+      right: 8px;
+      background: color-mix(in srgb, var(--sc-fg-2) 22%, var(--sc-bg-2));
+      color: var(--sc-fg-1);
+    }
+    .swipe-cue[data-intent='right'] {
+      left: 8px;
+      background: color-mix(in srgb, var(--sc-success) 26%, var(--sc-bg-2));
+      color: var(--sc-success);
+    }
+    /* Fine pointer: no gesture, so no line about one. */
+    .swipe-hint { display: none; }
+    @media (pointer: coarse) {
+      .swipe-hint {
+        display: block;
+        margin: 0;
+        font-size: max(0.68rem, var(--sc-fs-floor));
+        line-height: 1.4;
+        color: var(--sc-fg-2);
+      }
+    }
+
     /* The just-arrived topic, held for the length of the advance notice. */
     .wf-card.arrived {
       border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
       box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-accent) 30%, transparent);
     }
-    .wf-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .wf-head { display: flex; flex-direction: column; gap: 6px; }
+    .wf-kinds { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .wf-title-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+    /* Pushed to the end of the badge row rather than trailing the title. */
+    .wf-kinds .wf-ts { margin-left: auto; }
     .kind {
       padding: 2px 8px;
       border-radius: 999px;
@@ -561,38 +659,13 @@ const ADVANCE_SLIDE_MS = 380;
     .proc-note { margin: 0; font-size: 0.8rem; color: var(--sc-fg-2); font-style: italic; }
 
     .thread {
-      display: flex; flex-direction: column; gap: 8px;
-      padding-left: 10px; border-left: 2px solid var(--sc-border);
+      display: flex; flex-direction: column; gap: var(--sc-gap-3);
+      padding-left: var(--sc-pad-3); border-left: 2px solid var(--sc-border);
       max-height: 320px; overflow-y: auto;
     }
-    /* The folded middle of the thread: one big "…" the admin can open if they
-       want the history, and that stays out of the way if they don't. */
-    .thread-more {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 8px;
-      border: 1px dashed var(--sc-border);
-      border-radius: 8px;
-      background: transparent;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: max(0.72rem, var(--sc-fs-floor));
-      text-align: left;
-      cursor: pointer;
-      transition: color 0.15s ease, border-color 0.15s ease;
-    }
-    .thread-more:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
-    .thread-more:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
-    .thread-more .ellipsis {
-      font-size: 1.1rem;
-      font-weight: 700;
-      line-height: 0.8;
-      letter-spacing: 0.08em;
-      color: var(--sc-fg-0);
-    }
+    /* The folded-thread "…" is a shared control and lives in styles.scss. */
 
-    .reply { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: 8px; background: var(--sc-bg-2); }
+    .reply { display: flex; flex-direction: column; gap: 4px; padding: var(--sc-pad-3); border-radius: 8px; background: var(--sc-bg-2); }
     .reply.is-system { background: color-mix(in srgb, #a78bfa 12%, var(--sc-bg-2)); box-shadow: inset 2px 0 0 #a78bfa; }
     .reply-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .reply-author { font-weight: 600; font-size: 0.82rem; }
@@ -631,9 +704,12 @@ const ADVANCE_SLIDE_MS = 380;
       z-index: 2;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin: 0 -16px -14px;
-      padding: 10px 16px 14px;
+      gap: var(--sc-gap-2);
+      /* Spans the card's own padding so the thread slides under a full-width
+         bar; both numbers therefore have to follow the card's padding, which
+         is now the density scale rather than two hard-coded pixel values. */
+      margin: 0 calc(-1 * var(--sc-pad-2)) calc(-1 * var(--sc-pad-2));
+      padding: var(--sc-pad-2);
       background: var(--sc-bg-1);
       border-top: 1px solid var(--sc-border);
       border-radius: 0 0 8px 8px;
@@ -671,8 +747,8 @@ const ADVANCE_SLIDE_MS = 380;
 
     /* ---- Drained queue ---- */
     .wf-empty {
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-      padding: 32px 20px; text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: var(--sc-gap-3);
+      padding: 32px var(--sc-pad-1); text-align: center;
     }
     .wf-empty h3 { margin: 0; font-size: 1rem; }
     .wf-empty p { margin: 0; color: var(--sc-fg-2); font-size: 0.86rem; }
@@ -693,10 +769,10 @@ const ADVANCE_SLIDE_MS = 380;
 
     /* Docked panel: tighter vertical rhythm so the one card and its always-on
        answer foot own the panel, matching the Übersicht density pass (3133f9). */
-    .wf.compact { gap: 8px; }
+    .wf.compact { gap: var(--sc-gap-3); }
     .wf.compact .thread { max-height: 220px; }
-    .wf.compact .wf-card { padding: 12px 12px; }
-    .wf.compact .wf-foot { margin: 0 -12px -12px; padding: 8px 12px 12px; }
+    /* The card and its foot no longer need a compact override: both run on the
+       density scale, which already knows how wide the screen is. */
   `],
 })
 export class FeedbackWorkflowComponent {
@@ -1059,7 +1135,21 @@ export class FeedbackWorkflowComponent {
   }
 
   title(item: WorkflowItem): string {
-    return topicTitle(item.row.body, this.compact() ? 48 : 72);
+    // The title owns a row of its own since the head became two lines (admin
+    // feedback 3bc01a3d), so the cap is a safety net and CSS's ellipsis decides
+    // where the line actually ends.
+    return topicTitle(item.row.body, this.compact() ? 72 : 110);
+  }
+
+  /**
+   * The positive half of the swipe gesture — deliberately NOT a third decision.
+   * It routes to whichever of the card's own two primary buttons is on screen:
+   * "Abnehmen" on an Abnahme, "Erledigt" on a Rückfrage. Left is always
+   * "Überspringen" and goes straight to {@link skip}.
+   */
+  swipeCommit(item: WorkflowItem): void {
+    if (this.isReview(item)) this.accept(item);
+    else this.finish(item);
   }
 
   /**
