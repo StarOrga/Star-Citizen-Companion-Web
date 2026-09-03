@@ -180,6 +180,24 @@ describe('UpcomingShipsService', () => {
       await flush(feed([{ id: 'a', name: 'A' }]));
       expect(svc.artFor('RSI Ursa')).toEqual([]);
     });
+
+    // The detail hero (feedback e8280936: the Javelin showed the bare category
+    // glyph) reads the same map through a large-frame ordering.
+    it('serves the hero the same candidates, wide render first', async () => {
+      setup();
+      await flushWithArt();
+      expect(svc.heroArtFor('RSI Ursa')).toEqual([
+        'https://media.rsi/store_large.jpg',
+        'https://media.rsi/store_small.jpg',
+      ]);
+    });
+
+    it('gives the hero nothing when the matrix has no entry', async () => {
+      setup();
+      await flushWithArt();
+      expect(svc.heroArtFor('Anvil Hornet F7A')).toEqual([]);
+      expect(svc.heroArtFor(null)).toEqual([]);
+    });
   });
 
   describe('ensureLoaded', () => {

@@ -62,6 +62,38 @@ export function thumbnailCandidates(ship: Pick<UpcomingShip, 'thumbnail' | 'thum
   return ship.thumbnail ? [ship.thumbnail] : [];
 }
 
+/**
+ * Rank of an RSI derivative for a LARGE frame (detail hero), low = better.
+ *
+ * RSI publishes every render under a fixed set of derivative names and the feed
+ * lists them thumbnail-first, which is right for a card and wrong for a hero:
+ * `store_small` is a card-sized crop and goes soft when it is blown up to the
+ * full hero frame. Unknown derivatives sort in the middle so a future name is
+ * still preferred over the explicitly small ones.
+ */
+function heroArtRank(url: string): number {
+  const file = url.slice(url.lastIndexOf('/') + 1).toLowerCase();
+  if (file.startsWith('store_large')) return 0;
+  if (file.startsWith('post')) return 1;
+  if (file.startsWith('slideshow')) return 2;
+  if (file.startsWith('store_small')) return 4;
+  if (file.startsWith('subscribers_vault')) return 5;
+  return 3;
+}
+
+/**
+ * The same candidates as `thumbnails`, reordered biggest-first for a hero
+ * frame. Stable within a rank, so the feed's own order still decides between
+ * two equally suitable derivatives, and nothing is ever dropped — a rejected
+ * large render still falls through to the small one.
+ */
+export function heroArtOrder(urls: readonly string[]): string[] {
+  return urls
+    .map((url, index) => ({ url, index, rank: heroArtRank(url) }))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map((e) => e.url);
+}
+
 export interface UpcomingShipsCounts {
   total: number;
   concept: number;
@@ -313,6 +345,14 @@ export class UpcomingShipsService {
     const map = this.feed()?.gameShipArt;
     if (!map) return [];
     return map[normalizeShipName(gameName)]?.thumbnails ?? [];
+  }
+
+  /**
+   * `artFor` for a large frame — the detail hero. Same candidates, ordered so
+   * the wide store render paints first instead of the card thumbnail.
+   */
+  heroArtFor(gameName: string | null | undefined): string[] {
+    return heroArtOrder(this.artFor(gameName));
   }
 
   async refresh(silent = false): Promise<void> {

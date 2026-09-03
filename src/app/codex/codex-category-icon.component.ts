@@ -112,11 +112,14 @@ export function categoryColor(kind: CodexKind, sub?: string | null): string {
         width: 100%;
         height: 100%;
       }
+      /* The cap travels as a custom property so a large frame (the detail hero,
+         where 72px reads as "tiny lost glyph") can grow it across the style
+         encapsulation boundary without the host reaching into this template. */
       svg {
         width: 56%;
         height: 56%;
-        max-width: 72px;
-        max-height: 72px;
+        max-width: var(--sc-icon-max, 72px);
+        max-height: var(--sc-icon-max, 72px);
         opacity: 0.92;
         filter: drop-shadow(0 0 10px color-mix(in srgb, currentColor 35%, transparent));
       }

@@ -159,6 +159,8 @@ import {
 } from './hardpoint-map';
 import { HardpointPortRef, ShipSkinViewerComponent } from './ship-skin-viewer.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { FallbackImageComponent } from './fallback-image.component';
+import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipLinkService } from './ship-link.service';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
@@ -249,7 +251,7 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent],
+  imports: [NeuroFieldDirective, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -264,12 +266,17 @@ interface GearRecipe {
       } @else {
         <!-- ── Hero (ships get the dim Bay scene — P2 frame, same content) ── -->
         <header class="hero sc-card" [class.bay]="kind() === 'ship'">
-          <figure class="hero-art" [class.icon-only]="!previewUrl()">
-            @if (previewUrl(); as src) {
-              <img [src]="src" [alt]="displayName()" loading="eager" (error)="onArtError()" />
-            } @else {
-              <sc-codex-icon class="hero-icon" [kind]="detail()!.kind" [sub]="heroSub()" />
-            }
+          <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
+            <div class="art">
+              <sc-fallback-image [candidates]="heroArt()" [alt]="displayName()" [eager]="true">
+                <span class="art-fallback">
+                  <sc-codex-icon class="hero-icon" [kind]="detail()!.kind" [sub]="heroSub()" />
+                  @if (kind() === 'ship') {
+                    <span class="art-note">{{ 'codex.detail.noArtwork' | translate }}</span>
+                  }
+                </span>
+              </sc-fallback-image>
+            </div>
           </figure>
           <div class="hero-body">
             <span class="kind-tag">{{ ('codex.kindSingular.' + detail()!.kind) | translate }}</span>
@@ -809,24 +816,36 @@ interface GearRecipe {
 
     /* Hero */
     .hero { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
+    /* sc-fallback-image owns the <img>, so its sizing crosses the style
+       boundary as custom properties (it is display:contents — a transform on
+       it would do nothing, hence the .art wrapper carries the bay drift). */
     .hero-art { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 240px;
+      --sc-img-max-h: 320px;
+      --sc-img-shadow: drop-shadow(0 6px 24px rgba(0,0,0,0.55));
+      --sc-icon-max: 132px;
       background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--sc-accent) 12%, var(--sc-bg-1)), var(--sc-bg-0)); }
     .hero-art.icon-only { background: radial-gradient(circle at 50% 40%, var(--sc-bg-2), var(--sc-bg-0)); }
-    .hero-art img { max-width: 100%; max-height: 320px; object-fit: contain; filter: drop-shadow(0 6px 24px rgba(0,0,0,0.55)); }
+    .hero-art .art { flex: 1 1 auto; align-self: stretch; min-width: 0;
+      display: flex; align-items: center; justify-content: center; }
     /* Bay scene (ships): dim hangar light + rim glow around the hull. The
        frame gets atmospheric — every number stays on the calm right side. */
     .hero.bay .hero-art {
       background:
         radial-gradient(ellipse at 50% 62%, color-mix(in srgb, var(--sc-accent) 17%, #05080d), #04060a 78%);
-      border-right: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent); }
-    .hero.bay .hero-art img {
-      filter: drop-shadow(0 12px 34px rgba(0,0,0,0.72))
-              drop-shadow(0 0 22px color-mix(in srgb, var(--sc-accent) 28%, transparent)); }
+      border-right: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent);
+      --sc-img-shadow: drop-shadow(0 12px 34px rgba(0,0,0,0.72))
+                       drop-shadow(0 0 22px color-mix(in srgb, var(--sc-accent) 28%, transparent)); }
     @media (prefers-reduced-motion: no-preference) {
-      .hero.bay .hero-art img { animation: bay-drift 6s ease-in-out infinite alternate; }
+      .hero.bay .hero-art:not(.icon-only) .art { animation: bay-drift 6s ease-in-out infinite alternate; }
       @keyframes bay-drift { from { transform: translateY(-3px); } to { transform: translateY(3px); } }
     }
-    .hero-art .hero-icon { width: 100%; height: 100%; min-height: 200px; }
+    /* No artwork anywhere: say so instead of leaving a lost glyph in a big
+       empty frame — the catalog simply has no render for this hull yet. */
+    .hero-art .art-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; width: 100%; padding: 14px; box-sizing: border-box; }
+    .hero-art .art-note { font-size: max(0.72rem, var(--sc-fs-floor)); line-height: 1.35; text-align: center;
+      color: var(--sc-fg-2); max-width: 24ch; text-wrap: balance; }
+    .hero-art .hero-icon { width: 100%; min-height: 120px; }
     .hero-body { padding: 22px 24px 22px 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     .kind-tag { align-self: flex-start; font-size: max(0.64rem, var(--sc-fs-floor)); padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.1em;
       background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, transparent); color: var(--sc-accent); }
@@ -1030,6 +1049,8 @@ export class CodexDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
+  // RSI ship-matrix artwork — the hero's primary art source for ships.
+  private readonly rsi = inject(UpcomingShipsService);
   // User-supplied RSI pledge links (feedback f7d3bd9a) — public members because
   // the template reads `saving()` / `isAdmin()` / the signed-in user directly.
   readonly shipLinks = inject(ShipLinkService);
@@ -1156,6 +1177,11 @@ export class CodexDetailComponent implements OnInit {
       this.loading.set(false);
       return;
     }
+    // Deep links land here without ever touching the list, so the RSI art map
+    // would otherwise be empty and every ship hero would fall back to the
+    // datamined silhouette. `feed` is a signal — the hero repaints when it
+    // lands, and a failed fetch is absorbed by the service.
+    if (kind === 'ship') void this.rsi.ensureLoaded();
     await this.load(kind, className);
   }
 
@@ -1171,7 +1197,6 @@ export class CodexDetailComponent implements OnInit {
     this.showEmptyLoadout.set(false);
     this.usedInBlueprints.set([]);
     this.recipe.set(null);
-    this.artBroken.set(false);
     this.swapTarget.set(null);
     this.showLinkForm.set(false);
     this.shipLinkInput.set('');
@@ -1458,17 +1483,44 @@ export class CodexDetailComponent implements OnInit {
     return p?.source ?? null;
   });
 
-  // Set when the hero artwork fails to load → fall back to the category icon.
-  readonly artBroken = signal(false);
-  onArtError(): void {
-    this.artBroken.set(true);
-  }
-
-  readonly previewUrl = computed(() => {
-    if (this.artBroken()) return null;
-    const p = this.detail()?.payload as BaseEntityPayload | undefined;
-    return this.svc.previewUrl(p?.previewImage);
+  /**
+   * Ordered hero artwork, best-looking first — the same source chain the list
+   * cards use, which the hero previously did not consume at all.
+   *
+   * Why: the datamined `previewImage` is the game's flat UI silhouette, and the
+   * game only ships one for hulls that appear in the in-game vehicle UI. 129 of
+   * the 661 ship rows in the current LIVE build have `previewImage: null`
+   * (capital ships like the Javelin, most 2025+ hulls, every Wikelo variant),
+   * and for those the hero had nothing left to show but the category glyph —
+   * even though the card the user just clicked was showing RSI's store render
+   * of the very same hull. 95 of those 129 have RSI artwork; they now paint it.
+   *
+   * A single url would not be enough either: RSI advertises derivatives it has
+   * not always rendered, so the list goes to `sc-fallback-image`, which walks
+   * it and only projects the glyph once every candidate has actually failed.
+   */
+  readonly heroArt = computed<readonly string[]>(() => {
+    const d = this.detail();
+    if (!d) return [];
+    const out: string[] = [];
+    // Ships lead with the RSI render (a photo of the hull) and keep the
+    // datamined silhouette as the fallback. Other kinds have no RSI
+    // counterpart, so their datamined render is all there is.
+    if (d.kind === 'ship') out.push(...this.rsi.heroArtFor(this.heroArtKey()));
+    const local = this.svc.previewUrl((d.payload as BaseEntityPayload | undefined)?.previewImage);
+    if (local) out.push(local);
+    return out;
   });
+
+  /**
+   * Lookup key into the RSI art map. Must be the denormalized `name_localized`
+   * — the very column the edge function keys `gameShipArt` by — so no second
+   * normalization dialect can open a gap between card and detail.
+   */
+  private heroArtKey(): string {
+    const raw = this.detail()?.row?.['name_localized'];
+    return (typeof raw === 'string' && raw ? cleanLocaleValue(raw) : '') || this.displayName();
+  }
 
   /** Sub-category that refines the hero fallback icon (componentKind/weaponClass/subType). */
   heroSub(): string | null {
