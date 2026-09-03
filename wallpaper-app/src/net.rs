@@ -23,8 +23,24 @@ use crate::util::wide;
 // public read of `verse_wallpapers` is allowed by RLS). No secret here.
 const SUPA_HOST: &str = "hcnqhvzlavdycidqyaai.supabase.co";
 const SUPA_KEY: &str = "sb_publishable_ZWbS9qWheOQB0s77mlWLvw_wEcmTVDQ";
-const LIST_PATH: &str =
-    "/rest/v1/verse_wallpapers?select=source_url&order=published_at.desc.nullslast&limit=48";
+
+/// The flat gallery list.
+///
+/// `variant_role=in.(single,primary)` is what keeps the tray from cycling the
+/// same picture two or three times in a row. RSI publishes one artwork in
+/// several crops — a 21:9 hero, a 16:9 version, a HUD-framed banner — each under
+/// its own CDN id, so they are separate rows that look identical on screen.
+/// fetch-verse-news groups them and marks ONE representative per artwork
+/// (`variant-signature.ts`, migration 20260903210000); the alternative crops
+/// carry `ratio`/`duplicate` and are excluded here.
+///
+/// Nothing is hidden until the grouper has actually run: `variant_role`
+/// defaults to `single` for every row. The column itself must exist though —
+/// migration 20260903210000 has to be applied before a build carrying this
+/// filter ships, or PostgREST answers 400 and `list()` falls back to the
+/// bundled wallpaper.
+const LIST_PATH: &str = "/rest/v1/verse_wallpapers?select=source_url\
+&variant_role=in.(single,primary)&order=published_at.desc.nullslast&limit=48";
 
 /// The community ranking behind the website's "Top 7" toggle. A SECURITY
 /// DEFINER RPC (`starscape_top_wallpapers`) that aggregates the self-read-only
