@@ -2485,10 +2485,10 @@
       },
       "how": {
         "title": "Install it",
-        "storeNote": "The Chrome Web Store listing is still in review, so for now the extension is installed from source. Chrome, Edge, Brave and Opera all support this.",
+        "storeNote": "The Chrome Web Store listing is still in review, so for now the extension is loaded by hand. Chrome, Edge, Brave and Opera all support this.",
         "download": {
-          "title": "Download the repository",
-          "text": "Grab the ZIP and unpack it. You only need the browser-extension folder inside it."
+          "title": "Download the extension",
+          "text": "The ZIP holds the extension and nothing else — no repository, no app. Unpacked it gives you exactly one folder: sc-hangar-extension."
         },
         "devmode": {
           "title": "Open chrome://extensions and enable developer mode",
@@ -2496,14 +2496,15 @@
         },
         "load": {
           "title": "Load unpacked",
-          "text": "Click \"Load unpacked\" and select the browser-extension folder."
+          "text": "Click \"Load unpacked\" and select the unpacked sc-hangar-extension folder."
         },
         "use": {
           "title": "Open your RSI hangar",
           "text": "Sign in at RSI and open your pledges page — the import offer appears at the bottom right."
         },
-        "downloadCta": "Download (ZIP)",
+        "downloadCta": "Download the extension (ZIP)",
         "browseCta": "View the source",
+        "buildNote": "GitHub Actions rebuilds this ZIP from exactly that source on every change — same files, same folder — so you can diff the download against the open source code.",
         "browsers": "Chromium-based browsers only for now (Chrome, Edge, Brave, Opera, Vivaldi). A Firefox build may follow."
       },
       "alt": {

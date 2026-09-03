@@ -2485,10 +2485,10 @@
       },
       "how": {
         "title": "Installation",
-        "storeNote": "Der Eintrag im Chrome Web Store ist noch in Prüfung, deshalb wird die Erweiterung vorerst aus dem Quellcode installiert. Chrome, Edge, Brave und Opera unterstützen das alle.",
+        "storeNote": "Der Eintrag im Chrome Web Store ist noch in Prüfung, deshalb wird die Erweiterung vorerst von Hand geladen. Chrome, Edge, Brave und Opera unterstützen das alle.",
         "download": {
-          "title": "Repository herunterladen",
-          "text": "ZIP laden und entpacken. Gebraucht wird daraus nur der Ordner browser-extension."
+          "title": "Erweiterung herunterladen",
+          "text": "Das ZIP enthält nur die Erweiterung — kein Repository, keine App. Entpackt ergibt es genau einen Ordner: sc-hangar-extension."
         },
         "devmode": {
           "title": "chrome://extensions öffnen und den Entwicklermodus aktivieren",
@@ -2496,14 +2496,15 @@
         },
         "load": {
           "title": "Entpackte Erweiterung laden",
-          "text": "Auf \"Entpackte Erweiterung laden\" klicken und den Ordner browser-extension auswählen."
+          "text": "Auf \"Entpackte Erweiterung laden\" klicken und den entpackten Ordner sc-hangar-extension auswählen."
         },
         "use": {
           "title": "RSI-Hangar öffnen",
           "text": "Bei RSI einloggen und die Pledges-Seite öffnen — das Import-Angebot erscheint unten rechts."
         },
-        "downloadCta": "Herunterladen (ZIP)",
+        "downloadCta": "Erweiterung herunterladen (ZIP)",
         "browseCta": "Quellcode ansehen",
+        "buildNote": "Das ZIP baut GitHub Actions bei jeder Änderung automatisch aus genau diesem Quellcode — gleiche Dateien, gleicher Ordner. Der Download lässt sich also gegen den offenen Quellcode vergleichen.",
         "browsers": "Vorerst nur Chromium-Browser (Chrome, Edge, Brave, Opera, Vivaldi). Eine Firefox-Version kann folgen."
       },
       "alt": {
