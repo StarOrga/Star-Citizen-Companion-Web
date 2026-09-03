@@ -2,7 +2,8 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 import { isCatalogStale, comparePatchVersion } from './codex-format';
-import { PolySearchHit, rankPolyHits, toPolyHit } from './codex-poly-search';
+import { PolySearchHit, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-poly-search';
+import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
 import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
 import {
@@ -235,6 +236,12 @@ const LIST_SELECT: Record<CodexKind, string> = {
 @Injectable({ providedIn: 'root' })
 export class CodexService {
   private readonly sb = inject(SupabaseClientProvider);
+  /**
+   * The RSI announcement feed, read-only from here. Injected purely so
+   * {@link searchAll} can cover ships that exist on a concept page but not in
+   * any build; it holds no reference back to this service, so there is no cycle.
+   */
+  private readonly upcoming = inject(UpcomingShipsService);
 
   /**
    * The build every codex query reads from — the LIVE one by default, or the
@@ -699,20 +706,34 @@ export class CodexService {
    * cross-entity hits, and rank them deterministically (see codex-poly-search).
    * Zero model calls — server-ranked from our own data. A kind that errors is
    * skipped rather than failing the whole search.
+   *
+   * The build is not the whole truth about ships, so the RSI announcement feed
+   * is searched as an eighth source (admin feedback 7b91c5ae: "Arrastra" is a
+   * concept hull, present in the upcoming feed and in no `codex_ships` row, and
+   * the terminal answered with nothing at all). Those hits carry the `upcoming`
+   * pseudo-kind and are tinted + badged apart from anything you can fly today.
    */
   async searchAll(query: string, perKindLimit = 6): Promise<PolySearchHit[]> {
     const q = query.trim();
     if (!q) return [];
-    const results = await Promise.all(
-      CODEX_KINDS.map(async (kind) => {
+    const sources: Promise<PolySearchHit[]>[] = CODEX_KINDS.map(async (kind) => {
+      try {
+        const res = await this.listByKind(kind, { search: q, limit: perKindLimit });
+        return res.rows.map((r) => toPolyHit(kind, r));
+      } catch {
+        return [] as PolySearchHit[];
+      }
+    });
+    sources.push(
+      (async () => {
         try {
-          const res = await this.listByKind(kind, { search: q, limit: perKindLimit });
-          return res.rows.map((r) => toPolyHit(kind, r));
+          return (await this.upcoming.searchShips(q, perKindLimit)).map(toUpcomingHit);
         } catch {
           return [] as PolySearchHit[];
         }
-      }),
+      })(),
     );
+    const results = await Promise.all(sources);
     return rankPolyHits(q, results.flat());
   }
 
