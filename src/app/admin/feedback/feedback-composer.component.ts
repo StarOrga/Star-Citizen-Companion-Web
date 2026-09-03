@@ -15,6 +15,8 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ComposerPrefsService } from '../../core/composer-prefs.service';
 import { FeedbackDraftService } from '../../feedback/feedback-draft.service';
 import { FeedbackAreaPickerComponent } from '../../feedback/feedback-area-picker.component';
+import { CharCounterComponent } from '../../feedback/char-counter.component';
+import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
 import type { FeedbackArea } from '../../feedback/feedback-area.types';
 import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import type { FeedbackImage } from './markdown.util';
@@ -86,6 +88,13 @@ const MAX_ATTACHMENTS = 10;
  * see `FeedbackAreaPickerComponent`. Thread replies leave it off: they belong to
  * a topic that already carries the tag.
  *
+ * LENGTH (admin feedback 0a0fad31): every message is capped at
+ * `FEEDBACK_MAX_CHARS`, with the live count sitting half-transparent in the
+ * field's bottom-right corner (`sc-char-counter`). The cap is enforced three
+ * times over, because `maxlength` alone is not a cap: it covers typing and
+ * pasting, `onInput` covers text dropped onto the field, and `canSend` covers a
+ * draft that was stored before the cap existed.
+ *
  * The parent supplies an `onSubmit` handler that returns `true` once the
  * message is persisted; the composer only clears itself on success, so a failed
  * insert keeps the draft and attachments intact.
@@ -102,7 +111,12 @@ const MAX_ATTACHMENTS = 10;
 @Component({
   selector: 'sc-feedback-composer',
   standalone: true,
-  imports: [TranslateModule, FeedbackAttachmentsComponent, FeedbackAreaPickerComponent],
+  imports: [
+    TranslateModule,
+    FeedbackAttachmentsComponent,
+    FeedbackAreaPickerComponent,
+    CharCounterComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- “sc-nest”: wherever this box sits inside a card or a panel shell that
@@ -171,16 +185,24 @@ const MAX_ATTACHMENTS = 10;
         }
       </div>
 
-      <textarea #ta
-                class="input"
-                [value]="draft()"
-                (input)="onInput($event)"
-                (keydown)="onKeydown($event)"
-                (paste)="onPaste($event)"
-                (blur)="flushDraft()"
-                [placeholder]="placeholder() | translate"
-                [attr.aria-label]="placeholder() | translate"
-                [rows]="compact() ? 2 : 4"></textarea>
+      <!-- The field and its live character readout are one unit: the wrapper is
+           the positioning context, and the textarea reserves the bottom strip
+           the counter sits in so the two can never overlap (admin feedback
+           0a0fad31). -->
+      <div class="field">
+        <textarea #ta
+                  class="input"
+                  [value]="draft()"
+                  (input)="onInput($event)"
+                  (keydown)="onKeydown($event)"
+                  (paste)="onPaste($event)"
+                  (blur)="flushDraft()"
+                  [placeholder]="placeholder() | translate"
+                  [attr.aria-label]="placeholder() | translate"
+                  [attr.maxlength]="maxChars"
+                  [rows]="compact() ? 2 : 4"></textarea>
+        <sc-char-counter [used]="charCount()" [max]="maxChars" />
+      </div>
 
       <!-- Pending images use the very same chip row the thread renders
            (feedback 99723afc): one 72px thumbnail size, click to enlarge,
@@ -278,12 +300,18 @@ const MAX_ATTACHMENTS = 10;
     .draft-clear:hover { color: var(--sc-danger); border-color: var(--sc-danger); }
     .draft-clear.armed { color: var(--sc-danger); border-color: var(--sc-danger); }
 
+    /* Positioning context for the live character counter, which is absolutely
+       placed in the field's bottom-right corner. */
+    .field { position: relative; display: block; }
+
     .input {
       width: 100%;
       box-sizing: border-box;
       min-height: 92px;
       resize: vertical;
-      padding: 10px 12px;
+      /* The extra bottom padding is the counter's lane — typed text scrolls
+         above it instead of underneath it. */
+      padding: 10px 12px 22px;
       background: var(--sc-bg-1);
       color: var(--sc-fg-0);
       border: 1px solid var(--sc-border);
@@ -292,7 +320,9 @@ const MAX_ATTACHMENTS = 10;
       font-size: 0.9rem;
       line-height: 1.5;
     }
-    .composer.compact .input { min-height: 44px; font-size: 0.86rem; }
+    /* 44px of typing room plus the counter's lane — the reply box keeps the
+       same two visible rows it had before the counter moved in. */
+    .composer.compact .input { min-height: 66px; font-size: 0.86rem; }
     .input:focus {
       outline: none;
       border-color: var(--sc-accent);
@@ -405,10 +435,24 @@ export class FeedbackComposerComponent implements OnDestroy {
       : 'adminFeedback.compose.sendHintCtrl',
   );
 
+  /** The shared cap, exposed for the template's `maxlength` and the counter. */
+  readonly maxChars = FEEDBACK_MAX_CHARS;
+
+  /** Live length of what is in the field — what the counter renders. */
+  readonly charCount = computed(() => this.draft().length);
+
+  /**
+   * A restored draft written before the cap existed can still be over it. It is
+   * not thrown away — the author keeps their text and can cut it down — but it
+   * cannot be sent until it fits.
+   */
+  readonly overLimit = computed(() => this.charCount() > this.maxChars);
+
   readonly canSend = computed(
     () =>
       !this.busy() &&
       !this.sending() &&
+      !this.overLimit() &&
       (this.draft().trim().length > 0 || this.attachments().length > 0),
   );
 
@@ -556,8 +600,21 @@ export class FeedbackComposerComponent implements OnDestroy {
     if (scope) void this.drafts.discard(scope);
   }
 
+  /**
+   * `maxlength` covers typing and pasting, but NOT text dropped onto the field
+   * — Chrome happily drops a megabyte past the attribute. So the cap is applied
+   * here as well, and written back to the element, which is what actually makes
+   * it impossible to file another 9.800-character wall (admin feedback
+   * 0a0fad31).
+   */
   onInput(e: Event): void {
-    const value = (e.target as HTMLTextAreaElement).value;
+    const el = e.target as HTMLTextAreaElement;
+    const value = clampFeedbackText(el.value);
+    if (el.value !== value) {
+      const caret = Math.min(el.selectionStart ?? value.length, value.length);
+      el.value = value;
+      el.setSelectionRange(caret, caret);
+    }
     this.draft.set(value);
     this.draftRestored.set(false);
     this.saveDraft();
@@ -640,10 +697,16 @@ export class FeedbackComposerComponent implements OnDestroy {
     this.applyValue(el, next, caret);
   }
 
+  /**
+   * Programmatic writes (the list-marker insert) bypass `maxlength` the same way
+   * a drop does, so they go through the same clamp.
+   */
   private applyValue(el: HTMLTextAreaElement, next: string, caret: number): void {
-    el.value = next;
+    const capped = clampFeedbackText(next);
+    el.value = capped;
+    caret = Math.min(caret, capped.length);
     el.setSelectionRange(caret, caret);
-    this.draft.set(next);
+    this.draft.set(capped);
     this.draftRestored.set(false);
     this.saveDraft();
     el.focus();

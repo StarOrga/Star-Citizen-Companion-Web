@@ -1,4 +1,5 @@
 import { renderFeedbackBody } from './markdown.util';
+import { FEEDBACK_LONG_WORD_CHARS } from '../../feedback/feedback-limits';
 
 /** Convenience: most cases only care about the rendered text flow. */
 const html = (src: string) => renderFeedbackBody(src).html;
@@ -136,6 +137,55 @@ describe('renderFeedbackBody', () => {
     it('returns a stable reference for the same body (memoised)', () => {
       const src = 'memo ![a](https://a.b/memo.png)';
       expect(renderFeedbackBody(src)).toBe(renderFeedbackBody(src));
+    });
+  });
+
+  /**
+   * The 9.800-character "aaaa…" topic (admin feedback 0a0fad31). Breaking such a
+   * run mid-word turns one message into a wall of full-width lines; marking it
+   * lets the CSS keep it on one line and let it overflow its own box instead.
+   */
+  describe('runaway words', () => {
+    const long = 'a'.repeat(FEEDBACK_LONG_WORD_CHARS);
+
+    it('marks a word at the threshold and leaves the one below it alone', () => {
+      expect(html('a'.repeat(FEEDBACK_LONG_WORD_CHARS - 1))).toBe(
+        `<p>${'a'.repeat(FEEDBACK_LONG_WORD_CHARS - 1)}</p>`,
+      );
+      expect(html(long)).toBe(`<p><span class="sc-longword">${long}</span></p>`);
+    });
+
+    it('marks only the runaway token, not the sentence around it', () => {
+      expect(html(`before ${long} after`)).toBe(
+        `<p>before <span class="sc-longword">${long}</span> after</p>`,
+      );
+    });
+
+    it('marks a runaway token inside a list item and a heading too', () => {
+      expect(html(`- ${long}`)).toBe(`<ul><li><span class="sc-longword">${long}</span></li></ul>`);
+      expect(html(`# ${long}`)).toBe(`<h3><span class="sc-longword">${long}</span></h3>`);
+    });
+
+    it('never reaches inside a tag it emitted itself', () => {
+      // The href is longer than the threshold; only the link TEXT could be marked.
+      const url = `https://example.com/${'p'.repeat(FEEDBACK_LONG_WORD_CHARS)}`;
+      const out = html(`[click me](${url})`);
+      expect(out).toBe(
+        `<p><a href="${url}" target="_blank" rel="noopener noreferrer">click me</a></p>`,
+      );
+      expect(out).not.toContain('sc-longword');
+    });
+
+    it('marks the escaped form, so no raw markup rides in on a long token', () => {
+      const out = html(`<script>${'x'.repeat(FEEDBACK_LONG_WORD_CHARS)}`);
+      expect(out).not.toContain('<script>');
+      expect(out).toContain('&lt;script&gt;');
+      expect(out.match(/<span class="sc-longword">/g)?.length).toBe(1);
+    });
+
+    it('puts the actual 9.800-character wall into a single span', () => {
+      const wall = 'a'.repeat(9800);
+      expect(html(wall)).toBe(`<p><span class="sc-longword">${wall}</span></p>`);
     });
   });
 });

@@ -2365,7 +2365,9 @@
       "dropHere": "Bilder hier ablegen",
       "imageError": "Bild konnte nicht verarbeitet werden.",
       "tooManyImages": "Maximal {{max}} Bilder pro Nachricht.",
-      "uploadError": "Bild-Upload fehlgeschlagen. Bitte erneut versuchen."
+      "uploadError": "Bild-Upload fehlgeschlagen. Bitte erneut versuchen.",
+      "charCount": "{{used}} von {{max}} Zeichen",
+      "charLimit": "Zeichenlimit erreicht: maximal {{max}} Zeichen pro Nachricht."
     },
     "view": {
       "label": "Ansicht wechseln",

@@ -645,7 +645,14 @@ const ADVANCE_SLIDE_MS = 380;
       user-select: all;
     }
 
-    .wf-body { font-size: 0.92rem; line-height: 1.5; overflow-wrap: anywhere; }
+    /* Scrollport for a marked-up runaway token (.sc-longword, styles.scss) —
+       it overflows here instead of reflowing the card (admin feedback 0a0fad31). */
+    .wf-body {
+      font-size: 0.92rem;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+      overflow-x: auto;
+    }
     .wf-body :first-child { margin-top: 0; }
     .wf-body :last-child { margin-bottom: 0; }
     .wf-body p { margin: 0 0 8px; }
@@ -686,7 +693,7 @@ const ADVANCE_SLIDE_MS = 380;
       font-weight: 700;
     }
     .reply-ts { margin-left: auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
-    .reply-body { font-size: 0.88rem; line-height: 1.45; overflow-wrap: anywhere; }
+    .reply-body { font-size: 0.88rem; line-height: 1.45; overflow-wrap: anywhere; overflow-x: auto; }
     .reply-body :first-child { margin-top: 0; }
     .reply-body :last-child { margin-bottom: 0; }
     .reply-body p { margin: 0 0 6px; }
