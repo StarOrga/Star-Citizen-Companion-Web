@@ -107,6 +107,11 @@ export interface CodexListFilters {
   // blueprint-only facet — raw CIG bucket from codex_blueprints.category
   // (e.g. 'FPSArmours', 'VehicleComponentS1'). Ignored for other kinds.
   category?: string;
+  // blueprint-only facet — several categories at once (the "Zu Fuß"/"Fahrzeug"
+  // group sub-filter). Intersects with `category` when both are set — the
+  // single-category select stays authoritative for its own value, this only
+  // widens/narrows the group around it. Ignored for other kinds.
+  blueprintCategoryIn?: string[];
   limit?: number;
   offset?: number;
 }
@@ -495,6 +500,8 @@ export class CodexService {
     if (filters.attachTypeNotIn?.length && (kind === 'item' || kind === 'weapon'))
       query = query.or(notInOrNull('attach_type', filters.attachTypeNotIn));
     if (filters.category && kind === 'blueprint') query = query.eq('category', filters.category);
+    if (filters.blueprintCategoryIn?.length && kind === 'blueprint')
+      query = query.in('category', filters.blueprintCategoryIn);
 
     const q = filters.search?.trim();
     if (q) {

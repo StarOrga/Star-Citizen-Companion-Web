@@ -4,6 +4,38 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.74.0] - 2026-09-03
+
+### Changed
+
+- **The Codex start page ends with the switcher — the "Im Versum" band is
+  gone.** The third plane under "An Bord" and "Im Hangar" was a row of seven
+  small pills, each in its own colour, sitting under a plain gap: it read as a
+  filter bar that did not belong to the two planes above it, and four rounds of
+  reshuffling the same seven entries never gave it an identity. Instead of a
+  fourth attempt, the archive access moved to where its subject already is.
+  "An Bord" now ends with one quiet line — *Archiv › Rüstung · Waffen ·
+  Baupläne* — and "Im Hangar" with *Archiv › Schiffe · Komponenten · Waffen ·
+  Baupläne*, each entry a real link that opens the archive pre-filtered to that
+  family. Counts stay only where the archive already has an honest one (ships,
+  components); the weapon and blueprint families are split between on-foot and
+  ship, so a combined total would have lied. One accent per plane, no
+  per-family colours, no glyph sample sheet.
+- **Blueprints open pre-sorted by where they belong.** From "An Bord" the
+  blueprint list shows FPS armour and FPS weapons; from "Im Hangar" it shows
+  vehicle components and vehicle weapons. A small switch — *Alle · Zu Fuß ·
+  Fahrzeug* — widens or narrows it, and the single-category filter still works
+  inside the chosen group.
+- **Keybindings moved into the terminal row** at the top of the page (next to
+  the app download menu) — a reference tool, not an archive entry, so it no
+  longer hangs off a content plane.
+
+### Removed
+
+- The "Auf dem Reißbrett" rail of announced ships on the Codex start page. The
+  announced ships keep their own view (`/codex/upcoming`) and their own pages;
+  whether a quiet strip returns under the fleet is an open follow-up.
+
 ## [0.73.0] - 2026-09-02
 
 ### Changed

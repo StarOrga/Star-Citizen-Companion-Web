@@ -45,7 +45,7 @@ import {
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
-import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
+import { UpcomingShipsService } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout } from '../hangar/hangar.types';
 import { AuthService } from '../auth/auth.service';
@@ -153,6 +153,23 @@ export interface FleetGroup {
             <span>{{ 'codex.landing.patch.build' | translate: { build: b.buildNumber } }}</span>
           }
         </ng-template>
+
+        <!-- Keybindings — moved off the retired "Im Versum" band onto the
+             terminal row (prio 2): the terminal is where a returning player
+             already looks for a tool, and it survives the band's removal
+             untouched. -->
+        <a
+          class="terminal-tool"
+          routerLink="/codex/keybinds"
+          [attr.aria-label]="'codex.landing.terminal.keybinds' | translate"
+          [attr.title]="'codex.landing.terminal.keybinds' | translate"
+        >
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 3a5 5 0 0 0-4.9 6.1L3 15.2V19h3.8l1-1h2v-2h2l1.1-1.1A5 5 0 1 0 14 3z" />
+            <circle cx="16.6" cy="7.4" r="1.1" />
+          </svg>
+        </a>
 
         <!-- Far right of the terminal row: the Data-Uploader download control.
              Collaborator+ only, so a viewer sees nothing here and the
@@ -290,6 +307,29 @@ export interface FleetGroup {
               [payloads]="armorPayloads()"
               [archiveDepth]="archiveDepth()"
               [boardEntryLink]="boardEntryLink()" />
+
+            <!-- Quick access into the full archive, pre-filtered per entry
+                 (prio 3, replaces "Im Versum"). No count on Waffen/Baupläne —
+                 a combined FPS+ship total would be misleading once the index
+                 splits them; see codex-landing-kpi / briefing. -->
+            <nav class="zone-archive" [attr.aria-label]="'codex.landing.archive.label' | translate">
+              <span class="zone-archive__label">{{ 'codex.landing.archive.label' | translate }}</span>
+              <a class="zone-archive__link" routerLink="/codex/fps" [queryParams]="{ cat: 'armor' }">
+                {{ 'codex.landing.archive.armor' | translate }}
+                <span class="zone-archive__chevron" aria-hidden="true">›</span>
+              </a>
+              <span class="zone-archive__sep" aria-hidden="true">·</span>
+              <a class="zone-archive__link" routerLink="/codex/fps" [queryParams]="{ cat: 'weapon' }">
+                {{ 'codex.landing.archive.weapons' | translate }}
+                <span class="zone-archive__chevron" aria-hidden="true">›</span>
+              </a>
+              <span class="zone-archive__sep" aria-hidden="true">·</span>
+              <a class="zone-archive__link" routerLink="/codex/index"
+                 [queryParams]="{ kind: 'blueprint', group: 'fps' }">
+                {{ 'codex.landing.archive.blueprints' | translate }}
+                <span class="zone-archive__chevron" aria-hidden="true">›</span>
+              </a>
+            </nav>
           </article>
         } @else {
           <sc-codex-zone-rail
@@ -504,6 +544,42 @@ export interface FleetGroup {
               }
             </div>
           }
+
+          <!-- Quick access into the full archive, pre-filtered per entry
+               (prio 3, replaces "Im Versum"). Ships/Komponenten carry the
+               archive's real seeded count; Waffen/Baupläne don't — a
+               ship+FPS-combined total would be misleading once the index
+               splits them. Renders even with an empty hangar. -->
+          <nav class="zone-archive" [attr.aria-label]="'codex.landing.archive.label' | translate">
+            <span class="zone-archive__label">{{ 'codex.landing.archive.label' | translate }}</span>
+            <a class="zone-archive__link" routerLink="/codex/index" [queryParams]="{ kind: 'ship' }">
+              {{ 'codex.landing.archive.ships' | translate }}
+              @if (archiveShipCount(); as ct) {
+                <span class="zone-archive__count mono">{{ formatNum(ct) }}</span>
+              }
+              <span class="zone-archive__chevron" aria-hidden="true">›</span>
+            </a>
+            <span class="zone-archive__sep" aria-hidden="true">·</span>
+            <a class="zone-archive__link" routerLink="/codex/index" [queryParams]="{ kind: 'component' }">
+              {{ 'codex.landing.archive.components' | translate }}
+              @if (archiveComponentCount(); as ct) {
+                <span class="zone-archive__count mono">{{ formatNum(ct) }}</span>
+              }
+              <span class="zone-archive__chevron" aria-hidden="true">›</span>
+            </a>
+            <span class="zone-archive__sep" aria-hidden="true">·</span>
+            <a class="zone-archive__link" routerLink="/codex/index"
+               [queryParams]="{ kind: 'weapon', weaponClass: 'Ship' }">
+              {{ 'codex.landing.archive.weapons' | translate }}
+              <span class="zone-archive__chevron" aria-hidden="true">›</span>
+            </a>
+            <span class="zone-archive__sep" aria-hidden="true">·</span>
+            <a class="zone-archive__link" routerLink="/codex/index"
+               [queryParams]="{ kind: 'blueprint', group: 'vehicle' }">
+              {{ 'codex.landing.archive.blueprints' | translate }}
+              <span class="zone-archive__chevron" aria-hidden="true">›</span>
+            </a>
+          </nav>
         </article>
         } @else {
           <sc-codex-zone-rail
@@ -515,98 +591,6 @@ export interface FleetGroup {
             (expand)="openZone.set('hangar')" />
         }
       </div>
-
-      <!-- ── IM VERSUM: frameless domain entry points ────────────────────────── -->
-      <section class="versum" [class.dimmed]="searchActive()">
-        <!-- The "Domänen" headline is gone (feedback 2026-08-23) — the
-             eyebrow is the heading now, and the keybindings entry sits on that
-             same line instead of below the rail. -->
-        <header class="versum-head">
-          <span class="versum-eyebrow">{{ 'codex.landing.versum.eyebrow' | translate }}</span>
-          <a
-            class="rail-icon"
-            routerLink="/codex/keybinds"
-            [attr.aria-label]="'codex.landing.versum.keybinds' | translate"
-            [attr.title]="'codex.landing.versum.keybinds' | translate"
-          >
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M14 3a5 5 0 0 0-4.9 6.1L3 15.2V19h3.8l1-1h2v-2h2l1.1-1.1A5 5 0 1 0 14 3z" />
-              <circle cx="16.6" cy="7.4" r="1.1" />
-            </svg>
-          </a>
-        </header>
-        <!-- Horizontal chip strip: glyph + domain, the count as side info
-             (feedback 2026-08-23 — "die Anzahl ist eine side Info"). Every
-             chip lands on the SAME subview with its filter preselected, so
-             the seven entries behave identically. -->
-        <nav class="domain-strip" [attr.aria-label]="'codex.landing.versum.eyebrow' | translate">
-          @for (d of versumDomains(); track d.kind) {
-            <a class="domain-chip" routerLink="/codex/index" [queryParams]="{ kind: d.kind }">
-              <sc-codex-icon [kind]="d.kind" />
-              <span class="domain-label">{{ d.labelKey | translate }}</span>
-              <span class="domain-count mono">{{ formatNum(d.count!) }}</span>
-            </a>
-          }
-        </nav>
-
-        <!-- "Auf dem Reissbrett" — announced-but-unbuilt ships, folded into
-             the Schiffe domain (feedback, 2026-08-16) as a horizontal rail
-             right under the domain tiles rather than a domain entry of its
-             own. NOT a "what's new" feed: these are RSI ship-matrix entries
-             the rsi-upcoming-ships diff found NO game-data match for, i.e.
-             concept hulls that are meant to be built some day, newest
-             announcement first (feedback, 2026-08-23 — the old "Was ist neu"
-             title claimed a recency that the list does not carry).
-             Renders nothing while the feed is loading/empty (honest empty
-             state, no skeleton promising a rail that never fills).
-             2026-09-03 (#130): every tile is a real routerLink into OUR codex
-             (/codex/upcoming/:id) instead of a one-way door to RSI. These ships
-             have no classNameSlug — the announced-ship page is their detail
-             view, and it keeps the RSI pledge page as a secondary link. Each
-             tile carries a small "Konzept" pill so the rail reads as
-             not-yet-flyable without burying the artwork. -->
-        @if (upcomingRailShips().length > 0) {
-          <div class="upcoming-rail">
-            <header class="upcoming-rail__head">
-              <h3 class="upcoming-rail__title">{{ 'codex.landing.versum.upcomingRail.title' | translate }}</h3>
-              @if (rsi.notificationCount() > 0) {
-                <span
-                  class="upcoming-rail__badge mono"
-                  [attr.aria-label]="'codex.landing.versum.upcomingRail.badgeAria' | translate: { count: rsi.notificationCount() }"
-                >{{ formatNum(rsi.notificationCount()) }}</span>
-              }
-            </header>
-            <div class="upcoming-rail__scroll" role="list">
-              @for (ship of upcomingRailShips(); track ship.id) {
-                <a
-                  class="upcoming-tile"
-                  role="listitem"
-                  [class.icon-only]="upcomingThumbs(ship).length === 0"
-                  [routerLink]="['/codex/upcoming', ship.id]"
-                >
-                  <sc-fallback-image [candidates]="upcomingThumbs(ship)" [alt]="ship.name">
-                    <sc-codex-icon kind="ship" />
-                  </sc-fallback-image>
-                  @if (!ship.flightReadyButMissing) {
-                    <span
-                      class="upcoming-tile__wip"
-                      [attr.title]="'codex.upcoming.notFlightReady' | translate"
-                    >{{ 'codex.upcoming.conceptBadge' | translate }}</span>
-                  }
-                  <span class="upcoming-tile__caption">
-                    @if (upcomingMfr(ship); as mfr) {
-                      <span class="upcoming-tile__mfr" [attr.title]="mfr">{{ mfr }}</span>
-                    }
-                    <span class="upcoming-tile__name">{{ ship.name }}</span>
-                  </span>
-                </a>
-              }
-            </div>
-          </div>
-        }
-
-      </section>
 
       <sc-codex-compare-tray />
     </section>
@@ -683,6 +667,21 @@ export interface FleetGroup {
       /* Far-right slot: never stretch, never wrap mid-control. The menu owns
          its own overlay positioning (sc-app-download-menu). */
       .terminal-menu { flex: 0 0 auto; }
+
+      /* Keybindings entry, formerly the "Im Versum" band's rail-icon — same
+         glyph, same 44px target, now a row-mate of the download menu. */
+      .terminal-tool {
+        flex: 0 0 auto;
+        width: 22px;
+        height: 22px;
+        min-height: var(--sc-tap-min, 44px);
+        min-width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--sc-fg-2);
+      }
+      .terminal-tool:hover { color: var(--sc-accent); }
 
       .sc-card.err {
         border: 1px solid var(--sc-danger);
@@ -1166,193 +1165,45 @@ export interface FleetGroup {
       }
       .pin.pinned { color: var(--sc-accent); }
 
-      /* ── IM VERSUM (frameless) ────────────────────────────────────────── */
-      .versum { display: flex; flex-direction: column; gap: 12px; }
-      .versum-head { display: flex; align-items: center; gap: 12px; }
-      .versum-eyebrow {
-        font-family: var(--sc-font-display);
-        font-size: 0.68rem;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--sc-fg-2);
-      }
-      /* Horizontal chip strip. The count is deliberately secondary — the
-         glyph and the domain name carry the row, the number is side info. */
-      .domain-strip {
+      /* ── Zone archive quick access (prio 3, replaces "Im Versum") ────────
+         One quiet line at the bottom of EACH zone — same treatment, only the
+         zone's own --tint differs. Pinned to the bottom via margin-top: auto
+         (the zone is display:flex; flex-direction:column already). */
+      .zone-archive {
+        margin-top: auto;
+        padding-top: 10px;
+        border-top: 1px solid color-mix(in srgb, var(--sc-fg-2) 12%, transparent);
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
+        align-items: center;
+        row-gap: 4px;
+        column-gap: 10px;
+        min-height: 48px;
       }
-      /* Frameless at rest, framed on interaction ("rahmenlos bzw. mit dem
-         highlight rahmen", 2026-08-16 correction): no resting border/panel —
-         a transparent 1px border keeps the box size stable — only hover/focus
-         paints the accent frame + glow. */
-      .domain-chip {
+      .zone-archive__label {
+        font-family: var(--sc-font-display);
+        font-size: 0.6rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--sc-fg-2);
+      }
+      .zone-archive__sep { color: var(--sc-fg-2); opacity: 0.5; }
+      .zone-archive__link {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 7px 12px 7px 9px;
-        border-radius: 999px;
-        border: 1px solid transparent;
+        gap: 4px;
+        padding: 6px 0;
+        color: var(--sc-fg-1);
         text-decoration: none;
-        color: inherit;
-        background: transparent;
-        transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+        font-size: max(0.78rem, var(--sc-fs-floor));
       }
-      .domain-chip:hover,
-      .domain-chip:focus-visible {
-        outline: none;
-        border-color: color-mix(in srgb, var(--sc-accent) 60%, transparent);
-        background: color-mix(in srgb, var(--sc-accent) 6%, transparent);
-        box-shadow: var(--shadow-glow);
-      }
-      .domain-chip sc-codex-icon { width: 17px; height: 17px; flex: 0 0 17px; }
-      .domain-label { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-0); }
-      /* Side info, not the headline (feedback 2026-08-23). */
-      .domain-count {
-        font-size: max(0.68rem, var(--sc-fs-floor));
-        font-weight: 400;
+      .zone-archive__link:hover, .zone-archive__link:focus-visible { color: var(--tint); outline: none; }
+      .zone-archive__chevron { color: var(--tint); opacity: 0.7; }
+      .zone-archive__count {
         color: var(--sc-fg-2);
+        font-size: max(0.68rem, var(--sc-fs-floor));
         font-variant-numeric: tabular-nums;
       }
-
-      /* ── "Auf dem Reissbrett" — cinematic upcoming-ships rail, folded into
-           the Schiffe domain (2026-08-16, replaces the standalone "Kommende
-           Schiffe" tile). Own overflow-x container so the PAGE never scrolls
-           sideways — the mobile gate fails on horizontal page overflow.
-           2026-08-23: the tile is now the artwork itself — a 16:9 bleed crop
-           with the name/manufacturer riding a bottom scrim, the same
-           art-first treatment the ship pages use — instead of a boxed thumb
-           with a caption stacked under it. ── */
-      .upcoming-rail { display: flex; flex-direction: column; gap: 8px; }
-      .upcoming-rail__head { display: flex; align-items: center; gap: 8px; }
-      .upcoming-rail__title { margin: 0; font-size: 0.92rem; }
-      .upcoming-rail__badge {
-        padding: 1px 8px;
-        border-radius: 999px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        color: var(--sc-bg-0);
-        background: var(--sc-accent);
-      }
-      .upcoming-rail__scroll {
-        display: flex;
-        gap: 10px;
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        scroll-snap-type: x proximity;
-        padding: 2px 2px 6px;
-        margin: 0 -2px;
-      }
-      .upcoming-tile {
-        position: relative;
-        flex: 0 0 208px;
-        aspect-ratio: 16 / 9;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        border-radius: 4px;
-        border: 1px solid var(--sc-border);
-        background: radial-gradient(circle at 50% 42%, var(--sc-bg-2), var(--sc-bg-0));
-        color: inherit;
-        text-decoration: none;
-        scroll-snap-align: start;
-        min-height: var(--sc-tap-min, 44px);
-        transition: border-color 0.16s ease, box-shadow 0.16s ease;
-        /* Bleed crop: the art IS the tile. See fallback-image.component.ts —
-           these custom properties cross the component boundary, a plain
-           .upcoming-tile img rule could not reach the projected <img>. */
-        --sc-img-w: 100%;
-        --sc-img-h: 100%;
-        --sc-img-max-h: 100%;
-        --sc-img-fit: cover;
-        --sc-img-shadow: none;
-      }
-      .upcoming-tile:hover, .upcoming-tile:focus-visible {
-        outline: none;
-        border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
-        box-shadow: var(--shadow-glow);
-      }
-      /* Art-less hull: lift the placeholder glyph clear of the caption scrim
-         so it reads centred in the visible area, not half-swallowed by it. */
-      .upcoming-tile.icon-only sc-codex-icon {
-        width: 32%; height: 32%; opacity: 0.55; color: var(--sc-accent); transform: translateY(-14%);
-      }
-      /* "Noch nicht flugfaehig" marker (#130). A 3-char pill in the free top
-         corner, deliberately smaller than the caption type: the ask was a
-         badge that does NOT spoil the artwork, so it tints rather than blocks.
-         Only concept hulls carry it — a flight-ready-but-unindexed ship would
-         be mislabelled by it. */
-      .upcoming-tile__wip {
-        position: absolute;
-        top: 6px;
-        left: 6px;
-        padding: 2px 7px;
-        border-radius: 999px;
-        font-family: var(--sc-font-display);
-        font-size: max(0.58rem, var(--sc-fs-floor));
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        line-height: 1.35;
-        color: color-mix(in srgb, var(--sc-accent) 88%, #f2f7fb);
-        background: rgba(2, 8, 14, 0.72);
-        border: 1px solid color-mix(in srgb, var(--sc-accent) 42%, transparent);
-        backdrop-filter: blur(2px);
-        pointer-events: none;
-      }
-      .upcoming-tile__caption {
-        position: absolute;
-        inset: auto 0 0 0;
-        display: flex;
-        flex-direction: column;
-        gap: 1px;
-        padding: 16px 10px 8px;
-        /* Scrim, not a bar: the art keeps breathing above the type while the
-           name stays AA-legible over a bright render. */
-        background: linear-gradient(to top, rgba(2, 8, 14, 0.92) 0%, rgba(2, 8, 14, 0.72) 46%, transparent 100%);
-      }
-      .upcoming-tile__name {
-        font-size: 0.8rem;
-        font-weight: 600;
-        line-height: 1.15;
-        color: #f2f7fb;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-      }
-      .upcoming-tile__mfr {
-        font-family: var(--sc-font-display);
-        font-size: max(0.62rem, var(--sc-fs-floor));
-        letter-spacing: 0.07em;
-        line-height: 1.2;
-        text-transform: uppercase;
-        color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-      }
-
-      /* Sits on the "Im Versum" line, right-aligned — no longer a lane of
-         its own below the rail (feedback 2026-08-23). */
-      .rail-icon {
-        margin-left: auto;
-        width: 22px;
-        height: 22px;
-        min-height: var(--sc-tap-min, 44px);
-        min-width: 44px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--sc-fg-2);
-      }
-      .rail-icon:hover { color: var(--sc-accent); }
 
       /* ── responsive ───────────────────────────────────────────────────── */
       /* Phone/small tablet: the switcher stacks, so the collapsed zone becomes
@@ -1376,7 +1227,7 @@ export interface FleetGroup {
         .hero-kpi { padding: 4px 8px; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .hit, .surface, .fleet-tile, .fleet-sort__btn, .domain-chip, .zone-entry::after, .upcoming-tile { transition: none; }
+        .hit, .surface, .fleet-tile, .fleet-sort__btn, .zone-entry::after { transition: none; }
         .bay-ring { animation: none; }
       }
     `,
@@ -1587,44 +1438,26 @@ export class CodexLandingComponent implements OnInit {
     return formatScDate(at, { language: this.locale.language(), region: this.locale.region() }) || at;
   });
 
-  readonly versumDomains = computed(() => {
+  /**
+   * Honest counts for the IM HANGAR archive quick-access line (prio 3) —
+   * `seeded` preferred over the full extractor total, the same rule the old
+   * "Im Versum" domain chips used. `null` while the build hasn't loaded (or
+   * the build carries no count for the kind), which the template reads as
+   * "show no count" rather than a placeholder.
+   */
+  private archiveCount(plural: 'ships' | 'components'): number | null {
     const counts = this.svc.build()?.entityCounts as
       | (Record<string, number> & { seeded?: Record<string, number> })
       | undefined;
-    if (!counts) return [];
-    // Every domain lands on the SAME subview with its facet preselected
-    // (feedback 2026-08-23) — Baupläne used to jump to /codex/blueprint
-    // instead, which is a different page with different controls. `blueprint`
-    // is a first-class CODEX_KIND, so `?kind=blueprint` preselects it there
-    // exactly like the other six.
-    const defs: { kind: CodexKind; labelKey: string }[] = [
-      { kind: 'ship', labelKey: 'codex.landing.versum.domain.ship' },
-      { kind: 'item', labelKey: 'codex.landing.versum.domain.item' },
-      { kind: 'component', labelKey: 'codex.landing.versum.domain.component' },
-      { kind: 'weapon', labelKey: 'codex.landing.versum.domain.weapon' },
-      { kind: 'blueprint', labelKey: 'codex.landing.versum.domain.blueprint' },
-      { kind: 'manufacturer', labelKey: 'codex.landing.versum.domain.manufacturer' },
-      { kind: 'ammunition', labelKey: 'codex.landing.versum.domain.ammunition' },
-    ];
-    return defs
-      .map((d) => {
-        const plural = d.kind === 'ammunition' ? 'ammunition' : `${d.kind}s`;
-        const total = counts[plural];
-        const seeded = counts.seeded?.[plural];
-        const count = typeof (seeded ?? total) === 'number' ? (seeded ?? total) : null;
-        return { ...d, count };
-      })
-      .filter((d) => d.count != null);
-  });
+    if (!counts) return null;
+    const total = counts[plural];
+    const seeded = counts.seeded?.[plural];
+    const v = seeded ?? total;
+    return typeof v === 'number' ? v : null;
+  }
 
-  /**
-   * "Was ist neu" rail — folded into the Schiffe domain instead of its own
-   * "Kommende Schiffe" entry. Renders nothing (see template) until the feed
-   * that `ngOnInit` already kicked off via `rsi.ensureLoaded()` resolves —
-   * no separate fetch. Capped so the rail stays a scroll strip, not the
-   * whole matrix.
-   */
-  readonly upcomingRailShips = computed<UpcomingShip[]>(() => (this.rsi.feed()?.ships ?? []).slice(0, 20));
+  readonly archiveShipCount = computed(() => this.archiveCount('ships'));
+  readonly archiveComponentCount = computed(() => this.archiveCount('components'));
 
   constructor() {
     effect(() => {
@@ -1883,14 +1716,6 @@ export class CodexLandingComponent implements OnInit {
     return manufacturerLabel(r, this.lang());
   }
 
-  /**
-   * Manufacturer of an RSI ship-matrix entry. The matrix ships the full name
-   * next to the code, so the code is only ever the fallback.
-   */
-  upcomingMfr(ship: UpcomingShip): string | null {
-    return ship.manufacturer?.trim() || ship.manufacturerCode || null;
-  }
-
   thumbs(r: CodexListRow): string[] {
     const out: string[] = [...this.rsi.artFor(r.nameLocalized ?? this.rowName(r))];
     const p = r.payload as { previewImage?: string | null } | null;
@@ -1919,11 +1744,6 @@ export class CodexLandingComponent implements OnInit {
     if (labelKey.endsWith('.missileCapacity')) return { kind: 'ammunition', sub: null };
     if (labelKey.endsWith('.fillRate')) return { kind: 'component', sub: 'PowerPlant' };
     return { kind: 'component', sub: null };
-  }
-
-  /** Ordered art candidates for an upcoming-ship rail tile; the fallback-image falls through them on load error. */
-  upcomingThumbs(ship: UpcomingShip): string[] {
-    return thumbnailCandidates(ship);
   }
 
   private lang(): Lang {
