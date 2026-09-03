@@ -471,10 +471,18 @@
       "foldedTitle": "The game files carry several near-identical records for this entry, so they are shown as one card: {{names}}",
       "skinsOne": "+1 skin",
       "skinsMany": "+{{count}} skins",
-      "skinsTitle": "Every livery of this weapon shares one card. Pick between them inside the entry: {{names}}"
+      "skinsTitle": "Every livery of this weapon shares one card. Pick between them inside the entry: {{names}}",
+      "editionsOne": "+1 variant",
+      "editionsMany": "+{{count}} variants",
+      "editionsTitle": "The game files carry this hull several times over — duplicate records and marketing editions. They share one card; pick between them inside the entry: {{names}}"
     },
     "skinPicker": {
       "label": "Skin",
+      "standard": "Standard",
+      "count": "{{count}} options"
+    },
+    "editionPicker": {
+      "label": "Variant",
       "standard": "Standard",
       "count": "{{count}} options"
     },

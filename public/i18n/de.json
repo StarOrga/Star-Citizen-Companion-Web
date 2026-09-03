@@ -471,10 +471,18 @@
       "foldedTitle": "Die Spieldateien führen mehrere fast identische Einträge dazu, deshalb steht hier nur eine Karte: {{names}}",
       "skinsOne": "+1 Skin",
       "skinsMany": "+{{count}} Skins",
-      "skinsTitle": "Alle Lackierungen dieser Waffe stehen in einer Karte. Im Eintrag lassen sie sich einzeln auswählen: {{names}}"
+      "skinsTitle": "Alle Lackierungen dieser Waffe stehen in einer Karte. Im Eintrag lassen sie sich einzeln auswählen: {{names}}",
+      "editionsOne": "+1 Variante",
+      "editionsMany": "+{{count}} Varianten",
+      "editionsTitle": "Die Spieldateien führen diesen Rumpf mehrfach — doppelte Einträge und Sondereditionen. Sie teilen sich eine Karte; im Eintrag lassen sie sich einzeln auswählen: {{names}}"
     },
     "skinPicker": {
       "label": "Skin",
+      "standard": "Standard",
+      "count": "{{count}} Varianten"
+    },
+    "editionPicker": {
+      "label": "Variante",
       "standard": "Standard",
       "count": "{{count}} Varianten"
     },
