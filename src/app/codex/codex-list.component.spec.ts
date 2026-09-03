@@ -185,6 +185,39 @@ describe('CodexListComponent (Index mode)', () => {
   });
 
   /**
+   * The AN BORD / IM HANGAR archive quick-access links (prio 3/4) preset
+   * `?group=fps|vehicle` to pre-filter the blueprint index without forcing a
+   * single category — "Baupläne" from the board lands on every FPS bucket,
+   * from the hangar on every vehicle bucket, and "Alle" still widens back out.
+   */
+  it('folds the blueprint group into blueprintCategoryIn, distinct from a single category', async () => {
+    const { fixture, cmp, listByKind } = await setup(
+      { blueprints: 1595, blueprint_ingredients: 4800 },
+      { categories: ['FPSArmours', 'FPSWeapons', 'VehicleComponentS1'] },
+    );
+
+    cmp.setKind('blueprint');
+    cmp.setBlueprintGroup('fps');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(listByKind).toHaveBeenCalledWith(
+      'blueprint',
+      jasmine.objectContaining({ blueprintCategoryIn: ['FPSArmours', 'FPSWeapons'] }),
+    );
+
+    listByKind.calls.reset();
+    cmp.setBlueprintGroup('');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(listByKind).toHaveBeenCalledWith(
+      'blueprint',
+      jasmine.objectContaining({ blueprintCategoryIn: undefined }),
+    );
+  });
+
+  /**
    * The weapons category holds BOTH the on-foot catalog and every ship mount
    * (admin feedback 7897bcb0), so it browses through a two-level rail instead
    * of the old flat weapon-class dropdown.

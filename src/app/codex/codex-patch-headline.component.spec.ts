@@ -6,7 +6,6 @@ import { CodexPatchHeadlineComponent } from './codex-patch-headline.component';
 import { CodexService } from './codex.service';
 import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
 import { CodexBuild } from './codex.types';
-import { NewsService, VerseFeed } from '../news/news.service';
 
 function build(patch: string, over: Partial<CodexBuild> = {}): CodexBuild {
   return {
@@ -24,19 +23,6 @@ function build(patch: string, over: Partial<CodexBuild> = {}): CodexBuild {
   };
 }
 
-function feed(overall: 'operational' | 'major_outage', pu?: 'maintenance'): VerseFeed {
-  return {
-    status: {
-      overall,
-      label: overall,
-      components: pu ? [{ name: 'Persistent Universe', status: pu }] : [],
-      updatedAt: '2026-09-03T10:00:00Z',
-    },
-    news: [],
-    fetchedAt: '2026-09-03T10:00:00Z',
-  };
-}
-
 describe('CodexPatchHeadlineComponent', () => {
   let selectSpy: jasmine.Spy;
   let timeline: ReturnType<typeof signal<readonly PatchTimelineEntry[]>>;
@@ -46,7 +32,6 @@ describe('CodexPatchHeadlineComponent', () => {
     builds?: CodexBuild[];
     uploaded?: string[];
     live?: string;
-    verse?: VerseFeed | null;
     stale?: boolean;
   } = {}): Promise<ComponentFixture<CodexPatchHeadlineComponent>> {
     const builds = opts.builds ?? [build('4.2'), build('4.1')];
@@ -79,18 +64,12 @@ describe('CodexPatchHeadlineComponent', () => {
       selectBuild: selectSpy as never,
     };
 
-    const news: Partial<NewsService> = {
-      feed: signal<VerseFeed | null>(opts.verse === undefined ? feed('operational') : opts.verse) as never,
-      refresh: jasmine.createSpy('refresh').and.resolveTo(undefined),
-    };
-
     await TestBed.configureTestingModule({
       imports: [CodexPatchHeadlineComponent],
       providers: [
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
-        { provide: NewsService, useValue: news },
       ],
     }).compileComponents();
 
@@ -111,35 +90,19 @@ describe('CodexPatchHeadlineComponent', () => {
     fixture.detectChanges();
   }
 
-  it('carries the playable state and the live patch in ONE headline', async () => {
+  it('carries the live patch as the headline, and nothing about playability', async () => {
     const fixture = await setup();
     const el: HTMLElement = fixture.nativeElement;
 
-    // The playability word comes from the SAME feed the header chip reads.
-    expect(el.querySelector('.status-online')?.textContent).toContain('news.status.operational');
-    expect(el.querySelector('.live-dot')?.classList).toContain('lvl-operational');
-    // …and the patch rides in the same pill, as the switch trigger.
+    // Round two of 463872dd: the header chip already says "Spielbar" on every
+    // page, so this line is the patch and only the patch.
+    expect(el.querySelector('.status-online')).toBeNull();
+    expect(el.querySelector('.live-dot')).toBeNull();
     expect(el.querySelector('.status-pill .status-patch')).not.toBeNull();
     expect(el.querySelector('.patch-trigger')?.getAttribute('aria-expanded')).toBe('false');
     // Resting control: nothing loaded, nothing shown.
     expect(el.querySelector('.patch-pop')).toBeNull();
     expect(TestBed.inject(CodexService).loadPatchTimeline).not.toHaveBeenCalled();
-  });
-
-  it('escalates the headline to the Persistent-Universe state, like the header chip', async () => {
-    const fixture = await setup({ verse: feed('operational', 'maintenance') });
-    const el: HTMLElement = fixture.nativeElement;
-
-    expect(el.querySelector('.status-online')?.textContent).toContain('news.status.maintenance');
-    expect(el.querySelector('.live-dot')?.classList).toContain('lvl-maintenance');
-  });
-
-  it('says "unknown" rather than guessing while the verse feed has not arrived', async () => {
-    const fixture = await setup({ verse: null });
-    const el: HTMLElement = fixture.nativeElement;
-
-    expect(el.querySelector('.status-online')?.textContent).toContain('news.status.unknown');
-    expect(TestBed.inject(NewsService).refresh).toHaveBeenCalled();
   });
 
   it('loads the patch list on the FIRST open and shows five rows at a time', async () => {

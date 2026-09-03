@@ -106,7 +106,16 @@
       "terminal": {
         "label": "Archiv durchsuchen",
         "placeholder": "Archiv-Terminal — Schiff, Komponente, Waffe, Item, Hersteller, Bauplan …",
-        "clear": "Suche löschen"
+        "clear": "Suche löschen",
+        "keybinds": "Tastenbelegungen"
+      },
+      "archive": {
+        "label": "Archiv",
+        "armor": "Rüstung",
+        "weapons": "Waffen",
+        "blueprints": "Baupläne",
+        "ships": "Schiffe",
+        "components": "Komponenten"
       },
       "status": {
         "patch": "Patch {{patch}}",
@@ -214,23 +223,6 @@
         "otherShip": "Andere Konfigurationen",
         "active": "aktiv",
         "openDetail": "Zur Detailseite „{{name}}“ →"
-      },
-      "versum": {
-        "eyebrow": "Im Versum",
-        "keybinds": "Tastenbelegungen",
-        "domain": {
-          "ship": "Schiffe",
-          "item": "Items",
-          "component": "Komponenten",
-          "weapon": "Waffen",
-          "blueprint": "Baupläne",
-          "manufacturer": "Hersteller",
-          "ammunition": "Munition"
-        },
-        "upcomingRail": {
-          "title": "Auf dem Reißbrett",
-          "badgeAria": "{{count}} neue Schiffe seit deinem letzten Besuch"
-        }
       },
       "board": {
         "open": "offen",
@@ -408,7 +400,8 @@
       "includeVariants": "KI-/Template-Varianten anzeigen",
       "reset": "Filter zurücksetzen",
       "anySize": "Beliebige Größe",
-      "anyGrade": "Beliebiger Grade"
+      "anyGrade": "Beliebiger Grade",
+      "blueprintGroup": "Bauplan-Gruppe"
     },
     "weaponClass": {
       "Ship": "Schiff",
@@ -1087,6 +1080,11 @@
     },
     "filters": {
       "category": "Kategorie"
+    },
+    "group": {
+      "all": "Alle",
+      "fps": "Zu Fuß",
+      "vehicle": "Fahrzeug"
     },
     "category": {
       "FPSArmours": "FPS-Rüstung",

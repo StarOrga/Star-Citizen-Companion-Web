@@ -34,6 +34,7 @@ import {
 } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { FoldedRow, foldVariantRows } from './codex-variant-fold';
 import { SkinGroupedRow, SkinVariantRef, groupSkinRows } from './codex-skin-group';
 import { EditionGroupedRow, EditionRef, groupEditionRows } from './codex-edition-group';
@@ -78,10 +79,45 @@ const COMPONENT_KINDS = [
 export const UPCOMING_CATEGORY = 'upcoming' as const;
 export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
 
+/** Blueprint browse taxonomy (prio 4, the board/hangar archive links): the flat
+ * category select stays, this only folds it into "on-foot" vs "vehicle" first —
+ * `''` is "Alle". */
+export type BlueprintGroup = '' | 'fps' | 'vehicle';
+
+const BLUEPRINT_GROUP_FALLBACK: Record<'fps' | 'vehicle', readonly string[]> = {
+  fps: ['FPSArmours', 'FPSWeapons'],
+  vehicle: [
+    'VehicleComponentS0', 'VehicleComponentS1', 'VehicleComponentS2',
+    'VehicleComponentS3', 'VehicleComponentS4',
+    'VehicleWeaponsS1', 'VehicleWeaponsS2', 'VehicleWeaponsS3',
+    'VehicleWeaponsS4', 'VehicleWeaponsS5', 'VehicleWeaponsS6',
+  ],
+};
+
+/**
+ * Pure mapping from a blueprint group to the `codex_blueprints.category`
+ * buckets it covers. Intersected against the categories the ACTIVE build
+ * actually seeded (`options`, from `blueprintCategories()`) so the filter never
+ * asks for a bucket that cannot exist; before that facet read lands (or if it
+ * comes back empty) the static S0–S4 / S1–S6 fallback keeps the group usable.
+ */
+export function blueprintCategoriesForGroup(
+  group: BlueprintGroup,
+  options: readonly string[],
+): string[] {
+  if (group === '') return [];
+  const present = options.filter((c) =>
+    group === 'fps'
+      ? c === 'FPSArmours' || c === 'FPSWeapons'
+      : c.startsWith('VehicleComponent') || c.startsWith('VehicleWeapons'),
+  );
+  return present.length > 0 ? present : [...BLUEPRINT_GROUP_FALLBACK[group]];
+}
+
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ScSegmentedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -210,6 +246,16 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
                 <option value="">{{ 'codex.filters.all' | translate }}</option>
                 @for (c of componentKindOptions(); track c) { <option [value]="c">{{ c }}</option> }
               </select>
+            </label>
+          }
+          @if (kind() === 'blueprint') {
+            <label class="facet">
+              <span>{{ 'codex.filters.blueprintGroup' | translate }}</span>
+              <sc-segmented
+                [options]="blueprintGroupOptions"
+                [value]="blueprintGroup() || 'all'"
+                [ariaLabel]="'codex.filters.blueprintGroup' | translate"
+                (valueChange)="setBlueprintGroup($event)" />
             </label>
           }
           @if (kind() === 'blueprint' && blueprintCategoryOptions().length > 0) {
@@ -680,6 +726,25 @@ export class CodexListComponent implements OnInit {
   readonly blueprintCategory = signal('');
   /** Buckets actually present in the build (loaded once, data-driven). */
   readonly blueprintCategoryOptions = signal<string[]>([]);
+  /**
+   * Blueprint-only sub-filter (prio 4): Alle · Zu Fuß · Fahrzeug, above the raw
+   * category select. `?group=fps|vehicle` presets it from the AN BORD / IM
+   * HANGAR archive links — see codex-landing.component.
+   */
+  readonly blueprintGroup = signal<BlueprintGroup>('');
+  readonly blueprintGroupOptions: readonly ScSegmentOption[] = [
+    { value: 'all', labelKey: 'blueprint.group.all' },
+    { value: 'fps', labelKey: 'blueprint.group.fps' },
+    { value: 'vehicle', labelKey: 'blueprint.group.vehicle' },
+  ];
+  /**
+   * Categories the active group covers. Empty for "Alle" (no extra filter). A
+   * single-category select value OUTSIDE the group wins over the group — see
+   * `buildFilters`.
+   */
+  readonly blueprintGroupCategories = computed(() =>
+    blueprintCategoriesForGroup(this.blueprintGroup(), this.blueprintCategoryOptions()),
+  );
 
   /** Rows exactly as the server returned them, before display-level folding. */
   private readonly rawRows = signal<CodexListRow[]>([]);
@@ -787,6 +852,7 @@ export class CodexListComponent implements OnInit {
       !!this.componentKind() ||
       !!this.weaponGroup() ||
       !!this.blueprintCategory() ||
+      !!this.blueprintGroup() ||
       this.includeVariants(),
   );
 
@@ -827,12 +893,14 @@ export class CodexListComponent implements OnInit {
       this.weaponSubGroup();
       this.includeVariants();
       this.blueprintCategory();
+      this.blueprintGroup();
       this.runQuery(true);
     });
   }
 
   async ngOnInit(): Promise<void> {
     this.applyRouteCategory();
+    this.applyRouteFacets();
     this.applyRouteQuery();
     // RSI artwork for ship cards + the upcoming badge count. Advisory and
     // silent: a failure just leaves the datamined renders as they were.
@@ -868,6 +936,26 @@ export class CodexListComponent implements OnInit {
     const wanted = (snap.data['category'] ?? snap.queryParamMap.get('kind') ?? '') as string;
     const match = this.categories.find((c) => c === wanted);
     if (match) this.setCategory(match);
+  }
+
+  /**
+   * Presets from the AN BORD / IM HANGAR archive quick-access links (prio 3):
+   * `?group=fps|vehicle` narrows the blueprint category to that group,
+   * `?weaponClass=Ship|FPS` picks the matching weapon super category. Must
+   * run AFTER `applyRouteCategory` — `setKind` resets both facets, and a
+   * preset applied before that reset would just be wiped again.
+   */
+  private applyRouteFacets(): void {
+    const snap = this.route.snapshot;
+    if (this.kind() === 'blueprint') {
+      const group = snap.queryParamMap.get('group');
+      if (group === 'fps' || group === 'vehicle') this.blueprintGroup.set(group);
+    }
+    if (this.kind() === 'weapon') {
+      const weaponClass = snap.queryParamMap.get('weaponClass');
+      if (weaponClass === 'Ship') this.weaponGroup.set('ship');
+      else if (weaponClass === 'FPS') this.weaponGroup.set('fps');
+    }
   }
 
   /**
@@ -967,6 +1055,7 @@ export class CodexListComponent implements OnInit {
     this.weaponGroup.set('');
     this.weaponSubGroup.set('');
     this.blueprintCategory.set('');
+    this.blueprintGroup.set('');
     this.kind.set(k);
     if (k === 'weapon') void this.loadWeaponFacets();
   }
@@ -1000,6 +1089,10 @@ export class CodexListComponent implements OnInit {
   }
   setIncludeVariants(v: boolean): void { this.includeVariants.set(v); }
   setBlueprintCategory(v: string): void { this.blueprintCategory.set(v); }
+  /** `sc-segmented` emits 'all' for the no-op choice; the signal stores '' for it. */
+  setBlueprintGroup(v: string): void {
+    this.blueprintGroup.set(v === 'fps' || v === 'vehicle' ? v : '');
+  }
 
   resetFilters(): void {
     this.manufacturer.set('');
@@ -1009,6 +1102,7 @@ export class CodexListComponent implements OnInit {
     this.weaponGroup.set('');
     this.weaponSubGroup.set('');
     this.blueprintCategory.set('');
+    this.blueprintGroup.set('');
     this.includeVariants.set(false);
   }
 
@@ -1044,6 +1138,16 @@ export class CodexListComponent implements OnInit {
   }
 
   private buildFilters(): CodexListFilters {
+    // The single-category select wins when it names a category outside the
+    // active group (e.g. group=fps but the reader picked a Vehicle bucket by
+    // hand) — the group filter would otherwise silently empty the grid.
+    const category = this.blueprintCategory();
+    const groupCategories = this.blueprintGroupCategories();
+    const blueprintCategoryIn =
+      this.kind() === 'blueprint' && this.blueprintGroup() &&
+      (!category || groupCategories.includes(category))
+        ? groupCategories
+        : undefined;
     return {
       search: this.searchTerm() || undefined,
       manufacturer: this.manufacturer() || undefined,
@@ -1051,7 +1155,8 @@ export class CodexListComponent implements OnInit {
       grade: this.grade() || undefined,
       componentKind: this.componentKind() || undefined,
       ...(this.kind() === 'weapon' ? weaponGroupQuery(this.weaponGroup(), this.weaponSubGroup()) : {}),
-      category: this.blueprintCategory() || undefined,
+      category: category || undefined,
+      blueprintCategoryIn,
       includeVariants: this.includeVariants(),
       limit: PAGE_SIZE,
       offset: this.offset,
