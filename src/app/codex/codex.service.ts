@@ -7,6 +7,7 @@ import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
 import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
 import { skinQueryPrefix } from './codex-skin-group';
+import { editionQueryPrefix } from './codex-edition-group';
 import { WeaponFacetRow } from './codex-weapon-taxonomy';
 import {
   CODEX_ENTITY_TABLES,
@@ -176,10 +177,11 @@ export interface PortQuery {
 
 const PAGE_SIZE = 60;
 const SEARCH_LIMIT = 60;
-// Ceiling for the livery-sibling read. The largest family in build 4.9.0 is the
-// LH86 pistol at 14 records; the prefix also catches unrelated neighbours, so
-// this sits well above the real group size and only guards a pathological
-// prefix from pulling a whole table into the detail view.
+// Ceiling for the livery-/edition-sibling reads. The largest family in build
+// 4.9.0 is the LH86 pistol at 14 records (ships top out at the Cutlass Black's
+// seven); the prefix also catches unrelated neighbours, so this sits well above
+// the real group size and only guards a pathological prefix from pulling a
+// whole table into the detail view.
 const SKIN_SIBLING_LIMIT = 200;
 
 // How far back the patch switch can reach. ingest-catalog never prunes builds,
@@ -611,6 +613,32 @@ export class CodexService {
       .select(LIST_SELECT[kind])
       .eq('build_id', build.id)
       .ilike('class_name', `${escapeIlike(skinQueryPrefix(classNameSlug))}%`)
+      .order('class_name', { ascending: true })
+      .limit(SKIN_SIBLING_LIMIT);
+    if (error) throw error;
+    return ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
+  }
+
+  /**
+   * Candidate edition siblings of one ship, for the detail view's variant
+   * picker (feedback 77ecad2a). Reads the current build by class-name PREFIX —
+   * manufacturer + model, `AEGS_Idris` for `AEGS_Idris_P_Collector_Military` —
+   * which is a cheap superset of the family; `resolveEditionGroup` decides what
+   * actually belongs to it, so an over-wide match costs nothing.
+   *
+   * Ships only: the edition rule reads a class-name lineage that only the
+   * vehicle catalog carries. Weapon liveries are `listSkinSiblings`.
+   */
+  async listEditionSiblings(kind: CodexKind, classNameSlug: string): Promise<CodexListRow[]> {
+    if (kind !== 'ship') return [];
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+
+    const { data, error } = await this.sb.client
+      .from(CODEX_ENTITY_TABLES[kind])
+      .select(LIST_SELECT[kind])
+      .eq('build_id', build.id)
+      .ilike('class_name', `${escapeIlike(editionQueryPrefix(classNameSlug))}%`)
       .order('class_name', { ascending: true })
       .limit(SKIN_SIBLING_LIMIT);
     if (error) throw error;
