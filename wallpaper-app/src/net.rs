@@ -26,6 +26,19 @@ const SUPA_KEY: &str = "sb_publishable_ZWbS9qWheOQB0s77mlWLvw_wEcmTVDQ";
 const LIST_PATH: &str =
     "/rest/v1/verse_wallpapers?select=source_url&order=published_at.desc.nullslast&limit=48";
 
+/// The community ranking behind the website's "Top 7" toggle. A SECURITY
+/// DEFINER RPC (`starscape_top_wallpapers`) that aggregates the self-read-only
+/// `wallpaper_votes` table — anon may execute it, and it never returns a voter.
+/// Ranking lives in SQL so the tray and the web gallery show the same images.
+const TOP_PATH: &str = "/rest/v1/rpc/starscape_top_wallpapers";
+
+/// The caller's OWN upvotes, joined to the gallery through the `image_id`
+/// foreign key (PostgREST resource embedding). `wallpaper_votes` is self-read
+/// only, so this needs a real user JWT — the publishable key alone gets a 401,
+/// which is the correct answer, not an error to work around.
+const VOTED_PATH: &str =
+    "/rest/v1/wallpaper_votes?select=verse_wallpapers(source_url)&order=created_at.desc&limit=60";
+
 const MEDIA_HOST: &str = "media.robertsspaceindustries.com";
 const RSI_REFERER: &str = "https://robertsspaceindustries.com/";
 
@@ -238,6 +251,53 @@ pub fn fetch_wallpaper_urls() -> Vec<String> {
     };
     if resp.status != 200 {
         log::line(&format!("list: HTTP {} from Supabase", resp.status));
+        return Vec::new();
+    }
+    parse_source_urls(&String::from_utf8_lossy(&resp.body))
+}
+
+/// Fetch the community-wide Top-N wallpapers (the same ranking the web
+/// gallery's "Top 7" toggle shows). Readable signed out — the RPC is granted to
+/// `anon` and publishes counts, never voters.
+pub fn fetch_top_wallpaper_urls(limit: u32) -> Vec<String> {
+    let headers = vec![
+        format!("apikey: {SUPA_KEY}"),
+        format!("Authorization: Bearer {SUPA_KEY}"),
+        "Accept: application/json".to_string(),
+        "Content-Type: application/json".to_string(),
+    ];
+    let body = format!("{{\"p_limit\":{limit}}}");
+    let Some((status, text)) =
+        https_text("POST", SUPA_HOST, TOP_PATH, &headers, Some(body.as_bytes()))
+    else {
+        log::line("list: top-wallpapers request failed");
+        return Vec::new();
+    };
+    if status != 200 {
+        log::line(&format!("list: HTTP {status} from starscape_top_wallpapers"));
+        return Vec::new();
+    }
+    parse_source_urls(&text)
+}
+
+/// Fetch the wallpapers this account upvoted, newest vote first.
+///
+/// `access_token` must be a real user JWT: the votes table is self-read only,
+/// so this is the one gallery query that cannot be answered anonymously. An
+/// empty result is a legitimate answer ("nothing upvoted yet"), which is why
+/// the caller — not this function — decides what to show instead.
+pub fn fetch_voted_wallpaper_urls(access_token: &str) -> Vec<String> {
+    let headers = vec![
+        format!("apikey: {SUPA_KEY}"),
+        format!("Authorization: Bearer {access_token}"),
+        "Accept: application/json".to_string(),
+    ];
+    let Some(resp) = https_get(SUPA_HOST, VOTED_PATH, &headers) else {
+        log::line("list: own-votes request failed");
+        return Vec::new();
+    };
+    if resp.status != 200 {
+        log::line(&format!("list: HTTP {} from wallpaper_votes", resp.status));
         return Vec::new();
     }
     parse_source_urls(&String::from_utf8_lossy(&resp.body))
@@ -645,6 +705,32 @@ mod tests {
             0xFF, 0xD8, 0xFF, 0xFF, 0xC0, 0x00, 0x11, 0x08, 0x04, 0x38, 0x07, 0x80, 0x03,
         ];
         assert_eq!(image_dimensions(&jpeg), Some((1920, 1080)));
+    }
+
+    /// The three gallery sources answer in three different shapes, and all of
+    /// them go through the same tiny scanner. The ranking RPC also carries a
+    /// `preview_url` per row, which must never be mistaken for the original.
+    #[test]
+    fn every_gallery_shape_yields_only_original_urls() {
+        // 1. `verse_wallpapers?select=source_url` — the flat list.
+        let flat = r#"[{"source_url":"https://a/1.jpg"},{"source_url":"https://a/2.png"}]"#;
+        assert_eq!(parse_source_urls(flat), vec!["https://a/1.jpg", "https://a/2.png"]);
+
+        // 2. `starscape_top_wallpapers` — full rows, preview alongside source.
+        let top = r#"[{"image_id":"x","source_url":"https://a/1.jpg",
+          "preview_url":"https://a/1-cover.jpg","votes":2,"voted":false}]"#;
+        assert_eq!(parse_source_urls(top), vec!["https://a/1.jpg"]);
+
+        // 3. `wallpaper_votes?select=verse_wallpapers(source_url)` — embedded.
+        let mine = r#"[{"verse_wallpapers":{"source_url":"https://a/9.jpg"}},
+          {"verse_wallpapers":{"source_url":"https://a/8.jpg"}}]"#;
+        assert_eq!(parse_source_urls(mine), vec!["https://a/9.jpg", "https://a/8.jpg"]);
+
+        // An account that upvoted nothing is a legitimate empty answer, not an
+        // error — the caller falls back rather than rotating an empty list.
+        assert!(parse_source_urls("[]").is_empty());
+        // A null embed (a vote whose wallpaper was deleted) contributes nothing.
+        assert!(parse_source_urls(r#"[{"verse_wallpapers":null}]"#).is_empty());
     }
 
     #[test]
