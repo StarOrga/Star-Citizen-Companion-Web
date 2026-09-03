@@ -84,6 +84,7 @@ type UserFeedbackTab = 'compose' | 'mine';
             @case ('upload') { {{ 'userFeedback.uploadError' | translate }} }
             @case ('rate') { {{ 'userFeedback.rateLimit' | translate }} }
             @case ('preview') { {{ 'userFeedback.impersonationBlocked' | translate }} }
+            @case ('withdrawRefused') { {{ 'userFeedback.withdraw.refused' | translate }} }
             @default { {{ err }} }
           }
         </div>
@@ -189,6 +190,45 @@ type UserFeedbackTab = 'compose' | 'mine';
                         placeholder="userFeedback.answerPlaceholder"
                         sendLabel="userFeedback.answer"
                         [onSubmit]="replySubmitFor(t.id)" />
+                    }
+
+                    <!-- Take it back (admin feedback 892013b6): "es sollte
+                         möglich sein, Feedback selber wieder zu löschen wenn man
+                         sieht es wurde schon gemacht". Offered only where
+                         can_delete says so — that flag is the database's own
+                         answer, computed by the same predicate the DELETE policy
+                         enforces, so the button never appears on a topic the
+                         server would refuse. Behind a second click, because the
+                         topic is gone for good afterwards. -->
+                    @if (t.can_delete) {
+                      <div class="withdraw">
+                        @if (confirmingWithdraw() === t.id) {
+                          <span class="withdraw-ask">
+                            {{ 'userFeedback.withdraw.question' | translate }}
+                          </span>
+                          <button
+                            type="button"
+                            class="sc-btn micro danger"
+                            [disabled]="feedback.busy()"
+                            (click)="confirmWithdraw(t.id)">
+                            {{ 'userFeedback.withdraw.confirm' | translate }}
+                          </button>
+                          <button type="button" class="sc-btn micro" (click)="cancelWithdraw()">
+                            {{ 'userFeedback.withdraw.cancel' | translate }}
+                          </button>
+                        } @else {
+                          <button
+                            type="button"
+                            class="sc-btn micro danger"
+                            [disabled]="feedback.busy()"
+                            (click)="askWithdraw(t.id)">
+                            {{ 'userFeedback.withdraw.action' | translate }}
+                          </button>
+                          <span class="withdraw-hint">
+                            {{ 'userFeedback.withdraw.hint' | translate }}
+                          </span>
+                        }
+                      </div>
                     }
                   </div>
                 }
@@ -313,6 +353,28 @@ type UserFeedbackTab = 'compose' | 'mine';
     .status-pill.declined { opacity: 0.75; }
 
     .topic-detail { display: flex; flex-direction: column; gap: 8px; }
+
+    /* Withdraw row (admin feedback 892013b6). Sits last in the card and stays
+       quiet: one destructive button plus the sentence that says why it is only
+       here sometimes. --sc-danger, because it is a real deletion. */
+    .withdraw {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+      padding-top: 8px;
+      border-top: 1px solid var(--sc-border);
+    }
+    .withdraw-hint, .withdraw-ask {
+      font-size: max(0.74rem, var(--sc-fs-floor));
+      color: var(--sc-fg-2);
+      line-height: 1.4;
+    }
+    .withdraw-ask { color: var(--sc-fg-1); }
+    .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
+    .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
+    .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
     .body, .reply-body { font-size: 0.84rem; line-height: 1.5; color: var(--sc-fg-1); }
     /* Screenshots are not part of the body flow — see sc-feedback-attachments. */
 
@@ -476,6 +538,33 @@ export class UserFeedbackPanelComponent implements OnInit {
   /** Draft identity of one topic's answer box, memoized for a stable binding. */
   replyScope(id: string): string {
     return memoScope(this.replyScopes, id, draftScopes.userReply);
+  }
+
+  /**
+   * The topic whose withdraw button is currently asking "sure?" (admin feedback
+   * 892013b6) — at most one at a time, and never persisted: a confirm state that
+   * survived a reload would be a trap.
+   */
+  private readonly _confirmingWithdraw = signal<string | null>(null);
+  readonly confirmingWithdraw = this._confirmingWithdraw.asReadonly();
+
+  askWithdraw(id: string): void {
+    this._confirmingWithdraw.set(id);
+  }
+
+  cancelWithdraw(): void {
+    this._confirmingWithdraw.set(null);
+  }
+
+  /**
+   * Second click: actually withdraw. The confirm state is dropped either way —
+   * on success the card is gone, and on a refusal (the routine claimed the topic
+   * between the two clicks) the error banner is the answer, not a button still
+   * offering to try again.
+   */
+  async confirmWithdraw(id: string): Promise<void> {
+    this._confirmingWithdraw.set(null);
+    await this.feedback.withdraw(id);
   }
 
   private readonly replySubmitters = new Map<string, (p: ComposerPayload) => Promise<boolean>>();
