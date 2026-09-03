@@ -1,9 +1,11 @@
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   ElementRef,
   HostListener,
+  NgZone,
   computed,
   inject,
   signal,
@@ -282,6 +284,9 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       background: linear-gradient(180deg, var(--sc-bg-2), transparent);
       border-bottom: 1px solid var(--sc-border);
       backdrop-filter: blur(12px);
+      /* Sticky on wide displays only — see the 1080px media query further
+         down, where the header hands its parked slot to the page's own
+         sub-navigation (admin feedback af058ca4 round 4). */
       position: sticky;
       /* Slides down under sc-impersonation-banner while a preview is active —
          see that component's constructor, which owns this var (0px = no-op). */
@@ -554,13 +559,33 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
 
     /* Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
        heading is not marooned in empty space (feedback #79, item 5). The
-       reclaimed space is reused below the heading by the pages themselves. */
+       reclaimed space is reused below the heading by the pages themselves.
+       The side gutter is published as --sc-content-pad-x: a page-level bar that
+       wants to run edge to edge (the settings sub-navigation) can then undo
+       exactly this padding instead of hard-coding a number that drifts apart
+       from the shell's at the next breakpoint. Custom properties inherit, so it
+       reaches the routed component through the outlet. */
     .content {
+      --sc-content-pad-x: 28px;
       flex: 1;
       width: 100%;
-      padding: 26px 28px 32px;
+      padding: 26px var(--sc-content-pad-x) 32px;
       max-width: 1280px;
       margin: 0 auto;
+    }
+    /* Below 1080px the header stops sticking.
+       Down here brand, nav and actions no longer share a row, so the bar grows
+       to 125px on a narrow window and 180-220px on a phone or tablet. Parked,
+       that is up to a fifth of the screen permanently spent on chrome, which is
+       what the admin objected to (feedback af058ca4 round 4: "warum die menü
+       leiste sticky, die kann doch eher nicht sticky ... mach eher die sub menu
+       leiste sticky"). So it scrolls away with the page and the page's OWN
+       sub-navigation takes the parked slot instead — the settings rail switches
+       to its pinned bar at exactly this width. Above 1080px the header is a
+       single ~67px row, where sticky costs almost nothing and keeps search and
+       the account menu one click away, so it stays. */
+    @media (max-width: 1079px) {
+      .topbar { position: static; }
     }
     @media (max-width: 720px) {
       .topbar { gap: 12px; padding: 10px 16px; }
@@ -569,33 +594,45 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       /* Without the title there is nothing to sit under — the badge goes back
          beside the logo so it does not float over the header edge. */
       .brand .alpha-badge { position: static; transform: none; }
-      /* Nav becomes a horizontally-scrollable strip so links never overflow
-         the row or wrap awkwardly onto multiple lines. */
+      /* The nav WRAPS down here instead of scrolling sideways.
+         It used to be a nowrap strip with overflow-x: auto — but the base
+         rule's justify-content: center came along for the ride, and a
+         centred overflowing row spills past BOTH edges while a scroll port
+         can never scroll back past its start. The entries pushed off the LEFT
+         edge were therefore unreachable by any gesture: with the two admin
+         entries in the row, "Verse News" — the first entry, and the way home —
+         simply could not be got at (admin feedback af058ca4 round 4, "verse
+         news kann man gar nicht mehr hin scrollen").
+         Wrapping removes the whole failure mode rather than patching the
+         alignment: nothing is ever off-screen, so there is nothing to scroll
+         to. The extra row costs nothing now that the header scrolls away. */
       .nav {
         flex: 1 1 100%;
         order: 3;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        margin: 0 -16px;
-        padding: 2px 16px;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 4px;
+        margin: 0;
+        padding: 0;
       }
-      .nav::-webkit-scrollbar { display: none; }
       .nav a { padding: 8px 12px; font-size: max(0.72rem, var(--sc-fs-floor)); white-space: nowrap; flex: 0 0 auto; }
       .actions { flex: 1; justify-content: flex-end; }
-      .content { padding: 20px 16px; }
+      .content { --sc-content-pad-x: 16px; padding: 20px var(--sc-content-pad-x); }
+    }
+    /* Touch baseline: nav entries are the app's primary controls, so they get a
+       real finger target rather than the 33px the text padding alone gives. */
+    @media (pointer: coarse) {
+      .nav a { display: inline-flex; align-items: center; min-height: 48px; }
     }
     @media (max-width: 400px) {
       .topbar { padding: 8px 12px; }
-      .nav { margin: 0 -12px; padding: 2px 12px; }
       /* Anchor the dropdown to the viewport edges so a 180px menu can't push
          the page wider than the screen. */
       .dropdown { right: 0; left: auto; min-width: 200px; max-width: calc(100vw - 24px); }
     }
   `],
 })
-export class ShellComponent {
+export class ShellComponent implements AfterViewInit {
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
   readonly imp = inject(ImpersonationService);
@@ -604,6 +641,7 @@ export class ShellComponent {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly sameRoute = inject(SameRouteRefreshService);
+  private readonly zone = inject(NgZone);
 
   readonly signingOut = signal(false);
   readonly menuOpen = signal(false);
@@ -618,6 +656,12 @@ export class ShellComponent {
   private navShowTimer: ReturnType<typeof setTimeout> | null = null;
   private navWeakTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Header-height probe — see publishTopbarHeight().
+  private topbarEl?: HTMLElement;
+  private topbarResize?: ResizeObserver;
+  private viewportResize?: () => void;
+  private topbarHeightPx: number | null = null;
+
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationStart) {
@@ -631,6 +675,63 @@ export class ShellComponent {
       }
     });
     this.destroyRef.onDestroy(() => this.clearNavTimers());
+    this.destroyRef.onDestroy(() => this.stopTopbarProbe());
+  }
+
+  ngAfterViewInit(): void {
+    if (typeof window === 'undefined') return;
+    const bar = (this.host.nativeElement as HTMLElement).querySelector<HTMLElement>('.topbar');
+    if (!bar) return;
+    this.topbarEl = bar;
+    // Pure measurement into a CSS variable — no signal is touched, so this must
+    // never drag change detection along with it.
+    this.zone.runOutsideAngular(() => {
+      this.publishTopbarHeight();
+      if (typeof ResizeObserver !== 'undefined') {
+        this.topbarResize = new ResizeObserver(() => this.publishTopbarHeight());
+        this.topbarResize.observe(bar);
+      }
+      // A breakpoint can flip the header between sticky and static without
+      // changing its height at all, which the ResizeObserver would not see.
+      this.viewportResize = () => this.publishTopbarHeight();
+      window.addEventListener('resize', this.viewportResize, { passive: true });
+      window.addEventListener('orientationchange', this.viewportResize, { passive: true });
+    });
+  }
+
+  /**
+   * Publishes `--sc-topbar-h`: the height the header actually PARKS at.
+   *
+   * Pages hang their own sticky bars off this (settings' section rail) instead
+   * of guessing "about 96px" — a guess that is wrong the moment the header
+   * wraps onto a second row. It reads `0px` whenever the header is not sticky
+   * (below 1080px — see the media query in this component's styles), because
+   * then it parks nowhere and a page bar belongs at the very top of the
+   * viewport.
+   */
+  private publishTopbarHeight(): void {
+    const bar = this.topbarEl;
+    if (!bar) return;
+    const parked = getComputedStyle(bar).position === 'sticky';
+    const px = parked ? Math.round(bar.getBoundingClientRect().height) : 0;
+    if (px === this.topbarHeightPx) return;
+    this.topbarHeightPx = px;
+    document.documentElement.style.setProperty('--sc-topbar-h', `${px}px`);
+  }
+
+  private stopTopbarProbe(): void {
+    this.topbarResize?.disconnect();
+    this.topbarResize = undefined;
+    if (this.viewportResize) {
+      window.removeEventListener('resize', this.viewportResize);
+      window.removeEventListener('orientationchange', this.viewportResize);
+      this.viewportResize = undefined;
+    }
+    this.topbarEl = undefined;
+    this.topbarHeightPx = null;
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.removeProperty('--sc-topbar-h');
+    }
   }
 
   /**
