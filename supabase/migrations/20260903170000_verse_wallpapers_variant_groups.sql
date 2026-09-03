@@ -90,11 +90,12 @@ comment on column public.verse_wallpapers.variant_group is
   'Null means "not grouped yet"; treat it as the row''s own image_id.';
 
 comment on column public.verse_wallpapers.variant_role is
-  'single | primary | ratio | duplicate. Gallery and tray-app flat list show '
-  'single + primary (one tile per artwork). ratio rows are alternative aspect '
-  'ratios of the same artwork for a client that wants the closest shape to its '
-  'screen; duplicate rows are same-shape lower-resolution copies nothing shows. '
-  'Defaults to single so an ungrouped row is never hidden.';
+  'single | primary | ratio | duplicate. The web gallery lists single + primary '
+  '(one tile per artwork). ratio rows are alternative aspect ratios of the same '
+  'artwork: the Starscape tray app fetches them too and collapses each group to '
+  'the one member whose shape is closest to the monitor. duplicate rows are '
+  'same-shape lower-resolution copies nothing ever shows. Defaults to single so '
+  'an ungrouped row is never hidden.';
 
 -- The gallery page: `where variant_role in ('single','primary') order by
 -- published_at desc`. Partial, because the hidden roles are a small minority

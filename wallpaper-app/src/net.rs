@@ -46,7 +46,7 @@ const SUPA_KEY: &str = "sb_publishable_ZWbS9qWheOQB0s77mlWLvw_wEcmTVDQ";
 /// applied yet PostgREST answers 400, which is why [`fetch_wallpaper_urls`]
 /// retries [`LIST_PATH_LEGACY`] instead of falling back to the bundled image.
 const LIST_PATH: &str = "/rest/v1/verse_wallpapers\
-?select=source_url,variant_group,variant_role,width,height\
+?select=source_url,variant_group,width,height\
 &variant_role=in.(single,primary,ratio)&order=published_at.desc.nullslast&limit=96";
 
 /// The pre-variant list, kept ONLY as the deploy-order fallback above. Bundle
@@ -273,21 +273,193 @@ unsafe fn read_body(request: *mut c_void) -> Option<Vec<u8>> {
     Some(out)
 }
 
-/// Fetch the ordered list of original-resolution wallpaper URLs.
+/// Fetch the ordered list of original-resolution wallpaper URLs — one per
+/// artwork, in the shape that fits THIS machine's screen.
 pub fn fetch_wallpaper_urls() -> Vec<String> {
     let headers = vec![
         format!("apikey: {SUPA_KEY}"),
         format!("Authorization: Bearer {SUPA_KEY}"),
         "Accept: application/json".to_string(),
     ];
-    let Some(resp) = https_get(SUPA_HOST, LIST_PATH, &headers) else {
+    if let Some(resp) = https_get(SUPA_HOST, LIST_PATH, &headers) {
+        if resp.status == 200 {
+            let rows = parse_variant_rows(&String::from_utf8_lossy(&resp.body));
+            let (sw, sh) = primary_screen_size();
+            return collapse_variant_groups(&rows, sw, sh, LIST_WALLPAPERS);
+        }
+        // 400/404 is PostgREST refusing a column it does not have yet — the app
+        // build and the migration ship on separate rails. Anything else (401,
+        // 5xx, rate limit) is a real outage that the legacy path would hit too,
+        // so it is not worth a second round trip.
+        log::line(&format!("list: HTTP {} from Supabase", resp.status));
+        if resp.status != 400 && resp.status != 404 {
+            return Vec::new();
+        }
+        log::line("list: variant columns missing, falling back to the unfiltered list");
+    }
+    let Some(resp) = https_get(SUPA_HOST, LIST_PATH_LEGACY, &headers) else {
         return Vec::new();
     };
     if resp.status != 200 {
-        log::line(&format!("list: HTTP {} from Supabase", resp.status));
+        log::line(&format!("list: HTTP {} from Supabase (legacy list)", resp.status));
         return Vec::new();
     }
     parse_source_urls(&String::from_utf8_lossy(&resp.body))
+}
+
+/// One row of [`LIST_PATH`], as far as the picker cares.
+#[derive(Debug, Clone)]
+struct VariantRow {
+    source_url: String,
+    /// `variant_group`, or the row's own url when the column is null — an
+    /// ungrouped row is a group of one, which needs no special case anywhere.
+    group: String,
+    /// Artwork pixel size; `0` when the crawler could not read it. An unsized
+    /// row has no shape, so it only ever wins a group that holds nothing else.
+    width: u64,
+    height: u64,
+}
+
+/// Scan the variant list without a JSON crate, in the same spirit as
+/// [`parse_source_urls`]: split the array into its top-level objects, read the
+/// four fields we need with the existing [`json_str`] / [`json_u64`] scanners —
+/// per object, so a null field can never borrow the next row's value — and skip
+/// anything malformed rather than failing the whole list.
+fn parse_variant_rows(json: &str) -> Vec<VariantRow> {
+    let mut out = Vec::new();
+    for obj in json_objects(json) {
+        let Some(source_url) = json_str(obj, "source_url") else { continue };
+        if !source_url.starts_with("https://") {
+            continue;
+        }
+        // A null `variant_group` means "not grouped": the row is a group of
+        // one, keyed on itself, which needs no special case further down.
+        let group = json_str(obj, "variant_group").unwrap_or_else(|| source_url.clone());
+        out.push(VariantRow {
+            source_url,
+            group,
+            width: json_u64(obj, "width").unwrap_or(0),
+            height: json_u64(obj, "height").unwrap_or(0),
+        });
+    }
+    out
+}
+
+/// Split a JSON array into its top-level object slices. Brace counting, with
+/// string and escape awareness so a `{` inside a title cannot desynchronise it.
+fn json_objects(json: &str) -> Vec<&str> {
+    let bytes = json.as_bytes();
+    let mut out = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+    for (i, &b) in bytes.iter().enumerate() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if b == b'\\' {
+                escaped = true;
+            } else if b == b'"' {
+                in_string = false;
+            }
+            continue;
+        }
+        match b {
+            b'"' => in_string = true,
+            b'{' => {
+                if depth == 0 {
+                    start = i;
+                }
+                depth += 1;
+            }
+            b'}' => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 && i >= start {
+                    out.push(&json[start..=i]);
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/// Primary monitor size in pixels. `(0, 0)` if Windows will not say, which the
+/// picker reads as "no preference".
+fn primary_screen_size() -> (u32, u32) {
+    unsafe {
+        (
+            GetSystemMetrics(SM_CXSCREEN).max(0) as u32,
+            GetSystemMetrics(SM_CYSCREEN).max(0) as u32,
+        )
+    }
+}
+
+/// Collapse a variant-aware list to one url per artwork, choosing the crop that
+/// suits `screen_w x screen_h`.
+///
+/// This is the client half of the maintainer's rule: the server keeps a 21:9
+/// and a 16:9 cut of one render because both are worth having, and each machine
+/// pulls "maximal eins" of them — the one whose SHAPE fits its monitor, with
+/// pixel count as the tiebreak. Shape leads because a 21:9 wallpaper on a 16:9
+/// screen is letterboxed or cropped no matter how many pixels it carries.
+///
+/// Group order is first-seen order, so the newest-first ordering the query
+/// asked for survives, and an unknown screen size degrades to "most pixels" —
+/// exactly the `primary` the server already picked.
+fn collapse_variant_groups(
+    rows: &[VariantRow],
+    screen_w: u32,
+    screen_h: u32,
+    limit: usize,
+) -> Vec<String> {
+    let target = if screen_w > 0 && screen_h > 0 {
+        screen_w as f64 / screen_h as f64
+    } else {
+        0.0
+    };
+    // Linear scan rather than a map: the list is at most a hundred rows and the
+    // order of first appearance is part of the answer.
+    let mut groups: Vec<(&str, &VariantRow)> = Vec::new();
+    for row in rows {
+        match groups.iter().position(|(g, _)| *g == row.group.as_str()) {
+            Some(i) => {
+                if fits_better(row, groups[i].1, target) {
+                    groups[i].1 = row;
+                }
+            }
+            None => groups.push((row.group.as_str(), row)),
+        }
+    }
+    groups.into_iter().take(limit).map(|(_, r)| r.source_url.clone()).collect()
+}
+
+/// Is `candidate` a better wallpaper for a screen of aspect `target` than
+/// `current`? `target <= 0` means "screen unknown": shape drops out and the
+/// comparison is pixels alone.
+fn fits_better(candidate: &VariantRow, current: &VariantRow, target: f64) -> bool {
+    let (cs, ns) = (shape_distance(current, target), shape_distance(candidate, target));
+    if (ns - cs).abs() > 1e-6 {
+        return ns < cs;
+    }
+    pixels(candidate) > pixels(current)
+}
+
+/// Log distance between a row's aspect ratio and the screen's, so 21:9-on-16:9
+/// and 16:9-on-21:9 are penalised alike. Infinite for a row of unknown size.
+fn shape_distance(row: &VariantRow, target: f64) -> f64 {
+    if target <= 0.0 {
+        return 0.0;
+    }
+    if row.width == 0 || row.height == 0 {
+        return f64::INFINITY;
+    }
+    ((row.width as f64 / row.height as f64) / target).ln().abs()
+}
+
+fn pixels(row: &VariantRow) -> u64 {
+    row.width.saturating_mul(row.height)
 }
 
 /// Fetch the community-wide Top-N wallpapers (the same ranking the web
@@ -840,6 +1012,81 @@ mod tests {
         let nested = r#"{"a":{"b":{"c":1},"d":"}"},"e":2}"#;
         assert_eq!(json_object(nested, "a"), Some(r#"{"b":{"c":1},"d":"}"}"#));
         assert_eq!(json_object(nested, "zzz"), None);
+    }
+
+    /// One Stingray render, three crops, exactly as the live table holds them:
+    /// a 21:9 `primary`, a 16:9 `ratio` and an ungrouped landscape alongside.
+    const VARIANT_LIST: &str = r#"[
+      {"source_url":"https://a/ultra.jpg","variant_group":"ultra","variant_role":"primary","width":3840,"height":1646},
+      {"source_url":"https://a/wide.jpg","variant_group":"ultra","variant_role":"ratio","width":1920,"height":1080},
+      {"source_url":"https://a/lone.jpg","variant_group":null,"variant_role":"single","width":2560,"height":1440}
+    ]"#;
+
+    #[test]
+    fn variant_rows_read_group_and_size_per_object() {
+        let rows = parse_variant_rows(VARIANT_LIST);
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[0].group, "ultra");
+        assert_eq!((rows[0].width, rows[0].height), (3840, 1646));
+        // A null `variant_group` keys the row on itself — a group of one.
+        assert_eq!(rows[2].group, "https://a/lone.jpg");
+    }
+
+    #[test]
+    fn a_row_without_a_size_parses_but_claims_no_shape() {
+        let rows = parse_variant_rows(
+            r#"[{"source_url":"https://a/x.jpg","variant_group":null,"width":null,"height":null}]"#,
+        );
+        assert_eq!(rows.len(), 1);
+        assert_eq!((rows[0].width, rows[0].height), (0, 0));
+        assert!(shape_distance(&rows[0], 16.0 / 9.0).is_infinite());
+    }
+
+    /// The feedback in one assertion: a group yields ONE url, and which one
+    /// depends on the monitor.
+    #[test]
+    fn each_screen_pulls_the_crop_that_fits_it() {
+        let rows = parse_variant_rows(VARIANT_LIST);
+
+        // 21:9 ultrawide — the 3840x1646 cut, though it has fewer rows to spare.
+        let ultra = collapse_variant_groups(&rows, 3440, 1440, LIST_WALLPAPERS);
+        assert_eq!(ultra, vec!["https://a/ultra.jpg", "https://a/lone.jpg"]);
+
+        // 16:9 — the 1920x1080 cut wins on SHAPE despite carrying 2.1 MP
+        // against the ultrawide's 6.3 MP. That is the point of keeping both.
+        let wide = collapse_variant_groups(&rows, 2560, 1440, LIST_WALLPAPERS);
+        assert_eq!(wide, vec!["https://a/wide.jpg", "https://a/lone.jpg"]);
+    }
+
+    #[test]
+    fn an_unknown_screen_size_falls_back_to_the_biggest_member() {
+        let rows = parse_variant_rows(VARIANT_LIST);
+        let any = collapse_variant_groups(&rows, 0, 0, LIST_WALLPAPERS);
+        assert_eq!(any, vec!["https://a/ultra.jpg", "https://a/lone.jpg"]);
+    }
+
+    #[test]
+    fn same_shape_members_collapse_to_the_higher_resolution_one() {
+        // No genuinely different ratio in this group, so the server would mark
+        // the small one `duplicate` and never send it — but if it ever does,
+        // the client must not cycle both.
+        let rows = parse_variant_rows(
+            r#"[{"source_url":"https://a/small.jpg","variant_group":"g","width":1280,"height":720},
+                {"source_url":"https://a/big.jpg","variant_group":"g","width":3840,"height":2160}]"#,
+        );
+        assert_eq!(
+            collapse_variant_groups(&rows, 1920, 1080, LIST_WALLPAPERS),
+            vec!["https://a/big.jpg"]
+        );
+    }
+
+    #[test]
+    fn collapsing_keeps_feed_order_and_honours_the_cap() {
+        let rows = parse_variant_rows(VARIANT_LIST);
+        // First-seen order: the group appears before the lone row and keeps
+        // that slot even when a later member wins it.
+        assert_eq!(collapse_variant_groups(&rows, 2560, 1440, 1), vec!["https://a/wide.jpg"]);
+        assert!(collapse_variant_groups(&[], 2560, 1440, LIST_WALLPAPERS).is_empty());
     }
 
     #[test]

@@ -297,12 +297,13 @@ export function isDistinctRatio(a: number, b: number): boolean {
  * What a row is within its artwork group.
  *
  * - `single`    — no look-alike found; the row is its own group.
- * - `primary`   — the group's representative: most pixels wins. The gallery and
- *                 the tray app's flat list show exactly the `single` + `primary`
- *                 rows, so one artwork produces one tile.
+ * - `primary`   — the group's representative: most pixels wins. The web gallery
+ *                 shows exactly the `single` + `primary` rows, so one artwork
+ *                 produces one tile.
  * - `ratio`     — a genuinely different aspect ratio of the same artwork. Hidden
- *                 from the flat list, but offered to a client that wants the
- *                 shape closest to its screen.
+ *                 from the gallery, but fetched by a client that picks the shape
+ *                 closest to its screen — see {@link pickForScreen}, which the
+ *                 Starscape tray app mirrors in `wallpaper-app/src/net.rs`.
  * - `duplicate` — same artwork, same shape, fewer pixels. Nothing ever shows it.
  */
 export type VariantRole = 'single' | 'primary' | 'ratio' | 'duplicate';
