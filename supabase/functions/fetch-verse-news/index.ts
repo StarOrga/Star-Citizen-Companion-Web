@@ -1192,7 +1192,7 @@ async function contentCheck(row: {
 // --------------------- Variant grouping (feedback fcd956cf) ---------------------
 //
 // One artwork, one visible tile — see variant-signature.ts for the signal and
-// the calibration, and 20260903210000_verse_wallpapers_variant_groups.sql for
+// the calibration, and 20260903170000_verse_wallpapers_variant_groups.sql for
 // what the roles mean.
 //
 // Two bounded passes ride the same deferred budget as capture:

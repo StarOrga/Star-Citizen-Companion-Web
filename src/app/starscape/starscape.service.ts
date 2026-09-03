@@ -58,7 +58,7 @@ const PAGE_SIZE = 24;
  * picture two or three times. fetch-verse-news now groups those rows
  * (`variant-signature.ts`) and marks one representative per artwork; the
  * others stay in the table, addressable by a `?image=<id>` share link, but out
- * of the grid. See migration 20260903210000.
+ * of the grid. See migration 20260903170000.
  *
  * `single` is the default for every row the grouper has not reached, so a fresh
  * capture is visible immediately and a failed grouping hides nothing.
@@ -309,7 +309,7 @@ export class StarscapeService {
     try {
       let { data, error, count } = await page(true);
       // Deploy-order guard: the bundle reaches visitors the moment Vercel
-      // finishes, but migration 20260903210000 is applied out of band. Without
+      // finishes, but migration 20260903170000 is applied out of band. Without
       // this the gallery would answer 42703 ("column variant_role does not
       // exist") and show an error page for the whole gap. Costs one retry, only
       // ever on that specific error, and disappears once the column is there.
