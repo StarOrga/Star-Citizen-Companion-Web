@@ -3,6 +3,7 @@ import {
   Component,
   OnInit,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -56,7 +57,7 @@ type UserFeedbackTab = 'compose' | 'mine';
           class="tab"
           [class.active]="tab() === 'compose'"
           [attr.aria-selected]="tab() === 'compose'"
-          (click)="tab.set('compose')">
+          (click)="selectCompose()">
           {{ 'userFeedback.tab.compose' | translate }}
         </button>
         <button
@@ -111,7 +112,10 @@ type UserFeedbackTab = 'compose' | 'mine';
             <p class="muted">{{ 'userFeedback.empty' | translate }}</p>
           } @else {
             @for (t of topics(); track t.id) {
-              <article class="topic sc-card" [class.needs-answer]="t.author_status === 'question'">
+              <article
+                class="topic sc-card"
+                [class.needs-answer]="t.author_status === 'question'"
+                [class.has-news]="isNew(t.id)">
                 <button
                   type="button"
                   class="topic-head"
@@ -119,6 +123,14 @@ type UserFeedbackTab = 'compose' | 'mine';
                   [attr.aria-expanded]="isOpen(t.id)">
                   <span class="chev" [class.open]="isOpen(t.id)">▸</span>
                   <span class="topic-title">{{ title(t) }}</span>
+                  <!-- What the FAB badge was counting: the topics that changed
+                       since this user last looked (admin feedback e684c946).
+                       Opening the panel already marked them read server-side, so
+                       this marker is what stops the list from being a
+                       needle-in-a-haystack for the rest of the visit. -->
+                  @if (isNew(t.id)) {
+                    <span class="status-pill new">{{ 'userFeedback.newBadge' | translate }}</span>
+                  }
                   <!-- What the author said this was about (admin feedback
                        835fec58) — their own tag read back to them. Absent on
                        everything filed before the tag existed, and shown as
@@ -247,6 +259,9 @@ type UserFeedbackTab = 'compose' | 'mine';
     .muted { margin: 0; font-size: 0.84rem; color: var(--sc-fg-2); }
 
     .topic { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .topic.has-news { border-color: var(--sc-accent); }
+    /* Ordered after .has-news on purpose: an open question to the author is the
+       stronger of the two states and keeps its own border when both apply. */
     .topic.needs-answer { border-color: var(--sc-accent-hot); }
     .topic-head {
       display: flex;
@@ -286,6 +301,14 @@ type UserFeedbackTab = 'compose' | 'mine';
        the thing the eye lands on. */
     .status-pill.area { border-style: dashed; }
     .status-pill.question { border-color: var(--sc-accent-hot); color: var(--sc-accent-hot); }
+    /* Same accent as the FAB badge the user just clicked — the pill is the
+       other half of that signal, not a status of its own. */
+    .status-pill.new {
+      border-color: var(--sc-accent);
+      background: var(--sc-accent);
+      color: #041016;
+      font-weight: 700;
+    }
     .status-pill.done { border-color: var(--sc-accent); color: var(--sc-accent); }
     .status-pill.declined { opacity: 0.75; }
 
@@ -337,10 +360,31 @@ export class UserFeedbackPanelComponent implements OnInit {
   /** Topics the author folded away again — overrides the auto-expand below. */
   private readonly _collapsed = signal<ReadonlySet<string>>(new Set());
 
-  /** Topics with a pending question start expanded — that is the actionable one. */
-  private readonly autoExpanded = computed(
-    () => new Set(this.topics().filter((t) => t.author_status === 'question').map((t) => t.id)),
-  );
+  /**
+   * Topics that open expanded: a pending question (the actionable one) and
+   * anything the FAB badge was counting — the user came here to read that, so
+   * making them click it open again would be theatre.
+   */
+  private readonly autoExpanded = computed(() => {
+    const ids = new Set(this.feedback.newsSinceOpen());
+    for (const t of this.topics()) if (t.author_status === 'question') ids.add(t.id);
+    return ids;
+  });
+
+  /** True once the user has chosen a tab by hand. */
+  private readonly tabPinned = signal(false);
+
+  constructor() {
+    // The badge sent the user here to read something, so land them on the list
+    // rather than on the compose box — but only until they say otherwise: one
+    // click on a tab and this stops second-guessing them for the rest of the
+    // session. The effect (rather than ngOnInit) is what makes it survive the
+    // race with the FAB's own load, which is what fills newsSinceOpen.
+    effect(() => {
+      if (this.tabPinned()) return;
+      if (this.feedback.newsSinceOpen().size > 0) this.tab.set('mine');
+    });
+  }
 
   async ngOnInit(): Promise<void> {
     // The FAB already loads the topics up front (it needs the badge count), so
@@ -348,9 +392,20 @@ export class UserFeedbackPanelComponent implements OnInit {
     if (!this.feedback.loaded()) await this.feedback.refresh();
   }
 
+  selectCompose(): void {
+    this.tabPinned.set(true);
+    this.tab.set('compose');
+  }
+
   selectMine(): void {
+    this.tabPinned.set(true);
     this.tab.set('mine');
     void this.feedback.refresh();
+  }
+
+  /** Did this topic change since the user last had the panel open? */
+  isNew(id: string): boolean {
+    return this.feedback.hasNewsSinceOpen(id);
   }
 
   render(body: string): RenderedFeedbackBody {
