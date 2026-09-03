@@ -72,11 +72,10 @@ open ──pick up──▶ in_progress ──green build+tests──▶ shipped
   rejected      ← the ADMIN decides this alone (by deleting the topic); the
                   routine NEVER sets it. Reopened to `open` by an admin reply.
   issue_created ← the topic became a GitHub ISSUE instead of a change
-                  (ship_ref = issue url). Set by the ROUTINE when the thread
-                  carries an open **[ISSUE]** order (see "Issue erstellen"
-                  below), or by an ADMIN recording an issue that already exists
-                  ("Issue-Link eintragen"). Goes through the sign-off gate like
-                  a ship. Reopened to `open` by an admin reply.
+                  (ship_ref = issue url). Set ONLY by the ROUTINE, when the
+                  thread carries an open **[ISSUE]** order (see "Issue
+                  erstellen" below). Goes through the sign-off gate like a
+                  ship. Reopened to `open` by an admin reply.
   declined      ← the ADMIN declines a USER-submitted topic ("nicht umsetzen &
                   löschen", decision_note = the explanation the author reads);
                   the routine NEVER sets it. Reopened to `open` by an admin reply.
@@ -137,9 +136,10 @@ accepts it. The order is "open" exactly while `status <> 'issue_created'` and
 undo disappears from the board.
 
 This replaces the old motion, where "Issue erstellt" was a *record*: the admin
-filed the issue by hand and the same click archived the topic. Recording an
-issue that already exists is still possible — it is the separate "Issue-Link
-eintragen" form — but it is no longer what the button says.
+filed the issue by hand and the same click archived the topic. The panel's
+by-hand record ("Issue-Link eintragen") is gone as well (admin feedback
+18e96ad3, round 2) — the order in the thread is the only issue motion left, and
+the routine is the only writer of `issue_created` + `ship_ref`.
 
 **The queue is additionally gated on `triaged`.** A topic filed by a non-admin
 through the user feedback FAB (`source = 'user'`) enters `triaged = false` and
@@ -1422,12 +1422,14 @@ the same control in both shells:
   one composer, the author channel exactly one — plus its single "als Rückfrage
   senden" switch, which is now **per topic** (it used to be one board-wide flag,
   so ticking it on one card armed every other open card's composer).
-- **The rare acts sit behind one disclosure.** "Weitere Aktionen" reveals the
-  issue hand-off, "nicht umsetzen & löschen" / "löschen" and their inline forms;
-  closing it discards a half-typed form rather than leaving it open out of
-  sight. **No status write changed** — `issue_created`, `declined`, the triage
-  release and the sign-off gate's two decisions are all still there, one click
-  deeper. The one action that stays in the open is "Für die Routine freigeben"
+- **The rare acts sit behind one disclosure.** "Weitere Aktionen" reveals
+  "Issue erstellen" (the order, with its undo), "nicht umsetzen & löschen" /
+  "löschen" and their inline forms; closing it discards a half-typed form rather
+  than leaving it open out of sight. `declined`, the triage release and the
+  sign-off gate's two decisions all live one click deeper. `issue_created` is
+  **not** among them: the panel has no by-hand write for it since admin feedback
+  18e96ad3 — the routine sets it when it carries out an `**[ISSUE]**` order.
+  The one action that stays in the open is "Für die Routine freigeben"
   on an untriaged topic: the topic is *blocked* on it, so hiding it would hide
   the reason nothing is happening.
 
@@ -1697,19 +1699,19 @@ Active/Archive toggle inside the **overview** mode renders (migration
   from `ship_ref` — the GitHub issue itself is untouched.)
 
 `issue_created` is the "tracked elsewhere" outcome: the topic leaves the work
-queue without being deleted and without pretending it shipped. It has two
-writers (admin feedback 18e96ad3):
+queue without being deleted and without pretending it shipped. It has exactly
+one writer (admin feedback 18e96ad3): **the ROUTINE**, when the topic's thread
+carries an open `**[ISSUE]**` order — it files the issue and writes
+`status='issue_created'` + `ship_ref=<issue url>` + `processed_at=now()`. See
+"Issue erstellen" near the top of this document.
 
-- **the ROUTINE**, when the topic's thread carries an open `**[ISSUE]**` order —
-  it files the issue and writes `status='issue_created'` + `ship_ref=<issue url>`
-  + `processed_at=now()`. See "Issue erstellen" near the top of this document;
-- **an ADMIN**, recording an issue that already exists ("Issue-Link eintragen",
-  same three columns).
-
-Either way the row lands in the sign-off gate first, not straight in the
-Archive. Until feedback 18e96ad3 the admin path was the only one and the button
-said "Issue erstellt" — a record, filed by hand — which read as an order and was
-not one. **The routine never touches a row while it rests in `issue_created`** —
+The row lands in the sign-off gate first, not straight in the Archive. Until
+feedback 18e96ad3 the ADMIN was the only writer and the button said "Issue
+erstellt" — a record, filed by hand — which read as an order and was not one;
+round 1 turned it into the order and kept the record as a second control
+("Issue-Link eintragen"), round 2 removed that control, so the panel no longer
+offers any by-hand way to set `issue_created`. **The routine never touches a row
+while it rests in `issue_created`** —
 but an admin reply reopens it to `open` first (the reopen trigger), and from then
 on it is an ordinary `open` item the routine works. Legacy `rejected`
 rows are archived rather than hidden so they stay reachable instead of being

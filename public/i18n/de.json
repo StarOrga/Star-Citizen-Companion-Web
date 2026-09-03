@@ -2271,14 +2271,9 @@
     "deleteConfirm": "Diese Nachricht löschen? Kann nicht rückgängig gemacht werden.",
     "issue": {
       "mark": "Issue erstellen",
-      "placeholder": "GitHub-Issue-URL",
-      "save": "Eintragen",
-      "cancel": "Abbrechen",
-      "invalidUrl": "Bitte eine gültige Issue-URL angeben (http/https).",
       "pill": "Issue angefordert",
       "pending": "Issue erstellen ist beauftragt — die Routine legt es an.",
       "undo": "Rückgängig",
-      "attach": "Issue-Link eintragen",
       "requestBody": "Bitte dieses Thema **nicht selbst umsetzen**, sondern ein GitHub-Issue dafür anlegen. Danach `status = issue_created` setzen und die Issue-URL als `ship_ref` eintragen — das Thema geht dann wie jedes andere Ergebnis in die Abnahme."
     },
     "status": {
