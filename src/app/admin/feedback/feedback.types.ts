@@ -158,6 +158,16 @@ export interface FeedbackRow {
    * the column are not read as "pending" — see {@link awaitsReview}.
    */
   reviewed_at?: string | null;
+  /**
+   * Which part of the app the topic is about — set by the sender's composer
+   * from the page they were on, correctable there (admin feedback 835fec58,
+   * migration 20260903120000). `null` on every topic filed before the tag
+   * existed, and that must render as NOTHING: a made-up default would be
+   * indistinguishable from a real answer. Typed as a plain string here because
+   * the value comes straight from the database — narrow it with
+   * `asFeedbackArea()` before showing it.
+   */
+  area?: string | null;
 }
 
 /** True for a topic a non-admin filed through the user feedback FAB. */

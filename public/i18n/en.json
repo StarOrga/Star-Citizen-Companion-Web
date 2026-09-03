@@ -2646,6 +2646,18 @@
       "declined": "Not implemented"
     }
   },
+  "feedbackArea": {
+    "aria": "Choose the feedback area",
+    "label": "Area:",
+    "news": "Verse News",
+    "codex": "Codex",
+    "hangar": "Hangar",
+    "starscape": "Starscape",
+    "desktop": "Desktop apps",
+    "settings": "Settings",
+    "admin": "Admin",
+    "other": "Other"
+  },
   "feedbackAttachments": {
     "label": "Attachments",
     "image": "Attachment",

@@ -2646,6 +2646,18 @@
       "declined": "Nicht umgesetzt"
     }
   },
+  "feedbackArea": {
+    "aria": "Bereich des Feedbacks wählen",
+    "label": "Bereich:",
+    "news": "Verse News",
+    "codex": "Codex",
+    "hangar": "Hangar",
+    "starscape": "Starscape",
+    "desktop": "Desktop-Apps",
+    "settings": "Einstellungen",
+    "admin": "Admin",
+    "other": "Sonstiges"
+  },
   "feedbackAttachments": {
     "label": "Anhänge",
     "image": "Anhang",
