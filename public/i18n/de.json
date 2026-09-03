@@ -1487,16 +1487,20 @@
     },
     "groups": {
       "account": {
-        "title": "Konto & Identität"
+        "title": "Konto & Identität",
+        "short": "Konto"
       },
       "preferences": {
-        "title": "Sprache & Bedienung"
+        "title": "Sprache & Bedienung",
+        "short": "Sprache"
       },
       "privacy": {
-        "title": "Daten & Privatsphäre"
+        "title": "Daten & Privatsphäre",
+        "short": "Daten"
       },
       "danger": {
-        "title": "Gefahrenzone"
+        "title": "Gefahrenzone",
+        "short": "Gefahr"
       }
     },
     "account": {
