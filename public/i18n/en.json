@@ -134,7 +134,8 @@
       "results": {
         "title": "Archive hits",
         "searching": "Searching the archive …",
-        "empty": "No matches for “{{term}}”."
+        "empty": "No matches for “{{term}}”.",
+        "upcomingBadge": "Not in game yet"
       },
       "me": {
         "eyebrow": "On board",
@@ -315,6 +316,7 @@
         "remove": "Remove from favorites"
       },
       "newBadge": "New",
+      "badge": "Announced",
       "noMatches": {
         "title": "No matches",
         "body": "No upcoming ship matches the search and filter — shorten the term or drop the favorites filter."
@@ -336,7 +338,9 @@
     "search": {
       "placeholder": "Search name or class (e.g. Gladius, AEGS_*)…",
       "label": "Search the codex",
-      "clear": "Clear search"
+      "clear": "Clear search",
+      "upcomingHint": "Not in the game data, but announced by RSI: {{names}}",
+      "upcomingLink": "View in Upcoming Ships"
     },
     "kinds": {
       "ship": "Ships",
@@ -355,7 +359,8 @@
       "item": "Item",
       "ammunition": "Ammunition",
       "manufacturer": "Manufacturer",
-      "blueprint": "Blueprint"
+      "blueprint": "Blueprint",
+      "upcoming": "Announced"
     },
     "filters": {
       "title": "Filters",
