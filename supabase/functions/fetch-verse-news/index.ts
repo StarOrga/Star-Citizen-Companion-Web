@@ -1228,6 +1228,7 @@ const VARIANT_WINDOW_ROWS = 120;
 /** One row of the grouping working set, as read from the table. */
 interface VariantRow {
   image_id: string;
+  source_url: string;
   preview_url: string;
   thumb: string | null;
   width: number | null;
@@ -1258,8 +1259,12 @@ async function backfillVariantSignatures(
     // gallery never loses it — an ungrouped row is a fully visible row.
     if (!verdict.thumb) continue;
     row.thumb = verdict.thumb;
-    row.width ??= verdict.coverWidth;
-    row.height ??= verdict.coverHeight;
+    // Size from the ORIGINAL's header, exactly like the capture path — the
+    // decoded cover is only a fallback. The ranged GET reads a header, not an
+    // image, so it costs no decode budget.
+    const media = await readWallpaperMedia(row.source_url);
+    row.width = media?.width ?? row.width ?? verdict.coverWidth;
+    row.height = media?.height ?? row.height ?? verdict.coverHeight;
     const { error } = await admin
       .from('verse_wallpapers')
       .update({ thumb: row.thumb, width: row.width, height: row.height })
@@ -1275,6 +1280,59 @@ async function backfillVariantSignatures(
     console.log(`variant backfill: signed ${filled} row(s), ${left} still without a signature`);
   }
   return filled;
+}
+
+/**
+ * How many already-signed rows may have their size repaired per crawl.
+ *
+ * Each one is a single ranged GET for a header — no decode — so this is bounded
+ * by request count, not by the decode budget.
+ */
+const VARIANT_SIZE_REPAIR_PER_RUN = 8;
+
+/**
+ * Repair rows whose size came from the COVER instead of the original.
+ *
+ * The first build of the backfill wrote `verdict.coverWidth/Height` — the ≤1140px
+ * cover — into rows it signed. That is not cosmetic: "most pixels wins" chooses
+ * the group primary, and since every cover is about the same width, two
+ * same-shape members tie on pixels and the decision falls through to the
+ * image-id tiebreak. A 1280x720 copy could outrank a 5852x3292 original, which
+ * is precisely the thing the feature promised not to do. It also made backfilled
+ * rows (~0.5 MP) lose to freshly captured neighbours (megapixels) for reasons
+ * that have nothing to do with the artwork.
+ *
+ * Such a row is identifiable with certainty rather than by guess: capture
+ * rejects anything narrower than MIN_WALLPAPER_WIDTH (1280) and covers are
+ * ≤1140px, so a stored width below that floor can only have come from a cover.
+ * Signed rows are never revisited by the signature pass above (it selects on a
+ * missing thumb), so this is the only place they can heal.
+ */
+async function repairVariantSourceSizes(admin: SupabaseClient, rows: VariantRow[]): Promise<number> {
+  const suspect = rows
+    .filter((r) => r.thumb && (r.width === null || r.width < MIN_WALLPAPER_WIDTH))
+    .slice(0, VARIANT_SIZE_REPAIR_PER_RUN);
+  if (suspect.length === 0) return 0;
+  let repaired = 0;
+  for (const row of suspect) {
+    const media = await readWallpaperMedia(row.source_url);
+    // Unreadable today (CDN hiccup, header gate) → leave the row exactly as it
+    // is and try again next crawl. Never write a worse number than it already has.
+    if (!media?.width || !media.height) continue;
+    row.width = media.width;
+    row.height = media.height;
+    const { error } = await admin
+      .from('verse_wallpapers')
+      .update({ width: row.width, height: row.height })
+      .eq('image_id', row.image_id);
+    if (error) {
+      console.error(`variant size repair: update failed for ${row.image_id}:`, error.message);
+      continue;
+    }
+    repaired++;
+  }
+  if (repaired > 0) console.log(`variant size repair: ${repaired} row(s) resized from the original`);
+  return repaired;
 }
 
 /** Recompute groups over the working set and persist only what moved. */
@@ -1435,7 +1493,7 @@ async function maintainVariantGroups(
 ): Promise<void> {
   const { data, error } = await admin
     .from('verse_wallpapers')
-    .select('image_id, preview_url, thumb, width, height, variant_group, variant_role')
+    .select('image_id, source_url, preview_url, thumb, width, height, variant_group, variant_role')
     .order('published_at', { ascending: false, nullsFirst: false })
     .order('image_id', { ascending: false })
     .limit(VARIANT_WINDOW_ROWS);
@@ -1446,9 +1504,12 @@ async function maintainVariantGroups(
   const rows = (data ?? []) as VariantRow[];
   if (rows.length === 0) return;
   const filled = await backfillVariantSignatures(admin, rows, decodeBudget);
-  // Nothing new and nothing newly signed means the last grouping still stands —
-  // skip the O(n^2) pass entirely rather than recomputing the same answer.
-  if (filled === 0 && !capturedSomething) return;
+  const repaired = await repairVariantSourceSizes(admin, rows);
+  // Nothing new, nothing newly signed and nothing resized means the last
+  // grouping still stands — skip the O(n^2) pass entirely rather than
+  // recomputing the same answer. A repair does change it: the sizes it fixes
+  // are what "most pixels wins" ranks the group on.
+  if (filled === 0 && repaired === 0 && !capturedSomething) return;
   await regroupVariants(admin, rows);
 }
 
