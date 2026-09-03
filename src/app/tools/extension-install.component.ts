@@ -5,7 +5,18 @@ import { ExtensionBridgeService } from '../hangar/extension-bridge.service';
 
 /** Where the unpacked extension lives until the Web Store review is through. */
 const REPO_URL = 'https://github.com/StarOrga/Star-Citizen-Companion-Web/tree/main/browser-extension';
-const REPO_ZIP_URL = 'https://github.com/StarOrga/Star-Citizen-Companion-Web/archive/refs/heads/main.zip';
+
+/**
+ * The packaged extension — and only the extension.
+ *
+ * Version-less asset on the moving `browser-extension-latest` tag of the public
+ * binaries-mirror repo, republished by the `browser-extension` workflow on every
+ * push to `browser-extension/`, so this URL never goes stale. Deliberately NOT
+ * the repository archive: that handed the visitor the whole application repo and
+ * asked them to find the extension folder inside it.
+ */
+const EXTENSION_ZIP_URL =
+  'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/browser-extension-latest/sc-hangar-extension.zip';
 
 /**
  * /tools/extension — install + privacy page for the hangar-import browser
@@ -83,14 +94,15 @@ const REPO_ZIP_URL = 'https://github.com/StarOrga/Star-Citizen-Companion-Web/arc
           }
         </ol>
         <div class="row">
-          <a class="sc-btn sc-btn-primary" [href]="repoZipUrl" target="_blank" rel="noopener noreferrer">
+          <a class="sc-btn sc-btn-primary" [href]="extensionZipUrl" target="_blank" rel="noopener noreferrer">
             {{ 'extension.install.how.downloadCta' | translate }}
           </a>
           <a class="sc-btn" [href]="repoUrl" target="_blank" rel="noopener noreferrer">
             {{ 'extension.install.how.browseCta' | translate }}
           </a>
         </div>
-        <p class="hint browsers">{{ 'extension.install.how.browsers' | translate }}</p>
+        <p class="hint browsers">{{ 'extension.install.how.buildNote' | translate }}</p>
+        <p class="hint">{{ 'extension.install.how.browsers' | translate }}</p>
       </div>
 
       <div class="sc-card">
@@ -138,7 +150,7 @@ export class ExtensionInstallComponent implements OnInit {
   private readonly bridge = inject(ExtensionBridgeService);
 
   readonly repoUrl = REPO_URL;
-  readonly repoZipUrl = REPO_ZIP_URL;
+  readonly extensionZipUrl = EXTENSION_ZIP_URL;
   readonly installed = signal(false);
 
   async ngOnInit(): Promise<void> {

@@ -14,6 +14,8 @@ import {
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ComposerPrefsService } from '../../core/composer-prefs.service';
 import { FeedbackDraftService } from '../../feedback/feedback-draft.service';
+import { FeedbackAreaPickerComponent } from '../../feedback/feedback-area-picker.component';
+import type { FeedbackArea } from '../../feedback/feedback-area.types';
 import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import type { FeedbackImage } from './markdown.util';
 
@@ -39,6 +41,14 @@ export interface PendingImage {
 export interface ComposerPayload {
   text: string;
   images: PendingImage[];
+  /**
+   * Which part of the app the message is about (admin feedback 835fec58).
+   * Only new-topic composers carry one — a thread reply inherits the topic's
+   * tag, so it stays undefined there. `null`/undefined must be persisted as a
+   * null column, never as a made-up default: a topic that was never tagged is
+   * not "Sonstiges", it is untagged.
+   */
+  area?: FeedbackArea | null;
 }
 
 /** Longest-edge cap (px) applied when re-encoding pasted/dropped images. */
@@ -49,11 +59,17 @@ const IMG_QUALITY = 0.85;
 const MAX_ATTACHMENTS = 10;
 
 /**
- * Rich markdown composer shared by the new-topic box and every thread reply.
+ * Markdown composer shared by the new-topic box and every thread reply.
  *
  * Extracted so the reply line gains full parity with the main input (feedback
- * 73dfa165): formatting toolbar, automatic list continuation, and image insert
- * via picker / paste / drag-and-drop.
+ * 73dfa165): automatic list continuation and image insert via picker / paste /
+ * drag-and-drop.
+ *
+ * There is deliberately NO formatting toolbar. Bold/list/code buttons shipped
+ * with the extraction and were dropped again (feedback fe69a821) as overkill —
+ * the body is still markdown and still renders the same, it is just typed. The
+ * only button above the field is the image picker, because attaching a file is
+ * the one thing typing cannot do.
  *
  * Keyboard mapping (feedback aa8d5b18) is the conventional chat one, identical
  * in every usage — new topic, thread reply, processing answer — and each user
@@ -63,6 +79,12 @@ const MAX_ATTACHMENTS = 10;
  *   image, where `Enter` inserts the newline and only `Ctrl/Cmd+Enter` sends
  * - `Ctrl/Cmd+Enter` always sends, in both mappings
  * - whichever key inserts the newline also continues a bullet/numbered list
+ *
+ * AREA (`areaPicker`, admin feedback 835fec58): a new-topic box carries a chip
+ * row naming which part of the app the message is about, pre-selected from the
+ * page the sender is on. It is a correction affordance, not a required field —
+ * see `FeedbackAreaPickerComponent`. Thread replies leave it off: they belong to
+ * a topic that already carries the tag.
  *
  * The parent supplies an `onSubmit` handler that returns `true` once the
  * message is persisted; the composer only clears itself on success, so a failed
@@ -80,7 +102,7 @@ const MAX_ATTACHMENTS = 10;
 @Component({
   selector: 'sc-feedback-composer',
   standalone: true,
-  imports: [TranslateModule, FeedbackAttachmentsComponent],
+  imports: [TranslateModule, FeedbackAttachmentsComponent, FeedbackAreaPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -98,20 +120,23 @@ const MAX_ATTACHMENTS = 10;
         <div class="c-err">{{ errorMsg() }}</div>
       }
 
-      <div class="toolbar">
-        <button type="button" class="tool" (click)="wrapSelection('**', '**')" [title]="'adminFeedback.compose.bold' | translate">
-          <strong>B</strong>
-        </button>
-        <button type="button" class="tool" (click)="prefixLines('- ')" [title]="'adminFeedback.compose.bullet' | translate">
-          • {{ 'adminFeedback.compose.list' | translate }}
-        </button>
-        <button type="button" class="tool" (click)="prefixLines('1. ')" [title]="'adminFeedback.compose.numbered' | translate">
-          1. {{ 'adminFeedback.compose.list' | translate }}
-        </button>
-        <button type="button" class="tool" (click)="wrapSelection('\`', '\`')" [title]="'adminFeedback.compose.code' | translate">
-          &lt;/&gt;
-        </button>
-        <button type="button" class="tool" (click)="fileInput.click()" [title]="'adminFeedback.compose.attach' | translate">
+      <!-- "Worauf bezieht sich das?" — pre-filled from the page the sender is
+           on, one click to correct (admin feedback 835fec58). Only on a
+           new-topic box: a reply belongs to the topic's area by definition. -->
+      @if (areaPicker()) {
+        <sc-feedback-area-picker [(area)]="area" />
+      }
+
+      <!-- Action row: attaching an image is the one thing the field itself
+           cannot do (feedback fe69a821 removed the markdown buttons — typing
+           the markup is faster than hunting for a B). -->
+      <div class="actions">
+        <button
+          type="button"
+          class="attach"
+          (click)="fileInput.click()"
+          [title]="'adminFeedback.compose.attach' | translate"
+          [attr.aria-label]="'adminFeedback.compose.attach' | translate">
           🖼
         </button>
         <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFileInput($event)" />
@@ -219,8 +244,8 @@ const MAX_ATTACHMENTS = 10;
       font-size: max(0.78rem, var(--sc-fs-floor));
     }
 
-    .toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .tool {
+    .actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .attach {
       padding: 4px 9px;
       background: var(--sc-bg-1);
       color: var(--sc-fg-1);
@@ -230,7 +255,7 @@ const MAX_ATTACHMENTS = 10;
       font-size: max(0.78rem, var(--sc-fs-floor));
       cursor: pointer;
     }
-    .tool:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .attach:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .grow { flex: 1; }
     .draft-flag { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .draft-flag.warn { color: var(--sc-accent-hot); }
@@ -299,6 +324,13 @@ export class FeedbackComposerComponent implements OnDestroy {
   /** Reply variant: smaller textarea and a micro send button. */
   readonly compact = input(false);
   /**
+   * Show the area chip row above the field (admin feedback 835fec58). Set on
+   * the new-topic boxes only — thread replies and the author channel belong to
+   * a topic that already carries the tag, and asking again per message would
+   * turn a one-time hint into noise.
+   */
+  readonly areaPicker = input(false);
+  /**
    * Identity of this composer in the account-bound draft store (see
    * `draftScopes`). Null turns persistence off entirely — every composer in the
    * feedback surface sets one; the input stays nullable so an embedding outside
@@ -312,6 +344,14 @@ export class FeedbackComposerComponent implements OnDestroy {
   readonly onSubmit = input<(payload: ComposerPayload) => Promise<boolean>>();
 
   readonly draft = signal('');
+  /**
+   * The area tag of the topic being composed, owned here and two-way bound to
+   * the picker. Deliberately NOT part of the persisted draft: a restored draft
+   * would carry the area of wherever it was typed days ago, while the picker's
+   * live detection re-fills it from the page the user is on right now — which is
+   * the fresher guess of the two, and correctable either way.
+   */
+  readonly area = signal<FeedbackArea | null>(null);
   readonly draftRestored = signal(false);
   readonly attachments = signal<PendingImage[]>([]);
   /**
@@ -340,7 +380,7 @@ export class FeedbackComposerComponent implements OnDestroy {
     return !!scope && !!this.drafts.entries().get(scope)?.failed;
   });
 
-  /** One-line draft state next to the toolbar; null while there is nothing to say. */
+  /** One-line draft state in the action row; null while there is nothing to say. */
   readonly draftLabel = computed<string | null>(() => {
     const scope = this.draftScope();
     if (!scope) return null;
@@ -390,7 +430,13 @@ export class FeedbackComposerComponent implements OnDestroy {
 
   async submit(): Promise<void> {
     if (!this.canSend()) return;
-    const payload: ComposerPayload = { text: this.draft().trim(), images: this.attachments() };
+    const payload: ComposerPayload = {
+      text: this.draft().trim(),
+      images: this.attachments(),
+      // Undefined (not null) where no picker is shown, so a reply handler can
+      // tell "this composer has no opinion" from "explicitly untagged".
+      area: this.areaPicker() ? this.area() : undefined,
+    };
     const handler = this.onSubmit();
     if (!handler) return;
     this.sending.set(true);
@@ -401,6 +447,10 @@ export class FeedbackComposerComponent implements OnDestroy {
         this.draft.set('');
         this.draftRestored.set(false);
         this.attachments.set([]);
+        // Clearing the tag re-arms the picker's auto-detection, so the NEXT
+        // topic starts from the page the user is on rather than from the last
+        // thing they happened to correct.
+        this.area.set(null);
         this.disarmDiscard();
         // Sent: the draft has become a message and its uploads are referenced
         // by that message's body, so the row goes and the objects stay.
@@ -421,6 +471,7 @@ export class FeedbackComposerComponent implements OnDestroy {
     if (previous) void this.drafts.flush(previous);
     this.draft.set('');
     this.attachments.set([]);
+    this.area.set(null);
     this.draftRestored.set(false);
     this.errorMsg.set(null);
     this.disarmDiscard();
@@ -483,6 +534,7 @@ export class FeedbackComposerComponent implements OnDestroy {
     const scope = this.draftScope();
     this.draft.set('');
     this.attachments.set([]);
+    this.area.set(null);
     this.draftRestored.set(false);
     this.errorMsg.set(null);
     if (scope) void this.drafts.discard(scope);
@@ -570,33 +622,6 @@ export class FeedbackComposerComponent implements OnDestroy {
     const next = value.slice(0, replaceFrom) + insert + value.slice(end);
     const caret = replaceFrom + insert.length;
     this.applyValue(el, next, caret);
-  }
-
-  // ---- Toolbar -----------------------------------------------------------
-
-  wrapSelection(before: string, after: string): void {
-    const el = this.ta()?.nativeElement;
-    if (!el) return;
-    const { selectionStart: s, selectionEnd: e, value } = el;
-    const sel = value.slice(s, e);
-    const next = value.slice(0, s) + before + sel + after + value.slice(e);
-    const caret = sel ? s + before.length + sel.length + after.length : s + before.length;
-    this.applyValue(el, next, caret);
-  }
-
-  prefixLines(marker: string): void {
-    const el = this.ta()?.nativeElement;
-    if (!el) return;
-    const { selectionStart: s, selectionEnd: e, value } = el;
-    const lineStart = value.lastIndexOf('\n', s - 1) + 1;
-    const block = value.slice(lineStart, e);
-    let n = 0;
-    const prefixed = block
-      .split('\n')
-      .map((line) => (marker === '1. ' ? `${++n}. ${line}` : `${marker}${line}`))
-      .join('\n');
-    const next = value.slice(0, lineStart) + prefixed + value.slice(e);
-    this.applyValue(el, next, lineStart + prefixed.length);
   }
 
   private applyValue(el: HTMLTextAreaElement, next: string, caret: number): void {

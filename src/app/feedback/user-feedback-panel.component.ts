@@ -9,7 +9,7 @@ import {
 import { TranslateModule } from '@ngx-translate/core';
 // The composer and the markdown renderer live under admin/feedback for
 // historical reasons but are plain, admin-agnostic building blocks — reused
-// here so the non-admin box has the same toolbar, image paste/drop and
+// here so the non-admin box has the same draft handling, image paste/drop and
 // Ctrl/Cmd+Enter behaviour instead of a second, poorer implementation.
 import {
   ComposerPayload,
@@ -20,6 +20,7 @@ import { RenderedFeedbackBody, renderFeedbackBody } from '../admin/feedback/mark
 import { UserFeedbackService } from './user-feedback.service';
 import { draftScopes, memoScope } from './feedback-draft.types';
 import { AuthorFeedbackRow } from './user-feedback.types';
+import { FeedbackArea, asFeedbackArea, feedbackAreaLabelKey } from './feedback-area.types';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 /** Which half of the panel is on screen. */
@@ -96,6 +97,7 @@ type UserFeedbackTab = 'compose' | 'mine';
           <sc-feedback-composer
             [draftScope]="composeScope"
             [busy]="feedback.busy()"
+            [areaPicker]="true"
             placeholder="userFeedback.placeholder"
             sendLabel="userFeedback.send"
             [onSubmit]="submitBound" />
@@ -117,6 +119,13 @@ type UserFeedbackTab = 'compose' | 'mine';
                   [attr.aria-expanded]="isOpen(t.id)">
                   <span class="chev" [class.open]="isOpen(t.id)">▸</span>
                   <span class="topic-title">{{ title(t) }}</span>
+                  <!-- What the author said this was about (admin feedback
+                       835fec58) — their own tag read back to them. Absent on
+                       everything filed before the tag existed, and shown as
+                       nothing there rather than as a guessed section. -->
+                  @if (areaOf(t); as a) {
+                    <span class="status-pill area">{{ areaLabelKey(a) | translate }}</span>
+                  }
                   <span class="status-pill" [class]="t.author_status">
                     {{ ('userFeedback.status.' + t.author_status) | translate }}
                   </span>
@@ -273,6 +282,9 @@ type UserFeedbackTab = 'compose' | 'mine';
       white-space: nowrap;
       color: var(--sc-fg-2);
     }
+    /* Context, not state — dashed and grey so the status pill next to it stays
+       the thing the eye lands on. */
+    .status-pill.area { border-style: dashed; }
     .status-pill.question { border-color: var(--sc-accent-hot); color: var(--sc-accent-hot); }
     .status-pill.done { border-color: var(--sc-accent); color: var(--sc-accent); }
     .status-pill.declined { opacity: 0.75; }
@@ -359,6 +371,15 @@ export class UserFeedbackPanelComponent implements OnInit {
 
   messagesFor(id: string) {
     return this.feedback.messagesFor(id);
+  }
+
+  /** The area tag to render for a topic — null (i.e. nothing) when untagged. */
+  areaOf(t: AuthorFeedbackRow): FeedbackArea | null {
+    return asFeedbackArea(t.area);
+  }
+
+  areaLabelKey(area: FeedbackArea): string {
+    return feedbackAreaLabelKey(area);
   }
 
   isOpen(id: string): boolean {

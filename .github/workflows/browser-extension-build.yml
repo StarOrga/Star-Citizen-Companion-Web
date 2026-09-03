@@ -1,0 +1,157 @@
+name: browser-extension
+
+# Packages `browser-extension/` — and nothing else — into a single zip and
+# publishes it as an asset on the PUBLIC binaries-mirror repo behind the moving
+# `browser-extension-latest` tag, via BINARIES_RELEASE_TOKEN (the same handoff
+# the wallpaper-app and data-uploader workflows use).
+#
+# Why a release asset and not a repo archive: GitHub's
+# `archive/refs/heads/main.zip` hands the user the WHOLE application repository
+# (~100 MB of Angular app, migrations and docs) and expects them to dig the
+# extension folder out of it. The store listing is still in review, so an
+# unpacked install stays the only route — but what the user unpacks must be the
+# extension itself.
+#
+# PRs only package + upload a workflow artefact (packaging is validated, nothing
+# is published). The publish runs on push to main, so merging is what makes the
+# new asset live.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'browser-extension/**'
+      - '.github/workflows/browser-extension-build.yml'
+  pull_request:
+    paths:
+      - 'browser-extension/**'
+      - '.github/workflows/browser-extension-build.yml'
+  workflow_dispatch:
+
+# The publish targets a DIFFERENT repo and authenticates with a PAT, so the
+# job's own GITHUB_TOKEN never needs write access.
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Hard gate before anything is packaged: an unparseable manifest, a
+      # missing version or a file referenced by the manifest that isn't there
+      # would produce a zip that Chrome rejects at "Load unpacked" — with the
+      # user, not CI, discovering it.
+      - name: Validate manifest
+        id: manifest
+        run: |
+          node -e '
+            const { readFileSync, existsSync, appendFileSync } = require("node:fs");
+            const m = JSON.parse(readFileSync("browser-extension/manifest.json", "utf8"));
+            if (m.manifest_version !== 3) throw new Error("expected an MV3 manifest, got " + m.manifest_version);
+            if (!/^\d+\.\d+\.\d+/.test(m.version ?? "")) throw new Error("manifest.version missing or not x.y.z: " + m.version);
+            const refs = [
+              ...Object.values(m.icons ?? {}),
+              ...Object.values(m.action?.default_icon ?? {}),
+              m.action?.default_popup,
+              ...(m.content_scripts ?? []).flatMap((c) => c.js ?? []),
+              ...(m.web_accessible_resources ?? []).flatMap((w) => w.resources ?? []),
+            ].filter(Boolean);
+            const missing = refs.filter((r) => !existsSync("browser-extension/" + r));
+            if (missing.length) throw new Error("manifest references missing files: " + missing.join(", "));
+            console.log(`manifest OK — version ${m.version}, ${refs.length} referenced files present`);
+            appendFileSync(process.env.GITHUB_OUTPUT, `version=${m.version}\n`);
+          '
+
+      # One top-level folder inside the zip, named like the extension. Unpacking
+      # therefore yields exactly one directory that already contains
+      # manifest.json — which is what "Load unpacked" wants — instead of
+      # scattering loose files into whatever folder the user unzipped in.
+      #
+      # The copy is VERBATIM: the zip is byte-for-byte the repository folder, so
+      # anyone can diff the download against the public source before trusting it.
+      - name: Package
+        run: |
+          set -euo pipefail
+          mkdir -p staging/sc-hangar-extension
+          cp -R browser-extension/. staging/sc-hangar-extension/
+          (cd staging && zip -qr ../sc-hangar-extension.zip sc-hangar-extension)
+          cp sc-hangar-extension.zip "sc-hangar-extension-${{ steps.manifest.outputs.version }}.zip"
+
+      # Guards against the failure this whole workflow exists to prevent: an
+      # archive that is not (only) the extension.
+      - name: Verify the zip is the extension and nothing else
+        run: |
+          set -euo pipefail
+          unzip -l sc-hangar-extension.zip
+          # Separators normalised so the assertions hold whichever zip tool built it.
+          unzip -Z1 sc-hangar-extension.zip | tr '\\' '/' > entries.txt
+          grep -qx 'sc-hangar-extension/manifest.json' entries.txt \
+            || { echo "::error::manifest.json is not at the root of the packaged folder"; exit 1; }
+          if grep -vq '^sc-hangar-extension/' entries.txt; then
+            echo "::error::the archive contains entries outside sc-hangar-extension/"; exit 1
+          fi
+          # An Angular/app file in here means the repo leaked into the package.
+          if grep -Eq '(^|/)(angular\.json|package\.json|src/app/|supabase/)' entries.txt; then
+            echo "::error::application files leaked into the extension package"; exit 1
+          fi
+          size=$(stat -c%s sc-hangar-extension.zip)
+          echo "asset: sc-hangar-extension.zip  size=${size}  sha256=$(sha256sum sc-hangar-extension.zip | cut -d' ' -f1)"
+          # The extension has no bundler and no dependencies; anything past a
+          # megabyte means something unintended came along.
+          [ "$size" -lt 1048576 ] || { echo "::error::package unexpectedly large (${size} bytes)"; exit 1; }
+
+      - name: Compute checksum
+        id: sum
+        run: echo "sha256=$(sha256sum sc-hangar-extension.zip | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      # Lets a reviewer install the exact artefact a PR would publish.
+      - name: Upload package as a workflow artefact
+        uses: actions/upload-artifact@v7
+        with:
+          name: sc-hangar-extension
+          path: sc-hangar-extension.zip
+          retention-days: 14
+
+      # Moving tag: the install page links a fixed URL
+      # …/releases/download/browser-extension-latest/sc-hangar-extension.zip
+      # that always resolves to the newest build. The versioned copy lands in
+      # the same release, so the release page doubles as the version history.
+      #
+      # The mirror repo is public — end users can't authenticate to GitHub, and
+      # a download link that needs a login is not a download link. Publishing
+      # there uses the fine-grained PAT (Contents R/W on the mirror only) stored
+      # as BINARIES_RELEASE_TOKEN; no token exists in this repo or the app bundle.
+      - name: Publish to PUBLIC binaries-mirror release (end-user download)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v3
+        with:
+          repository: StarOrga/Star-Citizen-Companion-Binaries
+          token: ${{ secrets.BINARIES_RELEASE_TOKEN }}
+          tag_name: browser-extension-latest
+          name: SC Companion Hangar Import (latest)
+          files: |
+            sc-hangar-extension.zip
+            sc-hangar-extension-${{ steps.manifest.outputs.version }}.zip
+          fail_on_unmatched_files: true
+          body: |
+            **SC Companion — Hangar Import**, the Chrome MV3 extension that reads
+            the ship list from your own RSI hangar page and hands it to
+            [Star Citizen Companion](https://sc-companion.vercel.app) for confirmation.
+
+            `sc-hangar-extension.zip` is always the newest build — the website's
+            download button points at this fixed URL so it never goes stale. The
+            versioned copy of the same build is attached next to it.
+
+            **Version:** `${{ steps.manifest.outputs.version }}`
+            **SHA-256:** `${{ steps.sum.outputs.sha256 }}`
+
+            **Install (developer mode — the Chrome Web Store listing is still in review):**
+            unpack the zip, open `chrome://extensions`, enable **Developer mode**,
+            choose **Load unpacked** and select the unpacked `sc-hangar-extension`
+            folder. Chromium browsers only for now (Chrome, Edge, Brave, Opera, Vivaldi).
+
+            The archive is a verbatim copy of
+            [`browser-extension/`](https://github.com/StarOrga/Star-Citizen-Companion-Web/tree/main/browser-extension)
+            built by CI from the public source — diff it before you trust it.

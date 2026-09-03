@@ -21,8 +21,16 @@ import {
 } from './codex.service';
 import { cleanLocaleValue, formatNumber, humanizeClassName } from './codex-format';
 import { LocalizedText, Lang, ShipPayload } from './codex.types';
-import { PolySearchHit, polyHitLink } from './codex-poly-search';
+import {
+  PolySearchHit,
+  isUpcomingHit,
+  polyHitIconKind,
+  polyHitLink,
+  polyHitQueryParams,
+} from './codex-poly-search';
 import { CodexBoardPanelComponent } from './codex-board-panel.component';
+import { CodexPatchHeadlineComponent } from './codex-patch-headline.component';
+import { totalRecordCount } from './codex-patch-timeline';
 import { ShipStatDelta } from './codex-build-diff';
 import {
   ArmorSlotState,
@@ -87,11 +95,12 @@ export interface FleetGroup {
     FallbackImageComponent,
     AppDownloadMenuComponent,
     CodexBoardPanelComponent,
+    CodexPatchHeadlineComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="landing">
-      <!-- ── TOP: Archive Terminal + patch + status pill + app menu ─────────── -->
+      <!-- ── TOP: Archive Terminal + playable/patch headline + app menu ─────── -->
       <header class="terminal">
         <div class="terminal-bar">
           <svg class="icon terminal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -121,28 +130,12 @@ export interface FleetGroup {
           }
         </div>
 
-        <!-- The patch "what changed?" disclosure used to own the far right of
-             this row; the Data-Uploader control took that slot (admin feedback
-             924bf1d8). Nothing was thrown away: the patch label moved into the
-             status pill, where it is read far more often than it was expanded,
-             and the provenance lines moved into the uploader overlay below —
-             which is where they belong, because that tool is what produced
-             them. build_number is literally the string "desktop" (a
-             placeholder), so it stays a provenance footnote, never a headline. -->
-        <div class="status-pill" [class.stale]="svc.stale()">
-          <span class="live-dot" aria-hidden="true"></span>
-          <span class="status-online">{{ 'codex.landing.status.online' | translate }}</span>
-          @if (svc.build(); as b) {
-            <span class="status-patch mono">{{
-              'codex.landing.status.patch' | translate: { patch: b.patchVersion }
-            }}</span>
-          }
-          @if (svc.stale()) {
-            <a class="status-stale" routerLink="/uploader">{{
-              'codex.landing.status.stale' | translate
-            }}</a>
-          }
-        </div>
+        <!-- ONE headline (admin feedback 463872dd): the playable state — the
+             same "Spielbar" the header chip reports, from the same feed — and
+             the patch that produced everything below it, merged into a single
+             line. The patch doubles as the page's quiet time machine (last 5
+             patches, five more per page, data-less ones marked as such). -->
+        <sc-codex-patch-headline (patchChange)="reload()" />
 
         <ng-template #codexProvenance>
           @if (svc.build(); as b) {
@@ -189,9 +182,15 @@ export interface FleetGroup {
           } @else {
             <div class="hit-grid">
               @for (hit of searchResults(); track hit.kind + ':' + hit.classNameSlug) {
-                <a class="hit" [class.meta]="hit.scope === 'meta'" [routerLink]="hitLink(hit)">
+                <a
+                  class="hit"
+                  [class.meta]="hit.scope === 'meta'"
+                  [class.upcoming]="hit.scope === 'upcoming'"
+                  [routerLink]="hitLink(hit)"
+                  [queryParams]="hitQueryParams(hit)"
+                >
                   <span class="hit-icon" aria-hidden="true">
-                    <sc-codex-icon [kind]="hit.kind" />
+                    <sc-codex-icon [kind]="hitIcon(hit)" />
                   </span>
                   <span class="hit-body">
                     <span class="hit-name">{{ hitName(hit) }}</span>
@@ -207,26 +206,37 @@ export interface FleetGroup {
                           'codex.card.size' | translate: { size: hit.size }
                         }}</span>
                       }
+                      <!-- Says in words what the amber tint says in colour: RSI
+                           announced this hull, the live build has no data for it. -->
+                      @if (isUpcoming(hit)) {
+                        <span class="hit-badge soon">{{
+                          'codex.landing.results.upcomingBadge' | translate
+                        }}</span>
+                      }
                     </span>
                   </span>
-                  <button
-                    type="button"
-                    class="pin"
-                    [class.pinned]="svc.isPinned(hit.kind, hit.classNameSlug)"
-                    (click)="togglePin($event, hit.kind, hit.classNameSlug)"
-                    [attr.aria-label]="
-                      (svc.isPinned(hit.kind, hit.classNameSlug)
-                        ? 'codex.compare.pinned'
-                        : 'codex.compare.pin'
-                      ) | translate
-                    "
-                  >
-                    <svg class="icon" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
-                         stroke-linejoin="round" aria-hidden="true"
-                         [attr.fill]="svc.isPinned(hit.kind, hit.classNameSlug) ? 'currentColor' : 'none'">
-                      <path d="M12 3 L14.7 9.2 L21.5 9.9 L16.4 14.3 L17.9 21 L12 17.4 L6.1 21 L7.6 14.3 L2.5 9.9 L9.3 9.2 Z" />
-                    </svg>
-                  </button>
+                  <!-- Nothing to compare on a ship with no datamined stats, so
+                       announced hits carry no pin. -->
+                  @if (hitCompareKind(hit); as pinKind) {
+                    <button
+                      type="button"
+                      class="pin"
+                      [class.pinned]="svc.isPinned(pinKind, hit.classNameSlug)"
+                      (click)="togglePin($event, pinKind, hit.classNameSlug)"
+                      [attr.aria-label]="
+                        (svc.isPinned(pinKind, hit.classNameSlug)
+                          ? 'codex.compare.pinned'
+                          : 'codex.compare.pin'
+                        ) | translate
+                      "
+                    >
+                      <svg class="icon" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
+                           stroke-linejoin="round" aria-hidden="true"
+                           [attr.fill]="svc.isPinned(pinKind, hit.classNameSlug) ? 'currentColor' : 'none'">
+                        <path d="M12 3 L14.7 9.2 L21.5 9.9 L16.4 14.3 L17.9 21 L12 17.4 L6.1 21 L7.6 14.3 L2.5 9.9 L9.3 9.2 Z" />
+                      </svg>
+                    </button>
+                  }
                 </a>
               }
             </div>
@@ -612,50 +622,10 @@ export interface FleetGroup {
         justify-content: center;
       }
 
-      /* ── status pill + patch disclosure ───────────────────────────────── */
-      .status-pill {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 7px 12px;
-        border-radius: 3px;
-        font-family: var(--sc-font-display);
-        font-size: max(0.7rem, var(--sc-fs-floor, 0.68rem));
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--sc-fg-1);
-        border: 1px solid color-mix(in srgb, var(--sc-success, #5fd698) 30%, transparent);
-        background: color-mix(in srgb, var(--sc-success, #5fd698) 10%, transparent);
-      }
-      .status-pill.stale {
-        border-color: color-mix(in srgb, var(--sc-warning, #ffc14d) 40%, transparent);
-        background: color-mix(in srgb, var(--sc-warning, #ffc14d) 10%, transparent);
-      }
-      .live-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--sc-success, #5fd698);
-        box-shadow: 0 0 8px var(--sc-success, #5fd698);
-        animation: pulse 2.4s ease-in-out infinite;
-      }
-      .status-pill.stale .live-dot {
-        background: var(--sc-warning, #ffc14d);
-        box-shadow: 0 0 8px var(--sc-warning, #ffc14d);
-      }
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.35; }
-      }
-      .status-stale { color: var(--sc-warning, #ffc14d); text-decoration: underline; }
-      /* Patch label, now a chip in the pill instead of its own disclosure. */
-      .status-patch {
-        padding-left: 8px;
-        border-left: 1px solid color-mix(in srgb, var(--sc-fg-2) 35%, transparent);
-        color: var(--sc-fg-2);
-        text-transform: none;
-        letter-spacing: 0;
-      }
+      /* The merged status/patch headline is its own component now
+         (sc-codex-patch-headline) — it owns the pill chrome, the playability
+         dot and the patch-switch overlay. Only its slot in the row is ours. */
+      sc-codex-patch-headline { flex: 0 0 auto; }
 
       /* Far-right slot: never stretch, never wrap mid-control. The menu owns
          its own overlay positioning (sc-app-download-menu). */
@@ -695,8 +665,25 @@ export interface FleetGroup {
         background: linear-gradient(90deg, color-mix(in srgb, var(--meta) 12%, transparent), transparent 70%),
           var(--sc-bg-1);
       }
+      /* Announced-but-not-in-the-build ships: amber, the app's "not yet" colour.
+         Distinct from cyan (flyable today) and violet (meta), and never the hot
+         red, which is reserved for elevated access. */
+      .hit.upcoming {
+        --soon: #f0b44a;
+        border-color: color-mix(in srgb, var(--soon) 32%, var(--sc-border));
+        background: linear-gradient(90deg, color-mix(in srgb, var(--soon) 12%, transparent), transparent 70%),
+          var(--sc-bg-1);
+      }
       .hit:hover { border-color: var(--sc-accent); box-shadow: 0 0 16px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
       .hit.meta:hover { border-color: var(--meta); }
+      .hit.upcoming:hover { border-color: var(--soon); box-shadow: 0 0 16px color-mix(in srgb, var(--soon) 22%, transparent); }
+      .hit.upcoming .hit-icon, .hit.upcoming .hit-kind { color: var(--soon); }
+      .hit-badge.soon {
+        padding: 1px 6px; border-radius: 999px; letter-spacing: 0.04em; text-transform: uppercase;
+        font-size: max(0.62rem, var(--sc-fs-floor));
+        color: var(--soon); border: 1px solid color-mix(in srgb, var(--soon) 40%, transparent);
+        background: color-mix(in srgb, var(--soon) 14%, transparent);
+      }
       .hit-icon { display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center; color: var(--sc-accent); }
       .hit.meta .hit-icon { color: var(--meta); }
       .hit-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
@@ -1286,7 +1273,7 @@ export interface FleetGroup {
       }
       @media (prefers-reduced-motion: reduce) {
         .hit, .surface, .fleet-tile, .fleet-sort__btn, .domain-chip, .zone-entry::after, .upcoming-tile { transition: none; }
-        .live-dot, .bay-ring { animation: none; }
+        .bay-ring { animation: none; }
       }
     `,
   ],
@@ -1448,20 +1435,9 @@ export class CodexLandingComponent implements OnInit {
       .map(([label, groupRows]) => ({ label, rows: groupRows }));
   });
 
-  readonly archiveRecordCount = computed<number | null>(() => {
-    const counts = this.svc.build()?.entityCounts as Record<string, unknown> | undefined;
-    if (!counts) return null;
-    let total = 0;
-    let found = false;
-    for (const [k, v] of Object.entries(counts)) {
-      if (k === 'seeded') continue;
-      if (typeof v === 'number') {
-        total += v;
-        found = true;
-      }
-    }
-    return found ? total : null;
-  });
+  readonly archiveRecordCount = computed<number | null>(() =>
+    totalRecordCount(this.svc.build()?.entityCounts as Record<string, unknown> | undefined),
+  );
 
   readonly extractedAtLabel = computed<string | null>(() => {
     const at = this.svc.build()?.extractedAt;
@@ -1706,6 +1682,28 @@ export class CodexLandingComponent implements OnInit {
 
   hitLink(hit: PolySearchHit): string[] {
     return polyHitLink(hit);
+  }
+
+  /** Query params for the hit's anchor (`?q=` for announced ships), else none. */
+  hitQueryParams(hit: PolySearchHit): Record<string, string> | null {
+    return polyHitQueryParams(hit);
+  }
+
+  /** Category glyph for a hit; announced ships borrow the ship icon. */
+  hitIcon(hit: PolySearchHit): CodexKind {
+    return polyHitIconKind(hit);
+  }
+
+  isUpcoming(hit: PolySearchHit): boolean {
+    return isUpcomingHit(hit);
+  }
+
+  /**
+   * The compare-tray kind for a hit, or `null` when it cannot be pinned.
+   * Announced ships have no build row, so there is nothing to line up against.
+   */
+  hitCompareKind(hit: PolySearchHit): CodexKind | null {
+    return isUpcomingHit(hit) ? null : (hit.kind as CodexKind);
   }
 
   hitName(hit: PolySearchHit): string {
