@@ -404,7 +404,6 @@
       "size": "Größe",
       "grade": "Grade",
       "componentKind": "Komponententyp",
-      "weaponClass": "Waffenklasse",
       "all": "Alle",
       "includeVariants": "KI-/Template-Varianten anzeigen",
       "reset": "Filter zurücksetzen",
@@ -414,6 +413,34 @@
     "weaponClass": {
       "Ship": "Schiff",
       "FPS": "FPS"
+    },
+    "weaponGroup": {
+      "superAria": "Waffen-Oberkategorie",
+      "subAria": "Waffen-Unterkategorie",
+      "all": "Alle Waffen",
+      "allOf": "Alle: {{group}}",
+      "super": {
+        "fps": "FPS-Ausrüstung",
+        "ship": "Schiffswaffen"
+      },
+      "fps": {
+        "sidearm": "Einhandwaffen",
+        "primary": "Primärwaffen",
+        "heavy": "Schwere Waffen",
+        "melee": "Nahkampf",
+        "throwable": "Wurfobjekte",
+        "gadget": "Werkzeuge & Gadgets",
+        "other": "Sonstige"
+      },
+      "ship": {
+        "gun": "Kanonen",
+        "turret": "Türme",
+        "missile": "Raketen & Torpedos",
+        "countermeasure": "Gegenmaßnahmen",
+        "mining": "Bergbau-Laser",
+        "utility": "Traktor & Bergung",
+        "other": "Sonstige"
+      }
     },
     "componentKind": {
       "PowerPlant": "Kraftwerk",

@@ -44,6 +44,30 @@ Kind tabs are driven by the build manifest: a kind the current build reports as
 empty is shown greyed out with a *soon* marker, and everything the build
 actually carries — blueprints included — is browsable.
 
+#### Weapons: FPS gear and ship weapons in one tab
+
+The **Weapons** tab holds *both* catalogs — everything a character carries and
+everything that bolts onto a ship — because the game stores them in a single
+weapon record type. In the current live build that is roughly two thirds ship
+weapons to one third on-foot gear.
+
+To make that browsable, the tab opens on a two-level category rail rather than
+one flat A–Z grid:
+
+- **FPS gear** → sidearms, primary weapons, heavy weapons, melee, throwables,
+  gadgets & tools.
+- **Ship weapons** → guns, turrets, missile racks, countermeasures, mining
+  lasers, tractor & salvage heads.
+
+Both levels are cut from fields the extract already carries (the weapon's class,
+its carry class and the hardpoint type it mounts to), each category is badged
+with how many records the current build holds in it, and picking one narrows the
+query on the server — so paging and the remaining facets keep working exactly as
+on every other tab. Categories the build has nothing in are not offered.
+
+Ship **components** (power plants, shields, coolers, quantum drives, thrusters …)
+are not part of this tab; they have their own *Components* tab in the same strip.
+
 ## Ship detail — the stock loadout
 
 A ship page shows its factory loadout as hardpoint blocks, the ones you can

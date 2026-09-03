@@ -404,7 +404,6 @@
       "size": "Size",
       "grade": "Grade",
       "componentKind": "Component type",
-      "weaponClass": "Weapon class",
       "all": "All",
       "includeVariants": "Show AI / template variants",
       "reset": "Reset filters",
@@ -414,6 +413,34 @@
     "weaponClass": {
       "Ship": "Ship",
       "FPS": "FPS"
+    },
+    "weaponGroup": {
+      "superAria": "Weapon super-category",
+      "subAria": "Weapon sub-category",
+      "all": "All weapons",
+      "allOf": "All {{group}}",
+      "super": {
+        "fps": "FPS equipment",
+        "ship": "Ship weapons"
+      },
+      "fps": {
+        "sidearm": "Sidearms",
+        "primary": "Primaries",
+        "heavy": "Heavy weapons",
+        "melee": "Melee",
+        "throwable": "Throwables",
+        "gadget": "Tools & gadgets",
+        "other": "Other"
+      },
+      "ship": {
+        "gun": "Guns",
+        "turret": "Turrets",
+        "missile": "Missiles & torpedoes",
+        "countermeasure": "Countermeasures",
+        "mining": "Mining lasers",
+        "utility": "Tractor & salvage",
+        "other": "Other"
+      }
     },
     "componentKind": {
       "PowerPlant": "Power plant",
