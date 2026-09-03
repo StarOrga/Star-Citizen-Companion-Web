@@ -157,12 +157,22 @@ export async function cleanupAfterUpload(
 
 /**
  * Startup sweep. For every `<root>/.sc-companion-extracts/*` dir:
- *   (a) has `_uploaded.json`        → already uploaded, reclaim it.
- *   (b) no marker AND mtime > 24h   → stale failed run, reclaim it.
- *   (c) no marker AND mtime <= 24h  → possibly in-progress, KEEP.
+ *   (a) listed in `keep`            → a paused/interrupted upload resumes from
+ *                                     it, KEEP regardless of age or marker.
+ *   (b) has `_uploaded.json`        → already uploaded, reclaim it.
+ *   (c) no marker AND mtime > 24h   → stale failed run, reclaim it.
+ *   (d) no marker AND mtime <= 24h  → possibly in-progress, KEEP.
  * Best-effort; logs a one-line summary. Never throws.
+ *
+ * (a) exists because the 24 h guess in (c)/(d) cannot see a job that is merely
+ * paused: its dir goes untouched while the operator waits, crossed the age gate
+ * a day later, and was swept — so the resume had nothing left to upload.
  */
-export async function scanAndCleanupOrphans(roots: string[]): Promise<CleanupResult> {
+export async function scanAndCleanupOrphans(
+  roots: string[],
+  keep: string[] = [],
+): Promise<CleanupResult> {
+  const protectedDirs = new Set(keep.filter(Boolean).map(pathKey));
   const removed: string[] = [];
   const kept: string[] = [];
   try {
@@ -177,6 +187,10 @@ export async function scanAndCleanupOrphans(roots: string[]): Promise<CleanupRes
       for (const ent of entries) {
         if (!ent.isDirectory()) continue;
         const dir = join(extractsRoot, ent.name);
+        if (protectedDirs.has(pathKey(dir))) {
+          kept.push(dir);
+          continue;
+        }
         let hasMarker = false;
         try {
           await fs.access(join(dir, UPLOAD_MARKER));
@@ -219,7 +233,7 @@ export async function scanAndCleanupOrphans(roots: string[]): Promise<CleanupRes
  * tolerated here because this runs fire-and-forget at startup; on failure we
  * fall back to nothing (discoverAll already swallows its own errors).
  */
-export async function scanAndCleanupDiscovered(): Promise<CleanupResult> {
+export async function scanAndCleanupDiscovered(keep: string[] = []): Promise<CleanupResult> {
   let roots: string[] = [];
   try {
     const channels = await discoverAll();
@@ -233,7 +247,7 @@ export async function scanAndCleanupDiscovered(): Promise<CleanupResult> {
     log.info('[cleanup] orphan scan: no install roots discovered');
     return { ok: true };
   }
-  return scanAndCleanupOrphans(roots);
+  return scanAndCleanupOrphans(roots, keep);
 }
 
 /**

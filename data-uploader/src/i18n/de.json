@@ -136,6 +136,8 @@
       "paused": "Upload pausiert — der Fortschritt ist gespeichert.",
       "resumeAction": "Upload fortsetzen",
       "resumed": "Upload wird fortgesetzt…",
+      "resumeLost": "Der Upload kann nicht fortgesetzt werden — die extrahierten Daten sind nicht mehr vorhanden.",
+      "resumeLostHint": "Bitte den Upload verwerfen und die Extraktion erneut ausführen.",
       "discard": "Verwerfen",
       "cancelled": "Upload verworfen — der Fortschritt wurde gelöscht.",
       "resumeBanner": "Unterbrochener Upload gefunden ({{hint}}) — fortsetzen?",
