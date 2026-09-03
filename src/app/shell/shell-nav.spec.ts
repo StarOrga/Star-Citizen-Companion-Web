@@ -143,4 +143,36 @@ describe('ShellComponent navigation', () => {
     const hangarLink = fixture.nativeElement.querySelector('nav.nav a[href="/hangar"]');
     expect(hangarLink).toBeNull();
   });
+
+  /**
+   * Pages hang their own pinned bars off `--sc-topbar-h` (the settings section
+   * rail does). It has to be the height the header actually PARKS at — so a
+   * real number while the header is sticky, and 0px while it scrolls away with
+   * the page, which is what it does below 1080px (admin feedback af058ca4
+   * round 4). Whichever side of that line the karma window is on, the property
+   * must exist and must agree with the header's computed position.
+   */
+  it('publishes the height the header parks at as --sc-topbar-h', () => {
+    const fixture = setup();
+    const bar = fixture.nativeElement.querySelector('.topbar') as HTMLElement;
+    const published = document.documentElement.style.getPropertyValue('--sc-topbar-h');
+
+    expect(published).toMatch(/^\d+px$/);
+    const sticky = getComputedStyle(bar).position === 'sticky';
+    if (sticky) {
+      expect(parseFloat(published)).toBeCloseTo(bar.getBoundingClientRect().height, 0);
+    } else {
+      // Nothing is parked, so nothing may be reserved for it.
+      expect(published).toBe('0px');
+    }
+  });
+
+  it('takes --sc-topbar-h back down when the shell goes away', () => {
+    const fixture = setup();
+    expect(document.documentElement.style.getPropertyValue('--sc-topbar-h')).toMatch(/px$/);
+
+    fixture.destroy();
+
+    expect(document.documentElement.style.getPropertyValue('--sc-topbar-h')).toBe('');
+  });
 });
