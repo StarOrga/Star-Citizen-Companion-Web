@@ -53,6 +53,11 @@ import {
 } from './feedback.types';
 import { buildFeedbackBody, uploadFeedbackImages } from '../../feedback/feedback-images.util';
 import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
+import {
+  FeedbackArea,
+  asFeedbackArea,
+  feedbackAreaLabelKey,
+} from '../../feedback/feedback-area.types';
 import { awaitsReview } from './feedback.types';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { formatScDate } from '../../core/locale/date-format';
@@ -564,6 +569,12 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
            next to it, which says who acted last (feedback 34c44134). -->
       <ng-template #pills let-m>
         <span class="status-pill" [class]="bucketLabel(m)">{{ ('adminFeedback.status.' + bucketLabel(m)) | translate }}</span>
+        <!-- What the sender says this is about (admin feedback 835fec58).
+             Nothing at all on the topics filed before the tag existed — an
+             invented default would read like an answer nobody gave. -->
+        @if (areaOf(m); as a) {
+          <span class="status-pill area">{{ areaLabelKey(a) | translate }}</span>
+        }
         <!-- Filed by a viewer/collaborator through their own FAB (feedback
              5920cf8c), and — until released — still held back from the routine. -->
         @if (fromUser(m)) {
@@ -886,6 +897,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
             class="main-composer"
             [draftScope]="draftScope"
             [busy]="busy()"
+            [areaPicker]="true"
             placeholder="adminFeedback.compose.placeholder"
             sendLabel="adminFeedback.compose.send"
             [onSubmit]="createTopicBound" />
@@ -902,6 +914,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
             <sc-feedback-composer
               [draftScope]="draftScope"
               [busy]="busy()"
+              [areaPicker]="true"
               placeholder="adminFeedback.compose.placeholder"
               sendLabel="adminFeedback.compose.send"
               [onSubmit]="createComposerBound" />
@@ -1571,6 +1584,9 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
 
     .status-pill.from-user { border-color: var(--sc-accent); color: var(--sc-accent); }
     .status-pill.untriaged { border-color: var(--sc-accent-hot); color: var(--sc-accent-hot); }
+    /* The area tag is context, not state: quiet on purpose, so it never
+       competes with the status pill it stands next to. */
+    .status-pill.area { border-style: dashed; color: var(--sc-fg-2); }
 
     .decline-form { gap: 6px; flex: 1 1 260px; }
     .decline-input {
@@ -2470,7 +2486,7 @@ export class AdminFeedbackComponent implements OnInit {
     this.errorMsg.set(null);
     const { data, error } = await this.sb.client
       .from('admin_feedback')
-      .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, reviewed_at, source, triaged, decision_note, author:profiles(display_name, username)')
+      .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, reviewed_at, source, triaged, decision_note, area, author:profiles(display_name, username)')
       .order('created_at', { ascending: true });
     if (error) {
       this.errorMsg.set(error.message);
@@ -2550,6 +2566,21 @@ export class AdminFeedbackComponent implements OnInit {
   /** Template alias: does this user topic still wait to be released to the routine? */
   untriaged(m: FeedbackRow): boolean {
     return awaitsTriage(m);
+  }
+
+  /**
+   * The area tag to show for a topic, or null when there is none to show
+   * (admin feedback 835fec58). Narrowing rather than passing the raw column
+   * through means a value this build does not know — an area removed from the
+   * vocabulary, a hand-written row — renders as nothing instead of as a bare
+   * identifier next to properly translated pills.
+   */
+  areaOf(m: FeedbackRow): FeedbackArea | null {
+    return asFeedbackArea(m.area);
+  }
+
+  areaLabelKey(area: FeedbackArea): string {
+    return feedbackAreaLabelKey(area);
   }
 
   /**
@@ -2642,7 +2673,9 @@ export class AdminFeedbackComponent implements OnInit {
     if (!body) return false;
     const { error } = await this.sb.client
       .from('admin_feedback')
-      .insert({ body, author_id: uid });
+      // `area` is nullable by design — an untagged topic stays untagged rather
+      // than being filed under a guessed section (admin feedback 835fec58).
+      .insert({ body, author_id: uid, area: payload.area ?? null });
     if (error) {
       this.errorMsg.set(error.message);
       return false;

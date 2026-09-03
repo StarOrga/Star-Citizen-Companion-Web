@@ -66,7 +66,7 @@ export class UserFeedbackService {
     this._error.set(null);
     const { data, error } = await this.sb.client
       .from('my_feedback')
-      .select('id, body, created_at, updated_at, decision_note, author_status')
+      .select('id, body, created_at, updated_at, decision_note, author_status, area')
       .order('created_at', { ascending: false });
     if (error) {
       this._error.set(error.message);
@@ -142,6 +142,12 @@ export class UserFeedbackService {
       source: 'user',
       status: 'open',
       triaged: false,
+      // Which part of the app this is about (admin feedback 835fec58). The
+      // composer pre-selects it from the current route, so the common case is
+      // "the sender confirmed our guess by not touching it". Nullable on
+      // purpose — the CHECK constraint rejects anything outside the vocabulary
+      // rather than letting a crafted request write free text onto the board.
+      area: payload.area ?? null,
     });
     if (error) {
       // 54000 = the per-author hourly topic cap raised by the DB guard. Worth its
