@@ -1,6 +1,7 @@
 import {
   UpcomingShip,
   diffUpcoming,
+  heroArtOrder,
   matchesUpcomingQuery,
   normalizeShipName,
   searchUpcoming,
@@ -137,6 +138,54 @@ describe('upcoming ships — artwork candidates', () => {
   it('yields nothing when the ship has no artwork at all', () => {
     expect(thumbnailCandidates(ship({ id: 'x', name: 'X' }))).toEqual([]);
     expect(thumbnailCandidates(ship({ id: 'x', name: 'X', thumbnails: [] }))).toEqual([]);
+  });
+});
+
+/**
+ * The detail hero paints the same RSI renders as the cards, but in a frame up
+ * to 320px tall — the feed's thumbnail-first order would put the card-sized
+ * crop there first. Reordering must never DROP a candidate: a large render RSI
+ * advertises but never produced still has to fall through to the small one.
+ */
+describe('upcoming ships — hero artwork order', () => {
+  // Exactly what the live feed holds for the Aegis Javelin.
+  const JAVELIN = [
+    'https://media.robertsspaceindustries.com/oc89p5ksizcla/store_small.jpg',
+    'https://media.robertsspaceindustries.com/oc89p5ksizcla/store_large.jpg',
+    'https://media.robertsspaceindustries.com/oc89p5ksizcla/post.jpg',
+    'https://media.robertsspaceindustries.com/oc89p5ksizcla/slideshow.jpg',
+    'https://media.robertsspaceindustries.com/oc89p5ksizcla/subscribers_vault_thumbnail.jpg',
+  ];
+
+  it('leads with the wide store render and keeps the small crop as a fallback', () => {
+    expect(heroArtOrder(JAVELIN).map((u) => u.split('/').pop())).toEqual([
+      'store_large.jpg',
+      'post.jpg',
+      'slideshow.jpg',
+      'store_small.jpg',
+      'subscribers_vault_thumbnail.jpg',
+    ]);
+  });
+
+  it('keeps every candidate — reordering is not filtering', () => {
+    expect(heroArtOrder(JAVELIN).slice().sort()).toEqual(JAVELIN.slice().sort());
+  });
+
+  it('sorts an unknown derivative above the explicitly small ones', () => {
+    const urls = ['https://media.rsi/a/store_small.jpg', 'https://media.rsi/a/hero_banner.jpg'];
+    expect(heroArtOrder(urls)).toEqual([
+      'https://media.rsi/a/hero_banner.jpg',
+      'https://media.rsi/a/store_small.jpg',
+    ]);
+  });
+
+  it('is stable within a rank, so the feed still decides between equals', () => {
+    const urls = ['https://media.rsi/b/post.jpg', 'https://media.rsi/a/post.jpg'];
+    expect(heroArtOrder(urls)).toEqual(urls);
+  });
+
+  it('survives an empty list', () => {
+    expect(heroArtOrder([])).toEqual([]);
   });
 });
 

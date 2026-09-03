@@ -226,6 +226,20 @@ describe('CodexLandingComponent', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
+  /**
+   * The surface is a switcher since feedback e80cc831 — IM HANGAR is expanded
+   * on load, so every AN BORD assertion has to flip it first. Clicking the rail
+   * rather than setting the signal, so the button stays part of the contract.
+   */
+  function openBoard(fixture: ComponentFixture<CodexLandingComponent>): void {
+    const rail = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      'button.zone-rail.board',
+    );
+    expect(rail).not.toBeNull();
+    rail!.click();
+    fixture.detectChanges();
+  }
+
   it('renders the empty-hangar invitation that links to the ship index', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
@@ -239,6 +253,7 @@ describe('CodexLandingComponent', () => {
 
   it('renders the honest AN BORD empty state (uncommissioned) with an armour CTA when no personal loadout exists', async () => {
     const fixture = await setup({ hangar: [] });
+    openBoard(fixture);
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.board-empty')).not.toBeNull();
     expect(el.querySelector('.board-person')).toBeNull();
@@ -248,6 +263,7 @@ describe('CodexLandingComponent', () => {
 
   it('renders the figure with SIX individually clickable positions once a personal loadout exists', async () => {
     const fixture = await setup({ hangar: [], roleLoadouts: [fpsLoadout('set1', 'Boarding Kit')] });
+    openBoard(fixture);
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.board-person svg.board-doll')).not.toBeNull();
     expect(el.querySelector('.board-empty')).toBeNull();
@@ -261,6 +277,7 @@ describe('CodexLandingComponent', () => {
 
   it('carries the equip intent in the slot URL, so equip controls cannot leak into ordinary browsing', async () => {
     const fixture = await setup({ hangar: [], roleLoadouts: [fpsLoadout('set1', 'Boarding Kit')] });
+    openBoard(fixture);
     const el: HTMLElement = fixture.nativeElement;
     const href = el.querySelector<HTMLAnchorElement>('a.board-slot')?.getAttribute('href') ?? '';
     expect(href).toContain('cat=armor');
@@ -270,6 +287,7 @@ describe('CodexLandingComponent', () => {
 
   it('never renders a numeric armour value — the archive carries none', async () => {
     const fixture = await setup({ hangar: [], roleLoadouts: [fpsLoadout('set1', 'Boarding Kit')] });
+    openBoard(fixture);
     const el: HTMLElement = fixture.nativeElement;
     // Six squares, class encoded as bar HEIGHT (concept iteration 6, variant Ⓣ).
     expect(el.querySelectorAll('a.board-sq').length).toBe(6);
@@ -398,7 +416,10 @@ describe('CodexLandingComponent', () => {
     expect(tileMfrs).toContain('Aegis Dynamics');
     expect(tileMfrs).toContain('Drake Interplanetary');
     expect(tileMfrs.some((t) => t === 'AEG' || t === 'DRAK')).toBeFalse();
-    // Default sort axis is `manufacturer` — the headings read the same way.
+    // The default axis is `recent` (ungrouped) since feedback e80cc831 — the
+    // headings only exist once you group, and they read the same way.
+    fixture.componentInstance.fleetSort.set('manufacturer');
+    fixture.detectChanges();
     const groups = Array.from(el.querySelectorAll('.fleet-group')).map((n) => n.textContent?.trim());
     expect(groups).toContain('Aegis Dynamics');
     expect(groups).toContain('Drake Interplanetary');
@@ -465,14 +486,70 @@ describe('CodexLandingComponent', () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
 
+    // IM HANGAR is the expanded half on load — this is the fleet page.
+    const hangarEntry = el.querySelector<HTMLAnchorElement>('.zone.hangar a.zone-entry');
+    expect(hangarEntry?.getAttribute('href')).toBe('/hangar');
+
     // AN BORD lost its stretched zone-wide link in the 2026-09-01 rethink — it
     // was what made every anatomical position unclickable. The entrance now
     // lives on the set name, and the positions carry their own links.
+    openBoard(fixture);
     const boardEntry = el.querySelector<HTMLAnchorElement>('.zone.board a.board-name');
     expect(boardEntry?.getAttribute('href')).toBe('/codex/fps');
+  });
 
-    const hangarEntry = el.querySelector<HTMLAnchorElement>('.zone.hangar a.zone-entry');
-    expect(hangarEntry?.getAttribute('href')).toBe('/hangar');
+  // Feedback e80cc831: the two zones used to grow vertically against each other.
+  // They are ONE toggle now — never both open, never both shut.
+  it('AN BORD and IM HANGAR are a mutually exclusive switcher, the collapsed one a rail', async () => {
+    const fixture = await setup({ hangar: [] });
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(el.querySelectorAll('.surface > .zone').length).toBe(1);
+    expect(el.querySelectorAll('.surface button.zone-rail').length).toBe(1);
+    expect(el.querySelector('.surface.open-hangar')).not.toBeNull();
+    expect(el.querySelector('.zone.hangar')).not.toBeNull();
+    expect(el.querySelector('.zone.board')).toBeNull();
+    // The rail names the zone it opens and says what is in it.
+    const rail = el.querySelector<HTMLButtonElement>('button.zone-rail.board');
+    expect(rail?.getAttribute('aria-expanded')).toBe('false');
+    expect(rail?.getAttribute('aria-controls')).toBe('zone-board');
+
+    openBoard(fixture);
+    expect(el.querySelector('.surface.open-board')).not.toBeNull();
+    expect(el.querySelector('.zone.board')).not.toBeNull();
+    expect(el.querySelector('.zone.hangar')).toBeNull();
+    expect(el.querySelectorAll('.surface > .zone').length).toBe(1);
+    expect(el.querySelector('button.zone-rail.hangar')).not.toBeNull();
+  });
+
+  // Feedback e80cc831: "dann kann man aber auch irgendwie den einsatzzweck
+  // umschalten, in dem fall brauche ich die schiffs hero card nicht mehr sehen".
+  it('drops the flagship hero when the fleet lane is grouped, and gets it back in the default mode', async () => {
+    const gladius = shipRow({ classNameSlug: 'AEGS_Gladius' });
+    const fixture = await setup({
+      hangar: [hangarShip('AEGS_Gladius')],
+      byClassName: new Map([['AEGS_Gladius', gladius]]),
+      flagship: 'AEGS_Gladius',
+    });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(fixture.componentInstance.fleetSort()).toBe('recent');
+    expect(el.querySelector('.ship-hero')).not.toBeNull();
+    expect(el.querySelector('.fleet-lane.browse')).toBeNull();
+
+    // No translation loader in the TestBed, so the buttons render their keys —
+    // pick by axis order instead of by label. `role` is the Einsatzzweck axis.
+    expect(fixture.componentInstance.fleetSortAxes[1]).toBe('role');
+    const sortBtns = Array.from(el.querySelectorAll<HTMLButtonElement>('.fleet-sort__btn'));
+    sortBtns[1].click();
+    fixture.detectChanges();
+    expect(el.querySelector('.ship-hero')).toBeNull();
+    // The freed height goes to the groups, which wrap instead of scrolling away.
+    expect(el.querySelector('.fleet-lane.browse')).not.toBeNull();
+    expect(el.querySelectorAll('.fleet-strip a.fleet-tile').length).toBe(1);
+
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.fleet-sort__btn'))[0].click();
+    fixture.detectChanges();
+    expect(el.querySelector('.ship-hero')).not.toBeNull();
   });
 
   it('AN BORD zone entrance prefers an existing FPS role loadout over the bare /codex/fps fallback', async () => {
@@ -480,6 +557,7 @@ describe('CodexLandingComponent', () => {
       hangar: [],
       roleLoadouts: [fpsLoadout('fps-set-1', 'Boarding Kit')],
     });
+    openBoard(fixture);
     const el: HTMLElement = fixture.nativeElement;
     const boardEntry = el.querySelector<HTMLAnchorElement>('.zone.board a.board-name');
     expect(boardEntry?.getAttribute('href')).toBe('/hangar/loadout/fps-set-1');
@@ -520,9 +598,11 @@ describe('CodexLandingComponent', () => {
     expect(rail).not.toBeNull();
     const tiles = Array.from(el.querySelectorAll<HTMLAnchorElement>('.upcoming-tile'));
     expect(tiles.length).toBe(2);
-    expect(tiles[0].getAttribute('href')).toBe('https://robertsspaceindustries.com/pledge/ships/polaris');
-    expect(tiles[0].getAttribute('target')).toBe('_blank');
-    expect(tiles[0].getAttribute('rel')).toBe('noopener noreferrer');
+    // #130: OUR codex gets first refusal — the tile is an in-app routerLink to
+    // the announced-ship page, not a one-way door to robertsspaceindustries.com
+    // (the RSI pledge page is a secondary link over there).
+    expect(tiles[0].getAttribute('href')).toBe('/codex/upcoming/polaris');
+    expect(tiles[0].getAttribute('target')).toBeNull();
     // The tile IS the artwork: name + manufacturer ride a caption scrim on top
     // of it rather than sitting in a separate text block under a boxed thumb.
     expect(tiles[0].querySelector('.upcoming-tile__caption .upcoming-tile__name')?.textContent?.trim()).toBe(
@@ -530,6 +610,30 @@ describe('CodexLandingComponent', () => {
     );
     expect(tiles[0].querySelector('.upcoming-tile__caption .upcoming-tile__mfr')?.textContent?.trim()).toBe('RSI');
     expect(el.querySelector('.upcoming-rail__badge')?.textContent?.trim()).toBe('2');
+  });
+
+  it('marks a concept hull on the rail as not-flight-ready, and leaves a flight-ready-but-unindexed one unmarked', async () => {
+    const fixture = await setup({
+      hangar: [],
+      upcomingShips: [
+        upcomingShip({ id: 'polaris', name: 'RSI Polaris' }),
+        upcomingShip({
+          id: 'zeus-mk2',
+          name: 'RSI Zeus Mk II',
+          productionStatus: 'flight-ready',
+          flightReadyButMissing: true,
+        }),
+      ],
+    });
+    const el: HTMLElement = fixture.nativeElement;
+
+    const tiles = Array.from(el.querySelectorAll<HTMLAnchorElement>('.upcoming-tile'));
+    expect(tiles.length).toBe(2);
+    // Small badge, not a redesign of the card — and only where it is TRUE:
+    // a flight-ready hull we simply have not ingested yet must not be labelled
+    // "concept".
+    expect(tiles[0].querySelector('.upcoming-tile__wip')).not.toBeNull();
+    expect(tiles[1].querySelector('.upcoming-tile__wip')).toBeNull();
   });
 
   it('renders no upcoming-ships rail while the RSI feed is empty/unloaded (no rail placeholder)', async () => {

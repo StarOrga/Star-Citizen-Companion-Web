@@ -5,7 +5,13 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { StarscapeComponent } from './starscape.component';
-import { StarscapeService, Wallpaper } from './starscape.service';
+import {
+  STARSCAPE_SOURCE_ALL,
+  StarscapeService,
+  StarscapeSourceOption,
+  Wallpaper,
+  starscapeSourceId,
+} from './starscape.service';
 import { StarscapeVotesService } from './starscape-votes.service';
 
 function wallpaper(id: string): Wallpaper {
@@ -30,6 +36,10 @@ function serviceStub(wallpapers: Wallpaper[]) {
     timedOut: signal(false),
     activeSeries: signal(''),
     seriesOptions: signal<string[]>([]),
+    sourceOptions: signal<readonly StarscapeSourceOption[]>([
+      { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
+    ]),
+    activeSource: signal(STARSCAPE_SOURCE_ALL),
     hasMore: signal(false),
     desktopRelease: signal(null),
     ringReleases: signal([]),
@@ -37,6 +47,7 @@ function serviceStub(wallpapers: Wallpaper[]) {
     loadDesktopRelease: jasmine.createSpy('loadDesktopRelease').and.resolveTo(undefined),
     load: jasmine.createSpy('load').and.resolveTo(undefined),
     setSeries: jasmine.createSpy('setSeries').and.resolveTo(undefined),
+    setSource: jasmine.createSpy('setSource').and.resolveTo(undefined),
     loadOne: jasmine.createSpy('loadOne').and.resolveTo(null),
   };
 }
@@ -406,6 +417,166 @@ describe('StarscapeComponent', () => {
     f.destroy();
   });
 
+  it('renders the source filter as one segmented control with a stable option set', () => {
+    const svc = serviceStub([first]);
+    svc.seriesOptions.set(['Release Info', 'Roadmap Roundup']);
+    svc.sourceOptions.set([
+      { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
+      { id: starscapeSourceId('Release Info'), series: 'Release Info', label: 'Release Info', labelKey: null },
+      { id: starscapeSourceId('Roadmap Roundup'), series: 'Roadmap Roundup', label: 'Roadmap Roundup', labelKey: null },
+    ]);
+    const f = setup(svc);
+    const group = f.nativeElement.querySelector('sc-segmented [role="radiogroup"]') as HTMLElement;
+    const segments = group.querySelectorAll('.seg-btn');
+    expect(segments.length).toBe(3);
+    expect(segments[0].getAttribute('aria-checked')).toBe('true');
+
+    // Picking a series must go through the NAMED source id, not a raw label:
+    // the same states are what the desktop tray menu will offer (#185).
+    (segments[1] as HTMLButtonElement).click();
+    expect(svc.setSource).toHaveBeenCalledWith('series:Release Info');
+
+    // And the option set must NOT be rebuilt from whatever the pick loaded —
+    // that is what made the row change width and shove the Top-N switch around
+    // (admin feedback 1f78e57f). The service owns a stable catalogue, so a
+    // filtered page leaves the control exactly as wide as it was.
+    svc.wallpapers.set([first]);
+    f.detectChanges();
+    expect(group.querySelectorAll('.seg-btn').length).toBe(3);
+    f.destroy();
+  });
+
+  it('keeps the Top-N switch in its own grid column, so it cannot move', () => {
+    const svc = serviceStub([first]);
+    svc.seriesOptions.set(['Release Info']);
+    const f = setup(svc);
+    const toggle = f.nativeElement.querySelector('.top-toggle') as HTMLElement;
+    // A wrapping flex row re-lays itself out whenever a sibling changes width;
+    // a fixed second column cannot.
+    expect(getComputedStyle(toggle).gridColumnStart).toBe('2');
+    f.destroy();
+  });
+
+  it('does not move the Top-N switch when the source filter changes width', () => {
+    const svc = serviceStub([first]);
+    const wide = (n: number): StarscapeSourceOption[] => [
+      { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
+      ...Array.from({ length: n }, (_, i) => ({
+        id: starscapeSourceId(`Series ${i}`),
+        series: `Series ${i}`,
+        label: `A rather long series name ${i}`,
+        labelKey: null,
+      })),
+    ];
+    svc.seriesOptions.set(['Series 0']);
+    svc.sourceOptions.set(wide(1));
+    const f = setup(svc);
+    // The measured symptom the report described: the Top-N control "jumps"
+    // while the source is toggled. Its box has to survive the widest and the
+    // narrowest the neighbouring control can ever get.
+    const box = () => (f.nativeElement.querySelector('.top-toggle') as HTMLElement).getBoundingClientRect();
+    const before = box();
+    svc.sourceOptions.set(wide(4));
+    f.detectChanges();
+    const wider = box();
+    svc.sourceOptions.set(wide(0));
+    f.detectChanges();
+    const narrow = box();
+    for (const after of [wider, narrow]) {
+      expect(Math.abs(after.left - before.left)).toBeLessThanOrEqual(1);
+      expect(Math.abs(after.top - before.top)).toBeLessThanOrEqual(1);
+      expect(Math.abs(after.width - before.width)).toBeLessThanOrEqual(1);
+    }
+    f.destroy();
+  });
+
+  /* ---------------------------------------------------------------- *
+   * Coming back to the tab must not stutter (admin feedback 2bf4ab11).
+   *
+   * The gallery's rows live in a root service, so re-entering the page
+   * re-renders every page the visitor had paged in. Both halves of the
+   * fix are pinned here: the wall is built a page per frame, and a tile
+   * that already decoded is not rebuilt from its skeleton.
+   * ---------------------------------------------------------------- */
+
+  it('opens the wall a page at a time instead of building every loaded page at once', fakeAsync(() => {
+    const svc = serviceStub(Array.from({ length: 60 }, (_, i) => wallpaper(`w${i}`)));
+    const f = setup(svc);
+    const painted = (): number => f.nativeElement.querySelectorAll('.tile-wrap').length;
+
+    // First frame: the shell and one page. Six "load more" clicks used to mean
+    // ~144 tiles built between two frames before anything could be shown.
+    expect(painted()).toBe(24);
+
+    tick(16);
+    f.detectChanges();
+    expect(painted()).toBe(48);
+
+    tick(16);
+    f.detectChanges();
+    expect(painted()).toBe(60);
+
+    // ...and the fill stops there rather than queueing frames forever.
+    tick(16);
+    f.detectChanges();
+    expect(painted()).toBe(60);
+    f.destroy();
+  }));
+
+  it('does not restart the fill from the top when "load more" appends a page', fakeAsync(() => {
+    const svc = serviceStub(Array.from({ length: 24 }, (_, i) => wallpaper(`w${i}`)));
+    const f = setup(svc);
+    const painted = (): number => f.nativeElement.querySelectorAll('.tile-wrap').length;
+    expect(painted()).toBe(24);
+
+    svc.wallpapers.set([
+      ...svc.wallpapers(),
+      ...Array.from({ length: 24 }, (_, i) => wallpaper(`x${i}`)),
+    ]);
+    f.detectChanges();
+    tick(16);
+    f.detectChanges();
+    // The page that was already on screen keeps its tiles; only the new one is
+    // staged. Restarting at 24 would re-create every tile the user is looking at.
+    expect(painted()).toBe(48);
+    f.destroy();
+  }));
+
+  it('keeps a decoded tile decoded across leaving the page and coming back', () => {
+    const svc = serviceStub([first]);
+    const f = setup(svc);
+    // Before the preview lands, the skeleton holds the box — and a skeleton is a
+    // <canvas> with two observers and an rAF loop (scNeuroField).
+    expect(f.nativeElement.querySelector('.tile-skel')).not.toBeNull();
+    f.componentInstance.onLoad('abc123', {
+      naturalWidth: 1920,
+      naturalHeight: 1080,
+    } as HTMLImageElement);
+    f.detectChanges();
+    expect(f.nativeElement.querySelector('.tile-skel')).toBeNull();
+    // The image ARRIVING is what earns the one-shot acquisition flash.
+    expect((f.nativeElement.querySelector('.tile') as HTMLElement).classList).toContain('loaded');
+    f.destroy();
+
+    // Switching tabs destroys the component; the rows survive in the root
+    // service, and so must the decode state — otherwise every tile that already
+    // painted rebuilds its canvas skeleton on the way back in.
+    const back = TestBed.createComponent(StarscapeComponent);
+    back.detectChanges();
+    expect(back.nativeElement.querySelector('.tile-skel')).toBeNull();
+    const img = back.nativeElement.querySelector('.tile-img') as HTMLImageElement;
+    expect(img.classList).toContain('ready');
+    // The tile reserves the exact box it decoded to, so the cached bytes landing
+    // again cannot reflow the wall.
+    expect(Number(back.componentInstance.tileRatio('abc123'))).toBeCloseTo(16 / 9, 3);
+    expect(img.style.aspectRatio).not.toBe('');
+    // ...but a page merely OPENING is not an arrival: replaying the box-shadow
+    // flash on every tile at once would be a stutter of its own.
+    expect((back.nativeElement.querySelector('.tile') as HTMLElement).classList)
+      .not.toContain('loaded');
+    back.destroy();
+  });
+
   it('paints the server-side ranking (not the paged list) while Top-N is on', () => {
     const votes = votesStub();
     votes.topOnly.set(true);
@@ -419,8 +590,9 @@ describe('StarscapeComponent', () => {
       .toBe('Wallpaper top001');
     // A ranked Top-N is a complete list - "load more" would contradict it.
     expect(f.nativeElement.querySelector('.more')).toBeNull();
-    // Series chips filter the whole gallery; the ranking is global by definition.
-    expect(f.nativeElement.querySelector('.filter-bar')).toBeNull();
+    // The source filter picks a slice of the gallery; the ranking is global by
+    // definition, so the two cannot both be active.
+    expect(f.nativeElement.querySelector('sc-segmented')).toBeNull();
     f.destroy();
   });
 });

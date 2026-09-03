@@ -14,6 +14,18 @@ resolution, the download link, and the source Comm-Link.
 > linked with attribution to the source Comm-Link. Fan-made gallery — no
 > re-sale, no re-hosting.
 
+## Picking a source
+
+Above the gallery sits a **source filter** — *All*, plus one segment per RSI
+Comm-Link series the crawl has seen (*Release Info*, *Roadmap Roundup*, …). It
+is a segmented control, the same one the admin telemetry view uses for its time
+range: exactly one segment is active, and the choice reloads the gallery.
+
+The segments come from the whole archive, not from the images currently on
+screen, so the control never rewrites itself when you pick something — every
+series stays one click away, and the **Top 7** switch on the opposite edge of
+the row does not move. On a phone the two stack, each spanning the full width.
+
 ## Thumbs up, and the Top 7
 
 Every tile carries a **thumbs up** — the stacked double triangle Spectrum uses
@@ -42,7 +54,9 @@ which of the seven are genuinely voted for and which are newest-image filler.
 
 > The same **Top 7** switch is planned for the desktop app's tray menu, so the
 > rotation can follow the community's favourites. It is not in the tray yet —
-> the ranking already lives in the database so both sides can share it.
+> the ranking already lives in the database so both sides can share it. The
+> source filter is meant to follow it there: its states carry stable names
+> (`all`, `series:<name>`) precisely so a tray menu can offer the same choices.
 
 ## On a phone
 

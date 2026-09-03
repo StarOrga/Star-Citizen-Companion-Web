@@ -142,7 +142,7 @@ export interface FeedbackRow {
    * collaborator. Optional so the many test/fixture rows in the specs keep
    * compiling; absent means `admin`.
    */
-  source?: 'admin' | 'user';
+  source?: FeedbackSource;
   /**
    * Release gate for the autonomous routine. A user-submitted topic enters
    * untriaged so an admin reads it before Claude may implement and ship it;
@@ -170,6 +170,13 @@ export interface FeedbackRow {
   area?: string | null;
 }
 
+/**
+ * Who a topic came from: an admin writing on the board, or a viewer sending
+ * through their own feedback box. It is the axis the overview's source switch
+ * splits on (admin feedback 18e96ad3) and it mirrors `admin_feedback.source`.
+ */
+export type FeedbackSource = 'admin' | 'user';
+
 /** True for a topic a non-admin filed through the user feedback FAB. */
 export function isUserSubmitted(row: FeedbackRow): boolean {
   return row.source === 'user';
@@ -188,6 +195,51 @@ export function awaitsTriage(row: FeedbackRow): boolean {
 
 /** Replies grouped by topic id, oldest first — the board's thread cache. */
 export type ThreadMap = ReadonlyMap<string, FeedbackMessage[]>;
+
+// ---- "Create an issue for this" (admin feedback 18e96ad3) ------------------
+
+/**
+ * Stable, never-translated opening token of the thread message that asks the
+ * routine to open a GitHub issue for a topic instead of implementing it.
+ *
+ * The instruction rides in the THREAD rather than in a column on purpose. It is
+ * exactly that — an instruction to the agent, in the one channel the agent
+ * already reads end to end — so it needs no schema change, it is visible to
+ * every admin in the conversation where it was given, and taking it back is an
+ * ordinary message delete. The status stays whatever it was (normally `open`),
+ * which is what keeps the topic in the routine's queue: the routine works
+ * `status = 'open'`, so a topic parked in a terminal status could never be
+ * picked up to have its issue created (admin feedback 18e96ad3: "das ist ja die
+ * anweisung das claude ein issue erstellen soll … solange das issue noch nicht
+ * erstellt wurde sondern nur in todo ist").
+ */
+export const ISSUE_REQUEST_MARKER = '**[ISSUE]**';
+
+/** True for the thread message that carries an issue request. */
+export function isIssueRequest(msg: FeedbackMessage): boolean {
+  return !msg.is_system && (msg.body ?? '').trimStart().startsWith(ISSUE_REQUEST_MARKER);
+}
+
+/**
+ * The still-open issue request of a topic, or null.
+ *
+ * "Still open" means the routine has not delivered yet: the moment it files the
+ * issue it writes `status = 'issue_created'` plus the issue url into `ship_ref`,
+ * and from there the topic follows the ordinary outcome path (sign-off →
+ * Erledigt). Only until then is the request undoable — the misclick the admin
+ * asked to be able to take back.
+ */
+export function pendingIssueRequest(
+  row: FeedbackRow,
+  replies?: readonly FeedbackMessage[],
+): FeedbackMessage | null {
+  if (row.status === 'issue_created' || row.ship_ref) return null;
+  for (let i = (replies?.length ?? 0) - 1; i >= 0; i--) {
+    const msg = replies![i];
+    if (isIssueRequest(msg)) return msg;
+  }
+  return null;
+}
 
 // ---- Text helpers ---------------------------------------------------------
 
@@ -580,6 +632,39 @@ export function workflowFocusIndex(replies: readonly FeedbackMessage[]): number 
   let i = last;
   while (i > 0 && replies[i - 1].is_system) i--;
   return i;
+}
+
+/**
+ * A thread folded to its two ends (feedback 03d7e546).
+ *
+ * A long conversation pushed the message the admin actually has to react to out
+ * of sight, so every thread surface on the board shows the same three parts: the
+ * **first** message (where the conversation started), one disclosure standing in
+ * for everything between, and the **last** message(s) (what is waiting for an
+ * answer). Nothing is dropped — the middle is one click away.
+ */
+export interface FoldedThread<T> {
+  /** The conversation's first message, or `null` when nothing is folded away. */
+  lead: T | null;
+  /** The messages the disclosure stands in for — empty when nothing is folded. */
+  hidden: readonly T[];
+  /** The newest message(s): what the admin reacts to. */
+  tail: readonly T[];
+}
+
+/**
+ * Fold a thread to "first … last" (see {@link FoldedThread}). Threads short
+ * enough to fit (`keepTail + 1` messages or fewer) are handed back whole, so a
+ * two-message conversation never grows a control that hides nothing.
+ *
+ * Deliberately generic: the board runs it over both thread kinds — the admin ↔
+ * routine thread and the author channel — and one rule keeps them identical.
+ */
+export function foldThread<T>(messages: readonly T[], keepTail = 1): FoldedThread<T> {
+  const keep = Math.max(1, keepTail);
+  if (messages.length <= keep + 1) return { lead: null, hidden: [], tail: messages };
+  const cut = messages.length - keep;
+  return { lead: messages[0], hidden: messages.slice(1, cut), tail: messages.slice(cut) };
 }
 
 // ---- Progress statistics --------------------------------------------------

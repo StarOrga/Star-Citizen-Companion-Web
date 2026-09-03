@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
@@ -20,7 +21,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
 @Component({
   selector: 'sc-upcoming-grid',
   standalone: true,
-  imports: [NeuroFieldDirective, NgTemplateOutlet, TranslateModule, CodexCategoryIconComponent, FallbackImageComponent],
+  imports: [NeuroFieldDirective, NgTemplateOutlet, RouterLink, TranslateModule, CodexCategoryIconComponent, FallbackImageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (feed()) {
@@ -105,10 +106,13 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
     }
 
     <!-- The favorite toggle lives next to the card, not inside it: the card is
-         an <a> to RSI and interactive content must not nest inside a link. -->
+         an <a> and interactive content must not nest inside a link.
+         2026-09-03 (#130): the card links into OUR codex — the announced-ship
+         page at /codex/upcoming/:id — instead of jumping straight to RSI. The
+         RSI pledge page is a secondary link over there. -->
     <ng-template #shipCard let-ship>
       <div class="card-wrap">
-        <a class="card" [href]="ship.rsiUrl || rsiFallback" target="_blank" rel="noopener noreferrer">
+        <a class="card" [routerLink]="['/codex/upcoming', ship.id]">
           <div class="thumb" [class.icon-only]="thumbs(ship).length === 0">
             <sc-fallback-image [candidates]="thumbs(ship)" [alt]="ship.name">
               <sc-codex-icon kind="ship" />
@@ -126,7 +130,6 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
               }
             </div>
           </div>
-          <span class="ext" aria-hidden="true">↗</span>
         </a>
         <button type="button" class="fav" [class.on]="isFavorite(ship)"
                 [attr.aria-pressed]="isFavorite(ship)"
@@ -192,8 +195,6 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
     .badge.status { background: color-mix(in srgb, var(--sc-fg-2) 14%, transparent); }
     .badge.status.concept { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 34%, transparent); color: var(--sc-accent); }
     .badge.new { background: color-mix(in srgb, var(--sc-success, #5fd698) 18%, transparent); border-color: color-mix(in srgb, var(--sc-success, #5fd698) 40%, transparent); color: var(--sc-success, #5fd698); }
-    .ext { position: absolute; top: 10px; right: 12px; color: var(--sc-fg-2); font-size: 0.9rem; }
-    .card-wrap:hover .ext { color: var(--sc-accent); }
 
     .fav { position: absolute; top: 6px; left: 6px; width: 30px; height: 30px; border-radius: 8px;
       border: 1px solid transparent; background: color-mix(in srgb, var(--sc-bg-0) 66%, transparent);
@@ -229,7 +230,6 @@ export class UpcomingGridComponent implements OnInit, OnDestroy {
   readonly favoriteCount = this.svc.favoriteCount;
 
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
-  readonly rsiFallback = 'https://robertsspaceindustries.com/pledge/ships';
 
   // Snapshot of "what was new when the view opened": acknowledging on leave
   // would otherwise clear the badges while the user is still looking at them.

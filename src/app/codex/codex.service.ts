@@ -6,6 +6,8 @@ import { PolySearchHit, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-p
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
 import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
+import { skinQueryPrefix } from './codex-skin-group';
+import { WeaponFacetRow } from './codex-weapon-taxonomy';
 import {
   CODEX_ENTITY_TABLES,
   BlueprintIngredientPayload,
@@ -85,12 +87,20 @@ export interface CodexListFilters {
   // sub_type facet — shared column across weapon/component/item (e.g. FPS
   // weapon sub_type Rifle/Pistol/…, armor item sub_type Helmet/Undersuit/…).
   subType?: string;
+  // sub_type set / complement — the weapon browse taxonomy's FPS sub-categories
+  // ('Small'/'Medium'/… → sidearms/primaries/…). The `NotIn` variant also keeps
+  // rows whose sub_type is NULL, so it is a true "everything else" bucket.
+  subTypeIn?: string[];
+  subTypeNotIn?: string[];
   // attach_type facet — used to scope `item` rows to a single category / slot
   // (e.g. a specific personal-armor slot 'Char_Armor_Helmet').
   attachType?: string;
   // attach_type set — scope `item` rows to several categories at once, e.g. all
-  // personal-armor slots (Char_Armor_Helmet/Torso/Arms/Legs/Undersuit/Backpack).
+  // personal-armor slots (Char_Armor_Helmet/Torso/Arms/Legs/Undersuit/Backpack),
+  // or the weapon taxonomy's ship sub-categories (WeaponGun/Turret/…).
   attachTypeIn?: string[];
+  // attach_type complement — "everything else", NULLs included. See above.
+  attachTypeNotIn?: string[];
   // include AI/template variants (default: buyable-only)
   includeVariants?: boolean;
   // blueprint-only facet — raw CIG bucket from codex_blueprints.category
@@ -166,6 +176,11 @@ export interface PortQuery {
 
 const PAGE_SIZE = 60;
 const SEARCH_LIMIT = 60;
+// Ceiling for the livery-sibling read. The largest family in build 4.9.0 is the
+// LH86 pistol at 14 records; the prefix also catches unrelated neighbours, so
+// this sits well above the real group size and only guards a pathological
+// prefix from pulling a whole table into the detail view.
+const SKIN_SIBLING_LIMIT = 200;
 
 // How far back the patch switch can reach. ingest-catalog never prunes builds,
 // so this is a window, not the whole history: the switch pages through it five
@@ -223,8 +238,10 @@ function batchLocaleKeys(keys: string[]): string[][] {
 // Columns selected per kind for the list view. Keep payload last.
 const LIST_SELECT: Record<CodexKind, string> = {
   ship: 'class_name, name_localized, manufacturer_code, role, crew_size, is_variant, payload',
+  // `attach_type` rides along for weapons because it is the field the ship-side
+  // browse taxonomy cuts its sub-categories from (codex-weapon-taxonomy).
   weapon:
-    'class_name, name_localized, manufacturer_code, weapon_class, sub_type, size, grade, is_variant, payload',
+    'class_name, name_localized, manufacturer_code, weapon_class, attach_type, sub_type, size, grade, is_variant, payload',
   component:
     'class_name, name_localized, manufacturer_code, kind, attach_type, sub_type, size, grade, is_variant, payload',
   item: 'class_name, name_localized, manufacturer_code, attach_type, sub_type, size, grade, is_variant, payload',
@@ -232,6 +249,13 @@ const LIST_SELECT: Record<CodexKind, string> = {
   manufacturer: 'class_name, name_localized, manufacturer_code, payload',
   blueprint: 'class_name, name_localized, category, tier, craft_time_seconds, dismantle_time_seconds, payload',
 };
+
+/**
+ * Upper bound on the paged facet read in {@link CodexService.weaponFacets}.
+ * The biggest build ever ingested held ~1.3k weapons; this only exists so a
+ * pathological build can never turn the loop into an endless request storm.
+ */
+const WEAPON_FACET_HARD_CAP = 20000;
 
 @Injectable({ providedIn: 'root' })
 export class CodexService {
@@ -242,6 +266,9 @@ export class CodexService {
    * any build; it holds no reference back to this service, so there is no cycle.
    */
   private readonly upcoming = inject(UpcomingShipsService);
+
+  /** Memoized {@link weaponFacets} read, invalidated by a change of build. */
+  private weaponFacetCache: { buildId: string; rows: WeaponFacetRow[] } | null = null;
 
   /**
    * The build every codex query reads from — the LIVE one by default, or the
@@ -456,9 +483,15 @@ export class CodexService {
     if (filters.weaponClass && kind === 'weapon')
       query = query.eq('weapon_class', filters.weaponClass);
     if (filters.subType) query = query.eq('sub_type', filters.subType);
-    if (filters.attachType && kind === 'item') query = query.eq('attach_type', filters.attachType);
-    if (filters.attachTypeIn?.length && kind === 'item')
+    if (filters.subTypeIn?.length) query = query.in('sub_type', filters.subTypeIn);
+    if (filters.subTypeNotIn?.length)
+      query = query.or(notInOrNull('sub_type', filters.subTypeNotIn));
+    if (filters.attachType && (kind === 'item' || kind === 'weapon'))
+      query = query.eq('attach_type', filters.attachType);
+    if (filters.attachTypeIn?.length && (kind === 'item' || kind === 'weapon'))
       query = query.in('attach_type', filters.attachTypeIn);
+    if (filters.attachTypeNotIn?.length && (kind === 'item' || kind === 'weapon'))
+      query = query.or(notInOrNull('attach_type', filters.attachTypeNotIn));
     if (filters.category && kind === 'blueprint') query = query.eq('category', filters.category);
 
     const q = filters.search?.trim();
@@ -494,6 +527,45 @@ export class CodexService {
   }
 
   /**
+   * Facet columns of EVERY weapon in the current build — the source the browse
+   * taxonomy counts its categories from (codex-weapon-taxonomy).
+   *
+   * Deliberately not a per-bucket `count` query: that would be one round trip
+   * per category (14 of them) instead of the two paged reads it takes to pull
+   * three tiny columns for ~1.3k rows. Cached per build id, because the build
+   * only changes when a new catalog is ingested.
+   */
+  async weaponFacets(): Promise<WeaponFacetRow[]> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+    if (this.weaponFacetCache?.buildId === build.id) return this.weaponFacetCache.rows;
+
+    const page = 1000; // PostgREST caps a response at 1000 rows
+    const out: WeaponFacetRow[] = [];
+    for (let offset = 0; offset < WEAPON_FACET_HARD_CAP; offset += page) {
+      const { data, error } = await this.sb.client
+        .from(CODEX_ENTITY_TABLES['weapon'])
+        .select('weapon_class, attach_type, sub_type, is_variant')
+        .eq('build_id', build.id)
+        .order('class_name', { ascending: true })
+        .range(offset, offset + page - 1);
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as Record<string, unknown>[];
+      for (const r of rows) {
+        out.push({
+          weaponClass: (r['weapon_class'] as string | null) ?? null,
+          attachType: (r['attach_type'] as string | null) ?? null,
+          subType: (r['sub_type'] as string | null) ?? null,
+          isVariant: r['is_variant'] === true,
+        });
+      }
+      if (rows.length < page) break;
+    }
+    this.weaponFacetCache = { buildId: build.id, rows: out };
+    return out;
+  }
+
+  /**
    * FPS Codex section (#251): on-foot weapons — `codex_weapons` scoped to
    * `weapon_class = 'FPS'`. Reuses the same buyable-only / variant filtering
    * as every other kind (is_variant = false by default), which is also what
@@ -514,6 +586,35 @@ export class CodexService {
    */
   async listFpsArmor(filters: Omit<CodexListFilters, 'attachTypeIn'> = {}): Promise<CodexListResult> {
     return this.listByKind('item', { ...filters, attachTypeIn: [...FPS_ARMOR_ATTACH_TYPES] });
+  }
+
+  /**
+   * Candidate livery siblings of one entity, for the detail view's skin picker
+   * (feedback d5e39f86). Reads the current build by class-name PREFIX — the
+   * first three underscore segments, `gmni_pistol_ballistic` for
+   * `gmni_pistol_ballistic_01_cen01` — which is a cheap superset of the family;
+   * `resolveSkinGroup` decides what actually belongs to it, so an over-wide
+   * match costs nothing (`_` is a single-character wildcard in `ilike`, which
+   * only ever widens it further).
+   *
+   * Kinds without liveries return an empty list without a round trip. Ship
+   * liveries are a separate pipeline entirely (`ship_skins` / the Showroom),
+   * and neither manufacturers, ammunition nor blueprints are painted.
+   */
+  async listSkinSiblings(kind: CodexKind, classNameSlug: string): Promise<CodexListRow[]> {
+    if (kind !== 'weapon' && kind !== 'item' && kind !== 'component') return [];
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+
+    const { data, error } = await this.sb.client
+      .from(CODEX_ENTITY_TABLES[kind])
+      .select(LIST_SELECT[kind])
+      .eq('build_id', build.id)
+      .ilike('class_name', `${escapeIlike(skinQueryPrefix(classNameSlug))}%`)
+      .order('class_name', { ascending: true })
+      .limit(SKIN_SIBLING_LIMIT);
+    if (error) throw error;
+    return ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
   }
 
   /** Entity row + its hardpoints + its localized strings, for the detail view. */
@@ -1279,6 +1380,18 @@ function mapString(s: Record<string, unknown>): CodexEntityString {
 /** PostgREST `or=ilike` is comma/paren-delimited — neutralise those chars. */
 function escapeIlike(input: string): string {
   return input.replace(/[%,()]/g, ' ').trim();
+}
+
+/**
+ * PostgREST `or` clause for "column is none of these values" that ALSO keeps
+ * NULL rows. `not.in` alone drops them (SQL three-valued logic), which would
+ * quietly hide records from the taxonomy's catch-all bucket. Values are the
+ * taxonomy's own hardcoded tokens, but they get quoted anyway so a future entry
+ * with a comma or space cannot break the filter grammar.
+ */
+function notInOrNull(column: string, values: readonly string[]): string {
+  const list = values.map((v) => `"${v.replace(/"/g, '')}"`).join(',');
+  return `${column}.is.null,${column}.not.in.(${list})`;
 }
 
 function mapIngredient(i: Record<string, unknown>): CodexBlueprintIngredient {

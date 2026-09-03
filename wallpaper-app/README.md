@@ -12,31 +12,66 @@ with an optional crossfade and one-click autostart.
 
 ## Tray menu
 
+**Three sections, at most five entries each.** Everything that does not earn a
+top-level line lives one level down, grouped by the question it answers: *who am
+I* (account), *what is shown* (image selection), *how it is shown* (presentation).
+
+**1 · Status**
+
+- **Version readout** — `◈ Aktuell · v0.7.0 · Alpha`, and the updater's only
+  surface. Greyed unless clicking it actually does something.
+- **Update channel ▸** — *Automatic (highest available)* plus the three rings.
+  A ring the account provably cannot reach is greyed, never hidden.
+- **Account ▸** — who this install is signed in as, plus **Sign in… / Sign out**.
+  A session is what unlocks the beta/alpha rings and the "my upvotes" gallery;
+  without this entry a signed-out install that was otherwise up to date had no
+  clickable way to say who it is.
+
+**2 · Gallery**
+
 - **Next wallpaper** — switch immediately (also on double-click of the tray icon)
 - **Paused** — stop the timed rotation
-- **Mode ▸** — what Starscape imagery does with your screen:
-  - *Desktop background* (default) — rotate the wallpaper on the interval timer
-  - *Screensaver* — never touch the wallpaper; show a fullscreen slideshow after
-    an idle period instead
-  - *Both* — rotate the wallpaper **and** show the screensaver when idle
-- **Screensaver delay ▸** — idle time before the screensaver appears (5/10/15/30/60 min)
-- **Fade transition** — toggle the crossfade
-- **Weekly Verse News on start** — show a weekly Verse-News summary image as the
-  first wallpaper after boot/login (once per day, on by default)
+- **Image selection ▸** — which slice of the gallery the rotation draws from:
+  - *All images* (default) — every wallpaper, newest first
+  - *Community Top 7* — the same ranking the web gallery's "Top 7" toggle shows
+    (`starscape_top_wallpapers`, so both surfaces agree)
+  - *Only my upvotes* — the images this account gave a thumbs-up on the website.
+    Needs a signed-in account; with none — or before the first upvote — the
+    rotation falls back to the full gallery rather than showing nothing.
+
+  Picking a selection takes effect at once: the queued images from the previous
+  one are dropped and the first new image is applied straight away, instead of
+  waiting out a rotation interval that may be half an hour off.
+- **Presentation ▸**
+  - *Mode ▸* — what Starscape imagery does with your screen: *Desktop
+    background* (default, rotate on the interval timer), *Screensaver* (never
+    touch the wallpaper; fullscreen slideshow after an idle period) or *Both*
+  - *Screensaver delay ▸* — idle time before it appears (5/10/15/30/60 min)
+  - *Fade transition* — toggle the crossfade
+  - *Weekly Verse News on start* — show a weekly Verse-News summary image as the
+    first wallpaper after boot/login (once per day, on by default)
+  - *Show Verse News summary now* — re-fetch it and set it as the wallpaper
+    immediately, useful for testing without a reboot
+
+**3 · App**
+
 - **Start with Windows** — autostart via `HKCU\…\Run` (**on by default for new
   installs**; existing installs keep whatever they already had)
 - **Send anonymous diagnostics** — anonymous crash + launch telemetry
   (**on by default, opt-out**); see [Telemetry](#telemetry)
-- **Show Verse News summary now** — re-fetch the summary and set it as the
-  wallpaper immediately, useful for testing without a reboot
 - **Open Starscape website** — the web gallery
 - **Quit**
 
 ## How it works
 
-1. Fetches the ordered wallpaper list from the public Supabase `verse_wallpapers`
-   endpoint (`source_url` = original resolution). Only the **publishable** key is
-   embedded — the same one shipped in the web bundle; no secret.
+1. Fetches the ordered wallpaper list from Supabase, per the configured **image
+   selection**: `verse_wallpapers` (all), the `starscape_top_wallpapers` RPC
+   (community Top 7) or the caller's own `wallpaper_votes` rows (my upvotes).
+   All three project `source_url` = original resolution. Only the **publishable**
+   key is embedded — the same one shipped in the web bundle; no secret. The
+   upvotes query is the one that additionally needs the user's own JWT: that
+   table is self-read only, and the ranking RPC deliberately publishes counts
+   without ever naming a voter.
 2. Downloads originals from the RSI media CDN (with a Referer, like the news crawl).
 3. Sets the desktop wallpaper via `SystemParametersInfoW(SPI_SETDESKWALLPAPER)`;
    the crossfade uses a fullscreen layered overlay animated from transparent to
@@ -67,10 +102,12 @@ with an optional crossfade and one-click autostart.
    nobody gets silently opted in later.
 
 Config lives at `%APPDATA%\StarscapeWallpaper\config.ini` (rotation interval,
-fade, paused, mode, screensaver delay, autostart-initialized flag, weekly-summary
-opt-in + last-shown date); prefetched images and the cached summary image in
-`…\cache`. Old config files (only `interval_min`/`fade`/`paused`) still load fine —
-missing keys fall back to their defaults.
+fade, paused, mode, image selection, screensaver delay, autostart-initialized
+flag, weekly-summary opt-in + last-shown date, update ring + ring preference);
+prefetched images and the cached summary image in `…\cache`. Old config files
+(only `interval_min`/`fade`/`paused`) still load fine — missing keys fall back to
+their defaults, and a missing `wallpaper_source` means *all images*, exactly what
+those installs already did.
 
 ## Telemetry
 

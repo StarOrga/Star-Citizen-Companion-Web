@@ -21,6 +21,8 @@ import {
   toLang,
 } from './codex.service';
 import { cleanLocaleValue, humanizeClassName } from './codex-format';
+import { FoldedRow, foldVariantRows } from './codex-variant-fold';
+import { SkinGroupedRow, SkinVariantRef, groupSkinRows } from './codex-skin-group';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
@@ -40,6 +42,9 @@ type FpsCategory = 'weapon' | 'armor';
 interface FpsRow extends CodexListRow {
   detailKind: 'weapon' | 'item';
 }
+
+/** A card in the grid: an FPS row after variant folding AND livery grouping. */
+type FpsGridRow = SkinGroupedRow<FoldedRow<FpsRow>>;
 
 /**
  * FPS / on-foot equipment Codex section (issue #251) — a dedicated, curated
@@ -154,7 +159,7 @@ interface FpsRow extends CodexListRow {
           <span class="count">
             {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
           </span>
-          @if (rows().length < total()) {
+          @if (hasMore()) {
             <span class="showing">{{ 'codex.results.showingOf' | translate: { shown: rows().length, total: total() } }}</span>
           }
         </div>
@@ -202,6 +207,18 @@ interface FpsRow extends CodexListRow {
                   @if (r.subType) { <span class="badge subtle">{{ r.subType }}</span> }
                   @if (r.grade) { <span class="badge grade" [attr.data-grade]="r.grade">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
                   @if (r.isVariant) { <span class="badge variant">{{ 'codex.card.variant' | translate }}</span> }
+                  @if (r.foldedClassNames.length; as folded) {
+                    <span class="badge folded"
+                          [attr.title]="'codex.card.foldedTitle' | translate: { names: foldedNames(r) }">
+                      {{ (folded === 1 ? 'codex.card.foldedOne' : 'codex.card.foldedMany') | translate: { count: folded } }}
+                    </span>
+                  }
+                  @if (r.skinVariants.length; as skins) {
+                    <span class="badge skins"
+                          [attr.title]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
+                      {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
+                    </span>
+                  }
                 </div>
                 @if (r.size != null) {
                   <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
@@ -213,7 +230,7 @@ interface FpsRow extends CodexListRow {
             }
           </div>
 
-          @if (rows().length < total()) {
+          @if (hasMore()) {
             <div class="more-row">
               <button type="button" class="load-more" [disabled]="loading()" (click)="loadMore()">
                 {{ (loading() ? 'codex.results.loading' : 'codex.results.loadMore') | translate }}
@@ -309,6 +326,16 @@ interface FpsRow extends CodexListRow {
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.slot { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 32%, transparent); color: var(--sc-fg-1); }
     .badge.variant { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: var(--sc-fg-1); }
+    /* "+n file variants folded" — a quiet note, not a warning: nothing is wrong,
+       the catalog simply carries several records for one object. */
+    .badge.folded { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); cursor: help; }
+    /* Liveries are a feature of the entry, not file noise like .folded — so the
+       accent, and the detail view picks them up in the skin picker. */
+    .badge.skins {
+      background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
+      border-color: color-mix(in srgb, var(--sc-accent) 42%, transparent);
+      color: var(--sc-fg-0); cursor: help;
+    }
     .badge.grade[data-grade="A"] { background: color-mix(in srgb, #5fd698 18%, transparent); border-color: color-mix(in srgb, #5fd698 42%, transparent); color: #8fe5b5; }
     .badge.grade[data-grade="B"] { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); color: var(--sc-fg-0); }
     .badge.grade[data-grade="C"] { background: color-mix(in srgb, #f0c419 16%, transparent); border-color: color-mix(in srgb, #f0c419 40%, transparent); color: #f0d060; }
@@ -357,8 +384,44 @@ export class FpsListComponent implements OnInit {
   readonly subType = signal('');
   readonly includeVariants = signal(false);
 
-  readonly rows = signal<FpsRow[]>([]);
-  readonly total = signal(0);
+  /** Rows exactly as the server returned them, before display-level folding. */
+  private readonly rawRows = signal<FpsRow[]>([]);
+  private readonly serverTotal = signal(0);
+
+  /**
+   * What the grid renders, after two display-level passes:
+   *
+   *  1. near-identical variant records collapsed into one card each (admin
+   *     feedback 8cd0aed7 — the APX Fire Extinguisher shipped twice, once as
+   *     `kegr_fire_extinguisher_01_Igniter`), then
+   *  2. livery families collapsed into their base record (feedback d5e39f86 —
+   *     `LH86 Pistol` swallows its thirteen `LH86 "…" Pistol` paint jobs, which
+   *     the detail view offers in a skin picker).
+   *
+   * The order is load-bearing: pass 2 refuses to guess when several records
+   * carry the base name, and the multi-tool's nine `_default_*` records all do
+   * until pass 1 has folded them. Ticking "include variants" — the control that
+   * already means "show me the raw records" — turns BOTH off.
+   */
+  readonly rows = computed<FpsGridRow[]>(() =>
+    this.includeVariants()
+      ? this.rawRows().map((r) => ({
+          ...r,
+          foldedClassNames: [] as readonly string[],
+          skinVariants: [] as readonly SkinVariantRef[],
+        }))
+      : groupSkinRows(foldVariantRows(this.rawRows(), (r) => this.cardName(r))),
+  );
+  /**
+   * Result count with the folded-away duplicates subtracted. Only the loaded
+   * pages can be folded, so this is a lower bound on the server count, never
+   * below what is actually on screen.
+   */
+  readonly total = computed(() =>
+    Math.max(this.rows().length, this.serverTotal() - (this.rawRows().length - this.rows().length)),
+  );
+  /** More pages left on the server — measured on the RAW rows, not the folded ones. */
+  readonly hasMore = computed(() => this.rawRows().length < this.serverTotal());
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   private offset = 0;
@@ -446,7 +509,20 @@ export class FpsListComponent implements OnInit {
   }
 
   categoryCount(c: FpsCategory): number | null {
+    // The active tab quotes the same folded number the result header shows —
+    // two different counts for one list read as a bug.
+    if (c === this.category() && this.rawRows().length > 0) return this.total();
     return this.counts()[c] ?? null;
+  }
+
+  /** Class names of the records folded into this card, for the badge tooltip. */
+  foldedNames(r: FoldedRow<FpsRow>): string {
+    return [r.classNameSlug, ...r.foldedClassNames].join(', ');
+  }
+
+  /** Livery names grouped into this card, for the badge tooltip. */
+  skinNames(r: FpsGridRow): string {
+    return r.skinVariants.map((s) => s.liveryName).join(', ');
   }
 
   /**
@@ -574,15 +650,15 @@ export class FpsListComponent implements OnInit {
       if (seq !== this.loadSeq) return;
       const detailKind: 'weapon' | 'item' = activeCategory === 'weapon' ? 'weapon' : 'item';
       const rows: FpsRow[] = res.rows.map((r) => ({ ...r, detailKind }));
-      this.rows.set(reset ? rows : [...this.rows(), ...rows]);
-      this.total.set(res.count);
+      this.rawRows.set(reset ? rows : [...this.rawRows(), ...rows]);
+      this.serverTotal.set(res.count);
       this.counts.update((c) => ({ ...c, [activeCategory]: res.count }));
     } catch (err) {
       if (seq !== this.loadSeq) return;
       this.error.set((err as Error).message ?? 'Unknown error');
       if (reset) {
-        this.rows.set([]);
-        this.total.set(0);
+        this.rawRows.set([]);
+        this.serverTotal.set(0);
       }
     } finally {
       if (seq === this.loadSeq) this.loading.set(false);

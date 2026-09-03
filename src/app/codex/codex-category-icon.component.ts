@@ -19,6 +19,13 @@ const ICON_PATHS: Readonly<Record<string, string>> = {
   fuel: 'M12 2.5 C12 2.5 19 10.6 19 15 A7 7 0 0 1 5 15 C5 10.6 12 2.5 12 2.5 Z',
   cargo: 'M12 2 L21 7 V17 L12 22 L3 17 V7 Z M3 7 L12 12 L21 7 M12 12 V22',
   item: 'M4 7 L12 3 L20 7 L20 17 L12 21 L4 17 Z M4 7 L12 11 L20 7 M12 11 V21',
+  // Non-lethal on-foot gear filed under codex_weapons (sub_type 'Gadget'):
+  // multi-tool, fire extinguisher, glowsticks. A wrench, never a crosshair.
+  gadget:
+    'M18.4 4.1 A4.6 4.6 0 0 0 12.3 10.2 L4.6 17.9 A1.9 1.9 0 0 0 7.3 20.6 L15 12.9 A4.6 4.6 0 0 0 21.1 6.8 L18 9.9 L15.3 9.9 L15.3 7.2 Z',
+  blade: 'M12 2 L15 8 V14 H9 V8 Z M8 14 H16 M12 14 V20 M10 20 H14',
+  grenade:
+    'M6 14 A6 6 0 1 0 18 14 A6 6 0 1 0 6 14 M10 5 H14 V7.4 H10 Z M14 5.6 H17.5 V2.8 M10 5 L9 2.8',
   ammunition: 'M9 2 H15 V5 L17 8 V20 A2 2 0 0 1 15 22 H9 A2 2 0 0 1 7 20 V8 L9 5 Z M7 11 H17',
   manufacturer: 'M3 21 V10 L9 13 V10 L15 13 V7 L21 10 V21 Z M3 21 H21 M7 17 H8 M11 17 H12 M15 17 H16',
   generic: 'M5 4 C5 3.4 5.4 3 6 3 H18 C18.6 3 19 3.4 19 4 V20 C19 20.6 18.6 21 18 21 H6 C5.4 21 5 20.6 5 20 Z M9 3 V21 M12 8 H16 M12 12 H16',
@@ -37,6 +44,9 @@ const CAT_COLORS: Readonly<Record<string, string>> = {
   fuel: '#5fd698',
   cargo: '#c8a84b',
   item: '#c8a84b',
+  gadget: '#6fd0c2',
+  blade: '#b6c2d2',
+  grenade: '#9bb35a',
   ammunition: '#ff8282',
   manufacturer: 'var(--sc-fg-1, #b6c2d2)',
   generic: 'var(--sc-fg-2, #8a92a0)',
@@ -54,9 +64,26 @@ const COMPONENT_SUB: Readonly<Record<string, string>> = {
   CargoGrid: 'cargo',
 };
 
+/**
+ * weapon sub_type → icon/colour key. The extract files a lot of NON-weapons
+ * under `codex_weapons` (anything the character holds in the weapon slot), so
+ * the crosshair glyph leaked onto the APX Fire Extinguisher and the Pyro RYT
+ * Multi-Tool (admin feedback 8cd0aed7). A crosshair must only mean "this thing
+ * shoots"; everything else gets its own glyph here. Sub-types that really are
+ * guns (Small/Medium/Large, Ship Gun/Turret/…) intentionally stay on 'weapon'.
+ */
+const WEAPON_SUB: Readonly<Record<string, string>> = {
+  Gadget: 'gadget',
+  Utility: 'gadget',
+  Knife: 'blade',
+  Melee: 'blade',
+  Grenade: 'grenade',
+};
+
 /** Resolve a (kind, sub) pair to an icon key in ICON_PATHS. Never returns null. */
 export function categoryIconKey(kind: CodexKind, sub?: string | null): string {
   if (kind === 'component' && sub && COMPONENT_SUB[sub]) return COMPONENT_SUB[sub];
+  if (kind === 'weapon' && sub && WEAPON_SUB[sub]) return WEAPON_SUB[sub];
   switch (kind) {
     case 'ship':
       return 'ship';
@@ -112,11 +139,14 @@ export function categoryColor(kind: CodexKind, sub?: string | null): string {
         width: 100%;
         height: 100%;
       }
+      /* The cap travels as a custom property so a large frame (the detail hero,
+         where 72px reads as "tiny lost glyph") can grow it across the style
+         encapsulation boundary without the host reaching into this template. */
       svg {
         width: 56%;
         height: 56%;
-        max-width: 72px;
-        max-height: 72px;
+        max-width: var(--sc-icon-max, 72px);
+        max-height: var(--sc-icon-max, 72px);
         opacity: 0.92;
         filter: drop-shadow(0 0 10px color-mix(in srgb, currentColor 35%, transparent));
       }

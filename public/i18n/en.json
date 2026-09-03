@@ -138,6 +138,10 @@
         "empty": "No matches for “{{term}}”.",
         "upcomingBadge": "Not in game yet"
       },
+      "surface": {
+        "expandBoard": "Expand On board",
+        "expandHangar": "Expand the hangar"
+      },
       "me": {
         "eyebrow": "On board",
         "title": "Me",
@@ -163,7 +167,7 @@
         "sort": {
           "manufacturer": "Manufacturer",
           "role": "Role",
-          "recent": "Recently opened"
+          "recent": "Recently edited"
         },
         "emptyLead": "The bay is ready — no hull in it yet.",
         "emptyArt": "Empty hangar bay with a docking ring"
@@ -323,7 +327,39 @@
         "body": "No upcoming ship matches the search and filter — shorten the term or drop the favorites filter."
       },
       "laneSub": "Announced by RSI, with no entry in our game data yet",
-      "laneAll": "View all {{count}}"
+      "laneAll": "View all {{count}}",
+      "conceptBadge": "Concept",
+      "notFlightReady": "Not flight-ready yet"
+    },
+    "upcomingDetail": {
+      "back": "Back to the Codex",
+      "facts": "From the RSI ship-matrix",
+      "fact": {
+        "manufacturer": "Manufacturer",
+        "type": "Type",
+        "focus": "Role",
+        "status": "Status"
+      },
+      "notice": {
+        "concept": "RSI has announced this ship but is still building it — it is not flyable in game. That is why there are no hardpoints, components or stats here.",
+        "flightReady": "RSI lists this ship as flight-ready, but our datamined game data has no match for it yet — the stats arrive with one of the next build uploads."
+      },
+      "watch": {
+        "off": "Watch for my fleet",
+        "on": "Watched for my fleet",
+        "hint": "Watched ships show up at the top of your hangar, marked as not flight-ready.",
+        "inHangar": "View in the hangar"
+      },
+      "rsiLink": "View on robertsspaceindustries.com",
+      "noData": {
+        "title": "Why are there no stats here?",
+        "body": "Our Codex is built from the live build's data. While this ship is not in the game there is nothing to extract — once it lands it gets its full Codex entry automatically.",
+        "browse": "All announced ships"
+      },
+      "notFound": {
+        "title": "Announced ship not found",
+        "body": "This ship is no longer on the RSI ship-matrix — either it has shipped and now has a real Codex entry, or RSI removed the listing."
+      }
     },
     "categoriesAria": "Codex categories",
     "soon": "Coming soon — no data extracted yet.",
@@ -369,7 +405,6 @@
       "size": "Size",
       "grade": "Grade",
       "componentKind": "Component type",
-      "weaponClass": "Weapon class",
       "all": "All",
       "includeVariants": "Show AI / template variants",
       "reset": "Reset filters",
@@ -379,6 +414,34 @@
     "weaponClass": {
       "Ship": "Ship",
       "FPS": "FPS"
+    },
+    "weaponGroup": {
+      "superAria": "Weapon super-category",
+      "subAria": "Weapon sub-category",
+      "all": "All weapons",
+      "allOf": "All {{group}}",
+      "super": {
+        "fps": "FPS equipment",
+        "ship": "Ship weapons"
+      },
+      "fps": {
+        "sidearm": "Sidearms",
+        "primary": "Primaries",
+        "heavy": "Heavy weapons",
+        "melee": "Melee",
+        "throwable": "Throwables",
+        "gadget": "Tools & gadgets",
+        "other": "Other"
+      },
+      "ship": {
+        "gun": "Guns",
+        "turret": "Turrets",
+        "missile": "Missiles & torpedoes",
+        "countermeasure": "Countermeasures",
+        "mining": "Mining lasers",
+        "utility": "Tractor & salvage",
+        "other": "Other"
+      }
     },
     "componentKind": {
       "PowerPlant": "Power plant",
@@ -403,7 +466,18 @@
       "grade": "Grade {{grade}}",
       "crew": "Crew {{count}}",
       "variant": "Variant",
-      "inHangar": "In your hangar"
+      "inHangar": "In your hangar",
+      "foldedOne": "+1 file variant",
+      "foldedMany": "+{{count}} file variants",
+      "foldedTitle": "The game files carry several near-identical records for this entry, so they are shown as one card: {{names}}",
+      "skinsOne": "+1 skin",
+      "skinsMany": "+{{count}} skins",
+      "skinsTitle": "Every livery of this weapon shares one card. Pick between them inside the entry: {{names}}"
+    },
+    "skinPicker": {
+      "label": "Skin",
+      "standard": "Standard",
+      "count": "{{count}} options"
     },
     "empty": {
       "title": "Nothing here yet",
@@ -597,6 +671,7 @@
       "viewOnRsi": "View on RSI",
       "noLoadout": "No default loadout recorded.",
       "notFound": "Entry not found in the current build.",
+      "noArtwork": "No artwork for this ship in this build yet.",
       "showRaw": "Show raw data",
       "hideRaw": "Hide raw data",
       "naValue": "n/a",
@@ -1440,16 +1515,20 @@
     },
     "groups": {
       "account": {
-        "title": "Account & identity"
+        "title": "Account & identity",
+        "short": "Account"
       },
       "preferences": {
-        "title": "Language & controls"
+        "title": "Language & controls",
+        "short": "Language"
       },
       "privacy": {
-        "title": "Data & privacy"
+        "title": "Data & privacy",
+        "short": "Data"
       },
       "danger": {
-        "title": "Danger zone"
+        "title": "Danger zone",
+        "short": "Danger"
       }
     },
     "account": {
@@ -2027,6 +2106,12 @@
       },
       "cta": "Sign in to open your hangar"
     },
+    "drawingBoard": {
+      "title": "On the drawing board",
+      "note": "Watched ships — not flight-ready yet",
+      "browse": "Open the drawing board",
+      "empty": "You haven't watched an announced ship for your fleet yet."
+    },
     "concept": {
       "title": "Concept wishlist",
       "hint": "Ships that are not in the game (yet) have no codex entry — track them here with a link to the pledge page. Specs are preliminary until release.",
@@ -2184,10 +2269,9 @@
     "loadMore": "Load {{count}} more",
     "toggleDetails": "Expand or collapse this entry",
     "topicNumber": "Topic #{{n}} — a fixed number you can refer to",
-    "showMore": "more",
-    "showLess": "Show less",
+    "moreActions": "More actions",
     "filter": {
-      "label": "Filter by author",
+      "label": "Filter by user",
       "all": "All",
       "toggle": "Filter"
     },
@@ -2201,8 +2285,7 @@
       "clear": "Clear search",
       "results": "{{count}} results · by relevance",
       "empty": "No results for “{{query}}”.",
-      "inThread": "in thread",
-      "toggle": "Search"
+      "inThread": "in thread"
     },
     "tab": {
       "label": "Switch between active and finished topics",
@@ -2228,11 +2311,11 @@
     "delete": "Delete",
     "deleteConfirm": "Delete this message? This cannot be undone.",
     "issue": {
-      "mark": "Issue created",
-      "placeholder": "GitHub issue URL",
-      "save": "Archive",
-      "cancel": "Cancel",
-      "invalidUrl": "Please enter a valid issue URL (http/https)."
+      "mark": "Create an issue",
+      "pill": "Issue requested",
+      "pending": "Issue creation is queued — the routine will file it.",
+      "undo": "Undo",
+      "requestBody": "Please **do not implement** this topic — open a GitHub issue for it instead. Then set `status = issue_created` and put the issue URL into `ship_ref`; the topic goes through the usual sign-off from there like any other outcome."
     },
     "status": {
       "open": "ToDo",
@@ -2243,7 +2326,7 @@
       "issue_created": "Issue created",
       "answered": "Answered",
       "continued": "Continued",
-      "needs_input_author": "Asked the sender",
+      "needs_input_author": "Asked the user",
       "declined": "Not implemented",
       "review": "Sign-off"
     },
@@ -2252,6 +2335,8 @@
       "routineBadge": "Auto",
       "reply": "Reply",
       "replyPlaceholder": "Write a reply… (Markdown supported)",
+      "foldExpand": "Show {{count}} message(s) in between",
+      "foldCollapse": "Hide the {{count}} message(s) in between again",
       "reopenHint": "Replying reopens this archived topic — it goes back to ToDo and the routine picks it up again."
     },
     "compose": {
@@ -2365,8 +2450,8 @@
         "toReviewIssue": "Handed to a GitHub issue",
         "accepted": "You sign it off",
         "reopened": "You resume the conversation",
-        "askAuthor": "You ask the person who filed it",
-        "authorAnswered": "The author answers"
+        "askAuthor": "You ask the user",
+        "authorAnswered": "The user answers"
       },
       "fact": {
         "oldest": "oldest open topic: {{days}} days",
@@ -2384,7 +2469,7 @@
         "reviewIssues": "{{count}} handed to an issue, waiting for your sign-off",
         "reviewWhy": "Only your sign-off ends a topic — otherwise it goes back into the work loop",
         "doneTerminal": "End state — signed off and closed",
-        "declinedTerminal": "End state — deliberately not implemented, with a reason sent to the author"
+        "declinedTerminal": "End state — deliberately not implemented, with a reason sent to the user"
       },
       "todo": "ToDo",
       "done": "Shipped",
@@ -2397,22 +2482,23 @@
       "badge": "User feedback",
       "untriaged": "Not released",
       "release": "Release to the routine",
-      "channelTitle": "Channel to the author",
-      "channelHint": "Everything here is visible to the sender. The thread above (admin ↔ routine) is not.",
-      "seesStatus": "The sender sees:",
-      "asQuestion": "Send as a question to the sender (parks the topic until they answer)",
-      "messagePlaceholder": "Message to the sender…",
-      "messageSend": "Send to author",
+      "channelTitle": "Channel to the user",
+      "channelHint": "Everything here is visible to the user. The thread above (admin ↔ routine) is not.",
+      "seesStatus": "The user sees:",
+      "asQuestion": "Send as a question to the user (parks the topic until they answer)",
+      "messagePlaceholder": "Message to the user…",
+      "messageSend": "Send to user",
+      "questionSend": "Send as a question",
       "questionBadge": "Question",
       "fromTeam": "Team",
-      "fromAuthor": "Sender"
+      "fromAuthor": "User"
     },
     "decline": {
       "mark": "Decline & remove",
-      "placeholder": "Why is this not going to happen? The sender will read this.",
+      "placeholder": "Why is this not going to happen? The user will read this.",
       "confirm": "Decline",
       "cancel": "Cancel",
-      "noteRequired": "Please give a reason — the sender gets to read it."
+      "noteRequired": "Please give a reason — the user gets to read it."
     },
     "review": {
       "headlineShipped": "Shipped — please sign off",
@@ -2424,6 +2510,12 @@
       "reopenPlaceholder": "What should be different?",
       "reopenSend": "Send & reopen",
       "reopenCancel": "Cancel"
+    },
+    "sourceFilter": {
+      "label": "Switch between admin topics and user feedback",
+      "admin": "Admins",
+      "user": "Users",
+      "untriagedHint": "User feedback here is still waiting to be released to the routine."
     }
   },
   "feedbackFab": {
@@ -2585,6 +2677,9 @@
     "title": "Starscape",
     "subtitle": "High-resolution artwork from RSI Comm-Links, collected from the news crawl. Every image links straight to the original on the RSI CDN — click a tile for full resolution and download.",
     "filterAll": "All",
+    "source": {
+      "label": "Image source"
+    },
     "vote": {
       "add": "Give this a thumbs up",
       "remove": "Take back your thumbs up",
@@ -2651,6 +2746,8 @@
     "you": "You",
     "questionBadge": "Question",
     "questionsPending": "A question is waiting for your answer",
+    "openWithNews": "Open feedback – {{count}} updates",
+    "newBadge": "New",
     "answerPlaceholder": "Your answer…",
     "answer": "Reply",
     "declinedTitle": "Why this is not being implemented",

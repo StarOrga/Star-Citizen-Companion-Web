@@ -71,9 +71,11 @@ open ──pick up──▶ in_progress ──green build+tests──▶ shipped
 
   rejected      ← the ADMIN decides this alone (by deleting the topic); the
                   routine NEVER sets it. Reopened to `open` by an admin reply.
-  issue_created ← the ADMIN archives a topic against a GitHub issue
-                  (ship_ref = issue url); the routine NEVER sets it. Reopened to
-                  `open` by an admin reply.
+  issue_created ← the topic became a GitHub ISSUE instead of a change
+                  (ship_ref = issue url). Set ONLY by the ROUTINE, when the
+                  thread carries an open **[ISSUE]** order (see "Issue
+                  erstellen" below). Goes through the sign-off gate like a
+                  ship. Reopened to `open` by an admin reply.
   declined      ← the ADMIN declines a USER-submitted topic ("nicht umsetzen &
                   löschen", decision_note = the explanation the author reads);
                   the routine NEVER sets it. Reopened to `open` by an admin reply.
@@ -105,6 +107,39 @@ any of them flips back into the active half as soon as it is reopened. The
 routine works the active half (`open` / `in_progress` / `needs_input`) plus these
 shipped-with-a-fresh-reply continuations. `needs_input_author` is active too, but
 it belongs to the admin and the author, never to the routine.
+
+### "Issue erstellen" — an order in the thread, not a status
+
+An admin can decide a topic should become a **GitHub issue instead of a
+change**. That decision is an *instruction to this routine*, so it rides in the
+topic's thread: the board's "Issue erstellen" button posts an ordinary
+(`is_system = false`) reply whose body starts with the literal, never-translated
+token
+
+```
+**[ISSUE]**
+```
+
+and leaves the row exactly as it was — normally `status = 'open'`, in its place
+in the oldest-first queue. Nothing is archived and no `ship_ref` is written, so
+the admin can take the order back by deleting that message while it is still
+undelivered (admin feedback 18e96ad3: "solange das issue noch nicht erstellt
+wurde sondern nur in todo ist").
+
+**When STEP 1 picks up a topic whose thread carries an open `**[ISSUE]**`
+message, do not implement it.** File the GitHub issue instead, then close the
+hand-off the same way a ship closes: `status = 'issue_created'`, `ship_ref` =
+the issue url. From there the ordinary outcome path applies — the row goes into
+the sign-off gate (`awaitsReview`) and reaches the Archive only when the admin
+accepts it. The order is "open" exactly while `status <> 'issue_created'` and
+`ship_ref is null`; once either is set the request has been carried out and the
+undo disappears from the board.
+
+This replaces the old motion, where "Issue erstellt" was a *record*: the admin
+filed the issue by hand and the same click archived the topic. The panel's
+by-hand record ("Issue-Link eintragen") is gone as well (admin feedback
+18e96ad3, round 2) — the order in the thread is the only issue motion left, and
+the routine is the only writer of `issue_created` + `ship_ref`.
 
 **The queue is additionally gated on `triaged`.** A topic filed by a non-admin
 through the user feedback FAB (`source = 'user'`) enters `triaged = false` and
@@ -1292,7 +1327,8 @@ via `labelKey`, and the enlarged view pages through a message's screenshots with
 
 ### "Nicht umsetzen & löschen" (declining a user topic)
 
-For a user-submitted topic the admin's delete button becomes **"Nicht umsetzen &
+For a user-submitted topic the admin's delete button (behind the card's "Weitere
+Aktionen" disclosure since feedback 03d7e546) becomes **"Nicht umsetzen &
 löschen"** with a **mandatory comment**. It writes `status = 'declined'` +
 `decision_note` and also posts the comment into the author channel, so the author
 gets "Nicht umgesetzt" **plus the reason** instead of a topic that silently
@@ -1313,7 +1349,7 @@ panel and on the full board page alike:
 
 | View | Component | What it is for |
 |------|-----------|----------------|
-| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list with each topic's stable `#N` (see below), fuzzy search (see below), status/author filters, new-topic composer |
+| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list with each topic's stable `#N` (see below), fuzzy search (see below), status/author filters, new-topic composer. Every topic is a **collapsible card** with at most two composers and one "Weitere Aktionen" disclosure (see below) |
 | **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through everything that waits on the admin — Rückfragen (oldest first) and, since feedback d4990269, the Abnahmen behind them — **and nothing else** (feedback b0cc6efc). Shows topic + thread + either the inline answer box or the Abnahme's two decisions, plus a "3 von 7" progress rail, "Überspringen", and two lenses: **wessen** (mine/others/all) and **welche Art** (Alle / Rückfragen / Abnahmen — the ex-Abnahme tab). The thread is folded to the message the run points at, with one "…" for the history |
 | **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen, plus pace, throughput and the live lifecycle map (see below) |
 
@@ -1358,6 +1394,44 @@ and no step goes unnoticed:
   line — the click itself is the explanation), and so does an Abnahme decision
   once the write came back and the topic left the queue. Draining the last topic
   reports itself through the "Alles abgearbeitet" screen instead.
+
+### One topic card in the Übersicht (feedback 03d7e546)
+
+Reviewing a topic on the board had grown into a wall: two thread lists at full
+length, two composers, a per-message "mehr" clamp, the sign-off gate and a
+permanent row of "Issue erstellt / freigeben / nicht umsetzen / löschen" buttons
+under every card — and on the **full board page** the card could not even be
+folded, because only the docked panel rendered a clickable head. The card is now
+the same control in both shells:
+
+- **The head is a button, everywhere.** Chevron · `#N` · generated title ·
+  author · date (full board only — the panel's day heading carries it) · status
+  pills. The panel keeps topics **collapsed** by default, the full board keeps
+  them **open**; the component stores only the deviation from that default
+  (`_flipped`), and "alle aus-/einklappen" exists in both shells. The
+  two-sentence body clamp is gone with it: a card that folds does not need a
+  second fold inside itself.
+- **Both threads are folded to their two ends.** `foldThread` in
+  `feedback.types.ts` returns `{ lead, hidden, tail }` — the conversation's
+  first message, everything between it behind one "…" that names its count, and
+  the newest message, which is what the admin has to react to. One rule, used by
+  the admin ↔ routine thread *and* the author channel; the Abarbeiten run folds
+  the same way (anchored at its focus index instead of at the thread start).
+  Unfolding is per thread and session-local.
+- **One question affordance per thread.** The admin ↔ routine thread has exactly
+  one composer, the author channel exactly one — plus its single "als Rückfrage
+  senden" switch, which is now **per topic** (it used to be one board-wide flag,
+  so ticking it on one card armed every other open card's composer).
+- **The rare acts sit behind one disclosure.** "Weitere Aktionen" reveals
+  "Issue erstellen" (the order, with its undo), "nicht umsetzen & löschen" /
+  "löschen" and their inline forms; closing it discards a half-typed form rather
+  than leaving it open out of sight. `declined`, the triage release and the
+  sign-off gate's two decisions all live one click deeper. `issue_created` is
+  **not** among them: the panel has no by-hand write for it since admin feedback
+  18e96ad3 — the routine sets it when it carries out an `**[ISSUE]**` order.
+  The one action that stays in the open is "Für die Routine freigeben"
+  on an untriaged topic: the topic is *blocked* on it, so hiding it would hide
+  the reason nothing is happening.
 
 ### The run is a carousel with skip (feedback d4990269)
 
@@ -1581,7 +1655,7 @@ Animations API, no dependency). All of it is suppressed under
 | column           | meaning                                                    |
 |------------------|------------------------------------------------------------|
 | `seq`            | the topic's **stable reference number** ("#42"), from sequence `admin_feedback_seq_seq` — see "Referring to a topic by number" (feedback `21587480`) |
-| `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `issue_created` = admin-driven hand-off to a GitHub issue · `declined` + `needs_input_author` = admin-driven, user topics only · `rejected` = legacy/admin-only, never set by the routine |
+| `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `issue_created` = hand-off to a GitHub issue, written by the routine on an open `**[ISSUE]**` order or by an admin recording an existing issue · `declined` + `needs_input_author` = admin-driven, user topics only · `rejected` = legacy/admin-only, never set by the routine |
 | `ship_ref`       | link that closed the topic: PR/commit URL for `shipped`, GitHub issue URL for `issue_created` (also set on a review-hold `in_progress` row) |
 | `processing_note`| routine's note (reject reason / red-build hint) — **admin-only**, never shown to a feedback author |
 | `shipped_at`     | set (and re-set) at each merge to `main`; the review loop's query (d) compares the newest reply against it to detect an admin's post-ship continuation |
@@ -1624,14 +1698,22 @@ Active/Archive toggle inside the **overview** mode renders (migration
   thread's review reply. A reopened `issue_created` topic loses its issue link
   from `ship_ref` — the GitHub issue itself is untouched.)
 
-`issue_created` is a **terminal, admin-set** status: the admin archives a topic
-by pasting its GitHub issue URL in the panel (button "Issue created"), which
-writes `status='issue_created'` + `ship_ref=<issue url>` + `processed_at=now()`.
-Its purpose is the "tracked elsewhere, done here" case — the topic leaves the
-active queue without being deleted and without pretending it shipped. **The
-routine never sets `issue_created` and never touches a row while it carries that
-status** — but an admin reply reopens it to `open` first (the reopen trigger), and
-from then on it is an ordinary `open` item the routine works. Legacy `rejected`
+`issue_created` is the "tracked elsewhere" outcome: the topic leaves the work
+queue without being deleted and without pretending it shipped. It has exactly
+one writer (admin feedback 18e96ad3): **the ROUTINE**, when the topic's thread
+carries an open `**[ISSUE]**` order — it files the issue and writes
+`status='issue_created'` + `ship_ref=<issue url>` + `processed_at=now()`. See
+"Issue erstellen" near the top of this document.
+
+The row lands in the sign-off gate first, not straight in the Archive. Until
+feedback 18e96ad3 the ADMIN was the only writer and the button said "Issue
+erstellt" — a record, filed by hand — which read as an order and was not one;
+round 1 turned it into the order and kept the record as a second control
+("Issue-Link eintragen"), round 2 removed that control, so the panel no longer
+offers any by-hand way to set `issue_created`. **The routine never touches a row
+while it rests in `issue_created`** —
+but an admin reply reopens it to `open` first (the reopen trigger), and from then
+on it is an ordinary `open` item the routine works. Legacy `rejected`
 rows are archived rather than hidden so they stay reachable instead of being
 orphaned in a view nobody opens — and they reopen on an admin reply the same way.
 
