@@ -172,8 +172,8 @@ describe('CodexLandingComponent', () => {
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
-        // Playability comes from the verse feed the header chip keeps fresh —
-        // stubbed here so the landing never reaches the real HTTP client.
+        // The landing itself no longer reads playability, but sibling pieces of
+        // the shell do — stubbed so no test reaches the real HTTP client.
         {
           provide: NewsService,
           useValue: {
@@ -602,14 +602,15 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('.identity .pin')).not.toBeNull();
   });
 
-  it('merges the playable state and the patch into ONE headline in the terminal row', async () => {
+  it('carries the patch headline in the terminal row, without repeating the playable state', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
     const headline = el.querySelector('sc-codex-patch-headline');
     expect(headline).not.toBeNull();
     expect(headline?.closest('.terminal')).not.toBeNull();
-    expect(el.querySelector('.status-pill .live-dot')).not.toBeNull();
-    expect(el.querySelector('.status-pill .status-online')).not.toBeNull();
+    // The header chip says "Spielbar" app-wide; the landing no longer echoes it.
+    expect(el.querySelector('.status-pill .live-dot')).toBeNull();
+    expect(el.querySelector('.status-pill .status-online')).toBeNull();
     expect(el.querySelector('.status-pill .status-build')).toBeNull();
     // The far right of the terminal row belongs to the download control now.
     expect(el.querySelector('details.patch-badge')).toBeNull();

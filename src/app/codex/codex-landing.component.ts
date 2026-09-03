@@ -105,7 +105,7 @@ export interface FleetGroup {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="landing">
-      <!-- ── TOP: Archive Terminal + playable/patch headline + app menu ─────── -->
+      <!-- ── TOP: Archive Terminal + patch headline + app menu ──────────────── -->
       <header class="terminal">
         <div class="terminal-bar">
           <svg class="icon terminal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -135,11 +135,12 @@ export interface FleetGroup {
           }
         </div>
 
-        <!-- ONE headline (admin feedback 463872dd): the playable state — the
-             same "Spielbar" the header chip reports, from the same feed — and
-             the patch that produced everything below it, merged into a single
-             line. The patch doubles as the page's quiet time machine (last 5
-             patches, five more per page, data-less ones marked as such). -->
+        <!-- ONE headline (admin feedback 463872dd): the patch that produced
+             everything below it. Round two of that feedback dropped the
+             playable state from this line — the header chip already reports
+             "Spielbar" on every page, so saying it twice cost the headline its
+             own subject. The patch doubles as the page's quiet time machine
+             (last 5 patches, five more per page, data-less ones marked). -->
         <sc-codex-patch-headline (patchChange)="reload()" />
 
         <ng-template #codexProvenance>
@@ -659,9 +660,9 @@ export interface FleetGroup {
         justify-content: center;
       }
 
-      /* The merged status/patch headline is its own component now
-         (sc-codex-patch-headline) — it owns the pill chrome, the playability
-         dot and the patch-switch overlay. Only its slot in the row is ours. */
+      /* The patch headline is its own component (sc-codex-patch-headline) — it
+         owns the pill chrome and the patch-switch overlay. Only its slot in the
+         row is ours. */
       sc-codex-patch-headline { flex: 0 0 auto; }
 
       /* Far-right slot: never stretch, never wrap mid-control. The menu owns

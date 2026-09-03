@@ -3,7 +3,6 @@ import {
   Component,
   ElementRef,
   HostListener,
-  OnInit,
   computed,
   effect,
   inject,
@@ -20,17 +19,17 @@ import {
   hasMorePatches,
   visiblePatchPage,
 } from './codex-patch-timeline';
-import { NewsService, StatusLevel, effectivePlayability } from '../news/news.service';
 
 /**
- * The Codex headline: "is it playable" + "which patch am I looking at", in ONE
- * line (admin feedback 463872dd).
+ * The Codex headline: "which patch am I looking at" (admin feedback 463872dd).
  *
- * Before, the landing said "Verse online" — a statement about our own archive
- * dressed up as a statement about the game — while the real playability lived
- * in the header chip on the other side of the screen. The admin's point: the
- * playable state is the thing BOTH readings are after, so the patch belongs
- * next to it and not in a second pill of its own.
+ * It began as "Verse online" — a statement about our own archive dressed up as
+ * a statement about the game — and was first merged with the playable state so
+ * the two could not disagree. Round two of the same feedback retired that half
+ * again: the header chip in the top right already reports "Spielbar" on every
+ * page, so repeating it here said the same thing twice and stole the line from
+ * the one fact only this page can give — the patch everything below was read
+ * from.
  *
  * The patch is also the page's quiet time machine: the live patch is always the
  * visible label, and clicking it opens a discreet list of the last five patches
@@ -46,12 +45,10 @@ import { NewsService, StatusLevel, effectivePlayability } from '../news/news.ser
   imports: [RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Class names kept from the retired inline pill: same slot, same weight in
-         the terminal row, one control instead of two. -->
+    <!-- Class names kept from the retired inline pill: same slot, same weight
+         in the terminal row. Playability is NOT repeated here — the header chip
+         says it once, app-wide. -->
     <div class="status-pill" [class.stale]="svc.stale()" [class.past]="svc.viewingPastPatch()">
-      <span class="live-dot" [class]="'lvl-' + level()" aria-hidden="true"></span>
-      <span class="status-online">{{ 'news.status.' + level() | translate }}</span>
-
       @if (svc.build(); as b) {
         <button
           #trigger
@@ -157,44 +154,19 @@ import { NewsService, StatusLevel, effectivePlayability } from '../news/news.ser
         letter-spacing: 0.04em;
         text-transform: uppercase;
         color: var(--sc-fg-1);
-        border: 1px solid color-mix(in srgb, var(--sc-success, #5fd698) 30%, transparent);
-        background: color-mix(in srgb, var(--sc-success, #5fd698) 10%, transparent);
+        /* The pill talks about the ARCHIVE now, not about the game, so it rests
+           in the neutral chrome instead of borrowing the playability green. */
+        border: 1px solid var(--sc-border);
+        background: var(--sc-bg-1);
       }
       .status-pill.stale {
         border-color: color-mix(in srgb, var(--sc-warning, #ffc14d) 40%, transparent);
         background: color-mix(in srgb, var(--sc-warning, #ffc14d) 10%, transparent);
       }
-      /* Looking at an older patch is a neutral fact, not a fault: the pill drops
-         its green tint instead of turning into a warning. */
+      /* Looking at an older patch is a neutral fact, not a fault: the pill says
+         so with the accent it uses everywhere else, never with a warning. */
       .status-pill.past {
-        border-color: var(--sc-border);
-        background: var(--sc-bg-1);
-      }
-
-      .live-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        flex: 0 0 auto;
-        background: var(--sc-fg-2);
-      }
-      /* Playability, same palette as the header chip — the two now say the same
-         word from the same data, so they must not disagree in colour either. */
-      .live-dot.lvl-operational {
-        background: var(--sc-success, #5fd698);
-        box-shadow: 0 0 8px var(--sc-success, #5fd698);
-        animation: pulse 2.4s ease-in-out infinite;
-      }
-      .live-dot.lvl-degraded,
-      .live-dot.lvl-partial_outage { background: var(--sc-warning, #ffc14d); }
-      .live-dot.lvl-major_outage {
-        background: var(--sc-danger);
-        box-shadow: 0 0 8px var(--sc-danger);
-      }
-      .live-dot.lvl-maintenance { background: var(--sc-accent); }
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.35; }
+        border-color: color-mix(in srgb, var(--sc-accent) 40%, var(--sc-border));
       }
 
       .status-stale { color: var(--sc-warning, #ffc14d); text-decoration: underline; }
@@ -204,11 +176,10 @@ import { NewsService, StatusLevel, effectivePlayability } from '../news/news.ser
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 3px 6px 3px 8px;
-        margin: -3px -2px;
+        padding: 3px 6px;
+        margin: -3px -4px;
         border: 1px solid transparent;
-        border-left: 1px solid color-mix(in srgb, var(--sc-fg-2) 35%, transparent);
-        border-radius: 0 3px 3px 0;
+        border-radius: 3px;
         background: transparent;
         color: var(--sc-fg-2);
         font: inherit;
@@ -357,14 +328,12 @@ import { NewsService, StatusLevel, effectivePlayability } from '../news/news.ser
       @media (prefers-reduced-motion: reduce) {
         .patch-pop { animation: none; }
         .patch-chev { transition: none; }
-        .live-dot.lvl-operational { animation: none; }
       }
     `,
   ],
 })
-export class CodexPatchHeadlineComponent implements OnInit {
+export class CodexPatchHeadlineComponent {
   readonly svc = inject(CodexService);
-  private readonly news = inject(NewsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   /** Fired after the active build changed, so the host can reload its data. */
@@ -379,16 +348,6 @@ export class CodexPatchHeadlineComponent implements OnInit {
   private readonly triggerEl = viewChild<ElementRef<HTMLButtonElement>>('trigger');
   private readonly popEl = viewChild<ElementRef<HTMLElement>>('pop');
 
-  /**
-   * The playable state — the very same computation the header chip runs, from
-   * the very same feed, so the two can never disagree. `unknown` until the feed
-   * (kept fresh app-wide by that chip) has arrived.
-   */
-  readonly level = computed<StatusLevel>(() => {
-    const st = this.news.feed()?.status;
-    return st ? effectivePlayability(st) : 'unknown';
-  });
-
   readonly visible = computed<readonly PatchTimelineEntry[]>(() =>
     visiblePatchPage(this.svc.patchTimeline(), this.page()),
   );
@@ -399,13 +358,6 @@ export class CodexPatchHeadlineComponent implements OnInit {
       const pop = this.popEl();
       if (this.open() && pop) pop.nativeElement.focus();
     });
-  }
-
-  ngOnInit(): void {
-    // The header chip owns the polling; this only covers a cold landing where
-    // the feed has not arrived yet. `refresh` coalesces concurrent callers, so
-    // this never becomes a second request.
-    if (!this.news.feed()) void this.news.refresh(true);
   }
 
   toggle(): void {
