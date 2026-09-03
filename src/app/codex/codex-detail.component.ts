@@ -1522,11 +1522,16 @@ export class CodexDetailComponent implements OnInit {
     return (typeof raw === 'string' && raw ? cleanLocaleValue(raw) : '') || this.displayName();
   }
 
-  /** Sub-category that refines the hero fallback icon (componentKind/weaponClass/subType). */
+  /**
+   * Sub-category that refines the hero fallback icon (componentKind/subType/
+   * weaponClass). `sub_type` ranks above `weapon_class` for the same reason as
+   * in the list: 'FPS'/'Ship' refines nothing, while 'Gadget'/'Knife'/'Grenade'
+   * is what keeps a crosshair off a fire extinguisher (admin feedback 8cd0aed7).
+   */
   heroSub(): string | null {
     const row = this.detail()?.row;
     if (!row) return null;
-    return (row['kind'] as string) || (row['weapon_class'] as string) || (row['sub_type'] as string) || null;
+    return (row['kind'] as string) || (row['sub_type'] as string) || (row['weapon_class'] as string) || null;
   }
 
   // Original class_name (e.g. 'DRAK_Cutlass_Black') for the skin selector —

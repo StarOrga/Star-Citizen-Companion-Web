@@ -434,7 +434,10 @@
       "grade": "Grade {{grade}}",
       "crew": "Crew {{count}}",
       "variant": "Variant",
-      "inHangar": "In your hangar"
+      "inHangar": "In your hangar",
+      "foldedOne": "+1 file variant",
+      "foldedMany": "+{{count}} file variants",
+      "foldedTitle": "The game files carry several near-identical records for this entry, so they are shown as one card: {{names}}"
     },
     "empty": {
       "title": "Nothing here yet",

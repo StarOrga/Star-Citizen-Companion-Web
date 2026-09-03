@@ -34,6 +34,7 @@ import {
 } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { FoldedRow, foldVariantRows } from './codex-variant-fold';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { HangarService } from '../hangar/hangar.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
@@ -208,7 +209,7 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
           <span class="count">
             {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
           </span>
-          @if (rows().length < total()) {
+          @if (hasMore()) {
             <span class="showing">{{ 'codex.results.showingOf' | translate: { shown: rows().length, total: total() } }}</span>
           }
         </div>
@@ -274,6 +275,12 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
                   @if (r.blueprintCategory) { <span class="badge">{{ categoryLabel(r.blueprintCategory) }}</span> }
                   @if (r.blueprintTier != null) { <span class="badge">{{ 'blueprint.card.tier' | translate: { tier: r.blueprintTier } }}</span> }
                   @if (craftTimeLabel(r); as ct) { <span class="badge subtle">{{ ct }}</span> }
+                  @if (r.foldedClassNames.length; as folded) {
+                    <span class="badge folded"
+                          [attr.title]="'codex.card.foldedTitle' | translate: { names: foldedNames(r) }">
+                      {{ (folded === 1 ? 'codex.card.foldedOne' : 'codex.card.foldedMany') | translate: { count: folded } }}
+                    </span>
+                  }
                 </div>
                 @if (r.size != null) {
                   <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
@@ -285,7 +292,7 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
             }
           </div>
 
-          @if (rows().length < total()) {
+          @if (hasMore()) {
             <div class="more-row">
               <button type="button" class="load-more" [disabled]="loading()" (click)="loadMore()">
                 {{ (loading() ? 'codex.results.loading' : 'codex.results.loadMore') | translate }}
@@ -405,6 +412,9 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
       max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.variant { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: var(--sc-fg-1); }
+    /* "+n file variants folded" — a quiet note, not a warning: nothing is wrong,
+       the catalog simply carries several records for one object. */
+    .badge.folded { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); cursor: help; }
     .badge.grade[data-grade="A"] { background: color-mix(in srgb, #5fd698 18%, transparent); border-color: color-mix(in srgb, #5fd698 42%, transparent); color: #8fe5b5; }
     .badge.grade[data-grade="B"] { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); color: var(--sc-fg-0); }
     .badge.grade[data-grade="C"] { background: color-mix(in srgb, #f0c419 16%, transparent); border-color: color-mix(in srgb, #f0c419 40%, transparent); color: #f0d060; }
@@ -503,8 +513,19 @@ export class CodexListComponent implements OnInit {
   }
 
   /** Sub-category that refines the fallback icon (componentKind/weaponClass/subType). */
+  /**
+   * Sub-category that refines the fallback glyph. `sub_type` ranks ABOVE
+   * `weapon_class`: the class is only 'FPS'/'Ship' and refines nothing, while
+   * the sub-type is what tells a gadget from a gun — passing the class first
+   * put a crosshair on the APX Fire Extinguisher (admin feedback 8cd0aed7).
+   */
   iconSub(r: CodexListRow): string | null {
-    return r.componentKind || r.weaponClass || r.subType || null;
+    return r.componentKind || r.subType || r.weaponClass || null;
+  }
+
+  /** Class names of the records folded into this card, for the badge tooltip. */
+  foldedNames(r: FoldedRow<CodexListRow>): string {
+    return [r.classNameSlug, ...r.foldedClassNames].join(', ');
   }
 
   /**
@@ -552,8 +573,31 @@ export class CodexListComponent implements OnInit {
   /** Buckets actually present in the build (loaded once, data-driven). */
   readonly blueprintCategoryOptions = signal<string[]>([]);
 
-  readonly rows = signal<CodexListRow[]>([]);
-  readonly total = signal(0);
+  /** Rows exactly as the server returned them, before display-level folding. */
+  private readonly rawRows = signal<CodexListRow[]>([]);
+  private readonly serverTotal = signal(0);
+
+  /**
+   * What the grid renders: near-identical variant records collapsed into one
+   * card each (admin feedback 8cd0aed7 — see codex-variant-fold). Ticking
+   * "include variants" — the control that already means "show me the raw
+   * records" — turns the fold off, so every file term stays reachable.
+   */
+  readonly rows = computed<FoldedRow<CodexListRow>[]>(() =>
+    this.includeVariants()
+      ? this.rawRows().map((r) => ({ ...r, foldedClassNames: [] as readonly string[] }))
+      : foldVariantRows(this.rawRows(), (r) => this.cardName(r)),
+  );
+  /**
+   * Result count with the folded-away duplicates subtracted. Only the loaded
+   * pages can be folded, so this is a lower bound on the server count, never
+   * below what is actually on screen.
+   */
+  readonly total = computed(() =>
+    Math.max(this.rows().length, this.serverTotal() - (this.rawRows().length - this.rows().length)),
+  );
+  /** More pages left on the server — measured on the RAW rows, not the folded ones. */
+  readonly hasMore = computed(() => this.rawRows().length < this.serverTotal());
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   private offset = 0;
@@ -842,14 +886,14 @@ export class CodexListComponent implements OnInit {
     try {
       const res = await this.svc.listByKind(activeKind, this.buildFilters());
       if (seq !== this.loadSeq) return;
-      this.rows.set(reset ? res.rows : [...this.rows(), ...res.rows]);
-      this.total.set(res.count);
+      this.rawRows.set(reset ? res.rows : [...this.rawRows(), ...res.rows]);
+      this.serverTotal.set(res.count);
     } catch (err) {
       if (seq !== this.loadSeq) return;
       this.error.set((err as Error).message ?? 'Unknown error');
       if (reset) {
-        this.rows.set([]);
-        this.total.set(0);
+        this.rawRows.set([]);
+        this.serverTotal.set(0);
       }
     } finally {
       if (seq === this.loadSeq) this.loading.set(false);
