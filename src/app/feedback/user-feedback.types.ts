@@ -63,6 +63,18 @@ export interface AuthorFeedbackRow {
    * before the tag existed; optional so fixture rows keep compiling.
    */
   area?: string | null;
+  /**
+   * May this author still withdraw the topic (admin feedback 892013b6)? Computed
+   * by `public.feedback_withdrawable()` — the very predicate the DELETE policy
+   * enforces — so the button is offered exactly when the database would allow
+   * it, never one click more.
+   *
+   * It cannot be derived from {@link AuthorFeedbackRow.author_status}: that
+   * status is coarse on purpose, and its `in_progress` bucket holds the still
+   * untouched topic that IS withdrawable together with three states that are
+   * not. Optional so fixture rows keep compiling; absent reads as "no".
+   */
+  can_delete?: boolean;
 }
 
 /**

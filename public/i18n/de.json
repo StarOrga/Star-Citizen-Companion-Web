@@ -2789,6 +2789,14 @@
     "answer": "Antworten",
     "declinedTitle": "Warum das nicht umgesetzt wird",
     "impersonationBlocked": "Senden ist deaktiviert, solange du eine andere Rolle vorschaust — es würde echtes Feedback unter deinem eigenen Account im Admin-Postfach ablegen.",
+    "withdraw": {
+      "action": "Zurückziehen",
+      "hint": "Solange noch niemand daran gearbeitet oder geantwortet hat, kannst du dein Feedback wieder löschen.",
+      "question": "Wirklich löschen? Das lässt sich nicht rückgängig machen.",
+      "confirm": "Ja, löschen",
+      "cancel": "Abbrechen",
+      "refused": "Zu spät — an diesem Thema wird schon gearbeitet. Es bleibt in deiner Liste."
+    },
     "tab": {
       "compose": "Feedback senden",
       "mine": "Mein Feedback"
