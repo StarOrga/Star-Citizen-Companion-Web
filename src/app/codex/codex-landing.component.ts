@@ -29,6 +29,7 @@ import {
   polyHitQueryParams,
 } from './codex-poly-search';
 import { CodexBoardPanelComponent } from './codex-board-panel.component';
+import { CodexZoneRailComponent } from './codex-zone-rail.component';
 import { CodexPatchHeadlineComponent } from './codex-patch-headline.component';
 import { totalRecordCount } from './codex-patch-timeline';
 import { ShipStatDelta } from './codex-build-diff';
@@ -58,6 +59,9 @@ const SEARCH_DEBOUNCE_MS = 250;
 /** Axis the IM-HANGAR fleet strip groups by. */
 export type FleetSortAxis = 'manufacturer' | 'role' | 'recent';
 
+/** Which half of the AN BORD ⇄ IM HANGAR switcher is expanded. */
+export type SurfaceZone = 'board' | 'hangar';
+
 /** One rendered fleet group: a heading (empty for the ungrouped axis) + its ships. */
 export interface FleetGroup {
   label: string;
@@ -67,9 +71,9 @@ export interface FleetGroup {
 /**
  * The Codex landing — "the scale ladder" (person → ship → verse).
  *
- * Three depth planes, ONE continuous surface for the first two (no container
- * border between them — the amber→cyan scope shift is carried by eyebrow
- * colour and a thin edge accent, not by two boxes):
+ * Three depth planes. The first two share ONE fixed-height surface and behave
+ * as a single switcher (feedback e80cc831): exactly one of them is expanded,
+ * the other collapses to a slim rail, and the box never changes height:
  *   AN BORD    — a schematic paperdoll of the six armour slots at their
  *                anatomical position, plus up to 7 honestly-derived on-foot
  *                KPIs and the other saved role-loadouts (native <details>).
@@ -95,6 +99,7 @@ export interface FleetGroup {
     FallbackImageComponent,
     AppDownloadMenuComponent,
     CodexBoardPanelComponent,
+    CodexZoneRailComponent,
     CodexPatchHeadlineComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -244,8 +249,20 @@ export interface FleetGroup {
         </section>
       }
 
-      <!-- ── SURFACE: AN BORD + IM HANGAR, one continuous surface ────────────── -->
-      <div class="surface" [class.dimmed]="searchActive()">
+      <!-- ── SURFACE: AN BORD ⇄ IM HANGAR — ONE switcher, ONE fixed height ───
+           Feedback e80cc831: the two zones used to grow and shrink vertically
+           with whatever was selected, so the page jumped around. They are one
+           toggle now — exactly one zone is expanded, the other collapses to a
+           slim vertical rail — and the surface keeps the SAME height in every
+           state (--surface-h), with the expanded zone scrolling internally.
+           On a phone the rail turns horizontal (a 52px bar) rather than
+           squeezing a vertical strip into a 360px viewport. -->
+      <div
+        class="surface"
+        [class.dimmed]="searchActive()"
+        [class.open-board]="openZone() === 'board'"
+        [class.open-hangar]="openZone() === 'hangar'"
+      >
         <!-- AN BORD — the on-foot plane. Rebuilt in the /tune-rethink round of
              2026-09-01 (concept: docs/concepts/2026-09-01-codex-an-bord-neu.html,
              6 iterations, chosen variant Ⓣ "Gewicht" on the Ⓜ light panel with
@@ -265,18 +282,29 @@ export interface FleetGroup {
                · armour class is encoded as BAR HEIGHT, never as hue
                · three type roles only: label / value / name
                · the role is named ONCE, on the plinth. -->
-        <article class="zone board" aria-labelledby="board-title">
-          <sc-codex-board-panel
-            [loadouts]="personalLoadouts()"
-            [resolved]="resolvedArmor()"
-            [payloads]="armorPayloads()"
-            [archiveDepth]="archiveDepth()"
-            [boardEntryLink]="boardEntryLink()" />
-        </article>
+        @if (openZone() === 'board') {
+          <article class="zone board" id="zone-board" aria-labelledby="board-title">
+            <sc-codex-board-panel
+              [loadouts]="personalLoadouts()"
+              [resolved]="resolvedArmor()"
+              [payloads]="armorPayloads()"
+              [archiveDepth]="archiveDepth()"
+              [boardEntryLink]="boardEntryLink()" />
+          </article>
+        } @else {
+          <sc-codex-zone-rail
+            kind="board"
+            eyebrowKey="codex.landing.me.eyebrow"
+            labelKey="codex.landing.surface.expandBoard"
+            fallbackKey="codex.landing.me.uncommissioned"
+            [summary]="activeLoadout()?.name ?? null"
+            (expand)="openZone.set('board')" />
+        }
 
         <!-- IM HANGAR — cyan, ship identity + KPI + fleet field. Same
              stretched-link entrance as AN BORD, this time into /hangar. -->
-        <article class="zone hangar" aria-labelledby="hangar-title">
+        @if (openZone() === 'hangar') {
+        <article class="zone hangar" id="zone-hangar" aria-labelledby="hangar-title">
           <a class="zone-entry" routerLink="/hangar">
             <header class="zone-head">
               <span class="zone-eyebrow" id="hangar-title">{{ 'codex.landing.fleet.eyebrow' | translate }}</span>
@@ -329,6 +357,15 @@ export interface FleetGroup {
             </div>
           } @else if (flagshipRow(); as f) {
             <div class="identity">
+              <!-- The flagship hero only rides along in the DEFAULT mode
+                   ("Zuletzt bearbeitet"), where the lane under it is simply the
+                   ships you touched last. Switching the lane to Einsatzzweck or
+                   Hersteller turns the zone into a browser and drops the hero —
+                   feedback e80cc831: "dann kann man aber auch irgendwie den
+                   einsatzzweck umschalten, in dem fall brauche ich die schiffs
+                   hero card nicht mehr sehen". The freed height goes to the
+                   groups, which is the only thing that makes grouping useful. -->
+              @if (heroVisible()) {
               <!-- Cinematic hero: the artwork IS the ship, and the numbers ride
                    a scrim INSIDE the frame rather than sitting in cards under
                    it (feedback 2026-08-23: "direkt dardran die wesentlichen
@@ -393,13 +430,14 @@ export interface FleetGroup {
                   }
                 </span>
               }
+              } <!-- /@if (heroVisible()) — hero + its delta row -->
 
               <!-- The fleet in the same 16:9 art-tile format the concept-ship
                    rail uses, grouped by the chosen sort axis. The flagship is
                    part of it (starred) rather than excluded — the grouping only
                    reads right when every owned hull is in it. -->
               @if (fleetRows().length) {
-                <div class="fleet-lane">
+                <div class="fleet-lane" [class.browse]="!heroVisible()">
                   <div class="fleet-lane__head">
                     <span class="fleet-lane__title">{{
                       'codex.landing.fleet.laneTitle' | translate: { count: fleetRows().length }
@@ -467,6 +505,15 @@ export interface FleetGroup {
             </div>
           }
         </article>
+        } @else {
+          <sc-codex-zone-rail
+            kind="hangar"
+            eyebrowKey="codex.landing.fleet.eyebrow"
+            labelKey="codex.landing.surface.expandHangar"
+            fallbackKey="codex.landing.fleet.empty"
+            [summary]="flagshipName()"
+            (expand)="openZone.set('hangar')" />
+        }
       </div>
 
       <!-- ── IM VERSUM: frameless domain entry points ────────────────────────── -->
@@ -701,16 +748,21 @@ export interface FleetGroup {
       .hit-kind { font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.04em; color: var(--sc-accent); }
       .hit.meta .hit-kind { color: var(--meta); }
 
-      /* ── ONE SURFACE: AN BORD + IM HANGAR ─────────────────────────────── */
-      /* Correction (2026-08-16): still ONE box for both scales — no divider
-         between the zones, the scale break stays the eyebrow + amber→cyan
-         shift — but now a visibly "floating" panel rather than a borderless
-         field: a real 1px border plus --shadow-elevated (StarUI: border
-         glows only, no positive-Y drop shadow). */
+      /* ── ONE SURFACE: AN BORD ⇄ IM HANGAR ─────────────────────────────── */
+      /* Correction (2026-08-16): ONE floating box for both scales — a real 1px
+         border plus --shadow-elevated (StarUI: border glows only, no
+         positive-Y drop shadow).
+         Correction (2026-09-03, feedback e80cc831): the two zones are a SWITCH,
+         not a pair of columns that each grow with their content. Exactly one is
+         expanded; the other is a --rail-w strip. The box keeps --surface-h in
+         EVERY state, so nothing below it ever moves — the expanded zone
+         scrolls internally instead of stretching the page. */
       .surface {
+        --rail-w: 52px;
+        --surface-h: 520px;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
         gap: 0;
+        height: var(--surface-h);
         border: 1px solid color-mix(in srgb, var(--sc-accent) 18%, var(--sc-border));
         border-radius: 4px;
         background: var(--sc-bg-1);
@@ -718,6 +770,9 @@ export interface FleetGroup {
         transition: opacity 0.2s;
         overflow: hidden;
       }
+      /* DOM order is always board → hangar; only the track sizes swap. */
+      .surface.open-board { grid-template-columns: minmax(0, 1fr) var(--rail-w); }
+      .surface.open-hangar { grid-template-columns: var(--rail-w) minmax(0, 1fr); }
       .dimmed { opacity: 0.55; }
       .zone {
         position: relative;
@@ -726,15 +781,16 @@ export interface FleetGroup {
         gap: 12px;
         padding: 16px;
         border-left: 2px solid var(--tint);
+        min-height: 0;
+        min-width: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
       }
       .zone.board { --tint: var(--sc-warning, #ffc14d); }
-      .zone.hangar {
-        --tint: var(--sc-accent);
-        border-top: 1px solid var(--sc-border);
-      }
-      @media (min-width: 761px) {
-        .zone.hangar { border-top: none; border-left: 1px solid var(--sc-border); }
-      }
+      .zone.hangar { --tint: var(--sc-accent); }
+      /* The collapsed half is sc-codex-zone-rail — it owns its own chrome
+         (styles are encapsulated, and these rules would push this file's
+         inline stylesheet over the 18 kB component budget). */
       /* Zone entrance: the whole zone is a click target into its subview
          (Hangar / on-foot). This <a> itself carries only the heading, but its
          ::after is absolutely positioned against .zone (the nearest
@@ -829,9 +885,14 @@ export interface FleetGroup {
          scrim, the same art-first treatment the concept-ship rail uses.
          The custom properties cross into sc-fallback-image (a plain
          .ship-hero img rule cannot reach the projected <img>). */
+      /* The zone is nearly full-width now that only one is expanded, so a bare
+         16:9 would render a 600px-tall hero and blow the fixed surface height.
+         Capped: the frame becomes a cinematic banner, the art still fills it
+         (--sc-img-fit: cover). */
       .ship-hero {
         position: relative;
         aspect-ratio: 16 / 9;
+        max-height: 300px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -967,6 +1028,12 @@ export interface FleetGroup {
         padding: 2px 2px 4px;
         margin: 0 -2px;
       }
+      /* Browse mode (grouped by Einsatzzweck/Hersteller, hero hidden): the
+         height the hero gave up goes to the groups, so the tiles WRAP into a
+         field instead of hiding the rest of each group behind a sideways
+         scroll — and a horizontal scroller nested in a vertical one is a trap
+         on touch anyway. */
+      .fleet-lane.browse .fleet-strip { flex-wrap: wrap; overflow-x: visible; }
       .fleet-tile {
         position: relative;
         flex: 0 0 150px;
@@ -1288,8 +1355,16 @@ export interface FleetGroup {
       .rail-icon:hover { color: var(--sc-accent); }
 
       /* ── responsive ───────────────────────────────────────────────────── */
+      /* Phone/small tablet: the switcher stacks, so the collapsed zone becomes
+         a horizontal bar. Same toggle, same fixed total height. */
       @media (max-width: 760px) {
-        .surface { grid-template-columns: 1fr; }
+        .surface { --surface-h: 500px; --rail-h: 52px; }
+        .surface.open-board { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) var(--rail-h); }
+        .surface.open-hangar { grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--rail-h) minmax(0, 1fr); }
+      }
+      @media (max-width: 480px) {
+        .surface { --surface-h: 460px; }
+        .ship-hero { max-height: 210px; }
       }
       /* On a phone the zone is ~360px wide, where four labelled KPI chips
          stack three rows deep and the scrim grows TALLER than the 16:9 hero
@@ -1343,9 +1418,28 @@ export class CodexLandingComponent implements OnInit {
    */
   readonly fleetRoleLabels = signal<Map<string, string>>(new Map());
 
-  /** Grouping axis of the fleet strip. Session-local — deliberately not persisted. */
-  readonly fleetSortAxes: readonly FleetSortAxis[] = ['manufacturer', 'role', 'recent'];
-  readonly fleetSort = signal<FleetSortAxis>('manufacturer');
+  /**
+   * Grouping axis of the fleet strip. Session-local — deliberately not
+   * persisted. `recent` leads and is the default (feedback e80cc831: "vllt.
+   * sieht man die zuletzt bearbeiteten schiffe normalerweise unter der hero
+   * card") — the other two are browse modes that trade the hero for height.
+   */
+  readonly fleetSortAxes: readonly FleetSortAxis[] = ['recent', 'role', 'manufacturer'];
+  readonly fleetSort = signal<FleetSortAxis>('recent');
+
+  /**
+   * The expanded half of the surface. A single signal IS the mutual exclusion
+   * the feedback asked for — there is no state in which both are open, and
+   * none in which both are collapsed. IM HANGAR leads: this is the fleet page.
+   */
+  readonly openZone = signal<SurfaceZone>('hangar');
+
+  /**
+   * The flagship hero shows only in the default `recent` mode. Grouping by
+   * Einsatzzweck (or Hersteller) needs the vertical space more than it needs
+   * the hero — the admin said so himself.
+   */
+  readonly heroVisible = computed(() => this.fleetSort() === 'recent');
 
   // AN BORD extras
   readonly personalLoadouts = signal<HangarRoleLoadout[]>([]);
@@ -1385,6 +1479,19 @@ export class CodexLandingComponent implements OnInit {
   });
 
   readonly comparableFleet = computed(() => this.fleetRows().length >= 2);
+
+  /** What the collapsed IM HANGAR rail names — the flagship, or nothing yet. */
+  readonly flagshipName = computed<string | null>(() => {
+    const f = this.flagshipRow();
+    return f ? this.rowName(f) : null;
+  });
+
+  /** classNameSlug → when the owning hangar row was last edited (ISO, sortable). */
+  private readonly fleetTouchedAt = computed(() => {
+    const m = new Map<string, string>();
+    for (const s of this.hangar.ships()) m.set(s.shipClassName, s.updatedAt || s.createdAt || '');
+    return m;
+  });
 
   // AN BORD: the "active" personal loadout is the most recently touched one
   // (see sortByRecency — no last_opened_at yet, sorts by updatedAt).
@@ -1431,7 +1538,15 @@ export class CodexLandingComponent implements OnInit {
     const rows = this.fleetRows();
     if (rows.length === 0) return [];
     const axis = this.fleetSort();
-    if (axis === 'recent') return [{ label: '', rows }];
+    // "Zuletzt bearbeitet" means exactly that: the hangar row's updated_at,
+    // newest first — not the pinned-then-created order the rows arrive in.
+    if (axis === 'recent') {
+      const touched = this.fleetTouchedAt();
+      const sorted = [...rows].sort((a, b) =>
+        (touched.get(b.classNameSlug) ?? '').localeCompare(touched.get(a.classNameSlug) ?? ''),
+      );
+      return [{ label: '', rows: sorted }];
+    }
 
     const roles = this.fleetRoleLabels();
     const unknown = this.t.instant('codex.landing.fleet.sortUnknown');

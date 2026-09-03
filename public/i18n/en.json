@@ -137,6 +137,10 @@
         "empty": "No matches for “{{term}}”.",
         "upcomingBadge": "Not in game yet"
       },
+      "surface": {
+        "expandBoard": "Expand On board",
+        "expandHangar": "Expand the hangar"
+      },
       "me": {
         "eyebrow": "On board",
         "title": "Me",
@@ -162,7 +166,7 @@
         "sort": {
           "manufacturer": "Manufacturer",
           "role": "Role",
-          "recent": "Recently opened"
+          "recent": "Recently edited"
         },
         "emptyLead": "The bay is ready — no hull in it yet.",
         "emptyArt": "Empty hangar bay with a docking ring"
