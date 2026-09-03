@@ -31,8 +31,13 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
     @if (roles.isAdmin()) {
       <div class="fab-root">
         @if (mounted()) {
+          <!-- “sc-sheet” (styles.scss): a docked corner window above 720px, a
+               full-bleed sheet below it. On a 375px phone the docked panel was
+               a 343px window inside a 375px viewport — two side insets, a
+               border and a corner radius spent on framing a frame, before the
+               board inside it added its own (admin feedback 3bc01a3d). -->
           <div
-            class="panel"
+            class="panel sc-sheet"
             [class.minimized]="minimized()"
             [class.maximized]="maximized()"
             role="dialog"
@@ -49,7 +54,7 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
               <div class="panel-actions">
                 <button
                   type="button"
-                  class="panel-min"
+                  class="panel-min panel-maximize"
                   (click)="toggleMaximize()"
                   [attr.aria-pressed]="maximized()"
                   [attr.aria-label]="(maximized() ? 'feedbackFab.restore' : 'feedbackFab.maximize') | translate">
@@ -254,9 +259,25 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
       min-height: 0;
     }
 
-    @media (max-width: 640px) {
-      .fab-root { right: 16px; bottom: 16px; gap: 10px; }
-      .panel { height: min(70vh, calc(100vh - 120px)); }
+    @media (max-width: 720px) {
+      .fab-root {
+        right: 16px;
+        /* Clear of the home indicator / gesture bar on a phone. */
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        gap: 10px;
+      }
+      /* The sheet fills the screen (see .sc-sheet), so its head IS the app bar
+         while it is open: give it the height a thumb expects and drop the
+         maximize control — there is nothing left to maximize to. */
+      .panel-head { padding: 10px 14px; }
+      .panel-maximize { display: none; }
+      /* A panel left maximized at the desk would keep its 16px inset here and
+         out-specify .sc-sheet's inset: 0. On a sheet the two states are the
+         same state. */
+      .panel.maximized { inset: 0; }
+      /* ...and the launcher would float on top of its own sheet. The sheet's
+         own minimize button is the way back out, and it puts the FAB back. */
+      .panel:not(.minimized) ~ .fab { display: none; }
     }
   `],
 })

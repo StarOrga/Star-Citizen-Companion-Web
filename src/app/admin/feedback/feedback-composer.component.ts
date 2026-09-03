@@ -105,8 +105,13 @@ const MAX_ATTACHMENTS = 10;
   imports: [TranslateModule, FeedbackAttachmentsComponent, FeedbackAreaPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <!-- “sc-nest”: wherever this box sits inside a card or a panel shell that
+         already pays for the padding around it, the global de-nesting rules
+         (styles.scss) drop its own side frame on a narrow viewport. A composer
+         that is a top-level surface — the pinned new-topic box on the full
+         board — is not inside such a parent, so it keeps its frame there. -->
     <div
-      class="composer"
+      class="composer sc-nest"
       [class.compact]="compact()"
       [class.drag-active]="dragActive()"
       (dragover)="onDragOver($event)"
@@ -207,13 +212,13 @@ const MAX_ATTACHMENTS = 10;
     .composer {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 12px 14px;
+      gap: var(--sc-gap-3);
+      padding: var(--sc-pad-2);
       background: var(--sc-bg-2);
       border: 1px solid var(--sc-border);
       border-radius: 10px;
     }
-    .composer.compact { padding: 10px 12px; gap: 6px; }
+    .composer.compact { padding: var(--sc-pad-3); gap: 6px; }
     /* Drag-to-upload affordance: highlight the composer and overlay a hint. */
     .composer.drag-active {
       position: relative;
@@ -303,9 +308,11 @@ const MAX_ATTACHMENTS = 10;
     .composer.compact .foot .hint { display: none; }
     .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
 
-    @media (max-width: 640px) {
+    @media (max-width: 720px) {
+      /* The send button is the box's whole point on a phone: full width,
+         under the hint, instead of a 90px pill squeezed against the edge. */
       .foot { flex-direction: column; align-items: stretch; }
-      .foot .sc-btn { width: 100%; }
+      .foot .sc-btn { width: 100%; justify-content: center; }
     }
   `],
 })

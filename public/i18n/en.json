@@ -2401,7 +2401,11 @@
       "threadCollapse": "Hide earlier messages again",
       "kindEmptyTitle": "Nothing of this kind right now",
       "kindEmptyHint": "{{count}} topic(s) are waiting under \"All\".",
-      "kindShowAll": "Show all"
+      "kindShowAll": "Show all",
+      "swipeHint": "Tip: swipe the card left to skip, right to take the decision.",
+      "swipeSkip": "Skip",
+      "swipeDone": "Done",
+      "swipeAccept": "Accept"
     },
     "dashboard": {
       "thisMonth": "This month",
