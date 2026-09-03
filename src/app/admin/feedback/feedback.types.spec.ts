@@ -3,6 +3,10 @@ import {
   FeedbackRow,
   FeedbackStatus,
   buildWorkflowQueue,
+  DECLINE_REASONS,
+  declineReasonLabelKey,
+  declineReasonTextKey,
+  matchDeclineReason,
   bucketLabelStatus,
   awaitsReview,
   computePace,
@@ -1153,5 +1157,44 @@ describe('issue requests', () => {
     const todo = row('f1', 'open', '2026-09-01T09:00:00Z');
     expect(feedbackBucket(todo, [order('m1', '2026-09-01T10:00:00Z')])).toBe('todo');
     expect(isArchived(todo, [order('m1', '2026-09-01T10:00:00Z')])).toBeFalse();
+  });
+});
+
+describe('canned decline reasons', () => {
+  const texts = {
+    duplicate: '  Das gibt es schon.  ',
+    alreadyShipped: 'Ist längst drin.',
+    notReproducible: 'Konnten wir nicht nachstellen.',
+    tooLittleInfo: 'Zu wenig Info.',
+    offRoadmap: 'Passt nicht zur Richtung.',
+    noise: 'Damit können wir nichts anfangen.',
+  };
+
+  it('gives every reason a distinct label and text key', () => {
+    const keys = DECLINE_REASONS.flatMap((id) => [declineReasonLabelKey(id), declineReasonTextKey(id)]);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(declineReasonLabelKey('duplicate')).toBe('adminFeedback.decline.reasons.duplicate.label');
+    expect(declineReasonTextKey('duplicate')).toBe('adminFeedback.decline.reasons.duplicate.text');
+  });
+
+  it('recognises a note that is still a canned reason, whitespace aside', () => {
+    expect(matchDeclineReason('Das gibt es schon.', texts)).toBe('duplicate');
+    expect(matchDeclineReason('\n Ist längst drin. \n', texts)).toBe('alreadyShipped');
+  });
+
+  it('drops the selection as soon as the admin edits the pre-filled text', () => {
+    expect(matchDeclineReason('Das gibt es schon. Siehe #12.', texts)).toBeNull();
+    expect(matchDeclineReason('Das gibt es scho', texts)).toBeNull();
+  });
+
+  it('treats an empty note as no reason at all', () => {
+    expect(matchDeclineReason('', texts)).toBeNull();
+    expect(matchDeclineReason('   ', texts)).toBeNull();
+  });
+
+  it('never matches against a reason the caller could not translate', () => {
+    // A missing key resolves to '' in the caller's map — that must not make an
+    // empty-ish note look like a deliberate pick.
+    expect(matchDeclineReason('anything', { duplicate: '' })).toBeNull();
   });
 });

@@ -36,6 +36,12 @@ import {
   awaitsTriage,
   buildWorkflowQueue,
   bucketLabelStatus,
+  DECLINE_REASONS,
+  DeclineReasonId,
+  DeclineReasonTexts,
+  declineReasonLabelKey,
+  declineReasonTextKey,
+  matchDeclineReason,
   feedbackBucket,
   filterWorkflowKind,
   filterWorkflowScope,
@@ -957,12 +963,33 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                 @if (fromUser(m) && !archived(m) && !inReview(m)) {
                   @if (declineFormFor() === m.id) {
                     <form class="decline-form" (submit)="declineTopic(m, $event)">
+                      <!-- The same handful of reasons came back over and over
+                           and got retyped every time (feedback d5a779da). The
+                           chips PRE-FILL the note, they do not replace it: the
+                           textarea below stays the source of truth, editable,
+                           and the selection drops away the moment the text no
+                           longer is that reason. -->
+                      <div
+                        class="decline-reasons"
+                        role="group"
+                        [attr.aria-label]="'adminFeedback.decline.reasonsLabel' | translate">
+                        @for (r of declineReasons; track r.id) {
+                          <button
+                            type="button"
+                            class="reason-chip"
+                            [class.active]="declineReason() === r.id"
+                            [attr.aria-pressed]="declineReason() === r.id"
+                            (click)="pickDeclineReason(r.id)">
+                            {{ r.labelKey | translate }}
+                          </button>
+                        }
+                      </div>
                       <textarea
                         class="decline-input"
                         rows="3"
                         required
                         [value]="declineNote()"
-                        (input)="declineNote.set($any($event.target).value)"
+                        (input)="setDeclineNote($any($event.target).value)"
                         [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
                         [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
                       <div class="decline-actions">
@@ -1039,6 +1066,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     .view-tab:focus-visible,
     .status-chip:focus-visible,
     .author-chip:focus-visible,
+    .reason-chip:focus-visible,
     .seg-tab:focus-visible,
     .tb-icon:focus-visible,
     .filter-link:focus-visible,
@@ -1298,7 +1326,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     .status-filter { display: flex; flex-wrap: wrap; gap: 6px; }
     /* Status and author chips are the same control with a different scope, so
        they share one base look; only the per-status accents below differ. */
-    .status-chip, .author-chip {
+    .status-chip, .author-chip, .reason-chip {
       display: inline-flex;
       align-items: center;
       gap: 5px;
@@ -1312,7 +1340,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       cursor: pointer;
       transition: all 0.16s ease;
     }
-    .status-chip:hover, .author-chip:hover, .tb-icon:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .status-chip:hover, .author-chip:hover, .reason-chip:hover, .tb-icon:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .status-chip.active, .author-chip.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
     /* The needs_input filter carries the same violet accent as its status pill. */
     .status-chip.needs_input.active { color: #a78bfa; border-color: #a78bfa; background: rgba(167, 139, 250, 0.14); }
@@ -1729,6 +1757,16 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     }
     .decline-input:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
     .decline-actions { display: flex; gap: 6px; }
+    /* Canned reasons borrow the filter chips' pill wholesale (see the shared
+       .status-chip rule) so the row reads as "pick one" and not as a second set
+       of actions. Only the accent differs: these sit inside a destructive form
+       and what they arm is the note the author will read. */
+    .decline-reasons { display: flex; flex-wrap: wrap; gap: 6px; }
+    .reason-chip:hover { border-color: var(--sc-danger); }
+    .reason-chip.active {
+      color: var(--sc-danger); border-color: var(--sc-danger);
+      background: rgba(248, 113, 113, 0.14);
+    }
 
     @media (max-width: 640px) {
       .main-composer { position: static; }
@@ -3230,14 +3268,59 @@ export class AdminFeedbackComponent implements OnInit {
   /** Draft explanation in that form — mandatory, the author gets to read it. */
   readonly declineNote = signal('');
 
+  /**
+   * The canned reasons, paired with their label key so the picker does not call
+   * a function per chip per change detection run.
+   */
+  readonly declineReasons: readonly { id: DeclineReasonId; labelKey: string }[] =
+    DECLINE_REASONS.map((id) => ({ id, labelKey: declineReasonLabelKey(id) }));
+
+  /** Which chip is lit — derived from the note text, never a mode of its own. */
+  readonly declineReason = signal<DeclineReasonId | null>(null);
+
   openDeclineForm(m: FeedbackRow): void {
     this.declineNote.set('');
+    this.declineReason.set(null);
     this.declineFormFor.set(m.id);
   }
 
   cancelDeclineForm(): void {
     this.declineFormFor.set(null);
     this.declineNote.set('');
+    this.declineReason.set(null);
+  }
+
+  /**
+   * Drop a canned reason into the note — or take it back out when the admin
+   * clicks the lit chip again, which is the only way back to an empty box once
+   * one is in there.
+   */
+  pickDeclineReason(id: DeclineReasonId): void {
+    if (this.declineReason() === id) {
+      this.declineNote.set('');
+      this.declineReason.set(null);
+      return;
+    }
+    this.declineNote.set(this.translate.instant(declineReasonTextKey(id)));
+    this.declineReason.set(id);
+  }
+
+  /**
+   * Every keystroke re-asks "is this still one of the canned reasons?" instead
+   * of clearing the chip on the first edit — so undoing a typo lights the chip
+   * back up, and pasting a reason in by hand lights it in the first place.
+   */
+  setDeclineNote(value: string): void {
+    this.declineNote.set(value);
+    this.declineReason.set(matchDeclineReason(value, this.declineReasonTexts()));
+  }
+
+  private declineReasonTexts(): DeclineReasonTexts {
+    const texts: Record<string, string> = {};
+    for (const r of this.declineReasons) {
+      texts[r.id] = this.translate.instant(declineReasonTextKey(r.id));
+    }
+    return texts as DeclineReasonTexts;
   }
 
   /**

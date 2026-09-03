@@ -2492,7 +2492,34 @@
       "placeholder": "Warum wird das nicht umgesetzt? Der Nutzer liest diesen Text.",
       "confirm": "Nicht umsetzen",
       "cancel": "Abbrechen",
-      "noteRequired": "Bitte eine Begründung angeben – der Nutzer bekommt sie zu lesen."
+      "noteRequired": "Bitte eine Begründung angeben – der Nutzer bekommt sie zu lesen.",
+      "reasonsLabel": "Vorgefertigte Begründungen",
+      "reasons": {
+        "duplicate": {
+          "label": "Duplikat",
+          "text": "Das gibt es hier schon einmal – wir bearbeiten das Thema bereits an anderer Stelle. Danke, dass du es gemeldet hast."
+        },
+        "alreadyShipped": {
+          "label": "Schon umgesetzt",
+          "text": "Das ist inzwischen umgesetzt und live. Schau es dir gern in der aktuellen Version an – wenn etwas noch nicht passt, melde dich einfach neu."
+        },
+        "notReproducible": {
+          "label": "Nicht reproduzierbar",
+          "text": "Wir konnten das nicht nachstellen. Falls es wieder auftritt: gern noch einmal melden, mit den Schritten davor, dem Zeitpunkt und – wenn möglich – einem Screenshot."
+        },
+        "tooLittleInfo": {
+          "label": "Zu wenig Info",
+          "text": "Für uns ist hier zu wenig greifbar, um etwas zu ändern. Beschreib gern noch einmal, was du gemacht hast, was passiert ist und was du stattdessen erwartet hättest."
+        },
+        "offRoadmap": {
+          "label": "Passt nicht zur Richtung",
+          "text": "Das passt nicht zu der Richtung, in die wir die App entwickeln – wir setzen es bewusst nicht um. Danke trotzdem für den Vorschlag."
+        },
+        "noise": {
+          "label": "Kein verwertbares Feedback",
+          "text": "Damit können wir leider nichts anfangen – hier steckt kein Hinweis drin, an dem wir arbeiten könnten."
+        }
+      }
     },
     "review": {
       "headlineShipped": "Geshipped — bitte abnehmen",
