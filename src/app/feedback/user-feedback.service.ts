@@ -90,7 +90,7 @@ export class UserFeedbackService {
     this._error.set(null);
     const { data, error } = await this.sb.client
       .from('my_feedback')
-      .select('id, body, created_at, updated_at, decision_note, author_status, area')
+      .select('id, body, created_at, updated_at, decision_note, author_status, area, can_delete')
       .order('created_at', { ascending: false });
     if (error) {
       this._error.set(error.message);
@@ -296,6 +296,45 @@ export class UserFeedbackService {
     // — a status change the author caused and is currently looking at. Without
     // this it would come back as unread news the moment they close the panel.
     await this.writeReadState([feedbackId]);
+    return true;
+  }
+
+  /**
+   * Withdraw one of the author's own topics (admin feedback 892013b6: "Es sollte
+   * möglich sein, Feedback selber wieder zu löschen wenn man sieht es wurde
+   * schon gemacht").
+   *
+   * A hard delete, and deliberately so — a withdrawn topic is one that should
+   * never have been filed, so leaving a tombstone on the admins' board would
+   * defeat the point. What keeps that safe is the narrow window, and the window
+   * lives in the database: `admin_feedback_delete_author` allows the row away
+   * only while it is still `open` AND nobody has written on it. The client does
+   * not re-implement that rule, it reads the answer as `can_delete`.
+   *
+   * The delete carries no `select()`, because the author has no read policy on
+   * `admin_feedback` — a returning clause would be evaluated against it and come
+   * back empty on a perfectly successful delete. So success is confirmed the
+   * honest way instead: refresh, and check the topic is gone from `my_feedback`.
+   * A row that survived means RLS refused it (the routine claimed the topic
+   * between render and click), which is a real "no" the user must see rather
+   * than a silent no-op.
+   */
+  async withdraw(feedbackId: string): Promise<boolean> {
+    if (!this.uid) return false;
+    if (this.blockedByPreview()) return false;
+    this._error.set(null);
+    this._busy.set(true);
+    const { error } = await this.sb.client.from('admin_feedback').delete().eq('id', feedbackId);
+    this._busy.set(false);
+    if (error) {
+      this._error.set(error.message);
+      return false;
+    }
+    await this.refresh();
+    if (this._topics().some((t) => t.id === feedbackId)) {
+      this._error.set('withdrawRefused');
+      return false;
+    }
     return true;
   }
 }
