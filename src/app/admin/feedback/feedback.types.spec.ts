@@ -15,7 +15,10 @@ import {
   isContinuedAfterShip,
   isOwnTopic,
   isUserSubmitted,
+  ISSUE_REQUEST_MARKER,
+  isIssueRequest,
   lifecycleSnapshot,
+  pendingIssueRequest,
   neededInput,
   normalizeSearchText,
   rankFeedbackSearch,
@@ -1105,5 +1108,50 @@ describe('review gate', () => {
     const stats = computeStats([shipped()], new Map(), null);
     expect(stats.open).toBe(1);
     expect(stats.done).toBe(0);
+  });
+});
+
+/**
+ * "Issue erstellen" is an ORDER in the thread, undoable until the routine
+ * carries it out (admin feedback 18e96ad3).
+ */
+describe('issue requests', () => {
+  const order = (id: string, created: string): FeedbackMessage => ({
+    ...msg(id, 'f1', false, created),
+    body: `${ISSUE_REQUEST_MARKER} bitte ein GitHub-Issue anlegen`,
+  });
+
+  it('recognises the order by its marker, and only on a human message', () => {
+    expect(isIssueRequest(order('m1', '2026-09-01T10:00:00Z'))).toBeTrue();
+    expect(isIssueRequest(msg('m2', 'f1', false, '2026-09-01T10:00:00Z'))).toBeFalse();
+    expect(
+      isIssueRequest({ ...order('m3', '2026-09-01T10:00:00Z'), is_system: true }),
+    ).withContext('the routine never orders itself around').toBeFalse();
+  });
+
+  it('stays open — and undoable — while the topic is still a plain ToDo', () => {
+    const todo = row('f1', 'open', '2026-09-01T09:00:00Z');
+    expect(pendingIssueRequest(todo, [order('m1', '2026-09-01T10:00:00Z')])?.id).toBe('m1');
+    expect(pendingIssueRequest(todo, [])).toBeNull();
+  });
+
+  it('is closed once the routine filed the issue', () => {
+    const replies = [order('m1', '2026-09-01T10:00:00Z')];
+    const filed = row('f1', 'issue_created', '2026-09-01T09:00:00Z', {
+      ship_ref: 'https://github.com/o/r/issues/7',
+    });
+    expect(pendingIssueRequest(filed, replies)).toBeNull();
+    // A ship_ref alone closes it too — the hand-off happened, whatever the
+    // status is called at that moment.
+    const withRef = row('f1', 'open', '2026-09-01T09:00:00Z', {
+      ship_ref: 'https://github.com/o/r/issues/7',
+    });
+    expect(pendingIssueRequest(withRef, replies)).toBeNull();
+  });
+
+  it('does not change the topic bucket — it is still work in the queue', () => {
+    const todo = row('f1', 'open', '2026-09-01T09:00:00Z');
+    expect(feedbackBucket(todo, [order('m1', '2026-09-01T10:00:00Z')])).toBe('todo');
+    expect(isArchived(todo, [order('m1', '2026-09-01T10:00:00Z')])).toBeFalse();
   });
 });

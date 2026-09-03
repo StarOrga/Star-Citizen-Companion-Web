@@ -71,9 +71,12 @@ open ──pick up──▶ in_progress ──green build+tests──▶ shipped
 
   rejected      ← the ADMIN decides this alone (by deleting the topic); the
                   routine NEVER sets it. Reopened to `open` by an admin reply.
-  issue_created ← the ADMIN archives a topic against a GitHub issue
-                  (ship_ref = issue url); the routine NEVER sets it. Reopened to
-                  `open` by an admin reply.
+  issue_created ← the topic became a GitHub ISSUE instead of a change
+                  (ship_ref = issue url). Set by the ROUTINE when the thread
+                  carries an open **[ISSUE]** order (see "Issue erstellen"
+                  below), or by an ADMIN recording an issue that already exists
+                  ("Issue-Link eintragen"). Goes through the sign-off gate like
+                  a ship. Reopened to `open` by an admin reply.
   declined      ← the ADMIN declines a USER-submitted topic ("nicht umsetzen &
                   löschen", decision_note = the explanation the author reads);
                   the routine NEVER sets it. Reopened to `open` by an admin reply.
@@ -105,6 +108,38 @@ any of them flips back into the active half as soon as it is reopened. The
 routine works the active half (`open` / `in_progress` / `needs_input`) plus these
 shipped-with-a-fresh-reply continuations. `needs_input_author` is active too, but
 it belongs to the admin and the author, never to the routine.
+
+### "Issue erstellen" — an order in the thread, not a status
+
+An admin can decide a topic should become a **GitHub issue instead of a
+change**. That decision is an *instruction to this routine*, so it rides in the
+topic's thread: the board's "Issue erstellen" button posts an ordinary
+(`is_system = false`) reply whose body starts with the literal, never-translated
+token
+
+```
+**[ISSUE]**
+```
+
+and leaves the row exactly as it was — normally `status = 'open'`, in its place
+in the oldest-first queue. Nothing is archived and no `ship_ref` is written, so
+the admin can take the order back by deleting that message while it is still
+undelivered (admin feedback 18e96ad3: "solange das issue noch nicht erstellt
+wurde sondern nur in todo ist").
+
+**When STEP 1 picks up a topic whose thread carries an open `**[ISSUE]**`
+message, do not implement it.** File the GitHub issue instead, then close the
+hand-off the same way a ship closes: `status = 'issue_created'`, `ship_ref` =
+the issue url. From there the ordinary outcome path applies — the row goes into
+the sign-off gate (`awaitsReview`) and reaches the Archive only when the admin
+accepts it. The order is "open" exactly while `status <> 'issue_created'` and
+`ship_ref is null`; once either is set the request has been carried out and the
+undo disappears from the board.
+
+This replaces the old motion, where "Issue erstellt" was a *record*: the admin
+filed the issue by hand and the same click archived the topic. Recording an
+issue that already exists is still possible — it is the separate "Issue-Link
+eintragen" form — but it is no longer what the button says.
 
 **The queue is additionally gated on `triaged`.** A topic filed by a non-admin
 through the user feedback FAB (`source = 'user'`) enters `triaged = false` and
@@ -1618,7 +1653,7 @@ Animations API, no dependency). All of it is suppressed under
 | column           | meaning                                                    |
 |------------------|------------------------------------------------------------|
 | `seq`            | the topic's **stable reference number** ("#42"), from sequence `admin_feedback_seq_seq` — see "Referring to a topic by number" (feedback `21587480`) |
-| `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `issue_created` = admin-driven hand-off to a GitHub issue · `declined` + `needs_input_author` = admin-driven, user topics only · `rejected` = legacy/admin-only, never set by the routine |
+| `status`         | `open` \| `in_progress` \| `shipped` \| `needs_input` (routine-driven) · `issue_created` = hand-off to a GitHub issue, written by the routine on an open `**[ISSUE]**` order or by an admin recording an existing issue · `declined` + `needs_input_author` = admin-driven, user topics only · `rejected` = legacy/admin-only, never set by the routine |
 | `ship_ref`       | link that closed the topic: PR/commit URL for `shipped`, GitHub issue URL for `issue_created` (also set on a review-hold `in_progress` row) |
 | `processing_note`| routine's note (reject reason / red-build hint) — **admin-only**, never shown to a feedback author |
 | `shipped_at`     | set (and re-set) at each merge to `main`; the review loop's query (d) compares the newest reply against it to detect an admin's post-ship continuation |
@@ -1661,14 +1696,22 @@ Active/Archive toggle inside the **overview** mode renders (migration
   thread's review reply. A reopened `issue_created` topic loses its issue link
   from `ship_ref` — the GitHub issue itself is untouched.)
 
-`issue_created` is a **terminal, admin-set** status: the admin archives a topic
-by pasting its GitHub issue URL in the panel (button "Issue created"), which
-writes `status='issue_created'` + `ship_ref=<issue url>` + `processed_at=now()`.
-Its purpose is the "tracked elsewhere, done here" case — the topic leaves the
-active queue without being deleted and without pretending it shipped. **The
-routine never sets `issue_created` and never touches a row while it carries that
-status** — but an admin reply reopens it to `open` first (the reopen trigger), and
-from then on it is an ordinary `open` item the routine works. Legacy `rejected`
+`issue_created` is the "tracked elsewhere" outcome: the topic leaves the work
+queue without being deleted and without pretending it shipped. It has two
+writers (admin feedback 18e96ad3):
+
+- **the ROUTINE**, when the topic's thread carries an open `**[ISSUE]**` order —
+  it files the issue and writes `status='issue_created'` + `ship_ref=<issue url>`
+  + `processed_at=now()`. See "Issue erstellen" near the top of this document;
+- **an ADMIN**, recording an issue that already exists ("Issue-Link eintragen",
+  same three columns).
+
+Either way the row lands in the sign-off gate first, not straight in the
+Archive. Until feedback 18e96ad3 the admin path was the only one and the button
+said "Issue erstellt" — a record, filed by hand — which read as an order and was
+not one. **The routine never touches a row while it rests in `issue_created`** —
+but an admin reply reopens it to `open` first (the reopen trigger), and from then
+on it is an ordinary `open` item the routine works. Legacy `rejected`
 rows are archived rather than hidden so they stay reachable instead of being
 orphaned in a view nobody opens — and they reopen on an admin reply the same way.
 
