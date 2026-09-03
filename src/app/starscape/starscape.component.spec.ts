@@ -490,6 +490,93 @@ describe('StarscapeComponent', () => {
     f.destroy();
   });
 
+  /* ---------------------------------------------------------------- *
+   * Coming back to the tab must not stutter (admin feedback 2bf4ab11).
+   *
+   * The gallery's rows live in a root service, so re-entering the page
+   * re-renders every page the visitor had paged in. Both halves of the
+   * fix are pinned here: the wall is built a page per frame, and a tile
+   * that already decoded is not rebuilt from its skeleton.
+   * ---------------------------------------------------------------- */
+
+  it('opens the wall a page at a time instead of building every loaded page at once', fakeAsync(() => {
+    const svc = serviceStub(Array.from({ length: 60 }, (_, i) => wallpaper(`w${i}`)));
+    const f = setup(svc);
+    const painted = (): number => f.nativeElement.querySelectorAll('.tile-wrap').length;
+
+    // First frame: the shell and one page. Six "load more" clicks used to mean
+    // ~144 tiles built between two frames before anything could be shown.
+    expect(painted()).toBe(24);
+
+    tick(16);
+    f.detectChanges();
+    expect(painted()).toBe(48);
+
+    tick(16);
+    f.detectChanges();
+    expect(painted()).toBe(60);
+
+    // ...and the fill stops there rather than queueing frames forever.
+    tick(16);
+    f.detectChanges();
+    expect(painted()).toBe(60);
+    f.destroy();
+  }));
+
+  it('does not restart the fill from the top when "load more" appends a page', fakeAsync(() => {
+    const svc = serviceStub(Array.from({ length: 24 }, (_, i) => wallpaper(`w${i}`)));
+    const f = setup(svc);
+    const painted = (): number => f.nativeElement.querySelectorAll('.tile-wrap').length;
+    expect(painted()).toBe(24);
+
+    svc.wallpapers.set([
+      ...svc.wallpapers(),
+      ...Array.from({ length: 24 }, (_, i) => wallpaper(`x${i}`)),
+    ]);
+    f.detectChanges();
+    tick(16);
+    f.detectChanges();
+    // The page that was already on screen keeps its tiles; only the new one is
+    // staged. Restarting at 24 would re-create every tile the user is looking at.
+    expect(painted()).toBe(48);
+    f.destroy();
+  }));
+
+  it('keeps a decoded tile decoded across leaving the page and coming back', () => {
+    const svc = serviceStub([first]);
+    const f = setup(svc);
+    // Before the preview lands, the skeleton holds the box — and a skeleton is a
+    // <canvas> with two observers and an rAF loop (scNeuroField).
+    expect(f.nativeElement.querySelector('.tile-skel')).not.toBeNull();
+    f.componentInstance.onLoad('abc123', {
+      naturalWidth: 1920,
+      naturalHeight: 1080,
+    } as HTMLImageElement);
+    f.detectChanges();
+    expect(f.nativeElement.querySelector('.tile-skel')).toBeNull();
+    // The image ARRIVING is what earns the one-shot acquisition flash.
+    expect((f.nativeElement.querySelector('.tile') as HTMLElement).classList).toContain('loaded');
+    f.destroy();
+
+    // Switching tabs destroys the component; the rows survive in the root
+    // service, and so must the decode state — otherwise every tile that already
+    // painted rebuilds its canvas skeleton on the way back in.
+    const back = TestBed.createComponent(StarscapeComponent);
+    back.detectChanges();
+    expect(back.nativeElement.querySelector('.tile-skel')).toBeNull();
+    const img = back.nativeElement.querySelector('.tile-img') as HTMLImageElement;
+    expect(img.classList).toContain('ready');
+    // The tile reserves the exact box it decoded to, so the cached bytes landing
+    // again cannot reflow the wall.
+    expect(Number(back.componentInstance.tileRatio('abc123'))).toBeCloseTo(16 / 9, 3);
+    expect(img.style.aspectRatio).not.toBe('');
+    // ...but a page merely OPENING is not an arrival: replaying the box-shadow
+    // flash on every tile at once would be a stutter of its own.
+    expect((back.nativeElement.querySelector('.tile') as HTMLElement).classList)
+      .not.toContain('loaded');
+    back.destroy();
+  });
+
   it('paints the server-side ranking (not the paged list) while Top-N is on', () => {
     const votes = votesStub();
     votes.topOnly.set(true);
