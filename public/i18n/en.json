@@ -2637,6 +2637,8 @@
     "you": "You",
     "questionBadge": "Question",
     "questionsPending": "A question is waiting for your answer",
+    "openWithNews": "Open feedback – {{count}} updates",
+    "newBadge": "New",
     "answerPlaceholder": "Your answer…",
     "answer": "Reply",
     "declinedTitle": "Why this is not being implemented",

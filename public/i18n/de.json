@@ -2637,6 +2637,8 @@
     "you": "Du",
     "questionBadge": "Rückfrage",
     "questionsPending": "Es wartet eine Rückfrage auf deine Antwort",
+    "openWithNews": "Feedback öffnen – {{count}} Neuigkeiten",
+    "newBadge": "Neu",
     "answerPlaceholder": "Deine Antwort…",
     "answer": "Antworten",
     "declinedTitle": "Warum das nicht umgesetzt wird",
