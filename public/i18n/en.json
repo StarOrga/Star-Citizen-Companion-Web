@@ -2209,8 +2209,7 @@
     "loadMore": "Load {{count}} more",
     "toggleDetails": "Expand or collapse this entry",
     "topicNumber": "Topic #{{n}} — a fixed number you can refer to",
-    "showMore": "more",
-    "showLess": "Show less",
+    "moreActions": "More actions",
     "filter": {
       "label": "Filter by author",
       "all": "All",
@@ -2277,6 +2276,8 @@
       "routineBadge": "Auto",
       "reply": "Reply",
       "replyPlaceholder": "Write a reply… (Markdown supported)",
+      "foldExpand": "Show {{count}} message(s) in between",
+      "foldCollapse": "Hide the {{count}} message(s) in between again",
       "reopenHint": "Replying reopens this archived topic — it goes back to ToDo and the routine picks it up again."
     },
     "compose": {
@@ -2428,6 +2429,7 @@
       "asQuestion": "Send as a question to the sender (parks the topic until they answer)",
       "messagePlaceholder": "Message to the sender…",
       "messageSend": "Send to author",
+      "questionSend": "Send as a question",
       "questionBadge": "Question",
       "fromTeam": "Team",
       "fromAuthor": "Sender"

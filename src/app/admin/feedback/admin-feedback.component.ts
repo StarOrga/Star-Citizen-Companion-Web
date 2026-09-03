@@ -38,6 +38,8 @@ import {
   feedbackBucket,
   filterWorkflowKind,
   filterWorkflowScope,
+  FoldedThread,
+  foldThread,
   isArchived,
   isContinuedAfterShip,
   isUserSubmitted,
@@ -330,7 +332,9 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
               </button>
             </div>
             <!-- Docked panel only: reveal search / fold the chips / expand all,
-                 so the prime filter row stays a single line (feedback 3133f9). -->
+                 so the prime filter row stays a single line (feedback 3133f9).
+                 The full board gets its own expand-all at the end of the row —
+                 see below; its chips are never folded, so it has no cluster. -->
             @if (embedded()) {
               <div class="toolbar-icons">
                 <button
@@ -489,6 +493,20 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
               </div>
             }
             }
+            <!-- Full board: fold every topic at once. The cards collapse here
+                 too since feedback 03d7e546, so the board needs the same
+                 "alles zu" the docked panel has had — it just sits at the end of
+                 the filter row instead of in the panel's icon cluster. -->
+            @if (!embedded() && visibleMessages().length > 1) {
+              <button
+                type="button"
+                class="tb-icon expand-all"
+                (click)="toggleExpandAll()"
+                [attr.aria-pressed]="allExpanded()">
+                <span class="chev" [class.open]="allExpanded()" aria-hidden="true">▸</span>
+                {{ (allExpanded() ? 'adminFeedback.collapseAll' : 'adminFeedback.expandAll') | translate }}
+              </button>
+            }
           </div>
         </div>
 
@@ -596,69 +614,103 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
         }
       </ng-template>
 
+      <!-- One thread message, wherever a thread is drawn. Both ends of a folded
+           thread render through this, so the fold can never drift into two
+           slightly different message layouts (feedback 03d7e546). -->
+      <ng-template #threadReply let-msg>
+        <div
+          class="reply"
+          [class.is-system]="msg.is_system"
+          [class.is-self]="!msg.is_system && msg.author_id === selfId()">
+          <div class="reply-head">
+            <span class="reply-author">{{ authorLabelFor(msg) }}</span>
+            @if (msg.is_system) { <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span> }
+            <span class="reply-ts">{{ msg.created_at | scDate: (embedded() ? 'date' : 'datetime') }}</span>
+          </div>
+          @let reply = render(msg.body);
+          <div class="reply-body" [innerHTML]="reply.html"></div>
+          <sc-feedback-attachments [images]="reply.images" />
+        </div>
+      </ng-template>
+
+      <!-- One message of the author-visible channel — same shape, other labels. -->
+      <ng-template #authorReply let-am>
+        <div class="reply" [class.is-self]="am.from_admin">
+          <div class="reply-head">
+            <span class="reply-author">
+              {{ (am.from_admin ? 'adminFeedback.userTopic.fromTeam' : 'adminFeedback.userTopic.fromAuthor') | translate }}
+            </span>
+            @if (am.is_question) {
+              <span class="reply-badge">{{ 'adminFeedback.userTopic.questionBadge' | translate }}</span>
+            }
+            <span class="reply-ts">{{ am.created_at | scDate: 'datetime' }}</span>
+          </div>
+          @let authorBody = render(am.body);
+          <div class="reply-body" [innerHTML]="authorBody.html"></div>
+          <sc-feedback-attachments [images]="authorBody.images" />
+        </div>
+      </ng-template>
+
+      <!-- The one disclosure a folded thread gets: the "…" that stands in for
+           everything between its first and its last message. -->
+      <ng-template #foldToggle let-key let-count="count">
+        <button
+          type="button"
+          class="thread-more"
+          [attr.aria-expanded]="foldOpen(key)"
+          (click)="toggleFold(key)">
+          <span class="ellipsis" aria-hidden="true">{{ foldOpen(key) ? '⌃' : '…' }}</span>
+          {{ (foldOpen(key) ? 'adminFeedback.thread.foldCollapse' : 'adminFeedback.thread.foldExpand')
+              | translate: { count: count } }}
+        </button>
+      </ng-template>
+
       <ng-template #msgCard let-m>
         <article class="msg sc-card" [id]="cardDomId(m.id)" [class.is-self]="m.author_id === selfId()">
-          @if (embedded()) {
-            <!-- Compact panel: the whole topic collapses to a single clickable
-                 one-liner — chevron · generated title · author · status. The day
-                 heading above carries the date, so no per-row timestamp is shown
-                 (feedback 92f08bb4). -->
-            <button
-              type="button"
-              class="msg-head one-liner"
-              (click)="toggleExpand(m.id)"
-              [attr.aria-expanded]="isExpanded(m.id)"
-              [attr.aria-label]="'adminFeedback.toggleDetails' | translate">
-              <span class="chev" [class.open]="isExpanded(m.id)">▸</span>
-              <!-- Stable reference number (feedback 21587480) — deliberately
-                   quiet and ahead of the title, so it reads as a handle for the
-                   topic rather than as part of it. -->
-              @if (topicNo(m); as no) {
-                <span
-                  class="topic-no"
-                  [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
-              }
-              <span class="topic-title">{{ topicTitle(m.body) }}</span>
-              <span class="row-author">{{ authorLabel(m) }}</span>
-              <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
-            </button>
-          } @else {
-            <div class="msg-head">
-              @if (topicNo(m); as no) {
-                <span
-                  class="topic-no"
-                  [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
-              }
-              <span class="author">{{ authorLabel(m) }}</span>
+          <!-- ONE card head, in the docked panel and on the full board alike
+               (feedback 03d7e546): chevron · #N · generated title · author ·
+               date · status. The full board used to render a non-interactive
+               head and keep every card permanently open — which is why
+               "expandieren/collapsen funktioniert nicht" was literally true
+               there: there was nothing to click. The date is dropped in the
+               panel, where the day heading above already carries it (feedback
+               92f08bb4). -->
+          <button
+            type="button"
+            class="msg-head one-liner"
+            (click)="toggleExpand(m.id)"
+            [attr.aria-expanded]="isExpanded(m.id)"
+            [attr.aria-label]="'adminFeedback.toggleDetails' | translate">
+            <span class="chev" [class.open]="isExpanded(m.id)">▸</span>
+            <!-- Stable reference number (feedback 21587480) — deliberately
+                 quiet and ahead of the title, so it reads as a handle for the
+                 topic rather than as part of it. -->
+            @if (topicNo(m); as no) {
+              <span
+                class="topic-no"
+                [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
+            }
+            <span class="topic-title">{{ topicTitle(m.body) }}</span>
+            <span class="row-author">{{ authorLabel(m) }}</span>
+            @if (!embedded()) {
               <span class="ts">{{ m.created_at | scDate: 'datetime' }}</span>
-              <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
-            </div>
-          }
+            }
+            <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+          </button>
 
-          @if (!embedded() || isExpanded(m.id)) {
+          @if (isExpanded(m.id)) {
            <!-- Animate the fold only in the panel; the full board keeps every
                 card open, so its detail region is never toggled. -->
            <div class="msg-detail" [@expandCollapse] [@.disabled]="!embedded()">
-            <!-- Long bodies are clamped to their first two sentences on the full
-                 board (feedback 73dfa165) so the list stays scannable; expand to
-                 read the rest. In the compact FAB panel the whole card already
-                 collapses, so the body is shown in full when opened there.
-                 Screenshots ride along as thumbnails in both states — they are
-                 attachments now, not part of the text (feedback a660536a). -->
+            <!-- The topic's own text: the conversation's INITIAL message, always
+                 whole. The two-sentence clamp that used to live here (feedback
+                 73dfa165) is gone with feedback 03d7e546 — the card itself folds
+                 now, in both shells, so a second expand control inside an
+                 already expanded card was one fold too many. Screenshots ride
+                 along as thumbnails, they are attachments rather than part of
+                 the text (feedback a660536a). -->
             @let body = render(m.body);
-            @if (!embedded()) {
-              @let bp = bodyPreview(m.body);
-              @if (bp.truncated && !isBodyExpanded(m.id)) {
-                <div class="msg-body clamped">{{ bp.text }}<button type="button" class="body-toggle" (click)="toggleBody(m.id)">… {{ 'adminFeedback.showMore' | translate }}</button></div>
-              } @else {
-                <div class="msg-body" [innerHTML]="body.html"></div>
-                @if (bp.truncated) {
-                  <button type="button" class="body-toggle" (click)="toggleBody(m.id)">{{ 'adminFeedback.showLess' | translate }}</button>
-                }
-              }
-            } @else {
-              <div class="msg-body" [innerHTML]="body.html"></div>
-            }
+            <div class="msg-body" [innerHTML]="body.html"></div>
             <sc-feedback-attachments [images]="body.images" />
 
             <!-- ship_ref holds either the PR that shipped the topic or the
@@ -678,32 +730,27 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
               <p class="proc-note">{{ m.processing_note }}</p>
             }
 
-            <!-- Per-topic thread: follow-up replies (human admins + the routine). -->
-            @if (messagesFor(m.id).length > 0) {
+            <!-- Per-topic thread (admin ↔ routine), folded to its two ends
+                 (feedback 03d7e546): the topic body above is where the
+                 conversation started, so what has to stay in view here is the
+                 LAST message — the one that is waiting for a reaction. The
+                 first reply keeps its place as the thread's opening, everything
+                 between the two sits behind one "…" that says how much it
+                 hides. Same rule, same control as the author channel below and
+                 as the Abarbeiten run. -->
+            @let tf = threadFold(m.id);
+            @if (tf.tail.length > 0) {
               <div class="thread">
-                @for (msg of messagesFor(m.id); track msg.id) {
-                  <div class="reply" [class.is-system]="msg.is_system" [class.is-self]="!msg.is_system && msg.author_id === selfId()">
-                    <div class="reply-head">
-                      <span class="reply-author">{{ authorLabelFor(msg) }}</span>
-                      @if (msg.is_system) { <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span> }
-                      <span class="reply-ts">{{ msg.created_at | scDate: (embedded() ? 'date' : 'datetime') }}</span>
-                    </div>
-                    @let reply = render(msg.body);
-                    @if (!embedded()) {
-                      @let rp = bodyPreview(msg.body);
-                      @if (rp.truncated && !isBodyExpanded(msg.id)) {
-                        <div class="reply-body clamped">{{ rp.text }}<button type="button" class="body-toggle" (click)="toggleBody(msg.id)">… {{ 'adminFeedback.showMore' | translate }}</button></div>
-                      } @else {
-                        <div class="reply-body" [innerHTML]="reply.html"></div>
-                        @if (rp.truncated) {
-                          <button type="button" class="body-toggle" (click)="toggleBody(msg.id)">{{ 'adminFeedback.showLess' | translate }}</button>
-                        }
-                      }
-                    } @else {
-                      <div class="reply-body" [innerHTML]="reply.html"></div>
-                    }
-                    <sc-feedback-attachments [images]="reply.images" />
-                  </div>
+                @if (tf.lead; as lead) {
+                  <ng-container [ngTemplateOutlet]="threadReply" [ngTemplateOutletContext]="{ $implicit: lead }"></ng-container>
+                }
+                @if (tf.hidden.length > 0) {
+                  <ng-container
+                    [ngTemplateOutlet]="foldToggle"
+                    [ngTemplateOutletContext]="{ $implicit: tf.key, count: tf.hidden.length }"></ng-container>
+                }
+                @for (msg of tf.tail; track msg.id) {
+                  <ng-container [ngTemplateOutlet]="threadReply" [ngTemplateOutletContext]="{ $implicit: msg }"></ng-container>
                 }
               </div>
             }
@@ -769,30 +816,34 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                 </header>
                 <p class="ac-hint">{{ 'adminFeedback.userTopic.channelHint' | translate }}</p>
 
-                @if (authorMessagesFor(m.id).length > 0) {
+                <!-- Same fold as the thread above (feedback 03d7e546): first
+                     message, one "…" for the middle, newest message. -->
+                @let af = authorFold(m.id);
+                @if (af.tail.length > 0) {
                   <div class="ac-thread">
-                    @for (am of authorMessagesFor(m.id); track am.id) {
-                      <div class="reply" [class.is-self]="am.from_admin">
-                        <div class="reply-head">
-                          <span class="reply-author">
-                            {{ (am.from_admin ? 'adminFeedback.userTopic.fromTeam' : 'adminFeedback.userTopic.fromAuthor') | translate }}
-                          </span>
-                          @if (am.is_question) {
-                            <span class="reply-badge">{{ 'adminFeedback.userTopic.questionBadge' | translate }}</span>
-                          }
-                          <span class="reply-ts">{{ am.created_at | scDate: 'datetime' }}</span>
-                        </div>
-                        @let authorReply = render(am.body);
-                        <div class="reply-body" [innerHTML]="authorReply.html"></div>
-                        <sc-feedback-attachments [images]="authorReply.images" />
-                      </div>
+                    @if (af.lead; as lead) {
+                      <ng-container [ngTemplateOutlet]="authorReply" [ngTemplateOutletContext]="{ $implicit: lead }"></ng-container>
+                    }
+                    @if (af.hidden.length > 0) {
+                      <ng-container
+                        [ngTemplateOutlet]="foldToggle"
+                        [ngTemplateOutletContext]="{ $implicit: af.key, count: af.hidden.length }"></ng-container>
+                    }
+                    @for (am of af.tail; track am.id) {
+                      <ng-container [ngTemplateOutlet]="authorReply" [ngTemplateOutletContext]="{ $implicit: am }"></ng-container>
                     }
                   </div>
                 }
 
+                <!-- The ONE way to ask this topic's author something (feedback
+                     03d7e546): one box, and one switch that decides whether the
+                     message is a plain note or the Rückfrage that parks the
+                     topic until they answer. The switch is per topic — it used
+                     to be a single board-wide flag, so ticking it on one card
+                     armed every other open card as well. -->
                 @if (!archived(m)) {
                   <label class="ac-ask">
-                    <input type="checkbox" [checked]="askAuthor()" (change)="toggleAskAuthor()" />
+                    <input type="checkbox" [checked]="asksAuthor(m.id)" (change)="toggleAskAuthor(m.id)" />
                     {{ 'adminFeedback.userTopic.asQuestion' | translate }}
                   </label>
                   <sc-feedback-composer
@@ -800,87 +851,108 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                     [draftScope]="authorScope(m.id)"
                     [busy]="busy()"
                     placeholder="adminFeedback.userTopic.messagePlaceholder"
-                    sendLabel="adminFeedback.userTopic.messageSend"
+                    [sendLabel]="asksAuthor(m.id) ? 'adminFeedback.userTopic.questionSend' : 'adminFeedback.userTopic.messageSend'"
                     [onSubmit]="authorReplySubmitFor(m.id)" />
                 }
               </section>
             }
 
-            <!-- Any admin may delete any topic (board is admin-only) — clears a
-                 topic once its handling/rejection is accepted. Active topics can
-                 additionally be archived as "issue created" by pasting the
-                 GitHub issue url (feedback eeba60e7). -->
-            <div class="msg-actions">
-              <!-- A topic in the sign-off gate has already produced its outcome:
-                   the only decisions left are the two in the gate above, so the
-                   "hand it to an issue" / triage controls stay out of the way. -->
-              @if (!archived(m) && !inReview(m)) {
-                @if (issueFormFor() === m.id) {
-                  <form class="issue-form" (submit)="submitIssueRef(m, $event)">
-                    <input
-                      class="issue-input"
-                      type="url"
-                      required
-                      [value]="issueUrl()"
-                      (input)="issueUrl.set($any($event.target).value)"
-                      [attr.placeholder]="'adminFeedback.issue.placeholder' | translate"
-                      [attr.aria-label]="'adminFeedback.issue.placeholder' | translate" />
-                    <button class="sc-btn micro" type="submit" [disabled]="busy()">
-                      {{ 'adminFeedback.issue.save' | translate }}
-                    </button>
-                    <button class="sc-btn micro" type="button" (click)="cancelIssueForm()">
-                      {{ 'adminFeedback.issue.cancel' | translate }}
-                    </button>
-                  </form>
-                } @else {
-                  <button class="sc-btn micro" (click)="openIssueForm(m)" [disabled]="busy()">
-                    {{ 'adminFeedback.issue.mark' | translate }}
-                  </button>
-                }
-                <!-- A user topic is held back from the autonomous routine until
-                     an admin has read it and releases it (feedback 5920cf8c). -->
-                @if (untriaged(m)) {
-                  <button class="sc-btn micro" (click)="releaseToRoutine(m)" [disabled]="busy()">
-                    {{ 'adminFeedback.userTopic.release' | translate }}
-                  </button>
-                }
-              }
+            <!-- ADMIN ACTIONS, behind ONE control (feedback 03d7e546).
+                 "Issue erstellt", "nicht umsetzen & löschen" and "löschen" used
+                 to sit under every card as a permanent row of buttons, next to
+                 two composers and the sign-off gate — the wall the admin asked
+                 us to take apart. They are rare, deliberate acts, so the resting
+                 card offers exactly one "Weitere Aktionen" disclosure and the
+                 buttons (with their inline forms) live inside it. Nothing was
+                 dropped: every status the routine reads — issue_created,
+                 declined, the triage release — is still reachable, one click
+                 deeper.
 
-              <!-- A user-submitted topic is never hard-deleted: the author has
-                   to keep seeing "nicht umgesetzt" plus the reason, so the
-                   delete button becomes "nicht umsetzen & löschen" with a
-                   mandatory comment (feedback 5920cf8c, point 4). -->
-              @if (fromUser(m) && !archived(m) && !inReview(m)) {
-                @if (declineFormFor() === m.id) {
-                  <form class="decline-form" (submit)="declineTopic(m, $event)">
-                    <textarea
-                      class="decline-input"
-                      rows="3"
-                      required
-                      [value]="declineNote()"
-                      (input)="declineNote.set($any($event.target).value)"
-                      [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
-                      [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
-                    <div class="decline-actions">
-                      <button class="sc-btn micro danger" type="submit" [disabled]="busy()">
-                        {{ 'adminFeedback.decline.confirm' | translate }}
-                      </button>
-                      <button class="sc-btn micro" type="button" (click)="cancelDeclineForm()">
-                        {{ 'adminFeedback.decline.cancel' | translate }}
-                      </button>
-                    </div>
-                  </form>
-                } @else {
-                  <button class="sc-btn micro danger" (click)="openDeclineForm(m)" [disabled]="busy()">
-                    {{ 'adminFeedback.decline.mark' | translate }}
-                  </button>
-                }
-              } @else {
-                <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
-                  {{ 'adminFeedback.delete' | translate }}
+                 The one exception stays out in the open: a user topic the
+                 routine is not allowed to touch yet is BLOCKED on that release,
+                 so hiding it would hide the reason the topic is not moving. -->
+            <div class="msg-actions">
+              @if (untriaged(m) && !archived(m) && !inReview(m)) {
+                <button class="sc-btn micro" (click)="releaseToRoutine(m)" [disabled]="busy()">
+                  {{ 'adminFeedback.userTopic.release' | translate }}
                 </button>
               }
+              <button
+                type="button"
+                class="sc-btn micro ghost"
+                (click)="toggleMore(m.id)"
+                [attr.aria-expanded]="moreOpen(m.id)">
+                <span class="chev" [class.open]="moreOpen(m.id)" aria-hidden="true">▸</span>
+                {{ 'adminFeedback.moreActions' | translate }}
+              </button>
             </div>
+
+            @if (moreOpen(m.id)) {
+              <div class="more-actions">
+                <!-- A topic in the sign-off gate has already produced its
+                     outcome: the only decisions left are the two in the gate
+                     above, so the "hand it to an issue" control stays away. -->
+                @if (!archived(m) && !inReview(m)) {
+                  @if (issueFormFor() === m.id) {
+                    <form class="issue-form" (submit)="submitIssueRef(m, $event)">
+                      <input
+                        class="issue-input"
+                        type="url"
+                        required
+                        [value]="issueUrl()"
+                        (input)="issueUrl.set($any($event.target).value)"
+                        [attr.placeholder]="'adminFeedback.issue.placeholder' | translate"
+                        [attr.aria-label]="'adminFeedback.issue.placeholder' | translate" />
+                      <button class="sc-btn micro" type="submit" [disabled]="busy()">
+                        {{ 'adminFeedback.issue.save' | translate }}
+                      </button>
+                      <button class="sc-btn micro" type="button" (click)="cancelIssueForm()">
+                        {{ 'adminFeedback.issue.cancel' | translate }}
+                      </button>
+                    </form>
+                  } @else {
+                    <button class="sc-btn micro" (click)="openIssueForm(m)" [disabled]="busy()">
+                      {{ 'adminFeedback.issue.mark' | translate }}
+                    </button>
+                  }
+                }
+
+                <!-- A user-submitted topic is never hard-deleted: the author has
+                     to keep seeing "nicht umgesetzt" plus the reason, so the
+                     delete button becomes "nicht umsetzen & löschen" with a
+                     mandatory comment (feedback 5920cf8c, point 4). -->
+                @if (fromUser(m) && !archived(m) && !inReview(m)) {
+                  @if (declineFormFor() === m.id) {
+                    <form class="decline-form" (submit)="declineTopic(m, $event)">
+                      <textarea
+                        class="decline-input"
+                        rows="3"
+                        required
+                        [value]="declineNote()"
+                        (input)="declineNote.set($any($event.target).value)"
+                        [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
+                        [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
+                      <div class="decline-actions">
+                        <button class="sc-btn micro danger" type="submit" [disabled]="busy()">
+                          {{ 'adminFeedback.decline.confirm' | translate }}
+                        </button>
+                        <button class="sc-btn micro" type="button" (click)="cancelDeclineForm()">
+                          {{ 'adminFeedback.decline.cancel' | translate }}
+                        </button>
+                      </div>
+                    </form>
+                  } @else {
+                    <button class="sc-btn micro danger" (click)="openDeclineForm(m)" [disabled]="busy()">
+                      {{ 'adminFeedback.decline.mark' | translate }}
+                    </button>
+                  }
+                } @else {
+                  <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
+                    {{ 'adminFeedback.delete' | translate }}
+                  </button>
+                }
+              </div>
+            }
            </div>
           }
         </article>
@@ -998,6 +1070,10 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       color: var(--sc-fg-2);
       font-size: max(0.72rem, var(--sc-fs-floor));
     }
+    /* The full board's head is the same control, only roomier: it has space for
+       the topic's date, which the panel leaves to its day heading. */
+    .msg-head.one-liner .ts { flex: 0 0 auto; }
+    .page:not(.embedded) .msg-head.one-liner .topic-title { font-size: 0.92rem; }
     .msg-head.one-liner:hover .topic-title { color: var(--sc-accent); }
     /* Reference number (feedback 21587480): monospaced digits so a column of
        them lines up, and dim enough that the topic text stays the thing you
@@ -1218,46 +1294,10 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     .rg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .rg-actions .accept { border-color: var(--sc-success); color: var(--sc-success); }
     .rg-actions .accept:hover { background: rgba(74, 222, 128, 0.16); }
-    .rg-actions .ghost { border-color: var(--sc-border); color: var(--sc-fg-2); }
-    .rg-actions .ghost:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
 
-    /* ---- Sign-off queue (the 4th view) ----
-       One row per finished topic: what it was, where the result is, and the two
-       decisions. Deliberately flat — this is a checklist, not a reading view;
-       the full thread is one "Thema öffnen" away. */
-    .rv { display: flex; flex-direction: column; gap: 10px; }
-    .rv-lead { margin: 0; font-size: 0.86rem; font-weight: 600; color: var(--sc-fg-0); }
-    .rv-hint { margin: 0; font-size: max(0.76rem, var(--sc-fs-floor)); line-height: 1.45; color: var(--sc-fg-2); }
-    .rv-card {
-      display: flex; flex-direction: column; gap: 8px;
-      padding: 10px 12px;
-      border-left: 3px solid var(--sc-success);
-    }
-    .rv-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .rv-no {
-      flex: 0 0 auto; color: var(--sc-fg-2);
-      font-size: max(0.74rem, var(--sc-fs-floor)); font-weight: 600;
-      font-variant-numeric: tabular-nums; user-select: all;
-    }
-    .rv-title {
-      flex: 1 1 auto; min-width: 0;
-      overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-      font-size: 0.88rem; font-weight: 600; color: var(--sc-fg-0);
-    }
-    .rv-ts { flex: 0 0 auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
-    .rv-empty {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 30px 20px; text-align: center;
-    }
-    .rv-empty h3 { margin: 0; font-size: 1rem; }
-    .rv-empty p { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; }
-    .rv-empty-icon { font-size: 1.9rem; }
-    /* The sign-off badge is green like the gate it belongs to, not violet like
-       the Rückfrage badge on the processing tab. */
-    .tab-badge.review {
-      background: color-mix(in srgb, var(--sc-success) 28%, transparent);
-      color: var(--sc-success);
-    }
+    /* The sign-off view's own list styles (.rv-*) lived here. The view is gone
+       (feedback d4990269, round 2 — the Abnahmen are worked inside the run), so
+       the last of its CSS goes with it (feedback 03d7e546). */
 
     .status-chip.review { border-color: var(--sc-success); color: var(--sc-success); }
     .status-chip .chip-count { margin-left: 5px; opacity: 0.75; }
@@ -1486,22 +1526,6 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       border-left: 3px solid var(--sc-border);
       color: var(--sc-fg-1);
     }
-    /* Clamped two-sentence preview (plain text) with an inline expand control. */
-    .msg-body.clamped, .reply-body.clamped { color: var(--sc-fg-1); }
-    .body-toggle {
-      display: inline;
-      margin-left: 6px;
-      padding: 0;
-      background: transparent;
-      border: 0;
-      color: var(--sc-accent);
-      font: inherit;
-      font-size: 0.82rem;
-      cursor: pointer;
-    }
-    .body-toggle:hover { text-decoration: underline; }
-    .body-toggle:focus-visible { outline: none; text-decoration: underline; }
-
     .ship-ref { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; align-self: flex-start; }
     .ship-ref:hover { text-decoration: underline; }
     /* Issue links carry the issue_created accent so the archive reads at a glance. */
@@ -1542,7 +1566,53 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       font-style: italic;
     }
 
+    /* ---- The folded middle of a thread (feedback 03d7e546) ----
+       One dashed "…" between the conversation's first and its newest message.
+       Same control on both thread surfaces and deliberately the same look as the
+       Abarbeiten run's fold, so "da ist Verlauf drunter" reads identically
+       wherever the admin meets it. */
+    .thread-more {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      border: 1px dashed var(--sc-border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: max(0.72rem, var(--sc-fs-floor));
+      text-align: left;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .thread-more:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
+    .thread-more:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
+    .thread-more .ellipsis {
+      font-size: 1.1rem; font-weight: 700; line-height: 0.8;
+      letter-spacing: 0.08em; color: var(--sc-fg-0);
+    }
+
     .msg-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* The rare administrative acts, behind the "Weitere Aktionen" disclosure —
+       quiet, set apart by a rule so they never read like part of the answer flow
+       above them (feedback 03d7e546). */
+    .more-actions {
+      display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;
+      padding-top: 8px;
+      border-top: 1px dashed var(--sc-border);
+    }
+    .sc-btn.micro.ghost { border-color: var(--sc-border); color: var(--sc-fg-2); }
+    .sc-btn.micro.ghost:hover:not(:disabled) {
+      border-color: var(--sc-accent); color: var(--sc-accent); background: transparent;
+    }
+    .sc-btn.micro.ghost .chev {
+      display: inline-block; margin-right: 5px;
+      font-size: max(0.7rem, var(--sc-fs-floor)); transition: transform 0.16s ease;
+    }
+    .sc-btn.micro.ghost .chev.open { transform: rotate(90deg); }
+    /* Full board's expand-all: the panel's icon with its label spelled out. */
+    .tb-icon.expand-all { margin-left: auto; }
     /* Inline "issue created" hand-off: paste the issue url, confirm, archived. */
     .issue-form { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .issue-input {
@@ -2263,35 +2333,28 @@ export class AdminFeedbackComponent implements OnInit {
    * out before we scroll to it.
    */
   jumpTo(id: string): void {
-    this._expanded.update((set) => new Set(set).add(id));
+    this.setExpanded(id, true);
     requestAnimationFrame(() => {
       document.getElementById(this.cardDomId(id))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
-  /** True when every topic in the current tab is expanded (embedded panel). */
+  /** True when every topic in the current tab is expanded. */
   readonly allExpanded = computed(() => {
     const visible = this.visibleMessages();
-    return visible.length > 0 && visible.every((m) => this._expanded().has(m.id));
+    return visible.length > 0 && visible.every((m) => this.isExpanded(m.id));
   });
 
   /**
    * Expand or collapse every topic of the current tab at once (feedback
    * c5b6b13c). Collapsing leaves just the topic headings so the board stays
    * scannable; only the tab's own rows are touched, so an expanded card in the
-   * other tab is left as-is.
+   * other tab is left as-is. Available in both shells since feedback 03d7e546 —
+   * the full board folds its cards now, so it needs the same "alles zu".
    */
   toggleExpandAll(): void {
-    const ids = this.visibleMessages().map((m) => m.id);
-    const collapse = this.allExpanded();
-    this._expanded.update((set) => {
-      const next = new Set(set);
-      for (const id of ids) {
-        if (collapse) next.delete(id);
-        else next.add(id);
-      }
-      return next;
-    });
+    const open = !this.allExpanded();
+    for (const m of this.visibleMessages()) this.setExpanded(m.id, open);
   }
 
   /** Page size for the archive — "load more" reveals another batch. */
@@ -2342,38 +2405,119 @@ export class AdminFeedbackComponent implements OnInit {
     return 0;
   }
 
-  /** Per-entry expand state for the embedded chat overview (collapsed by default). */
-  private readonly _expanded = signal<Set<string>>(new Set());
+  /**
+   * Topics whose open state was flipped AWAY from the shell's default — not
+   * "the open ones" (feedback 03d7e546).
+   *
+   * The two shells want opposite defaults: the docked panel keeps topics
+   * collapsed (it is a narrow column and shows one guided question at a time),
+   * the full board opens them (it is the reading surface). Storing the flip
+   * rather than the state lets both live off one set, and it is what finally
+   * gives the full board a working fold — it used to render every card open with
+   * no control to close it, which is exactly the "expandieren/collapsen
+   * funktioniert nicht" the admin hit.
+   */
+  private readonly _flipped = signal<Set<string>>(new Set());
   /** Topics already auto-expanded once, so a manual collapse is not undone on refresh. */
   private readonly _autoExpanded = new Set<string>();
 
+  /** Whether a topic is open when the admin has not touched it. */
+  private defaultOpen(): boolean {
+    return !this.embedded();
+  }
+
   isExpanded(id: string): boolean {
-    return this._expanded().has(id);
+    return this._flipped().has(id) !== this.defaultOpen();
   }
 
   toggleExpand(id: string): void {
-    this._expanded.update((set) => {
+    this.setExpanded(id, !this.isExpanded(id));
+  }
+
+  /** Open or close one topic, keeping {@link _flipped} a set of deviations. */
+  private setExpanded(id: string, open: boolean): void {
+    const flip = open !== this.defaultOpen();
+    this._flipped.update((set) => {
+      if (set.has(id) === flip) return set;
       const next = new Set(set);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (flip) next.add(id);
+      else next.delete(id);
       return next;
     });
   }
 
-  /** Per-body "show full text" state for the two-sentence clamp (feedback 73dfa165). */
-  private readonly _bodyExpanded = signal<Set<string>>(new Set());
+  /**
+   * Threads whose folded middle is unfolded, keyed by {@link threadFold}'s key
+   * (feedback 03d7e546). Session-local and per thread: opening the history is
+   * "let me look", never a preference — the next refresh keeps it, a reload
+   * starts folded again.
+   */
+  private readonly _unfolded = signal<Set<string>>(new Set());
 
-  isBodyExpanded(id: string): boolean {
-    return this._bodyExpanded().has(id);
+  foldOpen(key: string): boolean {
+    return this._unfolded().has(key);
   }
 
-  toggleBody(id: string): void {
-    this._bodyExpanded.update((set) => {
+  toggleFold(key: string): void {
+    this._unfolded.update((set) => {
       const next = new Set(set);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
+  }
+
+  /** A folded thread plus the key its disclosure toggles. */
+  private fold<T>(key: string, messages: readonly T[]): FoldedThread<T> & { key: string } {
+    const folded = foldThread(messages);
+    // Unfolded: everything is on screen in one run, but `hidden` keeps its
+    // messages so the disclosure can still say how much it would fold back.
+    if (this.foldOpen(key)) return { key, lead: null, hidden: folded.hidden, tail: messages };
+    return { key, ...folded };
+  }
+
+  /**
+   * The admin ↔ routine thread of one topic, folded to "first … newest"
+   * (feedback 03d7e546). The topic's own body is the conversation's initial
+   * message and sits above this, so what must never be scrolled for is the
+   * newest reply.
+   */
+  threadFold(id: string): FoldedThread<FeedbackMessage> & { key: string } {
+    return this.fold(`thread:${id}`, this.messagesFor(id));
+  }
+
+  /** The same fold over the author-visible channel of one topic. */
+  authorFold(id: string): FoldedThread<AuthorFeedbackMessage> & { key: string } {
+    return this.fold(`author:${id}`, this.authorMessagesFor(id));
+  }
+
+  /**
+   * Topics whose "Weitere Aktionen" disclosure is open (feedback 03d7e546) —
+   * the rare administrative acts (issue hand-off, nicht umsetzen, löschen) that
+   * used to sit under every card as a permanent row of buttons.
+   */
+  private readonly _moreOpen = signal<Set<string>>(new Set());
+
+  moreOpen(id: string): boolean {
+    return this._moreOpen().has(id);
+  }
+
+  toggleMore(id: string): void {
+    this._moreOpen.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    // Folding the actions away closes whatever form was open inside them, so a
+    // half-typed issue url or decline note can never survive out of sight.
+    if (!this.moreOpen(id)) {
+      if (this.issueFormFor() === id) this.cancelIssueForm();
+      if (this.declineFormFor() === id) this.cancelDeclineForm();
+    }
   }
 
   /** Topics still awaiting the admin's answer (an open Rückfrage), in board order. */
@@ -2397,11 +2541,11 @@ export class AdminFeedbackComponent implements OnInit {
     const awaiting = this.awaitingQuestions();
     if (awaiting.length === 0) return;
     // Already guiding one open question → leave the admin's place untouched.
-    if (awaiting.some((m) => this._expanded().has(m.id))) return;
+    if (awaiting.some((m) => this.isExpanded(m.id))) return;
     const first = awaiting[0];
     if (this._autoExpanded.has(first.id)) return; // manually collapsed — respect it
     this._autoExpanded.add(first.id);
-    this._expanded.update((set) => new Set(set).add(first.id));
+    this.setExpanded(first.id, true);
   }
 
   /**
@@ -2413,15 +2557,11 @@ export class AdminFeedbackComponent implements OnInit {
    */
   private advanceAfterAnswer(answeredId: string): void {
     if (!this.embedded()) return;
-    this._expanded.update((set) => {
-      const next = new Set(set);
-      next.delete(answeredId);
-      return next;
-    });
+    this.setExpanded(answeredId, false);
     const next = this.awaitingQuestions().find((m) => m.id !== answeredId);
     if (!next) return;
     this._autoExpanded.add(next.id);
-    this._expanded.update((set) => new Set(set).add(next.id));
+    this.setExpanded(next.id, true);
     requestAnimationFrame(() => {
       document
         .getElementById(this.cardDomId(next.id))
@@ -2429,31 +2569,13 @@ export class AdminFeedbackComponent implements OnInit {
     });
   }
 
-  /**
-   * First-two-sentences preview of a markdown body plus whether anything was cut
-   * — backs the collapse-by-default clamp on the full board. Images and markup
-   * are stripped for the plain preview; the images themselves ride along as
-   * attachment thumbnails in every state (feedback a660536a), so they no longer
-   * make a short body "expandable".
+  /*
+   * `bodyPreview` (the full board's two-sentence clamp, feedback 73dfa165) lived
+   * here. It is gone with feedback 03d7e546: the card itself folds in both
+   * shells now, so a second expand control *inside* an already expanded card was
+   * one fold too many — and it was the reason a long thread grew a "mehr"
+   * button per message.
    */
-  bodyPreview(body: string): { text: string; truncated: boolean } {
-    const raw = body ?? '';
-    const plain = raw
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .replace(/[*_`#>~]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const parts = plain ? plain.split(/(?<=[.!?])\s+/) : [];
-    let text = parts.slice(0, 2).join(' ').trim();
-    let truncated = parts.length > 2 || text.length < plain.length;
-    const CAP = 300;
-    if (text.length > CAP) {
-      text = text.slice(0, CAP).trimEnd();
-      truncated = true;
-    }
-    return { text: text || plain, truncated };
-  }
 
   constructor() {
     useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
@@ -2877,15 +2999,38 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /**
-   * Whether the next author-channel message is sent as a QUESTION. Opt-in per
+   * Topics whose next author-channel message goes out as a QUESTION. Opt-in per
    * the admin's decision (feedback 5920cf8c, point 3): an ordinary note keeps
    * the topic reading "in Bearbeitung" on the author's side, only a question
    * surfaces there as its own "Rückfrage an dich" status.
+   *
+   * Keyed by topic since feedback 03d7e546. It used to be one board-wide flag,
+   * so ticking the box on one card silently armed every other open card's
+   * composer — the switch has to belong to the thread it sits in.
    */
-  readonly askAuthor = signal(false);
+  private readonly _asksAuthor = signal<Set<string>>(new Set());
 
-  toggleAskAuthor(): void {
-    this.askAuthor.update((v) => !v);
+  asksAuthor(id: string): boolean {
+    return this._asksAuthor().has(id);
+  }
+
+  toggleAskAuthor(id: string): void {
+    this._asksAuthor.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  /** Disarm the question switch once its message went out. */
+  private toggleAskAuthorOff(id: string): void {
+    if (!this.asksAuthor(id)) return;
+    this._asksAuthor.update((set) => {
+      const next = new Set(set);
+      next.delete(id);
+      return next;
+    });
   }
 
   private readonly authorReplySubmitters =
@@ -2917,14 +3062,14 @@ export class AdminFeedbackComponent implements OnInit {
       feedback_id: feedbackId,
       author_id: uid,
       from_admin: true,
-      is_question: this.askAuthor(),
+      is_question: this.asksAuthor(feedbackId),
       body,
     });
     if (error) {
       this.errorMsg.set(error.message);
       return false;
     }
-    this.askAuthor.set(false);
+    this.toggleAskAuthorOff(feedbackId);
     await this.refresh();
     return true;
   }

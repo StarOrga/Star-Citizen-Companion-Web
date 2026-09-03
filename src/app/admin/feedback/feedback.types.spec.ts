@@ -21,6 +21,7 @@ import {
   rankFeedbackSearch,
   refKind,
   filterWorkflowKind,
+  foldThread,
   workflowKindCounts,
   searchFeedback,
   searchTokens,
@@ -549,6 +550,49 @@ describe('workflowFocusIndex', () => {
       msg('m3', 'q1', false, '2026-07-01T12:00:00Z'),
     ];
     expect(workflowFocusIndex(replies)).toBe(2);
+  });
+});
+
+describe('foldThread', () => {
+  const ids = (items: readonly { id: string }[]) => items.map((i) => i.id);
+
+  it('hands a short thread back whole, so nothing grows a needless control', () => {
+    const replies = [
+      msg('m1', 'q1', true, '2026-07-01T10:00:00Z'),
+      msg('m2', 'q1', false, '2026-07-01T11:00:00Z'),
+    ];
+    const folded = foldThread(replies);
+    expect(folded.lead).toBeNull();
+    expect(folded.hidden).toEqual([]);
+    expect(ids(folded.tail)).toEqual(['m1', 'm2']);
+  });
+
+  it('is a no-op on an empty thread', () => {
+    expect(foldThread([])).toEqual({ lead: null, hidden: [], tail: [] });
+  });
+
+  it('keeps the first and the newest message, folding everything between', () => {
+    const replies = ['m1', 'm2', 'm3', 'm4', 'm5'].map((id, i) => msg(id, 'q1', false, `2026-07-0${i + 1}T10:00:00Z`));
+    const folded = foldThread(replies);
+    expect(folded.lead?.id).toBe('m1');
+    expect(ids(folded.hidden)).toEqual(['m2', 'm3', 'm4']);
+    expect(ids(folded.tail)).toEqual(['m5']);
+  });
+
+  it('never loses a message: lead + hidden + tail is the whole thread', () => {
+    const replies = ['m1', 'm2', 'm3', 'm4'].map((id, i) => msg(id, 'q1', false, `2026-07-0${i + 1}T10:00:00Z`));
+    const folded = foldThread(replies);
+    expect(ids([...(folded.lead ? [folded.lead] : []), ...folded.hidden, ...folded.tail])).toEqual(
+      ids(replies),
+    );
+  });
+
+  it('can keep a longer tail on screen', () => {
+    const replies = ['m1', 'm2', 'm3', 'm4'].map((id, i) => msg(id, 'q1', false, `2026-07-0${i + 1}T10:00:00Z`));
+    const folded = foldThread(replies, 2);
+    expect(folded.lead?.id).toBe('m1');
+    expect(ids(folded.hidden)).toEqual(['m2']);
+    expect(ids(folded.tail)).toEqual(['m3', 'm4']);
   });
 });
 

@@ -1292,7 +1292,8 @@ via `labelKey`, and the enlarged view pages through a message's screenshots with
 
 ### "Nicht umsetzen & löschen" (declining a user topic)
 
-For a user-submitted topic the admin's delete button becomes **"Nicht umsetzen &
+For a user-submitted topic the admin's delete button (behind the card's "Weitere
+Aktionen" disclosure since feedback 03d7e546) becomes **"Nicht umsetzen &
 löschen"** with a **mandatory comment**. It writes `status = 'declined'` +
 `decision_note` and also posts the comment into the author channel, so the author
 gets "Nicht umgesetzt" **plus the reason** instead of a topic that silently
@@ -1313,7 +1314,7 @@ panel and on the full board page alike:
 
 | View | Component | What it is for |
 |------|-----------|----------------|
-| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list with each topic's stable `#N` (see below), fuzzy search (see below), status/author filters, new-topic composer |
+| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list with each topic's stable `#N` (see below), fuzzy search (see below), status/author filters, new-topic composer. Every topic is a **collapsible card** with at most two composers and one "Weitere Aktionen" disclosure (see below) |
 | **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through everything that waits on the admin — Rückfragen (oldest first) and, since feedback d4990269, the Abnahmen behind them — **and nothing else** (feedback b0cc6efc). Shows topic + thread + either the inline answer box or the Abnahme's two decisions, plus a "3 von 7" progress rail, "Überspringen", and two lenses: **wessen** (mine/others/all) and **welche Art** (Alle / Rückfragen / Abnahmen — the ex-Abnahme tab). The thread is folded to the message the run points at, with one "…" for the history |
 | **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen, plus pace, throughput and the live lifecycle map (see below) |
 
@@ -1358,6 +1359,42 @@ and no step goes unnoticed:
   line — the click itself is the explanation), and so does an Abnahme decision
   once the write came back and the topic left the queue. Draining the last topic
   reports itself through the "Alles abgearbeitet" screen instead.
+
+### One topic card in the Übersicht (feedback 03d7e546)
+
+Reviewing a topic on the board had grown into a wall: two thread lists at full
+length, two composers, a per-message "mehr" clamp, the sign-off gate and a
+permanent row of "Issue erstellt / freigeben / nicht umsetzen / löschen" buttons
+under every card — and on the **full board page** the card could not even be
+folded, because only the docked panel rendered a clickable head. The card is now
+the same control in both shells:
+
+- **The head is a button, everywhere.** Chevron · `#N` · generated title ·
+  author · date (full board only — the panel's day heading carries it) · status
+  pills. The panel keeps topics **collapsed** by default, the full board keeps
+  them **open**; the component stores only the deviation from that default
+  (`_flipped`), and "alle aus-/einklappen" exists in both shells. The
+  two-sentence body clamp is gone with it: a card that folds does not need a
+  second fold inside itself.
+- **Both threads are folded to their two ends.** `foldThread` in
+  `feedback.types.ts` returns `{ lead, hidden, tail }` — the conversation's
+  first message, everything between it behind one "…" that names its count, and
+  the newest message, which is what the admin has to react to. One rule, used by
+  the admin ↔ routine thread *and* the author channel; the Abarbeiten run folds
+  the same way (anchored at its focus index instead of at the thread start).
+  Unfolding is per thread and session-local.
+- **One question affordance per thread.** The admin ↔ routine thread has exactly
+  one composer, the author channel exactly one — plus its single "als Rückfrage
+  senden" switch, which is now **per topic** (it used to be one board-wide flag,
+  so ticking it on one card armed every other open card's composer).
+- **The rare acts sit behind one disclosure.** "Weitere Aktionen" reveals the
+  issue hand-off, "nicht umsetzen & löschen" / "löschen" and their inline forms;
+  closing it discards a half-typed form rather than leaving it open out of
+  sight. **No status write changed** — `issue_created`, `declined`, the triage
+  release and the sign-off gate's two decisions are all still there, one click
+  deeper. The one action that stays in the open is "Für die Routine freigeben"
+  on an untriaged topic: the topic is *blocked* on it, so hiding it would hide
+  the reason nothing is happening.
 
 ### The run is a carousel with skip (feedback d4990269)
 

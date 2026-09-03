@@ -2209,8 +2209,7 @@
     "loadMore": "Weitere {{count}} laden",
     "toggleDetails": "Eintrag aus- oder einklappen",
     "topicNumber": "Thema #{{n}} — feste Nummer, auf die du dich beziehen kannst",
-    "showMore": "mehr",
-    "showLess": "Weniger anzeigen",
+    "moreActions": "Weitere Aktionen",
     "filter": {
       "label": "Nach Ersteller filtern",
       "all": "Alle",
@@ -2277,6 +2276,8 @@
       "routineBadge": "Auto",
       "reply": "Antworten",
       "replyPlaceholder": "Antwort schreiben… (Markdown möglich)",
+      "foldExpand": "{{count}} Nachricht(en) dazwischen einblenden",
+      "foldCollapse": "{{count}} Nachricht(en) dazwischen wieder ausblenden",
       "reopenHint": "Eine Antwort öffnet dieses archivierte Thema wieder — es geht zurück auf ToDo und die Routine nimmt es erneut auf."
     },
     "compose": {
@@ -2428,6 +2429,7 @@
       "asQuestion": "Als Rückfrage an den Absender senden (parkt das Thema, bis er antwortet)",
       "messagePlaceholder": "Nachricht an den Absender…",
       "messageSend": "An Absender senden",
+      "questionSend": "Als Rückfrage senden",
       "questionBadge": "Rückfrage",
       "fromTeam": "Team",
       "fromAuthor": "Absender"

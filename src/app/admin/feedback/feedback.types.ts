@@ -582,6 +582,39 @@ export function workflowFocusIndex(replies: readonly FeedbackMessage[]): number 
   return i;
 }
 
+/**
+ * A thread folded to its two ends (feedback 03d7e546).
+ *
+ * A long conversation pushed the message the admin actually has to react to out
+ * of sight, so every thread surface on the board shows the same three parts: the
+ * **first** message (where the conversation started), one disclosure standing in
+ * for everything between, and the **last** message(s) (what is waiting for an
+ * answer). Nothing is dropped — the middle is one click away.
+ */
+export interface FoldedThread<T> {
+  /** The conversation's first message, or `null` when nothing is folded away. */
+  lead: T | null;
+  /** The messages the disclosure stands in for — empty when nothing is folded. */
+  hidden: readonly T[];
+  /** The newest message(s): what the admin reacts to. */
+  tail: readonly T[];
+}
+
+/**
+ * Fold a thread to "first … last" (see {@link FoldedThread}). Threads short
+ * enough to fit (`keepTail + 1` messages or fewer) are handed back whole, so a
+ * two-message conversation never grows a control that hides nothing.
+ *
+ * Deliberately generic: the board runs it over both thread kinds — the admin ↔
+ * routine thread and the author channel — and one rule keeps them identical.
+ */
+export function foldThread<T>(messages: readonly T[], keepTail = 1): FoldedThread<T> {
+  const keep = Math.max(1, keepTail);
+  if (messages.length <= keep + 1) return { lead: null, hidden: [], tail: messages };
+  const cut = messages.length - keep;
+  return { lead: messages[0], hidden: messages.slice(1, cut), tail: messages.slice(cut) };
+}
+
 // ---- Progress statistics --------------------------------------------------
 
 /**
