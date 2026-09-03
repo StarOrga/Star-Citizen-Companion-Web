@@ -8,8 +8,10 @@ import {
   REPORT_CATEGORIES,
   REPORT_REASON_MAX,
   ReportCategory,
+  daysUntilExpiry,
   edgeInitial,
   edgeLabel,
+  isExpiringSoon,
   isValidHandle,
 } from './friends.types';
 
@@ -95,6 +97,7 @@ import {
             <span class="count">{{ graph().incoming.length }}</span>
           }
         </h2>
+        <p class="hint">{{ 'friends.incoming.expiryHint' | translate }}</p>
         @if (graph().incoming.length === 0) {
           <p class="empty-inline">{{ 'friends.incoming.empty' | translate }}</p>
         } @else {
@@ -104,7 +107,16 @@ import {
                 <span class="avatar">{{ initialOf(e) }}</span>
                 <span class="edge-main">
                   <span class="edge-name">{{ labelOf(e) }}</span>
-                  <span class="edge-meta">{{ e.since | scDate }}</span>
+                  <span class="edge-meta">
+                    {{ e.since | scDate }}
+                    @if (daysLeft(e); as d) {
+                      <span class="expiry" [class.soon]="expiringSoon(e)">
+                        {{ 'friends.expiry.left' | translate: { days: d } }}
+                      </span>
+                    } @else if (hasDeadline(e)) {
+                      <span class="expiry soon">{{ 'friends.expiry.today' | translate }}</span>
+                    }
+                  </span>
                 </span>
                 <span class="edge-actions">
                   <button type="button" class="sc-btn micro sc-btn-primary"
@@ -169,6 +181,7 @@ import {
 
       <div class="sc-card section">
         <h2>{{ 'friends.outgoing.title' | translate }}</h2>
+        <p class="hint">{{ 'friends.outgoing.expiryHint' | translate }}</p>
         @if (graph().outgoing.length === 0) {
           <p class="empty-inline">{{ 'friends.outgoing.empty' | translate }}</p>
         } @else {
@@ -178,7 +191,16 @@ import {
                 <span class="avatar">{{ initialOf(e) }}</span>
                 <span class="edge-main">
                   <span class="edge-name">{{ labelOf(e) }}</span>
-                  <span class="edge-meta">{{ e.since | scDate }}</span>
+                  <span class="edge-meta">
+                    {{ e.since | scDate }}
+                    @if (daysLeft(e); as d) {
+                      <span class="expiry" [class.soon]="expiringSoon(e)">
+                        {{ 'friends.expiry.left' | translate: { days: d } }}
+                      </span>
+                    } @else if (hasDeadline(e)) {
+                      <span class="expiry soon">{{ 'friends.expiry.today' | translate }}</span>
+                    }
+                  </span>
                 </span>
                 <span class="edge-actions">
                   <button type="button" class="sc-btn micro"
@@ -356,7 +378,19 @@ import {
     }
     .edge-main { display: flex; flex-direction: column; gap: 2px; flex: 1 1 160px; min-width: 0; }
     .edge-name { color: var(--sc-fg-0); overflow-wrap: anywhere; }
-    .edge-meta { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
+    .edge-meta {
+      color: var(--sc-fg-2);
+      font-size: max(0.74rem, var(--sc-fs-floor));
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: baseline;
+    }
+    /* The deadline is neutral information for six of its seven days; only the
+       last one earns a colour, and --sc-warning (caution), never --sc-danger
+       (which is reserved for errors and destructive actions). */
+    .expiry { color: var(--sc-fg-2); }
+    .expiry.soon { color: var(--sc-warning); }
     .edge-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
     .sc-btn.micro {
@@ -418,6 +452,24 @@ export class FriendsComponent implements OnInit {
 
   initialOf(e: { display_name: string | null; username: string | null }): string {
     return edgeInitial(e);
+  }
+
+  /**
+   * Whole days a pending request has left, or `null` when there is no
+   * deadline at all. `0` is deliberately falsy in the template so the last
+   * day reads "expires today" instead of "0 d left" — `hasDeadline()` is what
+   * tells those two apart from "no deadline".
+   */
+  daysLeft(e: FriendEdgeRow): number | null {
+    return daysUntilExpiry(e);
+  }
+
+  hasDeadline(e: FriendEdgeRow): boolean {
+    return daysUntilExpiry(e) !== null;
+  }
+
+  expiringSoon(e: FriendEdgeRow): boolean {
+    return isExpiringSoon(e);
   }
 
   onHandleInput(event: Event): void {

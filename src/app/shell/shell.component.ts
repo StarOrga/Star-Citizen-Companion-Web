@@ -35,11 +35,12 @@ import { QuickSearchComponent } from './quick-search.component';
 import { FeedbackFabComponent } from './feedback-fab.component';
 import { UserFeedbackFabComponent } from './user-feedback-fab.component';
 import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
+import { AccountNoticeComponent } from '../social/account-notice.component';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, AccountNoticeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Routed views "develop" into focus as they mount — fade + slight rise, keyed
   // to a per-navigation counter so it replays on every switch. Header/footer are
@@ -268,6 +269,12 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
         <div class="nav-scan__label">{{ 'nav.loading.weak' | translate }}</div>
       }
     }
+
+    <!-- Moderation banner (feedback cf0ddf7d phase 2). Above the content, not
+         inside it: a warning is about the ACCOUNT, not about the page, and a
+         mid-session suspension has to be noticed wherever the user happens to
+         be standing. Renders nothing when there is nothing to say. -->
+    <sc-account-notice />
 
     <main class="content" [@routeReveal]="reveal()">
       <router-outlet (activate)="onRouteActivate()" />
