@@ -441,7 +441,15 @@
       "inHangar": "In your hangar",
       "foldedOne": "+1 file variant",
       "foldedMany": "+{{count}} file variants",
-      "foldedTitle": "The game files carry several near-identical records for this entry, so they are shown as one card: {{names}}"
+      "foldedTitle": "The game files carry several near-identical records for this entry, so they are shown as one card: {{names}}",
+      "skinsOne": "+1 skin",
+      "skinsMany": "+{{count}} skins",
+      "skinsTitle": "Every livery of this weapon shares one card. Pick between them inside the entry: {{names}}"
+    },
+    "skinPicker": {
+      "label": "Skin",
+      "standard": "Standard",
+      "count": "{{count}} options"
     },
     "empty": {
       "title": "Nothing here yet",

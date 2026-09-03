@@ -35,6 +35,10 @@ import {
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FoldedRow, foldVariantRows } from './codex-variant-fold';
+import { SkinGroupedRow, SkinVariantRef, groupSkinRows } from './codex-skin-group';
+
+/** A card in the grid: a list row after variant folding AND livery grouping. */
+type CodexGridRow = SkinGroupedRow<FoldedRow<CodexListRow>>;
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { HangarService } from '../hangar/hangar.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
@@ -281,6 +285,12 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
                       {{ (folded === 1 ? 'codex.card.foldedOne' : 'codex.card.foldedMany') | translate: { count: folded } }}
                     </span>
                   }
+                  @if (r.skinVariants.length; as skins) {
+                    <span class="badge skins"
+                          [attr.title]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
+                      {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
+                    </span>
+                  }
                 </div>
                 @if (r.size != null) {
                   <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
@@ -415,6 +425,13 @@ export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
     /* "+n file variants folded" — a quiet note, not a warning: nothing is wrong,
        the catalog simply carries several records for one object. */
     .badge.folded { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); cursor: help; }
+    /* Liveries are a feature of the entry, not file noise like .folded — so the
+       accent, and the detail view picks them up in the skin picker. */
+    .badge.skins {
+      background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
+      border-color: color-mix(in srgb, var(--sc-accent) 42%, transparent);
+      color: var(--sc-fg-0); cursor: help;
+    }
     .badge.grade[data-grade="A"] { background: color-mix(in srgb, #5fd698 18%, transparent); border-color: color-mix(in srgb, #5fd698 42%, transparent); color: #8fe5b5; }
     .badge.grade[data-grade="B"] { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); color: var(--sc-fg-0); }
     .badge.grade[data-grade="C"] { background: color-mix(in srgb, #f0c419 16%, transparent); border-color: color-mix(in srgb, #f0c419 40%, transparent); color: #f0d060; }
@@ -528,6 +545,11 @@ export class CodexListComponent implements OnInit {
     return [r.classNameSlug, ...r.foldedClassNames].join(', ');
   }
 
+  /** Livery names grouped into this card, for the badge tooltip. */
+  skinNames(r: CodexGridRow): string {
+    return r.skinVariants.map((s) => s.liveryName).join(', ');
+  }
+
   /**
    * Manufacturer badge text — the full name from the extracted payload
    * ("Aegis Dynamics"), falling back to the promoted code when the game data
@@ -578,15 +600,22 @@ export class CodexListComponent implements OnInit {
   private readonly serverTotal = signal(0);
 
   /**
-   * What the grid renders: near-identical variant records collapsed into one
-   * card each (admin feedback 8cd0aed7 — see codex-variant-fold). Ticking
-   * "include variants" — the control that already means "show me the raw
-   * records" — turns the fold off, so every file term stays reachable.
+   * What the grid renders, after two display-level passes: near-identical
+   * variant records collapsed into one card each (admin feedback 8cd0aed7 —
+   * see codex-variant-fold), then livery families collapsed into their base
+   * record (feedback d5e39f86 — see codex-skin-group). The order is
+   * load-bearing; the skin pass needs the base name to be unambiguous, which
+   * the variant fold is what makes it. Ticking "include variants" — the control
+   * that already means "show me the raw records" — turns BOTH off.
    */
-  readonly rows = computed<FoldedRow<CodexListRow>[]>(() =>
+  readonly rows = computed<CodexGridRow[]>(() =>
     this.includeVariants()
-      ? this.rawRows().map((r) => ({ ...r, foldedClassNames: [] as readonly string[] }))
-      : foldVariantRows(this.rawRows(), (r) => this.cardName(r)),
+      ? this.rawRows().map((r) => ({
+          ...r,
+          foldedClassNames: [] as readonly string[],
+          skinVariants: [] as readonly SkinVariantRef[],
+        }))
+      : groupSkinRows(foldVariantRows(this.rawRows(), (r) => this.cardName(r))),
   );
   /**
    * Result count with the folded-away duplicates subtracted. Only the loaded
