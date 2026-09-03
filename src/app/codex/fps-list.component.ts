@@ -22,6 +22,7 @@ import {
 } from './codex.service';
 import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { FoldedRow, foldVariantRows } from './codex-variant-fold';
+import { SkinGroupedRow, SkinVariantRef, groupSkinRows } from './codex-skin-group';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
@@ -41,6 +42,9 @@ type FpsCategory = 'weapon' | 'armor';
 interface FpsRow extends CodexListRow {
   detailKind: 'weapon' | 'item';
 }
+
+/** A card in the grid: an FPS row after variant folding AND livery grouping. */
+type FpsGridRow = SkinGroupedRow<FoldedRow<FpsRow>>;
 
 /**
  * FPS / on-foot equipment Codex section (issue #251) — a dedicated, curated
@@ -209,6 +213,12 @@ interface FpsRow extends CodexListRow {
                       {{ (folded === 1 ? 'codex.card.foldedOne' : 'codex.card.foldedMany') | translate: { count: folded } }}
                     </span>
                   }
+                  @if (r.skinVariants.length; as skins) {
+                    <span class="badge skins"
+                          [attr.title]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
+                      {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
+                    </span>
+                  }
                 </div>
                 @if (r.size != null) {
                   <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
@@ -319,6 +329,13 @@ interface FpsRow extends CodexListRow {
     /* "+n file variants folded" — a quiet note, not a warning: nothing is wrong,
        the catalog simply carries several records for one object. */
     .badge.folded { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); cursor: help; }
+    /* Liveries are a feature of the entry, not file noise like .folded — so the
+       accent, and the detail view picks them up in the skin picker. */
+    .badge.skins {
+      background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
+      border-color: color-mix(in srgb, var(--sc-accent) 42%, transparent);
+      color: var(--sc-fg-0); cursor: help;
+    }
     .badge.grade[data-grade="A"] { background: color-mix(in srgb, #5fd698 18%, transparent); border-color: color-mix(in srgb, #5fd698 42%, transparent); color: #8fe5b5; }
     .badge.grade[data-grade="B"] { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); color: var(--sc-fg-0); }
     .badge.grade[data-grade="C"] { background: color-mix(in srgb, #f0c419 16%, transparent); border-color: color-mix(in srgb, #f0c419 40%, transparent); color: #f0d060; }
@@ -372,16 +389,28 @@ export class FpsListComponent implements OnInit {
   private readonly serverTotal = signal(0);
 
   /**
-   * What the grid renders: near-identical variant records collapsed into one
-   * card each (admin feedback 8cd0aed7 — the APX Fire Extinguisher shipped
-   * twice, once as `kegr_fire_extinguisher_01_Igniter`). Ticking "include
-   * variants" — the control that already means "show me the raw records" —
-   * turns the fold off, so the individual file terms stay reachable.
+   * What the grid renders, after two display-level passes:
+   *
+   *  1. near-identical variant records collapsed into one card each (admin
+   *     feedback 8cd0aed7 — the APX Fire Extinguisher shipped twice, once as
+   *     `kegr_fire_extinguisher_01_Igniter`), then
+   *  2. livery families collapsed into their base record (feedback d5e39f86 —
+   *     `LH86 Pistol` swallows its thirteen `LH86 "…" Pistol` paint jobs, which
+   *     the detail view offers in a skin picker).
+   *
+   * The order is load-bearing: pass 2 refuses to guess when several records
+   * carry the base name, and the multi-tool's nine `_default_*` records all do
+   * until pass 1 has folded them. Ticking "include variants" — the control that
+   * already means "show me the raw records" — turns BOTH off.
    */
-  readonly rows = computed<FoldedRow<FpsRow>[]>(() =>
+  readonly rows = computed<FpsGridRow[]>(() =>
     this.includeVariants()
-      ? this.rawRows().map((r) => ({ ...r, foldedClassNames: [] as readonly string[] }))
-      : foldVariantRows(this.rawRows(), (r) => this.cardName(r)),
+      ? this.rawRows().map((r) => ({
+          ...r,
+          foldedClassNames: [] as readonly string[],
+          skinVariants: [] as readonly SkinVariantRef[],
+        }))
+      : groupSkinRows(foldVariantRows(this.rawRows(), (r) => this.cardName(r))),
   );
   /**
    * Result count with the folded-away duplicates subtracted. Only the loaded
@@ -489,6 +518,11 @@ export class FpsListComponent implements OnInit {
   /** Class names of the records folded into this card, for the badge tooltip. */
   foldedNames(r: FoldedRow<FpsRow>): string {
     return [r.classNameSlug, ...r.foldedClassNames].join(', ');
+  }
+
+  /** Livery names grouped into this card, for the badge tooltip. */
+  skinNames(r: FpsGridRow): string {
+    return r.skinVariants.map((s) => s.liveryName).join(', ');
   }
 
   /**

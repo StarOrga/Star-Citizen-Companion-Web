@@ -6,6 +6,7 @@ import { PolySearchHit, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-p
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
 import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
+import { skinQueryPrefix } from './codex-skin-group';
 import {
   CODEX_ENTITY_TABLES,
   BlueprintIngredientPayload,
@@ -166,6 +167,11 @@ export interface PortQuery {
 
 const PAGE_SIZE = 60;
 const SEARCH_LIMIT = 60;
+// Ceiling for the livery-sibling read. The largest family in build 4.9.0 is the
+// LH86 pistol at 14 records; the prefix also catches unrelated neighbours, so
+// this sits well above the real group size and only guards a pathological
+// prefix from pulling a whole table into the detail view.
+const SKIN_SIBLING_LIMIT = 200;
 
 // How far back the patch switch can reach. ingest-catalog never prunes builds,
 // so this is a window, not the whole history: the switch pages through it five
@@ -514,6 +520,35 @@ export class CodexService {
    */
   async listFpsArmor(filters: Omit<CodexListFilters, 'attachTypeIn'> = {}): Promise<CodexListResult> {
     return this.listByKind('item', { ...filters, attachTypeIn: [...FPS_ARMOR_ATTACH_TYPES] });
+  }
+
+  /**
+   * Candidate livery siblings of one entity, for the detail view's skin picker
+   * (feedback d5e39f86). Reads the current build by class-name PREFIX — the
+   * first three underscore segments, `gmni_pistol_ballistic` for
+   * `gmni_pistol_ballistic_01_cen01` — which is a cheap superset of the family;
+   * `resolveSkinGroup` decides what actually belongs to it, so an over-wide
+   * match costs nothing (`_` is a single-character wildcard in `ilike`, which
+   * only ever widens it further).
+   *
+   * Kinds without liveries return an empty list without a round trip. Ship
+   * liveries are a separate pipeline entirely (`ship_skins` / the Showroom),
+   * and neither manufacturers, ammunition nor blueprints are painted.
+   */
+  async listSkinSiblings(kind: CodexKind, classNameSlug: string): Promise<CodexListRow[]> {
+    if (kind !== 'weapon' && kind !== 'item' && kind !== 'component') return [];
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+
+    const { data, error } = await this.sb.client
+      .from(CODEX_ENTITY_TABLES[kind])
+      .select(LIST_SELECT[kind])
+      .eq('build_id', build.id)
+      .ilike('class_name', `${escapeIlike(skinQueryPrefix(classNameSlug))}%`)
+      .order('class_name', { ascending: true })
+      .limit(SKIN_SIBLING_LIMIT);
+    if (error) throw error;
+    return ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
   }
 
   /** Entity row + its hardpoints + its localized strings, for the detail view. */
