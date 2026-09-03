@@ -4,6 +4,32 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.74.1] - 2026-09-03
+
+### Fixed
+
+- **Data Uploader: "Upload fortsetzen" works again after the app was closed,
+  updated or killed** (data-uploader 0.25.1). On the newest build the button
+  did nothing: the log showed five `resume requested` lines within fifteen
+  minutes and not one line after any of them. The resume path went through
+  the same start routine as a fresh upload, and that routine returns silently
+  without an extraction result in memory — a value only a *finished
+  extraction* ever sets, so every restart wiped it. The durable job file
+  already knows the extract's directory and channel/version, and the extract's
+  own `manifest.json` knows the rest, so a resume now rebuilds the result from
+  those two sources. When the extract itself is gone, the operator is told so
+  in words ("verwerfen und neu extrahieren") instead of being left with a
+  button that appears to hang. The tray's *Resume* takes the same path.
+- **Data Uploader: the startup sweep no longer deletes the extract a paused
+  upload is waiting to resume from.** The sweep reclaims marker-less extract
+  dirs older than 24 h, and a paused job's dir goes untouched for exactly that
+  long while the operator waits — on the next launch it was swept
+  (`orphan scan: removed 2 … LIVE-4.9.0, skins-4.9.0`), which is why the
+  interrupted 4.9.0 upload above could not have continued even with a working
+  button. The sweep now honours the same keep-list the pre-extraction purge
+  already did. Users with a job in that state today must discard it and
+  extract once more; new jobs keep their data.
+
 ## [0.74.0] - 2026-09-03
 
 ### Changed
