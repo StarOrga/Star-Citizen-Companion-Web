@@ -68,6 +68,28 @@ on every other tab. Categories the build has nothing in are not offered.
 Ship **components** (power plants, shields, coolers, quantum drives, thrusters …)
 are not part of this tab; they have their own *Components* tab in the same strip.
 
+#### Ships: one card per hull, editions behind a picker
+
+The game stores one vehicle record per *file*, and a single hull usually has
+several: near-identical duplicates that all read the same name, plus the
+marketing editions — *Wikelo War Special*, *2949 Best In Show Edition*,
+*Executive Edition*, *Teach's Special*. Left alone, the Ships tab showed each of
+them as its own card, so the same ship appeared four or seven times in a row.
+
+The grid now shows **one card per hull**. A card that swallowed something says
+so with a `+n variants` badge, and the ship's own page carries a **variant
+picker** next to its name where every absorbed record is one click away. Each
+entry keeps its own URL, so a variant is linkable and opens in a new tab like
+any other link.
+
+This is deliberately careful about what counts as a variant. A record is only
+folded in when it is provably the same hull — either it carries exactly the same
+name, or its name is the base name plus an edition badge. Ships that are
+genuinely different models keep their own card even when the file name suggests
+a family: the *Freelancer DUR/MAX/MIS*, the *Reliant Mako/Sen/Tana*, the *Hornet
+Mk I* and *Mk II*, the *Cyclone AA/MT/RC*. Ticking **include variants** turns
+the whole thing off and shows the raw records again.
+
 ## Ship detail — the stock loadout
 
 A ship page shows its factory loadout as hardpoint blocks, the ones you can

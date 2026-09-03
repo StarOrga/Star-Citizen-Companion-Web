@@ -36,6 +36,12 @@ import {
   awaitsTriage,
   buildWorkflowQueue,
   bucketLabelStatus,
+  DECLINE_REASONS,
+  DeclineReasonId,
+  DeclineReasonTexts,
+  declineReasonLabelKey,
+  declineReasonTextKey,
+  matchDeclineReason,
   feedbackBucket,
   filterWorkflowKind,
   filterWorkflowScope,
@@ -177,7 +183,13 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     ]),
   ],
   template: `
-    <section class="page" [class.embedded]="embedded()">
+    <!-- “sc-dense” marks this as a shell that already pays for the padding
+         around its children, so the global de-nesting rules (styles.scss) let
+         the composer / compose sheet inside it drop their own side frames on a
+         narrow screen. Only the EMBEDDED shell claims it: on the full board
+         page the composer is a top-level surface and its frame is the only one
+         it has. -->
+    <section class="page" [class.embedded]="embedded()" [class.sc-dense]="embedded()">
       @if (!embedded()) {
         <header class="head">
           <div>
@@ -709,30 +721,55 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                date · status. The full board used to render a non-interactive
                head and keep every card permanently open — which is why
                "expandieren/collapsen funktioniert nicht" was literally true
-               there: there was nothing to click. The date is dropped in the
-               panel, where the day heading above already carries it (feedback
-               92f08bb4). -->
+               there: there was nothing to click.
+
+               TWO EXPLICIT LINES since admin feedback 3bc01a3d, on every
+               width. It used to be a single wrapping row holding the chevron,
+               #N, the author, the date and up to six status pills, with the
+               title as the only item allowed to shrink. Measured at 375px that
+               wrapped into four ragged lines whose order was whatever happened
+               to fit -- "#42" alone on the first, the author sharing the third
+               with three pills -- and the title was still the one thing that
+               got clipped when it grew.
+
+               Now line one is the chevron, the number and the title and
+               nothing else, and line two is the metadata, with author and date
+               pushed to its far end. Same information, same height, but the eye
+               lands on the topic first at every width. That ordering is the
+               part the admin asked to see on the desktop board as well, so it
+               is not behind a media query. -->
           <button
             type="button"
-            class="msg-head one-liner"
+            class="msg-head"
             (click)="toggleExpand(m.id)"
             [attr.aria-expanded]="isExpanded(m.id)"
             [attr.aria-label]="'adminFeedback.toggleDetails' | translate">
             <span class="chev" [class.open]="isExpanded(m.id)">▸</span>
-            <!-- Stable reference number (feedback 21587480) — deliberately
-                 quiet and ahead of the title, so it reads as a handle for the
-                 topic rather than as part of it. -->
-            @if (topicNo(m); as no) {
-              <span
-                class="topic-no"
-                [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
-            }
-            <span class="topic-title">{{ topicTitle(m.body) }}</span>
-            <span class="row-author">{{ authorLabel(m) }}</span>
-            @if (!embedded()) {
-              <span class="ts">{{ m.created_at | scDate: 'datetime' }}</span>
-            }
-            <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+            <span class="mh-body">
+              <span class="mh-title-line">
+                <!-- Stable reference number (feedback 21587480) — deliberately
+                     quiet and ahead of the title, so it reads as a handle for
+                     the topic rather than as part of it. -->
+                @if (topicNo(m); as no) {
+                  <span
+                    class="topic-no"
+                    [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
+                }
+                <!-- Longer cap than the old one-row head could carry: the
+                     title owns a whole line now, so CSS ellipsis (not a
+                     hard-coded 64 characters) decides where it ends. -->
+                <span class="topic-title">{{ topicTitle(m.body, 96) }}</span>
+              </span>
+              <span class="mh-meta">
+                <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+                <span class="mh-who">
+                  <span class="row-author">{{ authorLabel(m) }}</span>
+                  @if (!embedded()) {
+                    <span class="ts">{{ m.created_at | scDate: 'datetime' }}</span>
+                  }
+                </span>
+              </span>
+            </span>
           </button>
 
           @if (isExpanded(m.id)) {
@@ -796,7 +833,12 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                  until an admin looked at the result and decided, instead of
                  dropping into the archive unseen (migration 20260729130000). -->
             @if (inReview(m)) {
-              <section class="review-gate">
+              <!-- sc-nest--rule, not the plain band: this box carries a
+                   3px green left edge that says "a decision is wanted here",
+                   and the plain de-nesting would drop exactly that edge. The
+                   rule variant keeps an inline-start border and gives up the
+                   other three. -->
+              <section class="review-gate sc-nest sc-nest--rule">
                 <div class="rg-head">
                   <span class="rg-badge">{{ 'adminFeedback.status.review' | translate }}</span>
                   <span class="rg-title">
@@ -844,7 +886,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                  admin <-> Claude conversation) never is. Keeping the two
                  visually apart is the whole point of the framed section. -->
             @if (fromUser(m)) {
-              <section class="author-channel">
+              <section class="author-channel sc-nest">
                 <header class="ac-head">
                   <span class="ac-title">{{ 'adminFeedback.userTopic.channelTitle' | translate }}</span>
                   <span class="ac-status">
@@ -959,12 +1001,33 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                 @if (fromUser(m) && !archived(m) && !inReview(m)) {
                   @if (declineFormFor() === m.id) {
                     <form class="decline-form" (submit)="declineTopic(m, $event)">
+                      <!-- The same handful of reasons came back over and over
+                           and got retyped every time (feedback d5a779da). The
+                           chips PRE-FILL the note, they do not replace it: the
+                           textarea below stays the source of truth, editable,
+                           and the selection drops away the moment the text no
+                           longer is that reason. -->
+                      <div
+                        class="decline-reasons"
+                        role="group"
+                        [attr.aria-label]="'adminFeedback.decline.reasonsLabel' | translate">
+                        @for (r of declineReasons; track r.id) {
+                          <button
+                            type="button"
+                            class="reason-chip"
+                            [class.active]="declineReason() === r.id"
+                            [attr.aria-pressed]="declineReason() === r.id"
+                            (click)="pickDeclineReason(r.id)">
+                            {{ r.labelKey | translate }}
+                          </button>
+                        }
+                      </div>
                       <textarea
                         class="decline-input"
                         rows="3"
                         required
                         [value]="declineNote()"
-                        (input)="declineNote.set($any($event.target).value)"
+                        (input)="setDeclineNote($any($event.target).value)"
                         [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
                         [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
                       <div class="decline-actions">
@@ -1010,7 +1073,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
             sendLabel="adminFeedback.compose.send"
             [onSubmit]="createTopicBound" />
         } @else if (composerOpen()) {
-          <div class="compose-sheet">
+          <div class="compose-sheet sc-nest">
             <div class="cs-head">
               <span class="cs-title">{{ 'adminFeedback.compose.newTopic' | translate }}</span>
               <button
@@ -1043,26 +1106,29 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     .view-tab:focus-visible,
     .status-chip:focus-visible,
     .author-chip:focus-visible,
+    .reason-chip:focus-visible,
     .seg-tab:focus-visible,
     .tb-icon:focus-visible,
     .filter-link:focus-visible,
     .new-topic-bar:focus-visible,
     .cs-close:focus-visible,
-    .load-more:focus-visible,
-    .thread-more:focus-visible {
+    .load-more:focus-visible {
       outline: none;
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.32);
     }
 
-    .page { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
+    .page { display: flex; flex-direction: column; gap: var(--sc-gap-1); max-width: 860px; }
     /* Embedded inside the FAB chat panel: fill the panel, scroll the history,
        and keep the composer pinned below it (never behind it). */
     .page.embedded {
       max-width: none;
-      gap: 12px;
+      gap: var(--sc-gap-2);
       flex: 1 1 auto;
       min-height: 0;
-      padding: 14px;
+      /* Level 2 of the density scale: the panel shell around it is level 1.
+         14px flat used to be a fifth of a 375px screen once the card inside it
+         added its own (admin feedback 3bc01a3d). */
+      padding: var(--sc-pad-2);
       box-sizing: border-box;
     }
     .page.embedded .board { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
@@ -1087,10 +1153,14 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     }
     .date-group:first-child { margin-top: 0; }
 
-    /* Compact panel one-liner: chevron · title · author · status, on one row. */
-    .msg-head.one-liner {
+    /* Two-line card head (admin feedback 3bc01a3d).
+       Row 1: the chevron and the title, and NOTHING that can push the title
+       aside — the title is what the admin reads, so it gets the whole line at
+       every width. Row 2: the status pills, then author + date pushed to the
+       far end. See the template for why the old single row could not work. */
+    .msg-head {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 8px;
       width: 100%;
       padding: 0;
@@ -1101,14 +1171,18 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       text-align: left;
       cursor: pointer;
     }
-    .msg-head.one-liner .chev {
+    .msg-head .chev {
       flex: 0 0 auto;
+      /* Optically on the title's first line rather than on the box's top edge. */
+      margin-top: 1px;
       color: var(--sc-fg-2);
       font-size: max(0.72rem, var(--sc-fs-floor));
       transition: transform 0.16s ease;
     }
-    .msg-head.one-liner .chev.open { transform: rotate(90deg); }
-    .msg-head.one-liner .topic-title {
+    .msg-head .chev.open { transform: rotate(90deg); }
+    .mh-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .mh-title-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+    .msg-head .topic-title {
       flex: 1 1 auto;
       min-width: 0;
       overflow: hidden;
@@ -1118,16 +1192,23 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       font-size: 0.86rem;
       color: var(--sc-fg-0);
     }
-    .msg-head.one-liner .row-author {
-      flex: 0 0 auto;
+    /* Row 2 wraps freely: six pills on a 320px screen become three lines of
+       pills rather than three pills and no title. */
+    .mh-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; min-width: 0; }
+    .mh-who {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-left: auto;
       color: var(--sc-fg-2);
       font-size: max(0.72rem, var(--sc-fs-floor));
     }
+    .msg-head .row-author { flex: 0 0 auto; }
     /* The full board's head is the same control, only roomier: it has space for
        the topic's date, which the panel leaves to its day heading. */
-    .msg-head.one-liner .ts { flex: 0 0 auto; }
-    .page:not(.embedded) .msg-head.one-liner .topic-title { font-size: 0.92rem; }
-    .msg-head.one-liner:hover .topic-title { color: var(--sc-accent); }
+    .msg-head .ts { flex: 0 0 auto; }
+    .page:not(.embedded) .msg-head .topic-title { font-size: 0.92rem; }
+    .msg-head:hover .topic-title { color: var(--sc-accent); }
     /* Reference number (feedback 21587480): monospaced digits so a column of
        them lines up, and dim enough that the topic text stays the thing you
        read. It is a handle, not a headline. */
@@ -1140,13 +1221,15 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       letter-spacing: 0.02em;
       user-select: all;
     }
-    .msg-head.one-liner:focus-visible {
+    .msg-head:focus-visible {
       outline: none;
       border-radius: 6px;
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3);
     }
-    /* The status pill keeps its own colours; it trails the row via the title's grow. */
-    .msg-head.one-liner .status-pill { flex: 0 0 auto; margin-left: 0; }
+    /* The pills keep their own colours but not their “margin-left: auto” — in
+       the metadata row they sit at the START and it is author+date that is
+       pushed to the far end (.mh-who). */
+    .mh-meta .status-pill { flex: 0 0 auto; margin-left: 0; }
     .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
     .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
     .err {
@@ -1156,12 +1239,12 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       color: var(--sc-danger);
       border-radius: 4px;
     }
-    .empty { text-align: center; color: var(--sc-fg-2); padding: 40px; }
+    .empty { text-align: center; color: var(--sc-fg-2); padding: 32px var(--sc-pad-1); }
 
-    .board { display: flex; flex-direction: column; gap: 12px; }
+    .board { display: flex; flex-direction: column; gap: var(--sc-gap-2); }
     /* Processing mode / dashboard reuse the board's scroll box but never its
        list rhythm, so they get their own modifier instead of the list styles. */
-    .board.alt { gap: 10px; }
+    .board.alt { gap: var(--sc-gap-2); }
 
     /* ---- View switch: Übersicht · Abarbeiten · Fortschritt ---- */
     .view-switch {
@@ -1302,7 +1385,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     .status-filter { display: flex; flex-wrap: wrap; gap: 6px; }
     /* Status and author chips are the same control with a different scope, so
        they share one base look; only the per-status accents below differ. */
-    .status-chip, .author-chip {
+    .status-chip, .author-chip, .reason-chip {
       display: inline-flex;
       align-items: center;
       gap: 5px;
@@ -1316,7 +1399,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       cursor: pointer;
       transition: all 0.16s ease;
     }
-    .status-chip:hover, .author-chip:hover, .tb-icon:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .status-chip:hover, .author-chip:hover, .reason-chip:hover, .tb-icon:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .status-chip.active, .author-chip.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
     /* The needs_input filter carries the same violet accent as its status pill. */
     .status-chip.needs_input.active { color: #a78bfa; border-color: #a78bfa; background: rgba(167, 139, 250, 0.14); }
@@ -1360,8 +1443,8 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     .review-gate {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 10px 12px;
+      gap: var(--sc-gap-3);
+      padding: var(--sc-pad-2);
       border: 1px solid var(--sc-success);
       border-left-width: 3px;
       border-radius: 8px;
@@ -1451,9 +1534,9 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     .compose-sheet {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: var(--sc-gap-3);
       flex: 0 0 auto;
-      padding: 10px;
+      padding: var(--sc-pad-2);
       background: var(--sc-bg-2);
       border: 1px solid var(--sc-border);
       border-radius: 10px;
@@ -1501,7 +1584,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     .board-stats.compact .stat + .stat::before { margin-right: 6px; }
 
     /* Archive tab list — done topics, dimmed a touch so the tab reads as history. */
-    .archive-list { display: flex; flex-direction: column; gap: 12px; }
+    .archive-list { display: flex; flex-direction: column; gap: var(--sc-gap-2); }
     .archive-list .msg { opacity: 0.82; }
     .archive-list .msg:hover, .archive-list .msg:focus-within { opacity: 1; }
     .load-more {
@@ -1520,7 +1603,11 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     }
     .load-more:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
 
-    .msg { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+    /* Level 2, not level 1: a topic card is one row of a dense list, not a page
+       surface, and the admin's complaint is about horizontal waste. 12px here is
+       4px MORE content on a desktop than the 16px it used to carry, and 8px on a
+       phone. */
+    .msg { padding: var(--sc-pad-2); display: flex; flex-direction: column; gap: var(--sc-gap-3); }
     .msg.is-self { box-shadow: inset 2px 0 0 var(--sc-accent); }
     /* In the compact FAB panel the card's gradient (bg-2 → bg-1) is identical to
        the panel's own background, so topics blended together and the separation
@@ -1538,9 +1625,11 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     }
     /* Detail region under a topic head — its own column so the 8px rhythm is kept
        once the children are wrapped for the collapse animation. */
-    .msg-detail { display: flex; flex-direction: column; gap: 8px; }
-    .msg-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .author { font-weight: 600; font-size: 0.9rem; }
+    .msg-detail { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
+    /* A second “.msg-head” rule used to sit here, from before the head became a
+       button, and a “.author” rule for a class no template has used in a long
+       time. The first would have re-centred and re-wrapped the two-line head
+       from further down the sheet; both are gone rather than reconciled. */
     .ts { color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
 
     .status-pill {
@@ -1616,8 +1705,8 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     }
 
     /* ---- Per-topic thread ---- */
-    .thread { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding-left: 10px; border-left: 2px solid var(--sc-border); }
-    .reply { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: 8px; background: var(--sc-bg-2); }
+    .thread { display: flex; flex-direction: column; gap: var(--sc-gap-3); margin-top: 4px; padding-left: var(--sc-pad-3); border-left: 2px solid var(--sc-border); }
+    .reply { display: flex; flex-direction: column; gap: 4px; padding: var(--sc-pad-3); border-radius: 8px; background: var(--sc-bg-2); }
     .reply.is-self { box-shadow: inset 2px 0 0 var(--sc-accent); }
     .reply.is-system { background: color-mix(in srgb, #a78bfa 12%, var(--sc-bg-2)); box-shadow: inset 2px 0 0 #a78bfa; }
     .reply-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -1644,31 +1733,9 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       font-style: italic;
     }
 
-    /* ---- The folded middle of a thread (feedback 03d7e546) ----
-       One dashed "…" between the conversation's first and its newest message.
-       Same control on both thread surfaces and deliberately the same look as the
-       Abarbeiten run's fold, so "da ist Verlauf drunter" reads identically
-       wherever the admin meets it. */
-    .thread-more {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 8px;
-      border: 1px dashed var(--sc-border);
-      border-radius: 8px;
-      background: transparent;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: max(0.72rem, var(--sc-fs-floor));
-      text-align: left;
-      cursor: pointer;
-      transition: color 0.15s ease, border-color 0.15s ease;
-    }
-    .thread-more:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
-    .thread-more .ellipsis {
-      font-size: 1.1rem; font-weight: 700; line-height: 0.8;
-      letter-spacing: 0.08em; color: var(--sc-fg-0);
-    }
+    /* The folded-thread "…" (feedback 03d7e546) lives in styles.scss now: the
+       processing run draws the very same control, and one shared rule is what
+       "reads identically wherever the admin meets it" actually requires. */
 
     .msg-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     /* The rare administrative acts, behind the "Weitere Aktionen" disclosure —
@@ -1703,9 +1770,9 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
        admin <-> routine thread above it: everything inside is readable by the
        person who filed the topic. The decline form's comment is mandatory —
        it is the explanation that author gets to read. */
-    .author-channel, .ac-thread, .decline-form { display: flex; flex-direction: column; gap: 8px; }
+    .author-channel, .ac-thread, .decline-form { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
     .author-channel {
-      margin-top: 6px; padding: 10px; border-radius: 8px;
+      margin-top: 6px; padding: var(--sc-pad-2); border-radius: 8px;
       border: 1px dashed var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 6%, transparent);
     }
@@ -1733,11 +1800,57 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     }
     .decline-input:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
     .decline-actions { display: flex; gap: 6px; }
+    /* Canned reasons borrow the filter chips' pill wholesale (see the shared
+       .status-chip rule) so the row reads as "pick one" and not as a second set
+       of actions. Only the accent differs: these sit inside a destructive form
+       and what they arm is the note the author will read. */
+    .decline-reasons { display: flex; flex-wrap: wrap; gap: 6px; }
+    .reason-chip:hover { border-color: var(--sc-danger); }
+    .reason-chip.active {
+      color: var(--sc-danger); border-color: var(--sc-danger);
+      background: rgba(248, 113, 113, 0.14);
+    }
 
-    @media (max-width: 640px) {
+    /* ============================================================
+       NARROW VIEWPORT (admin feedback 3bc01a3d)
+       Nothing here is a new control — it is the same board with the
+       horizontal budget spent on content instead of on chrome.
+       ============================================================ */
+    @media (max-width: 720px) {
+      /* Sticky over a phone-height list only buys a permanently parked
+         composer; the page scrolls to it in one flick anyway. */
       .main-composer { position: static; }
       .status-pill { margin-left: 0; }
+
+      /* The everyday toolbar used to wrap into three ragged rows with a 62px
+         search stub at the end of one of them. Two full-width rows instead:
+         the two segmented switches share the first (each half the width, each
+         tab stretching to fill its half), search + "alles auf/zu" share the
+         second. Same controls, same order, no ragged edge. */
+      .seg { flex: 1 1 40%; }
+      .seg-tab { flex: 1 1 0; justify-content: center; padding: 6px 8px; }
+      .search-box { flex: 1 1 60%; }
+      /* ...and while it is in use it simply fills its own row. The absolute
+         "grow over your neighbours" trick needs a single-row toolbar to have
+         neighbours to grow over; on a wrapped one it detached from the row and
+         floated across the tabs above it. */
+      .search-box.expanded {
+        position: static;
+        transform: none;
+        width: auto;
+        box-shadow: none;
+      }
+      .tb-spacer { display: none; }
+
+      /* The mode switch is the board's primary control and the one an admin
+         hits first — full width, evenly split, real finger targets. */
+      .view-tab { padding: 8px 6px; }
     }
+    /* No per-control touch sizing here on purpose: every one of these IS a
+       <button>, and the “pointer: coarse” block in styles.scss already gives
+       each of them the 48px floor. A component-scoped “min-height: 40px” would
+       out-specify that global rule and quietly UNDERCUT the app's own baseline
+       — which is exactly the class of bug this item is about. */
   `],
 })
 export class AdminFeedbackComponent implements OnInit {
@@ -2388,14 +2501,20 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /**
-   * A concise, single-line title for a topic's one-liner row (feedback 92f08bb4).
-   * Derived from the body's first meaningful text with markup and images stripped;
-   * capped so it fits the compact row. Falls back to a dash for image-only posts.
+   * A concise, single-line title for a topic's row (feedback 92f08bb4).
+   * Derived from the body's first meaningful text with markup and images stripped.
+   * Falls back to a dash for image-only posts.
+   *
+   * `max` is a SAFETY cap, not the layout: since the head became two lines
+   * (admin feedback 3bc01a3d) the title has a whole row to itself, so where it
+   * ends is CSS's ellipsis to decide at the real width — the cap only stops a
+   * pathological body from putting a kilobyte of text into a DOM node nobody
+   * can see.
    * (A future enhancement could persist an LLM-generated summary — this heuristic
    * gives an always-available title without a schema change.)
    */
-  topicTitle(body: string): string {
-    return topicTitle(body);
+  topicTitle(body: string, max?: number): string {
+    return topicTitle(body, max);
   }
 
   /**
@@ -3238,14 +3357,59 @@ export class AdminFeedbackComponent implements OnInit {
   /** Draft explanation in that form — mandatory, the author gets to read it. */
   readonly declineNote = signal('');
 
+  /**
+   * The canned reasons, paired with their label key so the picker does not call
+   * a function per chip per change detection run.
+   */
+  readonly declineReasons: readonly { id: DeclineReasonId; labelKey: string }[] =
+    DECLINE_REASONS.map((id) => ({ id, labelKey: declineReasonLabelKey(id) }));
+
+  /** Which chip is lit — derived from the note text, never a mode of its own. */
+  readonly declineReason = signal<DeclineReasonId | null>(null);
+
   openDeclineForm(m: FeedbackRow): void {
     this.declineNote.set('');
+    this.declineReason.set(null);
     this.declineFormFor.set(m.id);
   }
 
   cancelDeclineForm(): void {
     this.declineFormFor.set(null);
     this.declineNote.set('');
+    this.declineReason.set(null);
+  }
+
+  /**
+   * Drop a canned reason into the note — or take it back out when the admin
+   * clicks the lit chip again, which is the only way back to an empty box once
+   * one is in there.
+   */
+  pickDeclineReason(id: DeclineReasonId): void {
+    if (this.declineReason() === id) {
+      this.declineNote.set('');
+      this.declineReason.set(null);
+      return;
+    }
+    this.declineNote.set(this.translate.instant(declineReasonTextKey(id)));
+    this.declineReason.set(id);
+  }
+
+  /**
+   * Every keystroke re-asks "is this still one of the canned reasons?" instead
+   * of clearing the chip on the first edit — so undoing a typo lights the chip
+   * back up, and pasting a reason in by hand lights it in the first place.
+   */
+  setDeclineNote(value: string): void {
+    this.declineNote.set(value);
+    this.declineReason.set(matchDeclineReason(value, this.declineReasonTexts()));
+  }
+
+  private declineReasonTexts(): DeclineReasonTexts {
+    const texts: Record<string, string> = {};
+    for (const r of this.declineReasons) {
+      texts[r.id] = this.translate.instant(declineReasonTextKey(r.id));
+    }
+    return texts as DeclineReasonTexts;
   }
 
   /**

@@ -501,6 +501,26 @@ export interface AnnotationResult {
     .lb-step:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
     .lb-count { color: var(--sc-fg-2); font-size: max(0.75rem, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; }
     .sc-btn.micro { padding: 8px 14px; font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.04em; min-height: 48px; }
+||||||| 7ab7107
+
+    /* A screenshot is the single most common thing in a feedback thread, so on a
+       phone it gets the screen (admin feedback 3bc01a3d). Two things change:
+       the 16px backdrop inset shrinks to 8, and the close button comes INSIDE
+       the frame. Hung at -14px it sat in the backdrop's own padding — which is
+       fine at 1280px and is 6px from the edge of a 375px screen, i.e. under the
+       thumb's own edge-swipe zone and, on a tall image, under the status bar. */
+    @media (max-width: 720px) {
+      .lb-backdrop { padding: 8px; }
+      .lb-img { max-width: calc(100vw - 16px); max-height: 76vh; }
+      .lb-caption { max-width: calc(100vw - 16px); }
+      .lb-close {
+        top: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.62);
+        border-color: color-mix(in srgb, var(--sc-fg-0) 35%, transparent);
+        color: var(--sc-fg-0);
+      }
+    }
   `],
 })
 export class FeedbackAttachmentsComponent {

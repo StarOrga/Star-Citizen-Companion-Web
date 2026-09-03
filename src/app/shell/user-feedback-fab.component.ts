@@ -42,8 +42,11 @@ import { unreadBadgeText } from '../feedback/user-feedback.types';
     @if (visible()) {
       <div class="fab-root">
         @if (mounted()) {
+          <!-- “sc-sheet” (styles.scss): docked window on a desktop, full-bleed
+               sheet below 720px — same treatment as the admin board's panel
+               (admin feedback 3bc01a3d). -->
           <div
-            class="panel"
+            class="panel sc-sheet"
             [class.minimized]="minimized()"
             role="dialog"
             [attr.aria-hidden]="minimized()"
@@ -257,9 +260,16 @@ import { unreadBadgeText } from '../feedback/user-feedback.types';
       line-height: 1.4;
     }
 
-    @media (max-width: 640px) {
-      .fab-root { right: 16px; bottom: 16px; gap: 10px; }
-      .panel { height: min(70vh, calc(100vh - 120px)); }
+    @media (max-width: 720px) {
+      .fab-root {
+        right: 16px;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        gap: 10px;
+      }
+      .panel-head { padding: 10px 14px; }
+      /* The launcher must not float on top of its own full-screen sheet; the
+         sheet's minimize button is the way out and brings it back. */
+      .panel:not(.minimized) ~ .fab { display: none; }
     }
   `],
 })

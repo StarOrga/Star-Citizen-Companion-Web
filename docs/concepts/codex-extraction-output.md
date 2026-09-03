@@ -342,7 +342,7 @@ as `"_PointsTo_:ptr:N"` strings with the target under `_Pointers_`.
 |---|---|---|---|
 | `codex_builds` | one catalog version per `(channel, patch_version, build_number)`; `is_current` (≤1 per channel) scopes the default UI | `channel, patch_version, build_number, is_current, quality_score, entity_counts` | `manifest` |
 | `codex_manufacturers` | `SCItemManufacturer` projections | `class_name, manufacturer_code, name_localized` | `payload` (full Manufacturer JSON) |
-| `codex_ships` | ship/vehicle entities | `class_name, manufacturer_code, role, crew_size, is_variant, name_localized` | `payload` (full Ship JSON: flight/itemPorts/defaultLoadout) |
+| `codex_ships` | ship/vehicle entities (one record per game FILE, so a hull appears several times — duplicates and editions are collapsed for display by `codex-edition-group.ts`, never in the data) | `class_name, manufacturer_code, role, crew_size, is_variant, name_localized` | `payload` (full Ship JSON: flight/itemPorts/defaultLoadout) |
 | `codex_weapons` | ship + FPS weapons (one flat table; `weapon_class` separates the two, and the Codex browses it through the two-level taxonomy in `codex-weapon-taxonomy.ts`) | `class_name, weapon_class, attach_type, sub_type, size, grade, manufacturer_code, is_variant, name_localized` | `payload` (weaponParams/itemPorts) |
 | `codex_components` | PowerPlant/Shield/Cooler/QuantumDrive/Thruster/FuelTank/FuelIntake/CargoGrid/Other | `class_name, kind, attach_type, sub_type, size, grade, manufacturer_code, is_variant, name_localized` | `payload` (`stats` heterogeneous, keyed by struct name) |
 | `codex_items` | every other attachable item | `class_name, attach_type, sub_type, size, grade, manufacturer_code, is_variant, name_localized` | `payload` |

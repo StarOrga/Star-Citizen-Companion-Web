@@ -1,0 +1,52 @@
+[
+  {
+    "iteration": 1,
+    "template": "decision",
+    "action": "iterate",
+    "submitted_at": "2026-09-02T18:00:57Z",
+    "hypotheses": { "h1": "include", "h2": "include", "h3": "include", "h4": "include", "h5": "include", "h6": "include", "h7": "include", "h8": "include" },
+    "success": { "plane": true, "icons": true, "color": true, "statement": false, "count": true, "rail": true, "mobile": true, "height": false },
+    "frustration": "detached",
+    "content": {
+      "core4": "stay", "manufacturer": "facet", "ammunition": "secondary", "items": "archive-entry",
+      "keybinds": "terminal-row", "rail": "stay-internal-head-link",
+      "patch-delta": "quiet-one-line", "archive-total": "no", "unfiltered-archive-entry": "yes",
+      "domain-scoped-search": "no", "patch-number-link": "yes"
+    },
+    "content_note": "Naja, ggf. sollte es gruppiert werden, nach Hersteller / Einsatzzweck etc. ist was anderes als menschliche als schiff ausrüstung... short links vs total archive was der ganze bereich sein sollte zum klicken",
+    "nogos": { "schema": true, "numbers": true, "art": true, "news": true, "route": true, "ladder": false, "frameless": false, "skeleton": true },
+    "corridor": "plane"
+  },
+  {
+    "iteration": 2,
+    "template": "design",
+    "status": "submitted",
+    "action": "iterate",
+    "submitted_at": "2026-09-03T15:22:14Z",
+    "feedback": { "c-sprossen": "dies finde ich am besten! Dabei gern am mann und am schiff irgendwie in die oberen panel integrieren als schnellzugang dezent prio 3 ohne das es zu voll wirkt. Dabei die bauplane bei beiden zu fuss und am schiff jweils rein und dann mit subfilterung der baupläne im subview wenn man drauf drückt. Dann holen wir im verse komplett raus!" },
+    "outcome": "direction change: the third plane is removed; archive quick access (prio 3) moves into AN BORD and IM HANGAR, blueprints in both with category-group sub-filter",
+    "designs": {
+      "a-kante": "Dritte Kante — the plane becomes the third zone inside the panel (product-value lens)",
+      "b-offen": "Die Fläche öffnet sich — panel bottom removed, spine, stretched archive field, dimension brackets (ux-design lens)",
+      "c-sprossen": "Gespiegelte Sprossen — closed panel, rail through a notch, door band, mirrored bands AM MANN / AM SCHIFF / PLÄNE (enduser-feel lens)",
+      "d-abgleich": "Reconciliation: shared core, differences, three questions"
+    },
+    "shared_core": ["violet accent token", "monochrome staged glyphs on plinths", "4 primary entries + Munition secondary", "dedicated archive anchor", "quiet patch delta", "rail inside plane with internal head link", "keybinds out"],
+    "open_questions": ["door position (base bar / field / top band)", "AM MANN band with the 20k items yes/no", "seam: zone-in-box / opened box / closed + notch"]
+  },
+  {
+    "iteration": 3,
+    "template": "design",
+    "status": "submitted",
+    "action": "implement",
+    "submitted_at": "2026-09-03T15:50:23Z",
+    "feedback": { "e-fuss": "Das finde ich am besten" },
+    "outcome": "Ⓔ implemented on origin/main dcf4619 → commit f28bffc (typecheck clean, 1888 tests, build green); final report appended as iteration 4; ship + promote stable requested by the owner in chat",
+    "designs": {
+      "e-fuss": "Fußzeile je Zone — prio-3 footer line with quiet counts in AN BORD and IM HANGAR",
+      "f-kopf": "Kopfzeile rechts — quick access on the eyebrow line, no counts",
+      "g-sockel": "Am Sockel & in der Flottenzeile — on the plinth row (board) and the fleet lane head (hangar)",
+      "h-rest": "Data facts (blueprint/weapon split) + open points: rail, unfiltered entry, delta line, counts, corridor confirmation"
+    }
+  }
+]
