@@ -520,9 +520,11 @@ describe('CodexLandingComponent', () => {
     expect(rail).not.toBeNull();
     const tiles = Array.from(el.querySelectorAll<HTMLAnchorElement>('.upcoming-tile'));
     expect(tiles.length).toBe(2);
-    expect(tiles[0].getAttribute('href')).toBe('https://robertsspaceindustries.com/pledge/ships/polaris');
-    expect(tiles[0].getAttribute('target')).toBe('_blank');
-    expect(tiles[0].getAttribute('rel')).toBe('noopener noreferrer');
+    // #130: OUR codex gets first refusal — the tile is an in-app routerLink to
+    // the announced-ship page, not a one-way door to robertsspaceindustries.com
+    // (the RSI pledge page is a secondary link over there).
+    expect(tiles[0].getAttribute('href')).toBe('/codex/upcoming/polaris');
+    expect(tiles[0].getAttribute('target')).toBeNull();
     // The tile IS the artwork: name + manufacturer ride a caption scrim on top
     // of it rather than sitting in a separate text block under a boxed thumb.
     expect(tiles[0].querySelector('.upcoming-tile__caption .upcoming-tile__name')?.textContent?.trim()).toBe(
@@ -530,6 +532,30 @@ describe('CodexLandingComponent', () => {
     );
     expect(tiles[0].querySelector('.upcoming-tile__caption .upcoming-tile__mfr')?.textContent?.trim()).toBe('RSI');
     expect(el.querySelector('.upcoming-rail__badge')?.textContent?.trim()).toBe('2');
+  });
+
+  it('marks a concept hull on the rail as not-flight-ready, and leaves a flight-ready-but-unindexed one unmarked', async () => {
+    const fixture = await setup({
+      hangar: [],
+      upcomingShips: [
+        upcomingShip({ id: 'polaris', name: 'RSI Polaris' }),
+        upcomingShip({
+          id: 'zeus-mk2',
+          name: 'RSI Zeus Mk II',
+          productionStatus: 'flight-ready',
+          flightReadyButMissing: true,
+        }),
+      ],
+    });
+    const el: HTMLElement = fixture.nativeElement;
+
+    const tiles = Array.from(el.querySelectorAll<HTMLAnchorElement>('.upcoming-tile'));
+    expect(tiles.length).toBe(2);
+    // Small badge, not a redesign of the card — and only where it is TRUE:
+    // a flight-ready hull we simply have not ingested yet must not be labelled
+    // "concept".
+    expect(tiles[0].querySelector('.upcoming-tile__wip')).not.toBeNull();
+    expect(tiles[1].querySelector('.upcoming-tile__wip')).toBeNull();
   });
 
   it('renders no upcoming-ships rail while the RSI feed is empty/unloaded (no rail placeholder)', async () => {

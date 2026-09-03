@@ -154,6 +154,18 @@ export const routes: Routes = [
           import('./codex/codex-list.component').then((m) => m.CodexListComponent),
       },
       {
+        // One announced ship — the Codex's own page for a hull that has no
+        // game data yet (#130). Every "Auf dem Reissbrett" tile lands HERE
+        // first; the RSI pledge page is a secondary link on it, not the
+        // destination. `:id` is the RSI ship-matrix id from the feed. Sits
+        // after the static `codex/upcoming` (a leaf route only matches when it
+        // consumes the whole url, so the two never shadow each other) and
+        // before `codex/:kind/:className`.
+        path: 'codex/upcoming/:id',
+        loadComponent: () =>
+          import('./codex/upcoming-detail.component').then((m) => m.UpcomingDetailComponent),
+      },
+      {
         path: 'codex/:kind/:className',
         loadComponent: () =>
           import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),

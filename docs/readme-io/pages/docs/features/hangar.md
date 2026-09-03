@@ -19,6 +19,18 @@ Each hangar entry carries:
 - a link back to its Codex entry,
 - and the ★ if it is your **flagship**.
 
+## On the drawing board
+
+Announced ships have no catalog entry — the Codex is built from the live
+build's data, and these hulls are not in the game yet. They live on their own
+**concept wishlist**, shown as a strip at the top of the Hangar so watched ships
+are the first thing you see.
+
+Every tile there is marked as **not flight-ready** and links back to its
+[announced-ship page](doc:codex), where the *Watch for my fleet* button adds and
+removes it. You can still add a hull by hand further down the page, with an
+optional link to its official RSI pledge page.
+
 ## Standard components
 
 Every ship shows its **factory kit** — the components it ships with by default,

@@ -224,4 +224,35 @@ describe('UpcomingShipsService', () => {
       expect(svc.loading()).toBeFalse();
     });
   });
+
+  describe('shipById / shipByName', () => {
+    it('resolves the announced-ship page by feed id', async () => {
+      setup();
+      await flush(feed([{ id: '42', name: 'RSI Polaris' }]));
+      expect(svc.shipById('42')?.name).toBe('RSI Polaris');
+    });
+
+    it('still resolves a link whose id was minted from the name', async () => {
+      setup();
+      await flush(feed([{ id: '42', name: 'RSI Polaris' }]));
+      // The edge function falls back to the normalized name when the matrix
+      // omits an id, so a url shared before/after that flip must keep working.
+      expect(svc.shipById('rsipolaris')?.name).toBe('RSI Polaris');
+    });
+
+    it('returns null for an unknown id instead of guessing', async () => {
+      setup();
+      await flush(feed([{ id: '42', name: 'RSI Polaris' }]));
+      expect(svc.shipById('nope')).toBeNull();
+      expect(svc.shipById('')).toBeNull();
+    });
+
+    it('matches a name across spelling noise (the hangar wishlist has no id)', async () => {
+      setup();
+      await flush(feed([{ id: '7', name: 'Aegis Idris-M' }]));
+      expect(svc.shipByName('aegis idris m')?.id).toBe('7');
+      expect(svc.shipByName('Aegis Idris-P')).toBeNull();
+      expect(svc.shipByName(null)).toBeNull();
+    });
+  });
 });
