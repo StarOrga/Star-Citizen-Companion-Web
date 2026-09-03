@@ -434,7 +434,10 @@
       "grade": "Grade {{grade}}",
       "crew": "Crew {{count}}",
       "variant": "Variante",
-      "inHangar": "In deinem Hangar"
+      "inHangar": "In deinem Hangar",
+      "foldedOne": "+1 Dateivariante",
+      "foldedMany": "+{{count}} Dateivarianten",
+      "foldedTitle": "Die Spieldateien führen mehrere fast identische Einträge dazu, deshalb steht hier nur eine Karte: {{names}}"
     },
     "empty": {
       "title": "Noch nichts hier",
