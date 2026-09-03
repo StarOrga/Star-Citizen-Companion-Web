@@ -82,6 +82,7 @@ import {
   shipPortFamily,
 } from './ship-module-sections';
 import { SkinOption, resolveSkinGroup } from './codex-skin-group';
+import { EditionOption, resolveEditionGroup } from './codex-edition-group';
 import { SummaryOccupant, equippedMass } from './ship-summary-panels';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexLoadoutSaveBarComponent } from './codex-loadout-save-bar.component';
@@ -292,7 +293,7 @@ interface GearRecipe {
                  real anchor to that record's own detail route, so a livery
                  keeps a shareable URL and middle-click still opens a tab. -->
             @if (skinOptions().length > 1) {
-              <details class="skin-picker">
+              <details class="picker skin-picker">
                 <summary>
                   <span class="sp-label">{{ 'codex.skinPicker.label' | translate }}</span>
                   <span class="sp-current">{{ currentLivery() ?? ('codex.skinPicker.standard' | translate) }}</span>
@@ -306,6 +307,34 @@ interface GearRecipe {
                          [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
                          [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
                         {{ o.liveryName ?? ('codex.skinPicker.standard' | translate) }}
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </details>
+            }
+
+            <!-- Edition picker (feedback 77ecad2a). The ship grid collapses a
+                 hull's duplicate file records and its marketing editions into
+                 ONE card, so this is where they stay reachable. Same shape as
+                 the skin picker above: a native <details>, and every option is
+                 a real anchor to that record's own detail route, so an edition
+                 keeps a shareable URL and middle-click still opens a tab. -->
+            @if (editionOptions().length > 1) {
+              <details class="picker edition-picker">
+                <summary>
+                  <span class="sp-label">{{ 'codex.editionPicker.label' | translate }}</span>
+                  <span class="sp-current">{{ currentEdition() ?? ('codex.editionPicker.standard' | translate) }}</span>
+                  <span class="sp-count">{{ 'codex.editionPicker.count' | translate: { count: editionOptions().length } }}</span>
+                </summary>
+                <ul class="sp-list">
+                  @for (o of editionOptions(); track o.classNameSlug) {
+                    <li>
+                      <a class="sp-opt"
+                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
+                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
+                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
+                        {{ o.editionName ?? ('codex.editionPicker.standard' | translate) }}
                       </a>
                     </li>
                   }
@@ -882,19 +911,19 @@ interface GearRecipe {
     .hero-body .mfr { margin: 0; color: var(--sc-fg-1); font-size: 0.96rem; overflow-wrap: anywhere; }
     .hero-body .cls { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
 
-    /* Skin picker — a native <details> dropdown, options are anchors. */
-    .skin-picker { margin-top: 10px; max-width: 320px; }
-    .skin-picker > summary {
+    /* Skin / edition picker — a native <details> dropdown, options are anchors. */
+    .picker { margin-top: 10px; max-width: 320px; }
+    .picker > summary {
       display: flex; align-items: center; gap: 8px; cursor: pointer;
       padding: 7px 12px; border-radius: 8px; list-style: none;
       background: var(--sc-bg-1); border: 1px solid var(--sc-border);
       transition: border-color 0.16s;
     }
-    .skin-picker > summary::-webkit-details-marker { display: none; }
-    .skin-picker > summary::after { content: '▾'; margin-left: auto; color: var(--sc-fg-2); }
-    .skin-picker[open] > summary::after { content: '▴'; }
-    .skin-picker > summary:hover { border-color: var(--sc-accent); }
-    .skin-picker > summary:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .picker > summary::-webkit-details-marker { display: none; }
+    .picker > summary::after { content: '▾'; margin-left: auto; color: var(--sc-fg-2); }
+    .picker[open] > summary::after { content: '▴'; }
+    .picker > summary:hover { border-color: var(--sc-accent); }
+    .picker > summary:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .sp-label { font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .sp-current { font-size: max(0.82rem, var(--sc-fs-floor)); color: var(--sc-fg-0); }
     .sp-count { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
@@ -1168,6 +1197,16 @@ export class CodexDetailComponent implements OnInit {
         ?.liveryName ?? null,
   );
 
+  // The edition family of this ship, base record first (feedback 77ecad2a).
+  // Fewer than two entries means "nothing to pick" and hides the picker.
+  readonly editionOptions = signal<EditionOption[]>([]);
+  /** The picked entry's edition name, or null while the base record is open. */
+  readonly currentEdition = computed(
+    () =>
+      this.editionOptions().find((o) => o.classNameSlug === this.detail()?.classNameSlug)
+        ?.editionName ?? null,
+  );
+
   // Reverse ingredient lookup: crafting blueprints that consume this entity.
   readonly usedInBlueprints = signal<BlueprintRef[]>([]);
 
@@ -1292,6 +1331,7 @@ export class CodexDetailComponent implements OnInit {
     this.saveError.set(null);
     this.activeMissionId.set('all');
     this.skinOptions.set([]);
+    this.editionOptions.set([]);
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
@@ -1307,6 +1347,7 @@ export class CodexDetailComponent implements OnInit {
         if (kind === 'ship') this.restoreDraftFromUrlOrStorage(className);
         if (kind === 'item' || kind === 'weapon') void this.loadWhereToBuy(d);
         void this.loadSkinGroup(kind, d.classNameSlug);
+        if (kind === 'ship') void this.loadEditionGroup(kind, d.classNameSlug);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
         if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug);
         // Ships are not craftable either, so skip the forward lookup as well.
@@ -1482,6 +1523,26 @@ export class CodexDetailComponent implements OnInit {
       this.skinOptions.set(resolveSkinGroup(siblings, className) ?? []);
     } catch {
       this.skinOptions.set([]);
+    }
+  }
+
+  /**
+   * The edition family this ship belongs to (feedback 77ecad2a). The grid shows
+   * one entry per hull, so the duplicate records and marketing editions it
+   * swallowed have to be reachable from here — `resolveEditionGroup` re-derives
+   * the same family from a prefix read, and returns null (→ no picker) for the
+   * ordinary case of a ship that ships exactly once. Best effort: a failed read
+   * just hides the picker.
+   */
+  private async loadEditionGroup(kind: CodexKind, className: string): Promise<void> {
+    try {
+      const siblings = await this.svc.listEditionSiblings(kind, className);
+      // Switching editions re-enters load() while this read is in flight; a
+      // late answer must not paint the previous ship's family.
+      if (this.detail()?.classNameSlug !== className) return;
+      this.editionOptions.set(resolveEditionGroup(siblings, className) ?? []);
+    } catch {
+      this.editionOptions.set([]);
     }
   }
 
