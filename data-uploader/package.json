@@ -26,15 +26,15 @@
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.4.0",
     "@types/yauzl": "^3.4.0",
-    "electron": "^43.3.0",
+    "electron": "^44.1.0",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "png-to-ico": "^3.0.2",
     "typescript": "~7.0.2",
     "vite": "^7.3.6",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=20.10.0"
