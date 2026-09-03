@@ -759,7 +759,7 @@ export interface FleetGroup {
          scrolls internally instead of stretching the page. */
       .surface {
         --rail-w: 52px;
-        --surface-h: 560px;
+        --surface-h: 520px;
         display: grid;
         gap: 0;
         height: var(--surface-h);
@@ -1355,16 +1355,15 @@ export interface FleetGroup {
       .rail-icon:hover { color: var(--sc-accent); }
 
       /* ── responsive ───────────────────────────────────────────────────── */
-      @media (max-width: 1000px) { .surface { --surface-h: 540px; } }
       /* Phone/small tablet: the switcher stacks, so the collapsed zone becomes
          a horizontal bar. Same toggle, same fixed total height. */
       @media (max-width: 760px) {
-        .surface { --surface-h: 520px; --rail-h: 52px; }
-        .surface.open-board { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) var(--rail-h); }
-        .surface.open-hangar { grid-template-columns: 1fr; grid-template-rows: var(--rail-h) minmax(0, 1fr); }
+        .surface { --surface-h: 500px; --rail-h: 52px; }
+        .surface.open-board { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) var(--rail-h); }
+        .surface.open-hangar { grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--rail-h) minmax(0, 1fr); }
       }
       @media (max-width: 480px) {
-        .surface { --surface-h: 480px; }
+        .surface { --surface-h: 460px; }
         .ship-hero { max-height: 210px; }
       }
       /* On a phone the zone is ~360px wide, where four labelled KPI chips
