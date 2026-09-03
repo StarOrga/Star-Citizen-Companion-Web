@@ -404,7 +404,6 @@
       "size": "Size",
       "grade": "Grade",
       "componentKind": "Component type",
-      "weaponClass": "Weapon class",
       "all": "All",
       "includeVariants": "Show AI / template variants",
       "reset": "Reset filters",
@@ -414,6 +413,34 @@
     "weaponClass": {
       "Ship": "Ship",
       "FPS": "FPS"
+    },
+    "weaponGroup": {
+      "superAria": "Weapon super-category",
+      "subAria": "Weapon sub-category",
+      "all": "All weapons",
+      "allOf": "All {{group}}",
+      "super": {
+        "fps": "FPS equipment",
+        "ship": "Ship weapons"
+      },
+      "fps": {
+        "sidearm": "Sidearms",
+        "primary": "Primaries",
+        "heavy": "Heavy weapons",
+        "melee": "Melee",
+        "throwable": "Throwables",
+        "gadget": "Tools & gadgets",
+        "other": "Other"
+      },
+      "ship": {
+        "gun": "Guns",
+        "turret": "Turrets",
+        "missile": "Missiles & torpedoes",
+        "countermeasure": "Countermeasures",
+        "mining": "Mining lasers",
+        "utility": "Tractor & salvage",
+        "other": "Other"
+      }
     },
     "componentKind": {
       "PowerPlant": "Power plant",
@@ -2271,14 +2298,9 @@
     "deleteConfirm": "Delete this message? This cannot be undone.",
     "issue": {
       "mark": "Create an issue",
-      "placeholder": "GitHub issue URL",
-      "save": "Attach",
-      "cancel": "Cancel",
-      "invalidUrl": "Please enter a valid issue URL (http/https).",
       "pill": "Issue requested",
       "pending": "Issue creation is queued — the routine will file it.",
       "undo": "Undo",
-      "attach": "Attach an issue link",
       "requestBody": "Please **do not implement** this topic — open a GitHub issue for it instead. Then set `status = issue_created` and put the issue URL into `ship_ref`; the topic goes through the usual sign-off from there like any other outcome."
     },
     "status": {

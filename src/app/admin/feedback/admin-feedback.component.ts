@@ -948,32 +948,6 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                       {{ 'adminFeedback.issue.mark' | translate }}
                     </button>
                   }
-                  <!-- The other half of what the single button used to do: an
-                       issue that ALREADY exists, recorded by hand. It ends the
-                       work the same way the routine's own hand-off does - the
-                       topic goes into the sign-off gate with its issue link. -->
-                  @if (issueFormFor() === m.id) {
-                    <form class="issue-form" (submit)="submitIssueRef(m, $event)">
-                      <input
-                        class="issue-input"
-                        type="url"
-                        required
-                        [value]="issueUrl()"
-                        (input)="issueUrl.set($any($event.target).value)"
-                        [attr.placeholder]="'adminFeedback.issue.placeholder' | translate"
-                        [attr.aria-label]="'adminFeedback.issue.placeholder' | translate" />
-                      <button class="sc-btn micro" type="submit" [disabled]="busy()">
-                        {{ 'adminFeedback.issue.save' | translate }}
-                      </button>
-                      <button class="sc-btn micro" type="button" (click)="cancelIssueForm()">
-                        {{ 'adminFeedback.issue.cancel' | translate }}
-                      </button>
-                    </form>
-                  } @else {
-                    <button class="sc-btn micro ghost" (click)="openIssueForm(m)" [disabled]="busy()">
-                      {{ 'adminFeedback.issue.attach' | translate }}
-                    </button>
-                  }
                 }
 
                 <!-- A user-submitted topic is never hard-deleted: the author has
@@ -1716,20 +1690,6 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
        state, the button next to it is the only thing to act on. */
     .issue-pending { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .issue-pending .ip-text { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
-    /* Inline "issue link" hand-off: paste the issue url, confirm, archived. */
-    .issue-form { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .issue-input {
-      flex: 1 1 220px;
-      min-width: 0;
-      padding: 4px 8px;
-      background: var(--sc-bg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 6px;
-      color: var(--sc-fg-0);
-      font: inherit;
-      font-size: max(0.76rem, var(--sc-fs-floor));
-    }
-    .issue-input:focus-visible { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25); }
     .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
     .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
@@ -2673,11 +2633,8 @@ export class AdminFeedbackComponent implements OnInit {
       return next;
     });
     // Folding the actions away closes whatever form was open inside them, so a
-    // half-typed issue url or decline note can never survive out of sight.
-    if (!this.moreOpen(id)) {
-      if (this.issueFormFor() === id) this.cancelIssueForm();
-      if (this.declineFormFor() === id) this.cancelDeclineForm();
-    }
+    // half-typed decline note can never survive out of sight.
+    if (!this.moreOpen(id) && this.declineFormFor() === id) this.cancelDeclineForm();
   }
 
   /** Topics still awaiting the admin's answer (an open Rückfrage), in board order. */
@@ -3043,8 +3000,9 @@ export class AdminFeedbackComponent implements OnInit {
    * otherwise leaves the topic exactly where it is: `open`, in the routine's
    * queue, at its place in the oldest-first order.
    *
-   * Recording an issue that already exists is still possible and now says so:
-   * it is the separate "Issue-Link eintragen" form below.
+   * It is also the ONLY way a topic reaches `issue_created` (round 2 of the same
+   * feedback removed the hand-recorded "Issue-Link eintragen" form): the routine
+   * files the issue and writes the status and `ship_ref` itself.
    */
   async requestIssue(m: FeedbackRow): Promise<void> {
     const uid = this.selfId();
@@ -3097,53 +3055,14 @@ export class AdminFeedbackComponent implements OnInit {
     return this.issueRequest(m) !== null;
   }
 
-  /** Topic id whose inline "attach an existing issue url" form is open (null = none). */
-  readonly issueFormFor = signal<string | null>(null);
-  /** Draft issue url in that form. */
-  readonly issueUrl = signal('');
-
-  openIssueForm(m: FeedbackRow): void {
-    this.issueUrl.set(m.ship_ref ?? '');
-    this.issueFormFor.set(m.id);
-  }
-
-  cancelIssueForm(): void {
-    this.issueFormFor.set(null);
-    this.issueUrl.set('');
-  }
-
-  /**
-   * Archive a topic as "issue created": store the GitHub issue url in
-   * `ship_ref` and flip the status to the terminal `issue_created`. That moves
-   * the row out of the active board into the Archive, where its link renders as
-   * an issue link. Any admin may update the board (RLS `admin_feedback_update`).
+  /*
+   * The inline "Issue-Link eintragen" form lived here: a url field that wrote
+   * `status='issue_created'` + `ship_ref` by hand, for an issue the admin had
+   * already filed elsewhere. It is gone (admin feedback 18e96ad3, round 2 —
+   * "issue link eintragen ist unnötig und kann weg"). `issue_created` and
+   * `ship_ref` stay: the ROUTINE writes both when it files an issue from an
+   * open **[ISSUE]** order, which is now the only way a topic gets that status.
    */
-  async submitIssueRef(m: FeedbackRow, ev: Event): Promise<void> {
-    ev.preventDefault();
-    const url = this.issueUrl().trim();
-    if (!/^https?:\/\/\S+$/i.test(url)) {
-      this.errorMsg.set(this.translate.instant('adminFeedback.issue.invalidUrl'));
-      return;
-    }
-    this.busy.set(true);
-    this.errorMsg.set(null);
-    const { error } = await this.sb.client
-      .from('admin_feedback')
-      .update({
-        status: 'issue_created',
-        ship_ref: url,
-        processed_at: new Date().toISOString(),
-        processing_note: null,
-      })
-      .eq('id', m.id);
-    if (error) {
-      this.errorMsg.set(error.message);
-      this.busy.set(false);
-      return;
-    }
-    this.cancelIssueForm();
-    await this.refresh();
-  }
 
   // ---- Review gate ----------------------------------------------------------
 
