@@ -596,6 +596,7 @@
       "viewOnRsi": "View on RSI",
       "noLoadout": "No default loadout recorded.",
       "notFound": "Entry not found in the current build.",
+      "noArtwork": "No artwork for this ship in this build yet.",
       "showRaw": "Show raw data",
       "hideRaw": "Hide raw data",
       "naValue": "n/a",
