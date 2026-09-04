@@ -79,3 +79,13 @@ errors="replace")` at import for ALL entrypoints, the bridges pass `-X utf8`
   requirements.txt including scdatatools.
 
 Both must succeed before the binary publishes.
+
+The PBS download retries transient failures (network errors, 5xx, a stream
+that breaks mid-body) 4× with 2s/4s/8s backoff and logs every attempt as
+`[fetch-python] download attempt N/4`; a 404 (wrong `PBS_RELEASE`/`ASSET`
+pin) fails at once. Added after the `data-uploader-v0.25.2` build died 300 ms
+into the first `fetch()` with a bare `fetch failed` on a reachable URL
+(2026-09-04). If a build still fails with `[fetch-python] FAILED: download
+failed after 4 attempts`, the runner's network was down for ≥14 s — rerun the
+job. The retry helper is unit-tested in
+`data-uploader/test/fetch-embedded-python.spec.ts`.
