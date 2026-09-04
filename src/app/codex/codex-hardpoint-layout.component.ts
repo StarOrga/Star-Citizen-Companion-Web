@@ -438,8 +438,13 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .mod-sec.fixed { background: transparent; opacity: 0.78; }
     .mod-sec.fixed:hover { opacity: 1; }
 
+    /* The label plus its two toggles are wider than a phone: without wrapping,
+       this row's min-content became the floor for the whole detail page and
+       pushed it into horizontal scroll (feedback 2c7ed0d0). Wrapping keeps the
+       heading a heading on desktop and lets the toggles drop to their own line
+       on a narrow screen. */
     .sec-head { margin: 0 0 8px; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.07em;
-      color: var(--sc-fg-1); display: flex; align-items: center; gap: 6px; }
+      color: var(--sc-fg-1); display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
     .sec-ct { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px;
       background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
     .sec-tag { font-size: max(0.56rem, var(--sc-fs-floor)); letter-spacing: 0.06em; color: var(--sc-fg-2);
