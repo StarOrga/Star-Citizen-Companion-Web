@@ -19,6 +19,33 @@
     "email": "Email",
     "password": "Password",
     "signIn": "Sign in",
+    "forgotPassword": "Forgot your password?",
+    "reset": {
+      "title": "Reset password",
+      "hint": "Enter your email address. We send you a link to set a new password — we never pick one for you.",
+      "send": "Send link",
+      "sending": "Sending…",
+      "sent": "If an account exists for that address, an email with a link is on its way. The link goes straight to the page where you set your password."
+    },
+    "setPassword": {
+      "title": "Set your password",
+      "inviteTitle": "Welcome aboard",
+      "checking": "One moment…",
+      "lead": "Set your new password here. From then on you sign in with your email address and this password.",
+      "inviteLead": "Your application was accepted — your access is live. You do not have a password yet: pick one now and you can get back in any time.",
+      "newPassword": "New password",
+      "repeatPassword": "Repeat password",
+      "rule": "At least {{min}} characters. Only you know it — we never issue passwords.",
+      "submit": "Save password",
+      "saving": "Saving…",
+      "saved": "Password saved.",
+      "savedLead": "Password saved. From now on you sign in with your email address and this password.",
+      "continue": "Continue to the app",
+      "expired": "This link has expired or was already used. Enter your email address and we will send you a new one.",
+      "sendLink": "Send a new link",
+      "sending": "Sending…",
+      "resent": "If an account exists for that address, an email with a new link is on its way."
+    },
     "signUp": "Create account",
     "needAccount": "Need an account?",
     "haveAccount": "Have an account?",
@@ -1151,6 +1178,11 @@
     "empty": {
       "weapon": "No FPS weapons in this build.",
       "armor": "No armor in this build."
+    },
+    "equip": {
+      "targetSet": "Equipping: {{name}}",
+      "backToSet": "Back to the set",
+      "into": "Into slot:"
     }
   },
   "news": {
@@ -1544,6 +1576,10 @@
     "account": {
       "title": "Account"
     },
+    "password": {
+      "title": "Password",
+      "hint": "Choose a new password. It applies immediately — you stay signed in."
+    },
     "username": {
       "title": "Username",
       "label": "Username",
@@ -1775,12 +1811,13 @@
     },
     "requests": {
       "title": "Access requests",
-      "subtitle": "Applications from the landing page. Accepting registers the email just like the form below — plus an invite mail, so the person actually hears about it.",
+      "subtitle": "Applications from the landing page. Accepting registers the email just like the form below — plus an invite mail whose link leads straight to the page where the person picks their own password. We never issue a password.",
       "empty": "No open requests.",
       "accept": "Accept",
       "decline": "Decline",
       "declineConfirm": "Decline the request from {{email}}? They will not be notified.",
       "accepted": "{{email}} accepted, registered and invited.",
+      "acceptedNoMail": "{{email}} accepted and approved. No invite mail was sent — an account already exists for that address, so they simply sign in. Best tell them yourself.",
       "declined": "Request from {{email}} declined.",
       "allowlisted": "Already allowlisted",
       "joined": "Already has an account"
@@ -2069,9 +2106,10 @@
       "create": "Create",
       "empty": "No role loadouts yet — create an FPS, mining or salvage kit above.",
       "itemCount": "{{count}} items equipped",
-      "slotsTitle": "Slots",
-      "addSlotPlaceholder": "Add custom slot…",
-      "addSlot": "Add slot"
+      "rename": "Rename",
+      "cancel": "Cancel",
+      "share": "Share",
+      "deleteConfirm": "Delete for good?"
     },
     "detail": {
       "back": "Back to hangar",
@@ -2124,7 +2162,6 @@
       "empty": "empty",
       "change": "Change",
       "reset": "Stock",
-      "clear": "Clear",
       "createConfigFirst": "Create a configuration above to start editing the loadout."
     },
     "picker": {
@@ -2192,6 +2229,25 @@
       "importing": "Importing…",
       "done": "{{count}} ships imported.",
       "close": "Close"
+    },
+    "slots": {
+      "primary": "Primary weapon",
+      "secondary": "Secondary weapon",
+      "sidearm": "Sidearm",
+      "helmet": "Helmet",
+      "core": "Torso",
+      "arms": "Arms",
+      "legs": "Legs",
+      "undersuit": "Undersuit",
+      "backpack": "Backpack",
+      "multitool": "Multi-tool",
+      "mining-attachment": "Mining attachment",
+      "gadget": "Gadget",
+      "salvage-attachment": "Salvage attachment",
+      "tractor": "Tractor beam",
+      "medgun": "Medgun",
+      "medpen": "MedPen",
+      "repair-attachment": "Repair attachment"
     }
   },
   "quickSearch": {
@@ -2900,7 +2956,8 @@
   },
   "appPanel": {
     "version": "Currently published version",
-    "details": "Show details, notes and release notes"
+    "details": "Show details, notes and release notes",
+    "desktopOnly": "This is a Windows desktop application. Open this page on a PC to download it."
   },
   "friends": {
     "title": "Friends",

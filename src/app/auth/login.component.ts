@@ -11,7 +11,7 @@ import { safeRedirectTarget } from '../core/safe-redirect.util';
 import { AccountStatusService } from '../social/account-status.service';
 
 /** Which panel the landing card currently shows. */
-type Panel = 'signIn' | 'apply';
+type Panel = 'signIn' | 'apply' | 'reset';
 
 @Component({
   selector: 'sc-login',
@@ -125,6 +125,12 @@ type Panel = 'signIn' | 'apply';
                   <button type="submit" class="sc-btn sc-btn-primary" [disabled]="busy() || form.invalid">
                     {{ 'auth.signIn' | translate }}
                   </button>
+                  <!-- An action (it sends a mail), not a navigation — stays a
+                       <button>. Invited accounts start WITHOUT a password, so
+                       this is the way back in, not just a "forgot" case. -->
+                  <button type="button" class="linkish forgot" (click)="showReset()">
+                    {{ 'auth.forgotPassword' | translate }}
+                  </button>
                 </div>
               </form>
 
@@ -140,6 +146,38 @@ type Panel = 'signIn' | 'apply';
                   {{ 'auth.landing.applyInline' | translate }}
                 </button>
               </p>
+            } @else if (panel() === 'reset') {
+              <h2>{{ 'auth.reset.title' | translate }}</h2>
+
+              @if (resetDone()) {
+                <div class="notice sent" role="status">{{ 'auth.reset.sent' | translate }}</div>
+                <button type="button" class="sc-btn back-btn" (click)="showSignIn()">
+                  {{ 'auth.landing.backToSignIn' | translate }}
+                </button>
+              } @else {
+                <p class="apply-hint">{{ 'auth.reset.hint' | translate }}</p>
+
+                <form [formGroup]="resetForm" (ngSubmit)="onReset()" novalidate>
+                  <label>
+                    {{ 'auth.email' | translate }}
+                    <input type="email" class="sc-input" formControlName="email" autocomplete="email" />
+                  </label>
+
+                  @if (resetError()) {
+                    <div class="err">{{ resetError() }}</div>
+                  }
+
+                  <div class="actions">
+                    <button type="submit" class="sc-btn sc-btn-primary"
+                            [disabled]="resetBusy() || resetForm.invalid">
+                      {{ (resetBusy() ? 'auth.reset.sending' : 'auth.reset.send') | translate }}
+                    </button>
+                    <button type="button" class="linkish" (click)="showSignIn()">
+                      {{ 'auth.landing.backToSignIn' | translate }}
+                    </button>
+                  </div>
+                </form>
+              }
             } @else {
               <h2>{{ 'auth.apply.title' | translate }}</h2>
 
@@ -388,6 +426,15 @@ type Panel = 'signIn' | 'apply';
       flex-wrap: wrap;
     }
     .actions .sc-btn { flex: 1; justify-content: center; }
+    /* The link-styled buttons in an action row centre against the primary
+       button instead of stretching like one. */
+    .actions .linkish {
+      flex: 0 0 auto;
+      align-self: center;
+      font-size: max(0.8rem, var(--sc-fs-floor));
+      min-height: 44px;
+    }
+    .actions .linkish.forgot { margin-inline-start: auto; }
     .err {
       margin-top: 12px;
       padding: 10px 14px;
@@ -498,6 +545,10 @@ export class LoginComponent {
   readonly applyDone = signal(false);
   readonly applyError = signal<string | null>(null);
 
+  readonly resetBusy = signal(false);
+  readonly resetDone = signal(false);
+  readonly resetError = signal<string | null>(null);
+
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
@@ -507,6 +558,10 @@ export class LoginComponent {
     email: ['', [Validators.required, Validators.email]],
     handle: [''],
     message: [''],
+  });
+
+  readonly resetForm = this.fb.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
   });
 
   showApply(): void {
@@ -521,6 +576,39 @@ export class LoginComponent {
 
   showSignIn(): void {
     this.panel.set('signIn');
+  }
+
+  showReset(): void {
+    this.panel.set('reset');
+    this.resetError.set(null);
+    const typed = this.form.getRawValue().email;
+    if (typed && !this.resetForm.getRawValue().email) {
+      this.resetForm.patchValue({ email: typed });
+    }
+  }
+
+  /**
+   * Mail a password link. The confirmation is the SAME whether or not the
+   * address has an account — Supabase answers identically on purpose, and
+   * echoing "no such user" here would turn the login card into a membership
+   * oracle (same rule as the apply form's duplicate handling).
+   */
+  async onReset() {
+    if (this.resetForm.invalid) return;
+    this.resetBusy.set(true);
+    this.resetError.set(null);
+    try {
+      const { error } = await this.auth.sendPasswordReset(this.resetForm.getRawValue().email);
+      if (error && error.status === 429) {
+        this.resetError.set(error.message);
+        return;
+      }
+      this.resetDone.set(true);
+    } catch (err) {
+      this.resetError.set((err as Error).message);
+    } finally {
+      this.resetBusy.set(false);
+    }
   }
 
   /**
