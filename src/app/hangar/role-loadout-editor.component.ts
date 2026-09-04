@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { humanizeClassName } from '../codex/codex-format';
+import { LoadoutSharePanelComponent } from '../social/loadout-share-panel.component';
 import { HangarItemPickerComponent, PickedItem } from './hangar-item-picker.component';
 import { HangarService } from './hangar.service';
 import {
@@ -26,7 +27,13 @@ import {
 @Component({
   selector: 'sc-role-loadout-editor',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule, HangarItemPickerComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    TranslateModule,
+    HangarItemPickerComponent,
+    LoadoutSharePanelComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -107,6 +114,11 @@ import {
             </div>
           }
         </div>
+
+        <!-- Sharing (feedback cf0ddf7d phase 2). Below the editor, not in the
+             header: sharing is something you do to a loadout you have already
+             built, and putting it up top would compete with the actual work. -->
+        <sc-loadout-share-panel [loadoutId]="l.id" />
       } @else {
         <div class="sc-card empty">{{ 'hangar.detail.loading' | translate }}</div>
       }
