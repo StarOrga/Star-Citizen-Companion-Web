@@ -263,7 +263,40 @@ export const LOCAL_DRAFT_STORAGE_KEY = LOCALSTORAGE_DRAFT_KEY;
 // decodable — `decodeDraftParam` is untouched.
 
 const POWER_PARAM_VERSION = 'p1';
+
+/** Separator inside the `pw` param's group list — see {@link encodePowerParam}. */
+export const POWER_GROUP_SEPARATOR = '-';
+// R10 — TWO storage scopes, because the two halves of the dock state have
+// different lifetimes:
+//   * where the dock sits is a PER-USER preference and must survive a ship
+//     switch → `scc-codex-dock-pos:v1:<userId|anon>`;
+//   * which groups are cut / which mode + preset are PER-SHIP and must NOT
+//     leak from a Nomad onto an Idris → `scc-codex-power:v1:<shipClassName>`.
+// One shared key made the dock jump back to `center` whenever another ship was
+// opened, and carried a "weapons cut" over to a ship with different hardware.
 const LOCALSTORAGE_POWER_KEY = 'scc-codex-power:v1';
+const LOCALSTORAGE_DOCK_POS_KEY = 'scc-codex-dock-pos:v1';
+
+/** Per-ship key for cut groups / flight mode / preset. */
+export function powerStorageKey(shipClassName: string): string {
+  return `${LOCALSTORAGE_POWER_KEY}:${shipClassName}`;
+}
+
+/** Per-user key for the dock position (`anon` when nobody is signed in). */
+export function dockPositionStorageKey(userId: string | null | undefined): string {
+  const id = (userId ?? '').trim();
+  return `${LOCALSTORAGE_DOCK_POS_KEY}:${id === '' ? 'anon' : id}`;
+}
+
+export function serializeDockPosition(dock: PowerDraftState['dock']): string {
+  return dock;
+}
+
+/** Tolerant read — anything but the three known positions yields `null`. */
+export function parseDockPosition(raw: string | null | undefined): PowerDraftState['dock'] | null {
+  const v = (raw ?? '').trim();
+  return v === 'left' || v === 'center' || v === 'right' ? v : null;
+}
 
 export interface PowerDraftState {
   /** cut group keys (see codex-power.ts `PowerGroup`) — order irrelevant. */
@@ -292,7 +325,10 @@ function isDefaultPower(s: PowerDraftState): boolean {
 /** `null` for the default state — no point putting noise in the URL. */
 export function encodePowerParam(state: PowerDraftState): string | null {
   if (isDefaultPower(state)) return null;
-  const groups = [...state.cutGroups].map((g) => encodeURIComponent(g)).join('-');
+  // `-` is a safe separator: every PowerGroup key is `[a-z]+` (asserted by a
+  // spec against POWER_GROUP_ORDER), so a hyphen can never occur INSIDE a key
+  // and the round-trip needs no escaping. The URL format is unchanged.
+  const groups = [...state.cutGroups].map((g) => encodeURIComponent(g)).join(POWER_GROUP_SEPARATOR);
   return `${POWER_PARAM_VERSION}.${state.mode}.${state.preset}.${state.dock}.${groups}`;
 }
 
@@ -310,7 +346,7 @@ export function decodePowerParam(raw: string | null | undefined): PowerDraftStat
     preset,
     dock,
     cutGroups: groups
-      .split('-')
+      .split(POWER_GROUP_SEPARATOR)
       .map((g) => safeDecode(g))
       .filter((g) => g !== ''),
   };
@@ -331,7 +367,7 @@ export function parseLocalPowerDraft(raw: string | null | undefined): LocalStora
     if (typeof v.shipClassName !== 'string') return null;
     const decoded = decodePowerParam(
       `${POWER_PARAM_VERSION}.${v.mode ?? 'scm'}.${v.preset ?? 'auto'}.${v.dock ?? 'center'}.` +
-        (Array.isArray(v.cutGroups) ? v.cutGroups.join('-') : ''),
+        (Array.isArray(v.cutGroups) ? v.cutGroups.join(POWER_GROUP_SEPARATOR) : ''),
     );
     return decoded ? { shipClassName: v.shipClassName, ...decoded } : null;
   } catch {

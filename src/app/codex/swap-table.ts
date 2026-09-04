@@ -28,6 +28,9 @@ import {
   formatEquippedStat,
 } from './codex-equipped-stats';
 import { StatRow, humanizeClassName } from './codex-format';
+import { findStat, toFiniteNumber } from '../hangar/loadout-stats';
+import { resolveResourceState } from './codex-power';
+import { RESOURCE_STATS_GROUP, resourceKey } from './codex.types';
 
 // ── candidates ───────────────────────────────────────────────────────────────
 
@@ -154,6 +157,91 @@ export function swapTypeLabel(
   return equippedTypeLabel({ kind, payload });
 }
 
+// ── picker-only columns (R7) ─────────────────────────────────────────────────
+// `SWAP_VALUE_CATALOGUE` advertises Power / Min-Power / EM / IR / Coolant / HP /
+// Distortion / Masse columns, but `equippedStats` never produced them — the
+// columns existed with no data source and every cell read `noSource`. These
+// come out of the same schema-3 `ItemResourceComponentParams` group the energy
+// dock reads, plus the two component structs the extract has always carried.
+//
+// Units, so the column header and the dock agree:
+//   power    — SEGMENTS as a decimal. A gun that draws 1.0 standard units is
+//              0.75 of a segment (4 standard units = 3 segments, the ratio the
+//              reactor's own conversion uses), a cooler that draws 3 whole
+//              segments is 3. `dec`, lower is better.
+//   minPower — `minimumConsumptionFraction`, 0..1, verbatim.
+//   em / ir  — nominal signature of the resolved state.
+//   coolant  — SRU/s CONSUMED (a cooler's output is not a picker column).
+//   hp       — `SHealthComponentParams.Health`.
+//   distortion — `SDistortionParams.Maximum` (the pool, matching the summary).
+//   mass     — whatever the payload carries as its mass, in kg.
+
+/** Standard resource units per whole power segment (see `power` above). */
+export const STANDARD_UNITS_PER_SEGMENT = 4 / 3;
+
+function statsRecord(payload: unknown): Record<string, Record<string, unknown>> | undefined {
+  const s = (payload as { stats?: unknown } | null | undefined)?.stats;
+  return s && typeof s === 'object' ? (s as Record<string, Record<string, unknown>>) : undefined;
+}
+
+function massOf(payload: unknown): number | null {
+  const p = payload as { mass?: unknown } | null | undefined;
+  const direct = toFiniteNumber(p?.mass ?? null);
+  if (direct !== null) return direct;
+  return findStat(statsRecord(payload), null, ['mass']);
+}
+
+/**
+ * The picker's resource/component columns for ONE payload. Pure: the component
+ * only forwards the payload it already resolved. Every value is `null` when the
+ * extract does not carry it — a `null` never becomes a 0.
+ */
+export function swapResourceStats(payload: unknown): Record<string, SwapStatValue> {
+  const out: Record<string, SwapStatValue> = {};
+  const stats = statsRecord(payload);
+  const state = resolveResourceState(payload);
+  const put = (key: string, value: number | null, format: EquippedStatFormat, derived = false): void => {
+    if (value === null) return;
+    out[key] = derived ? { value, format, derived: true } : { value, format };
+  };
+  const res = (field: string): number | null =>
+    state === null ? null : findStat(stats, RESOURCE_STATS_GROUP, [resourceKey(field, state)]);
+
+  const segments = res('power.consumeSegments');
+  const units = res('power.consumeUnits');
+  if (segments !== null || units !== null) {
+    const total = (segments ?? 0) + (units ?? 0) / STANDARD_UNITS_PER_SEGMENT;
+    // derived: standard units were converted into segments to make the column
+    // comparable across a gun and a cooler.
+    put('codex.picker.col.power', Math.round(total * 100) / 100, 'dec', units !== null && units > 0);
+  }
+  put('codex.picker.col.minPower', res('power.minFraction'), 'dec');
+  put('codex.picker.col.em', res('em.nominal'), 'int');
+  put('codex.picker.col.ir', res('ir.nominal'), 'int');
+  put('codex.picker.col.coolant', res('coolant.consume'), 'perSec');
+  // HP and Distortion are catalogued under the shared `codex.equipped.*` keys
+  // (the picker reuses the equipped-stat vocabulary for both).
+  put('codex.equipped.health', findStat(stats, 'SHealthComponentParams', ['Health']), 'int');
+  put(
+    'codex.equipped.distortion',
+    findStat(stats, 'SDistortionParams', ['Maximum', 'MaximumDistortion']),
+    'int',
+  );
+  put('codex.picker.col.mass', massOf(payload), 'int');
+  return out;
+}
+
+/** Aimable (gimbal/turret) columns — the picker's `aimYaw` / `aimRate`. */
+export function swapAimStats(payload: unknown): Record<string, SwapStatValue> {
+  const out: Record<string, SwapStatValue> = {};
+  const stats = statsRecord(payload);
+  const yaw = findStat(stats, null, ['aimYawRange', 'yawRange', 'maxYaw']);
+  const rate = findStat(stats, null, ['aimRate', 'rotationRate', 'turnRate', 'aimSpeed']);
+  if (yaw !== null) out['codex.picker.col.aimYaw'] = { value: yaw, format: 'dec' };
+  if (rate !== null) out['codex.picker.col.aimRate'] = { value: rate, format: 'dec' };
+  return out;
+}
+
 /** Assemble one table row from a compatibility hit plus its resolved payloads. */
 export function buildSwapCandidate(input: SwapCandidateInput): SwapCandidate {
   const stats: Record<string, SwapStatValue> = {};
@@ -162,6 +250,15 @@ export function buildSwapCandidate(input: SwapCandidateInput): SwapCandidate {
     Infinity,
   )) {
     stats[st.labelKey] = { value: st.value, format: st.format, derived: st.derived };
+  }
+  // R7 — the picker-only columns the value catalogue advertises. `equippedStats`
+  // wins where both have a value: it reads the curated, sometimes derived
+  // number, these are the raw component fields behind it.
+  for (const [k, v] of Object.entries({
+    ...swapResourceStats(input.payload),
+    ...swapAimStats(input.payload),
+  })) {
+    if (stats[k] === undefined) stats[k] = v;
   }
   const name = (input.nameLocalized ?? '').trim() || humanizeClassName(input.className);
   return {
