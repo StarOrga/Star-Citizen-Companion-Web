@@ -32,6 +32,11 @@ import { unreadBadgeText } from '../feedback/user-feedback.types';
   selector: 'sc-user-feedback-fab',
   standalone: true,
   imports: [TranslateModule, UserFeedbackPanelComponent],
+  // The feedback launcher and its panel are the one thing on screen *because*
+  // the user is writing a report, so a page screenshot taken from inside it
+  // leaves this whole subtree out (admin feedback 312a4acc, see
+  // `PageScreenshotService`).
+  host: { 'data-sc-capture-hide': '' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {

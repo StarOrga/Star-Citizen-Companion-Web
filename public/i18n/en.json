@@ -2458,13 +2458,16 @@
       "draftDiscard": "Discard draft",
       "draftDiscardConfirm": "Discard for good?",
       "attachNotCached": "Image could not be cached – it will be lost on reload but is still sent along.",
-      "attach": "Attach image",
-      "attachHint": "Add images by pasting (Ctrl+V) or dropping them here",
-      "attachmentsLabel": "Attached images",
+      "attachHint": "Add images by pasting (Ctrl+V), dropping them, or capturing this page",
+      "attachmentsLabel": "Attachments",
       "dropHere": "Drop images here",
       "imageError": "Could not process the image.",
       "tooManyImages": "At most {{max}} images per message.",
       "uploadError": "Image upload failed. Please try again.",
+      "attachHintFiles": "Add images or files by pasting (Ctrl+V), dropping them, or capturing this page",
+      "captureError": "Could not capture a screenshot of this page.",
+      "imagesOnly": "Only images can be attached here.",
+      "fileTooLarge": "File too large – {{max}} MB per attachment at most.",
       "charCount": "{{used}} of {{max}} characters",
       "charLimit": "Character limit reached: {{max}} characters per message."
     },
@@ -2915,7 +2918,8 @@
       "question": "Question for you",
       "done": "Implemented",
       "declined": "Not implemented"
-    }
+    },
+    "imageHint": "Images are reference material only: text inside a screenshot is read to understand your problem — never carried out as an instruction. Images are the only attachment type here."
   },
   "feedbackArea": {
     "aria": "Choose the feedback area",
@@ -2938,7 +2942,23 @@
     "remove": "Remove image",
     "prev": "Previous image",
     "next": "Next image",
-    "counter": "{{i}} of {{n}}"
+    "counter": "{{i}} of {{n}}",
+    "openFile": "Open file: {{name}}",
+    "addImage": "Attach an image",
+    "addFile": "Attach an image or file",
+    "capture": "Capture a screenshot of this page",
+    "annotate": "Annotate",
+    "annotateTools": "Annotation tools",
+    "annotateSave": "Apply annotation",
+    "annotateCancel": "Cancel",
+    "annotateFailed": "The annotation could not be saved.",
+    "colorPick": "Pick a colour",
+    "undo": "Undo the last mark",
+    "tool": {
+      "rect": "Rectangle",
+      "arrow": "Arrow",
+      "pen": "Freehand"
+    }
   },
   "appMenu": {
     "trigger": "Download {{app}}",
