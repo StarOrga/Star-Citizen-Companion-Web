@@ -56,6 +56,11 @@
       "sending": "Sending…",
       "sent": "Thanks! Your request arrived. If an admin accepts it you will get an invite mail at this address.",
       "rateLimited": "A lot of requests are coming in right now. Please try again in an hour."
+    },
+    "suspended": {
+      "title": "This account is suspended",
+      "until": "The suspension ends on {{date}}.",
+      "indefinite": "The suspension stays in place until an administrator lifts it."
     }
   },
   "nav": {
@@ -126,16 +131,14 @@
       "patchSwitch": {
         "title": "Switch patch",
         "trigger": "Patch {{patch}} — pick another patch",
-        "live": "Live",
         "past": "older",
         "hasData": "data available",
         "hasDataCount": "{{count}} records",
         "noData": "no data",
-        "more": "Load older",
-        "backToLive": "Back to the live patch",
+        "backToCurrent": "Back to the current patch",
         "loading": "Loading patches …",
         "empty": "No further patches known.",
-        "note": "A patch without data cannot be opened. Reloading the page returns you to the live patch."
+        "note": "A patch without data cannot be opened. Reloading the page returns you to the current patch."
       },
       "patch": {
         "archive": "{{count}} records in the archive",
@@ -1786,8 +1789,47 @@
       "title": "Conspicuous accounts",
       "subtitle": "Accounts with open reports, most-reported first.",
       "count": "{{count}} reports",
-      "by": "reported by {{name}}",
-      "deferred": "Read-only: a grace period and account suspension (including kicking all sessions) are not decided yet and follow in their own round."
+      "by": "reported by {{name}}"
+    },
+    "moderation": {
+      "warn": "Warn",
+      "suspend": "Suspend account",
+      "unsuspend": "Lift suspension",
+      "markReviewed": "Mark reports handled",
+      "dismiss": "Dismiss reports",
+      "cancel": "Cancel",
+      "confirmWarn": "Send warning",
+      "confirmSuspend": "Suspend now",
+      "suspendedPill": "suspended",
+      "warnReason": "Warning text",
+      "suspendReason": "Reason for the suspension",
+      "reasonPlaceholder": "What happened? This text is shown to the affected person.",
+      "reasonVisible": "This text is shown to the affected person verbatim.",
+      "duration": "Duration",
+      "durations": {
+        "days": "{{days}} days",
+        "indefinite": "Indefinite"
+      },
+      "activeSince": "suspended since {{date}}",
+      "activeUntil": "until {{date}}",
+      "indefinite": "indefinite",
+      "flash": {
+        "warned": "Warning sent.",
+        "suspended": "Account suspended. Access is blocked immediately.",
+        "unsuspended": "Suspension lifted.",
+        "reviewed": "Reports marked as handled.",
+        "dismissed": "Reports dismissed."
+      },
+      "error": {
+        "protected": "This account cannot be moderated (your own account, an admin, or protected).",
+        "invalidTarget": "Invalid selection.",
+        "userNotFound": "Account not found.",
+        "reasonRequired": "Please give a reason.",
+        "reasonTooLong": "That text is too long.",
+        "invalidDuration": "Invalid duration.",
+        "forbidden": "You do not have the rights for that.",
+        "generic": "That did not work. Please try again."
+      }
     }
   },
   "desktop": {
@@ -2866,11 +2908,13 @@
     },
     "incoming": {
       "title": "Incoming requests",
-      "empty": "No open requests."
+      "empty": "No open requests.",
+      "expiryHint": "Requests nobody answers expire after seven days."
     },
     "outgoing": {
       "title": "Sent requests",
-      "empty": "You have no request pending."
+      "empty": "You have no request pending.",
+      "expiryHint": "Your requests expire after seven days without an answer."
     },
     "list": {
       "title": "Your friends",
@@ -2929,7 +2973,78 @@
       "reasonTooLong": "The description is too long.",
       "noRelation": "You can only report accounts you have interacted with.",
       "reportLimit": "You have too many open reports. Wait until they have been reviewed.",
-      "notApproved": "Your account is not approved yet."
+      "notApproved": "Your account is not approved yet.",
+      "requestExpired": "This request has expired.",
+      "accountSuspended": "Your account is suspended."
+    },
+    "expiry": {
+      "left": "{{days}} days left",
+      "today": "expires today"
+    }
+  },
+  "moderation": {
+    "warning": {
+      "title": "Warning from the administrators",
+      "acknowledge": "Understood"
+    }
+  },
+  "share": {
+    "title": "Share loadout",
+    "hint": "Share this loadout with friends, or behind a link.",
+    "loading": "Loading …",
+    "revoke": "Revoke",
+    "friends": {
+      "title": "With friends",
+      "empty": "Not shared with anyone yet.",
+      "pick": "Pick a friend …",
+      "share": "Share",
+      "noFriends": "You have not added any friends yet.",
+      "allShared": "All of your friends already have this loadout."
+    },
+    "link": {
+      "title": "Public link",
+      "warning": "Anyone holding this link can view the loadout — no account needed. The link shows name, role and equipment, and nothing else.",
+      "create": "Create link",
+      "copy": "Copy",
+      "copied": "Copied",
+      "open": "Open",
+      "revoke": "Disable link",
+      "url": "Share link",
+      "since": "Live since {{date}}"
+    },
+    "sharedWithMe": {
+      "title": "Shared with me",
+      "hint": "Loadouts friends have shared with you. Read-only.",
+      "show": "Show equipment",
+      "hide": "Hide"
+    },
+    "view": {
+      "eyebrow": "Shared loadout",
+      "loading": "Loading …",
+      "by": "by {{name}}",
+      "updated": "last changed {{date}}",
+      "emptyLoadout": "Nothing has been added to this loadout yet.",
+      "footnote": "Read-only. Only the owner can change it.",
+      "aboutCta": "What is SC Companion?",
+      "unavailable": {
+        "title": "This loadout is not available",
+        "body": "The link is invalid or has been disabled."
+      }
+    },
+    "flash": {
+      "shared": "Loadout shared.",
+      "alreadyShared": "That friend already has this loadout.",
+      "linkCreated": "Link created.",
+      "revoked": "Share revoked."
+    },
+    "error": {
+      "notFriends": "You are not friends (any more).",
+      "loadoutNotFound": "Loadout not found.",
+      "shareNotFound": "That share no longer exists.",
+      "suspended": "Your account is suspended.",
+      "invalidTarget": "Invalid selection.",
+      "notApproved": "Your account is not approved.",
+      "generic": "That did not work. Please try again."
     }
   }
 }

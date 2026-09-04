@@ -48,6 +48,17 @@ export const routes: Routes = [
         loadComponent: () => import('./legal/imprint.component').then((m) => m.ImprintComponent),
       },
       {
+        // A shared loadout behind its link token (feedback cf0ddf7d phase 2).
+        // Public BY DESIGN — "anyone holding the link can view it, including
+        // unregistered users" — so it lives on this ungated layout. The token
+        // in the URL is the entire authorization; `get_shared_loadout()` is
+        // the only thing `anon` can reach in the hangar schema, it projects
+        // four fields, and it returns nothing for a revoked link.
+        path: 'shared/loadout/:token',
+        loadComponent: () =>
+          import('./social/shared-loadout.component').then((m) => m.SharedLoadoutComponent),
+      },
+      {
         // Where `approvedGuard` sends a session whose approval it could not
         // read (see that guard + AccessUnavailableComponent). It MUST stay
         // on this ungated layout: gated, it would be bounced by the very

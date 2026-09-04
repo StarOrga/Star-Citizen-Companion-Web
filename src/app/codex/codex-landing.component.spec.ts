@@ -178,6 +178,8 @@ describe('CodexLandingComponent', () => {
           provide: NewsService,
           useValue: {
             feed: signal<VerseFeed | null>(null),
+            // The patch switch reads the published patch lines from here.
+            patchLines: signal([]),
             refresh: jasmine.createSpy('refresh').and.resolveTo(undefined),
           },
         },

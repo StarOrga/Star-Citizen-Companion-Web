@@ -6,7 +6,9 @@ import { AuthService } from './auth.service';
 import { AccessRequestService } from './access-request.service';
 import { ImpersonationService } from './impersonation.service';
 import { AnalyticsService } from '../core/analytics.service';
+import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { safeRedirectTarget } from '../core/safe-redirect.util';
+import { AccountStatusService } from '../social/account-status.service';
 
 /** Which panel the landing card currently shows. */
 type Panel = 'signIn' | 'apply';
@@ -14,7 +16,7 @@ type Panel = 'signIn' | 'apply';
 @Component({
   selector: 'sc-login',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslateModule, RouterLink],
+  imports: [ReactiveFormsModule, TranslateModule, RouterLink, ScDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!--
@@ -61,6 +63,29 @@ type Panel = 'signIn' | 'apply';
 
               @if (denied()) {
                 <div class="notice denied">{{ 'auth.deniedInvite' | translate }}</div>
+              }
+
+              <!--
+                A suspended account (feedback cf0ddf7d phase 2) may still
+                authenticate — deliberately, see suspend_user() — so that it
+                gets told WHY instead of a generic auth failure. The guard
+                drops the session again immediately and lands here. The reason
+                is the admin's free text: interpolated, never bound as HTML.
+              -->
+              @if (suspended()) {
+                <div class="notice suspended" role="alert">
+                  <p class="suspended__title">{{ 'auth.suspended.title' | translate }}</p>
+                  @if (suspensionReason(); as why) {
+                    <p class="suspended__reason">{{ why }}</p>
+                  }
+                  <p class="suspended__body">
+                    @if (suspendedUntil(); as until) {
+                      {{ 'auth.suspended.until' | translate: { date: (until | scDate: 'datetime') } }}
+                    } @else {
+                      {{ 'auth.suspended.indefinite' | translate }}
+                    }
+                  </p>
+                </div>
               }
 
               @if (previewLocked()) {
@@ -273,6 +298,23 @@ type Panel = 'signIn' | 'apply';
       border: 1px solid var(--sc-warning);
       color: var(--sc-warning);
     }
+    /* --sc-danger, not --sc-accent-hot: this is an error state shown to the
+       affected user, not an elevated-access surface. */
+    .notice.suspended {
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid var(--sc-danger);
+      color: var(--sc-fg-0);
+    }
+    .suspended__title {
+      margin: 0 0 6px;
+      font-weight: 600;
+      color: var(--sc-danger);
+    }
+    .suspended__reason {
+      margin: 0 0 6px;
+      overflow-wrap: anywhere;
+    }
+    .suspended__body { margin: 0; color: var(--sc-fg-2); }
     .notice.sent {
       background: rgba(74, 222, 128, 0.1);
       border: 1px solid var(--sc-success);
@@ -405,6 +447,7 @@ export class LoginComponent {
   private readonly accessRequests = inject(AccessRequestService);
   private readonly translate = inject(TranslateService);
   private readonly imp = inject(ImpersonationService);
+  private readonly account = inject(AccountStatusService);
 
   /**
    * True while previewing as the signed-out visitor (defect B). Only `'anon'`
@@ -421,6 +464,28 @@ export class LoginComponent {
   readonly errorMsg = signal<string | null>(null);
   /** Set when the approvedGuard bounced an un-invited account back here. */
   readonly denied = signal(this.route.snapshot.queryParamMap.get('denied') === 'invite');
+
+  /**
+   * Set when the approvedGuard dropped a SUSPENDED session back here
+   * (`?denied=suspended`, feedback cf0ddf7d phase 2). The query param is only
+   * the trigger — the reason itself is never put in the URL; it is read from
+   * the in-memory notice the guard left behind, which is why it disappears on
+   * a reload and the generic wording below carries the rest.
+   */
+  private readonly deniedSuspended =
+    this.route.snapshot.queryParamMap.get('denied') === 'suspended';
+  readonly suspended = computed(
+    () =>
+      this.deniedSuspended ||
+      // Not only the query param: the eject can come from the shell's
+      // AccountNoticeComponent (a suspension that lands mid-session), whose
+      // imperative navigation can lose a race with the guard's own UrlTree
+      // and drop the param. The in-memory notice is the more reliable
+      // signal, and it is set on every eject path.
+      this.account.suspensionNotice() !== null,
+  );
+  readonly suspensionReason = computed(() => this.account.suspensionNotice()?.reason ?? null);
+  readonly suspendedUntil = computed(() => this.account.suspensionNotice()?.until ?? null);
 
   /**
    * Which half of the card is showing. A bounced-back visitor (`?denied=invite`)

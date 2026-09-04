@@ -6,8 +6,24 @@ import { Role, RoleService } from '../auth/role.service';
 import { AuthService } from '../auth/auth.service';
 import { isDeleteBlocked, isProtectedAccount, isRoleChangeBlocked } from './admin-protection';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { ModerationService } from '../social/moderation.service';
+import {
+  MODERATION_REASON_MAX,
+  SUSPENSION_DURATIONS,
+  SuspensionFields,
+  isSuspended,
+  isValidModerationReason,
+} from '../social/moderation.types';
 
-interface AdminUserRow {
+/**
+ * Extends `SuspensionFields` (moderation.types.ts) rather than re-declaring
+ * the four suspension columns `list_users_for_admin()` gained in migration
+ * 20260904020000: `isSuspended()` stays the single definition of what
+ * "suspended" means, and every one of those fields stays OPTIONAL, so this
+ * page still renders against a DB that has not had that migration applied yet
+ * (the app deploys on merge, the migration lands out of band afterwards).
+ */
+interface AdminUserRow extends SuspensionFields {
   id: string;
   email: string;
   display_name: string | null;
@@ -190,11 +206,19 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       </div>
 
       <!--
-        Conspicuous accounts (feedback cf0ddf7d, phase 1). READ-ONLY on
-        purpose: it surfaces who is being reported and why, so an admin can
-        judge it. The decision itself — grace period vs. suspending the
-        account and killing its sessions across products — is phase 2 and is
-        still with the admin, so there is deliberately no action button here.
+        Conspicuous accounts (feedback cf0ddf7d). Phase 1 surfaced who is
+        being reported and why; phase 2 adds the decision the board owner
+        signed off on, and it is a THREE-way one, not a yes/no:
+          * warn      — the "grace period with info to the user" branch. The
+                        account keeps every bit of access it has and simply
+                        gets told, once, and has to acknowledge it.
+          * suspend   — is_approved() goes false, live sessions are dropped,
+                        and the next sign-in is met with the reason.
+          * resolve   — no case (or handled elsewhere): close the reports so
+                        the card stops asking. Dismissing is not a silent
+                        delete; it stamps status + reviewer on the ledger.
+        Both destructive-ish paths need a written reason, because that reason
+        is what the affected user gets shown.
       -->
       @if (flaggedUsers().length > 0) {
         <div class="sc-card reports-card">
@@ -224,6 +248,9 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                     <span class="role-pill" [class]="f.user.role">
                       {{ ('profile.roles.' + f.user.role) | translate }}
                     </span>
+                    @if (isUserSuspended(f.user)) {
+                      <span class="role-pill suspended">{{ 'admin.moderation.suspendedPill' | translate }}</span>
+                    }
                   </div>
                   <ul class="report-lines">
                     @for (r of f.reports; track r.id) {
@@ -237,11 +264,105 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                       </li>
                     }
                   </ul>
+
+                  @if (isUserSuspended(f.user)) {
+                    <p class="susp-note">
+                      {{ 'admin.moderation.activeSince' | translate: { date: (f.user.suspended_at | scDate: 'datetime') } }}
+                      @if (f.user.suspended_until) {
+                        <span class="dot">·</span>
+                        {{ 'admin.moderation.activeUntil' | translate: { date: (f.user.suspended_until | scDate: 'datetime') } }}
+                      } @else {
+                        <span class="dot">·</span>{{ 'admin.moderation.indefinite' | translate }}
+                      }
+                    </p>
+                    @if (f.user.suspension_reason) {
+                      <p class="susp-reason">{{ f.user.suspension_reason }}</p>
+                    }
+                  }
+
+                  <div class="mod-actions">
+                    @if (isUserSuspended(f.user)) {
+                      <button type="button" class="sc-btn micro"
+                              [disabled]="moderation.busy()" (click)="unsuspend(f.user)">
+                        {{ 'admin.moderation.unsuspend' | translate }}
+                      </button>
+                    } @else {
+                      <button type="button" class="sc-btn micro"
+                              [disabled]="moderation.busy() || !canModerate(f.user)"
+                              [title]="moderationLockReason(f.user)"
+                              (click)="openModeration(f.user.id, 'warn')">
+                        {{ 'admin.moderation.warn' | translate }}
+                      </button>
+                      <button type="button" class="sc-btn micro danger"
+                              [disabled]="moderation.busy() || !canModerate(f.user)"
+                              [title]="moderationLockReason(f.user)"
+                              (click)="openModeration(f.user.id, 'suspend')">
+                        {{ 'admin.moderation.suspend' | translate }}
+                      </button>
+                    }
+                    <button type="button" class="sc-btn micro"
+                            [disabled]="moderation.busy()" (click)="resolveReports(f.user, false)">
+                      {{ 'admin.moderation.markReviewed' | translate }}
+                    </button>
+                    <button type="button" class="sc-btn micro ghost"
+                            [disabled]="moderation.busy()" (click)="resolveReports(f.user, true)">
+                      {{ 'admin.moderation.dismiss' | translate }}
+                    </button>
+                  </div>
+
+                  @if (modTarget() === f.user.id) {
+                    <div class="mod-form">
+                      <label class="mod-field">
+                        <span class="inline-label">
+                          {{ (modMode() === 'warn' ? 'admin.moderation.warnReason' : 'admin.moderation.suspendReason') | translate }}
+                        </span>
+                        <textarea class="text-input" rows="3"
+                                  [value]="modReason()"
+                                  (input)="onModReason($event)"
+                                  [attr.maxlength]="modReasonMax"
+                                  [placeholder]="'admin.moderation.reasonPlaceholder' | translate"></textarea>
+                      </label>
+                      @if (modMode() === 'suspend') {
+                        <label class="mod-field">
+                          <span class="inline-label">{{ 'admin.moderation.duration' | translate }}</span>
+                          <!-- modDaysValue, not modDays(): "indefinite" is
+                               null in the model and '' in the DOM, and binding
+                               the null straight in leaves the select matching
+                               no option at all — visibly blank. -->
+                          <select class="sc-select" [value]="modDaysValue()" (change)="onModDays($event)">
+                            @for (d of durations; track d) {
+                              <option [value]="d === null ? '' : d">
+                                {{ d === null
+                                    ? ('admin.moderation.durations.indefinite' | translate)
+                                    : ('admin.moderation.durations.days' | translate: { days: d }) }}
+                              </option>
+                            }
+                          </select>
+                        </label>
+                      }
+                      <p class="hint small">{{ 'admin.moderation.reasonVisible' | translate }}</p>
+                      @if (moderation.error(); as key) {
+                        <p class="err">{{ key | translate }}</p>
+                      }
+                      <div class="mod-form-actions">
+                        <button type="button" class="sc-btn micro primary"
+                                [disabled]="moderation.busy() || !modReasonValid()"
+                                (click)="submitModeration(f.user)">
+                          {{ (modMode() === 'warn' ? 'admin.moderation.confirmWarn' : 'admin.moderation.confirmSuspend') | translate }}
+                        </button>
+                        <button type="button" class="sc-btn micro ghost" (click)="cancelModeration()">
+                          {{ 'admin.moderation.cancel' | translate }}
+                        </button>
+                      </div>
+                    </div>
+                  }
                 </div>
               </li>
             }
           </ul>
-          <p class="hint deferred-note">{{ 'admin.reports.deferred' | translate }}</p>
+          @if (modMsg(); as m) {
+            <p class="mod-flash" role="status">{{ m | translate }}</p>
+          }
         </div>
       }
 
@@ -490,6 +611,11 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                       {{ 'admin.protected' | translate }}
                     </span>
                   }
+                  @if (isUserSuspended(u)) {
+                    <span class="role-pill suspended" [title]="u.suspension_reason ?? ''">
+                      {{ 'admin.moderation.suspendedPill' | translate }}
+                    </span>
+                  }
                 </td>
                 <td>
                   @if (reportCount(u) > 0) {
@@ -523,6 +649,19 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                             [disabled]="busy() || roleLocked(u, 'viewer')"
                             [title]="roleLockReason(u, 'viewer')">
                       {{ 'admin.actions.demoteViewer' | translate }}
+                    </button>
+                  }
+                  <!-- Lifting a suspension is available on every row, not just
+                       on a reported one: a suspension outlives the reports
+                       that caused it, and the flagged-accounts card above is
+                       empty once they are closed. Suspending itself stays up
+                       there, where the evidence is. -->
+                  @if (isUserSuspended(u)) {
+                    <button class="sc-btn micro"
+                            (click)="unsuspend(u)"
+                            [disabled]="moderation.busy()"
+                            [title]="u.suspension_reason ?? ''">
+                      {{ 'admin.moderation.unsuspend' | translate }}
                     </button>
                   }
                   <button class="sc-btn micro danger"
@@ -690,6 +829,69 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     .rl-reason { flex: 1 1 100%; color: var(--sc-fg-1); overflow-wrap: anywhere; }
     .deferred-note { font-style: italic; }
     .role-pill.reported { background: rgba(248, 113, 113, 0.18); color: var(--sc-danger); }
+    /* A suspension is a state, not an error and not an elevated-access
+       surface: --sc-warning. --sc-danger stays on the ACTION that creates it. */
+    .role-pill.suspended { background: rgba(251, 191, 36, 0.18); color: var(--sc-warning); }
+
+    .susp-note { margin: 8px 0 0; color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
+    .susp-note .dot { margin: 0 5px; }
+    .susp-reason { margin: 4px 0 0; font-size: 0.85rem; overflow-wrap: anywhere; }
+
+    .mod-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .mod-form {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--sc-border);
+      border-radius: 6px;
+      background: var(--sc-bg-1);
+    }
+    .mod-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .mod-field .inline-label {
+      color: var(--sc-fg-2);
+      font-family: var(--sc-font-display);
+      font-size: max(0.72rem, var(--sc-fs-floor));
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .mod-field .text-input, .mod-field .sc-select {
+      padding: 8px 10px;
+      background: var(--sc-bg-0);
+      color: var(--sc-fg-0);
+      border: 1px solid var(--sc-border);
+      border-radius: 4px;
+      font: inherit;
+      font-size: 0.88rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .mod-field .text-input:focus, .mod-field .sc-select:focus {
+      outline: none;
+      border-color: var(--sc-accent);
+    }
+    .mod-form .hint.small { margin: 0 0 10px; font-size: max(0.72rem, var(--sc-fs-floor)); }
+    .mod-form .err { margin-bottom: 10px; font-size: 0.85rem; }
+    .mod-form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .sc-btn.micro.primary { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); }
+    .sc-btn.micro.ghost { border-color: var(--sc-border); color: var(--sc-fg-1); }
+    .mod-flash {
+      margin: 12px 0 0;
+      padding: 8px 12px;
+      border-radius: 4px;
+      background: rgba(74, 222, 128, 0.1);
+      border: 1px solid var(--sc-success);
+      color: var(--sc-success);
+      font-size: 0.85rem;
+    }
+
+    /* 48px, not 44: two overlapping scale(0.994) shell animations shave a
+       hair off every measured box, so a 44px target measures 43. */
+    @media (pointer: coarse) {
+      .mod-actions .sc-btn, .mod-form-actions .sc-btn { min-height: 48px; }
+      .mod-field .sc-select { min-height: 48px; }
+    }
+    @media (max-width: 560px) {
+      .mod-actions .sc-btn, .mod-form-actions .sc-btn { flex: 1 1 100%; }
+    }
     .muted-zero { color: var(--sc-fg-2); }
 
     .sc-btn.micro {
@@ -833,9 +1035,32 @@ export class AdminComponent implements OnInit {
   readonly errorMsg = signal<string | null>(null);
   readonly selfId = computed(() => this.auth.user()?.id ?? null);
 
-  // Open user reports (migration 20260901181500). Read-only in phase 1.
+  // Open user reports (migration 20260903220000); the actions on them landed
+  // with 20260904020000 — see `moderation` below.
   readonly reports = signal<UserReportRow[]>([]);
   readonly reportsErrorMsg = signal<string | null>(null);
+
+  // ── Moderation (feedback cf0ddf7d phase 2) ────────────────────────────────
+
+  readonly moderation = inject(ModerationService);
+  readonly durations = SUSPENSION_DURATIONS;
+  readonly modReasonMax = MODERATION_REASON_MAX;
+
+  /** Which account's moderation form is open, and in which mode. */
+  readonly modTarget = signal<string | null>(null);
+  readonly modMode = signal<'warn' | 'suspend'>('warn');
+  readonly modReason = signal('');
+  /** `null` = indefinite. Kept as the parsed value, not the select's string. */
+  readonly modDays = signal<number | null>(7);
+  readonly modMsg = signal<string | null>(null);
+
+  readonly modReasonValid = computed(() => isValidModerationReason(this.modReason()));
+
+  /** `modDays()` as the `<option value>` strings — null (indefinite) is ''. */
+  readonly modDaysValue = computed(() => {
+    const d = this.modDays();
+    return d === null ? '' : String(d);
+  });
 
   /**
    * Accounts with at least one open report, most-reported first — the
@@ -1309,6 +1534,83 @@ export class AdminComponent implements OnInit {
       return;
     }
     this.reports.set((data ?? []) as UserReportRow[]);
+  }
+
+  // ── Moderation actions (feedback cf0ddf7d phase 2) ────────────────────────
+
+  isUserSuspended(u: AdminUserRow): boolean {
+    return isSuspended(u);
+  }
+
+  /**
+   * Mirrors `moderation_target()`'s server-side refusals so the button is
+   * disabled instead of failing on click: never yourself, never another admin,
+   * never a protected account. The RPC re-checks all three — this is the
+   * explanation, not the enforcement.
+   */
+  canModerate(u: AdminUserRow): boolean {
+    return u.id !== this.selfId() && u.role !== 'admin' && !this.isProtected(u);
+  }
+
+  moderationLockReason(u: AdminUserRow): string {
+    if (this.canModerate(u)) return '';
+    return this.translate.instant('admin.moderation.error.protected');
+  }
+
+  openModeration(userId: string, mode: 'warn' | 'suspend'): void {
+    this.modMsg.set(null);
+    this.moderation.error.set(null);
+    this.modTarget.set(userId);
+    this.modMode.set(mode);
+    this.modReason.set('');
+    this.modDays.set(7);
+  }
+
+  cancelModeration(): void {
+    this.modTarget.set(null);
+    this.modReason.set('');
+    this.moderation.error.set(null);
+  }
+
+  onModReason(event: Event): void {
+    this.modReason.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  onModDays(event: Event): void {
+    const raw = (event.target as HTMLSelectElement).value;
+    this.modDays.set(raw === '' ? null : Number(raw));
+  }
+
+  async submitModeration(u: AdminUserRow): Promise<void> {
+    if (!this.modReasonValid()) return;
+    const warn = this.modMode() === 'warn';
+    const ok = warn
+      ? await this.moderation.warn(u.id, this.modReason())
+      : await this.moderation.suspend(u.id, this.modReason(), this.modDays());
+    if (!ok) return;
+    this.modTarget.set(null);
+    this.modReason.set('');
+    this.modMsg.set(warn ? 'admin.moderation.flash.warned' : 'admin.moderation.flash.suspended');
+    // Suspending is also a verdict on the reports that prompted it, so the
+    // card must not keep asking about the same account afterwards.
+    if (!warn) await this.moderation.resolveReports(u.id, false);
+    await Promise.all([this.refresh(), this.refreshReports()]);
+  }
+
+  async unsuspend(u: AdminUserRow): Promise<void> {
+    this.modMsg.set(null);
+    if (!(await this.moderation.unsuspend(u.id))) return;
+    this.modMsg.set('admin.moderation.flash.unsuspended');
+    await this.refresh();
+  }
+
+  async resolveReports(u: AdminUserRow, dismiss: boolean): Promise<void> {
+    this.modMsg.set(null);
+    if (!(await this.moderation.resolveReports(u.id, dismiss))) return;
+    this.modMsg.set(
+      dismiss ? 'admin.moderation.flash.dismissed' : 'admin.moderation.flash.reviewed',
+    );
+    await Promise.all([this.refresh(), this.refreshReports()]);
   }
 
   async refreshAllowlist() {

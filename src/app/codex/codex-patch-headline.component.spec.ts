@@ -6,6 +6,8 @@ import { CodexPatchHeadlineComponent } from './codex-patch-headline.component';
 import { CodexService } from './codex.service';
 import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
 import { CodexBuild } from './codex.types';
+import { NewsService } from '../news/news.service';
+import { PatchLineGroup } from '../news/patch-notes';
 
 function build(patch: string, over: Partial<CodexBuild> = {}): CodexBuild {
   return {
@@ -31,6 +33,8 @@ describe('CodexPatchHeadlineComponent', () => {
   async function setup(opts: {
     builds?: CodexBuild[];
     uploaded?: string[];
+    /** Patch lines RSI has taken LIVE, as the Verse-News feed reports them. */
+    published?: string[];
     live?: string;
     stale?: boolean;
   } = {}): Promise<ComponentFixture<CodexPatchHeadlineComponent>> {
@@ -40,7 +44,7 @@ describe('CodexPatchHeadlineComponent', () => {
 
     active = signal<CodexBuild | null>(liveBuild);
     timeline = signal<readonly PatchTimelineEntry[]>([]);
-    const entries = buildPatchTimeline(builds, opts.uploaded ?? [], livePatch);
+    const entries = buildPatchTimeline(builds, opts.uploaded ?? []);
 
     selectSpy = jasmine.createSpy('selectBuild').and.callFake((b: CodexBuild | null) => {
       const target = b ?? liveBuild;
@@ -70,6 +74,16 @@ describe('CodexPatchHeadlineComponent', () => {
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
+        // The switch reads the patch lines the shell's status chip already
+        // holds — never its own request, so a stub signal is the whole surface.
+        {
+          provide: NewsService,
+          useValue: {
+            patchLines: signal<PatchLineGroup[]>(
+              (opts.published ?? []).map((line) => ({ line, hasLive: true }) as PatchLineGroup),
+            ),
+          },
+        },
       ],
     }).compileComponents();
 
@@ -105,24 +119,55 @@ describe('CodexPatchHeadlineComponent', () => {
     expect(TestBed.inject(CodexService).loadPatchTimeline).not.toHaveBeenCalled();
   });
 
-  it('loads the patch list on the FIRST open and shows five rows at a time', async () => {
+  it('loads the patch list on the FIRST open and caps it at the last three', async () => {
     const patches = ['4.9', '4.8', '4.7', '4.6', '4.5', '4.4', '4.3'];
     const fixture = await setup({ builds: patches.map((p) => build(p)) });
     await openSwitch(fixture);
     const el: HTMLElement = fixture.nativeElement;
 
     expect(TestBed.inject(CodexService).loadPatchTimeline).toHaveBeenCalled();
-    let rows = Array.from(el.querySelectorAll<HTMLElement>('.patch-row .row-ver'));
-    expect(rows.map((r) => r.textContent?.trim())).toEqual(['4.9', '4.8', '4.7', '4.6', '4.5']);
-    expect(el.querySelector('.patch-more')).not.toBeNull();
-
-    // "Load older" APPENDS the next page instead of replacing the list.
-    el.querySelector<HTMLButtonElement>('.patch-more')!.click();
-    fixture.detectChanges();
-    rows = Array.from(el.querySelectorAll<HTMLElement>('.patch-row .row-ver'));
-    expect(rows.map((r) => r.textContent?.trim())).toEqual(patches);
-    // Nothing left to reveal → the pager is gone.
+    const rows = Array.from(el.querySelectorAll<HTMLElement>('.patch-row .row-ver'));
+    expect(rows.map((r) => r.textContent?.trim())).toEqual(['4.9', '4.8', '4.7']);
+    // Three and only three: the pager went with the cap (f68c6c6b).
     expect(el.querySelector('.patch-more')).toBeNull();
+  });
+
+  it('lists a patch RSI shipped without a data upload, greyed out and inert', async () => {
+    const fixture = await setup({
+      builds: [build('4.9'), build('4.8')],
+      published: ['4.10', '4.9', '4.8'],
+      live: '4.9',
+    });
+    await openSwitch(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+
+    const rows = Array.from(el.querySelectorAll<HTMLButtonElement>('.patch-row'));
+    expect(rows.map((r) => r.querySelector('.row-ver')?.textContent?.trim())).toEqual([
+      '4.10', '4.9', '4.8',
+    ]);
+    // The newer patch is visible but unreachable — and says so in words, not
+    // by dimming alone.
+    const newer = rows[0];
+    expect(newer.classList).toContain('nodata');
+    expect(newer.disabled).toBeTrue();
+    expect(newer.getAttribute('aria-disabled')).toBe('true');
+    expect(newer.querySelector('.row-data')?.textContent).toContain('patchSwitch.noData');
+    expect(rows[1].disabled).toBeFalse();
+    expect(rows[1].getAttribute('aria-disabled')).toBe('false');
+  });
+
+  it('never says "Live" anywhere in the switch (f68c6c6b)', async () => {
+    const fixture = await setup({
+      builds: [build('4.9'), build('4.8')],
+      published: ['4.10'],
+      live: '4.9',
+    });
+    await openSwitch(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(el.querySelector('.row-tag')).toBeNull();
+    expect(el.textContent).not.toContain('patchSwitch.live');
+    expect(el.textContent).not.toContain('backToLive');
   });
 
   it('marks which patches have codex data and makes the data-less ones unselectable', async () => {
@@ -147,7 +192,6 @@ describe('CodexPatchHeadlineComponent', () => {
     expect(withData.disabled).toBeFalse();
     expect(withData.querySelector('.row-data')?.classList).toContain('has');
     expect(withData.querySelector('.row-data')?.textContent).toContain('patchSwitch.hasDataCount');
-    expect(withData.querySelector('.row-tag')?.textContent).toContain('patchSwitch.live');
     expect(withData.getAttribute('aria-selected')).toBe('true');
     // Counts unknown (empty entity_counts) still reads as "data available".
     expect(byVersion.get('4.1')?.querySelector('.row-data')?.textContent).toContain(
@@ -174,7 +218,7 @@ describe('CodexPatchHeadlineComponent', () => {
     // Viewing an older patch is said out loud, and offers the way back.
     expect(el.querySelector('.patch-past')).not.toBeNull();
     await openSwitch(fixture);
-    expect(el.querySelector('.patch-back')).not.toBeNull();
+    expect(el.querySelector('.patch-back')?.textContent).toContain('patchSwitch.backToCurrent');
 
     el.querySelector<HTMLButtonElement>('.patch-back')!.click();
     fixture.detectChanges();
