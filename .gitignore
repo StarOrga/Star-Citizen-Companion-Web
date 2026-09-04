@@ -76,6 +76,10 @@ logs/
 .claude/concepts/
 .claude/batch-activity
 
+# /claude-batch collect-mode marker — per-session, recreated on demand
+.claude/batch-activity
+.claude/batch.md
+
 # Python sidecar (data-uploader) — caches + embedded interpreter + real-P4K subsets
 data-uploader/python/__pycache__/
 data-uploader/python/**/__pycache__/
