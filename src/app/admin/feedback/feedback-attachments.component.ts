@@ -501,7 +501,6 @@ export interface AnnotationResult {
     .lb-step:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
     .lb-count { color: var(--sc-fg-2); font-size: max(0.75rem, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; }
     .sc-btn.micro { padding: 8px 14px; font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.04em; min-height: 48px; }
-||||||| 7ab7107
 
     /* A screenshot is the single most common thing in a feedback thread, so on a
        phone it gets the screen (admin feedback 3bc01a3d). Two things change:
