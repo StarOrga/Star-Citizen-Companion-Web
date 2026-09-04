@@ -125,16 +125,14 @@
       "patchSwitch": {
         "title": "Switch patch",
         "trigger": "Patch {{patch}} — pick another patch",
-        "live": "Live",
         "past": "older",
         "hasData": "data available",
         "hasDataCount": "{{count}} records",
         "noData": "no data",
-        "more": "Load older",
-        "backToLive": "Back to the live patch",
+        "backToCurrent": "Back to the current patch",
         "loading": "Loading patches …",
         "empty": "No further patches known.",
-        "note": "A patch without data cannot be opened. Reloading the page returns you to the live patch."
+        "note": "A patch without data cannot be opened. Reloading the page returns you to the current patch."
       },
       "patch": {
         "archive": "{{count}} records in the archive",

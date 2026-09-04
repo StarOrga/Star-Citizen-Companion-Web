@@ -431,8 +431,7 @@ export class CodexService {
       this.recentLiveBuilds(PATCH_TIMELINE_LIMIT),
       this.uploadedLivePatches(),
     ]);
-    const live = this.liveBuild() ?? this.build();
-    const entries = buildPatchTimeline(builds, uploaded, live?.patchVersion ?? null);
+    const entries = buildPatchTimeline(builds, uploaded);
     this.patchTimeline.set(entries);
     return entries;
   }
