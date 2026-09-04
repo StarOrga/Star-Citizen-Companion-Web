@@ -1223,13 +1223,7 @@ class CodexExtractor:
             t = c.get("_Type_")
             if t not in self._SHIP_STATS_WHITELIST:
                 continue
-            flat = _scalars(c)
-            for k, v in c.items():
-                if not isinstance(k, str) or k.startswith("_"):
-                    continue
-                if isinstance(v, dict):
-                    for sk, sv in _scalars(v).items():
-                        flat.setdefault(f"{k}.{sk}", sv)
+            flat = _flatten_depth2(c)
             if t == "SSCSignatureSystemParams":
                 self._add_cross_section(c, flat)
             if flat:
@@ -1405,6 +1399,12 @@ class CodexExtractor:
             "weaponParams": self._weapon_params(wcp, resolved),
             "itemPorts": self._item_ports(comps),
         })
+        # Weapons had no `stats` block at all: power draw, IR/EM signature,
+        # health, distortion, mass and aim assist were all unreachable for the
+        # UI. Allowlist-based, dropped entirely when nothing matches.
+        weapon_stats = self._weapon_stats(comps)
+        if weapon_stats:
+            base["stats"] = weapon_stats
         return base
 
     def _weapon_params(self, wcp: Dict[str, Any],
@@ -1546,19 +1546,146 @@ class CodexExtractor:
             t = c.get("_Type_")
             if not t or t in self._SKIP_COMPONENT_STATS:
                 continue
-            flat = _scalars(c)
-            # pull scalars from immediate child structs too (one level deep)
-            for k, v in c.items():
-                if not isinstance(k, str) or k.startswith("_"):
-                    continue
-                if isinstance(v, dict):
-                    for sk, sv in _scalars(v).items():
-                        flat.setdefault(f"{k}.{sk}", sv)
+            # top-level scalars + immediate child structs (one level deep)
+            flat = _flatten_depth2(c)
             if t == "SCItemVehicleArmorParams":
                 self._add_vehicle_armor_depth2(c, flat)
+            if t == "ItemResourceComponentParams":
+                self._add_resource_network(c, flat)
             if flat:  # only components that actually carry scalar values
                 stats[t] = flat
         return stats
+
+    # Structs a WEAPON is allowed to surface as `stats`. Weapons carry the same
+    # noisy Components list ships do (geometry, audio, per-attachment stubs), so
+    # this is an allowlist like `_SHIP_STATS_WHITELIST`, not the item blacklist.
+    _WEAPON_STATS_WHITELIST = {
+        "ItemResourceComponentParams",   # power draw + IR/EM signature
+        "SHealthComponentParams",        # Health
+        "SDistortionParams",             # distortion pool / regen
+        "SEntityPhysicsControllerParams",  # mass
+        "SCItemAimableComponentParams",  # gimbal range / tracking rate
+    }
+
+    def _weapon_stats(self, comps) -> Dict[str, Any]:
+        """Allowlist-only stats block for weapons, same struct-keyed shape as
+        `_component_stats()`. Weapons had no `stats` key at all before; they get
+        one only when the allowlist actually matches (never an empty object)."""
+        stats: Dict[str, Any] = {}
+        for c in comps:
+            t = c.get("_Type_")
+            if t not in self._WEAPON_STATS_WHITELIST:
+                continue
+            flat = _flatten_depth2(c)
+            if t == "ItemResourceComponentParams":
+                self._add_resource_network(c, flat)
+            if flat:
+                stats[t] = flat
+        return stats
+
+    # ── resource network (power / coolant / shield / signature) ───────────────
+    # VERIFIED against live LIVE-4.9.0 records (probe 2026-09-04): reactor
+    # POWR_LPLT_S01_IonBurst, cooler COOL_JUST_S01_UltraFlow, shield
+    # SHLD_SECO_S01_WEB, weapon KLWE_LaserRepeater_S3. `states[]` and its
+    # `deltas[]` are LISTS, which the generic flatten drops entirely — the whole
+    # energy model (segment budget, minimum draw, coolant load, IR/EM) lived
+    # exactly there and never reached the payload.
+    #
+    # Emitted flat keys, one prefix per state (state name lower-cased):
+    #   stateNames                            "Online" ("|"-joined when several)
+    #   <state>.power.consumeSegments         SPowerSegmentResourceUnit.units
+    #   <state>.power.consumeUnits            SStandardResourceUnit.standardResourceUnits
+    #   <state>.power.generateSegments        reactor budget (units)
+    #   <state>.power.generateUnits
+    #   <state>.power.minFraction             minimumConsumptionFraction of the
+    #                                         Power-consuming delta (4 dp: the
+    #                                         raw value is float32 noise, e.g.
+    #                                         0.6666666865348816)
+    #   <state>.<resource>.consume/.generate  every non-Power resource by its
+    #                                         own lower-cased name, SRU/s
+    #                                         (coolant, shield, fuel, …)
+    #   <state>.em.nominal/.decayRate         signatureParams.EMSignature
+    #   <state>.ir.nominal/.decayRate         signatureParams.IRSignature
+    #   <state>.powerRanges.<low|medium|high>.<start|modifier>
+    # Amounts of repeated deltas on the same resource+direction are SUMMED.
+    # Nothing is defaulted: a key is emitted only when the record carries it —
+    # an explicit 0.0 in the file (e.g. a reactor's 0 coolant draw) is kept as 0.
+    _SIGNATURE_KEYS = (("EMSignature", "em"), ("IRSignature", "ir"))
+    _POWER_RANGE_BANDS = ("low", "medium", "high")
+
+    def _add_resource_network(self, params: Dict[str, Any],
+                              flat: Dict[str, Any]) -> None:
+        states = params.get("states")
+        if not isinstance(states, list):
+            return
+        names: List[str] = []
+        for state in states:
+            if not isinstance(state, dict):
+                continue
+            name = state.get("name")
+            if not isinstance(name, str) or not name:
+                continue
+            names.append(name)
+            p = f"{name.lower()}."
+            for delta in state.get("deltas") or []:
+                if isinstance(delta, dict):
+                    self._add_resource_delta(delta, flat, p)
+            sig = state.get("signatureParams")
+            if isinstance(sig, dict):
+                for src, key in self._SIGNATURE_KEYS:
+                    entry = sig.get(src)
+                    if not isinstance(entry, dict):
+                        continue
+                    for field_name, out_key in (("nominalSignature", "nominal"),
+                                                ("decayRate", "decayRate")):
+                        val = _to_float(entry.get(field_name))
+                        if val is not None and math.isfinite(val):
+                            flat[f"{p}{key}.{out_key}"] = val
+            ranges = state.get("powerRanges")
+            if isinstance(ranges, dict):
+                for band in self._POWER_RANGE_BANDS:
+                    entry = ranges.get(band)
+                    if not isinstance(entry, dict):
+                        continue
+                    for field_name in ("start", "modifier"):
+                        val = _to_float(entry.get(field_name))
+                        if val is not None and math.isfinite(val):
+                            flat[f"{p}powerRanges.{band}.{field_name}"] = val
+        if names:
+            flat["stateNames"] = "|".join(names)
+
+    def _add_resource_delta(self, delta: Dict[str, Any], flat: Dict[str, Any],
+                            prefix: str) -> None:
+        """One `deltas[]` entry: Generation carries `generation`, Consumption
+        carries `consumption`, Conversion carries both."""
+        for side, verb in (("consumption", "consume"), ("generation", "generate")):
+            amount = delta.get(side)
+            if not isinstance(amount, dict):
+                continue
+            resource = amount.get("resource")
+            unit = amount.get("resourceAmountPerSecond")
+            if not isinstance(resource, str) or not isinstance(unit, dict):
+                continue
+            utype = unit.get("_Type_")
+            if resource == "Power":
+                if utype == "SPowerSegmentResourceUnit":
+                    key, val = f"{prefix}power.{verb}Segments", _to_float(unit.get("units"))
+                else:
+                    key = f"{prefix}power.{verb}Units"
+                    val = _to_float(unit.get("standardResourceUnits"))
+                if val is not None and math.isfinite(val):
+                    _accumulate(flat, key, val)
+                if verb == "consume":
+                    frac = _to_float(delta.get("minimumConsumptionFraction"))
+                    if frac is not None and math.isfinite(frac):
+                        flat[f"{prefix}power.minFraction"] = round(frac, 4)
+                continue
+            raw = unit.get("standardResourceUnits")
+            if raw is None:
+                raw = unit.get("units")
+            val = _to_float(raw)
+            if val is not None and math.isfinite(val):
+                _accumulate(flat, f"{prefix}{resource.lower()}.{verb}", val)
 
     # Depth-2 dicts that the live `SCItemVehicleArmorParams` struct nests its
     # real per-damage-type numbers under. Targeted post-step for THIS struct
@@ -1720,6 +1847,26 @@ def _scalars(d: Dict[str, Any]) -> Dict[str, Any]:
     """Flat scalar fields of a resolved struct (drops nested for typed view)."""
     return {k: v for k, v in d.items()
             if k != "_Type_" and not isinstance(v, (dict, list))}
+
+
+def _flatten_depth2(d: Dict[str, Any]) -> Dict[str, Any]:
+    """Top-level scalars of a resolved struct plus the scalars of its immediate
+    child structs, flattened as ``Sub.field`` (the shape `_component_stats()`
+    and `_ship_stats()` have always emitted)."""
+    flat = _scalars(d)
+    for k, v in d.items():
+        if not isinstance(k, str) or k.startswith("_"):
+            continue
+        if isinstance(v, dict):
+            for sk, sv in _scalars(v).items():
+                flat.setdefault(f"{k}.{sk}", sv)
+    return flat
+
+
+def _accumulate(flat: Dict[str, Any], key: str, value: float) -> None:
+    """Sum repeated deltas that target the same resource and direction."""
+    prev = flat.get(key)
+    flat[key] = value if not isinstance(prev, (int, float)) else prev + value
 
 
 def _dig(d: Any, *keys) -> Any:
