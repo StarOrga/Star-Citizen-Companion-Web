@@ -2956,7 +2956,8 @@
   },
   "appPanel": {
     "version": "Currently published version",
-    "details": "Show details, notes and release notes"
+    "details": "Show details, notes and release notes",
+    "desktopOnly": "This is a Windows desktop application. Open this page on a PC to download it."
   },
   "friends": {
     "title": "Friends",
