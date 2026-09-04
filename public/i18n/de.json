@@ -19,6 +19,33 @@
     "email": "E-Mail",
     "password": "Passwort",
     "signIn": "Anmelden",
+    "forgotPassword": "Passwort vergessen?",
+    "reset": {
+      "title": "Passwort zurücksetzen",
+      "hint": "Trag deine E-Mail-Adresse ein. Wir schicken dir einen Link, mit dem du dir ein neues Passwort setzt — wir vergeben nie eines für dich.",
+      "send": "Link schicken",
+      "sending": "Sende…",
+      "sent": "Wenn es zu dieser Adresse ein Konto gibt, ist eine E-Mail mit einem Link unterwegs. Der Link führt direkt auf die Seite, auf der du dein Passwort setzt."
+    },
+    "setPassword": {
+      "title": "Passwort setzen",
+      "inviteTitle": "Willkommen an Bord",
+      "checking": "Einen Moment…",
+      "lead": "Setz hier dein neues Passwort. Danach meldest du dich mit deiner E-Mail-Adresse und diesem Passwort an.",
+      "inviteLead": "Deine Bewerbung wurde angenommen — dein Zugang steht. Ein Passwort hast du noch nicht: setz es dir jetzt selbst, dann kommst du jederzeit wieder rein.",
+      "newPassword": "Neues Passwort",
+      "repeatPassword": "Passwort wiederholen",
+      "rule": "Mindestens {{min}} Zeichen. Nur du kennst es — wir vergeben keine Passwörter.",
+      "submit": "Passwort speichern",
+      "saving": "Speichere…",
+      "saved": "Passwort gespeichert.",
+      "savedLead": "Passwort gespeichert. Ab jetzt kommst du mit deiner E-Mail-Adresse und diesem Passwort rein.",
+      "continue": "Weiter zur App",
+      "expired": "Dieser Link ist abgelaufen oder wurde schon benutzt. Trag deine E-Mail-Adresse ein, dann schicken wir dir einen neuen.",
+      "sendLink": "Neuen Link schicken",
+      "sending": "Sende…",
+      "resent": "Wenn es zu dieser Adresse ein Konto gibt, ist eine E-Mail mit einem neuen Link unterwegs."
+    },
     "signUp": "Konto erstellen",
     "needAccount": "Noch kein Konto?",
     "haveAccount": "Schon registriert?",
@@ -1544,6 +1571,10 @@
     "account": {
       "title": "Konto"
     },
+    "password": {
+      "title": "Passwort",
+      "hint": "Setz dir ein neues Passwort. Es gilt sofort — angemeldet bleibst du trotzdem."
+    },
     "username": {
       "title": "Benutzername",
       "label": "Benutzername",
@@ -1775,12 +1806,13 @@
     },
     "requests": {
       "title": "Einladungsanfragen",
-      "subtitle": "Bewerbungen von der Startseite. Annehmen registriert die E-Mail wie über das Formular unten — plus Einladungsmail, damit die Person Bescheid weiß.",
+      "subtitle": "Bewerbungen von der Startseite. Annehmen registriert die E-Mail wie über das Formular unten — plus Einladungsmail: Der Link darin führt direkt auf die Seite, auf der sich die Person ihr eigenes Passwort setzt. Wir vergeben nie ein Passwort.",
       "empty": "Keine offenen Anfragen.",
       "accept": "Annehmen",
       "decline": "Ablehnen",
       "declineConfirm": "Anfrage von {{email}} ablehnen? Die Person wird nicht benachrichtigt.",
       "accepted": "{{email}} angenommen, registriert und eingeladen.",
+      "acceptedNoMail": "{{email}} angenommen und freigeschaltet. Es ging keine Einladungsmail raus — zu dieser Adresse gibt es schon ein Konto, die Person meldet sich einfach an. Sag ihr am besten selbst Bescheid.",
       "declined": "Anfrage von {{email}} abgelehnt.",
       "allowlisted": "Schon auf Allowlist",
       "joined": "Hat schon Account"

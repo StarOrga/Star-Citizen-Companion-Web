@@ -317,10 +317,12 @@ describe('SettingsComponent layout', () => {
     }
     // The irreversible action is the last thing on the page.
     expect(sections[sections.length - 1].querySelector('.danger-zone')).toBeTruthy();
-    // Account identity and the username editor belong to the same group.
+    // Account identity, the username editor and the password form belong to
+    // the same group — all three are "who this account is".
     expect(sections[0].querySelector('.account')).toBeTruthy();
-    // Identity, the username editor and the friends entry point.
-    expect(sections[0].querySelectorAll('.sc-card').length).toBe(3);
+    expect(sections[0].querySelector('sc-password-form')).toBeTruthy();
+    // Identity, the username editor, the friends entry point and the password form.
+    expect(sections[0].querySelectorAll('.sc-card').length).toBe(4);
     expect(sections[1].querySelector('.locale-grid')).toBeTruthy();
   });
 
