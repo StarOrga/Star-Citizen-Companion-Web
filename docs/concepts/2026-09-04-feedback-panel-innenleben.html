@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.supabase.co;">
 <title>Feedback-Panel &mdash; Innenleben neu gedacht</title>
-<!-- concept: admin feedback panel rethink · generated 2026-09-04 · chrome donated by 2026-09-02-codex-im-verse -->
+<!-- concept: admin feedback panel rethink · generated 2026-09-04 · chrome donated by 2026-09-02-codex-im-verse · devops 0.139.0 design-template fixes (#325: dock persistence, nav guard, FAB labels) ported 2026-09-04 -->
 <style>
 /* ============================================================
    TOKENS — StarUI aliases (literals, package not installed in
@@ -2412,6 +2412,30 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
             <li><b>Filter-Sheet</b>: Umfang (Meine · Andere · Alle) · Autor · Status · nur Fragen · nur Freigaben — 48-px-Zeilen, bewusst erreicht, nie im Weg.</li>
             <li><b>Alles einklappen</b> / ausklappen.</li>
           </ul>
+/* ── One-shot attention pulse on the 💬 FAB ──
+   The dock is where every note is written, and an unlabelled emoji circle in
+   a corner is genuinely missable — so the FAB announces itself exactly three
+   times, then never again: the JS strips `data-untouched` on the first dock
+   open OR the first keystroke inside the dock, so a returning user is not
+   nagged. It is `animation`, not a class, so it costs nothing once the
+   attribute is gone.
+   Geometry is OFF LIMITS here (gate P13): box-shadow and transform ONLY, no
+   width/height/border-radius/padding — those live in the shared
+   .panel-fab/.feedback-fab rule and the two FABs must stay one component.
+   transform: scale() also composes with the :hover scale rather than
+   fighting it, since both write the same property and hover wins by
+   source order while pointing. */
+@keyframes fabPulse {
+  0%, 100% { transform: scale(1);    box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  50%      { transform: scale(1.12); box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 0 12px rgba(88,166,255,0.18); }
+}
+.feedback-fab[data-untouched="true"] { animation: fabPulse 2.6s ease-in-out 3; }
+@media (prefers-reduced-motion: reduce) {
+  /* No substitute cue: the tooltip is the discoverability path that does not
+     move, and it is present either way. */
+  .feedback-fab[data-untouched="true"] { animation: none; }
+}
+
           <h4>Bilanz ◔</h4>
           <p>Tauscht den Scroll gegen die unveränderte Fortschritts-Ansicht, mit Zurück-Pfeil. Ein Ziel, kein gleichrangiger Tab.</p>
           <div class="why"><strong>Stärke:</strong> die menschlichste Reihenfolge (erst ich, dann was neu ist, dann die Maschine); Worte statt Glyph-Vokabular; Nutzer-Themen bekommen ihre drei Knöpfe offen. <strong>Schwäche:</strong> Geliefert <em>vor</em> Läuft schiebt laufende Arbeit unter den Fold; die Ein-Tipp-Optionen brauchen eine Routine-Konvention (über dem Korridor). <strong>Aufwand:</strong> L (+M Optionen). <strong>Korridor:</strong> Kern innerhalb, Extras geflaggt.</div>
@@ -2717,10 +2741,17 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
     <!-- auto-populated -->
   </nav>
 
-  <button id="panel-toggle" class="panel-fab" aria-label="Entscheidungen öffnen">☰</button>
+  <button id="panel-toggle" class="panel-fab"
+          aria-label="Entscheidungen öffnen"
+          title="Entscheidungen öffnen"
+          aria-expanded="false"
+          data-label-open="Entscheidungen öffnen"
+          data-label-close="Entscheidungen schliessen">☰</button>
   <button id="feedback-toggle" class="feedback-fab"
           aria-label="Feedback öffnen"
+          title="Feedback öffnen"
           aria-expanded="false"
+          data-untouched="true"
           data-label-open="Feedback öffnen"
           data-label-close="Minimieren">💬</button>
 
@@ -2956,15 +2987,36 @@ const STORAGE_KEY = 'concept-state-' + location.pathname.split('/').pop().replac
 const STATE_TTL_MS = 24 * 60 * 60 * 1000;
 
 function saveState() {
-  const state = {
-    _savedAt: Date.now(),
-    _pageVersion: document.documentElement.dataset.pageVersion || ''
-  };
+  const _pageVersion = document.documentElement.dataset.pageVersion || '';
+  // MERGE over the stored blob; never rebuild it from the DOM alone (#325). The
+  // scans below only see nodes that exist RIGHT NOW, and the design template's
+  // dock is built by a different script block whose DOMContentLoaded listener
+  // may not have run yet, and is torn down and rebuilt on every iteration
+  // switch. A from-scratch rebuild wrote a blob with no text:{screen-id} keys
+  // on the first input event after load — deleting the user's notes.
+  let state = {};
+  try {
+    const prev = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (prev && typeof prev === 'object'
+        && !(prev._savedAt && (Date.now() - prev._savedAt) > STATE_TTL_MS)
+        && !(prev._pageVersion && prev._pageVersion !== _pageVersion)) {
+      state = prev;
+    }
+  } catch (e) { /* corrupt storage — start from an empty blob */ }
+  state._savedAt = Date.now();
+  state._pageVersion = _pageVersion;
   document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(el => {
     if (el.name || el.id) state['input:' + (el.name || el.id) + ':' + el.value] = el.checked;
   });
   document.querySelectorAll('textarea, input[type="text"], input[type="number"]').forEach(el => {
-    if (el.id || el.dataset.comment) state['text:' + (el.id || el.dataset.comment)] = el.value;
+    const _key = el.id || el.dataset.comment;
+    if (!_key) return;
+    // A rebuilt, not-yet-restored dock textarea must not be mistaken for a
+    // cleared note: an empty field may only overwrite a non-empty stored value
+    // once the user has actually typed into it (data-touched, stamped from a
+    // trusted input event by the capture-phase listener at the bottom).
+    if (el.value === '' && state['text:' + _key] && el.dataset.touched === undefined) return;
+    state['text:' + _key] = el.value;
   });
   document.querySelectorAll('input[type="range"]').forEach(el => {
     if (el.id || el.name) state['range:' + (el.id || el.name)] = el.value;
@@ -2973,8 +3025,12 @@ function saveState() {
     if (el.id || el.name) state['select:' + (el.id || el.name)] = el.value;
   });
   state['theme'] = document.documentElement.getAttribute('data-theme');
+  // Deleted rather than left alone when false: under the merge above an absent
+  // write would make the flag permanent once set.
   if (typeof _userInteracted !== 'undefined' && _userInteracted) {
     state['_userInteracted'] = true;
+  } else {
+    delete state['_userInteracted'];
   }
   if (typeof lastScreenByDesignForSave === 'function') {
     state['_activeScreenByDesign'] = lastScreenByDesignForSave();
@@ -4034,7 +4090,14 @@ document.addEventListener('DOMContentLoaded', pollReload);
         btn.innerHTML = `<span><span class="screen-idx">${idx + 1}.</span>${sec.dataset.navLabel || sec.id}</span>
           <span class="has-notes" data-note-marker></span>`;
         btn.addEventListener('click', () => {
-          if (d !== active) showDesign(d.dataset.design, sec.id);
+          // Resolve the active design at CLICK time. buildDesignUI() only
+          // runs on iteration:changed / DOMContentLoaded, never on a design
+          // switch, so the build-time `active` above goes stale the moment
+          // the ghost bar is used — and a stale `d === active` sends a
+          // FOREIGN screen id into showScreen(), which then hides every
+          // screen of the design actually on the canvas (blank page).
+          const cur = activeDesign();
+          if (!cur || cur.dataset.design !== d.dataset.design) showDesign(d.dataset.design, sec.id);
           else showScreen(sec.id);
           fireAutoClose();
           closePanel();
@@ -4141,6 +4204,13 @@ document.addEventListener('DOMContentLoaded', pollReload);
     const design = activeDesign();
     if (!design) return;
     const screens = design.querySelectorAll('section[data-screen][id]');
+    // Membership guard. `hidden = s.id !== id` is a blanket hide when NO
+    // screen carries `id` — one foreign id (a nav entry of another design, a
+    // stale deep link, a restored state pointing at a deleted screen) empties
+    // the canvas with no error anywhere. Fall back to the design's first
+    // screen instead: something always paints.
+    if (!screens.length) return;
+    if (![...screens].some(s => s.id === id)) id = screens[0].id;
     let idx = 0;
     screens.forEach((s, i) => {
       const match = s.id === id;
@@ -4229,8 +4299,29 @@ document.addEventListener('DOMContentLoaded', pollReload);
   if (missingPanelParts.length) {
     console.error('[concept] decision-panel markup incomplete, panel disabled — missing: ' + missingPanelParts.join(', '));
   }
-  window.openPanel = () => { panel?.classList.add('open'); backdrop?.classList.add('visible'); panelToggle?.classList.add('hidden'); document.body.classList.add('panel-open'); };
-  window.closePanel = () => { panel?.classList.remove('open'); backdrop?.classList.remove('visible'); panelToggle?.classList.remove('hidden'); document.body.classList.remove('panel-open'); };
+  window.openPanel = () => {
+    panel?.classList.add('open');
+    backdrop?.classList.add('visible');
+    panelToggle?.classList.add('hidden');
+    // Tooltip + a11y label name the NEXT action, exactly like the 💬 FAB below (#325).
+    if (panelToggle) {
+      panelToggle.setAttribute('aria-expanded', 'true');
+      const lbl = panelToggle.dataset.labelClose;
+      if (lbl) { panelToggle.setAttribute('aria-label', lbl); panelToggle.title = lbl; }
+    }
+    document.body.classList.add('panel-open');
+  };
+  window.closePanel = () => {
+    panel?.classList.remove('open');
+    backdrop?.classList.remove('visible');
+    panelToggle?.classList.remove('hidden');
+    if (panelToggle) {
+      panelToggle.setAttribute('aria-expanded', 'false');
+      const lbl = panelToggle.dataset.labelOpen;
+      if (lbl) { panelToggle.setAttribute('aria-label', lbl); panelToggle.title = lbl; }
+    }
+    document.body.classList.remove('panel-open');
+  };
   panelToggle?.addEventListener('click', openPanel);
   panelCloseBtn?.addEventListener('click', closePanel);
   backdrop?.addEventListener('click', closePanel);
@@ -4244,19 +4335,29 @@ document.addEventListener('DOMContentLoaded', pollReload);
     dock.dataset.open = 'true';
     dockToggle.setAttribute('aria-expanded', 'true');
     dockToggle.setAttribute('aria-label', LABEL_CLOSE);
+    dockToggle.title = LABEL_CLOSE;
   }
   function closeDock() {
     const focusWasInside = dock.contains(document.activeElement);
     dock.dataset.open = 'false';
     dockToggle.setAttribute('aria-expanded', 'false');
     dockToggle.setAttribute('aria-label', LABEL_OPEN);
+    dockToggle.title = LABEL_OPEN;
     if (focusWasInside) dockToggle.focus();
   }
   window.closeDock = closeDock;
+  // The one-shot pulse (§ Layout CSS) ends the moment the user proves they
+  // found the FAB. Two independent proofs, because either can come first:
+  // opening the dock from the FAB, or typing into it (a restored session can
+  // land with the dock already open, and closeDock() is also reached by the
+  // panel hand-off, which proves nothing about the dock).
+  const stopFabPulse = () => dockToggle.removeAttribute('data-untouched');
   dockToggle.addEventListener('click', () => {
+    stopFabPulse();
     if (dock.dataset.open === 'true') closeDock();
     else openDock();
   });
+  dock.addEventListener('input', stopFabPulse);
   dockClose.addEventListener('click', closeDock);
 
   let autoCloseUsed = false;
@@ -4319,6 +4420,26 @@ document.addEventListener('DOMContentLoaded', pollReload);
 
   document.addEventListener('DOMContentLoaded', () => {
     buildDesignUI();
+    // IMMEDIATELY after the rebuild and BEFORE showView()/showScreen(): the
+    // dock textareas exist only NOW, and buildDesignUI() created them EMPTY.
+    // showScreen() ends in saveState(), and saveState()'s merge cannot protect
+    // a key whose node IS present — it would serialise those empty textareas
+    // straight over the stored notes, and the restore further down would then
+    // read the blob it had just blanked. Measured in a browser: one reload
+    // emptied `text:{screen-id}` for good.
+    // § State Persistence's own DOMContentLoaded listener is not guaranteed to
+    // run before this one (the same unguaranteed ordering applyDockSize()
+    // already works around), so its restoreState() may have scanned a dock
+    // that did not exist yet, written nothing, and it never re-runs on its
+    // own. Re-restoring here is safe: restoreState() is idempotent (it only
+    // assigns values off the same stored blob) and no user input can have
+    // happened before DOMContentLoaded.
+    // Also deliberately BEFORE primeDock(): on a frozen tab
+    // applyDockFreezeState() stashes the live values into liveDockValues and
+    // paints the frozen blob over them, so restoring afterwards would clobber
+    // the frozen view and lose the stash.
+    if (typeof restoreState === 'function') restoreState();
+    if (typeof updateNoteMarkers === 'function') updateNoteMarkers();
     const active = document.querySelector('section[data-iteration][data-active]');
     if (active) {
       const design = active.querySelector('section[data-design][data-design-active="true"]');
@@ -4339,6 +4460,20 @@ document.addEventListener('DOMContentLoaded', pollReload);
 
   document.addEventListener('iteration:changed', () => {
     buildDesignUI();
+    // buildDesignUI() above destroyed and rebuilt the three dock containers,
+    // so the textareas below it are EMPTY again. Restore them here — before
+    // applyViewport(), showScreen() and primeDock(), every one of which ends
+    // in a saveState() that would write those empty nodes over the stored
+    // notes (the merge only protects keys whose node is ABSENT).
+    // harvestDockValues() carries what was on screen, but only that: a note
+    // belonging to a screen the OUTGOING iteration never rendered a textarea
+    // for exists in localStorage and nowhere else, and would come back blank.
+    // Skipped while a frozen tab is on screen: applyDockFreezeState() has
+    // already painted the frozen blob into the same fields and stashed the
+    // live values in liveDockValues, and writing localStorage over that would
+    // show live text under a read-only frozen iteration.
+    if (!document.body.classList.contains('viewing-frozen')
+        && typeof restoreState === 'function') restoreState();
     const design = activeDesign();
     if (!design) return;
     const prevId = document.querySelector('[data-screen][data-screen-active="true"]')?.id;
@@ -4350,6 +4485,9 @@ document.addEventListener('DOMContentLoaded', pollReload);
       : first?.id;
     if (target) showScreen(target);
     primeDock();
+    // Last, so the ☰ "has notes" dots describe the values primeDock() left in
+    // the fields — restored, stashed or frozen.
+    if (typeof updateNoteMarkers === 'function') updateNoteMarkers();
   });
 
   document.addEventListener('keydown', e => {
@@ -4742,3 +4880,11 @@ document.addEventListener('click', e => {
 </script>
 </body>
 </html>
+// Stamps the field the user is actually typing in, so saveState()'s
+// empty-value guard can tell "cleared on purpose" from "not restored yet".
+// CAPTURE phase, so it runs before the bubble-phase saveState below no matter
+// what else listens. isTrusted filters out the synthetic events restoreState()
+// dispatches — a restore must never count as user input.
+document.addEventListener('input', e => {
+  if (e.isTrusted && e.target && e.target.dataset) e.target.dataset.touched = 'true';
+}, true);
