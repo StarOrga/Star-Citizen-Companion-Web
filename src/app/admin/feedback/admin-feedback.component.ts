@@ -238,8 +238,10 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
           [attr.aria-pressed]="view() === 'workflow'"
           (click)="setView('workflow')">
           {{ 'adminFeedback.view.workflow' | translate }}
-          <!-- Counts Rückfragen AND Abnahmen since feedback d4990269 — the run
-               walks both, so the badge has to promise both. It ignores the run's
+          <!-- Counts Rückfragen AND Abnahmen since feedback d4990269, and the
+               user topics waiting for their release since feedback 89925995 —
+               the run walks all three, so the badge promises all three. It
+               ignores the run's
                kind filter on purpose: the badge is "how much is waiting", not
                "how much is on screen". -->
           @if (workflowInboxCount() > 0) {
@@ -274,10 +276,13 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
             [kindCounts]="workflowKindCounts()"
             [reply]="workflowReplyBound"
             [reopenWithReply]="workflowReopenBound"
+            [askAuthor]="workflowAskAuthorBound"
+            [declineTopic]="workflowDeclineBound"
             (markHandled)="markHandled($event)"
             (scopeChange)="setWorkflowScope($event)"
             (kindChange)="setWorkflowKind($event)"
             (acceptReview)="acceptReview($event)"
+            (releaseTriage)="releaseToRoutine($event)"
             (showProgress)="setView('progress')" />
         </div>
       } @else if (view() === 'progress') {
@@ -2031,7 +2036,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readWorkflowKind(): WorkflowKind {
     try {
       const raw = localStorage.getItem(WORKFLOW_KIND_KEY);
-      if (raw === 'all' || raw === 'question' || raw === 'review') return raw;
+      if (raw === 'all' || raw === 'triage' || raw === 'question' || raw === 'review') return raw;
       // Coming from the removed Abnahme tab (see readView): that admin wants the
       // sign-off pile, so open the run on it instead of on everything.
       if (localStorage.getItem(VIEW_KEY) === 'review') return 'review';
@@ -2096,6 +2101,18 @@ export class AdminFeedbackComponent implements OnInit {
     if (row) await this.reopenFromReview(row);
     return true;
   };
+
+  /**
+   * The two writes a triage step needs beyond the release (feedback 89925995) —
+   * both the board's own, forwarded so the run never touches a row itself: a
+   * QUESTION into the author channel (which parks the topic as
+   * `needs_input_author`), and the decline with its mandatory explanation.
+   */
+  readonly workflowAskAuthorBound = (id: string, payload: ComposerPayload): Promise<boolean> =>
+    this.sendAuthorMessage(id, payload, true);
+
+  readonly workflowDeclineBound = (row: FeedbackRow, note: string): Promise<boolean> =>
+    this.declineWithNote(row, note);
 
   /** How many topics shipped since the last poll — drives the ship banner. */
   readonly shipCheer = signal(0);
@@ -3336,8 +3353,16 @@ export class AdminFeedbackComponent implements OnInit {
     return fn;
   }
 
-  /** Post an admin message into a topic's author-visible channel. */
-  async sendAuthorMessage(feedbackId: string, payload: ComposerPayload): Promise<boolean> {
+  /**
+   * Post an admin message into a topic's author-visible channel. `asQuestion`
+   * defaults to the card's own switch; the Abarbeiten run passes it explicitly
+   * because its triage step offers the question as its own decision.
+   */
+  async sendAuthorMessage(
+    feedbackId: string,
+    payload: ComposerPayload,
+    asQuestion = this.asksAuthor(feedbackId),
+  ): Promise<boolean> {
     const uid = this.selfId();
     if (!uid) return false;
     this.errorMsg.set(null);
@@ -3353,7 +3378,7 @@ export class AdminFeedbackComponent implements OnInit {
       feedback_id: feedbackId,
       author_id: uid,
       from_admin: true,
-      is_question: this.asksAuthor(feedbackId),
+      is_question: asQuestion,
       body,
     });
     if (error) {
@@ -3469,6 +3494,15 @@ export class AdminFeedbackComponent implements OnInit {
       this.errorMsg.set(this.translate.instant('adminFeedback.decline.noteRequired'));
       return;
     }
+    if (await this.declineWithNote(m, note)) this.cancelDeclineForm();
+  }
+
+  /**
+   * The decline itself, without the form around it — so the Abarbeiten run can
+   * take the same decision on a triage step (feedback 89925995) without owning a
+   * second copy of the write. Resolves true once both parts landed.
+   */
+  async declineWithNote(m: FeedbackRow, note: string): Promise<boolean> {
     const uid = this.selfId();
     this.busy.set(true);
     this.errorMsg.set(null);
@@ -3483,7 +3517,7 @@ export class AdminFeedbackComponent implements OnInit {
     if (error) {
       this.errorMsg.set(error.message);
       this.busy.set(false);
-      return;
+      return false;
     }
     // Also drop it into the channel so the author sees the reason as a message,
     // not only as a field on a card they may never expand.
@@ -3496,8 +3530,8 @@ export class AdminFeedbackComponent implements OnInit {
         body: note,
       });
     }
-    this.cancelDeclineForm();
     await this.refresh();
+    return true;
   }
 
   async remove(m: FeedbackRow) {

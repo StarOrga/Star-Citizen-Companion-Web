@@ -2436,6 +2436,7 @@
       "allDoneTitle": "Alles abgearbeitet",
       "allDoneHint": "Keine offenen Rückfragen, nichts abzunehmen. Deine ToDos liegen bei der Routine — sie kommen hier rein, sobald sie etwas von dir braucht.",
       "kind": {
+        "triage": "Freigabe",
         "question": "Rückfrage",
         "review": "Abnahme",
         "new": "ToDo"
@@ -2453,6 +2454,7 @@
       "kindFilter": {
         "label": "Nur eine Art von Schritt zeigen",
         "all": "Alle",
+        "triage": "Nutzer-Feedback",
         "question": "Rückfragen",
         "review": "Abnahmen"
       },
@@ -2464,7 +2466,13 @@
       "swipeHint": "Tipp: Karte nach links wischen zum Überspringen, nach rechts für die Entscheidung.",
       "swipeSkip": "Überspringen",
       "swipeDone": "Erledigt",
-      "swipeAccept": "Abnehmen"
+      "swipeAccept": "Abnehmen",
+      "swipeRelease": "Freigeben",
+      "triage": {
+        "hint": "Das hat ein Nutzer eingereicht. Die Routine rührt es nicht an, solange es nicht freigegeben ist — entscheide hier: freigeben, beim Autor nachfragen oder mit Begründung ablehnen.",
+        "ask": "Rückfrage an den Autor",
+        "askHint": "Geht als Rückfrage an den Autor. Das Thema wartet dann auf seine Antwort und taucht danach wieder hier auf."
+      }
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",

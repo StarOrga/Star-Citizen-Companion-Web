@@ -2436,6 +2436,7 @@
       "allDoneTitle": "All caught up",
       "allDoneHint": "No open questions, nothing to sign off. Your ToDos sit with the routine — they land here as soon as it needs something from you.",
       "kind": {
+        "triage": "Release",
         "question": "Question",
         "review": "Sign-off",
         "new": "ToDo"
@@ -2453,6 +2454,7 @@
       "kindFilter": {
         "label": "Show only one kind of step",
         "all": "All",
+        "triage": "User feedback",
         "question": "Questions",
         "review": "Sign-offs"
       },
@@ -2464,7 +2466,13 @@
       "swipeHint": "Tip: swipe the card left to skip, right to take the decision.",
       "swipeSkip": "Skip",
       "swipeDone": "Done",
-      "swipeAccept": "Accept"
+      "swipeAccept": "Accept",
+      "swipeRelease": "Release",
+      "triage": {
+        "hint": "A user filed this. The routine leaves it alone until it is released — decide here: release it, ask the author, or decline it with a reason.",
+        "ask": "Ask the author",
+        "askHint": "Goes to the author as a question. The topic then waits for their answer and comes back into this run afterwards."
+      }
     },
     "dashboard": {
       "thisMonth": "This month",
