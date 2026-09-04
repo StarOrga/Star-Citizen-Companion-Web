@@ -193,7 +193,9 @@ export const NOMAD_REPEATERS: OccupantFixture = {
 /** SYNTHETIC — the Nomad's own thruster record was not in the probe dump. */
 export const NOMAD_THRUSTER: OccupantFixture = {
   className: 'CNOU_Nomad_Thruster_Main_Left',
-  section: 'thrusters',
+  // there is no `thrusters` module section — the thruster is recognised by its
+  // ComponentKind, which is exactly the path the real payloads take.
+  section: 'structure',
   componentKind: 'Thruster',
   count: 1,
   consumeSegments: 1,
