@@ -213,6 +213,18 @@ interface Ship extends BaseEntity {
                            // containerParams -> InventoryContainer.interiorDimensions
                            // volume / 1.25^3 (a cross-file record_by_id hop).
                            // null = no cargo grid at all (a fighter), NOT 0 SCU.
+                           // VERIFIED LIVE 4.9.0: Cutlass Black 46 (40+6),
+                           // Carrack 456, Freelancer 66 (54+6+6).
+                           // KNOWN NULL: CNOU_Nomad. Its 87-entry stock loadout
+                           // contains no InventoryContainer at all - the open
+                           // bed is a `Door_Ship_Exterior_..._Cargo_Bed` entity
+                           // and the ship carries only `CargoControllerParams`
+                           // with a 1-microSCU batch size, no capacity. The 24
+                           // SCU quoted by RSI is not in the client files, so
+                           // the figure stays null (a gap), never a guess.
+                           // Only ports/classes whose name contains "cargo" are
+                           // resolved: without that gate a Gladius' seat-access
+                           // locker (8 m3 = 4.1 SCU) would read as cargo hold.
   itemPorts: ItemPort[];
   defaultLoadout: LoadoutEntry[]; // stock hardpoint → item className map
   // WHERE each hardpoint sits on the hull, parsed from the ship's .cga helper
