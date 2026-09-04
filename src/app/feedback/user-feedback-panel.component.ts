@@ -49,7 +49,7 @@ type UserFeedbackTab = 'compose' | 'mine';
   imports: [ScDatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="panel-root">
+    <section class="panel-root sc-dense">
       <div class="tabs" role="tablist">
         <button
           type="button"
@@ -84,6 +84,7 @@ type UserFeedbackTab = 'compose' | 'mine';
             @case ('upload') { {{ 'userFeedback.uploadError' | translate }} }
             @case ('rate') { {{ 'userFeedback.rateLimit' | translate }} }
             @case ('preview') { {{ 'userFeedback.impersonationBlocked' | translate }} }
+            @case ('withdrawRefused') { {{ 'userFeedback.withdraw.refused' | translate }} }
             @default { {{ err }} }
           }
         </div>
@@ -116,30 +117,38 @@ type UserFeedbackTab = 'compose' | 'mine';
                 class="topic sc-card"
                 [class.needs-answer]="t.author_status === 'question'"
                 [class.has-news]="isNew(t.id)">
+                <!-- Two lines, like the admin board's card head (admin
+                     feedback 3bc01a3d): the title on its own row so up to three
+                     pills can never squeeze it away, the pills wrapping under
+                     it. -->
                 <button
                   type="button"
                   class="topic-head"
                   (click)="toggle(t.id)"
                   [attr.aria-expanded]="isOpen(t.id)">
                   <span class="chev" [class.open]="isOpen(t.id)">▸</span>
-                  <span class="topic-title">{{ title(t) }}</span>
-                  <!-- What the FAB badge was counting: the topics that changed
-                       since this user last looked (admin feedback e684c946).
-                       Opening the panel already marked them read server-side, so
-                       this marker is what stops the list from being a
-                       needle-in-a-haystack for the rest of the visit. -->
-                  @if (isNew(t.id)) {
-                    <span class="status-pill new">{{ 'userFeedback.newBadge' | translate }}</span>
-                  }
-                  <!-- What the author said this was about (admin feedback
-                       835fec58) — their own tag read back to them. Absent on
-                       everything filed before the tag existed, and shown as
-                       nothing there rather than as a guessed section. -->
-                  @if (areaOf(t); as a) {
-                    <span class="status-pill area">{{ areaLabelKey(a) | translate }}</span>
-                  }
-                  <span class="status-pill" [class]="t.author_status">
-                    {{ ('userFeedback.status.' + t.author_status) | translate }}
+                  <span class="th-body">
+                    <span class="topic-title">{{ title(t) }}</span>
+                    <span class="th-meta">
+                      <!-- What the FAB badge was counting: the topics that
+                           changed since this user last looked (admin feedback
+                           e684c946). Opening the panel already marked them read
+                           server-side, so this marker is what stops the list from
+                           being a needle-in-a-haystack for the rest of the visit. -->
+                      @if (isNew(t.id)) {
+                        <span class="status-pill new">{{ 'userFeedback.newBadge' | translate }}</span>
+                      }
+                      <!-- What the author said this was about (admin feedback
+                           835fec58) — their own tag read back to them. Absent on
+                           everything filed before the tag existed, and shown as
+                           nothing there rather than as a guessed section. -->
+                      @if (areaOf(t); as a) {
+                        <span class="status-pill area">{{ areaLabelKey(a) | translate }}</span>
+                      }
+                      <span class="status-pill" [class]="t.author_status">
+                        {{ ('userFeedback.status.' + t.author_status) | translate }}
+                      </span>
+                    </span>
                   </span>
                 </button>
 
@@ -190,6 +199,45 @@ type UserFeedbackTab = 'compose' | 'mine';
                         sendLabel="userFeedback.answer"
                         [onSubmit]="replySubmitFor(t.id)" />
                     }
+
+                    <!-- Take it back (admin feedback 892013b6): "es sollte
+                         möglich sein, Feedback selber wieder zu löschen wenn man
+                         sieht es wurde schon gemacht". Offered only where
+                         can_delete says so — that flag is the database's own
+                         answer, computed by the same predicate the DELETE policy
+                         enforces, so the button never appears on a topic the
+                         server would refuse. Behind a second click, because the
+                         topic is gone for good afterwards. -->
+                    @if (t.can_delete) {
+                      <div class="withdraw">
+                        @if (confirmingWithdraw() === t.id) {
+                          <span class="withdraw-ask">
+                            {{ 'userFeedback.withdraw.question' | translate }}
+                          </span>
+                          <button
+                            type="button"
+                            class="sc-btn micro danger"
+                            [disabled]="feedback.busy()"
+                            (click)="confirmWithdraw(t.id)">
+                            {{ 'userFeedback.withdraw.confirm' | translate }}
+                          </button>
+                          <button type="button" class="sc-btn micro" (click)="cancelWithdraw()">
+                            {{ 'userFeedback.withdraw.cancel' | translate }}
+                          </button>
+                        } @else {
+                          <button
+                            type="button"
+                            class="sc-btn micro danger"
+                            [disabled]="feedback.busy()"
+                            (click)="askWithdraw(t.id)">
+                            {{ 'userFeedback.withdraw.action' | translate }}
+                          </button>
+                          <span class="withdraw-hint">
+                            {{ 'userFeedback.withdraw.hint' | translate }}
+                          </span>
+                        }
+                      </div>
+                    }
                   </div>
                 }
               </article>
@@ -200,13 +248,17 @@ type UserFeedbackTab = 'compose' | 'mine';
     </section>
   `,
   styles: [`
+    /* Level 2 of the density scale (styles.scss): the sheet/panel shell around
+       this is level 1, so a flat 14px here was a frame inside a frame on a
+       phone (admin feedback 3bc01a3d). “sc-dense” on the same element lets the
+       composer inside it drop its own side frame down there. */
     .panel-root {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: var(--sc-gap-2);
       flex: 1 1 auto;
       min-height: 0;
-      padding: 14px;
+      padding: var(--sc-pad-2);
       box-sizing: border-box;
       overflow-y: auto;
     }
@@ -238,7 +290,7 @@ type UserFeedbackTab = 'compose' | 'mine';
 
     .intro { margin: 0; font-size: 0.84rem; color: var(--sc-fg-2); line-height: 1.5; }
     .privacy { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); opacity: 0.85; line-height: 1.45; }
-    .compose-pane, .mine-pane { display: flex; flex-direction: column; gap: 10px; }
+    .compose-pane, .mine-pane { display: flex; flex-direction: column; gap: var(--sc-gap-2); }
 
     .err {
       padding: 8px 10px;
@@ -258,14 +310,14 @@ type UserFeedbackTab = 'compose' | 'mine';
     }
     .muted { margin: 0; font-size: 0.84rem; color: var(--sc-fg-2); }
 
-    .topic { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .topic { padding: var(--sc-pad-2); display: flex; flex-direction: column; gap: var(--sc-gap-3); }
     .topic.has-news { border-color: var(--sc-accent); }
     /* Ordered after .has-news on purpose: an open question to the author is the
        stronger of the two states and keeps its own border when both apply. */
     .topic.needs-answer { border-color: var(--sc-accent-hot); }
     .topic-head {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 8px;
       width: 100%;
       padding: 0;
@@ -276,10 +328,11 @@ type UserFeedbackTab = 'compose' | 'mine';
       text-align: left;
       cursor: pointer;
     }
-    .chev { color: var(--sc-fg-2); transition: transform 0.16s ease; }
+    .chev { flex: 0 0 auto; margin-top: 1px; color: var(--sc-fg-2); transition: transform 0.16s ease; }
     .chev.open { transform: rotate(90deg); }
+    .th-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .th-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
     .topic-title {
-      flex: 1;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -312,22 +365,60 @@ type UserFeedbackTab = 'compose' | 'mine';
     .status-pill.done { border-color: var(--sc-accent); color: var(--sc-accent); }
     .status-pill.declined { opacity: 0.75; }
 
-    .topic-detail { display: flex; flex-direction: column; gap: 8px; }
-    .body, .reply-body { font-size: 0.84rem; line-height: 1.5; color: var(--sc-fg-1); }
+    .topic-detail { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
+
+    /* Withdraw row (admin feedback 892013b6). Sits last in the card and stays
+       quiet: one destructive button plus the sentence that says why it is only
+       here sometimes. --sc-danger, because it is a real deletion. */
+    .withdraw {
+      display: flex;
+      align-items: center;
+      gap: var(--sc-gap-3);
+      flex-wrap: wrap;
+      margin-top: 2px;
+      padding-top: var(--sc-gap-3);
+      border-top: 1px solid var(--sc-border);
+    }
+    .withdraw-hint, .withdraw-ask {
+      font-size: max(0.74rem, var(--sc-fs-floor));
+      color: var(--sc-fg-2);
+      line-height: 1.4;
+    }
+    .withdraw-ask { color: var(--sc-fg-1); }
+    .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
+    .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
+    .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
+    /* Scrollport for a marked-up runaway token (.sc-longword, styles.scss): a
+       9.800-character run overflows THIS box and nothing else, so the card, the
+       panel and the 375px page around it keep their width (admin feedback
+       0a0fad31). */
+    .body, .reply-body {
+      font-size: 0.84rem;
+      line-height: 1.5;
+      color: var(--sc-fg-1);
+      overflow-wrap: anywhere;
+      overflow-x: auto;
+    }
     /* Screenshots are not part of the body flow — see sc-feedback-attachments. */
 
     .decision {
-      padding: 8px 10px;
+      padding: var(--sc-pad-3);
       border-left: 3px solid var(--sc-border);
       background: var(--sc-bg-1);
       border-radius: 4px;
       font-size: 0.82rem;
     }
-    .decision p { margin: 4px 0 0; color: var(--sc-fg-1); }
+    /* Plain interpolation, not markdown, so there is no .sc-longword marker to
+       lean on — the box takes the horizontal overflow itself. */
+    .decision p {
+      margin: 4px 0 0;
+      color: var(--sc-fg-1);
+      overflow-x: auto;
+    }
 
-    .thread { display: flex; flex-direction: column; gap: 8px; }
+    .thread { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
     .reply {
-      padding: 8px 10px;
+      padding: var(--sc-pad-3);
       border: 1px solid var(--sc-border);
       border-radius: 6px;
       background: var(--sc-bg-1);
@@ -476,6 +567,33 @@ export class UserFeedbackPanelComponent implements OnInit {
   /** Draft identity of one topic's answer box, memoized for a stable binding. */
   replyScope(id: string): string {
     return memoScope(this.replyScopes, id, draftScopes.userReply);
+  }
+
+  /**
+   * The topic whose withdraw button is currently asking "sure?" (admin feedback
+   * 892013b6) — at most one at a time, and never persisted: a confirm state that
+   * survived a reload would be a trap.
+   */
+  private readonly _confirmingWithdraw = signal<string | null>(null);
+  readonly confirmingWithdraw = this._confirmingWithdraw.asReadonly();
+
+  askWithdraw(id: string): void {
+    this._confirmingWithdraw.set(id);
+  }
+
+  cancelWithdraw(): void {
+    this._confirmingWithdraw.set(null);
+  }
+
+  /**
+   * Second click: actually withdraw. The confirm state is dropped either way —
+   * on success the card is gone, and on a refusal (the routine claimed the topic
+   * between the two clicks) the error banner is the answer, not a button still
+   * offering to try again.
+   */
+  async confirmWithdraw(id: string): Promise<void> {
+    this._confirmingWithdraw.set(null);
+    await this.feedback.withdraw(id);
   }
 
   private readonly replySubmitters = new Map<string, (p: ComposerPayload) => Promise<boolean>>();

@@ -766,7 +766,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     /* Same idiom as the patch board's back link, so "leave this view" looks the
        same wherever it appears. A button, because it closes rather than navigates. */
     .nd-head {
-      flex: 0 0 auto; padding: 8px 16px;
+      flex: 0 0 auto; padding: 8px var(--sc-pad-1);
       border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 70%, transparent);
     }
     .nd-back {
@@ -792,9 +792,14 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     }
     .play-link:focus-visible { outline: 2px solid var(--sc-fg-0); outline-offset: 3px; }
 
+    /* The density scale (styles.scss) rather than three fixed numbers: at 375px
+       the flat 20px side padding sat inside a 12px backdrop inset and a 1px card
+       border, so a fifth of the screen was frame before the headline started
+       (admin feedback 3bc01a3d). Unchanged above 720px. */
     .nd-body {
       flex: 0 0 auto; overflow-y: auto;
-      display: flex; flex-direction: column; gap: 10px; padding: 14px 20px 18px;
+      display: flex; flex-direction: column; gap: var(--sc-gap-2);
+      padding: var(--sc-pad-2) var(--sc-pad-1) calc(var(--sc-pad-2) + 4px);
     }
     .nd-chan {
       display: flex; align-items: center; gap: 8px; color: var(--sc-fg-2);

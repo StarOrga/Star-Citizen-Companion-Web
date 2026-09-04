@@ -20,6 +20,7 @@
  * whole resume model unit-tests without Electron or a network.
  */
 
+import { join } from 'node:path';
 import {
   CATALOG_PHASE_TOTAL,
   catalogPhaseIndex,
@@ -234,6 +235,86 @@ export function resumeSummary(s: UploadJobState): ResumeSummary {
     summary.skinsDone = s.skins.doneShips.length;
   }
   return summary;
+}
+
+/**
+ * The extractor's result payload, in the shape the renderer's upload flow
+ * consumes (`ExtractResultPayload`). The renderer only ever received it from a
+ * finished extraction — which meant that after a restart it had none, and its
+ * resume path silently did nothing. A resume therefore rebuilds it from the
+ * durable job plus the extract's own `manifest.json`.
+ */
+export interface ResumeExtractResult {
+  channel: string;
+  patch_version: string;
+  build_number: string;
+  schema_version: number;
+  quality_score: number;
+  entity_counts: Record<string, number>;
+  manifest_path: string;
+  output_dir: string;
+  tool_version: string;
+}
+
+/** Injectable read-only file access, so the rebuild unit-tests without a disk. */
+export interface ExtractIO {
+  exists(path: string): boolean;
+  /** File text, or null when the file is missing or unreadable. */
+  readText(path: string): string | null;
+}
+
+export type RehydrateResult =
+  | { ok: true; result: ResumeExtractResult }
+  | { ok: false; error: 'no_job' | 'out_dir_missing' | 'manifest_missing' };
+
+export const MANIFEST_FILE = 'manifest.json';
+
+/**
+ * Rebuild the extraction result a resume needs from the stored job.
+ *
+ * The job carries what identifies the extract (out dir + channel/version); the
+ * manifest the extractor wrote into that dir carries the rest (schema, quality
+ * score, counts). A missing dir or manifest is reported as such rather than
+ * papered over: the bundle stage would otherwise POST zeros, and the catalog
+ * stage has nothing to read — the operator has to re-extract, and must be told.
+ */
+export function rehydrateResult(s: UploadJobState | null, io: ExtractIO): RehydrateResult {
+  if (!isResumable(s)) return { ok: false, error: 'no_job' };
+  if (!io.exists(s.outDir)) return { ok: false, error: 'out_dir_missing' };
+  const manifestPath = join(s.outDir, MANIFEST_FILE);
+  let manifest: Record<string, unknown> | null = null;
+  const raw = io.readText(manifestPath);
+  if (raw) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') manifest = parsed as Record<string, unknown>;
+    } catch {
+      manifest = null;
+    }
+  }
+  if (!manifest) return { ok: false, error: 'manifest_missing' };
+
+  const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const counts: Record<string, number> = {};
+  if (manifest.entity_counts && typeof manifest.entity_counts === 'object') {
+    for (const [k, v] of Object.entries(manifest.entity_counts as Record<string, unknown>)) {
+      if (typeof v === 'number') counts[k] = v;
+    }
+  }
+  return {
+    ok: true,
+    result: {
+      channel: s.nat.channel,
+      patch_version: s.nat.patchVersion,
+      build_number: s.nat.buildNumber,
+      schema_version: num(manifest.schema_version),
+      quality_score: num(manifest.quality_score),
+      entity_counts: counts,
+      manifest_path: manifestPath,
+      output_dir: s.outDir,
+      tool_version: typeof manifest.tool_version === 'string' ? manifest.tool_version : '',
+    },
+  };
 }
 
 export class UploadJobStore {

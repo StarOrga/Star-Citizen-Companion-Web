@@ -1,5 +1,5 @@
 -- ============================================================
--- 20260903201500_verse_wallpapers_hide_roadmap_roundup.sql
+-- 20260904030000_verse_wallpapers_hide_roadmap_roundup.sql
 --
 -- Take the "Roadmap Roundup" series out of the Starscape gallery — on the
 -- website AND in the Starscape desktop app.

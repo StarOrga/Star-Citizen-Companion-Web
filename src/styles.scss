@@ -77,6 +77,162 @@
   --sc-page-lead: 11px;
 }
 
+/* ============================================================
+   DENSITY SCALE — one padding rhythm for the whole app
+   (admin feedback 3bc01a3d: "viele Ränder in Rändern in Rändern
+   und viel wo die eigentliche Info nur 10 Prozent horizontal
+   ausmacht")
+
+   Container padding was a per-component constant everywhere:
+   20px on .sc-card, 14px on the feedback page, 16px on a message,
+   10px on the author channel, 10px on a reply — every one of them
+   fixed, so on a 375px phone the four levels of nesting added up
+   to over a third of the screen before a single word was drawn.
+
+   Three levels, one variable each. A component says WHICH LEVEL it
+   is, not how many pixels it wants, and the breakpoints below
+   decide the pixels once for everybody:
+
+     --sc-pad-1  a top-level surface (a card, a panel, a page shell)
+     --sc-pad-2  a section inside one of those
+     --sc-pad-3  a leaf (a message bubble, a chip strip)
+
+   Desktop values are exactly the numbers the components carried
+   before, so nothing above 720px moves.
+   ============================================================ */
+:root {
+  --sc-pad-1: 20px;
+  --sc-pad-2: 12px;
+  --sc-pad-3: 10px;
+  /* Rhythm between siblings at each level, so a tightened padding is
+     never left standing next to an untouched 20px gap. */
+  --sc-gap-1: 16px;
+  --sc-gap-2: 10px;
+  --sc-gap-3: 8px;
+}
+@media (max-width: 720px) {
+  :root {
+    --sc-pad-1: 14px;
+    --sc-pad-2: 10px;
+    --sc-pad-3: 8px;
+    --sc-gap-1: 12px;
+    --sc-gap-2: 8px;
+    --sc-gap-3: 6px;
+  }
+}
+@media (max-width: 480px) {
+  :root {
+    --sc-pad-1: 12px;
+    --sc-pad-2: 8px;
+    --sc-pad-3: 6px;
+    --sc-gap-1: 10px;
+  }
+}
+
+/* ---- De-nesting: a frame inside a frame ----
+   Shrinking every padding is only half the fix. The other half is that a
+   BORDER inside a border is pure cost on a narrow screen: the parent already
+   says "this is one thing", so the child's own box only steals width and adds
+   a line the eye has to cross.
+
+   `.sc-nest` marks a container that draws a frame of its own AND is known to
+   live inside a padded parent. Below 720px it gives up the horizontal half of
+   that frame — side borders and side padding go, the top/bottom border stays
+   as a full-bleed band inside the parent's padding, which reads as the same
+   grouping for none of the width. Above 720px the class does nothing at all.
+
+   `.sc-nest--rule` is the variant for containers whose left edge carries
+   meaning (a thread, a quote): it keeps a single inline-start rule instead of
+   the band.
+
+   The doubled class in the selectors is deliberate and load-bearing. Angular's
+   emulated view encapsulation rewrites a component's own `.author-channel` to
+   `.author-channel[_ngcontent-x]` -- a class PLUS an attribute, i.e. 0,2,0 --
+   and component stylesheets are appended after this one, so a plain
+   `.sc-card .sc-nest` (also 0,2,0) would lose every tie on document order. The
+   repeat lifts these to 0,3,0, which is the smallest thing that reliably wins
+   without reaching for `!important` across a whole utility layer. */
+@media (max-width: 720px) {
+  .sc-card .sc-nest.sc-nest,
+  .sc-nest .sc-nest.sc-nest,
+  .sc-dense .sc-nest.sc-nest {
+    border-inline-width: 0;
+    border-radius: 0;
+    padding-inline: 0;
+  }
+  .sc-card .sc-nest--rule.sc-nest--rule,
+  .sc-nest .sc-nest--rule.sc-nest--rule,
+  .sc-dense .sc-nest--rule.sc-nest--rule {
+    border-block-width: 0;
+    border-inline-end-width: 0;
+    border-inline-start-width: 2px;
+    padding-inline: var(--sc-pad-3) 0;
+  }
+}
+
+/* ---- Runaway words in rendered feedback ----
+   A topic once arrived carrying a single unbroken run of ~9.800 "a" characters
+   (admin feedback 0a0fad31). The body surfaces carry `overflow-wrap: anywhere`
+   so ordinary long tokens re-wrap instead of poking out of the card — but
+   applied to a 9.800-character run that same rule turns it into two hundred
+   full-width lines and the card into a wall.
+
+   So `renderFeedbackBody` marks any token of `FEEDBACK_LONG_WORD_CHARS` or more
+   with this class, and here it is taken back out of the wrapping algorithm: it
+   renders on ONE line and overflows, and its container (`.msg-body` and friends,
+   which set `overflow-x: auto`) turns that overflow into a scrollbar of its own.
+   The layout around it stays exactly the size it was.
+
+   Global rather than component-scoped on purpose: the span reaches the DOM via
+   `[innerHTML]`, which never receives Angular's `_ngcontent` attribute, so a
+   component stylesheet could not match it. That also means there is nothing to
+   out-specify here — the value it overrides is inherited, and any declaration
+   beats inheritance. */
+.sc-longword {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* ---- Overlay shells that become sheets ----
+   A floating panel anchored in a corner is a desktop idea: on a phone it is a
+   window inside a window, inset from all four sides, with a rounded border and
+   a resize grip that a finger cannot use. `.sc-sheet` keeps the docked window
+   above 720px and turns it into a full-bleed sheet below it — no inset, no
+   radius, no side border, and the vertical safe-area honoured so the sheet's
+   own footer is not under the home indicator.
+
+   The `!important`s are load-bearing, not laziness: `resize: both` on these
+   panels means a desktop drag writes width/height as INLINE styles, and an
+   inline declaration outranks any normal author rule. Without them a panel the
+   admin once resized at their desk would still carry that size on the phone. */
+@media (max-width: 720px) {
+  /* Tripled class for the same reason as .sc-nest above: the panels this lands
+     on style themselves through a component rule that encapsulation has already
+     lifted to 0,2,0. */
+  .sc-sheet.sc-sheet.sc-sheet {
+    position: fixed;
+    inset: 0;
+    /* ...and these five additionally have to beat an INLINE style, which no
+       amount of specificity can do. */
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    min-width: 0 !important;
+    resize: none !important;
+    border-radius: 0;
+    border-inline-width: 0;
+    border-block-start-width: 0;
+    /* A sheet starts at inset 0, i.e. under the status bar and over the home
+       indicator. The safe-area insets push its own header and footer back into
+       the part of the screen the user can actually see and touch; they are 0
+       everywhere else, so nothing moves on a desktop or a plain phone. */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 @media (pointer: coarse) {
   :root {
     --sc-fs-floor: 12px;
@@ -314,11 +470,15 @@ button {
   background: transparent;
 }
 
+/* The app's one card surface. Its padding is the density scale's level 1, so
+   every card in the app tightens together on a phone instead of each component
+   having to remember to (admin feedback 3bc01a3d). 20px above 720px = exactly
+   what it was. */
 .sc-card {
   background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
   border: 1px solid var(--sc-border);
   border-radius: 8px;
-  padding: 20px;
+  padding: var(--sc-pad-1);
   box-shadow: var(--sc-glow);
 }
 
@@ -387,6 +547,39 @@ button {
     border-color: var(--sc-accent);
     box-shadow: var(--sc-glow);
   }
+}
+
+/* ---- The folded middle of a thread ----
+   One dashed "..." standing in for everything between a conversation's first
+   and its newest message. It is deliberately the SAME control on the overview
+   board, in the processing run and in both threads of a card, so that "da ist
+   Verlauf drunter" reads identically wherever the admin meets it -- which is
+   an argument for one rule, not for two component copies that were already
+   drifting apart in their focus ring. Global also keeps both of those
+   components inside the anyComponentStyle budget. */
+.thread-more {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px dashed var(--sc-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sc-fg-2);
+  font: inherit;
+  font-size: max(0.72rem, var(--sc-fs-floor));
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.thread-more:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
+.thread-more:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.32); }
+.thread-more .ellipsis {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 0.8;
+  letter-spacing: 0.08em;
+  color: var(--sc-fg-0);
 }
 
 .sc-pill {

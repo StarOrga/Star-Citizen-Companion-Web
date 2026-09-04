@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { join } from 'node:path';
 import {
   UploadJobStore,
   createJob,
@@ -8,6 +9,9 @@ import {
   sentFor,
   describeResume,
   resumeSummary,
+  rehydrateResult,
+  MANIFEST_FILE,
+  type ExtractIO,
   type TextIO,
   type UploadJobState,
 } from '../src/lib/upload-job.js';
@@ -28,6 +32,90 @@ function fakeIO(): TextIO & { peek: () => string | null } {
 
 const NAT = { channel: 'LIVE', patchVersion: '4.0.0', buildNumber: '9999' };
 const job = (): UploadJobState => createJob('job-1', 'C:/out/live', NAT, 1000);
+
+/**
+ * The resume-after-restart contract. The renderer's extraction result lives only
+ * in memory, so a resume in a fresh process must rebuild it from the job file +
+ * the extract's manifest — or say clearly that the extract is gone.
+ */
+describe('rehydrateResult', () => {
+  const OUT = 'C:/out/live';
+  const MANIFEST = join(OUT, MANIFEST_FILE);
+  const manifestText = JSON.stringify({
+    channel: 'LIVE',
+    patch_version: '4.0.0',
+    schema_version: 2,
+    quality_score: 97.5,
+    entity_counts: { ships: 3, weapons: 12, bogus: 'x' },
+    tool_version: '0.25.0',
+  });
+  const disk = (files: Record<string, string>, dirs: string[] = [OUT]): ExtractIO => ({
+    exists: (p) => dirs.includes(p) || p in files,
+    readText: (p) => files[p] ?? null,
+  });
+  const paused = (): UploadJobState => {
+    const s = job();
+    s.status = 'paused';
+    s.bundle = { status: 'done', bundleId: 'b-1', attempted: true };
+    s.catalog.status = 'running';
+    return s;
+  };
+
+  it('rebuilds the extraction result from the job + manifest after a restart', () => {
+    const r = rehydrateResult(paused(), disk({ [MANIFEST]: manifestText }));
+    expect(r).toEqual({
+      ok: true,
+      result: {
+        channel: 'LIVE',
+        patch_version: '4.0.0',
+        build_number: '9999',
+        schema_version: 2,
+        quality_score: 97.5,
+        entity_counts: { ships: 3, weapons: 12 },
+        manifest_path: MANIFEST,
+        output_dir: OUT,
+        tool_version: '0.25.0',
+      },
+    });
+  });
+
+  it('reports a missing extract dir instead of pretending to resume', () => {
+    const r = rehydrateResult(paused(), disk({}, []));
+    expect(r).toEqual({ ok: false, error: 'out_dir_missing' });
+  });
+
+  it('reports a missing or corrupt manifest', () => {
+    expect(rehydrateResult(paused(), disk({}))).toEqual({ ok: false, error: 'manifest_missing' });
+    expect(rehydrateResult(paused(), disk({ [MANIFEST]: '{not json' }))).toEqual({
+      ok: false,
+      error: 'manifest_missing',
+    });
+  });
+
+  it('has nothing to rebuild without a resumable job', () => {
+    expect(rehydrateResult(null, disk({ [MANIFEST]: manifestText }))).toEqual({
+      ok: false,
+      error: 'no_job',
+    });
+    const done = job();
+    done.status = 'done';
+    expect(rehydrateResult(done, disk({ [MANIFEST]: manifestText }))).toEqual({
+      ok: false,
+      error: 'no_job',
+    });
+  });
+
+  it('tolerates a manifest with the numeric fields missing', () => {
+    const r = rehydrateResult(paused(), disk({ [MANIFEST]: '{}' }));
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.result.schema_version).toBe(0);
+      expect(r.result.quality_score).toBe(0);
+      expect(r.result.entity_counts).toEqual({});
+      expect(r.result.tool_version).toBe('');
+    }
+  });
+});
 
 describe('nextStage', () => {
   it('walks bundle → catalog → skins → null in order', () => {

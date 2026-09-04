@@ -157,6 +157,13 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
                 (click)="closeMenu()">
                 {{ 'nav.settings' | translate }}
               </a>
+              <a
+                class="dropdown-item"
+                role="menuitem"
+                routerLink="/friends"
+                (click)="closeMenu()">
+                {{ 'nav.friends' | translate }}
+              </a>
               @if (roles.isAdmin()) {
                 <!-- Admin-gated (roleGuard('admin') on the route) — showing it to
                      everyone would only ever hand out a redirect. -->
@@ -626,6 +633,10 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
     }
     @media (max-width: 400px) {
       .topbar { padding: 8px 12px; }
+      /* Last step of the gutter: on a 360-375px handset every one of these 8px
+         is a word (admin feedback 3bc01a3d). Published as --sc-content-pad-x,
+         so the page bars that undo the gutter follow it down automatically. */
+      .content { --sc-content-pad-x: 12px; }
       /* Anchor the dropdown to the viewport edges so a 180px menu can't push
          the page wider than the screen. */
       .dropdown { right: 0; left: auto; min-width: 200px; max-width: calc(100vw - 24px); }

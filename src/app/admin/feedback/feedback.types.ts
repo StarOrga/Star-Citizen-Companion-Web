@@ -1312,3 +1312,70 @@ export function lifecycleSnapshot(
 
   return snapshot;
 }
+
+// ---- Canned decline reasons (feedback d5a779da) -----------------------------
+
+/**
+ * The canned reasons an admin can drop into a decline note with one click.
+ *
+ * Declining used to mean typing the same explanation for the fifth duplicate by
+ * hand. The catalogue below is the shortlist that covers the recurring cases;
+ * anything outside it is still a free-text note, the picker only PRE-FILLS the
+ * textarea.
+ *
+ * Ordered by how often they come up, because the picker renders them in this
+ * order. Every id is also the i18n key segment for its chip label and its text
+ * ({@link declineReasonLabelKey} / {@link declineReasonTextKey}) — the note is
+ * read by the person who filed the topic, so both live in `de.json`/`en.json`
+ * and are worded for that reader, not for the admin.
+ */
+export type DeclineReasonId =
+  | 'duplicate'
+  | 'alreadyShipped'
+  | 'notReproducible'
+  | 'tooLittleInfo'
+  | 'offRoadmap'
+  | 'noise';
+
+export const DECLINE_REASONS: readonly DeclineReasonId[] = [
+  'duplicate',
+  'alreadyShipped',
+  'notReproducible',
+  'tooLittleInfo',
+  'offRoadmap',
+  'noise',
+];
+
+/** i18n key for a reason's chip label — the short handle in the picker row. */
+export function declineReasonLabelKey(id: DeclineReasonId): string {
+  return `adminFeedback.decline.reasons.${id}.label`;
+}
+
+/** i18n key for the full sentence that lands in the note textarea. */
+export function declineReasonTextKey(id: DeclineReasonId): string {
+  return `adminFeedback.decline.reasons.${id}.text`;
+}
+
+/** Resolved canned texts by id — translating them is the caller's job. */
+export type DeclineReasonTexts = Readonly<Partial<Record<DeclineReasonId, string>>>;
+
+/**
+ * Which canned reason the current note still IS, or `null` for a note the admin
+ * wrote (or edited) themselves.
+ *
+ * This is what keeps the picker honest: the chip is not a mode the admin gets
+ * stuck in, it is a statement about the text. Type one character into the
+ * pre-filled sentence and the selection drops away on its own — nothing claims
+ * "Duplikat" any more once the note no longer says so.
+ *
+ * Compared trimmed, because the textarea's value round-trips through the DOM
+ * and the note is trimmed again before it is stored.
+ */
+export function matchDeclineReason(note: string, texts: DeclineReasonTexts): DeclineReasonId | null {
+  const trimmed = note.trim();
+  if (!trimmed) return null;
+  for (const id of DECLINE_REASONS) {
+    if ((texts[id] ?? '').trim() === trimmed) return id;
+  }
+  return null;
+}

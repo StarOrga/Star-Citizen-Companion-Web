@@ -82,7 +82,8 @@
     },
     "loading": {
       "weak": "Weak signal · retuning"
-    }
+    },
+    "friends": "Friends"
   },
   "impersonation": {
     "banner": {
@@ -106,7 +107,16 @@
       "terminal": {
         "label": "Search the archive",
         "placeholder": "Archive Terminal — ship, component, weapon, item, manufacturer, blueprint …",
-        "clear": "Clear search"
+        "clear": "Clear search",
+        "keybinds": "Keybindings"
+      },
+      "archive": {
+        "label": "Archive",
+        "armor": "Armour",
+        "weapons": "Weapons",
+        "blueprints": "Blueprints",
+        "ships": "Ships",
+        "components": "Components"
       },
       "status": {
         "patch": "Patch {{patch}}",
@@ -214,23 +224,6 @@
         "otherShip": "Other configurations",
         "active": "active",
         "openDetail": "Open detail page \"{{name}}\" →"
-      },
-      "versum": {
-        "eyebrow": "In the Verse",
-        "keybinds": "Keybindings",
-        "domain": {
-          "ship": "Ships",
-          "item": "Items",
-          "component": "Components",
-          "weapon": "Weapons",
-          "blueprint": "Blueprints",
-          "manufacturer": "Manufacturers",
-          "ammunition": "Ammunition"
-        },
-        "upcomingRail": {
-          "title": "On the Drawing Board",
-          "badgeAria": "{{count}} new ships since your last visit"
-        }
       },
       "board": {
         "open": "open",
@@ -408,7 +401,8 @@
       "includeVariants": "Show AI / template variants",
       "reset": "Reset filters",
       "anySize": "Any size",
-      "anyGrade": "Any grade"
+      "anyGrade": "Any grade",
+      "blueprintGroup": "Blueprint group"
     },
     "weaponClass": {
       "Ship": "Ship",
@@ -471,10 +465,18 @@
       "foldedTitle": "The game files carry several near-identical records for this entry, so they are shown as one card: {{names}}",
       "skinsOne": "+1 skin",
       "skinsMany": "+{{count}} skins",
-      "skinsTitle": "Every livery of this weapon shares one card. Pick between them inside the entry: {{names}}"
+      "skinsTitle": "Every livery of this weapon shares one card. Pick between them inside the entry: {{names}}",
+      "editionsOne": "+1 variant",
+      "editionsMany": "+{{count}} variants",
+      "editionsTitle": "The game files carry this hull several times over — duplicate records and marketing editions. They share one card; pick between them inside the entry: {{names}}"
     },
     "skinPicker": {
       "label": "Skin",
+      "standard": "Standard",
+      "count": "{{count}} options"
+    },
+    "editionPicker": {
+      "label": "Variant",
       "standard": "Standard",
       "count": "{{count}} options"
     },
@@ -1080,6 +1082,11 @@
     "filters": {
       "category": "Category"
     },
+    "group": {
+      "all": "All",
+      "fps": "On foot",
+      "vehicle": "Vehicle"
+    },
     "category": {
       "FPSArmours": "FPS Armor",
       "FPSWeapons": "FPS Weapons",
@@ -1618,6 +1625,11 @@
       "deleting": "Deleting…",
       "confirm": "Your account ({{email}}) will be permanently deleted. Your uploads + bundles go too. You'll be signed out afterwards. Sure?",
       "failed": "Delete failed"
+    },
+    "friends": {
+      "title": "Friends",
+      "hint": "Manage friend requests, your friend list and blocked accounts.",
+      "open": "Open friends"
     }
   },
   "admin": {
@@ -1669,7 +1681,8 @@
       "role": "Role",
       "joined": "Joined",
       "lastSeen": "Last seen",
-      "actions": "Actions"
+      "actions": "Actions",
+      "reports": "Reports"
     },
     "actions": {
       "promoteCollab": "→ Collaborator",
@@ -1767,6 +1780,13 @@
       "declined": "Request from {{email}} declined.",
       "allowlisted": "Already allowlisted",
       "joined": "Already has an account"
+    },
+    "reports": {
+      "title": "Conspicuous accounts",
+      "subtitle": "Accounts with open reports, most-reported first.",
+      "count": "{{count}} reports",
+      "by": "reported by {{name}}",
+      "deferred": "Read-only: a grace period and account suspension (including kicking all sessions) are not decided yet and follow in their own round."
     }
   },
   "desktop": {
@@ -2345,7 +2365,9 @@
       "dropHere": "Drop images here",
       "imageError": "Could not process the image.",
       "tooManyImages": "At most {{max}} images per message.",
-      "uploadError": "Image upload failed. Please try again."
+      "uploadError": "Image upload failed. Please try again.",
+      "charCount": "{{used}} of {{max}} characters",
+      "charLimit": "Character limit reached: {{max}} characters per message."
     },
     "view": {
       "label": "Switch view",
@@ -2395,7 +2417,11 @@
       "threadCollapse": "Hide earlier messages again",
       "kindEmptyTitle": "Nothing of this kind right now",
       "kindEmptyHint": "{{count}} topic(s) are waiting under \"All\".",
-      "kindShowAll": "Show all"
+      "kindShowAll": "Show all",
+      "swipeHint": "Tip: swipe the card left to skip, right to take the decision.",
+      "swipeSkip": "Skip",
+      "swipeDone": "Done",
+      "swipeAccept": "Accept"
     },
     "dashboard": {
       "thisMonth": "This month",
@@ -2484,7 +2510,34 @@
       "placeholder": "Why is this not going to happen? The user will read this.",
       "confirm": "Decline",
       "cancel": "Cancel",
-      "noteRequired": "Please give a reason — the user gets to read it."
+      "noteRequired": "Please give a reason — the user gets to read it.",
+      "reasonsLabel": "Canned reasons",
+      "reasons": {
+        "duplicate": {
+          "label": "Duplicate",
+          "text": "We already have this one — the topic is being worked on elsewhere. Thanks for reporting it."
+        },
+        "alreadyShipped": {
+          "label": "Already shipped",
+          "text": "This is done and live by now. Have a look at the current version — if something still feels off, just file it again."
+        },
+        "notReproducible": {
+          "label": "Not reproducible",
+          "text": "We could not reproduce this. If it happens again, please report it once more with the steps you took, when it happened and — if you can — a screenshot."
+        },
+        "tooLittleInfo": {
+          "label": "Not enough info",
+          "text": "There is too little here for us to act on. Please describe again what you did, what happened and what you expected instead."
+        },
+        "offRoadmap": {
+          "label": "Off the roadmap",
+          "text": "This does not fit the direction we are taking the app in — we are deliberately not building it. Thanks for the suggestion all the same."
+        },
+        "noise": {
+          "label": "Not actionable",
+          "text": "We cannot do anything with this, sorry — there is no pointer in here we could work from."
+        }
+      }
     },
     "review": {
       "headlineShipped": "Shipped — please sign off",
@@ -2738,6 +2791,14 @@
     "answer": "Reply",
     "declinedTitle": "Why this is not being implemented",
     "impersonationBlocked": "Sending is disabled while you are previewing another role — it would submit real feedback into the admin inbox under your own account.",
+    "withdraw": {
+      "action": "Withdraw",
+      "hint": "As long as nobody has worked on it or replied, you can delete your feedback again.",
+      "question": "Delete for good? This cannot be undone.",
+      "confirm": "Yes, delete",
+      "cancel": "Cancel",
+      "refused": "Too late — this topic is already being worked on. It stays in your list."
+    },
     "tab": {
       "compose": "Send feedback",
       "mine": "My feedback"
@@ -2789,5 +2850,85 @@
   "appPanel": {
     "version": "Currently published version",
     "details": "Show details, notes and release notes"
+  },
+  "friends": {
+    "title": "Friends",
+    "subtitle": "Connect with other pilots. Requests, friend list and blocked accounts.",
+    "loading": "Loading …",
+    "add": {
+      "title": "Add a friend",
+      "hint": "Enter the exact username. There is deliberately no search across all accounts.",
+      "placeholder": "Username",
+      "search": "Search",
+      "notFound": "No account with that username.",
+      "send": "Send request"
+    },
+    "incoming": {
+      "title": "Incoming requests",
+      "empty": "No open requests."
+    },
+    "outgoing": {
+      "title": "Sent requests",
+      "empty": "You have no request pending."
+    },
+    "list": {
+      "title": "Your friends",
+      "empty": "No friends yet. Add someone by username above.",
+      "since": "Friends since {{date}}"
+    },
+    "blocked": {
+      "title": "Blocked",
+      "hint": "Blocked accounts cannot see you and cannot send you a request.",
+      "empty": "You have not blocked anyone."
+    },
+    "actions": {
+      "accept": "Accept",
+      "decline": "Decline",
+      "withdraw": "Withdraw",
+      "remove": "Remove",
+      "block": "Block",
+      "unblock": "Unblock",
+      "report": "Report"
+    },
+    "report": {
+      "title": "Report {{name}}",
+      "hint": "Your report goes to the admins. You can have one open report per account.",
+      "category": "Reason",
+      "categories": {
+        "spam": "Spam",
+        "harassment": "Harassment",
+        "impersonation": "Impersonation",
+        "inappropriate": "Inappropriate content",
+        "other": "Other"
+      },
+      "reason": "Description (optional)",
+      "reasonPlaceholder": "What happened?",
+      "submit": "Submit report",
+      "cancel": "Cancel"
+    },
+    "flash": {
+      "requestSent": "Request sent.",
+      "nowFriends": "You are friends now.",
+      "alreadyFriends": "You are already friends.",
+      "declined": "Request declined.",
+      "withdrawn": "Request withdrawn.",
+      "removed": "Friend removed.",
+      "blocked": "Account blocked.",
+      "unblocked": "Block removed.",
+      "reported": "Report submitted.",
+      "reportDuplicate": "You already reported this account."
+    },
+    "error": {
+      "generic": "That did not work. Please try again.",
+      "blocked": "That is not possible.",
+      "userNotFound": "Account not found.",
+      "requestNotFound": "That request no longer exists.",
+      "invalidTarget": "Invalid account.",
+      "invalidCategory": "Invalid report category.",
+      "reasonTooLong": "The description is too long.",
+      "noRelation": "You can only report accounts you have interacted with.",
+      "reportLimit": "You have too many open reports. Wait until they have been reviewed.",
+      "notApproved": "Your account is not approved yet."
+    }
   }
 }
