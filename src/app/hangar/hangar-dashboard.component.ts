@@ -31,6 +31,7 @@ import {
   RoleLoadoutRole,
 } from './hangar.types';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { LoadoutSharePanelComponent } from '../social/loadout-share-panel.component';
 import { LoadoutShareService } from '../social/loadout-share.service';
 import { SharedWithMeRow, shareItems } from '../social/loadout-share.types';
 
@@ -53,6 +54,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     HangarImportComponent,
     CodexCategoryIconComponent,
     FallbackImageComponent,
+    LoadoutSharePanelComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -341,17 +343,73 @@ const SEARCH_DEBOUNCE_MS = 250;
         @if (hangar.roleLoadouts().length === 0) {
           <p class="hint">{{ 'hangar.roleLoadouts.empty' | translate }}</p>
         } @else {
+          <!--
+            The hangar keeps the LIST and the housekeeping (create, rename,
+            share, delete); the set's contents are edited on the Codex side
+            (admin feedback 34505d70, decision "2A" on issue #411 point 2 —
+            "hangar nicht explizit, der ist schon auf der codex startseite
+            implizit drin"). So the card opens the Codex start page's AN BORD
+            zone on this set, and the standalone editor page is gone.
+
+            The card is no longer one big <a>: the housekeeping controls are
+            real actions and must not sit inside the navigation.
+          -->
           <div class="grid">
             @for (l of hangar.roleLoadouts(); track l.id) {
-              <a class="card loadout-card" [routerLink]="['/hangar/loadout', l.id]">
-                <div class="card-top">
-                  <h3 class="name">{{ l.name }}</h3>
-                  <span class="badge role-{{ l.role }}">{{ ('hangar.roles.' + l.role) | translate }}</span>
-                </div>
-                <p class="ld-summary">
-                  {{ 'hangar.roleLoadouts.itemCount' | translate: { count: filledCount(l.items) } }}
-                </p>
-              </a>
+              <div class="card loadout-card own-card">
+                <a class="ld-open" routerLink="/codex" [queryParams]="{ zone: 'board', set: l.id }">
+                  <div class="card-top">
+                    <h3 class="name">{{ l.name }}</h3>
+                    <span class="badge role-{{ l.role }}">{{ ('hangar.roles.' + l.role) | translate }}</span>
+                  </div>
+                  <p class="ld-summary">
+                    {{ 'hangar.roleLoadouts.itemCount' | translate: { count: filledCount(l.items) } }}
+                  </p>
+                </a>
+
+                @if (renamingId() === l.id) {
+                  <div class="ld-rename">
+                    <input class="ld-name" type="text" [ngModel]="renameDraft()"
+                           (ngModelChange)="renameDraft.set($event)"
+                           (keyup.enter)="saveRename(l.id)" (keyup.escape)="cancelRename()"
+                           [attr.aria-label]="'hangar.roleLoadouts.rename' | translate" />
+                    <button class="sc-btn tiny" type="button" [disabled]="!renameDraft().trim()"
+                            (click)="saveRename(l.id)">
+                      {{ 'hangar.detail.save' | translate }}
+                    </button>
+                    <button class="sc-btn tiny ghost" type="button" (click)="cancelRename()">
+                      {{ 'hangar.roleLoadouts.cancel' | translate }}
+                    </button>
+                  </div>
+                } @else {
+                  <div class="ld-actions">
+                    <button class="sc-btn tiny" type="button" (click)="startRename(l)">
+                      {{ 'hangar.roleLoadouts.rename' | translate }}
+                    </button>
+                    <button class="sc-btn tiny" type="button"
+                            [attr.aria-expanded]="openOwnShare() === l.id"
+                            (click)="toggleOwnShare(l.id)">
+                      {{ 'hangar.roleLoadouts.share' | translate }}
+                    </button>
+                    @if (confirmDeleteId() === l.id) {
+                      <button class="sc-btn tiny danger" type="button" (click)="deleteLoadout(l.id)">
+                        {{ 'hangar.roleLoadouts.deleteConfirm' | translate }}
+                      </button>
+                      <button class="sc-btn tiny ghost" type="button" (click)="confirmDeleteId.set(null)">
+                        {{ 'hangar.roleLoadouts.cancel' | translate }}
+                      </button>
+                    } @else {
+                      <button class="sc-btn tiny ghost" type="button" (click)="confirmDeleteId.set(l.id)">
+                        {{ 'hangar.configs.delete' | translate }}
+                      </button>
+                    }
+                  </div>
+                }
+
+                @if (openOwnShare() === l.id) {
+                  <sc-loadout-share-panel [loadoutId]="l.id" />
+                }
+              </div>
             }
           </div>
         }
@@ -590,6 +648,12 @@ const SEARCH_DEBOUNCE_MS = 250;
     .ld-name:focus { outline: none; border-color: var(--sc-accent); }
     .sc-select { background: var(--sc-bg-1); color: var(--sc-fg-0); border: 1px solid var(--sc-border); border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 0.82rem; cursor: pointer; }
     .loadout-card .ld-summary { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .own-card { display: flex; flex-direction: column; gap: 10px; cursor: default; }
+    .ld-open { display: flex; flex-direction: column; gap: 6px; color: inherit; text-decoration: none; }
+    .ld-actions, .ld-rename { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .ld-rename .ld-name { flex: 1 1 140px; min-width: 0; }
+    .sc-btn.danger { border-color: var(--sc-danger); color: var(--sc-danger); }
+    .sc-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
 
     .shared-block { margin-top: 22px; }
     .shared-block h2 { margin: 0 0 4px; font-size: 1rem; }
@@ -671,6 +735,11 @@ export class HangarDashboardComponent implements OnInit {
   readonly sharedWithMe = signal<SharedWithMeRow[]>([]);
   /** share_id of the expanded card, or null. One at a time, like an accordion. */
   readonly openShare = signal<string | null>(null);
+  /** Own-set housekeeping state (rename in place, share disclosure, delete confirm). */
+  readonly renamingId = signal<string | null>(null);
+  readonly renameDraft = signal('');
+  readonly openOwnShare = signal<string | null>(null);
+  readonly confirmDeleteId = signal<string | null>(null);
 
   sharedItems(s: SharedWithMeRow): RoleLoadoutItem[] {
     return shareItems(s).filter((i) => i.slot);
@@ -820,6 +889,41 @@ export class HangarDashboardComponent implements OnInit {
     if (!name) return;
     const created = await this.hangar.createRoleLoadout(name, this.newLoadoutRole());
     if (created) this.newLoadoutName.set('');
+  }
+
+  // ── set housekeeping ───────────────────────────────────────────────────────
+  // Rename / share / delete moved here when the standalone role-loadout editor
+  // was retired (admin feedback 34505d70, decision 2A). They belong next to
+  // "create", which already lived on this list; only the set's CONTENTS moved
+  // to the Codex.
+
+  startRename(l: { id: string; name: string }): void {
+    this.confirmDeleteId.set(null);
+    this.renamingId.set(l.id);
+    this.renameDraft.set(l.name);
+  }
+
+  cancelRename(): void {
+    this.renamingId.set(null);
+    this.renameDraft.set('');
+  }
+
+  async saveRename(id: string): Promise<void> {
+    const name = this.renameDraft().trim();
+    if (!name) return;
+    await this.hangar.updateRoleLoadout(id, { name });
+    this.cancelRename();
+  }
+
+  toggleOwnShare(id: string): void {
+    this.openOwnShare.set(this.openOwnShare() === id ? null : id);
+  }
+
+  /** Two-step on purpose: the sets sit in a grid, and a stray click is fatal. */
+  async deleteLoadout(id: string): Promise<void> {
+    this.confirmDeleteId.set(null);
+    if (this.openOwnShare() === id) this.openOwnShare.set(null);
+    await this.hangar.deleteRoleLoadout(id);
   }
 
   filledCount(items: { className: string | null }[]): number {
