@@ -59,8 +59,71 @@ const SIDECAR_SRC = resolve(ROOT, 'python');
 const SIDECAR_DEST = resolve(OUT_DIR, 'sc_extract');
 const REQUIREMENTS = resolve(SIDECAR_SRC, 'requirements.txt');
 
+// Retry policy for the GitHub release download. CI has seen the very first
+// `fetch()` die with a bare `fetch failed` 300 ms in (2026-09-04, the
+// data-uploader-v0.25.2 tag build) while the URL was perfectly reachable — a
+// transient socket/DNS hiccup on the runner, fixed by a manual rerun. Retrying
+// here saves that rerun. Network errors and 5xx are transient and retried;
+// 4xx (a wrong PBS_RELEASE / ASSET → 404) is a config bug and fails at once.
+const DOWNLOAD_ATTEMPTS = 4;
+const DOWNLOAD_BACKOFF_MS = 2_000; // 2s → 4s → 8s between attempts
+
 function log(msg) {
   process.stdout.write(`[fetch-python] ${msg}\n`);
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+class NonRetryableError extends Error {}
+
+async function downloadOnce(url, dest, fetchImpl) {
+  const res = await fetchImpl(url, { redirect: 'follow' });
+  if (!res.ok || !res.body) {
+    const status = `HTTP ${res.status} ${res.statusText}`;
+    // 4xx (a wrong PBS_RELEASE/ASSET → 404) is our bug — fail at once.
+    // 5xx (and a missing body on a 2xx) may clear on retry.
+    if (res.status >= 400 && res.status < 500) throw new NonRetryableError(`download failed: ${status}`);
+    throw new Error(status);
+  }
+  await pipeline(Readable.fromWeb(res.body), createWriteStream(dest));
+}
+
+/**
+ * Download `url` to `dest`, retrying transient failures (network errors,
+ * 5xx, a stream that breaks mid-body) with exponential backoff. A partial
+ * file is discarded before the next attempt so a broken stream can never
+ * masquerade as a cached archive. 4xx fails immediately.
+ *
+ * `opts` exists for tests: inject `fetchImpl`, `sleep`, `log` and `attempts`.
+ */
+export async function downloadWithRetry(url, dest, opts = {}) {
+  const {
+    attempts = DOWNLOAD_ATTEMPTS,
+    baseDelayMs = DOWNLOAD_BACKOFF_MS,
+    fetchImpl = fetch,
+    sleep: sleepImpl = sleep,
+    log: logImpl = log,
+  } = opts;
+
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    logImpl(`download attempt ${attempt}/${attempts}`);
+    try {
+      await downloadOnce(url, dest, fetchImpl);
+      return;
+    } catch (err) {
+      rmSync(dest, { force: true });
+      if (err instanceof NonRetryableError) throw err;
+      lastError = err;
+      if (attempt === attempts) break;
+      const delay = baseDelayMs * 2 ** (attempt - 1);
+      logImpl(`download attempt ${attempt}/${attempts} failed: ${err.message} — retrying in ${delay / 1000}s`);
+      await sleepImpl(delay);
+    }
+  }
+  throw new Error(`download failed after ${attempts} attempts: ${lastError.message}`);
 }
 
 async function downloadIfMissing() {
@@ -70,11 +133,7 @@ async function downloadIfMissing() {
   }
   mkdirSync(DOWNLOADS, { recursive: true });
   log(`downloading ${URL}`);
-  const res = await fetch(URL, { redirect: 'follow' });
-  if (!res.ok || !res.body) {
-    throw new Error(`download failed: HTTP ${res.status} ${res.statusText}`);
-  }
-  await pipeline(Readable.fromWeb(res.body), createWriteStream(ARCHIVE));
+  await downloadWithRetry(URL, ARCHIVE);
   log(`saved ${ARCHIVE} (${(statSync(ARCHIVE).size / 1024 / 1024).toFixed(1)} MB)`);
 }
 
@@ -139,7 +198,12 @@ async function main() {
   log(`done. resources/python/ ready for electron-builder.`);
 }
 
-main().catch((err) => {
-  process.stderr.write(`[fetch-python] FAILED: ${err.message}\n`);
-  process.exit(1);
-});
+// Only run when invoked as a script (`node scripts/fetch-embedded-python.js`),
+// not when the test suite imports `downloadWithRetry`.
+const invokedDirectly = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invokedDirectly) {
+  main().catch((err) => {
+    process.stderr.write(`[fetch-python] FAILED: ${err.message}\n`);
+    process.exit(1);
+  });
+}
