@@ -747,3 +747,10 @@ Rule: **structure, logic and information follow the concept; polish follows the 
   NAV effects on the other seven groups, the non-Kampf lens tables) is **not invented
   here**. Those are MASTER §8a / §15 decisions and C §6 open questions; the frontend
   renders a gap where the model has no answer.
+- **EM tooltip wording.** The concept's `#h1` tooltip promises an EM drop "sobald die
+  Waffen aus sind". In the LIVE 4.9.0 files energy weapons carry an EM and IR signature
+  of 0 and no coolant delta, so a weapons cut moves only the budget and the DPS. The
+  authored sentence is therefore replaced by a data-true one (shields and coolers are the
+  largest items; a cut group's share disappears; the per-part figure comes from the game
+  files). Every other dock tooltip stays verbatim. Rule R-B7 (deltas against the previous
+  allocation) is unaffected: a fact whose value did not change shows no chip.
