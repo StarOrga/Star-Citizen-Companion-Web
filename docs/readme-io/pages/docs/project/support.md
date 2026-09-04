@@ -9,6 +9,10 @@ The fastest route for anything about the app itself is the **feedback button**
 inside SC Companion. It lands directly in the maintainers' triage queue, and it
 carries the context (route, version) automatically.
 
+One message holds up to **2,000 characters** — the field counts down in its
+bottom-right corner — plus up to ten screenshots. That is room for a detailed
+report; if you genuinely need more, send a second message in the same thread.
+
 ## GitHub issues
 
 For bugs, data errors, documentation mistakes and feature requests, open an

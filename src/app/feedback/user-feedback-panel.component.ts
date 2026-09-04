@@ -388,7 +388,17 @@ type UserFeedbackTab = 'compose' | 'mine';
     .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
     .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
-    .body, .reply-body { font-size: 0.84rem; line-height: 1.5; color: var(--sc-fg-1); }
+    /* Scrollport for a marked-up runaway token (.sc-longword, styles.scss): a
+       9.800-character run overflows THIS box and nothing else, so the card, the
+       panel and the 375px page around it keep their width (admin feedback
+       0a0fad31). */
+    .body, .reply-body {
+      font-size: 0.84rem;
+      line-height: 1.5;
+      color: var(--sc-fg-1);
+      overflow-wrap: anywhere;
+      overflow-x: auto;
+    }
     /* Screenshots are not part of the body flow — see sc-feedback-attachments. */
 
     .decision {
@@ -398,7 +408,13 @@ type UserFeedbackTab = 'compose' | 'mine';
       border-radius: 4px;
       font-size: 0.82rem;
     }
-    .decision p { margin: 4px 0 0; color: var(--sc-fg-1); }
+    /* Plain interpolation, not markdown, so there is no .sc-longword marker to
+       lean on — the box takes the horizontal overflow itself. */
+    .decision p {
+      margin: 4px 0 0;
+      color: var(--sc-fg-1);
+      overflow-x: auto;
+    }
 
     .thread { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
     .reply {

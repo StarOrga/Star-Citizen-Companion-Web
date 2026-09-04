@@ -22,6 +22,8 @@ import { CelebrationService } from './celebration.service';
 import { FeedbackDashboardComponent } from './feedback-dashboard.component';
 import { FeedbackWorkflowComponent } from './feedback-workflow.component';
 import { RoutineStatusDirective } from './routine-status.directive';
+import { CharCounterComponent } from '../../feedback/char-counter.component';
+import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
 import {
   FeedbackBucket,
   FeedbackMessage,
@@ -164,6 +166,7 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     FeedbackWorkflowComponent,
     FeedbackDashboardComponent,
     RoutineStatusDirective,
+    CharCounterComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Smooth height/opacity collapse+expand for a topic's detail region, so the
@@ -1020,14 +1023,21 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                           </button>
                         }
                       </div>
-                      <textarea
-                        class="decline-input"
-                        rows="3"
-                        required
-                        [value]="declineNote()"
-                        (input)="setDeclineNote($any($event.target).value)"
-                        [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
-                        [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
+                      <!-- Same cap and the same live readout as every other
+                           feedback field (admin feedback 0a0fad31) — the author
+                           reads this text, so it is feedback like any other. -->
+                      <div class="field">
+                        <textarea
+                          class="decline-input"
+                          rows="3"
+                          required
+                          [value]="declineNote()"
+                          (input)="onDeclineInput($event)"
+                          [attr.maxlength]="maxChars"
+                          [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
+                          [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
+                        <sc-char-counter [used]="declineNote().length" [max]="maxChars" />
+                      </div>
                       <div class="decline-actions">
                         <button class="sc-btn micro danger" type="submit" [disabled]="busy()">
                           {{ 'adminFeedback.decline.confirm' | translate }}
@@ -1665,6 +1675,13 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
       line-height: 1.5;
       overflow-wrap: anywhere;
     }
+    /* Scrollport for a marked-up runaway token (.sc-longword, styles.scss): it
+       overflows this box horizontally instead of reflowing the card around it
+       (admin feedback 0a0fad31). A scroll container's automatic minimum size is
+       already 0, so no min-width is needed to stop a flex parent growing with
+       it. One rule for both bodies — this component's stylesheet budget is tight
+       enough to notice the duplicate. */
+    .msg-body, .reply-body { overflow-x: auto; }
     .msg-body :first-child { margin-top: 0; }
     .msg-body :last-child { margin-bottom: 0; }
     .msg-body p { margin: 0 0 8px; }
@@ -1789,8 +1806,12 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
     .status-pill.area { border-style: dashed; color: var(--sc-fg-2); }
 
     .decline-form { gap: 6px; flex: 1 1 260px; }
+    /* .field is the counter's positioning context; the input's bottom padding
+       is the lane it sits in, so typed text never runs under it. */
+    .decline-form .field { position: relative; }
     .decline-input {
-      width: 100%; box-sizing: border-box; padding: 6px 8px; resize: vertical;
+      width: 100%; box-sizing: border-box; resize: vertical;
+      padding: 6px 8px 20px;
       background: var(--sc-bg-2); border: 1px solid var(--sc-danger);
       border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
     }
@@ -3344,6 +3365,13 @@ export class AdminFeedbackComponent implements OnInit {
     return true;
   }
 
+  /**
+   * The shared feedback length cap (admin feedback 0a0fad31) — the decline note
+   * is text the author gets to read, so it lives under the same ceiling as
+   * everything else typed on this board.
+   */
+  readonly maxChars = FEEDBACK_MAX_CHARS;
+
   /** Topic id whose inline "nicht umsetzen" comment form is open (null = none). */
   readonly declineFormFor = signal<string | null>(null);
   /** Draft explanation in that form — mandatory, the author gets to read it. */
@@ -3391,9 +3419,28 @@ export class AdminFeedbackComponent implements OnInit {
    * of clearing the chip on the first edit — so undoing a typo lights the chip
    * back up, and pasting a reason in by hand lights it in the first place.
    */
+  /**
+   * Keep the DOM and the signal in step under the cap: writing the clamped text
+   * back to the element is what makes a DROP of 9.800 characters — which
+   * bypasses `maxlength` — actually disappear from the field.
+   */
+  onDeclineInput(e: Event): void {
+    const el = e.target as HTMLTextAreaElement;
+    const capped = clampFeedbackText(el.value);
+    if (el.value !== capped) {
+      const caret = Math.min(el.selectionStart ?? capped.length, capped.length);
+      el.value = capped;
+      el.setSelectionRange(caret, caret);
+    }
+    this.setDeclineNote(capped);
+  }
+
   setDeclineNote(value: string): void {
-    this.declineNote.set(value);
-    this.declineReason.set(matchDeclineReason(value, this.declineReasonTexts()));
+    // `maxlength` stops typing and pasting past the cap but not a text DROP, so
+    // the clamp is applied to the value as well (admin feedback 0a0fad31).
+    const capped = clampFeedbackText(value);
+    this.declineNote.set(capped);
+    this.declineReason.set(matchDeclineReason(capped, this.declineReasonTexts()));
   }
 
   private declineReasonTexts(): DeclineReasonTexts {
