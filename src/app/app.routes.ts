@@ -1,4 +1,5 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Params, Router, Routes, UrlTree } from '@angular/router';
 import { approvedGuard } from './auth/approved.guard';
 import { authGuard } from './auth/auth.guard';
 import { publicOnlyGuard } from './auth/public-only.guard';
@@ -14,6 +15,23 @@ import { roleGuard } from './auth/role.guard';
 // child of the gated shell parent. Existing `roleGuard(...)` constraints on
 // individual routes stay as ADDITIONAL constraints on top of the blanket gate.
 const PRIVATE = [authGuard, approvedGuard] as const;
+
+/**
+ * Bridge for the retired role-loadout editor (admin feedback 34505d70,
+ * decision "2A" on issue #411 point 2 — "hangar nicht explizit, der ist schon
+ * auf der codex startseite implizit drin").
+ *
+ * `:id` is ALWAYS a `hangar_role_loadouts` id: ships live at `/hangar/ship/:id`
+ * and `/codex/ship/:className`, and never reached this path. So the destination
+ * is unambiguous — the Codex start page's AN BORD zone, opened on that set,
+ * which is the view that replaced the editor. Exported so the mapping has a
+ * test instead of only a comment.
+ */
+export function hangarLoadoutRedirect({ params }: { params: Params }): UrlTree {
+  return inject(Router).createUrlTree(['/codex'], {
+    queryParams: { zone: 'board', set: params['id'] },
+  });
+}
 
 export const routes: Routes = [
   {
@@ -215,9 +233,12 @@ export const routes: Routes = [
           import('./hangar/hangar-ship-detail.component').then((m) => m.HangarShipDetailComponent),
       },
       {
+        // BRIDGE, not a page — the standalone role-loadout editor is gone and
+        // nothing in the app links here any more. Kept registered so links
+        // shared before the change keep resolving. See hangarLoadoutRedirect.
         path: 'hangar/loadout/:id',
-        loadComponent: () =>
-          import('./hangar/role-loadout-editor.component').then((m) => m.RoleLoadoutEditorComponent),
+        pathMatch: 'full',
+        redirectTo: hangarLoadoutRedirect,
       },
       // Bundle History merged into the Data Upload page (/uploader). Keep the
       // old /p4k URL working for bookmarks/muscle-memory via a redirect.

@@ -1178,6 +1178,11 @@
     "empty": {
       "weapon": "No FPS weapons in this build.",
       "armor": "No armor in this build."
+    },
+    "equip": {
+      "targetSet": "Equipping: {{name}}",
+      "backToSet": "Back to the set",
+      "into": "Into slot:"
     }
   },
   "news": {
@@ -2101,9 +2106,10 @@
       "create": "Create",
       "empty": "No role loadouts yet — create an FPS, mining or salvage kit above.",
       "itemCount": "{{count}} items equipped",
-      "slotsTitle": "Slots",
-      "addSlotPlaceholder": "Add custom slot…",
-      "addSlot": "Add slot"
+      "rename": "Rename",
+      "cancel": "Cancel",
+      "share": "Share",
+      "deleteConfirm": "Delete for good?"
     },
     "detail": {
       "back": "Back to hangar",
@@ -2156,7 +2162,6 @@
       "empty": "empty",
       "change": "Change",
       "reset": "Stock",
-      "clear": "Clear",
       "createConfigFirst": "Create a configuration above to start editing the loadout."
     },
     "picker": {
@@ -2224,6 +2229,25 @@
       "importing": "Importing…",
       "done": "{{count}} ships imported.",
       "close": "Close"
+    },
+    "slots": {
+      "primary": "Primary weapon",
+      "secondary": "Secondary weapon",
+      "sidearm": "Sidearm",
+      "helmet": "Helmet",
+      "core": "Torso",
+      "arms": "Arms",
+      "legs": "Legs",
+      "undersuit": "Undersuit",
+      "backpack": "Backpack",
+      "multitool": "Multi-tool",
+      "mining-attachment": "Mining attachment",
+      "gadget": "Gadget",
+      "salvage-attachment": "Salvage attachment",
+      "tractor": "Tractor beam",
+      "medgun": "Medgun",
+      "medpen": "MedPen",
+      "repair-attachment": "Repair attachment"
     }
   },
   "quickSearch": {

@@ -208,6 +208,17 @@ export interface ArmorSlotState extends ArmorSlotSpec {
   className: string | null;
 }
 
+/**
+ * Reverse of `ARMOR_SLOT_SPECS`: which role slot a `Char_Armor_*` attach_type
+ * belongs in. The equip control on /codex/fps needs this to know that a helmet
+ * can only ever go into `helmet` — an armour piece has exactly one home, so the
+ * user is never asked to pick one.
+ */
+export function roleSlotForAttachType(attachType: string | null | undefined): string | null {
+  if (!attachType) return null;
+  return ARMOR_SLOT_SPECS.find((s) => s.attachType === attachType)?.roleSlot ?? null;
+}
+
 /** Resolve the 6 anatomical slots against a role loadout's free-form item list. */
 export function armorSlotsFromLoadout(
   items: readonly { slot: string; className: string | null }[],
@@ -430,6 +441,23 @@ export function computeFpsKpis(
  * rather than "zuletzt geöffnet", kept behind this one helper so the swap to
  * real open-tracking is a one-line change later.
  */
+/**
+ * Move the URL-named personal set to the front, leaving the rest in their
+ * order. Position 0 IS the active set for the AN BORD zone, so reordering is
+ * how `?set=<id>` selects one. An id that no longer resolves (deleted set,
+ * stale bookmark from the retired `/hangar/loadout/:id` editor) changes
+ * nothing — the list stays as it was rather than rendering an empty zone.
+ */
+export function withSelectedFirst<T extends { id: string }>(
+  loadouts: readonly T[],
+  selectedId: string | null,
+): T[] {
+  if (!selectedId) return [...loadouts];
+  const i = loadouts.findIndex((l) => l.id === selectedId);
+  if (i <= 0) return [...loadouts];
+  return [loadouts[i], ...loadouts.filter((_, n) => n !== i)];
+}
+
 export function sortByRecency<T extends { updatedAt: string }>(items: readonly T[]): T[] {
   return [...items].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
 }
