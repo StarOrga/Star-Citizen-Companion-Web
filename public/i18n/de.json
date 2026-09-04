@@ -2932,7 +2932,8 @@
   },
   "appPanel": {
     "version": "Aktuell veröffentlichte Version",
-    "details": "Details, Hinweise und Release-Notes anzeigen"
+    "details": "Details, Hinweise und Release-Notes anzeigen",
+    "desktopOnly": "Das ist eine Windows-Desktop-Anwendung. Zum Herunterladen diese Seite am PC öffnen."
   },
   "friends": {
     "title": "Freunde",

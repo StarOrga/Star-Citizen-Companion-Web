@@ -44,6 +44,16 @@ restricted to **admin and collaborator** accounts. The page shows the current
 version, release date, notes, size and SHA-256, and lets admins promote a build
 across the *alpha → beta → stable* channels.
 
+> **On a phone or tablet, the download is not offered.** Both desktop tools are
+> Windows applications, so the download buttons, the channel picker and the
+> compact download menus in the Codex and Starscape headers only appear on a
+> device that could actually install them. This is decided from the device
+> itself — browser platform hints, the user agent and the pointer capabilities —
+> not from the window width, so a narrow desktop window still gets the download.
+> Following a shared `/download` or `/uploader` link on a phone still opens the
+> page; it explains the platform requirement instead of handing out an installer
+> that cannot run there.
+
 ### Bundle History
 
 `/p4k` (**Bundle History**) is the receiving end: every uploaded bundle with

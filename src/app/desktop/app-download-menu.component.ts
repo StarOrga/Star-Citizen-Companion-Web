@@ -16,6 +16,7 @@ import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
+import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import {
   DesktopProduct,
   ReleaseRing,
@@ -61,6 +62,9 @@ let nextId = 0;
  * collapses itself the moment a download is started, on Esc, and on any click
  * outside — Esc and the download return focus to the trigger.
  *
+ * It renders nothing on a device that cannot install a desktop application at
+ * all (admin feedback dccdcc82) — see `offered()`.
+ *
  * Role gating is a UI mirror, never the gate itself: `ringsForRole` decides what
  * is offered, and the SECURITY DEFINER resolvers behind `ringsFor` clamp every
  * request to the caller's tier server-side, dropping any ring that came back
@@ -73,7 +77,7 @@ let nextId = 0;
   imports: [NgTemplateOutlet, RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (rings().length > 0) {
+    @if (offered()) {
       <!-- .restricted paints the whole control in the hot accent. Red is the
            app's "not for everyone" marker (admin feedback b8b31f24), so it is
            bound to the actual gate instead of being baked into the chrome:
@@ -370,6 +374,7 @@ export class AppDownloadMenuComponent {
   private readonly auth = inject(AuthService);
   private readonly releaseSvc = inject(DesktopReleaseService);
   private readonly conn = inject(DesktopConnectionService);
+  private readonly device = inject(DesktopCapabilityService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly product = input.required<DesktopProduct>();
@@ -419,6 +424,22 @@ export class AppDownloadMenuComponent {
   });
   /** Rings this visitor may take — empty means the control is not rendered. */
   readonly rings = computed(() => ringsForRole(this.product(), this.roles.role()));
+  /**
+   * Is this control rendered at all?
+   *
+   * Two independent reasons not to render it, and both remove it completely:
+   *   · the role may take no ring of this product, and
+   *   · the device cannot install a desktop application (feedback dccdcc82).
+   *
+   * The second one is deliberately a full removal rather than an explanatory
+   * line: this menu is a header chip whose ONLY purpose is to start a download.
+   * There is nothing left of it once the download is off the table, and the
+   * admin's complaint was precisely about seeing it on a phone. The information
+   * itself is not lost — `/download`, `/uploader` and the Codex Bridge line all
+   * render `sc-app-download-panel`, which explains the platform requirement
+   * instead of hiding, so every deep link still lands somewhere meaningful.
+   */
+  readonly offered = computed(() => this.rings().length > 0 && this.device.canInstall());
   /**
    * Does the hot ("restricted") accent apply to this control? A product every
    * visitor may download is never painted red — that is the whole point of the

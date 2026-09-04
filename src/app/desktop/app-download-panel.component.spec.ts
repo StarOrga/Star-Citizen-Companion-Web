@@ -1,11 +1,20 @@
 import { TestBed } from '@angular/core/testing';
+import { computed, signal } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
+import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
 
 describe('AppDownloadPanelComponent', () => {
-  function setup(inputs: Partial<Record<string, unknown>> = {}) {
+  function setup(inputs: Partial<Record<string, unknown>> = {}, mobile = false) {
+    const canInstall = signal(!mobile);
     TestBed.configureTestingModule({
       imports: [AppDownloadPanelComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: DesktopCapabilityService,
+          useValue: { canInstall, isMobileDevice: computed(() => !canInstall()) },
+        },
+      ],
     });
     const fixture = TestBed.createComponent(AppDownloadPanelComponent);
     fixture.componentRef.setInput('title', 'desktop.appTitle');
@@ -63,5 +72,34 @@ describe('AppDownloadPanelComponent', () => {
     const f = setup({ entries: [] });
     expect(f.nativeElement.querySelector('.ap-state')).not.toBeNull();
     expect(f.nativeElement.querySelectorAll('a.ap-btn').length).toBe(0);
+  });
+
+  // Admin feedback dccdcc82 — a phone is offered no Windows .exe.
+  describe('on a device that cannot install desktop apps', () => {
+    it('replaces the download buttons with the platform explanation', () => {
+      const f = setup({ entries: [entry] }, true);
+      expect(f.nativeElement.querySelectorAll('a.ap-btn').length).toBe(0);
+      expect(f.nativeElement.querySelector('.ap-nope')).not.toBeNull();
+      expect(f.nativeElement.querySelector('.ap-nope').textContent)
+        .toContain('appPanel.desktopOnly');
+    });
+
+    it('hides the projected channel picker from pointer and a11y tree', () => {
+      const f = setup({ entries: [entry] }, true);
+      expect((f.nativeElement.querySelector('.ap-actions') as HTMLElement).hidden).toBeTrue();
+    });
+
+    it('keeps the panel itself — a shared link must not dead-end', () => {
+      const f = setup({ entries: [entry], version: '1.2.0' }, true);
+      expect(f.nativeElement.querySelector('.ap')).not.toBeNull();
+      expect(f.nativeElement.querySelector('.ap-ver').textContent).toContain('1.2.0');
+    });
+
+    it('leaves a desktop browser completely unchanged', () => {
+      const f = setup({ entries: [entry] }, false);
+      expect(f.nativeElement.querySelectorAll('a.ap-btn').length).toBe(1);
+      expect(f.nativeElement.querySelector('.ap-nope')).toBeNull();
+      expect((f.nativeElement.querySelector('.ap-actions') as HTMLElement).hidden).toBeFalse();
+    });
   });
 });
