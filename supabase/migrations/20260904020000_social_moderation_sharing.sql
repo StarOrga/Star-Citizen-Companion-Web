@@ -33,6 +33,38 @@
 
 
 -- ============================================================
+-- PART 0 — the suspension columns and is_suspended(), defined up front
+-- ============================================================
+
+-- Ordering, not new content. PART 2 below is where these three columns and
+-- this predicate belong thematically, but `list_my_friend_edges()` in PART 1
+-- is `language sql`, so Postgres resolves `public.is_suspended(uuid)` at
+-- CREATE time rather than at call time — on a database that does not have the
+-- function yet the whole migration aborts with 42883 before it ever reaches
+-- PART 2. Both statements are idempotent (`add column if not exists`,
+-- `create or replace`) and are repeated verbatim where they belong, so the
+-- two copies cannot drift.
+
+alter table public.profiles add column if not exists suspended_at      timestamptz;
+alter table public.profiles add column if not exists suspended_until   timestamptz;
+alter table public.profiles add column if not exists suspension_reason text;
+
+create or replace function public.is_suspended(target uuid)
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists (
+    select 1 from public.profiles p
+    where p.id = target
+      and p.suspended_at is not null
+      and (p.suspended_until is null or p.suspended_until > now())
+  );
+$$;
+
+-- The grant is withheld here for the same reason PART 2 states at length: an
+-- arbitrary-target predicate on /rpc/ is a moderation-state oracle.
+revoke execute on function public.is_suspended(uuid) from public, anon, authenticated;
+
+
+-- ============================================================
 -- PART 1 — friend requests expire after 7 days
 -- ============================================================
 
