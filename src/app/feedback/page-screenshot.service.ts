@@ -32,7 +32,9 @@ type DomToCanvas = (node: Node, options: Record<string, unknown>) => Promise<HTM
  * *omit* the feedback UI instead of asking the user to close it first.
  *
  * The cost is fidelity: a DOM rasteriser is not a compositor. Cross-origin
- * images that refuse CORS come out blank, `<canvas>`/WebGL content (the 3D ship
+ * images that refuse CORS come out blank (RSI's media CDN does allow it, so the
+ * news/Starscape artwork inlines fine once its `<picture>` sources are dropped
+ * — see `isPictureSource`), `<canvas>`/WebGL content (the 3D ship
  * view) renders as its backing bitmap at best, and CSS the library does not
  * understand degrades. That is an acceptable trade for a reference image.
  *
@@ -106,7 +108,7 @@ export class PageScreenshotService {
         // below the fold out of its own screenshot.
         overflow: 'visible',
       },
-      filter: (node: Node) => !isHidden(node),
+      filter: (node: Node) => !isHidden(node) && !isPictureSource(node),
       onCloneEachNode: (cloned: Node) => shiftFixed(cloned, scrollX, scrollY),
       timeout: CAPTURE_TIMEOUT_MS,
       // A font that will not load must not hold the shot hostage; the text
@@ -157,6 +159,31 @@ export class PageScreenshotService {
 export function isHidden(node: Node): boolean {
   if (!(node instanceof Element)) return false;
   return node.hasAttribute(CAPTURE_HIDE_ATTR) || node.classList.contains('cdk-overlay-container');
+}
+
+/**
+ * `<source>` children of a `<picture>` — dropped so the inlined `<img>` wins.
+ *
+ * The rasteriser turns the `<img>` into a `data:` url (it can fetch the bytes,
+ * the CDN allows CORS) but leaves a sibling `<source>` untouched, and a
+ * `<source>` outranks the `<img>` it wraps. The clone is then rendered as a
+ * standalone SVG image, a context that loads NO external resources — so the
+ * winning remote `srcset` resolves to nothing and the tile comes out as a
+ * broken-image glyph, which is exactly what the whole Starscape wall did
+ * (admin feedback a00bd850).
+ *
+ * The media query is not a way out: inside that isolated image context the
+ * viewport is narrow, so the app's phone-only `(max-width: 480px)` /
+ * `(max-width: 900px)` sources match there even when the capture is 1600px
+ * wide — verified against `modern-screenshot` directly, where an
+ * `(min-width: 99999px)` source stayed inert and the phone one blanked the
+ * image.
+ *
+ * Dropping the sources loses nothing: they only ever point at a smaller variant
+ * of the same artwork, and the `<img>` fallback is the full-size one.
+ */
+export function isPictureSource(node: Node): boolean {
+  return node instanceof HTMLSourceElement && node.parentElement?.tagName === 'PICTURE';
 }
 
 /**
