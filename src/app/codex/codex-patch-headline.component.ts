@@ -16,9 +16,10 @@ import { CodexService } from './codex.service';
 import { formatNumber } from './codex-format';
 import {
   PatchTimelineEntry,
-  hasMorePatches,
-  visiblePatchPage,
+  latestPatches,
+  mergePublishedPatches,
 } from './codex-patch-timeline';
+import { NewsService } from '../news/news.service';
 
 /**
  * The Codex headline: "which patch am I looking at" (admin feedback 463872dd).
@@ -31,13 +32,21 @@ import {
  * the one fact only this page can give — the patch everything below was read
  * from.
  *
- * The patch is also the page's quiet time machine: the live patch is always the
- * visible label, and clicking it opens a discreet list of the last five patches
- * (five more per "load more"). Patches we hold catalog data for are selectable
- * and switch the whole Codex to that build; patches that only exist as an
- * upload are listed but marked as data-less, because selecting one would show
- * an empty archive. Deliberately understated — no hot accent, no glow, no
- * headline typography: this is a switch, not the point of the page.
+ * The patch is also the page's quiet time machine: the current patch is always
+ * the visible label, and clicking it opens a discreet list of the last THREE
+ * patches. Patches we hold catalog data for are selectable and switch the whole
+ * Codex to that build; patches we have no data for are listed but greyed out
+ * and inert, because selecting one would show an empty archive. Deliberately
+ * understated — no hot accent, no glow, no headline typography: this is a
+ * switch, not the point of the page.
+ *
+ * Round three (admin feedback f68c6c6b) cut it back to what it is:
+ *   · the "Live" badge is gone — it read as "you are looking at the live game"
+ *     while it only ever meant "this is the newest patch we know";
+ *   · a patch RSI already shipped without a data upload is listed greyed out,
+ *     sourced from the Verse-News patch notes the shell already holds (no new
+ *     request, no new external dependency — see mergePublishedPatches);
+ *   · the list is capped at three, so the pager is gone with it.
  */
 @Component({
   selector: 'sc-codex-patch-headline',
@@ -104,29 +113,23 @@ import {
                     [class.nodata]="!e.hasData"
                     [attr.aria-selected]="isSelected(e)"
                     [disabled]="!e.hasData"
+                    [attr.aria-disabled]="!e.hasData"
                     [attr.title]="rowTitle(e)"
                     (click)="choose(e)"
                   >
                     <span class="row-ver mono">{{ e.patchVersion }}</span>
-                    @if (e.isLive) {
-                      <span class="row-tag">{{ 'codex.landing.patchSwitch.live' | translate }}</span>
-                    }
                     <!-- The marking the admin asked for: never colour alone —
-                         every row says in words whether we hold data for it. -->
+                         every row says in words whether we hold data for it,
+                         and the state rides on aria-disabled as well. -->
                     <span class="row-data" [class.has]="e.hasData">{{ dataLabel(e) | translate: dataArgs(e) }}</span>
                   </button>
                 </li>
               }
             </ul>
 
-            @if (more()) {
-              <button type="button" class="patch-more" (click)="loadMore()">
-                {{ 'codex.landing.patchSwitch.more' | translate }}
-              </button>
-            }
             @if (svc.viewingPastPatch()) {
-              <button type="button" class="patch-back" (click)="backToLive()">
-                {{ 'codex.landing.patchSwitch.backToLive' | translate }}
+              <button type="button" class="patch-back" (click)="backToCurrent()">
+                {{ 'codex.landing.patchSwitch.backToCurrent' | translate }}
               </button>
             }
           }
@@ -281,13 +284,6 @@ import {
       .patch-row.nodata { cursor: default; color: var(--sc-fg-2); opacity: 0.62; }
 
       .row-ver { flex: 1 1 auto; min-width: 0; }
-      .row-tag {
-        font-family: var(--sc-font-display);
-        font-size: max(0.6rem, var(--sc-fs-floor));
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--sc-accent);
-      }
       .row-data {
         font-size: max(0.66rem, var(--sc-fs-floor));
         color: var(--sc-fg-2);
@@ -295,7 +291,6 @@ import {
       }
       .row-data.has { color: color-mix(in srgb, var(--sc-success, #5fd698) 75%, var(--sc-fg-1)); }
 
-      .patch-more,
       .patch-back {
         align-self: flex-start;
         padding: 6px 8px;
@@ -308,8 +303,6 @@ import {
         font-size: max(0.72rem, var(--sc-fs-floor));
         cursor: pointer;
       }
-      .patch-more:hover,
-      .patch-more:focus-visible,
       .patch-back:hover,
       .patch-back:focus-visible {
         outline: none;
@@ -320,7 +313,7 @@ import {
 
       @media (pointer: coarse) {
         .patch-trigger { min-height: 40px; }
-        .patch-row, .patch-more, .patch-back { min-height: 48px; }
+        .patch-row, .patch-back { min-height: 48px; }
       }
       @media (max-width: 420px) {
         .patch-pop { right: auto; left: 0; width: min(300px, calc(100vw - 24px)); }
@@ -334,6 +327,7 @@ import {
 })
 export class CodexPatchHeadlineComponent {
   readonly svc = inject(CodexService);
+  private readonly news = inject(NewsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   /** Fired after the active build changed, so the host can reload its data. */
@@ -342,16 +336,29 @@ export class CodexPatchHeadlineComponent {
   readonly panelId = 'codex-patch-switch';
   readonly open = signal(false);
   readonly loading = signal(false);
-  /** How many pages of five the switch currently reveals. */
-  readonly page = signal(1);
 
   private readonly triggerEl = viewChild<ElementRef<HTMLButtonElement>>('trigger');
   private readonly popEl = viewChild<ElementRef<HTMLElement>>('pop');
 
-  readonly visible = computed<readonly PatchTimelineEntry[]>(() =>
-    visiblePatchPage(this.svc.patchTimeline(), this.page()),
+  /**
+   * Patch lines RSI has already taken LIVE, from the Verse-News feed. The
+   * shell's status chip keeps that feed loaded on every route, so reading it
+   * here is free — and while it is empty (feed still in flight, or blocked) the
+   * switch simply shows what our own archive knows.
+   *
+   * Main lines only (`4.10`, not `4.10.1`): every hotfix as its own greyed row
+   * would push the patches we DO hold data for out of a three-row list.
+   */
+  readonly publishedPatches = computed<string[]>(() =>
+    this.news
+      .patchLines()
+      .filter((g) => g.hasLive)
+      .map((g) => g.line),
   );
-  readonly more = computed(() => hasMorePatches(this.svc.patchTimeline(), this.page()));
+
+  readonly visible = computed<readonly PatchTimelineEntry[]>(() =>
+    latestPatches(mergePublishedPatches(this.svc.patchTimeline(), this.publishedPatches())),
+  );
 
   constructor() {
     effect(() => {
@@ -365,7 +372,6 @@ export class CodexPatchHeadlineComponent {
       this.close();
       return;
     }
-    this.page.set(1);
     this.open.set(true);
     void this.loadOnce();
   }
@@ -374,10 +380,6 @@ export class CodexPatchHeadlineComponent {
     if (!this.open()) return;
     this.open.set(false);
     if (returnFocus) this.triggerEl()?.nativeElement.focus();
-  }
-
-  loadMore(): void {
-    this.page.update((p) => p + 1);
   }
 
   /** Is this the patch the page is currently reading from? */
@@ -394,7 +396,8 @@ export class CodexPatchHeadlineComponent {
     if (changed) this.patchChange.emit();
   }
 
-  backToLive(): void {
+  /** Back to the newest patch we hold data for — the page's default. */
+  backToCurrent(): void {
     const changed = this.svc.selectBuild(null);
     this.close();
     if (changed) this.patchChange.emit();

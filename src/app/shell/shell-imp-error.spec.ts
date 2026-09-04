@@ -45,7 +45,7 @@ describe('ShellComponent — preview write-failed notice', () => {
         provideRouter([]),
         provideNoopAnimations(),
         { provide: SameRouteRefreshService, useValue: { request: () => true } },
-        { provide: AuthService, useValue: { user: signal(null), signOut: () => Promise.resolve() } },
+        { provide: AuthService, useValue: { ready: () => false, realUser: () => null, user: signal(null), signOut: () => Promise.resolve() } },
         { provide: RoleService, useValue: { isAdmin: signal(false) } },
         { provide: ProfileService, useValue: { username: signal(null) } },
         {

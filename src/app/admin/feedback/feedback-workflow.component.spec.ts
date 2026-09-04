@@ -35,6 +35,15 @@ function reviewItem(id: string): WorkflowItem {
 }
 
 
+/** A triage step: a user topic nobody has released yet (feedback 89925995). */
+function triageItem(id: string): WorkflowItem {
+  return {
+    row: { ...row(id), status: 'open', author_id: 'someone', source: 'user', triaged: false },
+    replies: [],
+    kind: 'triage',
+  };
+}
+
 /** A thread message, oldest-first order assumed by the component. */
 function msg(id: string, isSystem: boolean): FeedbackMessage {
   return {
@@ -55,6 +64,11 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
   let reopenWithReply: jasmine.Spy;
   /** What that write resolves to — flipped to false for the failure case. */
   let reopenOk = true;
+  /** Stand-ins for the triage step's two other writes (feedback 89925995). */
+  let askAuthor: jasmine.Spy;
+  let declineTopic: jasmine.Spy;
+  /** What those two resolve to — flipped to false for the failure cases. */
+  let triageOk = true;
 
   /**
    * Mounts the mode with `ids` in the queue and wires `markHandled` the way the
@@ -70,6 +84,9 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
     reopenWithReply = jasmine
       .createSpy('reopenWithReply')
       .and.callFake(() => Promise.resolve(reopenOk));
+    triageOk = true;
+    askAuthor = jasmine.createSpy('askAuthor').and.callFake(() => Promise.resolve(triageOk));
+    declineTopic = jasmine.createSpy('declineTopic').and.callFake(() => Promise.resolve(triageOk));
     celebration = {
       reducedMotion,
       burst: jasmine.createSpy('burst'),
@@ -92,6 +109,8 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
     fixture.componentRef.setInput('queue', queue);
     fixture.componentRef.setInput('reply', () => Promise.resolve(true));
     fixture.componentRef.setInput('reopenWithReply', reopenWithReply);
+    fixture.componentRef.setInput('askAuthor', askAuthor);
+    fixture.componentRef.setInput('declineTopic', declineTopic);
     fixture.componentInstance.markHandled.subscribe((id: string) => {
       queue = queue.filter((q) => q.row.id !== id);
       fixture.componentRef.setInput('queue', queue);
@@ -342,12 +361,13 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
   // ---- Kind lens: the Abnahme tab's replacement (feedback d4990269, round 2) ----
 
   it('exposes the kind switch with its counts', async () => {
-    const cmp = await setupQueue([item('q'), reviewItem('r')]);
-    fixture.componentRef.setInput('kindCounts', { all: 2, question: 1, review: 1 });
+    const cmp = await setupQueue([triageItem('u'), item('q'), reviewItem('r')]);
+    fixture.componentRef.setInput('kindCounts', { all: 3, triage: 1, question: 1, review: 1 });
     fixture.detectChanges();
 
     expect(cmp.kindOptions()).toEqual([
-      { key: 'all', count: 2 },
+      { key: 'all', count: 3 },
+      { key: 'triage', count: 1 },
       { key: 'question', count: 1 },
       { key: 'review', count: 1 },
     ]);
@@ -481,5 +501,109 @@ describe('FeedbackWorkflowComponent — advancing after "Erledigt"', () => {
     // The admin's words stay in front of them, and nothing was reported.
     expect(cmp.reopening()).toBeTrue();
     expect(cmp.advanced()).toBeNull();
+  });
+
+  // ---- Triage step: user feedback worked off in the run (feedback 89925995) ----
+
+  it('offers the three triage decisions plus skip on a user topic', async () => {
+    const cmp = await setupQueue([triageItem('u')]);
+    expect(cmp.isTriage(cmp.current()!)).toBeTrue();
+
+    const labels: string[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.wf-actions button'),
+    ).map((b) => (b as HTMLButtonElement).textContent!.trim());
+    expect(labels.length).toBe(4);
+    // No answer box: a topic nobody released has no routine question to answer.
+    expect(fixture.nativeElement.querySelector('sc-feedback-composer')).toBeNull();
+  });
+
+  it('releases the topic through the board and reports the step', async () => {
+    const released: string[] = [];
+    const cmp = await setupQueue([triageItem('u'), item('q')]);
+    cmp.releaseTriage.subscribe((row: FeedbackRow) => released.push(row.id));
+
+    cmp.release(cmp.current()!);
+    expect(released).toEqual(['u']);
+
+    // The board's refresh drops the released topic → the run names where it is.
+    fixture.componentRef.setInput('queue', [item('q')]);
+    fixture.detectChanges();
+    expect(cmp.advanced()).toEqual({ current: 1, total: 1 });
+  });
+
+  it('swipes right into the release, not into "erledigt"', async () => {
+    const released: string[] = [];
+    const cmp = await setupQueue([triageItem('u')]);
+    cmp.releaseTriage.subscribe((row: FeedbackRow) => released.push(row.id));
+
+    cmp.swipeCommit(cmp.current()!);
+    expect(released).toEqual(['u']);
+  });
+
+  it('asks the author as a question and lets the topic leave the queue', async () => {
+    const cmp = await setupQueue([triageItem('u'), item('q')]);
+    cmp.startAsk();
+    fixture.detectChanges();
+    expect(cmp.asking()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('sc-feedback-composer')).not.toBeNull();
+
+    expect(await cmp.submitAsk({ text: 'wie meinst du das?', images: [] })).toBeTrue();
+    expect(askAuthor).toHaveBeenCalledWith('u', { text: 'wie meinst du das?', images: [] });
+    expect(cmp.asking()).toBeFalse();
+  });
+
+  it('keeps the question box open when the write failed', async () => {
+    const cmp = await setupQueue([triageItem('u')]);
+    cmp.startAsk();
+    triageOk = false;
+
+    expect(await cmp.submitAsk({ text: 'nope', images: [] })).toBeFalse();
+    expect(cmp.asking()).toBeTrue();
+  });
+
+  it('declines with the mandatory note, and a canned reason pre-fills it', async () => {
+    const cmp = await setupQueue([triageItem('u')]);
+    cmp.startDecline();
+    fixture.detectChanges();
+    expect(cmp.declining()).toBeTrue();
+    // Nothing to send yet — the note is what the author gets to read.
+    const submit = fixture.nativeElement.querySelector('.decline-actions button[type="submit"]');
+    expect((submit as HTMLButtonElement).disabled).toBeTrue();
+
+    cmp.pickDeclineReason('duplicate');
+    expect(cmp.declineNote().length).toBeGreaterThan(0);
+    expect(cmp.declineReason()).toBe('duplicate');
+
+    await cmp.confirmDecline(cmp.current()!, new Event('submit'));
+    expect(declineTopic).toHaveBeenCalled();
+    expect(declineTopic.calls.mostRecent().args[0].id).toBe('u');
+    expect(cmp.declining()).toBeFalse();
+  });
+
+  it('writes nothing without a note, and keeps the form open when the write failed', async () => {
+    const cmp = await setupQueue([triageItem('u')]);
+    cmp.startDecline();
+
+    await cmp.confirmDecline(cmp.current()!, new Event('submit'));
+    expect(declineTopic).not.toHaveBeenCalled();
+
+    triageOk = false;
+    cmp.pickDeclineReason('duplicate');
+    await cmp.confirmDecline(cmp.current()!, new Event('submit'));
+    expect(declineTopic).toHaveBeenCalled();
+    expect(cmp.declining()).toBeTrue();
+  });
+
+  it('drops an open triage form when the queue moves to another topic', async () => {
+    const cmp = await setupQueue([triageItem('u'), triageItem('u2')]);
+    cmp.startDecline();
+    cmp.pickDeclineReason('duplicate');
+
+    cmp.skip();
+    fixture.detectChanges();
+
+    expect(cmp.current()!.row.id).toBe('u2');
+    expect(cmp.declining()).toBeFalse();
+    expect(cmp.declineNote()).toBe('');
   });
 });

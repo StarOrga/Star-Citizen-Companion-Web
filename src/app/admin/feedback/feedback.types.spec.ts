@@ -449,6 +449,36 @@ describe('buildWorkflowQueue', () => {
       'r2',
     ]);
   });
+
+  // ---- Triage steps folded into the queue (feedback 89925995) ----
+
+  const user1 = row('u1', 'open', '2026-07-07T10:00:00Z', { source: 'user', triaged: false });
+  const user2 = row('u2', 'open', '2026-07-06T10:00:00Z', { source: 'user', triaged: false });
+
+  it('queues untriaged user topics FIRST — nothing at all happens to them otherwise', () => {
+    const queue = buildWorkflowQueue([review1, q1, user1, q2, user2], threads);
+    expect(queue.map((i) => i.row.id)).toEqual(['u2', 'u1', 'q2', 'q1', 'r1']);
+    expect(queue.map((i) => i.kind)).toEqual(['triage', 'triage', 'question', 'question', 'review']);
+  });
+
+  it('drops a user topic out of the queue once it is released', () => {
+    expect(buildWorkflowQueue([{ ...user1, triaged: true }], threads).map((i) => i.row.id)).toEqual([]);
+  });
+
+  it('keeps an untriaged topic out while its author owes an answer', () => {
+    const asked = { ...user1, status: 'needs_input_author' as FeedbackStatus };
+    expect(buildWorkflowQueue([asked], threads).map((i) => i.row.id)).toEqual([]);
+  });
+
+  it('keeps a declined user topic out — it is archived, not waiting', () => {
+    const declined = { ...user1, status: 'declined' as FeedbackStatus };
+    expect(buildWorkflowQueue([declined], threads).map((i) => i.row.id)).toEqual([]);
+  });
+
+  it('lets the tick-off hide a triage step like any other item', () => {
+    const handled = new Map([['u1', user1.updated_at]]);
+    expect(buildWorkflowQueue([user1, user2], threads, handled).map((i) => i.row.id)).toEqual(['u2']);
+  });
 });
 
 describe('workflow scope (feedback abfa97c6)', () => {
@@ -486,6 +516,22 @@ describe('workflow scope (feedback abfa97c6)', () => {
     expect(filterWorkflowScope(q, 'mine', 'me').map((i) => i.row.id)).toEqual(['m1', 'm2']);
   });
 
+  it('keeps triage steps in every scope — a user topic is nobody\'s own', () => {
+    // The scope splits ADMIN topics by who raised them; a user-submitted one was
+    // raised by neither, so `mine` must not hide the thing that blocks the
+    // routine outright (feedback 89925995).
+    const userTopic = row('u1', 'open', '2026-07-09T10:00:00Z', {
+      author_id: 'someone-else',
+      source: 'user',
+      triaged: false,
+    });
+    const withTriage = buildWorkflowQueue([mine1, theirs, userTopic], new Map());
+    expect(filterWorkflowScope(withTriage, 'mine', 'me').map((i) => i.row.id)).toEqual(['u1', 'm1']);
+    expect(filterWorkflowScope(withTriage, 'others', 'me').map((i) => i.row.id)).toEqual(['u1', 't1']);
+    // ...and the chip counts say the same thing the chips hand over.
+    expect(workflowScopeCounts(withTriage, 'me')).toEqual({ mine: 2, others: 2, all: 3 });
+  });
+
   it('recognises ownership only for a matching author id', () => {
     expect(isOwnTopic(mine1, 'me')).toBeTrue();
     expect(isOwnTopic(theirs, 'me')).toBeFalse();
@@ -503,7 +549,7 @@ describe('workflow kind lens — replaces the Abnahme tab (feedback d4990269)', 
   const items = [q1, r1, q2];
 
   it('counts every kind, with "all" as the untouched total', () => {
-    expect(workflowKindCounts(items)).toEqual({ all: 3, question: 2, review: 1 });
+    expect(workflowKindCounts(items)).toEqual({ all: 3, triage: 0, question: 2, review: 1 });
   });
 
   it('hands back the whole run for "all"', () => {
@@ -519,7 +565,7 @@ describe('workflow kind lens — replaces the Abnahme tab (feedback d4990269)', 
   });
 
   it('counts an empty run as empty rather than throwing', () => {
-    expect(workflowKindCounts([])).toEqual({ all: 0, question: 0, review: 0 });
+    expect(workflowKindCounts([])).toEqual({ all: 0, triage: 0, question: 0, review: 0 });
     expect(filterWorkflowKind([], 'review')).toEqual([]);
   });
 });
