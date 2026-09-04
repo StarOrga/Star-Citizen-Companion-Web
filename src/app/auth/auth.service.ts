@@ -3,7 +3,11 @@ import { Router } from '@angular/router';
 import { Session, User } from '@supabase/supabase-js';
 import { AnalyticsService } from '../core/analytics.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { capturedAuthLinkType } from './auth-link';
 import { ImpersonationService } from './impersonation.service';
+
+/** Where an invite / password-reset link is funnelled once it has a session. */
+export const SET_PASSWORD_PATH = '/set-password';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -48,14 +52,60 @@ export class AuthService {
       this._ready.set(true);
     });
 
-    this.sb.realClient.auth.onAuthStateChange((_event, session) => {
+    const linkType = capturedAuthLinkType();
+    let linkHandled = false;
+
+    this.sb.realClient.auth.onAuthStateChange((event, session) => {
       this._session.set(session);
       this._ready.set(true);
+
+      // An invite or a password-reset mail is the ONE entry point where the
+      // visitor has a session but (possibly) no password they know. Send them
+      // to the page that fixes that instead of dropping them on the feed.
+      //
+      // Two triggers, because Supabase only re-announces one of the two:
+      // `PASSWORD_RECOVERY` is emitted for recovery links, while an invite
+      // arrives as a bare `SIGNED_IN` — `linkType` is the URL snapshot taken
+      // in main.ts and is null on every ordinary visit, so a normal sign-in
+      // or a page reload can never route here.
+      const fromLink = event === 'PASSWORD_RECOVERY' || linkType !== null;
+      if (session && !linkHandled && fromLink) {
+        linkHandled = true;
+        void this.router.navigateByUrl(
+          `${SET_PASSWORD_PATH}?via=${event === 'PASSWORD_RECOVERY' ? 'recovery' : linkType ?? 'recovery'}`,
+        );
+      }
     });
   }
 
   async signInWithPassword(email: string, password: string) {
     return this.sb.realClient.auth.signInWithPassword({ email, password });
+  }
+
+  /**
+   * Set (or replace) the password of the CURRENT session's user. Works from a
+   * normal session and from the short-lived one an invite / recovery link
+   * hands over — which is exactly what makes an invited account reachable a
+   * second time.
+   */
+  async updatePassword(password: string) {
+    return this.sb.realClient.auth.updateUser({ password });
+  }
+
+  /**
+   * Ask Supabase to mail a password-reset link. Deliberately fire-and-forget
+   * from the caller's point of view: Supabase answers the same way whether or
+   * not the address has an account, and the UI must not turn that into an
+   * "is X a member?" oracle.
+   */
+  async sendPasswordReset(email: string) {
+    const redirectTo =
+      typeof window === 'undefined'
+        ? undefined
+        : `${window.location.origin}${SET_PASSWORD_PATH}`;
+    return this.sb.realClient.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo,
+    });
   }
 
   async signInWithGoogle(returnPath = '/news') {

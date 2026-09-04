@@ -1,9 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { computed, signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { Role, RoleService } from '../auth/role.service';
+import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { AppDownloadMenuComponent } from './app-download-menu.component';
 import { DesktopProduct, connectionState } from './desktop-access';
 import { DesktopConnectionService } from './desktop-connection.service';
@@ -39,8 +40,11 @@ describe('AppDownloadMenuComponent', () => {
     lastSeenAt?: string | null;
     error?: string | null;
     fallbackUrl?: string;
+    /** Device that cannot install a desktop app at all (feedback dccdcc82). */
+    mobile?: boolean;
   } = {}) {
     const lastSeenAt = opts.lastSeenAt ?? null;
+    const canInstall = signal(!opts.mobile);
     const ringsFor = jasmine.createSpy('ringsFor').and.resolveTo({
       releases: opts.releases ?? [ring('stable', '1.2.0'), ring('beta', '1.3.0')],
       error: opts.error ?? null,
@@ -62,6 +66,10 @@ describe('AppDownloadMenuComponent', () => {
         },
         { provide: DesktopReleaseService, useValue: { ringsFor } },
         { provide: DesktopConnectionService, useValue: conn },
+        {
+          provide: DesktopCapabilityService,
+          useValue: { canInstall, isMobileDevice: computed(() => !canInstall()) },
+        },
       ],
     });
     const fixture = TestBed.createComponent(AppDownloadMenuComponent);
@@ -90,6 +98,28 @@ describe('AppDownloadMenuComponent', () => {
   it('renders nothing for an anonymous visitor on the uploader', () => {
     const { el } = setup({ product: 'uploader', role: null, signedIn: false });
     expect(el.querySelector('.dlm-trigger')).toBeNull();
+  });
+
+  // Admin feedback dccdcc82: "warum sehe ich mobil Desktop-Apps zum Download".
+  // The menu is a header chip that exists purely to start a download, so on a
+  // device that cannot install one there is nothing left to render.
+  describe('on a device that cannot install desktop apps', () => {
+    it('removes the Data-Uploader control entirely, even for an admin', () => {
+      const { el, ringsFor } = setup({ product: 'uploader', role: 'admin', mobile: true });
+      expect(el.querySelector('.dlm-trigger')).toBeNull();
+      expect(el.textContent?.trim()).toBe('');
+      expect(ringsFor).not.toHaveBeenCalled();
+    });
+
+    it('removes the public Starscape control too', () => {
+      const { el } = setup({ product: 'starscape', role: 'viewer', mobile: true });
+      expect(el.querySelector('.dlm-trigger')).toBeNull();
+    });
+
+    it('still renders it on a desktop browser', () => {
+      const { el } = setup({ product: 'starscape', role: 'viewer', mobile: false });
+      expect(el.querySelector('.dlm-trigger')).not.toBeNull();
+    });
   });
 
   it('asks the server only for the rings the role may take (admin: all three)', async () => {

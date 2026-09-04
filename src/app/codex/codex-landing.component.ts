@@ -7,8 +7,9 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   CodexListRow,
@@ -40,6 +41,7 @@ import {
   computeShipKpis,
   KpiRow,
   sortByRecency,
+  withSelectedFirst,
 } from './codex-landing-kpi';
 
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
@@ -306,8 +308,7 @@ export interface FleetGroup {
               [loadouts]="personalLoadouts()"
               [resolved]="resolvedArmor()"
               [payloads]="armorPayloads()"
-              [archiveDepth]="archiveDepth()"
-              [boardEntryLink]="boardEntryLink()" />
+              [archiveDepth]="archiveDepth()" />
 
             <!-- Quick access into the full archive, pre-filtered per entry
                  (prio 3, replaces "Im Versum"). No count on Waffen/Baupläne —
@@ -1241,6 +1242,7 @@ export class CodexLandingComponent implements OnInit {
   private readonly t = inject(TranslateService);
   readonly rsi = inject(UpcomingShipsService);
   private readonly locale = inject(LocaleService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -1285,6 +1287,18 @@ export class CodexLandingComponent implements OnInit {
    * none in which both are collapsed. IM HANGAR leads: this is the fleet page.
    */
   readonly openZone = signal<SurfaceZone>('hangar');
+
+  /**
+   * `?set=<hangar_role_loadouts.id>` — which personal set AN BORD shows.
+   * Null means "the most recently touched one", which is the ordinary visit.
+   *
+   * This is what makes the zone addressable: the retired `/hangar/loadout/:id`
+   * editor route (admin feedback 34505d70, decision 2A) redirects here with the
+   * id it was given, and the set switcher inside the zone navigates with it, so
+   * "which set am I looking at" lives in the URL and survives a reload, a
+   * bookmark and a middle click.
+   */
+  readonly selectedSetId = signal<string | null>(null);
 
   /**
    * The flagship hero shows only in the default `recent` mode. Grouping by
@@ -1351,16 +1365,6 @@ export class CodexLandingComponent implements OnInit {
   readonly otherLoadouts = computed(() => this.personalLoadouts().slice(1, 4));
   readonly hasPersonalSet = computed(() => this.activeLoadout() !== null);
 
-  /**
-   * AN BORD zone entrance target — the on-foot subview. A saved `fps` role
-   * loadout (which may not be the most-recently-touched `activeLoadout`,
-   * see above) opens straight into its own detail page; otherwise the zone
-   * falls back to the on-foot equipment index, same as the empty-state CTA.
-   */
-  readonly boardEntryLink = computed<(string | number)[]>(() => {
-    const fps = this.personalLoadouts().find((l) => l.role === 'fps');
-    return fps ? ['/hangar', 'loadout', fps.id] : ['/codex', 'fps'];
-  });
   readonly paperdollSlots = computed<ArmorSlotState[]>(() =>
     armorSlotsFromLoadout(this.activeLoadout()?.items ?? []),
   );
@@ -1461,6 +1465,22 @@ export class CodexLandingComponent implements OnInit {
   readonly archiveComponentCount = computed(() => this.archiveCount('components'));
 
   constructor() {
+    // Zone + set come from the URL, and they keep coming: the set switcher
+    // navigates to this same route, so a snapshot read would only ever apply
+    // the first one.
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((q) => {
+      const zone = q.get('zone');
+      if (zone === 'board' || zone === 'hangar') this.openZone.set(zone);
+      const set = q.get('set');
+      if (set) this.openZone.set('board');
+      if (set !== this.selectedSetId()) {
+        this.selectedSetId.set(set);
+        // Only re-resolve once the first load has populated the service; the
+        // initial pass is driven by ngOnInit.
+        if (this.hangar.roleLoadouts().length > 0) void this.resolvePersonal();
+      }
+    });
+
     effect(() => {
       const term = this.searchTerm().trim();
       if (!term) {
@@ -1588,7 +1608,13 @@ export class CodexLandingComponent implements OnInit {
 
   /** AN BORD extras — active + other loadouts, resolved armour, archive depth for empty slots. */
   private async resolvePersonal(): Promise<void> {
-    const loadouts = sortByRecency(this.hangar.roleLoadouts());
+    // Most recently touched first — unless the URL names a set, which then
+    // leads. Everything downstream (`activeLoadout`, the paperdoll, the panel's
+    // switcher) reads position 0, so ordering IS the selection.
+    const loadouts = withSelectedFirst(
+      sortByRecency(this.hangar.roleLoadouts()),
+      this.selectedSetId(),
+    );
     this.personalLoadouts.set(loadouts);
     const active = loadouts[0] ?? null;
     if (!active) {

@@ -108,8 +108,10 @@ const RENDER_CHUNK = 24;
           <p class="hint">{{ 'starscape.subtitle' | translate }}</p>
         </div>
         <!-- Desktop-only: a Windows tray app cannot be installed from a phone,
-             so the control is hidden on small screens (admin feedback 52a5ef4c)
-             - there, only the gallery matters. Since 924bf1d8 this is the SAME
+             so the menu removes itself on a touch device (feedback dccdcc82) and
+             the CSS below additionally drops the column on narrow layouts
+             (admin feedback 52a5ef4c) — there, only the gallery matters.
+             Since 924bf1d8 this is the SAME
              component the Data Uploader uses on the Codex landing: a compact
              trigger that expands into an overlay with one download per ring.
              The ring is still chosen HERE, before the download: the app reads it
@@ -674,11 +676,15 @@ const RENDER_CHUNK = 24;
       .top-toggle { min-height: 48px; }
     }
 
-    /* A Windows tray app cannot be installed from a phone or tablet, so the
-       download panel is dropped entirely below the desktop breakpoint — there,
-       only the images matter (admin feedback 52a5ef4c, widening the 640px rule
-       from 32cbf3ad which still showed it in landscape and on small tablets).
-       display:none also takes it out of the tab order and the a11y tree. */
+    /* Layout rule only: below the desktop breakpoint the header has no room for
+       the CTA column, so it is dropped and only the images matter (admin
+       feedback 52a5ef4c, widening the 640px rule from 32cbf3ad). display:none
+       also takes it out of the tab order and the a11y tree.
+       The "can this device even install a Windows app" question is NOT decided
+       here any more — sc-app-download-menu answers it itself via
+       DesktopCapabilityService (feedback dccdcc82), which also covers a phone
+       held in landscape above 900px. This rule stays as the narrow-window
+       layout guard it always really was. */
     @media (max-width: 900px) {
       .app-cta { display: none; }
     }

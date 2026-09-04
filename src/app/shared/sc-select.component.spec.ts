@@ -242,3 +242,55 @@ describe('ScSelectComponent with pre-resolved labels', () => {
     expect(labels).toEqual(['tax.none', 'tax.verse']);
   });
 });
+
+describe('ScSelectComponent — allowEmpty=false (required picker)', () => {
+  @Component({
+    standalone: true,
+    imports: [ScSelectComponent],
+    template: `
+      <sc-select
+        [options]="options"
+        [allowEmpty]="false"
+        [value]="value()"
+        placeholderKey="none"
+        ariaLabel="Role"
+        (valueChange)="value.set($event)"
+      />
+    `,
+  })
+  class RequiredHost {
+    readonly options = OPTIONS;
+    readonly value = signal<string | null>('verse');
+  }
+
+  let fixture: ComponentFixture<RequiredHost>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [RequiredHost],
+      providers: [provideTranslateService()],
+    }).compileComponents();
+    fixture = TestBed.createComponent(RequiredHost);
+    fixture.detectChanges();
+  });
+
+  it('offers no empty row — a role picker has no "nothing picked" answer', () => {
+    (fixture.nativeElement.querySelector('.trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const labels = Array.from(
+      fixture.nativeElement.querySelectorAll('.option .label') as NodeListOf<HTMLElement>,
+    ).map((e) => e.textContent!.trim());
+    expect(labels).toEqual(['tax.verse', 'tax.inGame', 'tax.outOfGame']);
+  });
+
+  it('never emits null', () => {
+    (fixture.nativeElement.querySelector('.trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const opts = Array.from(
+      fixture.nativeElement.querySelectorAll('.option') as NodeListOf<HTMLElement>,
+    );
+    opts[2].click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.value()).toBe('out_of_game');
+  });
+});

@@ -79,7 +79,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
   template: `
           <header class="board-head">
             <span class="zone-eyebrow" id="board-title">{{ 'codex.landing.me.eyebrow' | translate }}</span>
-            <a class="board-name" [routerLink]="boardEntryLink()">
+            <a class="board-name" [routerLink]="['/codex', 'fps']" [queryParams]="boardEntryQuery()">
               {{ hasPersonalSet() ? activeLoadout()!.name : ('codex.landing.me.title' | translate) }}
             </a>
           </header>
@@ -177,7 +177,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
             <div class="board-dial">
               @for (l of boardSets(); track l.id) {
                 <a class="dial-node" [class.on]="l.id === activeLoadout()!.id"
-                   [routerLink]="['/hangar', 'loadout', l.id]">
+                   [routerLink]="['/codex']" [queryParams]="{ zone: 'board', set: l.id }">
                   <span class="t-value">{{ l.name }}</span>
                   <span class="t-label dial-sub">{{ ('hangar.roles.' + l.role) | translate }} · {{ l.filled }}/6</span>
                 </a>
@@ -461,11 +461,21 @@ export class CodexBoardPanelComponent {
   readonly payloads = input.required<Map<string, EntityPayloadEntry>>();
   /** How many candidates the archive holds per still-open position. */
   readonly archiveDepth = input.required<Map<string, number>>();
-  /** Where the zone's name link goes (the on-foot subview). */
-  readonly boardEntryLink = input.required<(string | number)[]>();
 
   readonly activeLoadout = computed<HangarRoleLoadout | null>(() => this.loadouts()[0] ?? null);
   readonly hasPersonalSet = computed(() => this.activeLoadout() !== null);
+
+  /**
+   * The zone's name link — the on-foot archive, carrying the equip intent for
+   * the set whose name it is. Since the standalone editor was retired (admin
+   * feedback 34505d70, decision 2A) this IS the "open my set" destination:
+   * `/codex/fps?equipInto=…` is where a piece gets put into a slot. Without a
+   * set it degrades to the bare archive, same as the empty-state CTA.
+   */
+  readonly boardEntryQuery = computed<Record<string, string>>(() => {
+    const active = this.activeLoadout();
+    return active ? { equipInto: active.id } : ({} as Record<string, string>);
+  });
 
   /**
    * The six positions as the zone renders them. The armour class comes from the

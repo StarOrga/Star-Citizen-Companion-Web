@@ -163,6 +163,13 @@ export class ScSelectComponent {
   readonly options = input.required<readonly ScSelectOption[]>();
   readonly value = input<string | null>(null);
   readonly disabled = input(false);
+  /**
+   * Whether the list carries a "nothing picked" row at all. Filters default to
+   * `true` (clearing a facet is a real choice); a REQUIRED picker — a role, a
+   * channel — sets it to `false`, because an empty row there offers a value the
+   * caller cannot accept and would have to translate back into a default.
+   */
+  readonly allowEmpty = input(true);
   /** i18n key for the "nothing picked" row (and the trigger's empty label). */
   readonly placeholderKey = input('common.select.none');
   /** Ready-made text for that row, overriding `placeholderKey` — see `label`. */
@@ -176,11 +183,20 @@ export class ScSelectComponent {
   readonly dropUp = signal(false);
   readonly activeIndex = signal(0);
 
-  /** Placeholder first, then the caller's options — index 0 is always "none". */
-  readonly choices = computed<readonly ScSelectOption[]>(() => [
-    { value: NONE, labelKey: this.placeholderKey(), label: this.placeholderLabel() ?? undefined },
-    ...this.options(),
-  ]);
+  /**
+   * Placeholder first, then the caller's options — so index 0 is "none"
+   * whenever `allowEmpty` is on. With it off the caller's options ARE the
+   * list; the placeholder label still backs the trigger for a null value that
+   * has not been resolved to a default yet.
+   */
+  readonly choices = computed<readonly ScSelectOption[]>(() =>
+    this.allowEmpty()
+      ? [
+          { value: NONE, labelKey: this.placeholderKey(), label: this.placeholderLabel() ?? undefined },
+          ...this.options(),
+        ]
+      : [...this.options()],
+  );
 
   readonly currentValue = computed(() => this.value() ?? NONE);
 
