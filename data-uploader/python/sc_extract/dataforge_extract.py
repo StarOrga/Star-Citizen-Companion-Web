@@ -288,6 +288,22 @@ def _loadout_entries(loadout: Any, _depth: int = 0) -> List[Dict[str, Any]]:
     return out
 
 
+def _loadout_pairs(entries: Any, _depth: int = 0) -> List[Tuple[str, str]]:
+    """``(itemPortName, entityClassName)`` of a resolved loadout, nested
+    entries included (a cargo pod's grid hangs under the pod)."""
+    out: List[Tuple[str, str]] = []
+    if not isinstance(entries, list) or _depth > _LOADOUT_MAX_DEPTH:
+        return out
+    for e in entries:
+        if not isinstance(e, dict):
+            continue
+        cls = e.get("entityClassName")
+        if isinstance(cls, str) and cls:
+            out.append((str(e.get("itemPortName") or ""), cls))
+        out.extend(_loadout_pairs(e.get("entries"), _depth + 1))
+    return out
+
+
 def _default_loadout_of(comps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """The stock fit of an entity, from its components. Empty when it has none."""
     dl = _find_component(comps, "SEntityComponentDefaultLoadoutParams")
@@ -335,6 +351,9 @@ class CodexExtractor:
         # FlightController class name -> its IFCSParams struct (or None), see
         # _flight_controller_ifcs. One resolve per ship class, not per record.
         self._flight_cache: Dict[str, Optional[Dict[str, Any]]] = {}
+        # vehicle implementation XML path -> parsed root element (or None).
+        # Ship variants share one file, so this is parsed once per hull.
+        self._vehicle_xml_cache: Dict[str, Any] = {}
         # guid -> manufacturer code, built lazily
         self._manu_cache: Dict[str, Dict[str, Any]] = {}
         # Ship-skin (livery) catalog discovery — built lazily on the first ship,
@@ -1274,6 +1293,10 @@ class CodexExtractor:
         base.update({
             "entityKind": "ship",
             "role": vcp.get("vehicleRole"),
+            # Career (`@vehicle_focus_*`) sits next to the role
+            # (`@vehicle_class_*`) on the same struct; both are localisation
+            # keys, resolved by the consumer through the locale tables.
+            "career": vcp.get("vehicleCareer"),
             "crew": {"size": vcp.get("crewSize")},
             "vehicleName": self._localized(vcp.get("vehicleName")),
             # real-world bounding-box dimensions (metres) parsed from the .cga mesh
@@ -1282,6 +1305,13 @@ class CodexExtractor:
             # live on the FlightController ITEM entity referenced from the
             # default loadout (see _flight_stats docstring).
             "flight": self._flight_stats(loadout),
+            # hull hitpoints + hull mass from the vehicle implementation XML,
+            # armour HP from the ARMR_<Ship> item, cargo capacity from the
+            # cargo grid's inventory container. Each stays None when its
+            # source is absent - never a guess, never a 0.
+            "hull": self._hull_stats(vcp, base["className"]),
+            "armorHp": self._armor_hp(base["className"]),
+            "cargoScu": self._cargo_scu(loadout),
             "itemPorts": item_ports,
             "defaultLoadout": loadout,
             # portName -> {position, rotation, helper, source}; model-space metres
@@ -1298,6 +1328,183 @@ class CodexExtractor:
         if ship_stats:
             base["stats"] = ship_stats
         return base
+
+    def _entity_class(self, class_name: str) -> Optional[Record]:
+        """Record for a bare entity class name (no ``EntityClassDefinition.``
+        prefix), case-insensitive. The index is built once per run and shared
+        by the flight-controller, armour and cargo hops."""
+        if not class_name:
+            return None
+        if not hasattr(self, "_ecd_by_name"):
+            self._ecd_by_name = {
+                rec.name.split(".", 1)[1].lower(): rec
+                for rec in self.df.records_by_type_name("EntityClassDefinition")
+                if "." in rec.name
+            }
+        return self._ecd_by_name.get(class_name.lower())
+
+    def _entity_class_comps(self, class_name: str) -> List[Dict[str, Any]]:
+        """Resolved Components of an entity class, ``[]`` when unresolvable."""
+        rec = self._entity_class(class_name)
+        if rec is None:
+            return []
+        try:
+            d = self.df.record_to_dict(rec, max_depth=10)
+        except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
+            self.on_log("warn", f"entity resolve failed for {class_name}: {exc}")
+            return []
+        comps = d.get("_RecordValue_", {}).get("Components")
+        return comps if isinstance(comps, list) else []
+
+    # ── hull HP / hull mass (vehicle implementation XML) ──────────────────────
+    # VERIFIED against LIVE 4.9.0 (probe 2026-09-04, scripts/probe_hull_cargo.py):
+    # the DataCore carries NO hull hitpoints at all — they live in the CryXmlB
+    # vehicle implementation referenced by
+    # `VehicleComponentParams.vehicleDefinition`
+    # (Scripts/Entities/Vehicles/Implementations/Xml/<Ship>.xml). Hull HP is the
+    # SUM of every `Part@damageMax` (Nomad 9 800 over 11 parts, Gladius 6 110,
+    # Freelancer 34 900); hull mass is the ROOT part's `@mass` — usually named
+    # after the ship (`Part[@name="CNOU_Nomad"]`), but variants reuse the base
+    # hull's XML (Idris-P -> aegs_idris.xml, root part "AEGS_Idris"), so the
+    # name match falls back to the first part that carries a mass.
+    def _hull_stats(self, vcp: Dict[str, Any],
+                    class_name: str) -> Dict[str, Optional[float]]:
+        out: Dict[str, Optional[float]] = {"hp": None, "mass": None}
+        root = self._vehicle_xml_root(vcp.get("vehicleDefinition"))
+        if root is None:
+            return out
+        total = 0.0
+        seen = False
+        named_mass: Optional[float] = None
+        first_mass: Optional[float] = None
+        for part in root.iter("Part"):
+            dmg = _to_float(part.get("damageMax"))
+            if dmg is not None and math.isfinite(dmg):
+                total += dmg
+                seen = True
+            mass = _to_float(part.get("mass"))
+            if mass is not None and math.isfinite(mass) and mass > 0:
+                if first_mass is None:
+                    first_mass = mass
+                if named_mass is None and (part.get("name") or "").lower() == class_name.lower():
+                    named_mass = mass
+        if seen:
+            out["hp"] = total
+        out["mass"] = named_mass if named_mass is not None else first_mass
+        return out
+
+    def _vehicle_xml_root(self, path: Optional[str]):
+        """Parsed root element of a vehicle implementation XML, or ``None``.
+
+        Cached per path (ship variants share one implementation file).
+        CryXmlB-encoded files are decoded via scdatatools, exactly like the
+        keybind profile and the .mtl files the skin pipeline reads.
+        """
+        if not path or self.p4k is None:
+            return None
+        key = path.replace("\\", "/").lower()
+        if key in self._vehicle_xml_cache:
+            return self._vehicle_xml_cache[key]
+        root = None
+        try:
+            import io as _io
+            import xml.etree.ElementTree as ET
+
+            if not hasattr(self, "_p4k_by_lower"):
+                self._p4k_by_lower = {n.lower().replace("\\", "/"): n
+                                      for n in self.p4k.namelist()}
+            real = (self._p4k_by_lower.get(key)
+                    or self._p4k_by_lower.get("data/" + key))
+            if real:
+                with self.p4k.open(self.p4k.getinfo(real)) as f:
+                    blob = f.read()
+                if blob[:7] == b"CryXmlB":
+                    from scdatatools.engine.cryxml import etree_from_cryxml_file
+                    root = etree_from_cryxml_file(_io.BytesIO(blob)).getroot()
+                else:
+                    root = ET.fromstring(blob)
+            else:
+                self.on_log("warn", f"vehicle definition not in P4K: {path}")
+        except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
+            self.on_log("warn", f"vehicle xml parse failed for {path}: {exc}")
+            root = None
+        self._vehicle_xml_cache[key] = root
+        return root
+
+    # ── cargo capacity ────────────────────────────────────────────────────────
+    # One SCU is a 1.25 m cube, so capacity = interior volume (m³) / 1.25³.
+    # The capacity is NOT on the ship: it sits on the cargo-grid item in the
+    # ship's stock loadout, behind `containerParams` -> `interiorDimensions`.
+    # `containerParams` is frequently a CROSS-FILE record reference (a
+    # `{_RecordId_, _RecordName_}` stub that `record_to_dict` does not inline),
+    # hence the explicit `record_by_id` hop.
+    _SCU_EDGE_M = 1.25
+    _CARGO_CONTAINER_FIELDS = ("containerParams", "inventoryContainer",
+                               "container", "cargoContainer")
+
+    def _cargo_scu(self, loadout: List[Dict[str, Any]]) -> Optional[float]:
+        """Total stock cargo capacity in SCU, or ``None`` when the ship has no
+        cargo grid at all (a fighter must read as "no cargo hold", not 0 SCU)."""
+        total = 0.0
+        found = False
+        for port, cls in _loadout_pairs(loadout):
+            if "cargo" not in f"{port} {cls}".lower():
+                continue  # cheap gate: never resolve a ship's whole loadout
+            volume = self._container_volume(self._entity_class_comps(cls))
+            if volume is None:
+                continue
+            found = True
+            total += volume / (self._SCU_EDGE_M ** 3)
+        if not found:
+            return None
+        return round(total, 2)
+
+    def _container_volume(self, comps: List[Dict[str, Any]]) -> Optional[float]:
+        """Interior volume (m³) of the first inventory container on an item."""
+        for c in comps:
+            if not isinstance(c, dict):
+                continue
+            for field in self._CARGO_CONTAINER_FIELDS:
+                params = c.get(field)
+                dims = self._interior_dimensions(params)
+                if dims is None:
+                    continue
+                edges = [_to_float(dims.get(a)) for a in ("x", "y", "z")]
+                if any(e is None or not math.isfinite(e) or e <= 0 for e in edges):
+                    continue
+                return edges[0] * edges[1] * edges[2]
+        return None
+
+    def _interior_dimensions(self, params: Any) -> Optional[Dict[str, Any]]:
+        """`interiorDimensions` off an inline container struct, or off the
+        record a cross-file `containerParams` reference points at."""
+        if not isinstance(params, dict):
+            return None
+        dims = params.get("interiorDimensions")
+        if isinstance(dims, dict):
+            return dims
+        guid = params.get("_RecordId_")
+        if not isinstance(guid, str) or not guid:
+            return None
+        try:
+            rec = self.df.record_by_id(guid)
+            if rec is None:
+                return None
+            resolved = self.df.record_to_dict(rec, max_depth=6)
+        except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
+            self.on_log("warn", f"container record resolve failed for {guid}: {exc}")
+            return None
+        value = resolved.get("_RecordValue_", resolved)
+        dims = value.get("interiorDimensions") if isinstance(value, dict) else None
+        return dims if isinstance(dims, dict) else None
+
+    def _armor_hp(self, class_name: str) -> Optional[float]:
+        """Hull-armour hitpoints from the per-hull `ARMR_<Ship>` item's
+        `SHealthComponentParams.Health` (VERIFIED: Nomad 2 200, Hammerhead
+        25 740). ``None`` when the ship has no armour item."""
+        comps = self._entity_class_comps(f"ARMR_{class_name}")
+        health = _find_component(comps, "SHealthComponentParams") or {}
+        return _to_float(health.get("Health"))
 
     # ── flight stats (generic) ──────────────────────────────────────────────────
     # VERIFIED against a live Data.p4k (CNOU_Nomad / AEGS_Gladius /
@@ -1337,15 +1544,7 @@ class CodexExtractor:
             return self._flight_cache[cls]
         ifcs: Optional[Dict[str, Any]] = None
         try:
-            if not hasattr(self, "_ecd_by_name"):
-                # Bare class name (no "EntityClassDefinition." prefix) -> record,
-                # built once and reused for every ship in the run.
-                self._ecd_by_name = {
-                    rec.name.split(".", 1)[1].lower(): rec
-                    for rec in self.df.records_by_type_name("EntityClassDefinition")
-                    if "." in rec.name
-                }
-            fc_rec = self._ecd_by_name.get(cls.lower())
+            fc_rec = self._entity_class(cls)
             if fc_rec is not None:
                 fc = self.df.record_to_dict(fc_rec, max_depth=12)
                 fc_comps = fc.get("_RecordValue_", {}).get("Components") or []
