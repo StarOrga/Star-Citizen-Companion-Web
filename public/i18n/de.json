@@ -923,7 +923,7 @@
         "quantum": "Hat in SCM keinen Kanal. Erst in NAV bekommt er Energie — dort fällt dafür der Schild weg.",
         "tractor": "Aus. Zieht erst Energie, wenn er benutzt wird.",
         "ir": "Deine Wärmesignatur. Steigt mit der Kühllast und mit allem, was Energie zieht. Wer wenig IR hat, wird später auf Wärme-Sensoren erfasst.",
-        "em": "Summe aller aktiven Bauteile. Waffen und Schilde sind die größten Posten — deshalb der Rückgang, sobald die Waffen aus sind.",
+        "em": "Summe aller aktiven Bauteile. Schilde und Kühler sind die größten Posten — schaltest du eine Gruppe ab, fällt ihr Anteil weg. Was ein Bauteil abstrahlt, steht in den Spieldateien; Energiewaffen tragen dort 0.",
         "crossSection": "Wie groß du auf dem Radar erscheinst. Kommt aus dem Rumpf, nicht aus der Ausrüstung — kein Loadout ändert ihn.",
         "coolingLoad": "Wie viel der vorhandenen Kühlleistung gerade gebraucht wird. Über 100 % läuft das Schiff heiß und die IR-Signatur schießt hoch."
       },

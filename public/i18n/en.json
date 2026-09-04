@@ -923,7 +923,7 @@
         "quantum": "Has no channel in SCM. It only draws power in NAV — and there the shield goes dark instead.",
         "tractor": "Off. It only draws power once you use it.",
         "ir": "Your heat signature. It rises with the cooling load and with everything that draws power. Low IR means thermal sensors pick you up later.",
-        "em": "The sum of every powered component. Weapons and shields are the biggest items — which is why it drops as soon as the guns go off.",
+        "em": "The sum of every powered component. Shields and coolers are the biggest items — cut a group and its share disappears. What a part emits comes from the game files; energy weapons carry 0 there.",
         "crossSection": "How large you look on radar. It comes from the hull, not the equipment — no loadout changes it.",
         "coolingLoad": "How much of the installed cooling capacity is in use right now. Above 100 % the ship runs hot and the IR signature spikes."
       },
