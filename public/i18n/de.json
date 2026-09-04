@@ -1178,6 +1178,11 @@
     "empty": {
       "weapon": "Keine FPS-Waffen in diesem Build.",
       "armor": "Keine Rüstung in diesem Build."
+    },
+    "equip": {
+      "targetSet": "Ausrüsten für: {{name}}",
+      "backToSet": "Zurück zum Set",
+      "into": "In Slot:"
     }
   },
   "news": {
@@ -2101,9 +2106,10 @@
       "create": "Erstellen",
       "empty": "Noch keine Rollen-Loadouts — erstelle oben ein FPS-, Bergbau- oder Bergungs-Set.",
       "itemCount": "{{count}} Gegenstände ausgerüstet",
-      "slotsTitle": "Slots",
-      "addSlotPlaceholder": "Eigenen Slot hinzufügen…",
-      "addSlot": "Slot hinzufügen"
+      "rename": "Umbenennen",
+      "cancel": "Abbrechen",
+      "share": "Teilen",
+      "deleteConfirm": "Wirklich löschen?"
     },
     "detail": {
       "back": "Zurück zum Hangar",
@@ -2156,7 +2162,6 @@
       "empty": "leer",
       "change": "Ändern",
       "reset": "Stock",
-      "clear": "Leeren",
       "createConfigFirst": "Erstelle oben eine Konfiguration, um das Loadout zu bearbeiten."
     },
     "picker": {
@@ -2224,6 +2229,25 @@
       "importing": "Importiere…",
       "done": "{{count}} Schiffe importiert.",
       "close": "Schließen"
+    },
+    "slots": {
+      "primary": "Primärwaffe",
+      "secondary": "Sekundärwaffe",
+      "sidearm": "Seitenwaffe",
+      "helmet": "Helm",
+      "core": "Torso",
+      "arms": "Arme",
+      "legs": "Beine",
+      "undersuit": "Untersuit",
+      "backpack": "Rucksack",
+      "multitool": "Multitool",
+      "mining-attachment": "Bergbau-Aufsatz",
+      "gadget": "Gadget",
+      "salvage-attachment": "Bergungs-Aufsatz",
+      "tractor": "Traktorstrahl",
+      "medgun": "Medgun",
+      "medpen": "MedPen",
+      "repair-attachment": "Reparatur-Aufsatz"
     }
   },
   "quickSearch": {
