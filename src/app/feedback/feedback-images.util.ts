@@ -63,7 +63,7 @@ function extForName(name: string, fallback: string): string {
  * nicer-looking file picker: the composer's `accept` attribute is a hint the
  * browser is free to ignore and a drag-and-drop bypasses it entirely, so the
  * rule has to exist somewhere that is not the picker. The storage policy in
- * migration 20260903193000 is the authoritative copy — this one turns the same
+ * migration 20260904040000 is the authoritative copy — this one turns the same
  * refusal into an error the user can read before a request is even made.
  */
 export function assertAttachmentsAllowed(

@@ -24,10 +24,12 @@ import {
   isResumable,
   describeResume,
   resumeSummary,
+  rehydrateResult,
   type TextIO,
   type UploadJobState,
   type JobNat,
   type ResumeSummary,
+  type RehydrateResult,
 } from '../lib/upload-job.js';
 import {
   catalogHooks,
@@ -126,6 +128,28 @@ export function pause(): JobView {
   update((s) => ({ ...s, status: 'paused' }));
   log.info('[upload-job] pause requested');
   return view();
+}
+
+/**
+ * Rebuild the extraction result the renderer's upload flow drives on, from the
+ * stored job + the extract's manifest. Needed after a restart: the renderer's
+ * in-memory result died with the old process, and without one its resume path
+ * used to return before doing anything — the "Fortsetzen does nothing" hang.
+ */
+export function rehydrate(): RehydrateResult {
+  const res = rehydrateResult(store().load(), {
+    exists: existsSync,
+    readText: (path) => {
+      try {
+        return readFileSync(path, 'utf-8');
+      } catch {
+        return null;
+      }
+    },
+  });
+  if (res.ok) log.info(`[upload-job] rehydrated extract result from ${res.result.output_dir}`);
+  else log.warn(`[upload-job] cannot resume: ${res.error}`);
+  return res;
 }
 
 /** Clear the pause signal so the renderer can re-drive the stages. */

@@ -6,6 +6,7 @@ import { FeedbackDraftService, DraftEntry } from '../../feedback/feedback-draft.
 import { DraftImageRef } from '../../feedback/feedback-draft.types';
 import { PageScreenshotService } from '../../feedback/page-screenshot.service';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
+import { FEEDBACK_MAX_CHARS } from '../../feedback/feedback-limits';
 
 /**
  * Stand-in for the account-bound draft store: the composer's contract with it is
@@ -403,6 +404,120 @@ describe('FeedbackComposerComponent — account-bound drafts', () => {
     expect(drafts.staged).toEqual([]);
     expect(cmp.draftLabel()).toBeNull();
     expect(cmp.hasStoredDraft()).toBeFalse();
+  });
+});
+
+/**
+ * The character cap (admin feedback 0a0fad31). A topic arrived carrying an
+ * unbroken run of ~9.800 characters; nothing on the way in said no. Three
+ * guards, because `maxlength` alone is not a cap — it covers typing and
+ * pasting, but a DROP walks straight past it, and a draft stored before the cap
+ * existed can already be over it.
+ */
+describe('FeedbackComposerComponent — character limit', () => {
+  let fixture: ComponentFixture<FeedbackComposerComponent>;
+  let cmp: FeedbackComposerComponent;
+
+  async function mount(scope: string | null = 'admin:new') {
+    await TestBed.configureTestingModule({
+      imports: [FeedbackComposerComponent],
+      providers: [
+        provideTranslateService({ fallbackLang: 'en' }),
+        { provide: FeedbackDraftService, useValue: drafts },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(FeedbackComposerComponent);
+    fixture.componentRef.setInput('draftScope', scope);
+    fixture.componentRef.setInput('placeholder', 'adminFeedback.compose.placeholder');
+    fixture.componentRef.setInput('sendLabel', 'adminFeedback.compose.send');
+    fixture.componentRef.setInput('onSubmit', () => Promise.resolve(true));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    cmp = fixture.componentInstance;
+  }
+
+  const field = (): HTMLTextAreaElement => fixture.nativeElement.querySelector('textarea');
+
+  /** What a drop does: put the text into the element and fire `input`. */
+  function drop(value: string): HTMLTextAreaElement {
+    const el = field();
+    el.value = value;
+    el.setSelectionRange(value.length, value.length);
+    cmp.onInput({ target: el } as unknown as Event);
+    fixture.detectChanges();
+    return el;
+  }
+
+  beforeEach(() => {
+    drafts = new FakeDraftStore();
+  });
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('tells the browser the cap through maxlength', async () => {
+    await mount();
+    expect(field().getAttribute('maxlength')).toBe(String(FEEDBACK_MAX_CHARS));
+  });
+
+  it('shows the live count next to the cap, inside the field', async () => {
+    await mount();
+    drop('hello');
+    const counter: HTMLElement = fixture.nativeElement.querySelector('sc-char-counter');
+    expect(counter).withContext('counter is rendered').not.toBeNull();
+    expect(counter.textContent?.trim()).toBe(`5 / ${FEEDBACK_MAX_CHARS}`);
+    // Bottom-right INSIDE the box: the field's wrapper is the positioning
+    // context, so the counter can never end up under the send button.
+    expect(counter.closest('.field')).withContext('counter lives in the field').not.toBeNull();
+    expect(counter.closest('.field')!.querySelector('textarea')).toBe(field());
+  });
+
+  it('truncates text dropped past the cap — the 9.800-char wall never lands', async () => {
+    await mount();
+    const el = drop('a'.repeat(9800));
+
+    expect(cmp.draft().length).toBe(FEEDBACK_MAX_CHARS);
+    // …and it is gone from the DOM too, not just from the signal.
+    expect(el.value.length).toBe(FEEDBACK_MAX_CHARS);
+    expect(cmp.overLimit()).toBeFalse();
+    expect(drafts.staged.at(-1)!.body.length).toBe(FEEDBACK_MAX_CHARS);
+  });
+
+  it('leaves anything under the cap exactly as typed', async () => {
+    await mount();
+    const text = 'a'.repeat(FEEDBACK_MAX_CHARS);
+    drop(text);
+    expect(cmp.draft()).toBe(text);
+    expect(cmp.charCount()).toBe(FEEDBACK_MAX_CHARS);
+    expect(cmp.canSend()).toBeTrue();
+  });
+
+  it('refuses to send a restored draft that is over the cap', async () => {
+    // Written before the cap existed: kept, shown, editable — but not sendable.
+    drafts.seed('admin:new', { body: 'a'.repeat(FEEDBACK_MAX_CHARS + 1) });
+    await mount();
+
+    expect(cmp.draft().length).toBe(FEEDBACK_MAX_CHARS + 1);
+    expect(cmp.overLimit()).toBeTrue();
+    expect(cmp.canSend()).toBeFalse();
+
+    // One edit through the field is enough to bring it back under the cap.
+    drop(cmp.draft());
+    expect(cmp.overLimit()).toBeFalse();
+    expect(cmp.canSend()).toBeTrue();
+  });
+
+  it('caps the list-continuation insert as well', async () => {
+    await mount();
+    const el = drop(`- ${'a'.repeat(FEEDBACK_MAX_CHARS - 2)}`);
+    el.setSelectionRange(el.value.length, el.value.length);
+
+    cmp.onKeydown(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(cmp.draft().length).toBe(FEEDBACK_MAX_CHARS);
+    expect(el.value.length).toBe(FEEDBACK_MAX_CHARS);
   });
 });
 

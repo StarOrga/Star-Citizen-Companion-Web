@@ -1344,7 +1344,7 @@ Enforced three times over, because a file picker's `accept` attribute is a hint:
 in the UI (`FeedbackComposerComponent.allowFiles`, default *false*, set only on
 the admin board and the workflow view), in the shared upload path
 (`assertAttachmentsAllowed` in `feedback-images.util.ts`), and in the storage
-policy `feedback_images_owner_upload` (migration `20260903193000`), which is the
+policy `feedback_images_owner_upload` (migration `20260904040000`), which is the
 only copy an attacker cannot skip. Non-image attachments are appended to the body
 as ordinary `[name](url)` links, so they render as real anchors instead of
 pretending to have a thumbnail.

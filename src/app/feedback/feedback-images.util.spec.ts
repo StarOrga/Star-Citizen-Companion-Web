@@ -22,7 +22,7 @@ const LOG: PendingImage = {
  * These tests guard the copy of the rule that sits in the shared send path,
  * which is the one every surface goes through — the composer's `accept`
  * attribute is a hint a drag-and-drop walks straight past, and the storage
- * policy (migration 20260903193000) cannot be exercised from a unit test.
+ * policy (migration 20260904040000) cannot be exercised from a unit test.
  */
 describe('feedback attachment rules', () => {
   describe('assertAttachmentsAllowed', () => {

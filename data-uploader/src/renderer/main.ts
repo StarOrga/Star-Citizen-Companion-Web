@@ -282,7 +282,12 @@ async function init(): Promise<void> {
   window.sc.autoRun.onResumeRequested(() => {
     state.view = 'auth-upload';
     render();
-    void doStartUpload();
+    // Same restart caveat as the in-window button: the tray is typically used
+    // on a long-running instance, but nothing guarantees an extraction result
+    // is still in memory.
+    void ensureResultForResume().then((ok) => {
+      if (ok) void doStartUpload();
+    });
   });
 
   void initTelemetryToggle();
@@ -1929,7 +1934,41 @@ async function doPauseUpload(): Promise<void> {
   state.resumableJob = await window.sc.uploadJob.pause();
 }
 
+/**
+ * Make sure the upload flow has an extraction result to drive. `state.lastResult`
+ * is only ever set by a finished extraction, so after the app was closed (or
+ * updated, or killed) a resume had none — and `doStartUpload` returned before
+ * doing anything, leaving the operator with a "Fortsetzen" button that did
+ * nothing. Rebuild it from the durable job instead; when the extract itself is
+ * gone, say so, because that is the one case a resume cannot recover from.
+ */
+async function ensureResultForResume(): Promise<boolean> {
+  if (state.lastResult) return true;
+  const r = await window.sc.uploadJob.rehydrate();
+  if (r.ok) {
+    state.lastResult = r.result;
+    return true;
+  }
+  if (r.error === 'no_job') return false;
+  setAuthStatus(
+    tOr(
+      'upload.job.resumeLost',
+      'Der Upload kann nicht fortgesetzt werden — die extrahierten Daten sind nicht mehr vorhanden.',
+    ),
+    'error',
+    {
+      hint: tOr(
+        'upload.job.resumeLostHint',
+        'Bitte den Upload verwerfen und die Extraktion erneut ausführen.',
+      ),
+      detail: r.error,
+    },
+  );
+  return false;
+}
+
 async function doResumeUpload(): Promise<void> {
+  if (!(await ensureResultForResume())) return;
   await window.sc.uploadJob.resume();
   setAuthStatus(t('upload.job.resumed', {}) || 'Upload wird fortgesetzt…', 'ok');
   await doStartUpload();

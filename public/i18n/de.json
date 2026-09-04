@@ -82,7 +82,8 @@
     },
     "loading": {
       "weak": "Schwaches Signal · Neu justieren"
-    }
+    },
+    "friends": "Freunde"
   },
   "impersonation": {
     "banner": {
@@ -1624,6 +1625,11 @@
       "deleting": "Lösche…",
       "confirm": "Dein Account ({{email}}) wird endgültig gelöscht. Auch deine Uploads + Bundles verschwinden. Du wirst danach ausgeloggt. Sicher?",
       "failed": "Löschen fehlgeschlagen"
+    },
+    "friends": {
+      "title": "Freunde",
+      "hint": "Freundschaftsanfragen, deine Freundesliste und blockierte Konten verwalten.",
+      "open": "Freunde öffnen"
     }
   },
   "admin": {
@@ -1675,7 +1681,8 @@
       "role": "Rolle",
       "joined": "Beigetreten",
       "lastSeen": "Zuletzt aktiv",
-      "actions": "Aktionen"
+      "actions": "Aktionen",
+      "reports": "Meldungen"
     },
     "actions": {
       "promoteCollab": "→ Collaborator",
@@ -1773,6 +1780,13 @@
       "declined": "Anfrage von {{email}} abgelehnt.",
       "allowlisted": "Schon auf Allowlist",
       "joined": "Hat schon Account"
+    },
+    "reports": {
+      "title": "Auffällige Konten",
+      "subtitle": "Konten mit offenen Meldungen, die meistgemeldeten zuerst.",
+      "count": "{{count}} Meldungen",
+      "by": "gemeldet von {{name}}",
+      "deferred": "Nur zur Ansicht: Gnadenfrist und Accountsperre (inkl. Rauswurf aus allen Sessions) sind noch nicht entschieden und folgen in einer eigenen Runde."
     }
   },
   "desktop": {
@@ -2354,7 +2368,9 @@
       "attachHintFiles": "Bilder oder Dateien einfügen (Strg+V), ablegen oder direkt die Seite aufnehmen",
       "captureError": "Screenshot der Seite konnte nicht erstellt werden.",
       "imagesOnly": "Hier sind nur Bilder als Anhang möglich.",
-      "fileTooLarge": "Datei zu groß – maximal {{max}} MB pro Anhang."
+      "fileTooLarge": "Datei zu groß – maximal {{max}} MB pro Anhang.",
+      "charCount": "{{used}} von {{max}} Zeichen",
+      "charLimit": "Zeichenlimit erreicht: maximal {{max}} Zeichen pro Nachricht."
     },
     "view": {
       "label": "Ansicht wechseln",
@@ -2778,6 +2794,14 @@
     "answer": "Antworten",
     "declinedTitle": "Warum das nicht umgesetzt wird",
     "impersonationBlocked": "Senden ist deaktiviert, solange du eine andere Rolle vorschaust — es würde echtes Feedback unter deinem eigenen Account im Admin-Postfach ablegen.",
+    "withdraw": {
+      "action": "Zurückziehen",
+      "hint": "Solange noch niemand daran gearbeitet oder geantwortet hat, kannst du dein Feedback wieder löschen.",
+      "question": "Wirklich löschen? Das lässt sich nicht rückgängig machen.",
+      "confirm": "Ja, löschen",
+      "cancel": "Abbrechen",
+      "refused": "Zu spät — an diesem Thema wird schon gearbeitet. Es bleibt in deiner Liste."
+    },
     "tab": {
       "compose": "Feedback senden",
       "mine": "Mein Feedback"
@@ -2846,5 +2870,85 @@
   "appPanel": {
     "version": "Aktuell veröffentlichte Version",
     "details": "Details, Hinweise und Release-Notes anzeigen"
+  },
+  "friends": {
+    "title": "Freunde",
+    "subtitle": "Verbinde dich mit anderen Piloten. Anfragen, Freundesliste und blockierte Konten.",
+    "loading": "Wird geladen …",
+    "add": {
+      "title": "Freund hinzufügen",
+      "hint": "Gib den exakten Benutzernamen ein. Es gibt bewusst keine Suche über alle Konten.",
+      "placeholder": "Benutzername",
+      "search": "Suchen",
+      "notFound": "Kein Konto mit diesem Benutzernamen gefunden.",
+      "send": "Anfrage senden"
+    },
+    "incoming": {
+      "title": "Eingegangene Anfragen",
+      "empty": "Keine offenen Anfragen."
+    },
+    "outgoing": {
+      "title": "Gesendete Anfragen",
+      "empty": "Du hast keine Anfrage offen."
+    },
+    "list": {
+      "title": "Deine Freunde",
+      "empty": "Noch keine Freunde. Füge oben jemanden über den Benutzernamen hinzu.",
+      "since": "Befreundet seit {{date}}"
+    },
+    "blocked": {
+      "title": "Blockiert",
+      "hint": "Blockierte Konten sehen dich nicht und können dir keine Anfrage schicken.",
+      "empty": "Du hast niemanden blockiert."
+    },
+    "actions": {
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "withdraw": "Zurückziehen",
+      "remove": "Entfernen",
+      "block": "Blockieren",
+      "unblock": "Entsperren",
+      "report": "Melden"
+    },
+    "report": {
+      "title": "{{name}} melden",
+      "hint": "Deine Meldung geht an die Admins. Du kannst pro Konto eine offene Meldung haben.",
+      "category": "Grund",
+      "categories": {
+        "spam": "Spam",
+        "harassment": "Belästigung",
+        "impersonation": "Identitätsmissbrauch",
+        "inappropriate": "Unangemessene Inhalte",
+        "other": "Sonstiges"
+      },
+      "reason": "Beschreibung (optional)",
+      "reasonPlaceholder": "Was ist passiert?",
+      "submit": "Meldung abschicken",
+      "cancel": "Abbrechen"
+    },
+    "flash": {
+      "requestSent": "Anfrage gesendet.",
+      "nowFriends": "Ihr seid jetzt befreundet.",
+      "alreadyFriends": "Ihr seid bereits befreundet.",
+      "declined": "Anfrage abgelehnt.",
+      "withdrawn": "Anfrage zurückgezogen.",
+      "removed": "Freund entfernt.",
+      "blocked": "Konto blockiert.",
+      "unblocked": "Blockierung aufgehoben.",
+      "reported": "Meldung abgeschickt.",
+      "reportDuplicate": "Du hast dieses Konto bereits gemeldet."
+    },
+    "error": {
+      "generic": "Das hat nicht geklappt. Bitte versuche es erneut.",
+      "blocked": "Das ist nicht möglich.",
+      "userNotFound": "Konto nicht gefunden.",
+      "requestNotFound": "Diese Anfrage gibt es nicht mehr.",
+      "invalidTarget": "Ungültiges Konto.",
+      "invalidCategory": "Ungültiger Meldegrund.",
+      "reasonTooLong": "Die Beschreibung ist zu lang.",
+      "noRelation": "Du kannst nur Konten melden, mit denen du zu tun hattest.",
+      "reportLimit": "Du hast zu viele offene Meldungen. Warte, bis sie geprüft wurden.",
+      "notApproved": "Dein Konto ist noch nicht freigeschaltet."
+    }
   }
 }
