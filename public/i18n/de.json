@@ -467,6 +467,74 @@
         "other": "Sonstige"
       }
     },
+    "weaponDetail": {
+      "intro": "Die 17 Spalten im Picker sind nicht alles. Hier steht, was eine Schiffswaffe im P4K wirklich mitbringt — gegliedert nach Herkunft, mit dem Struct daneben. Cyan = vorhanden, gold-gestrichelt = nicht in den Spieldateien.",
+      "close": "Schließen",
+      "notInGameFiles": "nicht in den Spieldateien",
+      "card": {
+        "damageChannels": "Schaden je Kanal",
+        "fireBallistics": "Feuer & Ballistik",
+        "derived": "Abgeleitet",
+        "powerSignature": "Energie & Signatur",
+        "durability": "Haltbarkeit",
+        "physical": "Physisch",
+        "attachments": "Anbauten",
+        "aiming": "Zielhilfe",
+        "missing": "Nicht vorhanden"
+      },
+      "row": {
+        "physical": "Physisch",
+        "energy": "Energie",
+        "distortion": "Distortion",
+        "thermal": "Thermisch",
+        "biochemical": "Biochemisch",
+        "stun": "Stun",
+        "fireRate": "Schussrate",
+        "projectilesPerShot": "Projektile je Schuss",
+        "projectileSpeed": "Projektilgeschw.",
+        "lifetime": "Lebensdauer",
+        "range": "Reichweite",
+        "alpha": "Alpha",
+        "burstDps": "Burst-DPS",
+        "sustainedDps": "Dauer-DPS",
+        "penetration": "Durchschlag",
+        "powerDraw": "Energiebedarf",
+        "emOnline": "EM (online)",
+        "irOnline": "IR (online)",
+        "hp": "HP",
+        "distortionPool": "Distortion-Pool",
+        "distortionRegen": "Distortion-Regen",
+        "mass": "Masse",
+        "size": "Größe",
+        "grade": "Grade",
+        "itemClass": "Klasse",
+        "itemPorts": "Item-Ports",
+        "factoryFit": "Werks-Bestückung",
+        "aimYaw": "Schwenkbereich",
+        "aimRate": "Nachführrate",
+        "spread": "Streuung",
+        "recoil": "Rückstoß",
+        "magazine": "Magazin",
+        "overheat": "Überhitzung"
+      },
+      "src": {
+        "damage": "AmmoParams.impactDamage",
+        "fire": "SWeaponActionFire* · AmmoParams",
+        "derived": "berechnet aus den beiden Karten links",
+        "power": "ItemResourceComponentParams.states[].deltas[]",
+        "durability": "SHealthComponentParams · SDistortionParams",
+        "physical": "SAttachableComponentParams.AttachDef",
+        "attachments": "SItemPortContainerComponentParams — hier hängen Overclock- und Barrel-Module",
+        "aiming": "SCItemAimableComponentParams",
+        "missing": "nur Overclock-Modifikatoren, ausnahmslos 1.0"
+      },
+      "value": {
+        "none": "0 = keiner",
+        "empty": "leer",
+        "dash": "—",
+        "magazineEnergy": "— bei Energiewaffen"
+      }
+    },
     "componentKind": {
       "PowerPlant": "Kraftwerk",
       "Shield": "Schildgenerator",
@@ -656,6 +724,59 @@
       "quality": "Qualität {{score}}%",
       "tooltip": "Aus diesem Spiel-Build extrahiert — unsere Herkunfts-Garantie."
     },
+    "rank": {
+      "header": "Einordnung",
+      "nShipsOfSizeClass": "{{n}} Schiffe der Größenklasse {{k}}",
+      "profileLabel": "Profil",
+      "scopeLabel": "Vergleichsfeld",
+      "verdict": "{{pct}} % — {{band}} gegenüber {{n}} Schiffen.",
+      "percentile": "Perzentil",
+      "percentileTooltip": "Beschreiben, nicht vorschreiben: der Wert sagt, wo dieses Schiff im Vergleichsfeld steht — nicht, ob es gut ist. 50 % ist genau die Mitte.",
+      "lensNote": "Die Einordnung folgt dem Einsatz-Profil nicht — sie behält ihre eigenen drei Profile.",
+      "radarAria": "Netzdiagramm der Perzentile von {{name}} gegenüber {{n}} Schiffen",
+      "gapAxis": "Kein Wert auf dieser Achse",
+      "band": {
+        "low": "unteres Viertel",
+        "mid": "im Mittelfeld",
+        "high": "oberes Viertel"
+      },
+      "legend": {
+        "ship": "{{name}}",
+        "median": "Median"
+      },
+      "profile": {
+        "combat": "Kampf",
+        "defense": "Verteidigung",
+        "transport": "Transport"
+      },
+      "scope": {
+        "sizeClass": "Gleiche Größenklasse",
+        "all": "Alle Schiffe",
+        "career": "Gleiche Karriere"
+      },
+      "disabled": {
+        "noCargo": "Dieses Schiff hat keinen Laderaum",
+        "noData": "Für dieses Profil fehlen in diesem Build die Werte",
+        "tooFewShips": "Zu wenige Schiffe im Vergleichsfeld"
+      },
+      "axis": {
+        "alpha": "ALPHA",
+        "sustainedDps": "DAUER-DPS",
+        "missiles": "RAKETEN",
+        "shield": "SCHILD",
+        "agility": "WENDIGKEIT",
+        "boost": "BOOST",
+        "shieldHp": "SCHILD HP",
+        "shieldRegen": "SCHILD-REGEN",
+        "hullHp": "RUMPF HP",
+        "armor": "PANZERUNG",
+        "crossSection": "QUERSCHNITT",
+        "cargo": "FRACHT",
+        "quantumRange": "QUANTUM-REICHWEITE",
+        "scm": "SCM",
+        "mass": "MASSE"
+      }
+    },
     "detail": {
       "back": "Zurück zum Codex",
       "className": "Klassenname",
@@ -734,7 +855,108 @@
       "whereToBuyLocation": "Standort",
       "whereToBuyAttribution": "Preise von UEX Corp — von der Community gepflegt, spiegeln evtl. nicht die Live-Server wider. Nicht mit Cloud Imperium Games verbunden.",
       "moduleOrderHint": "Zuerst kommen die konfigurierbaren Module — Waffen samt Aufhängung, Türme, Raketen, Pods, Schilde, Generator, Quantenantrieb, Radar, Kühler, Lebenserhaltung. Alles Feste steht darunter. Ein Klick auf ein Modul öffnet seine vollständige Werte-Tabelle.",
-      "loadoutEmptyWeaponMount": "Waffenaufhängung – keine Standardwaffe in diesem Extract"
+      "loadoutEmptyWeaponMount": "Waffenaufhängung – keine Standardwaffe in diesem Extract",
+      "chipSize": "Größe {{n}}",
+      "chipCrew": "{{n}} Crew",
+      "chipNoCargo": "Kein Laderaum",
+      "actionCompare": "Vergleichen",
+      "actionFactoryLoadout": "Werksausstattung",
+      "actionCopyLink": "Link kopieren",
+      "actionSwitchShip": "Schiff wechseln",
+      "dataPill": "DATEN {{build}} · schema {{n}}",
+      "dataPillPending": "Re-Extract ausstehend",
+      "dataPillAria": "Datenstand: Build {{build}}, Schema {{n}}",
+      "columnLoadout": "Loadout",
+      "columnAnalysis": "Analyse",
+      "draftLabel": "Entwurf",
+      "draftChanged": "{{n}} Slot geändert",
+      "draftChangedPlural": "{{n}} Slots geändert",
+      "draftNotice": "Nicht gespeichert. Nur diese Sitzung.",
+      "draftPersistLabel": "Speichern",
+      "draftPersistSession": "Nur diese Sitzung",
+      "draftPersistHangar": "In meinem Hangar speichern",
+      "draftDiscard": "Verwerfen",
+      "draftApply": "Übernehmen",
+      "draftApplyAndSave": "Übernehmen & in Hangar speichern",
+      "draftReset": "Zurücksetzen"
+    },
+    "energy": {
+      "title": "Energie",
+      "budget": "{{used}} / {{total}} Seg",
+      "budgetLabel": "Belegte Segmente",
+      "minimise": "minimieren",
+      "expand": "aufklappen",
+      "allocated": "{{n}} Segmente zugeteilt",
+      "minimum": "Mindestbedarf {{n}} Segmente",
+      "toggleOff": "{{group}} — Energie abschalten",
+      "toggleOn": "{{group}} — Energie wieder zuschalten",
+      "draftNote": "Abgeschaltete Gruppen bleiben Entwurf — sie werden nie im Hangar gespeichert.",
+      "position": {
+        "title": "Position des Docks",
+        "left": "links",
+        "center": "mittig",
+        "right": "rechts"
+      },
+      "group": {
+        "weapons": "Waffen",
+        "shields": "Schild-Generatoren",
+        "thrusters": "Antriebe",
+        "coolers": "Kühler",
+        "radar": "Radar",
+        "lifeSupport": "Lebenserhaltung",
+        "quantum": "Quantumantrieb",
+        "tractor": "Traktorstrahl"
+      },
+      "state": {
+        "off": "aus",
+        "noChannel": "—",
+        "idle": "0"
+      },
+      "tooltip": {
+        "weapons": "Nimmt der ganzen Gruppe die Energie. Ohne Energie feuern die Waffen nicht — Dauer-DPS fällt auf 0, EM sinkt spürbar. Nochmal klicken schaltet zurück.",
+        "shields": "Gold = Mindestbedarf, den die aktiven Generatoren brauchen. Darunter fällt der Schild aus, und der passive Ausgleich mit ihm.",
+        "thrusters": "Haupt- und Manövertriebwerke. Bei null bleibt das Schiff steuerbar, aber ohne Schub.",
+        "coolers": "Je mehr Segmente, desto niedriger die Kühllast — und desto niedriger die IR-Signatur. Kühlung ist der Preis fürs Leisesein.",
+        "radar": "Bestimmt, wie weit du siehst. Mehr Energie heißt mehr Reichweite — und mehr EM, also auch mehr Sichtbarkeit für andere.",
+        "lifeSupport": "Sauerstoff und Druck. Bei null läuft eine Uhr — wie lange, steht nicht in den Spieldateien.",
+        "quantum": "Hat in SCM keinen Kanal. Erst in NAV bekommt er Energie — dort fällt dafür der Schild weg.",
+        "tractor": "Aus. Zieht erst Energie, wenn er benutzt wird.",
+        "ir": "Deine Wärmesignatur. Steigt mit der Kühllast und mit allem, was Energie zieht. Wer wenig IR hat, wird später auf Wärme-Sensoren erfasst.",
+        "em": "Summe aller aktiven Bauteile. Waffen und Schilde sind die größten Posten — deshalb der Rückgang, sobald die Waffen aus sind.",
+        "crossSection": "Wie groß du auf dem Radar erscheinst. Kommt aus dem Rumpf, nicht aus der Ausrüstung — kein Loadout ändert ihn.",
+        "coolingLoad": "Wie viel der vorhandenen Kühlleistung gerade gebraucht wird. Über 100 % läuft das Schiff heiß und die IR-Signatur schießt hoch."
+      },
+      "fact": {
+        "ir": "IR",
+        "em": "EM",
+        "crossSection": "CS",
+        "coolingLoad": "Kühllast",
+        "readiness": "Gefechtsbereitschaft"
+      },
+      "coolingValue": "{{used}} / {{total}}",
+      "coolingPercent": "{{pct}} %",
+      "readiness": {
+        "ok": "Umschaltbar auf Gefecht — Reaktor und Kühler tragen alle Systeme auf Minimum",
+        "no": "Nicht auf Gefecht umschaltbar — Reaktor oder Kühler tragen die Systeme nicht auf Minimum",
+        "shortOk": "Gefechtsbereit",
+        "shortNo": "Nicht bereit"
+      },
+      "mode": {
+        "label": "Flugmodus",
+        "scm": "SCM",
+        "nav": "NAV"
+      },
+      "preset": {
+        "stealth": "Schleichen",
+        "auto": "Auto",
+        "reset": "Zurücksetzen"
+      },
+      "gap": {
+        "noReactorData": "Keine Reaktordaten in diesem Build — das Energiebudget bleibt leer, bis der Extract sie mitbringt.",
+        "reExtractPending": "Re-Extract ausstehend — die Energiewerte stammen aus einem älteren Schema.",
+        "noChannelInMode": "In diesem Flugmodus hat diese Gruppe keinen Kanal.",
+        "noCoolingData": "Keine Kühlerdaten in diesem Build — die Kühllast bleibt leer."
+      }
     },
     "swap": {
       "pickerTitle": "Modul tauschen",
@@ -828,6 +1050,103 @@
       "cargo": "Fracht",
       "systems": "Systeme",
       "other": "Sonstige"
+    },
+    "picker": {
+      "title": "Bauteil wählen — {{port}} · S{{size}}",
+      "installed": "eingebaut: {{name}}",
+      "hint": "Klick neben das Fenster, um zurückzukommen",
+      "close": "Schließen",
+      "searchPlaceholder": "Suchen … Name, Hersteller, Schadensart",
+      "searchLabel": "Bauteile durchsuchen",
+      "compareWith": "Vergleichen mit",
+      "deltaAgainst": "Δ gegen",
+      "count": "{{n}} von {{total}}",
+      "noDelta": "±0",
+      "optimum": "Bestwert im Vergleichsfeld",
+      "columns": "Spalten",
+      "columnsUnavailable": "nicht in den Spieldateien",
+      "dashCell": "—",
+      "dashCellTitle": "Für diese Klasse nicht anwendbar",
+      "dashNote": "Ammo und Spread stehen als „—“, weil Energiewaffen kein Magazin haben und Streuung im P4K nur als Modifikator vorliegt. Keine Extractor-Lücke.",
+      "footerMissing": "Nicht in den Spieldateien: {{fields}}",
+      "pickRow": "{{name}} einbauen",
+      "scope": {
+        "sameClass": "Nur {{class}}",
+        "sameFamily": "Alle {{family}}",
+        "sameSize": "Alle S{{size}}"
+      },
+      "baseline": {
+        "equipped": "Eingebaut",
+        "factory": "Ab Werk"
+      },
+      "scrollCue": {
+        "horizontal": "seitlich scrollen für {{columns}}",
+        "vertical": "senkrecht scrollen bei mehr Einträgen — Kopfzeile und Bauteil-Spalte bleiben stehen"
+      },
+      "menu": {
+        "open": "Spalte {{column}} sortieren und filtern",
+        "sort": "Sortieren",
+        "asc": "aufsteigend",
+        "desc": "absteigend",
+        "range": "Bereich",
+        "from": "von",
+        "to": "bis",
+        "filter": "Filtern",
+        "clear": "Zurücksetzen"
+      },
+      "chipRemove": "Filter {{label}} entfernen",
+      "col": {
+        "name": "Bauteil",
+        "deltaSustained": "Δ Dauer",
+        "dps": "DPS",
+        "alpha": "Alpha",
+        "pen": "PEN",
+        "fireRate": "Schussrate",
+        "range": "Reichweite",
+        "speed": "Speed",
+        "power": "Power",
+        "em": "EM",
+        "hp": "HP",
+        "distortion": "Distortion",
+        "mass": "Masse",
+        "grade": "Grade",
+        "manufacturer": "Hersteller",
+        "ammo": "Ammo",
+        "spread": "Spread",
+        "burstDps": "Burst-DPS",
+        "ir": "IR",
+        "size": "Größe",
+        "itemClass": "Klasse",
+        "damagePhysical": "Physisch",
+        "damageEnergy": "Energie",
+        "damageDistortion": "Distortion-Schaden",
+        "damageThermal": "Thermisch",
+        "damageBiochemical": "Biochemisch",
+        "damageStun": "Stun",
+        "projectilesPerShot": "Projektile je Schuss",
+        "lifetime": "Lebensdauer",
+        "distortionRegen": "Distortion-Regen",
+        "itemPorts": "Item-Ports",
+        "factoryFit": "Werks-Bestückung",
+        "aimYaw": "Schwenkbereich",
+        "aimRate": "Nachführrate",
+        "recoil": "Rückstoß",
+        "magazine": "Magazin",
+        "overheat": "Überhitzung",
+        "repair": "Reparatur"
+      },
+      "unit": {
+        "perMin": "/min",
+        "mps": "m/s",
+        "m": "m",
+        "s": "s",
+        "kg": "kg",
+        "seg": "Seg",
+        "degPerSec": "°/s",
+        "deg": "°",
+        "perSec": "/s",
+        "percent": "%"
+      }
     },
     "hardpointMap": {
       "title": "Position an der Hülle",
@@ -933,6 +1252,26 @@
       "unfold": "Anzeigen",
       "foldAway": "Ausblenden"
     },
+    "module": {
+      "peekChange": "zum Ändern aufklappen",
+      "peekRead": "zum Lesen aufklappen",
+      "caretExpand": "aufklappen",
+      "caretCollapse": "einklappen",
+      "census": "{{slots}} Slots · {{active}} aktiv · {{passive}} passiv",
+      "censusSlots": "{{slots}} Slots",
+      "badge": {
+        "active": "Aktiv",
+        "passive": "Passiv · nicht am Netz",
+        "pool": "Pool"
+      },
+      "shieldNote": "Alle drei sind Schild-Generatoren und alle drei tauschbar. Der passive kostet keine Energie und zählt trotzdem voll in den Pool — er hängt aber an den aktiven: fallen die aus, ist auch der Ausgleich weg.",
+      "rowsSplit": "Einzeln",
+      "rowsGrouped": "Gruppiert",
+      "tuned": "Angepasst",
+      "tunedHint": "Dieser Platz weicht von der Werksausstattung ab.",
+      "toolDetails": "Werte von {{name}} ansehen",
+      "toolSwap": "{{name}} tauschen"
+    },
     "summary": {
       "title": "Kampfübersicht",
       "damage": "Schaden",
@@ -1010,7 +1349,35 @@
       "ir": "IR-Signatur",
       "emIdle": "EM-Signatur (Ruhe)",
       "emMax": "EM-Signatur (Last)",
-      "crossSection": "Querschnitt"
+      "crossSection": "Querschnitt",
+      "boost": "Boost-Geschwindigkeit",
+      "armor": "Panzerung",
+      "agility": "Wendigkeit",
+      "gap": "—",
+      "gapHint": "Kein Wert in diesem Build.",
+      "deltaUp": "{{value}} besser als ab Werk",
+      "deltaDown": "{{value}} schlechter als ab Werk",
+      "tooltipBurstDps": "Dauerfeuer bis das Magazin leer ist — Nachladen nicht eingerechnet.",
+      "tooltipSustainedDps": "Über einen langen Kampf gemittelt — Nachladepausen eingerechnet.",
+      "short": {
+        "alpha": "Alpha",
+        "burstDps": "Burst-DPS",
+        "sustainedDps": "Dauer-DPS",
+        "missiles": "Raketen",
+        "shieldHp": "Schild HP",
+        "shieldRegen": "Schild-Regen",
+        "hullHp": "Rumpf HP",
+        "cargo": "Fracht",
+        "quantumRange": "Quantum-Reichweite",
+        "quantumRangeTight": "Q-Reichweite",
+        "scm": "SCM",
+        "maxSpeed": "Maximal",
+        "boost": "Boost",
+        "mass": "Masse",
+        "ir": "IR",
+        "em": "EM",
+        "crossSection": "Querschnitt"
+      }
     },
     "damageChannel": {
       "physical": "Physisch",
