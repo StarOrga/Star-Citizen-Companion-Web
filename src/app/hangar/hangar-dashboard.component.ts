@@ -27,9 +27,12 @@ import {
   ConceptShip,
   HangarShip,
   ROLE_LOADOUT_ROLES,
+  RoleLoadoutItem,
   RoleLoadoutRole,
 } from './hangar.types';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { LoadoutShareService } from '../social/loadout-share.service';
+import { SharedWithMeRow, shareItems } from '../social/loadout-share.types';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -352,6 +355,64 @@ const SEARCH_DEBOUNCE_MS = 250;
             }
           </div>
         }
+
+        <!--
+          Loadouts friends shared with me (feedback cf0ddf7d phase 2). Renders
+          only when there is something to show — an empty block here would be
+          noise for the majority who have no friends on the platform yet.
+
+          These are NOT navigations: a shared loadout has no page of its own
+          (the friend share carries no link token, and minting one would be the
+          OWNER's decision, not the recipient's), so the disclosure below is a
+          real action and correctly a <button>. The full item list already came
+          down with list_loadouts_shared_with_me(), so opening one costs no
+          round trip.
+        -->
+        @if (sharedWithMe().length > 0) {
+          <div class="shared-block">
+            <h2>{{ 'share.sharedWithMe.title' | translate }}</h2>
+            <p class="hint">{{ 'share.sharedWithMe.hint' | translate }}</p>
+            <div class="grid">
+              @for (s of sharedWithMe(); track s.share_id) {
+                <div class="card loadout-card shared-card">
+                  <div class="card-top">
+                    <h3 class="name">{{ s.name }}</h3>
+                    <span class="badge role-{{ s.role }}">{{ ('hangar.roles.' + s.role) | translate }}</span>
+                  </div>
+                  <p class="ld-summary">
+                    {{ 'share.view.by' | translate: { name: sharedOwnerLabel(s) } }}
+                    <span class="dot">·</span>
+                    {{ 'hangar.roleLoadouts.itemCount' | translate: { count: sharedItems(s).length } }}
+                  </p>
+                  <button
+                    type="button"
+                    class="sc-btn tiny shared-toggle"
+                    [attr.aria-expanded]="openShare() === s.share_id"
+                    (click)="toggleShare(s.share_id)">
+                    {{ (openShare() === s.share_id ? 'share.sharedWithMe.hide' : 'share.sharedWithMe.show') | translate }}
+                  </button>
+                  @if (openShare() === s.share_id) {
+                    @if (sharedItems(s).length === 0) {
+                      <p class="hint">{{ 'share.view.emptyLoadout' | translate }}</p>
+                    } @else {
+                      <ul class="shared-items">
+                        <!-- track $index: these items are raw JSONB from a
+                             friend's row, and a duplicate slot label would
+                             make Angular throw on the duplicate key. -->
+                        @for (i of sharedItems(s); track $index) {
+                          <li>
+                            <span class="si-slot">{{ i.slot }}</span>
+                            <span class="si-name">{{ i.className ? itemLabel(i.className) : '—' }}</span>
+                          </li>
+                        }
+                      </ul>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
       </div>
       }
     </section>
@@ -530,6 +591,27 @@ const SEARCH_DEBOUNCE_MS = 250;
     .sc-select { background: var(--sc-bg-1); color: var(--sc-fg-0); border: 1px solid var(--sc-border); border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 0.82rem; cursor: pointer; }
     .loadout-card .ld-summary { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
+    .shared-block { margin-top: 22px; }
+    .shared-block h2 { margin: 0 0 4px; font-size: 1rem; }
+    .shared-block .hint { margin: 0 0 10px; }
+    .shared-card { display: flex; flex-direction: column; gap: 8px; cursor: default; }
+    .shared-card .dot { margin: 0 5px; }
+    .shared-toggle { align-self: flex-start; }
+    .shared-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    .shared-items li { display: flex; gap: 10px; flex-wrap: wrap; font-size: max(0.78rem, var(--sc-fs-floor)); }
+    .si-slot { flex: 0 0 92px; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; font-size: max(0.68rem, var(--sc-fs-floor)); }
+    .si-name { flex: 1 1 120px; min-width: 0; overflow-wrap: anywhere; }
+
+    /* 48px, not 44: two overlapping scale(0.994) shell animations shave a
+       hair off every measured box, so a 44px target measures 43. */
+    @media (pointer: coarse) {
+      .shared-toggle { min-height: 48px; }
+    }
+    @media (max-width: 560px) {
+      .shared-toggle { width: 100%; }
+      .si-slot { flex: 1 1 100%; }
+    }
+
     .sc-btn { padding: 8px 14px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
     .sc-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .sc-btn:disabled { opacity: 0.5; cursor: default; }
@@ -560,6 +642,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 })
 export class HangarDashboardComponent implements OnInit {
   readonly hangar = inject(HangarService);
+  private readonly shares = inject(LoadoutShareService);
   private readonly rsi = inject(UpcomingShipsService);
   readonly auth = inject(AuthService);
   private readonly codex = inject(CodexService);
@@ -583,10 +666,38 @@ export class HangarDashboardComponent implements OnInit {
     () => new Set(this.hangar.ships().map((s) => s.shipClassName)),
   );
 
+  // ── Loadouts friends shared with me (feedback cf0ddf7d phase 2) ───────────
+
+  readonly sharedWithMe = signal<SharedWithMeRow[]>([]);
+  /** share_id of the expanded card, or null. One at a time, like an accordion. */
+  readonly openShare = signal<string | null>(null);
+
+  sharedItems(s: SharedWithMeRow): RoleLoadoutItem[] {
+    return shareItems(s).filter((i) => i.slot);
+  }
+
+  sharedOwnerLabel(s: SharedWithMeRow): string {
+    return s.owner_handle ?? s.owner_name ?? '—';
+  }
+
+  itemLabel(className: string): string {
+    return humanizeClassName(className);
+  }
+
+  toggleShare(shareId: string): void {
+    this.openShare.set(this.openShare() === shareId ? null : shareId);
+  }
+
   async ngOnInit(): Promise<void> {
     // Signed-out (#131): the teaser needs no data — and hangar RLS would
     // reject the queries anyway.
     if (!this.auth.user()) return;
+    // Fire-and-forget: a friend's shared loadout is a bonus block at the
+    // bottom of the page, so a DB that has not had migration 20260904020000
+    // applied yet (the app deploys on merge, the migration lands after) must
+    // cost the hangar nothing — the service swallows it and the list stays
+    // empty.
+    void this.shares.listSharedWithMe().then((rows) => this.sharedWithMe.set(rows));
     // The RSI feed is fire-and-forget: it only enriches the drawing-board strip
     // with artwork and an in-app target, so a dead proxy must not delay (or
     // fail) the hangar itself. One CDN-cached GET, shared with the Codex.

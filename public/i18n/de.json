@@ -56,6 +56,11 @@
       "sending": "Sende…",
       "sent": "Danke! Deine Anfrage ist angekommen. Wenn ein Admin sie annimmt, bekommst du eine Einladungsmail an diese Adresse.",
       "rateLimited": "Gerade kommen sehr viele Anfragen rein. Bitte versuch es in einer Stunde noch einmal."
+    },
+    "suspended": {
+      "title": "Dieses Konto ist gesperrt",
+      "until": "Die Sperre endet am {{date}}.",
+      "indefinite": "Die Sperre gilt bis ein Administrator sie aufhebt."
     }
   },
   "nav": {
@@ -66,6 +71,7 @@
     "admin": "Benutzer",
     "desktop": "Data Upload",
     "signOut": "Abmelden",
+    "backToHome": "Zur Startseite",
     "brandAria": "Star Citizen Companion (SCC) — zur Startseite (Verse News)",
     "langAria": "Sprache",
     "accountMenu": "Konto-Menü",
@@ -125,16 +131,14 @@
       "patchSwitch": {
         "title": "Patch wechseln",
         "trigger": "Patch {{patch}} — anderen Patch wählen",
-        "live": "Live",
         "past": "älter",
         "hasData": "Daten vorhanden",
         "hasDataCount": "{{count}} Datensätze",
         "noData": "keine Daten",
-        "more": "Ältere laden",
-        "backToLive": "Zurück zum Live-Patch",
+        "backToCurrent": "Zurück zum aktuellen Patch",
         "loading": "Patches werden geladen …",
         "empty": "Keine weiteren Patches bekannt.",
-        "note": "Ohne Daten lässt sich ein Patch nicht öffnen. Ein Neuladen der Seite kehrt zum Live-Patch zurück."
+        "note": "Ohne Daten lässt sich ein Patch nicht öffnen. Ein Neuladen der Seite kehrt zum aktuellen Patch zurück."
       },
       "patch": {
         "archive": "{{count}} Datensätze im Archiv",
@@ -1785,8 +1789,47 @@
       "title": "Auffällige Konten",
       "subtitle": "Konten mit offenen Meldungen, die meistgemeldeten zuerst.",
       "count": "{{count}} Meldungen",
-      "by": "gemeldet von {{name}}",
-      "deferred": "Nur zur Ansicht: Gnadenfrist und Accountsperre (inkl. Rauswurf aus allen Sessions) sind noch nicht entschieden und folgen in einer eigenen Runde."
+      "by": "gemeldet von {{name}}"
+    },
+    "moderation": {
+      "warn": "Verwarnen",
+      "suspend": "Konto sperren",
+      "unsuspend": "Sperre aufheben",
+      "markReviewed": "Meldungen erledigt",
+      "dismiss": "Meldungen verwerfen",
+      "cancel": "Abbrechen",
+      "confirmWarn": "Verwarnung senden",
+      "confirmSuspend": "Jetzt sperren",
+      "suspendedPill": "gesperrt",
+      "warnReason": "Text der Verwarnung",
+      "suspendReason": "Grund der Sperre",
+      "reasonPlaceholder": "Was ist passiert? Der Text wird der betroffenen Person angezeigt.",
+      "reasonVisible": "Dieser Text wird der betroffenen Person wörtlich angezeigt.",
+      "duration": "Dauer",
+      "durations": {
+        "days": "{{days}} Tage",
+        "indefinite": "Unbefristet"
+      },
+      "activeSince": "gesperrt seit {{date}}",
+      "activeUntil": "bis {{date}}",
+      "indefinite": "unbefristet",
+      "flash": {
+        "warned": "Verwarnung gesendet.",
+        "suspended": "Konto gesperrt. Der Zugriff ist ab sofort blockiert.",
+        "unsuspended": "Sperre aufgehoben.",
+        "reviewed": "Meldungen als erledigt markiert.",
+        "dismissed": "Meldungen verworfen."
+      },
+      "error": {
+        "protected": "Dieses Konto kann nicht moderiert werden (eigenes Konto, Administrator oder geschützt).",
+        "invalidTarget": "Ungültige Auswahl.",
+        "userNotFound": "Konto nicht gefunden.",
+        "reasonRequired": "Bitte einen Grund angeben.",
+        "reasonTooLong": "Der Text ist zu lang.",
+        "invalidDuration": "Ungültige Dauer.",
+        "forbidden": "Dafür fehlen dir die Rechte.",
+        "generic": "Das hat nicht geklappt. Bitte noch einmal versuchen."
+      }
     }
   },
   "desktop": {
@@ -2393,6 +2436,7 @@
       "allDoneTitle": "Alles abgearbeitet",
       "allDoneHint": "Keine offenen Rückfragen, nichts abzunehmen. Deine ToDos liegen bei der Routine — sie kommen hier rein, sobald sie etwas von dir braucht.",
       "kind": {
+        "triage": "Freigabe",
         "question": "Rückfrage",
         "review": "Abnahme",
         "new": "ToDo"
@@ -2410,6 +2454,7 @@
       "kindFilter": {
         "label": "Nur eine Art von Schritt zeigen",
         "all": "Alle",
+        "triage": "Nutzer-Feedback",
         "question": "Rückfragen",
         "review": "Abnahmen"
       },
@@ -2421,7 +2466,13 @@
       "swipeHint": "Tipp: Karte nach links wischen zum Überspringen, nach rechts für die Entscheidung.",
       "swipeSkip": "Überspringen",
       "swipeDone": "Erledigt",
-      "swipeAccept": "Abnehmen"
+      "swipeAccept": "Abnehmen",
+      "swipeRelease": "Freigeben",
+      "triage": {
+        "hint": "Das hat ein Nutzer eingereicht. Die Routine rührt es nicht an, solange es nicht freigegeben ist — entscheide hier: freigeben, beim Autor nachfragen oder mit Begründung ablehnen.",
+        "ask": "Rückfrage an den Autor",
+        "askHint": "Geht als Rückfrage an den Autor. Das Thema wartet dann auf seine Antwort und taucht danach wieder hier auf."
+      }
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",
@@ -2865,11 +2916,13 @@
     },
     "incoming": {
       "title": "Eingegangene Anfragen",
-      "empty": "Keine offenen Anfragen."
+      "empty": "Keine offenen Anfragen.",
+      "expiryHint": "Unbeantwortete Anfragen verfallen nach sieben Tagen."
     },
     "outgoing": {
       "title": "Gesendete Anfragen",
-      "empty": "Du hast keine Anfrage offen."
+      "empty": "Du hast keine Anfrage offen.",
+      "expiryHint": "Deine Anfragen verfallen nach sieben Tagen ohne Antwort."
     },
     "list": {
       "title": "Deine Freunde",
@@ -2928,7 +2981,78 @@
       "reasonTooLong": "Die Beschreibung ist zu lang.",
       "noRelation": "Du kannst nur Konten melden, mit denen du zu tun hattest.",
       "reportLimit": "Du hast zu viele offene Meldungen. Warte, bis sie geprüft wurden.",
-      "notApproved": "Dein Konto ist noch nicht freigeschaltet."
+      "notApproved": "Dein Konto ist noch nicht freigeschaltet.",
+      "requestExpired": "Diese Anfrage ist verfallen.",
+      "accountSuspended": "Dein Konto ist gesperrt."
+    },
+    "expiry": {
+      "left": "noch {{days}} Tage",
+      "today": "verfällt heute"
+    }
+  },
+  "moderation": {
+    "warning": {
+      "title": "Verwarnung durch die Administration",
+      "acknowledge": "Verstanden"
+    }
+  },
+  "share": {
+    "title": "Loadout teilen",
+    "hint": "Teile dieses Loadout mit Freunden oder über einen Link.",
+    "loading": "Wird geladen …",
+    "revoke": "Freigabe aufheben",
+    "friends": {
+      "title": "Mit Freunden",
+      "empty": "Noch mit niemandem geteilt.",
+      "pick": "Freund auswählen …",
+      "share": "Teilen",
+      "noFriends": "Du hast noch keine Freunde hinzugefügt.",
+      "allShared": "Alle deine Freunde haben dieses Loadout bereits."
+    },
+    "link": {
+      "title": "Öffentlicher Link",
+      "warning": "Jede Person mit diesem Link kann das Loadout ansehen — auch ohne Konto. Der Link zeigt Name, Rolle und Ausrüstung, sonst nichts.",
+      "create": "Link erzeugen",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "open": "Öffnen",
+      "revoke": "Link deaktivieren",
+      "url": "Freigabe-Link",
+      "since": "Aktiv seit {{date}}"
+    },
+    "sharedWithMe": {
+      "title": "Von Freunden geteilt",
+      "hint": "Loadouts, die Freunde mit dir geteilt haben. Nur zum Ansehen.",
+      "show": "Ausrüstung zeigen",
+      "hide": "Ausblenden"
+    },
+    "view": {
+      "eyebrow": "Geteiltes Loadout",
+      "loading": "Wird geladen …",
+      "by": "von {{name}}",
+      "updated": "zuletzt geändert {{date}}",
+      "emptyLoadout": "In diesem Loadout ist noch nichts eingetragen.",
+      "footnote": "Nur zum Ansehen. Änderungen kann ausschließlich der Besitzer vornehmen.",
+      "aboutCta": "Was ist SC Companion?",
+      "unavailable": {
+        "title": "Dieses Loadout ist nicht verfügbar",
+        "body": "Der Link ist ungültig oder wurde deaktiviert."
+      }
+    },
+    "flash": {
+      "shared": "Loadout geteilt.",
+      "alreadyShared": "Dieser Freund hat das Loadout bereits.",
+      "linkCreated": "Link erzeugt.",
+      "revoked": "Freigabe aufgehoben."
+    },
+    "error": {
+      "notFriends": "Ihr seid keine Freunde (mehr).",
+      "loadoutNotFound": "Loadout nicht gefunden.",
+      "shareNotFound": "Diese Freigabe gibt es nicht mehr.",
+      "suspended": "Dein Konto ist gesperrt.",
+      "invalidTarget": "Ungültige Auswahl.",
+      "notApproved": "Dein Konto ist nicht freigeschaltet.",
+      "generic": "Das hat nicht geklappt. Bitte noch einmal versuchen."
     }
   }
 }
