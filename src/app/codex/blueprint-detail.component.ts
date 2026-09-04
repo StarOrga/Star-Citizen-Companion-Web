@@ -26,18 +26,19 @@ import {
   humanizeKey,
   unescapeText,
 } from './codex-format';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 @Component({
   selector: 'sc-blueprint-detail',
   standalone: true,
-  imports: [RouterLink, TranslateModule],
+  imports: [NeuroFieldDirective, RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
       <a class="back" [routerLink]="['/codex/blueprint']">← {{ 'blueprint.detail.back' | translate }}</a>
 
       @if (loading()) {
-        <div class="sc-card skel-card"></div>
+        <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
       } @else if (error(); as err) {
         <div class="sc-card err"><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</div>
       } @else if (!detail()) {
@@ -155,8 +156,7 @@ import {
     .back:hover { color: var(--sc-accent); }
 
     .sc-card { background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 10px; padding: 20px 24px; }
-    .skel-card { min-height: 200px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skel-card { min-height: 200px; }
 
     .hero { display: flex; flex-direction: column; gap: 16px; }
     .hero-text { display: flex; flex-direction: column; gap: 6px; }

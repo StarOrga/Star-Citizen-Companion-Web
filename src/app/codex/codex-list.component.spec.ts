@@ -7,6 +7,7 @@ import { CodexListRow, CodexService } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { RoleService } from '../auth/role.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
+import { WeaponFacetRow } from './codex-weapon-taxonomy';
 
 function blueprintRow(className: string, category: string | null): CodexListRow {
   return {
@@ -33,7 +34,13 @@ function blueprintRow(className: string, category: string | null): CodexListRow 
 describe('CodexListComponent (Index mode)', () => {
   async function setup(
     entityCounts: Record<string, number>,
-    opts: { categories?: string[]; rows?: CodexListRow[]; art?: string[]; preview?: string | null } = {},
+    opts: {
+      categories?: string[];
+      rows?: CodexListRow[];
+      art?: string[];
+      preview?: string | null;
+      weaponFacets?: WeaponFacetRow[];
+    } = {},
   ): Promise<{
     fixture: ComponentFixture<CodexListComponent>;
     cmp: CodexListComponent;
@@ -59,6 +66,9 @@ describe('CodexListComponent (Index mode)', () => {
         .and.resolveTo(opts.categories ?? []),
       isPinned: () => false,
       previewUrl: () => opts.preview ?? null,
+      weaponFacets: jasmine
+        .createSpy('weaponFacets')
+        .and.resolveTo(opts.weaponFacets ?? []),
     };
 
     const hangar: Partial<HangarService> = {
@@ -175,6 +185,120 @@ describe('CodexListComponent (Index mode)', () => {
   });
 
   /**
+   * The AN BORD / IM HANGAR archive quick-access links (prio 3/4) preset
+   * `?group=fps|vehicle` to pre-filter the blueprint index without forcing a
+   * single category — "Baupläne" from the board lands on every FPS bucket,
+   * from the hangar on every vehicle bucket, and "Alle" still widens back out.
+   */
+  it('folds the blueprint group into blueprintCategoryIn, distinct from a single category', async () => {
+    const { fixture, cmp, listByKind } = await setup(
+      { blueprints: 1595, blueprint_ingredients: 4800 },
+      { categories: ['FPSArmours', 'FPSWeapons', 'VehicleComponentS1'] },
+    );
+
+    cmp.setKind('blueprint');
+    cmp.setBlueprintGroup('fps');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(listByKind).toHaveBeenCalledWith(
+      'blueprint',
+      jasmine.objectContaining({ blueprintCategoryIn: ['FPSArmours', 'FPSWeapons'] }),
+    );
+
+    listByKind.calls.reset();
+    cmp.setBlueprintGroup('');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(listByKind).toHaveBeenCalledWith(
+      'blueprint',
+      jasmine.objectContaining({ blueprintCategoryIn: undefined }),
+    );
+  });
+
+  /**
+   * The weapons category holds BOTH the on-foot catalog and every ship mount
+   * (admin feedback 7897bcb0), so it browses through a two-level rail instead
+   * of the old flat weapon-class dropdown.
+   */
+  describe('CodexListComponent — weapon super categories', () => {
+    const facets: WeaponFacetRow[] = [
+      { weaponClass: 'FPS', attachType: 'WeaponPersonal', subType: 'Small', isVariant: false },
+      { weaponClass: 'FPS', attachType: 'WeaponPersonal', subType: 'Medium', isVariant: false },
+      { weaponClass: 'Ship', attachType: 'Turret', subType: 'GunTurret', isVariant: false },
+      { weaponClass: 'Ship', attachType: 'WeaponGun', subType: 'Gun', isVariant: true },
+    ];
+
+    it('shows the rail only on the weapon category', async () => {
+      const { cmp } = await setup({ ships: 300, weapons: 1312 }, { weaponFacets: facets });
+
+      expect(cmp.showsWeaponGroups()).toBe(false);
+      cmp.setKind('weapon');
+      expect(cmp.showsWeaponGroups()).toBe(true);
+    });
+
+    it('keeps the second level hidden until a super category is picked', async () => {
+      const { fixture, cmp } = await setup({ weapons: 1312 }, { weaponFacets: facets });
+      cmp.setKind('weapon');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(cmp.activeWeaponSubGroups()).toBeNull();
+      cmp.setWeaponGroup('fps');
+      expect(cmp.activeWeaponSubGroups()?.map((g) => g.id)).toEqual(['sidearm', 'primary']);
+    });
+
+    it('badges each category with the record count the build actually holds', async () => {
+      const { fixture, cmp } = await setup({ weapons: 1312 }, { weaponFacets: facets });
+      cmp.setKind('weapon');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(cmp.weaponGroupCount('fps')).toBe(2);
+      // The variant-only ship gun is excluded while "include variants" is off.
+      expect(cmp.weaponGroupCount('ship')).toBe(1);
+      cmp.setIncludeVariants(true);
+      expect(cmp.weaponGroupCount('ship')).toBe(2);
+      expect(cmp.weaponGroupCount('ship', 'gun')).toBe(1);
+    });
+
+    it('narrows the SERVER query, not just the loaded page', async () => {
+      const { fixture, cmp, listByKind } = await setup({ weapons: 1312 }, { weaponFacets: facets });
+      cmp.setKind('weapon');
+      cmp.setWeaponGroup('ship');
+      cmp.setWeaponSubGroup('turret');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(listByKind).toHaveBeenCalledWith(
+        'weapon',
+        jasmine.objectContaining({ weaponClass: 'Ship', attachTypeIn: ['Turret'] }),
+      );
+    });
+
+    it('drops the sub category when the super category changes', async () => {
+      const { cmp } = await setup({ weapons: 1312 }, { weaponFacets: facets });
+      cmp.setKind('weapon');
+      cmp.setWeaponGroup('ship');
+      cmp.setWeaponSubGroup('turret');
+      cmp.setWeaponGroup('fps');
+
+      expect(cmp.weaponSubGroup()).toBe('');
+    });
+
+    it('leaves the weapon filters behind when the reader switches kind', async () => {
+      const { cmp } = await setup({ ships: 300, weapons: 1312 }, { weaponFacets: facets });
+      cmp.setKind('weapon');
+      cmp.setWeaponGroup('fps');
+      cmp.setKind('ship');
+
+      expect(cmp.weaponGroup()).toBe('');
+      expect(cmp.hasActiveFilters()).toBe(false);
+    });
+  });
+
+  /**
    * "Kommende Schiffe" is a CATEGORY of the Codex index, not a sub-tab of its own
    * (admin feedback 0a5988d5). It sits in the same strip as the datamined kinds
    * but is fed by the RSI ship-matrix, so no build manifest can disable it.
@@ -259,6 +383,91 @@ describe('CodexListComponent (Index mode)', () => {
       cmp.setKind('weapon');
 
       expect(cmp.thumbs(row())).toEqual([]);
+    });
+  });
+  /**
+   * Ships arrive one record per game FILE, so a hull shows up several times
+   * over — seven `Drake Cutlass Black` records, plus marketing editions
+   * ("Wikelo War Special", "2949 Best In Show Edition"). Admin feedback
+   * 77ecad2a: one card per hull, editions behind a picker in the entry.
+   */
+  describe('CodexListComponent — ship editions', () => {
+    function shipRow(
+      className: string,
+      name: string,
+      facets: Partial<CodexListRow> = {},
+    ): CodexListRow {
+      return {
+        ...blueprintRow(className, null),
+        nameLocalized: name,
+        manufacturerCode: 'AEG',
+        blueprintTier: null,
+        craftTimeSec: null,
+        ...facets,
+      };
+    }
+
+    // Facets as build 4.9.0 carries them: `_GS` reads the same name but a
+    // different crew, which is exactly why the variant fold cannot take it.
+    const family = [
+      shipRow('AEGS_Hammerhead', 'Aegis Hammerhead', { crewSize: 9 }),
+      shipRow('AEGS_Hammerhead_GS', 'Aegis Hammerhead', { crewSize: 8 }),
+      shipRow('AEGS_Hammerhead_Showdown', 'Aegis Hammerhead 2949 Best In Show Edition', {
+        crewSize: 9,
+      }),
+      shipRow('MISC_Freelancer', 'MISC Freelancer', { manufacturerCode: 'MIS', crewSize: 4 }),
+      shipRow('MISC_Freelancer_MAX', 'MISC Freelancer MAX', {
+        manufacturerCode: 'MIS',
+        crewSize: 4,
+      }),
+    ];
+
+    it('renders one card per hull and keeps different models apart', async () => {
+      const { cmp } = await setup({ ships: 300 }, { rows: family });
+
+      expect(cmp.rows().map((r) => r.classNameSlug)).toEqual([
+        'AEGS_Hammerhead',
+        'MISC_Freelancer',
+        'MISC_Freelancer_MAX',
+      ]);
+      expect(cmp.editionNames(cmp.rows()[0])).toBe('2949 Best In Show Edition, GS');
+      expect(cmp.rows()[1].editions).toEqual([]);
+    });
+
+    it('subtracts the absorbed records from the result count', async () => {
+      const { cmp } = await setup({ ships: 300 }, { rows: family });
+
+      expect(cmp.total()).toBe(3);
+    });
+
+    it('"include variants" shows the raw records again', async () => {
+      const { fixture, cmp } = await setup({ ships: 300 }, { rows: family });
+      cmp.includeVariants.set(true);
+      fixture.detectChanges();
+
+      expect(cmp.rows().length).toBe(family.length);
+      expect(cmp.rows().every((r) => r.editions.length === 0)).toBeTrue();
+    });
+
+    it('never groups a non-ship kind by class-name lineage', async () => {
+      // `GMNI_pistol` / `GMNI_pistol_gold01` would pass the ship rule; weapons
+      // group by their quoted livery token instead (codex-skin-group).
+      const { fixture, cmp } = await setup(
+        { ships: 300, weapons: 40 },
+        {
+          rows: [
+            shipRow('GMNI_pistol', 'LH86 Pistol'),
+            shipRow('GMNI_pistol_gold01', 'LH86 Pistol Executive Edition'),
+          ],
+        },
+      );
+      cmp.setKind('weapon');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(cmp.rows().length).toBe(2);
+      expect(cmp.rows().every((r) => r.editions.length === 0)).toBeTrue();
     });
   });
 });

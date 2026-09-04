@@ -142,7 +142,7 @@ export interface FeedbackRow {
    * collaborator. Optional so the many test/fixture rows in the specs keep
    * compiling; absent means `admin`.
    */
-  source?: 'admin' | 'user';
+  source?: FeedbackSource;
   /**
    * Release gate for the autonomous routine. A user-submitted topic enters
    * untriaged so an admin reads it before Claude may implement and ship it;
@@ -158,7 +158,24 @@ export interface FeedbackRow {
    * the column are not read as "pending" — see {@link awaitsReview}.
    */
   reviewed_at?: string | null;
+  /**
+   * Which part of the app the topic is about — set by the sender's composer
+   * from the page they were on, correctable there (admin feedback 835fec58,
+   * migration 20260903120000). `null` on every topic filed before the tag
+   * existed, and that must render as NOTHING: a made-up default would be
+   * indistinguishable from a real answer. Typed as a plain string here because
+   * the value comes straight from the database — narrow it with
+   * `asFeedbackArea()` before showing it.
+   */
+  area?: string | null;
 }
+
+/**
+ * Who a topic came from: an admin writing on the board, or a viewer sending
+ * through their own feedback box. It is the axis the overview's source switch
+ * splits on (admin feedback 18e96ad3) and it mirrors `admin_feedback.source`.
+ */
+export type FeedbackSource = 'admin' | 'user';
 
 /** True for a topic a non-admin filed through the user feedback FAB. */
 export function isUserSubmitted(row: FeedbackRow): boolean {
@@ -178,6 +195,51 @@ export function awaitsTriage(row: FeedbackRow): boolean {
 
 /** Replies grouped by topic id, oldest first — the board's thread cache. */
 export type ThreadMap = ReadonlyMap<string, FeedbackMessage[]>;
+
+// ---- "Create an issue for this" (admin feedback 18e96ad3) ------------------
+
+/**
+ * Stable, never-translated opening token of the thread message that asks the
+ * routine to open a GitHub issue for a topic instead of implementing it.
+ *
+ * The instruction rides in the THREAD rather than in a column on purpose. It is
+ * exactly that — an instruction to the agent, in the one channel the agent
+ * already reads end to end — so it needs no schema change, it is visible to
+ * every admin in the conversation where it was given, and taking it back is an
+ * ordinary message delete. The status stays whatever it was (normally `open`),
+ * which is what keeps the topic in the routine's queue: the routine works
+ * `status = 'open'`, so a topic parked in a terminal status could never be
+ * picked up to have its issue created (admin feedback 18e96ad3: "das ist ja die
+ * anweisung das claude ein issue erstellen soll … solange das issue noch nicht
+ * erstellt wurde sondern nur in todo ist").
+ */
+export const ISSUE_REQUEST_MARKER = '**[ISSUE]**';
+
+/** True for the thread message that carries an issue request. */
+export function isIssueRequest(msg: FeedbackMessage): boolean {
+  return !msg.is_system && (msg.body ?? '').trimStart().startsWith(ISSUE_REQUEST_MARKER);
+}
+
+/**
+ * The still-open issue request of a topic, or null.
+ *
+ * "Still open" means the routine has not delivered yet: the moment it files the
+ * issue it writes `status = 'issue_created'` plus the issue url into `ship_ref`,
+ * and from there the topic follows the ordinary outcome path (sign-off →
+ * Erledigt). Only until then is the request undoable — the misclick the admin
+ * asked to be able to take back.
+ */
+export function pendingIssueRequest(
+  row: FeedbackRow,
+  replies?: readonly FeedbackMessage[],
+): FeedbackMessage | null {
+  if (row.status === 'issue_created' || row.ship_ref) return null;
+  for (let i = (replies?.length ?? 0) - 1; i >= 0; i--) {
+    const msg = replies![i];
+    if (isIssueRequest(msg)) return msg;
+  }
+  return null;
+}
 
 // ---- Text helpers ---------------------------------------------------------
 
@@ -368,13 +430,17 @@ export function timeOf(iso: string | null | undefined): number {
 /**
  * What a queue entry asks of the admin (feedback d4990269):
  *
+ * - `triage` — a topic a *user* filed that the routine may not touch yet
+ *   (feedback 89925995): read it and take one of the three decisions the
+ *   Übersicht card has — release it to the routine, ask the author something,
+ *   or decline it with an explanation.
  * - `question` — a Rückfrage the routine is waiting on: read it, answer it.
  * - `review` — a finished topic waiting for the Abnahme: look at the result and
  *   take one of its two decisions (accept → Archiv, or pick the conversation
  *   back up). Same rows the Abnahme tab holds, same two decisions — they are
  *   only *presented* here as well, one at a time, instead of as a tile grid.
  */
-export type WorkflowItemKind = 'question' | 'review';
+export type WorkflowItemKind = 'triage' | 'question' | 'review';
 
 export interface WorkflowItem {
   row: FeedbackRow;
@@ -415,6 +481,14 @@ export type HandledMap = ReadonlyMap<string, string>;
  * and count toward the dashboard's ToDo bucket — this queue is the admin's
  * inbox, not the board.
  *
+ * The one exception is a **user-submitted topic still waiting for its triage**
+ * (feedback 89925995). It buckets as `todo` like any other untouched topic, but
+ * the ball is emphatically not with the routine: the routine's queue is gated on
+ * `triaged`, so nothing at all happens to that topic until an admin releases it.
+ * That makes it the purest kind of "waiting on the admin" there is, and it goes
+ * to the FRONT of the run — ahead of the Rückfragen, which at least have a
+ * routine cycle behind them.
+ *
  * Since feedback d4990269 the Abnahme (`review` bucket) belongs to that inbox
  * too: a shipped result nobody has signed off is just as much "waiting on the
  * admin" as a Rückfrage. The two kinds are **not interleaved by date** —
@@ -429,6 +503,7 @@ export function buildWorkflowQueue(
   threads: ThreadMap,
   handled: HandledMap = new Map(),
 ): WorkflowItem[] {
+  const triage: WorkflowItem[] = [];
   const questions: WorkflowItem[] = [];
   const reviews: WorkflowItem[] = [];
 
@@ -437,15 +512,22 @@ export function buildWorkflowQueue(
     if (handled.get(row.id) === row.updated_at) continue;
     const replies = threads.get(row.id) ?? [];
     const bucket = feedbackBucket(row, replies);
-    if (bucket === 'awaiting_admin') questions.push({ row, replies, kind: 'question' });
+    // The triage gate wins over the bucket: a user topic nobody released is
+    // blocked whatever else its row says. `awaiting_author` is the one active
+    // bucket left out — there the admin already asked and waits on the author,
+    // so the ball is not with them until the answer lands.
+    if (awaitsTriage(row) && bucket !== 'awaiting_author' && ACTIVE_BUCKETS.includes(bucket)) {
+      triage.push({ row, replies, kind: 'triage' });
+    } else if (bucket === 'awaiting_admin') questions.push({ row, replies, kind: 'question' });
     else if (bucket === 'review') reviews.push({ row, replies, kind: 'review' });
   }
 
+  triage.sort((a, b) => timeOf(a.row.created_at) - timeOf(b.row.created_at));
   questions.sort((a, b) => timeOf(a.row.created_at) - timeOf(b.row.created_at));
   // An Abnahme waits from the moment its outcome landed, not from the day the
   // topic was raised — so it is aged by the same stamp its card shows.
   reviews.sort((a, b) => timeOf(reviewSince(a.row)) - timeOf(reviewSince(b.row)));
-  return [...questions, ...reviews];
+  return [...triage, ...questions, ...reviews];
 }
 
 /**
@@ -488,7 +570,63 @@ export function filterWorkflowScope(
 ): WorkflowItem[] {
   if (scope === 'all' || !selfId) return [...items];
   const wantOwn = scope === 'mine';
-  return items.filter((item) => isOwnTopic(item.row, selfId) === wantOwn);
+  // A triage step is in EVERY scope (feedback 89925995). The scope switch splits
+  // admin topics by who raised them — "the ones you can answer without guessing"
+  // — but a user-submitted topic was raised by neither admin, so `mine` would
+  // hide it and the default run would never show the one thing that is blocking
+  // the routine outright. It is nobody's topic and therefore everybody's job.
+  return items.filter(
+    (item) => item.kind === 'triage' || isOwnTopic(item.row, selfId) === wantOwn,
+  );
+}
+
+/**
+ * Which kind of step the processing mode is showing — the Abnahme tab's
+ * successor (feedback d4990269, round 2).
+ *
+ * The tab was a second surface for rows the run already walks; the admin asked
+ * for it to be dropped in favour of a lens *inside* the run ("den Abnahme Tab
+ * können wir rausmachen und einfach in Abarbeiten eine filter möglichkeit nur
+ * abnahmen einfügen"). `all` is the run as it was; the other two narrow it to
+ * one kind without changing its order, its actions or a single row.
+ */
+export type WorkflowKind = 'all' | WorkflowItemKind;
+
+/**
+ * The lens in switch order — `all` first, because it is the default, then the
+ * kinds in the order the run walks them (triage → Rückfragen → Abnahmen).
+ */
+export const WORKFLOW_KINDS: readonly WorkflowKind[] = ['all', 'triage', 'question', 'review'];
+
+/** How many items each kind holds — the counts on the kind switch. */
+export interface WorkflowKindCounts {
+  all: number;
+  triage: number;
+  question: number;
+  review: number;
+}
+
+/**
+ * Narrow an already-scoped queue to one kind. Applied *after* the scope filter,
+ * so the kind counts always describe what the current scope actually holds.
+ */
+export function filterWorkflowKind(
+  items: readonly WorkflowItem[],
+  kind: WorkflowKind,
+): WorkflowItem[] {
+  if (kind === 'all') return [...items];
+  return items.filter((item) => item.kind === kind);
+}
+
+/** Item counts per kind, for the switch's KPIs. `all` is the untouched total. */
+export function workflowKindCounts(items: readonly WorkflowItem[]): WorkflowKindCounts {
+  let triage = 0;
+  let review = 0;
+  for (const item of items) {
+    if (item.kind === 'triage') triage++;
+    else if (item.kind === 'review') review++;
+  }
+  return { all: items.length, triage, question: items.length - triage - review, review };
 }
 
 /** Queue sizes per scope, for the switch's counts. `all` is the untouched total. */
@@ -497,36 +635,25 @@ export function workflowScopeCounts(
   selfId: string | null | undefined,
 ): WorkflowScopeCounts {
   let mine = 0;
-  for (const item of items) if (isOwnTopic(item.row, selfId)) mine++;
-  return { mine, others: items.length - mine, all: items.length };
+  let others = 0;
+  for (const item of items) {
+    // A triage step sits in every scope (see filterWorkflowScope), so it counts
+    // in every scope — the KPI has to describe what the chip will hand over.
+    if (item.kind === 'triage') {
+      mine++;
+      others++;
+    } else if (isOwnTopic(item.row, selfId)) mine++;
+    else others++;
+  }
+  return { mine, others, all: items.length };
 }
 
-/**
- * Narrow a bare row list to one author scope — the same mine/others/all lens the
- * processing mode uses (feedback abfa97c6), but for the sign-off list, which holds
- * {@link FeedbackRow}s rather than {@link WorkflowItem}s. Unknown `selfId` returns
- * the full list for the same reason as {@link filterWorkflowScope}: a signed-in
- * admin must not face a blank queue because the user object arrived a tick late.
+/*
+ * `filterRowScope` / `rowScopeCounts` lived here for the Abnahme tab's own
+ * scope switch. The tab is gone (feedback d4990269, round 2) and the Abnahmen
+ * are worked inside the run, under the run's scope — so the row-level twins of
+ * the two functions above have no caller left and were removed with it.
  */
-export function filterRowScope(
-  rows: readonly FeedbackRow[],
-  scope: WorkflowScope,
-  selfId: string | null | undefined,
-): FeedbackRow[] {
-  if (scope === 'all' || !selfId) return [...rows];
-  const wantOwn = scope === 'mine';
-  return rows.filter((row) => isOwnTopic(row, selfId) === wantOwn);
-}
-
-/** Row-list sizes per scope, for the review switch's counts (cf. {@link workflowScopeCounts}). */
-export function rowScopeCounts(
-  rows: readonly FeedbackRow[],
-  selfId: string | null | undefined,
-): WorkflowScopeCounts {
-  let mine = 0;
-  for (const row of rows) if (isOwnTopic(row, selfId)) mine++;
-  return { mine, others: rows.length - mine, all: rows.length };
-}
 
 /**
  * Which thread message the processing mode should put in front of the admin
@@ -549,6 +676,39 @@ export function workflowFocusIndex(replies: readonly FeedbackMessage[]): number 
   let i = last;
   while (i > 0 && replies[i - 1].is_system) i--;
   return i;
+}
+
+/**
+ * A thread folded to its two ends (feedback 03d7e546).
+ *
+ * A long conversation pushed the message the admin actually has to react to out
+ * of sight, so every thread surface on the board shows the same three parts: the
+ * **first** message (where the conversation started), one disclosure standing in
+ * for everything between, and the **last** message(s) (what is waiting for an
+ * answer). Nothing is dropped — the middle is one click away.
+ */
+export interface FoldedThread<T> {
+  /** The conversation's first message, or `null` when nothing is folded away. */
+  lead: T | null;
+  /** The messages the disclosure stands in for — empty when nothing is folded. */
+  hidden: readonly T[];
+  /** The newest message(s): what the admin reacts to. */
+  tail: readonly T[];
+}
+
+/**
+ * Fold a thread to "first … last" (see {@link FoldedThread}). Threads short
+ * enough to fit (`keepTail + 1` messages or fewer) are handed back whole, so a
+ * two-message conversation never grows a control that hides nothing.
+ *
+ * Deliberately generic: the board runs it over both thread kinds — the admin ↔
+ * routine thread and the author channel — and one rule keeps them identical.
+ */
+export function foldThread<T>(messages: readonly T[], keepTail = 1): FoldedThread<T> {
+  const keep = Math.max(1, keepTail);
+  if (messages.length <= keep + 1) return { lead: null, hidden: [], tail: messages };
+  const cut = messages.length - keep;
+  return { lead: messages[0], hidden: messages.slice(1, cut), tail: messages.slice(cut) };
 }
 
 // ---- Progress statistics --------------------------------------------------
@@ -1195,4 +1355,71 @@ export function lifecycleSnapshot(
   }
 
   return snapshot;
+}
+
+// ---- Canned decline reasons (feedback d5a779da) -----------------------------
+
+/**
+ * The canned reasons an admin can drop into a decline note with one click.
+ *
+ * Declining used to mean typing the same explanation for the fifth duplicate by
+ * hand. The catalogue below is the shortlist that covers the recurring cases;
+ * anything outside it is still a free-text note, the picker only PRE-FILLS the
+ * textarea.
+ *
+ * Ordered by how often they come up, because the picker renders them in this
+ * order. Every id is also the i18n key segment for its chip label and its text
+ * ({@link declineReasonLabelKey} / {@link declineReasonTextKey}) — the note is
+ * read by the person who filed the topic, so both live in `de.json`/`en.json`
+ * and are worded for that reader, not for the admin.
+ */
+export type DeclineReasonId =
+  | 'duplicate'
+  | 'alreadyShipped'
+  | 'notReproducible'
+  | 'tooLittleInfo'
+  | 'offRoadmap'
+  | 'noise';
+
+export const DECLINE_REASONS: readonly DeclineReasonId[] = [
+  'duplicate',
+  'alreadyShipped',
+  'notReproducible',
+  'tooLittleInfo',
+  'offRoadmap',
+  'noise',
+];
+
+/** i18n key for a reason's chip label — the short handle in the picker row. */
+export function declineReasonLabelKey(id: DeclineReasonId): string {
+  return `adminFeedback.decline.reasons.${id}.label`;
+}
+
+/** i18n key for the full sentence that lands in the note textarea. */
+export function declineReasonTextKey(id: DeclineReasonId): string {
+  return `adminFeedback.decline.reasons.${id}.text`;
+}
+
+/** Resolved canned texts by id — translating them is the caller's job. */
+export type DeclineReasonTexts = Readonly<Partial<Record<DeclineReasonId, string>>>;
+
+/**
+ * Which canned reason the current note still IS, or `null` for a note the admin
+ * wrote (or edited) themselves.
+ *
+ * This is what keeps the picker honest: the chip is not a mode the admin gets
+ * stuck in, it is a statement about the text. Type one character into the
+ * pre-filled sentence and the selection drops away on its own — nothing claims
+ * "Duplikat" any more once the note no longer says so.
+ *
+ * Compared trimmed, because the textarea's value round-trips through the DOM
+ * and the note is trimmed again before it is stored.
+ */
+export function matchDeclineReason(note: string, texts: DeclineReasonTexts): DeclineReasonId | null {
+  const trimmed = note.trim();
+  if (!trimmed) return null;
+  for (const id of DECLINE_REASONS) {
+    if ((texts[id] ?? '').trim() === trimmed) return id;
+  }
+  return null;
 }

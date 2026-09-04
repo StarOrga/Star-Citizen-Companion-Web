@@ -7,6 +7,28 @@ excerpt: Comm-Link, Spectrum, YouTube and patch notes in one auto-refreshing fee
 channel worth watching, refreshed automatically every 5 minutes. It is
 readable without an account.
 
+## The page
+
+Three objects, in this order.
+
+**The stage.** One item, full-bleed, at the top — the most eventful thing the
+feed currently carries, scored across the whole pool rather than picked out of a
+"today" bucket, so it is never empty on a quiet day. Its headline is a real link
+to the source; a plain left click opens the in-app detail view instead, which
+you leave again with **Zurück**.
+
+**The build verdict.** One sentence docked into the stage: which Alpha line is
+live, and how many days until the next main patch is due (or how far it is
+overdue), plus the median interval that estimate rests on. **Patch-Historie**
+opens the full patch board at `/news/patches` — everything below under
+*Patch notes* lives there, not on the landing page.
+
+**The stream.** Everything else, flat and newest first, each tile carrying its
+own relative timestamp. Its header is one segmented toggle: **Beiträge** (all of
+it) and **Gemerkt** (your saved posts), each with its count. Both counts read
+from the same list, so the saved half can never promise an item the list cannot
+show.
+
 ## Channels
 
 | Channel | Source |
@@ -14,23 +36,15 @@ readable without an account.
 | **Comm-Link** | RSI's official Comm-Link posts |
 | **Spectrum** | RSI's Spectrum announcement forums |
 | **YouTube** | The official Star Citizen channel |
-| **Patch notes** | Patch note releases, in their own section (see below) |
-| **Favorites** | Your own starred posts (account required) |
+| **Patch notes** | Patch note releases, on their own page (see below) |
 
-Use the channel filter to narrow the feed, or **Show all** to clear it. Posts
-are bucketed into **Today**, **This week** and **Older**.
-
-The **Older** bucket follows the filter: in the unfiltered **All** view it is
-open, because that is the full stream you came to browse. Pick a channel (or the
-saved-only view) and it folds away, so a filtered page shows the fresh matches
-first; clearing the filter opens it again. You can always override it with the
-button in the bucket header — that choice sticks until you change the filter.
+Every tile is badged with its channel; videos additionally carry a play marker
+and a **Video** tag.
 
 ## Videos
 
-The newest clips from the official YouTube channel get their own rail above the
-stream, so they are not buried between articles. Videos you have already opened
-(or hovered long enough to count as seen) drop out of the rail on the next load.
+Videos sit in the stream with everything else rather than in a separate rail —
+badged, but not fenced off.
 
 Videos are kept for **31 days** — today, this week and this month. Older clips
 leave the feed and their cached thumbnails are deleted, because SC Companion
@@ -39,6 +53,10 @@ articles themselves are unaffected: only videos age out, and every video is
 still one click away on YouTube.
 
 ## Patch notes
+
+Everything in this section lives on the **patch board** at `/news/patches`,
+reachable from the build verdict on the landing page. It is the one place where
+release cadence is the subject rather than a footnote.
 
 RSI publishes a patch line as a stream: a few Evocati and PTU waves, the LIVE
 release notes, the point releases (4.8.1, 4.8.2) and then weeks of hotfixes.
@@ -101,9 +119,14 @@ breakdown and a link out to the official status page.
 
 ## Saving and sharing
 
-- **★ Save** collects a post into your *Favorites* channel. It is per-account
-  and syncs across devices.
-- **Share** copies a direct link to the post.
+The same two controls appear on the stage, on every stream tile and in the
+detail view — same icon, same wording; only the label is dropped on a tile,
+where there is no room for it.
+
+- **Merken / Gemerkt** collects a post into the saved half of the stream
+  toggle. It is per-account and syncs across devices.
+- **Teilen** shares a direct link to the post, or copies it where the browser
+  has no share sheet.
 - Every item links to the original on RSI — SC Companion aggregates and links,
   it does not rehost articles.
 

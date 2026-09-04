@@ -1,7 +1,719 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.62.0",
+  "current": "0.74.1",
   "releases": [
+    {
+      "version": "0.74.1",
+      "date": "2026-09-03",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader: \"Upload fortsetzen\" works again after the app was closed, updated or killed",
+              "text": "(data-uploader 0.25.1). On the newest build the button did nothing: the log showed five resume requested lines within fifteen minutes and not one line after any of them. The resume path went through the same start routine as a fresh upload, and that routine returns silently without an extraction result in memory — a value only a *finished extraction* ever sets, so every restart wiped it. The durable job file already knows the extract's directory and channel/version, and the extract's own manifest.json knows the rest, so a resume now rebuilds the result from those two sources. When the extract itself is gone, the operator is told so in words (\"verwerfen und neu extrahieren\") instead of being left with a button that appears to hang. The tray's *Resume* takes the same path."
+            },
+            {
+              "title": "Data Uploader: the startup sweep no longer deletes the extract a paused upload is waiting to resume from.",
+              "text": "The sweep reclaims marker-less extract dirs older than 24 h, and a paused job's dir goes untouched for exactly that long while the operator waits — on the next launch it was swept (orphan scan: removed 2 … LIVE-4.9.0, skins-4.9.0), which is why the interrupted 4.9.0 upload above could not have continued even with a working button. The sweep now honours the same keep-list the pre-extraction purge already did. Users with a job in that state today must discard it and extract once more; new jobs keep their data."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.74.0",
+      "date": "2026-09-03",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "The Codex start page ends with the switcher — the \"Im Versum\" band is gone.",
+              "text": "The third plane under \"An Bord\" and \"Im Hangar\" was a row of seven small pills, each in its own colour, sitting under a plain gap: it read as a filter bar that did not belong to the two planes above it, and four rounds of reshuffling the same seven entries never gave it an identity. Instead of a fourth attempt, the archive access moved to where its subject already is. \"An Bord\" now ends with one quiet line — *Archiv › Rüstung · Waffen · Baupläne* — and \"Im Hangar\" with *Archiv › Schiffe · Komponenten · Waffen · Baupläne*, each entry a real link that opens the archive pre-filtered to that family. Counts stay only where the archive already has an honest one (ships, components); the weapon and blueprint families are split between on-foot and ship, so a combined total would have lied. One accent per plane, no per-family colours, no glyph sample sheet."
+            },
+            {
+              "title": "Blueprints open pre-sorted by where they belong.",
+              "text": "From \"An Bord\" the blueprint list shows FPS armour and FPS weapons; from \"Im Hangar\" it shows vehicle components and vehicle weapons. A small switch — *Alle · Zu Fuß · Fahrzeug* — widens or narrows it, and the single-category filter still works inside the chosen group."
+            },
+            {
+              "title": "Keybindings moved into the terminal row",
+              "text": "at the top of the page (next to the app download menu) — a reference tool, not an archive entry, so it no longer hangs off a content plane."
+            }
+          ]
+        },
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The \"Auf dem Reißbrett\" rail of announced ships on the Codex start page. The announced ships keep their own view (/codex/upcoming) and their own pages; whether a quiet strip returns under the fleet is an open follow-up."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.73.0",
+      "date": "2026-09-02",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "\"An Bord\" on the Codex start page is a tool now, not a display case.",
+              "text": "The zone that shows what your character is wearing could be looked at and nothing else: the whole area was a single link, and the six positions on the figure — helmet, torso, arms, legs, undersuit, backpack — were drawing, not controls. Changing a helmet meant leaving the page, opening a different part of the app, and searching a list that offered every item in the game at once with no way to narrow it to helmets. Seven releases in a row had reworked how this looked and never once what it did. Every position is now its own link: click the helmet and you land in a list that *cannot* contain anything but helmets, with a way back. The set name stays the way into the full on-foot section."
+            },
+            {
+              "title": "The numbers under the figure answer a question instead of proving we have data.",
+              "text": "They used to read \"Occupied slots 0 / 6\", six raw archive counts, and two blanks where an armour value and a weapon value should have been. The counts moved to the empty positions themselves, where they read as a promise (\"460 in the archive\") rather than trivia. In their place each position now carries its armour class — light through super-heavy — drawn as the height of a bar rather than as a colour, so a set has a shape you recognise at a glance and colour is free to mean one single thing: worn, or open. Next to the figure, six small marks say what the set actually carries — primary weapon, sidearm, melee, throwables, gadget, medical — lighting up only for what is really there."
+            },
+            {
+              "title": "What we do not know is now said out loud rather than shown as a dash.",
+              "text": "The game files carry no protection value for personal armour at all: the field is empty in every one of the 9,539 pieces, and the resistance entry is a reference that was never resolved. So the old \"Armour value —\" was not a gap waiting to be filled, it was a number that does not exist. It is gone. What the files *do* carry is the armour class, and that is what you see. A piece the archive knows no class for — every backpack — shows a hatched marker instead of a guessed bar. There are deliberately no \"mining ready\" or \"tractor ready\" marks either: nothing of that kind exists as personal equipment in this build, only as ship parts, so claiming it would have been an invention."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.72.0",
+      "date": "2026-09-01",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Starscape now reports how it is doing.",
+              "text": "The wallpaper app was the one desktop client that never said a word: if it crashed on your machine, or if a released build never started for anybody, nothing about that reached us. It now sends the same anonymous diagnostics the other two clients already send — the same signed endpoint, the same rules, no separate channel. Exactly two things go out: that it started, together with how it is set up (background, screensaver or both, interval, crossfade), and, after a crash, the panic and the source line — reported on the *next* start, never from inside the dying process. There is no account, no address and no file of yours in any of it, and the install and session identifiers are random values the server only ever keeps as one-way hashes. It is on by default and off in one click, under Send anonymous diagnostics in the tray menu; switching it off also deletes the crash record still waiting on disk rather than merely silencing it. Release rings are finally reported truthfully too — an alpha install used to be filed under \"dev\", so the ring that most needs watching was the one nobody could see."
+            },
+            {
+              "title": "The telemetry page compares the products instead of switching between them.",
+              "text": "It used to ask \"which one product do you want to look at?\" and answer everything else in that light — a question that stops working the moment there is a third client. The page now opens on every product side by side: one card each, with installs, sessions and usage, whether it has crashed, its share of all traffic and when it was last heard from. A product that has reported *nothing* gets a card too, which is the whole point — \"did the build we shipped yesterday ever check in?\" is answered by a zero, not by an absent tile. Picking a card scopes the whole page below it to that product, and the choice lives in the address bar, so a view can be bookmarked, shared, or middle-clicked into its own tab. Two things that were previously invisible come with it: which release ring the events came from, and what the usage events actually *are* rather than just how many. The page grows with the next product without another rewrite."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.71.4",
+      "date": "2026-08-30",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Signing in with Google could leave you on an empty window.",
+              "text": "The app came back from Google to a blank screen — no message, no way on, and only Ctrl+R got it back. What happens first after a sign-in is a read of your profile row, to learn whether your account is approved; that very first read raced the freshly minted token and came back 401, while the next one a second later came back fine. A failed read is not a fact about who you are, so the access gate refuses to grant on it — correct — but it refused by cancelling the navigation outright, and cancelling the FIRST navigation of a page load leaves no route at all: an empty document with the session still perfectly intact and nothing on screen. The profile read is now retried briefly (twice, about a second) before any verdict is recorded, which is exactly the window that race lives in. And when an identity genuinely cannot be resolved — the service is down, not just blinking — the refusal now lands on a page that says so and offers a retry, instead of on nothing at all."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.71.3",
+      "date": "2026-08-30",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "A fully promoted build could not reach the installs that needed it most.",
+              "text": "Starscape refuses to install a release the server handed back on a different ring than the one a copy is locked to — the guard that stops a beta build landing on a stable machine. It compared ring *names*, never versions. So once 0.4.3 was promoted all the way to stable and every ring pointed at the same build, a signed-out beta or alpha install still saw \"a stable payload, not mine\" and refused it — a build the server was at that moment handing out to anyone, unauthenticated. The copy most likely to be signed out (an alpha install whose stored session had broken) was exactly the one that could not take the fix for it. A clamp is now treated as nominal when the ring we asked for is on the very same version as the one served: there is no gap to cross, the payload *is* our build, and the asset picked is still win-x64-<our ring> so the file keeps its ring-marked name and the install stays on its ring. The moment the versions differ in either direction the response is refused exactly as before — a viewer asking for alpha while alpha leads stable still gets nothing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.71.2",
+      "date": "2026-08-30",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Starscape could not tell you whether it was up to date without signing in.",
+              "text": "The update feed resolves the release ring server-side from your role — anyone signed out gets stable. An alpha-locked install therefore only ever learned what *stable* serves, and since alpha runs ahead of stable by definition, the app's \"even stable is newer than me\" hint could never fire. The tray had exactly one thing to say, forever: *sign in for alpha updates* — whether an update was waiting or the install was already current. The resolver now also reports the version your own ring is on, resolved without the role clamp. That is a version string and nothing else: the download payload stays clamped, so this cannot install across rings, and Starscape's binaries are assets of a public GitHub mirror anyway, so the number was never a secret. A current install now simply reads ◈ Aktuell · v0.4.3 · Alpha, and the sign-in entry appears only when the ring is genuinely ahead — naming the version to install."
+            },
+            {
+              "title": "A moment without internet signed you out of Starscape for the day.",
+              "text": "The session refresh returned the same \"no\" for *offline*, *DNS not ready*, *server error* and *your token is dead*, and the caller discarded the stored login on any of them. The first update check runs 20 seconds after start, which on a cold boot routinely lands before Wi-Fi, VPN or DNS are up. A verdict from the auth server (4xx) is now distinguished from a failure to reach it; only a verdict discards the login. Note what this was *not*: the project sets no session timebox and no inactivity timeout, so a Supabase session never expires on its own — there was never a lifetime to extend."
+            },
+            {
+              "title": "The same code path failed silently, which is why this took so long to find.",
+              "text": "Loading the stored session returned \"nothing\" without a word when the file was unreadable, the OS could not unseal it, or its contents were corrupt, and a refresh that never left the machine logged nothing at all. A month of logs from a real install contained not one line about the session while the user re-authenticated almost daily. Every one of those paths now says what happened and why."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Desktop sign-ins hand the app its own session instead of the browser's.",
+              "text": "Both hand-offs (Starscape, Data Uploader) used to pass along the browser's own refresh token, putting two independent clients on a single rotation chain where whoever refreshes second presents a spent token. Measured against this project that is not currently what signs anyone out — a spent token was still accepted well past the reuse window — so this is hardening rather than a fix, and the code says so plainly. It removes a race that a single dashboard toggle would otherwise turn into a daily sign-out. If minting a session fails, the hand-off falls back to the previous behaviour rather than becoming the one thing standing between you and a connected app."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.71.1",
+      "date": "2026-08-30",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse News cards that stayed empty no matter how long you waited.",
+              "text": "Two unrelated causes, one symptom. - A card threw away its own picture. A tile measures each image and drops \"furniture\" — divider rules, spacers, ornaments — using a minimum pixel height calibrated against *original* sizes. What it actually measured was whichever responsive variant the browser had picked, which on a regular card is the 400px rung, shrunk once more by the density correction the browser applies to srcset candidates. The 1140×228 banner of *\"Improving the Live Experience\"* arrived as 320×64, fell under the floor, was filed as a divider rule, and — being the card's only image — left the empty gradient behind. The same card on a high-density phone loaded the 800px rung and showed the picture, so the verdict tracked the display rather than the image. Measurements are now read back at the width where the picture exists in full. Sources whose full width cannot be known keep their raw measurement; inventing a reference there would promote a small site logo into artwork. - YouTube thumbnails were blocked outright. Video artwork is mirrored into our own bucket only a few images per run, so a freshly published video reaches the browser as a raw ytimg.com url until the mirror catches up — and that host was in no Content-Security-Policy directive, so the browser refused it. This is why waiting never helped. Granted now in both img-src and connect-src, since the service worker re-issues every subresource under the latter."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.71.0",
+      "date": "2026-08-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "One loading animation instead of two competing ones.",
+              "text": "The app ran two skeleton systems at different tempos — a local shimmer at 1.4s copied into 11 component files, and the global phosphor sweep at 1.6s used by 3 more. Verse News shipped both in the same file. The two tempos share no common multiple in the seconds range, so they drifted apart permanently and never resynchronised; that mismatch is what read as restless. There is now a single system, split strictly by what the surface is about: - Content tiles (Codex thumbnails, the Verse News stage and cards, Starscape tiles) get a neural field: soft blobs drift and pulse, a near-invisible mesh links the close ones, and every second or two a jagged discharge builds, holds and fades between two of them. It reproduces the mechanic of the desktop app's setup wizard, because a placeholder for an unknown image should look like something working, not like a swept bar. - Structure and chrome (header, navigation, avatar, KPI boxes, table rows) get an inference layer that resolves in four hard steps. Steps read as a state; a soft fade can be at any point and says nothing. - Text lines enter in seven blocks, like arriving packets."
+            },
+            {
+              "title": "The stagger no longer breaks in the middle of a grid.",
+              "text": "It was wired to nth-child(2..4), so from the fifth card on every tile animated in lockstep. It now derives from the tile's position in the grid and is capped at six steps — the 24th Starscape tile never waits 1.4s to start."
+            },
+            {
+              "title": "Loading placeholders keep the shape of what is coming.",
+              "text": "The Codex fleet panel showed a single grey box, so the layout jumped once data landed."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Dropped the most expensive property from both reveals.",
+              "text": "filter: blur() animated on the Starscape image reveal across up to 24 tiles at once, and on the shared content reveal. Opacity and a small translate carry it now."
+            },
+            {
+              "title": "Removed dead motion code.",
+              "text": ".sc-hud-frame was fully defined, documented and used by exactly zero components."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The reading-order cascade and the 200/400 ms skeleton thresholds are designed and decided but not in this release — regions still resolve in the order their requests return. Both are tracked as follow-ups."
+            },
+            {
+              "title": "",
+              "text": "Design decided over four rounds in docs/concepts/2026-08-27-ladeanimationen-seitenaufbau.html."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.70.0",
+      "date": "2026-08-27",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse News cards show the article's real artwork again.",
+              "text": "\"Letter From The Chairman\" rendered as a blank navy panel while the RSI page showed a banner. The upstream API returns an article's media in document order rather than as an editorial pick, so the first image is the hero only by luck — here it was a 3671×956 lower third (the portrait sits in the left fifth, the rest is flat background) followed by two 3840×114 divider rules. All three passed the old \"wide enough ⇒ title image\" test, which had no upper bound, and the tile cover-cropped the empty middle of the first one. Two independent fixes: the feed now promotes the page's own og:image — RSI's editorial pick, present on every comm-link — to the front of the media list, and the tile rejects strips and decorative rules outright, measuring candidates one at a time until it finds real artwork."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "A patch that just landed says so.",
+              "text": "For its first three days, a main patch reaching LIVE (green) or a new line entering the PTU (orange) takes over the build-status card: the heading names the event, the version is set larger, and the card carries how long it has been up. On day four it returns to the standard read with nothing left over. Dated off the main line, so a point release does not re-open the window."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "The days to the next patch are stated once, not twice.",
+              "text": "The estimate is \"last release plus the median cadence\", so right after a patch the card read \"in 48 Tagen\" directly above \"Median 49 T\" — the same number twice. The basis line now names what it is rather than the arithmetic behind it; the median itself stays on the patch board, where the numbers are the subject."
+            },
+            {
+              "title": "The stream section is called \"News Feed\".",
+              "text": "In German \"Strom\" reads as electricity before it reads as a feed. The name is now identical in both languages."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.69.1",
+      "date": "2026-08-24",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "\"Ansehen als\" works.",
+              "text": "Picking Collaborator, Viewer or Abgemeldeter Besucher reloaded the page and changed nothing — the admin nav entries stayed right where they were. RoleService's constructor effect fired before the Supabase session was restored, reported that momentary \"no user\" as a settled fact, and the preview's self-heal read it as a genuine sign-out and wiped the target that had just been written. Every target was affected, every time. Auth readiness is now the discriminator between \"not signed in\" and \"haven't found out yet\"."
+            },
+            {
+              "title": "A preview that cannot be stored says so.",
+              "text": "Entering one reloaded unconditionally, even when the write had been swallowed (private mode, full quota) — landing the user on a byte-identical page with no explanation, the exact symptom the bug above produced. The write is now read back and the reload only happens once it verifiably stuck."
+            },
+            {
+              "title": "Signing in while previewing as a visitor no longer loops in silence.",
+              "text": "The shadowed session bounced every route to /login, the sign-in succeeded against the real client, and the guard bounced it straight back. Both credential paths now refuse with an explanation and an exit control; the login page still renders exactly as a visitor sees it."
+            },
+            {
+              "title": "Leaving a preview returns you where you started.",
+              "text": "Exit landed on Verse News regardless of origin, because publicOnlyGuard ignored the redirect param it was standing on. It now honours it, through a shared same-origin check that rejects protocol-relative, absolute-URL and backslash payloads."
+            },
+            {
+              "title": "A momentary profile-read failure no longer ends the session.",
+              "text": "A 401 during token rotation or an RLS hiccup pinned the role to viewer and approved to false, which wiped any active preview and made the next guarded navigation sign the real admin out. An unresolved identity is now distinct from a confirmed is_approved = false: the first blocks a navigation, only the second ends a session. A thrown read also settles instead of leaving every guarded navigation waiting forever."
+            },
+            {
+              "title": "Preview blocks hold during the load window.",
+              "text": "Privileged write paths and the desktop token handoffs read \"is a preview active\", which was false for the whole profile round trip on a viewer/collaborator preview. They were safe only because their routes happened to carry a guard that serialised it — a property of the routing table, not of the code. They now fail closed on their own."
+            },
+            {
+              "title": "The impersonation banner stays out of the way.",
+              "text": "It sat above every full-screen dialog and swallowed clicks meant for them, and it claimed \"Deine echte Rolle: Viewer\" while the real role was still loading. Both sticky bars on the Codex keybinds page now clear it as well."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.69.0",
+      "date": "2026-08-24",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "The hangar zone leads with the ship, not with its name.",
+              "text": "The flagship was a text link whose only illustrated company were the three small fleet thumbnails beneath it — the eye landed on the satellites, not on the subject. It is now a 16:9 bleed crop of the ship's artwork, with manufacturer, role, name and the four leading KPIs on a scrim inside the frame; the KPI card row under the ship is gone. Each chip carries its category glyph from codex-category-icon, so the numbers read as shield / weapon / quantum / fill instead of four identical boxes."
+            },
+            {
+              "title": "The fleet is a strip of art tiles",
+              "text": ", the same tile the concept-ship rail uses, grouped by manufacturer, role, or hangar order through a sort bar. The flagship sits in the strip with a star rather than being excluded from it — a grouping that omits its most important member reads wrong. Roles for every owned hull now resolve in one batch, so a group heading can never show a raw @-locale token."
+            },
+            {
+              "title": "The Versum band is a horizontal chip strip.",
+              "text": "The \"Domänen\" headline is gone (the eyebrow is the heading), the keybindings entry moved onto that same line, and each chip leads with its category glyph and name while the count became side information. All seven domains now open the same subview with their facet preselected — Baupläne used to jump to /codex/blueprint, a separate page with different controls."
+            },
+            {
+              "title": "The empty bay is drawn, not greyed out",
+              "text": "— an inline SVG scene (perspective floor grid, two service light cones, an empty docking ring) that costs no request and follows the accent token."
+            }
+          ]
+        },
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "\"Andere Konfigurationen\" on the landing page",
+              "text": "— a <details> whose body was a single link. Choosing between saved loadouts belongs in the hangar, not on the front door."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.68.1",
+      "date": "2026-08-23",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "The Verse News stage showed artwork and nothing else.",
+              "text": "sc-news-thumb is positioned but had z-index: auto, so it never opened a stacking context and its internal ladder (image layer 1, channel pill 2) competed directly with the host page — painting over the overline, the headline and the deck, which sit at the default level. isolation: isolate confines it. The same leak had silently blanked the stage scrim; both are back."
+            },
+            {
+              "title": "The stage buttons only answered a click *below* themselves.",
+              "text": "The \"Lesen\" CTA was a <span> with pointer-events: none, so a click on it fell through to the <p> wrapping the row, which has no handler — only the padding strip underneath, still covered by the stretched stage link, ever responded. The CTA is a real anchor to the source now, the row is transparent to the pointer, and every control takes its own hits. Pinned by hit-tests."
+            },
+            {
+              "title": "Every channel glyph rendered as nothing.",
+              "text": "Angular's HTML sanitizer strips <svg> out of an [innerHTML] binding, so the icons beside COMM-LINK / SPECTRUM / YOUTUBE never existed on screen. The markup is a compile-time constant in both components, so it is passed through bypassSecurityTrustHtml and cached by source string to keep binding identity."
+            },
+            {
+              "title": "The detail overlay had no styles at all",
+              "text": "— its whole .nd-* block was lost in the 0.66.0 rewrite, so it opened as a full-bleed image with its actions cut off below the fold. It is sized to the viewport again: the art is the only elastic row, so headline, summary and all three actions are on screen at every window size without a scrollbar."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "One wording, one glyph for saving and sharing.",
+              "text": "\"Merken\", \"Gemerkt\" and \"Favoriten\" were three names for one state, and sharing was a bare ⤴ on the stage but a text button in the detail view. The stage, every stream tile and the detail view now carry the same star and the same share mark, with the same label — dropped only on a tile, where the foot row has no room for it."
+            },
+            {
+              "title": "The stream header is one segmented toggle.",
+              "text": "\"42 Beiträge\" (a count pill) and \"★ Favoriten (0)\" (a starred text button) named the same kind of thing in two unrelated shapes, with the number in brackets. Both halves are now label plus count badge, no parentheses, and both counts read from the same unfiltered stream — a saved *staged* article can no longer promise an item the list cannot show."
+            },
+            {
+              "title": "The detail view closes through a \"← Zurück\" text link",
+              "text": ", the same idiom as the patch board's back link, instead of a floating ✕ disc."
+            },
+            {
+              "title": "n = 5 is gone",
+              "text": "from the build verdict and the forecast basis. The sample count stays where the numbers are the subject rather than a footnote: the patch board's KPI panel still says \"Basis: 5 Messwerte\"."
+            },
+            {
+              "title": "The hero is larger and starts on the same line as every other page.",
+              "text": "The stage grew from a flat 340px to clamp(380px, 34vw, 480px), cropping into the artwork rather than letterboxing it. Every other top-level page opens on an <h1>, whose glyphs start ~11px below its box, while Verse News opens on a card border that lands exactly on the padding line — which is why it read as sitting tighter under the nav bar. The new --sc-page-lead token closes that gap: measured, not guessed, the Starscape heading's cap line sits 37.0px below the content box and the stage now sits at 37px."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.68.0",
+      "date": "2026-08-23",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "A cancelled Postgres statement no longer throws away a whole catalog upload",
+              "text": "(data-uploader 0.25.0). A LIVE 4.9.0 run died at upsert → HTTP 500 ingest_failed canceling statement due to statement timeout: the catalog bridge had no retry at all, so one over-heavy batch ended a multi-hour stage. There are two causes and now two separate recoveries — a flaky or momentarily busy server is retried with exponential backoff, while a batch the database refuses to finish in time is halved and re-sent, because retrying that one unchanged would time out forever. The reduced batch size carries through the rest of the phase, so the remaining chunks don't each rediscover the limit. Every op is an idempotent upsert, so splitting costs nothing. ingest-catalog now returns 503 ingest_timeout for a cancelled statement instead of burying it in a generic ingest_failed; the uploader also matches the raw wording, so the fix works before the function redeploys."
+            },
+            {
+              "title": "A failed Codex stage deleted the extract it needed to retry.",
+              "text": "The stage is deliberately non-fatal, so the run continued to uploadJob.finish() (job file dropped) and cleanup.extractDir() (out_dir purged) — a transient timeout therefore destroyed both the resume point and the extracted data, turning a 30-second retry into a full re-extraction. The job now stays resumable, and the Codex error is re-asserted after the skin stage instead of being overwritten by \"3D-Skins fertig\"."
+            },
+            {
+              "title": "The error message rendered on top of the running progress card.",
+              "text": ".upload-actions is a flex container whose children could shrink below their own content; at a tight window height the progress card was handed 26 px for 118 px of content and the overflow painted straight through the message box. Children now hold their natural height and the card scrolls instead. The status itself became three separable things — what happened, what to do about it, and the technical text, collapsed — replacing the raw one-line dump."
+            },
+            {
+              "title": "Pause did nothing during the 3D-skin build.",
+              "text": "The cooperative signal is only checked between our own work units, but the skin build is a Python child that runs for hours without asking; the button flipped the job state and the machine kept grinding. Pause and cancel now kill that child, which is safe because skin_export_app writes a ship's skins.json only once that ship is fully exported and --skip-existing keys on exactly that file — a resume rebuilds only the ship that was in flight. The kill reports as paused, not as a build failure, and the button acknowledges the click immediately."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.67.0",
+      "date": "2026-08-23",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "\"Was ist neu\" is now \"Auf dem Reißbrett\".",
+              "text": "The rail under the Codex domain tiles never held news. It holds RSI ship-matrix entries our extracted game data has no match for — announced concept hulls meant to be built some day, newest announcement first. The old title promised a recency the list does not carry (owner feedback, 2026-08-23)."
+            },
+            {
+              "title": "Its tiles are the artwork now.",
+              "text": "Each entry was a boxed thumbnail with the name and manufacturer stacked underneath; it is a 16:9 bleed crop with both riding a bottom scrim, the art-first treatment the ship pages already use. sc-fallback-image gained a --sc-img-fit / --sc-img-w / --sc-img-h contract so a host can ask for a cover crop — the default stays the letterboxed contain fit every other caller relies on."
+            }
+          ]
+        },
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "The Showroom.",
+              "text": "Route, page, landing entry, Bridge billboard and nav link, i18n block and mobile-gate route are gone. A livery-first ship gallery was never a destination of its own: skins and the interactive 3D model already live on the ship detail page, reachable through the hangar. ShowroomService stays — the Holo-Ready badge reads the same discovery plane."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.66.0",
+      "date": "2026-08-22",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse News opens on a stage instead of a toolbar.",
+              "text": "Measured in production on 2026-08-20 the page ran 7,327 px (7.7 screens) and began with a filter bar above a 297 px band holding a single video; its one composed element, the hero tile, was defined as \"first item of the *Today* bucket\" and that bucket did not exist that day, so no hero rendered at all. The entry is now three objects: a stage picked by score over the whole editorial pool — so it resolves on any day the feed holds one image-carrying item — a verdict card that reduces the entire patch apparatus above the fold to one sentence plus its basis (median interval and sample count, never dropped), and a flat, reverse-chronological stream. Videos are ordinary stream items and the highest-weighted stage candidates; the video rail, the channel filter chips and the Heute / Diese Woche / Älter bands are gone. Chosen by the owner from three code-blind design directions (.claude/rethink/2026-08-20-verse-news-entry/, concept page docs/concepts/2026-08-20-verse-news-einstieg.html)."
+            },
+            {
+              "title": "The patch depth moved to /news/patches.",
+              "text": "The rotating cadence carousel, both filter axes and the full history are unchanged in substance — they took 2,019 px *above the first news article* and now have a page of their own. Deliberately not a nav entry: Patches is a subview of Verse News, the same reasoning that keeps Hangar out of the top level (feedback f0363cef)."
+            },
+            {
+              "title": "Build waves fold.",
+              "text": "RSI publishes one note per internal build wave, so a single announcement arrived as a run of near-identical rows — twenty of them, 1,215 px, for the open 4.10 line alone. A run of same-version, same-facet notes now collapses into one expandable row that says how many waves it holds."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The README version badge tracked 0.64.2 while package.json was 0.65.0, which failed the ship pre-flight's version-consistency check on every branch cut afterwards."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.65.0",
+      "date": "2026-08-21",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "The ship detail page is now a full loadout screen",
+              "text": "(#405, #406, #408 — the V2 loadout migration, closing #402). Every fitting on /codex/ship/:className can be swapped through the picker (\"Übernehmen\" / \"Slot leeren\"), drafts track emptied-vs-unchanged per slot, per-row revert and an explicit save bar persist top-level, port-joinable changes into the ship's active hangar config via read-merge-write — hangar-authored entries survive. A six-cell KPI band (mission-chosen metrics with stock-vs-draft delta chips; ±0 renders nothing), a one-row mission bar (Alles · Kampf · Transport · Reisen · Schleichen · Bergbau · Bergung, each disabled with its reason when the hull can't fly it) and an Offensive / Verteidigung / Schiff analysis column replace the old Kampfübersicht. Drafts mirror to a build-aware URL param + localStorage. Where the extract carries no value, the page shows the named gap notice — never an invented number."
+            },
+            {
+              "title": "The extractor closes four confirmed catalog gaps",
+              "text": "(schema_version 2, data-uploader 0.24.0): real weapon fire rate from SWeaponActionFire* actions (DPS returns automatically), ship flight data resolved from the Controller_Flight_<Ship> item's IFCSParams, ship cross-section (Vec3 axes) and per-hull ARMR_* armor stats (damage multipliers, penetration, deflection). Ship-level IR/EM turned out to be genuinely absent from the game files (no scalar fields; the emission model hangs on the missing per-item power data) — the UI says so instead of implying a pending upload. New values appear after the next catalog upload."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Vercel deploys no longer die on ng build's intermittent no-exit hang",
+              "text": "(#410). The builder occasionally never exits after writing a complete artifact, which froze production for 45-minute BUILD_EXCEEDED_MAXIMUM_TIME cycles per deploy. scripts/vercel-build.sh kills the build 300s in and accepts a timeout kill only when index.html and ngsw.json verifiably exist; real compile errors still fail. Local builds untouched."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.64.2",
+      "date": "2026-08-18",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "The deployed page now proves which version it serves — and /ship checks it.",
+              "text": "The built index.html carries <meta name=\"app-version\" content=\"vX.Y.Z\">, stamped in postbuild by the new scripts/stamp-index-version.mjs, which also re-hashes /index.html in ngsw.json so the service worker's integrity check keeps passing (the index is prefetch-hashed; an unpatched rewrite would degrade every SW client to network-only). .claude/skills/ship/reference.md declares the Vercel surface for /ship's live browser check plus the flat verify: block for the headless post-merge watcher — both probing with ?ngsw-bypass=true so stale service-worker shells cannot fake the result. Until now the app exposed no version marker at all, so a green merge could leave a stale deploy live unnoticed. Also re-ships public/release-notes.json for v0.64.1, whose changelog entry landed without rerunning the generator."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.64.1",
+      "date": "2026-08-17",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Claude skill extensions realigned with the renamed devops plugin skills.",
+              "text": "The plugin dropped its devops- skill prefix a while ago, which silently detached two of this repo's project extensions. devops-ship's five battle-tested rules (downstream deploy surfaces, deploy-target enumeration on the completion card, tag-retry policy, monorepo version bumps, uploader binary release) now live in .claude/skills/ship/SKILL.md behind the mobile-gate rule; devops-concept shrank to a new concept/ extension carrying only the CSP connect-src rule (its other two rules are enforced upstream by the plugin's validation gate + post.concept.gate hook since dotclaude#165); devops-test-plan/ keeps its name deliberately — it is the plugin's stable consumer-contract path — but its SKILL.md no longer claims to extend a skill that does not exist. Living docs (docs/mobile-gate.md, docs/feedback-routine.md, deep-knowledge, .gitignore comments) reference the current /ship, /concept, /promote, /setup-cleanup, /tune-rethink and /run-burn names; historical records (CHANGELOG, release notes, shipped concept pages, migration comments) were left untouched."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.64.0",
+      "date": "2026-08-16",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "The Hangar is a Codex subview again, not a nav entry.",
+              "text": "v0.63.0 restored it as a fourth top-level link because the Bridge — its former home — had been demoted. The better answer is the one the landing already implies: clicking anywhere in the \"Im Hangar\" zone enters the Hangar, and clicking anywhere in \"An Bord\" enters the on-foot view (an existing FPS set if there is one, else the FPS catalog). The nav is back to three entries, and a spec now pins that count so the regression cannot return unnoticed. Both zone entrances are real <a [routerLink]> anchors — middle-click and Ctrl/⌘-click work — implemented as a stretched ::after overlay rather than a wrapping anchor, because the zones contain their own controls and nested anchors are invalid HTML. The focus ring spans the whole zone, not just its heading."
+            },
+            {
+              "title": "The upper surface is one floating box.",
+              "text": "\"An Bord\" and \"Im Hangar\" keep sharing a single undivided container (the scale break stays the located eyebrow plus the amber→cyan shift), but it now reads as a raised panel via --shadow-elevated — a border glow, never a positive-Y drop shadow."
+            },
+            {
+              "title": "\"Im Versum\" is frameless until you touch it.",
+              "text": "The domain tiles carry no resting border at all; border and glow appear on hover and :focus-visible."
+            },
+            {
+              "title": "\"Kommende Schiffe\" is no longer its own destination.",
+              "text": "It became a horizontally scrollable \"Was ist neu\" rail next to the ship domain, with the count of hulls that appeared since your last visit as a badge. The rail scrolls inside its own container so the page body never scrolls sideways. Every tile links out to RSI — by construction the upcoming feed only carries hulls with no match in our game data, so there is no internal Codex entry to link to."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "The in-app release notes never showed v0.63.0.",
+              "text": "prebuild generates public/release-notes.json from the changelog, but the v0.63.0 ship committed the changelog entry without the regenerated artefact — so users ran a version whose notes the app could not display."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.63.0",
+      "date": "2026-08-16",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "The Codex front door is now a scale ladder: person → ship → verse.",
+              "text": "\"An Bord\" and \"Im Hangar\" no longer sit in two bordered panels — they share one continuous surface whose only break is the located eyebrow and the amber→cyan scope shift, because a pilot and their ship are one subject at two scales, not two cards. \"An Bord\" leads with a schematic figure carrying the six armour slots at their anatomical positions instead of a decorative helmet icon over manufactured whitespace (min-height: 260px is gone — it was what created the emptiness the icon then had to fill)."
+            },
+            {
+              "title": "\"Im Hangar\" leads with identity, not inventory:",
+              "text": "Hersteller · Rolle · Name of the selected ship (defaulting to the flagship), followed by up to six KPIs derived from the mount structure — Schildsumme, unbestückte Aufhängungen (the most actionable number the catalog offers), Waffenaufhängungen, Raketenkapazität, Quantum-Antrieb, Bestückungsgrad. The full component list stays on the detail pages. Both scales gained a native <details> list of the three most recently changed saved configurations."
+            },
+            {
+              "title": "\"Welt / Was willst du tun?\" became \"Im Versum\".",
+              "text": "The old row of four one-liner links was navigation wearing the costume of content — structurally the same chip strip it had replaced, only larger. It is now a frameless state surface with domain entries carrying real entity_counts; keybinds moved behind a quiet rail icon (a keybind query pages ~1.1k rows)."
+            },
+            {
+              "title": "StarUI's own rules are now honoured on this page:",
+              "text": "2–4px radii and border glows replace the 16px/12px/999px radii and 0 6px 18px drop shadows that made a deliberately sharp-edged design system read as generic web cards. The remaining Unicode stand-ins (⌕ × ☆ ★ Δ) are stroke SVG icons."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "The Hangar was reachable only by typing its URL.",
+              "text": "It was deliberately kept out of the nav because it \"lived under the Codex Bridge\" — but the Bridge was demoted to /codex/bridge by an earlier landing redesign, and the rationale went with it while the decision stayed. Restored as a top-level nav entry."
+            },
+            {
+              "title": "The \"Zyklus-Report\" line claimed a global patch statistic and counted only your own ships",
+              "text": "(fleetDeltas().size), two centimetres above the very Δ chips it was double-reporting. Removed; patch/build provenance now lives inside the patch-badge disclosure, where it is a question you ask rather than a label you read past."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Ship KPIs are derived exclusively from fitted components and hardpoint structure. crew, cargoCapacity, mass and the entire flight object are null for every ship in the current extraction, so no hull number is rendered anywhere. Likewise, personal armour carries no protection values and FPS weapons carry no stats object at all — \"Stealth/Rüstung/Waffengewalt\" render as honest gap markers with an explanatory aria-label instead of fabricated figures. Closing those gaps is extraction-pipeline work."
+            },
+            {
+              "title": "",
+              "text": "\"Die drei zuletzt geöffneten Konfigurationen\" currently sorts by updated_at; no last_opened_at column exists yet. The ordering is isolated behind sortByRecency() so a later migration can swap it without touching the view."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.62.2",
+      "date": "2026-08-13",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Starscape images (and RSI-hosted news thumbs) were dead for every returning visitor.",
+              "text": "The Angular service worker re-fetches every subresource inside the worker, where only the worker script's CSP connect-src applies — and that list was missing the RSI image CDN, the signed /i/ proxy host and the Google-Fonts pair. ngsw answered each request with a synthesized 504 Gateway Timeout, while curl and first visits saw 200 (the real cause behind admin feedback 4e54ad2c). The missing hosts are now granted in connect-src; theverse.robertsspaceindustries.com joins img-src for Spectrum-hosted screenshots."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Prebuild guard check-csp-connect-src.mjs:",
+              "text": "every https host granted in script/style/font/img-src must also be in connect-src, and duplicated CSP directives fail the build — this bug class cannot ship again."
+            },
+            {
+              "title": "Postbuild stamp stamp-ngsw-worker.mjs:",
+              "text": "ngsw-worker.js is byte-stamped with the app version plus a hash of the response-header config. A byte-identical worker script never adopts new response headers (the service worker update algorithm discards the fresh fetch), so without the stamp, header-only fixes like this one would never reach existing installs."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.62.1",
+      "date": "2026-08-12",
+      "sections": [
+        {
+          "category": "Security",
+          "label": "",
+          "items": [
+            {
+              "title": "All 9 production npm vulnerabilities cleared (8 high).",
+              "text": "Includes the DOMPurify XSS advisory (GHSA-55q2-fjhq-7xh7) — the sanitizer that cleans Verse-News HTML. npm audit --omit=dev is back to 0."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Dependency refresh across the whole repo",
+              "text": ", consolidating the 16 open Dependabot PRs: Angular 21.2.19, supabase-js 2.112, zone.js 0.16, posthog-js 1.413 (web) · gltf-transform 4.4.2, electron 43.3, vitest 4.1.10, cryptography 50 (data-uploader 0.23.1) · GitHub-Actions pins (checkout v7, setup-node v7, setup-python v7, upload-artifact v7, gh-release v3, setup-cli v3)."
+            },
+            {
+              "title": "",
+              "text": "data-uploader stays on vite 7 (electron-vite 5 caps its peer range at 7); Angular 22, TypeScript 7 (web) and ngx-translate 18 majors deliberately deferred, scdatatools-pinned Python bumps await a scdatatools update."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.62.0",
       "date": "2026-08-11",

@@ -55,6 +55,26 @@ export interface AuthorFeedbackRow {
   /** The admin's explanation, set when `author_status === 'declined'`. */
   decision_note: string | null;
   author_status: AuthorFeedbackStatus;
+  /**
+   * The area tag the author's own composer put on the topic (admin feedback
+   * 835fec58). Projected into `my_feedback` because it is the author's own
+   * statement about their topic — unlike every other admin-side column, showing
+   * it back to them reveals nothing they did not write. `null` on topics filed
+   * before the tag existed; optional so fixture rows keep compiling.
+   */
+  area?: string | null;
+  /**
+   * May this author still withdraw the topic (admin feedback 892013b6)? Computed
+   * by `public.feedback_withdrawable()` — the very predicate the DELETE policy
+   * enforces — so the button is offered exactly when the database would allow
+   * it, never one click more.
+   *
+   * It cannot be derived from {@link AuthorFeedbackRow.author_status}: that
+   * status is coarse on purpose, and its `in_progress` bucket holds the still
+   * untouched topic that IS withdrawable together with three states that are
+   * not. Optional so fixture rows keep compiling; absent reads as "no".
+   */
+  can_delete?: boolean;
 }
 
 /**
@@ -74,6 +94,19 @@ export function coarseAuthorStatus(status: FeedbackStatus): AuthorFeedbackStatus
   return 'in_progress';
 }
 
+/**
+ * One row of `public.feedback_read_state` — when this user last looked at one of
+ * their own topics, and which coarse status was on screen at that moment.
+ */
+export interface FeedbackReadState {
+  feedback_id: string;
+  last_read_at: string;
+  last_seen_status: AuthorFeedbackStatus;
+}
+
+/** Read markers by topic id. */
+export type FeedbackReadStateMap = ReadonlyMap<string, FeedbackReadState>;
+
 /** Author-visible messages grouped by topic id. */
 export type AuthorThreadMap = ReadonlyMap<string, AuthorFeedbackMessage[]>;
 
@@ -88,4 +121,67 @@ export function groupAuthorMessages(
     else grouped.set(row.feedback_id, [row]);
   }
   return grouped;
+}
+
+/**
+ * The coarse status every topic is born in — `open` maps to `in_progress`.
+ *
+ * A topic the author has never had the panel open for carries no read marker, so
+ * this is the baseline the status is compared against: a freshly sent topic
+ * nobody has touched yet is not news to the person who just wrote it.
+ */
+export const AUTHOR_STATUS_ON_ARRIVAL: AuthorFeedbackStatus = 'in_progress';
+
+/** Highest number the FAB badge spells out; anything above renders as "9+". */
+export const UNREAD_BADGE_CAP = 9;
+
+/**
+ * Is there news on this topic for its author (admin feedback e684c946)?
+ *
+ * Two, and only two, things count as news:
+ *
+ * 1. A message from the team that arrived after the last read. The author's own
+ *    replies never count — you are not unread on your own writing.
+ * 2. The coarse status differs from the one that was on screen at the last read
+ *    — "umgesetzt", "nicht umgesetzt", or a question opened.
+ *
+ * Deliberately NOT counted: `updated_at` on the topic. It moves for every
+ * internal edit on the admin board (processing notes, triage, ship refs), none
+ * of which the author is even allowed to see — a badge for those would send
+ * people into an empty panel.
+ */
+export function topicHasNews(
+  topic: AuthorFeedbackRow,
+  messages: readonly AuthorFeedbackMessage[],
+  read: FeedbackReadState | undefined,
+): boolean {
+  const seenStatus = read?.last_seen_status ?? AUTHOR_STATUS_ON_ARRIVAL;
+  if (topic.author_status !== seenStatus) return true;
+  const readAt = read ? Date.parse(read.last_read_at) : Number.NaN;
+  return messages.some((m) => {
+    if (!m.from_admin) return false;
+    if (Number.isNaN(readAt)) return true;
+    const at = Date.parse(m.created_at);
+    return Number.isNaN(at) ? false : at > readAt;
+  });
+}
+
+/** The ids of every topic that currently has news, in the given topic order. */
+export function topicsWithNews(
+  topics: readonly AuthorFeedbackRow[],
+  threads: AuthorThreadMap,
+  read: FeedbackReadStateMap,
+): string[] {
+  return topics
+    .filter((t) => topicHasNews(t, threads.get(t.id) ?? [], read.get(t.id)))
+    .map((t) => t.id);
+}
+
+/**
+ * What the badge shows. Capped rather than truthful: a two-digit pill on a 56px
+ * circle stops being a glance and starts being a label, and past nine the exact
+ * number changes nothing about what the user should do.
+ */
+export function unreadBadgeText(count: number): string {
+  return count > UNREAD_BADGE_CAP ? `${UNREAD_BADGE_CAP}+` : String(count);
 }

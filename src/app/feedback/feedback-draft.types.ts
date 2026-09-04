@@ -14,6 +14,12 @@ export interface DraftImageRef {
   id: string;
   name: string;
   url: string;
+  /**
+   * MIME type of the attachment. Absent means image — every draft written
+   * before admins could attach arbitrary files (admin feedback 312a4acc) has no
+   * such field, and must keep restoring as the image it is.
+   */
+  mime?: string;
 }
 
 /** A stored draft, as the app works with it. */
@@ -56,6 +62,13 @@ export const draftScopes = {
   adminAuthor: (feedbackId: string): string => `admin:author:${feedbackId}`,
   /** Workflow view, answer to the routine's open question. */
   adminWorkflow: (feedbackId: string): string => `admin:workflow:${feedbackId}`,
+  /**
+   * Workflow view, the steer that reopens a finished topic ("Gespräch wieder
+   * aufnehmen", feedback d4990269). Its own scope rather than the answer box's:
+   * the two boxes can be open on the same topic at different times, and a
+   * half-written steer must not surface as an answer.
+   */
+  adminWorkflowReopen: (feedbackId: string): string => `admin:workflow-reopen:${feedbackId}`,
 } as const;
 
 /**
@@ -84,12 +97,13 @@ export function normalizeDraftImages(raw: unknown): DraftImageRef[] {
   const out: DraftImageRef[] = [];
   for (const entry of raw) {
     if (!entry || typeof entry !== 'object') continue;
-    const { id, name, url } = entry as Partial<DraftImageRef>;
+    const { id, name, url, mime } = entry as Partial<DraftImageRef>;
     if (typeof url !== 'string' || !url) continue;
     out.push({
       id: typeof id === 'string' && id ? id : crypto.randomUUID(),
       name: typeof name === 'string' ? name : 'image',
       url,
+      ...(typeof mime === 'string' && mime ? { mime } : {}),
     });
   }
   return out;

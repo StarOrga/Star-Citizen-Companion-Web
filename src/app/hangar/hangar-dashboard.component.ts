@@ -6,6 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -13,13 +14,26 @@ import { AuthService } from '../auth/auth.service';
 import { isValidRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 import { CodexListRow, CodexService, pickLocalized } from '../codex/codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
+import { CodexCategoryIconComponent } from '../codex/codex-category-icon.component';
+import { FallbackImageComponent } from '../codex/fallback-image.component';
+import {
+  UpcomingShip,
+  UpcomingShipsService,
+  thumbnailCandidates,
+} from '../codex/upcoming-ships.service';
 import { HangarImportComponent } from './hangar-import.component';
 import { HangarService } from './hangar.service';
 import {
+  ConceptShip,
   HangarShip,
   ROLE_LOADOUT_ROLES,
+  RoleLoadoutItem,
   RoleLoadoutRole,
 } from './hangar.types';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { LoadoutSharePanelComponent } from '../social/loadout-share-panel.component';
+import { LoadoutShareService } from '../social/loadout-share.service';
+import { SharedWithMeRow, shareItems } from '../social/loadout-share.types';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -31,7 +45,17 @@ const SEARCH_DEBOUNCE_MS = 250;
 @Component({
   selector: 'sc-hangar-dashboard',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule, HangarImportComponent],
+  imports: [
+    NeuroFieldDirective,
+    NgTemplateOutlet,
+    FormsModule,
+    RouterLink,
+    TranslateModule,
+    HangarImportComponent,
+    CodexCategoryIconComponent,
+    FallbackImageComponent,
+    LoadoutSharePanelComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -105,6 +129,60 @@ const SEARCH_DEBOUNCE_MS = 250;
         </div>
       }
 
+      <!-- "Auf dem Reissbrett" — the announced ships this user watches (#130).
+           The wishlist itself is the #135 hangar_concept_ships table; this is
+           its entrance at the TOP of the hangar, where the admin asked for it,
+           while the add/remove form stays in the section further down. Every
+           tile is a real anchor: into our own announced-ship page when the RSI
+           feed still knows the hull, otherwise onto the stored pledge link, and
+           a hull with neither renders as a plain (non-navigating) tile rather
+           than a dead link. Always rendered, so a user with an empty watchlist
+           still finds the drawing board from here. -->
+      <section class="drawing-board">
+        <header class="db-head">
+          <h2>{{ 'hangar.drawingBoard.title' | translate }}</h2>
+          <span class="db-note">{{ 'hangar.drawingBoard.note' | translate }}</span>
+          <a class="db-browse" routerLink="/codex/upcoming">{{ 'hangar.drawingBoard.browse' | translate }} →</a>
+        </header>
+
+        @if (hangar.conceptShips().length === 0) {
+          <p class="hint db-empty">{{ 'hangar.drawingBoard.empty' | translate }}</p>
+        } @else {
+          <div class="db-scroll" role="list">
+            @for (c of hangar.conceptShips(); track c.id) {
+              @if (announcedFor(c); as a) {
+                <a class="db-tile" role="listitem" [routerLink]="['/codex/upcoming', a.id]">
+                  <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: conceptArt(c) }" />
+                </a>
+              } @else if (c.rsiUrl) {
+                <a class="db-tile" role="listitem" [href]="c.rsiUrl" target="_blank" rel="noopener noreferrer nofollow">
+                  <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: [] }" />
+                </a>
+              } @else {
+                <div class="db-tile is-static" role="listitem">
+                  <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: [] }" />
+                </div>
+              }
+            }
+          </div>
+        }
+      </section>
+
+      <ng-template #dbBody let-c let-art="art">
+        <span class="db-art" [class.icon-only]="art.length === 0">
+          <sc-fallback-image [candidates]="art" [alt]="c.name">
+            <sc-codex-icon kind="ship" />
+          </sc-fallback-image>
+        </span>
+        <span class="db-caption">
+          @if (c.manufacturer) { <span class="db-mfr">{{ c.manufacturer }}</span> }
+          <span class="db-name">{{ c.name }}</span>
+        </span>
+        <span class="db-wip" [attr.title]="'codex.upcoming.notFlightReady' | translate">
+          {{ 'codex.upcoming.conceptBadge' | translate }}
+        </span>
+      </ng-template>
+
       <!-- Add ship -->
       <div class="sc-card add-ship">
         <h2>{{ 'hangar.add.title' | translate }}</h2>
@@ -144,7 +222,9 @@ const SEARCH_DEBOUNCE_MS = 250;
         <h2>{{ 'hangar.fleet.title' | translate }}</h2>
         @if (hangar.loading() && hangar.ships().length === 0) {
           <div class="grid">
-            @for (s of skeletons; track s) { <div class="card skel"></div> }
+            @for (s of skeletons; track s; let i = $index) {
+              <div class="card skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
+            }
           </div>
         } @else if (hangar.ships().length === 0) {
           <div class="sc-card empty">
@@ -263,18 +343,132 @@ const SEARCH_DEBOUNCE_MS = 250;
         @if (hangar.roleLoadouts().length === 0) {
           <p class="hint">{{ 'hangar.roleLoadouts.empty' | translate }}</p>
         } @else {
+          <!--
+            The hangar keeps the LIST and the housekeeping (create, rename,
+            share, delete); the set's contents are edited on the Codex side
+            (admin feedback 34505d70, decision "2A" on issue #411 point 2 —
+            "hangar nicht explizit, der ist schon auf der codex startseite
+            implizit drin"). So the card opens the Codex start page's AN BORD
+            zone on this set, and the standalone editor page is gone.
+
+            The card is no longer one big <a>: the housekeeping controls are
+            real actions and must not sit inside the navigation.
+          -->
           <div class="grid">
             @for (l of hangar.roleLoadouts(); track l.id) {
-              <a class="card loadout-card" [routerLink]="['/hangar/loadout', l.id]">
-                <div class="card-top">
-                  <h3 class="name">{{ l.name }}</h3>
-                  <span class="badge role-{{ l.role }}">{{ ('hangar.roles.' + l.role) | translate }}</span>
-                </div>
-                <p class="ld-summary">
-                  {{ 'hangar.roleLoadouts.itemCount' | translate: { count: filledCount(l.items) } }}
-                </p>
-              </a>
+              <div class="card loadout-card own-card">
+                <a class="ld-open" routerLink="/codex" [queryParams]="{ zone: 'board', set: l.id }">
+                  <div class="card-top">
+                    <h3 class="name">{{ l.name }}</h3>
+                    <span class="badge role-{{ l.role }}">{{ ('hangar.roles.' + l.role) | translate }}</span>
+                  </div>
+                  <p class="ld-summary">
+                    {{ 'hangar.roleLoadouts.itemCount' | translate: { count: filledCount(l.items) } }}
+                  </p>
+                </a>
+
+                @if (renamingId() === l.id) {
+                  <div class="ld-rename">
+                    <input class="ld-name" type="text" [ngModel]="renameDraft()"
+                           (ngModelChange)="renameDraft.set($event)"
+                           (keyup.enter)="saveRename(l.id)" (keyup.escape)="cancelRename()"
+                           [attr.aria-label]="'hangar.roleLoadouts.rename' | translate" />
+                    <button class="sc-btn tiny" type="button" [disabled]="!renameDraft().trim()"
+                            (click)="saveRename(l.id)">
+                      {{ 'hangar.detail.save' | translate }}
+                    </button>
+                    <button class="sc-btn tiny ghost" type="button" (click)="cancelRename()">
+                      {{ 'hangar.roleLoadouts.cancel' | translate }}
+                    </button>
+                  </div>
+                } @else {
+                  <div class="ld-actions">
+                    <button class="sc-btn tiny" type="button" (click)="startRename(l)">
+                      {{ 'hangar.roleLoadouts.rename' | translate }}
+                    </button>
+                    <button class="sc-btn tiny" type="button"
+                            [attr.aria-expanded]="openOwnShare() === l.id"
+                            (click)="toggleOwnShare(l.id)">
+                      {{ 'hangar.roleLoadouts.share' | translate }}
+                    </button>
+                    @if (confirmDeleteId() === l.id) {
+                      <button class="sc-btn tiny danger" type="button" (click)="deleteLoadout(l.id)">
+                        {{ 'hangar.roleLoadouts.deleteConfirm' | translate }}
+                      </button>
+                      <button class="sc-btn tiny ghost" type="button" (click)="confirmDeleteId.set(null)">
+                        {{ 'hangar.roleLoadouts.cancel' | translate }}
+                      </button>
+                    } @else {
+                      <button class="sc-btn tiny ghost" type="button" (click)="confirmDeleteId.set(l.id)">
+                        {{ 'hangar.configs.delete' | translate }}
+                      </button>
+                    }
+                  </div>
+                }
+
+                @if (openOwnShare() === l.id) {
+                  <sc-loadout-share-panel [loadoutId]="l.id" />
+                }
+              </div>
             }
+          </div>
+        }
+
+        <!--
+          Loadouts friends shared with me (feedback cf0ddf7d phase 2). Renders
+          only when there is something to show — an empty block here would be
+          noise for the majority who have no friends on the platform yet.
+
+          These are NOT navigations: a shared loadout has no page of its own
+          (the friend share carries no link token, and minting one would be the
+          OWNER's decision, not the recipient's), so the disclosure below is a
+          real action and correctly a <button>. The full item list already came
+          down with list_loadouts_shared_with_me(), so opening one costs no
+          round trip.
+        -->
+        @if (sharedWithMe().length > 0) {
+          <div class="shared-block">
+            <h2>{{ 'share.sharedWithMe.title' | translate }}</h2>
+            <p class="hint">{{ 'share.sharedWithMe.hint' | translate }}</p>
+            <div class="grid">
+              @for (s of sharedWithMe(); track s.share_id) {
+                <div class="card loadout-card shared-card">
+                  <div class="card-top">
+                    <h3 class="name">{{ s.name }}</h3>
+                    <span class="badge role-{{ s.role }}">{{ ('hangar.roles.' + s.role) | translate }}</span>
+                  </div>
+                  <p class="ld-summary">
+                    {{ 'share.view.by' | translate: { name: sharedOwnerLabel(s) } }}
+                    <span class="dot">·</span>
+                    {{ 'hangar.roleLoadouts.itemCount' | translate: { count: sharedItems(s).length } }}
+                  </p>
+                  <button
+                    type="button"
+                    class="sc-btn tiny shared-toggle"
+                    [attr.aria-expanded]="openShare() === s.share_id"
+                    (click)="toggleShare(s.share_id)">
+                    {{ (openShare() === s.share_id ? 'share.sharedWithMe.hide' : 'share.sharedWithMe.show') | translate }}
+                  </button>
+                  @if (openShare() === s.share_id) {
+                    @if (sharedItems(s).length === 0) {
+                      <p class="hint">{{ 'share.view.emptyLoadout' | translate }}</p>
+                    } @else {
+                      <ul class="shared-items">
+                        <!-- track $index: these items are raw JSONB from a
+                             friend's row, and a duplicate slot label would
+                             make Angular throw on the duplicate key. -->
+                        @for (i of sharedItems(s); track $index) {
+                          <li>
+                            <span class="si-slot">{{ i.slot }}</span>
+                            <span class="si-name">{{ i.className ? itemLabel(i.className) : '—' }}</span>
+                          </li>
+                        }
+                      </ul>
+                    }
+                  }
+                </div>
+              }
+            </div>
           </div>
         }
       </div>
@@ -317,6 +511,71 @@ const SEARCH_DEBOUNCE_MS = 250;
     .hero-sub { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     .sc-card h2, .fleet h2, .loadouts h2, .concepts h2 { margin: 0 0 10px; font-size: 1rem; }
+
+    /* "Auf dem Reissbrett" strip (#130) — the watched announced ships, at the
+       top of the hangar. Same art-first tile language as the Codex rail, with
+       its own overflow-x container so the PAGE never scrolls sideways (the
+       mobile gate fails on horizontal page overflow). */
+    .drawing-board { display: flex; flex-direction: column; gap: 8px; }
+    .db-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .db-head h2 { margin: 0; font-size: 1rem; }
+    .db-note { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
+    .db-browse { margin-left: auto; color: var(--sc-accent); text-decoration: none; font-size: max(0.76rem, var(--sc-fs-floor)); }
+    .db-browse:hover { text-decoration: underline; }
+    .db-empty { margin: 0; }
+    .db-scroll {
+      display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden;
+      -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity;
+      padding: 2px 2px 6px; margin: 0 -2px;
+    }
+    .db-tile {
+      position: relative; flex: 0 0 196px; aspect-ratio: 16 / 9;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+      border-radius: 4px; border: 1px solid var(--sc-border);
+      background: radial-gradient(circle at 50% 42%, var(--sc-bg-2), var(--sc-bg-0));
+      color: inherit; text-decoration: none; scroll-snap-align: start;
+      min-height: var(--sc-tap-min, 44px);
+      transition: border-color 0.16s ease, box-shadow 0.16s ease;
+      /* sc-fallback-image owns the <img>; a bleed crop travels as custom
+         properties because they inherit across the component boundary. */
+      --sc-img-w: 100%; --sc-img-h: 100%; --sc-img-max-h: 100%;
+      --sc-img-fit: cover; --sc-img-shadow: none;
+    }
+    a.db-tile:hover, a.db-tile:focus-visible {
+      outline: none;
+      border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
+      box-shadow: 0 0 18px color-mix(in srgb, var(--sc-accent) 26%, transparent);
+    }
+    .db-tile.is-static { cursor: default; }
+    .db-art { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    .db-art.icon-only sc-codex-icon { width: 30%; height: 30%; opacity: 0.55; color: var(--sc-accent); transform: translateY(-14%); }
+    .db-caption {
+      position: absolute; inset: auto 0 0 0; display: flex; flex-direction: column; gap: 1px;
+      padding: 16px 10px 8px;
+      background: linear-gradient(to top, rgba(2, 8, 14, 0.92) 0%, rgba(2, 8, 14, 0.72) 46%, transparent 100%);
+    }
+    .db-mfr {
+      font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor));
+      letter-spacing: 0.07em; text-transform: uppercase; line-height: 1.2;
+      color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .db-name {
+      font-size: 0.8rem; font-weight: 600; line-height: 1.15; color: #f2f7fb;
+      overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    /* The "not flight-ready" marker the admin asked for: a small pill in the
+       free corner, tinting rather than covering the render. */
+    .db-wip {
+      position: absolute; top: 6px; left: 6px; padding: 2px 7px; border-radius: 999px;
+      font-family: var(--sc-font-display); font-size: max(0.56rem, var(--sc-fs-floor));
+      font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.35;
+      color: color-mix(in srgb, var(--sc-accent) 88%, #f2f7fb);
+      background: rgba(2, 8, 14, 0.72);
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 42%, transparent);
+      pointer-events: none;
+    }
 
     /* Concept-ship wishlist (#135) */
     .concepts .hint { color: var(--sc-fg-2); font-size: 0.85rem; margin: 0 0 10px; }
@@ -380,8 +639,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .badge.wishlist { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); }
     .badge[class*='role-'] { text-transform: uppercase; letter-spacing: 0.05em; }
 
-    .card.skel { min-height: 140px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .card.skel { min-height: 140px; }
 
     .loadouts-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
     .loadouts-head h2 { margin: 0; }
@@ -390,6 +648,33 @@ const SEARCH_DEBOUNCE_MS = 250;
     .ld-name:focus { outline: none; border-color: var(--sc-accent); }
     .sc-select { background: var(--sc-bg-1); color: var(--sc-fg-0); border: 1px solid var(--sc-border); border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 0.82rem; cursor: pointer; }
     .loadout-card .ld-summary { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .own-card { display: flex; flex-direction: column; gap: 10px; cursor: default; }
+    .ld-open { display: flex; flex-direction: column; gap: 6px; color: inherit; text-decoration: none; }
+    .ld-actions, .ld-rename { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .ld-rename .ld-name { flex: 1 1 140px; min-width: 0; }
+    .sc-btn.danger { border-color: var(--sc-danger); color: var(--sc-danger); }
+    .sc-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+
+    .shared-block { margin-top: 22px; }
+    .shared-block h2 { margin: 0 0 4px; font-size: 1rem; }
+    .shared-block .hint { margin: 0 0 10px; }
+    .shared-card { display: flex; flex-direction: column; gap: 8px; cursor: default; }
+    .shared-card .dot { margin: 0 5px; }
+    .shared-toggle { align-self: flex-start; }
+    .shared-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    .shared-items li { display: flex; gap: 10px; flex-wrap: wrap; font-size: max(0.78rem, var(--sc-fs-floor)); }
+    .si-slot { flex: 0 0 92px; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; font-size: max(0.68rem, var(--sc-fs-floor)); }
+    .si-name { flex: 1 1 120px; min-width: 0; overflow-wrap: anywhere; }
+
+    /* 48px, not 44: two overlapping scale(0.994) shell animations shave a
+       hair off every measured box, so a 44px target measures 43. */
+    @media (pointer: coarse) {
+      .shared-toggle { min-height: 48px; }
+    }
+    @media (max-width: 560px) {
+      .shared-toggle { width: 100%; }
+      .si-slot { flex: 1 1 100%; }
+    }
 
     .sc-btn { padding: 8px 14px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
     .sc-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
@@ -421,6 +706,8 @@ const SEARCH_DEBOUNCE_MS = 250;
 })
 export class HangarDashboardComponent implements OnInit {
   readonly hangar = inject(HangarService);
+  private readonly shares = inject(LoadoutShareService);
+  private readonly rsi = inject(UpcomingShipsService);
   readonly auth = inject(AuthService);
   private readonly codex = inject(CodexService);
 
@@ -443,12 +730,67 @@ export class HangarDashboardComponent implements OnInit {
     () => new Set(this.hangar.ships().map((s) => s.shipClassName)),
   );
 
+  // ── Loadouts friends shared with me (feedback cf0ddf7d phase 2) ───────────
+
+  readonly sharedWithMe = signal<SharedWithMeRow[]>([]);
+  /** share_id of the expanded card, or null. One at a time, like an accordion. */
+  readonly openShare = signal<string | null>(null);
+  /** Own-set housekeeping state (rename in place, share disclosure, delete confirm). */
+  readonly renamingId = signal<string | null>(null);
+  readonly renameDraft = signal('');
+  readonly openOwnShare = signal<string | null>(null);
+  readonly confirmDeleteId = signal<string | null>(null);
+
+  sharedItems(s: SharedWithMeRow): RoleLoadoutItem[] {
+    return shareItems(s).filter((i) => i.slot);
+  }
+
+  sharedOwnerLabel(s: SharedWithMeRow): string {
+    return s.owner_handle ?? s.owner_name ?? '—';
+  }
+
+  itemLabel(className: string): string {
+    return humanizeClassName(className);
+  }
+
+  toggleShare(shareId: string): void {
+    this.openShare.set(this.openShare() === shareId ? null : shareId);
+  }
+
   async ngOnInit(): Promise<void> {
     // Signed-out (#131): the teaser needs no data — and hangar RLS would
     // reject the queries anyway.
     if (!this.auth.user()) return;
+    // Fire-and-forget: a friend's shared loadout is a bonus block at the
+    // bottom of the page, so a DB that has not had migration 20260904020000
+    // applied yet (the app deploys on merge, the migration lands after) must
+    // cost the hangar nothing — the service swallows it and the list stays
+    // empty.
+    void this.shares.listSharedWithMe().then((rows) => this.sharedWithMe.set(rows));
+    // The RSI feed is fire-and-forget: it only enriches the drawing-board strip
+    // with artwork and an in-app target, so a dead proxy must not delay (or
+    // fail) the hangar itself. One CDN-cached GET, shared with the Codex.
+    void this.rsi.ensureLoaded();
     await Promise.all([this.hangar.loadAll(), this.codex.loadCurrentBuild()]);
     await this.refreshCards();
+  }
+
+  // ── "Auf dem Reissbrett" strip (#130) ──────────────────────────────────────
+
+  /**
+   * The announced ship behind a watched concept entry, matched on the
+   * normalized name — the only handle a catalog-less hull has. `null` for a
+   * hand-typed entry the RSI matrix does not (or no longer) list; the tile then
+   * falls back to the stored pledge link.
+   */
+  announcedFor(c: ConceptShip): UpcomingShip | null {
+    return this.rsi.shipByName(c.name);
+  }
+
+  /** Ordered RSI art candidates for a watched entry; empty when unmatched. */
+  conceptArt(c: ConceptShip): string[] {
+    const a = this.announcedFor(c);
+    return a ? thumbnailCandidates(a) : [];
   }
 
   cardFor(s: HangarShip): CodexListRow | null {
@@ -547,6 +889,41 @@ export class HangarDashboardComponent implements OnInit {
     if (!name) return;
     const created = await this.hangar.createRoleLoadout(name, this.newLoadoutRole());
     if (created) this.newLoadoutName.set('');
+  }
+
+  // ── set housekeeping ───────────────────────────────────────────────────────
+  // Rename / share / delete moved here when the standalone role-loadout editor
+  // was retired (admin feedback 34505d70, decision 2A). They belong next to
+  // "create", which already lived on this list; only the set's CONTENTS moved
+  // to the Codex.
+
+  startRename(l: { id: string; name: string }): void {
+    this.confirmDeleteId.set(null);
+    this.renamingId.set(l.id);
+    this.renameDraft.set(l.name);
+  }
+
+  cancelRename(): void {
+    this.renamingId.set(null);
+    this.renameDraft.set('');
+  }
+
+  async saveRename(id: string): Promise<void> {
+    const name = this.renameDraft().trim();
+    if (!name) return;
+    await this.hangar.updateRoleLoadout(id, { name });
+    this.cancelRename();
+  }
+
+  toggleOwnShare(id: string): void {
+    this.openOwnShare.set(this.openOwnShare() === id ? null : id);
+  }
+
+  /** Two-step on purpose: the sets sit in a grid, and a stray click is fatal. */
+  async deleteLoadout(id: string): Promise<void> {
+    this.confirmDeleteId.set(null);
+    if (this.openOwnShare() === id) this.openOwnShare.set(null);
+    await this.hangar.deleteRoleLoadout(id);
   }
 
   filledCount(items: { className: string | null }[]): number {

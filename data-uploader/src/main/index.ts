@@ -493,13 +493,48 @@ ipcMain.handle('sc:sync:start', async (event) =>
 
 ipcMain.handle('sc:upload:job', () => uploadJob.view());
 
+// After a restart the renderer has no extraction result to resume with — hand
+// it one rebuilt from the durable job + manifest (or say why that is impossible).
+ipcMain.handle('sc:upload:rehydrate', () => uploadJob.rehydrate());
+
 ipcMain.handle('sc:upload:begin', (_e, outDir: string, nat: { channel: string; patchVersion: string; buildNumber: string }) =>
   uploadJob.begin(outDir, nat),
 );
 
+/**
+ * Stop local sidecar work that a cooperative checkpoint can never reach.
+ *
+ * The catalog stage is a chunk loop inside THIS process, so `PauseControl`
+ * unwinds it at the next boundary. The 3D-skin **build** is a Python child that
+ * runs for hours and never asks anyone for permission — so before this, hitting
+ * Pause during a build looked completely dead: the job file flipped to
+ * `paused`, the button did its thing, and the machine kept grinding for another
+ * two hours.
+ *
+ * Killing it is safe precisely because that build is resumable:
+ * `skin_export_app` writes a ship's `skins.json` only once that ship is fully
+ * exported, and `--skip-existing` keys on exactly that file — so a resume
+ * rebuilds only the one ship that was in flight and skips everything already
+ * finished. Returns true when something was actually interrupted.
+ */
+function interruptLocalSkinBuild(): boolean {
+  let hit = false;
+  for (const job of activeJobs.values()) {
+    if (job.kind !== 'skin') continue;
+    job.cancel();
+    hit = true;
+  }
+  if (hit) log.info('[upload-job] pause/cancel interrupted the in-flight 3D-skin build');
+  return hit;
+}
+
 ipcMain.handle('sc:upload:pause', () => {
   hub.setPaused(true);
-  return uploadJob.pause();
+  const view = uploadJob.pause();
+  // Do this AFTER the job flipped to `paused`: the renderer reads the job view
+  // to tell "operator paused me" apart from "the build crashed".
+  interruptLocalSkinBuild();
+  return view;
 });
 ipcMain.handle('sc:upload:resume', () => {
   hub.setPaused(false);
@@ -511,7 +546,19 @@ ipcMain.handle('sc:upload:resume', () => {
 ipcMain.handle('sc:upload:cancel', () => {
   hub.setPaused(false);
   hub.finish('upload', 'error');
-  return uploadJob.cancel();
+  const view = uploadJob.cancel();
+  interruptLocalSkinBuild();
+  return view;
+});
+
+// Record a hard stage failure without dropping the job file, so the upload view
+// can still offer "continue" instead of silently starting the next run from
+// zero. (`finish` is the success path — it deletes the job.)
+ipcMain.handle('sc:upload:fail', (_e, error: string) => {
+  uploadJob.fail(String(error ?? 'unknown'));
+  hub.setPaused(false);
+  hub.finish('upload', 'error');
+  return uploadJob.view();
 });
 ipcMain.handle('sc:upload:finish', () => {
   uploadJob.finish();
@@ -818,6 +865,15 @@ ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<S
   watchdog.start();
   try {
     const final = await handle.promise;
+    // The build is killed from two places that mean opposite things: an
+    // operator pause/cancel (control flow — the run is meant to continue later)
+    // and a real crash. Only the job signal can tell them apart, so translate
+    // here rather than letting the renderer paint a red "build failed" over an
+    // interruption the operator asked for.
+    if (!final.ok && final.error === 'cancelled') {
+      const signal = uploadJob.view().signal;
+      if (signal !== 'running') return { ok: false, error: signal };
+    }
     return final;
   } catch (err) {
     void reportError('skin-failed', err, { jobId });
@@ -957,6 +1013,7 @@ app.whenReady().then(() => {
       pause: () => {
         uploadJob.pause();
         hub.setPaused(true);
+        interruptLocalSkinBuild();
       },
       resume: () => {
         uploadJob.resume();
@@ -981,7 +1038,9 @@ app.whenReady().then(() => {
   initAutoUpdater(getSettings().updateChannel);
   // Fire-and-forget: reclaim leftover extract dirs from prior failed/uploaded
   // runs. Non-blocking so it never delays window paint; errors are swallowed.
-  void scanAndCleanupDiscovered();
+  // The extract a paused/interrupted upload still needs is exempt — the sweep
+  // once deleted a day-old paused job's dir, leaving its resume nothing to send.
+  void scanAndCleanupDiscovered(resumableUploadOutDir());
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

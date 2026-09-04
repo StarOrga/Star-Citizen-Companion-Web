@@ -91,6 +91,59 @@ describe('ImpersonationService', () => {
     expect(svc.viewAs()).toBeNull();
   });
 
+  it('enter() does NOT reload and sets enterFailed() when setItem silently no-ops (defect A)', () => {
+    const svc = TestBed.inject(ImpersonationService);
+    const reload = spyOnReload(svc);
+    svc.setActualRole('admin', true);
+    expect(svc.enterFailed()).toBe(false);
+
+    spyOn(sessionStorage, 'setItem').and.callFake(() => {
+      /* silently do nothing — simulates a quota'd/blocked write that does
+         not throw (the throwing case is covered separately below) */
+    });
+
+    svc.enter('viewer');
+
+    // A write that did not verifiably stick must not be followed by a
+    // reload — the page would come back byte-identical with zero feedback.
+    expect(reload).not.toHaveBeenCalled();
+    expect(svc.enterFailed()).toBe(true);
+    expect(svc.viewAs()).toBeNull();
+  });
+
+  it('enter() does NOT reload and sets enterFailed() when setItem throws (defect A)', () => {
+    const svc = TestBed.inject(ImpersonationService);
+    const reload = spyOnReload(svc);
+    svc.setActualRole('admin', true);
+
+    spyOn(sessionStorage, 'setItem').and.throwError(
+      new DOMException('quota exceeded', 'QuotaExceededError'),
+    );
+
+    svc.enter('viewer');
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(svc.enterFailed()).toBe(true);
+  });
+
+  it('enter() clears a stale enterFailed() and reloads exactly once on the happy path (defect A)', () => {
+    const svc = TestBed.inject(ImpersonationService);
+    const reload = spyOnReload(svc);
+    svc.setActualRole('admin', true);
+
+    spyOn(sessionStorage, 'setItem').and.throwError(new DOMException('nope'));
+    svc.enter('viewer');
+    expect(svc.enterFailed()).toBe(true);
+    expect(reload).not.toHaveBeenCalled();
+
+    (sessionStorage.setItem as jasmine.Spy).and.callThrough();
+    svc.enter('viewer');
+
+    expect(svc.enterFailed()).toBe(false);
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem(VIEW_AS_STORAGE_KEY)).toBe(JSON.stringify('viewer'));
+  });
+
   it('sign-out (setActualRole(null, true)) clears the overlay', () => {
     // Enter no longer flips `_stored` itself (F3) — a real preview always
     // starts from a fresh construction reading storage after the reload, so
@@ -237,5 +290,157 @@ describe('ImpersonationService', () => {
 
     svc2.exit();
     expect(reload2).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * The pre-load window and the self-heal reload — the two states the original
+ * design left implicit, and the two an adversarial review found consumers
+ * silently relying on. See `previewPending` / `activeOrPending` and the loop
+ * argument in `setActualRole()`.
+ */
+describe('ImpersonationService — pending window and anon self-heal', () => {
+  /**
+   * Spied on the PROTOTYPE, not per instance: these specs construct services
+   * before they get a handle on them (and one of them constructs a second
+   * service to simulate the document a reload produces), so an instance spy
+   * leaves a window where a real `location.reload()` would take Karma down.
+   */
+  let reload: jasmine.Spy;
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    reload = spyOn(
+      ImpersonationService.prototype as unknown as { reload: () => void },
+      'reload',
+    );
+    TestBed.configureTestingModule({ providers: [ImpersonationService] });
+  });
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
+    sessionStorage.clear();
+  });
+
+  it('reports a pending preview before the real role arrives, so blocks fail closed', () => {
+    sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify('collaborator'));
+    const svc = TestBed.inject(ImpersonationService);
+
+    // The window the bug lived in: nothing is resolved yet, so `active()` is
+    // still false — but a block must already hold.
+    expect(svc.active()).toBe(false);
+    expect(svc.previewPending()).toBe(true);
+    expect(svc.activeOrPending()).toBe(true);
+
+    svc.setActualRole('admin', true);
+    expect(svc.active()).toBe(true);
+    expect(svc.previewPending()).toBe(false);
+    expect(svc.activeOrPending()).toBe(true);
+  });
+
+  it('is neither active nor pending when nothing is stored', () => {
+    const svc = TestBed.inject(ImpersonationService);
+    expect(svc.previewPending()).toBe(false);
+    expect(svc.activeOrPending()).toBe(false);
+  });
+
+  it('stops being pending once a rejected value is healed away', () => {
+    sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify('collaborator'));
+    const svc = TestBed.inject(ImpersonationService);
+    expect(svc.activeOrPending()).toBe(true);
+
+    // Real role turns out to be viewer — collaborator was never allowed.
+    svc.setActualRole('viewer', true);
+    expect(svc.activeOrPending()).toBe(false);
+    expect(sessionStorage.getItem(VIEW_AS_STORAGE_KEY)).toBeNull();
+  });
+
+  it('reloads when a demotion heals out of an anon preview (the one in-place client swap)', () => {
+    sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify('anon'));
+    const svc = TestBed.inject(ImpersonationService);
+
+    // Mid-session: the real role resolved as admin first (anon is a legal
+    // target for an admin), so the preview was genuinely in force...
+    svc.setActualRole('admin', true);
+    expect(svc.viewAs()).toBe('anon');
+
+    // ...and only THEN comes the demotion. Healing now would flip
+    // `auth.user()` from null to this very-much-real user mid-document.
+    svc.setActualRole('viewer', true);
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem(VIEW_AS_STORAGE_KEY)).toBeNull();
+  });
+
+  it('does NOT reload when a real sign-out heals out of an anon preview', () => {
+    sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify('anon'));
+    const svc = TestBed.inject(ImpersonationService);
+
+    svc.setActualRole('admin', true);
+
+    // No real session to swap to — `auth.user()` was null under the preview
+    // and stays null. Reloading here would fire on every single sign-out.
+    svc.setActualRole(null, true);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(svc.viewAs()).toBeNull();
+    expect(sessionStorage.getItem(VIEW_AS_STORAGE_KEY)).toBeNull();
+  });
+
+  it('does NOT reload when a stale anon value is healed at boot (nothing in flight yet)', () => {
+    sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify('anon'));
+    const svc = TestBed.inject(ImpersonationService);
+
+    // First resolution of the real role in this document — there is no
+    // in-flight work a client swap could damage, so an extra full reload in
+    // front of a stale key would be pure cost.
+    svc.setActualRole('viewer', true);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(svc.viewAs()).toBeNull();
+    expect(sessionStorage.getItem(VIEW_AS_STORAGE_KEY)).toBeNull();
+  });
+
+  it('does NOT reload when healing out of a non-anon preview (no client swap)', () => {
+    sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify('collaborator'));
+    const svc = TestBed.inject(ImpersonationService);
+
+    svc.setActualRole('viewer', true);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(svc.viewAs()).toBeNull();
+  });
+
+  it('cannot loop: the healed reload does not re-arm on the next document', () => {
+    sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify('anon'));
+    const first = TestBed.inject(ImpersonationService);
+    first.setActualRole('admin', true);
+    first.setActualRole('viewer', true);
+    expect(reload).toHaveBeenCalledTimes(1);
+
+    // Simulate the document the reload produced: storage is empty now.
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [ImpersonationService] });
+    const second = TestBed.inject(ImpersonationService);
+    second.setActualRole('admin', true);
+    second.setActualRole('viewer', true);
+
+    expect(reload).toHaveBeenCalledTimes(1); // still 1 — no second reload
+    expect(first).not.toBe(second);
+  });
+
+  it('does not reload when the wipe could not take effect (would loop forever)', () => {
+    sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify('anon'));
+    const svc = TestBed.inject(ImpersonationService);
+    // A silently no-op'ing removeItem: the key survives, so a reload would
+    // land on the same state and heal again, forever.
+    spyOn(Storage.prototype, 'removeItem').and.stub();
+
+    svc.setActualRole('admin', true);
+    svc.setActualRole('viewer', true);
+
+    expect(reload).not.toHaveBeenCalled();
+    // Degraded in-memory exit instead — this document is free of the overlay.
+    expect(svc.viewAs()).toBeNull();
   });
 });

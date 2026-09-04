@@ -19,17 +19,29 @@ import { RenderedFeedbackBody, renderFeedbackBody } from './markdown.util';
 import { CelebrationService } from './celebration.service';
 import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
+import { CharCounterComponent } from '../../feedback/char-counter.component';
+import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
 import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
+import { SwipeActionDirective } from '../../core/swipe-action.directive';
 import {
+  DECLINE_REASONS,
+  DeclineReasonId,
+  DeclineReasonTexts,
   FeedbackMessage,
   FeedbackRow,
+  WORKFLOW_KINDS,
   WORKFLOW_SCOPES,
   WorkflowItem,
+  WorkflowKind,
+  WorkflowKindCounts,
   WorkflowScope,
   WorkflowScopeCounts,
   awaitsTriage,
+  declineReasonLabelKey,
+  declineReasonTextKey,
   isUserSubmitted,
+  matchDeclineReason,
   refKind,
   reviewSince,
   topicNumber,
@@ -60,6 +72,12 @@ const ADVANCE_SLIDE_MS = 380;
  *   tiles were only folded into the one-at-a-time run so the admin sees a single
  *   item instead of a grid.
  *
+ * Both kinds are worked here and nowhere else (feedback d4990269, round 2): the
+ * Abnahme tab that used to hold the same rows as a tile grid is gone, replaced
+ * by the **kind filter** above the card — Alle / Rückfragen / Abnahmen, each
+ * with its count. Same rows, same order, same decisions; one surface instead of
+ * two.
+ *
  * The run is a **carousel with skip**: "Überspringen" parks the current item for
  * this lap and steps on; once every item of the lap has been seen the lap resets
  * and the run comes back around to the skipped ones (plus whatever arrived
@@ -73,7 +91,14 @@ const ADVANCE_SLIDE_MS = 380;
 @Component({
   selector: 'sc-feedback-workflow',
   standalone: true,
-  imports: [ScDatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
+  imports: [
+    ScDatePipe,
+    TranslateModule,
+    CharCounterComponent,
+    FeedbackAttachmentsComponent,
+    FeedbackComposerComponent,
+    SwipeActionDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="wf" [class.compact]="compact()">
@@ -95,7 +120,31 @@ const ADVANCE_SLIDE_MS = 380;
         }
       </div>
 
+      <!-- WHICH KIND of step to work (feedback d4990269, round 2). The Abnahme
+           tab was a second surface for rows this run already walks; it is gone,
+           and this lens replaces it — "nur Abnahmen" is now a chip in the run
+           rather than a view of its own. Counts are within the current scope, so
+           the number always describes what the switch will actually hand over. -->
+      <div class="wf-scope kinds" role="group" [attr.aria-label]="'adminFeedback.workflow.kindFilter.label' | translate">
+        @for (opt of kindOptions(); track opt.key) {
+          <button
+            type="button"
+            class="scope-chip"
+            [class.active]="kind() === opt.key"
+            [attr.aria-pressed]="kind() === opt.key"
+            (click)="pickKind(opt.key)">
+            {{ ('adminFeedback.workflow.kindFilter.' + opt.key) | translate }}
+            <span class="scope-count">{{ opt.count }}</span>
+          </button>
+        }
+      </div>
+
       @if (current(); as item) {
+        <!-- Says the gesture exists, once, quietly, and only where it works —
+             the CSS hides this line on a fine pointer. A shortcut nobody is
+             told about is not a feature. -->
+        <p class="swipe-hint">{{ 'adminFeedback.workflow.swipeHint' | translate }}</p>
+
         <!-- Progress: "3 von 7" plus a filling rail, so the run has a visible end. -->
         <div class="wf-progress">
           <span class="wf-count">
@@ -133,51 +182,94 @@ const ADVANCE_SLIDE_MS = 380;
           </p>
         }
 
+        <!-- The run is one card at a time, which is exactly the shape a swipe
+             fits (admin feedback 3bc01a3d, "vllt. ein Tinder-Modus mit Swipe").
+             Left parks the topic for this lap, right takes its positive
+             decision — the same two things the buttons at the card's foot do,
+             and those buttons stay: the gesture is touch-only and additive, so
+             keyboard, mouse and assistive tech lose nothing. -->
         <article
           #card
           class="wf-card sc-card"
+          scSwipeAction
+          #swipe="scSwipeAction"
+          [swipeEnabled]="!busy() && !reopening() && !asking() && !declining()"
+          (swipeLeft)="skip()"
+          (swipeRight)="swipeCommit(item)"
           [class.celebrate]="celebrating()"
           [class.arrived]="advanced() !== null"
+          [class.swiping]="swipe.dragging()"
           [class.is-review]="isReview(item)">
+          <!-- What a release would do, on screen before the finger lifts.
+               aria-hidden: the buttons below are the accessible path and
+               announcing a drag state would only duplicate them. -->
+          @if (swipe.intent(); as armed) {
+            <div class="swipe-cue" [attr.data-intent]="armed" aria-hidden="true">
+              {{ (armed === 'left'
+                    ? 'adminFeedback.workflow.swipeSkip'
+                    : (isTriage(item)
+                        ? 'adminFeedback.workflow.swipeRelease'
+                        : isReview(item)
+                          ? 'adminFeedback.workflow.swipeAccept'
+                          : 'adminFeedback.workflow.swipeDone')) | translate }}
+            </div>
+          }
+          <!-- Two explicit rows since admin feedback 3bc01a3d: the badges (up
+               to four of them) plus the waiting-since date on one line, then #N
+               and the title on the next. They used to share a single wrapping
+               row in which only the title could shrink, so which line the topic
+               ended up on depended on how many badges it happened to carry. -->
           <header class="wf-head">
-            <!-- Which of the two steps is on screen (feedback d4990269) — the
-                 Rückfrage the routine asked, or an Abnahme waiting for the
-                 sign-off. The badge is the first thing in the card because the
-                 actions at its foot differ. -->
-            @if (isReview(item)) {
-              <span class="kind review">{{ 'adminFeedback.workflow.kind.review' | translate }}</span>
-              <!-- ...and how the topic got there: shipped, or handed to an issue.
-                   Same wording the Abnahme tab's tiles carry. -->
-              <span class="kind outcome">{{ ('adminFeedback.status.' + outcomeStatus(item)) | translate }}</span>
-            } @else {
-              <span class="kind question">{{ 'adminFeedback.workflow.kind.question' | translate }}</span>
-            }
-            <!-- Parked earlier in this lap and now back around — says why an
-                 already-seen item is in front of the admin again. -->
-            @if (isSkipped()) {
-              <span class="kind skipped">{{ 'adminFeedback.workflow.skippedBadge' | translate }}</span>
-            }
-            <!-- A topic a viewer/collaborator filed (feedback 5920cf8c). The
-                 author-facing controls — release, "nicht umsetzen", the channel to
-                 the author — live in the Übersicht, so flag it here rather than
-                 letting it read like an admin's own note. -->
-            @if (fromUser(item)) {
-              <span class="kind from-user">{{ 'adminFeedback.userTopic.badge' | translate }}</span>
-              @if (untriaged(item)) {
-                <span class="kind untriaged">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span>
+            <div class="wf-kinds">
+              <!-- Which of the two steps is on screen (feedback d4990269) — the
+                   Rückfrage the routine asked, or an Abnahme waiting for the
+                   sign-off. The badge is the first thing in the card because the
+                   actions at its foot differ. -->
+              @if (isTriage(item)) {
+                <!-- A user topic the routine may not touch yet (feedback
+                     89925995). Its own step kind because its three decisions are
+                     neither an answer nor a sign-off. -->
+                <span class="kind triage">{{ 'adminFeedback.workflow.kind.triage' | translate }}</span>
+              } @else if (isReview(item)) {
+                <span class="kind review">{{ 'adminFeedback.workflow.kind.review' | translate }}</span>
+                <!-- ...and how the topic got there: shipped, or handed to an issue.
+                     Same wording the Abnahme tab's tiles carry. -->
+                <span class="kind outcome">{{ ('adminFeedback.status.' + outcomeStatus(item)) | translate }}</span>
+              } @else {
+                <span class="kind question">{{ 'adminFeedback.workflow.kind.question' | translate }}</span>
               }
-            }
-            <!-- Stable reference number (feedback 21587480), quiet and ahead of
-                 the title — the handle the admin can quote back. -->
-            @if (topicNo(item); as no) {
-              <span
-                class="wf-no"
-                [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
-            }
-            <span class="wf-title">{{ title(item) }}</span>
-            <!-- An Abnahme is dated by the moment its outcome landed, not by the
-                 day the topic was raised — that is how long it has been waiting. -->
-            <span class="wf-ts">{{ stamp(item) | scDate }}</span>
+              <!-- Parked earlier in this lap and now back around — says why an
+                   already-seen item is in front of the admin again. -->
+              @if (isSkipped()) {
+                <span class="kind skipped">{{ 'adminFeedback.workflow.skippedBadge' | translate }}</span>
+              }
+              <!-- A topic a viewer/collaborator filed (feedback 5920cf8c). The
+                   author-facing controls — release, "nicht umsetzen", the channel to
+                   the author — live in the Übersicht, so flag it here rather than
+                   letting it read like an admin's own note. -->
+              @if (fromUser(item)) {
+                <span class="kind from-user">{{ 'adminFeedback.userTopic.badge' | translate }}</span>
+                <!-- On a triage step the kind badge already says it is held back,
+                     so the pill would only repeat it. -->
+                @if (untriaged(item) && !isTriage(item)) {
+                  <span class="kind untriaged">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span>
+                }
+              }
+              <!-- An Abnahme is dated by the moment its outcome landed, not by
+                   the day the topic was raised — that is how long it has been
+                   waiting. -->
+              <span class="wf-ts">{{ stamp(item) | scDate }}</span>
+            </div>
+            <div class="wf-title-line">
+              <!-- Stable reference number (feedback 21587480), quiet and ahead of
+                   the title — the handle the admin can quote back. -->
+              @if (topicNo(item); as no) {
+                <span
+                  class="wf-no"
+                  [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
+              }
+              <span class="wf-title">{{ title(item) }}</span>
+            </div>
           </header>
 
           @let body = render(item.row.body);
@@ -186,6 +278,12 @@ const ADVANCE_SLIDE_MS = 380;
 
           @if (item.row.processing_note) {
             <p class="proc-note">{{ item.row.processing_note }}</p>
+          }
+
+          @if (isTriage(item)) {
+            <!-- Why this topic is standing still: the routine's queue is gated on
+                 the release, so nothing happens to it until the admin decides. -->
+            <p class="rv-hint">{{ 'adminFeedback.workflow.triage.hint' | translate }}</p>
           }
 
           @if (isReview(item)) {
@@ -207,18 +305,38 @@ const ADVANCE_SLIDE_MS = 380;
 
           @if (item.replies.length > 0) {
             <!-- The thread is scrolled to the open Rückfrage on its own (see
-                 workflowFocusIndex), so the admin never has to hunt for it. -->
+                 workflowFocusIndex), so the admin never has to hunt for it.
+
+                 Everything BEFORE that message is folded away behind one big
+                 "…" (feedback d4990269, round 2): "will ich eigentlich nur den
+                 original first post sehen, dann ein großes '...' und dann
+                 zuletzt den letzten post". The first post is the card's body
+                 right above, the tail is what the admin has to react to — the
+                 middle is history, one click away when it is wanted. Nothing is
+                 ever hidden that the run itself points at. -->
             <div #thread class="thread">
-              @for (msg of item.replies; track msg.id; let i = $index) {
+              @if (hiddenCount() > 0) {
+                <button
+                  type="button"
+                  class="thread-more"
+                  [attr.aria-expanded]="threadExpanded()"
+                  (click)="toggleThread()">
+                  <span class="ellipsis" aria-hidden="true">{{ threadExpanded() ? '⌃' : '…' }}</span>
+                  {{ (threadExpanded()
+                      ? 'adminFeedback.workflow.threadCollapse'
+                      : 'adminFeedback.workflow.threadExpand') | translate: { count: hiddenCount() } }}
+                </button>
+              }
+              @for (msg of visibleReplies(); track msg.id; let i = $index) {
                 <div
                   #replyEl
                   class="reply"
                   [class.is-system]="msg.is_system"
-                  [class.is-focus]="isFocused(i, msg)">
+                  [class.is-focus]="isFocused(i + visibleOffset(), msg)">
                   <div class="reply-head">
                     <span class="reply-author">{{ authorLabelFor(msg) }}</span>
                     @if (msg.is_system) {
-                      @if (isFocused(i, msg)) {
+                      @if (isFocused(i + visibleOffset(), msg)) {
                         <span class="reply-badge open">
                           {{ 'adminFeedback.workflow.openQuestion' | translate }}
                         </span>
@@ -244,36 +362,148 @@ const ADVANCE_SLIDE_MS = 380;
                however long the topic and its thread are, the reply panel is
                always on screen (feedback fda4e3ea). -->
           <div class="wf-foot">
-            @if (isReview(item)) {
-              <!-- The Abnahme's own two decisions, unchanged: accept ends the
-                   topic in the Archiv, reopen puts it back into the routine's
-                   queue. The parent owns both writes — this card only offers
-                   them one at a time instead of as a tile in a grid. -->
-              <div class="wf-actions">
-                <button
-                  type="button"
-                  class="sc-btn micro done"
-                  (click)="decide(item, 'accept')"
-                  [disabled]="busy()">
-                  ✓ {{ 'adminFeedback.review.accept' | translate }}
-                </button>
-                <button
-                  type="button"
-                  class="sc-btn micro"
-                  (click)="decide(item, 'reopen')"
-                  [disabled]="busy()">
-                  ↻ {{ 'adminFeedback.review.reopen' | translate }}
-                </button>
-                <button type="button" class="sc-btn micro" (click)="skip()">
-                  {{ 'adminFeedback.workflow.skip' | translate }} ⤼
-                </button>
-                <button type="button" class="sc-btn micro ghost" (click)="openTopic.emit(item.row)">
-                  {{ 'adminFeedback.review.openTopic' | translate }} →
-                </button>
-              </div>
+            @if (isTriage(item)) {
+              <!-- The three decisions a user topic waits for (feedback 89925995),
+                   the same ones the Übersicht card has and written by the same
+                   parent methods: release it to the routine, ask the author
+                   something, or decline it with an explanation the author reads.
+                   Nothing new was invented — they are only offered here too, one
+                   topic at a time, so user feedback can be worked off in the run
+                   instead of being hunted for in the list. -->
+              @if (asking()) {
+                <p class="rv-hint">{{ 'adminFeedback.workflow.triage.askHint' | translate }}</p>
+                <div class="wf-compose">
+                  <sc-feedback-composer
+                    [compact]="true"
+                    [draftScope]="authorScope(item.row.id)"
+                    [busy]="busy()"
+                    placeholder="adminFeedback.userTopic.messagePlaceholder"
+                    sendLabel="adminFeedback.userTopic.questionSend"
+                    [onSubmit]="submitAsk" />
+                </div>
+                <div class="wf-actions">
+                  <button type="button" class="sc-btn micro" (click)="cancelAsk()" [disabled]="busy()">
+                    {{ 'adminFeedback.review.reopenCancel' | translate }}
+                  </button>
+                </div>
+              } @else if (declining()) {
+                <!-- Same mandatory note, same canned reasons and the same cap as
+                     the Übersicht's form (feedback 5920cf8c / d5a779da): the
+                     author reads this text, so it stays feedback like any other. -->
+                <form class="decline-form" (submit)="confirmDecline(item, $event)">
+                  <div
+                    class="decline-reasons"
+                    role="group"
+                    [attr.aria-label]="'adminFeedback.decline.reasonsLabel' | translate">
+                    @for (r of declineReasons; track r.id) {
+                      <button
+                        type="button"
+                        class="reason-chip"
+                        [class.active]="declineReason() === r.id"
+                        [attr.aria-pressed]="declineReason() === r.id"
+                        (click)="pickDeclineReason(r.id)">
+                        {{ r.labelKey | translate }}
+                      </button>
+                    }
+                  </div>
+                  <div class="field">
+                    <textarea
+                      class="decline-input"
+                      rows="3"
+                      required
+                      [value]="declineNote()"
+                      (input)="onDeclineInput($event)"
+                      [attr.maxlength]="maxChars"
+                      [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
+                      [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
+                    <sc-char-counter [used]="declineNote().length" [max]="maxChars" />
+                  </div>
+                  <div class="decline-actions">
+                    <button
+                      class="sc-btn micro danger"
+                      type="submit"
+                      [disabled]="busy() || declineNote().trim().length === 0">
+                      {{ 'adminFeedback.decline.confirm' | translate }}
+                    </button>
+                    <button class="sc-btn micro" type="button" (click)="cancelDecline()">
+                      {{ 'adminFeedback.decline.cancel' | translate }}
+                    </button>
+                  </div>
+                </form>
+              } @else {
+                <div class="wf-actions">
+                  <button
+                    type="button"
+                    class="sc-btn micro done"
+                    (click)="release(item)"
+                    [disabled]="busy()">
+                    ✓ {{ 'adminFeedback.userTopic.release' | translate }}
+                  </button>
+                  <button type="button" class="sc-btn micro" (click)="startAsk()" [disabled]="busy()">
+                    ↩ {{ 'adminFeedback.workflow.triage.ask' | translate }}
+                  </button>
+                  <button type="button" class="sc-btn micro danger" (click)="startDecline()" [disabled]="busy()">
+                    {{ 'adminFeedback.decline.mark' | translate }}
+                  </button>
+                  <button type="button" class="sc-btn micro" (click)="skip()">
+                    {{ 'adminFeedback.workflow.skip' | translate }} ⤼
+                  </button>
+                </div>
+              }
+            } @else if (isReview(item)) {
+              @if (reopening()) {
+                <!-- "Gespräch wieder aufnehmen" is an ANSWER, not a bare status
+                     flip (feedback d4990269, round 2): clicking it opens the
+                     same box every other thread has, and the two decisions step
+                     aside while it is open. Sending posts the reply AND puts the
+                     topic back into the routine's queue in one go — so the
+                     routine picks it up with the steer already in the thread,
+                     instead of finding a reopened topic and no idea why. -->
+                <p class="rv-hint">{{ 'adminFeedback.review.reopenHint' | translate }}</p>
+                <div class="wf-compose">
+                  <sc-feedback-composer
+                    [allowFiles]="true"
+                    [compact]="true"
+                    [draftScope]="reopenScope(item.row.id)"
+                    [busy]="busy()"
+                    placeholder="adminFeedback.review.reopenPlaceholder"
+                    sendLabel="adminFeedback.review.reopenSend"
+                    [onSubmit]="submitReopen" />
+                </div>
+                <div class="wf-actions">
+                  <button type="button" class="sc-btn micro" (click)="cancelReopen()" [disabled]="busy()">
+                    {{ 'adminFeedback.review.reopenCancel' | translate }}
+                  </button>
+                </div>
+              } @else {
+                <!-- The Abnahme's own two decisions: accept ends the topic in the
+                     Archiv, reopen opens the answer box above. The parent owns
+                     both writes — this card only offers them one at a time
+                     instead of as a tile in a grid. -->
+                <div class="wf-actions">
+                  <button
+                    type="button"
+                    class="sc-btn micro done"
+                    (click)="accept(item)"
+                    [disabled]="busy()">
+                    ✓ {{ 'adminFeedback.review.accept' | translate }}
+                  </button>
+                  <button
+                    type="button"
+                    class="sc-btn micro"
+                    (click)="startReopen()"
+                    [disabled]="busy()">
+                    ↻ {{ 'adminFeedback.review.reopen' | translate }}
+                  </button>
+                  <button type="button" class="sc-btn micro" (click)="skip()">
+                    {{ 'adminFeedback.workflow.skip' | translate }} ⤼
+                  </button>
+                </div>
+              }
             } @else {
               <div class="wf-compose">
                 <sc-feedback-composer
+                  [allowFiles]="true"
                   [compact]="true"
                   [draftScope]="answerScope(item.row.id)"
                   [busy]="busy()"
@@ -305,6 +535,15 @@ const ADVANCE_SLIDE_MS = 380;
             <button type="button" class="sc-btn" (click)="pickScope('all')">
               {{ 'adminFeedback.workflow.scope.showAll' | translate }}
             </button>
+          } @else if (hiddenByKind() > 0) {
+            <!-- The kind lens is what is hiding the work — say that, instead of
+                 celebrating an inbox that is not actually empty. -->
+            <div class="wf-empty-icon" aria-hidden="true">🗂️</div>
+            <h3>{{ 'adminFeedback.workflow.kindEmptyTitle' | translate }}</h3>
+            <p>{{ 'adminFeedback.workflow.kindEmptyHint' | translate: { count: hiddenByKind() } }}</p>
+            <button type="button" class="sc-btn" (click)="pickKind('all')">
+              {{ 'adminFeedback.workflow.kindShowAll' | translate }}
+            </button>
           } @else {
             <div class="wf-empty-icon" aria-hidden="true">🎉</div>
             <h3>{{ 'adminFeedback.workflow.allDoneTitle' | translate }}</h3>
@@ -318,7 +557,7 @@ const ADVANCE_SLIDE_MS = 380;
     </section>
   `,
   styles: [`
-    .wf { display: flex; flex-direction: column; gap: 12px; }
+    .wf { display: flex; flex-direction: column; gap: var(--sc-gap-2); }
 
     /* ---- Scope switch (whose topics are being worked) ---- */
     .wf-scope { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -358,6 +597,11 @@ const ADVANCE_SLIDE_MS = 380;
       background: color-mix(in srgb, var(--sc-accent) 25%, transparent);
       color: var(--sc-accent);
     }
+
+    /* The kind lens sits under the scope chips and reads as the quieter of the
+       two — scope picks whose queue, kind only narrows what is already there. */
+    .wf-scope.kinds { margin-top: -4px; }
+    .wf-scope.kinds .scope-chip { font-size: max(0.68rem, var(--sc-fs-floor)); }
 
     /* ---- Progress rail ---- */
     .wf-progress { display: flex; align-items: center; gap: 10px; }
@@ -410,15 +654,67 @@ const ADVANCE_SLIDE_MS = 380;
 
     /* ---- The one card in focus ---- */
     .wf-card {
-      display: flex; flex-direction: column; gap: 10px; padding: 14px 16px;
+      display: flex; flex-direction: column; gap: var(--sc-gap-2);
+      /* Level 2 for the same reason as the board's topic card: the run is a
+         reading surface and the width belongs to the text. */
+      padding: var(--sc-pad-2);
       transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      /* The swipe gesture below drags this card horizontally; the browser must
+         keep owning the vertical axis so the page still scrolls under a thumb. */
+      touch-action: pan-y;
     }
+    /* ---- Swipe (touch only, see SwipeActionDirective) ---- */
+    .wf-card { position: relative; }
+    /* While a drag is live the card must not also animate its own border, or
+       the two transitions fight over the same element. */
+    .wf-card.swiping { transition: none; }
+    .swipe-cue {
+      position: absolute;
+      top: 8px;
+      z-index: 3;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-family: var(--sc-font-display);
+      font-size: max(0.68rem, var(--sc-fs-floor));
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    /* The label sits on the side the card came FROM, i.e. where the finger has
+       just uncovered space — the same place the action's colour is revealed. */
+    .swipe-cue[data-intent='left'] {
+      right: 8px;
+      background: color-mix(in srgb, var(--sc-fg-2) 22%, var(--sc-bg-2));
+      color: var(--sc-fg-1);
+    }
+    .swipe-cue[data-intent='right'] {
+      left: 8px;
+      background: color-mix(in srgb, var(--sc-success) 26%, var(--sc-bg-2));
+      color: var(--sc-success);
+    }
+    /* Fine pointer: no gesture, so no line about one. */
+    .swipe-hint { display: none; }
+    @media (pointer: coarse) {
+      .swipe-hint {
+        display: block;
+        margin: 0;
+        font-size: max(0.68rem, var(--sc-fs-floor));
+        line-height: 1.4;
+        color: var(--sc-fg-2);
+      }
+    }
+
     /* The just-arrived topic, held for the length of the advance notice. */
     .wf-card.arrived {
       border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
       box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-accent) 30%, transparent);
     }
-    .wf-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .wf-head { display: flex; flex-direction: column; gap: 6px; }
+    .wf-kinds { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .wf-title-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+    /* Pushed to the end of the badge row rather than trailing the title. */
+    .wf-kinds .wf-ts { margin-left: auto; }
     .kind {
       padding: 2px 8px;
       border-radius: 999px;
@@ -434,6 +730,9 @@ const ADVANCE_SLIDE_MS = 380;
        kinds of step are told apart before a single word is read. */
     .kind.review { background: color-mix(in srgb, var(--sc-success) 20%, transparent); color: var(--sc-success); }
     .kind.outcome { border: 1px solid var(--sc-border); color: var(--sc-fg-2); }
+    /* A triage step wears the same rosé the board's "nicht freigegeben" pill
+       carries, so the kind badge and the list agree on what is being held back. */
+    .kind.triage { background: rgba(244, 114, 182, 0.18); color: #f472b6; }
     .kind.skipped { border: 1px dashed var(--sc-border); color: var(--sc-fg-2); }
     /* Same left edge the Abnahme tiles carry in the sign-off view. */
     .wf-card.is-review { border-left: 3px solid var(--sc-success); }
@@ -463,7 +762,14 @@ const ADVANCE_SLIDE_MS = 380;
       user-select: all;
     }
 
-    .wf-body { font-size: 0.92rem; line-height: 1.5; overflow-wrap: anywhere; }
+    /* Scrollport for a marked-up runaway token (.sc-longword, styles.scss) —
+       it overflows here instead of reflowing the card (admin feedback 0a0fad31). */
+    .wf-body {
+      font-size: 0.92rem;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+      overflow-x: auto;
+    }
     .wf-body :first-child { margin-top: 0; }
     .wf-body :last-child { margin-bottom: 0; }
     .wf-body p { margin: 0 0 8px; }
@@ -477,11 +783,13 @@ const ADVANCE_SLIDE_MS = 380;
     .proc-note { margin: 0; font-size: 0.8rem; color: var(--sc-fg-2); font-style: italic; }
 
     .thread {
-      display: flex; flex-direction: column; gap: 8px;
-      padding-left: 10px; border-left: 2px solid var(--sc-border);
+      display: flex; flex-direction: column; gap: var(--sc-gap-3);
+      padding-left: var(--sc-pad-3); border-left: 2px solid var(--sc-border);
       max-height: 320px; overflow-y: auto;
     }
-    .reply { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: 8px; background: var(--sc-bg-2); }
+    /* The folded-thread "…" is a shared control and lives in styles.scss. */
+
+    .reply { display: flex; flex-direction: column; gap: 4px; padding: var(--sc-pad-3); border-radius: 8px; background: var(--sc-bg-2); }
     .reply.is-system { background: color-mix(in srgb, #a78bfa 12%, var(--sc-bg-2)); box-shadow: inset 2px 0 0 #a78bfa; }
     .reply-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .reply-author { font-weight: 600; font-size: 0.82rem; }
@@ -502,7 +810,7 @@ const ADVANCE_SLIDE_MS = 380;
       font-weight: 700;
     }
     .reply-ts { margin-left: auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
-    .reply-body { font-size: 0.88rem; line-height: 1.45; overflow-wrap: anywhere; }
+    .reply-body { font-size: 0.88rem; line-height: 1.45; overflow-wrap: anywhere; overflow-x: auto; }
     .reply-body :first-child { margin-top: 0; }
     .reply-body :last-child { margin-bottom: 0; }
     .reply-body p { margin: 0 0 6px; }
@@ -520,9 +828,12 @@ const ADVANCE_SLIDE_MS = 380;
       z-index: 2;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin: 0 -16px -14px;
-      padding: 10px 16px 14px;
+      gap: var(--sc-gap-2);
+      /* Spans the card's own padding so the thread slides under a full-width
+         bar; both numbers therefore have to follow the card's padding, which
+         is now the density scale rather than two hard-coded pixel values. */
+      margin: 0 calc(-1 * var(--sc-pad-2)) calc(-1 * var(--sc-pad-2));
+      padding: var(--sc-pad-2);
       background: var(--sc-bg-1);
       border-top: 1px solid var(--sc-border);
       border-radius: 0 0 8px 8px;
@@ -535,6 +846,47 @@ const ADVANCE_SLIDE_MS = 380;
     /* "Thema öffnen" leaves the run — quiet, so it never competes with a decision. */
     .sc-btn.micro.ghost { border-color: var(--sc-border); color: var(--sc-fg-2); }
     .sc-btn.micro.ghost:hover:not(:disabled) { border-color: var(--sc-accent); color: var(--sc-accent); background: transparent; box-shadow: none; }
+    /* "Nicht umsetzen" ends a topic for its author — the board's destructive
+       accent, same as the button it mirrors in the Übersicht. */
+    .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
+    .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
+
+    /* ---- Triage step: the decline form (mirrors the Übersicht's) ---- */
+    .decline-form { display: flex; flex-direction: column; gap: 6px; }
+    /* .field is the counter's positioning context; the input's bottom padding is
+       the lane it sits in, so typed text never runs under it. */
+    .decline-form .field { position: relative; }
+    .decline-input {
+      width: 100%; box-sizing: border-box; resize: vertical;
+      padding: 6px 8px 20px;
+      background: var(--sc-bg-2); border: 1px solid var(--sc-danger);
+      border-radius: 6px; color: var(--sc-fg-0); font: inherit;
+      font-size: max(0.78rem, var(--sc-fs-floor));
+    }
+    .decline-input:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
+    .decline-actions { display: flex; gap: 6px; }
+    /* The canned reasons PRE-FILL the note, they do not replace it — the chip
+       only lights up while the text still is that reason. */
+    .decline-reasons { display: flex; flex-wrap: wrap; gap: 6px; }
+    .reason-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      background: var(--sc-bg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: max(0.7rem, var(--sc-fs-floor));
+      cursor: pointer;
+      transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+    .reason-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-danger); }
+    .reason-chip.active {
+      color: var(--sc-danger); border-color: var(--sc-danger);
+      background: rgba(248, 113, 113, 0.14);
+    }
+    .reason-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
 
     /* ---- Celebration ---- */
     .wf-cheer {
@@ -560,8 +912,8 @@ const ADVANCE_SLIDE_MS = 380;
 
     /* ---- Drained queue ---- */
     .wf-empty {
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-      padding: 32px 20px; text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: var(--sc-gap-3);
+      padding: 32px var(--sc-pad-1); text-align: center;
     }
     .wf-empty h3 { margin: 0; font-size: 1rem; }
     .wf-empty p { margin: 0; color: var(--sc-fg-2); font-size: 0.86rem; }
@@ -582,10 +934,10 @@ const ADVANCE_SLIDE_MS = 380;
 
     /* Docked panel: tighter vertical rhythm so the one card and its always-on
        answer foot own the panel, matching the Übersicht density pass (3133f9). */
-    .wf.compact { gap: 8px; }
+    .wf.compact { gap: var(--sc-gap-3); }
     .wf.compact .thread { max-height: 220px; }
-    .wf.compact .wf-card { padding: 12px 12px; }
-    .wf.compact .wf-foot { margin: 0 -12px -12px; padding: 8px 12px 12px; }
+    /* The card and its foot no longer need a compact override: both run on the
+       density scale, which already knows how wide the screen is. */
   `],
 })
 export class FeedbackWorkflowComponent {
@@ -605,24 +957,59 @@ export class FeedbackWorkflowComponent {
   readonly scope = input<WorkflowScope>('all');
   /** Queue size per scope, rendered as the switch's KPI counts. */
   readonly scopeCounts = input<WorkflowScopeCounts>({ mine: 0, others: 0, all: 0 });
+  /** Which kind the (already filtered) queue was narrowed to — owned by the parent. */
+  readonly kind = input<WorkflowKind>('all');
+  /** Item count per kind within the current scope — the kind switch's KPIs. */
+  readonly kindCounts = input<WorkflowKindCounts>({ all: 0, triage: 0, question: 0, review: 0 });
   /** Posts a reply into a topic's thread; resolves true once persisted. */
   readonly reply = input.required<(feedbackId: string, payload: ComposerPayload) => Promise<boolean>>();
+  /**
+   * Posts a reply into a finished topic's thread AND puts it back into the
+   * routine's queue — the Abnahme's "Gespräch wieder aufnehmen", which is one
+   * decision and therefore one call (feedback d4990269, round 2). Resolves true
+   * once both landed; the parent owns the writes.
+   */
+  readonly reopenWithReply =
+    input.required<(feedbackId: string, payload: ComposerPayload) => Promise<boolean>>();
+  /**
+   * Posts a QUESTION into a user topic's author-visible channel (feedback
+   * 89925995) — the board's existing write, which also parks the topic as
+   * `needs_input_author` until the author answers. Resolves true once persisted.
+   */
+  readonly askAuthor =
+    input.required<(feedbackId: string, payload: ComposerPayload) => Promise<boolean>>();
+  /**
+   * "Nicht umsetzen & löschen" on a user topic: stores the mandatory explanation
+   * as `decision_note`, posts it into the author channel and closes the topic as
+   * `declined`. The parent owns the write; this card only offers the decision.
+   */
+  readonly declineTopic = input.required<(row: FeedbackRow, note: string) => Promise<boolean>>();
 
   /** The admin ticked an item off — the parent removes it from the queue. */
   readonly markHandled = output<string>();
   /** The admin picked another scope — the parent re-filters and remembers it. */
   readonly scopeChange = output<WorkflowScope>();
+  /** The admin picked another kind lens — the parent re-filters and remembers it. */
+  readonly kindChange = output<WorkflowKind>();
   /** "Show me the numbers" from the drained-queue screen. */
   readonly showProgress = output<void>();
   /**
-   * The three Abnahme controls (feedback d4990269). All of them are the board's
-   * existing ones, forwarded unchanged: accepting writes `reviewed_at`, reopening
-   * puts the topic back into the routine's queue, "Thema öffnen" jumps to the
-   * card in the Übersicht. This component never touches a row itself.
+   * Signing an Abnahme off (feedback d4990269) — the board's existing write,
+   * forwarded unchanged: it stamps `reviewed_at` and the topic lands in the
+   * Archiv. This component never touches a row itself.
+   *
+   * Its counterpart, "Gespräch wieder aufnehmen", is no longer an output: it
+   * carries a message now and goes through {@link reopenWithReply}. "Thema
+   * öffnen" is gone with it — the card shows the whole topic (feedback
+   * d4990269, round 2), so there is nothing left to jump to.
    */
   readonly acceptReview = output<FeedbackRow>();
-  readonly reopenReview = output<FeedbackRow>();
-  readonly openTopic = output<FeedbackRow>();
+  /**
+   * Release a user-submitted topic to the routine (feedback 89925995) — the
+   * board's `triaged = true` write, forwarded unchanged. It is the positive
+   * decision of a triage step, so the swipe lands here too.
+   */
+  readonly releaseTriage = output<FeedbackRow>();
 
   private readonly cardEl = viewChild<ElementRef<HTMLElement>>('card');
   private readonly threadEl = viewChild<ElementRef<HTMLElement>>('thread');
@@ -645,12 +1032,26 @@ export class FeedbackWorkflowComponent {
     return WORKFLOW_SCOPES.map((key) => ({ key, count: counts[key] }));
   });
 
+  /** The kind switch, in fixed order (Alle first), each with its KPI count. */
+  readonly kindOptions = computed(() => {
+    const counts = this.kindCounts();
+    return WORKFLOW_KINDS.map((key) => ({ key, count: counts[key] }));
+  });
+
   /**
    * How many queue items the current scope is hiding. Non-zero on a drained
    * queue means "nothing left *here*" rather than "nothing left" — the empty
    * screen then points at the other scope instead of celebrating.
    */
   readonly hiddenByScope = computed(() => this.scopeCounts().all - this.total());
+
+  /**
+   * How many items the KIND lens is hiding — the same idea one dimension over
+   * (feedback d4990269, round 2). Without it a run filtered to "Abnahmen" with
+   * no Abnahme waiting would show the "Alles abgearbeitet" screen while
+   * Rückfragen sit right behind the filter.
+   */
+  readonly hiddenByKind = computed(() => this.kindCounts().all - this.total());
   readonly railPct = computed(() => {
     const total = this.total();
     return total === 0 ? 100 : ((this.position() + 1) / total) * 100;
@@ -662,6 +1063,46 @@ export class FeedbackWorkflowComponent {
    * topic has no replies yet.
    */
   readonly focusIndex = computed(() => workflowFocusIndex(this.current()?.replies ?? []));
+
+  /**
+   * Whether the folded-away middle of the thread is showing (feedback d4990269,
+   * round 2). Per card and session-local: unfolding is "let me look", not a
+   * preference, and the next topic starts folded again (see the reset effect).
+   */
+  readonly threadExpanded = signal(false);
+
+  /**
+   * How many messages the fold hides — everything before the one the run points
+   * at ({@link focusIndex}). Zero when the run points at the thread's first
+   * message, so a short thread never grows a control it does not need.
+   */
+  readonly hiddenCount = computed(() => {
+    if (this.threadExpanded()) return 0;
+    return this.focusIndex() ?? 0;
+  });
+
+  /**
+   * Index of the first message on screen, so the focus marker and the scroll
+   * effect keep addressing messages by their position in the FULL thread while
+   * the template renders only the tail.
+   */
+  readonly visibleOffset = computed(() => this.hiddenCount());
+
+  /** The thread as rendered: the tail the admin has to react to, or all of it. */
+  readonly visibleReplies = computed(() => {
+    const replies = this.current()?.replies ?? [];
+    return this.hiddenCount() > 0 ? replies.slice(this.hiddenCount()) : replies;
+  });
+
+  /**
+   * Unfold the thread's history, or fold it back to the tail. The scroll key is
+   * dropped with it, so the message the run points at is put back in front of
+   * the admin after the thread changed length under them.
+   */
+  toggleThread(): void {
+    this.focusedKey = null;
+    this.threadExpanded.update((open) => !open);
+  }
 
   /**
    * How many of the items still in the queue were parked in this lap. Ids of
@@ -727,6 +1168,54 @@ export class FeedbackWorkflowComponent {
    */
   private readonly deciding = signal<string | null>(null);
 
+  /**
+   * Topic id whose "Gespräch wieder aufnehmen" box is open (feedback d4990269,
+   * round 2) — `null` while the two decisions are showing instead. Keyed by id
+   * rather than a bare flag so the box can never survive onto the next card if
+   * the queue moves under it.
+   */
+  private readonly reopeningFor = signal<string | null>(null);
+
+  /** True while the current card shows the reopen answer box. */
+  readonly reopening = computed(() => {
+    const id = this.reopeningFor();
+    return id !== null && id === this.current()?.row.id;
+  });
+
+  /**
+   * Topic id whose triage step has one of its two secondary forms open — the
+   * question to the author, or the "nicht umsetzen" note (feedback 89925995).
+   * Keyed by id for the same reason the reopen box is: a form must never survive
+   * onto the next card when the queue moves under it.
+   */
+  private readonly askingFor = signal<string | null>(null);
+  private readonly decliningFor = signal<string | null>(null);
+
+  /** True while the current triage card shows the question-to-the-author box. */
+  readonly asking = computed(() => {
+    const id = this.askingFor();
+    return id !== null && id === this.current()?.row.id;
+  });
+
+  /** True while the current triage card shows the "nicht umsetzen" form. */
+  readonly declining = computed(() => {
+    const id = this.decliningFor();
+    return id !== null && id === this.current()?.row.id;
+  });
+
+  /** The shared feedback cap — the author reads the decline note like any message. */
+  readonly maxChars = FEEDBACK_MAX_CHARS;
+
+  /** Draft explanation in the decline form — mandatory, hence the disabled submit. */
+  readonly declineNote = signal('');
+
+  /** Which canned reason is lit — derived from the note text, never a mode. */
+  readonly declineReason = signal<DeclineReasonId | null>(null);
+
+  /** The canned reasons paired with their label key (no function call per chip). */
+  readonly declineReasons: readonly { id: DeclineReasonId; labelKey: string }[] =
+    DECLINE_REASONS.map((id) => ({ id, labelKey: declineReasonLabelKey(id) }));
+
   /** `topicId:messageId` the thread was last scrolled to — guards re-scrolls. */
   private focusedKey: string | null = null;
 
@@ -736,12 +1225,14 @@ export class FeedbackWorkflowComponent {
     // and so must switching to a scope that happens to be empty, which is a
     // change of view, not an achievement (hence the scope check).
     let sawWork = false;
-    let lastScope = this.scope();
+    // Either lens re-filters the queue, so both re-arm it: a run narrowed to
+    // "Abnahmen" is a different queue, not a drained one.
+    let lastLens = `${this.scope()}:${this.kind()}`;
     effect(() => {
-      const scope = this.scope();
+      const scope = `${this.scope()}:${this.kind()}`;
       const total = this.total();
-      if (scope !== lastScope) {
-        lastScope = scope;
+      if (scope !== lastLens) {
+        lastLens = scope;
         // Re-arm against the new scope's queue instead of celebrating it.
         sawWork = total > 0;
         // A different queue starts at its head — and at a fresh lap, so nothing
@@ -777,6 +1268,19 @@ export class FeedbackWorkflowComponent {
       this.playSlideIn();
     });
 
+    // A different topic is in front of the admin → its thread starts folded
+    // again, and a reopen box left open on the previous one is dropped. Both
+    // are "let me look at this one", never a setting that should travel.
+    let lastCardId: string | null = null;
+    effect(() => {
+      const id = this.current()?.row.id ?? null;
+      if (id === lastCardId) return;
+      lastCardId = id;
+      this.threadExpanded.set(false);
+      this.reopeningFor.set(null);
+      this.closeTriageForms();
+    });
+
     // Put the open Rückfrage in front of the admin instead of the thread's
     // scroll origin. Keyed on the focused message, so the board's polling
     // refresh does not yank the thread back while the admin reads.
@@ -791,7 +1295,9 @@ export class FeedbackWorkflowComponent {
       }
       const key = `${item.row.id}:${item.replies[idx]?.id ?? idx}`;
       if (key === this.focusedKey) return;
-      const el = els[idx]?.nativeElement;
+      // The template renders only the visible tail, so the absolute focus index
+      // has to be shifted by whatever the fold is hiding.
+      const el = els[idx - this.visibleOffset()]?.nativeElement;
       // Query not settled yet — leave the key untouched so the next pass retries.
       if (!el) return;
       this.focusedKey = key;
@@ -816,6 +1322,17 @@ export class FeedbackWorkflowComponent {
     this.scopeChange.emit(scope);
   }
 
+  /**
+   * Narrow the run to one kind of step — the Abnahme tab's replacement
+   * (feedback d4990269, round 2). Like the scope, the parent owns and remembers
+   * the choice and hands back a re-filtered queue.
+   */
+  pickKind(kind: WorkflowKind): void {
+    if (kind === this.kind()) return;
+    this.clearAdvance();
+    this.kindChange.emit(kind);
+  }
+
   /** True for the one thread message the view scrolled to, if it is a Rückfrage. */
   isFocused(index: number, msg: FeedbackMessage): boolean {
     return msg.is_system && index === this.focusIndex();
@@ -837,7 +1354,22 @@ export class FeedbackWorkflowComponent {
   }
 
   title(item: WorkflowItem): string {
-    return topicTitle(item.row.body, this.compact() ? 48 : 72);
+    // The title owns a row of its own since the head became two lines (admin
+    // feedback 3bc01a3d), so the cap is a safety net and CSS's ellipsis decides
+    // where the line actually ends.
+    return topicTitle(item.row.body, this.compact() ? 72 : 110);
+  }
+
+  /**
+   * The positive half of the swipe gesture — deliberately NOT a third decision.
+   * It routes to whichever of the card's own two primary buttons is on screen:
+   * "Abnehmen" on an Abnahme, "Erledigt" on a Rückfrage. Left is always
+   * "Überspringen" and goes straight to {@link skip}.
+   */
+  swipeCommit(item: WorkflowItem): void {
+    if (this.isTriage(item)) this.release(item);
+    else if (this.isReview(item)) this.accept(item);
+    else this.finish(item);
   }
 
   /**
@@ -855,6 +1387,14 @@ export class FeedbackWorkflowComponent {
    */
   isReview(item: WorkflowItem): boolean {
     return item.kind === 'review';
+  }
+
+  /**
+   * True for a triage step — a user-submitted topic the routine may not touch
+   * until an admin decides what happens to it (feedback 89925995).
+   */
+  isTriage(item: WorkflowItem): boolean {
+    return item.kind === 'triage';
   }
 
   /**
@@ -951,13 +1491,176 @@ export class FeedbackWorkflowComponent {
    * longer waiting, so it is dropped from the lap too — otherwise the carousel
    * would promise to come back to a topic that is already gone.
    */
-  decide(item: WorkflowItem, decision: 'accept' | 'reopen'): void {
+  accept(item: WorkflowItem): void {
     this.clearAdvance();
     this.deciding.set(item.row.id);
     this.forget(item.row.id);
-    if (decision === 'accept') this.acceptReview.emit(item.row);
-    else this.reopenReview.emit(item.row);
+    this.acceptReview.emit(item.row);
   }
+
+  // ---- Triage step: release / ask the author / decline (feedback 89925995) --
+
+  /**
+   * Release the topic to the routine — the positive decision of a triage step.
+   * Like a sign-off it is the parent's write and a round trip, so the topic is
+   * marked as deciding and the run reports the step once it leaves the queue.
+   */
+  release(item: WorkflowItem): void {
+    this.clearAdvance();
+    this.closeTriageForms();
+    this.deciding.set(item.row.id);
+    this.forget(item.row.id);
+    this.releaseTriage.emit(item.row);
+  }
+
+  /** Open the question-to-the-author box; the decisions step aside while it is. */
+  startAsk(): void {
+    const item = this.current();
+    if (!item) return;
+    this.clearAdvance();
+    this.decliningFor.set(null);
+    this.askingFor.set(item.row.id);
+  }
+
+  /** Back out of the question box — nothing was written. */
+  cancelAsk(): void {
+    this.askingFor.set(null);
+  }
+
+  /** Open the "nicht umsetzen" form on a blank note — the chips only pre-fill it. */
+  startDecline(): void {
+    const item = this.current();
+    if (!item) return;
+    this.clearAdvance();
+    this.askingFor.set(null);
+    this.declineNote.set('');
+    this.declineReason.set(null);
+    this.decliningFor.set(item.row.id);
+  }
+
+  /** Back out of the decline form — nothing was written, the draft is dropped. */
+  cancelDecline(): void {
+    this.decliningFor.set(null);
+    this.declineNote.set('');
+    this.declineReason.set(null);
+  }
+
+  private closeTriageForms(): void {
+    this.askingFor.set(null);
+    this.decliningFor.set(null);
+    this.declineNote.set('');
+    this.declineReason.set(null);
+  }
+
+  /** Arm a canned reason: it writes the note, which stays editable afterwards. */
+  pickDeclineReason(id: DeclineReasonId): void {
+    this.declineNote.set(this.translate.instant(declineReasonTextKey(id)));
+    this.declineReason.set(id);
+  }
+
+  /** Typed note: capped like every other feedback field, chip re-derived from it. */
+  onDeclineInput(ev: Event): void {
+    const el = ev.target as HTMLTextAreaElement;
+    const capped = clampFeedbackText(el.value);
+    if (capped !== el.value) el.value = capped;
+    this.declineNote.set(capped);
+    this.declineReason.set(matchDeclineReason(capped, this.declineReasonTexts()));
+  }
+
+  private declineReasonTexts(): DeclineReasonTexts {
+    const texts: Record<string, string> = {};
+    for (const r of this.declineReasons) {
+      texts[r.id] = this.translate.instant(declineReasonTextKey(r.id));
+    }
+    return texts as DeclineReasonTexts;
+  }
+
+  /**
+   * Send the question: the parent posts it into the author channel, which parks
+   * the topic as `needs_input_author`. It then leaves the queue on the next
+   * refresh — the same step the `deciding` effect reports for a sign-off.
+   */
+  readonly submitAsk = async (payload: ComposerPayload): Promise<boolean> => {
+    const item = this.current();
+    if (!item) return false;
+    const id = item.row.id;
+    const ok = await this.askAuthor()(id, payload);
+    if (!ok) return false;
+    this.askingFor.set(null);
+    this.deciding.set(id);
+    this.forget(id);
+    return true;
+  };
+
+  /** Decline the topic with the mandatory explanation the author gets to read. */
+  async confirmDecline(item: WorkflowItem, ev: Event): Promise<void> {
+    ev.preventDefault();
+    const note = this.declineNote().trim();
+    if (!note) return;
+    const id = item.row.id;
+    const ok = await this.declineTopic()(item.row, note);
+    if (!ok) return;
+    this.cancelDecline();
+    this.deciding.set(id);
+    this.forget(id);
+  }
+
+  private readonly authorScopes = new Map<string, string>();
+
+  /**
+   * Draft identity of the question box. The board's author-channel scope, not a
+   * new one: it is the same message to the same person, so a draft started in
+   * the Übersicht comes back here and vice versa.
+   */
+  authorScope(feedbackId: string): string {
+    return memoScope(this.authorScopes, feedbackId, draftScopes.adminAuthor);
+  }
+
+  /**
+   * Open the answer box on an Abnahme instead of flipping the topic's status on
+   * the spot (feedback d4990269, round 2). The two decisions step aside while it
+   * is open — the admin is answering the thread now, and "erledigt" would be a
+   * contradiction of the sentence they are writing.
+   */
+  startReopen(): void {
+    const item = this.current();
+    if (!item) return;
+    this.clearAdvance();
+    this.reopeningFor.set(item.row.id);
+  }
+
+  /** Back out of the answer box — the two decisions come back, nothing was written. */
+  cancelReopen(): void {
+    this.reopeningFor.set(null);
+  }
+
+  private readonly reopenScopes = new Map<string, string>();
+
+  /**
+   * Draft identity of the reopen box. Its own scope per topic, and a different
+   * one from the Rückfrage answer box: a half-written steer must come back to
+   * the topic it was written for, and must not surface in the other box.
+   */
+  reopenScope(feedbackId: string): string {
+    return memoScope(this.reopenScopes, feedbackId, draftScopes.adminWorkflowReopen);
+  }
+
+  /**
+   * Send the steer: the parent posts it into the thread and reopens the topic in
+   * one call. The topic then leaves the queue on the next refresh, which the
+   * `deciding` effect reports exactly like a sign-off.
+   */
+  readonly submitReopen = async (payload: ComposerPayload): Promise<boolean> => {
+    const item = this.current();
+    if (!item) return false;
+    const id = item.row.id;
+    const ok = await this.reopenWithReply()(id, payload);
+    if (!ok) return false;
+    this.reopeningFor.set(null);
+    this.deciding.set(id);
+    this.forget(id);
+    return true;
+  };
 
   /** Drop a topic from the lap's bookkeeping — it is no longer "come back later". */
   private forget(id: string): void {

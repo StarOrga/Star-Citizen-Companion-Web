@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mkdtemp, mkdir, writeFile, readdir, stat } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readdir, stat, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -12,9 +12,14 @@ vi.mock('../src/lib/discovery.js', () => ({
   discoverAll: () => discoverAll(),
 }));
 
-const { EXTRACTS_DIR_NAME, isSafeExtractTarget, purgeExtracts, purgeAllExtracts } = await import(
-  '../src/main/cleanup.js'
-);
+const {
+  EXTRACTS_DIR_NAME,
+  isSafeExtractTarget,
+  purgeExtracts,
+  purgeAllExtracts,
+  scanAndCleanupOrphans,
+  scanAndCleanupDiscovered,
+} = await import('../src/main/cleanup.js');
 
 /** An install root with `names` as extract dirs, each holding one file. */
 async function makeInstall(names: string[]): Promise<string> {
@@ -93,6 +98,43 @@ describe('purgeExtracts', () => {
     const res = await purgeExtracts([root, join(root, 'nope')]);
     expect(res.ok).toBe(true);
     expect(res.removed).toBe(0);
+  });
+});
+
+/** Backdate an extract dir past the 24 h "possibly in-progress" gate. */
+async function makeStale(root: string, names: string[]): Promise<void> {
+  const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+  for (const name of names) {
+    await utimes(join(root, EXTRACTS_DIR_NAME, name), twoDaysAgo, twoDaysAgo);
+  }
+}
+
+describe('scanAndCleanupOrphans', () => {
+  it('reclaims stale marker-less dirs and keeps fresh ones', async () => {
+    const root = await makeInstall(['LIVE-4.8.0', 'LIVE-4.9.0']);
+    await makeStale(root, ['LIVE-4.8.0']);
+    const res = await scanAndCleanupOrphans([root]);
+    expect(res.ok).toBe(true);
+    expect(await extractDirs(root)).toEqual(['LIVE-4.9.0']);
+  });
+
+  it('keeps the extract a paused upload resumes from, however stale it is', async () => {
+    // A paused job's dir goes untouched for a day while the operator waits.
+    // Sweeping it turned "Upload fortsetzen" into a no-op with nothing to send.
+    const root = await makeInstall(['LIVE-4.9.0', 'skins-4.9.0']);
+    await makeStale(root, ['LIVE-4.9.0', 'skins-4.9.0']);
+    const keep = `${root}/${EXTRACTS_DIR_NAME}/LIVE-4.9.0`.replace(/\\/g, '/');
+    const res = await scanAndCleanupOrphans([root], [keep]);
+    expect(res.ok).toBe(true);
+    expect(await extractDirs(root)).toEqual(['LIVE-4.9.0']);
+  });
+
+  it('passes the keep-list through the discovery wrapper', async () => {
+    const root = await makeInstall(['LIVE-4.9.0']);
+    await makeStale(root, ['LIVE-4.9.0']);
+    discoverAll.mockResolvedValue([{ installPath: root }]);
+    await scanAndCleanupDiscovered([join(root, EXTRACTS_DIR_NAME, 'LIVE-4.9.0')]);
+    expect(await extractDirs(root)).toEqual(['LIVE-4.9.0']);
   });
 });
 

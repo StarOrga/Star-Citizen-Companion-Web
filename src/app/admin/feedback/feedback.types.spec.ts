@@ -3,6 +3,10 @@ import {
   FeedbackRow,
   FeedbackStatus,
   buildWorkflowQueue,
+  DECLINE_REASONS,
+  declineReasonLabelKey,
+  declineReasonTextKey,
+  matchDeclineReason,
   bucketLabelStatus,
   awaitsReview,
   computePace,
@@ -15,13 +19,17 @@ import {
   isContinuedAfterShip,
   isOwnTopic,
   isUserSubmitted,
+  ISSUE_REQUEST_MARKER,
+  isIssueRequest,
   lifecycleSnapshot,
+  pendingIssueRequest,
   neededInput,
   normalizeSearchText,
   rankFeedbackSearch,
   refKind,
-  filterRowScope,
-  rowScopeCounts,
+  filterWorkflowKind,
+  foldThread,
+  workflowKindCounts,
   searchFeedback,
   searchTokens,
   shippedPerWeek,
@@ -441,6 +449,36 @@ describe('buildWorkflowQueue', () => {
       'r2',
     ]);
   });
+
+  // ---- Triage steps folded into the queue (feedback 89925995) ----
+
+  const user1 = row('u1', 'open', '2026-07-07T10:00:00Z', { source: 'user', triaged: false });
+  const user2 = row('u2', 'open', '2026-07-06T10:00:00Z', { source: 'user', triaged: false });
+
+  it('queues untriaged user topics FIRST — nothing at all happens to them otherwise', () => {
+    const queue = buildWorkflowQueue([review1, q1, user1, q2, user2], threads);
+    expect(queue.map((i) => i.row.id)).toEqual(['u2', 'u1', 'q2', 'q1', 'r1']);
+    expect(queue.map((i) => i.kind)).toEqual(['triage', 'triage', 'question', 'question', 'review']);
+  });
+
+  it('drops a user topic out of the queue once it is released', () => {
+    expect(buildWorkflowQueue([{ ...user1, triaged: true }], threads).map((i) => i.row.id)).toEqual([]);
+  });
+
+  it('keeps an untriaged topic out while its author owes an answer', () => {
+    const asked = { ...user1, status: 'needs_input_author' as FeedbackStatus };
+    expect(buildWorkflowQueue([asked], threads).map((i) => i.row.id)).toEqual([]);
+  });
+
+  it('keeps a declined user topic out — it is archived, not waiting', () => {
+    const declined = { ...user1, status: 'declined' as FeedbackStatus };
+    expect(buildWorkflowQueue([declined], threads).map((i) => i.row.id)).toEqual([]);
+  });
+
+  it('lets the tick-off hide a triage step like any other item', () => {
+    const handled = new Map([['u1', user1.updated_at]]);
+    expect(buildWorkflowQueue([user1, user2], threads, handled).map((i) => i.row.id)).toEqual(['u2']);
+  });
 });
 
 describe('workflow scope (feedback abfa97c6)', () => {
@@ -478,6 +516,22 @@ describe('workflow scope (feedback abfa97c6)', () => {
     expect(filterWorkflowScope(q, 'mine', 'me').map((i) => i.row.id)).toEqual(['m1', 'm2']);
   });
 
+  it('keeps triage steps in every scope — a user topic is nobody\'s own', () => {
+    // The scope splits ADMIN topics by who raised them; a user-submitted one was
+    // raised by neither, so `mine` must not hide the thing that blocks the
+    // routine outright (feedback 89925995).
+    const userTopic = row('u1', 'open', '2026-07-09T10:00:00Z', {
+      author_id: 'someone-else',
+      source: 'user',
+      triaged: false,
+    });
+    const withTriage = buildWorkflowQueue([mine1, theirs, userTopic], new Map());
+    expect(filterWorkflowScope(withTriage, 'mine', 'me').map((i) => i.row.id)).toEqual(['u1', 'm1']);
+    expect(filterWorkflowScope(withTriage, 'others', 'me').map((i) => i.row.id)).toEqual(['u1', 't1']);
+    // ...and the chip counts say the same thing the chips hand over.
+    expect(workflowScopeCounts(withTriage, 'me')).toEqual({ mine: 2, others: 2, all: 3 });
+  });
+
   it('recognises ownership only for a matching author id', () => {
     expect(isOwnTopic(mine1, 'me')).toBeTrue();
     expect(isOwnTopic(theirs, 'me')).toBeFalse();
@@ -486,40 +540,33 @@ describe('workflow scope (feedback abfa97c6)', () => {
   });
 });
 
-describe('review scope — bare-row lens for the sign-off queue', () => {
-  // The sign-off list holds finished topics awaiting an admin's Abnahme; the same
-  // mine/others/all lens applies, but to rows rather than WorkflowItems.
-  const mine1 = row('m1', 'shipped', '2026-07-05T10:00:00Z', { author_id: 'me' });
-  const mine2 = row('m2', 'issue_created', '2026-07-06T10:00:00Z', { author_id: 'me' });
-  const theirs = row('t1', 'shipped', '2026-07-07T10:00:00Z', { author_id: 'you' });
-  const orphan = row('n1', 'shipped', '2026-07-08T10:00:00Z', { author_id: null });
-  const rows = [mine1, mine2, theirs, orphan];
+describe('workflow kind lens — replaces the Abnahme tab (feedback d4990269)', () => {
+  // The tab that used to hold these rows is gone; the run narrows to them
+  // instead. Same items, same order — only fewer of them on screen.
+  const q1 = { row: row('q1', 'needs_input', '2026-07-05T10:00:00Z'), replies: [], kind: 'question' as const };
+  const r1 = { row: row('r1', 'shipped', '2026-07-06T10:00:00Z'), replies: [], kind: 'review' as const };
+  const q2 = { row: row('q2', 'needs_input', '2026-07-07T10:00:00Z'), replies: [], kind: 'question' as const };
+  const items = [q1, r1, q2];
 
-  it('counts each scope, with authorless rows landing under "others"', () => {
-    expect(rowScopeCounts(rows, 'me')).toEqual({ mine: 2, others: 2, all: 4 });
+  it('counts every kind, with "all" as the untouched total', () => {
+    expect(workflowKindCounts(items)).toEqual({ all: 3, triage: 0, question: 2, review: 1 });
   });
 
-  it('narrows the list to the admin\'s own topics', () => {
-    expect(filterRowScope(rows, 'mine', 'me').map((r) => r.id)).toEqual(['m1', 'm2']);
+  it('hands back the whole run for "all"', () => {
+    expect(filterWorkflowKind(items, 'all').map((i) => i.row.id)).toEqual(['q1', 'r1', 'q2']);
   });
 
-  it('narrows to everyone else, keeping authorless topics visible', () => {
-    expect(filterRowScope(rows, 'others', 'me').map((r) => r.id)).toEqual(['t1', 'n1']);
+  it('narrows to the Abnahmen', () => {
+    expect(filterWorkflowKind(items, 'review').map((i) => i.row.id)).toEqual(['r1']);
   });
 
-  it('keeps the whole list for "all"', () => {
-    expect(filterRowScope(rows, 'all', 'me').length).toBe(4);
+  it('narrows to the Rückfragen, keeping the queue order', () => {
+    expect(filterWorkflowKind(items, 'question').map((i) => i.row.id)).toEqual(['q1', 'q2']);
   });
 
-  it('preserves list order inside a scope', () => {
-    const shuffled = [mine2, theirs, mine1];
-    expect(filterRowScope(shuffled, 'mine', 'me').map((r) => r.id)).toEqual(['m2', 'm1']);
-  });
-
-  it('falls back to the full list while the user id is unknown', () => {
-    // Auth not settled yet — a blank sign-off queue would look like nothing to do.
-    expect(filterRowScope(rows, 'mine', null).length).toBe(4);
-    expect(rowScopeCounts(rows, null)).toEqual({ mine: 0, others: 4, all: 4 });
+  it('counts an empty run as empty rather than throwing', () => {
+    expect(workflowKindCounts([])).toEqual({ all: 0, triage: 0, question: 0, review: 0 });
+    expect(filterWorkflowKind([], 'review')).toEqual([]);
   });
 });
 
@@ -556,6 +603,49 @@ describe('workflowFocusIndex', () => {
       msg('m3', 'q1', false, '2026-07-01T12:00:00Z'),
     ];
     expect(workflowFocusIndex(replies)).toBe(2);
+  });
+});
+
+describe('foldThread', () => {
+  const ids = (items: readonly { id: string }[]) => items.map((i) => i.id);
+
+  it('hands a short thread back whole, so nothing grows a needless control', () => {
+    const replies = [
+      msg('m1', 'q1', true, '2026-07-01T10:00:00Z'),
+      msg('m2', 'q1', false, '2026-07-01T11:00:00Z'),
+    ];
+    const folded = foldThread(replies);
+    expect(folded.lead).toBeNull();
+    expect(folded.hidden).toEqual([]);
+    expect(ids(folded.tail)).toEqual(['m1', 'm2']);
+  });
+
+  it('is a no-op on an empty thread', () => {
+    expect(foldThread([])).toEqual({ lead: null, hidden: [], tail: [] });
+  });
+
+  it('keeps the first and the newest message, folding everything between', () => {
+    const replies = ['m1', 'm2', 'm3', 'm4', 'm5'].map((id, i) => msg(id, 'q1', false, `2026-07-0${i + 1}T10:00:00Z`));
+    const folded = foldThread(replies);
+    expect(folded.lead?.id).toBe('m1');
+    expect(ids(folded.hidden)).toEqual(['m2', 'm3', 'm4']);
+    expect(ids(folded.tail)).toEqual(['m5']);
+  });
+
+  it('never loses a message: lead + hidden + tail is the whole thread', () => {
+    const replies = ['m1', 'm2', 'm3', 'm4'].map((id, i) => msg(id, 'q1', false, `2026-07-0${i + 1}T10:00:00Z`));
+    const folded = foldThread(replies);
+    expect(ids([...(folded.lead ? [folded.lead] : []), ...folded.hidden, ...folded.tail])).toEqual(
+      ids(replies),
+    );
+  });
+
+  it('can keep a longer tail on screen', () => {
+    const replies = ['m1', 'm2', 'm3', 'm4'].map((id, i) => msg(id, 'q1', false, `2026-07-0${i + 1}T10:00:00Z`));
+    const folded = foldThread(replies, 2);
+    expect(folded.lead?.id).toBe('m1');
+    expect(ids(folded.hidden)).toEqual(['m2']);
+    expect(ids(folded.tail)).toEqual(['m3', 'm4']);
   });
 });
 
@@ -1068,5 +1158,89 @@ describe('review gate', () => {
     const stats = computeStats([shipped()], new Map(), null);
     expect(stats.open).toBe(1);
     expect(stats.done).toBe(0);
+  });
+});
+
+/**
+ * "Issue erstellen" is an ORDER in the thread, undoable until the routine
+ * carries it out (admin feedback 18e96ad3).
+ */
+describe('issue requests', () => {
+  const order = (id: string, created: string): FeedbackMessage => ({
+    ...msg(id, 'f1', false, created),
+    body: `${ISSUE_REQUEST_MARKER} bitte ein GitHub-Issue anlegen`,
+  });
+
+  it('recognises the order by its marker, and only on a human message', () => {
+    expect(isIssueRequest(order('m1', '2026-09-01T10:00:00Z'))).toBeTrue();
+    expect(isIssueRequest(msg('m2', 'f1', false, '2026-09-01T10:00:00Z'))).toBeFalse();
+    expect(
+      isIssueRequest({ ...order('m3', '2026-09-01T10:00:00Z'), is_system: true }),
+    ).withContext('the routine never orders itself around').toBeFalse();
+  });
+
+  it('stays open — and undoable — while the topic is still a plain ToDo', () => {
+    const todo = row('f1', 'open', '2026-09-01T09:00:00Z');
+    expect(pendingIssueRequest(todo, [order('m1', '2026-09-01T10:00:00Z')])?.id).toBe('m1');
+    expect(pendingIssueRequest(todo, [])).toBeNull();
+  });
+
+  it('is closed once the routine filed the issue', () => {
+    const replies = [order('m1', '2026-09-01T10:00:00Z')];
+    const filed = row('f1', 'issue_created', '2026-09-01T09:00:00Z', {
+      ship_ref: 'https://github.com/o/r/issues/7',
+    });
+    expect(pendingIssueRequest(filed, replies)).toBeNull();
+    // A ship_ref alone closes it too — the hand-off happened, whatever the
+    // status is called at that moment.
+    const withRef = row('f1', 'open', '2026-09-01T09:00:00Z', {
+      ship_ref: 'https://github.com/o/r/issues/7',
+    });
+    expect(pendingIssueRequest(withRef, replies)).toBeNull();
+  });
+
+  it('does not change the topic bucket — it is still work in the queue', () => {
+    const todo = row('f1', 'open', '2026-09-01T09:00:00Z');
+    expect(feedbackBucket(todo, [order('m1', '2026-09-01T10:00:00Z')])).toBe('todo');
+    expect(isArchived(todo, [order('m1', '2026-09-01T10:00:00Z')])).toBeFalse();
+  });
+});
+
+describe('canned decline reasons', () => {
+  const texts = {
+    duplicate: '  Das gibt es schon.  ',
+    alreadyShipped: 'Ist längst drin.',
+    notReproducible: 'Konnten wir nicht nachstellen.',
+    tooLittleInfo: 'Zu wenig Info.',
+    offRoadmap: 'Passt nicht zur Richtung.',
+    noise: 'Damit können wir nichts anfangen.',
+  };
+
+  it('gives every reason a distinct label and text key', () => {
+    const keys = DECLINE_REASONS.flatMap((id) => [declineReasonLabelKey(id), declineReasonTextKey(id)]);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(declineReasonLabelKey('duplicate')).toBe('adminFeedback.decline.reasons.duplicate.label');
+    expect(declineReasonTextKey('duplicate')).toBe('adminFeedback.decline.reasons.duplicate.text');
+  });
+
+  it('recognises a note that is still a canned reason, whitespace aside', () => {
+    expect(matchDeclineReason('Das gibt es schon.', texts)).toBe('duplicate');
+    expect(matchDeclineReason('\n Ist längst drin. \n', texts)).toBe('alreadyShipped');
+  });
+
+  it('drops the selection as soon as the admin edits the pre-filled text', () => {
+    expect(matchDeclineReason('Das gibt es schon. Siehe #12.', texts)).toBeNull();
+    expect(matchDeclineReason('Das gibt es scho', texts)).toBeNull();
+  });
+
+  it('treats an empty note as no reason at all', () => {
+    expect(matchDeclineReason('', texts)).toBeNull();
+    expect(matchDeclineReason('   ', texts)).toBeNull();
+  });
+
+  it('never matches against a reason the caller could not translate', () => {
+    // A missing key resolves to '' in the caller's map — that must not make an
+    // empty-ish note look like a deliberate pick.
+    expect(matchDeclineReason('anything', { duplicate: '' })).toBeNull();
   });
 });

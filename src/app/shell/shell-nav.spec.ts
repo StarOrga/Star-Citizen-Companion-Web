@@ -58,7 +58,7 @@ describe('ShellComponent navigation', () => {
         provideRouter([]),
         provideNoopAnimations(),
         { provide: SameRouteRefreshService, useValue: { request } },
-        { provide: AuthService, useValue: { user: signal(null), signOut: () => Promise.resolve() } },
+        { provide: AuthService, useValue: { ready: () => false, realUser: () => null, user: signal(null), signOut: () => Promise.resolve() } },
         { provide: RoleService, useValue: { isAdmin: signal(false) } },
         { provide: ProfileService, useValue: { username: signal(null) } },
       ],
@@ -120,5 +120,59 @@ describe('ShellComponent navigation', () => {
     click(brand, { button: 1 });
 
     expect(request).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Regression guard (2026-08-16): a Hangar entry was briefly added as a
+   * fourth top-level link, then reverted — Hangar is a subview of Codex,
+   * reached via the "Im Hangar" zone entrance on the Codex landing, not its
+   * own nav slot. Pin the count so a future add-back has to be deliberate.
+   */
+  it('renders exactly three top-level nav entries: News, Codex, Starscape', () => {
+    const fixture = setup();
+    const links = Array.from(
+      fixture.nativeElement.querySelectorAll('nav.nav > a'),
+    ) as HTMLAnchorElement[];
+
+    expect(links.length).toBe(3);
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/news', '/codex', '/starscape']);
+  });
+
+  it('never renders a top-level Hangar nav entry', () => {
+    const fixture = setup();
+    const hangarLink = fixture.nativeElement.querySelector('nav.nav a[href="/hangar"]');
+    expect(hangarLink).toBeNull();
+  });
+
+  /**
+   * Pages hang their own pinned bars off `--sc-topbar-h` (the settings section
+   * rail does). It has to be the height the header actually PARKS at — so a
+   * real number while the header is sticky, and 0px while it scrolls away with
+   * the page, which is what it does below 1080px (admin feedback af058ca4
+   * round 4). Whichever side of that line the karma window is on, the property
+   * must exist and must agree with the header's computed position.
+   */
+  it('publishes the height the header parks at as --sc-topbar-h', () => {
+    const fixture = setup();
+    const bar = fixture.nativeElement.querySelector('.topbar') as HTMLElement;
+    const published = document.documentElement.style.getPropertyValue('--sc-topbar-h');
+
+    expect(published).toMatch(/^\d+px$/);
+    const sticky = getComputedStyle(bar).position === 'sticky';
+    if (sticky) {
+      expect(parseFloat(published)).toBeCloseTo(bar.getBoundingClientRect().height, 0);
+    } else {
+      // Nothing is parked, so nothing may be reserved for it.
+      expect(published).toBe('0px');
+    }
+  });
+
+  it('takes --sc-topbar-h back down when the shell goes away', () => {
+    const fixture = setup();
+    expect(document.documentElement.style.getPropertyValue('--sc-topbar-h')).toMatch(/px$/);
+
+    fixture.destroy();
+
+    expect(document.documentElement.style.getPropertyValue('--sc-topbar-h')).toBe('');
   });
 });

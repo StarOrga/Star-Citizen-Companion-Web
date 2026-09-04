@@ -82,6 +82,26 @@ export function parseVariantUrl(url: string): ParsedVariant | null {
 }
 
 /**
+ * Full-size width of the picture behind `url`, or `0` when it is not knowable.
+ *
+ * Consumers that judge an image by its pixel size need this. What a tile decodes
+ * is whichever rung the browser picked for the slot, so a measurement read off
+ * the element is scaled down by a factor the element itself cannot report — the
+ * only honest reference is the width at which that url's picture exists in full.
+ *
+ * Our cache encodes it: `…/<hash>/w<N>.<ext>` stores its top rung at `N`. Every
+ * other url returns `0` rather than a guess. `LEGACY_COVER_WIDTH` would be the
+ * tempting stand-in — the srcset does advertise `cover` at 1140w — but that
+ * descriptor is a convention we assert, not a size we measured: a 200×60 site
+ * logo is served as its own `post`/`cover` and "correcting" it to 1140 wide
+ * would promote furniture into artwork. Unknown stays unknown, and the caller
+ * keeps the raw measurement.
+ */
+export function sourceWidth(url: string): number {
+  return parseVariantUrl(url)?.top ?? 0;
+}
+
+/**
  * `srcset` for a news image. Empty string when there is nothing to choose from
  * (a single opaque `w0` object) — the caller then relies on `src` alone.
  */

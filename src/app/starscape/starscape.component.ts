@@ -12,15 +12,17 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { StarscapeService, StarscapeRing, Wallpaper, ringsForRole } from './starscape.service';
+import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
 import { RoleService } from '../auth/role.service';
-import {
-  AppDownloadEntry,
-  AppDownloadPanelComponent,
-} from '../desktop/app-download-panel.component';
+import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component';
 import { StarscapeAppPromoComponent } from './starscape-app-promo.component';
+import { StarscapeVoteButtonComponent } from './starscape-vote-button.component';
+import { StarscapeVotesService } from './starscape-votes.service';
+import { StarscapeTilesService } from './starscape-tiles.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 // Believable, varied masonry-tile shapes for the loading skeletons. The gallery
 // rows carry no dimension metadata, so a fixed cycle of plausible shapes gives
@@ -59,6 +61,28 @@ const EAGER_TILES = 8;
 const IMAGE_STALL_MS = 20_000;
 
 /**
+ * How many tiles the wall paints in its first frame, and how many each following
+ * frame adds.
+ *
+ * The gallery's rows outlive this component (`StarscapeService` is root-scoped),
+ * so leaving for another tab and coming back re-enters with every page the user
+ * had paged in. Painting all of them in one pass is a single blocking task that
+ * grows with every "load more" click — six pages meant ~144 tiles, each with a
+ * child vote button and a `<picture>`, built between two frames. That is the
+ * stutter in admin feedback 2bf4ab11: the view could not open until the whole
+ * accumulated wall existed.
+ *
+ * Spread over animation frames the browser paints between chunks, so the shell
+ * and the first screen are up immediately and the rest fills in downwards. The
+ * chunk is a full page rather than a handful of tiles because `.wall` is a CSS
+ * multi-column box: every chunk re-balances the columns, so few large steps
+ * settle invisibly where many small ones would shuffle tiles sideways. One page
+ * per frame is also exactly the amount of work a first load has always cost.
+ */
+const FIRST_PAINT_TILES = 24;
+const RENDER_CHUNK = 24;
+
+/**
  * Starscape (#133) — high-res wallpaper gallery from crawled RSI news imagery.
  * Masonry grid of CDN previews; the lightbox and the download button use the
  * ORIGINAL full-res RSI url (we host no image bytes — hotlinks + attribution).
@@ -66,12 +90,14 @@ const IMAGE_STALL_MS = 20_000;
 @Component({
   selector: 'sc-starscape',
   standalone: true,
-  imports: [
+  imports: [NeuroFieldDirective, 
     TranslateModule,
     ScDatePipe,
     ImgReadyDirective,
-    AppDownloadPanelComponent,
+    AppDownloadMenuComponent,
     StarscapeAppPromoComponent,
+    StarscapeVoteButtonComponent,
+    ScSegmentedComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -82,42 +108,53 @@ const IMAGE_STALL_MS = 20_000;
           <p class="hint">{{ 'starscape.subtitle' | translate }}</p>
         </div>
         <!-- Desktop-only: a Windows tray app cannot be installed from a phone,
-             so the whole panel is hidden on small screens (admin feedback
-             52a5ef4c) — there, only the gallery matters. Since eb9c6ec3 this is
-             the SHARED panel the Data Uploader also uses, so both apps present
-             themselves identically; ring lock / platform notes moved behind its
-             ⓘ toggle. The ring is still chosen HERE, before the download: the
-             app reads it off the filename and locks to it, no in-app switch. -->
+             so the menu removes itself on a touch device (feedback dccdcc82) and
+             the CSS below additionally drops the column on narrow layouts
+             (admin feedback 52a5ef4c) — there, only the gallery matters.
+             Since 924bf1d8 this is the SAME
+             component the Data Uploader uses on the Codex landing: a compact
+             trigger that expands into an overlay with one download per ring.
+             The ring is still chosen HERE, before the download: the app reads it
+             off the filename and locks to it, no in-app switch. -->
         <div class="app-cta">
-          <sc-app-download-panel
-            icon="🖥️"
-            title="starscape.appTitle"
-            desc="starscape.appDesc"
-            [version]="rings().length > 0 ? null : appVersion()"
-            [entries]="appEntries()"
-            [notes]="appNotes()" />
+          <sc-app-download-menu [product]="'starscape'" [fallbackUrl]="appDownloadUrl" />
         </div>
       </header>
 
-      @if (svc.seriesOptions().length > 0) {
-        <div class="filter-bar" role="tablist">
-          <button
-            type="button"
-            class="chip"
-            [class.active]="!svc.activeSeries()"
-            (click)="svc.setSeries('')">
-            {{ 'starscape.filterAll' | translate }}
-          </button>
-          @for (s of svc.seriesOptions(); track s) {
-            <button
-              type="button"
-              class="chip"
-              [class.active]="svc.activeSeries() === s"
-              (click)="svc.setSeries(s)">
-              {{ s }}
-            </button>
-          }
-        </div>
+      <!-- Two fixed slots, not a wrapping flex row: the source filter owns the
+           left one, the Top-N switch the right one, and the switch is pinned to
+           its column whatever the left slot contains — including nothing.
+           Before this the switch moved every time the source changed. -->
+      <div class="controls">
+        <!-- The source filter is a filter over the WHOLE gallery; the Top list
+             is a global ranking by definition, so the two cannot both be
+             active. Same segmented control as the telemetry time range. -->
+        @if (!votes.topOnly() && svc.seriesOptions().length > 0) {
+          <sc-segmented
+            class="source-filter"
+            [options]="sourceOptions()"
+            [value]="svc.activeSource()"
+            [ariaLabel]="'starscape.source.label' | translate"
+            (valueChange)="setSource($event)" />
+        }
+        <!-- "Only the Top 7". A real switch, persisted per user: signed in it
+             lives on the profile (profiles.starscape_top_only) so the Starscape
+             desktop app can read the SAME preference; signed out it falls back
+             to local storage so a reload does not undo the choice. -->
+        <button
+          type="button"
+          class="top-toggle"
+          role="switch"
+          [class.active]="votes.topOnly()"
+          [attr.aria-checked]="votes.topOnly()"
+          (click)="toggleTopOnly()">
+          <span class="tt-track" aria-hidden="true"><span class="tt-knob"></span></span>
+          {{ 'starscape.top.label' | translate: { count: votes.topLimit } }}
+        </button>
+      </div>
+
+      @if (votes.topOnly()) {
+        <p class="hint top-hint">{{ 'starscape.top.hint' | translate: { count: votes.topLimit } }}</p>
       }
 
       <!-- A failed page load is a dead end without a way back in: the request is
@@ -142,7 +179,7 @@ const IMAGE_STALL_MS = 20_000;
         </div>
       }
 
-      @if (svc.wallpapers().length === 0 && !svc.loading() && !svc.error()) {
+      @if (tiles().length === 0 && !svc.loading() && !votes.topLoading() && !svc.error()) {
         <div class="sc-card empty">
           <p>{{ 'starscape.empty' | translate }}</p>
         </div>
@@ -152,11 +189,16 @@ const IMAGE_STALL_MS = 20_000;
            so the grid reads as "images incoming", never as collapsed stripes.
            The caption is what tells a visitor that the bars ARE the loading
            state — unlabelled, a screen of them just reads as broken content. -->
-      @if (svc.loading() && svc.wallpapers().length === 0) {
+      @if (votes.topOnly() && votes.topLoading() && tiles().length === 0) {
+        <p class="wall-status" role="status" aria-live="polite">{{ 'starscape.top.loading' | translate }}</p>
+      }
+
+      @if (!votes.topOnly() && svc.loading() && svc.wallpapers().length === 0) {
         <p class="wall-status" role="status" aria-live="polite">{{ 'starscape.loadingImages' | translate }}</p>
         <div class="wall" aria-hidden="true">
           @for (i of skeletonSlots; track i) {
-            <span class="tile skel-tile sc-skel" [style.aspectRatio]="skelRatio(i)"></span>
+            <span class="tile skel-tile sc-skel-field" scNeuroField [neuroIndex]="i"
+                  [style.aspectRatio]="skelRatio(i)" [style.--sc-skel-i]="i"></span>
           }
         </div>
       }
@@ -172,12 +214,20 @@ const IMAGE_STALL_MS = 20_000;
         </div>
       }
 
+      <!-- Painted a page at a time, from the top down (see FIRST_PAINT_TILES):
+           the wall is re-entered with every page the visitor had loaded, and
+           building all of them between two frames is what made coming back from
+           another tab stutter (admin feedback 2bf4ab11). -->
       <div class="wall">
-        @for (w of svc.wallpapers(); track w.imageId; let i = $index) {
+        @for (w of visibleTiles(); track w.imageId; let i = $index) {
+        <!-- The wrapper exists so the thumbs-up can be a SIBLING of the tile
+             link: a <button> nested inside an <a> is invalid HTML and would eat
+             the anchor's middle-click / "open in new tab" behaviour. -->
+        <div class="tile-wrap">
           <!-- A tile is a link to the full-res source (d2171662): middle click,
                Ctrl/⌘+click and "open image in new tab" go straight to the CDN
                original; a plain left click keeps the in-page lightbox. -->
-          <a class="tile" [class.loaded]="loaded().has(w.imageId)"
+          <a class="tile" [class.loaded]="justLocked(w.imageId)"
              [href]="w.sourceUrl" target="_blank" rel="noopener noreferrer"
              [attr.aria-label]="w.title"
              (click)="onTileClick($event, w)"
@@ -186,7 +236,8 @@ const IMAGE_STALL_MS = 20_000;
                  the column never collapses to a border stripe. Dropped once the
                  image is ready (or has failed) — then the image defines height. -->
             @if (!loaded().has(w.imageId) && !broken().has(w.imageId)) {
-              <span class="tile-skel sc-skel" [style.aspectRatio]="skelRatio(i)" aria-hidden="true"></span>
+              <span class="tile-skel sc-skel-field" scNeuroField [neuroIndex]="i"
+                    [style.aspectRatio]="skelRatio(i)" [style.--sc-skel-i]="i" aria-hidden="true"></span>
             }
             <!-- Broken preview: keep the tile's shape and SAY so, with a retry.
                  Before this, a failed image dropped its skeleton and hid the
@@ -239,19 +290,32 @@ const IMAGE_STALL_MS = 20_000;
                 decoding="async"
                 [attr.loading]="i < eagerTiles ? 'eager' : 'lazy'"
                 [attr.fetchpriority]="i < 4 ? 'high' : null"
+                [style.aspectRatio]="tileRatio(w.imageId)"
                 scImgReady
-                (ready)="onLoad(w.imageId)"
-                (load)="onLoad(w.imageId)"
+                (ready)="onLoad(w.imageId, $event)"
+                (load)="onLoad(w.imageId, $any($event.target))"
                 (failed)="onBroken(w.imageId)"
                 (error)="onBroken(w.imageId)"
                 [class.hidden]="broken().has(w.imageId)" />
             </picture>
             @if (w.series) { <span class="tile-series">{{ w.series }}</span> }
           </a>
+          <!-- Thumbs-up + the PUBLIC tally (every user's votes, never just
+               yours). Revealed on hover on precise pointers, but ALWAYS visible
+               on touch (there is no hover to reveal it with), once cast, and
+               while the Top-N ranking is on screen - that list only answers
+               "is this really everyone's top 7?" if you can read its counts
+               without hovering all seven tiles (admin feedback bfd2149a). -->
+          <sc-vote-button
+            class="tile-vote"
+            [class.always-on]="votes.topOnly()"
+            [imageId]="w.imageId"
+            [compact]="true" />
+        </div>
         }
       </div>
 
-      @if (svc.hasMore()) {
+      @if (!votes.topOnly() && svc.hasMore()) {
         <button type="button" class="sc-btn more" [disabled]="svc.loading()" (click)="svc.load()">
           {{ (svc.loading() ? 'starscape.loading' : 'starscape.loadMore') | translate }}
         </button>
@@ -290,6 +354,10 @@ const IMAGE_STALL_MS = 20_000;
               </span>
             </div>
             <div class="lb-actions">
+              <!-- Same control as on the tile, at full button height: on a phone
+                   the lightbox is where an image is actually looked at, so the
+                   vote has to be reachable from here too. -->
+              <sc-vote-button [imageId]="w.imageId" />
               <!-- A real ACTION, so a <button>: it opens the Android/iOS share
                    sheet via the Web Share API and only falls back to the
                    clipboard where that API is missing (desktop browsers). -->
@@ -318,22 +386,66 @@ const IMAGE_STALL_MS = 20_000;
     .head h1 { margin: 0; }
     .head .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 68ch; }
 
-    /* Slot for the shared app-download panel — the panel owns its own styling
-       (sc-app-download-panel), this only reserves the header column. */
-    .app-cta { min-width: 260px; max-width: 340px; flex: 0 1 auto; }
+    /* Slot for the shared app-download menu — the menu owns its own styling and
+       overlay positioning (sc-app-download-menu); this only aligns the column. */
+    .app-cta { display: flex; justify-content: flex-end; flex: 0 0 auto; }
 
-    .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; }
-    .chip {
-      padding: 4px 12px; border-radius: 999px; font-size: max(0.76rem, var(--sc-fs-floor));
-      background: var(--sc-bg-1); color: var(--sc-fg-2);
-      border: 1px solid var(--sc-border); cursor: pointer;
+    /* The source filter and the Top switch share one row via a two-column GRID,
+       not a wrapping flex row. A flex row re-lays itself out whenever a child
+       changes width, so switching the source used to shove the Top switch
+       around (admin feedback 1f78e57f); with fixed columns the switch is
+       anchored to the trailing edge and the left column absorbs every width
+       change on its own. minmax(0, 1fr) lets the left column shrink below its
+       content — the filter scrolls sideways inside it rather than pushing the
+       switch off screen. The row also reserves its height, so the source filter
+       appearing or disappearing cannot move the gallery below it. */
+    .controls {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px 16px; align-items: center; min-height: 48px;
     }
-    .chip:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .chip.active { color: var(--sc-accent); border-color: var(--sc-accent);
+    .source-filter { grid-column: 1; grid-row: 1; justify-self: start; }
+    .controls .top-toggle { grid-column: 2; grid-row: 1; justify-self: end; }
+    .top-hint { color: var(--sc-fg-2); margin: -6px 0 0; max-width: 68ch;
+      font-size: max(0.76rem, var(--sc-fs-floor)); }
+
+    /* A switch, not a chip: it changes WHAT the gallery is, not which slice of
+       it you see, so it gets the on/off affordance rather than a filter pill. */
+    .top-toggle {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: 48px; padding: 4px 14px 4px 8px; border-radius: 999px; cursor: pointer;
+      font: inherit; font-size: max(0.76rem, var(--sc-fs-floor));
+      background: var(--sc-bg-1); color: var(--sc-fg-2);
+      border: 1px solid var(--sc-border);
+      /* The label is the only thing in the row whose text can change length
+         (the count is interpolated), so it is not allowed to wrap — a two-line
+         switch would change the row height under the gallery. */
+      white-space: nowrap;
+    }
+    .top-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .top-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .top-toggle.active { color: var(--sc-accent); border-color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
+    .tt-track {
+      display: inline-block; position: relative; width: 32px; height: 18px;
+      border-radius: 999px; background: var(--sc-bg-0);
+      border: 1px solid var(--sc-border); flex: 0 0 auto;
+    }
+    .tt-knob {
+      position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+      border-radius: 50%; background: var(--sc-fg-2);
+      transition: transform 0.16s ease, background 0.16s ease;
+    }
+    .top-toggle.active .tt-track { border-color: var(--sc-accent); }
+    .top-toggle.active .tt-knob { transform: translateX(14px); background: var(--sc-accent); }
+    @media (prefers-reduced-motion: reduce) { .tt-knob { transition: none; } }
 
     /* Masonry via CSS columns — tiles keep their natural aspect ratio. */
     .wall { columns: 4 260px; column-gap: 12px; }
+    /* The masonry box is the WRAPPER (tile link + thumbs-up button), so the
+       column break and the hover lift apply to both together — the overlay
+       button is positioned against this element. */
+    .tile-wrap { position: relative; display: block; width: 100%; margin: 0 0 12px;
+      break-inside: avoid; transition: transform 0.16s ease; }
     .tile {
       position: relative; display: block; width: 100%; margin: 0 0 12px;
       padding: 0; border: 1px solid var(--sc-border); border-radius: 8px;
@@ -341,9 +453,29 @@ const IMAGE_STALL_MS = 20_000;
       break-inside: avoid; color: inherit; text-decoration: none;
       transition: transform 0.16s ease, box-shadow 0.16s ease;
     }
+    .tile-wrap > .tile { margin: 0; }
     .tile:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .tile:hover { transform: translateY(-2px);
+    .tile-wrap:hover { transform: translateY(-2px); }
+    .tile-wrap:hover > .tile {
       box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 14px color-mix(in srgb, var(--sc-accent) 25%, transparent); }
+
+    /* Thumbs-up overlay. Base state = VISIBLE: hiding it by default and
+       revealing it on hover would make it unreachable on every touch device,
+       which is most of this gallery's traffic. The hover reveal below is an
+       enhancement scoped to precise pointers only. */
+    .tile-vote { position: absolute; top: 8px; right: 8px; z-index: 2; }
+    @media (hover: hover) and (pointer: fine) {
+      .tile-vote { opacity: 0; transition: opacity 0.16s ease; }
+      /* …but a vote you already cast stays on screen — otherwise you cannot see
+         what you liked without hovering every tile. */
+      .tile-wrap:hover .tile-vote,
+      .tile-wrap:focus-within .tile-vote,
+      .tile-vote.is-voted,
+      /* ...and so does the whole ranking while "Top N only" is on: the counts
+         ARE the answer that view exists to give. */
+      .tile-vote.always-on { opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) { .tile-vote { transition: none; } }
     /* <picture> is inline by default — it has to become the tile's block box so
        the image keeps filling the column. */
     .tile picture { display: block; }
@@ -354,13 +486,13 @@ const IMAGE_STALL_MS = 20_000;
        it decodes, instead of popping in. While undecoded the <img> carries no
        height — the sibling skeleton reserves the box. */
     .tile-img {
-      opacity: 0; filter: blur(12px); transform: scale(1.03);
-      transition: opacity 0.55s ease, filter 0.55s ease, transform 0.55s ease;
+      opacity: 0; transform: scale(1.03);
+      transition: opacity 0.42s ease, transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    .tile-img.ready { opacity: 1; filter: blur(0); transform: none; }
+    .tile-img.ready { opacity: 1; transform: none; }
 
     /* Skeleton layer (per-tile + the first-load grid) — holds height and runs
-       the shared phosphor sweep from .sc-skel (styles.scss). */
+       das gemeinsame Neuronenfeld aus .sc-skel-field (styles.scss). */
     .tile-skel { display: block; width: 100%; border-radius: inherit; }
     .skel-tile {
       display: block; width: 100%; margin: 0 0 12px;
@@ -381,6 +513,8 @@ const IMAGE_STALL_MS = 20_000;
       .tile-img { transition: opacity 0.2s ease; filter: none; transform: none; }
       .tile-img.ready { filter: none; }
       .tile.loaded { animation: none; }
+      .tile-wrap { transition: none; }
+      .tile-wrap:hover { transform: none; }
     }
 
     .tile-series {
@@ -502,6 +636,18 @@ const IMAGE_STALL_MS = 20_000;
       figcaption { flex-direction: column; align-items: stretch; gap: 10px; }
       .lb-actions { flex-wrap: wrap; gap: 8px; }
       .lb-actions .sc-btn { flex: 1 1 auto; text-align: center; }
+      /* One full-width column on a phone: the thumbs-up sits on the artwork
+         with a safe inset and is never hidden behind a hover it cannot get. */
+      .tile-vote { top: 10px; right: 10px; }
+      /* One control per row: side by side there is no width left for either.
+         The placement is left IMPLICIT here (grid-*: auto) on purpose — pinned rows
+         would leave a 48px hole where the source filter used to be whenever the
+         Top view hides it. Both stretch, so the source filter's segments share
+         the full width as thumb-sized targets and the switch label never
+         truncates. */
+      .controls { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+      .source-filter { grid-column: auto; grid-row: auto; justify-self: stretch; display: block; }
+      .controls .top-toggle { grid-column: auto; grid-row: auto; justify-self: stretch; }
       .lb-hint { text-align: left; }
     }
 
@@ -509,7 +655,6 @@ const IMAGE_STALL_MS = 20_000;
        reveal/press animations scale interactive elements by 0.994, which measures
        a 44px control as 43px. */
     @media (pointer: coarse) {
-      .chip { min-height: 48px; display: inline-flex; align-items: center; }
       .more { min-height: 48px; }
       .tf-retry { min-height: 48px; }
       .err .sc-btn, .stalled .sc-btn { min-height: 48px; }
@@ -526,14 +671,20 @@ const IMAGE_STALL_MS = 20_000;
       .lb-close { min-width: 48px; min-height: 48px; }
       /* No hover on touch — the lift and the zoom-in cursor are mouse idioms. */
       .tile { cursor: pointer; }
-      .tile:hover { transform: none; box-shadow: none; }
+      .tile-wrap:hover { transform: none; }
+      .tile-wrap:hover > .tile { box-shadow: none; }
+      .top-toggle { min-height: 48px; }
     }
 
-    /* A Windows tray app cannot be installed from a phone or tablet, so the
-       download panel is dropped entirely below the desktop breakpoint — there,
-       only the images matter (admin feedback 52a5ef4c, widening the 640px rule
-       from 32cbf3ad which still showed it in landscape and on small tablets).
-       display:none also takes it out of the tab order and the a11y tree. */
+    /* Layout rule only: below the desktop breakpoint the header has no room for
+       the CTA column, so it is dropped and only the images matter (admin
+       feedback 52a5ef4c, widening the 640px rule from 32cbf3ad). display:none
+       also takes it out of the tab order and the a11y tree.
+       The "can this device even install a Windows app" question is NOT decided
+       here any more — sc-app-download-menu answers it itself via
+       DesktopCapabilityService (feedback dccdcc82), which also covers a phone
+       held in landscape above 900px. This rule stays as the narrow-window
+       layout guard it always really was. */
     @media (max-width: 900px) {
       .app-cta { display: none; }
     }
@@ -541,6 +692,9 @@ const IMAGE_STALL_MS = 20_000;
 })
 export class StarscapeComponent implements OnInit {
   readonly svc = inject(StarscapeService);
+  readonly votes = inject(StarscapeVotesService);
+  /** Decode state that has to survive leaving the page — see the service's doc. */
+  private readonly tileState = inject(StarscapeTilesService);
   private readonly roles = inject(RoleService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
@@ -568,33 +722,6 @@ export class StarscapeComponent implements OnInit {
   /** Registered build version (e.g. "0.3.2"), or null before it loads / if unregistered. */
   readonly appVersion = computed(() => this.svc.desktopRelease()?.version ?? null);
 
-  /**
-   * Download buttons for the shared app panel: one per ring the visitor's role
-   * may take, or the never-stale alias link when no ring pointer is registered.
-   */
-  readonly appEntries = computed<AppDownloadEntry[]>(() => {
-    const rings = this.rings();
-    if (rings.length > 0) {
-      return rings.map((r) => ({
-        key: r.ring,
-        labelKey: `desktop.channel.${r.ring}`,
-        url: r.downloadUrl,
-        version: r.version,
-        sizeBytes: r.sizeBytes,
-        hash: r.sha256 ? r.sha256.slice(0, 12) : null,
-        secondary: r.ring !== 'stable',
-      }));
-    }
-    return [{ key: 'latest', labelKey: 'starscape.appDownload', url: this.downloadUrl() }];
-  });
-
-  /** Platform caveats + the ring-lock warning — all behind the panel's ⓘ. */
-  readonly appNotes = computed<string[]>(() => {
-    const notes = ['starscape.appNote', 'starscape.appAutoUpdate'];
-    if (this.rings().length > 1) notes.push('starscape.appRingLock');
-    return notes;
-  });
-
   /** Stills for the promo's mock desktop — real gallery images, once loaded. */
   readonly promoWallpapers = computed(() =>
     this.svc.wallpapers().slice(0, 3).map((w) => this.lowResFor(w.previewUrl)),
@@ -607,20 +734,60 @@ export class StarscapeComponent implements OnInit {
     () => this.rings().find((r) => r.ring === 'stable')?.version ?? this.appVersion(),
   );
 
+  /**
+   * What the grid actually paints: the global Top-N ranking while the toggle is
+   * on, the normal (optionally series-filtered) page otherwise.
+   *
+   * The ranking is a SNAPSHOT — it is refetched when the toggle is switched on
+   * and on reload, never live while you vote. Re-sorting under the finger would
+   * make tiles jump away from the button that was just tapped.
+   */
+  readonly tiles = computed<readonly Wallpaper[]>(() =>
+    this.votes.topOnly() ? this.votes.topWallpapers() : this.svc.wallpapers(),
+  );
+
+  /**
+   * How much of {@link tiles} is currently in the DOM. Grows one
+   * {@link RENDER_CHUNK} per animation frame until it covers the list, and drops
+   * back to {@link FIRST_PAINT_TILES} whenever the list is replaced rather than
+   * appended to (source filter, Top-N toggle).
+   */
+  private readonly renderLimit = signal(FIRST_PAINT_TILES);
+
+  /** The slice of {@link tiles} the wall actually paints this frame. */
+  readonly visibleTiles = computed<readonly Wallpaper[]>(() => {
+    const list = this.tiles();
+    const limit = this.renderLimit();
+    return limit >= list.length ? list : list.slice(0, limit);
+  });
+
+  /**
+   * The source filter's segments. The service owns the named states (`all`,
+   * `series:<name>`); this only paints them — the series name is data, so it
+   * ships as a ready-made label, "All" is ours and gets translated.
+   */
+  readonly sourceOptions = computed<readonly ScSegmentOption[]>(() =>
+    this.svc.sourceOptions().map((o) => ({
+      value: o.id,
+      label: o.label ?? undefined,
+      labelKey: o.labelKey ?? undefined,
+    })),
+  );
+
   readonly active = signal<Wallpaper | null>(null);
   /** Translation key of the clipboard-fallback confirmation, or null. */
   readonly shareHint = signal<string | null>(null);
-  readonly broken = signal<ReadonlySet<string>>(new Set<string>());
+  readonly broken = this.tileState.broken;
   // Preview images that have decoded at least once — gates each tile's blur-up
   // reveal and drops its skeleton. Cache hits are recovered via ImgReadyDirective.
-  readonly loaded = signal<ReadonlySet<string>>(new Set<string>());
+  // Held in the root tile-state service, so coming back to the page does not
+  // rebuild a skeleton (and its canvas) for every tile that already painted.
+  readonly loaded = this.tileState.decoded;
   /**
-   * Retry counter per image id. Bumping it appends a `#r<n>` fragment to the
-   * tile's urls, which makes the browser re-run its image-selection algorithm
-   * for that element — the only way to re-attempt a source without touching the
-   * url a signed CDN link may depend on (a fragment is never sent to a server).
+   * Previews that had already decoded before this mount. They are not new
+   * contacts, so they do not get the acquisition flash — see {@link justLocked}.
    */
-  private readonly retries = signal<Readonly<Record<string, number>>>({});
+  private readonly preDecoded = new Set(this.tileState.decoded());
   /** IMAGE_STALL_MS has passed since the rows arrived. */
   private readonly stallElapsed = signal(false);
 
@@ -643,6 +810,10 @@ export class StarscapeComponent implements OnInit {
 
   private shareHintTimer: ReturnType<typeof setTimeout> | null = null;
   private stallTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Pending {@link renderLimit} bump, so only one frame is ever queued. */
+  private fillHandle: number | null = null;
+  /** First tile of the list the current fill belongs to — see the fill effect. */
+  private filledFrom: string | null = null;
 
   constructor() {
     // Re-resolve the ring links whenever the role settles (it arrives after the
@@ -654,16 +825,72 @@ export class StarscapeComponent implements OnInit {
     effect(() => {
       if (this.svc.wallpapers().length > 0) this.armStallWatch();
     });
+    // Vote counts follow whatever the grid currently shows — one aggregate call
+    // per page/ranking change, never one per tile. `starscape_top_wallpapers`
+    // already returns its own counts, so only the paged list needs this.
+    effect(() => {
+      if (this.votes.topOnly()) return;
+      const ids = this.svc.wallpapers().map((w) => w.imageId);
+      if (ids.length > 0) void this.votes.syncCounts(ids);
+    });
+    // Fill the wall downwards over successive frames instead of in one pass.
+    // Re-runs on every bump, which is what drives the fill: each run queues the
+    // next chunk until the limit covers the list. A list that was REPLACED (a
+    // different first tile: source filter, Top-N toggle) starts over at the top,
+    // an appended one ("mehr laden") just keeps growing from where it was.
+    effect(() => {
+      const list = this.tiles();
+      const firstId = list[0]?.imageId ?? null;
+      if (firstId !== this.filledFrom) {
+        this.filledFrom = firstId;
+        this.renderLimit.set(FIRST_PAINT_TILES);
+      }
+      if (this.renderLimit() < list.length) this.scheduleFill(list.length);
+    });
     this.destroyRef.onDestroy(() => {
       if (this.shareHintTimer) clearTimeout(this.shareHintTimer);
       if (this.stallTimer) clearTimeout(this.stallTimer);
+      if (this.fillHandle !== null) cancelAnimationFrame(this.fillHandle);
+    });
+  }
+
+  /**
+   * Queue the next chunk of tiles for the next frame. Without frames to spread
+   * the work over (a non-browser platform) there is nothing to gain from
+   * staging it, so the whole list is rendered at once.
+   */
+  private scheduleFill(total: number): void {
+    if (typeof requestAnimationFrame !== 'function') {
+      this.renderLimit.set(total);
+      return;
+    }
+    if (this.fillHandle !== null) return;
+    this.fillHandle = requestAnimationFrame(() => {
+      this.fillHandle = null;
+      this.renderLimit.update((n) => n + RENDER_CHUNK);
     });
   }
 
   async ngOnInit(): Promise<void> {
     void this.svc.loadDesktopRelease();
     if (this.svc.wallpapers().length === 0) await this.svc.load(true);
+    // Restore the per-user toggle, then fetch the ranking if it is on. Done
+    // after the first page so the gallery paints either way.
+    await this.votes.loadPreference();
+    if (this.votes.topOnly() && this.votes.topWallpapers().length === 0) {
+      await this.votes.loadTop();
+    }
     await this.openDeepLink();
+  }
+
+  /** Switch the gallery's source (see `StarscapeService.sourceOptions`). */
+  setSource(id: string): void {
+    void this.svc.setSource(id);
+  }
+
+  /** Flip "only the Top N" — persisted per user, and it refetches the ranking. */
+  toggleTopOnly(): void {
+    void this.votes.setTopOnly(!this.votes.topOnly());
   }
 
   /** Start (or restart) the "no picture has arrived yet" deadline. */
@@ -685,10 +912,8 @@ export class StarscapeComponent implements OnInit {
     // The tile is an anchor to the CDN original — a retry must not follow it.
     ev.preventDefault();
     ev.stopPropagation();
-    const next = new Set(this.broken());
-    next.delete(imageId);
-    this.broken.set(next);
-    this.bumpRetry([imageId]);
+    this.tileState.clearBroken([imageId]);
+    this.tileState.bumpRetry([imageId]);
   }
 
   /** Re-attempt every preview that has not resolved yet (the stall notice's action). */
@@ -697,17 +922,10 @@ export class StarscapeComponent implements OnInit {
       .wallpapers()
       .map((w) => w.imageId)
       .filter((id) => !this.loaded().has(id));
-    this.broken.set(new Set<string>());
+    this.tileState.clearBroken();
     this.stallElapsed.set(false);
-    this.bumpRetry(pending);
+    this.tileState.bumpRetry(pending);
     this.armStallWatch();
-  }
-
-  private bumpRetry(ids: readonly string[]): void {
-    if (ids.length === 0) return;
-    const next = { ...this.retries() };
-    for (const id of ids) next[id] = (next[id] ?? 0) + 1;
-    this.retries.set(next);
   }
 
   /**
@@ -716,8 +934,7 @@ export class StarscapeComponent implements OnInit {
    * a CDN (or a signed proxy url) actually receives.
    */
   private retrySuffix(imageId?: string): string {
-    const n = imageId ? (this.retries()[imageId] ?? 0) : 0;
-    return n > 0 ? `#r${n}` : '';
+    return this.tileState.retrySuffix(imageId);
   }
 
   /**
@@ -804,17 +1021,41 @@ export class StarscapeComponent implements OnInit {
     this.shareHintTimer = setTimeout(() => this.shareHint.set(null), SHARE_HINT_MS);
   }
 
-  /** Marks a preview decoded → fades it in and removes its skeleton. */
-  onLoad(id: string): void {
-    if (this.broken().has(id)) {
-      const stillBroken = new Set(this.broken());
-      stillBroken.delete(id);
-      this.broken.set(stillBroken);
-    }
-    if (this.loaded().has(id)) return;
-    const next = new Set(this.loaded());
-    next.add(id);
-    this.loaded.set(next);
+  /**
+   * Marks a preview decoded → fades it in and removes its skeleton. The element
+   * comes along so its decoded shape can be remembered: that is what lets a
+   * revisited tile reserve its exact box without a skeleton (see
+   * {@link tileRatio}).
+   */
+  onLoad(id: string, img?: HTMLImageElement | null): void {
+    this.tileState.markDecoded(id, img);
+  }
+
+  /**
+   * Whether this tile is a NEW contact for this mount — what arms the one-shot
+   * `sc-tile-lock` flash.
+   *
+   * A tile that had already decoded before we mounted is not: its element is
+   * created with the class already on it, so on the way back from another tab
+   * every previously seen tile would fire that box-shadow animation in the same
+   * frame. A hundred simultaneous repaints is the very stutter this is meant to
+   * remove; the flash belongs to an image ARRIVING, not to a page opening.
+   */
+  justLocked(id: string): boolean {
+    return this.loaded().has(id) && !this.preDecoded.has(id);
+  }
+
+  /**
+   * `aspect-ratio` for a tile's `<img>` — the shape it decoded to last time, or
+   * null the first time we see it (there the skeleton reserves the box).
+   *
+   * Without it, dropping the skeleton for an already-decoded tile would leave a
+   * zero-height `<img>` until the cache answers, and the wall would reflow tile
+   * by tile on the way back in. A string, like {@link skelRatio}.
+   */
+  tileRatio(id: string): string | null {
+    const ratio = this.tileState.ratioOf(id);
+    return ratio === null ? null : String(ratio);
   }
 
   open(w: Wallpaper): void {
@@ -847,10 +1088,7 @@ export class StarscapeComponent implements OnInit {
     // Both `(error)` and the directive's `(failed)` watchdog land here — whichever
     // notices first wins, the other is a no-op. A tile that already painted is
     // never demoted to "broken".
-    if (this.broken().has(id) || this.loaded().has(id)) return;
-    const next = new Set(this.broken());
-    next.add(id);
-    this.broken.set(next);
+    this.tileState.markBroken(id);
   }
 
   @HostListener('document:keydown.escape')

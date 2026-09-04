@@ -152,6 +152,25 @@ describe('carriedSlots', () => {
     expect(slots[0].count).toBe(4);
   });
 
+  it('keeps every raw member port of a grouped row (R5) so one of several can still be addressed', () => {
+    const ports = [1, 2, 3].map((i) => port(`gun_seat_0${i}`, ['WeaponGun'], 3));
+    const carried = new Map(ports.map((p) => [p.portName!, 'KLWE_LaserRepeater_S3']));
+    const slots = carriedSlots(ports, carried, resolve, humanize);
+    expect(slots.length).toBe(1);
+    expect(slots[0].rawPorts).toEqual(['gun_seat_01', 'gun_seat_02', 'gun_seat_03']);
+    expect(slots[0].rawTypes).toEqual(['WeaponGun']);
+  });
+
+  it('records the single raw port of an ungrouped row', () => {
+    const slots = carriedSlots(
+      [port('hardpoint_class_2', ['WeaponGun'], 3)],
+      new Map([['hardpoint_class_2', 'KLWE_LaserRepeater_S3']]),
+      resolve,
+      humanize,
+    );
+    expect(slots[0].rawPorts).toEqual(['hardpoint_class_2']);
+  });
+
   it('does NOT collapse a mixed load into one row', () => {
     const ports = [1, 2].map((i) => port(`missile_0${i}_attach`, ['Missile'], 2));
     const carried = new Map([

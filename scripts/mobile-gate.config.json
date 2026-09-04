@@ -10,15 +10,15 @@
     "/news",
     "/codex",
     "/codex/index",
-    "/codex/showroom",
     "/codex/keybinds",
+    "/codex/ship/CNOU_Nomad",
     "/starscape",
     "/hangar",
     "/release-notes",
     "/about",
     "/login"
   ],
-  "quickRoutes": ["/news", "/codex", "/hangar", "/login"],
+  "quickRoutes": ["/news", "/codex", "/codex/ship/CNOU_Nomad", "/hangar", "/login"],
   "thresholds": {
     "minTapTargetPx": 44,
     "minFontSizePx": 12,

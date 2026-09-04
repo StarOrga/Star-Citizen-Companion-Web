@@ -87,6 +87,14 @@ interface ReleaseRow {
    * release-token path, which reads the pointer table directly.
    */
   channel?: string;
+  /**
+   * Version the caller's REQUESTED ring is on, resolved without the role clamp.
+   * Starscape only — it is what lets a signed-out alpha install answer "am I up
+   * to date?" instead of only "sign in to find out". A version string and
+   * nothing else: the payload below stays clamped, and Starscape's binaries are
+   * public mirror assets anyway, so the number was never a secret.
+   */
+  requested_version?: string;
 }
 
 function jsonResp(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
@@ -294,6 +302,12 @@ async function respondForChannel(
       releaseDate: release.created_at,
       platforms: release.platforms,
       channel: servedChannel,
+      // What the caller ASKED for, and what that ring currently serves. Only the
+      // Starscape resolver reports it; on every other path it is simply absent
+      // and clients fall back to their previous behaviour. `requestedVersion`
+      // equals `version` whenever nothing was clamped.
+      requestedChannel: channel,
+      ...(release.requested_version ? { requestedVersion: release.requested_version } : {}),
       product,
     },
     200,

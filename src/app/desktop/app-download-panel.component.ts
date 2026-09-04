@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { DesktopCapabilityService } from '../core/desktop-capability.service';
 
 /** One download button in the panel — a platform asset or a release ring. */
 export interface AppDownloadEntry {
@@ -32,6 +33,12 @@ export interface AppDownloadEntry {
  * button(s). Size and hash live in each button's tooltip; release notes and the
  * platform/ring footnotes live behind the ⓘ toggle. Hosts project their own
  * controls (e.g. the channel picker) into `[panelActions]`.
+ *
+ * On a device that cannot install a desktop application at all (admin feedback
+ * dccdcc82), the download buttons and the channel picker are replaced by a
+ * single line saying so. The panel — and the page around it — still renders:
+ * somebody who followed a shared `/download` link from a chat must land on an
+ * explanation, not on a dead page or on buttons that hand them an unusable .exe.
  */
 @Component({
   selector: 'sc-app-download-panel',
@@ -49,7 +56,17 @@ export interface AppDownloadEntry {
         @if (version(); as v) {
           <span class="ap-ver" [title]="'appPanel.version' | translate">v{{ v }}</span>
         }
-        <span class="ap-actions"><ng-content select="[panelActions]" /></span>
+        <!-- The channel picker is part of the download ACTION: picking a ring
+             only means anything if a download follows. Hidden (not removed) on
+             a device that cannot install the app — the hidden attribute also
+             takes it out
+             of the tab order and the a11y tree, and keeping the projection
+             mounted avoids re-creating host-supplied content on every rotation.
+             Content projected into a conditional block is created eagerly
+             anyway (see the note in app-download-menu.component.ts). -->
+        <span class="ap-actions" [hidden]="cannotInstall()">
+          <ng-content select="[panelActions]" />
+        </span>
         @if (hasDetails()) {
           <button
             type="button"
@@ -62,7 +79,13 @@ export interface AppDownloadEntry {
         }
       </div>
 
-      @if (entries().length > 0) {
+      @if (cannotInstall()) {
+        <!-- Admin feedback dccdcc82: offering a Windows .exe to a phone is
+             offering something the device cannot do anything with. The page
+             itself stays reachable (a shared link must not dead-end) — only the
+             download action is replaced by the one fact that matters here. -->
+        <p class="ap-nope">{{ 'appPanel.desktopOnly' | translate }}</p>
+      } @else if (entries().length > 0) {
         <div class="ap-dl">
           @for (e of entries(); track e.key) {
             <a
@@ -142,6 +165,15 @@ export interface AppDownloadEntry {
 
     .ap-state { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
+    /* Stands in for the button row on a touch device — an explanation, not an
+       error, so it stays in the quiet foreground colour rather than danger. */
+    .ap-nope {
+      margin: 0; padding: 8px 10px; border-radius: 6px;
+      font-size: max(0.74rem, var(--sc-fs-floor)); line-height: 1.45;
+      color: var(--sc-fg-1);
+      background: color-mix(in srgb, var(--sc-fg-2) 10%, transparent);
+    }
+
     .ap-details {
       display: flex; flex-direction: column; gap: 6px;
       padding-top: 8px; border-top: 1px solid var(--sc-border);
@@ -160,6 +192,16 @@ export interface AppDownloadEntry {
 })
 export class AppDownloadPanelComponent {
   private readonly i18n = inject(TranslateService);
+  private readonly device = inject(DesktopCapabilityService);
+
+  /**
+   * Is the visitor on a device that could not install this app anyway? The one
+   * detection lives in `DesktopCapabilityService` — never a media query in a
+   * template, and never a viewport width (a narrow desktop window still owns a
+   * PC). All three download surfaces render this panel, so answering it here
+   * covers `/download`, `/uploader` and the Codex Bridge line at once.
+   */
+  readonly cannotInstall = this.device.isMobileDevice;
 
   /** Small glyph identifying the app (🖥️ Starscape, ⬆ Uploader). */
   readonly icon = input('🖥️');

@@ -11,7 +11,7 @@ building it.
 
 **Phase 1 — foundation. Shipped.**
 Accounts, the [Verse News](doc:verse-news) feed with live RSI service status,
-[Starscape](doc:starscape) plus its wallpaper tray app, the
+[Starscape](doc:starscape) plus the Starscape App, the
 [Data Uploader](doc:desktop-tools) with discovery cascade and verified upload,
 the [Codex](doc:codex) built from ingested bundles, the personal
 [Hangar](doc:hangar), and the read-only [Public API](doc:getting-started).
@@ -27,7 +27,8 @@ final, so integrations written now keep working when the rows arrive.
 **Phase 3 — loadout planning.**
 A full planner in the spirit of erkul.games, backed by the extracted catalog
 rather than hand-maintained tables — so it tracks the live build instead of
-lagging it.
+lagging it. The design is settled; see
+[Ship loadout planning](doc:ship-loadout-planning).
 
 **Phase 4 — community.**
 Shared and published loadouts, fleet views across an organisation, and org

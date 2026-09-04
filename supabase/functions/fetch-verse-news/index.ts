@@ -9,10 +9,20 @@ import { Buffer } from 'node:buffer';
 import jpeg from 'npm:jpeg-js@0.4.4';
 import { PNG } from 'npm:pngjs@7.0.0';
 import { scoreWallpaper } from './wallpaper-quality.ts';
-import { isNearDuplicate, perceptualHash } from './perceptual-hash.ts';
+import { perceptualHash } from './perceptual-hash.ts';
+import {
+  type VariantAssignment,
+  type VariantMember,
+  buildThumb,
+  decodeThumb,
+  encodeThumb,
+  groupVariants,
+} from './variant-signature.ts';
 import { isCommLinkArticleUrl } from './comm-link-url.ts';
+import { heroOgTargets, promoteHero } from './hero-image.ts';
 import { isWithinVideoRetention, videoRetentionCutoff } from './video-retention.ts';
 import { isImageUrl } from './media-urls.ts';
+import { isWallpaperSeries } from './wallpaper-series.ts';
 import {
   MAX_PASSTHROUGH_BYTES,
   OPAQUE_WIDTH,
@@ -133,7 +143,7 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
     // /comm-link index fallback — both hand the user a card whose external link lands on
     // a dead or redirecting RSI error page instead of an article (the reported link bug).
     const articles = items.filter((it) => isCommLinkArticleUrl(it.url));
-    await backfillMissingImages(articles);
+    await resolveHeroImages(articles);
     return articles;
   } catch (err) {
     console.error('fetchCommLinks failed:', err);
@@ -141,25 +151,71 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
   }
 }
 
-// Some comm-links come back from the wiki API with an empty `images` array even
-// though the RSI page has a hero image — the "Roadmap Roundup" series is the
-// recurring offender (every entry: images_count 0). For those, scrape the
-// permalink's og:image so the card still gets a thumbnail. The og:image is a
-// media-CDN url, so the existing variant/cache pipeline handles it unchanged.
+/* ---------------------------------------------------------------- *
+ * Hero image resolution — RSI's own og:image, not "whatever came first"
+ *
+ * The wiki API's `images` array is the article's MEDIA LIST in document order,
+ * not an editorial pick, so `images[0]` is only the hero by coincidence. "Letter
+ * From The Chairman" (21301, 2026-08-27) is the case that broke: 8 images whose
+ * first three are a portrait headshot and two `dividing-lines-*.webp` ornaments
+ * — a 1000×8 rule. Cover-cropped into a 16/9 tile the ornament paints an empty
+ * bar, so the card read as "no image" while the RSI page showed a banner. The
+ * real hero (`lftcm-headerbanner-1.jpg`) sat at index 3.
+ *
+ * The page's own `og:image` IS the editorial pick — RSI publishes one on every
+ * comm-link (verified across transmissions, Comm-links and Roadmap Roundups),
+ * always as a `media.robertsspaceindustries.com/<id>/heap_thumb.jpg`, which the
+ * existing variant-swap resolves to the ≤1140w `cover` copy. So we no longer
+ * scrape it only as a last resort for entries with NO images: for the newest
+ * entries — the ones a reader actually sees — it is fetched up front and put in
+ * front of the media list.
+ *
+ * Cost is bounded three ways: only the newest `HERO_OG_LOOKAHEAD` entries plus
+ * the still-imageless tail, a shared wall-clock budget, and a module-scope memo
+ * that survives between requests on a warm isolate (a comm-link's og:image never
+ * changes, so a hit is free and correct).
+ * ---------------------------------------------------------------- */
 const OG_FETCH_TIMEOUT_MS = 6000;
+/** Newest entries whose hero is resolved from the page even if they have images. */
+const HERO_OG_LOOKAHEAD = 12;
+/** Additional older entries that have NO image at all (the historic fallback). */
 const MAX_OG_FALLBACK = 10;
+/** Hard ceiling on the whole og phase — callers wait on this request. */
+const OG_PHASE_BUDGET_MS = 5000;
+/** og:image sits ~8 KB into a ~34 KB page; stop reading well before the body. */
+const OG_HEAD_BYTES = 64 * 1024;
+/** A comm-link's og:image is immutable, so a memo hit needs no freshness proof. */
+const OG_MEMO_TTL_MS = 6 * 60 * 60 * 1000;
+const OG_MEMO_MAX = 300;
 
-async function backfillMissingImages(items: VerseNewsItem[]): Promise<void> {
-  const missing = items
-    .filter((it) => !it.images?.length && it.url.startsWith(RSI_BASE))
-    .slice(0, MAX_OG_FALLBACK);
-  if (!missing.length) return;
-  await Promise.allSettled(missing.map(async (it) => {
-    const og = await fetchOgImage(it.url);
-    if (og) {
-      it.images = [og];
-      it.thumbnail = og;
-    }
+const ogMemo = new Map<string, { url: string | undefined; at: number }>();
+
+async function memoizedOgImage(pageUrl: string, deadline: number): Promise<string | undefined> {
+  const hit = ogMemo.get(pageUrl);
+  if (hit && Date.now() - hit.at < OG_MEMO_TTL_MS) return hit.url;
+  const budget = deadline - Date.now();
+  if (budget <= 0) return hit?.url;
+  const url = await fetchOgImage(pageUrl, Math.min(OG_FETCH_TIMEOUT_MS, budget));
+  // A miss is memoized too — a page that has no usable og tag would otherwise be
+  // re-fetched on every single request forever. Not memoized on a spent budget:
+  // that is a timeout, not a verdict about the page.
+  if (Date.now() < deadline || url) {
+    if (ogMemo.size >= OG_MEMO_MAX) ogMemo.delete(ogMemo.keys().next().value as string);
+    ogMemo.set(pageUrl, { url, at: Date.now() });
+  }
+  return url;
+}
+
+async function resolveHeroImages(items: VerseNewsItem[]): Promise<void> {
+  const targets = heroOgTargets(items, RSI_BASE, HERO_OG_LOOKAHEAD, MAX_OG_FALLBACK);
+  if (!targets.length) return;
+
+  const deadline = Date.now() + OG_PHASE_BUDGET_MS;
+  await Promise.allSettled(targets.map(async (it) => {
+    const og = await memoizedOgImage(it.url, deadline);
+    if (!og) return;
+    it.images = promoteHero(it.images, og, MAX_IMAGE_URLS);
+    it.thumbnail = og;
   }));
 }
 
@@ -168,16 +224,16 @@ async function backfillMissingImages(items: VerseNewsItem[]): Promise<void> {
 // hero never appears in the static body — this <head> meta is the only image we can
 // scrape server-side. Only RSI-hosted urls are accepted: the page is untrusted
 // content, so we never surface an arbitrary external image url from it.
-async function fetchOgImage(pageUrl: string): Promise<string | undefined> {
+async function fetchOgImage(pageUrl: string, timeoutMs = OG_FETCH_TIMEOUT_MS): Promise<string | undefined> {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), OG_FETCH_TIMEOUT_MS);
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(pageUrl, {
       headers: { 'Accept': 'text/html', 'User-Agent': 'SC-Companion/0.3 (+news-og-fallback)' },
       signal: ctrl.signal,
     });
     if (!res.ok) return undefined;
-    const html = await res.text();
+    const html = await readHead(res, OG_HEAD_BYTES);
     // property/name and content can appear in either order; og:image may also be
     // exposed as og:image:secure_url / og:image:url, or a <link rel="image_src">.
     const PROP = 'og:image(?::secure_url|:url)?|twitter:image(?::src)?';
@@ -192,6 +248,36 @@ async function fetchOgImage(pageUrl: string): Promise<string | undefined> {
   } finally {
     clearTimeout(t);
   }
+}
+
+/**
+ * First `limit` bytes of a response as text, then hang up.
+ *
+ * The meta tags we want live in the `<head>`; reading the rest of a page we
+ * immediately throw away is pure egress. Cancelling the reader also releases the
+ * connection instead of leaving it draining in the background. Falls back to a
+ * plain `.text()` where the body is not a readable stream.
+ */
+async function readHead(res: Response, limit: number): Promise<string> {
+  const body = res.body;
+  if (!body) return res.text();
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (size < limit) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      size += value.length;
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+  }
+  const buf = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) { buf.set(c, at); at += c.length; }
+  return new TextDecoder('utf-8', { fatal: false }).decode(buf);
 }
 
 // Decode the handful of HTML entities RSI emits inside attribute values (media urls
@@ -855,14 +941,27 @@ async function warmImageCache(items: VerseNewsItem[]): Promise<void> {
 
 // --------------------- Starscape wallpaper capture (#133) ---------------------
 // Metadata-only: record the ORIGINAL full-res CDN url of every media.rsi news
-// image in `verse_wallpapers`, deduped by CDN id AND by picture — the id catches
-// the same asset, `perceptual-hash.ts` catches the same scene republished under
-// a different id (an armour-set comm-link ships one hangar render per colourway;
-// at tile size they read as one photo repeated). NO image bytes are stored —
+// image in `verse_wallpapers`, deduped by CDN id. NO image bytes are stored —
 // the gallery hotlinks RSI directly (maintainer directive: keep DB/storage
 // lean; `source.<ext>` is the verified largest variant, ~4× the cover).
 // Runs on the raw `news` urls in the deferred pass; warmImageCache no longer
 // rewrites them in place, so this reads real media.rsi urls regardless of order.
+//
+// Visual duplicates are handled by GROUPING, not by rejection (feedback
+// fcd956cf). Capture used to drop a candidate whose `perceptual-hash.ts` dHash
+// was within 48 bits of a stored row. That check is gone, for two reasons:
+//
+//   1. It could not see the duplicates that were actually on screen. RSI
+//      republishes one artwork in several CROPS (21:9, 16:9, square, HUD-framed
+//      banner) and a crop shifts every cell of a global layout hash — measured
+//      on the live table, the four visibly duplicated pairs sat 78-115 bits
+//      apart while the threshold was 48. `variant-signature.ts` replaces it.
+//   2. Rejecting is first-capture-wins, so a 1280px crop arriving first would
+//      permanently lock out the 5852px one. Grouping picks the largest member
+//      afterwards, which is what the maintainer asked for.
+//
+// `phash` is still written — it is what `scripts/wallpaper-dedupe.mjs` reads and
+// it costs nothing extra, riding along on the same decode.
 
 const MEDIA_URL_RE = /^https:\/\/media\.robertsspaceindustries\.com\/([^/]+)\/[^/.]+(\.[a-zA-Z0-9]+)$/;
 
@@ -898,13 +997,29 @@ interface WallpaperRow {
   published_at: string | null;
   /** 256-bit dHash of the picture; null when the format could not be decoded. */
   phash: string | null;
+  /**
+   * Largest known pixel size of the artwork — the ORIGINAL's header when it
+   * could be read, else the decoded cover's. Decides which member of a variant
+   * group is the representative, and lets a client match its screen shape.
+   */
+  width: number | null;
+  height: number | null;
+  /** Encoded crop-tolerant signature (`variant-signature.ts`), or null. */
+  thumb: string | null;
 }
 
 // HEAD the original CDN url and keep it only if it is a raster image of wallpaper
 // size. Any failure (network, timeout, missing/odd headers) is treated as "not a
 // wallpaper": the row is skipped and retried on the next crawl, so unverified
 // noise never reaches the public gallery.
-async function isWallpaperMedia(sourceUrl: string): Promise<boolean> {
+//
+// Answers the ORIGINAL's pixel size on the way through — the ranged GET already
+// carries the header bytes, and the variant grouper needs those numbers. `{}`
+// means "a wallpaper, but the size header could not be read"; null means "not a
+// wallpaper".
+async function readWallpaperMedia(
+  sourceUrl: string,
+): Promise<{ width: number | null; height: number | null } | null> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), WALLPAPER_HEAD_TIMEOUT_MS);
   try {
@@ -915,24 +1030,25 @@ async function isWallpaperMedia(sourceUrl: string): Promise<boolean> {
       headers: { Range: `bytes=0-${WALLPAPER_PROBE_BYTES - 1}`, Referer: RSI_BASE + '/' },
       signal: ctrl.signal,
     });
-    if (!res.ok) return false; // 200 (full) or 206 (partial) both fine
+    if (!res.ok) return null; // 200 (full) or 206 (partial) both fine
     const contentType = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
-    if (!WALLPAPER_CONTENT_TYPES.has(contentType)) return false;
+    if (!WALLPAPER_CONTENT_TYPES.has(contentType)) return null;
     const total = totalSize(res);
-    if (total > 0 && total < MIN_WALLPAPER_BYTES) return false;
+    if (total > 0 && total < MIN_WALLPAPER_BYTES) return null;
 
     const head = new Uint8Array(await res.arrayBuffer());
     const dim = safeImageDimensions(head);
     if (dim) {
       // Confidently-bad size/shape → reject. Unknown dims fall through to the
       // size/type verdict above (never stricter than before).
-      if (dim.w < MIN_WALLPAPER_WIDTH || dim.h < MIN_WALLPAPER_HEIGHT) return false;
+      if (dim.w < MIN_WALLPAPER_WIDTH || dim.h < MIN_WALLPAPER_HEIGHT) return null;
       const aspect = dim.w / dim.h;
-      if (aspect < MIN_WALLPAPER_ASPECT || aspect > MAX_WALLPAPER_ASPECT) return false;
+      if (aspect < MIN_WALLPAPER_ASPECT || aspect > MAX_WALLPAPER_ASPECT) return null;
+      return { width: dim.w, height: dim.h };
     }
-    return true;
+    return { width: null, height: null };
   } catch {
-    return false;
+    return null;
   } finally {
     clearTimeout(timer);
   }
@@ -994,15 +1110,38 @@ const WALLPAPER_CONTENT_TIMEOUT_MS = 10_000;
 // to any other captureWallpapers rejection), so a transient decode hiccup can
 // never permanently drop a real wallpaper.
 //
-// The decoded pixels also yield the row's perceptual hash — the near-duplicate
-// signal (see perceptual-hash.ts) rides along on this one decode instead of
-// costing a second fetch. A skipped or failed check yields no hash, and a null
-// hash never matches, so such an image is kept rather than silently dropped.
-async function contentCheck(row: WallpaperRow): Promise<{ ok: boolean; phash: string | null }> {
+// The decoded pixels also yield the row's signatures — the perceptual hash
+// (perceptual-hash.ts) and the crop-tolerant variant thumbnail
+// (variant-signature.ts) both ride along on this one decode instead of costing
+// a second fetch. A skipped or failed check yields neither, and a null
+// signature never matches, so such an image is kept on its own rather than
+// silently grouped away.
+interface ContentVerdict {
+  ok: boolean;
+  phash: string | null;
+  thumb: string | null;
+  /** Cover dimensions — the fallback size when the original's header was unreadable. */
+  coverWidth: number | null;
+  coverHeight: number | null;
+}
+
+const SKIPPED_CONTENT: ContentVerdict = {
+  ok: true,
+  phash: null,
+  thumb: null,
+  coverWidth: null,
+  coverHeight: null,
+};
+const FAILED_CONTENT: ContentVerdict = { ...SKIPPED_CONTENT, ok: false };
+
+async function contentCheck(row: {
+  image_id: string;
+  preview_url: string;
+}): Promise<ContentVerdict> {
   const ext = row.preview_url.slice(row.preview_url.lastIndexOf('.')).toLowerCase();
   if (ext !== '.jpg' && ext !== '.jpeg' && ext !== '.png') {
     console.log(`captureWallpapers: content check skipped (${ext || 'unknown ext'}) for ${row.image_id}`);
-    return { ok: true, phash: null };
+    return SKIPPED_CONTENT;
   }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), WALLPAPER_CONTENT_TIMEOUT_MS);
@@ -1011,7 +1150,7 @@ async function contentCheck(row: WallpaperRow): Promise<{ ok: boolean; phash: st
       headers: { Referer: RSI_BASE + '/' },
       signal: ctrl.signal,
     });
-    if (!res.ok) return { ok: false, phash: null };
+    if (!res.ok) return FAILED_CONTENT;
     const buf = new Uint8Array(await res.arrayBuffer());
     let rgba: Uint8Array;
     let width: number;
@@ -1033,42 +1172,207 @@ async function contentCheck(row: WallpaperRow): Promise<{ ok: boolean; phash: st
     const score = scoreWallpaper(rgba, width, height);
     if (!score.ok) {
       console.log(`captureWallpapers: content-rejected ${row.image_id} [${score.reasons.join(',')}]`);
-      return { ok: false, phash: null };
+      return FAILED_CONTENT;
     }
-    return { ok: true, phash: perceptualHash(rgba, width, height) };
+    const thumb = buildThumb(rgba, width, height);
+    return {
+      ok: true,
+      phash: perceptualHash(rgba, width, height),
+      thumb: thumb ? encodeThumb(thumb) : null,
+      coverWidth: width,
+      coverHeight: height,
+    };
   } catch (err) {
     console.error(`captureWallpapers: content check threw for ${row.image_id}, rejecting this crawl:`, err);
-    return { ok: false, phash: null };
+    return FAILED_CONTENT;
   } finally {
     clearTimeout(timer);
   }
 }
 
+// --------------------- Variant grouping (feedback fcd956cf) ---------------------
+//
+// One artwork, one visible tile — see variant-signature.ts for the signal and
+// the calibration, and 20260903170000_verse_wallpapers_variant_groups.sql for
+// what the roles mean.
+//
+// Two bounded passes ride the same deferred budget as capture:
+//
+//   backfill — rows written before signatures existed carry `thumb = null` and
+//              cannot be grouped. Each crawl thumbnails a few of them, sharing
+//              MAX_CONTENT_SCORED_PER_RUN with new candidates so the total
+//              number of decodes per crawl never rises above what it was. 49
+//              live rows drain in ~9 crawls, and the pass is self-terminating:
+//              once every row has a signature it costs one column read.
+//   regroup  — recompute groups over the working set and write back only the
+//              rows that actually moved. `groupVariants` is order-independent
+//              and deterministic, so a steady state writes nothing at all.
+
 /**
- * Drop candidates whose PICTURE the gallery already has, or that repeat each
- * other within this crawl.
+ * How many of the newest rows take part in grouping.
  *
- * Order matters and is deliberate: candidates are walked in feed order and the
- * first one wins, matching the existing "first capture wins" rule for ids. RSI
- * lists an article's hero artwork first, so feed order is also the best
- * available proxy for "the shot worth keeping".
+ * Grouping is O(n^2) pairs (~200 ms for 1176 pairs measured on the live data),
+ * so it is capped rather than left to grow with the table — and the cap is a
+ * CPU ceiling, not a guess about the data. 120 rows is 7 140 pairs, ~1.2 s at
+ * that rate, which fits the isolate's CPU budget with room to spare; 240 rows
+ * would already be ~5 s. This module runs after the response via waitUntil, but
+ * the isolate's CPU limit does not care that the client has been served, and
+ * this function's outage history is precisely "deferred image work took the
+ * whole news feed down".
  *
- * A candidate is never allowed to displace a STORED row. Rows are what
- * `?image=<id>` share links resolve, so evicting one to swap in a near-identical
- * newcomer would break a live link for no visible gain.
+ * Nothing real is lost by the window: RSI re-crops an artwork inside a release
+ * cycle, not a year later, the live table holds 49 rows and grows by a few a
+ * week, and a row that falls out simply keeps the grouping it was last given.
  */
-function rejectNearDuplicates(candidates: WallpaperRow[], storedHashes: string[]): WallpaperRow[] {
-  const seen = [...storedHashes];
-  const keep: WallpaperRow[] = [];
-  for (const row of candidates) {
-    if (row.phash && seen.some((h) => isNearDuplicate(row.phash, h))) {
-      console.log(`captureWallpapers: near-duplicate rejected ${row.image_id} (${row.article_url})`);
+const VARIANT_WINDOW_ROWS = 120;
+
+/** One row of the grouping working set, as read from the table. */
+interface VariantRow {
+  image_id: string;
+  source_url: string;
+  preview_url: string;
+  thumb: string | null;
+  width: number | null;
+  height: number | null;
+  variant_group: string | null;
+  variant_role: string;
+}
+
+/**
+ * Thumbnail up to `budget` rows that have no signature yet.
+ *
+ * Mutates the given rows in place so the regroup that follows sees the fresh
+ * signatures without a second read. Returns how many rows gained one.
+ */
+async function backfillVariantSignatures(
+  admin: SupabaseClient,
+  rows: VariantRow[],
+  budget: number,
+): Promise<number> {
+  if (budget <= 0) return 0;
+  const pending = rows.filter((r) => !r.thumb).slice(0, budget);
+  if (pending.length === 0) return 0;
+  let filled = 0;
+  for (const row of pending) {
+    const verdict = await contentCheck(row);
+    // A row that fails the content check today is left alone: it keeps
+    // `thumb = null`, stays `single`, and is retried on a later crawl. The
+    // gallery never loses it — an ungrouped row is a fully visible row.
+    if (!verdict.thumb) continue;
+    row.thumb = verdict.thumb;
+    // Size from the ORIGINAL's header, exactly like the capture path — the
+    // decoded cover is only a fallback. The ranged GET reads a header, not an
+    // image, so it costs no decode budget.
+    const media = await readWallpaperMedia(row.source_url);
+    row.width = media?.width ?? row.width ?? verdict.coverWidth;
+    row.height = media?.height ?? row.height ?? verdict.coverHeight;
+    const { error } = await admin
+      .from('verse_wallpapers')
+      .update({ thumb: row.thumb, width: row.width, height: row.height })
+      .eq('image_id', row.image_id);
+    if (error) {
+      console.error(`variant backfill: update failed for ${row.image_id}:`, error.message);
       continue;
     }
-    if (row.phash) seen.push(row.phash);
-    keep.push(row);
+    filled++;
   }
-  return keep;
+  if (filled > 0) {
+    const left = rows.filter((r) => !r.thumb).length;
+    console.log(`variant backfill: signed ${filled} row(s), ${left} still without a signature`);
+  }
+  return filled;
+}
+
+/**
+ * How many already-signed rows may have their size repaired per crawl.
+ *
+ * Each one is a single ranged GET for a header — no decode — so this is bounded
+ * by request count, not by the decode budget.
+ */
+const VARIANT_SIZE_REPAIR_PER_RUN = 8;
+
+/**
+ * Repair rows whose size came from the COVER instead of the original.
+ *
+ * The first build of the backfill wrote `verdict.coverWidth/Height` — the ≤1140px
+ * cover — into rows it signed. That is not cosmetic: "most pixels wins" chooses
+ * the group primary, and since every cover is about the same width, two
+ * same-shape members tie on pixels and the decision falls through to the
+ * image-id tiebreak. A 1280x720 copy could outrank a 5852x3292 original, which
+ * is precisely the thing the feature promised not to do. It also made backfilled
+ * rows (~0.5 MP) lose to freshly captured neighbours (megapixels) for reasons
+ * that have nothing to do with the artwork.
+ *
+ * Such a row is identifiable with certainty rather than by guess: capture
+ * rejects anything narrower than MIN_WALLPAPER_WIDTH (1280) and covers are
+ * ≤1140px, so a stored width below that floor can only have come from a cover.
+ * Signed rows are never revisited by the signature pass above (it selects on a
+ * missing thumb), so this is the only place they can heal.
+ */
+async function repairVariantSourceSizes(admin: SupabaseClient, rows: VariantRow[]): Promise<number> {
+  const suspect = rows
+    .filter((r) => r.thumb && (r.width === null || r.width < MIN_WALLPAPER_WIDTH))
+    .slice(0, VARIANT_SIZE_REPAIR_PER_RUN);
+  if (suspect.length === 0) return 0;
+  let repaired = 0;
+  for (const row of suspect) {
+    const media = await readWallpaperMedia(row.source_url);
+    // Unreadable today (CDN hiccup, header gate) → leave the row exactly as it
+    // is and try again next crawl. Never write a worse number than it already has.
+    if (!media?.width || !media.height) continue;
+    row.width = media.width;
+    row.height = media.height;
+    const { error } = await admin
+      .from('verse_wallpapers')
+      .update({ width: row.width, height: row.height })
+      .eq('image_id', row.image_id);
+    if (error) {
+      console.error(`variant size repair: update failed for ${row.image_id}:`, error.message);
+      continue;
+    }
+    repaired++;
+  }
+  if (repaired > 0) console.log(`variant size repair: ${repaired} row(s) resized from the original`);
+  return repaired;
+}
+
+/** Recompute groups over the working set and persist only what moved. */
+async function regroupVariants(admin: SupabaseClient, rows: VariantRow[]): Promise<void> {
+  const members: VariantMember[] = rows.map((r) => ({
+    imageId: r.image_id,
+    thumb: decodeThumb(r.thumb),
+    width: r.width,
+    height: r.height,
+  }));
+  let assignments: VariantAssignment[];
+  try {
+    assignments = groupVariants(members);
+  } catch (err) {
+    console.error('regroupVariants: grouping failed, leaving roles untouched:', err);
+    return;
+  }
+  const current = new Map(rows.map((r) => [r.image_id, r]));
+  const moved = assignments.filter((a) => {
+    const row = current.get(a.imageId);
+    if (!row) return false;
+    // A `single` row keeps a null group — the column then reads "not grouped",
+    // exactly what a freshly captured row looks like.
+    const group = a.role === 'single' ? null : a.group;
+    return row.variant_role !== a.role || (row.variant_group ?? null) !== group;
+  });
+  if (moved.length === 0) return;
+  for (const a of moved) {
+    const group = a.role === 'single' ? null : a.group;
+    const { error } = await admin
+      .from('verse_wallpapers')
+      .update({ variant_group: group, variant_role: a.role })
+      .eq('image_id', a.imageId);
+    if (error) console.error(`regroupVariants: update failed for ${a.imageId}:`, error.message);
+  }
+  const hidden = assignments.filter((a) => a.role === 'ratio' || a.role === 'duplicate').length;
+  console.log(
+    `regroupVariants: ${moved.length} row(s) re-roled, ${hidden} of ${assignments.length} now hidden from the flat gallery`,
+  );
 }
 
 async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
@@ -1079,6 +1383,11 @@ async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
       // Only comm-link/patch articles carry the hero artwork worth keeping;
       // youtube thumbs and spectrum previews are not wallpaper material.
       if (it.source !== 'comm-link' && it.source !== 'patch-notes') continue;
+      // Series-level veto, before any network work: a recurring column that
+      // republishes one header image is not a wallpaper source, however well
+      // that image scores. See wallpaper-series.ts for why this is decided
+      // here AND in SQL (admin feedback 1f78e57f).
+      if (!isWallpaperSeries(it.category)) continue;
       for (const url of it.images ?? []) {
         const m = MEDIA_URL_RE.exec(url);
         if (!m) continue;
@@ -1095,75 +1404,119 @@ async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
           article_url: it.url,
           published_at: it.publishedAt || null,
           phash: null, // filled by contentCheck() from the decoded pixels
+          width: null, // filled by readWallpaperMedia() from the original header
+          height: null,
+          thumb: null, // filled by contentCheck() from the decoded pixels
         });
       }
     }
-    if (rows.size === 0) return;
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-    // What the gallery already holds — ids to skip, hashes to compare against.
-    // Reading the whole column is fine at this table's size (a few hundred rows
-    // of 64 hex chars), and Hamming distance is not something an index could
-    // serve anyway. A failed read degrades to "gallery looks empty": the crawl
-    // still captures, it just cannot skip or reject this round.
+    // Ids the gallery already holds. A failed read degrades to "gallery looks
+    // empty": the crawl still captures, it just cannot skip this round.
     const { data: existing, error: readErr } = await admin
       .from('verse_wallpapers')
-      .select('image_id, phash');
+      .select('image_id');
     if (readErr) console.error('captureWallpapers: gallery read failed:', readErr.message);
-    const stored = (existing ?? []) as { image_id: string; phash: string | null }[];
-    const knownIds = new Set(stored.map((r) => r.image_id));
-    const storedHashes = stored.map((r) => r.phash).filter((h): h is string => !!h);
+    const knownIds = new Set(((existing ?? []) as { image_id: string }[]).map((r) => r.image_id));
 
     // Candidates already in the gallery are dropped HERE, before any network
     // work. They used to run the whole HEAD + download + decode gauntlet only
     // for `ignoreDuplicates` to throw the result away — and, since an article
     // stays in the feed for weeks, they consumed the MAX_CONTENT_SCORED_PER_RUN
     // budget every single crawl, deferring genuinely new artwork behind images
-    // the gallery already had. Skipping them also keeps the near-duplicate log
-    // honest: a stored row matches its OWN hash, which would otherwise be
-    // reported as a rejection on every run.
+    // the gallery already had.
     const fresh = [...rows.values()].filter((row) => !knownIds.has(row.image_id));
-    if (fresh.length === 0) return;
     if (fresh.length < rows.size) {
       console.log(`captureWallpapers: ${rows.size - fresh.length} candidate(s) already in the gallery`);
     }
-    // Verify each candidate really is wallpaper-sized artwork before it reaches
-    // the public gallery — this is what keeps inline icons/patterns/videos out (#133).
-    const verified = await Promise.all(
-      fresh.map(async (row) => ((await isWallpaperMedia(row.source_url)) ? row : null)),
-    );
-    const keep = verified.filter((row): row is WallpaperRow => row !== null);
-    if (keep.length === 0) return;
-    // Content-score at most MAX_CONTENT_SCORED_PER_RUN header-passed candidates
-    // per run to bound CPU. Anything beyond the cap is skipped this run (not
-    // upserted) and simply retried on the next crawl if the article is still in
-    // the feed — same retry semantics as a header-check failure above.
-    const toScore = keep.slice(0, MAX_CONTENT_SCORED_PER_RUN);
-    if (keep.length > toScore.length) {
-      console.log(
-        `captureWallpapers: ${keep.length - toScore.length} header-passed candidate(s) deferred to next crawl (per-run cap)`,
+    let spentDecodes = 0;
+    let inserted = 0;
+    if (fresh.length > 0) {
+      // Verify each candidate really is wallpaper-sized artwork before it reaches
+      // the public gallery — this is what keeps inline icons/patterns/videos out (#133).
+      const verified = await Promise.all(
+        fresh.map(async (row) => {
+          const media = await readWallpaperMedia(row.source_url);
+          return media ? { ...row, width: media.width, height: media.height } : null;
+        }),
       );
+      const keep = verified.filter((row): row is WallpaperRow => row !== null);
+      // Content-score at most MAX_CONTENT_SCORED_PER_RUN header-passed candidates
+      // per run to bound CPU. Anything beyond the cap is skipped this run (not
+      // upserted) and simply retried on the next crawl if the article is still in
+      // the feed — same retry semantics as a header-check failure above.
+      const toScore = keep.slice(0, MAX_CONTENT_SCORED_PER_RUN);
+      if (keep.length > toScore.length) {
+        console.log(
+          `captureWallpapers: ${keep.length - toScore.length} header-passed candidate(s) deferred to next crawl (per-run cap)`,
+        );
+      }
+      spentDecodes = toScore.length;
+      const scored = await Promise.all(
+        toScore.map(async (row) => {
+          const verdict = await contentCheck(row);
+          if (!verdict.ok) return null;
+          return {
+            ...row,
+            phash: verdict.phash,
+            thumb: verdict.thumb,
+            // The original's header is the truth when it could be read; the
+            // decoded cover is the fallback so a row is never sizeless.
+            width: row.width ?? verdict.coverWidth,
+            height: row.height ?? verdict.coverHeight,
+          };
+        }),
+      );
+      const passed = scored.filter((row): row is WallpaperRow => row !== null);
+      if (passed.length > 0) {
+        // First capture wins — rows are immutable source metadata, so duplicate
+        // ids from later crawls are ignored instead of churning updated_at.
+        const { error } = await admin
+          .from('verse_wallpapers')
+          .upsert(passed, { onConflict: 'image_id', ignoreDuplicates: true });
+        if (error) console.error('captureWallpapers upsert failed:', error.message);
+        else inserted = passed.length;
+      }
     }
-    const scored = await Promise.all(
-      toScore.map(async (row) => {
-        const verdict = await contentCheck(row);
-        return verdict.ok ? { ...row, phash: verdict.phash } : null;
-      }),
-    );
-    const passed = scored.filter((row): row is WallpaperRow => row !== null);
-    if (passed.length === 0) return;
-    // Reject artwork the gallery already shows under a different CDN id.
-    const finalRows = rejectNearDuplicates(passed, storedHashes);
-    if (finalRows.length === 0) return;
-    // First capture wins — rows are immutable source metadata, so duplicate
-    // ids from later crawls are ignored instead of churning updated_at.
-    const { error } = await admin
-      .from('verse_wallpapers')
-      .upsert(finalRows, { onConflict: 'image_id', ignoreDuplicates: true });
-    if (error) console.error('captureWallpapers upsert failed:', error.message);
+    await maintainVariantGroups(admin, MAX_CONTENT_SCORED_PER_RUN - spentDecodes, inserted > 0);
   } catch (err) {
     // Best-effort side effect — never fail the news feed for the gallery.
     console.error('captureWallpapers failed:', err);
   }
+}
+
+/**
+ * Keep `variant_group` / `variant_role` true for the newest rows.
+ *
+ * Runs on every crawl, including the ones that capture nothing — that is the
+ * whole point, since the rows that need fixing were written months before
+ * signatures existed. Costs one indexed read when there is nothing to do.
+ */
+async function maintainVariantGroups(
+  admin: SupabaseClient,
+  decodeBudget: number,
+  capturedSomething: boolean,
+): Promise<void> {
+  const { data, error } = await admin
+    .from('verse_wallpapers')
+    .select('image_id, source_url, preview_url, thumb, width, height, variant_group, variant_role')
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .order('image_id', { ascending: false })
+    .limit(VARIANT_WINDOW_ROWS);
+  if (error) {
+    console.error('maintainVariantGroups: read failed:', error.message);
+    return;
+  }
+  const rows = (data ?? []) as VariantRow[];
+  if (rows.length === 0) return;
+  const filled = await backfillVariantSignatures(admin, rows, decodeBudget);
+  const repaired = await repairVariantSourceSizes(admin, rows);
+  // Nothing new, nothing newly signed and nothing resized means the last
+  // grouping still stands — skip the O(n^2) pass entirely rather than
+  // recomputing the same answer. A repair does change it: the sizes it fixes
+  // are what "most pixels wins" ranks the group on.
+  if (filled === 0 && repaired === 0 && !capturedSomething) return;
+  await regroupVariants(admin, rows);
 }
 
 // --------------------- Video retention sweep (feedback e7082310) ---------------------

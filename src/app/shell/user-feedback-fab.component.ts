@@ -13,6 +13,7 @@ import { ImpersonationService } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
 import { UserFeedbackService } from '../feedback/user-feedback.service';
 import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.component';
+import { unreadBadgeText } from '../feedback/user-feedback.types';
 
 /**
  * Feedback launcher for everyone who is NOT an admin (feedback 5920cf8c).
@@ -31,13 +32,21 @@ import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.comp
   selector: 'sc-user-feedback-fab',
   standalone: true,
   imports: [TranslateModule, UserFeedbackPanelComponent],
+  // The feedback launcher and its panel are the one thing on screen *because*
+  // the user is writing a report, so a page screenshot taken from inside it
+  // leaves this whole subtree out (admin feedback 312a4acc, see
+  // `PageScreenshotService`).
+  host: { 'data-sc-capture-hide': '' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {
       <div class="fab-root">
         @if (mounted()) {
+          <!-- “sc-sheet” (styles.scss): docked window on a desktop, full-bleed
+               sheet below 720px — same treatment as the admin board's panel
+               (admin feedback 3bc01a3d). -->
           <div
-            class="panel"
+            class="panel sc-sheet"
             [class.minimized]="minimized()"
             role="dialog"
             [attr.aria-hidden]="minimized()"
@@ -78,7 +87,7 @@ import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.comp
           class="fab"
           [class.is-open]="isOpen()"
           (click)="toggle($event)"
-          [attr.aria-label]="(isOpen() ? 'feedbackFab.minimize' : 'userFeedback.open') | translate"
+          [attr.aria-label]="labelKey() | translate: { count: unread() }"
           aria-haspopup="dialog"
           [attr.aria-expanded]="isOpen()">
           @if (isOpen()) {
@@ -95,11 +104,15 @@ import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.comp
                 stroke-linejoin="round" />
             </svg>
           }
-          <!-- An admin asked this user something and is waiting on the answer. -->
-          @if (!isOpen() && pendingQuestions() > 0) {
-            <span class="badge" [attr.aria-label]="'userFeedback.questionsPending' | translate">
-              {{ pendingQuestions() }}
-            </span>
+          <!-- News on this user's own topics that they have not looked at yet:
+               a reply from the team, a question, or a topic that shipped or was
+               declined (admin feedback e684c946). Hidden while the panel is
+               open — the badge exists to get it opened. -->
+          @if (!isOpen() && unread() > 0) {
+            <!-- aria-hidden: a button with an aria-label ignores its own
+                 content, so the count would be silently dropped. It rides in
+                 the button's label instead (labelKey below). -->
+            <span class="badge" aria-hidden="true">{{ badgeText() }}</span>
           }
         </button>
       </div>
@@ -156,10 +169,17 @@ import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.comp
       align-items: center;
       justify-content: center;
       border-radius: 999px;
-      background: var(--sc-accent-hot);
-      color: #10060a;
+      /* The normal accent, never the hot one: this FAB renders ONLY for
+         non-admins (see visible() below), and red is reserved for surfaces a
+         plain viewer never reaches (admin feedback b8b31f24). Unread news is
+         not an error either, so --sc-danger is out — a solid accent pill on the
+         dark FAB carries far enough on its own. */
+      background: var(--sc-accent);
+      color: #041016;
       font-size: max(0.66rem, var(--sc-fs-floor));
       font-weight: 700;
+      /* Lifts the pill off the FAB's own cyan ring on hover/focus. */
+      box-shadow: 0 0 0 2px var(--sc-bg-1);
     }
 
     .panel {
@@ -240,9 +260,16 @@ import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.comp
       line-height: 1.4;
     }
 
-    @media (max-width: 640px) {
-      .fab-root { right: 16px; bottom: 16px; gap: 10px; }
-      .panel { height: min(70vh, calc(100vh - 120px)); }
+    @media (max-width: 720px) {
+      .fab-root {
+        right: 16px;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        gap: 10px;
+      }
+      .panel-head { padding: 10px 14px; }
+      /* The launcher must not float on top of its own full-screen sheet; the
+         sheet's minimize button is the way out and brings it back. */
+      .panel:not(.minimized) ~ .fab { display: none; }
     }
   `],
 })
@@ -273,18 +300,34 @@ export class UserFeedbackFabComponent {
    * lives in `UserFeedbackService.submit()/reply()`; this only explains it up
    * front instead of letting the user type a message and then bounce.
    */
-  readonly blocked = computed(() => this.imp.active());
+  readonly blocked = computed(() => this.imp.activeOrPending());
 
-  /** Topics where an admin's question is waiting on this user's answer. */
-  readonly pendingQuestions = this.feedback.openQuestions;
+  /**
+   * Topics with news this user has not seen: a reply from the team, a question,
+   * or a status they have not been shown yet. Zero means no badge at all.
+   */
+  readonly unread = this.feedback.unreadTopics;
+
+  /** The count as rendered — capped, see `unreadBadgeText`. */
+  readonly badgeText = computed(() => unreadBadgeText(this.unread()));
+
+  /**
+   * The button's own label carries the count, because a screen reader announces
+   * the aria-label and never the badge inside it. The `{count}` parameter is
+   * simply unused by the other two strings.
+   */
+  readonly labelKey = computed(() => {
+    if (this.isOpen()) return 'feedbackFab.minimize';
+    return this.unread() > 0 ? 'userFeedback.openWithNews' : 'userFeedback.open';
+  });
 
   readonly mounted = signal(false);
   readonly minimized = signal(false);
   readonly isOpen = computed(() => this.mounted() && !this.minimized());
 
   constructor() {
-    // Load the user's topics once the role is known, so the badge can announce a
-    // waiting question before the panel has ever been opened.
+    // Load the user's topics once the role is known, so the badge can announce
+    // news before the panel has ever been opened.
     effect(() => {
       if (this.visible() && !this.feedback.loaded()) void this.feedback.refresh();
     });
@@ -295,9 +338,22 @@ export class UserFeedbackFabComponent {
     if (!this.mounted()) {
       this.mounted.set(true);
       this.minimized.set(false);
+      this.markRead();
       return;
     }
-    this.minimized.update((m) => !m);
+    const nowMinimized = !this.minimized();
+    this.minimized.set(nowMinimized);
+    if (!nowMinimized) this.markRead();
+  }
+
+  /**
+   * Opening the panel IS the read receipt (admin feedback e684c946): the user
+   * asked to see their topics, so the badge has done its job and must not still
+   * be there on the next page. Fire-and-forget — the panel opens either way, and
+   * a failed write just leaves the badge up for the next open.
+   */
+  private markRead(): void {
+    void this.feedback.markAllRead();
   }
 
   /** Hide the panel without unmounting it — the draft and scroll survive. */

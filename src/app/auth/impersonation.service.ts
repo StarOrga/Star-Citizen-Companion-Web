@@ -56,16 +56,73 @@ export class ImpersonationService {
   private readonly _actualLoaded = signal(false);
 
   /**
+   * Set when `enter()`'s write did not verifiably persist (private mode,
+   * full quota, disabled storage — `probeStorageAvailable()` only checks the
+   * property exists, not that `setItem` actually works). Without this, the
+   * unconditional reload that used to follow a swallowed write error landed
+   * the user back on a byte-identical page with zero feedback — "picking a
+   * target changes nothing". Cleared at the start of every `enter()` call.
+   */
+  private readonly _enterFailed = signal(false);
+  readonly enterFailed = this._enterFailed.asReadonly();
+
+  /**
    * Called by RoleService after every `refresh()` (and on sign-out) with the
    * live real role. Self-heals a demoted/logged-out/tampered overlay: once
    * the real role is known, any stored value outside its allow-list is wiped.
    */
   setActualRole(role: Role | null, loaded: boolean): void {
+    // Captured before the write: `true` means the real role was ALREADY
+    // resolved in this document, so anything healed now is a mid-session
+    // change (a demotion), not the first resolution after a boot. Only the
+    // former can damage anything — see the reload condition below.
+    const wasResolved = this._actualLoaded();
+
     this._actual.set(role);
     this._actualLoaded.set(loaded);
-    if (loaded && clampViewAs(role, this._stored()) === null) {
-      this.clearStorage();
-    }
+    if (!loaded) return;
+
+    const stored = this._stored();
+    // Nothing stored → nothing to heal. This early return is also what makes
+    // the reload below provably non-looping: after a heal the key is gone, so
+    // the next document lands here with `stored === null` and stops.
+    if (stored === null) return;
+    if (clampViewAs(role, stored) !== null) return;
+
+    const wiped = this.clearStorage();
+
+    // The one transition that must not happen in place. `supabase.client.ts`
+    // documents that every anonClient↔realClient toggle is followed by a full
+    // reload; the other two togglers (`enter()`/`exit()`) honor it, this path
+    // used not to. Healing out of `'anon'` synchronously flips `sb.client`
+    // back to `realClient` and `auth.user()` from null to the real user in
+    // front of every effect that reads them — FeedbackDraftService sees the
+    // uid change and resets, discarding in-flight drafts, and any request
+    // still in flight on the anon client lands its result after the swap.
+    //
+    // Narrow on purpose — three conditions, each excluding a case where the
+    // reload would cost more than it buys:
+    //
+    // `stored === 'anon'` — the only value that puts `sb.client` on the anon
+    //   client at all. Healing out of `viewer`/`collaborator` swaps nothing.
+    // `role !== null` — a sign-out has no real session to swap TO;
+    //   `auth.user()` goes null → null, nobody sees an identity change, and
+    //   reloading would fire on every single sign-out.
+    // `wasResolved` — at boot nothing is in flight yet, so the in-place heal
+    //   of a stale value is harmless; reloading there would put an extra full
+    //   reload in front of anyone carrying a stale key. The damage this guards
+    //   is strictly mid-session: an admin previewing as a visitor gets demoted,
+    //   and healing flips `auth.user()` from null to that real user and
+    //   `sb.client` from anon to real in front of every effect reading them —
+    //   FeedbackDraftService sees the uid change and resets, discarding
+    //   in-flight drafts, and any request still on the anon client lands its
+    //   result after the swap.
+    //
+    // `wiped` last: reloading with the key still present would heal, reload,
+    // heal, forever. When the wipe did not take, `clearStorage()` has already
+    // cleared `_stored` in memory, so this document is at least free of the
+    // overlay — the same degradation `exit()` falls back to.
+    if (stored === 'anon' && role !== null && wasResolved && wiped) this.reload();
   }
 
   /**
@@ -80,7 +137,33 @@ export class ImpersonationService {
     return clampViewAs(this._actual(), stored);
   });
 
+  /**
+   * Whether a preview is resolved and in force. Correct for DISPLAY — the
+   * banner, the account-menu sections — but NOT sufficient as a block; see
+   * `activeOrPending`.
+   */
   readonly active = computed(() => this.viewAs() !== null);
+
+  /**
+   * A preview target is stored, but the real role has not arrived yet, so the
+   * clamp cannot resolve it. `viewAs()` is `null` in this window (except for
+   * the `'anon'` pre-load exception, which is rank-0 and safe to honour
+   * early), and therefore `active()` reads `false` — for a `viewer` or
+   * `collaborator` preview that lasts the whole `profiles` round trip.
+   */
+  readonly previewPending = computed(() => this._stored() !== null && !this._actualLoaded());
+
+  /**
+   * The check for consumers that use the preview as a BLOCK rather than as a
+   * display flag — privileged writes and token handoffs that must not run
+   * under an overlay. Failing open for the length of a network round trip is
+   * not acceptable there: the only reason those call sites were previously
+   * safe is that their routes happen to carry `approvedGuard`, whose
+   * `waitReady()` serialises the round trip. That is a property of the
+   * routing table, not of the code — a route added without that guard would
+   * lose the block silently. This makes the block independent of it.
+   */
+  readonly activeOrPending = computed(() => this.active() || this.previewPending());
 
   /**
    * Fails closed to `[]` when storage is unavailable — offering a preview
@@ -94,17 +177,32 @@ export class ImpersonationService {
 
   /**
    * No-op unless `target` is a member of `targets()` for the current real
-   * role. Writes storage, then reloads — does NOT touch `_stored` itself.
-   * The document that would observe the new value is about to be destroyed
-   * by the reload; synchronously flipping `_stored` first would flip
-   * `auth.user()` to null a beat early, in front of every effect that reads
-   * it (e.g. `FeedbackDraftService`'s identity effect), dropping in-flight
-   * drafts for no reason since the reload re-reads storage anyway.
+   * role. Writes storage, verifies the write actually stuck, then reloads —
+   * does NOT touch `_stored` itself. The document that would observe the new
+   * value is about to be destroyed by the reload; synchronously flipping
+   * `_stored` first would flip `auth.user()` to null a beat early, in front
+   * of every effect that reads it (e.g. `FeedbackDraftService`'s identity
+   * effect), dropping in-flight drafts for no reason since the reload
+   * re-reads storage anyway.
+   *
+   * Mirrors `exit()`'s degrade-instead-of-reload reasoning (F4), but in the
+   * opposite direction: a write that did not stick must NOT be followed by a
+   * reload — the page would come back byte-identical with no explanation.
+   * Surface `enterFailed()` instead so the UI can tell the user.
    */
   enter(target: ViewAs): void {
     if (!this.targets().includes(target)) return;
-    this.writeStorage(target);
-    this.reload();
+    this._enterFailed.set(false);
+    if (this.writeStorage(target)) {
+      this.reload();
+    } else {
+      this._enterFailed.set(true);
+    }
+  }
+
+  /** Lets the UI dismiss the `enterFailed()` notice without another attempt. */
+  clearEnterFailed(): void {
+    this._enterFailed.set(false);
   }
 
   /**
@@ -152,13 +250,22 @@ export class ImpersonationService {
     return null;
   }
 
-  private writeStorage(value: ViewAs): void {
+  /**
+   * Writes storage and reads it back to confirm the value is verifiably
+   * persisted. Returns `false` on a thrown write (private mode / disabled
+   * storage) AND on a silent no-op `setItem` (full quota in some browsers)
+   * — same "don't trust the call succeeded, check the read-back" shape as
+   * `wipeStorageOnly()`.
+   */
+  private writeStorage(value: ViewAs): boolean {
+    const encoded = JSON.stringify(value);
     try {
-      this.document.defaultView?.sessionStorage.setItem(VIEW_AS_STORAGE_KEY, JSON.stringify(value));
+      const store = this.document.defaultView?.sessionStorage;
+      if (!store) return false;
+      store.setItem(VIEW_AS_STORAGE_KEY, encoded);
+      return store.getItem(VIEW_AS_STORAGE_KEY) === encoded;
     } catch {
-      // Write blocked (private mode / disabled storage) — the reload that
-      // follows will simply read nothing back, so the preview never takes
-      // effect. Nothing further to do here.
+      return false;
     }
   }
 
@@ -181,13 +288,17 @@ export class ImpersonationService {
 
   /**
    * Wipes storage AND reflects it in `_stored` immediately. Used only by the
-   * self-heal path (`setActualRole`), which is not followed by a reload, so
-   * the signal must be updated here for the demotion/self-heal to be visible
-   * without a round trip.
+   * self-heal path (`setActualRole`). A demotion out of a non-`anon` preview
+   * is not followed by a reload, so the signal must be updated here for the
+   * heal to be visible without a round trip.
+   *
+   * Returns whether the key is verifiably gone — `setActualRole` needs that
+   * answer before it may reload (see the loop argument there).
    */
-  private clearStorage(): void {
-    this.wipeStorageOnly();
+  private clearStorage(): boolean {
+    const wiped = this.wipeStorageOnly();
     this._stored.set(null);
+    return wiped;
   }
 
   private probeStorageAvailable(): boolean {

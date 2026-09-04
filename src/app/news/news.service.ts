@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ConsentService } from '../core/consent.service';
 import { PatchLineGroup, groupPatchNotes } from './patch-notes';
+import { BuildVerdict, buildSaved, buildStream, buildVerdict, pickStage } from './news-stage';
 
 export type NewsChannel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 export type StatusLevel = 'operational' | 'degraded' | 'partial_outage' | 'major_outage' | 'maintenance' | 'unknown';
@@ -64,20 +65,9 @@ export interface VerseFeed {
   fetchedAt: string;
 }
 
-export type TimeBucket = 'today' | 'week' | 'older';
-export interface BucketedNews {
-  today: VerseNewsItem[];
-  week: VerseNewsItem[];
-  older: VerseNewsItem[];
-}
-
+/** Background refresh cadence for the feed. */
 const POLL_INTERVAL_MS = 5 * 60 * 1000;
-const FILTER_STORAGE_KEY = 'sc-companion.news.channels';
 const FAVORITES_STORAGE_KEY = 'sc-companion.news.favorites';
-const WATCHED_STORAGE_KEY = 'sc-companion.news.watched';
-
-// How many recent videos the Verse News video rail surfaces at once (#146).
-const VIDEO_RAIL_SIZE = 5;
 
 /**
  * Retention window for VIDEOS in Verse News (feedback e7082310): only today,
@@ -92,8 +82,6 @@ const VIDEO_RAIL_SIZE = 5;
  */
 export const VIDEO_RETENTION_DAYS = 31;
 
-const ALL_CHANNELS: NewsChannel[] = ['comm-link', 'spectrum', 'youtube', 'patch'];
-
 @Injectable({ providedIn: 'root' })
 export class NewsService {
   private readonly http = inject(HttpClient);
@@ -104,42 +92,10 @@ export class NewsService {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
-  // Set of active channel filters. Empty set = "Alle" (all channels visible).
-  readonly activeChannels = signal<Set<NewsChannel>>(this.loadFilterFromStorage());
-
-  // Saved ("Merken") article ids, persisted in localStorage.
+  // Saved ("Gemerkt") article ids, persisted in localStorage.
   readonly favoriteIds = signal<Set<string>>(this.loadFavoritesFromStorage());
   // When true, the stream shows only saved items (overrides channel filters).
   readonly favoritesOnly = signal(false);
-  // How many saved items are present in the current feed (drives the chip count).
-  readonly favoriteCount = computed(() => {
-    const f = this.feed();
-    const favs = this.favoriteIds();
-    return f ? f.news.filter((n) => favs.has(n.id)).length : 0;
-  });
-
-  // Videos the user has effectively "watched" (hover-dwell or open), persisted
-  // in localStorage so already-seen clips drop out of the rail over time (#146).
-  readonly watchedIds = signal<Set<string>>(this.loadWatchedFromStorage());
-
-  // All video items in the current feed, newest first — the pool the Verse News
-  // video rail draws its recent-unwatched slice from (#146).
-  readonly allVideos = computed<VerseNewsItem[]>(() => {
-    const f = this.feed();
-    if (!f) return [];
-    return f.news
-      .filter((n) => n.channel === 'youtube')
-      .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
-  });
-
-  // Items the user hasn't seen yet (newer than lastSeenAt) buffered for the "X neue Posts"-pill.
-  private readonly _lastSeenAt = signal<number>(Date.now());
-  readonly pendingCount = computed(() => {
-    const f = this.feed();
-    if (!f) return 0;
-    const cutoff = this._lastSeenAt();
-    return f.news.filter((n) => Date.parse(n.publishedAt) > cutoff).length;
-  });
 
   /**
    * Patch notes grouped by main patch line, newest line first (44e90e30).
@@ -147,28 +103,61 @@ export class NewsService {
    */
   readonly patchLines = computed<PatchLineGroup[]>(() => groupPatchNotes(this.feed()?.news ?? []));
 
-  readonly bucketed = computed<BucketedNews>(() => {
-    const f = this.feed();
-    if (!f) return { today: [], week: [], older: [] };
-    if (this.favoritesOnly()) {
-      const favs = this.favoriteIds();
-      return bucketByTime(f.news.filter((n) => favs.has(n.id)));
-    }
-    const active = this.activeChannels();
-    // In the default "Alle" view videos have their own recent-videos rail
-    // (#146), so drop them from the stream to avoid showing each clip twice.
-    // Selecting the YouTube channel explicitly still lists every video here.
-    //
-    // Patch notes are dropped from the time buckets in EVERY channel view
-    // (44e90e30): they have their own section, grouped by patch line, and a
-    // release/PTU/hotfix stream chopped into "Heute / Diese Woche / Älter" is
-    // exactly the shape the admin asked us to get away from. The `patch` chip
-    // therefore narrows the page down to that section.
-    const filtered = active.size === 0
-      ? f.news.filter((n) => n.channel !== 'youtube' && n.channel !== 'patch')
-      : f.news.filter((n) => active.has(n.channel) && n.channel !== 'patch');
-    return bucketByTime(filtered);
-  });
+  /** How many patch notes the feed carries — the count on the patch board. */
+  readonly patchCount = computed(
+    () => this.feed()?.news.filter((n) => n.channel === 'patch').length ?? 0,
+  );
+
+  /**
+   * The one item on the stage (2026-08-20 rethink, design Ⓐ).
+   *
+   * Scored over the WHOLE editorial pool rather than taken from a time bucket:
+   * the old page defined its hero as "first item of Today" and therefore had no
+   * hero at all on any day without a fresh article — which, measured in
+   * production, was the normal case. See `news-stage.ts`.
+   */
+  readonly stage = computed<VerseNewsItem | null>(
+    () => pickStage(this.feed()?.news ?? [], Date.now()),
+  );
+
+  /**
+   * The unfiltered half of the toggle: everything editorial except the item
+   * already on the stage (which is on screen right above, in full bleed) and
+   * except the patch notes, which have their own page.
+   */
+  private readonly streamAll = computed<VerseNewsItem[]>(
+    () => buildStream(this.feed()?.news ?? [], this.stage()),
+  );
+
+  /**
+   * The saved half of the toggle — every saved editorial item, the staged one
+   * included (feedback eda0e19b).
+   *
+   * Each half is counted against the list that half actually renders, which is
+   * the invariant that matters: a badge never promises an item its list cannot
+   * show. Scoping the saved half by the stage instead was what made "Gemerkt"
+   * read 0 while the hero's star was lit.
+   */
+  private readonly savedAll = computed<VerseNewsItem[]>(
+    () => buildSaved(this.feed()?.news ?? [], this.favoriteIds()),
+  );
+
+  /** Everything in the stream — the left half of the toggle. */
+  readonly streamCount = computed(() => this.streamAll().length);
+
+  /** How many items are saved — the right half of the toggle. */
+  readonly favoriteCount = computed(() => this.savedAll().length);
+
+  /**
+   * What the list below the toggle renders: the flat, reverse-chronological
+   * stream, or the saved slice when the saved half is active.
+   */
+  readonly stream = computed<VerseNewsItem[]>(
+    () => (this.favoritesOnly() ? this.savedAll() : this.streamAll()),
+  );
+
+  /** Which build is live, and when the next one is due — the verdict card. */
+  readonly verdict = computed<BuildVerdict>(() => buildVerdict(this.patchLines(), Date.now()));
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private visibilityListener: (() => void) | null = null;
@@ -209,27 +198,6 @@ export class NewsService {
     }
   }
 
-  acknowledgeNewPosts(): void {
-    this._lastSeenAt.set(Date.now());
-  }
-
-  toggleChannel(channel: NewsChannel): void {
-    const next = new Set(this.activeChannels());
-    if (next.has(channel)) next.delete(channel);
-    else next.add(channel);
-    this.activeChannels.set(next);
-    this.persistFilter(next);
-  }
-
-  clearFilter(): void {
-    this.activeChannels.set(new Set());
-    this.persistFilter(new Set());
-  }
-
-  channelCount(channel: NewsChannel): number {
-    return this.feed()?.news.filter((n) => n.channel === channel).length ?? 0;
-  }
-
   /** Look up a feed item by id (deep-link / share target). */
   itemById(id: string): VerseNewsItem | undefined {
     return this.feed()?.news.find((n) => n.id === id);
@@ -250,26 +218,15 @@ export class NewsService {
     if (this.favoritesOnly() && next.size === 0) this.favoritesOnly.set(false);
   }
 
-  /** Switch the stream between "all channels" and "saved only". */
-  toggleFavoritesOnly(): void {
-    this.favoritesOnly.update((v) => !v);
-  }
-
-  isWatched(id: string): boolean {
-    return this.watchedIds().has(id);
-  }
-
   /**
-   * Mark a video "watched" (hover-dwell threshold reached, or opened). Persisted
-   * so it drops out of the recent-videos rail on subsequent loads (#146). Idempotent.
+   * Switch the stream between "everything" and "saved only".
+   *
+   * Set, not toggled: the stream header is a segmented control that STATES
+   * which half is active, so pressing the active half again must be a no-op —
+   * a toggle there would flip it and contradict its own `aria-pressed`.
    */
-  markWatched(id: string): void {
-    const current = this.watchedIds();
-    if (current.has(id)) return;
-    const next = new Set(current);
-    next.add(id);
-    this.watchedIds.set(next);
-    this.persistWatched(next);
+  setFavoritesOnly(only: boolean): void {
+    this.favoritesOnly.set(only);
   }
 
   startPolling(): void {
@@ -298,28 +255,6 @@ export class NewsService {
     }
   }
 
-  private loadFilterFromStorage(): Set<NewsChannel> {
-    if (typeof localStorage === 'undefined') return new Set();
-    try {
-      const raw = localStorage.getItem(FILTER_STORAGE_KEY);
-      if (!raw) return new Set();
-      const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return new Set();
-      return new Set(arr.filter((c): c is NewsChannel => ALL_CHANNELS.includes(c as NewsChannel)));
-    } catch {
-      return new Set();
-    }
-  }
-
-  private persistFilter(set: Set<NewsChannel>): void {
-    // Preference-category storage is opt-in (#130) — skip until allowed.
-    if (!this.consent.preferencesAllowed()) return;
-    if (typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(Array.from(set)));
-    } catch { /* quota / private mode */ }
-  }
-
   private loadFavoritesFromStorage(): Set<string> {
     if (typeof localStorage === 'undefined') return new Set();
     try {
@@ -341,42 +276,6 @@ export class NewsService {
     } catch { /* quota / private mode */ }
   }
 
-  private loadWatchedFromStorage(): Set<string> {
-    if (typeof localStorage === 'undefined') return new Set();
-    try {
-      const raw = localStorage.getItem(WATCHED_STORAGE_KEY);
-      if (!raw) return new Set();
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? new Set(arr.filter((x): x is string => typeof x === 'string')) : new Set();
-    } catch {
-      return new Set();
-    }
-  }
-
-  private persistWatched(set: Set<string>): void {
-    // Preference-category storage is opt-in (#130) — skip until allowed.
-    if (!this.consent.preferencesAllowed()) return;
-    if (typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(WATCHED_STORAGE_KEY, JSON.stringify(Array.from(set)));
-    } catch { /* quota / private mode */ }
-  }
-}
-
-/**
- * Pure selector for the Verse News video rail (#146): the newest `limit` videos
- * the user hasn't watched yet. The caller passes a `watched` snapshot rather than
- * the live set so freshly-dwelled clips don't reshuffle out from under the cursor
- * — they only drop on the next load. Falls back to the newest videos when every
- * candidate is already watched, so the rail never renders empty while videos exist.
- */
-export function pickRecentVideos(
-  videos: VerseNewsItem[],
-  watched: Set<string>,
-  limit = VIDEO_RAIL_SIZE,
-): VerseNewsItem[] {
-  const unseen = videos.filter((v) => !watched.has(v.id));
-  return (unseen.length > 0 ? unseen : videos).slice(0, limit);
 }
 
 /**
@@ -394,17 +293,3 @@ export function pruneExpiredVideos(news: VerseNewsItem[], now = Date.now()): Ver
   });
 }
 
-function bucketByTime(items: VerseNewsItem[]): BucketedNews {
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const startOfWeek = startOfToday - 6 * 24 * 60 * 60 * 1000;
-  const out: BucketedNews = { today: [], week: [], older: [] };
-  for (const item of items) {
-    const t = Date.parse(item.publishedAt);
-    if (!Number.isFinite(t)) { out.older.push(item); continue; }
-    if (t >= startOfToday) out.today.push(item);
-    else if (t >= startOfWeek) out.week.push(item);
-    else out.older.push(item);
-  }
-  return out;
-}

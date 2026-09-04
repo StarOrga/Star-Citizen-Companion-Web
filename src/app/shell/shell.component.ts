@@ -1,9 +1,11 @@
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   ElementRef,
   HostListener,
+  NgZone,
   computed,
   inject,
   signal,
@@ -33,11 +35,12 @@ import { QuickSearchComponent } from './quick-search.component';
 import { FeedbackFabComponent } from './feedback-fab.component';
 import { UserFeedbackFabComponent } from './user-feedback-fab.component';
 import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
+import { AccountNoticeComponent } from '../social/account-notice.component';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, AccountNoticeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Routed views "develop" into focus as they mount — fade + slight rise, keyed
   // to a per-navigation counter so it replays on every switch. Header/footer are
@@ -79,10 +82,13 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
           {{ 'nav.news' | translate }}
         </a>
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
+        <!-- Hangar is deliberately NOT a top-level entry (feedback f0363cef).
+             It is a subview of Codex: the "Im Hangar" zone on the Codex landing
+             (codex-landing.component.ts) is itself a full-zone entrance link
+             into /hangar, so a dedicated nav slot would be a redundant second
+             door to the same place (correction, 2026-08-16, superseding the
+             short-lived top-level entry added and reverted the same day). -->
         <a routerLink="/starscape" routerLinkActive="active">{{ 'nav.starscape' | translate }}</a>
-        <!-- Hangar is intentionally NOT a top-level nav entry: it lives under the
-             Codex Bridge as a sub-link (see codex-bridge.component). Admin call
-             (feedback f0363cef) — declutter the nav bar, route Hangar via Codex. -->
         <!-- Data Upload is intentionally NOT a top-level nav entry (admin
              feedback eb9c6ec3): a whole menu slot for a tool only collaborators
              and admins ever open. It now lives as the collapsible
@@ -112,19 +118,20 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
         <sc-verse-status-chip />
         <sc-quick-search />
 
-        @if (!auth.user()) {
-          <!-- Signed-out (#131): the account menu is meaningless — offer the
-               sign-in CTA instead (redirects back after login via authGuard). -->
-          <a class="sc-btn signin-btn" routerLink="/login">{{ 'nav.signIn' | translate }}</a>
-          @if (imp.active()) {
-            <!-- The signed-out visitor preview puts the WHOLE account menu out of
-                 reach (auth.user() is null by design — see impersonation.service),
-                 so this is the only way back while on this branch. -->
-            <button type="button" class="sc-btn exit-preview-btn" (click)="imp.exit()">
-              {{ 'impersonation.banner.exit' | translate }}
-            </button>
-          }
-        } @else {
+        <!--
+          Defect A (dead-code sweep): an "@if (!auth.user())" branch used to
+          live here with a sign-in CTA and a redundant "exit-preview" button,
+          commented as "the only way back" while signed out. It never
+          rendered: every shell child route carries canActivateChild:
+          [authGuard, approvedGuard] (app.routes.ts), and authGuard bounces
+          to /login before the shell mounts a route at all — including during
+          an 'anon' preview, since auth.user()/isAuthenticated() are
+          shadowed to null/false in that case too (auth.service.ts), so the
+          bounce happens then as well. The shell therefore never renders with
+          auth.user() null; the actual (and only) way back during an 'anon'
+          preview is ImpersonationBannerComponent, mounted app-level in
+          app.component.ts and reachable from every route including /login.
+        -->
         <div class="profile-menu">
           <button
             type="button"
@@ -150,6 +157,13 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
                 routerLink="/settings"
                 (click)="closeMenu()">
                 {{ 'nav.settings' | translate }}
+              </a>
+              <a
+                class="dropdown-item"
+                role="menuitem"
+                routerLink="/friends"
+                (click)="closeMenu()">
+                {{ 'nav.friends' | translate }}
               </a>
               @if (roles.isAdmin()) {
                 <!-- Admin-gated (roleGuard('admin') on the route) — showing it to
@@ -227,9 +241,22 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
             </div>
           }
         </div>
-        }
       </div>
     </header>
+
+    @if (imp.enterFailed()) {
+      <!-- Defect A: enter() used to reload unconditionally even when the
+           sessionStorage write was silently dropped (private mode / full
+           quota), so picking a target looked like it did nothing. Now the
+           service refuses to reload on an unverified write and surfaces
+           this instead — dismissible so it doesn't linger past a retry. -->
+      <div class="imp-enter-error" role="alert">
+        <span>{{ 'impersonation.enterFailed' | translate }}</span>
+        <button type="button" class="imp-enter-error__dismiss" (click)="dismissEnterError()">
+          {{ 'impersonation.enterFailedDismiss' | translate }}
+        </button>
+      </div>
+    }
 
     <!-- Navigation "sensor sweep" — only appears once a switch runs past 250ms,
          so it covers the lazy-chunk/guard gap on real waits but never flashes on
@@ -242,6 +269,12 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
         <div class="nav-scan__label">{{ 'nav.loading.weak' | translate }}</div>
       }
     }
+
+    <!-- Moderation banner (feedback cf0ddf7d phase 2). Above the content, not
+         inside it: a warning is about the ACCOUNT, not about the page, and a
+         mid-session suspension has to be noticed wherever the user happens to
+         be standing. Renders nothing when there is nothing to say. -->
+    <sc-account-notice />
 
     <main class="content" [@routeReveal]="reveal()">
       <router-outlet (activate)="onRouteActivate()" />
@@ -265,6 +298,9 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       background: linear-gradient(180deg, var(--sc-bg-2), transparent);
       border-bottom: 1px solid var(--sc-border);
       backdrop-filter: blur(12px);
+      /* Sticky on wide displays only — see the 1080px media query further
+         down, where the header hands its parked slot to the page's own
+         sub-navigation (admin feedback af058ca4 round 4). */
       position: sticky;
       /* Slides down under sc-impersonation-banner while a preview is active —
          see that component's constructor, which owns this var (0px = no-op). */
@@ -393,20 +429,6 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       flex: 1 1 0;
       justify-content: flex-end;
     }
-    .signin-btn {
-      text-decoration: none;
-      color: var(--sc-accent);
-      border-color: var(--sc-accent);
-      white-space: nowrap;
-    }
-    .signin-btn:hover { background: var(--sc-accent); color: var(--sc-bg-0); }
-    .exit-preview-btn {
-      color: var(--sc-accent-hot);
-      border-color: var(--sc-accent-hot);
-      white-space: nowrap;
-    }
-    .exit-preview-btn:hover { background: var(--sc-accent-hot); color: var(--sc-bg-0); }
-
     .profile-menu { position: relative; }
     .avatar-btn {
       display: inline-flex;
@@ -493,10 +515,10 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       background: rgba(0, 212, 255, 0.1);
     }
     .dropdown-item:disabled { opacity: 0.5; cursor: default; }
-    .dropdown-item.is-current {
-      color: var(--sc-accent-hot);
-      background: rgba(255, 87, 34, 0.1);
-    }
+    /* A .dropdown-item.is-current rule used to paint an account-menu entry in
+       the hot accent. Nothing ever set is-current, so it was dead — and
+       reviving it would have painted an ungated menu item red, which now means
+       "admin only" (admin feedback b8b31f24). Removed rather than recoloured. */
     /* Deliberately not .dropdown-item — kept out of onMenuKeydown()'s
        ArrowUp/ArrowDown roving-focus query. */
     .dropdown-sep {
@@ -522,15 +544,62 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       border-top: 1px solid var(--sc-border);
     }
 
+    /* Defect A notice: a preview whose sessionStorage write did not
+       verifiably stick. Sits as its own strip (not a floating toast) so it
+       reads deliberately, not like a transient status message. */
+    .imp-enter-error {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 8px 16px;
+      background: rgba(248, 113, 113, 0.1);
+      border-bottom: 1px solid var(--sc-danger);
+      color: var(--sc-danger);
+      font-size: max(0.82rem, var(--sc-fs-floor));
+      text-align: center;
+    }
+    .imp-enter-error__dismiss {
+      flex: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--sc-danger);
+      background: transparent;
+      color: var(--sc-danger);
+      font-size: max(0.76rem, var(--sc-fs-floor));
+      cursor: pointer;
+    }
+    .imp-enter-error__dismiss:hover { background: rgba(248, 113, 113, 0.15); }
+
     /* Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
        heading is not marooned in empty space (feedback #79, item 5). The
-       reclaimed space is reused below the heading by the pages themselves. */
+       reclaimed space is reused below the heading by the pages themselves.
+       The side gutter is published as --sc-content-pad-x: a page-level bar that
+       wants to run edge to edge (the settings sub-navigation) can then undo
+       exactly this padding instead of hard-coding a number that drifts apart
+       from the shell's at the next breakpoint. Custom properties inherit, so it
+       reaches the routed component through the outlet. */
     .content {
+      --sc-content-pad-x: 28px;
       flex: 1;
       width: 100%;
-      padding: 26px 28px 32px;
+      padding: 26px var(--sc-content-pad-x) 32px;
       max-width: 1280px;
       margin: 0 auto;
+    }
+    /* Below 1080px the header stops sticking.
+       Down here brand, nav and actions no longer share a row, so the bar grows
+       to 125px on a narrow window and 180-220px on a phone or tablet. Parked,
+       that is up to a fifth of the screen permanently spent on chrome, which is
+       what the admin objected to (feedback af058ca4 round 4: "warum die menü
+       leiste sticky, die kann doch eher nicht sticky ... mach eher die sub menu
+       leiste sticky"). So it scrolls away with the page and the page's OWN
+       sub-navigation takes the parked slot instead — the settings rail switches
+       to its pinned bar at exactly this width. Above 1080px the header is a
+       single ~67px row, where sticky costs almost nothing and keeps search and
+       the account menu one click away, so it stays. */
+    @media (max-width: 1079px) {
+      .topbar { position: static; }
     }
     @media (max-width: 720px) {
       .topbar { gap: 12px; padding: 10px 16px; }
@@ -539,33 +608,49 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
       /* Without the title there is nothing to sit under — the badge goes back
          beside the logo so it does not float over the header edge. */
       .brand .alpha-badge { position: static; transform: none; }
-      /* Nav becomes a horizontally-scrollable strip so links never overflow
-         the row or wrap awkwardly onto multiple lines. */
+      /* The nav WRAPS down here instead of scrolling sideways.
+         It used to be a nowrap strip with overflow-x: auto — but the base
+         rule's justify-content: center came along for the ride, and a
+         centred overflowing row spills past BOTH edges while a scroll port
+         can never scroll back past its start. The entries pushed off the LEFT
+         edge were therefore unreachable by any gesture: with the two admin
+         entries in the row, "Verse News" — the first entry, and the way home —
+         simply could not be got at (admin feedback af058ca4 round 4, "verse
+         news kann man gar nicht mehr hin scrollen").
+         Wrapping removes the whole failure mode rather than patching the
+         alignment: nothing is ever off-screen, so there is nothing to scroll
+         to. The extra row costs nothing now that the header scrolls away. */
       .nav {
         flex: 1 1 100%;
         order: 3;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        margin: 0 -16px;
-        padding: 2px 16px;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 4px;
+        margin: 0;
+        padding: 0;
       }
-      .nav::-webkit-scrollbar { display: none; }
       .nav a { padding: 8px 12px; font-size: max(0.72rem, var(--sc-fs-floor)); white-space: nowrap; flex: 0 0 auto; }
       .actions { flex: 1; justify-content: flex-end; }
-      .content { padding: 20px 16px; }
+      .content { --sc-content-pad-x: 16px; padding: 20px var(--sc-content-pad-x); }
+    }
+    /* Touch baseline: nav entries are the app's primary controls, so they get a
+       real finger target rather than the 33px the text padding alone gives. */
+    @media (pointer: coarse) {
+      .nav a { display: inline-flex; align-items: center; min-height: 48px; }
     }
     @media (max-width: 400px) {
       .topbar { padding: 8px 12px; }
-      .nav { margin: 0 -12px; padding: 2px 12px; }
+      /* Last step of the gutter: on a 360-375px handset every one of these 8px
+         is a word (admin feedback 3bc01a3d). Published as --sc-content-pad-x,
+         so the page bars that undo the gutter follow it down automatically. */
+      .content { --sc-content-pad-x: 12px; }
       /* Anchor the dropdown to the viewport edges so a 180px menu can't push
          the page wider than the screen. */
       .dropdown { right: 0; left: auto; min-width: 200px; max-width: calc(100vw - 24px); }
     }
   `],
 })
-export class ShellComponent {
+export class ShellComponent implements AfterViewInit {
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
   readonly imp = inject(ImpersonationService);
@@ -574,6 +659,7 @@ export class ShellComponent {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly sameRoute = inject(SameRouteRefreshService);
+  private readonly zone = inject(NgZone);
 
   readonly signingOut = signal(false);
   readonly menuOpen = signal(false);
@@ -588,6 +674,12 @@ export class ShellComponent {
   private navShowTimer: ReturnType<typeof setTimeout> | null = null;
   private navWeakTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Header-height probe — see publishTopbarHeight().
+  private topbarEl?: HTMLElement;
+  private topbarResize?: ResizeObserver;
+  private viewportResize?: () => void;
+  private topbarHeightPx: number | null = null;
+
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationStart) {
@@ -601,6 +693,63 @@ export class ShellComponent {
       }
     });
     this.destroyRef.onDestroy(() => this.clearNavTimers());
+    this.destroyRef.onDestroy(() => this.stopTopbarProbe());
+  }
+
+  ngAfterViewInit(): void {
+    if (typeof window === 'undefined') return;
+    const bar = (this.host.nativeElement as HTMLElement).querySelector<HTMLElement>('.topbar');
+    if (!bar) return;
+    this.topbarEl = bar;
+    // Pure measurement into a CSS variable — no signal is touched, so this must
+    // never drag change detection along with it.
+    this.zone.runOutsideAngular(() => {
+      this.publishTopbarHeight();
+      if (typeof ResizeObserver !== 'undefined') {
+        this.topbarResize = new ResizeObserver(() => this.publishTopbarHeight());
+        this.topbarResize.observe(bar);
+      }
+      // A breakpoint can flip the header between sticky and static without
+      // changing its height at all, which the ResizeObserver would not see.
+      this.viewportResize = () => this.publishTopbarHeight();
+      window.addEventListener('resize', this.viewportResize, { passive: true });
+      window.addEventListener('orientationchange', this.viewportResize, { passive: true });
+    });
+  }
+
+  /**
+   * Publishes `--sc-topbar-h`: the height the header actually PARKS at.
+   *
+   * Pages hang their own sticky bars off this (settings' section rail) instead
+   * of guessing "about 96px" — a guess that is wrong the moment the header
+   * wraps onto a second row. It reads `0px` whenever the header is not sticky
+   * (below 1080px — see the media query in this component's styles), because
+   * then it parks nowhere and a page bar belongs at the very top of the
+   * viewport.
+   */
+  private publishTopbarHeight(): void {
+    const bar = this.topbarEl;
+    if (!bar) return;
+    const parked = getComputedStyle(bar).position === 'sticky';
+    const px = parked ? Math.round(bar.getBoundingClientRect().height) : 0;
+    if (px === this.topbarHeightPx) return;
+    this.topbarHeightPx = px;
+    document.documentElement.style.setProperty('--sc-topbar-h', `${px}px`);
+  }
+
+  private stopTopbarProbe(): void {
+    this.topbarResize?.disconnect();
+    this.topbarResize = undefined;
+    if (this.viewportResize) {
+      window.removeEventListener('resize', this.viewportResize);
+      window.removeEventListener('orientationchange', this.viewportResize);
+      this.viewportResize = undefined;
+    }
+    this.topbarEl = undefined;
+    this.topbarHeightPx = null;
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.removeProperty('--sc-topbar-h');
+    }
   }
 
   /**
@@ -727,6 +876,11 @@ export class ShellComponent {
   exitViewAs() {
     this.closeMenu();
     this.imp.exit();
+  }
+
+  /** Dismisses the "preview did not persist" notice (defect A) without retrying. */
+  dismissEnterError() {
+    this.imp.clearEnterFailed();
   }
 
   async doSignOut() {

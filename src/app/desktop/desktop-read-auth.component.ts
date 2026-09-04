@@ -4,7 +4,9 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { DesktopConnectionService } from './desktop-connection.service';
 import { isLoopbackCallback } from './loopback.util';
+import { mintDesktopSession } from './desktop-session.util';
 
 type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'error';
 
@@ -89,6 +91,7 @@ export class DesktopReadAuthComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly sb = inject(SupabaseClientProvider);
+  private readonly conn = inject(DesktopConnectionService);
   private readonly translate = inject(TranslateService);
   private readonly imp = inject(ImpersonationService);
 
@@ -102,7 +105,7 @@ export class DesktopReadAuthComponent implements OnInit {
   async ngOnInit() {
     // A token handoff must never run under a presentation overlay — see the
     // identical guard in DesktopAuthComponent for the full rationale.
-    if (this.imp.active()) {
+    if (this.imp.activeOrPending()) {
       this.imp.exit();
       return;
     }
@@ -158,14 +161,27 @@ export class DesktopReadAuthComponent implements OnInit {
       return;
     }
 
-    // expires_at is already UNIX seconds from Supabase — pass as string so the
-    // app can Number()-parse it.  refresh_token lets the app persist the session
-    // across the ~1h access-token TTL without a new browser login.
-    const refreshToken = data.session?.refresh_token ?? '';
-    const expiresAt = data.session?.expires_at != null ? String(data.session.expires_at) : '';
+    // Hand over a session that belongs to the APP, never the browser's own, so
+    // the two do not share one rotation chain. `mintDesktopSession` documents
+    // what that does and does NOT fix (it is hardening — the reported daily
+    // sign-out was the Rust app discarding its store on transport failures) and
+    // why a failed mint falls back to the browser session rather than failing
+    // the hand-off outright. expires_at stays UNIX seconds as a string; the app
+    // Number()-parses it. Older app builds ignore extra fields.
+    const handoff = (await mintDesktopSession(this.sb.realClient)) ?? {
+      access_token: token,
+      refresh_token: data.session?.refresh_token ?? '',
+      expires_at: data.session?.expires_at != null ? String(data.session.expires_at) : '',
+    };
 
     this.status.set('redirecting');
     const email = this.auth.user()?.email ?? '';
+
+    // Record the check-in BEFORE the form navigates away — this handoff is the
+    // moment the Starscape app becomes connected to this account, and it is the
+    // only such event the website can observe itself. Never throws; a failed
+    // bookkeeping write must not cost the user the handoff (924bf1d8).
+    await this.conn.touch('starscape');
 
     // Top-level form-POST to the loopback /scc/callback path — exempt from
     // Chrome's Private/Local Network Access block on HTTPS→loopback subresource
@@ -183,10 +199,10 @@ export class DesktopReadAuthComponent implements OnInit {
       form.appendChild(input);
     };
     addField('state', this.state);
-    addField('token', token);
+    addField('token', handoff.access_token);
     addField('email', email);
-    if (refreshToken) addField('refresh_token', refreshToken);
-    if (expiresAt) addField('expires_at', expiresAt);
+    if (handoff.refresh_token) addField('refresh_token', handoff.refresh_token);
+    if (handoff.expires_at) addField('expires_at', handoff.expires_at);
     document.body.appendChild(form);
     form.submit();
   }

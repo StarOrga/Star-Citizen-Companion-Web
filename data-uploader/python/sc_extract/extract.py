@@ -65,7 +65,10 @@ class ExtractResult:
     channel: str
     patch_version: str
     build_number: str
-    schema_version: int = 1
+    # v2 (PR A): ship-level `stats` (signature whitelist), vehicle-armor items
+    # gain `stats`, weapon `weaponParams.fireRate` derived correctly (was 0 on
+    # every ship weapon before this).
+    schema_version: int = 2
     quality_score: float = 0.0
     entity_counts: Dict[str, int] = field(default_factory=dict)
     warnings: List[str] = field(default_factory=list)

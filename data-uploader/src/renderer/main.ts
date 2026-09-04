@@ -28,6 +28,16 @@ interface JobViewLike {
   state: { status: string } | null;
 }
 
+/** Mirror of `main/catalog-bridge.ts:CatalogUploadResult` (see the note above). */
+interface CatalogUploadResult {
+  ok: boolean;
+  buildId?: string;
+  counts?: Record<string, number>;
+  error?: string;
+  errorCode?: string;
+  errorPhase?: string;
+}
+
 /** Performance profiles the operator can pick — mirrors `lib/performance.ts`. */
 type LiveProfile = 'minimal' | 'standard' | 'maximum' | 'auto';
 
@@ -272,7 +282,12 @@ async function init(): Promise<void> {
   window.sc.autoRun.onResumeRequested(() => {
     state.view = 'auth-upload';
     render();
-    void doStartUpload();
+    // Same restart caveat as the in-window button: the tray is typically used
+    // on a long-running instance, but nothing guarantees an extraction result
+    // is still in memory.
+    void ensureResultForResume().then((ok) => {
+      if (ok) void doStartUpload();
+    });
   });
 
   void initTelemetryToggle();
@@ -1640,7 +1655,7 @@ function renderAuthUpload(): string {
           </label>
           ${progressCardHtml('upload-progress', uploadSteps())}
           <div id="shutdown-notice" class="shutdown-notice" style="display:none;"></div>
-          <p id="auth-status" class="warn" style="margin-top: 10px;"></p>
+          <div id="auth-status" class="upload-status" hidden></div>
           <div id="upload-result" style="margin-top: 14px;"></div>
         </section>
         <section class="card upload-summary">
@@ -1791,6 +1806,11 @@ function paintJobNotice(): void {
   const running = uploadRunning;
 
   pauseBtn.style.display = running ? '' : 'none';
+  // A finished/paused run re-arms the button for the next one.
+  if (!running) {
+    pauseBtn.disabled = false;
+    pauseBtn.textContent = tOr('upload.job.pause', 'Pause');
+  }
   resumeBtn.style.display = !running && resumable ? '' : 'none';
   discardBtn.style.display = !running && resumable ? '' : 'none';
   // A resumable job makes "start over" the wrong default — hide it so the
@@ -1897,13 +1917,58 @@ async function confirmLeave(risk: boolean, messageKey: string, fallbackMsg: stri
 }
 
 async function doPauseUpload(): Promise<void> {
-  // Only signals intent — the stages unwind at their next chunk boundary, and
-  // the main process persists the cursor.
+  // Feedback FIRST, before awaiting the IPC. A pause can only take effect at the
+  // next safe boundary, so the button has to say "heard you" immediately —
+  // otherwise the operator clicks it, sees a card that keeps ticking, and
+  // concludes it is broken.
+  const btn = $('#btn-pause-upload') as HTMLButtonElement | null;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = tOr('upload.job.pausingShort', 'Pausiere…');
+  }
+  const pausing = tOr('upload.job.pausing', 'Pausiere nach dem aktuellen Schritt…');
+  setAuthStatus(pausing, 'warn');
+  // Also on the progress card: that is where the operator's eyes are while a
+  // long stage runs, and it is the surface that otherwise keeps counting up.
+  uploadProgress?.update({ hint: pausing });
   state.resumableJob = await window.sc.uploadJob.pause();
-  setAuthStatus(t('upload.job.pausing', {}) || 'Pausiere nach dem aktuellen Schritt…', 'warn');
+}
+
+/**
+ * Make sure the upload flow has an extraction result to drive. `state.lastResult`
+ * is only ever set by a finished extraction, so after the app was closed (or
+ * updated, or killed) a resume had none — and `doStartUpload` returned before
+ * doing anything, leaving the operator with a "Fortsetzen" button that did
+ * nothing. Rebuild it from the durable job instead; when the extract itself is
+ * gone, say so, because that is the one case a resume cannot recover from.
+ */
+async function ensureResultForResume(): Promise<boolean> {
+  if (state.lastResult) return true;
+  const r = await window.sc.uploadJob.rehydrate();
+  if (r.ok) {
+    state.lastResult = r.result;
+    return true;
+  }
+  if (r.error === 'no_job') return false;
+  setAuthStatus(
+    tOr(
+      'upload.job.resumeLost',
+      'Der Upload kann nicht fortgesetzt werden — die extrahierten Daten sind nicht mehr vorhanden.',
+    ),
+    'error',
+    {
+      hint: tOr(
+        'upload.job.resumeLostHint',
+        'Bitte den Upload verwerfen und die Extraktion erneut ausführen.',
+      ),
+      detail: r.error,
+    },
+  );
+  return false;
 }
 
 async function doResumeUpload(): Promise<void> {
+  if (!(await ensureResultForResume())) return;
   await window.sc.uploadJob.resume();
   setAuthStatus(t('upload.job.resumed', {}) || 'Upload wird fortgesetzt…', 'ok');
   await doStartUpload();
@@ -1946,6 +2011,7 @@ async function doStartUpload(): Promise<void> {
   // Fresh attempt: drop any stale status/diff from a previous attempt so a landed
   // bundle's "first upload" message can't coexist with a new "duplicate" error.
   clearUploadFeedback();
+  lastCatalogFailure = null;
   paintJobNotice();
   uploadProgress?.start();
   uploadProgress?.setStep(0);
@@ -2086,7 +2152,7 @@ async function doUploadAfterAuth(): Promise<void> {
   // Stop the whole run on a pause. Falling through would upload skins and —
   // worse — reach the cleanup below, deleting the out_dir that a resume needs.
   if (codex === 'paused') {
-    setAuthStatus(t('upload.job.paused', {}) || 'Upload pausiert — der Fortschritt ist gespeichert.', 'warn');
+    setAuthStatus(tOr('upload.job.paused', 'Upload pausiert — der Fortschritt ist gespeichert.'), 'warn');
     return;
   }
 
@@ -2111,6 +2177,21 @@ async function doUploadAfterAuth(): Promise<void> {
   const jobAfterSkins = await window.sc.uploadJob.get();
   if (jobAfterSkins.state?.status === 'paused') {
     setAuthStatus(t('upload.job.paused', {}) || 'Upload pausiert — der Fortschritt ist gespeichert.', 'warn');
+    return;
+  }
+
+  // A failed codex stage is NOT "every stage confirmed". Falling through here
+  // used to delete the job file and then purge the out_dir, so a single
+  // transient database timeout silently destroyed both the catalog progress and
+  // the extract needed to retry it — turning a 30-second retry into a full
+  // re-extraction. Keep the job resumable and stop; the message from
+  // `promoteToCodex` already tells the operator to continue.
+  if (codex === 'failed') {
+    // The skin stage's own status line has since overwritten ours — put the
+    // thing the operator actually has to act on back on screen.
+    paintCatalogFailure();
+    await window.sc.uploadJob.fail('catalog_failed');
+    await refreshJobView();
     return;
   }
 
@@ -2139,6 +2220,71 @@ async function doUploadAfterAuth(): Promise<void> {
   // Every stage confirmed and cleaned up — this is the only place we reach on a
   // fully-successful upload, so it is where an opted-in shutdown belongs.
   await maybeShutdownAfterUpload();
+}
+
+/**
+ * Turn a catalog-stage failure into an operator-readable notice.
+ *
+ * `errorCode` is the coarse class `catalog-bridge` assigns; `error` stays the
+ * raw technical text and is only ever shown folded away. The hint is the piece
+ * that was missing entirely before: every one of these failures leaves the run
+ * resumable, and saying so is the difference between "2 hours wasted" and "hit
+ * continue".
+ */
+function catalogFailureNotice(res: CatalogUploadResult): { msg: string; hint: string; detail: string } {
+  const code = res.errorCode ?? 'unknown';
+  const msg =
+    code === 'timeout'
+      ? tOr(
+          'catalog.err.timeout',
+          'Die Datenbank hat einen Schreibvorgang abgebrochen (Zeitlimit) — der Codex ist unverändert geblieben.',
+        )
+      : code === 'network'
+        ? tOr('catalog.err.network', 'Der Server war nicht erreichbar — der Codex ist unverändert geblieben.')
+        : code === 'unauthorized'
+          ? tOr('catalog.err.unauthorized', 'Deine Sitzung ist abgelaufen — der Codex wurde nicht aktualisiert.')
+          : code === 'forbidden'
+            ? tOr('catalog.err.forbidden', 'Deinem Konto fehlt die Berechtigung, den Codex zu aktualisieren.')
+            : code === 'empty_catalog'
+              ? tOr(
+                  'catalog.err.empty',
+                  'Die Extraktion enthält keine Schiffe oder Hersteller — der bisherige Codex bleibt aktiv.',
+                )
+              : code === 'out_dir_missing' || code === 'manifest_missing'
+                ? tOr('catalog.err.missingData', 'Die extrahierten Daten sind nicht mehr vorhanden.')
+                : tOr('catalog.err.server', 'Der Server konnte den Codex nicht aktualisieren.');
+
+  // Only the classes a retry can actually fix get the "continue" promise.
+  const resumable = code !== 'empty_catalog' && code !== 'out_dir_missing' && code !== 'manifest_missing';
+  const hint = resumable
+    ? tOr(
+        'catalog.err.resumeHint',
+        'Nichts ist verloren — der Fortschritt ist gespeichert. „Upload fortsetzen“ macht genau an dieser Stelle weiter.',
+      )
+    : tOr('catalog.err.reextractHint', 'Bitte die Extraktion erneut ausführen.');
+
+  const where = res.errorPhase
+    ? tOr('catalog.err.atPhase', `Abgebrochen bei: ${res.errorPhase}`, { phase: res.errorPhase })
+    : '';
+  const detail = [where, res.error].filter(Boolean).join(' · ');
+  return { msg, hint, detail };
+}
+
+/**
+ * The last codex failure of this run, so it can be re-asserted after the skin
+ * stage. Skins run on regardless (the bundle already landed), and their own
+ * success line would otherwise overwrite the codex error — leaving the operator
+ * with a cheerful "3D-Skins fertig" and no idea the catalog never updated.
+ */
+let lastCatalogFailure: { msg: string; hint: string; detail: string } | null = null;
+
+function paintCatalogFailure(): void {
+  if (!lastCatalogFailure) return;
+  setAuthStatus(
+    `${tOr('catalog.failed', 'Codex-Veröffentlichung fehlgeschlagen')} — ${lastCatalogFailure.msg}`,
+    'error',
+    { hint: lastCatalogFailure.hint, detail: lastCatalogFailure.detail },
+  );
 }
 
 // Drive the codex promotion with a live per-table progress line. Non-fatal:
@@ -2194,17 +2340,13 @@ async function promoteToCodex(
       return 'paused';
     }
     progress?.update({ indeterminate: false });
-    setAuthStatus(
-      `${t('catalog.failed', {}) || 'Codex-Veröffentlichung fehlgeschlagen'}: ${res.error ?? '—'}`,
-      'error',
-    );
+    lastCatalogFailure = catalogFailureNotice(res);
+    paintCatalogFailure();
     return 'failed';
   } catch (err) {
     progress?.update({ indeterminate: false });
-    setAuthStatus(
-      `${t('catalog.failed', {}) || 'Codex-Veröffentlichung fehlgeschlagen'}: ${(err as Error).message}`,
-      'error',
-    );
+    lastCatalogFailure = catalogFailureNotice({ ok: false, error: (err as Error).message, errorCode: 'unknown' });
+    paintCatalogFailure();
     return 'failed';
   } finally {
     unsub();
@@ -2253,11 +2395,44 @@ function paintDiffSummary(diff: unknown): void {
   `;
 }
 
-function setAuthStatus(msg: string, cls: 'ok' | 'warn' | 'error'): void {
+interface StatusExtras {
+  /** What the operator should DO next — the part a raw error never answers. */
+  hint?: string;
+  /** Raw server/transport text, folded away so support can still read it. */
+  detail?: string;
+}
+
+/**
+ * The upload view's single status surface.
+ *
+ * It used to be one line of whatever string the failing stage happened to hold,
+ * which is how an operator ended up staring at
+ * `Codex-Veröffentlichung fehlgeschlagen: upsert → HTTP 500 ingest_failed
+ * canceling statement due to statement timeout` — every word true, none of it
+ * usable, and it hid the only fact that mattered (nothing was lost). So a
+ * status is now three separable things: what happened, what to do about it, and
+ * the technical text, collapsed.
+ */
+function setAuthStatus(msg: string, cls: 'ok' | 'warn' | 'error', extras: StatusExtras = {}): void {
   const el = $('#auth-status');
   if (!el) return;
-  el.textContent = msg;
-  el.className = cls;
+  if (!msg) {
+    el.innerHTML = '';
+    el.hidden = true;
+    el.className = 'upload-status';
+    return;
+  }
+  const hint = extras.hint
+    ? `<p class="upload-status-hint">${escapeHtml(extras.hint)}</p>`
+    : '';
+  const detail = extras.detail
+    ? `<details class="upload-status-details"><summary>${escapeHtml(
+        tOr('upload.technicalDetails', 'Technische Details'),
+      )}</summary><code>${escapeHtml(extras.detail)}</code></details>`
+    : '';
+  el.innerHTML = `<p class="upload-status-msg">${escapeHtml(msg)}</p>${hint}${detail}`;
+  el.className = `upload-status ${cls}`;
+  el.hidden = false;
 }
 
 // The status line (#auth-status) and the diff/first-upload panel (#upload-result)
@@ -2269,8 +2444,9 @@ function setAuthStatus(msg: string, cls: 'ok' | 'warn' | 'error'): void {
 function clearUploadFeedback(): void {
   const status = $('#auth-status');
   if (status) {
-    status.textContent = '';
-    status.className = 'warn';
+    status.innerHTML = '';
+    status.className = 'upload-status';
+    status.hidden = true;
   }
   const result = $('#upload-result');
   if (result) result.innerHTML = '';
@@ -2319,6 +2495,15 @@ async function maybeShutdownAfterUpload(): Promise<void> {
 // the first run of a patch is long (builds all glbs), re-runs skip ships that
 // are already built + uploaded. Entirely non-fatal — the bundle upload has
 // already succeeded, so any skin failure only means liveries aren't refreshed.
+/** True once the operator asked to pause/cancel — checked at stage boundaries. */
+async function pauseRequested(): Promise<boolean> {
+  try {
+    return (await window.sc.uploadJob.get()).signal !== 'running';
+  } catch {
+    return false;
+  }
+}
+
 async function buildAndUploadSkins(
   result: ExtractResultPayload,
   progress?: ProgressController | null,
@@ -2339,6 +2524,10 @@ async function buildAndUploadSkins(
   );
   const tools = await window.sc.skin.ensureTools();
   unsubTools();
+  // The tool download is a single long fetch with no checkpoint of its own, so
+  // honour a pause that arrived while it ran instead of starting a multi-hour
+  // build the operator just asked us to stop.
+  if (await pauseRequested()) return;
   if (!tools.ok) {
     progress?.update({ indeterminate: false });
     setAuthStatus(
@@ -2382,11 +2571,20 @@ async function buildAndUploadSkins(
   const built = await window.sc.skin
     .start({ p4kPath: ch.dataP4kPath, outDir: skinsOut, manifest, skipExisting: true })
     .finally(unsub);
+  // `paused` / `cancelled` come back when the operator stopped the build (main
+  // kills the Python child on pause — see `interruptLocalSkinBuild`). That is
+  // control flow, not a failure: the caller reads the job state and reports it.
+  if (!built.ok && (built.error === 'paused' || built.error === 'cancelled')) {
+    progress?.update({ indeterminate: false });
+    progress?.stop();
+    return;
+  }
   if (!built.ok || !built.ships) {
     progress?.update({ indeterminate: false });
     setAuthStatus(
-      `${t('skins.buildFailed', {}) || '3D-Skins-Build fehlgeschlagen (Bundle ist hochgeladen)'}: ${built.error ?? '—'}`,
+      tOr('skins.buildFailed', '3D-Skins-Build fehlgeschlagen (Bundle ist hochgeladen)'),
       'warn',
+      { detail: built.error ?? undefined },
     );
     return;
   }

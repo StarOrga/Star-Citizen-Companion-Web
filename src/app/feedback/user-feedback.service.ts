@@ -8,7 +8,10 @@ import {
   AuthorFeedbackMessage,
   AuthorFeedbackRow,
   AuthorThreadMap,
+  FeedbackReadState,
+  FeedbackReadStateMap,
   groupAuthorMessages,
+  topicsWithNews,
 } from './user-feedback.types';
 
 /**
@@ -30,6 +33,8 @@ export class UserFeedbackService {
 
   private readonly _topics = signal<AuthorFeedbackRow[]>([]);
   private readonly _threads = signal<AuthorThreadMap>(new Map());
+  private readonly _readState = signal<FeedbackReadStateMap>(new Map());
+  private readonly _newsSinceOpen = signal<ReadonlySet<string>>(new Set());
   private readonly _busy = signal(false);
   private readonly _error = signal<string | null>(null);
   private readonly _loaded = signal(false);
@@ -42,10 +47,27 @@ export class UserFeedbackService {
   readonly error = this._error.asReadonly();
   readonly loaded = this._loaded.asReadonly();
 
-  /** How many topics are waiting on an answer from this user — drives the FAB badge. */
+  /** How many topics are waiting on an answer from this user. */
   readonly openQuestions = computed(
     () => this._topics().filter((t) => t.author_status === 'question').length,
   );
+
+  /**
+   * Topics with news the author has not seen yet — a reply from the team or a
+   * status change since they last had the panel open. This is the FAB badge
+   * (admin feedback e684c946).
+   */
+  readonly unreadTopics = computed(
+    () => topicsWithNews(this._topics(), this._threads(), this._readState()).length,
+  );
+
+  /**
+   * What was unread at the moment the panel was opened, kept for this session
+   * only. Marking everything read is what makes the badge go away, so without
+   * this snapshot the user would be told "3 news" and then handed a list with
+   * nothing highlighted. Cleared on sign-out, never persisted.
+   */
+  readonly newsSinceOpen = this._newsSinceOpen.asReadonly();
 
   private get uid(): string | null {
     return this.auth.user()?.id ?? null;
@@ -60,13 +82,15 @@ export class UserFeedbackService {
     if (!this.uid) {
       this._topics.set([]);
       this._threads.set(new Map());
+      this._readState.set(new Map());
+      this._newsSinceOpen.set(new Set());
       return;
     }
     this._busy.set(true);
     this._error.set(null);
     const { data, error } = await this.sb.client
       .from('my_feedback')
-      .select('id, body, created_at, updated_at, decision_note, author_status')
+      .select('id, body, created_at, updated_at, decision_note, author_status, area, can_delete')
       .order('created_at', { ascending: false });
     if (error) {
       this._error.set(error.message);
@@ -75,7 +99,7 @@ export class UserFeedbackService {
     }
     const rows = (data ?? []) as unknown as AuthorFeedbackRow[];
     this._topics.set(rows);
-    await this.loadThreads(rows.map((r) => r.id));
+    await Promise.all([this.loadThreads(rows.map((r) => r.id)), this.loadReadState()]);
     this._loaded.set(true);
     this._busy.set(false);
   }
@@ -96,8 +120,84 @@ export class UserFeedbackService {
     this._threads.set(groupAuthorMessages((data ?? []) as unknown as AuthorFeedbackMessage[]));
   }
 
+  /**
+   * Load this account's read markers. Scoped by RLS to `user_id = auth.uid()`,
+   * so no filter is needed here — and like the threads, a failure is swallowed:
+   * without markers everything simply reads as news, which is the safe direction
+   * (a badge too many, never a missed reply).
+   */
+  private async loadReadState(): Promise<void> {
+    const { data, error } = await this.sb.client
+      .from('feedback_read_state')
+      .select('feedback_id, last_read_at, last_seen_status');
+    if (error) return;
+    const rows = (data ?? []) as unknown as FeedbackReadState[];
+    this._readState.set(new Map(rows.map((r) => [r.feedback_id, r])));
+  }
+
   messagesFor(id: string): AuthorFeedbackMessage[] {
     return this._threads().get(id) ?? [];
+  }
+
+  /** True while this topic is one of the ones the panel was opened for. */
+  hasNewsSinceOpen(id: string): boolean {
+    return this._newsSinceOpen().has(id);
+  }
+
+  /**
+   * The author is looking at their topics — clear the badge (admin feedback
+   * e684c946). One upsert per topic that actually has news; a quiet panel writes
+   * nothing at all.
+   *
+   * `last_seen_status` is the status the panel is showing right now, which is
+   * the honest answer to "what did you see". The server overwrites
+   * `last_read_at` with its own clock (see the guard in the migration), so the
+   * written rows are read back from the upsert instead of being guessed locally.
+   */
+  async markAllRead(): Promise<void> {
+    const uid = this.uid;
+    if (!uid) return;
+    // A role preview writes under the admin's REAL identity (the JWT is
+    // untouched), so it would silently mark the admin's own topics read. Skipped
+    // rather than refused: this is a passive side effect of opening the panel,
+    // and an error banner for it would be noise.
+    if (this.imp.activeOrPending()) return;
+    if (!this._loaded()) await this.refresh();
+
+    const news = topicsWithNews(this._topics(), this._threads(), this._readState());
+    this._newsSinceOpen.set(new Set(news));
+    await this.writeReadState(news);
+  }
+
+  /**
+   * Persist "seen" for the given topics. Split out of {@link markAllRead} so the
+   * reply path can use it without disturbing the highlight snapshot: answering a
+   * question flips the topic back to "in Bearbeitung" server-side, which would
+   * otherwise count as news the second the user closes the panel they are
+   * looking at right now.
+   */
+  private async writeReadState(ids: readonly string[]): Promise<void> {
+    const uid = this.uid;
+    if (!uid || ids.length === 0) return;
+
+    const statuses = new Map(this._topics().map((t) => [t.id, t.author_status]));
+    const payload = ids.map((id) => ({
+      user_id: uid,
+      feedback_id: id,
+      last_seen_status: statuses.get(id) ?? 'in_progress',
+    }));
+    const { data, error } = await this.sb.client
+      .from('feedback_read_state')
+      .upsert(payload, { onConflict: 'user_id,feedback_id' })
+      .select('feedback_id, last_read_at, last_seen_status');
+    // Read markers are a convenience, not content: a failed write must never
+    // surface as an error over the panel the user just opened. The badge simply
+    // stays up and the next open tries again.
+    if (error) return;
+    const written = (data ?? []) as unknown as FeedbackReadState[];
+    const merged = new Map(this._readState());
+    for (const row of written) merged.set(row.feedback_id, row);
+    this._readState.set(merged);
   }
 
   /**
@@ -109,7 +209,7 @@ export class UserFeedbackService {
    * key bindings from the outside.
    */
   private blockedByPreview(): boolean {
-    if (!this.imp.active()) return false;
+    if (!this.imp.activeOrPending()) return false;
     this._error.set('preview');
     return true;
   }
@@ -142,6 +242,12 @@ export class UserFeedbackService {
       source: 'user',
       status: 'open',
       triaged: false,
+      // Which part of the app this is about (admin feedback 835fec58). The
+      // composer pre-selects it from the current route, so the common case is
+      // "the sender confirmed our guess by not touching it". Nullable on
+      // purpose — the CHECK constraint rejects anything outside the vocabulary
+      // rather than letting a crafted request write free text onto the board.
+      area: payload.area ?? null,
     });
     if (error) {
       // 54000 = the per-author hourly topic cap raised by the DB guard. Worth its
@@ -186,6 +292,49 @@ export class UserFeedbackService {
       return false;
     }
     await this.refresh();
+    // Answering closes the question, so the topic drops back to "in Bearbeitung"
+    // — a status change the author caused and is currently looking at. Without
+    // this it would come back as unread news the moment they close the panel.
+    await this.writeReadState([feedbackId]);
+    return true;
+  }
+
+  /**
+   * Withdraw one of the author's own topics (admin feedback 892013b6: "Es sollte
+   * möglich sein, Feedback selber wieder zu löschen wenn man sieht es wurde
+   * schon gemacht").
+   *
+   * A hard delete, and deliberately so — a withdrawn topic is one that should
+   * never have been filed, so leaving a tombstone on the admins' board would
+   * defeat the point. What keeps that safe is the narrow window, and the window
+   * lives in the database: `admin_feedback_delete_author` allows the row away
+   * only while it is still `open` AND nobody has written on it. The client does
+   * not re-implement that rule, it reads the answer as `can_delete`.
+   *
+   * The delete carries no `select()`, because the author has no read policy on
+   * `admin_feedback` — a returning clause would be evaluated against it and come
+   * back empty on a perfectly successful delete. So success is confirmed the
+   * honest way instead: refresh, and check the topic is gone from `my_feedback`.
+   * A row that survived means RLS refused it (the routine claimed the topic
+   * between render and click), which is a real "no" the user must see rather
+   * than a silent no-op.
+   */
+  async withdraw(feedbackId: string): Promise<boolean> {
+    if (!this.uid) return false;
+    if (this.blockedByPreview()) return false;
+    this._error.set(null);
+    this._busy.set(true);
+    const { error } = await this.sb.client.from('admin_feedback').delete().eq('id', feedbackId);
+    this._busy.set(false);
+    if (error) {
+      this._error.set(error.message);
+      return false;
+    }
+    await this.refresh();
+    if (this._topics().some((t) => t.id === feedbackId)) {
+      this._error.set('withdrawRefused');
+      return false;
+    }
     return true;
   }
 }

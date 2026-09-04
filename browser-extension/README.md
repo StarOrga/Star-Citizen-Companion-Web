@@ -77,10 +77,38 @@ visits — never the ship list itself.
 Until the Chrome Web Store review is done:
 
 1. `chrome://extensions` → enable **Developer mode**.
-2. **Load unpacked** → select this `browser-extension/` directory.
+2. **Load unpacked** → select this `browser-extension/` directory (from a
+   checkout), or the `sc-hangar-extension/` folder unpacked from the released
+   zip (see below).
 3. Open <https://robertsspaceindustries.com/en/account/pledges> while signed in.
 
 Also documented in-app at `/tools/extension`.
+
+## Release / packaging
+
+End users download a packaged zip that is *only* the extension — never a
+repository archive. `.github/workflows/browser-extension-build.yml` zips this
+folder verbatim into a single top-level `sc-hangar-extension/` directory and
+publishes it to the public binaries-mirror repo behind a **moving tag**:
+
+```
+https://github.com/StarOrga/Star-Citizen-Companion-Binaries
+  └── releases/tag/browser-extension-latest
+        ├── sc-hangar-extension.zip            ← the fixed URL /tools/extension links
+        └── sc-hangar-extension-<version>.zip  ← same build, version history
+```
+
+- **Trigger:** every push to `main` that touches `browser-extension/**` (plus
+  `workflow_dispatch`). Merging a change here republishes the asset; the
+  download URL is version-less and therefore never goes stale.
+- **On a PR** the workflow only packages and uploads a workflow artefact, so
+  packaging is gated before merge but nothing is published.
+- **Credential:** `BINARIES_RELEASE_TOKEN` — the same fine-grained PAT (Contents
+  R/W on the mirror repo only) that the wallpaper-app and data-uploader releases
+  use. No token lives in this repo or in the web bundle.
+- The zip is a byte-for-byte copy of this folder, so the download can be diffed
+  against the public source. Bump `manifest.json` → `version` when the released
+  behaviour changes; the versioned asset name follows it.
 
 ### Local development against a dev server
 

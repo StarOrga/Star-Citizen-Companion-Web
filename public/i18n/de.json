@@ -1,21 +1,94 @@
 {
+  "common": {
+    "select": {
+      "none": "Keine Auswahl"
+    }
+  },
   "update": {
     "available": "Neue Version verfügbar",
     "reload": "Neu laden",
     "dismiss": "Später"
   },
   "auth": {
+    "previewLocked": {
+      "title": "Du siehst gerade die Vorschau als abgemeldeter Besucher",
+      "body": "Anmelden funktioniert hier nicht — die Vorschau überschreibt weiterhin, was dir die App anzeigt, auch nach erfolgreicher Anmeldung. Beende zuerst die Vorschau.",
+      "exit": "Vorschau beenden und anmelden"
+    },
     "tagline": "Dein Terminal zum Verse",
     "email": "E-Mail",
     "password": "Passwort",
     "signIn": "Anmelden",
+    "forgotPassword": "Passwort vergessen?",
+    "reset": {
+      "title": "Passwort zurücksetzen",
+      "hint": "Trag deine E-Mail-Adresse ein. Wir schicken dir einen Link, mit dem du dir ein neues Passwort setzt — wir vergeben nie eines für dich.",
+      "send": "Link schicken",
+      "sending": "Sende…",
+      "sent": "Wenn es zu dieser Adresse ein Konto gibt, ist eine E-Mail mit einem Link unterwegs. Der Link führt direkt auf die Seite, auf der du dein Passwort setzt."
+    },
+    "setPassword": {
+      "title": "Passwort setzen",
+      "inviteTitle": "Willkommen an Bord",
+      "checking": "Einen Moment…",
+      "lead": "Setz hier dein neues Passwort. Danach meldest du dich mit deiner E-Mail-Adresse und diesem Passwort an.",
+      "inviteLead": "Deine Bewerbung wurde angenommen — dein Zugang steht. Ein Passwort hast du noch nicht: setz es dir jetzt selbst, dann kommst du jederzeit wieder rein.",
+      "newPassword": "Neues Passwort",
+      "repeatPassword": "Passwort wiederholen",
+      "rule": "Mindestens {{min}} Zeichen. Nur du kennst es — wir vergeben keine Passwörter.",
+      "submit": "Passwort speichern",
+      "saving": "Speichere…",
+      "saved": "Passwort gespeichert.",
+      "savedLead": "Passwort gespeichert. Ab jetzt kommst du mit deiner E-Mail-Adresse und diesem Passwort rein.",
+      "continue": "Weiter zur App",
+      "expired": "Dieser Link ist abgelaufen oder wurde schon benutzt. Trag deine E-Mail-Adresse ein, dann schicken wir dir einen neuen.",
+      "sendLink": "Neuen Link schicken",
+      "sending": "Sende…",
+      "resent": "Wenn es zu dieser Adresse ein Konto gibt, ist eine E-Mail mit einem neuen Link unterwegs."
+    },
     "signUp": "Konto erstellen",
     "needAccount": "Noch kein Konto?",
     "haveAccount": "Schon registriert?",
     "or": "oder",
     "continueGoogle": "Mit Google fortfahren",
     "inviteOnly": "Zugang nur auf Einladung. Bitte einen Admin um eine Einladung.",
-    "deniedInvite": "Dieser Account wurde noch nicht eingeladen. Die Seite ist nur auf Einladung zugänglich — bitte einen Admin um eine Einladung."
+    "deniedInvite": "Dieser Account wurde noch nicht eingeladen. Die Seite ist nur auf Einladung zugänglich — bitte einen Admin um eine Einladung.",
+    "unavailable": {
+      "title": "Dein Zugang konnte nicht geprüft werden",
+      "body": "Dein Profil ließ sich gerade nicht laden — meist ein kurzer Aussetzer direkt nach der Anmeldung. Du bist weiterhin angemeldet.",
+      "retry": "Erneut versuchen",
+      "retrying": "Wird geprüft …"
+    },
+    "landing": {
+      "appName": "Star Citizen Companion",
+      "join": "Join the Club.",
+      "pitch": "Der Companion ist ein privater Zirkel — Zugang gibt es nur auf Einladung. Du fliegst schon im Verse und willst dabei sein? Dann bewirb dich, ein Admin schaut sich das an.",
+      "perks": {
+        "hangar": "Dein Hangar mit Loadouts und Rollen an einem Ort",
+        "codex": "Codex: Schiffe, Komponenten und Werte aus dem Spiel",
+        "verse": "News, Starscape-Wallpaper und Tools fürs Verse"
+      },
+      "applyCta": "Um Zugang bewerben",
+      "applyInline": "Jetzt bewerben",
+      "backToSignIn": "Zurück zur Anmeldung"
+    },
+    "apply": {
+      "title": "Um Zugang bewerben",
+      "hint": "Kurz sagen, wer du bist — deine Anfrage landet direkt bei den Admins. Ohne Konto, ohne Passwort.",
+      "handle": "RSI-Handle (optional)",
+      "handlePlaceholder": "z. B. CitizenKane",
+      "message": "Nachricht (optional)",
+      "messagePlaceholder": "Woher kennst du uns, was fliegst du?",
+      "send": "Bewerbung senden",
+      "sending": "Sende…",
+      "sent": "Danke! Deine Anfrage ist angekommen. Wenn ein Admin sie annimmt, bekommst du eine Einladungsmail an diese Adresse.",
+      "rateLimited": "Gerade kommen sehr viele Anfragen rein. Bitte versuch es in einer Stunde noch einmal."
+    },
+    "suspended": {
+      "title": "Dieses Konto ist gesperrt",
+      "until": "Die Sperre endet am {{date}}.",
+      "indefinite": "Die Sperre gilt bis ein Administrator sie aufhebt."
+    }
   },
   "nav": {
     "news": "Verse News",
@@ -25,6 +98,7 @@
     "admin": "Benutzer",
     "desktop": "Data Upload",
     "signOut": "Abmelden",
+    "backToHome": "Zur Startseite",
     "brandAria": "Star Citizen Companion (SCC) — zur Startseite (Verse News)",
     "langAria": "Sprache",
     "accountMenu": "Konto-Menü",
@@ -41,7 +115,8 @@
     },
     "loading": {
       "weak": "Schwaches Signal · Neu justieren"
-    }
+    },
+    "friends": "Freunde"
   },
   "impersonation": {
     "banner": {
@@ -54,7 +129,9 @@
         "viewer": "Nur Oberfläche und Routing als Vorschau. Daten werden weiterhin mit deinen echten Rechten geladen — eine Einschränkung, die nur ein echter Viewer trifft (leere Liste, RLS-Ablehnung), zeigt sich hier nicht.",
         "collaborator": "Nur Oberfläche und Routing als Vorschau. Daten werden weiterhin mit deinen echten Rechten geladen — eine Einschränkung, die nur einen echten Collaborator trifft, zeigt sich hier nicht."
       }
-    }
+    },
+    "enterFailed": "Vorschau konnte nicht gewechselt werden — dein Browser hat die Änderung blockiert (privates Surfen oder Speicher voll). Es wurde nichts neu geladen.",
+    "enterFailedDismiss": "Verwerfen"
   },
   "codex": {
     "title": "Codex",
@@ -63,22 +140,47 @@
       "terminal": {
         "label": "Archiv durchsuchen",
         "placeholder": "Archiv-Terminal — Schiff, Komponente, Waffe, Item, Hersteller, Bauplan …",
-        "clear": "Suche löschen"
+        "clear": "Suche löschen",
+        "keybinds": "Tastenbelegungen"
+      },
+      "archive": {
+        "label": "Archiv",
+        "armor": "Rüstung",
+        "weapons": "Waffen",
+        "blueprints": "Baupläne",
+        "ships": "Schiffe",
+        "components": "Komponenten"
       },
       "status": {
-        "online": "Verse online",
         "patch": "Patch {{patch}}",
-        "build": "Build {{build}}",
         "stale": "Daten-Upload nötig"
       },
-      "cycle": {
-        "report": "Zyklus-Report · {{count}} Schiffe mit Änderungen seit dem letzten Build",
-        "reportOne": "Zyklus-Report · 1 Schiff mit Änderungen seit dem letzten Build"
+      "patchSwitch": {
+        "title": "Patch wechseln",
+        "trigger": "Patch {{patch}} — anderen Patch wählen",
+        "past": "älter",
+        "hasData": "Daten vorhanden",
+        "hasDataCount": "{{count}} Datensätze",
+        "noData": "keine Daten",
+        "backToCurrent": "Zurück zum aktuellen Patch",
+        "loading": "Patches werden geladen …",
+        "empty": "Keine weiteren Patches bekannt.",
+        "note": "Ohne Daten lässt sich ein Patch nicht öffnen. Ein Neuladen der Seite kehrt zum aktuellen Patch zurück."
+      },
+      "patch": {
+        "archive": "{{count}} Datensätze im Archiv",
+        "extracted": "Eingelesen {{date}}",
+        "build": "Build „{{build}}“ (Platzhalter)"
       },
       "results": {
         "title": "Archiv-Treffer",
         "searching": "Durchsuche das Archiv …",
-        "empty": "Keine Treffer für „{{term}}“."
+        "empty": "Keine Treffer für „{{term}}“.",
+        "upcomingBadge": "Noch nicht im Spiel"
+      },
+      "surface": {
+        "expandBoard": "An Bord aufklappen",
+        "expandHangar": "Hangar aufklappen"
       },
       "me": {
         "eyebrow": "An Bord",
@@ -98,7 +200,17 @@
         "cta": "Erstes Schiff beanspruchen",
         "ctaGoal": "→ Flugbereit",
         "open": "{{ship}} öffnen",
-        "compareHint": "Tipp: 2+ Schiffe anpinnen, um sie zu vergleichen."
+        "compareHint": "Tipp: 2+ Schiffe anpinnen, um sie zu vergleichen.",
+        "laneTitle": "Flotte · {{count}} Schiffe",
+        "sortLabel": "Flotte sortieren",
+        "sortUnknown": "Ohne Angabe",
+        "sort": {
+          "manufacturer": "Hersteller",
+          "role": "Einsatzzweck",
+          "recent": "Zuletzt bearbeitet"
+        },
+        "emptyLead": "Der Hangar steht bereit — noch ohne Hülle darin.",
+        "emptyArt": "Leere Hangarbucht mit Andockring"
       },
       "diff": {
         "scm": "SCM",
@@ -106,26 +218,68 @@
         "boost": "Boost",
         "crew": "Crew"
       },
-      "world": {
-        "title": "Welt",
-        "subtitle": "Was willst du tun?",
-        "lookup": {
-          "title": "Nachschlagen",
-          "sub": "Katalog durchsuchen — jede Entität, plus Tastenbelegung.",
-          "keybinds": "Keybinds"
+      "paperdoll": {
+        "aria": "Schematische Figur mit sechs markierten Rüstungsslots",
+        "helmet": "Helm",
+        "torso": "Torso",
+        "arms": "Arme",
+        "legs": "Beine",
+        "undersuit": "Untersuit",
+        "backpack": "Rucksack",
+        "empty": "— leer —",
+        "archiveDepth": "{{count}} im Archiv"
+      },
+      "kpi": {
+        "ship": {
+          "shieldTotal": "Schildsumme",
+          "emptyMounts": "Unbestückte Aufhängungen",
+          "weaponMounts": "Waffenaufhängungen",
+          "missileCapacity": "Raketenkapazität",
+          "quantumDrive": "Quantum-Antrieb",
+          "fillRate": "Bestückungsgrad"
         },
-        "craft": {
-          "title": "Herstellen",
-          "sub": "Baupläne und ihre Zutaten."
+        "fps": {
+          "slotsFilled": "Belegte Slots",
+          "gradeMix": "Grad-Mix",
+          "weightClass": "Gewichtsklasse",
+          "manufacturer": "Hersteller",
+          "archiveDepth": "Archivtiefe (leer)",
+          "gapArmor": "Rüstungswert",
+          "gapArmorTitle": "Rüstungsteile tragen im aktuellen Archiv keinen Kampfwert-Block — nur Name, Grad, Größe, Hersteller.",
+          "gapWeapon": "Waffengewalt",
+          "gapWeaponTitle": "FPS-Waffen tragen im aktuellen Archiv keinen Stats-Block."
+        }
+      },
+      "configs": {
+        "otherRoles": "Andere gespeicherte Rollen-Loadouts",
+        "otherShip": "Andere Konfigurationen",
+        "active": "aktiv",
+        "openDetail": "Zur Detailseite „{{name}}“ →"
+      },
+      "board": {
+        "open": "offen",
+        "archiveCount": "{{count}} im Archiv",
+        "classUnknown": "Keine Klassendaten im Archiv",
+        "more": "mehr",
+        "moreCount": "{{count}} weitere",
+        "class": {
+          "light": "Leichte Rüstung",
+          "medium": "Mittlere Rüstung",
+          "heavy": "Schwere Rüstung",
+          "superheavy": "Sehr schwere Rüstung",
+          "undersuit": "Untersuit",
+          "flightsuit": "Flugkombi",
+          "utility": "Schwere Arbeitsrüstung"
         },
-        "news": {
-          "title": "News",
-          "sub": "Neuigkeiten zu Schiffen und Herstellern."
-        },
-        "discover": {
-          "title": "Entdecken",
-          "sub": "Kommende Schiffe und erste Sichtungen.",
-          "showroom": "Showroom"
+        "readyOn": "angelegt",
+        "readyOff": "offen",
+        "readiness": {
+          "primary": "Primärwaffe",
+          "secondary": "Sekundärwaffe",
+          "melee": "Nahkampf",
+          "throwable": "Wurfwaffen",
+          "gadget": "Gadget",
+          "medical": "Medizin"
         }
       }
     },
@@ -190,12 +344,45 @@
         "remove": "Aus Favoriten entfernen"
       },
       "newBadge": "Neu",
+      "badge": "Angekündigt",
       "noMatches": {
         "title": "Keine Treffer",
         "body": "Kein kommendes Schiff passt zu Suche und Filter — Suchbegriff kürzen oder Favoritenfilter lösen."
       },
       "laneSub": "Von RSI angekündigt, in unseren Spieldaten noch ohne Eintrag",
-      "laneAll": "Alle {{count}} ansehen"
+      "laneAll": "Alle {{count}} ansehen",
+      "conceptBadge": "Konzept",
+      "notFlightReady": "Noch nicht flugfähig"
+    },
+    "upcomingDetail": {
+      "back": "Zurück zum Codex",
+      "facts": "Aus der RSI-Schiffsmatrix",
+      "fact": {
+        "manufacturer": "Hersteller",
+        "type": "Typ",
+        "focus": "Rolle",
+        "status": "Status"
+      },
+      "notice": {
+        "concept": "RSI hat dieses Schiff angekündigt, gebaut wird es noch — im Spiel ist es nicht flugfähig. Deshalb gibt es hier keine Hardpoints, Komponenten oder Werte.",
+        "flightReady": "RSI führt dieses Schiff als flugbereit, in unseren dataminten Spieldaten fehlt es aber noch — die Werte kommen mit einem der nächsten Build-Uploads."
+      },
+      "watch": {
+        "off": "Für die Flotte merken",
+        "on": "Für die Flotte gemerkt",
+        "hint": "Gemerkte Schiffe landen oben in deinem Hangar, markiert als noch nicht flugfähig.",
+        "inHangar": "Im Hangar ansehen"
+      },
+      "rsiLink": "Auf robertsspaceindustries.com ansehen",
+      "noData": {
+        "title": "Warum stehen hier keine Werte?",
+        "body": "Unser Codex wird aus den Daten des Live-Builds gebaut. Solange dieses Schiff nicht im Spiel ist, gibt es nichts zu extrahieren — sobald es landet, bekommt es automatisch seinen vollen Codex-Eintrag.",
+        "browse": "Alle angekündigten Schiffe"
+      },
+      "notFound": {
+        "title": "Angekündigtes Schiff nicht gefunden",
+        "body": "Dieses Schiff steht nicht mehr in der RSI-Schiffsmatrix — entweder ist es inzwischen im Spiel gelandet und hat einen richtigen Codex-Eintrag, oder RSI hat den Eintrag entfernt."
+      }
     },
     "categoriesAria": "Codex-Kategorien",
     "soon": "Kommt bald — noch keine Daten extrahiert.",
@@ -211,7 +398,9 @@
     "search": {
       "placeholder": "Name oder Klasse suchen (z. B. Gladius, AEGS_*)…",
       "label": "Codex durchsuchen",
-      "clear": "Suche löschen"
+      "clear": "Suche löschen",
+      "upcomingHint": "Nicht in den Spieldaten, aber von RSI angekündigt: {{names}}",
+      "upcomingLink": "Bei „Kommende Schiffe“ ansehen"
     },
     "kinds": {
       "ship": "Schiffe",
@@ -230,7 +419,8 @@
       "item": "Gegenstand",
       "ammunition": "Munition",
       "manufacturer": "Hersteller",
-      "blueprint": "Bauplan"
+      "blueprint": "Bauplan",
+      "upcoming": "Angekündigt"
     },
     "filters": {
       "title": "Filter",
@@ -238,16 +428,44 @@
       "size": "Größe",
       "grade": "Grade",
       "componentKind": "Komponententyp",
-      "weaponClass": "Waffenklasse",
       "all": "Alle",
       "includeVariants": "KI-/Template-Varianten anzeigen",
       "reset": "Filter zurücksetzen",
       "anySize": "Beliebige Größe",
-      "anyGrade": "Beliebiger Grade"
+      "anyGrade": "Beliebiger Grade",
+      "blueprintGroup": "Bauplan-Gruppe"
     },
     "weaponClass": {
       "Ship": "Schiff",
       "FPS": "FPS"
+    },
+    "weaponGroup": {
+      "superAria": "Waffen-Oberkategorie",
+      "subAria": "Waffen-Unterkategorie",
+      "all": "Alle Waffen",
+      "allOf": "Alle: {{group}}",
+      "super": {
+        "fps": "FPS-Ausrüstung",
+        "ship": "Schiffswaffen"
+      },
+      "fps": {
+        "sidearm": "Einhandwaffen",
+        "primary": "Primärwaffen",
+        "heavy": "Schwere Waffen",
+        "melee": "Nahkampf",
+        "throwable": "Wurfobjekte",
+        "gadget": "Werkzeuge & Gadgets",
+        "other": "Sonstige"
+      },
+      "ship": {
+        "gun": "Kanonen",
+        "turret": "Türme",
+        "missile": "Raketen & Torpedos",
+        "countermeasure": "Gegenmaßnahmen",
+        "mining": "Bergbau-Laser",
+        "utility": "Traktor & Bergung",
+        "other": "Sonstige"
+      }
     },
     "componentKind": {
       "PowerPlant": "Kraftwerk",
@@ -272,7 +490,26 @@
       "grade": "Grade {{grade}}",
       "crew": "Crew {{count}}",
       "variant": "Variante",
-      "inHangar": "In deinem Hangar"
+      "inHangar": "In deinem Hangar",
+      "foldedOne": "+1 Dateivariante",
+      "foldedMany": "+{{count}} Dateivarianten",
+      "foldedTitle": "Die Spieldateien führen mehrere fast identische Einträge dazu, deshalb steht hier nur eine Karte: {{names}}",
+      "skinsOne": "+1 Skin",
+      "skinsMany": "+{{count}} Skins",
+      "skinsTitle": "Alle Lackierungen dieser Waffe stehen in einer Karte. Im Eintrag lassen sie sich einzeln auswählen: {{names}}",
+      "editionsOne": "+1 Variante",
+      "editionsMany": "+{{count}} Varianten",
+      "editionsTitle": "Die Spieldateien führen diesen Rumpf mehrfach — doppelte Einträge und Sondereditionen. Sie teilen sich eine Karte; im Eintrag lassen sie sich einzeln auswählen: {{names}}"
+    },
+    "skinPicker": {
+      "label": "Skin",
+      "standard": "Standard",
+      "count": "{{count}} Varianten"
+    },
+    "editionPicker": {
+      "label": "Variante",
+      "standard": "Standard",
+      "count": "{{count}} Varianten"
     },
     "empty": {
       "title": "Noch nichts hier",
@@ -298,6 +535,18 @@
       },
       "search": "Keybindings durchsuchen",
       "searchPlaceholder": "Aktion oder Taste suchen…",
+      "lang": {
+        "aria": "Sprache der Aktionsnamen",
+        "note": "Viele spielen Star Citizen auf Englisch — schalte auf EN, um die Aktionen so zu sehen wie im Spiel.",
+        "short": {
+          "ui": "DE",
+          "en": "EN"
+        },
+        "hint": {
+          "ui": "Aktionsnamen auf Deutsch",
+          "en": "Aktionsnamen im englischen Original — wie im Spiel"
+        }
+      },
       "count": "{{shown}} von {{total}} Aktionen",
       "unbound": "—",
       "rawKey": "Interner Aktionsschlüssel",
@@ -320,6 +569,85 @@
         "headtracking": "Head-Tracking",
         "shop": "Shop",
         "debug": "Debug"
+      },
+      "assign": {
+        "enter": "Kategorien zuweisen",
+        "exit": "Zuweisen beenden",
+        "active": "Zuweisungsmodus aktiv",
+        "help": "Zeile anklicken zum Auswählen (oder eine Kategorie-Überschrift für die ganze Gruppe), dann unten die Ebenen wählen und „Zuweisen“ drücken.",
+        "progress": "{{assigned}} von {{total}} Aktionen zugeordnet",
+        "filter": "Filter",
+        "filters": {
+          "all": "Alle",
+          "unassigned": "Offen",
+          "assigned": "Zugeordnet"
+        },
+        "layers": {
+          "scope": "Scope (L1)",
+          "environment": "Umgebung (L2)",
+          "role": "Rolle (L3)",
+          "activity": "Aktivität (L4)",
+          "actionGroup": "Aktionsgruppe (L5)"
+        },
+        "none": "— keine —",
+        "selected": "{{count}} ausgewählt",
+        "apply": "Zuweisen",
+        "clear": "Zuordnung entfernen",
+        "deselect": "Auswahl aufheben",
+        "export": "JSON exportieren",
+        "saved": "Gespeichert.",
+        "edit": "Bearbeiten",
+        "selectRow": "{{action}} auswählen",
+        "selectGroup": "Alle Aktionen in {{group}} auswählen"
+      },
+      "taxonomy": {
+        "scope": {
+          "verse": "Verse",
+          "in_game": "Im Spiel (UI)",
+          "out_of_game": "Außerhalb des Spiels"
+        },
+        "environment": {
+          "on_foot": "Zu Fuß",
+          "in_vehicle": "Im Fahrzeug",
+          "spectator": "Zuschauer",
+          "mobiglas": "MobiGlas",
+          "starmap": "Sternenkarte",
+          "chat": "Chat",
+          "console": "Konsole"
+        },
+        "role": {
+          "pilot": "Pilot",
+          "copilot": "Kopilot",
+          "gunner": "Schütze",
+          "driver": "Fahrer",
+          "normal": "Normal",
+          "eva": "EVA",
+          "ladder": "Leiter"
+        },
+        "activity": {
+          "combat": "Kampf",
+          "mining": "Bergbau",
+          "salvage": "Bergung",
+          "exploring": "Erkundung",
+          "medical": "Medizin",
+          "trading": "Handel",
+          "racing": "Rennen",
+          "engineering": "Technik",
+          "hacking": "Hacking"
+        },
+        "actionGroup": {
+          "flight_control": "Flugsteuerung",
+          "weapons": "Waffen",
+          "targeting": "Zielerfassung",
+          "shields": "Schilde",
+          "power": "Energie",
+          "mfd_hud": "MFD / HUD",
+          "mining_tools": "Bergbau-Werkzeuge",
+          "movement": "Bewegung",
+          "camera": "Kamera",
+          "communication": "Kommunikation",
+          "interaction": "Interaktion"
+        }
       }
     },
     "provenance": {
@@ -375,6 +703,7 @@
       "viewOnRsi": "Bei RSI ansehen",
       "noLoadout": "Kein Standard-Loadout hinterlegt.",
       "notFound": "Eintrag im aktuellen Build nicht gefunden.",
+      "noArtwork": "Für dieses Schiff liegt in diesem Build noch kein Bild vor.",
       "showRaw": "Rohdaten anzeigen",
       "hideRaw": "Rohdaten ausblenden",
       "naValue": "k. A.",
@@ -411,7 +740,7 @@
       "pickerTitle": "Modul tauschen",
       "installed": "Verbaut",
       "equipped": "Verbaut",
-      "previewHint": "Nur Vorschau — nichts wird gespeichert.",
+      "previewHint": "Vergleichen, dann Übernehmen oder Slot leeren — die Änderung bleibt Entwurf, bis du sie unten speicherst.",
       "loading": "Kompatible Items werden gesucht…",
       "failed": "Die kompatiblen Teile konnten nicht geladen werden.",
       "none": "Keine kompatiblen Alternativen in diesem Build.",
@@ -433,7 +762,26 @@
       "missingColumns": "Nicht in diesem Daten-Extract enthalten und deshalb ohne Spalte: {{fields}}.",
       "installedNone": "Platz ab Werk leer",
       "pickHere": "Auswählen",
-      "fitInferred": "Dieser Platz ist ab Werk leer. Die Liste stammt von einem baugleichen, bestückten Platz desselben Schiffs – nicht aus den Daten dieses Hardpoints selbst."
+      "fitInferred": "Dieser Platz ist ab Werk leer. Die Liste stammt von einem baugleichen, bestückten Platz desselben Schiffs – nicht aus den Daten dieses Hardpoints selbst.",
+      "clearSlot": "Slot leeren",
+      "apply": "Übernehmen"
+    },
+    "loadout": {
+      "changesSummary": "{{changed}} Änderungen · davon {{saveable}} speicherbar",
+      "unsaveableHint": "Verschachtelte und geleerte Slots bleiben vorerst Entwurf — sie lassen sich noch nicht speichern.",
+      "discard": "Änderungen verwerfen",
+      "save": "Speichern",
+      "saving": "Wird gespeichert…",
+      "addToHangarAndSave": "Zum Hangar hinzufügen & speichern",
+      "saveErrorHangar": "Der Hangar war gerade nicht erreichbar — der Entwurf bleibt erhalten, bitte erneut versuchen.",
+      "saveErrorGeneric": "Das Loadout konnte gerade nicht gespeichert werden — der Entwurf bleibt erhalten, bitte erneut versuchen.",
+      "revert": "Auf Werkszustand zurücksetzen",
+      "defaultConfigName": "Codex-Loadout",
+      "draftState": {
+        "changed": "Geändert",
+        "pending": "Lädt…",
+        "unresolved": "Nicht in diesem Build"
+      }
     },
     "statGroup": {
       "identity": "Identität",
@@ -491,23 +839,6 @@
       "viewSideAria": "Seitenansicht der Hülle mit {{count}} Hardpoint-Markern",
       "nose": "Bug",
       "readoutIdle": "Kein Hardpoint ausgewählt"
-    },
-    "showroom": {
-      "title": "Showroom",
-      "subtitle": "Echte Schiffs-Lackierungen in interaktivem 3D betrachten — datamined Hülle und Texturen aus dem aktuellen Build.",
-      "count": "{{liveries}} Lackierungen in 3D über {{ships}} Schiff(e)",
-      "spotlight": "Jetzt im Showroom",
-      "gallery": "Alle Lackierungen",
-      "liveryCount": "{{count}} Lackierungen",
-      "billboard": {
-        "eyebrow": "Neu",
-        "title": "Echte Schiffs-Lackierungen in 3D drehen — {{count}} verfügbar",
-        "cta": "Zum Showroom"
-      },
-      "empty": {
-        "title": "Noch keine 3D-Lackierungen",
-        "body": "3D-Lackierungen werden pro Spiel-Build extrahiert und erscheinen hier, sobald sie vorliegen."
-      }
     },
     "skins": {
       "title": "Lackierungen",
@@ -631,7 +962,115 @@
         "noHullHp": "Hüllen-HP sind noch nicht Teil des P4K-Extracts.",
         "noResistances": "Schadensresistenzen pro Kanal werden nicht extrahiert — kein Schiff und keine Panzerung trägt sie.",
         "noPowerPlant": "Im Werks-Loadout dieses Schiffs steckt kein Generator.",
-        "noPowerDraw": "Energiebedarf und -abgabe pro Komponente fehlen im Extract, deshalb lässt sich das Energiedreieck nicht berechnen."
+        "noPowerDraw": "Energiebedarf und -abgabe pro Komponente fehlen im Extract, deshalb lässt sich das Energiedreieck nicht berechnen.",
+        "noHullMass": "Die Hüllenmasse steckt nicht im Extract — nur die Masse der verbauten Ausrüstung lässt sich berechnen.",
+        "noFlight": "Für dieses Schiff liefert der Extract keine Flugleistungswerte.",
+        "noCargoCapacity": "Die Frachtkapazität steckt noch nicht im Extract.",
+        "noSignature": "Der Radar-Querschnitt steckt noch nicht im Extract dieses Schiffs — nach dem nächsten Katalog-Upload sichtbar.",
+        "noEmissionModel": "IR/EM-Signaturwerte stecken nicht in den Spieldaten — dem Client fehlt das zugrunde liegende Energiemodell.",
+        "noQuantum": "Dieses Schiff hat keinen Quantenantrieb verbaut.",
+        "noEquipmentMass": "Für diese Konfiguration lässt sich keine Ausrüstungsmasse berechnen.",
+        "noMissiles": "Diese Konfiguration trägt keine Raketen.",
+        "noArmorStats": "Für dieses Schiff liefert der Extract keine Panzerungswerte — hier steht nur die Rumpfstruktur."
+      }
+    },
+    "mission": {
+      "label": "Einsatz",
+      "all": "Alles",
+      "combat": "Kampf",
+      "transport": "Transport",
+      "travel": "Reisen",
+      "stealth": "Schleichen",
+      "mining": "Bergbau",
+      "salvage": "Bergung",
+      "disabled": {
+        "noMining": "Keine Bergbau-Hardpoints",
+        "noSalvage": "Keine Bergungs-Hardpoints",
+        "noCargo": "Kein Frachtgitter",
+        "noQuantum": "Kein Quantenantrieb"
+      }
+    },
+    "kpi": {
+      "bandLabel": "Kennzahlen",
+      "alpha": "Alpha-Schaden",
+      "burstDps": "Salven-DPS",
+      "sustainedDps": "Dauer-DPS",
+      "missiles": "Raketensalve",
+      "shieldHp": "Schild-HP",
+      "shieldRegen": "Schild-Regen",
+      "hullHp": "Rumpf-HP",
+      "effectiveHp": "Effektive HP",
+      "cargo": "Fracht",
+      "mass": "Ausrüstungsmasse",
+      "scm": "SCM-Geschwindigkeit",
+      "maxSpeed": "Maximalgeschwindigkeit",
+      "quantumSpeed": "Quantengeschwindigkeit",
+      "quantumRange": "Quantenreichweite",
+      "spool": "Spool-Zeit",
+      "ir": "IR-Signatur",
+      "emIdle": "EM-Signatur (Ruhe)",
+      "emMax": "EM-Signatur (Last)",
+      "crossSection": "Querschnitt"
+    },
+    "damageChannel": {
+      "physical": "Physisch",
+      "energy": "Energie",
+      "distortion": "Distortion",
+      "thermal": "Thermisch",
+      "biochemical": "Biochemisch",
+      "stun": "Betäubung"
+    },
+    "analysis": {
+      "offensive": {
+        "title": "Offensive",
+        "weapons": "Waffen ({{count}} montiert)",
+        "colWeapon": "Waffe",
+        "colSize": "Größe",
+        "colAlpha": "Alpha",
+        "colSustained": "Dauer-DPS",
+        "colBurst": "Salve",
+        "total": "Gesamt",
+        "effectiveRange": "Effektive Reichweite",
+        "projectileSpeed": "Projektil m/s",
+        "longestGunNote": "Reichweite begrenzt durch die kürzeste Waffe — {{name}} trägt am weitesten.",
+        "mixedRangeWarning": "Gemischte Reichweiten: mindestens eine Waffe trägt deutlich weiter als der Rest.",
+        "missiles": "Raketen ({{count}} Sprengköpfe)",
+        "salvoDamage": "Salven-Schaden",
+        "lockTime": "Lock-Zeit",
+        "range": "Reichweite",
+        "targeting": "Zielerfassung",
+        "slowestMissileNote": "Lock-Zeit der langsamsten Rakete."
+      },
+      "defensive": {
+        "title": "Verteidigung",
+        "shield": "Schild",
+        "hp": "HP",
+        "regen": "Regen",
+        "fullIn": "Voll in",
+        "regenDelay": "Verzögerung",
+        "downedDelay": "Verzögerung (Down)",
+        "mixedGeneratorNote": "Mehrere unterschiedliche Schildgeneratoren verbaut — Werte oben aggregiert, Verzögerungen vom stärksten.",
+        "resistance": "Schild-Widerstand",
+        "hull": "Rumpf & Panzerung",
+        "armorPhysical": "Reduktion Phys.",
+        "armorEnergy": "Reduktion Energie",
+        "armorDistortion": "Reduktion Distortion",
+        "armorPenetration": "Durchschlagsreduktion (Basis)",
+        "armorDeflectionPhysical": "Deflektion Phys.",
+        "armorDeflectionEnergy": "Deflektion Energie",
+        "noArmorData": "Für dieses Schiff liefert der Extract keine Panzerungswerte — hier steht nur die Rumpfstruktur.",
+        "effectiveHp": "Effektive Gesamt-HP",
+        "effectiveHpGap": "Nur berechenbar, sobald sowohl Rumpf- als auch Schild-HP im Extract stecken."
+      },
+      "ship": {
+        "title": "Schiff",
+        "flightPerformance": "Flugleistung",
+        "mass": "Masse",
+        "systems": "Systeme",
+        "signature": "Signatur (unter voller Last)",
+        "hull": "Rumpf",
+        "massEquipmentNote": "Die Hüllenmasse steckt nicht im Extract — nur die Ausrüstungsmasse ist berechenbar.",
+        "crossSectionNote": "Vom Rumpf, unveränderlich."
       }
     },
     "hull": {
@@ -673,6 +1112,11 @@
     },
     "filters": {
       "category": "Kategorie"
+    },
+    "group": {
+      "all": "Alle",
+      "fps": "Zu Fuß",
+      "vehicle": "Fahrzeug"
     },
     "category": {
       "FPSArmours": "FPS-Rüstung",
@@ -734,6 +1178,11 @@
     "empty": {
       "weapon": "Keine FPS-Waffen in diesem Build.",
       "armor": "Keine Rüstung in diesem Build."
+    },
+    "equip": {
+      "targetSet": "Ausrüsten für: {{name}}",
+      "backToSet": "Zurück zum Set",
+      "into": "In Slot:"
     }
   },
   "news": {
@@ -773,8 +1222,7 @@
       "comm-link": "Comm-Link",
       "spectrum": "Spectrum",
       "youtube": "YouTube",
-      "patch": "Patch-Notes",
-      "favorites": "Favoriten"
+      "patch": "Patch-Notes"
     },
     "filter": {
       "label": "Filter",
@@ -782,9 +1230,8 @@
       "groupAria": "Kanalfilter"
     },
     "favorite": {
-      "toggle": "Merken",
-      "save": "★ Merken",
-      "saved": "★ Gemerkt"
+      "save": "Merken",
+      "saved": "Gemerkt"
     },
     "share": {
       "label": "Teilen",
@@ -887,13 +1334,64 @@
         "today": "heute fällig",
         "inDays": "in ~{{n}} Tagen",
         "inWeeks": "in ~{{n}} Wochen",
-        "overdueDays": "überfällig ({{n}} T.)",
-        "overdueWeeks": "überfällig ({{n}} Wo.)",
-        "basis": "Median {{median}} T. · n={{n}} · ab {{version}}"
+        "overdueDays": "{{n}} T. überfällig",
+        "overdueWeeks": "{{n}} Wo. überfällig",
+        "basis": "Median {{median}} T. · ab {{version}}"
+      },
+      "board": {
+        "title": "Patch-Historie",
+        "sub": "Roadmap, Takt, Termine und jede Release-Note — durchsuchbar bis zum einzelnen Stichpunkt",
+        "back": "Zurück zu Verse News"
+      },
+      "waves": {
+        "title": "{{count}} Build-Wellen derselben Ankündigung"
+      },
+      "search": {
+        "label": "Patch-Inhalte durchsuchen",
+        "placeholder": "z. B. Orison, Hotfix, Quantum Drive",
+        "clear": "Suche löschen",
+        "summary": "{{notes}} Notes in {{lines}} Patch-Linien",
+        "scope": "Sucht in allen Titeln und in den Stichpunkten von {{loaded}} geladenen Notes"
+      },
+      "roadmap": {
+        "title": "Was steckt drin",
+        "hint": "Geplante Inhalte laut RSI-Roadmap (Release View)",
+        "expandAll": "Alle Beschreibungen zeigen",
+        "collapseAll": "Beschreibungen einklappen",
+        "source": "Roadmap auf RSI ↗",
+        "showNotes": "Patch-Notes zu {{version}} zeigen",
+        "uncategorized": "Ohne Kategorie",
+        "noDetail": "RSI hat zu diesem Eintrag keine Beschreibung veröffentlicht.",
+        "emptyRelease": "Keine Roadmap-Einträge für diese Suche.",
+        "later": "Danach geplant:",
+        "slot": {
+          "current": "Aktueller Patch",
+          "next": "Nächster Patch"
+        },
+        "status": {
+          "released": "Ausgeliefert",
+          "committed": "Zugesagt",
+          "tentative": "Vorläufig",
+          "unknown": "Offen"
+        }
+      },
+      "detail": {
+        "loading": "Patch-Inhalte werden geladen …",
+        "unavailable": "Zu dieser Note liegen keine Inhalte vor – auf RSI nachlesen.",
+        "noMatch": "Kein Treffer in dieser Note.",
+        "fullNotes": "Vollständige Notes ↗",
+        "linkOut": "Link ↗",
+        "openOnRsi": "Auf RSI öffnen ↗",
+        "openOnRsiAria": "{{title}} auf RSI öffnen (neuer Tab)",
+        "truncated": "Sehr lange Note – der Rest steht auf RSI.",
+        "hits": "{{count}} Treffer",
+        "points": "{{count}} Punkte",
+        "expandAll": "Alle Notes ausklappen",
+        "collapseAll": "Alle Notes einklappen"
       }
     },
     "detail": {
-      "close": "Schließen"
+      "back": "Zurück"
     },
     "via": "via {{source}}",
     "openExternal": "Öffnet {{host}}",
@@ -914,6 +1412,37 @@
       "more": "+{{count}} weitere",
       "open": "Kommende Schiffe öffnen",
       "dismiss": "Hinweis ausblenden"
+    },
+    "stage": {
+      "read": "Lesen",
+      "watch": "Ansehen"
+    },
+    "stream": {
+      "title": "News Feed",
+      "more": "{{count}} weitere anzeigen",
+      "all": "Beiträge",
+      "filterAria": "News Feed filtern",
+      "onStage": "Auf der Bühne"
+    },
+    "verdict": {
+      "label": "Build-Stand",
+      "liveOnly": "{{line}} ist live",
+      "due": "{{line}} ist live · nächster Hauptpatch in {{days}} Tagen",
+      "today": "{{line}} ist live · nächster Hauptpatch heute fällig",
+      "overdue": "{{line}} ist live · nächster Hauptpatch seit {{days}} Tagen überfällig",
+      "basis": "Schätzung aus der bisherigen Patch-Kadenz",
+      "basisWithTest": "{{test}} im Test · Schätzung aus der Kadenz",
+      "freshLiveLabel": "Neuer Patch live",
+      "freshPtuLabel": "Neu im PTU",
+      "freshLive": "{{line}} ist jetzt live",
+      "freshPtu": "{{line}} ist im PTU angekommen",
+      "freshLiveSub": "{{since}} · {{test}} im Test",
+      "freshPtuSub": "{{since}} · {{live}} bleibt live",
+      "sinceToday": "Seit heute",
+      "sinceYesterday": "Seit gestern",
+      "sinceDays": "Seit {{days}} Tagen",
+      "toBoard": "Patch-Historie",
+      "toNotes": "Patch-Notes lesen"
     }
   },
   "p4k": {
@@ -996,10 +1525,61 @@
       "viewer": "Viewer"
     },
     "username": "Benutzername",
-    "usernameUnset": "Nicht gesetzt"
+    "usernameUnset": "Nicht gesetzt",
+    "idCopy": "Kopieren",
+    "idCopied": "Kopiert",
+    "providers": {
+      "email": "E-Mail & Passwort",
+      "google": "Google"
+    },
+    "memberSince": {
+      "today": "Heute",
+      "unknown": "Unbekannt",
+      "exact": "Registriert am {{date}}",
+      "days": {
+        "one": "{{count}} Tag",
+        "other": "{{count}} Tage"
+      },
+      "months": {
+        "one": "{{count}} Monat",
+        "other": "{{count}} Monate"
+      },
+      "years": {
+        "one": "{{count}} Jahr",
+        "other": "{{count}} Jahre"
+      }
+    }
   },
   "settings": {
     "title": "Einstellungen",
+    "toc": {
+      "label": "Abschnitte"
+    },
+    "groups": {
+      "account": {
+        "title": "Konto & Identität",
+        "short": "Konto"
+      },
+      "preferences": {
+        "title": "Sprache & Bedienung",
+        "short": "Sprache"
+      },
+      "privacy": {
+        "title": "Daten & Privatsphäre",
+        "short": "Daten"
+      },
+      "danger": {
+        "title": "Gefahrenzone",
+        "short": "Gefahr"
+      }
+    },
+    "account": {
+      "title": "Konto"
+    },
+    "password": {
+      "title": "Passwort",
+      "hint": "Setz dir ein neues Passwort. Es gilt sofort — angemeldet bleibst du trotzdem."
+    },
     "username": {
       "title": "Benutzername",
       "label": "Benutzername",
@@ -1085,6 +1665,11 @@
       "deleting": "Lösche…",
       "confirm": "Dein Account ({{email}}) wird endgültig gelöscht. Auch deine Uploads + Bundles verschwinden. Du wirst danach ausgeloggt. Sicher?",
       "failed": "Löschen fehlgeschlagen"
+    },
+    "friends": {
+      "title": "Freunde",
+      "hint": "Freundschaftsanfragen, deine Freundesliste und blockierte Konten verwalten.",
+      "open": "Freunde öffnen"
     }
   },
   "admin": {
@@ -1136,7 +1721,8 @@
       "role": "Rolle",
       "joined": "Beigetreten",
       "lastSeen": "Zuletzt aktiv",
-      "actions": "Aktionen"
+      "actions": "Aktionen",
+      "reports": "Meldungen"
     },
     "actions": {
       "promoteCollab": "→ Collaborator",
@@ -1203,6 +1789,7 @@
         "patch:read": "Liest /v1/patch",
         "ships:read": "Liest /v1/ships",
         "components:read": "Liest /v1/components",
+        "keybinds:read": "Liest /v1/keybinds (Tastenbelegung + Kategorien)",
         "*:read": "Kürzel: alle Read-Endpoints",
         "admin:tokens": "Token-Verwaltung (Admin-Rolle bleibt erforderlich)"
       },
@@ -1221,6 +1808,65 @@
       "count": "{{shown}} von {{total}}",
       "clear": "Filter zurücksetzen",
       "noMatches": "Keine User passen zu den Filtern."
+    },
+    "requests": {
+      "title": "Einladungsanfragen",
+      "subtitle": "Bewerbungen von der Startseite. Annehmen registriert die E-Mail wie über das Formular unten — plus Einladungsmail: Der Link darin führt direkt auf die Seite, auf der sich die Person ihr eigenes Passwort setzt. Wir vergeben nie ein Passwort.",
+      "empty": "Keine offenen Anfragen.",
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "declineConfirm": "Anfrage von {{email}} ablehnen? Die Person wird nicht benachrichtigt.",
+      "accepted": "{{email}} angenommen, registriert und eingeladen.",
+      "acceptedNoMail": "{{email}} angenommen und freigeschaltet. Es ging keine Einladungsmail raus — zu dieser Adresse gibt es schon ein Konto, die Person meldet sich einfach an. Sag ihr am besten selbst Bescheid.",
+      "declined": "Anfrage von {{email}} abgelehnt.",
+      "allowlisted": "Schon auf Allowlist",
+      "joined": "Hat schon Account"
+    },
+    "reports": {
+      "title": "Auffällige Konten",
+      "subtitle": "Konten mit offenen Meldungen, die meistgemeldeten zuerst.",
+      "count": "{{count}} Meldungen",
+      "by": "gemeldet von {{name}}"
+    },
+    "moderation": {
+      "warn": "Verwarnen",
+      "suspend": "Konto sperren",
+      "unsuspend": "Sperre aufheben",
+      "markReviewed": "Meldungen erledigt",
+      "dismiss": "Meldungen verwerfen",
+      "cancel": "Abbrechen",
+      "confirmWarn": "Verwarnung senden",
+      "confirmSuspend": "Jetzt sperren",
+      "suspendedPill": "gesperrt",
+      "warnReason": "Text der Verwarnung",
+      "suspendReason": "Grund der Sperre",
+      "reasonPlaceholder": "Was ist passiert? Der Text wird der betroffenen Person angezeigt.",
+      "reasonVisible": "Dieser Text wird der betroffenen Person wörtlich angezeigt.",
+      "duration": "Dauer",
+      "durations": {
+        "days": "{{days}} Tage",
+        "indefinite": "Unbefristet"
+      },
+      "activeSince": "gesperrt seit {{date}}",
+      "activeUntil": "bis {{date}}",
+      "indefinite": "unbefristet",
+      "flash": {
+        "warned": "Verwarnung gesendet.",
+        "suspended": "Konto gesperrt. Der Zugriff ist ab sofort blockiert.",
+        "unsuspended": "Sperre aufgehoben.",
+        "reviewed": "Meldungen als erledigt markiert.",
+        "dismissed": "Meldungen verworfen."
+      },
+      "error": {
+        "protected": "Dieses Konto kann nicht moderiert werden (eigenes Konto, Administrator oder geschützt).",
+        "invalidTarget": "Ungültige Auswahl.",
+        "userNotFound": "Konto nicht gefunden.",
+        "reasonRequired": "Bitte einen Grund angeben.",
+        "reasonTooLong": "Der Text ist zu lang.",
+        "invalidDuration": "Ungültige Dauer.",
+        "forbidden": "Dafür fehlen dir die Rechte.",
+        "generic": "Das hat nicht geklappt. Bitte noch einmal versuchen."
+      }
     }
   },
   "desktop": {
@@ -1460,9 +2106,10 @@
       "create": "Erstellen",
       "empty": "Noch keine Rollen-Loadouts — erstelle oben ein FPS-, Bergbau- oder Bergungs-Set.",
       "itemCount": "{{count}} Gegenstände ausgerüstet",
-      "slotsTitle": "Slots",
-      "addSlotPlaceholder": "Eigenen Slot hinzufügen…",
-      "addSlot": "Slot hinzufügen"
+      "rename": "Umbenennen",
+      "cancel": "Abbrechen",
+      "share": "Teilen",
+      "deleteConfirm": "Wirklich löschen?"
     },
     "detail": {
       "back": "Zurück zum Hangar",
@@ -1515,7 +2162,6 @@
       "empty": "leer",
       "change": "Ändern",
       "reset": "Stock",
-      "clear": "Leeren",
       "createConfigFirst": "Erstelle oben eine Konfiguration, um das Loadout zu bearbeiten."
     },
     "picker": {
@@ -1545,6 +2191,12 @@
         "text": "Pinne Schiffe und Komponenten nebeneinander und vergleiche die Zahlen, die zählen."
       },
       "cta": "Anmelden und Hangar öffnen"
+    },
+    "drawingBoard": {
+      "title": "Auf dem Reißbrett",
+      "note": "Gemerkte Schiffe — noch nicht flugfähig",
+      "browse": "Reißbrett öffnen",
+      "empty": "Du hast dir noch kein angekündigtes Schiff für die Flotte gemerkt."
     },
     "concept": {
       "title": "Concept-Wunschliste",
@@ -1577,6 +2229,25 @@
       "importing": "Importiere…",
       "done": "{{count}} Schiffe importiert.",
       "close": "Schließen"
+    },
+    "slots": {
+      "primary": "Primärwaffe",
+      "secondary": "Sekundärwaffe",
+      "sidearm": "Seitenwaffe",
+      "helmet": "Helm",
+      "core": "Torso",
+      "arms": "Arme",
+      "legs": "Beine",
+      "undersuit": "Untersuit",
+      "backpack": "Rucksack",
+      "multitool": "Multitool",
+      "mining-attachment": "Bergbau-Aufsatz",
+      "gadget": "Gadget",
+      "salvage-attachment": "Bergungs-Aufsatz",
+      "tractor": "Traktorstrahl",
+      "medgun": "Medgun",
+      "medpen": "MedPen",
+      "repair-attachment": "Reparatur-Aufsatz"
     }
   },
   "quickSearch": {
@@ -1599,7 +2270,7 @@
   },
   "telemetry": {
     "title": "Telemetrie & Crash-Statistik",
-    "subtitle": "Anonyme Crash-Reports und Opt-in-Nutzung aus der Desktop-App.",
+    "subtitle": "Anonyme Crash-Reports und Opt-in-Nutzung aus allen Desktop-Clients.",
     "refresh": "Aktualisieren",
     "loading": "Telemetrie wird geladen…",
     "empty": "Keine Daten in diesem Zeitraum.",
@@ -1646,7 +2317,8 @@
       "label": "Produkt",
       "scc-app": "SCC-App",
       "data-uploader": "Data Uploader",
-      "all": "Alle"
+      "all": "Alle",
+      "starscape": "Starscape"
     },
     "col": {
       "at": "Wann",
@@ -1654,6 +2326,26 @@
       "role": "Prozess",
       "name": "Fehler",
       "message": "Nachricht"
+    },
+    "products": {
+      "title": "Produkte im Vergleich",
+      "hint": "Alle Clients im gewählten Zeitraum. Eine Karte anklicken, um nur dieses Produkt auszuwerten.",
+      "crashesShort": "Abstürze",
+      "healthy": "Ohne Absturz",
+      "silent": "Keine Daten",
+      "lastSeen": "Zuletzt",
+      "never": "Noch nie gemeldet"
+    },
+    "detail": {
+      "title": "Details"
+    },
+    "byChannel": "Nach Release-Ring",
+    "usageByMetric": "Nutzung nach Ereignis",
+    "channel": {
+      "stable": "Stable",
+      "beta": "Beta",
+      "alpha": "Alpha",
+      "dev": "Dev"
     }
   },
   "adminFeedback": {
@@ -1682,10 +2374,9 @@
     "loadMore": "Weitere {{count}} laden",
     "toggleDetails": "Eintrag aus- oder einklappen",
     "topicNumber": "Thema #{{n}} — feste Nummer, auf die du dich beziehen kannst",
-    "showMore": "mehr",
-    "showLess": "Weniger anzeigen",
+    "moreActions": "Weitere Aktionen",
     "filter": {
-      "label": "Nach Ersteller filtern",
+      "label": "Nach Nutzer filtern",
       "all": "Alle",
       "toggle": "Filter"
     },
@@ -1699,8 +2390,7 @@
       "clear": "Suche löschen",
       "results": "{{count}} Treffer · nach Relevanz",
       "empty": "Keine Treffer für „{{query}}“.",
-      "inThread": "im Thread",
-      "toggle": "Suche"
+      "inThread": "im Thread"
     },
     "tab": {
       "label": "Zwischen aktiven Themen und erledigten wechseln",
@@ -1726,11 +2416,11 @@
     "delete": "Löschen",
     "deleteConfirm": "Diese Nachricht löschen? Kann nicht rückgängig gemacht werden.",
     "issue": {
-      "mark": "Issue erstellt",
-      "placeholder": "GitHub-Issue-URL",
-      "save": "Archivieren",
-      "cancel": "Abbrechen",
-      "invalidUrl": "Bitte eine gültige Issue-URL angeben (http/https)."
+      "mark": "Issue erstellen",
+      "pill": "Issue angefordert",
+      "pending": "Issue erstellen ist beauftragt — die Routine legt es an.",
+      "undo": "Rückgängig",
+      "requestBody": "Bitte dieses Thema **nicht selbst umsetzen**, sondern ein GitHub-Issue dafür anlegen. Danach `status = issue_created` setzen und die Issue-URL als `ship_ref` eintragen — das Thema geht dann wie jedes andere Ergebnis in die Abnahme."
     },
     "status": {
       "open": "ToDo",
@@ -1741,7 +2431,7 @@
       "issue_created": "Issue erstellt",
       "answered": "Beantwortet",
       "continued": "Fortgesetzt",
-      "needs_input_author": "Rückfrage an Absender",
+      "needs_input_author": "Rückfrage an Nutzer",
       "declined": "Nicht umgesetzt",
       "review": "Abnahme"
     },
@@ -1750,6 +2440,8 @@
       "routineBadge": "Auto",
       "reply": "Antworten",
       "replyPlaceholder": "Antwort schreiben… (Markdown möglich)",
+      "foldExpand": "{{count}} Nachricht(en) dazwischen einblenden",
+      "foldCollapse": "{{count}} Nachricht(en) dazwischen wieder ausblenden",
       "reopenHint": "Eine Antwort öffnet dieses archivierte Thema wieder — es geht zurück auf ToDo und die Routine nimmt es erneut auf."
     },
     "compose": {
@@ -1759,11 +2451,6 @@
       "collapse": "Schließen",
       "sendHint": "Enter = senden · Shift+Enter = neue Zeile",
       "sendHintCtrl": "Strg/Cmd+Enter = senden · Enter = neue Zeile",
-      "bold": "Fett",
-      "bullet": "Aufzählung",
-      "numbered": "Nummerierte Liste",
-      "code": "Inline-Code",
-      "list": "Liste",
       "draftRestored": "Entwurf wiederhergestellt",
       "draftSaving": "Entwurf wird gesichert…",
       "draftSaved": "Entwurf gesichert",
@@ -1771,19 +2458,23 @@
       "draftDiscard": "Entwurf verwerfen",
       "draftDiscardConfirm": "Wirklich verwerfen?",
       "attachNotCached": "Bild konnte nicht zwischengespeichert werden – es geht beim Neuladen verloren, wird aber mitgesendet.",
-      "attach": "Bild anhängen",
-      "attachHint": "Bilder per Einfügen (Strg+V) oder Ablegen hinzufügen",
-      "attachmentsLabel": "Angehängte Bilder",
+      "attachHint": "Bilder einfügen (Strg+V), ablegen oder direkt die Seite aufnehmen",
+      "attachmentsLabel": "Anhänge",
       "dropHere": "Bilder hier ablegen",
       "imageError": "Bild konnte nicht verarbeitet werden.",
       "tooManyImages": "Maximal {{max}} Bilder pro Nachricht.",
-      "uploadError": "Bild-Upload fehlgeschlagen. Bitte erneut versuchen."
+      "uploadError": "Bild-Upload fehlgeschlagen. Bitte erneut versuchen.",
+      "attachHintFiles": "Bilder oder Dateien einfügen (Strg+V), ablegen oder direkt die Seite aufnehmen",
+      "captureError": "Screenshot der Seite konnte nicht erstellt werden.",
+      "imagesOnly": "Hier sind nur Bilder als Anhang möglich.",
+      "fileTooLarge": "Datei zu groß – maximal {{max}} MB pro Anhang.",
+      "charCount": "{{used}} von {{max}} Zeichen",
+      "charLimit": "Zeichenlimit erreicht: maximal {{max}} Zeichen pro Nachricht."
     },
     "view": {
       "label": "Ansicht wechseln",
       "overview": "Übersicht",
       "workflow": "Abarbeiten",
-      "review": "Abnahme",
       "progress": "Fortschritt"
     },
     "cheer": {
@@ -1804,6 +2495,7 @@
       "allDoneTitle": "Alles abgearbeitet",
       "allDoneHint": "Keine offenen Rückfragen, nichts abzunehmen. Deine ToDos liegen bei der Routine — sie kommen hier rein, sobald sie etwas von dir braucht.",
       "kind": {
+        "triage": "Freigabe",
         "question": "Rückfrage",
         "review": "Abnahme",
         "new": "ToDo"
@@ -1817,7 +2509,29 @@
       },
       "scopeEmptyTitle": "In dieser Auswahl ist nichts offen",
       "scopeEmptyHint": "{{count}} Thema/Themen liegen in einer anderen Auswahl.",
-      "cheerReplied": "Notiert! Weiter geht's."
+      "cheerReplied": "Notiert! Weiter geht's.",
+      "kindFilter": {
+        "label": "Nur eine Art von Schritt zeigen",
+        "all": "Alle",
+        "triage": "Nutzer-Feedback",
+        "question": "Rückfragen",
+        "review": "Abnahmen"
+      },
+      "threadExpand": "{{count}} ältere Nachricht(en) einblenden",
+      "threadCollapse": "Ältere Nachrichten wieder ausblenden",
+      "kindEmptyTitle": "Hier ist gerade nichts",
+      "kindEmptyHint": "{{count}} Thema/Themen warten unter „Alle\".",
+      "kindShowAll": "Alle zeigen",
+      "swipeHint": "Tipp: Karte nach links wischen zum Überspringen, nach rechts für die Entscheidung.",
+      "swipeSkip": "Überspringen",
+      "swipeDone": "Erledigt",
+      "swipeAccept": "Abnehmen",
+      "swipeRelease": "Freigeben",
+      "triage": {
+        "hint": "Das hat ein Nutzer eingereicht. Die Routine rührt es nicht an, solange es nicht freigegeben ist — entscheide hier: freigeben, beim Autor nachfragen oder mit Begründung ablehnen.",
+        "ask": "Rückfrage an den Autor",
+        "askHint": "Geht als Rückfrage an den Autor. Das Thema wartet dann auf seine Antwort und taucht danach wieder hier auf."
+      }
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",
@@ -1858,8 +2572,8 @@
         "toReviewIssue": "Als GitHub-Issue übergeben",
         "accepted": "Du nimmst ab",
         "reopened": "Du nimmst das Gespräch wieder auf",
-        "askAuthor": "Du fragst beim Absender nach",
-        "authorAnswered": "Der Absender antwortet"
+        "askAuthor": "Du fragst beim Nutzer nach",
+        "authorAnswered": "Der Nutzer antwortet"
       },
       "fact": {
         "oldest": "ältestes offenes Thema: {{days}} Tage",
@@ -1877,7 +2591,7 @@
         "reviewIssues": "{{count}} an ein Issue übergeben, wartet auf deine Abnahme",
         "reviewWhy": "Erst deine Abnahme beendet ein Thema — sonst geht es zurück in die Arbeit",
         "doneTerminal": "Endstation — abgenommen und geschlossen",
-        "declinedTerminal": "Endstation — bewusst nicht umgesetzt, mit Begründung an den Absender"
+        "declinedTerminal": "Endstation — bewusst nicht umgesetzt, mit Begründung an den Nutzer"
       },
       "todo": "ToDo",
       "done": "Geshipped",
@@ -1890,22 +2604,50 @@
       "badge": "Nutzer-Feedback",
       "untriaged": "Nicht freigegeben",
       "release": "Für die Routine freigeben",
-      "channelTitle": "Kanal zum Autor",
-      "channelHint": "Alles hier ist für den Absender sichtbar. Der Verlauf oben (Admin ↔ Routine) ist es nicht.",
-      "seesStatus": "Der Absender sieht:",
-      "asQuestion": "Als Rückfrage an den Absender senden (parkt das Thema, bis er antwortet)",
-      "messagePlaceholder": "Nachricht an den Absender…",
-      "messageSend": "An Absender senden",
+      "channelTitle": "Kanal zum Nutzer",
+      "channelHint": "Alles hier ist für den Nutzer sichtbar. Der Verlauf oben (Admin ↔ Routine) ist es nicht.",
+      "seesStatus": "Der Nutzer sieht:",
+      "asQuestion": "Als Rückfrage an den Nutzer senden (parkt das Thema, bis er antwortet)",
+      "messagePlaceholder": "Nachricht an den Nutzer…",
+      "messageSend": "An Nutzer senden",
+      "questionSend": "Als Rückfrage senden",
       "questionBadge": "Rückfrage",
       "fromTeam": "Team",
-      "fromAuthor": "Absender"
+      "fromAuthor": "Nutzer"
     },
     "decline": {
       "mark": "Nicht umsetzen & löschen",
-      "placeholder": "Warum wird das nicht umgesetzt? Der Absender liest diesen Text.",
+      "placeholder": "Warum wird das nicht umgesetzt? Der Nutzer liest diesen Text.",
       "confirm": "Nicht umsetzen",
       "cancel": "Abbrechen",
-      "noteRequired": "Bitte eine Begründung angeben – der Absender bekommt sie zu lesen."
+      "noteRequired": "Bitte eine Begründung angeben – der Nutzer bekommt sie zu lesen.",
+      "reasonsLabel": "Vorgefertigte Begründungen",
+      "reasons": {
+        "duplicate": {
+          "label": "Duplikat",
+          "text": "Das gibt es hier schon einmal – wir bearbeiten das Thema bereits an anderer Stelle. Danke, dass du es gemeldet hast."
+        },
+        "alreadyShipped": {
+          "label": "Schon umgesetzt",
+          "text": "Das ist inzwischen umgesetzt und live. Schau es dir gern in der aktuellen Version an – wenn etwas noch nicht passt, melde dich einfach neu."
+        },
+        "notReproducible": {
+          "label": "Nicht reproduzierbar",
+          "text": "Wir konnten das nicht nachstellen. Falls es wieder auftritt: gern noch einmal melden, mit den Schritten davor, dem Zeitpunkt und – wenn möglich – einem Screenshot."
+        },
+        "tooLittleInfo": {
+          "label": "Zu wenig Info",
+          "text": "Für uns ist hier zu wenig greifbar, um etwas zu ändern. Beschreib gern noch einmal, was du gemacht hast, was passiert ist und was du stattdessen erwartet hättest."
+        },
+        "offRoadmap": {
+          "label": "Passt nicht zur Richtung",
+          "text": "Das passt nicht zu der Richtung, in die wir die App entwickeln – wir setzen es bewusst nicht um. Danke trotzdem für den Vorschlag."
+        },
+        "noise": {
+          "label": "Kein verwertbares Feedback",
+          "text": "Damit können wir leider nichts anfangen – hier steckt kein Hinweis drin, an dem wir arbeiten könnten."
+        }
+      }
     },
     "review": {
       "headlineShipped": "Geshipped — bitte abnehmen",
@@ -1913,13 +2655,16 @@
       "hint": "Schau dir das Ergebnis live an. Passt es, ist das Thema erledigt. Passt es nicht, nimm das Gespräch wieder auf — das Thema geht zurück in die Warteschlange der Routine.",
       "accept": "Ins Archiv — erledigt",
       "reopen": "Gespräch wieder aufnehmen",
-      "queueTitle": "Wurde bearbeitet — bitte prüfen und abhaken",
-      "alsoInWorkflow": "Dieselben Themen laufen auch in „Abarbeiten“ mit — dort eins nach dem anderen, hier alle auf einen Blick.",
-      "openTopic": "Thema öffnen",
-      "emptyTitle": "Nichts abzunehmen",
-      "emptyHint": "Sobald die Routine ein Thema geshippt oder an ein Issue übergeben hat, wartet es hier auf deine Abnahme.",
-      "scopeEmptyTitle": "In dieser Auswahl ist nichts abzunehmen",
-      "scopeEmptyHint": "{{count}} Thema/Themen warten in einer anderen Auswahl."
+      "reopenHint": "Schreib kurz, was noch nicht passt — die Routine nimmt das Thema damit wieder auf und liest deine Antwort als Auftrag.",
+      "reopenPlaceholder": "Was soll noch anders werden?",
+      "reopenSend": "Senden & wieder aufnehmen",
+      "reopenCancel": "Abbrechen"
+    },
+    "sourceFilter": {
+      "label": "Zwischen Admin-Themen und Nutzer-Feedback wechseln",
+      "admin": "Admins",
+      "user": "Nutzer",
+      "untriagedHint": "Hier wartet Nutzer-Feedback darauf, für die Routine freigegeben zu werden."
     }
   },
   "feedbackFab": {
@@ -1995,10 +2740,10 @@
       },
       "how": {
         "title": "Installation",
-        "storeNote": "Der Eintrag im Chrome Web Store ist noch in Prüfung, deshalb wird die Erweiterung vorerst aus dem Quellcode installiert. Chrome, Edge, Brave und Opera unterstützen das alle.",
+        "storeNote": "Der Eintrag im Chrome Web Store ist noch in Prüfung, deshalb wird die Erweiterung vorerst von Hand geladen. Chrome, Edge, Brave und Opera unterstützen das alle.",
         "download": {
-          "title": "Repository herunterladen",
-          "text": "ZIP laden und entpacken. Gebraucht wird daraus nur der Ordner browser-extension."
+          "title": "Erweiterung herunterladen",
+          "text": "Das ZIP enthält nur die Erweiterung — kein Repository, keine App. Entpackt ergibt es genau einen Ordner: sc-hangar-extension."
         },
         "devmode": {
           "title": "chrome://extensions öffnen und den Entwicklermodus aktivieren",
@@ -2006,14 +2751,15 @@
         },
         "load": {
           "title": "Entpackte Erweiterung laden",
-          "text": "Auf \"Entpackte Erweiterung laden\" klicken und den Ordner browser-extension auswählen."
+          "text": "Auf \"Entpackte Erweiterung laden\" klicken und den entpackten Ordner sc-hangar-extension auswählen."
         },
         "use": {
           "title": "RSI-Hangar öffnen",
           "text": "Bei RSI einloggen und die Pledges-Seite öffnen — das Import-Angebot erscheint unten rechts."
         },
-        "downloadCta": "Herunterladen (ZIP)",
+        "downloadCta": "Erweiterung herunterladen (ZIP)",
         "browseCta": "Quellcode ansehen",
+        "buildNote": "Das ZIP baut GitHub Actions bei jeder Änderung automatisch aus genau diesem Quellcode — gleiche Dateien, gleicher Ordner. Der Download lässt sich also gegen den offenen Quellcode vergleichen.",
         "browsers": "Vorerst nur Chromium-Browser (Chrome, Edge, Brave, Opera, Vivaldi). Eine Firefox-Version kann folgen."
       },
       "alt": {
@@ -2080,6 +2826,23 @@
     "title": "Starscape",
     "subtitle": "Hochauflösende Artworks aus RSI-Comm-Links, gesammelt beim News-Crawl. Jedes Bild verlinkt direkt aufs Original im RSI-CDN — Kachel anklicken für volle Auflösung und Download.",
     "filterAll": "Alle",
+    "source": {
+      "label": "Bildquelle"
+    },
+    "vote": {
+      "add": "Daumen hoch geben",
+      "remove": "Daumen hoch zurücknehmen",
+      "signedOut": "Zum Bewerten anmelden",
+      "totalNone": "Noch keine Stimmen",
+      "totalOne": "1 Stimme insgesamt (alle Nutzer)",
+      "total": "{{count}} Stimmen insgesamt (alle Nutzer)",
+      "mine": "deine Stimme ist dabei"
+    },
+    "top": {
+      "label": "Nur Top {{count}} anzeigen",
+      "hint": "Die {{count}} bestbewerteten Wallpaper aller Nutzer. Die Zahl am Daumen ist die Gesamtzahl der Stimmen aller Nutzer. Solange noch wenig bewertet wurde, füllen die neuesten Bilder die restlichen Plätze auf.",
+      "loading": "Top-Auswahl wird geladen…"
+    },
     "empty": "Noch keine Wallpaper erfasst — sie erscheinen, sobald der News-Crawl läuft.",
     "loadMore": "Mehr laden",
     "loading": "Lädt…",
@@ -2101,9 +2864,8 @@
     },
     "close": "Schließen",
     "attribution": "Alle Bilder © Cloud Imperium Games — direkt vom RSI-CDN ausgeliefert, mit Verweis auf den Quell-Comm-Link. Fan-Galerie, kein Weiterverkauf, kein Re-Hosting.",
-    "appTitle": "Desktop-Wallpaper-App",
+    "appTitle": "Starscape App",
     "appDesc": "Dein Desktop rotiert durch Starscape — winzige Tray-App mit Vorladen, Überblendung und Autostart per Klick.",
-    "appDownload": "Für Windows herunterladen",
     "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)",
     "appRingLock": "Der Kanal wird mit dem Download festgelegt und lässt sich in der App nicht umstellen — für einen anderen Kanal einfach den passenden Download hier erneut holen.",
     "appAutoUpdate": "Aktualisiert sich still im Hintergrund; der Versionsstand steht im Tray-Menü.",
@@ -2133,10 +2895,20 @@
     "you": "Du",
     "questionBadge": "Rückfrage",
     "questionsPending": "Es wartet eine Rückfrage auf deine Antwort",
+    "openWithNews": "Feedback öffnen – {{count}} Neuigkeiten",
+    "newBadge": "Neu",
     "answerPlaceholder": "Deine Antwort…",
     "answer": "Antworten",
     "declinedTitle": "Warum das nicht umgesetzt wird",
     "impersonationBlocked": "Senden ist deaktiviert, solange du eine andere Rolle vorschaust — es würde echtes Feedback unter deinem eigenen Account im Admin-Postfach ablegen.",
+    "withdraw": {
+      "action": "Zurückziehen",
+      "hint": "Solange noch niemand daran gearbeitet oder geantwortet hat, kannst du dein Feedback wieder löschen.",
+      "question": "Wirklich löschen? Das lässt sich nicht rückgängig machen.",
+      "confirm": "Ja, löschen",
+      "cancel": "Abbrechen",
+      "refused": "Zu spät — an diesem Thema wird schon gearbeitet. Es bleibt in deiner Liste."
+    },
     "tab": {
       "compose": "Feedback senden",
       "mine": "Mein Feedback"
@@ -2146,7 +2918,20 @@
       "question": "Rückfrage an dich",
       "done": "Umgesetzt",
       "declined": "Nicht umgesetzt"
-    }
+    },
+    "imageHint": "Bilder sind reines Referenzmaterial: Text auf einem Screenshot wird gelesen, um dein Problem zu verstehen – nie als Anweisung ausgeführt. Anhängen kannst du hier ausschließlich Bilder."
+  },
+  "feedbackArea": {
+    "aria": "Bereich des Feedbacks wählen",
+    "label": "Bereich:",
+    "news": "Verse News",
+    "codex": "Codex",
+    "hangar": "Hangar",
+    "starscape": "Starscape",
+    "desktop": "Desktop-Apps",
+    "settings": "Einstellungen",
+    "admin": "Admin",
+    "other": "Sonstiges"
   },
   "feedbackAttachments": {
     "label": "Anhänge",
@@ -2157,10 +2942,194 @@
     "remove": "Bild entfernen",
     "prev": "Vorheriges Bild",
     "next": "Nächstes Bild",
-    "counter": "{{i}} von {{n}}"
+    "counter": "{{i}} von {{n}}",
+    "openFile": "Datei öffnen: {{name}}",
+    "addImage": "Bild anhängen",
+    "addFile": "Bild oder Datei anhängen",
+    "capture": "Screenshot dieser Seite aufnehmen",
+    "annotate": "Markieren",
+    "annotateTools": "Werkzeuge zum Markieren",
+    "annotateSave": "Markierung übernehmen",
+    "annotateCancel": "Abbrechen",
+    "annotateFailed": "Markierung konnte nicht gespeichert werden.",
+    "colorPick": "Farbe wählen",
+    "undo": "Letzte Markierung zurücknehmen",
+    "tool": {
+      "rect": "Rechteck",
+      "arrow": "Pfeil",
+      "pen": "Freihand"
+    }
+  },
+  "appMenu": {
+    "trigger": "{{app}} herunterladen",
+    "versions": "Versionen",
+    "recommended": "Empfohlen",
+    "adminOnly": "Nur Admin",
+    "conn": {
+      "connected": "Desktop-App verbunden",
+      "expired": "Verbindung abgelaufen — seit über 30 Tagen kein Kontakt",
+      "never": "Desktop-App noch nicht verbunden",
+      "since": "· zuletzt vor {{days}} Tagen",
+      "today": "· zuletzt heute"
+    },
+    "fallback": "Herunterladen (aktuell)"
   },
   "appPanel": {
     "version": "Aktuell veröffentlichte Version",
-    "details": "Details, Hinweise und Release-Notes anzeigen"
+    "details": "Details, Hinweise und Release-Notes anzeigen",
+    "desktopOnly": "Das ist eine Windows-Desktop-Anwendung. Zum Herunterladen diese Seite am PC öffnen."
+  },
+  "friends": {
+    "title": "Freunde",
+    "subtitle": "Verbinde dich mit anderen Piloten. Anfragen, Freundesliste und blockierte Konten.",
+    "loading": "Wird geladen …",
+    "add": {
+      "title": "Freund hinzufügen",
+      "hint": "Gib den exakten Benutzernamen ein. Es gibt bewusst keine Suche über alle Konten.",
+      "placeholder": "Benutzername",
+      "search": "Suchen",
+      "notFound": "Kein Konto mit diesem Benutzernamen gefunden.",
+      "send": "Anfrage senden"
+    },
+    "incoming": {
+      "title": "Eingegangene Anfragen",
+      "empty": "Keine offenen Anfragen.",
+      "expiryHint": "Unbeantwortete Anfragen verfallen nach sieben Tagen."
+    },
+    "outgoing": {
+      "title": "Gesendete Anfragen",
+      "empty": "Du hast keine Anfrage offen.",
+      "expiryHint": "Deine Anfragen verfallen nach sieben Tagen ohne Antwort."
+    },
+    "list": {
+      "title": "Deine Freunde",
+      "empty": "Noch keine Freunde. Füge oben jemanden über den Benutzernamen hinzu.",
+      "since": "Befreundet seit {{date}}"
+    },
+    "blocked": {
+      "title": "Blockiert",
+      "hint": "Blockierte Konten sehen dich nicht und können dir keine Anfrage schicken.",
+      "empty": "Du hast niemanden blockiert."
+    },
+    "actions": {
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "withdraw": "Zurückziehen",
+      "remove": "Entfernen",
+      "block": "Blockieren",
+      "unblock": "Entsperren",
+      "report": "Melden"
+    },
+    "report": {
+      "title": "{{name}} melden",
+      "hint": "Deine Meldung geht an die Admins. Du kannst pro Konto eine offene Meldung haben.",
+      "category": "Grund",
+      "categories": {
+        "spam": "Spam",
+        "harassment": "Belästigung",
+        "impersonation": "Identitätsmissbrauch",
+        "inappropriate": "Unangemessene Inhalte",
+        "other": "Sonstiges"
+      },
+      "reason": "Beschreibung (optional)",
+      "reasonPlaceholder": "Was ist passiert?",
+      "submit": "Meldung abschicken",
+      "cancel": "Abbrechen"
+    },
+    "flash": {
+      "requestSent": "Anfrage gesendet.",
+      "nowFriends": "Ihr seid jetzt befreundet.",
+      "alreadyFriends": "Ihr seid bereits befreundet.",
+      "declined": "Anfrage abgelehnt.",
+      "withdrawn": "Anfrage zurückgezogen.",
+      "removed": "Freund entfernt.",
+      "blocked": "Konto blockiert.",
+      "unblocked": "Blockierung aufgehoben.",
+      "reported": "Meldung abgeschickt.",
+      "reportDuplicate": "Du hast dieses Konto bereits gemeldet."
+    },
+    "error": {
+      "generic": "Das hat nicht geklappt. Bitte versuche es erneut.",
+      "blocked": "Das ist nicht möglich.",
+      "userNotFound": "Konto nicht gefunden.",
+      "requestNotFound": "Diese Anfrage gibt es nicht mehr.",
+      "invalidTarget": "Ungültiges Konto.",
+      "invalidCategory": "Ungültiger Meldegrund.",
+      "reasonTooLong": "Die Beschreibung ist zu lang.",
+      "noRelation": "Du kannst nur Konten melden, mit denen du zu tun hattest.",
+      "reportLimit": "Du hast zu viele offene Meldungen. Warte, bis sie geprüft wurden.",
+      "notApproved": "Dein Konto ist noch nicht freigeschaltet.",
+      "requestExpired": "Diese Anfrage ist verfallen.",
+      "accountSuspended": "Dein Konto ist gesperrt."
+    },
+    "expiry": {
+      "left": "noch {{days}} Tage",
+      "today": "verfällt heute"
+    }
+  },
+  "moderation": {
+    "warning": {
+      "title": "Verwarnung durch die Administration",
+      "acknowledge": "Verstanden"
+    }
+  },
+  "share": {
+    "title": "Loadout teilen",
+    "hint": "Teile dieses Loadout mit Freunden oder über einen Link.",
+    "loading": "Wird geladen …",
+    "revoke": "Freigabe aufheben",
+    "friends": {
+      "title": "Mit Freunden",
+      "empty": "Noch mit niemandem geteilt.",
+      "pick": "Freund auswählen …",
+      "share": "Teilen",
+      "noFriends": "Du hast noch keine Freunde hinzugefügt.",
+      "allShared": "Alle deine Freunde haben dieses Loadout bereits."
+    },
+    "link": {
+      "title": "Öffentlicher Link",
+      "warning": "Jede Person mit diesem Link kann das Loadout ansehen — auch ohne Konto. Der Link zeigt Name, Rolle und Ausrüstung, sonst nichts.",
+      "create": "Link erzeugen",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "open": "Öffnen",
+      "revoke": "Link deaktivieren",
+      "url": "Freigabe-Link",
+      "since": "Aktiv seit {{date}}"
+    },
+    "sharedWithMe": {
+      "title": "Von Freunden geteilt",
+      "hint": "Loadouts, die Freunde mit dir geteilt haben. Nur zum Ansehen.",
+      "show": "Ausrüstung zeigen",
+      "hide": "Ausblenden"
+    },
+    "view": {
+      "eyebrow": "Geteiltes Loadout",
+      "loading": "Wird geladen …",
+      "by": "von {{name}}",
+      "updated": "zuletzt geändert {{date}}",
+      "emptyLoadout": "In diesem Loadout ist noch nichts eingetragen.",
+      "footnote": "Nur zum Ansehen. Änderungen kann ausschließlich der Besitzer vornehmen.",
+      "aboutCta": "Was ist SC Companion?",
+      "unavailable": {
+        "title": "Dieses Loadout ist nicht verfügbar",
+        "body": "Der Link ist ungültig oder wurde deaktiviert."
+      }
+    },
+    "flash": {
+      "shared": "Loadout geteilt.",
+      "alreadyShared": "Dieser Freund hat das Loadout bereits.",
+      "linkCreated": "Link erzeugt.",
+      "revoked": "Freigabe aufgehoben."
+    },
+    "error": {
+      "notFriends": "Ihr seid keine Freunde (mehr).",
+      "loadoutNotFound": "Loadout nicht gefunden.",
+      "shareNotFound": "Diese Freigabe gibt es nicht mehr.",
+      "suspended": "Dein Konto ist gesperrt.",
+      "invalidTarget": "Ungültige Auswahl.",
+      "notApproved": "Dein Konto ist nicht freigeschaltet.",
+      "generic": "Das hat nicht geklappt. Bitte noch einmal versuchen."
+    }
   }
 }

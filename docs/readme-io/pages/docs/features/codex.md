@@ -8,6 +8,19 @@ components, items, ammunition, manufacturers and crafting blueprints, extracted
 from the live game build rather than transcribed by hand. It is public — no
 account needed.
 
+## The headline: playable state and patch
+
+The top of `/codex` states two things in one line: whether Star Citizen is
+**playable right now** — the same live server status the app header reports —
+and **which game patch** the archive below it was extracted from.
+
+That patch label is also a switch. Open it for the last five patches, with
+*Load older* paging five more at a time. Every entry says whether we hold
+extracted data for it: patches with data can be selected and put the whole
+Codex on that build, while patches that only ever arrived as an upload are
+listed but marked *no data*, because there would be nothing to show. Reloading
+the page returns you to the live patch.
+
 ## The Bridge
 
 `/codex` opens on **The Bridge**, the browsing surface:
@@ -30,6 +43,52 @@ click from the Bridge.
 Kind tabs are driven by the build manifest: a kind the current build reports as
 empty is shown greyed out with a *soon* marker, and everything the build
 actually carries — blueprints included — is browsable.
+
+#### Weapons: FPS gear and ship weapons in one tab
+
+The **Weapons** tab holds *both* catalogs — everything a character carries and
+everything that bolts onto a ship — because the game stores them in a single
+weapon record type. In the current live build that is roughly two thirds ship
+weapons to one third on-foot gear.
+
+To make that browsable, the tab opens on a two-level category rail rather than
+one flat A–Z grid:
+
+- **FPS gear** → sidearms, primary weapons, heavy weapons, melee, throwables,
+  gadgets & tools.
+- **Ship weapons** → guns, turrets, missile racks, countermeasures, mining
+  lasers, tractor & salvage heads.
+
+Both levels are cut from fields the extract already carries (the weapon's class,
+its carry class and the hardpoint type it mounts to), each category is badged
+with how many records the current build holds in it, and picking one narrows the
+query on the server — so paging and the remaining facets keep working exactly as
+on every other tab. Categories the build has nothing in are not offered.
+
+Ship **components** (power plants, shields, coolers, quantum drives, thrusters …)
+are not part of this tab; they have their own *Components* tab in the same strip.
+
+#### Ships: one card per hull, editions behind a picker
+
+The game stores one vehicle record per *file*, and a single hull usually has
+several: near-identical duplicates that all read the same name, plus the
+marketing editions — *Wikelo War Special*, *2949 Best In Show Edition*,
+*Executive Edition*, *Teach's Special*. Left alone, the Ships tab showed each of
+them as its own card, so the same ship appeared four or seven times in a row.
+
+The grid now shows **one card per hull**. A card that swallowed something says
+so with a `+n variants` badge, and the ship's own page carries a **variant
+picker** next to its name where every absorbed record is one click away. Each
+entry keeps its own URL, so a variant is linkable and opens in a new tab like
+any other link.
+
+This is deliberately careful about what counts as a variant. A record is only
+folded in when it is provably the same hull — either it carries exactly the same
+name, or its name is the base name plus an edition badge. Ships that are
+genuinely different models keep their own card even when the file name suggests
+a family: the *Freelancer DUR/MAX/MIS*, the *Reliant Mako/Sen/Tana*, the *Hornet
+Mk I* and *Mk II*, the *Cyclone AA/MT/RC*. Ticking **include variants** turns
+the whole thing off and shows the raw records again.
 
 ## Ship detail — the stock loadout
 
@@ -117,6 +176,15 @@ pages, and an item page links back to the blueprints that consume it.
 `/codex/keybinds` renders the game's keybinding tables from the extracted
 default profile — useful when a patch quietly moves a binding.
 
+Action and category names are shown in your app language, with a **DE | EN
+switch** next to the search box to read them in the **English original**
+instead. Most players run the game client in English, so the original wording
+is what you actually see in-game. Both name sets come from the datamined
+language files — nothing is translated by us — so an action the game never
+localized falls back to a readable name derived from its internal key, in
+either mode. The switch also applies to the curated category labels, and it
+disappears when the app already runs in English.
+
 ## Upcoming Ships
 
 Upcoming ships are a **category of the Codex**, not a separate page: pick
@@ -133,6 +201,19 @@ in the datamined data yet. They are split into
 
 You can search this list, filter to favourites only, and star ships to be
 notified in [Verse News](doc:verse-news) when their status changes.
+
+### The announced-ship page
+
+Every announced ship — on the *On the Drawing Board* rail of the Codex landing
+page as well as on the Upcoming cards — opens **our own page** for it at
+`/codex/upcoming/:id`, not the RSI website. It shows everything the RSI ship
+matrix told us (manufacturer, type, role, production status), says plainly why
+there are no stats yet, and keeps the RSI pledge page as a secondary link.
+
+From there you can **watch the ship for your fleet**. A watched ship lands on
+the concept wishlist in [your hangar](doc:hangar), where it appears in the *On
+the drawing board* strip at the top — always marked as not flight-ready, both
+there and on the Codex rail.
 
 ## Ship artwork
 

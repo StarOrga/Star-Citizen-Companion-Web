@@ -136,14 +136,18 @@
       "paused": "Upload paused — your progress is saved.",
       "resumeAction": "Resume upload",
       "resumed": "Resuming upload…",
+      "resumeLost": "The upload cannot be resumed — the extracted data is no longer available.",
+      "resumeLostHint": "Please discard the upload and run the extraction again.",
       "discard": "Discard",
       "cancelled": "Upload discarded — the saved progress was removed.",
       "resumeBanner": "Found an interrupted upload ({{hint}}) — resume it?",
       "resumeBannerRich": "Interrupted upload · {{macro}}: {{stages}} — resume?",
       "stagePending": "pending",
       "stageSkinsDone": "{{count}} ships done",
-      "pauseShort": "paused"
-    }
+      "pauseShort": "paused",
+      "pausingShort": "Pausing…"
+    },
+    "technicalDetails": "Technical details"
   },
   "update": {
     "available": "Update available: v{{version}} — downloading in background…",
@@ -199,7 +203,19 @@
     "published": "Codex updated",
     "ships": "ships",
     "failed": "Codex publish failed",
-    "step": "Publishing step {{current}} / {{total}}"
+    "step": "Publishing step {{current}} / {{total}}",
+    "err": {
+      "timeout": "The database cancelled a write (time limit) — the Codex is unchanged.",
+      "network": "The server was unreachable — the Codex is unchanged.",
+      "unauthorized": "Your session expired — the Codex was not updated.",
+      "forbidden": "Your account is not allowed to update the Codex.",
+      "server": "The server could not update the Codex.",
+      "empty": "The extraction contains no ships or manufacturers — the previous Codex stays live.",
+      "missingData": "The extracted data is no longer available.",
+      "resumeHint": "Nothing is lost — your progress is saved. “Resume upload” picks up exactly here.",
+      "reextractHint": "Please run the extraction again.",
+      "atPhase": "Stopped at: {{phase}}"
+    }
   },
   "skins": {
     "tools": "Ensuring build tools…",

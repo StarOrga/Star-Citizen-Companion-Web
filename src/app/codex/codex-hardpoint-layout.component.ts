@@ -3,9 +3,11 @@ import {
   Component,
   WritableSignal,
   computed,
+  effect,
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexKind } from './codex.service';
@@ -42,6 +44,10 @@ export interface LayoutChild {
   name: string | null;
   /** How many identical sub-slots this row stands for on ONE mount (≥1). */
   count: number;
+  /** Every RAW sub-port name this row stands for (Falle 3 / R5) — draft/query key. */
+  rawPorts: string[];
+  /** Raw (un-humanized) engine type strings the sub-port declares. */
+  rawTypes: string[];
 }
 
 // One labelled slot in the read-only layout (Rung 1): the port, what the
@@ -83,6 +89,12 @@ export interface LayoutSlot {
    * different things never collapse into one row (see `groupIdenticalSlots`).
    */
   variantKey?: string | null;
+  /**
+   * Overrides the default className/size/grade/variantKey grouping key with
+   * a caller-computed one — the draft write path sets this to the STOCK
+   * identity so display can diverge from grouping (R5/Falle 4).
+   */
+  groupKey?: string | null;
   /** Keep this hardpoint on its own row — it is an individual choice. */
   noCollapse?: boolean;
   /**
@@ -99,6 +111,15 @@ export interface LayoutSlot {
   roleKey?: string | null;
   /** An unfitted hardpoint we know the accepted item type for — still swappable. */
   emptySwappable?: boolean;
+  /**
+   * Draft write-path (PR B, R6/R8): this row's occupant is not the stock one —
+   * `'changed'` once resolved, `'pending'` while the swapped class's stats are
+   * still hydrating (no numbers rendered meanwhile), `'unresolved'` when a
+   * restored draft names a class the current build no longer has (R9).
+   */
+  draftState?: 'changed' | 'pending' | 'unresolved' | null;
+  /** The raw dotted path(s) this row's draft entry lives at — for the revert action. */
+  draftPaths?: string[];
 }
 
 /**
@@ -119,6 +140,15 @@ export interface LayoutTarget {
   slot: LayoutSlot;
   count: number;
   child: LayoutChild | null;
+  /**
+   * Every RAW slot path this target covers (Falle 3/5, R5): the top-level raw
+   * ports of a (possibly grouped) row, or — for a sub-slot click — the dotted
+   * `parentRawPort.childRawPort` paths of every parent×child combination the
+   * grouped row stands for. Approximation: identical mounts are assumed to
+   * expose their sub-slots at the same raw names, which is what let them
+   * collapse into one row in the first place.
+   */
+  rawPorts: string[];
 }
 
 /** One block of the ship-modules view — see `ship-module-sections.ts`. */
@@ -218,7 +248,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
             <p class="sec-note">{{ n.key | translate: n.params }}</p>
           }
           <ul class="sec-rows" [class.dense]="!sec.configurable">
-            @for (row of sec.rows; track row.slot.port + $index) {
+            @for (row of sec.rows; track rowKey(row)) {
               <li class="slot" [class.empty]="!row.slot.className"
                   [class.located]="isLocated(row)" [class.on]="isActive(row)"
                   (mouseenter)="emitHover(row)" (mouseleave)="hovered.emit(null)"
@@ -327,6 +357,23 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                               </span>
                               <span class="slot-port">{{ kid.port }}</span>
                             </button>
+                          } @else if (kid.rawTypes.length > 0 && sec.configurable) {
+                            <!-- An unfitted sub-slot we know the accepted engine
+                                 type(s) for is still a real choice (Falle 3). -->
+                            <button type="button" class="kid-btn linked open-bay"
+                                    (click)="openChild(row, kid, sec.configurable)">
+                              <span class="slot-head">
+                                @if (kidBadge(row, kid); as b) { <span class="size-tag muted">{{ b }}</span> }
+                                <span class="slot-ident">
+                                  <span class="kid-empty">—</span>
+                                  <span class="slot-meta">
+                                    @if (kid.typeLabel) { <span class="meta-txt">{{ kid.typeLabel }}</span> }
+                                    <span class="tag pick">{{ 'codex.swap.pickHere' | translate }}</span>
+                                  </span>
+                                </span>
+                              </span>
+                              <span class="slot-port">{{ kid.port }}</span>
+                            </button>
                           } @else {
                             <span class="kid-btn static">
                               <span class="slot-head">
@@ -346,6 +393,18 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                     </ul>
                   }
 
+                  <!-- Draft write-path (PR B): a row edited away from stock
+                       carries a chip naming its state, plus a revert action. -->
+                  @if (row.slot.draftState; as ds) {
+                    <span class="tag draft" [class.pending]="ds === 'pending'" [class.unresolved]="ds === 'unresolved'">
+                      {{ ('codex.loadout.draftState.' + ds) | translate }}
+                    </span>
+                    @if (row.slot.draftPaths?.length) {
+                      <button type="button" class="slot-revert" (click)="revertRow(row)"
+                              [attr.aria-label]="'codex.loadout.revert' | translate"
+                              [attr.title]="'codex.loadout.revert' | translate">↺</button>
+                    }
+                  }
                   <!-- On a configurable row the card itself is the swap action,
                        so the side button is the way BACK to the full stat sheet
                        shipped in the first pass. -->
@@ -379,8 +438,13 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .mod-sec.fixed { background: transparent; opacity: 0.78; }
     .mod-sec.fixed:hover { opacity: 1; }
 
+    /* The label plus its two toggles are wider than a phone: without wrapping,
+       this row's min-content became the floor for the whole detail page and
+       pushed it into horizontal scroll (feedback 2c7ed0d0). Wrapping keeps the
+       heading a heading on desktop and lets the toggles drop to their own line
+       on a narrow screen. */
     .sec-head { margin: 0 0 8px; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.07em;
-      color: var(--sc-fg-1); display: flex; align-items: center; gap: 6px; }
+      color: var(--sc-fg-1); display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
     .sec-ct { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px;
       background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
     .sec-tag { font-size: max(0.56rem, var(--sc-fs-floor)); letter-spacing: 0.06em; color: var(--sc-fg-2);
@@ -420,6 +484,19 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .slot-swap { flex: 0 0 auto; padding: 0 9px; border-radius: 6px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-size: 0.9rem; cursor: pointer; }
     .slot-swap:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
+
+    /* Draft write-path: a row edited away from stock. */
+    .tag.draft { align-self: center; text-transform: none; letter-spacing: 0; color: var(--sc-accent-gold, #c8a84b);
+      border-color: color-mix(in srgb, var(--sc-accent-gold, #c8a84b) 45%, transparent);
+      background: color-mix(in srgb, var(--sc-accent-gold, #c8a84b) 10%, transparent); }
+    .tag.draft.pending { color: var(--sc-fg-2); border-color: var(--sc-border); background: transparent; }
+    .tag.draft.unresolved { color: var(--sc-danger, #ff5252);
+      border-color: color-mix(in srgb, var(--sc-danger, #ff5252) 45%, transparent);
+      background: color-mix(in srgb, var(--sc-danger, #ff5252) 10%, transparent); }
+    .slot-revert { flex: 0 0 auto; align-self: center; width: 26px; height: 26px; border-radius: 50%;
+      background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-2);
+      font-size: 0.85rem; cursor: pointer; }
+    .slot-revert:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
     .slot-btn, .kid-btn { display: flex; flex-direction: column; gap: 3px; padding: 7px 8px;
       border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border);
@@ -513,6 +590,27 @@ export class CodexHardpointLayoutComponent {
   readonly activePorts = input<readonly string[]>([]);
   /** A row was hovered/focused: its raw port names, or `null` on leave. */
   readonly hovered = output<string[] | null>();
+  /** The row's "↺" revert button was clicked — emits its draft paths. */
+  readonly reverted = output<string[]>();
+  /**
+   * Overrides `SHIP_MODULE_SECTION_ORDER` with a mission-driven order (PR C,
+   * 04-rules-v2 §7.7) — null keeps the default configurable-first order.
+   */
+  readonly sectionOrder = input<readonly ShipModuleSection[] | null>(null);
+  /**
+   * Sections the active mission folds away by default (in addition to
+   * `structure`, which is always foldable). Changing this set resets any
+   * per-visit "unfold" the pilot made under the previous mission — a mission
+   * switch is a fresh read, not an accumulation of manual toggles.
+   */
+  readonly foldedSections = input<ReadonlySet<ShipModuleSection>>(new Set());
+
+  constructor() {
+    effect(() => {
+      this.foldedSections();
+      untracked(() => this.openSections.set(new Set()));
+    });
+  }
 
   /** Raw port names a (possibly collapsed) row stands for. */
   private rawPorts(row: GroupedSlot<LayoutSlot>): string[] {
@@ -541,18 +639,49 @@ export class CodexHardpointLayoutComponent {
    * falls back to the read-only stat sheet.
    */
   openSlot(row: GroupedSlot<LayoutSlot>, configurable: boolean): void {
-    const target = { slot: row.slot, count: row.count, child: null };
+    const target: LayoutTarget = { slot: row.slot, count: row.count, child: null, rawPorts: this.rawPorts(row) };
     (configurable ? this.swapRequested : this.inspected).emit(target);
   }
 
   openChild(row: GroupedSlot<LayoutSlot>, child: LayoutChild, configurable: boolean): void {
-    const target = { slot: row.slot, count: row.count * child.count, child };
-    (configurable && child.className ? this.swapRequested : this.inspected).emit(target);
+    const target: LayoutTarget = {
+      slot: row.slot,
+      count: row.count * child.count,
+      child,
+      rawPorts: this.childRawPorts(row, child),
+    };
+    // A known accepted type opens the picker for an unfitted seat too (Falle 3).
+    (configurable && (child.className || child.rawTypes.length > 0) ? this.swapRequested : this.inspected).emit(
+      target,
+    );
+  }
+
+  revertRow(row: GroupedSlot<LayoutSlot>): void {
+    if (row.slot.draftPaths?.length) this.reverted.emit(row.slot.draftPaths);
   }
 
   /** The ⓘ side button: always the full stat sheet for the mount itself. */
   inspectRow(row: GroupedSlot<LayoutSlot>): void {
-    this.inspected.emit({ slot: row.slot, count: row.count, child: null });
+    this.inspected.emit({ slot: row.slot, count: row.count, child: null, rawPorts: this.rawPorts(row) });
+  }
+
+  /**
+   * Dotted `parentRawPort.childRawPort` paths for every parent × child raw
+   * port combination the grouped row stands for (R5 approximation — see
+   * `LayoutTarget.rawPorts`).
+   */
+  private childRawPorts(row: GroupedSlot<LayoutSlot>, child: LayoutChild): string[] {
+    const parents = this.rawPorts(row);
+    const kids = child.rawPorts.length > 0 ? child.rawPorts : [child.port];
+    const out: string[] = [];
+    for (const parent of parents) for (const kid of kids) out.push(`${parent}.${kid}`);
+    return out;
+  }
+
+  /** A stable identity for the row, invariant across draft edits (R5/Falle 4). */
+  rowKey(row: GroupedSlot<LayoutSlot>): string {
+    const ports = this.rawPorts(row);
+    return ports.length > 0 ? [...ports].sort().join('|') : row.slot.port;
   }
 
   /**
@@ -589,7 +718,9 @@ export class CodexHardpointLayoutComponent {
   private ordered = computed<RenderSection[]>(() => {
     const split = this.splitSections();
     const open = this.openSections();
-    return SHIP_MODULE_SECTION_ORDER
+    const order = this.sectionOrder() ?? SHIP_MODULE_SECTION_ORDER;
+    const foldable = new Set<ShipModuleSection>([...FOLDABLE_SECTIONS, ...this.foldedSections()]);
+    return order
       .map((s) => this.sections().find((g) => g.section === s))
       .filter((g): g is LayoutSection => !!g && g.slots.length > 0)
       .map((g) => {
@@ -605,7 +736,7 @@ export class CodexHardpointLayoutComponent {
           notes: g.notes ?? [],
           splittable: grouped.length < g.slots.length,
           split: isSplit,
-          foldable: FOLDABLE_SECTIONS.has(g.section),
+          foldable: foldable.has(g.section),
           open: open.has(g.section),
         };
       });

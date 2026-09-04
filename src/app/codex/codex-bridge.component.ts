@@ -11,7 +11,13 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { CodexListRow, CodexService, pickLocalized, toLang } from './codex.service';
+import {
+  CodexListRow,
+  CodexService,
+  manufacturerLabel,
+  pickLocalized,
+  toLang,
+} from './codex.service';
 import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
@@ -19,10 +25,10 @@ import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { ExtensionPromoComponent } from './extension-promo.component';
 import { UploaderAccessComponent } from '../desktop/uploader-access.component';
 import { HoloReadyBadgeComponent } from './holo-ready-badge.component';
-import { ShowroomService } from './showroom.service';
 import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 const SEARCH_DEBOUNCE_MS = 250;
 const LANE_SIZE = 18;
@@ -56,7 +62,7 @@ interface Lane {
 @Component({
   selector: 'sc-codex-bridge',
   standalone: true,
-  imports: [
+  imports: [NeuroFieldDirective, 
     NgTemplateOutlet,
     FormsModule,
     RouterLink,
@@ -88,7 +94,6 @@ interface Lane {
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>
           <a class="index-link" routerLink="/codex/fps">{{ 'fps.bridgeLink' | translate }}</a>
           <a class="index-link" routerLink="/codex/blueprint">{{ 'blueprint.title' | translate }}</a>
-          <a class="index-link" routerLink="/codex/showroom">{{ 'codex.showroom.title' | translate }}</a>
           <a class="index-link" routerLink="/codex/keybinds">{{ 'codex.bridge.keybinds' | translate }}</a>
           <a class="index-link" routerLink="/hangar">{{ 'codex.bridge.hangar' | translate }}</a>
         </div>
@@ -101,18 +106,6 @@ interface Lane {
       <!-- Data Uploader access — one collapsed line, collaborator+ only, and the
            uploader's replacement for its former top-level nav entry (eb9c6ec3). -->
       <sc-uploader-access />
-
-      <!-- Showroom billboard — the top-level entry to 3D liveries. Poster/text only,
-           no live WebGL here (atmosphere-dose rule). Self-hides until coverage exists. -->
-      @if (showroomLiveries() > 0) {
-        <a class="showroom-billboard" routerLink="/codex/showroom">
-          <div class="sb-text">
-            <span class="sb-eyebrow">{{ 'codex.showroom.billboard.eyebrow' | translate }}</span>
-            <strong class="sb-title">{{ 'codex.showroom.billboard.title' | translate: { count: showroomLiveries() } }}</strong>
-            <span class="sb-cta">{{ 'codex.showroom.billboard.cta' | translate }} →</span>
-          </div>
-        </a>
-      }
 
       @if (error(); as err) {
         <div class="sc-card err">
@@ -128,7 +121,9 @@ interface Lane {
         </div>
         @if (searching()) {
           <div class="lane-track">
-            @for (s of skeletons; track s) { <div class="lane-card skel"></div> }
+            @for (s of skeletons; track s; let i = $index) {
+              <div class="lane-card skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
+            }
           </div>
         } @else if (searchResults().length === 0) {
           <div class="sc-card empty">
@@ -171,8 +166,8 @@ interface Lane {
               <h1 class="hero-name">
                 <a class="hero-name-link" [routerLink]="['/codex', 'ship', h.classNameSlug]">{{ rowName(h) }}</a>
               </h1>
-              @if (h.manufacturerCode) {
-                <p class="hero-mfr">{{ h.manufacturerCode }}</p>
+              @if (rowMfr(h); as mfr) {
+                <p class="hero-mfr">{{ mfr }}</p>
               }
               <div class="hero-stats">
                 @if (heroHeadline(); as stat) {
@@ -217,7 +212,7 @@ interface Lane {
             </div>
           </article>
         } @else if (loading()) {
-          <div class="hero skel-hero"></div>
+          <div class="hero skel-hero sc-skel-field" scNeuroField></div>
         }
 
         <!-- Lanes -->
@@ -257,7 +252,7 @@ interface Lane {
                   </div>
                   <div class="lane-info">
                     <h3 class="lane-name">{{ ship.name }}</h3>
-                    @if (ship.manufacturerCode) { <span class="lane-mfr">{{ ship.manufacturerCode }}</span> }
+                    @if (upcomingMfr(ship); as mfr) { <span class="lane-mfr" [attr.title]="mfr">{{ mfr }}</span> }
                   </div>
                   <div class="lane-actions">
                     <span class="upcoming-tag" [class.concept]="!ship.flightReadyButMissing">
@@ -289,7 +284,7 @@ interface Lane {
           <div class="lane-info">
             <h3 class="lane-name">{{ rowName(r) }}</h3>
             <sc-holo-ready-badge [shipId]="r.classNameSlug" />
-            @if (r.manufacturerCode) { <span class="lane-mfr">{{ r.manufacturerCode }}</span> }
+            @if (rowMfr(r); as mfr) { <span class="lane-mfr" [attr.title]="mfr">{{ mfr }}</span> }
           </div>
           <div class="lane-actions">
             @if (inHangarSet().has(r.classNameSlug)) {
@@ -342,22 +337,6 @@ interface Lane {
       text-transform: uppercase; text-decoration: none; white-space: nowrap;
     }
     .index-link:hover { background: color-mix(in srgb, var(--sc-accent) 22%, transparent); }
-
-    /* Showroom billboard */
-    .showroom-billboard {
-      display: flex; align-items: center; justify-content: space-between; gap: 16px;
-      padding: 18px 22px; border-radius: 14px; text-decoration: none; color: inherit;
-      border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
-      background:
-        radial-gradient(120% 140% at 90% 20%, color-mix(in srgb, var(--sc-accent) 22%, transparent), transparent 55%),
-        var(--sc-bg-1);
-      transition: border-color 0.16s, box-shadow 0.16s;
-    }
-    .showroom-billboard:hover { border-color: var(--sc-accent); box-shadow: 0 0 24px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
-    .sb-text { display: flex; flex-direction: column; gap: 3px; }
-    .sb-eyebrow { font-family: var(--sc-font-display); font-size: max(0.64rem, var(--sc-fs-floor)); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent); }
-    .sb-title { font-size: 1.05rem; }
-    .sb-cta { font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; color: var(--sc-accent); }
 
     /* Hero */
     .hero {
@@ -450,7 +429,10 @@ interface Lane {
     .lane-thumb.icon-only sc-codex-icon { width: 100%; height: 100%; }
     .lane-info { display: flex; flex-direction: column; gap: 2px; min-height: 40px; }
     .lane-name { margin: 0; font-size: 0.9rem; font-weight: 600; line-height: 1.2; }
-    .lane-mfr { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
+    /* Spelled-out manufacturer ("Drake Interplanetary") on a 216px card: wrap
+       to a second line rather than cutting the word off, ellipsize past that. */
+    .lane-mfr { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.04em; color: var(--sc-fg-2); line-height: 1.2;
+      overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
     .lane-actions { display: flex; align-items: center; gap: 8px; margin-top: auto; }
     .chip-btn { border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-2);
       font-size: 0.82rem; line-height: 1; min-width: max(30px, var(--sc-tap-min));
@@ -464,10 +446,8 @@ interface Lane {
     .in-hangar { font-size: 0.92rem; color: var(--sc-success, #5fd698); line-height: 1; padding: 0 4px; }
 
     /* Skeletons */
-    .skel, .skel-hero { background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
-    .lane-card.skel { min-height: 200px; }
+        .lane-card.skel { min-height: 200px; }
     .skel-hero { min-height: 300px; border-radius: 16px; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
@@ -484,7 +464,6 @@ interface Lane {
     @media (prefers-reduced-motion: reduce) {
       .lane-card, .btn.primary { transition: none; }
       .lane-track { scroll-behavior: auto; }
-      .skel, .skel-hero { animation: none; }
     }
   `],
 })
@@ -493,7 +472,6 @@ export class CodexBridgeComponent implements OnInit {
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
   private readonly router = inject(Router);
-  private readonly showroom = inject(ShowroomService);
   private readonly rsi = inject(UpcomingShipsService);
 
   readonly skeletons = Array.from({ length: 6 }, (_, i) => i);
@@ -519,11 +497,6 @@ export class CodexBridgeComponent implements OnInit {
 
   // Class names already in the hangar — read-overlay over hangar.ships().
   readonly inHangarSet = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
-
-  /** Total liveries across all Showroom entries — drives the badge + billboard. */
-  readonly showroomLiveries = computed(() =>
-    this.showroom.entries().reduce((n, e) => n + e.liveryCount, 0),
-  );
 
   /**
    * Hero = the user's pinned flagship (if set AND resolvable in the current
@@ -620,7 +593,6 @@ export class CodexBridgeComponent implements OnInit {
     this.error.set(null);
     try {
       await this.svc.loadCurrentBuild();
-      void this.showroom.load();
       // RSI ship-matrix feed: artwork for hulls without a datamined render, plus
       // the upcoming lane. Advisory — a failure leaves both untouched.
       void this.rsi.ensureLoaded();
@@ -692,6 +664,14 @@ export class CodexBridgeComponent implements OnInit {
   }
 
   /**
+   * Manufacturer of a hull, spelled out ("Drake Interplanetary", not "DRAK") —
+   * extracted game data off the row payload, see `manufacturerLabel`.
+   */
+  rowMfr(r: CodexListRow): string | null {
+    return manufacturerLabel(r, toLang(this.t.currentLang));
+  }
+
+  /**
    * Ordered art candidates for a ship row, best-looking first: RSI's own store
    * render, then our datamined preview. The datamined "preview" is the game's
    * flat white UI silhouette — it identifies a hull without showing it — so it
@@ -722,6 +702,11 @@ export class CodexBridgeComponent implements OnInit {
 
   upcomingThumbs(ship: UpcomingShip): string[] {
     return thumbnailCandidates(ship);
+  }
+
+  /** RSI's ship-matrix carries the full manufacturer name; code is the fallback. */
+  upcomingMfr(ship: UpcomingShip): string | null {
+    return ship.manufacturer?.trim() || ship.manufacturerCode || null;
   }
 
   upcomingStatus(ship: UpcomingShip): string {

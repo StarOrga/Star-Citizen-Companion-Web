@@ -62,6 +62,38 @@ export function thumbnailCandidates(ship: Pick<UpcomingShip, 'thumbnail' | 'thum
   return ship.thumbnail ? [ship.thumbnail] : [];
 }
 
+/**
+ * Rank of an RSI derivative for a LARGE frame (detail hero), low = better.
+ *
+ * RSI publishes every render under a fixed set of derivative names and the feed
+ * lists them thumbnail-first, which is right for a card and wrong for a hero:
+ * `store_small` is a card-sized crop and goes soft when it is blown up to the
+ * full hero frame. Unknown derivatives sort in the middle so a future name is
+ * still preferred over the explicitly small ones.
+ */
+function heroArtRank(url: string): number {
+  const file = url.slice(url.lastIndexOf('/') + 1).toLowerCase();
+  if (file.startsWith('store_large')) return 0;
+  if (file.startsWith('post')) return 1;
+  if (file.startsWith('slideshow')) return 2;
+  if (file.startsWith('store_small')) return 4;
+  if (file.startsWith('subscribers_vault')) return 5;
+  return 3;
+}
+
+/**
+ * The same candidates as `thumbnails`, reordered biggest-first for a hero
+ * frame. Stable within a rank, so the feed's own order still decides between
+ * two equally suitable derivatives, and nothing is ever dropped — a rejected
+ * large render still falls through to the small one.
+ */
+export function heroArtOrder(urls: readonly string[]): string[] {
+  return urls
+    .map((url, index) => ({ url, index, rank: heroArtRank(url) }))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map((e) => e.url);
+}
+
 export interface UpcomingShipsCounts {
   total: number;
   concept: number;
@@ -164,6 +196,43 @@ function normalize(value: string): string {
 }
 
 /**
+ * How well a ship's NAME answers the query: 3 exact, 2 prefix, 1 substring,
+ * 0 when only the manufacturer/role/status matched. Name matches must outrank
+ * "some Drake ship" so a limited result set keeps the ship actually asked for.
+ */
+function nameScore(name: string, query: string): number {
+  const n = normalize(name);
+  if (n === query) return 3;
+  if (n.startsWith(query)) return 2;
+  if (n.includes(query)) return 1;
+  return 0;
+}
+
+/**
+ * Best `limit` announced ships for a free-text query, name matches first.
+ *
+ * Pure so the Codex's cross-entity search can be unit-tested without the feed:
+ * it reuses `matchesUpcomingQuery` for the AND-token filter and only adds a
+ * deterministic ranking on top. An empty query matches nothing here (unlike the
+ * list filter, where empty means "show everything") — a search box with no
+ * input must not dump the whole matrix into the Archive Terminal.
+ */
+export function searchUpcoming(
+  ships: readonly UpcomingShip[],
+  query: string,
+  limit = 6,
+): UpcomingShip[] {
+  const q = normalize(query);
+  if (!q || limit <= 0) return [];
+  return ships
+    .filter((s) => matchesUpcomingQuery(s, query))
+    .map((s) => ({ ship: s, score: nameScore(s.name, q) }))
+    .sort((a, b) => b.score - a.score || a.ship.name.localeCompare(b.ship.name))
+    .slice(0, limit)
+    .map((e) => e.ship);
+}
+
+/**
  * Owns the whole `rsi-upcoming-ships` feed, which carries two products of the
  * same RSI ship-matrix scrape:
  *
@@ -244,6 +313,52 @@ export class UpcomingShipsService {
   }
 
   /**
+   * Announced ships matching a query, loading the feed first if needed.
+   *
+   * Deliberately total: a feed that is empty, still loading or outright failed
+   * yields an empty list, never a rejection. It backs the Codex's cross-entity
+   * search, and a dead RSI proxy must degrade to "no announced ships found"
+   * rather than taking the whole Archive Terminal down with it.
+   */
+  async searchShips(query: string, limit = 6): Promise<UpcomingShip[]> {
+    if (!query.trim()) return [];
+    try {
+      await this.ensureLoaded();
+    } catch {
+      return [];
+    }
+    return searchUpcoming(this.feed()?.ships ?? [], query, limit);
+  }
+
+  /** Synchronous variant over the already-loaded feed; never triggers a fetch. */
+  searchLoadedShips(query: string, limit = 6): UpcomingShip[] {
+    return searchUpcoming(this.feed()?.ships ?? [], query, limit);
+  }
+
+  /**
+   * The announced ship carrying this feed id, or `null`.
+   *
+   * Ids come straight from RSI's ship-matrix and fall back to the normalized
+   * NAME when the matrix omits one, so a bookmarked `/codex/upcoming/:id` url
+   * can outlive the id it was minted from. The normalized-name second chance
+   * keeps those links resolving; `null` therefore means "genuinely gone from
+   * the matrix", which the detail page renders as an honest empty state rather
+   * than an error.
+   */
+  shipById(id: string): UpcomingShip | null {
+    if (!id) return null;
+    const ships = this.feed()?.ships ?? [];
+    return ships.find((s) => s.id === id) ?? this.shipByName(id);
+  }
+
+  /** The announced ship whose name matches `name` (normalized), or `null`. */
+  shipByName(name: string | null | undefined): UpcomingShip | null {
+    const norm = normalizeShipName(name ?? '');
+    if (!norm) return null;
+    return (this.feed()?.ships ?? []).find((s) => normalizeShipName(s.name) === norm) ?? null;
+  }
+
+  /**
    * Ordered RSI artwork candidates for an ingested game ship, matched on its
    * localized name. Empty when the feed is not loaded yet or the matrix has no
    * counterpart — the caller keeps its own placeholder in that case.
@@ -253,6 +368,14 @@ export class UpcomingShipsService {
     const map = this.feed()?.gameShipArt;
     if (!map) return [];
     return map[normalizeShipName(gameName)]?.thumbnails ?? [];
+  }
+
+  /**
+   * `artFor` for a large frame — the detail hero. Same candidates, ordered so
+   * the wide store render paints first instead of the card thumbnail.
+   */
+  heroArtFor(gameName: string | null | undefined): string[] {
+    return heroArtOrder(this.artFor(gameName));
   }
 
   async refresh(silent = false): Promise<void> {

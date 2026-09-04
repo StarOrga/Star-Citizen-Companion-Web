@@ -2,12 +2,15 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { NewsService, VerseNewsItem } from './news.service';
 import { ConsentService } from '../core/consent.service';
-import type { PatchFacet } from './patch-notes';
+import type { PatchFacet, PatchNoteEntry } from './patch-notes';
+import { matchesTokens } from './patch-search';
 import {
   compareVersionsDesc,
   facetCounts,
   filterPatchLines,
+  filterPatchLinesByQuery,
   groupPatchNotes,
+  groupWaves,
   isHotfixTitle,
   latestPerFacet,
   parsePatchStage,
@@ -285,34 +288,141 @@ describe('NewsService — patch notes live in their own section, not in the time
     expect(svc.patchLines().map((g) => g.line)).toEqual(['4.10', '4.9']);
   });
 
-  it('keeps patch notes out of the default stream', () => {
+  it('keeps patch notes out of the stream — the patch board owns them', () => {
     const svc = makeService();
     svc.feed.set(feed);
-    const shown = [...svc.bucketed().today, ...svc.bucketed().week, ...svc.bucketed().older];
-    expect(shown.map((n) => n.id)).toEqual(['c1']);
+    // `c1` carries no artwork, so it cannot take the stage and lands in the
+    // stream instead. What matters either way: neither surface ever shows a
+    // release note.
+    const surfaced = [svc.stage(), ...svc.stream()].filter((n) => !!n);
+    expect(surfaced.map((n) => n!.id)).toEqual(['c1']);
+    expect(surfaced.some((n) => n!.channel === 'patch')).toBeFalse();
   });
 
-  it('keeps them out of the stream with the Patch-Notes chip on, too — the section owns them', () => {
+  it('counts them for the board, so the coverage stays visible', () => {
     const svc = makeService();
     svc.feed.set(feed);
-    svc.toggleChannel('patch');
-    const shown = [...svc.bucketed().today, ...svc.bucketed().week, ...svc.bucketed().older];
-    expect(shown).toEqual([]);
-    expect(svc.patchLines().length).toBe(2);
+    expect(svc.patchCount()).toBe(2);
   });
 
-  it('still counts them for the filter chip, so the coverage is visible', () => {
-    const svc = makeService();
-    svc.feed.set(feed);
-    expect(svc.channelCount('patch')).toBe(2);
-  });
-
-  it('still shows a saved patch note in the favourites view', () => {
+  it('does not let a saved patch note leak into the favourites view', () => {
     const svc = makeService();
     svc.feed.set(feed);
     svc.toggleFavorite('p-49-live');
-    svc.toggleFavoritesOnly();
-    const shown = [...svc.bucketed().today, ...svc.bucketed().week, ...svc.bucketed().older];
-    expect(shown.map((n) => n.id)).toEqual(['p-49-live']);
+    svc.setFavoritesOnly(true);
+    // Saving a release note is allowed; the stream is editorial-only, so it
+    // surfaces on the board rather than here. The point is that "Gemerkt" can
+    // never resurrect the 70 % of the feed the rethink moved off this page.
+    expect(svc.stream().map((n) => n.id)).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('groupWaves — one announcement, many build waves (2026-08-20 rethink)', () => {
+  function entry(id: string, version: string, facet: PatchFacet): PatchNoteEntry {
+    return {
+      item: {
+        id,
+        title: `[All Waves] Star Citizen Alpha ${version} PTU Patch Notes ${id}`,
+        url: `https://robertsspaceindustries.com/${id}`,
+        publishedAt: '2026-07-31T09:00:00.000Z',
+        channel: 'patch',
+        source: 'patch-notes',
+      },
+      version,
+      segments: version.split('.').map(Number),
+      stage: facet === 'ptu' ? 'ptu' : 'live',
+      hotfix: facet === 'hotfix',
+      facet,
+    };
+  }
+
+  it('folds a run of same-version, same-facet notes into one group', () => {
+    const waves = groupWaves([
+      entry('a', '4.10', 'ptu'),
+      entry('b', '4.10', 'ptu'),
+      entry('c', '4.10', 'ptu'),
+    ]);
+    expect(waves.length).toBe(1);
+    expect(waves[0].folded).toBeTrue();
+    expect(waves[0].entries.length).toBe(3);
+  });
+
+  it('leaves a short run unfolded — two rows are cheaper than a disclosure', () => {
+    const waves = groupWaves([entry('a', '4.10', 'ptu'), entry('b', '4.10', 'ptu')]);
+    expect(waves.length).toBe(1);
+    expect(waves[0].folded).toBeFalse();
+  });
+
+  it('never folds across a facet or a version boundary', () => {
+    const waves = groupWaves([
+      entry('a', '4.10', 'ptu'),
+      entry('b', '4.10', 'live'),
+      entry('c', '4.9', 'ptu'),
+    ]);
+    expect(waves.map((w) => w.entries.length)).toEqual([1, 1, 1]);
+  });
+
+  it('only folds CONSECUTIVE runs, so an interleaved note keeps its own row', () => {
+    const waves = groupWaves([
+      entry('a', '4.10', 'ptu'),
+      entry('b', '4.10', 'ptu'),
+      entry('x', '4.10', 'hotfix'),
+      entry('c', '4.10', 'ptu'),
+    ]);
+    expect(waves.map((w) => w.facet)).toEqual(['ptu', 'hotfix', 'ptu']);
+    expect(waves[2].entries.map((e) => e.item.id)).toEqual(['c']);
+  });
+
+  it('keeps every entry — folding hides rows, it never drops data', () => {
+    const entries = ['a', 'b', 'c', 'd'].map((id) => entry(id, '4.10', 'ptu'));
+    const total = groupWaves(entries).reduce((n, w) => n + w.entries.length, 0);
+    expect(total).toBe(entries.length);
+  });
+});
+
+describe('filterPatchLinesByQuery — the third axis (961ab0a5)', () => {
+  const news: VerseNewsItem[] = [
+    patch('p-410-ptu', '[Wave 1] Star Citizen Alpha 4.10 PTU Patch Notes 12358556', '2026-07-30T00:00:00.000Z'),
+    patch('p-49-live', 'Star Citizen Alpha 4.9 LIVE Release Notes', '2026-07-15T00:00:00.000Z'),
+    patch('p-48-live', 'Star Citizen Alpha 4.8 LIVE Release Notes', '2026-05-13T00:00:00.000Z'),
+  ];
+  const groups = groupPatchNotes(news);
+
+  /** Stand-in for the real one: title, plus "bullet points" for one note only. */
+  const haystack = (e: PatchNoteEntry): string =>
+    e.item.id === 'p-49-live' ? `${e.item.title}\nOrison instancing improvements` : e.item.title;
+
+  it('returns everything untouched when the query is empty', () => {
+    expect(filterPatchLinesByQuery(groups, [], haystack, matchesTokens)).toBe(groups);
+  });
+
+  it('finds a note by its title', () => {
+    const out = filterPatchLinesByQuery(groups, ['ptu'], haystack, matchesTokens);
+    expect(out.flatMap((g) => g.entries).map((e) => e.item.id)).toEqual(['p-410-ptu']);
+  });
+
+  it('finds a note by a bullet point the title never mentions', () => {
+    const out = filterPatchLinesByQuery(groups, ['orison'], haystack, matchesTokens);
+    expect(out.flatMap((g) => g.entries).map((e) => e.item.id)).toEqual(['p-49-live']);
+  });
+
+  it('keeps a whole line when the LINE NAME matches — typing "4.9" asks for 4.9', () => {
+    const out = filterPatchLinesByQuery(groups, ['4.9'], haystack, matchesTokens);
+    expect(out.map((g) => g.line)).toEqual(['4.9']);
+    expect(out[0].entries.length).toBe(1);
+  });
+
+  it('drops lines that keep no note', () => {
+    expect(filterPatchLinesByQuery(groups, ['pyro'], haystack, matchesTokens)).toEqual([]);
+  });
+
+  it('carries the LIVE facts over unchanged — search does not rewrite what you can play', () => {
+    const before = groups.find((g) => g.isCurrentLive)!;
+    const after = filterPatchLinesByQuery(groups, ['release'], haystack, matchesTokens)
+      .find((g) => g.line === before.line)!;
+    expect(after.isCurrentLive).toBe(true);
+    expect(after.hasLive).toBe(before.hasLive);
   });
 });

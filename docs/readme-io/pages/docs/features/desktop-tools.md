@@ -1,6 +1,6 @@
 ---
 title: Desktop tools
-excerpt: The Data Uploader that keeps the Codex current, and the Starscape wallpaper tray app.
+excerpt: The Data Uploader that keeps the Codex current, and the Starscape App that rotates your wallpaper.
 ---
 
 Two of SC Companion's pieces run on your own machine, because they need access
@@ -44,6 +44,16 @@ restricted to **admin and collaborator** accounts. The page shows the current
 version, release date, notes, size and SHA-256, and lets admins promote a build
 across the *alpha → beta → stable* channels.
 
+> **On a phone or tablet, the download is not offered.** Both desktop tools are
+> Windows applications, so the download buttons, the channel picker and the
+> compact download menus in the Codex and Starscape headers only appear on a
+> device that could actually install them. This is decided from the device
+> itself — browser platform hints, the user agent and the pointer capabilities —
+> not from the window width, so a narrow desktop window still gets the download.
+> Following a shared `/download` or `/uploader` link on a phone still opens the
+> page; it explains the platform requirement instead of handing out an installer
+> that cannot run there.
+
 ### Bundle History
 
 `/p4k` (**Bundle History**) is the receiving end: every uploaded bundle with
@@ -56,9 +66,9 @@ maximum 20 bundles overall** — older ones are removed.
 
 Uploads happen **only through the tool**, never from the website.
 
-## Starscape wallpaper app
+## Starscape App
 
-A ~0.3 MB native Windows tray app that rotates your desktop through the
+The **Starscape App** is a ~0.3 MB native Windows tray app that rotates your desktop through the
 Starscape gallery, with prefetch, an optional crossfade, a screensaver mode and
 one-click autostart. Full tray-menu reference on the
 [Starscape](doc:starscape) page.

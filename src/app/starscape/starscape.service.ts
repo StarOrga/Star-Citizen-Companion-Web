@@ -51,6 +51,64 @@ export function ringsForRole(role: string | null | undefined): readonly Starscap
 const PAGE_SIZE = 24;
 
 /**
+ * The `verse_wallpapers.variant_role` values the gallery lists.
+ *
+ * RSI publishes one artwork in several crops — a 21:9 hero, a 16:9 version, a
+ * HUD-framed banner — under separate CDN ids, so the gallery showed the same
+ * picture two or three times. fetch-verse-news now groups those rows
+ * (`variant-signature.ts`) and marks one representative per artwork; the
+ * others stay in the table, addressable by a `?image=<id>` share link, but out
+ * of the grid. See migration 20260903170000.
+ *
+ * `single` is the default for every row the grouper has not reached, so a fresh
+ * capture is visible immediately and a failed grouping hides nothing.
+ */
+export const VISIBLE_VARIANT_ROLES = ['single', 'primary'] as const;
+
+/** Postgres `undefined_column`, which PostgREST forwards verbatim. */
+const UNDEFINED_COLUMN = '42703';
+
+/** True when a query failed only because the variant columns are not deployed yet. */
+function isMissingVariantColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === UNDEFINED_COLUMN || /variant_role/.test(error.message ?? '');
+}
+
+/**
+ * How many rows the one-off series probe reads. Only the `series` column is
+ * selected, so this is a few kB even at the ceiling, and the gallery grows by a
+ * handful of comm-link images a week — the cap exists purely so the request can
+ * never become unbounded, not because it is expected to be reached.
+ */
+const SERIES_PROBE_LIMIT = 2000;
+
+/**
+ * The "which images" dimension of the gallery, as a set of NAMED states.
+ *
+ * `id` is a stable identity, not a label: `all` and `series:<name>`. The names
+ * matter beyond this page — the Starscape desktop app wants to offer the same
+ * dimensions in its tray menu, and a menu cannot key off a translated string.
+ */
+export interface StarscapeSourceOption {
+  /** Stable id — `all`, or `series:<series>`. */
+  readonly id: string;
+  /** The `verse_wallpapers.series` this selects, or null for "every series". */
+  readonly series: string | null;
+  /** Label straight from the data (an RSI series name), or null when it needs translating. */
+  readonly label: string | null;
+  /** i18n key for the label, or null when `label` carries it. */
+  readonly labelKey: string | null;
+}
+
+/** Id of the "no series filter" option. */
+export const STARSCAPE_SOURCE_ALL = 'all';
+
+/** Id for one concrete RSI series. */
+export function starscapeSourceId(series: string): string {
+  return `series:${series}`;
+}
+
+/**
  * Hard ceiling for a gallery page request.
  *
  * A plain `await` on the REST call has no deadline: on a flaky mobile
@@ -80,11 +138,52 @@ export class StarscapeService {
   readonly timedOut = signal(false);
   readonly activeSeries = signal<string>('');
 
-  /** Filter chips derived from the loaded pages (no extra distinct query). */
-  readonly seriesOptions = computed(() => {
+  /**
+   * Every series the table knows, resolved ONCE from the whole table.
+   *
+   * This used to be derived from the rows currently on screen, which made the
+   * filter rewrite itself on every pick: choosing "Release Info" reloads only
+   * Release Info rows, so every other option disappeared from the control. The
+   * row then changed width and the Top-N switch beside it visibly jumped
+   * (admin feedback 1f78e57f) — and a sibling series was only reachable by
+   * going back through "All" first. Empty until the probe answers.
+   */
+  private readonly seriesCatalogue = signal<readonly string[]>([]);
+  /** In-flight/finished probe — the catalogue is fetched at most once per session. */
+  private seriesProbe: Promise<void> | null = null;
+
+  /**
+   * Filter options, catalogue-backed. Falls back to whatever the loaded pages
+   * happen to show if the probe failed, so a dead probe costs completeness, not
+   * the filter itself.
+   */
+  readonly seriesOptions = computed<readonly string[]>(() => {
+    const catalogue = this.seriesCatalogue();
+    if (catalogue.length > 0) return catalogue;
     const set = new Set<string>();
     for (const w of this.wallpapers()) if (w.series) set.add(w.series);
     return [...set].sort((a, b) => a.localeCompare(b));
+  });
+
+  /**
+   * The source filter as named states — "all" plus one per series, in a fixed
+   * order. Stable across picks by construction, which is what keeps the
+   * controls row from reflowing.
+   */
+  readonly sourceOptions = computed<readonly StarscapeSourceOption[]>(() => [
+    { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
+    ...this.seriesOptions().map((series) => ({
+      id: starscapeSourceId(series),
+      series,
+      label: series,
+      labelKey: null,
+    })),
+  ]);
+
+  /** Id of the currently selected source. */
+  readonly activeSource = computed(() => {
+    const series = this.activeSeries();
+    return series ? starscapeSourceId(series) : STARSCAPE_SOURCE_ALL;
   });
 
   readonly hasMore = computed(() => this.wallpapers().length < this.total());
@@ -170,6 +269,9 @@ export class StarscapeService {
   }
 
   async load(reset = false): Promise<void> {
+    // Independent of the page request and never awaited: the gallery must paint
+    // as fast as it always did, the filter just fills in a beat later.
+    void this.ensureSeriesCatalogue();
     if (this.loading()) return;
     this.loading.set(true);
     this.error.set(null);
@@ -184,19 +286,39 @@ export class StarscapeService {
       expired = true;
       abort.abort();
     }, LOAD_TIMEOUT_MS);
-    try {
+    const page = (hideVariants: boolean) => {
       let q = this.sb.client
         .from('verse_wallpapers')
         .select('image_id, source_url, preview_url, title, series, article_url, published_at', {
           count: 'exact',
-        })
+        });
+      if (hideVariants) q = q.in('variant_role', VISIBLE_VARIANT_ROLES);
+      q = q
         .order('published_at', { ascending: false, nullsFirst: false })
+        // Tiebreaker, and it is not cosmetic: a comm-link contributes up to six
+        // rows sharing one `published_at` to the second, and Postgres gives no
+        // stable order inside a tie. With plain `range()` paging, that let one
+        // row come back on page 1 AND page 2 while another never appeared —
+        // a duplicate tile with no duplicate data behind it.
+        .order('image_id', { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
       const series = this.activeSeries();
       if (series) q = q.eq('series', series);
-      const { data, error, count } = await q.abortSignal(abort.signal);
+      return q.abortSignal(abort.signal);
+    };
+    try {
+      let { data, error, count } = await page(true);
+      // Deploy-order guard: the bundle reaches visitors the moment Vercel
+      // finishes, but migration 20260903170000 is applied out of band. Without
+      // this the gallery would answer 42703 ("column variant_role does not
+      // exist") and show an error page for the whole gap. Costs one retry, only
+      // ever on that specific error, and disappears once the column is there.
+      if (error && isMissingVariantColumn(error)) {
+        console.warn('starscape: variant columns not deployed yet, listing every row');
+        ({ data, error, count } = await page(false));
+      }
       if (error) throw new Error(error.message);
-      const mapped = (data ?? []).map(mapRow);
+      const mapped = (data ?? []).map(mapWallpaperRow);
       this.wallpapers.set(reset ? mapped : [...this.wallpapers(), ...mapped]);
       this.total.set(count ?? mapped.length);
     } catch (err) {
@@ -212,6 +334,9 @@ export class StarscapeService {
    * A single wallpaper by image id — what a shared `?image=<id>` link resolves.
    * Fetched directly instead of paging the grid until it appears: the target is
    * usually hundreds of rows deep.
+   *
+   * Deliberately NOT filtered by `variant_role`: a link shared before its row
+   * became a hidden crop variant must still open the picture someone sent.
    */
   async loadOne(imageId: string): Promise<Wallpaper | null> {
     try {
@@ -221,7 +346,7 @@ export class StarscapeService {
         .eq('image_id', imageId)
         .maybeSingle();
       if (error || !data) return null;
-      return mapRow(data as Record<string, unknown>);
+      return mapWallpaperRow(data as Record<string, unknown>);
     } catch {
       return null; // a dead link must not break the gallery behind it
     }
@@ -232,9 +357,53 @@ export class StarscapeService {
     this.activeSeries.set(series);
     await this.load(true);
   }
+
+  /** Pick a source by its stable id (see {@link StarscapeSourceOption}). */
+  async setSource(id: string): Promise<void> {
+    const option = this.sourceOptions().find((o) => o.id === id);
+    if (!option) return; // unknown id — leave the gallery as it is
+    await this.setSeries(option.series ?? '');
+  }
+
+  /**
+   * Read the distinct series once. Deliberately NOT filtered by the active
+   * series: the whole point is an option list that does not depend on what is
+   * currently shown. One column, capped at {@link SERIES_PROBE_LIMIT} rows.
+   */
+  private ensureSeriesCatalogue(): Promise<void> {
+    this.seriesProbe ??= (async () => {
+      try {
+        const { data, error } = await this.sb.client
+          .from('verse_wallpapers')
+          .select('series')
+          .not('series', 'is', null)
+          // Same visibility rule as the grid, or the filter could offer a series
+          // whose every row is a hidden crop variant — an option that opens an
+          // empty gallery.
+          .in('variant_role', VISIBLE_VARIANT_ROLES)
+          .limit(SERIES_PROBE_LIMIT);
+        if (error) throw new Error(error.message);
+        const set = new Set<string>();
+        for (const row of (data ?? []) as { series?: string | null }[]) {
+          if (row.series) set.add(row.series);
+        }
+        this.seriesCatalogue.set([...set].sort((a, b) => a.localeCompare(b)));
+      } catch {
+        // Silent: `seriesOptions` falls back to the loaded rows, and a retried
+        // page load gets a fresh attempt.
+        this.seriesProbe = null;
+      }
+    })();
+    return this.seriesProbe;
+  }
 }
 
-function mapRow(r: Record<string, unknown>): Wallpaper {
+/**
+ * Shared row → {@link Wallpaper} mapper. Exported because the Top-N ranking RPC
+ * (`starscape_top_wallpapers`, see StarscapeVotesService) projects the exact
+ * same columns and must produce the exact same shape.
+ */
+export function mapWallpaperRow(r: Record<string, unknown>): Wallpaper {
   return {
     imageId: (r['image_id'] as string) ?? '',
     sourceUrl: (r['source_url'] as string) ?? '',

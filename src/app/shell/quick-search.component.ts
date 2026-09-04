@@ -18,6 +18,7 @@ import {
   CodexKind,
   CodexListRow,
   CodexService,
+  manufacturerLabel,
   pickLocalized,
 } from '../codex/codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
@@ -133,7 +134,7 @@ const PER_KIND_LIMIT = 6;
                   <span class="qs-kind">{{ ('codex.kindSingular.' + r.kind) | translate }}</span>
                   <span class="qs-name">{{ name(r.row) }}</span>
                   <span class="qs-chips">
-                    @if (r.row.manufacturerCode) { <span class="badge mfr">{{ r.row.manufacturerCode }}</span> }
+                    @if (r.row.manufacturerCode) { <span class="badge mfr" [attr.title]="mfrName(r.row)">{{ r.row.manufacturerCode }}</span> }
                     @if (r.row.componentKind) { <span class="badge">{{ r.row.componentKind }}</span> }
                     @if (r.row.weaponClass) { <span class="badge">{{ ('codex.weaponClass.' + r.row.weaponClass) | translate }}</span> }
                     @if (r.row.size != null) { <span class="badge">S{{ r.row.size }}</span> }
@@ -260,6 +261,37 @@ const PER_KIND_LIMIT = 6;
       .trigger:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 8px; }
       .trigger-icon { width: 26px; height: 26px; stroke-width: 1.9; }
       .qs-kind { width: auto; }
+
+      /* The overlay becomes a full-screen sheet (admin feedback 3bc01a3d).
+         Docked, it spent 12vh (97px on a 812px-tall phone) on an empty strip
+         above the field, 32px on side insets and another 2px + 8px radius on a
+         card frame drawn INSIDE a backdrop that is already a frame — while the
+         result rows below it were cut off at 70vh. None of that buys anything
+         on a screen the panel could simply own. */
+      .overlay { padding: 0; }
+      .panel {
+        max-width: none;
+        max-height: none;
+        height: 100%;
+        padding: var(--sc-pad-2);
+        border-radius: 0;
+        border-inline-width: 0;
+        border-block-width: 0;
+      }
+      /* With the whole screen to fill, the rows can breathe instead of being
+         pressed into 70vh: the list is the scroll port now. */
+      .qs-results { flex: 1 1 auto; }
+
+      /* ...and the result NAME gets a line of its own. It shared one row with
+         the kind label and up to six badges, and was the only shrinking item in
+         it: measured at 375px the name held 127px of a 273px row, so half the
+         chrome outweighed the one thing being searched for. Reordered rather
+         than hidden — the kind and the badges are still there, one line down. */
+      .qs-row { flex-wrap: wrap; row-gap: 4px; }
+      .qs-name { flex: 1 1 100%; order: 1; min-width: 0; }
+      .qs-kind { order: 2; }
+      .qs-chips { order: 3; flex: 1 1 auto; justify-content: flex-end; }
+      .add-btn, .in-hangar { order: 4; }
     }
   `],
 })
@@ -420,6 +452,17 @@ export class QuickSearchComponent {
   openActive(): void {
     const r = this.displayResults()[this.activeIndex()];
     if (r) this.openResult(r);
+  }
+
+  /**
+   * Full manufacturer name for the chip's tooltip. The chip itself stays the
+   * short code — this row is a dense one-liner (kind + name + up to five chips)
+   * where "Musashi Industrial & Starflight Concern" would push everything else
+   * off screen; the Codex landing and lists spell it out inline instead.
+   * EN-only, matching `name()` — quick search has no language plumbing.
+   */
+  mfrName(r: CodexListRow): string | null {
+    return manufacturerLabel(r, 'en');
   }
 
   name(r: CodexListRow): string {

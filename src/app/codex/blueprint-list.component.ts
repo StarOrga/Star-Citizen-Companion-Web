@@ -23,6 +23,7 @@ import {
   humanizeBlueprintName,
 } from './codex-format';
 import { BlueprintPayload } from './codex.types';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -30,7 +31,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 @Component({
   selector: 'sc-blueprint-list',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="blueprint-page">
@@ -98,7 +99,9 @@ const SEARCH_DEBOUNCE_MS = 250;
 
         @if (loading() && rows().length === 0) {
           <div class="grid">
-            @for (s of skeletons; track s) { <div class="card skel"></div> }
+            @for (s of skeletons; track s; let i = $index) {
+              <div class="card skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
+            }
           </div>
         } @else if (rows().length === 0) {
           <div class="sc-card empty">
@@ -202,8 +205,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .badge.cat { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
 
-    .card.skel { min-height: 100px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .card.skel { min-height: 100px; }
 
     .more-row { display: flex; justify-content: center; }
     .load-more { padding: 10px 24px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }

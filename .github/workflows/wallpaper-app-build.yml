@@ -27,6 +27,16 @@ jobs:
     defaults:
       run:
         working-directory: wallpaper-app
+    # Job level so both `cargo test` and `cargo build --release` see it —
+    # src/telemetry.rs bakes it in via `option_env!` at compile time.
+    env:
+      # Shared anti-abuse signing key for the ingest-telemetry edge function
+      # (must equal the Supabase `TELEMETRY_HMAC_KEY` secret). NOT a credential
+      # to any user data. An UNSET secret expands to an empty string, which
+      # `telemetry::hmac_key()` treats as "not configured" and falls back to the
+      # same public dev key the edge function itself defaults to — so a missing
+      # secret degrades to "telemetry rejected", never to a broken build.
+      SC_TELEMETRY_HMAC_KEY: ${{ secrets.SC_TELEMETRY_HMAC_KEY }}
     steps:
       - uses: actions/checkout@v7
 

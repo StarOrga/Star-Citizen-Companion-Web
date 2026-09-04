@@ -1,4 +1,5 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Params, Router, Routes, UrlTree } from '@angular/router';
 import { approvedGuard } from './auth/approved.guard';
 import { authGuard } from './auth/auth.guard';
 import { publicOnlyGuard } from './auth/public-only.guard';
@@ -14,6 +15,23 @@ import { roleGuard } from './auth/role.guard';
 // child of the gated shell parent. Existing `roleGuard(...)` constraints on
 // individual routes stay as ADDITIONAL constraints on top of the blanket gate.
 const PRIVATE = [authGuard, approvedGuard] as const;
+
+/**
+ * Bridge for the retired role-loadout editor (admin feedback 34505d70,
+ * decision "2A" on issue #411 point 2 — "hangar nicht explizit, der ist schon
+ * auf der codex startseite implizit drin").
+ *
+ * `:id` is ALWAYS a `hangar_role_loadouts` id: ships live at `/hangar/ship/:id`
+ * and `/codex/ship/:className`, and never reached this path. So the destination
+ * is unambiguous — the Codex start page's AN BORD zone, opened on that set,
+ * which is the view that replaced the editor. Exported so the mapping has a
+ * test instead of only a comment.
+ */
+export function hangarLoadoutRedirect({ params }: { params: Params }): UrlTree {
+  return inject(Router).createUrlTree(['/codex'], {
+    queryParams: { zone: 'board', set: params['id'] },
+  });
+}
 
 export const routes: Routes = [
   {
@@ -47,6 +65,37 @@ export const routes: Routes = [
         path: 'legal/imprint',
         loadComponent: () => import('./legal/imprint.component').then((m) => m.ImprintComponent),
       },
+      {
+        // Where an invite / password-reset mail lands (feedback d93ddb05).
+        // Ungated on purpose: the session such a link hands over may not be
+        // approved yet, and the page must also render with NO session at all
+        // (used-up or expired link) to offer a fresh mail.
+        path: 'set-password',
+        loadComponent: () =>
+          import('./auth/set-password.component').then((m) => m.SetPasswordComponent),
+      },
+      {
+        // A shared loadout behind its link token (feedback cf0ddf7d phase 2).
+        // Public BY DESIGN — "anyone holding the link can view it, including
+        // unregistered users" — so it lives on this ungated layout. The token
+        // in the URL is the entire authorization; `get_shared_loadout()` is
+        // the only thing `anon` can reach in the hangar schema, it projects
+        // four fields, and it returns nothing for a revoked link.
+        path: 'shared/loadout/:token',
+        loadComponent: () =>
+          import('./social/shared-loadout.component').then((m) => m.SharedLoadoutComponent),
+      },
+      {
+        // Where `approvedGuard` sends a session whose approval it could not
+        // read (see that guard + AccessUnavailableComponent). It MUST stay
+        // on this ungated layout: gated, it would be bounced by the very
+        // guard that routed here, and `/login` is no good either —
+        // `publicOnlyGuard` sends an authenticated visitor straight back
+        // into the gated routes, i.e. a redirect loop.
+        path: 'unavailable',
+        loadComponent: () =>
+          import('./auth/access-unavailable.component').then((m) => m.AccessUnavailableComponent),
+      },
     ],
   },
   {
@@ -60,6 +109,13 @@ export const routes: Routes = [
       {
         path: 'news',
         loadComponent: () => import('./news/news-list.component').then((m) => m.NewsListComponent),
+      },
+      {
+        // The patch depth lives on its own page since the 2026-08-20 rethink:
+        // on the landing page it cost 2,019 px above the first news article.
+        path: 'news/patches',
+        loadComponent: () =>
+          import('./news/patch-board.component').then((m) => m.PatchBoardComponent),
       },
       {
         path: 'starscape',
@@ -136,12 +192,16 @@ export const routes: Routes = [
           import('./codex/codex-list.component').then((m) => m.CodexListComponent),
       },
       {
-        // The Showroom — livery-first 3D discovery destination. Reads only the
-        // cheap discovery plane (no .glb, no 3D lib on this route). Static segment placed
-        // BEFORE codex/:kind/:className so it is not consumed by the :kind wildcard.
-        path: 'codex/showroom',
+        // One announced ship — the Codex's own page for a hull that has no
+        // game data yet (#130). Every "Auf dem Reissbrett" tile lands HERE
+        // first; the RSI pledge page is a secondary link on it, not the
+        // destination. `:id` is the RSI ship-matrix id from the feed. Sits
+        // after the static `codex/upcoming` (a leaf route only matches when it
+        // consumes the whole url, so the two never shadow each other) and
+        // before `codex/:kind/:className`.
+        path: 'codex/upcoming/:id',
         loadComponent: () =>
-          import('./codex/codex-showroom.component').then((m) => m.CodexShowroomComponent),
+          import('./codex/upcoming-detail.component').then((m) => m.UpcomingDetailComponent),
       },
       {
         path: 'codex/:kind/:className',
@@ -173,9 +233,12 @@ export const routes: Routes = [
           import('./hangar/hangar-ship-detail.component').then((m) => m.HangarShipDetailComponent),
       },
       {
+        // BRIDGE, not a page — the standalone role-loadout editor is gone and
+        // nothing in the app links here any more. Kept registered so links
+        // shared before the change keep resolving. See hangarLoadoutRedirect.
         path: 'hangar/loadout/:id',
-        loadComponent: () =>
-          import('./hangar/role-loadout-editor.component').then((m) => m.RoleLoadoutEditorComponent),
+        pathMatch: 'full',
+        redirectTo: hangarLoadoutRedirect,
       },
       // Bundle History merged into the Data Upload page (/uploader). Keep the
       // old /p4k URL working for bookmarks/muscle-memory via a redirect.
@@ -255,6 +318,14 @@ export const routes: Routes = [
         path: 'settings',
         loadComponent: () =>
           import('./settings/settings.component').then((m) => m.SettingsComponent),
+      },
+      {
+        // Friends: the social graph (requests, friends, blocked). Sits next to
+        // /settings because that is where the account-scoped surfaces live and
+        // where both entry points (account menu, settings card) point.
+        path: 'friends',
+        loadComponent: () =>
+          import('./social/friends.component').then((m) => m.FriendsComponent),
       },
       {
         // Install + privacy page for the hangar-import browser extension.

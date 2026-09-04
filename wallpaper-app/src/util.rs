@@ -69,7 +69,9 @@ pub enum Mode {
 }
 
 impl Mode {
-    fn as_str(self) -> &'static str {
+    /// Config/wire value (`wallpaper` | `screensaver` | `both`). Also what the
+    /// launch telemetry event reports, so it must stay stable.
+    pub fn as_str(self) -> &'static str {
         match self {
             Mode::Wallpaper => "wallpaper",
             Mode::Screensaver => "screensaver",
@@ -95,21 +97,77 @@ impl Mode {
     }
 }
 
+/// Which slice of the Starscape gallery the rotation draws from.
+///
+/// The gallery is one ordered list of every wallpaper, but "everything RSI ever
+/// published" is not the only thing a user wants on their desktop. Both other
+/// answers already exist server-side and are shared with the website, so no new
+/// endpoint and no client-side ranking is invented here:
+///   * [`WallpaperSource::Top`] → `starscape_top_wallpapers(7)`, the same
+///     community ranking the web gallery's "Top 7" toggle shows,
+///   * [`WallpaperSource::Mine`] → the caller's own `wallpaper_votes` rows,
+///     which need a signed-in session (see `crate::session`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum WallpaperSource {
+    /// Every wallpaper, newest first — the default and the pre-0.7.0 behaviour.
+    All,
+    /// Only the community-wide Top 7.
+    Top,
+    /// Only the images this account upvoted. The one selection that needs a
+    /// session; without one there is nothing to ask for, and the rotation falls
+    /// back to [`Self::All`] rather than showing an empty desktop.
+    Mine,
+}
+
+impl WallpaperSource {
+    /// Config/wire value (`all` | `top7` | `mine`).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            WallpaperSource::All => "all",
+            WallpaperSource::Top => "top7",
+            WallpaperSource::Mine => "mine",
+        }
+    }
+
+    fn from_str(s: &str) -> Option<WallpaperSource> {
+        match s {
+            "all" => Some(WallpaperSource::All),
+            "top7" => Some(WallpaperSource::Top),
+            "mine" => Some(WallpaperSource::Mine),
+            _ => None,
+        }
+    }
+}
+
+/// How many images the community ranking contributes — the website's own
+/// "Top 7", so both surfaces show the same seven.
+pub const TOP_LIMIT: u32 = 7;
+
 /// Release ring the in-app updater follows.
 ///
-/// Chosen ONCE — on the website, before the download — and then locked: the
-/// download link for each ring carries the ring in its filename, the app reads
-/// it on first start and writes it to the config. There is deliberately no
-/// in-app switch, which is what makes this different from the data-uploader's
-/// runtime channel picker.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+/// A ring is a promotion pointer, not a build — the binaries are byte-identical
+/// across all three — so it can never be baked into the exe. Which ring an
+/// install actually tracks is decided by [`RingPref`].
+#[derive(Clone, Copy, PartialEq, Eq, Debug, PartialOrd, Ord)]
 pub enum Channel {
+    // Declaration order IS the ring order (stable ⊆ beta ⊆ alpha), which is what
+    // the derived `Ord` compares. `Channel::Alpha` is therefore "the top ring",
+    // and `a.max(b)` is "the wider of the two" without a hand-written rank table.
     Stable,
     Beta,
     Alpha,
 }
 
 impl Channel {
+    /// The widest ring there is. What "follow the highest ring my role allows"
+    /// asks the feed for — the server clamps it down to the caller's tier and
+    /// reports which ring it actually served.
+    pub const TOP: Channel = Channel::Alpha;
+
+    /// Every ring, widest first — the order the tray picker lists them in, and
+    /// the `alpha → beta → stable` precedence the accessibility rule uses.
+    pub const ALL_DESCENDING: [Channel; 3] = [Channel::Alpha, Channel::Beta, Channel::Stable];
+
     /// Wire/config value (`stable` | `beta` | `alpha`).
     pub fn as_key(self) -> &'static str {
         match self {
@@ -138,23 +196,87 @@ impl Channel {
     }
 }
 
+/// Which ring the updater should follow — the user's *intent*, as opposed to
+/// [`Channel`], which is the ring a check actually resolved to.
+///
+/// Up to 0.5.0 there was no such thing: the ring was pinned at download time
+/// (from the asset's filename) and could not be changed in the app at all. That
+/// left an admin who took the website's default `…-stable.exe` permanently on
+/// stable, told "up to date" on 0.4.4 while alpha had long since moved to 0.5.0
+/// — the ring they were entitled to was simply never asked for.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RingPref {
+    /// Follow the highest ring this account's role grants, re-resolved on every
+    /// check (`alpha → beta → stable`). The default, and the only mode that
+    /// self-corrects when a role changes. Safe for everyone: the server-side
+    /// clamp is what decides how high "highest" goes, so an anonymous or viewer
+    /// install lands on stable exactly as before.
+    Auto,
+    /// Stay on exactly this ring, whatever the role would allow. Chosen either
+    /// in the tray or by downloading a `-beta`/`-alpha` asset.
+    Pinned(Channel),
+}
+
+impl RingPref {
+    /// Config value (`auto` | `stable` | `beta` | `alpha`).
+    pub fn as_key(self) -> &'static str {
+        match self {
+            RingPref::Auto => "auto",
+            RingPref::Pinned(c) => c.as_key(),
+        }
+    }
+
+    pub fn from_key(s: &str) -> Option<RingPref> {
+        if s == "auto" {
+            return Some(RingPref::Auto);
+        }
+        Channel::from_key(s).map(RingPref::Pinned)
+    }
+
+    /// The ring to ASK the feed for. In [`RingPref::Auto`] that is always the
+    /// top ring: the role clamp then answers with the highest one the caller
+    /// actually reaches, which is precisely the question being asked.
+    pub fn requested(self) -> Channel {
+        match self {
+            RingPref::Auto => Channel::TOP,
+            RingPref::Pinned(c) => c,
+        }
+    }
+
+    pub fn is_auto(self) -> bool {
+        matches!(self, RingPref::Auto)
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Config {
     pub interval_min: u32,
     pub fade: bool,
     pub paused: bool,
     pub mode: Mode,
+    /// Which slice of the gallery the rotation draws from. Absent from a
+    /// pre-0.7.0 config, and absence means [`WallpaperSource::All`] — exactly
+    /// what those installs already did.
+    pub wallpaper_source: WallpaperSource,
     pub screensaver_after_min: u32,
     pub autostart_initialized: bool,
     pub summary_on_boot: bool,
     /// yyyymmdd of the last day the boot summary was shown; 0 = never.
     pub summary_last_shown: u32,
-    /// The locked update ring.
+    /// Ring the LAST successful check actually resolved to. Not the choice —
+    /// that is `channel_pref` — but its outcome, cached so the tray readout and
+    /// the launch telemetry can name a ring before the first check of a run
+    /// completes (the first poll runs 20 s after start).
     pub channel: Channel,
-    /// True once the ring has been derived from the downloaded filename. Guards
-    /// the derivation so a later rename of the exe can never move an install to
-    /// another ring.
-    pub channel_locked: bool,
+    /// Which ring the updater is asked to follow. Absent from a pre-0.6.0
+    /// config, and absence means [`RingPref::Auto`] — that is the deliberate
+    /// migration: every install that was silently pinned to stable by the
+    /// website's default download now follows the highest ring its role allows,
+    /// and anyone who wants the old behaviour pins it back from the tray.
+    pub channel_pref: RingPref,
+    /// Send anonymous crash + launch telemetry. OPT-OUT (default on), matching
+    /// the data-uploader's `telemetryEnabled`. Toggled from the tray menu.
+    pub telemetry: bool,
 }
 
 impl Default for Config {
@@ -164,12 +286,14 @@ impl Default for Config {
             fade: true,
             paused: false,
             mode: Mode::Wallpaper,
+            wallpaper_source: WallpaperSource::All,
             screensaver_after_min: 10,
             autostart_initialized: false,
             summary_on_boot: true,
             summary_last_shown: 0,
             channel: Channel::Stable,
-            channel_locked: false,
+            channel_pref: RingPref::Auto,
+            telemetry: true,
         }
     }
 }
@@ -210,6 +334,11 @@ impl Config {
                             cfg.mode = m;
                         }
                     }
+                    "wallpaper_source" => {
+                        if let Some(s) = WallpaperSource::from_str(v) {
+                            cfg.wallpaper_source = s;
+                        }
+                    }
                     "screensaver_after_min" => {
                         if let Ok(n) = v.parse::<u32>() {
                             cfg.screensaver_after_min = n.clamp(1, 240);
@@ -231,8 +360,17 @@ impl Config {
                             cfg.channel = c;
                         }
                     }
-                    "channel_locked" => {
-                        cfg.channel_locked = v == "1" || v.eq_ignore_ascii_case("true");
+                    "channel_pref" => {
+                        if let Some(p) = RingPref::from_key(v) {
+                            cfg.channel_pref = p;
+                        }
+                    }
+                    // `channel_locked` (pre-0.6.0) is deliberately not read: it
+                    // meant "the ring was derived from the filename, never touch
+                    // it again", which is the exact lock 0.6.0 removes. Left
+                    // unknown so it is ignored rather than special-cased.
+                    "telemetry" => {
+                        cfg.telemetry = v == "1" || v.eq_ignore_ascii_case("true");
                     }
                     _ => {}
                 }
@@ -243,17 +381,19 @@ impl Config {
 
     pub fn save(&self) {
         let text = format!(
-            "interval_min={}\nfade={}\npaused={}\nmode={}\nscreensaver_after_min={}\nautostart_initialized={}\nsummary_on_boot={}\nsummary_last_shown={}\nchannel={}\nchannel_locked={}\n",
+            "interval_min={}\nfade={}\npaused={}\nmode={}\nwallpaper_source={}\nscreensaver_after_min={}\nautostart_initialized={}\nsummary_on_boot={}\nsummary_last_shown={}\nchannel={}\nchannel_pref={}\ntelemetry={}\n",
             self.interval_min,
             self.fade as u8,
             self.paused as u8,
             self.mode.as_str(),
+            self.wallpaper_source.as_str(),
             self.screensaver_after_min,
             self.autostart_initialized as u8,
             self.summary_on_boot as u8,
             self.summary_last_shown,
             self.channel.as_key(),
-            self.channel_locked as u8,
+            self.channel_pref.as_key(),
+            self.telemetry as u8,
         );
         let _ = fs::write(Config::path(), text);
     }
@@ -481,6 +621,37 @@ mod tests {
     }
 
     #[test]
+    fn wallpaper_sources_round_trip_and_default_to_everything() {
+        for s in [WallpaperSource::All, WallpaperSource::Top, WallpaperSource::Mine] {
+            assert_eq!(WallpaperSource::from_str(s.as_str()), Some(s));
+        }
+        assert_eq!(WallpaperSource::from_str("favourites"), None);
+        assert_eq!(WallpaperSource::from_str("All"), None); // case-sensitive on purpose
+        // A pre-0.7.0 config has no such key, and absence must keep the old
+        // behaviour — every wallpaper, exactly as before.
+        assert_eq!(Config::default().wallpaper_source, WallpaperSource::All);
+    }
+
+    /// `save()` and `load()` share no code, so nothing but a round-trip catches
+    /// a key that was renamed on one side only.
+    #[test]
+    fn the_saved_source_key_is_the_one_load_parses() {
+        let mut cfg = Config::default();
+        cfg.wallpaper_source = WallpaperSource::Top;
+        let text = format!("wallpaper_source={}\n", cfg.wallpaper_source.as_str());
+        assert!(text.contains("wallpaper_source=top7"));
+        let mut back = Config::default();
+        for line in text.lines() {
+            if let Some((k, v)) = line.split_once('=') {
+                if k == "wallpaper_source" {
+                    back.wallpaper_source = WallpaperSource::from_str(v).expect("parsable");
+                }
+            }
+        }
+        assert_eq!(back.wallpaper_source, WallpaperSource::Top);
+    }
+
+    #[test]
     fn unknown_channel_keys_are_rejected() {
         assert_eq!(Channel::from_key("nightly"), None);
         assert_eq!(Channel::from_key("Stable"), None); // case-sensitive on purpose
@@ -488,10 +659,91 @@ mod tests {
     }
 
     #[test]
-    fn default_config_is_stable_and_unlocked() {
+    fn default_config_follows_the_highest_allowed_ring() {
         let c = Config::default();
+        // The cached "last resolved ring" starts at the safe one…
         assert_eq!(c.channel, Channel::Stable);
-        assert!(!c.channel_locked);
+        // …but the PREFERENCE is auto, so the first check asks for the top ring
+        // and the server clamp decides how high this account actually goes.
+        assert_eq!(c.channel_pref, RingPref::Auto);
+        assert_eq!(c.channel_pref.requested(), Channel::Alpha);
+    }
+
+    #[test]
+    fn ring_prefs_round_trip_through_the_config_value() {
+        for p in [
+            RingPref::Auto,
+            RingPref::Pinned(Channel::Stable),
+            RingPref::Pinned(Channel::Beta),
+            RingPref::Pinned(Channel::Alpha),
+        ] {
+            assert_eq!(RingPref::from_key(p.as_key()), Some(p));
+        }
+        assert_eq!(RingPref::from_key("nightly"), None);
+        assert_eq!(RingPref::from_key("Auto"), None); // case-sensitive on purpose
+        assert_eq!(RingPref::from_key(""), None);
+    }
+
+    #[test]
+    fn a_pinned_pref_asks_for_exactly_that_ring() {
+        for c in Channel::ALL_DESCENDING {
+            assert_eq!(RingPref::Pinned(c).requested(), c);
+            assert!(!RingPref::Pinned(c).is_auto());
+        }
+        assert!(RingPref::Auto.is_auto());
+    }
+
+    /// The ring order the whole accessibility rule rests on: a role that reaches
+    /// alpha reaches everything below it, and `TOP` really is the widest ring.
+    #[test]
+    fn rings_are_ordered_stable_below_beta_below_alpha() {
+        assert!(Channel::Stable < Channel::Beta);
+        assert!(Channel::Beta < Channel::Alpha);
+        assert_eq!(Channel::TOP, Channel::Alpha);
+        assert_eq!(Channel::ALL_DESCENDING, [Channel::Alpha, Channel::Beta, Channel::Stable]);
+        assert_eq!(Channel::Stable.max(Channel::Beta), Channel::Beta);
+    }
+
+    /// A config written before 0.6.0 carries `channel_locked` and no
+    /// `channel_pref`. It must migrate to auto — that IS the bug fix — while the
+    /// ring it last resolved to is still read back for the tray readout.
+    #[test]
+    fn a_pre_0_6_0_config_migrates_to_auto() {
+        // Simulating Config::load's parser over the legacy key set.
+        let legacy = "channel=stable\nchannel_locked=1\ntelemetry=0\n";
+        let mut cfg = Config::default();
+        for line in legacy.lines() {
+            let Some((k, v)) = line.split_once('=') else { continue };
+            match k.trim() {
+                "channel" => cfg.channel = Channel::from_key(v.trim()).unwrap(),
+                "channel_pref" => cfg.channel_pref = RingPref::from_key(v.trim()).unwrap(),
+                "telemetry" => cfg.telemetry = v.trim() == "1",
+                _ => {}
+            }
+        }
+        assert_eq!(cfg.channel, Channel::Stable);
+        assert_eq!(cfg.channel_pref, RingPref::Auto, "channel_locked must no longer pin");
+    }
+
+    /// Round-trip the on-disk format so a serialized pref is actually readable
+    /// back — `save()` and `load()` share no code, so nothing else catches a
+    /// key that was renamed in one place only.
+    #[test]
+    fn the_saved_pref_key_is_the_one_load_parses() {
+        let mut cfg = Config::default();
+        cfg.channel_pref = RingPref::Pinned(Channel::Beta);
+        cfg.channel = Channel::Beta;
+        let text = format!("channel={}\nchannel_pref={}\n", cfg.channel.as_key(), cfg.channel_pref.as_key());
+        assert!(text.contains("channel_pref=beta"));
+        let mut back = Config::default();
+        for line in text.lines() {
+            if let Some((k, v)) = line.split_once('=') {
+                if k == "channel_pref" {
+                    back.channel_pref = RingPref::from_key(v).expect("parsable");
+                }
+            }
+        }
+        assert_eq!(back.channel_pref, RingPref::Pinned(Channel::Beta));
     }
 }
 

@@ -8,14 +8,33 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { CodexListRow, CodexService, fpsArmorAttachType, fpsArmorSlot, pickLocalizedDistinct, toLang } from './codex.service';
+import {
+  CodexListRow,
+  CodexService,
+  fpsArmorAttachType,
+  fpsArmorSlot,
+  manufacturerFacetOptions,
+  manufacturerLabel,
+  pickLocalizedDistinct,
+  toLang,
+} from './codex.service';
 import { cleanLocaleValue, humanizeClassName } from './codex-format';
+import { FoldedRow, foldVariantRows } from './codex-variant-fold';
+import { SkinGroupedRow, SkinVariantRef, groupSkinRows } from './codex-skin-group';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { HangarService } from '../hangar/hangar.service';
+import {
+  HangarRoleLoadout,
+  ROLE_SLOT_SUGGESTIONS,
+  RoleLoadoutItem,
+} from '../hangar/hangar.types';
+import { ARMOR_SLOT_SPECS, roleSlotForAttachType } from './codex-landing-kpi';
 
 const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -31,6 +50,9 @@ interface FpsRow extends CodexListRow {
   detailKind: 'weapon' | 'item';
 }
 
+/** A card in the grid: an FPS row after variant folding AND livery grouping. */
+type FpsGridRow = SkinGroupedRow<FoldedRow<FpsRow>>;
+
 /**
  * FPS / on-foot equipment Codex section (issue #251) — a dedicated, curated
  * view over on-foot gear (FPS weapons + armor), analogous to the Blueprint
@@ -43,7 +65,7 @@ interface FpsRow extends CodexListRow {
 @Component({
   selector: 'sc-fps-list',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="fps-page">
@@ -55,6 +77,23 @@ interface FpsRow extends CodexListRow {
         </div>
         <sc-codex-status-banner />
       </header>
+
+      <!-- EQUIP MODE. Only reachable with ?equipInto=&lt;setId&gt; in the URL, which
+           is what makes "no equip controls during ordinary browsing" structural
+           rather than a mode flag. Since the standalone role-loadout editor was
+           retired (admin feedback 34505d70, decision 2A) this is where a piece
+           gets put into a personal set — the archive IS the editor. -->
+      @if (targetSet(); as set) {
+        <div class="sc-card equip-bar">
+          <span class="equip-for">
+            {{ 'fps.equip.targetSet' | translate: { name: set.name } }}
+            <span class="equip-role">{{ ('hangar.roles.' + set.role) | translate }}</span>
+          </span>
+          <a class="equip-back" routerLink="/codex" [queryParams]="{ zone: 'board', set: set.id }">
+            {{ 'fps.equip.backToSet' | translate }}
+          </a>
+        </div>
+      }
 
       <!-- Category switcher -->
       <div class="kind-bar" role="tablist" [attr.aria-label]="'fps.categoriesAria' | translate">
@@ -99,7 +138,9 @@ interface FpsRow extends CodexListRow {
               <span>{{ 'codex.filters.manufacturer' | translate }}</span>
               <select class="sc-select" [ngModel]="manufacturer()" (ngModelChange)="setManufacturer($event)">
                 <option value="">{{ 'codex.filters.all' | translate }}</option>
-                @for (m of manufacturerOptions(); track m) { <option [value]="m">{{ m }}</option> }
+                @for (m of manufacturerOptions(); track m.code) {
+                  <option [value]="m.code">{{ m.label }}</option>
+                }
               </select>
             </label>
           }
@@ -142,7 +183,7 @@ interface FpsRow extends CodexListRow {
           <span class="count">
             {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
           </span>
-          @if (rows().length < total()) {
+          @if (hasMore()) {
             <span class="showing">{{ 'codex.results.showingOf' | translate: { shown: rows().length, total: total() } }}</span>
           }
         </div>
@@ -153,7 +194,9 @@ interface FpsRow extends CodexListRow {
 
         @if (loading() && rows().length === 0) {
           <div class="grid">
-            @for (s of skeletons; track s) { <div class="card skel"></div> }
+            @for (s of skeletons; track s; let i = $index) {
+              <div class="card skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
+            }
           </div>
         } @else if (rows().length === 0) {
           <div class="sc-card empty">
@@ -182,12 +225,24 @@ interface FpsRow extends CodexListRow {
                 </div>
                 <code class="cls">{{ r.classNameSlug }}</code>
                 <div class="badges">
-                  @if (r.manufacturerCode) { <span class="badge mfr">{{ r.manufacturerCode }}</span> }
+                  @if (cardMfr(r); as mfr) { <span class="badge mfr" [attr.title]="mfr">{{ mfr }}</span> }
                   <span class="badge cat">{{ ('fps.category.' + category()) | translate }}</span>
                   @if (armorSlotOf(r); as slot) { <span class="badge slot">{{ slot }}</span> }
                   @if (r.subType) { <span class="badge subtle">{{ r.subType }}</span> }
                   @if (r.grade) { <span class="badge grade" [attr.data-grade]="r.grade">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
                   @if (r.isVariant) { <span class="badge variant">{{ 'codex.card.variant' | translate }}</span> }
+                  @if (r.foldedClassNames.length; as folded) {
+                    <span class="badge folded"
+                          [attr.title]="'codex.card.foldedTitle' | translate: { names: foldedNames(r) }">
+                      {{ (folded === 1 ? 'codex.card.foldedOne' : 'codex.card.foldedMany') | translate: { count: folded } }}
+                    </span>
+                  }
+                  @if (r.skinVariants.length; as skins) {
+                    <span class="badge skins"
+                          [attr.title]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
+                      {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
+                    </span>
+                  }
                 </div>
                 @if (r.size != null) {
                   <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
@@ -195,11 +250,29 @@ interface FpsRow extends CodexListRow {
                     <span class="size-tag">S{{ r.size }}</span>
                   </div>
                 }
+                @if (equipSlots(r); as slots) {
+                  @if (slots.length > 0) {
+                    <!-- Real actions, so real <button>s — the card around them
+                         stays the navigation. Armour offers its one anatomical
+                         home; a weapon offers the set's weapon positions. -->
+                    <div class="equip-row">
+                      <span class="equip-label">{{ 'fps.equip.into' | translate }}</span>
+                      @for (slot of slots; track slot) {
+                        <button type="button" class="equip-btn"
+                                [class.on]="isEquipped(r, slot)"
+                                [disabled]="equipBusy() !== null"
+                                (click)="equip($event, r, slot)">
+                          {{ slotLabel(slot) }}
+                        </button>
+                      }
+                    </div>
+                  }
+                }
               </a>
             }
           </div>
 
-          @if (rows().length < total()) {
+          @if (hasMore()) {
             <div class="more-row">
               <button type="button" class="load-more" [disabled]="loading()" (click)="loadMore()">
                 {{ (loading() ? 'codex.results.loading' : 'codex.results.loadMore') | translate }}
@@ -225,6 +298,46 @@ interface FpsRow extends CodexListRow {
        a margin here stacked on top of it and made this head 4px taller than
        every other list view's. */
     .title-block .hint { color: var(--sc-fg-2); margin: 0; max-width: 60ch; }
+
+    /* Equip mode — the archive working FOR one personal set. Amber is the
+       "yours / equipped" colour the AN BORD zone established; nothing else on
+       this page uses it, so the mode is visible without a banner shouting. */
+    .equip-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+      border-color: color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
+    }
+    .equip-for { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+    .equip-role {
+      font-family: var(--sc-font-display); text-transform: uppercase;
+      letter-spacing: 0.08em; font-size: max(0.64rem, var(--sc-fs-floor));
+      padding: 2px 8px; border-radius: 999px;
+      background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent);
+    }
+    .equip-back { color: var(--sc-accent); text-decoration: none; font-size: 0.82rem; }
+    .equip-back:hover { text-decoration: underline; }
+
+    .equip-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .equip-label {
+      font-family: var(--sc-font-display); text-transform: uppercase;
+      letter-spacing: 0.1em; font-size: max(0.6rem, var(--sc-fs-floor));
+      color: var(--sc-fg-2);
+    }
+    .equip-btn {
+      padding: 6px 10px; border-radius: 999px; cursor: pointer;
+      border: 1px solid var(--sc-border); background: var(--sc-bg-1);
+      color: var(--sc-fg-1); font-family: var(--sc-font-display);
+      font-size: max(0.62rem, var(--sc-fs-floor));
+      letter-spacing: 0.06em; text-transform: uppercase;
+      min-height: var(--sc-tap-min, 44px);
+    }
+    .equip-btn:hover:not(:disabled) { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .equip-btn:disabled { opacity: 0.5; cursor: default; }
+    .equip-btn.on {
+      border-color: var(--sc-accent); color: var(--sc-accent);
+      background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
+    }
 
     .kind-bar { display: flex; flex-wrap: wrap; gap: 6px; }
     .kind {
@@ -287,11 +400,24 @@ interface FpsRow extends CodexListRow {
     .pin.pinned { color: var(--sc-accent); }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
+    /* Holds a spelled-out manufacturer now ("Klaus & Werner"), so the pill has
+       to stay inside the card on a phone. */
+    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent);
+      max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .badge.cat { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1); }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.slot { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 32%, transparent); color: var(--sc-fg-1); }
     .badge.variant { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: var(--sc-fg-1); }
+    /* "+n file variants folded" — a quiet note, not a warning: nothing is wrong,
+       the catalog simply carries several records for one object. */
+    .badge.folded { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); cursor: help; }
+    /* Liveries are a feature of the entry, not file noise like .folded — so the
+       accent, and the detail view picks them up in the skin picker. */
+    .badge.skins {
+      background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
+      border-color: color-mix(in srgb, var(--sc-accent) 42%, transparent);
+      color: var(--sc-fg-0); cursor: help;
+    }
     .badge.grade[data-grade="A"] { background: color-mix(in srgb, #5fd698 18%, transparent); border-color: color-mix(in srgb, #5fd698 42%, transparent); color: #8fe5b5; }
     .badge.grade[data-grade="B"] { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); color: var(--sc-fg-0); }
     .badge.grade[data-grade="C"] { background: color-mix(in srgb, #f0c419 16%, transparent); border-color: color-mix(in srgb, #f0c419 40%, transparent); color: #f0d060; }
@@ -301,8 +427,7 @@ interface FpsRow extends CodexListRow {
     .size-fill { display: block; height: 100%; border-radius: 999px; background: var(--sc-accent); }
     .size-tag { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); flex: 0 0 auto; }
 
-    .card.skel { min-height: 116px; background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .card.skel { min-height: 116px; }
 
     .more-row { display: flex; justify-content: center; }
     .load-more { padding: 10px 24px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
@@ -328,7 +453,16 @@ export class FpsListComponent implements OnInit {
   readonly categories: readonly FpsCategory[] = ['weapon', 'armor'];
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
 
+  private readonly route = inject(ActivatedRoute);
+  private readonly hangar = inject(HangarService);
+
   readonly category = signal<FpsCategory>('weapon');
+  /** Target set id from `?equipInto=` — the equip intent, see applyDeepLink(). */
+  readonly equipInto = signal<string | null>(null);
+  /** The set that intent points at, once loaded. Null = ordinary browsing. */
+  readonly targetSet = signal<HangarRoleLoadout | null>(null);
+  /** `<className>|<slot>` while a write is in flight — disables the whole row. */
+  readonly equipBusy = signal<string | null>(null);
   readonly searchInput = signal('');
   private readonly searchTerm = signal('');
   readonly manufacturer = signal('');
@@ -337,8 +471,44 @@ export class FpsListComponent implements OnInit {
   readonly subType = signal('');
   readonly includeVariants = signal(false);
 
-  readonly rows = signal<FpsRow[]>([]);
-  readonly total = signal(0);
+  /** Rows exactly as the server returned them, before display-level folding. */
+  private readonly rawRows = signal<FpsRow[]>([]);
+  private readonly serverTotal = signal(0);
+
+  /**
+   * What the grid renders, after two display-level passes:
+   *
+   *  1. near-identical variant records collapsed into one card each (admin
+   *     feedback 8cd0aed7 — the APX Fire Extinguisher shipped twice, once as
+   *     `kegr_fire_extinguisher_01_Igniter`), then
+   *  2. livery families collapsed into their base record (feedback d5e39f86 —
+   *     `LH86 Pistol` swallows its thirteen `LH86 "…" Pistol` paint jobs, which
+   *     the detail view offers in a skin picker).
+   *
+   * The order is load-bearing: pass 2 refuses to guess when several records
+   * carry the base name, and the multi-tool's nine `_default_*` records all do
+   * until pass 1 has folded them. Ticking "include variants" — the control that
+   * already means "show me the raw records" — turns BOTH off.
+   */
+  readonly rows = computed<FpsGridRow[]>(() =>
+    this.includeVariants()
+      ? this.rawRows().map((r) => ({
+          ...r,
+          foldedClassNames: [] as readonly string[],
+          skinVariants: [] as readonly SkinVariantRef[],
+        }))
+      : groupSkinRows(foldVariantRows(this.rawRows(), (r) => this.cardName(r))),
+  );
+  /**
+   * Result count with the folded-away duplicates subtracted. Only the loaded
+   * pages can be folded, so this is a lower bound on the server count, never
+   * below what is actually on screen.
+   */
+  readonly total = computed(() =>
+    Math.max(this.rows().length, this.serverTotal() - (this.rawRows().length - this.rows().length)),
+  );
+  /** More pages left on the server — measured on the RAW rows, not the folded ones. */
+  readonly hasMore = computed(() => this.rawRows().length < this.serverTotal());
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   private offset = 0;
@@ -349,8 +519,12 @@ export class FpsListComponent implements OnInit {
   // populated once the first page of each category has loaded at least once.
   private readonly counts = signal<Partial<Record<FpsCategory, number>>>({});
 
+  /**
+   * Manufacturer facet — spelled-out labels over the promoted code as the
+   * filter value. See `manufacturerFacetOptions`.
+   */
   readonly manufacturerOptions = computed(() =>
-    uniqSorted(this.rows().map((r) => r.manufacturerCode)),
+    manufacturerFacetOptions(this.rows(), this.dataLang()),
   );
   readonly sizeOptions = computed(() =>
     uniqSorted(this.rows().map((r) => (r.size != null ? String(r.size) : null))).sort(
@@ -394,11 +568,136 @@ export class FpsListComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    await this.svc.loadCurrentBuild();
+    this.applyDeepLink();
+    await Promise.all([this.svc.loadCurrentBuild(), this.loadTargetSet()]);
+  }
+
+  /**
+   * Resolve `?equipInto=` into the actual set. Best-effort on purpose: a stale
+   * id (deleted set, old bookmark) simply leaves `targetSet` null, and the page
+   * is the ordinary archive again — never a broken editor.
+   */
+  private async loadTargetSet(): Promise<void> {
+    const id = this.equipInto();
+    if (!id) {
+      this.targetSet.set(null);
+      return;
+    }
+    try {
+      this.targetSet.set(await this.hangar.getRoleLoadout(id));
+    } catch {
+      this.targetSet.set(null);
+    }
+  }
+
+  /**
+   * AN-BORD deep link: `?cat=armor&slot=Helmet` opens this page already narrowed
+   * to one anatomical position, so clicking the helmet on the Codex landing
+   * lands in a list that can only contain helmets.
+   *
+   * `equipInto` (the target set id) is read here too — it carries the EQUIP
+   * INTENT. Keeping the intent in the URL is what makes requirement 4 of the
+   * rethink structural rather than a mode flag: an equip control cannot be
+   * rendered during ordinary browsing, because ordinary browsing has no
+   * `equipInto` in its URL.
+   */
+  private applyDeepLink(): void {
+    const q = this.route.snapshot.queryParamMap;
+    const cat = q.get('cat');
+    if (cat === 'armor' || cat === 'weapon') this.category.set(cat);
+    const slot = q.get('slot');
+    // Only accept a facet the current category can actually offer, so a stale
+    // link never leaves the list filtered to a value with zero rows.
+    if (slot && this.category() === 'armor' && fpsArmorAttachType(slot)) this.subType.set(slot);
+    else if (slot && this.category() === 'weapon') this.subType.set(slot);
+    this.equipInto.set(q.get('equipInto'));
+  }
+
+  /**
+   * Which slots of the target set this row may go into.
+   *
+   * Armour has exactly one home, derived from its `attach_type` — the same
+   * mapping the AN BORD paperdoll uses, so a helmet lands where the figure
+   * shows a helmet. Weapons and tools have no such anchor, so the set's own
+   * non-anatomical positions are offered (fps → primary/secondary/sidearm,
+   * mining → multitool/mining-attachment/gadget, …) and the user picks.
+   *
+   * Note the armour case is deliberately NOT filtered by role: the AN BORD zone
+   * links all six anatomical positions for every set, so refusing `legs` on a
+   * mining set here would produce a link that leads nowhere.
+   */
+  equipSlots(r: FpsRow): string[] {
+    const set = this.targetSet();
+    if (!set) return [];
+    if (this.category() === 'armor') {
+      const slot = roleSlotForAttachType(r.attachType);
+      return slot ? [slot] : [];
+    }
+    const anatomical = new Set(ARMOR_SLOT_SPECS.map((s) => s.roleSlot));
+    const slots = (ROLE_SLOT_SUGGESTIONS[set.role] ?? []).filter((s) => !anatomical.has(s));
+    return slots.length > 0 ? slots : ['primary'];
+  }
+
+  /** i18n label for a slot token; `hangar.slots.*` covers every suggested one. */
+  slotLabel(slot: string): string {
+    const key = 'hangar.slots.' + slot;
+    const label = this.t.instant(key);
+    return label === key ? slot : label;
+  }
+
+  isEquipped(r: FpsRow, slot: string): boolean {
+    return this.targetSet()?.items.some(
+      (i) => i.slot === slot && i.className === r.classNameSlug,
+    ) ?? false;
+  }
+
+  /**
+   * Put this row into `slot` of the target set — a read-merge-write on the
+   * items array, so slots this page knows nothing about survive untouched.
+   * Clicking the same slot again clears it, which is the only way to empty a
+   * position now that the editor is gone.
+   */
+  async equip(ev: Event, r: FpsRow, slot: string): Promise<void> {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const set = this.targetSet();
+    if (!set || this.equipBusy()) return;
+    const clearing = this.isEquipped(r, slot);
+    const items: RoleLoadoutItem[] = set.items.filter((i) => i.slot !== slot);
+    if (!clearing) items.push({ slot, className: r.classNameSlug, kind: r.detailKind });
+    this.equipBusy.set(`${r.classNameSlug}|${slot}`);
+    try {
+      const updated = await this.hangar.updateRoleLoadout(set.id, { items });
+      if (updated) this.targetSet.set(updated);
+    } finally {
+      this.equipBusy.set(null);
+    }
   }
 
   categoryCount(c: FpsCategory): number | null {
+    // The active tab quotes the same folded number the result header shows —
+    // two different counts for one list read as a bug.
+    if (c === this.category() && this.rawRows().length > 0) return this.total();
     return this.counts()[c] ?? null;
+  }
+
+  /** Class names of the records folded into this card, for the badge tooltip. */
+  foldedNames(r: FoldedRow<FpsRow>): string {
+    return [r.classNameSlug, ...r.foldedClassNames].join(', ');
+  }
+
+  /** Livery names grouped into this card, for the badge tooltip. */
+  skinNames(r: FpsGridRow): string {
+    return r.skinVariants.map((s) => s.liveryName).join(', ');
+  }
+
+  /**
+   * Manufacturer badge text — the full name from the extracted payload
+   * ("Klaus & Werner"), falling back to the promoted code when the game data has
+   * no resolvable name. See `manufacturerLabel`.
+   */
+  cardMfr(r: FpsRow): string | null {
+    return manufacturerLabel(r, this.dataLang());
   }
 
   cardName(r: FpsRow): string {
@@ -517,15 +816,15 @@ export class FpsListComponent implements OnInit {
       if (seq !== this.loadSeq) return;
       const detailKind: 'weapon' | 'item' = activeCategory === 'weapon' ? 'weapon' : 'item';
       const rows: FpsRow[] = res.rows.map((r) => ({ ...r, detailKind }));
-      this.rows.set(reset ? rows : [...this.rows(), ...rows]);
-      this.total.set(res.count);
+      this.rawRows.set(reset ? rows : [...this.rawRows(), ...rows]);
+      this.serverTotal.set(res.count);
       this.counts.update((c) => ({ ...c, [activeCategory]: res.count }));
     } catch (err) {
       if (seq !== this.loadSeq) return;
       this.error.set((err as Error).message ?? 'Unknown error');
       if (reset) {
-        this.rows.set([]);
-        this.total.set(0);
+        this.rawRows.set([]);
+        this.serverTotal.set(0);
       }
     } finally {
       if (seq === this.loadSeq) this.loading.set(false);

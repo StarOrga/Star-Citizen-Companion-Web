@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { DiscoveredChannel } from '../lib/discovery.js';
 import type { PerformanceProfile, ProfileId, ETA } from '../lib/performance.js';
 import type { UploadPayload, UploadResult } from '../lib/uploader.js';
-import type { UploadJobState, JobNat } from '../lib/upload-job.js';
+import type { UploadJobState, JobNat, RehydrateResult } from '../lib/upload-job.js';
 import type { JobView } from '../main/upload-session.js';
 import type { ThrottleView, ThrottleSetResult } from '../main/throttle.js';
 import type { LiveProfileId } from '../lib/throttle-control.js';
@@ -227,8 +227,15 @@ export const api = {
       ipcRenderer.invoke('sc:upload:begin', outDir, nat),
     pause: (): Promise<JobView> => ipcRenderer.invoke('sc:upload:pause'),
     resume: (): Promise<JobView> => ipcRenderer.invoke('sc:upload:resume'),
+    /**
+     * The extraction result a resume drives on, rebuilt from the stored job +
+     * manifest — the renderer's own copy does not survive a restart.
+     */
+    rehydrate: (): Promise<RehydrateResult> => ipcRenderer.invoke('sc:upload:rehydrate'),
     cancel: (): Promise<JobView> => ipcRenderer.invoke('sc:upload:cancel'),
     finish: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('sc:upload:finish'),
+    /** Mark the run failed but KEEP it resumable (unlike `finish`, which deletes it). */
+    fail: (error: string): Promise<JobView> => ipcRenderer.invoke('sc:upload:fail', error),
     onPaused: (cb: (v: JobView) => void): (() => void) => {
       const listener = (_e: unknown, payload: JobView): void => cb(payload);
       ipcRenderer.on('sc:upload:paused', listener);
@@ -323,8 +330,17 @@ export const api = {
     upload: (
       accessToken: string,
       outDir: string,
-    ): Promise<{ ok: boolean; buildId?: string; counts?: Record<string, number>; error?: string }> =>
-      ipcRenderer.invoke('sc:catalog:upload', accessToken, outDir),
+    ): Promise<{
+      ok: boolean;
+      buildId?: string;
+      counts?: Record<string, number>;
+      /** Raw technical text (logs / collapsed details), never a headline. */
+      error?: string;
+      /** Coarse failure class — see `CatalogErrorCode` in main/catalog-bridge. */
+      errorCode?: string;
+      /** Publish phase that failed, so the UI can name where it stopped. */
+      errorPhase?: string;
+    }> => ipcRenderer.invoke('sc:catalog:upload', accessToken, outDir),
     onEvent: (
       cb: (ev: { phase: string; current: number; total: number; phaseIndex?: number; phaseTotal?: number }) => void,
     ): (() => void) => {

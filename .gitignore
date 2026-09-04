@@ -68,9 +68,17 @@ logs/
 .claude/.ship-in-progress
 .claude/.ship-watcher/
 
-# /devops-burn + /devops-concept local-only state
+# /run-burn + /concept + /claude-batch local-only state
 .claude/token-config.json
 .claude/concept-active.json
+# Concept-bridge durable store (journal, snapshots, pasted attachments) —
+# per-session runtime state, never a repo artefact.
+.claude/concepts/
+.claude/batch-activity
+
+# /claude-batch collect-mode marker — per-session, recreated on demand
+.claude/batch-activity
+.claude/batch.md
 
 # Python sidecar (data-uploader) — caches + embedded interpreter + real-P4K subsets
 data-uploader/python/__pycache__/

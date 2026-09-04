@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 /**
  * The "Kommende Schiffe" card grid — toolbar, the two status blocks and the
@@ -19,7 +21,7 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
 @Component({
   selector: 'sc-upcoming-grid',
   standalone: true,
-  imports: [NgTemplateOutlet, TranslateModule, CodexCategoryIconComponent, FallbackImageComponent],
+  imports: [NeuroFieldDirective, NgTemplateOutlet, RouterLink, TranslateModule, CodexCategoryIconComponent, FallbackImageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (feed()) {
@@ -58,7 +60,9 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
 
     @if (loading() && !feed()) {
       <div class="grid">
-        @for (s of skeletons; track s) { <div class="card skel"></div> }
+        @for (s of skeletons; track s; let i = $index) {
+              <div class="card skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
+            }
       </div>
     } @else if (feed(); as f) {
       @if (f.ships.length === 0) {
@@ -102,10 +106,13 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
     }
 
     <!-- The favorite toggle lives next to the card, not inside it: the card is
-         an <a> to RSI and interactive content must not nest inside a link. -->
+         an <a> and interactive content must not nest inside a link.
+         2026-09-03 (#130): the card links into OUR codex — the announced-ship
+         page at /codex/upcoming/:id — instead of jumping straight to RSI. The
+         RSI pledge page is a secondary link over there. -->
     <ng-template #shipCard let-ship>
       <div class="card-wrap">
-        <a class="card" [href]="ship.rsiUrl || rsiFallback" target="_blank" rel="noopener noreferrer">
+        <a class="card" [routerLink]="['/codex/upcoming', ship.id]">
           <div class="thumb" [class.icon-only]="thumbs(ship).length === 0">
             <sc-fallback-image [candidates]="thumbs(ship)" [alt]="ship.name">
               <sc-codex-icon kind="ship" />
@@ -123,7 +130,6 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
               }
             </div>
           </div>
-          <span class="ext" aria-hidden="true">↗</span>
         </a>
         <button type="button" class="fav" [class.on]="isFavorite(ship)"
                 [attr.aria-pressed]="isFavorite(ship)"
@@ -189,8 +195,6 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
     .badge.status { background: color-mix(in srgb, var(--sc-fg-2) 14%, transparent); }
     .badge.status.concept { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 34%, transparent); color: var(--sc-accent); }
     .badge.new { background: color-mix(in srgb, var(--sc-success, #5fd698) 18%, transparent); border-color: color-mix(in srgb, var(--sc-success, #5fd698) 40%, transparent); color: var(--sc-success, #5fd698); }
-    .ext { position: absolute; top: 10px; right: 12px; color: var(--sc-fg-2); font-size: 0.9rem; }
-    .card-wrap:hover .ext { color: var(--sc-accent); }
 
     .fav { position: absolute; top: 6px; left: 6px; width: 30px; height: 30px; border-radius: 8px;
       border: 1px solid transparent; background: color-mix(in srgb, var(--sc-bg-0) 66%, transparent);
@@ -199,8 +203,7 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
     .fav.on { color: var(--sc-accent); }
     .fav:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
-    .skel { background: linear-gradient(110deg, var(--sc-bg-1) 30%, var(--sc-bg-2) 50%, var(--sc-bg-1) 70%); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; min-height: 210px; border-radius: 10px; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skel { min-height: 210px; border-radius: 10px; }
 
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
@@ -227,7 +230,6 @@ export class UpcomingGridComponent implements OnInit, OnDestroy {
   readonly favoriteCount = this.svc.favoriteCount;
 
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
-  readonly rsiFallback = 'https://robertsspaceindustries.com/pledge/ships';
 
   // Snapshot of "what was new when the view opened": acknowledging on leave
   // would otherwise clear the badges while the user is still looking at them.

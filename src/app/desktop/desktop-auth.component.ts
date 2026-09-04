@@ -5,7 +5,9 @@ import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { DesktopConnectionService } from './desktop-connection.service';
 import { isLoopbackCallback } from './loopback.util';
+import { mintDesktopSession } from './desktop-session.util';
 
 type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'unauthorized' | 'error';
 
@@ -95,6 +97,7 @@ export class DesktopAuthComponent implements OnInit {
   private readonly roles = inject(RoleService);
   private readonly route = inject(ActivatedRoute);
   private readonly sb = inject(SupabaseClientProvider);
+  private readonly conn = inject(DesktopConnectionService);
   private readonly translate = inject(TranslateService);
   private readonly imp = inject(ImpersonationService);
 
@@ -112,7 +115,7 @@ export class DesktopAuthComponent implements OnInit {
     // actually signed in), and under any preview `sb.client` may not be the
     // real session-bearing client. Bail out first — `exit()` reloads, which
     // lands the user back on this exact URL with the real session restored.
-    if (this.imp.active()) {
+    if (this.imp.activeOrPending()) {
       this.imp.exit();
       return;
     }
@@ -173,15 +176,27 @@ export class DesktopAuthComponent implements OnInit {
       this.errorMsg.set(error?.message ?? this.translate.instant('desktopAuth.errorNoToken'));
       return;
     }
-    // Hand over the refresh token + expiry too, so the desktop tool can persist
-    // the session (encrypted) and stay connected across the ~1h access-token TTL
-    // without a new browser login. Older tool builds simply ignore the extra
-    // body fields. Still NEVER in the URL — these ride in the form-POST body.
-    const refreshToken = data.session?.refresh_token ?? '';
-    const expiresAt = data.session?.expires_at != null ? String(data.session.expires_at) : '';
+    // Hand over a session that belongs to the TOOL, not the browser's own, so it
+    // can persist it (encrypted) and stay connected past the ~1h access-token TTL
+    // without a new browser login — and so the two do not share one rotation
+    // chain. See `mintDesktopSession` for what that hardens against, and why a
+    // failed mint falls back to the old behaviour instead of breaking the
+    // hand-off. Older tool builds simply ignore the extra body fields. Still
+    // NEVER in the URL — these ride in the form-POST body.
+    const handoff = (await mintDesktopSession(this.sb.realClient)) ?? {
+      access_token: token,
+      refresh_token: data.session?.refresh_token ?? '',
+      expires_at: data.session?.expires_at != null ? String(data.session.expires_at) : '',
+    };
 
     this.status.set('redirecting');
     const email = this.auth.user()?.email ?? '';
+
+    // Record the check-in BEFORE the form navigates away — this handoff is the
+    // moment the Data Uploader becomes connected to this account, and it is the
+    // only such event the website can observe itself. Never throws; a failed
+    // bookkeeping write must not cost the user the handoff (924bf1d8).
+    await this.conn.touch('uploader');
 
     // Hand the JWT to the loopback via a TOP-LEVEL form-POST navigation —
     // NOT a background fetch(). Chrome's Private/Local Network Access blocks
@@ -210,10 +225,10 @@ export class DesktopAuthComponent implements OnInit {
       form.appendChild(input);
     };
     addField('state', this.state);
-    addField('token', token);
+    addField('token', handoff.access_token);
     addField('email', email);
-    if (refreshToken) addField('refresh_token', refreshToken);
-    if (expiresAt) addField('expires_at', expiresAt);
+    if (handoff.refresh_token) addField('refresh_token', handoff.refresh_token);
+    if (handoff.expires_at) addField('expires_at', handoff.expires_at);
     document.body.appendChild(form);
     form.submit();
   }

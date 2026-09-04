@@ -24,13 +24,13 @@ Admin-only surfaces, listed here so the map is complete:
 |---|---|
 | `/admin` | User management and invitations |
 | `/admin/api-tokens` | **Integrations** — app connections plus issuing, listing and revoking [Public API](doc:authentication) tokens. Reached from the profile (avatar) menu, not the main nav. |
-| `/admin/telemetry` | Uploader and app telemetry dashboard |
+| `/admin/telemetry` | Telemetry dashboard — every desktop client (SCC app, Data Uploader, Starscape) side by side, with a drill-down per product |
 | `/admin/feedback` | Feedback triage queue |
 
 ## Languages and platforms
 
 The web app is a **PWA** and ships fully localised in **English and German** —
-switchable in Settings. The Data Uploader and the Starscape wallpaper app are
+switchable in Settings. The Data Uploader and the Starscape App are
 Windows desktop binaries; see [Desktop tools](doc:desktop-tools).
 
 **Language** and **region** are two separate settings, because they answer two

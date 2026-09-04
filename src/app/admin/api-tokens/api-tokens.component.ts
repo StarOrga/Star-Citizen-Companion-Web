@@ -444,11 +444,6 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
       font-size: 0.86rem;
       cursor: pointer;
     }
-    .scope-row input[type=checkbox] {
-      accent-color: var(--sc-accent);
-      width: 16px;
-      height: 16px;
-    }
     .scope-code {
       font-family: 'Fira Code', Consolas, monospace;
       font-size: 0.82rem;

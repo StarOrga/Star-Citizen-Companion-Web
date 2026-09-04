@@ -2,8 +2,13 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 import { isCatalogStale, comparePatchVersion } from './codex-format';
-import { PolySearchHit, rankPolyHits, toPolyHit } from './codex-poly-search';
+import { PolySearchHit, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-poly-search';
+import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
+import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
+import { skinQueryPrefix } from './codex-skin-group';
+import { editionQueryPrefix } from './codex-edition-group';
+import { WeaponFacetRow } from './codex-weapon-taxonomy';
 import {
   CODEX_ENTITY_TABLES,
   BlueprintIngredientPayload,
@@ -83,17 +88,30 @@ export interface CodexListFilters {
   // sub_type facet — shared column across weapon/component/item (e.g. FPS
   // weapon sub_type Rifle/Pistol/…, armor item sub_type Helmet/Undersuit/…).
   subType?: string;
+  // sub_type set / complement — the weapon browse taxonomy's FPS sub-categories
+  // ('Small'/'Medium'/… → sidearms/primaries/…). The `NotIn` variant also keeps
+  // rows whose sub_type is NULL, so it is a true "everything else" bucket.
+  subTypeIn?: string[];
+  subTypeNotIn?: string[];
   // attach_type facet — used to scope `item` rows to a single category / slot
   // (e.g. a specific personal-armor slot 'Char_Armor_Helmet').
   attachType?: string;
   // attach_type set — scope `item` rows to several categories at once, e.g. all
-  // personal-armor slots (Char_Armor_Helmet/Torso/Arms/Legs/Undersuit/Backpack).
+  // personal-armor slots (Char_Armor_Helmet/Torso/Arms/Legs/Undersuit/Backpack),
+  // or the weapon taxonomy's ship sub-categories (WeaponGun/Turret/…).
   attachTypeIn?: string[];
+  // attach_type complement — "everything else", NULLs included. See above.
+  attachTypeNotIn?: string[];
   // include AI/template variants (default: buyable-only)
   includeVariants?: boolean;
   // blueprint-only facet — raw CIG bucket from codex_blueprints.category
   // (e.g. 'FPSArmours', 'VehicleComponentS1'). Ignored for other kinds.
   category?: string;
+  // blueprint-only facet — several categories at once (the "Zu Fuß"/"Fahrzeug"
+  // group sub-filter). Intersects with `category` when both are set — the
+  // single-category select stays authoritative for its own value, this only
+  // widens/narrows the group around it. Ignored for other kinds.
+  blueprintCategoryIn?: string[];
   limit?: number;
   offset?: number;
 }
@@ -164,6 +182,17 @@ export interface PortQuery {
 
 const PAGE_SIZE = 60;
 const SEARCH_LIMIT = 60;
+// Ceiling for the livery-/edition-sibling reads. The largest family in build
+// 4.9.0 is the LH86 pistol at 14 records (ships top out at the Cutlass Black's
+// seven); the prefix also catches unrelated neighbours, so this sits well above
+// the real group size and only guards a pathological prefix from pulling a
+// whole table into the detail view.
+const SKIN_SIBLING_LIMIT = 200;
+
+// How far back the patch switch can reach. ingest-catalog never prunes builds,
+// so this is a window, not the whole history: the switch pages through it five
+// at a time and nobody scrolls past a couple of patches in practice.
+const PATCH_TIMELINE_LIMIT = 40;
 
 // Facet scan for blueprint categories: PostgREST caps a response at 1000 rows,
 // so the column is paged. The cap bounds a pathological build (10k blueprints)
@@ -216,8 +245,10 @@ function batchLocaleKeys(keys: string[]): string[][] {
 // Columns selected per kind for the list view. Keep payload last.
 const LIST_SELECT: Record<CodexKind, string> = {
   ship: 'class_name, name_localized, manufacturer_code, role, crew_size, is_variant, payload',
+  // `attach_type` rides along for weapons because it is the field the ship-side
+  // browse taxonomy cuts its sub-categories from (codex-weapon-taxonomy).
   weapon:
-    'class_name, name_localized, manufacturer_code, weapon_class, sub_type, size, grade, is_variant, payload',
+    'class_name, name_localized, manufacturer_code, weapon_class, attach_type, sub_type, size, grade, is_variant, payload',
   component:
     'class_name, name_localized, manufacturer_code, kind, attach_type, sub_type, size, grade, is_variant, payload',
   item: 'class_name, name_localized, manufacturer_code, attach_type, sub_type, size, grade, is_variant, payload',
@@ -226,11 +257,37 @@ const LIST_SELECT: Record<CodexKind, string> = {
   blueprint: 'class_name, name_localized, category, tier, craft_time_seconds, dismantle_time_seconds, payload',
 };
 
+/**
+ * Upper bound on the paged facet read in {@link CodexService.weaponFacets}.
+ * The biggest build ever ingested held ~1.3k weapons; this only exists so a
+ * pathological build can never turn the loop into an endless request storm.
+ */
+const WEAPON_FACET_HARD_CAP = 20000;
+
 @Injectable({ providedIn: 'root' })
 export class CodexService {
   private readonly sb = inject(SupabaseClientProvider);
+  /**
+   * The RSI announcement feed, read-only from here. Injected purely so
+   * {@link searchAll} can cover ships that exist on a concept page but not in
+   * any build; it holds no reference back to this service, so there is no cycle.
+   */
+  private readonly upcoming = inject(UpcomingShipsService);
 
+  /** Memoized {@link weaponFacets} read, invalidated by a change of build. */
+  private weaponFacetCache: { buildId: string; rows: WeaponFacetRow[] } | null = null;
+
+  /**
+   * The build every codex query reads from — the LIVE one by default, or the
+   * older patch the reader picked in the landing's patch switch (463872dd).
+   */
   readonly build = signal<CodexBuild | null>(null);
+  /**
+   * The `is_current` LIVE build, kept separately from {@link build} so that
+   * viewing an older patch never rewrites what "live" means (the staleness nag
+   * and the patch switch both need the real one).
+   */
+  readonly liveBuild = signal<CodexBuild | null>(null);
   readonly buildLoading = signal(false);
   readonly buildError = signal<string | null>(null);
 
@@ -247,7 +304,27 @@ export class CodexService {
    * the provenance-banner "new server version" hint. Fails closed (never nags
    * when either version is unknown).
    */
-  readonly stale = computed(() => isCatalogStale(this.latestLivePatch(), this.build()?.patchVersion));
+  readonly stale = computed(() =>
+    isCatalogStale(this.latestLivePatch(), (this.liveBuild() ?? this.build())?.patchVersion),
+  );
+
+  /**
+   * True while the reader is looking at an older patch than the live one. Not a
+   * problem state — just a fact the UI has to say out loud, because every count
+   * on the page then describes that patch instead of the current one.
+   */
+  readonly viewingPastPatch = computed(() => {
+    const live = this.liveBuild();
+    const active = this.build();
+    return !!live && !!active && live.id !== active.id;
+  });
+
+  /**
+   * Selectable patch history for the landing's patch switch. Empty until the
+   * switch is opened for the first time — a resting control must cost the page
+   * nothing.
+   */
+  readonly patchTimeline = signal<readonly PatchTimelineEntry[]>([]);
 
   // Compare tray: pinned `${kind}:${className}` keys (max 4).
   private readonly _compare = signal<string[]>([]);
@@ -262,6 +339,7 @@ export class CodexService {
   readonly compareRejectedKind = this._compareRejected.asReadonly();
 
   private buildPromise: Promise<CodexBuild | null> | null = null;
+  private timelinePromise: Promise<readonly PatchTimelineEntry[]> | null = null;
 
   /** Loads (and caches) the current LIVE build. Idempotent across callers. */
   async loadCurrentBuild(): Promise<CodexBuild | null> {
@@ -290,6 +368,7 @@ export class CodexService {
       }
       const mapped = mapBuild(data);
       this.build.set(mapped);
+      this.liveBuild.set(mapped);
       // Fire-and-forget: freshness check must never block or fail the build load.
       void this.loadLatestLivePatch();
       return mapped;
@@ -308,20 +387,73 @@ export class CodexService {
    * simply means "no staleness nag" rather than surfacing an error.
    */
   private async loadLatestLivePatch(): Promise<void> {
+    const uploaded = await this.uploadedLivePatches();
+    const newest = uploaded.reduce((max, p) => (comparePatchVersion(p, max) > 0 ? p : max), '');
+    if (newest) this.latestLivePatch.set(newest);
+  }
+
+  /**
+   * Every LIVE patch anybody uploaded a bundle for, from the viewer-safe
+   * public-stats view (one row per patch, so this stays a tiny request).
+   * Best-effort: any failure yields an empty list.
+   */
+  private async uploadedLivePatches(): Promise<string[]> {
     try {
       const { data, error } = await this.sb.client
         .from('p4k_bundles_public_stats')
         .select('patch_version')
         .eq('channel', 'live');
-      if (error || !data?.length) return;
-      const newest = data
+      if (error || !data?.length) return [];
+      return data
         .map((r) => r.patch_version as string | null)
-        .filter((p): p is string => !!p)
-        .reduce((max, p) => (comparePatchVersion(p, max) > 0 ? p : max), '');
-      if (newest) this.latestLivePatch.set(newest);
+        .filter((p): p is string => !!p);
     } catch {
       /* freshness is advisory — never surface an error for it */
+      return [];
     }
+  }
+
+  /**
+   * Patch history for the landing's patch switch: the recent LIVE catalog
+   * builds merged with every uploaded patch, so the list can mark which patches
+   * we actually hold data for (admin feedback 463872dd). Loaded once, on the
+   * first open of the switch — never on page load. No new backend surface: both
+   * sources are tables the app already reads.
+   */
+  async loadPatchTimeline(): Promise<readonly PatchTimelineEntry[]> {
+    if (this.timelinePromise) return this.timelinePromise;
+    this.timelinePromise = this.fetchPatchTimeline();
+    return this.timelinePromise;
+  }
+
+  private async fetchPatchTimeline(): Promise<readonly PatchTimelineEntry[]> {
+    const [builds, uploaded] = await Promise.all([
+      this.recentLiveBuilds(PATCH_TIMELINE_LIMIT),
+      this.uploadedLivePatches(),
+    ]);
+    const entries = buildPatchTimeline(builds, uploaded);
+    this.patchTimeline.set(entries);
+    return entries;
+  }
+
+  /**
+   * Switch every following codex query to another uploaded build — `null` puts
+   * the reader back on the live patch. Session-scoped on purpose: a reload
+   * lands on live again, so nobody can get permanently stranded in an old
+   * patch. Callers reload their own view afterwards; already-rendered data is
+   * not retro-actively rewritten.
+   *
+   * @returns true when the active build actually changed.
+   */
+  selectBuild(build: CodexBuild | null): boolean {
+    const target = build ?? this.liveBuild();
+    if (!target || target.id === this.build()?.id) return false;
+    this.build.set(target);
+    // Keep the memoised loader in sync — `loadCurrentBuild` short-circuits on
+    // the signal, but a caller holding the old promise must not resurrect it.
+    this.buildPromise = Promise.resolve(target);
+    this.blueprintCategoryCache = null;
+    return true;
   }
 
   /**
@@ -357,10 +489,18 @@ export class CodexService {
     if (filters.weaponClass && kind === 'weapon')
       query = query.eq('weapon_class', filters.weaponClass);
     if (filters.subType) query = query.eq('sub_type', filters.subType);
-    if (filters.attachType && kind === 'item') query = query.eq('attach_type', filters.attachType);
-    if (filters.attachTypeIn?.length && kind === 'item')
+    if (filters.subTypeIn?.length) query = query.in('sub_type', filters.subTypeIn);
+    if (filters.subTypeNotIn?.length)
+      query = query.or(notInOrNull('sub_type', filters.subTypeNotIn));
+    if (filters.attachType && (kind === 'item' || kind === 'weapon'))
+      query = query.eq('attach_type', filters.attachType);
+    if (filters.attachTypeIn?.length && (kind === 'item' || kind === 'weapon'))
       query = query.in('attach_type', filters.attachTypeIn);
+    if (filters.attachTypeNotIn?.length && (kind === 'item' || kind === 'weapon'))
+      query = query.or(notInOrNull('attach_type', filters.attachTypeNotIn));
     if (filters.category && kind === 'blueprint') query = query.eq('category', filters.category);
+    if (filters.blueprintCategoryIn?.length && kind === 'blueprint')
+      query = query.in('category', filters.blueprintCategoryIn);
 
     const q = filters.search?.trim();
     if (q) {
@@ -395,6 +535,45 @@ export class CodexService {
   }
 
   /**
+   * Facet columns of EVERY weapon in the current build — the source the browse
+   * taxonomy counts its categories from (codex-weapon-taxonomy).
+   *
+   * Deliberately not a per-bucket `count` query: that would be one round trip
+   * per category (14 of them) instead of the two paged reads it takes to pull
+   * three tiny columns for ~1.3k rows. Cached per build id, because the build
+   * only changes when a new catalog is ingested.
+   */
+  async weaponFacets(): Promise<WeaponFacetRow[]> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+    if (this.weaponFacetCache?.buildId === build.id) return this.weaponFacetCache.rows;
+
+    const page = 1000; // PostgREST caps a response at 1000 rows
+    const out: WeaponFacetRow[] = [];
+    for (let offset = 0; offset < WEAPON_FACET_HARD_CAP; offset += page) {
+      const { data, error } = await this.sb.client
+        .from(CODEX_ENTITY_TABLES['weapon'])
+        .select('weapon_class, attach_type, sub_type, is_variant')
+        .eq('build_id', build.id)
+        .order('class_name', { ascending: true })
+        .range(offset, offset + page - 1);
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as Record<string, unknown>[];
+      for (const r of rows) {
+        out.push({
+          weaponClass: (r['weapon_class'] as string | null) ?? null,
+          attachType: (r['attach_type'] as string | null) ?? null,
+          subType: (r['sub_type'] as string | null) ?? null,
+          isVariant: r['is_variant'] === true,
+        });
+      }
+      if (rows.length < page) break;
+    }
+    this.weaponFacetCache = { buildId: build.id, rows: out };
+    return out;
+  }
+
+  /**
    * FPS Codex section (#251): on-foot weapons — `codex_weapons` scoped to
    * `weapon_class = 'FPS'`. Reuses the same buyable-only / variant filtering
    * as every other kind (is_variant = false by default), which is also what
@@ -415,6 +594,61 @@ export class CodexService {
    */
   async listFpsArmor(filters: Omit<CodexListFilters, 'attachTypeIn'> = {}): Promise<CodexListResult> {
     return this.listByKind('item', { ...filters, attachTypeIn: [...FPS_ARMOR_ATTACH_TYPES] });
+  }
+
+  /**
+   * Candidate livery siblings of one entity, for the detail view's skin picker
+   * (feedback d5e39f86). Reads the current build by class-name PREFIX — the
+   * first three underscore segments, `gmni_pistol_ballistic` for
+   * `gmni_pistol_ballistic_01_cen01` — which is a cheap superset of the family;
+   * `resolveSkinGroup` decides what actually belongs to it, so an over-wide
+   * match costs nothing (`_` is a single-character wildcard in `ilike`, which
+   * only ever widens it further).
+   *
+   * Kinds without liveries return an empty list without a round trip. Ship
+   * liveries are a separate pipeline entirely (`ship_skins` / the Showroom),
+   * and neither manufacturers, ammunition nor blueprints are painted.
+   */
+  async listSkinSiblings(kind: CodexKind, classNameSlug: string): Promise<CodexListRow[]> {
+    if (kind !== 'weapon' && kind !== 'item' && kind !== 'component') return [];
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+
+    const { data, error } = await this.sb.client
+      .from(CODEX_ENTITY_TABLES[kind])
+      .select(LIST_SELECT[kind])
+      .eq('build_id', build.id)
+      .ilike('class_name', `${escapeIlike(skinQueryPrefix(classNameSlug))}%`)
+      .order('class_name', { ascending: true })
+      .limit(SKIN_SIBLING_LIMIT);
+    if (error) throw error;
+    return ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
+  }
+
+  /**
+   * Candidate edition siblings of one ship, for the detail view's variant
+   * picker (feedback 77ecad2a). Reads the current build by class-name PREFIX —
+   * manufacturer + model, `AEGS_Idris` for `AEGS_Idris_P_Collector_Military` —
+   * which is a cheap superset of the family; `resolveEditionGroup` decides what
+   * actually belongs to it, so an over-wide match costs nothing.
+   *
+   * Ships only: the edition rule reads a class-name lineage that only the
+   * vehicle catalog carries. Weapon liveries are `listSkinSiblings`.
+   */
+  async listEditionSiblings(kind: CodexKind, classNameSlug: string): Promise<CodexListRow[]> {
+    if (kind !== 'ship') return [];
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+
+    const { data, error } = await this.sb.client
+      .from(CODEX_ENTITY_TABLES[kind])
+      .select(LIST_SELECT[kind])
+      .eq('build_id', build.id)
+      .ilike('class_name', `${escapeIlike(editionQueryPrefix(classNameSlug))}%`)
+      .order('class_name', { ascending: true })
+      .limit(SKIN_SIBLING_LIMIT);
+    if (error) throw error;
+    return ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
   }
 
   /** Entity row + its hardpoints + its localized strings, for the detail view. */
@@ -607,20 +841,34 @@ export class CodexService {
    * cross-entity hits, and rank them deterministically (see codex-poly-search).
    * Zero model calls — server-ranked from our own data. A kind that errors is
    * skipped rather than failing the whole search.
+   *
+   * The build is not the whole truth about ships, so the RSI announcement feed
+   * is searched as an eighth source (admin feedback 7b91c5ae: "Arrastra" is a
+   * concept hull, present in the upcoming feed and in no `codex_ships` row, and
+   * the terminal answered with nothing at all). Those hits carry the `upcoming`
+   * pseudo-kind and are tinted + badged apart from anything you can fly today.
    */
   async searchAll(query: string, perKindLimit = 6): Promise<PolySearchHit[]> {
     const q = query.trim();
     if (!q) return [];
-    const results = await Promise.all(
-      CODEX_KINDS.map(async (kind) => {
+    const sources: Promise<PolySearchHit[]>[] = CODEX_KINDS.map(async (kind) => {
+      try {
+        const res = await this.listByKind(kind, { search: q, limit: perKindLimit });
+        return res.rows.map((r) => toPolyHit(kind, r));
+      } catch {
+        return [] as PolySearchHit[];
+      }
+    });
+    sources.push(
+      (async () => {
         try {
-          const res = await this.listByKind(kind, { search: q, limit: perKindLimit });
-          return res.rows.map((r) => toPolyHit(kind, r));
+          return (await this.upcoming.searchShips(q, perKindLimit)).map(toUpcomingHit);
         } catch {
           return [] as PolySearchHit[];
         }
-      }),
+      })(),
     );
+    const results = await Promise.all(sources);
     return rankPolyHits(q, results.flat());
   }
 
@@ -1168,6 +1416,18 @@ function escapeIlike(input: string): string {
   return input.replace(/[%,()]/g, ' ').trim();
 }
 
+/**
+ * PostgREST `or` clause for "column is none of these values" that ALSO keeps
+ * NULL rows. `not.in` alone drops them (SQL three-valued logic), which would
+ * quietly hide records from the taxonomy's catch-all bucket. Values are the
+ * taxonomy's own hardcoded tokens, but they get quoted anyway so a future entry
+ * with a comma or space cannot break the filter grammar.
+ */
+function notInOrNull(column: string, values: readonly string[]): string {
+  const list = values.map((v) => `"${v.replace(/"/g, '')}"`).join(',');
+  return `${column}.is.null,${column}.not.in.(${list})`;
+}
+
 function mapIngredient(i: Record<string, unknown>): CodexBlueprintIngredient {
   return {
     blueprintClassName: (i['blueprint_class_name'] as string) ?? '',
@@ -1252,6 +1512,56 @@ export function pickLocalizedDistinct(
 }
 
 /**
+ * Full manufacturer name for a catalog row, in the app language.
+ *
+ * The name is REAL extracted game data, never a hand-written expansion table:
+ * every entity payload carries `manufacturer.name`, the resolved
+ * `@manufacturer_Name…` global.ini string the uploader copies off the record's
+ * SCItemManufacturer (see `data-uploader/python/sc_extract/dataforge_extract.py`
+ * → `extract_manufacturers` / `_manufacturer_ref`, and the `codex_manufacturers`
+ * table that holds the same strings standalone). So "AEG" resolves to
+ * "Aegis Dynamics" because the game says so, not because we mapped it.
+ *
+ * Rows whose payload carries no manufacturer record at all (a handful of
+ * non-ship props in the ship table: comms probes, destructible objectives)
+ * fall back to the promoted `manufacturer_code` column, and to null when even
+ * that is empty — we never invent an expansion for an unknown code.
+ */
+export function manufacturerLabel(
+  row: { payload?: unknown; manufacturerCode?: string | null } | null | undefined,
+  lang: Lang,
+): string | null {
+  if (!row) return null;
+  const p = row.payload as { manufacturer?: { name?: LocalizedText } } | undefined;
+  return pickLocalized(p?.manufacturer?.name, lang) || row.manufacturerCode || null;
+}
+
+/**
+ * Manufacturer facet options for a list view: the option VALUE stays the
+ * promoted `manufacturer_code` (that is what `listByKind` filters on), only the
+ * LABEL is spelled out from the row payload's extracted name. A code whose rows
+ * carry no resolvable name keeps the code as its own label. Sorted by what the
+ * user actually reads, so the dropdown is alphabetical by manufacturer name.
+ */
+export function manufacturerFacetOptions(
+  rows: readonly { payload?: unknown; manufacturerCode?: string | null }[],
+  lang: Lang,
+): { code: string; label: string }[] {
+  const byCode = new Map<string, string>();
+  for (const r of rows) {
+    const code = r.manufacturerCode;
+    if (!code) continue;
+    const label = manufacturerLabel(r, lang) ?? code;
+    const existing = byCode.get(code);
+    // First resolved name wins; never let a later code-only row overwrite it.
+    if (!existing || existing === code) byCode.set(code, label);
+  }
+  return [...byCode.entries()]
+    .map(([code, label]) => ({ code, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/**
  * Map an ngx-translate language code ('de', 'en', 'de-DE', …) to a codex data
  * Lang. SC content exists in both DE and EN (DE is ~97.6% genuinely translated,
  * not an English copy), so catalog content is rendered in the app language with
@@ -1269,4 +1579,5 @@ export type {
   CodexItemRow,
   CodexAmmunitionRow,
   CodexManufacturerRow,
+  LocalizedText,
 };

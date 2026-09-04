@@ -44,8 +44,13 @@ build-scoped and replaceable; user data must survive build swaps.
 - `/hangar/ship/:id` — `HangarShipDetailComponent`: ship header (3D skin
   viewer), config tabs, hardpoint editor with per-port component picker
   (`codex_compatible_items`), aggregate stats panel.
-- `/hangar/loadout/:id` — `RoleLoadoutEditorComponent`: slot-based FPS/
-  mining/salvage equipment editor.
+- `/hangar/loadout/:id` — was `RoleLoadoutEditorComponent`, a slot-based
+  FPS/mining/salvage equipment editor. **Retired 2026-09-04** (admin feedback
+  34505d70, decision "2A" on issue #411 point 2): a personal set is now viewed
+  in the Codex start page's AN BORD zone (`/codex?zone=board&set=<id>`) and
+  filled from the on-foot archive (`/codex/fps?equipInto=<id>`). The path
+  survives only as a redirect into the former, so shared links keep resolving;
+  the hangar dashboard keeps create/rename/share/delete.
 - Shell: nav link + global `QuickSearchComponent` (Ctrl+K).
 - Codex detail/list: "Add to hangar" action on ships.
 - All strings via ngx-translate, keys in all 7 locale files.

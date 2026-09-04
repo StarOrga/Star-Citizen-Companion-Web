@@ -22,6 +22,10 @@
   --sc-accent-hot: var(--accent-hot);
   --sc-success: var(--status-success);
   --sc-warning: var(--accent-warning);
+  /* Alias some codex analysis components already referenced with a `#e8a33d`
+     fallback before this token existed (mixed-range / mixed-generator notes) —
+     defining it here is a no-visual-change consistency fix. */
+  --sc-warn: #e8a33d;
   --sc-danger: var(--accent-danger-light);
   --sc-border: var(--border-subtle);
   --sc-glow: var(--shadow-glow);
@@ -58,6 +62,175 @@
   /* Minimum hit area. 0 on a fine pointer, so mouse-precision layouts keep
      their compact controls. */
   --sc-tap-min: 0px;
+
+  /* Optical head room, on top of `.content`'s 26px padding.
+     Nearly every top-level page opens on an <h1>, and a heading's glyphs do NOT
+     start at the top of its box: the line box adds half-leading and the font
+     adds the gap between its ascender and the cap line — together ~10px at the
+     h1 size used here. A page that instead opens on a hard edge (a card border,
+     a full-bleed hero) lands exactly on the padding line and therefore reads as
+     sitting tighter under the nav bar than its neighbours, which is what Verse
+     News did against Starscape. Such a page adds this offset so both start on
+     the same optical line. A page that opens on a heading must NOT use it.
+     Measured, not guessed: on /starscape the h1 cap line sits 37.0px below the
+     content box; the Verse News stage border sits at 26px + this. */
+  --sc-page-lead: 11px;
+}
+
+/* ============================================================
+   DENSITY SCALE — one padding rhythm for the whole app
+   (admin feedback 3bc01a3d: "viele Ränder in Rändern in Rändern
+   und viel wo die eigentliche Info nur 10 Prozent horizontal
+   ausmacht")
+
+   Container padding was a per-component constant everywhere:
+   20px on .sc-card, 14px on the feedback page, 16px on a message,
+   10px on the author channel, 10px on a reply — every one of them
+   fixed, so on a 375px phone the four levels of nesting added up
+   to over a third of the screen before a single word was drawn.
+
+   Three levels, one variable each. A component says WHICH LEVEL it
+   is, not how many pixels it wants, and the breakpoints below
+   decide the pixels once for everybody:
+
+     --sc-pad-1  a top-level surface (a card, a panel, a page shell)
+     --sc-pad-2  a section inside one of those
+     --sc-pad-3  a leaf (a message bubble, a chip strip)
+
+   Desktop values are exactly the numbers the components carried
+   before, so nothing above 720px moves.
+   ============================================================ */
+:root {
+  --sc-pad-1: 20px;
+  --sc-pad-2: 12px;
+  --sc-pad-3: 10px;
+  /* Rhythm between siblings at each level, so a tightened padding is
+     never left standing next to an untouched 20px gap. */
+  --sc-gap-1: 16px;
+  --sc-gap-2: 10px;
+  --sc-gap-3: 8px;
+}
+@media (max-width: 720px) {
+  :root {
+    --sc-pad-1: 14px;
+    --sc-pad-2: 10px;
+    --sc-pad-3: 8px;
+    --sc-gap-1: 12px;
+    --sc-gap-2: 8px;
+    --sc-gap-3: 6px;
+  }
+}
+@media (max-width: 480px) {
+  :root {
+    --sc-pad-1: 12px;
+    --sc-pad-2: 8px;
+    --sc-pad-3: 6px;
+    --sc-gap-1: 10px;
+  }
+}
+
+/* ---- De-nesting: a frame inside a frame ----
+   Shrinking every padding is only half the fix. The other half is that a
+   BORDER inside a border is pure cost on a narrow screen: the parent already
+   says "this is one thing", so the child's own box only steals width and adds
+   a line the eye has to cross.
+
+   `.sc-nest` marks a container that draws a frame of its own AND is known to
+   live inside a padded parent. Below 720px it gives up the horizontal half of
+   that frame — side borders and side padding go, the top/bottom border stays
+   as a full-bleed band inside the parent's padding, which reads as the same
+   grouping for none of the width. Above 720px the class does nothing at all.
+
+   `.sc-nest--rule` is the variant for containers whose left edge carries
+   meaning (a thread, a quote): it keeps a single inline-start rule instead of
+   the band.
+
+   The doubled class in the selectors is deliberate and load-bearing. Angular's
+   emulated view encapsulation rewrites a component's own `.author-channel` to
+   `.author-channel[_ngcontent-x]` -- a class PLUS an attribute, i.e. 0,2,0 --
+   and component stylesheets are appended after this one, so a plain
+   `.sc-card .sc-nest` (also 0,2,0) would lose every tie on document order. The
+   repeat lifts these to 0,3,0, which is the smallest thing that reliably wins
+   without reaching for `!important` across a whole utility layer. */
+@media (max-width: 720px) {
+  .sc-card .sc-nest.sc-nest,
+  .sc-nest .sc-nest.sc-nest,
+  .sc-dense .sc-nest.sc-nest {
+    border-inline-width: 0;
+    border-radius: 0;
+    padding-inline: 0;
+  }
+  .sc-card .sc-nest--rule.sc-nest--rule,
+  .sc-nest .sc-nest--rule.sc-nest--rule,
+  .sc-dense .sc-nest--rule.sc-nest--rule {
+    border-block-width: 0;
+    border-inline-end-width: 0;
+    border-inline-start-width: 2px;
+    padding-inline: var(--sc-pad-3) 0;
+  }
+}
+
+/* ---- Runaway words in rendered feedback ----
+   A topic once arrived carrying a single unbroken run of ~9.800 "a" characters
+   (admin feedback 0a0fad31). The body surfaces carry `overflow-wrap: anywhere`
+   so ordinary long tokens re-wrap instead of poking out of the card — but
+   applied to a 9.800-character run that same rule turns it into two hundred
+   full-width lines and the card into a wall.
+
+   So `renderFeedbackBody` marks any token of `FEEDBACK_LONG_WORD_CHARS` or more
+   with this class, and here it is taken back out of the wrapping algorithm: it
+   renders on ONE line and overflows, and its container (`.msg-body` and friends,
+   which set `overflow-x: auto`) turns that overflow into a scrollbar of its own.
+   The layout around it stays exactly the size it was.
+
+   Global rather than component-scoped on purpose: the span reaches the DOM via
+   `[innerHTML]`, which never receives Angular's `_ngcontent` attribute, so a
+   component stylesheet could not match it. That also means there is nothing to
+   out-specify here — the value it overrides is inherited, and any declaration
+   beats inheritance. */
+.sc-longword {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* ---- Overlay shells that become sheets ----
+   A floating panel anchored in a corner is a desktop idea: on a phone it is a
+   window inside a window, inset from all four sides, with a rounded border and
+   a resize grip that a finger cannot use. `.sc-sheet` keeps the docked window
+   above 720px and turns it into a full-bleed sheet below it — no inset, no
+   radius, no side border, and the vertical safe-area honoured so the sheet's
+   own footer is not under the home indicator.
+
+   The `!important`s are load-bearing, not laziness: `resize: both` on these
+   panels means a desktop drag writes width/height as INLINE styles, and an
+   inline declaration outranks any normal author rule. Without them a panel the
+   admin once resized at their desk would still carry that size on the phone. */
+@media (max-width: 720px) {
+  /* Tripled class for the same reason as .sc-nest above: the panels this lands
+     on style themselves through a component rule that encapsulation has already
+     lifted to 0,2,0. */
+  .sc-sheet.sc-sheet.sc-sheet {
+    position: fixed;
+    inset: 0;
+    /* ...and these five additionally have to beat an INLINE style, which no
+       amount of specificity can do. */
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    min-width: 0 !important;
+    resize: none !important;
+    border-radius: 0;
+    border-inline-width: 0;
+    border-block-start-width: 0;
+    /* A sheet starts at inset 0, i.e. under the status bar and over the home
+       indicator. The safe-area insets push its own header and footer back into
+       the part of the screen the user can actually see and touch; they are 0
+       everywhere else, so nothing moves on a desktop or a plain phone. */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 
 @media (pointer: coarse) {
@@ -95,56 +268,87 @@
     min-height: var(--sc-tap-min);
   }
 
-  /* Native checkboxes/radios cannot carry a hit area larger than their own box,
-     so the element becomes the invisible 48px target and the visible 22px
-     control is drawn in ::before, with its mark in ::after. Both pseudo-elements
-     share one grid cell so the mark sits centred on the control.
-     (Painting the control via the element's own background would tie its shape
-     to the 48px border box — a radio would then render square, because
-     `border-radius` clips at the border box while `background-clip: content-box`
-     paints the inner 22px.) */
-  input[type='checkbox'],
-  input[type='radio'] {
-    appearance: none;
-    -webkit-appearance: none;
-    inline-size: var(--sc-tap-min);
-    block-size: var(--sc-tap-min);
-    margin: 0;
-    padding: 0;
-    border: none;
-    background: none;
-    display: grid;
-    place-content: center;
-  }
+}
+
+/* Native checkboxes/radios cannot carry a hit area larger than their own box,
+   so the element becomes the invisible target (48px on a coarse pointer, the
+   bare control size on a fine one) and the visible 22px control is drawn in
+   ::before, with its mark in ::after. Both pseudo-elements share one grid cell
+   so the mark sits centred on the control.
+   (Painting the control via the element's own background would tie its shape
+   to the border box — a radio would then render square on touch, because
+   `border-radius` clips at the border box while `background-clip: content-box`
+   paints the inner 22px.)
+
+   This used to live inside the `(pointer: coarse)` block, so a mouse user got
+   the raw platform control — a light, square, OS-drawn box that reads as
+   foreign on a dark panel next to the app's own rounded, accent-tinted
+   affordances. `accent-color` alone never fixed that: it recolours the tick,
+   not the box, its border, or its unchecked state. Admin feedback fd58a5eb
+   ("die Checkboxen … wirklich hässlich und not in theme") is about the desktop
+   look, so the painting is global now and the media query only decides how big
+   the hit area around it gets. */
+input[type='checkbox'],
+input[type='radio'] {
+  appearance: none;
+  -webkit-appearance: none;
+  inline-size: max(22px, var(--sc-tap-min));
+  block-size: max(22px, var(--sc-tap-min));
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  flex: none;
+}
+input[type='checkbox']::before,
+input[type='radio']::before,
+input[type='checkbox']::after,
+input[type='radio']::after {
+  content: '';
+  grid-area: 1 / 1;
+  place-self: center;
+}
+input[type='checkbox']::before,
+input[type='radio']::before {
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 4px;
+  background: var(--sc-bg-1);
+  box-shadow: inset 0 0 0 1px var(--sc-border);
+  transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+input[type='radio']::before { border-radius: 50%; }
+input[type='checkbox']:hover:not(:disabled)::before,
+input[type='radio']:hover:not(:disabled)::before {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 60%, var(--sc-border));
+}
+input[type='checkbox']:checked::before,
+input[type='radio']:checked::before {
+  background: color-mix(in srgb, var(--sc-accent) 16%, var(--sc-bg-1));
+  box-shadow: inset 0 0 0 1px var(--sc-accent);
+}
+input[type='checkbox']:disabled,
+input[type='radio']:disabled { cursor: not-allowed; opacity: 0.45; }
+input[type='checkbox']::after,
+input[type='radio']::after {
+  inline-size: 12px;
+  block-size: 12px;
+  transform: scale(0);
+  transition: transform 0.12s ease;
+  background: var(--sc-accent);
+  clip-path: polygon(14% 44%, 0 60%, 40% 100%, 100% 18%, 84% 0, 38% 68%);
+}
+input[type='radio']::after { clip-path: none; border-radius: 50%; }
+input[type='checkbox']:checked::after,
+input[type='radio']:checked::after { transform: scale(1); }
+@media (prefers-reduced-motion: reduce) {
   input[type='checkbox']::before,
   input[type='radio']::before,
   input[type='checkbox']::after,
-  input[type='radio']::after {
-    content: '';
-    grid-area: 1 / 1;
-    place-self: center;
-  }
-  input[type='checkbox']::before,
-  input[type='radio']::before {
-    inline-size: 22px;
-    block-size: 22px;
-    border-radius: 4px;
-    background: var(--sc-bg-1);
-    box-shadow: inset 0 0 0 1px var(--sc-border);
-  }
-  input[type='radio']::before { border-radius: 50%; }
-  input[type='checkbox']::after,
-  input[type='radio']::after {
-    inline-size: 12px;
-    block-size: 12px;
-    transform: scale(0);
-    transition: transform 0.12s ease;
-    background: var(--sc-accent);
-    clip-path: polygon(14% 44%, 0 60%, 40% 100%, 100% 18%, 84% 0, 38% 68%);
-  }
-  input[type='radio']::after { clip-path: none; border-radius: 50%; }
-  input[type='checkbox']:checked::after,
-  input[type='radio']:checked::after { transform: scale(1); }
+  input[type='radio']::after { transition: none; }
 }
 
 * {
@@ -232,14 +436,10 @@ button {
   }
 }
 
-/* Native form controls — theme every native checkbox/radio to the accent
-   colour so they adopt the StarOrga language instead of the OS default look
-   (previously each control fell back to the platform blue). */
-input[type='checkbox'],
-input[type='radio'] {
-  accent-color: var(--sc-accent);
-  cursor: pointer;
-}
+/* `accent-color` used to sit here as the whole of the checkbox/radio theming.
+   It is gone on purpose: the controls are now painted by the app itself (see
+   the `appearance: none` block above), where `accent-color` has no effect at
+   all — keeping it would only suggest the platform control is still in play. */
 
 /* Scrollbars — align the browser scroll chrome with the dark surface. WebKit/
    Blink via ::-webkit-scrollbar, Firefox via scrollbar-* on the element. The
@@ -270,12 +470,33 @@ input[type='radio'] {
   background: transparent;
 }
 
+/* The app's one card surface. Its padding is the density scale's level 1, so
+   every card in the app tightens together on a phone instead of each component
+   having to remember to (admin feedback 3bc01a3d). 20px above 720px = exactly
+   what it was. */
 .sc-card {
   background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
   border: 1px solid var(--sc-border);
   border-radius: 8px;
-  padding: 20px;
+  padding: var(--sc-pad-1);
   box-shadow: var(--sc-glow);
+}
+
+/* Loadout | Analyse two-column split on the codex ship detail page (PR C,
+   02-handover §2). Kept global — codex-detail.component.ts is already near
+   its per-component style budget, and this layout has no ship-specific
+   logic worth scoping. Single column below 1120px; the analysis column
+   simply follows the loadout below it (no reordering needed there). */
+.analysis-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.analysis-grid.single { grid-template-columns: 1fr; }
+.analysis-col { display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 1120px) {
+  .analysis-grid { grid-template-columns: 1fr; }
 }
 
 .sc-btn {
@@ -326,6 +547,39 @@ input[type='radio'] {
     border-color: var(--sc-accent);
     box-shadow: var(--sc-glow);
   }
+}
+
+/* ---- The folded middle of a thread ----
+   One dashed "..." standing in for everything between a conversation's first
+   and its newest message. It is deliberately the SAME control on the overview
+   board, in the processing run and in both threads of a card, so that "da ist
+   Verlauf drunter" reads identically wherever the admin meets it -- which is
+   an argument for one rule, not for two component copies that were already
+   drifting apart in their focus ring. Global also keeps both of those
+   components inside the anyComponentStyle budget. */
+.thread-more {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px dashed var(--sc-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sc-fg-2);
+  font: inherit;
+  font-size: max(0.72rem, var(--sc-fs-floor));
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.thread-more:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
+.thread-more:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.32); }
+.thread-more .ellipsis {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 0.8;
+  letter-spacing: 0.08em;
+  color: var(--sc-fg-0);
 }
 
 .sc-pill {
@@ -385,91 +639,170 @@ input[type='radio'] {
    nothing left for a stale or missing stylesheet to expose. */
 
 /* ============================================================
-   SENSOR-SWEEP MOTION SYSTEM
-   One shared loading/transition vocabulary for every "waiting"
-   moment across the app — nav view-switch, skeleton placeholders
-   and content reveal. The metaphor is the ship's sensor sweep /
-   quantum-drive spool-up: a cyan scan band travels across a
-   surface and structure resolves in its wake. GPU-light by design
-   (transform/opacity only). The global prefers-reduced-motion rule
-   above already neutralises the loops; each piece degrades to a
-   calm, static state.
+   LADE-MOTION-SYSTEM
+   Eine Sprache fuer jeden Wartemoment, aus dem Concept
+   docs/concepts/2026-08-27-ladeanimationen-seitenaufbau.html
+   (vier Runden). Drei Bausteine, streng nach Flaechenart:
+
+     .sc-skel-field  Inhaltskachel  -> Neuronenfeld (Canvas,
+                     scNeuroField-Direktive; CSS liefert Grund
+                     und Rueckfallebene)
+     .sc-skel        Struktur/Chrome -> Inferenz-Schicht, vier
+                     harte Stufen, kein Dauerschimmer
+     .sc-skel-line   Textzeile      -> Blockeinlauf in 7 Stufen
+
+   Loest die 11 lokalen @keyframes-skel-Kopien ab, die mit 1,4 s
+   gegen die 1,6 s des alten globalen Sweeps liefen. Es gibt
+   jetzt genau einen Takt. Die Staffelung kommt aus --sc-skel-i
+   (Position im Raster), nicht mehr aus nth-child, und ist bei
+   6 Schritten gedeckelt: ohne Deckel bekaeme die 24. Kachel
+   1,4 s Verzoegerung und wirkte haengengeblieben.
    ============================================================ */
 
 :root {
-  /* Skeleton base is a touch darker than a panel so the phosphor sweep
-     reads against it; the sweep itself is accent-tinted so it is actually
-     visible on the near-black surfaces (a plain bg-1↔bg-2 sweep vanished
-     in the dark theme — the root cause of "no loading animation"). */
   --sc-skel-base: color-mix(in srgb, var(--sc-bg-1) 82%, var(--sc-bg-0));
-  --sc-skel-glow: color-mix(in srgb, var(--sc-accent) 26%, transparent);
-  /* Opaque phosphor highlight for background-position shimmers (news cards). */
+  /* Opaker Phosphor-Ton, den einzelne Komponenten noch direkt lesen. */
   --sc-skel-hi: color-mix(in srgb, var(--sc-accent) 22%, var(--sc-bg-2));
+  /* Grund der Inhaltskacheln — dunkler als ein Panel, damit das Feld traegt. */
+  --sc-skel-field-bg: color-mix(in srgb, var(--sc-bg-0) 92%, #000);
+
+  /* Akzent als RGB-Tripel — die Canvas-Direktive baut daraus ihre rgba(). */
+  --sc-neuro-rgb: var(--accent-primary-rgb, 82, 193, 230);
+
+  --sc-skel-step: 55ms;   /* Staffelung je Position */
+  --sc-skel-cap: 6;       /* ... gedeckelt bei so vielen Schritten */
+  --sc-wait: 2.2s;        /* Dauer eines Aufbauzyklus */
+  --sc-reveal-ms: 260ms;
+  --sc-snap-ms: 420ms;
 }
 
-/* HUD contact frame — two corner reticles that frame a loading placeholder so
-   the wait reads as a sensor locking on, not an empty box. Shared by any
-   skeleton surface (applied via class) to keep per-component CSS lean. */
-.sc-hud-frame { position: relative; }
-.sc-hud-frame::before, .sc-hud-frame::after {
-  content: ''; position: absolute; width: 13px; height: 13px; z-index: 2;
-  border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent);
-  pointer-events: none;
+/* Gemeinsame Staffelung. Komponenten setzen --sc-skel-i auf den Index im
+   Raster; ohne die Variable ist die Verzoegerung 0 und alles bleibt gueltig. */
+@mixin sc-skel-delay {
+  /* Als String interpoliert: Dart Sass wuerde min() sonst als eigene Funktion
+     parsen und ueber die var()-Argumente stolpern. So landet es unveraendert
+     als CSS-min() im Ausgabe-Stylesheet. */
+  animation-delay: #{"calc(min(var(--sc-skel-i, 0), var(--sc-skel-cap)) * var(--sc-skel-step))"};
 }
-.sc-hud-frame::before { top: 7px; left: 7px; border-right: 0; border-bottom: 0; }
-.sc-hud-frame::after { bottom: 7px; right: 7px; border-left: 0; border-top: 0; }
 
-/* A skeleton surface: dark base + a single travelling phosphor band.
-   Uses ::after so any box becomes a skeleton without an extra node. */
+/* ---- Struktur / Chrome: Inferenz-Schicht ----
+   Vier Stufen ueber transform: scaleX. Bewusst steps(1, end): eine weiche
+   Blende kann an jedem Punkt stehen, Stufen sind ein ablesbarer Zustand.
+   Als Pseudoelement, damit die Klasse auf jede Box passt — auch auf eine
+   9 px hohe Navigationszeile, wo Kindelemente keinen Platz haetten. */
 .sc-skel {
   position: relative;
   overflow: hidden;
   background: var(--sc-skel-base);
 }
-.sc-skel::after {
+.sc-skel::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    100deg,
-    transparent 20%,
-    color-mix(in srgb, var(--sc-accent) 12%, transparent) 42%,
-    var(--sc-skel-glow) 50%,
-    color-mix(in srgb, var(--sc-accent) 12%, transparent) 58%,
-    transparent 80%
-  );
-  transform: translateX(-100%);
-  animation: sc-sweep 1.6s ease-in-out infinite;
-  will-change: transform;
+  background:
+    repeating-linear-gradient(180deg,
+      transparent 0 calc(100% / 5 - 1px),
+      color-mix(in srgb, var(--sc-accent) 28%, transparent) calc(100% / 5 - 1px) calc(100% / 5)),
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--sc-accent) 26%, var(--sc-skel-base)),
+      var(--sc-skel-base) 55%,
+      color-mix(in srgb, var(--sc-accent) 14%, var(--sc-skel-base)));
+  transform-origin: left center;
+  animation: sc-infer var(--sc-wait) steps(1, end) infinite both;
+  @include sc-skel-delay;
   pointer-events: none;
 }
-@keyframes sc-sweep {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+@keyframes sc-infer {
+  0%   { transform: scaleX(0.12); opacity: 0.40; }
+  25%  { transform: scaleX(0.45); opacity: 0.62; }
+  50%  { transform: scaleX(0.78); opacity: 0.82; }
+  75%, 100% { transform: scaleX(1); opacity: 1; }
 }
 
-/* Content/item reveal: "develops" into focus like a scanner locking on —
-   fades in, rises a touch and sharpens out of a blur. */
-@keyframes sc-reveal-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.994); filter: blur(6px); }
-  to { opacity: 1; transform: none; filter: blur(0); }
+/* ---- Textzeile: Blockeinlauf ----
+   Sieben harte Stufen statt eines Schimmers: Text trifft paketweise ein. */
+.sc-skel-line {
+  position: relative;
+  overflow: hidden;
+  background: var(--sc-skel-base);
+  border-radius: 5px;
+  animation: sc-line-in var(--sc-wait) steps(7, end) infinite both;
+  @include sc-skel-delay;
 }
+@keyframes sc-line-in {
+  0%   { clip-path: inset(0 100% 0 0); }
+  75%, 100% { clip-path: inset(0 0 0 0); }
+}
+
+/* ---- Inhaltskachel: Neuronenfeld ----
+   Die Bewegung liefert die scNeuroField-Direktive auf einem Canvas
+   (Blobs driften, Entladungen springen). Hier steht nur der Grund und
+   das, was ohne JavaScript uebrig bleiben muss. */
+.sc-skel-field {
+  position: relative;
+  overflow: hidden;
+  background: var(--sc-skel-field-bg);
+  border: 1px solid color-mix(in srgb, var(--sc-accent) 16%, transparent);
+}
+.sc-skel-field > canvas.sc-neuro {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* Rueckfallebene, solange die Direktive nichts gezeichnet hat (kein JS,
+   Canvas nicht verfuegbar, erster Frame): ein ruhiger Puls, kein leeres Loch. */
+.sc-skel-field:not([data-neuro-ready])::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 38% 42%, color-mix(in srgb, var(--sc-accent) 12%, transparent), transparent 62%);
+  animation: sc-breathe 2.4s ease-in-out infinite;
+}
+@keyframes sc-breathe { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.82; } }
+
+/* ---- Auflösung ----
+   Ohne blur(): das war die teuerste Eigenschaft im Bunde und lief bei
+   Starscape auf bis zu 24 Kacheln gleichzeitig. */
 .sc-reveal {
-  animation: sc-reveal-in 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: sc-reveal-in var(--sc-reveal-ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  @include sc-skel-delay;
+}
+@keyframes sc-reveal-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
 }
 
-/* Contact-lock flash: the reticle briefly flares the hot accent the instant
-   an item's data lands, then settles to cyan — the shared "signal acquired"
-   punctuation used by both news cards and starscape tiles. */
-@keyframes sc-lock {
-  0% { opacity: 0; }
-  30% { opacity: 1; border-color: var(--sc-accent-hot); box-shadow: 0 0 10px color-mix(in srgb, var(--sc-accent-hot) 40%, transparent); }
-  100% { opacity: 0; border-color: var(--sc-accent); box-shadow: none; }
+/* ---- Einrasten ----
+   Der Moment, in dem die Daten landen — in Akzent, nicht in Rot
+   (Entscheidung Runde 2). Opt-in per Klasse, nur auf Medienflaechen. */
+.sc-snap { position: relative; }
+.sc-snap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid transparent;
+  pointer-events: none;
+  animation: sc-snap-in var(--sc-snap-ms) ease-out both;
+}
+@keyframes sc-snap-in {
+  0%   { opacity: 0; }
+  35%  { opacity: 1; border-color: var(--sc-accent);
+         box-shadow: 0 0 12px color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+  100% { opacity: 0; border-color: transparent; box-shadow: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* No travelling band, no reveal motion — a calm static base is enough. */
-  .sc-skel::after { animation: none; opacity: 0.5; transform: none;
-    background: linear-gradient(100deg, transparent 30%, var(--sc-skel-glow) 50%, transparent 70%); }
-  .sc-reveal { animation: none; }
+  /* Ruhepuls als gemeinsame Rueckfallebene: die Flaeche atmet, nichts wandert,
+     nichts springt. Das globale reduced-motion-Regelwerk weiter oben kappt
+     zusaetzlich jede Dauer — hier steht, was danach sichtbar bleiben soll. */
+  .sc-skel::before,
+  .sc-skel-line { animation: none; }
+  .sc-skel::before { transform: scaleX(1); opacity: 0.6; }
+  .sc-skel-line { clip-path: none; }
+  .sc-skel, .sc-skel-line, .sc-skel-field { animation: sc-breathe 2.4s ease-in-out infinite; }
+  .sc-reveal, .sc-snap::after { animation: none; }
+  .sc-snap::after { opacity: 0; }
 }

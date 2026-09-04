@@ -20,7 +20,15 @@ Fields used: `id`, `title`, `rsi_url` (the canonical RSI permalink — **not** `
 
 **One artwork can arrive under several media ids.** RSI publishes a photo series as independent assets, so a media id dedupe cannot see that they are the same picture. The Foundation Festival 2026 comm-link (`21211`) shipped 8 images, 4 of them the same hangar with the same camera and lighting — two of those the SAME armour set, front view and back view. In the Starscape grid that reads as one photo repeated, every tile linking to the same comm-link. `perceptual-hash.ts` (256-bit dHash of the decoded cover, stored in `verse_wallpapers.phash`) rejects a candidate within 48 bits of a wallpaper already in the gallery. Measured on the live table: the whole studio cluster spans 23–29 bits, the nearest UNRELATED pair is 90 — the threshold sits in an empty band ~60 bits wide. Colour is deliberately not part of the signal; there is no threshold that separates the two same-suit shots (29) from the different-suit ones (23), and the suits are too small a share of the frame for a colour term to split them either. One artwork per scene is the right outcome for a wallpaper gallery. Backfill for rows captured before the filter: `npm run wallpapers:dedupe` (dry run by default).
 
-**Some entries return `images: []` even with `include=images`.** The "Roadmap Roundup" Transmission series is the recurring offender — the wiki scraper never captures its hero image (`images_count: 0` for every entry). For any comm-link that comes back without images, `fetch-verse-news` falls back to scraping the `og:image` (then `twitter:image`) meta tag from the RSI permalink (`backfillMissingImages` / `fetchOgImage`). That og:image is a `media.robertsspaceindustries.com/<id>/heap_thumb.png` url, so the existing variant-swap + cache pipeline turns it into the durable `post`/`cover` copies unchanged. Only RSI-hosted og urls are accepted (the page is untrusted); fallback is bounded to `MAX_OG_FALLBACK` entries per request.
+**…and the same artwork also arrives in several CROPS, which a hash cannot see.** The dHash above is fully backfilled and doing its job — measured 2026-09-03, all 49 live rows carry a correct hash and the *closest* pair in the table is 78 bits apart, well outside the 48-bit gate. The gallery still repeated pictures because RSI does not republish the same frame: it republishes the same render at 21:9, at 16:9, square, and wrapped in a HUD banner, each under its own media id and often across *different* comm-links (one Stingray render appeared in `21275`, `21242` and `21289`). A crop shifts every cell of a 16×16 global grid, so those pairs measure 78–115 bits — further apart than unrelated artwork. `variant-signature.ts` is the crop-tolerant answer: a 20 px-tall RGB thumbnail per row (`verse_wallpapers.thumb`, `v1:<w>x<h>:<base64>`) plus a shift search over the two crop families (height-normalised → slide x; width-normalised → slide y), scored on luma correlation **and** colour distance — both gates must pass (≥ 0.80 and ≤ 20). Colour is load-bearing here in a way it is not for dHash: two dusk landscapes correlate at 0.865 while sitting 41 colour units apart. On the live table that classifies all 1176 pairs with zero errors (6 true pairs at 0.831–0.917 / 9.1–18.3; nearest false pair 0.823 / 23.6). Nothing is deleted — look-alikes get a shared `variant_group` and a `variant_role` (`primary` = most pixels, `ratio` = genuinely different shape >1.15× apart, `duplicate` = same shape fewer pixels), and the two consumers read that differently on purpose: **the web gallery** asks for `single`+`primary` and shows one tile per artwork (`?image=<id>` share links stay resolvable for every row, hidden or not), while **the Starscape tray app** also fetches the `ratio` rows and collapses each group itself — one url per artwork, picked by the smallest log-distance between the row's aspect and the monitor's, pixel count only as the tiebreak (`wallpaper-app/src/net.rs`, `collapse_variant_groups`). That is what the 21:9-vs-16:9 exception is FOR: on an ultrawide the 3840×1646 cut beats the 16:9 one even though the 16:9 one carries more pixels. Both consumers degrade safely if the migration has not landed yet — the gallery retries unfiltered on `42703`, the tray retries `LIST_PATH_LEGACY` on a 400. The crawler backfills signatures a few rows per crawl inside the existing decode budget and regroups only when something moved, so a steady state costs one indexed read.
+
+**The `images` array is a MEDIA LIST in document order, not an editorial pick — and `images[0]` is the hero only by luck.** "Letter From The Chairman" (`21301`, 2026-08-27) shipped 8 images whose first three are a 3671×956 lower third (Chris Roberts in the left fifth, flat navy across the remaining 80%) and two 3840×114 `dividing-lines-*.webp` rules; the actual banner sat at index 3. Cover-cropped into a 16/9 tile the lower third paints its empty middle, so the card rendered as a blank panel while the RSI page showed a banner.
+
+**The page's own `og:image` IS the editorial pick.** Every comm-link carries one — verified across `transmission`, `Comm-links` and Roadmap Roundup permalinks — always as `media.robertsspaceindustries.com/<id>/heap_thumb.jpg`, whose `cover` variant is a 2.33 ratio banner. So `resolveHeroImages` no longer scrapes it only as a last resort for entries with NO images: for the newest `HERO_OG_LOOKAHEAD` (12) entries it is fetched up front and **promoted to the front** of the media list (the rest still feeds the slideshow, the wallpaper capture and the image cache). Entries further down that have no image at all keep the historic fallback, bounded by `MAX_OG_FALLBACK`.
+
+Cost is bounded three ways: the two capped target sets above, a shared `OG_PHASE_BUDGET_MS` wall clock (each fetch's own timeout is clamped to what is left of it), and a module-scope memo that survives between requests on a warm isolate — a comm-link's og:image never changes, so a hit is free and correct. Misses are memoized too, or a page with no usable tag is re-fetched forever; a fetch that ran out of budget is NOT memoized, because that is a timeout rather than a verdict about the page. Only ~8 KB into a ~34 KB page is needed, so `readHead` stops the body read at 64 KB and cancels the stream. Only RSI-hosted og urls are accepted (the page is untrusted).
+
+The client hardens the same thing from the other side (`news-thumb.component.ts`): a candidate must be *artwork* (`h ≥ 140`, ratio ≤ 8 — rules and spacers are furniture, never a slide) and, to be the static title image, landscape within `1.2 … 3.0`. The upper bound is the half that was missing — "wide" used to be unconditionally good, which is how a 33:1 divider qualified. Candidates are measured strictly in order and ONE AT A TIME (the mounted one is the one being scanned), so nothing is downloaded speculatively.
 
 ## Primary for patch notes: Spectrum forum 190048
 
@@ -72,6 +80,91 @@ Two traps the parser exists to avoid:
 Patch notes are excluded from the time buckets (`Heute / Diese Woche / Älter`) in
 every channel view — they own their own section, and the `patch` filter chip
 narrows the page down to it.
+
+## Patch CONTENT: `rsi-roadmap` edge function (feedback 961ab0a5)
+
+Everything above gives the patch board patch note **titles**. The `rsi-roadmap`
+function is where the board gets what a patch actually *contains* — the planned
+scope from RSI's roadmap and the published bullet points from the note itself.
+Two upstream sources, one function, one cache table (`public.rsi_patch_cache`),
+because they are one feature. The client never talks to RSI.
+
+### Roadmap "Release View"
+
+- Endpoint: `GET https://robertsspaceindustries.com/api/roadmap/v1/boards/1`
+- Public, unauthenticated, no cookie/token, no Cloudflare challenge.
+  **Verified 2026-08-23: 200, 820,799 bytes.** Envelope is
+  `{success, code, msg, data}`; `data.releases[]` holds 39 releases back to
+  Alpha 3.1 with their cards, `data.categories[]` the discipline id→name map
+  (AI, Characters, Core Tech, Gameplay, Locations, Missions and Events, Ships and
+  Vehicles, Weapons and Items).
+- The parser (`functions/rsi-roadmap/roadmap.ts`) keeps only the current and the
+  next release plus a two-name footnote: **820,799 bytes in, 10,316 bytes out.**
+
+Three traps it exists to avoid:
+
+1. **`releases[].released` is a dead field.** The live 4.9 release reports
+   `released: 0` alongside `status: "Released"`; only pre-4.x rows still set the
+   integer. Read `status` (`Released` / `Committed` / `Tentative`) and nothing
+   else — a `released`-based filter shows an empty "current patch".
+2. **Board order is ascending, so the current patch is at the TAIL.** `order` is
+   authoritative and the array is not guaranteed sorted. Which release is *live*
+   is read primarily from the hand-maintained status line in
+   `data.description` (`Live Version: 4.9.0 … ▪ PTU Version: Alpha 4.10 12442953`)
+   and only then from "last release with status Released".
+3. **`releases[].description` is not a date.** `"Q3 2026"` for what is coming,
+   `"December 23rd, 2021"` for what shipped. Rendered verbatim, never parsed.
+
+Thumbnails are absolute on modern cards and relative (`/media/…`) on 2018-era
+ones, so they are resolved against the RSI base and then **host-allowlisted
+against the app's CSP `img-src`** (`ALLOWED_IMAGE_HOSTS` in `roadmap.ts`) — a url
+outside it would only be blocked later, in the browser.
+
+The Progress Tracker GraphQL endpoint is deliberately unused: it masks every
+error into an identical `CFUException` (including "no such field"), so an
+operation there cannot be probed or version-checked from outside.
+
+### Patch-note bodies (Spectrum thread content)
+
+- Endpoint: `POST https://robertsspaceindustries.com/api/spectrum/forum/thread/nested`
+  with `{ slug, channel_id: "190048", sort: "votes", page: 1 }` and header
+  `X-Tavern-Id: 1` — the same community id as the list endpoint above.
+  **Verified 2026-08-23: 200, ~126–170 KB per thread.**
+- The `slug` is the last path segment of the permalink the feed already carries
+  (`…/forum/190048/thread/<slug>`), so no extra lookup is needed.
+- The body is Draft.js under `data.content_blocks[] → {type:'text',
+  data:{blocks, entityMap}}`. `entityMap` arrives as an **array**, not the
+  spec's object; both forms are read.
+
+Block types are not consistent between notes, which is the whole difficulty:
+
+| note | `header-one` | `blockquote` | `unordered-list-item` | `unstyled` |
+|---|---|---|---|---|
+| 4.9 LIVE Release Notes | 4 | 5 | 5 | 24 |
+| 4.10 PTU RC1 Patch Notes | 2 | 0 | 28 | 6 |
+
+`header-one` → heading, `blockquote` → sub-heading, `*-list-item` → bullet. An
+`unstyled` line is prose *unless* it carries a whole-line BOLD range (4.10 PTU
+writes every section label that way and has no heading block below the title) or
+starts with a hand-typed bullet glyph. Neither rescue is universal — 4.9 LIVE's
+"Important Build Info" has no style range and stays prose — so both sit on top of
+the block type rather than replacing it. A miss costs a line its label, never the
+line itself. Measured output: 170 KB thread → 4.6 KB outline, 28 bullets.
+
+Images and embeds inside a note are **not** read. A patch note's meaning is in
+its text, and pulling images in here would drag this function into the image
+pipeline that has repeatedly taken `fetch-verse-news` down (546 OOM).
+
+### Load shape
+
+The roadmap is one document per visit. Outlines are per note and lazy: the board
+seeds the newest note per channel and fetches the rest when a row is expanded.
+`RoadmapService.SLUGS_PER_REQUEST` (5) is deliberately equal to the function's
+`MAX_UPSTREAM_FETCHES` — a slug the function declines to fetch is
+indistinguishable from a note with no contents, so the client never asks for more
+than the server will fetch. The two constants must move together. At most two
+outline requests are in flight at once, which is what keeps "expand every note"
+from putting a hundred concurrent Spectrum fetches on RSI.
 
 ## Secondary: RSI status RSS
 
@@ -133,6 +226,17 @@ the feed get tagged on the next run.
 Not done on purpose: skipping the `news-images` cache for `i.ytimg.com` urls
 entirely. YouTube's CDN has no referer/expiry problem, so caching those thumbs
 buys nothing — but that is a change to the shared cache path, tracked separately.
+
+**`*.ytimg.com` must stay in the CSP either way.** The mirror only downloads a
+handful of images per run, so a freshly published video always reaches the
+client as a raw `i<n>.ytimg.com` url for a while — and until 2026-08-30 that
+host was in no directive, so the browser blocked it and the card showed an
+empty tile that never recovered (waiting does not help; only the mirror catching
+up does). It is granted in **both** `img-src` and `connect-src`: ngsw re-issues
+every subresource inside the worker, where only `connect-src` applies. Dropping
+the cache for these urls would make the CSP grant the *only* thing standing
+between a new video and a blank thumbnail — so that grant is a precondition of
+the change above, not an alternative to it.
 
 ## Caching strategy
 

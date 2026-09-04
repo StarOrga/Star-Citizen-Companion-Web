@@ -68,6 +68,16 @@ verify_jwt = false
 # flows through this function (it reads codex_ships via the service role only).
 verify_jwt = false
 
+[functions.rsi-roadmap]
+# JWT verification OFF (same rationale as fetch-verse-news): a public read-only
+# proxy for the RSI roadmap Release View and the patch-note bodies RSI publishes
+# in its Spectrum patch-notes forum. Both feed the public /news/patches board,
+# which signed-out visitors can open; the client sends its `sb_publishable_*`
+# key (not a JWT), so the platform gate would reject anonymous calls outright.
+# No user data flows through this function — it only reads/writes the public
+# rsi_patch_cache table via the service role.
+verify_jwt = false
+
 [functions.uex-proxy]
 # JWT verification OFF (same rationale as fetch-verse-news): a public read-only
 # proxy to the UEX Corp API for the Codex "Where to buy" feature (#254).

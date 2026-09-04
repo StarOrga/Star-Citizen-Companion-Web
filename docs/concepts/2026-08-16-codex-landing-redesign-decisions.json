@@ -1,0 +1,203 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "version": 1,
+    "picked_up_at": "2026-08-16T07:37:36.630Z",
+    "template": "design",
+    "designs_shown": ["konsolidierung", "baender", "rueckkehrer"],
+    "verdict": "rejected — all three missed the product idea",
+    "comments": {
+      "designs": {
+        "konsolidierung": "Hmmm, gefällt mir alles gar nicht, erfasst nicht den use case und die idee des vorherigen design concepts...",
+        "baender": "darum geht es doch gar nicht... das haben wir schon alles in verse news detaillliert.",
+        "rueckkehrer": "die Änderungsinfo ist cool, aber gern nur als umschalter / nachfrager auf dem patch badge"
+      },
+      "screens": {
+        "a-s3": "schon besser",
+        "a-s4": "siehe restliche desktop infos..."
+      }
+    },
+    "diagnosis": "Iteration 1 drew static page layouts. The decided-but-never-built product idea (.claude/rethink/2026-08-02-codex-companion-overview/) is a companion-composed overview: ranked cards, zero model calls on load, one input with two gears, no chat transcript, the companion acts. News-driven weighting (Bänder) duplicates /news and was rejected on that ground.",
+    "carried_forward": [
+      "patch badge becomes a switch / question trigger, not a label",
+      "material language from screen a-s3 (2-4px radii, clip-path notches, border glows, mono numerals, outline-first controls)"
+    ]
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "version": 2,
+    "picked_up_at": "2026-08-16T07:57:38.110Z",
+    "verdict": "search-line → answer mechanic APPROVED and settled; focus shifts to the composed overview below the title row",
+    "comments": {
+      "general": "ok, also für die suchzeile zu antwort alles gut, das können wir allees so machen, ich würde mich gern aber auf die manuelle übersicht fokussieren, wenn ich jetzt nicht die suchzeile bzw. den companion nutze zur klärung. Also alles was drunter der titelzeile ist.! dazu jetzt concepten!"
+    },
+    "template": "design",
+    "designs_shown": ["kartendeck", "instrumentenwand", "wachbericht"],
+    "source": ".claude/rethink/2026-08-02-codex-companion-overview/approaches.md §Part 3",
+    "open_rulings": [
+      "Layout shape: panel grid (Ⓑ) vs single stream (Ⓒ) — Ⓐ is a scope-cut of either",
+      "Presence in phase one: build sigil + scanline now, or defer — owner asked for 3D/animation explicitly, approach A argues it moves no success criterion",
+      "Price problem: (a) ingest UEX into a filterable column, (b) demonstrate on constraints we own, (c) treat price as a gap card — no price column exists anywhere in the Codex schema"
+    ]
+  },
+  {
+    "iteration": 3,
+    "action": null,
+    "status": "awaiting user decision",
+    "template": "design",
+    "scope": "the composed overview BELOW the title row only — the state the user sees without asking the companion, and the surface phase-two viewers get with the ask-gear switched off",
+    "designs_shown": ["instrumententafel", "wachbericht", "dossier"],
+    "arrangement_models": {
+      "instrumententafel": "rank expressed as AREA — 88px row module, cards claim 1-4 columns",
+      "wachbericht": "rank expressed as ORDER — single stream, cards expand in place via native <details>",
+      "dossier": "rank expressed as HIERARCHY — one full lead card plus a condensed register"
+    },
+    "screens_per_design": ["Patch-Tag", "Ruhige Woche (decisive)", "Kaltstart"],
+    "shared_deliverable": "Kartenformen library — 10 free / 2 weaker / 4 blocked card shapes, each annotated with its honest data status",
+    "user_signal_in_chat": "'A war schon gut, aber mach jetzt weiter!' — read as Ⓐ Instrumententafel; assumption stated openly to the user, not yet confirmed on the page",
+    "data_correction": "The prior concept called patch-delta 'the signature feature'. codex-build-diff.ts can currently only fire on crewSize because the extractor ships scmSpeed/maxSpeed/boostSpeed as null. Drawn with an honest caveat instead of carrying the page."
+  },
+  {
+    "iteration": 4,
+    "action": null,
+    "status": "awaiting user decision",
+    "template": "design",
+    "trigger": "user correction in chat, verbatim: 'Du berücksichtigst in der itaration 3 gar nicht den aktuellen ansatz an sich (nicht wenn ich die suche öffne, sondern der codex start screen). Analysiere den aktuellen ansatz und lass uns darauf aufbauen!'",
+    "diagnosis": "Iterations 2 and 3 redesigned the Codex landing from scratch instead of building on the shipped src/app/codex/codex-landing.component.ts. That page's real ordering principle is a scale ladder, not 'TOP/HERO/WELT': Ich (~1.8m, An Bord) -> Meine Flotte (~30m, Im Hangar) -> Welt (unbounded). Planes 1-2 are located state ('An Bord', 'Im Hangar' — places you stand); plane 3 breaks the pattern by asking 'Was willst du tun?' (intent) instead of showing state, which is why the bottom row reads as a menu.",
+    "designs_shown": ["leiter"],
+    "core_move": "Plane 3 becomes a state surface ('Im Versum' / what's happening in the verse and archive) using the SAME violet-tinted dash-card vocabulary from iteration 3's Instrumententafel — no new card shapes. Deep links (Index/Baupläne/Keybinds/Showroom, plus the restored /hangar entry point) move into a quiet footer rail inside each plane instead of being the plane's content.",
+    "screens": [
+      "Voller Zustand — full ladder, eventful patch",
+      "Ruhige Woche — cards absent (not empty) on planes 1-2, Dossier des Zyklus carries plane 3",
+      "Kaltstart — planes 1-2 become single-anchor action surfaces (no min-height floor, no helmet SVG); plane 2's honest CTA is the /tools/extension hangar import, not one-by-one search",
+      "Ebene 3 im Detail — close-up proving plane 3 has no 'Was willst du tun?' question left",
+      "Vorher / Nachher — shipped page vs. this iteration, 4 structural deltas annotated",
+      "Mobil 375px — ladder collapses to one column, scale-order survives"
+    ],
+    "material_fixes": [
+      "patch badge stays the approved switch; Zyklus-Report line folded into its expanded Δ-rows (was duplicating the delta chips)",
+      "2-4px radii / border-glow / clip-path notches throughout — the shipped component's 16px/12px/999px radii and box-shadow(0,0,0,.4) are called out as violations in the Vorher column",
+      "Unicode glyphs ⌕ × ☆ ★ Δ replaced with stroke SVG icons in the same single-path 24x24 language as sc-codex-icon"
+    ],
+    "open_rulings": [
+      "Eyebrow wording for plane 3: 'Im Versum' (continuity with iteration 3's own copy) vs. 'Vor der Luke'",
+      "Does Dossier des Zyklus carry every quiet week alone, or rotate among candidates?"
+    ]
+  },
+  {
+    "iteration": 5,
+    "action": null,
+    "status": "awaiting user decision",
+    "template": "design",
+    "trigger": "user verdict on iteration 4, verbatim: 'ich finde vorher die anordnung besser, aber eine gute idede unten in verse zu machen als dritten punkt. Bzgl. on foot und Ships verfeinere diese beiden. Müssen / solltten sie kacheln sein? hmmm Zudem dann in verse gern neugestalten (z. B. bei in verse die keybinding zugriff hinter einem icon zu verstecken, dafür dann locations, blueplans, shoppen etc. einzeln suchbar zu machen'",
+    "diagnosis": "Three separate instructions parsed out of one verdict: (1) arrangement REVERT — plane 1+2 go back to the shipped two-column hero row (minmax(0,1fr) minmax(0,1.35fr), 760px collapse, src/app/codex/codex-landing.component.ts .hero-row) instead of iteration 4's stacked ladder; (2) 'Im Versum' as the third plane is CONFIRMED, stays a state surface; (3) the open question is whether planes 1+2 should be bordered card containers at all ('Müssen/sollten sie Kacheln sein? hmmm') — this iteration answers it with drawings, not prose.",
+    "designs_shown": ["kachel-oder-nicht", "im-versum", "gesamtbild"],
+    "container_study": {
+      "screens": ["1 Kacheln (heute, baseline, honest cost)", "2 Rahmenlos (no container, eyebrow+rule+whitespace)", "3 Datenblatt (instrument readout, bleeding render)", "4 Eine Fläche, zwei Maßstäbe (one continuous surface, no divider)"],
+      "each_screen_shows": "full state + a small cold/empty 'Ich' inset in the same treatment, per the instruction that the container question is decided by the empty state, not the full one",
+      "recommendation": "Rahmenlos (screen 2) for implementation — removes the boxed-card baggage without inventing a new visual metaphor, degrades cleanly at the 760px collapse, lowest implementation risk. Datenblatt (screen 3) is the runner-up if the team weights in-universe voice over scaling to longer fleet lists. Eine Fläche (screen 4) is documented as the strongest structural idea but rejected for this round: worst scan speed for the 'am I mission ready' glance, and its cold state degenerates to a single generic CTA once neither side has content."
+    },
+    "im_versum_redesign": {
+      "instruction": "hide keybinds access behind an icon; make locations, blueprints, shopping etc. individually searchable",
+      "domains_real": ["Baupläne (codex_blueprints, listBlueprints() exact count)", "Schiffe/Komponenten/Waffen/Items/Munition/Hersteller (entityCounts, per-kind totals)", "Showroom/Lackierungen (one cached query)", "Kommende Schiffe (rsi-upcoming-ships)"],
+      "keybinds": "real data (~1.1k rows) but expensive — moved to a quiet icon affordance in the plane's footer rail, not a domain tile, per the user's own instruction and the data cost",
+      "gaps_drawn_honest": {
+        "locations": "does not exist anywhere in the Codex schema (no table, no column) — drawn as an explicit '— geplant —' gap tile, never as a working search",
+        "shoppen_preise": "no price column anywhere in the schema; uex-shop.service.whereToBuy is a per-entity proxy, 6+ upstream calls, name-matched, FPS armour/weapons only, no ship prices at all — drawn as a gap tile with the three honest options annotated (ingest UEX into a filterable column / keep as per-entity panel / leave as a gap), none pre-decided"
+      },
+      "screens": ["5 Im Versum · voll (domain row with real counts, keybinds behind icon)", "6 Domänensuche aktiv (one domain expanded into scoped search with results)", "7 Im Versum · Lücken ehrlich (Locations + Shoppen visible as gap tiles next to working domains)"]
+    },
+    "screens": ["8 Gesamtbild — shipped 1fr/1.35fr row + Rahmenlos planes 1-2 + rebuilt domain-search plane 3, desktop + 375px mobile collapse side by side"],
+    "open_rulings": [
+      "Ⓐ4 'Eine Fläche' stays documented as a north star, not shipped this round — greenlight later or shelve?",
+      "Locations gap: start a new extraction source now (which one?) or leave open until an RSI/wiki source is identified",
+      "Shoppen/Preise: (a) ingest UEX into a filterable column vs. (b) keep the per-entity panel vs. (c) leave the gap — none decided yet"
+    ]
+  },
+  {
+    "iteration": 6,
+    "action": null,
+    "status": "awaiting user decision",
+    "template": "design",
+    "trigger": "user verdict on iteration 5, verbatim: 'Eine Fläche finde ich super und die Rahmenlose variante vllt. für de in verse themen! Jetzt in der nächsten Iteration nimm echte szenarien eines spielers und sinnvolle infos und detailliere die einzelnen punkte wie an bord oder im hangar aus! Vergiss nicht, wir haben detail seiten hier geht es darum, flagship loadout, schneller zugriff jewils auf die anderen loadouts des spielers gespeichert im wesentlichen. Schlage mir gern weitere infos zu. Nimm aber echte spieldaten durch recherche oder data p4k und lass uns ein mehr high fidelity concept refinen!'",
+    "diagnosis": "CORRECTED after a coordinator flag on the first pass of this iteration: the first draft inverted the user's central decision, shipping Rahmenlos for planes 1-2 and documenting 'Eine Fläche, zwei Maßstäbe' as a north star only — the opposite of what he chose. Precise parse of his verdict: 'Eine Fläche finde ich super' settles the iteration-5 container question in favour of Ⓐ4 'Eine Fläche, zwei Maßstäbe' for planes 1-2 — not a north star, the shipped treatment; 'die Rahmenlose Variante vllt. für die In-Verse-Themen' scopes Rahmenlos to plane 3 only, where it already was. Fixed in place: every iteration-6 screen now renders An Bord + Im Hangar as ONE continuous surface (.i6-surface) — no border between the two scopes, one shared top edge-accent line and one shared bottom baseline line running the full width, the amber→cyan scope shift carried by eyebrow colour + numeral tint only. The shipped 1fr/1.35fr proportions and 760px collapse are kept as the surface's internal rhythm (person zone narrower, ship zone wider), not as two boxes. Plane 3 'Im Versum' stays Rahmenlos, unchanged. New centre of gravity, per the user's own words: this page is not a detail page (detail pages already exist) — it shows the flagship's ACTIVE loadout plus fast access to the player's OTHER saved loadouts, at both scales (Im Hangar = ship configs via listConfigs(shipId)/HangarShipConfig, An Bord = FPS role loadouts via roleLoadouts()/HangarRoleLoadout). The switcher is the shared mechanism making 'one surface, two scales' a structure, not a metaphor.",
+    "correction_log": "First pass (pre-correction) built Rahmenlos on planes 1-2 and framed 'Eine Fläche' as a documented-but-unshipped aspiration — a direct inversion of the user's verdict, and the second time in this concept's history that a round shipped something other than what was chosen. Corrected in place in the same iteration-6 section per coordinator instruction: no new iteration appended, markup and copy rewritten screen-by-screen (all 7 screens), open ruling about 'Rahmenlos vs Eine Fläche' replaced with a genuinely open question (visible marker for the 375px scale-break), decisions JSON updated to match.",
+    "designs_shown": ["flaggschiff", "im-versum-real", "gesamtbild6"],
+    "real_data_used": {
+      "build": "patch 4.9.0, channel LIVE, build_number literally the string 'desktop' (placeholder, not a number — drawn honestly as noise/placeholder in the patch badge, not hidden)",
+      "archive_totals": "entity_counts, free on page load: records_total 116512 · ships 353 · items 20015 · components 2172 · weapons 1312 · blueprints 1595 · manufacturers 1148 · ammunition 238 · keybinds 1103 · skins 1772 · blueprint_ingredients 3969",
+      "flagship": "AEGS_Avenger_Stalker real defaultLoadout: PowerBolt (Power Plant, S1/C), Bracer ×2 (coolers, S1/C), Shimmer ×2 (shields, S1/C, Ascension Astro/ASAS, class Tarnung/Stealth), Expedition (QD, S1/C), Ecouter (radar, S1), 3 empty gimbal weapon mounts (S4 nose Mount_Gimbal_S4, 2× S3 wings Mount_Gimbal_S3 — guns fitted, weapons NOT mounted), Behring Dual S2-Racks ×2",
+      "shield_math": "Shimmer stats from payload.stats: MaxShieldHealth 2244, MaxShieldRegen 426, DownedRegenDelay 7s, DamagedRegenDelay 3.5s, DecayRatio 0.25, Health 130, Mass 63 — Schild-Summe proposal = 2×2244 = 4488, drawn as a real derived stat",
+      "hull_stats_null": "crew/cargoCapacity/mass/flight (scmSpeed/maxSpeed/boostSpeed/yaw/pitch/roll) all null on every ship checked — the surface never shows these; the flagship is characterised entirely by fitted components, not hull numbers",
+      "fps_slots": "6 real attachType slots with real archive depth: Helmet 2672, Torso 1861, Legs 1820, Arms 1779, Undersuit 867, Backpack 540 — drawn as the armour skeleton grid",
+      "data_quality_note": "German component descriptions are encoding-corrupted in production (Grö?e, fǬr instead of umlauts/dashes) — surfaced once as a small data-quality remark on the Im Versum screen, not decoration"
+    },
+    "proposals_drawn": {
+      "instruction": "'Schlage mir gern weitere Infos zu' — six candidates drawn directly into the surfaces, each tagged with a visible 'Vorschlag' chip (not silently baked in, not yet a decision)",
+      "items": ["Leere Aufhängungen (3 unbestückt, S4 Nase + 2× S3 Flügel) — ✅ free from defaultLoadout vs. fitted config, the single most actionable real-data finding", "Klassenprofil des Loadouts (e.g. 1× Tarnung/Shimmer) — ✅ free, characterises a build", "Grad-Verteilung (100% Grad C stock on this flagship) — ✅ free", "Schild-Summe (Σ MaxShieldHealth, 4488 stock) — ✅ free, a real number hull data cannot give", "Rüstungstiefe (archive depth per armour slot as an invitation) — ✅ free", "Archiv-Stand (116 512 records, Patch 4.9.0, read 02.08.2026) — ✅ free"]
+    },
+    "scenarios": [
+      "1 Patch gelandet, 20 Minuten vor dem Flug — full surface, flagship + active loadout + empty gun mounts visible + switcher one click away + FPS set",
+      "2 Zweiter Monitor, Schiff wechseln — switcher in action, before/after diff strip, no navigation, An Bord explicitly shown unaffected",
+      "3 Frisch dabei, Hangar leer — cold start, labelled slot skeleton stays visible unfilled, honest CTA = /tools/extension hangar import",
+      "4 Ruhige Woche — planes 1-2 static/unchanged, Dossier des Zyklus (iteration 4 HIERARCHY pattern, unchanged) carries plane 3 with the real archive count",
+      "5 Im Versum, rahmenlos — real entityCounts per domain, keybinds behind its icon, Locations + Shoppen as honest gap tiles",
+      "6 Gesamtbild — full desktop assembly, one continuous surface for planes 1-2",
+      "7 Mobil 375px — the one surface collapses to a single column at 760px, Ich→Flotte→Versum order proven to survive, shared top/bottom accent lines run through the stack unbroken"
+    ],
+    "container_question_status": "SETTLED this round, in the user's favour: planes 1-2 ship as 'Eine Fläche, zwei Maßstäbe' (Ⓐ4 from iteration 5) — one continuous surface (.i6-surface), no border between An Bord and Im Hangar, one shared top edge-accent + one shared bottom baseline running the full width, amber→cyan carried only by eyebrow colour and numeral tint. The two weaknesses iteration 5 flagged against this treatment are solved inside it rather than avoided: (a) scanability — fixed mono columns for slot size/grade, aligned baselines per row; (b) cold state — the labelled slot skeleton (screen 3) stays visible unfilled inside the same surface, so emptiness reads as an unfitted instrument, not a blank pane. Plane 3 'Im Versum' stays Rahmenlos, unchanged from iteration 5.",
+    "open_rulings": [
+      "Does the 375px scale-break (screen 7, person zone stacked over ship zone) need its own visible marker, or do eyebrow colour + the shared edge/baseline lines carry it without one?",
+      "Switcher mechanics: does an inline click-to-swap (as drawn in screen 2) suffice, or does setting a new active configuration need a confirming intermediate step?",
+      "Which of the six 'Vorschlag'-tagged additions ship — all six, a subset, or different weighting?",
+      "Shoppen/Preise and Locations remain open from iteration 5 — none of the three options decided yet"
+    ]
+  },
+  {
+    "iteration": 7,
+    "action": null,
+    "status": "awaiting user decision",
+    "template": "design",
+    "trigger": "user verdict on iteration 6, verbatim: 'Generell passtdaas schon viel besser. Allerdings können wir es bei dem menschen noch mehr an einer schematischen person markieren was wo ist und bei dem Schiff ist weniger die genaue schiffskonfiguration intere4ssant sondern eher der hersteller, die rollle, der  name, die top 3 kpi für diese kategorie. Die anderen Konfiguration, gern drei auflisten und ausklappbar machen  (die letzten drei angeklickt wordenenn)'; plus design-level comment on 'im-versum-real': 'finde ich sehr gtut!'",
+    "fidelity_calibration": "user, in chat, not on the page: 'das ist ein mock, es müssen nicht perfekt echte daten 100%ig sein, aber halt mehr als ich denke mir mal drei sachen aus…' — invented VALUES are fine and wanted, invented CATEGORIES are not; legend text changed to 'Realistische Beispieldaten, an Build 4.9.0 angelehnt' across all iteration-7 screens",
+    "diagnosis": "Three separate instructions parsed out of one verdict, none reopening the settled container question: (1) 'An Bord' becomes a schematic human figure (paperdoll) with the six armour slots marked at their anatomical position and connected via thin leader lines to labels, instead of a list beside an icon; (2) 'Im Hangar' leads with Hersteller/Rolle/Name then exactly three role-dependent KPIs derived from fitted components + hardpoint structure (never speed/cargo/crew, which are null for every ship) — the full component list moves off this surface entirely, onto the existing detail pages; (3) beneath the flagship, exactly three other saved configurations appear as a compact, native <details> expandable list, at BOTH scales, sharing one mechanism. 'Eine Fläche, zwei Maßstäbe' (iteration 6) and Plane 3 'Im Versum' (Rahmenlos, approved) are both carried forward unchanged — this round does not reopen either.",
+    "designs_shown": ["paperdoll", "hangar-kpi", "andere-drei", "gesamtbild7"],
+    "paperdoll": {
+      "slots_marked": ["Helm", "Torso", "Arme (beide Oberarme, ein Slot)", "Beine (beide Oberschenkel, ein Slot)", "Untersuit (blasse Ganzkörper-Silhouette hinter der Rüstung)", "Rucksack (versetzt hinter der Schulter)"],
+      "real_anchor_archive_depth": "Helm 2672 · Torso 1861 · Beine 1820 · Arme 1779 · Untersuit 867 · Rucksack 540 Optionen im Archiv",
+      "no_stat_block": "Rüstungsteile tragen Name/Grad/Größe/Hersteller, keine Kampfwerte — Label zeigen Identität, nie eine Statistik",
+      "filler_item_names": ["Pembroke Helm", "Titan Rib Torso/Arme", "Novikov Legschutz", "ORC-mkX Untersuit", "Vanduul-Trophäe (Rucksack)", "P4-AR Ballistic", "Outland Miner-Torso"],
+      "screens": ["1 vollständig ausgerüstet (alle 6 Slots gefüllt)", "2 Lücken (3 von 6 leer — 'Prospector Suit') — die Empty-State-Anforderung, weil hier sich das Design beweisen muss"]
+    },
+    "hangar_kpi": {
+      "data_constraint": "crew/cargoCapacity/mass/flight.* (scmSpeed/maxSpeed/boostSpeed) sind für jedes Schiff null — die drei KPI kommen ausschließlich aus bestückten Komponenten + Hardpoint-Struktur, nie aus Hüllenwerten",
+      "flagship_real_anchors": "Aegis Dynamics (AEG) · Schildsumme 4488 (2× Shimmer à 2244) · 1× S4 Nase + 2× S3 Flügel, alle drei unbestückt · 2× Behring Dual-Rack (S2) — die leeren Gimbal-Halterungen bleiben der prominenteste, am wenigsten erfundene Befund der Fläche",
+      "role_locale_gap": "'Rolle' liegt aktuell nur als unaufgelöster @vehicle_class_*-Key vor und braucht resolveLocaleKeys, bevor sie echt anzeigbar ist — einmal ruhig annotiert, nicht dominant",
+      "role_kpi_legend": {
+        "Leichter Jäger": ["Schildsumme", "Waffenaufhängungen (Anzahl+Größen)", "Raketenkapazität"],
+        "Mehrzweck": ["Schildsumme", "Waffenaufhängungen", "Bestückungsgrad (Anteil vs. Werkszustand)"],
+        "Frachter": ["Schildsumme", "Waffenaufhängungen", "Modulplätze"],
+        "Support/Medizin": ["Schildsumme", "Waffenaufhängungen", "Medizinmodule (Anzahl Stationen)"]
+      },
+      "screens": ["3 Identität & KPI (Avenger Stalker, leere Aufhängungen prominent)", "4 Rollen→KPI-Regel (vier Rollen als beurteilbare Legende)"]
+    },
+    "andere_drei": {
+      "mechanism": "native <details>, drei Einträge je Maßstab, zugeklappt Name+Schiff/Rolle+eine unterscheidende Zahl, aufgeklappt KPI-Triple + Diff zur aktiven Konfiguration",
+      "last_opened_at_gap": "'die letzten drei angeklickten' braucht ein last_opened_at (oder gleichwertig) auf den gespeicherten Konfigurationen — existiert noch nicht, kleine Schema-Ergänzung, kein Blocker; ehrlicher Fallback ohne es ist 'zuletzt geändert'",
+      "shared_mechanism_both_scales": "dieselbe Liste/Details-Struktur trägt sowohl Hangar-Ship-Configs (listConfigs(shipId)) als auch An-Bord-Rollen-Loadouts (roleLoadouts()) — macht 'eine Fläche, zwei Maßstäbe' strukturell statt dekorativ",
+      "screens": ["5 Die anderen drei (zugeklappt + aufgeklappt, beide Maßstäbe nebeneinander)"]
+    },
+    "screens": ["6 Gesamtbild Desktop — volle Fläche inkl. Paperdoll, Identität+KPI, beide Config-Listen, Im Versum darunter unverändert", "7 Mobil 375px — Fläche einspaltig, Paperdoll und KPI-Block bleiben vollständig lesbar"],
+    "carried_forward_unchanged": ["Eine Fläche, zwei Maßstäbe (iteration 6, settled)", "Plane 3 'Im Versum' Rahmenlos (iteration 5, approved, verbatim: 'finde ich sehr gtut!')", "amber/cyan/violet scope, 2-4px radii, clip-path notches, border glows, mono numerals, outline-first controls, patch badge as switch"],
+    "open_rulings": [
+      "Sitzt die schematische Person, oder braucht ein Slot eine deutlichere Position (v.a. Rucksack, versetzt hinter der Schulter)?",
+      "Stimmen die drei KPI je Rolle — insbesondere 'Bestückungsgrad' und 'Medizinmodule', ohne direkte Iteration-6-Vorlage?",
+      "Reichen drei Konfigurationen je Maßstab, oder wird die Liste bei aktiven Spielern schnell zu knapp?",
+      "last_opened_at fehlt weiterhin im Schema — Fallback 'zuletzt geändert' so lange akzeptabel?",
+      "'Rolle' bleibt ein ungelöster @vehicle_class_*-Key bis resolveLocaleKeys läuft — vorher hart codieren oder ohne Rollenlabel zeigen?",
+      "Shoppen/Preise und Locations bleiben offen aus Iteration 5 — weiterhin keine der drei Optionen getroffen"
+    ]
+  }
+]

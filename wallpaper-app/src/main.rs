@@ -17,13 +17,14 @@ mod log;
 mod net;
 mod screensaver;
 mod session;
+mod telemetry;
 mod update;
 mod util;
 
 use std::collections::VecDeque;
 use std::ffi::c_void;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
@@ -43,7 +44,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     WM_LBUTTONDBLCLK, WM_RBUTTONUP, WM_TIMER, WNDCLASSW, WS_OVERLAPPED,
 };
 
-use util::{Channel, Config, Mode};
+use util::{Channel, Config, Mode, RingPref, WallpaperSource};
 
 // ---- messages / ids ----
 const WM_TRAY: u32 = WM_APP + 1;
@@ -82,6 +83,22 @@ const ID_DELAY_60: usize = 14;
 const ID_SUMMARY_ON_BOOT: usize = 15;
 const ID_SUMMARY_NOW: usize = 16;
 const ID_UPDATE: usize = 17;
+const ID_TELEMETRY: usize = 18;
+// Update-ring picker. `ID_RING_AUTO` is the default and the first entry; the
+// three pinned rings follow in alpha → beta → stable order.
+const ID_RING_AUTO: usize = 19;
+const ID_RING_ALPHA: usize = 20;
+const ID_RING_BETA: usize = 21;
+const ID_RING_STABLE: usize = 22;
+// Which slice of the gallery the rotation draws from (see `WallpaperSource`).
+const ID_SOURCE_ALL: usize = 23;
+const ID_SOURCE_TOP: usize = 24;
+const ID_SOURCE_MINE: usize = 25;
+// Account: the sign-in surface the tray never had. Without it a signed-out
+// install that is otherwise up to date has no clickable entry at all, so the
+// ring it is entitled to can never be resolved.
+const ID_ACCOUNT_SIGNIN: usize = 26;
+const ID_ACCOUNT_SIGNOUT: usize = 27;
 
 const STARSCAPE_URL: &str = "https://sc-companion.vercel.app/starscape";
 /// Filename of the fetched weekly Verse-News summary image inside the cache dir.
@@ -108,12 +125,22 @@ static MENU_OPEN: AtomicBool = AtomicBool::new(false);
 /// popup closes, so the interactive path (click → sign in → menu → download
 /// finishes) still relaunches immediately instead of waiting for the next start.
 static RESTART_PENDING: AtomicBool = AtomicBool::new(false);
+/// Bumped whenever the image selection (or the account behind it) changes. The
+/// prefetch thread compares it once per cycle and rebuilds its list when it
+/// moved — a plain "current source" copy would not do, because signing in
+/// changes what "my upvotes" resolves to without changing the source itself.
+static SOURCE_EPOCH: AtomicU32 = AtomicU32::new(0);
 
 fn ui() -> &'static Mutex<Ui> {
     UI.get().expect("UI not initialised")
 }
 fn queue() -> &'static Arc<Mutex<VecDeque<PathBuf>>> {
     QUEUE.get().expect("QUEUE not initialised")
+}
+
+/// Tell the prefetch thread that what it should be downloading has changed.
+fn bump_source_epoch() {
+    SOURCE_EPOCH.fetch_add(1, Ordering::SeqCst);
 }
 
 /// Pick a localized label (DE for German UI language, EN otherwise).
@@ -141,6 +168,11 @@ fn main() {
     let token = gfx::startup();
     util::set_fill_style();
     let (mut cfg, existed) = Config::load();
+    // Arm the panic recorder as early as the config allows. The hook above is
+    // already installed, but it refuses to write anything until consent is
+    // known — and a crash during tray/window setup ("it just doesn't start") is
+    // exactly the one worth having.
+    telemetry::set_enabled(cfg.telemetry);
     if !existed {
         // Brand-new install → default to autostart ON (net effect: new installs
         // get it; nobody with an existing config is silently opted in later).
@@ -162,18 +194,21 @@ fn main() {
         log::line("startup: autostart re-pointed at this exe (it registered a different path)");
     }
 
-    // Channel lock: the update ring is decided by the DOWNLOAD, never in the app
-    // (see `update::resolve_channel` for the precedence and why). An unmarked
-    // copy — the `latest` alias, a user rename, a self-updated exe — keeps the
-    // ring already on file; only a fresh per-ring download re-locks it.
-    let stored = if cfg.channel_locked { Some(cfg.channel) } else { None };
-    let resolved = update::resolve_channel(stored);
-    if !cfg.channel_locked || resolved != cfg.channel {
-        cfg.channel = resolved;
-        cfg.channel_locked = true;
+    // Update ring: the PREFERENCE decides (see `update::resolve_preference`).
+    // Default is "follow the highest ring this account's role allows", which the
+    // server's own clamp resolves — a `-beta`/`-alpha` download still pins that
+    // ring, but only on a genuine first run, and the tray can change it later.
+    let pref = update::resolve_preference(cfg.channel_pref, !existed);
+    if pref != cfg.channel_pref {
+        cfg.channel_pref = pref;
         cfg.save();
-        log::line(&format!("startup: update ring locked to {}", cfg.channel.as_str()));
     }
+    update::init(cfg.channel_pref, cfg.channel);
+    log::line(&format!(
+        "startup: update ring preference {} (last resolved: {})",
+        cfg.channel_pref.as_key(),
+        cfg.channel.as_str()
+    ));
 
     QUEUE.get_or_init(|| Arc::new(Mutex::new(VecDeque::new())));
 
@@ -249,7 +284,13 @@ unsafe fn run(cfg: Config) {
     // Background update thread — silent by design: it never opens a browser and
     // never shows a notification. Its only visible effect is the tray-menu
     // readout, plus a seamless relaunch when a verified newer build lands.
-    spawn_update_loop(hwnd_isize, cfg.channel);
+    spawn_update_loop(hwnd_isize);
+
+    // Anonymous telemetry: flush a panic the previous run recorded, then report
+    // this launch. Same signed ingest path and same opt-out contract as the
+    // other desktop clients (see src/telemetry.rs). Its own thread, delayed, so
+    // it never competes with the first wallpaper fetch.
+    telemetry::start(cfg);
 
     // Message loop.
     let mut msg: MSG = std::mem::zeroed();
@@ -295,11 +336,20 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
                 0
             }
             WM_IMG_READY => {
+                // `wparam` = "this is the first image of a freshly picked
+                // selection" — see `prefetch_loop`.
+                let fresh_selection = wp != 0;
                 let (need, wants_wp) = {
                     let u = ui().lock().unwrap();
                     (!u.shown, u.cfg.mode.wants_wallpaper())
                 };
-                if need {
+                if fresh_selection && wants_wp && !screensaver::is_active() {
+                    // Show what was just picked instead of waiting out a
+                    // rotation interval that may be half an hour away. This
+                    // deliberately ignores `paused`: pausing stops the TIMER,
+                    // it does not refuse a change the user asked for by hand.
+                    apply_next();
+                } else if need {
                     if wants_wp {
                         apply_next();
                     } else {
@@ -453,11 +503,15 @@ fn spawn_summary_fetch(hwnd_isize: isize, boot_flow: bool) {
 // ---------------- Self-update ----------------
 
 /// Periodic, entirely silent update poll on its own thread.
-fn spawn_update_loop(hwnd_isize: isize, channel: Channel) {
+///
+/// The ring is deliberately NOT captured here: this thread sleeps for 6 h at a
+/// time, and a ring picked in the tray meanwhile has to take effect on the next
+/// poll. `update::run_cycle` reads the live preference instead.
+fn spawn_update_loop(hwnd_isize: isize) {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(UPDATE_FIRST_DELAY_SECS));
         loop {
-            run_update_cycle(hwnd_isize, false, channel);
+            run_update_cycle(hwnd_isize, false);
             std::thread::sleep(Duration::from_secs(UPDATE_POLL_SECS));
         }
     });
@@ -465,12 +519,12 @@ fn spawn_update_loop(hwnd_isize: isize, channel: Channel) {
 
 /// Run one check/install cycle and post the UI-thread follow-ups it asks for.
 /// `interactive` (tray click only) additionally permits a browser sign-in.
-fn run_update_cycle(hwnd_isize: isize, interactive: bool, channel: Channel) {
+fn run_update_cycle(hwnd_isize: isize, interactive: bool) {
     let hwnd = hwnd_isize as *mut c_void;
     let signed_in = || unsafe {
         PostMessageW(hwnd, WM_UPDATE_FOREGROUND, 0, 0);
     };
-    if update::run_cycle(interactive, channel, &signed_in) {
+    if update::run_cycle(interactive, &signed_in) {
         unsafe {
             PostMessageW(hwnd, WM_UPDATE_RESTART, 0, 0);
         }
@@ -512,15 +566,26 @@ fn apply_next() {
 }
 
 unsafe fn show_menu(hwnd: HWND) {
-    let (paused, fade, mode, delay, summary_on_boot, channel) = {
-        let u = ui().lock().unwrap();
+    // Fold the ring the updater has since resolved back into the config, so the
+    // readout and the launch telemetry name the right one after a restart —
+    // under `RingPref::Auto` the effective ring is only known once a check has
+    // run, and that happens on a worker thread that owns no config.
+    let resolved_ring = update::effective_ring();
+    let (paused, fade, mode, source, delay, summary_on_boot, ring_pref, telemetry_on) = {
+        let mut u = ui().lock().unwrap();
+        if u.cfg.channel != resolved_ring {
+            u.cfg.channel = resolved_ring;
+            u.cfg.save();
+        }
         (
             u.cfg.paused,
             u.cfg.fade,
             u.cfg.mode,
+            u.cfg.wallpaper_source,
             u.cfg.screensaver_after_min,
             u.cfg.summary_on_boot,
-            u.cfg.channel,
+            u.cfg.channel_pref,
+            u.cfg.telemetry,
         )
     };
     let autostart = util::autostart_enabled();
@@ -547,6 +612,110 @@ unsafe fn show_menu(hwnd: HWND) {
         AppendMenuW(delay_menu, chk(*m == delay), *id, delay_labels[i].as_ptr());
     }
 
+    // ---- Update-ring submenu ----
+    //
+    // The ring picker the app never had. "Automatisch" is first and is the
+    // default: it follows the highest ring the account's role grants, re-resolved
+    // on every check. The three pinned rings follow, widest first, each GREYED
+    // when the last check showed this account cannot reach it — visible rather
+    // than hidden, so the ring exists as a fact the user can see and understand
+    // ("Alpha is a thing, my account just isn't in it") instead of a capability
+    // that silently differs between machines. Until a check has succeeded the
+    // reach is unknown and all three stay enabled: greying on a guess could hide
+    // the very entry that fixes a wrong ring.
+    let ring_menu = CreatePopupMenu();
+    let l_ring_auto = util::wide(&t(
+        "Automatisch (höchster verfügbarer)",
+        "Automatic (highest available)",
+    ));
+    AppendMenuW(ring_menu, chk(ring_pref.is_auto()), ID_RING_AUTO, l_ring_auto.as_ptr());
+    AppendMenuW(ring_menu, MF_SEPARATOR, 0, std::ptr::null());
+    let rings: [(Channel, usize); 3] = [
+        (Channel::Alpha, ID_RING_ALPHA),
+        (Channel::Beta, ID_RING_BETA),
+        (Channel::Stable, ID_RING_STABLE),
+    ];
+    let ring_labels: Vec<Vec<u16>> = rings
+        .iter()
+        .map(|(c, _)| {
+            let name = c.as_str();
+            if update::ring_is_available(*c) {
+                util::wide(name)
+            } else {
+                util::wide(&t(
+                    &format!("{name} · für dieses Konto nicht freigegeben"),
+                    &format!("{name} · not enabled for this account"),
+                ))
+            }
+        })
+        .collect();
+    for (i, (c, id)) in rings.iter().enumerate() {
+        let picked = ring_pref == RingPref::Pinned(*c);
+        let flags = chk(picked) | if update::ring_is_available(*c) { 0 } else { MF_GRAYED };
+        AppendMenuW(ring_menu, flags, *id, ring_labels[i].as_ptr());
+    }
+    let l_ring = util::wide(&update::ring_menu_label());
+
+    // ---- Account submenu ----
+    //
+    // The surface the tray was missing entirely. Sign-in used to be reachable
+    // ONLY by clicking the version readout, and that entry is greyed whenever
+    // the app is up to date — so a signed-out install on the current build had
+    // no way to say who it is, and therefore no way to be offered anything
+    // above the anonymous ring. Signed in, the same submenu names the account
+    // and offers the way back out.
+    let account_menu = CreatePopupMenu();
+    let signed_in_as = session::stored_email();
+    let signed_in = signed_in_as.is_some();
+    let l_account_who = util::wide(&match signed_in_as.as_deref() {
+        Some(email) if !email.is_empty() => {
+            t(&format!("Angemeldet als {email}"), &format!("Signed in as {email}"))
+        }
+        Some(_) => t("Angemeldet", "Signed in"),
+        None => t("Nicht angemeldet", "Not signed in"),
+    });
+    let l_account_action = util::wide(&if signed_in {
+        t("Abmelden", "Sign out")
+    } else {
+        t("Anmelden…", "Sign in…")
+    });
+    AppendMenuW(account_menu, MF_STRING | MF_GRAYED, 0, l_account_who.as_ptr());
+    AppendMenuW(account_menu, MF_SEPARATOR, 0, std::ptr::null());
+    AppendMenuW(
+        account_menu,
+        MF_STRING,
+        if signed_in { ID_ACCOUNT_SIGNOUT } else { ID_ACCOUNT_SIGNIN },
+        l_account_action.as_ptr(),
+    );
+    let l_account = util::wide(&t("Konto", "Account"));
+
+    // ---- Image-selection submenu ----
+    //
+    // "Meine Favoriten" stays pickable while signed out — it is a preference,
+    // not a capability, and the rotation falls back to the full gallery with a
+    // log line until a session exists. Greying it would hide the feature from
+    // exactly the people who have not connected their account yet.
+    let source_menu = CreatePopupMenu();
+    let l_src_all = util::wide(&t("Alle Bilder", "All images"));
+    let l_src_top = util::wide(&t(
+        &format!("Top {} der Community", util::TOP_LIMIT),
+        &format!("Community Top {}", util::TOP_LIMIT),
+    ));
+    let l_src_mine = util::wide(&if signed_in {
+        t("Nur meine Favoriten", "Only my upvotes")
+    } else {
+        t("Nur meine Favoriten (Anmeldung nötig)", "Only my upvotes (sign-in needed)")
+    });
+    AppendMenuW(source_menu, chk(source == WallpaperSource::All), ID_SOURCE_ALL, l_src_all.as_ptr());
+    AppendMenuW(source_menu, chk(source == WallpaperSource::Top), ID_SOURCE_TOP, l_src_top.as_ptr());
+    AppendMenuW(
+        source_menu,
+        chk(source == WallpaperSource::Mine),
+        ID_SOURCE_MINE,
+        l_src_mine.as_ptr(),
+    );
+    let l_source = util::wide(&t("Bildauswahl", "Image selection"));
+
     let l_next = util::wide(&t("Nächstes Wallpaper", "Next wallpaper"));
     let l_pause = util::wide(&t("Pausiert", "Paused"));
     let l_mode = util::wide(&t("Modus", "Mode"));
@@ -554,30 +723,58 @@ unsafe fn show_menu(hwnd: HWND) {
     let l_fade = util::wide(&t("Übergangseffekt", "Fade transition"));
     let l_summary_boot = util::wide(&t("Verse-News beim Start", "Weekly Verse News on start"));
     let l_auto = util::wide(&t("Mit Windows starten", "Start with Windows"));
+    let l_telemetry =
+        util::wide(&t("Anonyme Diagnose senden", "Send anonymous diagnostics"));
     let l_summary_now =
         util::wide(&t("Verse-News-Zusammenfassung jetzt zeigen", "Show Verse News summary now"));
     let l_star = util::wide(&t("Starscape Website öffnen", "Open Starscape website"));
     let l_quit = util::wide(&t("Beenden", "Quit"));
+    let l_display = util::wide(&t("Darstellung", "Presentation"));
+
+    // ---- Presentation submenu ----
+    //
+    // Everything about HOW the imagery is shown, folded out of the top level:
+    // mode, screensaver delay, crossfade and the weekly Verse-News summary.
+    // Five entries, which is the cap — anything further belongs one level
+    // deeper, not appended here.
+    let display_menu = CreatePopupMenu();
+    AppendMenuW(display_menu, MF_POPUP, mode_menu as usize, l_mode.as_ptr());
+    AppendMenuW(display_menu, MF_POPUP, delay_menu as usize, l_delay.as_ptr());
+    AppendMenuW(display_menu, chk(fade), ID_FADE, l_fade.as_ptr());
+    AppendMenuW(display_menu, chk(summary_on_boot), ID_SUMMARY_ON_BOOT, l_summary_boot.as_ptr());
+    AppendMenuW(display_menu, MF_STRING, ID_SUMMARY_NOW, l_summary_now.as_ptr());
 
     // Version readout, always first: "aktuell" when we are, "Update verfügbar"
     // only when there really is one. Greyed unless clicking it does something —
     // the tray menu is the updater's ONLY surface, no balloons, no toasts.
-    let l_update = util::wide(&update::tray_label(channel));
+    let l_update = util::wide(&update::tray_label());
     let update_flags = MF_STRING | if update::is_actionable() { 0 } else { MF_GRAYED };
 
+    // Three sections, at most five entries each — the whole menu has to be
+    // readable at a glance, and a flat thirteen-entry list was not. Everything
+    // that dropped out of the top level lives one level down, grouped by the
+    // question it answers: WHO am I (account), WHAT is shown (image selection),
+    // HOW it is shown (presentation).
+    //
+    //   1 · status   — version readout, update ring, account
+    //   2 · gallery  — next, pause, which images, how they are presented
+    //   3 · app      — autostart, diagnostics, website, quit
     let menu = CreatePopupMenu();
     AppendMenuW(menu, update_flags, ID_UPDATE, l_update.as_ptr());
+    // Directly under the readout it explains: "Aktuell · v0.6.0 · Alpha" is only
+    // half an answer without "and Alpha is what I follow, automatically".
+    AppendMenuW(menu, MF_POPUP, ring_menu as usize, l_ring.as_ptr());
+    // …and the ring only makes sense next to the account it is resolved for.
+    AppendMenuW(menu, MF_POPUP, account_menu as usize, l_account.as_ptr());
     AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
     AppendMenuW(menu, MF_STRING, ID_NEXT, l_next.as_ptr());
     AppendMenuW(menu, chk(paused), ID_PAUSE, l_pause.as_ptr());
+    AppendMenuW(menu, MF_POPUP, source_menu as usize, l_source.as_ptr());
+    AppendMenuW(menu, MF_POPUP, display_menu as usize, l_display.as_ptr());
     AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
-    AppendMenuW(menu, MF_POPUP, mode_menu as usize, l_mode.as_ptr());
-    AppendMenuW(menu, MF_POPUP, delay_menu as usize, l_delay.as_ptr());
-    AppendMenuW(menu, chk(fade), ID_FADE, l_fade.as_ptr());
-    AppendMenuW(menu, chk(summary_on_boot), ID_SUMMARY_ON_BOOT, l_summary_boot.as_ptr());
     AppendMenuW(menu, chk(autostart), ID_AUTOSTART, l_auto.as_ptr());
-    AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
-    AppendMenuW(menu, MF_STRING, ID_SUMMARY_NOW, l_summary_now.as_ptr());
+    // Telemetry opt-OUT (ticked by default), same contract as the data-uploader.
+    AppendMenuW(menu, chk(telemetry_on), ID_TELEMETRY, l_telemetry.as_ptr());
     AppendMenuW(menu, MF_STRING, ID_STARSCAPE, l_star.as_ptr());
     AppendMenuW(menu, MF_STRING, ID_QUIT, l_quit.as_ptr());
 
@@ -617,17 +814,47 @@ unsafe fn show_menu(hwnd: HWND) {
         ID_DELAY_30 => toggle(|c| c.screensaver_after_min = 30),
         ID_DELAY_60 => toggle(|c| c.screensaver_after_min = 60),
         ID_SUMMARY_ON_BOOT => toggle(|c| c.summary_on_boot = !c.summary_on_boot),
+        ID_TELEMETRY => {
+            toggle(|c| c.telemetry = !c.telemetry);
+            // Also apply it to the LIVE reporter, not just the persisted config:
+            // switching it off drops anything already recorded, on the spot.
+            telemetry::set_enabled(!telemetry_on);
+            log::line(&format!("telemetry: user set enabled={}", !telemetry_on));
+        }
         ID_SUMMARY_NOW => {
             log::line("summary: on-demand fetch requested from tray");
             spawn_summary_fetch(hwnd as isize, false);
         }
         ID_UPDATE => {
-            // Interactive cycle: may open the website sign-in when the locked
-            // ring is above the anonymous tier, then install straight away.
+            // Interactive cycle: may open the website sign-in when the ring we
+            // follow is above the anonymous tier, then install straight away.
             log::line("update: tray entry clicked");
             let hwnd_isize = hwnd as isize;
-            std::thread::spawn(move || run_update_cycle(hwnd_isize, true, channel));
+            std::thread::spawn(move || run_update_cycle(hwnd_isize, true));
         }
+        ID_SOURCE_ALL => pick_source(WallpaperSource::All),
+        ID_SOURCE_TOP => pick_source(WallpaperSource::Top),
+        ID_SOURCE_MINE => pick_source(WallpaperSource::Mine),
+        ID_ACCOUNT_SIGNIN => {
+            log::line("auth: sign-in requested from the tray");
+            let hwnd_isize = hwnd as isize;
+            std::thread::spawn(move || sign_in(hwnd_isize));
+        }
+        ID_ACCOUNT_SIGNOUT => {
+            session::Session::clear();
+            // The ceiling and the verdict were both learned as the account that
+            // just left; keeping them would grey rings for whoever signs in next.
+            update::forget_entitlement();
+            // "Only my upvotes" no longer has an account to resolve against.
+            bump_source_epoch();
+            log::line("auth: signed out from the tray");
+            let hwnd_isize = hwnd as isize;
+            std::thread::spawn(move || run_update_cycle(hwnd_isize, false));
+        }
+        ID_RING_AUTO => pick_ring(hwnd, RingPref::Auto),
+        ID_RING_ALPHA => pick_ring(hwnd, RingPref::Pinned(Channel::Alpha)),
+        ID_RING_BETA => pick_ring(hwnd, RingPref::Pinned(Channel::Beta)),
+        ID_RING_STABLE => pick_ring(hwnd, RingPref::Pinned(Channel::Stable)),
         ID_STARSCAPE => util::open_url(STARSCAPE_URL),
         ID_QUIT => {
             DestroyWindow(hwnd);
@@ -651,6 +878,96 @@ fn toggle(f: impl FnOnce(&mut Config)) {
     u.cfg.save();
 }
 
+/// Run the website sign-in from the tray's account entry, then re-resolve
+/// everything that depends on WHO is asking.
+///
+/// Runs on a worker thread ([`auth::run_oauth_flow`] blocks for up to five
+/// minutes waiting on the browser). The follow-up check is deliberately NOT
+/// interactive: a browser was just opened, and a second one would be absurd.
+fn sign_in(hwnd_isize: isize) {
+    let Some(session) = auth::run_oauth_flow() else {
+        log::line("auth: tray sign-in did not complete");
+        return;
+    };
+    session.save();
+    // Whatever the previous (or anonymous) checks concluded about the reachable
+    // rings belonged to somebody else. Re-ask as the account that just signed in.
+    update::forget_entitlement();
+    unsafe {
+        PostMessageW(hwnd_isize as *mut c_void, WM_UPDATE_FOREGROUND, 0, 0);
+    }
+    run_update_cycle(hwnd_isize, false);
+    // "Only my upvotes" has an answer now that it did not have signed out.
+    bump_source_epoch();
+}
+
+/// Apply an image-selection choice from the tray: persist it and make the
+/// prefetch thread act on it now rather than at the end of its current cycle.
+/// A no-op pick (the same source again) does not disturb a running rotation.
+fn pick_source(source: WallpaperSource) {
+    let current = ui().lock().unwrap().cfg.wallpaper_source;
+    if current == source {
+        return;
+    }
+    toggle(|c| c.wallpaper_source = source);
+    log::line(&format!("gallery: image selection set to {}", source.as_str()));
+    bump_source_epoch();
+}
+
+/// Apply an update-ring choice from the tray: persist it, hand it to the
+/// updater, and re-check right away.
+///
+/// The re-check is INTERACTIVE on purpose. Picking a ring above the anonymous
+/// tier is the one moment where a browser sign-in is clearly what the user just
+/// asked for; leaving it to the silent poll would answer a deliberate click with
+/// up to six hours of nothing. A no-op pick (same ring again) is skipped so the
+/// menu does not fire a network round trip for a mis-click.
+fn pick_ring(hwnd: HWND, pref: RingPref) {
+    // Bound to a `let` so the guard is provably released before `toggle` takes
+    // the same lock again — a temporary living to the end of the `if` statement
+    // would self-deadlock the UI thread.
+    let current = ui().lock().unwrap().cfg.channel_pref;
+    if current == pref {
+        return;
+    }
+    toggle(|c| c.channel_pref = pref);
+    update::set_preference(pref);
+    let hwnd_isize = hwnd as isize;
+    std::thread::spawn(move || run_update_cycle(hwnd_isize, true));
+}
+
+/// Resolve the wallpaper list for the configured image selection.
+///
+/// Both narrowed selections fall back to the full gallery instead of leaving
+/// the desktop with nothing to rotate. "My upvotes" is legitimately empty —
+/// signed out, or simply before the first thumbs-up — and an empty rotation is
+/// indistinguishable from a broken app, so it degrades to everything and says
+/// so in the log rather than showing nothing at all.
+fn fetch_urls_for_selection() -> Vec<String> {
+    let source = ui().lock().unwrap().cfg.wallpaper_source;
+    let urls = match source {
+        // The plain gallery has nothing to fall back FROM.
+        WallpaperSource::All => return net::fetch_wallpaper_urls(),
+        WallpaperSource::Top => net::fetch_top_wallpaper_urls(util::TOP_LIMIT),
+        WallpaperSource::Mine => match session::ensure_access_token() {
+            Some(token) => net::fetch_voted_wallpaper_urls(&token),
+            None => {
+                log::line("gallery: 'my upvotes' needs a signed-in account (tray → Account)");
+                Vec::new()
+            }
+        },
+    };
+    if !urls.is_empty() {
+        log::line(&format!("gallery: {} image(s) for selection '{}'", urls.len(), source.as_str()));
+        return urls;
+    }
+    log::line(&format!(
+        "gallery: selection '{}' resolved to nothing — showing the full gallery instead",
+        source.as_str()
+    ));
+    net::fetch_wallpaper_urls()
+}
+
 /// Background: fetch the list once, then keep ~3 images ready on disk.
 fn prefetch_loop(hwnd_isize: isize, q: Arc<Mutex<VecDeque<PathBuf>>>) {
     let cache = util::cache_dir();
@@ -658,10 +975,29 @@ fn prefetch_loop(hwnd_isize: isize, q: Arc<Mutex<VecDeque<PathBuf>>>) {
     let mut idx: usize = 0;
     let mut counter: u64 = 0;
     let mut warned_empty = false;
+    let mut epoch = SOURCE_EPOCH.load(Ordering::SeqCst);
+    // Set when a new selection is picked, cleared by the first image that lands:
+    // that one image is applied straight away so the choice is visible at once.
+    let mut switch_when_ready = false;
 
     loop {
+        let live = SOURCE_EPOCH.load(Ordering::SeqCst);
+        if live != epoch {
+            epoch = live;
+            urls.clear();
+            idx = 0;
+            warned_empty = false;
+            switch_when_ready = true;
+            // Drop what is queued from the previous selection — those images
+            // are exactly what the user just asked NOT to see. The files stay
+            // in the cache: one of them may be the wallpaper Windows currently
+            // has open, and pruning takes care of them as new ones arrive.
+            q.lock().unwrap().clear();
+            log::line("prefetch: image selection changed — rebuilding the queue");
+        }
+
         if urls.is_empty() {
-            urls = net::fetch_wallpaper_urls();
+            urls = fetch_urls_for_selection();
             if urls.is_empty() {
                 if !warned_empty {
                     log::line("prefetch: wallpaper list empty/unreachable — retrying every 15s");
@@ -671,7 +1007,6 @@ fn prefetch_loop(hwnd_isize: isize, q: Arc<Mutex<VecDeque<PathBuf>>>) {
                 continue;
             }
             warned_empty = false;
-            log::line(&format!("prefetch: fetched {} wallpaper urls", urls.len()));
         }
 
         let ready = q.lock().unwrap().len();
@@ -691,8 +1026,12 @@ fn prefetch_loop(hwnd_isize: isize, q: Arc<Mutex<VecDeque<PathBuf>>>) {
             };
             if net::download_image(&url, &dest, min_pixels) {
                 q.lock().unwrap().push_back(dest);
+                // `wparam` = 1 exactly once per selection change, so the UI
+                // thread applies that first image instead of queueing it.
+                let fresh_selection = usize::from(switch_when_ready);
+                switch_when_ready = false;
                 unsafe {
-                    PostMessageW(hwnd_isize as *mut c_void, WM_IMG_READY, 0, 0);
+                    PostMessageW(hwnd_isize as *mut c_void, WM_IMG_READY, fresh_selection, 0);
                 }
                 prune_cache(&cache, 8);
             } else {

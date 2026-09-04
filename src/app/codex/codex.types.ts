@@ -136,11 +136,15 @@ export interface ShipPayload extends BaseEntityPayload {
   crew: { size: number | null };
   vehicleName: LocalizedText;
   dimensions: Dimensions | null; // L/W/H in metres from the .cga bounding box
-  // NOTE: flight stats are ALL null in Wave 1 (research Q1 — live entity does
-  // not carry SCM/pitch/yaw; lives in vehicleDefinition, not yet resolved).
+  // Resolved from the FlightController ITEM entity referenced from the
+  // ship's default loadout (itemPortName "hardpoint_controller_flight"), NOT
+  // from the ship's own Components — that entity's IFCSParams struct carries
+  // scmSpeed/maxSpeed/boostSpeed(Forward)/maxAngularVelocity. Any field the
+  // struct doesn't carry stays null (never guessed). boostSpeed is forward
+  // boost only. See docs/concepts/codex-extraction-output.md §0b.
   flight: {
     scmSpeed: number | null; maxSpeed: number | null; boostSpeed: number | null;
-    pitch: number | null; yaw: number | null; roll: number | null;
+    pitch: number | null; yaw: number | null; roll: number | null; // deg/s
   };
   itemPorts: ItemPort[];
   defaultLoadout: LoadoutEntry[];
@@ -149,6 +153,13 @@ export interface ShipPayload extends BaseEntityPayload {
   // as "position unknown", never as an error.
   hardpointTransforms?: Record<string, HardpointTransformEntry> | null;
   hardpointFrame?: HardpointFrameData | null;
+  // Whitelist-only ship stats (PR A task 1) — currently just the signature
+  // system (SSCSignatureSystemParams: IR/EM/cross-section). Same struct-keyed
+  // shape as ComponentPayload.stats, but on an allowlist (not the item/
+  // component blacklist) because a ship's Components list is far larger and
+  // noisier — see _SHIP_STATS_WHITELIST in dataforge_extract.py. Absent when
+  // the whitelist finds nothing (never an empty object).
+  stats?: Record<string, Record<string, string | number | boolean | null>>;
 }
 
 export interface WeaponPayload extends BaseEntityPayload {

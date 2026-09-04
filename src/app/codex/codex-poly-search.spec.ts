@@ -1,11 +1,16 @@
 import type { CodexKind, CodexListRow } from './codex.service';
 import {
   PolySearchHit,
+  UPCOMING_HIT_KIND,
+  isUpcomingHit,
+  polyHitIconKind,
   polyHitLink,
+  polyHitQueryParams,
   polyMatchScore,
   rankPolyHits,
   scopeForKind,
   toPolyHit,
+  toUpcomingHit,
 } from './codex-poly-search';
 
 function row(partial: Partial<CodexListRow>): CodexListRow {
@@ -37,6 +42,7 @@ function hit(kind: CodexKind, partial: Partial<PolySearchHit> = {}): PolySearchH
     classNameSlug: 'X',
     nameLocalized: 'X',
     manufacturerCode: null,
+    manufacturerName: null,
     size: null,
     grade: null,
     scope: scopeForKind(kind),
@@ -91,6 +97,23 @@ describe('codex-poly-search', () => {
       expect(h.grade).toBe('B');
       expect(h.scope).toBe('equipment');
     });
+
+    it('carries the payload manufacturer name so the hit can spell the maker out', () => {
+      const h = toPolyHit(
+        'ship',
+        row({
+          payload: {
+            manufacturer: { code: 'AEG', name: { de: 'Aegis Dynamics', en: 'Aegis Dynamics', key: '@manufacturer_NameAEGS' } },
+          },
+        }),
+      );
+      expect(h.manufacturerName?.en).toBe('Aegis Dynamics');
+    });
+
+    it('leaves the manufacturer name null when the payload carries no maker', () => {
+      expect(toPolyHit('ship', row({ payload: {} })).manufacturerName).toBeNull();
+      expect(toPolyHit('ship', row({ payload: null })).manufacturerName).toBeNull();
+    });
   });
 
   describe('polyMatchScore', () => {
@@ -126,6 +149,83 @@ describe('codex-poly-search', () => {
       const copy = [...hits];
       rankPolyHits('x', hits);
       expect(hits).toEqual(copy);
+    });
+  });
+
+  // ── announced (RSI-only) ships ────────────────────────────────────────────
+  // Admin feedback 7b91c5ae: the Drake Arrastra is a concept hull. It is in no
+  // codex_ships row of any build, so the terminal used to answer "no matches"
+  // for a ship the app demonstrably knows about.
+  describe('upcoming hits', () => {
+    const arrastra = {
+      id: 'drake-arrastra',
+      name: 'Arrastra',
+      manufacturer: 'Drake Interplanetary',
+      manufacturerCode: 'DRAK',
+    };
+
+    it('maps an announced ship to an amber, upcoming-kind hit', () => {
+      const h = toUpcomingHit(arrastra);
+      expect(h.kind).toBe(UPCOMING_HIT_KIND);
+      expect(h.scope).toBe('upcoming');
+      expect(h.nameLocalized).toBe('Arrastra');
+      expect(h.manufacturerCode).toBe('DRAK');
+      expect(h.manufacturerName).toEqual({
+        de: 'Drake Interplanetary',
+        en: 'Drake Interplanetary',
+        key: '',
+      });
+      // No build row backs it, so there is nothing to state.
+      expect(h.size).toBeNull();
+      expect(h.grade).toBeNull();
+      expect(isUpcomingHit(h)).toBe(true);
+    });
+
+    it('carries no manufacturer record when RSI listed none', () => {
+      expect(toUpcomingHit({ ...arrastra, manufacturer: null }).manufacturerName).toBeNull();
+      expect(toUpcomingHit({ ...arrastra, manufacturer: '  ' }).manufacturerName).toBeNull();
+    });
+
+    it('links to the upcoming category with the name seeded as ?q=', () => {
+      const h = toUpcomingHit(arrastra);
+      expect(polyHitLink(h)).toEqual(['/codex', 'upcoming']);
+      expect(polyHitQueryParams(h)).toEqual({ q: 'Arrastra' });
+    });
+
+    it('gives non-upcoming hits no query params', () => {
+      expect(polyHitQueryParams(hit('ship', { nameLocalized: 'Gladius' }))).toBeNull();
+      expect(polyHitQueryParams(hit('blueprint'))).toBeNull();
+    });
+
+    it('borrows the ship glyph — an announced hull is still a ship', () => {
+      expect(polyHitIconKind(toUpcomingHit(arrastra))).toBe('ship');
+      expect(polyHitIconKind(hit('weapon'))).toBe('weapon');
+    });
+
+    it('scores on the name only — the slug is an opaque feed id', () => {
+      // 'dr' occurs in the id 'drake-arrastra' but not in the name: a substring
+      // match on the id must not inflate the score to 2.
+      expect(polyMatchScore('dr', toUpcomingHit(arrastra))).toBe(1);
+      expect(polyMatchScore('arrastra', toUpcomingHit(arrastra))).toBe(4);
+    });
+
+    it('surfaces the announced ship when nothing in the build matches better', () => {
+      const ranked = rankPolyHits('arrastra', [
+        // What the trigram query actually returns for "arrastra": fuzzy noise.
+        hit('ship', { classNameSlug: 'DRAK_Caterpillar', nameLocalized: 'Caterpillar' }),
+        hit('weapon', { classNameSlug: 'W_Arrow', nameLocalized: 'Arrow' }),
+        toUpcomingHit(arrastra),
+      ]);
+      expect(ranked[0].kind).toBe(UPCOMING_HIT_KIND);
+      expect(ranked[0].nameLocalized).toBe('Arrastra');
+    });
+
+    it('still lets a ship you can fly today lead on an equal match', () => {
+      const ranked = rankPolyHits('vulture', [
+        toUpcomingHit({ ...arrastra, id: 'drake-vulture-x', name: 'Vulture' }),
+        hit('ship', { classNameSlug: 'DRAK_Vulture', nameLocalized: 'Vulture' }),
+      ]);
+      expect(ranked.map((h) => h.kind)).toEqual(['ship', UPCOMING_HIT_KIND]);
     });
   });
 });

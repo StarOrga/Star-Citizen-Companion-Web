@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { CodexService } from './codex.service';
+import { CodexService, manufacturerFacetOptions, manufacturerLabel } from './codex.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 
@@ -295,5 +295,93 @@ describe('CodexService.listKeybinds', () => {
     const svc = makeKeybindService([], { ranges: [] }, { message: 'boom' });
 
     await expectAsync(svc.listKeybinds()).toBeRejectedWithError('boom');
+  });
+});
+
+/**
+ * Feedback cdc69f53: the Codex landing showed "AEG" / "DRAK" where the game
+ * data has spelled-out names. These pin the contract that the name comes from
+ * the extracted payload and that an unresolvable one degrades to the code —
+ * never to an invented expansion.
+ */
+describe('manufacturerLabel', () => {
+  const payload = (name: unknown) => ({ manufacturer: { code: 'AEG', name } });
+
+  it('spells the manufacturer out from the payload, not from the code', () => {
+    const row = {
+      manufacturerCode: 'AEG',
+      payload: payload({ de: 'Aegis Dynamics', en: 'Aegis Dynamics', key: '@manufacturer_NameAEGS' }),
+    };
+    expect(manufacturerLabel(row, 'de')).toBe('Aegis Dynamics');
+    expect(manufacturerLabel(row, 'en')).toBe('Aegis Dynamics');
+  });
+
+  it('prefers the app language when the extract genuinely differs', () => {
+    const row = {
+      manufacturerCode: 'XIAN',
+      payload: payload({ de: 'Aopoa DE', en: 'Aopoa', key: '@manufacturer_NameXIAN' }),
+    };
+    expect(manufacturerLabel(row, 'de')).toBe('Aopoa DE');
+    expect(manufacturerLabel(row, 'en')).toBe('Aopoa');
+  });
+
+  it('falls back to the promoted code for an unresolved @-key name', () => {
+    const row = {
+      manufacturerCode: 'ASD',
+      payload: payload({ de: '@manufacturer_NameASAD', en: '@manufacturer_NameASAD', key: '@manufacturer_NameASAD' }),
+    };
+    expect(manufacturerLabel(row, 'en')).toBe('ASD');
+  });
+
+  it('falls back to the code when the payload carries no manufacturer at all', () => {
+    expect(manufacturerLabel({ manufacturerCode: 'DRAK', payload: {} }, 'en')).toBe('DRAK');
+    expect(manufacturerLabel({ manufacturerCode: 'DRAK', payload: null }, 'en')).toBe('DRAK');
+  });
+
+  it('returns null rather than inventing a name when nothing is known', () => {
+    expect(manufacturerLabel({ manufacturerCode: null, payload: {} }, 'en')).toBeNull();
+    expect(manufacturerLabel(null, 'en')).toBeNull();
+  });
+});
+
+/**
+ * The facet keeps FILTERING on the promoted code (`listByKind` does
+ * `.eq('manufacturer_code', …)`) while only the LABEL is spelled out, so a
+ * relabelling can never silently break the query.
+ */
+describe('manufacturerFacetOptions', () => {
+  const row = (code: string | null, name?: string) => ({
+    manufacturerCode: code,
+    payload: name
+      ? { manufacturer: { code, name: { de: name, en: name, key: `@manufacturer_Name${code}` } } }
+      : {},
+  });
+
+  it('labels each code with its extracted name and sorts by the label', () => {
+    expect(
+      manufacturerFacetOptions(
+        [row('RSI', 'Roberts Space Industries'), row('DRAK', 'Drake Interplanetary')],
+        'en',
+      ),
+    ).toEqual([
+      { code: 'DRAK', label: 'Drake Interplanetary' },
+      { code: 'RSI', label: 'Roberts Space Industries' },
+    ]);
+  });
+
+  it('keeps the code as its own label when no row of that code resolves a name', () => {
+    expect(manufacturerFacetOptions([row('XNAA'), row('XNAA')], 'en')).toEqual([
+      { code: 'XNAA', label: 'XNAA' },
+    ]);
+  });
+
+  it('lets a later row with a real name upgrade a code-only label', () => {
+    expect(manufacturerFacetOptions([row('AEG'), row('AEG', 'Aegis Dynamics')], 'en')).toEqual([
+      { code: 'AEG', label: 'Aegis Dynamics' },
+    ]);
+  });
+
+  it('drops rows without a code — there is nothing to filter on', () => {
+    expect(manufacturerFacetOptions([row(null, 'Nowhere Inc')], 'en')).toEqual([]);
   });
 });
