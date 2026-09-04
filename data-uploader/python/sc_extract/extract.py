@@ -68,7 +68,11 @@ class ExtractResult:
     # v2 (PR A): ship-level `stats` (signature whitelist), vehicle-armor items
     # gain `stats`, weapon `weaponParams.fireRate` derived correctly (was 0 on
     # every ship weapon before this).
-    schema_version: int = 2
+    # v3 (energy/hull PR): `ItemResourceComponentParams` resource-network stats
+    # on every item, component and weapon (power segments, coolant, shield
+    # regen, IR/EM signature, power ranges); weapons gain a `stats` block;
+    # ships gain `hull.{hp,mass}`, `armorHp`, `cargoScu` and `career`.
+    schema_version: int = 3
     quality_score: float = 0.0
     entity_counts: Dict[str, int] = field(default_factory=dict)
     warnings: List[str] = field(default_factory=list)
