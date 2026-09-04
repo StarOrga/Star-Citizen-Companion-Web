@@ -22,9 +22,15 @@
  * binding site, and image sources through Angular's URL sanitizer at their
  * [src] binding (defence in depth).
  *
+ * LONG WORDS: a whitespace-free run of `FEEDBACK_LONG_WORD_CHARS` or more is
+ * wrapped in `<span class="sc-longword">` so it renders on one line and
+ * overflows its container instead of re-wrapping the card around it — see
+ * `markLongWords` for the why.
+ *
  * Deliberately dependency-free: a controlled subset is safer and lighter than
  * pulling `marked` + `dompurify` into the bundle for an admins-only surface.
  */
+import { FEEDBACK_LONG_WORD_CHARS } from '../../feedback/feedback-limits';
 
 /** One image lifted out of a feedback body, in source order. */
 export interface FeedbackImage {
@@ -96,9 +102,47 @@ function inline(raw: string, images: FeedbackImage[]): string {
   s = s.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
   s = s.replace(/(^|[^_\w])_([^_]+)_/g, '$1<em>$2</em>');
 
+  s = markLongWords(s);
+
   // Restore protected code spans.
   s = s.replace(CODE_MARK_RE, (_m, i: string) => `<code>${codes[+i]}</code>`);
   return s;
+}
+
+// Splits an HTML fragment into alternating text / tag parts. Because the group
+// captures, `split` always yields text at the even indices — including empty
+// strings when the fragment starts or ends with a tag.
+const TAG_SPLIT_RE = /(<[^>]*>)/;
+
+/**
+ * Wrap every whitespace-free run of at least `FEEDBACK_LONG_WORD_CHARS`
+ * characters in a marker span (admin feedback 0a0fad31: "wenn ein wort länger
+ * ist als x buchstaben wird es in einer zeile dargestellt und overflowed statt
+ * umzubrechen").
+ *
+ * The span carries no styling of its own — `.sc-longword` in styles.scss does
+ * that, and it has to be a GLOBAL rule: this markup reaches the DOM through
+ * `[innerHTML]`, which never gets a component's style-scoping attribute, so a
+ * component-scoped selector would silently not match it.
+ *
+ * Runs over the already-escaped, already-formatted fragment and skips the tag
+ * parts, so a long `href` or a marker span of our own is never touched. Inline
+ * code is still a short `CODE_MARK` sentinel at this point and therefore stays
+ * out of it as well.
+ */
+function markLongWords(html: string): string {
+  if (!html) return html;
+  return html
+    .split(TAG_SPLIT_RE)
+    .map((part, idx) => (idx % 2 === 1 ? part : wrapLongWords(part)))
+    .join('');
+}
+
+function wrapLongWords(text: string): string {
+  if (text.length < FEEDBACK_LONG_WORD_CHARS) return text;
+  return text.replace(/\S+/g, (word) =>
+    word.length >= FEEDBACK_LONG_WORD_CHARS ? `<span class="sc-longword">${word}</span>` : word,
+  );
 }
 
 function render(src: string): RenderedFeedbackBody {

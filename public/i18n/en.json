@@ -2397,7 +2397,9 @@
       "dropHere": "Drop images here",
       "imageError": "Could not process the image.",
       "tooManyImages": "At most {{max}} images per message.",
-      "uploadError": "Image upload failed. Please try again."
+      "uploadError": "Image upload failed. Please try again.",
+      "charCount": "{{used}} of {{max}} characters",
+      "charLimit": "Character limit reached: {{max}} characters per message."
     },
     "view": {
       "label": "Switch view",
@@ -2821,6 +2823,14 @@
     "answer": "Reply",
     "declinedTitle": "Why this is not being implemented",
     "impersonationBlocked": "Sending is disabled while you are previewing another role — it would submit real feedback into the admin inbox under your own account.",
+    "withdraw": {
+      "action": "Withdraw",
+      "hint": "As long as nobody has worked on it or replied, you can delete your feedback again.",
+      "question": "Delete for good? This cannot be undone.",
+      "confirm": "Yes, delete",
+      "cancel": "Cancel",
+      "refused": "Too late — this topic is already being worked on. It stays in your list."
+    },
     "tab": {
       "compose": "Send feedback",
       "mine": "My feedback"
