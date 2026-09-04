@@ -19,6 +19,13 @@ export interface FriendEdgeRow {
   display_name: string | null;
   username: string | null;
   since: string;
+  /**
+   * When a pending request dies (migration 20260904020000: `created_at + 7
+   * days`), null for friends and blocks. Optional so a client running against
+   * a DB that predates that migration still parses the RPC result — the
+   * helpers below then simply render no deadline.
+   */
+  expires_at?: string | null;
 }
 
 /** The four buckets, ready to render. */
@@ -112,11 +119,46 @@ export function isValidReportReason(raw: string): boolean {
 }
 
 /**
+ * Whole days left before a pending request expires, clamped at 0. Days, not
+ * hours: the window is a week, and a "6 d left" that ticks once a day is
+ * information — a live countdown would just be noise on a page nobody keeps
+ * open. `null` when there is no deadline (a friend, a block, or a
+ * pre-migration DB that does not send one).
+ */
+export function daysUntilExpiry(
+  edge: Pick<FriendEdgeRow, 'expires_at'>,
+  now: Date = new Date(),
+): number | null {
+  if (!edge.expires_at) return null;
+  const end = new Date(edge.expires_at).getTime();
+  if (Number.isNaN(end)) return null;
+  return Math.max(0, Math.ceil((end - now.getTime()) / 86_400_000));
+}
+
+/**
+ * True in the last 24 hours of a request's life — the point at which the
+ * deadline stops being background information and becomes the reason to look
+ * at the row.
+ */
+export function isExpiringSoon(
+  edge: Pick<FriendEdgeRow, 'expires_at'>,
+  now: Date = new Date(),
+): boolean {
+  const days = daysUntilExpiry(edge, now);
+  return days !== null && days <= 1;
+}
+
+/**
  * Maps a PostgREST error message onto an i18n key. The RPCs raise stable
  * one-word codes exactly so the UI never has to render raw SQL text.
  */
 export function friendErrorKey(message: string | null | undefined): string {
   const code = (message ?? '').toLowerCase();
+  // Order matters: 'request_expired' is checked before the substring
+  // 'blocked'/'request_not_found' tests below can claim it, and
+  // 'account_suspended' before the generic fallback.
+  if (code.includes('request_expired')) return 'friends.error.requestExpired';
+  if (code.includes('account_suspended')) return 'friends.error.accountSuspended';
   if (code.includes('blocked')) return 'friends.error.blocked';
   if (code.includes('user_not_found')) return 'friends.error.userNotFound';
   if (code.includes('request_not_found')) return 'friends.error.requestNotFound';
