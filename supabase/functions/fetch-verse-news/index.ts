@@ -22,6 +22,7 @@ import { isCommLinkArticleUrl } from './comm-link-url.ts';
 import { heroOgTargets, promoteHero } from './hero-image.ts';
 import { isWithinVideoRetention, videoRetentionCutoff } from './video-retention.ts';
 import { isImageUrl } from './media-urls.ts';
+import { isWallpaperSeries } from './wallpaper-series.ts';
 import {
   MAX_PASSTHROUGH_BYTES,
   OPAQUE_WIDTH,
@@ -1382,6 +1383,11 @@ async function captureWallpapers(items: VerseNewsItem[]): Promise<void> {
       // Only comm-link/patch articles carry the hero artwork worth keeping;
       // youtube thumbs and spectrum previews are not wallpaper material.
       if (it.source !== 'comm-link' && it.source !== 'patch-notes') continue;
+      // Series-level veto, before any network work: a recurring column that
+      // republishes one header image is not a wallpaper source, however well
+      // that image scores. See wallpaper-series.ts for why this is decided
+      // here AND in SQL (admin feedback 1f78e57f).
+      if (!isWallpaperSeries(it.category)) continue;
       for (const url of it.images ?? []) {
         const m = MEDIA_URL_RE.exec(url);
         if (!m) continue;

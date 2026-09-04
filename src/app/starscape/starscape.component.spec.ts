@@ -419,11 +419,16 @@ describe('StarscapeComponent', () => {
 
   it('renders the source filter as one segmented control with a stable option set', () => {
     const svc = serviceStub([first]);
-    svc.seriesOptions.set(['Release Info', 'Roadmap Roundup']);
+    svc.seriesOptions.set(['Release Info', 'This Week in Star Citizen']);
     svc.sourceOptions.set([
       { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
       { id: starscapeSourceId('Release Info'), series: 'Release Info', label: 'Release Info', labelKey: null },
-      { id: starscapeSourceId('Roadmap Roundup'), series: 'Roadmap Roundup', label: 'Roadmap Roundup', labelKey: null },
+      {
+        id: starscapeSourceId('This Week in Star Citizen'),
+        series: 'This Week in Star Citizen',
+        label: 'This Week in Star Citizen',
+        labelKey: null,
+      },
     ]);
     const f = setup(svc);
     const group = f.nativeElement.querySelector('sc-segmented [role="radiogroup"]') as HTMLElement;
@@ -443,6 +448,54 @@ describe('StarscapeComponent', () => {
     svc.wallpapers.set([first]);
     f.detectChanges();
     expect(group.querySelectorAll('.seg-btn').length).toBe(3);
+    f.destroy();
+  });
+
+  /*
+   * With "Roadmap Roundup" excluded at the data layer (RLS +
+   * fetch-verse-news/wallpaper-series.ts, admin feedback 1f78e57f) the live
+   * catalogue holds exactly ONE series, so the control the visitor actually
+   * sees is two segments wide — the shape PR #461 never rendered. Pinned here
+   * because a segmented control is easy to get right at four segments and
+   * wrong at two: `flex: 1 0 auto` has to share the slot, not collapse one
+   * side, and the pill must still not outgrow its column.
+   */
+  it('renders a two-segment filter when only one series survives the exclusion', () => {
+    const svc = serviceStub([first]);
+    svc.seriesOptions.set(['Release Info']);
+    svc.sourceOptions.set([
+      { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
+      { id: starscapeSourceId('Release Info'), series: 'Release Info', label: 'Release Info', labelKey: null },
+    ]);
+    const f = setup(svc);
+    const group = f.nativeElement.querySelector('sc-segmented [role="radiogroup"]') as HTMLElement;
+    const segments = Array.from(group.querySelectorAll<HTMLElement>('.seg-btn'));
+    expect(segments.length).toBe(2);
+    // Both readable, neither squeezed to nothing, and the pill inside its slot.
+    expect(segments.every((s) => s.offsetWidth > 0 && s.offsetHeight >= 48)).toBeTrue();
+    const seg = group as HTMLElement;
+    expect(seg.scrollWidth).toBeLessThanOrEqual(seg.offsetWidth + 1);
+    // "All" is still the selected default, and the one series is still pickable.
+    expect(segments[0].getAttribute('aria-checked')).toBe('true');
+    segments[1].click();
+    expect(svc.setSource).toHaveBeenCalledWith('series:Release Info');
+    f.destroy();
+  });
+
+  it('drops the filter entirely when no series is left to choose between', () => {
+    // The degenerate end of the same change: if the only series the gallery
+    // ever had were excluded, a control offering just "All" would be a control
+    // with nothing to decide. It must not render at all — and the Top-N switch
+    // must still sit exactly where it does with a filter beside it.
+    const svc = serviceStub([first]);
+    svc.seriesOptions.set([]);
+    svc.sourceOptions.set([
+      { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
+    ]);
+    const f = setup(svc);
+    expect(f.nativeElement.querySelector('sc-segmented')).toBeNull();
+    const toggle = f.nativeElement.querySelector('.top-toggle') as HTMLElement;
+    expect(getComputedStyle(toggle).gridColumnStart).toBe('2');
     f.destroy();
   });
 

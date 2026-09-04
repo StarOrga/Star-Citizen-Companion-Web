@@ -6,7 +6,7 @@ import { ScSegmentOption, ScSegmentedComponent } from './segmented-control.compo
 const BUTTON_OPTIONS: ScSegmentOption[] = [
   { value: 'all', labelKey: 'starscape.filterAll' },
   { value: 'series:Release Info', label: 'Release Info' },
-  { value: 'series:Roadmap Roundup', label: 'Roadmap Roundup' },
+  { value: 'series:This Week in Star Citizen', label: 'This Week in Star Citizen' },
 ];
 
 describe('ScSegmentedComponent', () => {
@@ -61,7 +61,7 @@ describe('ScSegmentedComponent', () => {
     group.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
     group.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
     group.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
-    expect(seen).toEqual(['series:Release Info', 'series:Roadmap Roundup', 'series:Roadmap Roundup']);
+    expect(seen).toEqual(['series:Release Info', 'series:This Week in Star Citizen', 'series:This Week in Star Citizen']);
     f.destroy();
   });
 
@@ -69,7 +69,7 @@ describe('ScSegmentedComponent', () => {
     const f = setup([
       { value: 'all', label: 'All the wallpapers there have ever been' },
       { value: 'a', label: 'Release Info' },
-      { value: 'b', label: 'Roadmap Roundup' },
+      { value: 'b', label: 'This Week in Star Citizen' },
     ]);
     // What a phone row does: hand the control a slot narrower than its labels.
     const host = f.nativeElement as HTMLElement;
@@ -83,6 +83,50 @@ describe('ScSegmentedComponent', () => {
     // pill, rather than squeezed into ellipses.
     expect(seg.scrollWidth).toBeGreaterThan(seg.offsetWidth);
     expect(segments(f).every((b) => b.offsetWidth > 0)).toBeTrue();
+    f.destroy();
+  });
+
+  it('fills a wide slot evenly at two segments without collapsing either', () => {
+    // The Starscape source filter is down to "All" + one series now that the
+    // repetitive one is excluded at the data layer (admin feedback 1f78e57f),
+    // and two is the count where `flex: 1 0 auto` is easiest to get wrong: the
+    // pair has to SHARE a slot far wider than the labels, not leave one segment
+    // at its text width with a gap beside it.
+    const f = setup(
+      [
+        { value: 'all', label: 'All' },
+        { value: 'a', label: 'Release Info' },
+      ],
+      'all',
+    );
+    const host = f.nativeElement as HTMLElement;
+    host.style.display = 'block';
+    host.style.width = '480px';
+    f.detectChanges();
+    const seg = f.nativeElement.querySelector('.seg') as HTMLElement;
+    const [a, b] = segments(f);
+    // Nothing scrolls, nothing overflows: the labels fit twice over.
+    expect(seg.offsetWidth).toBeLessThanOrEqual(480);
+    expect(seg.scrollWidth).toBeLessThanOrEqual(seg.offsetWidth + 1);
+    // Together they span the pill, and both keep a real, tappable box.
+    expect(Math.abs(a.offsetWidth + b.offsetWidth - seg.clientWidth)).toBeLessThanOrEqual(2);
+    expect(a.offsetHeight).toBeGreaterThanOrEqual(48);
+    expect(b.offsetHeight).toBeGreaterThanOrEqual(48);
+    f.destroy();
+  });
+
+  it('still works as a radio group at a single segment', () => {
+    // The floor of the same shrink: one option must stay a valid radio group
+    // with a tab stop, not a control that has dropped out of the tab order.
+    const f = setup([{ value: 'all', label: 'All' }], 'all');
+    const only = segments(f)[0];
+    expect(only.getAttribute('role')).toBe('radio');
+    expect(only.getAttribute('aria-checked')).toBe('true');
+    expect(only.getAttribute('tabindex')).toBe('0');
+    // Arrow keys wrap onto the only segment — never off the end of the list.
+    const group = f.nativeElement.querySelector('.seg') as HTMLElement;
+    group.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(segments(f)[0].getAttribute('tabindex')).toBe('0');
     f.destroy();
   });
 
