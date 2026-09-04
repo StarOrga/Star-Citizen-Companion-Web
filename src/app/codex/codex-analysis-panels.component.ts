@@ -30,8 +30,15 @@ const PANEL_STYLES = `
   .chev { transition: transform 0.15s ease; }
   .chev.open { transform: rotate(90deg); }
   .gap-row { font-size: 13px; color: var(--sc-fg-2); }
+  /* A weapon table is the widest thing on the page: five columns plus class
+     names like APAR_BallisticGatling_S4, which have no break opportunity. Its
+     min-content width used to become the floor for the whole detail page and
+     scrolled it sideways on a phone (feedback 2c7ed0d0). The names may now
+     break, and whatever is still too wide scrolls inside its own wrapper
+     instead of taking the page with it. */
+  .table-wrap { overflow-x: auto; }
   table.analysis-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
-  table.analysis-table th, table.analysis-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--sc-border); font-variant-numeric: tabular-nums; }
+  table.analysis-table th, table.analysis-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--sc-border); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   table.analysis-table tfoot td { font-weight: 600; color: var(--sc-fg-0); }
   .dmg-bars { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
   .dmg-bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
@@ -64,6 +71,7 @@ const PANEL_STYLES = `
             <p class="gap-row">{{ 'codex.summary.gap.noStockGuns' | translate }}</p>
           } @else {
             <h3 class="section-title">{{ 'codex.analysis.offensive.weapons' | translate: { count: p.weaponCount } }}</h3>
+            <div class="table-wrap">
             <table class="analysis-table">
               <thead>
                 <tr>
@@ -95,6 +103,7 @@ const PANEL_STYLES = `
                 </tr>
               </tfoot>
             </table>
+            </div>
 
             @if (p.damageChannelTotals.length > 0) {
               <div class="dmg-bars">
