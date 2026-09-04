@@ -1,0 +1,42 @@
+[
+  {
+    "iteration": 1,
+    "template": "design",
+    "action": "iterate",
+    "submitted_at": "2026-09-04T21:39:02.603Z",
+    "feedback": {
+      "general": "Rot sollte nur benutzt werden für explizit wichitge admin funktionen, den n dafür sind sie, call-to actions oder wo es wichtig ist zu wissen, dass es admin features / anzeigen sindn.\n\nWioe steht es um nutzer feedbacks die sollten profilicon graublau habne und admins z. B. rot, collaborateur blau hell. Dabei auch die überlegen wie man das nutzer feedback vs claude instruktionen unterscheidet. \nGanz wichitg, wenn man auf ein issue klickt, sollte das fast das ganze feedbaack panel einnehmen und hicht nur inline aufgeklappt werden - denn man braucht platz um es zu lesen (dabei immer nur erste nachrticht vom postenden + letzte nachricht, dazwischen ein \"...\" ausklappbar immer eine weitere nachricht dazwischen nachrichten ). Das input feld muss auch wesentlich größer und auch, check nochmal aktuelles feedback panel die anhänge thumbnnanailed bzw. \"+\" und auch eine screenshot möglichkeit vom aktuellen screen, lerne da vom aktuellen jetzt auf main feedback panel.",
+      "designs": {
+        "a-baender": "Wir brauchen nicht nochmal DU und routine fragt da stehen. Darunter ist es ja schon in der box.\nIn der box \"routine\" braucht man nicht, ist egal die Info ist nicht wichtig. Profil icons rechts oben finde ich richtgi super btzw., auch der titel etc.",
+        "b-badge": "Sehr gut"
+      },
+      "screens": {
+        "a-s3": "sehr gut"
+      }
+    },
+    "decisions": {
+      "eval-q1-band-unten": "include",
+      "eval-q1-badge": "include",
+      "eval-q1-zone2": "include",
+      "eval-q2-dots-badge": "include",
+      "eval-q2-flightpath": "include",
+      "eval-q2-baton-words": "include",
+      "eval-q3-overlay": "include",
+      "eval-q3-field-sheet": "include",
+      "eval-q3-overflow": "include",
+      "eval-q4-same-column": "include",
+      "eval-q4-master-detail": "include",
+      "eval-q5-options": "include",
+      "eval-q5-viewer-link": "include",
+      "eval-q5-collab-log": "include",
+      "eval-q5-offline-words": "include",
+      "eval-q5-user-buttons-open": "include",
+      "eval-q5-signoff-in-feed": "include",
+      "eval-q6-pr1-stream": "include",
+      "eval-q6-pr2-shipped": "include",
+      "eval-q6-pr3-filters": "include",
+      "eval-q6-pr4-polish": "include"
+    },
+    "outcome": "B liked (\"Sehr gut\"), A3 (shipped band in the same scroll) liked; all 21 options left at include → merged direction E in iteration 2 with: red only for admin avatar + primary CTA, role-coloured avatars, topic opens as a full-panel sheet with first+last message folding, big composer with thumbnails/+/screenshot"
+  }
+]

@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.supabase.co;">
 <title>Feedback-Panel &mdash; Innenleben neu gedacht</title>
-<!-- concept: admin feedback panel rethink · generated 2026-09-04 · chrome donated by 2026-09-02-codex-im-verse · devops 0.139.0 design-template fixes (#325: dock persistence, nav guard, FAB labels) ported 2026-09-04 · devops 0.139.1 (#327: attachment engine re-sync, design-mode chrome, scroll boxes) ported 2026-09-04 -->
+<!-- concept: admin feedback panel rethink · generated 2026-09-04 · chrome donated by 2026-09-02-codex-im-verse · devops 0.139.0 design-template fixes (#325: dock persistence, nav guard, FAB labels) ported 2026-09-04 · devops 0.139.1 (#327: attachment engine re-sync, design-mode chrome, scroll boxes) ported 2026-09-04 · iteration 2 appended 2026-09-04 -->
 <style>
 /* ============================================================
    TOKENS — StarUI aliases (literals, package not installed in
@@ -1745,7 +1745,10 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
     </header>
 
     <main>
-      <section data-iteration="1" data-iteration-template="design" data-active>
+      <section data-iteration="1" data-iteration-template="design" hidden>
+        <script type="application/json" data-frozen-feedback>
+{"general":"Rot sollte nur benutzt werden für explizit wichitge admin funktionen, den n dafür sind sie, call-to actions oder wo es wichtig ist zu wissen, dass es admin features / anzeigen sindn.\n\nWioe steht es um nutzer feedbacks die sollten profilicon graublau habne und admins z. B. rot, collaborateur blau hell. Dabei auch die überlegen wie man das nutzer feedback vs claude instruktionen unterscheidet. \nGanz wichitg, wenn man auf ein issue klickt, sollte das fast das ganze feedbaack panel einnehmen und hicht nur inline aufgeklappt werden - denn man braucht platz um es zu lesen (dabei immer nur erste nachrticht vom postenden + letzte nachricht, dazwischen ein \"...\" ausklappbar immer eine weitere nachricht dazwischen nachrichten ). Das input feld muss auch wesentlich größer und auch, check nochmal aktuelles feedback panel die anhänge thumbnnanailed bzw. \"+\" und auch eine screenshot möglichkeit vom aktuellen screen, lerne da vom aktuellen jetzt auf main feedback panel.","designs":{"a-baender":"Wir brauchen nicht nochmal DU und routine fragt da stehen. Darunter ist es ja schon in der box.\nIn der box \"routine\" braucht man nicht, ist egal die Info ist nicht wichtig. Profil icons rechts oben finde ich richtgi super btzw., auch der titel etc.","b-badge":"Sehr gut"},"screens":{"a-s3":"sehr gut"}}
+        </script>
         <header class="iteration-intro">
           <h2>Iteration 1 · Drei Richtungen für das Innenleben des Feedback-Panels</h2>
           <p>Die Frage­runde lief im Chat: Befund bestätigt („Abarbeiten“ war live leer, sechs aktive Themen lagen in der Übersicht), Erfolg = <strong>erstes Thema sofort sichtbar</strong> + <strong>ein Klick zum Handeln</strong> + <strong>„was wurde zuletzt umgesetzt, nach Tagen“</strong>, No-Go = keine Fähigkeit verlieren, Korridor = <strong>Panel-Innenleben komplett</strong>, Hülle bleibt. Drei code-blinde Agenten (Produktwert · UX-Design · Nutzergefühl) haben daraus drei Richtungen gebaut. Ⓓ ist der Befund, der gemeinsame Kern und die offenen Fragen als Entscheidungen.</p>
@@ -1755,201 +1758,201 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
 <style>
 /* ── Iteration 1 · shared mock foundation (scoped) ─────────────────── */
 [data-iteration="1"] .ii-note { border-left:3px solid var(--accent-primary); padding:.55rem .9rem; background:rgba(82,193,230,.07); font-size:.86rem; line-height:1.55; }
-[data-iteration="1"] section[data-screen] { align-items: flex-start; }
-[data-iteration="1"] .cap { font-size:.84rem; line-height:1.6; color:var(--text-secondary); margin:0 0 14px; max-width: 1000px; }
-[data-iteration="1"] .cap b { color:var(--text-primary); }
-[data-iteration="1"] .why { margin-top:14px; padding:10px 12px; border:1px dashed var(--border-default); border-radius:4px; font-size:.78rem; line-height:1.6; color:var(--text-secondary); max-width: 1000px; }
-[data-iteration="1"] .why strong { color:var(--accent-strong); }
-[data-iteration="1"] .wrap { width: 100%; max-width: 1000px; margin: 0 auto; padding-top: 44px; }
-[data-iteration="1"] .stage { display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap; }
-[data-iteration="1"] .stage > .pnl { flex: 0 0 auto; }
-[data-iteration="1"] .side { flex:1 1 260px; min-width:240px; font-size:.8rem; line-height:1.6; color:var(--text-secondary); }
-[data-iteration="1"] .side h4 { margin:0 0 6px; font-family:var(--font-display); font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-strong); }
-[data-iteration="1"] .side ol, [data-iteration="1"] .side ul { margin:0 0 10px 1.1rem; padding:0; }
-[data-iteration="1"] .side li { margin:0 0 4px; }
-[data-iteration="1"] .side b { color:var(--text-primary); }
-[data-iteration="1"] .k { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--accent-hot); color:#fff; font-size:.62rem; font-weight:700; margin-right:4px; vertical-align:middle; }
+[data-iteration] section[data-screen] { align-items: flex-start; }
+[data-iteration] .cap { font-size:.84rem; line-height:1.6; color:var(--text-secondary); margin:0 0 14px; max-width: 1000px; }
+[data-iteration] .cap b { color:var(--text-primary); }
+[data-iteration] .why { margin-top:14px; padding:10px 12px; border:1px dashed var(--border-default); border-radius:4px; font-size:.78rem; line-height:1.6; color:var(--text-secondary); max-width: 1000px; }
+[data-iteration] .why strong { color:var(--accent-strong); }
+[data-iteration] .wrap { width: 100%; max-width: 1000px; margin: 0 auto; padding-top: 44px; }
+[data-iteration] .stage { display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap; }
+[data-iteration] .stage > .pnl { flex: 0 0 auto; }
+[data-iteration] .side { flex:1 1 260px; min-width:240px; font-size:.8rem; line-height:1.6; color:var(--text-secondary); }
+[data-iteration] .side h4 { margin:0 0 6px; font-family:var(--font-display); font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-strong); }
+[data-iteration] .side ol, [data-iteration] .side ul { margin:0 0 10px 1.1rem; padding:0; }
+[data-iteration] .side li { margin:0 0 4px; }
+[data-iteration] .side b { color:var(--text-primary); }
+[data-iteration] .k { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--accent-hot); color:#fff; font-size:.62rem; font-weight:700; margin-right:4px; vertical-align:middle; }
 
 /* ── the docked panel replica ── */
-[data-iteration="1"] .pnl { width:480px; height:680px; border-radius:12px; border:1px solid rgba(82,193,230,.3); background:linear-gradient(180deg,#123246,#0d2635); box-shadow:0 18px 48px rgba(0,0,0,.55), 0 0 0 1px rgba(82,193,230,.12); display:flex; flex-direction:column; overflow:hidden; position:relative;
+[data-iteration] .pnl { width:480px; height:680px; border-radius:12px; border:1px solid rgba(82,193,230,.3); background:linear-gradient(180deg,#123246,#0d2635); box-shadow:0 18px 48px rgba(0,0,0,.55), 0 0 0 1px rgba(82,193,230,.12); display:flex; flex-direction:column; overflow:hidden; position:relative;
   --hot:#ff5722; --cyan:#3fc4ee; --cyan-2:rgba(63,196,238,.16); --green:#5fd698; --amber:#ffc14d; --ink:#e8ebed; --ink-2:#9fb3c8; --ink-3:#7c93a8; --hair:rgba(82,193,230,.22); --panel:#103246;
   font-family:system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink); font-size:13px; }
-[data-iteration="1"] .pnl * { box-sizing:border-box; }
-[data-iteration="1"] .pnl.max { width:100%; max-width:1000px; height:640px; }
-[data-iteration="1"] .pnl.phone { width:390px; height:740px; border-radius:0; }
-[data-iteration="1"] .ph { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--hair); min-height:44px; }
-[data-iteration="1"] .ph .tt { font-family:var(--font-display); letter-spacing:.08em; text-transform:uppercase; font-size:.78rem; font-weight:600; color:var(--hot); display:flex; align-items:center; gap:7px; }
-[data-iteration="1"] .ph .tt.on { color:var(--green); }
-[data-iteration="1"] .ph .tt.off { color:#ff8282; }
-[data-iteration="1"] .ph .tt .d { width:7px; height:7px; border-radius:50%; background:currentColor; }
-[data-iteration="1"] .ph .tt .w { font-family:system-ui,sans-serif; text-transform:none; letter-spacing:0; font-weight:400; font-size:.74rem; color:#ff8282; }
-[data-iteration="1"] .ph .sp { flex:1; }
-[data-iteration="1"] .ph .ic { width:34px; height:34px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:var(--ink-2); font-size:1rem; border:1px solid transparent; }
-[data-iteration="1"] .ph .ic.shell { color:var(--ink-3); width:28px; }
-[data-iteration="1"] .ph .badge { display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 10px; border-radius:16px; border:1px solid rgba(95,214,152,.55); color:var(--green); font-family:var(--font-display); font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; box-shadow:0 0 12px rgba(95,214,152,.35); }
-[data-iteration="1"] .ph .badge b { font-family:var(--font-mono); font-size:.78rem; }
-[data-iteration="1"] .pb { flex:1; min-height:0; overflow:hidden; position:relative; }
-[data-iteration="1"] .pb::after { content:""; position:absolute; left:0; right:0; bottom:0; height:40px; background:linear-gradient(to bottom, transparent, #0d2635); pointer-events:none; }
-[data-iteration="1"] .pf { border-top:1px solid var(--hair); padding:10px 12px; }
-[data-iteration="1"] .compose { display:flex; align-items:center; gap:8px; height:44px; border:1px dashed rgba(82,193,230,.4); border-radius:8px; padding:0 12px; color:var(--ink-2); }
-[data-iteration="1"] .compose .plus { color:var(--cyan); font-size:1.1rem; }
+[data-iteration] .pnl * { box-sizing:border-box; }
+[data-iteration] .pnl.max { width:100%; max-width:1000px; height:640px; }
+[data-iteration] .pnl.phone { width:390px; height:740px; border-radius:0; }
+[data-iteration] .ph { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--hair); min-height:44px; }
+[data-iteration] .ph .tt { font-family:var(--font-display); letter-spacing:.08em; text-transform:uppercase; font-size:.78rem; font-weight:600; color:var(--hot); display:flex; align-items:center; gap:7px; }
+[data-iteration] .ph .tt.on { color:var(--green); }
+[data-iteration] .ph .tt.off { color:#ff8282; }
+[data-iteration] .ph .tt .d { width:7px; height:7px; border-radius:50%; background:currentColor; }
+[data-iteration] .ph .tt .w { font-family:system-ui,sans-serif; text-transform:none; letter-spacing:0; font-weight:400; font-size:.74rem; color:#ff8282; }
+[data-iteration] .ph .sp { flex:1; }
+[data-iteration] .ph .ic { width:34px; height:34px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:var(--ink-2); font-size:1rem; border:1px solid transparent; }
+[data-iteration] .ph .ic.shell { color:var(--ink-3); width:28px; }
+[data-iteration] .ph .badge { display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 10px; border-radius:16px; border:1px solid rgba(95,214,152,.55); color:var(--green); font-family:var(--font-display); font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; box-shadow:0 0 12px rgba(95,214,152,.35); }
+[data-iteration] .ph .badge b { font-family:var(--font-mono); font-size:.78rem; }
+[data-iteration] .pb { flex:1; min-height:0; overflow:hidden; position:relative; }
+[data-iteration] .pb::after { content:""; position:absolute; left:0; right:0; bottom:0; height:40px; background:linear-gradient(to bottom, transparent, #0d2635); pointer-events:none; }
+[data-iteration] .pf { border-top:1px solid var(--hair); padding:10px 12px; }
+[data-iteration] .compose { display:flex; align-items:center; gap:8px; height:44px; border:1px dashed rgba(82,193,230,.4); border-radius:8px; padding:0 12px; color:var(--ink-2); }
+[data-iteration] .compose .plus { color:var(--cyan); font-size:1.1rem; }
 /* search field + filter button (Ⓑ) */
-[data-iteration="1"] .sr { display:flex; gap:8px; padding:8px 12px; border-bottom:1px solid var(--hair); }
-[data-iteration="1"] .sr .in { flex:1; height:40px; border:1px solid var(--hair); border-radius:8px; display:flex; align-items:center; gap:8px; padding:0 10px; color:var(--ink-3); background:rgba(2,8,14,.35); }
-[data-iteration="1"] .sr .fb { height:40px; padding:0 14px; border:1px solid rgba(82,193,230,.45); border-radius:8px; display:flex; align-items:center; gap:6px; color:var(--cyan); font-weight:600; }
-[data-iteration="1"] .sr .tok { height:40px; padding:0 10px; border-radius:8px; display:flex; align-items:center; gap:6px; background:var(--cyan-2); color:var(--cyan); font-size:.78rem; }
+[data-iteration] .sr { display:flex; gap:8px; padding:8px 12px; border-bottom:1px solid var(--hair); }
+[data-iteration] .sr .in { flex:1; height:40px; border:1px solid var(--hair); border-radius:8px; display:flex; align-items:center; gap:8px; padding:0 10px; color:var(--ink-3); background:rgba(2,8,14,.35); }
+[data-iteration] .sr .fb { height:40px; padding:0 14px; border:1px solid rgba(82,193,230,.45); border-radius:8px; display:flex; align-items:center; gap:6px; color:var(--cyan); font-weight:600; }
+[data-iteration] .sr .tok { height:40px; padding:0 10px; border-radius:8px; display:flex; align-items:center; gap:6px; background:var(--cyan-2); color:var(--cyan); font-size:.78rem; }
 /* bands */
-[data-iteration="1"] .bnd { display:flex; align-items:center; gap:8px; height:36px; padding:0 12px; border-left:3px solid var(--tint,var(--cyan)); background:linear-gradient(90deg, color-mix(in srgb, var(--tint,var(--cyan)) 14%, transparent), transparent); font-family:var(--font-display); font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--tint,var(--cyan)); position:sticky; top:0; }
-[data-iteration="1"] .bnd.hot { --tint:var(--hot); }
-[data-iteration="1"] .bnd.green { --tint:var(--green); }
-[data-iteration="1"] .bnd.dim { --tint:#7c93a8; }
-[data-iteration="1"] .bnd .n { font-family:var(--font-mono); font-size:.78rem; letter-spacing:0; }
-[data-iteration="1"] .bnd .sub { margin-left:auto; font-family:system-ui,sans-serif; text-transform:none; letter-spacing:0; font-size:.72rem; color:var(--ink-3); }
-[data-iteration="1"] .bnd .chev { margin-left:auto; color:var(--ink-3); font-size:.8rem; }
-[data-iteration="1"] .bnd.empty { color:var(--ink-3); border-left-color:var(--ink-3); background:none; height:28px; font-family:system-ui,sans-serif; text-transform:none; letter-spacing:0; font-size:.76rem; font-style:italic; }
+[data-iteration] .bnd { display:flex; align-items:center; gap:8px; height:36px; padding:0 12px; border-left:3px solid var(--tint,var(--cyan)); background:linear-gradient(90deg, color-mix(in srgb, var(--tint,var(--cyan)) 14%, transparent), transparent); font-family:var(--font-display); font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--tint,var(--cyan)); position:sticky; top:0; }
+[data-iteration] .bnd.hot { --tint:var(--hot); }
+[data-iteration] .bnd.green { --tint:var(--green); }
+[data-iteration] .bnd.dim { --tint:#7c93a8; }
+[data-iteration] .bnd .n { font-family:var(--font-mono); font-size:.78rem; letter-spacing:0; }
+[data-iteration] .bnd .sub { margin-left:auto; font-family:system-ui,sans-serif; text-transform:none; letter-spacing:0; font-size:.72rem; color:var(--ink-3); }
+[data-iteration] .bnd .chev { margin-left:auto; color:var(--ink-3); font-size:.8rem; }
+[data-iteration] .bnd.empty { color:var(--ink-3); border-left-color:var(--ink-3); background:none; height:28px; font-family:system-ui,sans-serif; text-transform:none; letter-spacing:0; font-size:.76rem; font-style:italic; }
 /* cards */
-[data-iteration="1"] .card { margin:8px 12px; border:1px solid var(--hair); border-radius:8px; background:rgba(16,50,70,.75); }
-[data-iteration="1"] .card.open { border-color:rgba(82,193,230,.5); box-shadow:0 0 0 1px rgba(82,193,230,.18); }
-[data-iteration="1"] .card.hot.open { border-color:rgba(255,87,34,.5); box-shadow:0 0 0 1px rgba(255,87,34,.18); }
-[data-iteration="1"] .ch { display:flex; align-items:center; gap:8px; min-height:44px; padding:6px 10px; }
-[data-iteration="1"] .ch .no { font-family:var(--font-mono); font-size:.72rem; color:var(--ink-3); flex:none; }
-[data-iteration="1"] .ch .ti { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; font-size:.86rem; }
-[data-iteration="1"] .ch .av { width:22px; height:22px; border-radius:50%; background:rgba(82,193,230,.2); border:1px solid var(--hair); display:flex; align-items:center; justify-content:center; font-size:.58rem; font-weight:700; color:var(--ink-2); flex:none; }
-[data-iteration="1"] .ch .av.user { background:rgba(255,193,77,.2); border-color:rgba(255,193,77,.5); color:var(--amber); }
-[data-iteration="1"] .ch .more { color:var(--ink-3); flex:none; }
-[data-iteration="1"] .st { display:flex; align-items:center; gap:10px; padding:0 10px 8px; font-size:.74rem; color:var(--ink-2); flex-wrap:wrap; }
-[data-iteration="1"] .st .ph2 { color:var(--ink-2); }
-[data-iteration="1"] .st .ph2.du { color:var(--hot); font-weight:600; }
-[data-iteration="1"] .st .ph2.usr { color:var(--amber); }
-[data-iteration="1"] .st .ph2.ok { color:var(--green); }
-[data-iteration="1"] .st .link { margin-left:auto; color:var(--cyan); font-size:.72rem; }
+[data-iteration] .card { margin:8px 12px; border:1px solid var(--hair); border-radius:8px; background:rgba(16,50,70,.75); }
+[data-iteration] .card.open { border-color:rgba(82,193,230,.5); box-shadow:0 0 0 1px rgba(82,193,230,.18); }
+[data-iteration] .card.hot.open { border-color:rgba(255,87,34,.5); box-shadow:0 0 0 1px rgba(255,87,34,.18); }
+[data-iteration] .ch { display:flex; align-items:center; gap:8px; min-height:44px; padding:6px 10px; }
+[data-iteration] .ch .no { font-family:var(--font-mono); font-size:.72rem; color:var(--ink-3); flex:none; }
+[data-iteration] .ch .ti { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; font-size:.86rem; }
+[data-iteration] .ch .av { width:22px; height:22px; border-radius:50%; background:rgba(82,193,230,.2); border:1px solid var(--hair); display:flex; align-items:center; justify-content:center; font-size:.58rem; font-weight:700; color:var(--ink-2); flex:none; }
+[data-iteration] .ch .av.user { background:rgba(255,193,77,.2); border-color:rgba(255,193,77,.5); color:var(--amber); }
+[data-iteration] .ch .more { color:var(--ink-3); flex:none; }
+[data-iteration] .st { display:flex; align-items:center; gap:10px; padding:0 10px 8px; font-size:.74rem; color:var(--ink-2); flex-wrap:wrap; }
+[data-iteration] .st .ph2 { color:var(--ink-2); }
+[data-iteration] .st .ph2.du { color:var(--hot); font-weight:600; }
+[data-iteration] .st .ph2.usr { color:var(--amber); }
+[data-iteration] .st .ph2.ok { color:var(--green); }
+[data-iteration] .st .link { margin-left:auto; color:var(--cyan); font-size:.72rem; }
 /* card body when open */
-[data-iteration="1"] .cb { padding:0 10px 10px; display:flex; flex-direction:column; gap:8px; }
-[data-iteration="1"] .body { font-size:.8rem; line-height:1.5; color:var(--ink-2); max-height:3.1em; overflow:hidden; }
-[data-iteration="1"] .body.full { max-height:none; }
-[data-iteration="1"] .msg { border-left:2px solid var(--cyan); padding:6px 10px; background:rgba(63,196,238,.06); border-radius:0 6px 6px 0; font-size:.8rem; line-height:1.5; }
-[data-iteration="1"] .msg .mh { display:flex; gap:8px; font-size:.68rem; color:var(--ink-3); margin-bottom:2px; }
-[data-iteration="1"] .msg .mh b { color:var(--cyan); font-weight:600; }
-[data-iteration="1"] .msg .mh .q { color:var(--hot); font-weight:600; }
-[data-iteration="1"] .msg.usr { border-left-color:var(--amber); background:rgba(255,193,77,.06); }
-[data-iteration="1"] .msg.usr .mh b { color:var(--amber); }
-[data-iteration="1"] .fold { text-align:center; font-size:.72rem; color:var(--ink-3); padding:2px; }
-[data-iteration="1"] .ta { min-height:58px; border:1px solid rgba(82,193,230,.45); border-radius:8px; padding:8px 10px; color:var(--ink-3); font-size:.8rem; background:rgba(2,8,14,.35); }
-[data-iteration="1"] .ta.usr { border-color:rgba(255,193,77,.5); }
-[data-iteration="1"] .acts { display:flex; gap:8px; }
-[data-iteration="1"] .btn { height:40px; padding:0 14px; border-radius:8px; border:1px solid var(--hair); display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:.8rem; font-weight:600; color:var(--ink); flex:1; }
-[data-iteration="1"] .btn.pri { background:var(--cyan); color:#04202c; border-color:transparent; }
-[data-iteration="1"] .btn.ok { border-color:rgba(95,214,152,.6); color:var(--green); }
-[data-iteration="1"] .btn.danger { border-color:rgba(255,130,130,.5); color:#ff8282; }
-[data-iteration="1"] .btn.usr { border-color:rgba(255,193,77,.6); color:var(--amber); }
-[data-iteration="1"] .btn.ghost { flex:0 0 auto; color:var(--ink-3); border-color:transparent; }
-[data-iteration="1"] .btn.opt { flex:1; border-color:rgba(82,193,230,.45); color:var(--cyan); }
+[data-iteration] .cb { padding:0 10px 10px; display:flex; flex-direction:column; gap:8px; }
+[data-iteration] .body { font-size:.8rem; line-height:1.5; color:var(--ink-2); max-height:3.1em; overflow:hidden; }
+[data-iteration] .body.full { max-height:none; }
+[data-iteration] .msg { border-left:2px solid var(--cyan); padding:6px 10px; background:rgba(63,196,238,.06); border-radius:0 6px 6px 0; font-size:.8rem; line-height:1.5; }
+[data-iteration] .msg .mh { display:flex; gap:8px; font-size:.68rem; color:var(--ink-3); margin-bottom:2px; }
+[data-iteration] .msg .mh b { color:var(--cyan); font-weight:600; }
+[data-iteration] .msg .mh .q { color:var(--hot); font-weight:600; }
+[data-iteration] .msg.usr { border-left-color:var(--amber); background:rgba(255,193,77,.06); }
+[data-iteration] .msg.usr .mh b { color:var(--amber); }
+[data-iteration] .fold { text-align:center; font-size:.72rem; color:var(--ink-3); padding:2px; }
+[data-iteration] .ta { min-height:58px; border:1px solid rgba(82,193,230,.45); border-radius:8px; padding:8px 10px; color:var(--ink-3); font-size:.8rem; background:rgba(2,8,14,.35); }
+[data-iteration] .ta.usr { border-color:rgba(255,193,77,.5); }
+[data-iteration] .acts { display:flex; gap:8px; }
+[data-iteration] .btn { height:40px; padding:0 14px; border-radius:8px; border:1px solid var(--hair); display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:.8rem; font-weight:600; color:var(--ink); flex:1; }
+[data-iteration] .btn.pri { background:var(--cyan); color:#04202c; border-color:transparent; }
+[data-iteration] .btn.ok { border-color:rgba(95,214,152,.6); color:var(--green); }
+[data-iteration] .btn.danger { border-color:rgba(255,130,130,.5); color:#ff8282; }
+[data-iteration] .btn.usr { border-color:rgba(255,193,77,.6); color:var(--amber); }
+[data-iteration] .btn.ghost { flex:0 0 auto; color:var(--ink-3); border-color:transparent; }
+[data-iteration] .btn.opt { flex:1; border-color:rgba(82,193,230,.45); color:var(--cyan); }
 /* Ⓐ status: dots + badge */
-[data-iteration="1"] .dots { display:inline-flex; align-items:center; gap:0; }
-[data-iteration="1"] .dots i { width:8px; height:8px; border-radius:50%; border:1.5px solid var(--ink-3); display:block; position:relative; }
-[data-iteration="1"] .dots i + i { margin-left:10px; }
-[data-iteration="1"] .dots i + i::before { content:""; position:absolute; left:-11px; top:2px; width:10px; height:1px; background:var(--ink-3); opacity:.5; }
-[data-iteration="1"] .dots i.f { background:var(--cyan); border-color:var(--cyan); }
-[data-iteration="1"] .dots i.cur { background:var(--cyan); border-color:var(--cyan); box-shadow:0 0 0 3px rgba(63,196,238,.25); }
-[data-iteration="1"] .dots i.cur.hot { background:var(--hot); border-color:var(--hot); box-shadow:0 0 0 3px rgba(255,87,34,.25); }
-[data-iteration="1"] .dots i.done { background:var(--green); border-color:var(--green); }
-[data-iteration="1"] .dots i.x { border-color:#ff8282; }
-[data-iteration="1"] .tb { display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:10px; font-family:var(--font-display); font-size:.56rem; letter-spacing:.1em; text-transform:uppercase; }
-[data-iteration="1"] .tb.du { background:rgba(255,87,34,.18); color:var(--hot); border:1px solid rgba(255,87,34,.5); }
-[data-iteration="1"] .tb.ro { background:rgba(63,196,238,.14); color:var(--cyan); border:1px solid rgba(63,196,238,.4); }
-[data-iteration="1"] .tb.us { background:rgba(255,193,77,.14); color:var(--amber); border:1px solid rgba(255,193,77,.4); }
-[data-iteration="1"] .tb.no { color:var(--ink-3); border:1px solid var(--hair); }
+[data-iteration] .dots { display:inline-flex; align-items:center; gap:0; }
+[data-iteration] .dots i { width:8px; height:8px; border-radius:50%; border:1.5px solid var(--ink-3); display:block; position:relative; }
+[data-iteration] .dots i + i { margin-left:10px; }
+[data-iteration] .dots i + i::before { content:""; position:absolute; left:-11px; top:2px; width:10px; height:1px; background:var(--ink-3); opacity:.5; }
+[data-iteration] .dots i.f { background:var(--cyan); border-color:var(--cyan); }
+[data-iteration] .dots i.cur { background:var(--cyan); border-color:var(--cyan); box-shadow:0 0 0 3px rgba(63,196,238,.25); }
+[data-iteration] .dots i.cur.hot { background:var(--hot); border-color:var(--hot); box-shadow:0 0 0 3px rgba(255,87,34,.25); }
+[data-iteration] .dots i.done { background:var(--green); border-color:var(--green); }
+[data-iteration] .dots i.x { border-color:#ff8282; }
+[data-iteration] .tb { display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:10px; font-family:var(--font-display); font-size:.56rem; letter-spacing:.1em; text-transform:uppercase; }
+[data-iteration] .tb.du { background:rgba(255,87,34,.18); color:var(--hot); border:1px solid rgba(255,87,34,.5); }
+[data-iteration] .tb.ro { background:rgba(63,196,238,.14); color:var(--cyan); border:1px solid rgba(63,196,238,.4); }
+[data-iteration] .tb.us { background:rgba(255,193,77,.14); color:var(--amber); border:1px solid rgba(255,193,77,.4); }
+[data-iteration] .tb.no { color:var(--ink-3); border:1px solid var(--hair); }
 /* Ⓑ status: flight path with marker forms */
-[data-iteration="1"] .fp { display:inline-flex; align-items:center; gap:0; font-size:.7rem; }
-[data-iteration="1"] .fp .nd { width:9px; height:9px; border-radius:50%; border:1.5px solid var(--ink-3); position:relative; flex:none; }
-[data-iteration="1"] .fp .ln { width:18px; height:1.5px; background:var(--ink-3); opacity:.45; flex:none; }
-[data-iteration="1"] .fp .ln.f { background:var(--cyan); opacity:1; }
-[data-iteration="1"] .fp .nd.f { background:var(--cyan); border-color:var(--cyan); }
-[data-iteration="1"] .fp .nd.half { background:linear-gradient(90deg, var(--cyan) 50%, transparent 50%); border-color:var(--cyan); }
-[data-iteration="1"] .fp .nd.halt { width:11px; height:11px; border-radius:2px; transform:rotate(45deg); background:var(--hot); border-color:var(--hot); box-shadow:0 0 0 3px rgba(255,87,34,.22); }
-[data-iteration="1"] .fp .nd.halt.usr { background:var(--amber); border-color:var(--amber); box-shadow:0 0 0 3px rgba(255,193,77,.2); }
-[data-iteration="1"] .fp .nd.done { background:var(--green); border-color:var(--green); }
-[data-iteration="1"] .fp .nd.pre { border-radius:2px; transform:rotate(45deg); border-style:dashed; }
-[data-iteration="1"] .fp .end { margin-left:6px; font-size:.68rem; color:var(--ink-3); }
-[data-iteration="1"] .fp .end.issue { color:var(--cyan); }
-[data-iteration="1"] .fp .end.dec { color:#ff8282; }
-[data-iteration="1"] .fp .loop { margin-left:4px; color:var(--cyan); font-size:.72rem; }
+[data-iteration] .fp { display:inline-flex; align-items:center; gap:0; font-size:.7rem; }
+[data-iteration] .fp .nd { width:9px; height:9px; border-radius:50%; border:1.5px solid var(--ink-3); position:relative; flex:none; }
+[data-iteration] .fp .ln { width:18px; height:1.5px; background:var(--ink-3); opacity:.45; flex:none; }
+[data-iteration] .fp .ln.f { background:var(--cyan); opacity:1; }
+[data-iteration] .fp .nd.f { background:var(--cyan); border-color:var(--cyan); }
+[data-iteration] .fp .nd.half { background:linear-gradient(90deg, var(--cyan) 50%, transparent 50%); border-color:var(--cyan); }
+[data-iteration] .fp .nd.halt { width:11px; height:11px; border-radius:2px; transform:rotate(45deg); background:var(--hot); border-color:var(--hot); box-shadow:0 0 0 3px rgba(255,87,34,.22); }
+[data-iteration] .fp .nd.halt.usr { background:var(--amber); border-color:var(--amber); box-shadow:0 0 0 3px rgba(255,193,77,.2); }
+[data-iteration] .fp .nd.done { background:var(--green); border-color:var(--green); }
+[data-iteration] .fp .nd.pre { border-radius:2px; transform:rotate(45deg); border-style:dashed; }
+[data-iteration] .fp .end { margin-left:6px; font-size:.68rem; color:var(--ink-3); }
+[data-iteration] .fp .end.issue { color:var(--cyan); }
+[data-iteration] .fp .end.dec { color:#ff8282; }
+[data-iteration] .fp .loop { margin-left:4px; color:var(--cyan); font-size:.72rem; }
 /* Ⓒ status: micro-track + worded baton */
-[data-iteration="1"] .mt { display:inline-flex; align-items:center; gap:3px; }
-[data-iteration="1"] .mt i { width:14px; height:4px; border-radius:2px; background:var(--ink-3); opacity:.35; display:block; }
-[data-iteration="1"] .mt i.f { background:var(--cyan); opacity:1; }
-[data-iteration="1"] .mt i.cur { background:var(--cyan); opacity:1; box-shadow:0 0 0 2px rgba(63,196,238,.25); }
-[data-iteration="1"] .mt i.cur.hot { background:var(--hot); box-shadow:0 0 0 2px rgba(255,87,34,.25); }
-[data-iteration="1"] .mt i.done { background:var(--green); opacity:1; }
-[data-iteration="1"] .mt i.loop { width:8px; border-radius:50%; height:8px; background:none; border:1.5px solid var(--cyan); opacity:1; }
+[data-iteration] .mt { display:inline-flex; align-items:center; gap:3px; }
+[data-iteration] .mt i { width:14px; height:4px; border-radius:2px; background:var(--ink-3); opacity:.35; display:block; }
+[data-iteration] .mt i.f { background:var(--cyan); opacity:1; }
+[data-iteration] .mt i.cur { background:var(--cyan); opacity:1; box-shadow:0 0 0 2px rgba(63,196,238,.25); }
+[data-iteration] .mt i.cur.hot { background:var(--hot); box-shadow:0 0 0 2px rgba(255,87,34,.25); }
+[data-iteration] .mt i.done { background:var(--green); opacity:1; }
+[data-iteration] .mt i.loop { width:8px; border-radius:50%; height:8px; background:none; border:1.5px solid var(--cyan); opacity:1; }
 /* geliefert feed rows */
-[data-iteration="1"] .day { display:flex; align-items:center; gap:8px; padding:8px 12px 4px; font-family:var(--font-display); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); }
-[data-iteration="1"] .day .new { color:var(--green); }
-[data-iteration="1"] .day::after { content:""; flex:1; height:1px; background:var(--hair); }
-[data-iteration="1"] .row { display:flex; align-items:center; gap:8px; min-height:44px; padding:4px 12px; font-size:.8rem; }
-[data-iteration="1"] .row .no { font-family:var(--font-mono); font-size:.7rem; color:var(--ink-3); flex:none; }
-[data-iteration="1"] .row .ti { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-[data-iteration="1"] .row .nd { width:6px; height:6px; border-radius:50%; background:var(--green); flex:none; box-shadow:0 0 6px var(--green); }
-[data-iteration="1"] .row .pr { font-family:var(--font-mono); font-size:.66rem; color:var(--ink-3); flex:none; }
-[data-iteration="1"] .row .go { flex:none; height:30px; padding:0 10px; border-radius:6px; border:1px solid rgba(95,214,152,.5); color:var(--green); display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:600; }
-[data-iteration="1"] .row .chk { flex:none; width:30px; height:30px; border-radius:6px; border:1px solid rgba(95,214,152,.5); color:var(--green); display:inline-flex; align-items:center; justify-content:center; }
-[data-iteration="1"] .row.quiet { opacity:.6; }
-[data-iteration="1"] .row .tag { flex:none; font-size:.64rem; color:var(--ink-3); border:1px solid var(--hair); border-radius:4px; padding:1px 5px; }
+[data-iteration] .day { display:flex; align-items:center; gap:8px; padding:8px 12px 4px; font-family:var(--font-display); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); }
+[data-iteration] .day .new { color:var(--green); }
+[data-iteration] .day::after { content:""; flex:1; height:1px; background:var(--hair); }
+[data-iteration] .row { display:flex; align-items:center; gap:8px; min-height:44px; padding:4px 12px; font-size:.8rem; }
+[data-iteration] .row .no { font-family:var(--font-mono); font-size:.7rem; color:var(--ink-3); flex:none; }
+[data-iteration] .row .ti { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+[data-iteration] .row .nd { width:6px; height:6px; border-radius:50%; background:var(--green); flex:none; box-shadow:0 0 6px var(--green); }
+[data-iteration] .row .pr { font-family:var(--font-mono); font-size:.66rem; color:var(--ink-3); flex:none; }
+[data-iteration] .row .go { flex:none; height:30px; padding:0 10px; border-radius:6px; border:1px solid rgba(95,214,152,.5); color:var(--green); display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:600; }
+[data-iteration] .row .chk { flex:none; width:30px; height:30px; border-radius:6px; border:1px solid rgba(95,214,152,.5); color:var(--green); display:inline-flex; align-items:center; justify-content:center; }
+[data-iteration] .row.quiet { opacity:.6; }
+[data-iteration] .row .tag { flex:none; font-size:.64rem; color:var(--ink-3); border:1px solid var(--hair); border-radius:4px; padding:1px 5px; }
 /* sheets / overlays */
-[data-iteration="1"] .sheet { position:absolute; inset:0; background:rgba(13,38,53,.97); display:flex; flex-direction:column; padding:12px; gap:8px; z-index:2; }
-[data-iteration="1"] .sheet h5 { margin:8px 0 2px; font-family:var(--font-display); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); }
-[data-iteration="1"] .sheet .in { height:48px; border:1px solid rgba(82,193,230,.55); border-radius:10px; display:flex; align-items:center; gap:10px; padding:0 14px; color:var(--ink-3); background:rgba(2,8,14,.4); font-size:.9rem; }
-[data-iteration="1"] .sheet .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-[data-iteration="1"] .sheet .big { height:56px; border:1px solid var(--hair); border-radius:10px; display:flex; align-items:center; justify-content:space-between; padding:0 14px; font-size:.86rem; font-weight:600; }
-[data-iteration="1"] .sheet .big.on { border-color:var(--cyan); background:var(--cyan-2); color:var(--cyan); }
-[data-iteration="1"] .sheet .big .n { font-family:var(--font-mono); font-size:.76rem; color:var(--ink-3); font-weight:400; }
-[data-iteration="1"] .sheet .rowb { height:48px; border:1px solid var(--hair); border-radius:8px; display:flex; align-items:center; gap:10px; padding:0 12px; font-size:.84rem; }
-[data-iteration="1"] .sheet .rowb.on { border-color:var(--cyan); background:var(--cyan-2); }
-[data-iteration="1"] .sheet .rowb .n { margin-left:auto; font-family:var(--font-mono); font-size:.74rem; color:var(--ink-3); }
-[data-iteration="1"] .sheet .rowb .sw { width:34px; height:20px; border-radius:10px; border:1px solid var(--hair); position:relative; flex:none; }
-[data-iteration="1"] .sheet .rowb .sw::after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--ink-3); }
-[data-iteration="1"] .sheet .rowb.on .sw { border-color:var(--cyan); background:var(--cyan-2); }
-[data-iteration="1"] .sheet .rowb.on .sw::after { left:16px; background:var(--cyan); }
-[data-iteration="1"] .sheet .foot { margin-top:auto; display:flex; gap:8px; }
-[data-iteration="1"] .sheet .reason { height:44px; border:1px solid var(--hair); border-radius:8px; display:flex; align-items:center; padding:0 12px; font-size:.82rem; }
-[data-iteration="1"] .sheet .reason.on { border-color:#ff8282; background:rgba(255,130,130,.1); }
+[data-iteration] .sheet { position:absolute; inset:0; background:rgba(13,38,53,.97); display:flex; flex-direction:column; padding:12px; gap:8px; z-index:2; }
+[data-iteration] .sheet h5 { margin:8px 0 2px; font-family:var(--font-display); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); }
+[data-iteration] .sheet .in { height:48px; border:1px solid rgba(82,193,230,.55); border-radius:10px; display:flex; align-items:center; gap:10px; padding:0 14px; color:var(--ink-3); background:rgba(2,8,14,.4); font-size:.9rem; }
+[data-iteration] .sheet .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+[data-iteration] .sheet .big { height:56px; border:1px solid var(--hair); border-radius:10px; display:flex; align-items:center; justify-content:space-between; padding:0 14px; font-size:.86rem; font-weight:600; }
+[data-iteration] .sheet .big.on { border-color:var(--cyan); background:var(--cyan-2); color:var(--cyan); }
+[data-iteration] .sheet .big .n { font-family:var(--font-mono); font-size:.76rem; color:var(--ink-3); font-weight:400; }
+[data-iteration] .sheet .rowb { height:48px; border:1px solid var(--hair); border-radius:8px; display:flex; align-items:center; gap:10px; padding:0 12px; font-size:.84rem; }
+[data-iteration] .sheet .rowb.on { border-color:var(--cyan); background:var(--cyan-2); }
+[data-iteration] .sheet .rowb .n { margin-left:auto; font-family:var(--font-mono); font-size:.74rem; color:var(--ink-3); }
+[data-iteration] .sheet .rowb .sw { width:34px; height:20px; border-radius:10px; border:1px solid var(--hair); position:relative; flex:none; }
+[data-iteration] .sheet .rowb .sw::after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--ink-3); }
+[data-iteration] .sheet .rowb.on .sw { border-color:var(--cyan); background:var(--cyan-2); }
+[data-iteration] .sheet .rowb.on .sw::after { left:16px; background:var(--cyan); }
+[data-iteration] .sheet .foot { margin-top:auto; display:flex; gap:8px; }
+[data-iteration] .sheet .reason { height:44px; border:1px solid var(--hair); border-radius:8px; display:flex; align-items:center; padding:0 12px; font-size:.82rem; }
+[data-iteration] .sheet .reason.on { border-color:#ff8282; background:rgba(255,130,130,.1); }
 /* maximized master/detail */
-[data-iteration="1"] .md { display:grid; grid-template-columns:340px 1fr; height:100%; }
-[data-iteration="1"] .md .rail { border-right:1px solid var(--hair); overflow:hidden; }
-[data-iteration="1"] .md .det { padding:14px 18px; overflow:hidden; display:flex; flex-direction:column; gap:10px; }
-[data-iteration="1"] .md .det h3 { margin:0; font-size:1.05rem; }
-[data-iteration="1"] .md .det .body { max-height:none; }
-[data-iteration="1"] .cols { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; height:100%; }
-[data-iteration="1"] .cols > div { overflow:hidden; min-width:0; }
+[data-iteration] .md { display:grid; grid-template-columns:340px 1fr; height:100%; }
+[data-iteration] .md .rail { border-right:1px solid var(--hair); overflow:hidden; }
+[data-iteration] .md .det { padding:14px 18px; overflow:hidden; display:flex; flex-direction:column; gap:10px; }
+[data-iteration] .md .det h3 { margin:0; font-size:1.05rem; }
+[data-iteration] .md .det .body { max-height:none; }
+[data-iteration] .cols { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; height:100%; }
+[data-iteration] .cols > div { overflow:hidden; min-width:0; }
 /* dashboard stub */
-[data-iteration="1"] .dash { margin:8px 12px; border:1px solid var(--hair); border-radius:8px; padding:10px; display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:.7rem; color:var(--ink-3); }
-[data-iteration="1"] .dash .don { width:44px; height:44px; border-radius:50%; border:5px solid rgba(95,214,152,.25); border-top-color:var(--green); border-right-color:var(--green); display:inline-block; vertical-align:middle; margin-right:8px; }
+[data-iteration] .dash { margin:8px 12px; border:1px solid var(--hair); border-radius:8px; padding:10px; display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:.7rem; color:var(--ink-3); }
+[data-iteration] .dash .don { width:44px; height:44px; border-radius:50%; border:5px solid rgba(95,214,152,.25); border-top-color:var(--green); border-right-color:var(--green); display:inline-block; vertical-align:middle; margin-right:8px; }
 /* Ⓓ befund replica */
-[data-iteration="1"] .old { border:1px solid var(--hair); border-radius:8px; overflow:hidden; background:#0f2b3d; width:100%; max-width:480px; font-size:.72rem; }
-[data-iteration="1"] .old .r { display:flex; align-items:center; gap:6px; padding:5px 10px; border-bottom:1px dashed rgba(255,255,255,.08); position:relative; color:var(--text-secondary); }
-[data-iteration="1"] .old .r .h { margin-left:auto; font-family:var(--font-mono); font-size:.62rem; color:var(--text-tertiary); }
-[data-iteration="1"] .old .p { padding:2px 8px; border:1px solid rgba(82,193,230,.3); border-radius:12px; font-size:.64rem; }
-[data-iteration="1"] .old .p.on { background:rgba(82,193,230,.15); color:var(--accent-strong); }
-[data-iteration="1"] .old .r.card { margin:0; border:none; padding:8px 10px; background:rgba(82,193,230,.05); }
-[data-iteration="1"] table.cmp { width:100%; border-collapse:collapse; font-size:.78rem; }
-[data-iteration="1"] table.cmp th, [data-iteration="1"] table.cmp td { text-align:left; padding:.4rem .55rem; border-bottom:1px solid var(--border-subtle); vertical-align:top; }
-[data-iteration="1"] table.cmp th { font-family:var(--font-display); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-tertiary); }
-[data-iteration="1"] table.cmp td:first-child { color:var(--text-secondary); }
-[data-iteration="1"] .core { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:.5rem 1.2rem; font-size:.82rem; color:var(--text-secondary); margin:.4rem 0 1rem; }
-[data-iteration="1"] .core b { color:var(--text-primary); }
-[data-iteration="1"] .tag { display:inline-block; font-family:var(--font-display); font-size:.56rem; letter-spacing:.12em; text-transform:uppercase; padding:.1rem .45rem; border-radius:999px; border:1px solid var(--status-success); color:var(--status-success); vertical-align:middle; }
-[data-iteration="1"] .tag.over { border-color:var(--accent-hot); color:var(--accent-hot); }
-[data-iteration="1"] .tag.eff { border-color:var(--accent-warning); color:var(--accent-warning); }
+[data-iteration] .old { border:1px solid var(--hair); border-radius:8px; overflow:hidden; background:#0f2b3d; width:100%; max-width:480px; font-size:.72rem; }
+[data-iteration] .old .r { display:flex; align-items:center; gap:6px; padding:5px 10px; border-bottom:1px dashed rgba(255,255,255,.08); position:relative; color:var(--text-secondary); }
+[data-iteration] .old .r .h { margin-left:auto; font-family:var(--font-mono); font-size:.62rem; color:var(--text-tertiary); }
+[data-iteration] .old .p { padding:2px 8px; border:1px solid rgba(82,193,230,.3); border-radius:12px; font-size:.64rem; }
+[data-iteration] .old .p.on { background:rgba(82,193,230,.15); color:var(--accent-strong); }
+[data-iteration] .old .r.card { margin:0; border:none; padding:8px 10px; background:rgba(82,193,230,.05); }
+[data-iteration] table.cmp { width:100%; border-collapse:collapse; font-size:.78rem; }
+[data-iteration] table.cmp th, [data-iteration] table.cmp td { text-align:left; padding:.4rem .55rem; border-bottom:1px solid var(--border-subtle); vertical-align:top; }
+[data-iteration] table.cmp th { font-family:var(--font-display); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-tertiary); }
+[data-iteration] table.cmp td:first-child { color:var(--text-secondary); }
+[data-iteration] .core { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:.5rem 1.2rem; font-size:.82rem; color:var(--text-secondary); margin:.4rem 0 1rem; }
+[data-iteration] .core b { color:var(--text-primary); }
+[data-iteration] .tag { display:inline-block; font-family:var(--font-display); font-size:.56rem; letter-spacing:.12em; text-transform:uppercase; padding:.1rem .45rem; border-radius:999px; border:1px solid var(--status-success); color:var(--status-success); vertical-align:middle; }
+[data-iteration] .tag.over { border-color:var(--accent-hot); color:var(--accent-hot); }
+[data-iteration] .tag.eff { border-color:var(--accent-warning); color:var(--accent-warning); }
 /* decision groups inside Ⓓ screens */
-[data-iteration="1"] .qwrap { width:100%; max-width:1000px; margin:0 auto; padding-top:44px; }
-[data-iteration="1"] .qwrap h3 { margin:1.4rem 0 .3rem; font-size:1rem; }
-[data-iteration="1"] .qwrap .qlead { font-size:.84rem; color:var(--text-secondary); margin:0 0 .6rem; line-height:1.55; }
-[data-iteration="1"] .qgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:.8rem; }
-[data-iteration="1"] .variant-evaluation { border:1px solid var(--border-subtle); border-radius:6px; padding:.7rem .85rem; background:var(--surface-panel); }
-[data-iteration="1"] .variant-evaluation h4 { margin:0 0 .3rem; font-size:.9rem; }
-[data-iteration="1"] .variant-evaluation p { margin:0 0 .5rem; font-size:.8rem; line-height:1.5; color:var(--text-secondary); }
-[data-iteration="1"] .variant-evaluation .rec { font-size:.7rem; color:var(--status-success); }
-[data-iteration="1"] .variant-evaluation textarea { width:100%; min-height:56px; box-sizing:border-box; }
+[data-iteration] .qwrap { width:100%; max-width:1000px; margin:0 auto; padding-top:44px; }
+[data-iteration] .qwrap h3 { margin:1.4rem 0 .3rem; font-size:1rem; }
+[data-iteration] .qwrap .qlead { font-size:.84rem; color:var(--text-secondary); margin:0 0 .6rem; line-height:1.55; }
+[data-iteration] .qgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:.8rem; }
+[data-iteration] .variant-evaluation { border:1px solid var(--border-subtle); border-radius:6px; padding:.7rem .85rem; background:var(--surface-panel); }
+[data-iteration] .variant-evaluation h4 { margin:0 0 .3rem; font-size:.9rem; }
+[data-iteration] .variant-evaluation p { margin:0 0 .5rem; font-size:.8rem; line-height:1.5; color:var(--text-secondary); }
+[data-iteration] .variant-evaluation .rec { font-size:.7rem; color:var(--status-success); }
+[data-iteration] .variant-evaluation textarea { width:100%; min-height:56px; box-sizing:border-box; }
 </style>
 
 <!-- ═══════════════════════════════ Ⓐ Drei Bänder ═══════════════════════════════ -->
@@ -2614,20 +2617,20 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
         <div class="variant-evaluation" data-decision="q1-band-unten" data-label="Ⓐ Band 3 im selben Scroll, nach Unterwegs">
           <h4>Ⓐ Band 3 im selben Scroll, nach „Unterwegs“</h4>
           <p>Ein Scroll, Geliefert eingeklappt am Ende mit „3 neu“. Kein Flächenwechsel. Alte Ships nur per Suche.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q1-band-unten" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q1-band-unten" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q1-band-unten-note">Notiz / Einschränkung</label><textarea id="q1-band-unten-note" data-comment="q1-band-unten-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q1-band-unten" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q1-band-unten" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q1-band-unten-note">Notiz / Einschränkung</label><textarea id="q1-band-unten-note" data-comment="q1-band-unten-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q1-badge" data-label="Ⓑ Eigene Fläche hinter Geliefert-Badge">
           <h4>Ⓑ Eigene Fläche hinter dem Geliefert-Badge</h4>
           <p>Board bleibt kurz; Badge in der Titelzeile zählt, glüht und öffnet den Feed (+ Fortschritt am Ende).</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q1-badge" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q1-badge" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q1-badge-note">Notiz / Einschränkung</label><textarea id="q1-badge-note" data-comment="q1-badge-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q1-badge" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q1-badge" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q1-badge-note">Notiz / Einschränkung</label><textarea id="q1-badge-note" data-comment="q1-badge-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q1-zone2" data-label="Ⓒ Zone 2 direkt unter Dein Zug, vor Läuft">
           <h4>Ⓒ Zone 2 direkt unter „Dein Zug“, vor „Läuft“ <span class="rec">· Empfehlung für den Morgenblick</span></h4>
           <p>Erinnerung vor Maschine: nach dem, was auf dich wartet, kommt sofort, was neu gebaut wurde. Läuft/Archiv eingeklappt.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q1-zone2" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q1-zone2" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q1-zone2-note">Notiz / Einschränkung</label><textarea id="q1-zone2-note" data-comment="q1-zone2-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q1-zone2" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q1-zone2" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q1-zone2-note">Notiz / Einschränkung</label><textarea id="q1-zone2-note" data-comment="q1-zone2-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
       </div>
 
@@ -2637,20 +2640,20 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
         <div class="variant-evaluation" data-decision="q2-dots-badge" data-label="Ⓐ 5 Punkte + Zug-Badge">
           <h4>Ⓐ Fünf Punkte + Zug-Badge (Du / Routine / Nutzer)</h4>
           <p>Kleinstes Vokabular: Punkte = Position, ein farbiger Badge = wer dran ist. Kurzer Satz daneben.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q2-dots-badge" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q2-dots-badge" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q2-dots-badge-note">Notiz / Einschränkung</label><textarea id="q2-dots-badge-note" data-comment="q2-dots-badge-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q2-dots-badge" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q2-dots-badge" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q2-dots-badge-note">Notiz / Einschränkung</label><textarea id="q2-dots-badge-note" data-comment="q2-dots-badge-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q2-flightpath" data-label="Ⓑ Flugbahn mit Marker-Formen">
           <h4>Ⓑ Flugbahn mit Marker-Formen (◆ ◈ ◐ ○ ◇) + Endkappen</h4>
           <p>Ausdrucksstärkstes Bild; der Filter zeigt dieselben Knoten. Verlangt, fünf Formen zu lernen. Rück-Bogen für „fortgesetzt“.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q2-flightpath" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q2-flightpath" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q2-flightpath-note">Notiz / Einschränkung</label><textarea id="q2-flightpath-note" data-comment="q2-flightpath-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q2-flightpath" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q2-flightpath" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q2-flightpath-note">Notiz / Einschränkung</label><textarea id="q2-flightpath-note" data-comment="q2-flightpath-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q2-baton-words" data-label="Ⓒ Mikro-Track + Stab-Satz in Worten">
           <h4>Ⓒ Mikro-Track (4 Striche) + Stab-Satz in Worten <span class="rec">· Empfehlung</span></h4>
           <p>„In Arbeit → Frage an dich“, „Geliefert → wartet auf deinen Haken“. Nichts zu lernen; der Track ist nur die Position.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q2-baton-words" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q2-baton-words" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q2-baton-words-note">Notiz / Einschränkung</label><textarea id="q2-baton-words-note" data-comment="q2-baton-words-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q2-baton-words" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q2-baton-words" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q2-baton-words-note">Notiz / Einschränkung</label><textarea id="q2-baton-words-note" data-comment="q2-baton-words-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
       </div>
 
@@ -2659,20 +2662,20 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
         <div class="variant-evaluation" data-decision="q3-overlay" data-label="Ⓐ Lupe → Overlay mit 6 großen Zielen">
           <h4>Ⓐ Lupe → Overlay: Feld + sechs große Ziele</h4>
           <p>0 px im Ruhezustand; Suche und Filter sind eins. Archiv nur hier.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q3-overlay" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q3-overlay" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q3-overlay-note">Notiz / Einschränkung</label><textarea id="q3-overlay-note" data-comment="q3-overlay-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q3-overlay" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q3-overlay" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q3-overlay-note">Notiz / Einschränkung</label><textarea id="q3-overlay-note" data-comment="q3-overlay-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q3-field-sheet" data-label="Ⓑ Suchfeld immer sichtbar + Filter-Knopf → Sheet">
           <h4>Ⓑ Suchfeld immer sichtbar + ein Filter-Knopf → Sheet <span class="rec">· Empfehlung (Maus + Touch)</span></h4>
           <p>40 px unter der Titelzeile, dafür ist die Suche nie versteckt. Sheet mit Wer? · Wo steht es? · Bereich; ein Token für aktive Filter.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q3-field-sheet" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q3-field-sheet" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q3-field-sheet-note">Notiz / Einschränkung</label><textarea id="q3-field-sheet-note" data-comment="q3-field-sheet-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q3-field-sheet" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q3-field-sheet" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q3-field-sheet-note">Notiz / Einschränkung</label><textarea id="q3-field-sheet-note" data-comment="q3-field-sheet-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q3-overflow" data-label="Ⓒ Lupe + ⋯-Overflow → Sheet">
           <h4>Ⓒ Lupe-Glyph + ⋯-Overflow (Filter-Sheet, alles auf/zu)</h4>
           <p>Titelzeile bleibt vier Glyphen; Filter sind bewusst zwei Tipps entfernt.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q3-overflow" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q3-overflow" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q3-overflow-note">Notiz / Einschränkung</label><textarea id="q3-overflow-note" data-comment="q3-overflow-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q3-overflow" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q3-overflow" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q3-overflow-note">Notiz / Einschränkung</label><textarea id="q3-overflow-note" data-comment="q3-overflow-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
       </div>
     </div>
@@ -2685,14 +2688,14 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
         <div class="variant-evaluation" data-decision="q4-same-column" data-label="Dieselbe Spalte, breiter (Ⓐ/Ⓒ)">
           <h4>Dieselbe Spalte, breiter — optional zwei Bänder nebeneinander (Ⓐ/Ⓒ) <span class="rec">· Empfehlung: erst das</span></h4>
           <p>Null neue Konzepte, null Zusatzaufwand. Bei 3–6 offenen Themen reicht das.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q4-same-column" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q4-same-column" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q4-same-column-note">Notiz / Einschränkung</label><textarea id="q4-same-column-note" data-comment="q4-same-column-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q4-same-column" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q4-same-column" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q4-same-column-note">Notiz / Einschränkung</label><textarea id="q4-same-column-note" data-comment="q4-same-column-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q4-master-detail" data-label="Master/Detail (Ⓑ)">
           <h4>Master/Detail: 340-px-Leiste + Detailfläche (Ⓑ) <span class="tag eff">+M</span></h4>
           <p>Voller Thread rechts ohne Aufklappen; Geliefert zweispaltig. Zweite Zustandsführung (was ist „gewählt“) nötig.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q4-master-detail" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q4-master-detail" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q4-master-detail-note">Notiz / Einschränkung</label><textarea id="q4-master-detail-note" data-comment="q4-master-detail-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q4-master-detail" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q4-master-detail" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q4-master-detail-note">Notiz / Einschränkung</label><textarea id="q4-master-detail-note" data-comment="q4-master-detail-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
       </div>
 
@@ -2702,38 +2705,38 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
         <div class="variant-evaluation" data-decision="q5-options" data-label="Ein-Tipp-Antwortoptionen (Routine-Konvention)">
           <h4>Ein-Tipp-Antwortoptionen <span class="tag over">über Korridor</span> <span class="tag eff">+M</span></h4>
           <p>Wenn die Routine ihre Rückfrage mit Optionen markiert (z. B. <code>[[Erhalten|Zurücksetzen]]</code>), rendert die Karte 2–3 große Knöpfe. Ohne Markierung: Textbox wie bisher. Braucht die Routine-Prompt + einen Parser.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-options" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-options" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q5-options-note">Notiz / Einschränkung</label><textarea id="q5-options-note" data-comment="q5-options-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-options" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-options" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q5-options-note">Notiz / Einschränkung</label><textarea id="q5-options-note" data-comment="q5-options-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q5-viewer-link" data-label="Viewer: „Im App ansehen“ bei umgesetzten Themen">
           <h4>Viewer-Panel: „Im App ansehen“ bei umgesetzten Themen <span class="tag over">über Korridor</span> <span class="tag eff">+S</span></h4>
           <p>Ein Anker aus dem Area-Tag im Nutzer-Panel. Winzig, aber außerhalb des Admin-Innenlebens.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-viewer-link" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-viewer-link" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q5-viewer-link-note">Notiz / Einschränkung</label><textarea id="q5-viewer-link-note" data-comment="q5-viewer-link-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-viewer-link" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-viewer-link" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q5-viewer-link-note">Notiz / Einschränkung</label><textarea id="q5-viewer-link-note" data-comment="q5-viewer-link-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q5-collab-log" data-label="Collaborator: Read-only-Lieferlog">
           <h4>Collaborator: Read-only-Lieferlog + Läuft-Titel <span class="tag over">über Korridor</span> <span class="tag eff">+M</span></h4>
           <p>Damit sie keine Duplikate melden. Braucht eine neue RLS-Projektion — heute sind Collaborators auf dieser Fläche Viewer.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-collab-log" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-collab-log" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q5-collab-log-note">Notiz / Einschränkung</label><textarea id="q5-collab-log-note" data-comment="q5-collab-log-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-collab-log" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-collab-log" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q5-collab-log-note">Notiz / Einschränkung</label><textarea id="q5-collab-log-note" data-comment="q5-collab-log-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q5-offline-words" data-label="Offline in Worten + „gespeichert, geht raus“">
           <h4>Offline in Worten + „Gespeichert — geht raus, sobald …“ <span class="tag">innerhalb</span></h4>
           <p>Der Heartbeat-Service existiert; das ist nur Wording in der Titelzeile und unter der Antwortbox.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-offline-words" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-offline-words" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q5-offline-words-note">Notiz / Einschränkung</label><textarea id="q5-offline-words-note" data-comment="q5-offline-words-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-offline-words" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-offline-words" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q5-offline-words-note">Notiz / Einschränkung</label><textarea id="q5-offline-words-note" data-comment="q5-offline-words-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q5-user-buttons-open" data-label="Nutzer-Themen: drei Knöpfe offen statt ⋯">
           <h4>Nutzer-Themen: Freigeben · Als Issue · Ablehnen als offene Reihe (Ⓒ) <span class="tag">innerhalb</span></h4>
           <p>Statt hinter „Weitere Aktionen“. Löschen (eigene Themen) und Issue-Rückgängig bleiben hinter ⋯.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-user-buttons-open" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-user-buttons-open" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q5-user-buttons-open-note">Notiz / Einschränkung</label><textarea id="q5-user-buttons-open-note" data-comment="q5-user-buttons-open-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-user-buttons-open" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-user-buttons-open" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q5-user-buttons-open-note">Notiz / Einschränkung</label><textarea id="q5-user-buttons-open-note" data-comment="q5-user-buttons-open-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q5-signoff-in-feed" data-label="Abnahme-Haken auch im Geliefert-Feed">
           <h4>Abnahme-Haken ✓ auch in der Geliefert-Zeile (bewusst doppelt) <span class="tag">innerhalb</span></h4>
           <p>Dein Zug ist das To-do, Geliefert die Erinnerung — abnehmen darf man an beiden Stellen.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-signoff-in-feed" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-signoff-in-feed" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q5-signoff-in-feed-note">Notiz / Einschränkung</label><textarea id="q5-signoff-in-feed-note" data-comment="q5-signoff-in-feed-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q5-signoff-in-feed" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q5-signoff-in-feed" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q5-signoff-in-feed-note">Notiz / Einschränkung</label><textarea id="q5-signoff-in-feed-note" data-comment="q5-signoff-in-feed-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
       </div>
 
@@ -2743,26 +2746,26 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
         <div class="variant-evaluation" data-decision="q6-pr1-stream" data-label="PR 1 · Strom + Bänder + turnOf/stationOf">
           <h4>PR 1 · Strom + Bänder + <code>turnOf()</code>/<code>stationOf()</code> + erste Karte offen</h4>
           <p>Ersetzt die drei Tabs. Run-Komponente wird entfernt, Fortschritt hinter Glyph. Der Kern des Ganzen.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q6-pr1-stream" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q6-pr1-stream" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q6-pr1-stream-note">Notiz / Einschränkung</label><textarea id="q6-pr1-stream-note" data-comment="q6-pr1-stream-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q6-pr1-stream" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q6-pr1-stream" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q6-pr1-stream-note">Notiz / Einschränkung</label><textarea id="q6-pr1-stream-note" data-comment="q6-pr1-stream-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q6-pr2-shipped" data-label="PR 2 · Geliefert-Feed + Ansehen + „n neu“">
           <h4>PR 2 · Geliefert-Feed nach Tagen + „▸ Ansehen“ + „n neu seit deinem letzten Blick“</h4>
           <p>Dein neuer Punkt. Area→Route-Mapping, ein localStorage-Zeitstempel, Konfetti-Banner weg.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q6-pr2-shipped" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q6-pr2-shipped" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q6-pr2-shipped-note">Notiz / Einschränkung</label><textarea id="q6-pr2-shipped-note" data-comment="q6-pr2-shipped-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q6-pr2-shipped" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q6-pr2-shipped" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q6-pr2-shipped-note">Notiz / Einschränkung</label><textarea id="q6-pr2-shipped-note" data-comment="q6-pr2-shipped-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q6-pr3-filters" data-label="PR 3 · Suche + Filter-Sheet, Chip-Reihen weg">
           <h4>PR 3 · Suche + Filter-Sheet (≥ 48 px), alle Chip-Reihen weg, ⋯ pro Karte</h4>
           <p>Toolbar-Abriss. Mobile-Gate wird hier grün.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q6-pr3-filters" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q6-pr3-filters" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q6-pr3-filters-note">Notiz / Einschränkung</label><textarea id="q6-pr3-filters-note" data-comment="q6-pr3-filters-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q6-pr3-filters" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q6-pr3-filters" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q6-pr3-filters-note">Notiz / Einschränkung</label><textarea id="q6-pr3-filters-note" data-comment="q6-pr3-filters-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q6-pr4-polish" data-label="PR 4 · Kartenanatomie, Sheets, Maximiert, Telefon, i18n-Aufräumen">
           <h4>PR 4 · Kartenanatomie + Ablehn-/Nutzer-Sheets + Maximiert + Telefon + i18n-Aufräumen (~60 Keys raus)</h4>
           <p>Der Polish-Anteil. Danach die Extras aus Frage 5, falls gewählt.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q6-pr4-polish" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q6-pr4-polish" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q6-pr4-polish-note">Notiz / Einschränkung</label><textarea id="q6-pr4-polish-note" data-comment="q6-pr4-polish-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q6-pr4-polish" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q6-pr4-polish" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q6-pr4-polish-note">Notiz / Einschränkung</label><textarea id="q6-pr4-polish-note" data-comment="q6-pr4-polish-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
       </div>
       <div class="why" style="margin-top:1.4rem"><strong>Wie es weitergeht:</strong> <em>Zur nächsten Iteration</em> → ich baue aus deinen Antworten und Notizen eine kombinierte Richtung als Iteration 2 (nichts wird programmiert). <em>Mit Feedback implementieren</em> → ich sperre die gewählte Kombination, frage einmal nach Korridor-Erweiterung, falls ein „über Korridor“-Extra drin ist, und übergebe an die autonome Umsetzung (PR-Reihenfolge aus Frage 6, Mobile-Gate + Build als Test-Mandat).</div>
@@ -2772,14 +2775,317 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
 
       </section>
 
-      </main>
+            <section data-iteration="2" data-iteration-template="design" data-active>
+        <header class="iteration-intro">
+          <h2>Iteration 2 · Eine Richtung, dein Feedback eingearbeitet</h2>
+          <p>Aus Runde 1: Ⓑ „Sehr gut“, Ⓐ3 „Geliefert im Strom“ sehr gut, Profil-Icons und Titel richtig. Dazu vier neue Punkte: Rot nur für echte Admin-Funktionen und Call-to-Actions; Rollenfarben auf den Profil-Icons; ein Thema öffnet sich als <strong>fast ganzes Panel</strong> statt inline; Eingabefeld deutlich größer mit Anhang-Thumbnails, „+“ und Screenshot.</p>
+        </header>
+
+<style>
+/* ── Iteration 2 · additions on top of the shared mock foundation ─────── */
+[data-iteration="2"] .ii-note { border-left:3px solid var(--accent-primary); padding:.55rem .9rem; background:rgba(82,193,230,.07); font-size:.86rem; line-height:1.55; }
+/* role-coloured avatars: admin = red (elevated), collaborator = light blue, user = grey-blue */
+[data-iteration] .pnl .av.adm { background:rgba(255,87,34,.18); border-color:rgba(255,87,34,.6); color:var(--hot); }
+[data-iteration] .pnl .av.col { background:rgba(125,213,240,.18); border-color:rgba(125,213,240,.6); color:#9fe0f7; }
+[data-iteration] .pnl .av.usr { background:rgba(132,160,182,.22); border-color:rgba(132,160,182,.6); color:#b6c8d8; }
+[data-iteration] .pnl .av.rt { background:rgba(63,196,238,.14); border-color:rgba(63,196,238,.45); color:var(--cyan); font-size:.7rem; }
+/* card kind: user feedback vs. admin instruction to the routine */
+[data-iteration] .pnl .kind { flex:none; font-size:.6rem; letter-spacing:.06em; text-transform:uppercase; padding:1px 6px; border-radius:4px; border:1px solid var(--hair); color:var(--ink-3); }
+[data-iteration] .pnl .kind.usr { border-color:rgba(132,160,182,.5); color:#b6c8d8; }
+[data-iteration] .pnl .kind.adm { border-color:rgba(255,87,34,.45); color:var(--hot); }
+/* message box without the sender label: only the kind/time line */
+[data-iteration] .pnl .msg .mh .t { color:var(--ink-3); }
+/* detail sheet = the whole panel body */
+[data-iteration] .pnl .dh { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--hair); }
+[data-iteration] .pnl .dh .back { width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--cyan); font-size:1.1rem; border:1px solid var(--hair); flex:none; }
+[data-iteration] .pnl .dh .dt { flex:1; min-width:0; }
+[data-iteration] .pnl .dh .dt .no { font-family:var(--font-mono); font-size:.7rem; color:var(--ink-3); }
+[data-iteration] .pnl .dh .dt .ti { display:block; font-weight:600; font-size:.92rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+[data-iteration] .pnl .dbody { padding:10px 12px; display:flex; flex-direction:column; gap:10px; overflow:hidden; }
+[data-iteration] .pnl .dbody .msg { font-size:.84rem; line-height:1.55; }
+[data-iteration] .pnl .between { display:flex; align-items:center; gap:8px; padding:2px 0; }
+[data-iteration] .pnl .between .dots3 { flex:1; text-align:center; font-size:.9rem; color:var(--ink-3); letter-spacing:.2em; }
+[data-iteration] .pnl .between .one { flex:none; height:28px; padding:0 10px; border-radius:6px; border:1px dashed var(--hair); color:var(--ink-3); font-size:.7rem; display:inline-flex; align-items:center; }
+/* big composer */
+[data-iteration] .pnl .cmp { border:1px solid rgba(82,193,230,.5); border-radius:10px; background:rgba(2,8,14,.35); display:flex; flex-direction:column; }
+[data-iteration] .pnl .cmp .cta { min-height:120px; padding:10px 12px; color:var(--ink-3); font-size:.84rem; }
+[data-iteration] .pnl .cmp .thumbs { display:flex; gap:6px; padding:0 10px 8px; align-items:center; }
+[data-iteration] .pnl .cmp .th { width:56px; height:56px; border-radius:6px; border:1px solid var(--hair); background:linear-gradient(135deg,#1a4a66,#0b1f2b); position:relative; flex:none; }
+[data-iteration] .pnl .cmp .th::after { content:"✕"; position:absolute; top:-6px; right:-6px; width:16px; height:16px; border-radius:50%; background:#0d2635; border:1px solid var(--hair); font-size:.6rem; display:flex; align-items:center; justify-content:center; color:var(--ink-2); }
+[data-iteration] .pnl .cmp .th.add { display:flex; align-items:center; justify-content:center; background:none; border-style:dashed; color:var(--cyan); font-size:1.3rem; }
+[data-iteration] .pnl .cmp .th.add::after { display:none; }
+[data-iteration] .pnl .cmp .row { display:flex; align-items:center; gap:8px; padding:8px 10px; border-top:1px solid var(--hair); }
+[data-iteration] .pnl .cmp .tool { height:36px; padding:0 10px; border-radius:8px; border:1px solid var(--hair); display:inline-flex; align-items:center; gap:6px; color:var(--ink-2); font-size:.76rem; }
+[data-iteration] .pnl .cmp .hint { margin-left:auto; font-size:.66rem; color:var(--ink-3); }
+[data-iteration] .pnl .cmp .send { height:36px; padding:0 14px; border-radius:8px; background:var(--cyan); color:#04202c; font-weight:600; font-size:.8rem; display:inline-flex; align-items:center; }
+/* legend */
+[data-iteration="2"] .legend { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:14px; max-width:1000px; }
+[data-iteration="2"] .legend .lg { border:1px solid var(--border-subtle); border-radius:6px; padding:12px 14px; background:var(--surface-panel); font-size:.8rem; line-height:1.55; color:var(--text-secondary); }
+[data-iteration="2"] .legend .lg h4 { margin:0 0 8px; font-family:var(--font-display); font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-strong); }
+[data-iteration="2"] .legend .lg b { color:var(--text-primary); }
+[data-iteration="2"] .legend .sw { display:inline-flex; align-items:center; gap:8px; margin:3px 12px 3px 0; }
+[data-iteration="2"] .legend .sw i { width:22px; height:22px; border-radius:50%; border:1px solid; display:inline-flex; align-items:center; justify-content:center; font-size:.58rem; font-weight:700; font-style:normal; }
+</style>
+
+<!-- ═══════════════════════════════ Ⓔ Board + Geliefert im Strom ═══════════════════════════════ -->
+<section data-design="e-board" data-nav-label="Ⓔ Board + Geliefert im Strom" data-design-active="true">
+
+  <section id="e-s1" data-screen data-nav-label="Ⓔ1 · Öffnen" data-screen-active="true">
+    <div class="wrap">
+      <p class="cap"><b>Ⓑ als Basis, Ⓐ3 als drittes Band.</b> Suchfeld + ein Filter-Knopf, drei Besitzer-Bänder, Geliefert im selben Scroll. Aus deinem Feedback: der Kopf einer offenen Karte trägt <b>nur die Flugbahn</b> — kein „DU“-Badge und keine zweite Textzeile mehr, die Box darunter sagt es schon; die Box selbst hat <b>keinen „Routine“-Absender</b>, nur Art und Zeit. <b>Rot</b> bleibt der Admin-Rolle (Avatar) und dem einen Call-to-Action vorbehalten; das Band „Du bist dran“ ist cyan wie alles andere. Profil-Icons rechts oben, nach Rolle gefärbt.</p>
+      <div class="stage">
+        <div class="pnl b">
+          <div class="ph"><span class="tt on"><span class="d"></span>Feedback</span><span class="sp"></span><span class="badge">Geliefert <b>3</b></span><span class="ic shell">▢</span><span class="ic shell">–</span></div>
+          <div class="sr"><div class="in">⌕ <span>Suchen … oder #Nummer</span></div><div class="fb">⚲ Filter</div></div>
+          <div class="pb">
+            <div class="bnd"><span>Du bist dran</span><span class="n">3</span></div>
+            <div class="card open">
+              <div class="ch"><span class="no">#187</span><span class="ti">Starscape-Filter springt manchmal zurück</span><span class="kind adm">Auftrag</span><span class="av adm">JT</span></div>
+              <div class="st"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd halt"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span></div>
+              <div class="cb">
+                <div class="msg"><div class="mh"><span class="q">Rückfrage</span><span class="t">vor 40 Min</span></div>Soll der Top-7-Filter beim Wechsel der Kategorie <b>erhalten bleiben</b> oder bewusst zurückgesetzt werden? Beides ist vertretbar — ich brauche deine Entscheidung.</div>
+                <div class="ta">Antwort …</div>
+                <div class="acts"><span class="btn pri" style="background:var(--hot);color:#fff">Antworten &amp; weiterlaufen</span><span class="btn ghost">Öffnen ›</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ch"><span class="no">#183</span><span class="ti">Hangar: Loadout-Vergleich zeigt falsche SCU</span><span class="kind adm">Auftrag</span><span class="av adm">JT</span></div>
+              <div class="st"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd f"></span><span class="ln f"></span><span class="nd halt"></span><span class="ln"></span><span class="nd"></span></span><span class="ph2">geliefert · abnehmen</span><span class="link">PR #489 ↗</span></div>
+            </div>
+            <div class="card">
+              <div class="ch"><span class="no">#194</span><span class="ti">Nutzerfeedback abarbeiten können</span><span class="kind usr">Nutzer-Feedback</span><span class="av usr">NV</span></div>
+              <div class="st"><span class="fp"><span class="nd pre"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span><span class="ph2">nicht freigegeben</span></div>
+            </div>
+            <div class="bnd"><span>Läuft</span><span class="n">3</span></div>
+            <div class="card">
+              <div class="ch"><span class="no">#172</span><span class="ti">Feedback-Panel für alle Rollen ergänzen</span><span class="av col">CL</span></div>
+              <div class="st"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd half"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span><span class="ph2">Routine arbeitet</span></div>
+            </div>
+            <div class="card">
+              <div class="ch"><span class="no">#102</span><span class="ti">Produktentscheidungen V2-Loadout-Migration</span><span class="av adm">JT</span></div>
+              <div class="st"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd half"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span><span class="ph2">beantwortet · Routine nimmt auf</span></div>
+            </div>
+            <div class="bnd green"><span>Geliefert</span><span class="sub"><b style="color:var(--green)">3 neu</b> seit Mi 20:14</span><span class="chev" style="margin-left:8px">▸</span></div>
+          </div>
+          <div class="pf"><div class="compose"><span class="plus">✎</span>Neues Thema …</div></div>
+        </div>
+        <div class="side">
+          <h4>Was sich gegenüber Ⓐ/Ⓑ geändert hat</h4>
+          <ul>
+            <li><b>Kopfzeile einer offenen Karte:</b> Nummer · Titel · Art · Avatar, darunter nur die Flugbahn. Der Satz „Routine fragt“ fällt weg — die Box ist die Frage.</li>
+            <li><b>Box:</b> „Rückfrage · vor 40 Min“, kein Absender. Wer fragt, ist per Definition die Routine.</li>
+            <li><b>Rollenfarben:</b> <span style="color:var(--accent-hot)">JT rot</span> = Admin, <span style="color:#9fe0f7">CL hellblau</span> = Collaborator, <span style="color:#b6c8d8">NV graublau</span> = Nutzer. Die Farbe ist der Avatar, nicht die Karte.</li>
+            <li><b>Art:</b> „Auftrag“ (Admin → Routine) vs. „Nutzer-Feedback“ — als kleines Label neben dem Avatar, damit man Claude-Instruktionen von Meldungen unterscheidet.</li>
+            <li><b>Rot nur zweimal:</b> Admin-Avatar und der eine primäre Knopf, der die Routine weiterlaufen lässt. Bänder sind cyan.</li>
+            <li><b>„Öffnen ›“</b> führt in die Vollpanel-Ansicht (Ⓔ2). Inline bleibt nur die Kurzform mit der kleinen Box.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="e-s2" data-screen data-nav-label="Ⓔ2 · Thema geöffnet = ganzes Panel" hidden>
+    <div class="wrap">
+      <p class="cap"><b>Ein Thema öffnet sich als Fläche über dem Board, nicht inline.</b> Kopf: ‹ zurück, #Nummer, Titel, Flugbahn. Verlauf gefaltet auf <b>erste Nachricht des Posters + letzte Nachricht</b>; dazwischen ein „…“ mit „eine weitere einblenden“ — jeder Tipp holt genau eine Nachricht mehr. Das <b>Eingabefeld ist groß</b> (≥ 120 px), darunter Anhang-Thumbnails wie im heutigen Panel (72 px, Klick vergrößert), ein „+“ und <b>📷 Screenshot</b> vom aktuellen Bildschirm. Wischen nach rechts oder ‹ führt zurück in die Liste.</p>
+      <div class="stage">
+        <div class="pnl b">
+          <div class="ph"><span class="tt on"><span class="d"></span>Feedback</span><span class="sp"></span><span class="badge">Geliefert <b>3</b></span><span class="ic shell">▢</span><span class="ic shell">–</span></div>
+          <div class="dh"><span class="back">‹</span><span class="dt"><span class="no">#187 · Auftrag · JT · Di 2. Sep</span><span class="ti">Starscape-Filter springt manchmal zurück</span></span><span class="av adm">JT</span><span class="btn ghost" style="flex:0 0 auto;height:36px">⋯</span></div>
+          <div class="pb">
+            <div class="dbody">
+              <div class="st" style="padding:0"><span class="fp"><span class="nd f"></span><span class="ln f"></span><span class="nd halt"></span><span class="ln"></span><span class="nd"></span><span class="ln"></span><span class="nd"></span></span><span class="ph2">In Arbeit · Rückfrage offen</span></div>
+              <div class="msg" style="border-left-color:var(--hot);background:rgba(255,87,34,.05)"><div class="mh"><span class="av adm" style="width:18px;height:18px;font-size:.5rem">JT</span><span class="t">Auftrag · Di 22:04</span></div>Auf der Starscape-Seite springt der Top-7-Filter manchmal zurück auf „Alle“, wenn ich die Kategorie wechsle. Passiert nicht immer, aber oft genug, dass es nervt.<div style="display:flex;gap:6px;margin-top:8px"><span class="th" style="width:72px;height:72px;border-radius:6px;border:1px solid var(--hair);background:linear-gradient(135deg,#1a4a66,#0b1f2b);display:block"></span></div></div>
+              <div class="between"><span class="dots3">•••</span><span class="one">1 weitere einblenden (4 dazwischen)</span></div>
+              <div class="msg"><div class="mh"><span class="q">Rückfrage</span><span class="t">vor 40 Min</span></div>Reproduziert: der Filter hängt am Query-Parameter, der beim Kategoriewechsel neu geschrieben wird. Soll der Top-7-Filter beim Wechsel der Kategorie <b>erhalten bleiben</b> oder bewusst zurückgesetzt werden? Beides ist vertretbar — ich brauche deine Entscheidung.</div>
+              <div class="cmp">
+                <div class="cta">Antwort … (Markdown, Enter sendet, Shift+Enter neue Zeile)</div>
+                <div class="thumbs"><span class="th"></span><span class="th"></span><span class="th add">＋</span></div>
+                <div class="row"><span class="tool">📷 Screenshot</span><span class="tool">🖼 Bild</span><span class="hint">Strg+V / Ablegen</span><span class="send">Antworten &amp; weiterlaufen</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="side">
+          <h4>Warum Fläche statt Inline</h4>
+          <ul>
+            <li>480 px breit, 680 hoch: eine inline aufgeklappte Karte mit Verlauf + Composer drückte die Antwortbox unter den Fold. Als Fläche bekommt das Thema <b>~560 px Höhe</b> für Verlauf und Eingabe.</li>
+            <li><b>Faltung:</b> erste + letzte Nachricht, dazwischen „•••“ mit „1 weitere einblenden (n dazwischen)“ — jeder Tipp eine mehr, von der letzten rückwärts.</li>
+            <li><b>Composer</b> = heutiger <code>sc-feedback-composer</code> mit größerem Feld (min 120 px), Thumbnail-Reihe (72 px, Lightbox), „+“ als Datei-Picker, Strg+V/Drop wie heute — plus <b>📷 Screenshot</b>, neu.</li>
+            <li><b>📷 Screenshot:</b> nimmt den aktuellen App-Bildschirm auf (Panel wird dabei kurz ausgeblendet) und hängt ihn als Bild an. Technisch <code>getDisplayMedia</code> (Browser-Picker, exakt) oder DOM-Render (ohne Picker, näherungsweise) — Frage 3 unten.</li>
+            <li>Der Kopf trägt Art, Autor, Datum in einer Zeile; ⋯ für Issue bestellen / ablehnen / löschen.</li>
+            <li>Für Nutzer-Themen: derselbe Aufbau, darunter der bernsteinfarbene Kanal zum Nutzer (Ⓒ2), Freigeben · Als Issue · Ablehnen als offene Reihe.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="e-s3" data-screen data-nav-label="Ⓔ3 · Geliefert im Strom" hidden>
+    <div class="wrap">
+      <p class="cap"><b>Geliefert ist Band 3 im selben Scroll (Ⓐ3, „sehr gut“), der Badge in der Titelzeile springt dorthin und zählt „neu seit deinem letzten Blick“.</b> Tages-Gruppen, letzter Tag oben, ▸ Ansehen aus dem Bereichs-Tag, Abnahme-Haken in der Zeile. Abgelehnt / Issue leise im selben Feed. Fortschritt bleibt hinter ◔ als eigene Fläche.</p>
+      <div class="stage">
+        <div class="pnl b">
+          <div class="ph"><span class="tt on"><span class="d"></span>Feedback</span><span class="sp"></span><span class="badge" style="box-shadow:none;border-color:var(--hair);color:var(--ink-2)">Geliefert <b>0</b></span><span class="ic">◔</span><span class="ic shell">▢</span><span class="ic shell">–</span></div>
+          <div class="sr"><div class="in">⌕ <span>Suchen … oder #Nummer</span></div><div class="fb">⚲ Filter</div></div>
+          <div class="pb">
+            <div class="bnd"><span>Du bist dran</span><span class="n">3</span><span class="chev">▸</span></div>
+            <div class="bnd"><span>Läuft</span><span class="n">3</span><span class="chev">▸</span></div>
+            <div class="bnd green"><span>Geliefert</span><span class="n">124</span><span class="sub">gesehen bis Do 4. Sep</span><span class="chev" style="margin-left:8px">▾</span></div>
+            <div class="day"><span class="new">Heute · Do 4. Sep</span></div>
+            <div class="row"><span class="nd"></span><span class="no">#183</span><span class="ti">Loadout-Vergleich zeigt falsche SCU</span><span class="tag">Hangar</span><span class="chk">✓</span><span class="go">▸ Ansehen</span></div>
+            <div class="row"><span class="nd"></span><span class="no">#181</span><span class="ti">Mobile: Inhalt bekommt seine Breite zurück</span><span class="pr">#485</span><span class="go">▸ Ansehen</span></div>
+            <div class="row"><span class="nd"></span><span class="no">#180</span><span class="ti">„Spielbar“ am Header-Chip</span><span class="pr">#486</span><span class="go">▸ Ansehen</span></div>
+            <div class="day">Gestern · Mi 3. Sep</div>
+            <div class="row"><span class="no">#178</span><span class="ti">Archiv-Schnellzugriff je Zone</span><span class="pr">#484</span><span class="go">▸ Ansehen</span></div>
+            <div class="row"><span class="no">#176</span><span class="ti">AN-BORD-Figur in 3D</span><span class="pr">#481</span><span class="go">▸ Ansehen</span></div>
+            <div class="row quiet"><span class="no">#175</span><span class="ti">⊘ Abgelehnt: Sprachchat im Hangar</span><span class="pr">Grund ▾</span></div>
+            <div class="day">Di 2. Sep</div>
+            <div class="row"><span class="no">#171</span><span class="ti">Freunde, Blockieren, Melden (Phase 1)</span><span class="pr">#439</span><span class="go">▸ Ansehen</span></div>
+            <div class="row quiet"><span class="no">#169</span><span class="ti">⑂ Issue: Uploader Skins-Ansicht</span><span class="pr">#212 ↗</span></div>
+            <div class="row quiet"><span class="no"></span><span class="ti">Weitere 30 Tage laden …</span></div>
+          </div>
+          <div class="pf"><div class="compose"><span class="plus">✎</span>Neues Thema …</div></div>
+        </div>
+        <div class="side">
+          <h4>Verhalten</h4>
+          <ul>
+            <li>Badge <b>„Geliefert · 3“</b> glüht grün, solange seit dem letzten Blick geshippt wurde; Tipp scrollt zum Band und öffnet es, der Zähler geht auf 0.</li>
+            <li>Zeilen seit dem letzten Blick tragen den grünen Punkt; „gesehen bis …“ ist der localStorage-Zeitstempel.</li>
+            <li>▸ Ansehen = Anker in den App-Bereich (news→/news, codex→/codex, hangar→/hangar …) — echte Links, Mittelklick geht.</li>
+            <li>✓ in der Zeile = Abnahme, Thema bleibt an seinem Ship-Tag.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="e-s4" data-screen data-nav-label="Ⓔ4 · Rollenfarben, Rot-Regel, Karten-Anatomie" hidden>
+    <div class="wrap">
+      <p class="cap"><b>Die Regeln hinter den Mocks — damit „Rot“ wieder etwas bedeutet.</b></p>
+      <div class="legend">
+        <div class="lg"><h4>Rollenfarben (Avatar)</h4>
+          <span class="sw"><i style="background:rgba(255,87,34,.18);border-color:rgba(255,87,34,.6);color:#ff5722">JT</i>Admin — rot</span>
+          <span class="sw"><i style="background:rgba(125,213,240,.18);border-color:rgba(125,213,240,.6);color:#9fe0f7">CL</i>Collaborator — hellblau</span>
+          <span class="sw"><i style="background:rgba(132,160,182,.22);border-color:rgba(132,160,182,.6);color:#b6c8d8">NV</i>Nutzer — graublau</span>
+          <span class="sw"><i style="background:rgba(63,196,238,.14);border-color:rgba(63,196,238,.45);color:#3fc4ee;font-size:.5rem">RT</i>Routine — cyan (nur im Verlauf)</span>
+          <p style="margin:8px 0 0">Die Farbe sitzt auf dem Avatar, nie auf der ganzen Karte. Rollen kommen aus <code>profiles.role</code>; heute trägt <code>FeedbackAuthor</code> nur Name/Username — ein Feld mehr in der Projektion.</p>
+        </div>
+        <div class="lg"><h4>Rot-Regel</h4>
+          <p>Rot = erhöhter Zugriff oder der eine Call-to-Action, der die Routine weiterlaufen lässt. Konkret: <b>Admin-Avatar</b>, <b>„Antworten &amp; weiterlaufen“</b>, <b>„Freigeben“</b> nicht (grün = Erlaubnis), Bänder cyan, Status-Halt-Marker bleibt orange-rot als Signalfarbe „wartet auf dich“ (Form ◆ unterscheidet ihn vom Avatar). Alles andere folgt der Projektregel: <code>--sc-accent</code> für Normales, <code>--sc-danger</code> nur für Fehler/Destruktives.</p>
+        </div>
+        <div class="lg"><h4>Nutzer-Feedback vs. Claude-Instruktion</h4>
+          <p>Zwei Arten, ein Label neben dem Avatar: <b>Auftrag</b> (Admin/Collaborator → Routine; die Routine liest die erste Nachricht als Instruktion) und <b>Nutzer-Feedback</b> (Meldung, muss erst freigegeben werden). Im Verlauf: Auftrags-Nachrichten mit rotem/hellblauem Rand links, Routine-Antworten cyan, Nutzer-Kanal bernstein (wie heute). So ist auf einen Blick klar, wer zu wem spricht.</p>
+        </div>
+        <div class="lg"><h4>Karten-Anatomie (Liste)</h4>
+          <p><b>Zu:</b> #Nr · Titel · Art · Avatar / Flugbahn · kurzer Zustand. <b>Auf (nur erste Karte in „Du bist dran“):</b> zusätzlich die letzte Nachricht als Box + kleine Antwortbox + primärer Knopf + „Öffnen ›“. Alles andere passiert in der Vollpanel-Ansicht (Ⓔ2). Kein „DU“-Badge, kein Satz, der die Box wiederholt.</p>
+        </div>
+        <div class="lg"><h4>Composer (Vollpanel + neues Thema)</h4>
+          <p>Feld min 120 px (wächst mit Text), Thumbnail-Reihe 72 px mit ✕ und Lightbox, „+“ öffnet den Datei-Picker, Strg+V und Ablegen wie heute, <b>📷 Screenshot</b> neu, Sendezeile mit Kurzhinweis. Drafts bleiben account-gebunden. Das „Neues Thema“-Blatt unten nutzt denselben Composer.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="e-s5" data-screen data-nav-label="Ⓔ5 · Offene Entscheidungen" hidden>
+    <div class="qwrap">
+      <p class="cap"><b>Runde 1 hat alle 21 Optionen auf „Miteinbeziehen“ gelassen — ich lese das als „entscheide nach meinem Feedback“.</b> Das habe ich getan (Ⓑ-Basis, Geliefert im Strom, Flugbahn ohne Badge). Was wirklich noch offen ist, steht hier — mit meiner Empfehlung vorgewählt; verwirf, was nicht passt.</p>
+
+      <h3>1 · Screenshot-Funktion im Composer</h3>
+      <div class="qgrid">
+        <div class="variant-evaluation" data-decision="r2-shot-display" data-label="📷 via getDisplayMedia (Browser-Picker, pixelgenau)">
+          <h4>📷 via <code>getDisplayMedia</code> — Browser-Picker, pixelgenau <span class="rec">· Empfehlung</span> <span class="tag eff">M</span></h4>
+          <p>Ein Tipp → der Browser fragt „welchen Bildschirm/Tab“, ein Frame wird gegriffen, das Panel dabei ausgeblendet. Exakt, auch für 3D-Ansichten; auf iOS nicht verfügbar (dann nur „+“).</p>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-shot-display" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-shot-display" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-shot-display-note">Notiz</label><textarea id="r2-shot-display-note" data-comment="r2-shot-display-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+        </div>
+        <div class="variant-evaluation" data-decision="r2-shot-dom" data-label="📷 via DOM-Render (ohne Picker, näherungsweise)">
+          <h4>📷 via DOM-Render (html-to-image) — ohne Picker, näherungsweise <span class="tag eff">M</span></h4>
+          <p>Kein Browser-Dialog, funktioniert überall; WebGL/3D und Cross-Origin-Bilder fehlen im Bild. Gut als Fallback für iOS.</p>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-shot-dom" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-shot-dom" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-shot-dom-note">Notiz</label><textarea id="r2-shot-dom-note" data-comment="r2-shot-dom-note" data-attachable placeholder="z. B. als Fallback …" rows="2"></textarea></div>
+        </div>
+      </div>
+
+      <h3>2 · Maximiert</h3>
+      <div class="qgrid">
+        <div class="variant-evaluation" data-decision="r2-max-same" data-label="Dieselbe Spalte, breiter; Thema als Fläche">
+          <h4>Dieselbe Spalte, breiter — das Thema bleibt die Fläche <span class="rec">· Empfehlung</span></h4>
+          <p>Null neue Konzepte; die Vollpanel-Ansicht wird einfach breiter und der Verlauf länger sichtbar.</p>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-max-same" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-max-same" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-max-same-note">Notiz</label><textarea id="r2-max-same-note" data-comment="r2-max-same-note" data-attachable placeholder="" rows="2"></textarea></div>
+        </div>
+        <div class="variant-evaluation" data-decision="r2-max-split" data-label="Master/Detail: Liste links, Thema rechts (Ⓑ4)">
+          <h4>Master/Detail: Liste links, Thema rechts (Ⓑ4) <span class="tag eff">+M</span></h4>
+          <p>Passt zur Flächen-Logik: maximiert ist die Fläche einfach die rechte Hälfte. Zweite Zustandsführung nötig.</p>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-max-split" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-max-split" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-max-split-note">Notiz</label><textarea id="r2-max-split-note" data-comment="r2-max-split-note" data-attachable placeholder="" rows="2"></textarea></div>
+        </div>
+      </div>
+
+      <h3>3 · Extras über dem Korridor (brauchen dein ausdrückliches Ja)</h3>
+      <div class="qgrid">
+        <div class="variant-evaluation" data-decision="r2-role-field" data-label="Rolle in der Feedback-Projektion (für Rollenfarben)">
+          <h4>Rolle in der Feedback-Projektion <span class="tag">innerhalb</span> <span class="tag eff">S</span></h4>
+          <p>Für die Rollenfarben braucht die Board-Abfrage <code>profiles.role</code> je Autor — eine Spalte in der View, keine Migration der Tabelle.</p>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-role-field" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-role-field" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-role-field-note">Notiz</label><textarea id="r2-role-field-note" data-comment="r2-role-field-note" data-attachable placeholder="" rows="2"></textarea></div>
+        </div>
+        <div class="variant-evaluation" data-decision="r2-viewer-link" data-label="Viewer-Panel: „Im App ansehen“ + Screenshot">
+          <h4>Viewer-Panel: „Im App ansehen“ bei umgesetzten Themen + 📷 im Nutzer-Composer <span class="tag over">über Korridor</span> <span class="tag eff">S</span></h4>
+          <p>Derselbe Composer wird ohnehin geteilt — der Screenshot-Knopf käme kostenlos bei den Nutzern an. Der Deep-Link ist ein Anker.</p>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-viewer-link" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-viewer-link" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-viewer-link-note">Notiz</label><textarea id="r2-viewer-link-note" data-comment="r2-viewer-link-note" data-attachable placeholder="" rows="2"></textarea></div>
+        </div>
+        <div class="variant-evaluation" data-decision="r2-options" data-label="Ein-Tipp-Antwortoptionen (Routine-Konvention)">
+          <h4>Ein-Tipp-Antwortoptionen (Routine markiert Optionen) <span class="tag over">über Korridor</span> <span class="tag eff">M</span></h4>
+          <p>Nur wenn du es willst: die Routine-Prompt lernt <code>[[A|B]]</code>, das Panel rendert Knöpfe. Ohne Markierung bleibt alles wie gehabt.</p>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-options" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-options" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-options-note">Notiz</label><textarea id="r2-options-note" data-comment="r2-options-note" data-attachable placeholder="" rows="2"></textarea></div>
+        </div>
+      </div>
+
+      <h3>4 · Umsetzung in 4 PRs (Reihenfolge = Wert zuerst)</h3>
+      <div class="qgrid">
+        <div class="variant-evaluation" data-decision="r2-pr1" data-label="PR 1 · Strom + Bänder + Vollpanel-Thema + Composer groß">
+          <h4>PR 1 · Strom + Bänder + Vollpanel-Thema + großer Composer (ohne 📷)</h4>
+          <p>Tabs und Run-Ansicht raus, Flugbahn, Faltung erste+letzte, Rollenfarben (mit Projektion), Rot-Regel.</p>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr1" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr1" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-pr1-note">Notiz</label><textarea id="r2-pr1-note" data-comment="r2-pr1-note" data-attachable placeholder="" rows="2"></textarea></div>
+        </div>
+        <div class="variant-evaluation" data-decision="r2-pr2" data-label="PR 2 · Geliefert-Band + Badge + Ansehen">
+          <h4>PR 2 · Geliefert-Band nach Tagen + Badge + ▸ Ansehen + „neu seit“</h4>
+          <p>Dein neuer Punkt; Konfetti-Banner weg.</p>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr2" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr2" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-pr2-note">Notiz</label><textarea id="r2-pr2-note" data-comment="r2-pr2-note" data-attachable placeholder="" rows="2"></textarea></div>
+        </div>
+        <div class="variant-evaluation" data-decision="r2-pr3" data-label="PR 3 · Suche + Filter-Sheet, Chip-Reihen weg">
+          <h4>PR 3 · Suchfeld + Filter-Sheet (≥ 48 px), alle Chip-Reihen weg, ⋯ pro Thema</h4>
+          <p>Toolbar-Abriss; Mobile-Gate wird grün.</p>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr3" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr3" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-pr3-note">Notiz</label><textarea id="r2-pr3-note" data-comment="r2-pr3-note" data-attachable placeholder="" rows="2"></textarea></div>
+        </div>
+        <div class="variant-evaluation" data-decision="r2-pr4" data-label="PR 4 · 📷 Screenshot + Sheets + Telefon + i18n-Aufräumen">
+          <h4>PR 4 · 📷 Screenshot + Ablehn-/Nutzer-Sheets + Telefon + i18n-Aufräumen</h4>
+          <p>Der Polish-Anteil, danach die gewählten Extras.</p>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr4" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr4" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-pr4-note">Notiz</label><textarea id="r2-pr4-note" data-comment="r2-pr4-note" data-attachable placeholder="" rows="2"></textarea></div>
+        </div>
+      </div>
+      <div class="why" style="margin-top:1.4rem"><strong>Wie es weitergeht:</strong> <em>Zur nächsten Iteration</em> → noch eine Runde Mocks (nichts wird programmiert). <em>Mit Feedback implementieren</em> → Ⓔ mit deinen Antworten wird gesperrt; ist ein „über Korridor“-Extra drin, frage ich einmal nach der Erweiterung, dann Übergabe an die autonome Umsetzung in der PR-Reihenfolge oben (Build + Mobile-Gate als Test-Mandat).</div>
+    </div>
+  </section>
+</section>
+
+      </section>
+
+</main>
   </div>
 
   <div class="screen-indicator" id="screen-indicator">
     <span id="indicator-iteration" hidden>Iteration <strong id="active-iteration-idx">1</strong> · </span>
-    <span id="indicator-design" hidden><strong id="active-design-label">Ⓐ Drei Bänder</strong> · </span>
-    Seite <strong id="active-screen-idx">1</strong> / <span id="total-screens">4</span>
-    · <span id="active-screen-label">Ⓐ1 · Öffnen</span>
+    <span id="indicator-design" hidden><strong id="active-design-label">Ⓔ Board + Geliefert im Strom</strong> · </span>
+    Seite <strong id="active-screen-idx">1</strong> / <span id="total-screens">5</span>
+    · <span id="active-screen-label">Ⓔ1 · Öffnen</span>
   </div>
 
   <nav class="design-switcher" id="design-switcher" aria-label="Design wechseln">
@@ -2803,7 +3109,8 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
   <aside class="concept-decision-panel overlay" id="decision-panel">
     <button id="panel-close" class="panel-close-btn" aria-label="Schliessen">✕</button>
     <nav class="iteration-tabs" role="tablist" aria-label="Iterationen">
-      <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="true" aria-controls="iter-1">Iteration 1</button>
+      <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Iteration 1</button>
+      <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="true" aria-controls="iter-2">Iteration 2</button>
     </nav>
     <nav class="screen-nav" id="screen-nav" aria-label="Screens">
       <!-- auto-populated (design iterations) -->
@@ -2988,12 +3295,12 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
     </div>
     <div class="feedback-divider"></div>
     <div class="feedback-section">
-      <label>Anmerkungen zu diesem Design: <strong id="dock-design-label">Ⓐ Drei Bänder</strong></label>
+      <label>Anmerkungen zu diesem Design: <strong id="dock-design-label">Ⓔ Board + Geliefert im Strom</strong></label>
       <div id="design-textareas" data-placeholder="Notiz zu diesem Design…"><!-- auto-populated --></div>
     </div>
     <div class="feedback-divider"></div>
     <div class="feedback-section">
-      <label>Aktueller Screen: <strong id="dock-screen-label">Ⓐ1 · Öffnen</strong></label>
+      <label>Aktueller Screen: <strong id="dock-screen-label">Ⓔ1 · Öffnen</strong></label>
       <div id="screen-textareas" data-placeholder="Notiz zu diesem Screen…"><!-- auto-populated --></div>
     </div>
   </aside>
