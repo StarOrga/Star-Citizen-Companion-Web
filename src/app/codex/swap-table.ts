@@ -449,3 +449,291 @@ export function swapStatRows(candidate: SwapCandidate | undefined): StatRow[] {
     value: formatEquippedStat({ labelKey, value: v.value, format: v.format }),
   }));
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Redesigned picker model (MASTER §9, iteration 7 `#g3` + values `#h3`).
+// Everything below is ADDITIVE — the helpers above keep their behaviour and
+// their specs. New concepts: a Δ baseline switch, a three-stage comparison
+// scope, the full value catalogue with a column chooser, and per-value bars.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** `Δ gegen`: measure against the component currently fitted, or the factory one. */
+export type SwapBaseline = 'fitted' | 'factory';
+
+export interface SwapBaselineInput {
+  /** class name of the component on the port right now (the draft). */
+  fittedClassName: string | null;
+  /** class name the ship ships with from the factory (the stock loadout). */
+  factoryClassName: string | null;
+}
+
+/** Which row carries the `±0` under the active baseline (B-C14). */
+export function baselineClassName(baseline: SwapBaseline, input: SwapBaselineInput): string | null {
+  return baseline === 'factory' ? input.factoryClassName : input.fittedClassName;
+}
+
+/**
+ * The Δ column for one value key. The baseline row gets a literal `0` (rendered
+ * `±0`), every other row `value − baselineValue`. `null` when either side has no
+ * value — a delta against a gap would be a fabricated number.
+ */
+export function swapDeltaColumn(
+  candidates: readonly SwapCandidate[],
+  key: string,
+  baseline: string | null,
+): Map<string, number | null> {
+  const out = new Map<string, number | null>();
+  const base = candidates.find((c) => c.className === baseline)?.stats[key]?.value ?? null;
+  for (const c of candidates) {
+    const v = c.stats[key]?.value ?? null;
+    out.set(c.className, base === null || v === null ? null : Math.round((v - base) * 100) / 100);
+  }
+  return out;
+}
+
+/** `Vergleichen mit`, three stages (B-C13 / MASTER §9). */
+export type SwapScope = 'sameClass' | 'sameFamily' | 'allSize';
+
+export interface SwapScopeOption {
+  scope: SwapScope;
+  labelKey: string;
+  /** interpolation params: `{class}` for sameClass, `{damage}` / `{size}`. */
+  params: Record<string, string | number>;
+  /** how many candidates this stage would show. */
+  count: number;
+  /** false when the fitted component carries no archetype / damage family. */
+  available: boolean;
+}
+
+function scopePredicate(scope: SwapScope, fitted: SwapCandidate | undefined) {
+  return (c: SwapCandidate): boolean => {
+    if (scope === 'allSize') return true;
+    if (!fitted) return true;
+    if (scope === 'sameClass') return fitted.archetype != null && c.archetype === fitted.archetype;
+    const family = fitted.damageChannels[0] ?? null;
+    return family != null && c.damageChannels.includes(family);
+  };
+}
+
+export function applySwapScope(
+  candidates: readonly SwapCandidate[],
+  fitted: SwapCandidate | undefined,
+  scope: SwapScope,
+): SwapCandidate[] {
+  return candidates.filter(scopePredicate(scope, fitted));
+}
+
+/** The three segmented buttons with their live counts (`12 von 28`). */
+export function swapScopeOptions(
+  candidates: readonly SwapCandidate[],
+  fitted: SwapCandidate | undefined,
+): SwapScopeOption[] {
+  const size = fitted?.size ?? null;
+  const family = fitted?.damageChannels[0] ?? null;
+  const stages: Omit<SwapScopeOption, 'count'>[] = [
+    {
+      scope: 'sameClass' as const,
+      labelKey: 'codex.picker.scope.sameClass',
+      params: { class: fitted?.archetype ?? fitted?.typeLabel ?? '' },
+      available: !!fitted?.archetype,
+    },
+    {
+      scope: 'sameFamily' as const,
+      labelKey: 'codex.picker.scope.sameFamily',
+      params: { damage: family ?? '' },
+      available: !!family,
+    },
+    {
+      scope: 'allSize' as const,
+      labelKey: 'codex.picker.scope.allSize',
+      params: { size: size ?? '' },
+      available: true,
+    },
+  ];
+  return stages.map((o) => ({ ...o, count: applySwapScope(candidates, fitted, o.scope).length }));
+}
+
+// ── the value catalogue (MASTER §9: ~30 values, 17 shown by default) ─────────
+
+export interface SwapValueDef {
+  /** i18n key — doubles as the stats key and the sort key. */
+  key: string;
+  format: EquippedStatFormat;
+  /** a smaller number is the better outcome (mass, spread, power draw, EM). */
+  lowerIsBetter: boolean;
+  /** part of the 17-column default set. */
+  byDefault: boolean;
+  /** categorical columns are filtered by checkbox facet, not by range. */
+  categorical?: boolean;
+}
+
+const V = (
+  key: string,
+  format: EquippedStatFormat,
+  byDefault: boolean,
+  lowerIsBetter = false,
+  categorical = false,
+): SwapValueDef => ({ key, format, lowerIsBetter, byDefault, categorical });
+
+/**
+ * Every value the picker can show, in the concept's left-to-right order. The
+ * 17 flagged `byDefault` are exactly the `#g3` column set:
+ * Bauteil · Δ Dauer · DPS · Alpha · PEN · Schussrate · Reichweite · Speed ·
+ * Power · EM · HP · Distortion · Masse · Grade · Hersteller · Ammo · Spread.
+ */
+export const SWAP_VALUE_CATALOGUE: readonly SwapValueDef[] = [
+  V(NAME_SORT_KEY, 'int', true, false, true), // Bauteil (the sticky first column)
+  V('codex.picker.deltaSustained', 'dec', true),
+  V('codex.equipped.dps', 'perSec', true),
+  V('codex.equipped.alphaDamage', 'dec', true),
+  V('codex.equipped.penetration', 'dec', true),
+  V('codex.equipped.fireRate', 'dec', true),
+  V('codex.equipped.range', 'int', true),
+  V('codex.equipped.projectileSpeed', 'mps', true),
+  V('codex.picker.power', 'dec', true, true),
+  V('codex.picker.em', 'int', true, true),
+  V('codex.equipped.health', 'int', true),
+  V('codex.equipped.distortion', 'int', true),
+  V('codex.picker.mass', 'int', true, true),
+  V('codex.picker.grade', 'int', true, false, true),
+  V('codex.picker.manufacturer', 'int', true, false, true),
+  V('codex.picker.ammo', 'int', true),
+  V('codex.picker.spread', 'dec', true, true),
+  // ── beyond the default 17 (column chooser only) ──
+  V('codex.picker.size', 'int', false, false, true),
+  V('codex.picker.damageType', 'int', false, false, true),
+  V('codex.picker.archetype', 'int', false, false, true),
+  V('codex.equipped.burstDps', 'perSec', false),
+  V('codex.picker.projectilesPerShot', 'int', false),
+  V('codex.picker.lifetime', 'seconds', false),
+  V('codex.picker.heat', 'dec', false, true),
+  V('codex.picker.ir', 'int', false, true),
+  V('codex.picker.minPower', 'dec', false, true),
+  V('codex.picker.coolant', 'perSec', false, true),
+  V('codex.equipped.shieldHp', 'int', false),
+  V('codex.equipped.shieldRegen', 'perSec', false),
+  V('codex.equipped.regenDelay', 'seconds', false, true),
+  V('codex.equipped.downedDelay', 'seconds', false, true),
+  V('codex.equipped.jumpRange', 'gm', false),
+  V('codex.equipped.driveSpeed', 'kms', false),
+  V('codex.equipped.spoolTime', 'seconds', false, true),
+  V('codex.equipped.cooldown', 'seconds', false, true),
+  V('codex.equipped.thrust', 'int', false),
+  V('codex.equipped.fuelCapacity', 'int', false),
+  V('codex.equipped.fuelRate', 'perSec', false, true),
+];
+
+/** The 17 columns the picker opens with. */
+export const DEFAULT_SWAP_COLUMNS: readonly string[] = SWAP_VALUE_CATALOGUE.filter(
+  (v) => v.byDefault,
+).map((v) => v.key);
+
+const CATALOGUE_BY_KEY = new Map(SWAP_VALUE_CATALOGUE.map((v) => [v.key, v]));
+
+export function swapValueDef(key: string): SwapValueDef | undefined {
+  return CATALOGUE_BY_KEY.get(key);
+}
+
+/** `Spalten ▾` state — a chosen key set, kept in catalogue order on read. */
+export interface SwapColumnChooser {
+  visible: readonly string[];
+}
+
+export const DEFAULT_SWAP_COLUMN_CHOOSER: SwapColumnChooser = { visible: DEFAULT_SWAP_COLUMNS };
+
+export function toggleSwapColumn(state: SwapColumnChooser, key: string): SwapColumnChooser {
+  // The name column is the row's identity — it cannot be switched off.
+  if (key === NAME_SORT_KEY) return state;
+  const next = new Set(state.visible);
+  if (!next.delete(key)) next.add(key);
+  return { visible: SWAP_VALUE_CATALOGUE.filter((v) => next.has(v.key)).map((v) => v.key) };
+}
+
+export function resetSwapColumns(): SwapColumnChooser {
+  return DEFAULT_SWAP_COLUMN_CHOOSER;
+}
+
+/**
+ * Why a cell is empty (MASTER §9 / B-C16):
+ *   `value`         — it has a number;
+ *   `notApplicable` — the concept exists but is genuinely zero/absent for this
+ *                     class (Ammo on an energy weapon, Spread on a repeater) →
+ *                     render `—` with the explanatory note;
+ *   `noSource`      — the extractor has no source for this value at all → the
+ *                     column is omitted and named in the footer.
+ */
+export type SwapCellState = 'value' | 'notApplicable' | 'noSource';
+
+/** Values that do not apply to an energy weapon (they are ballistic concepts). */
+const ENERGY_NOT_APPLICABLE = new Set(['codex.picker.ammo']);
+/** Values the P4K carries only as a modifier, never as a per-weapon number. */
+const ALWAYS_NOT_APPLICABLE = new Set(['codex.picker.spread']);
+
+function isEnergyWeapon(c: SwapCandidate): boolean {
+  return c.damageChannels.length > 0 && c.damageChannels.every((d) => /energy|laser/i.test(d));
+}
+
+export function swapCellState(candidate: SwapCandidate, key: string): SwapCellState {
+  if (candidate.stats[key] !== undefined) return 'value';
+  if (ALWAYS_NOT_APPLICABLE.has(key)) return 'notApplicable';
+  if (ENERGY_NOT_APPLICABLE.has(key) && isEnergyWeapon(candidate)) return 'notApplicable';
+  return 'noSource';
+}
+
+/** Column keys no candidate can fill for any reason other than "not applicable"
+ * — the footer's `Nicht in den Spieldateien: …` list. */
+export function swapMissingSourceColumns(
+  candidates: readonly SwapCandidate[],
+  visible: readonly string[],
+): string[] {
+  return visible.filter(
+    (key) =>
+      key !== NAME_SORT_KEY &&
+      candidates.length > 0 &&
+      candidates.every((c) => swapCellState(c, key) === 'noSource'),
+  );
+}
+
+export interface SwapValueBar {
+  /** 0..100 against the best value in the FILTERED set; null = no comparison. */
+  percent: number | null;
+  /** this row holds the optimum of the UNFILTERED set — the gold mark. */
+  optimum: boolean;
+}
+
+/**
+ * Per-value bars (MASTER §9 / It. 3 `#t4`): the bar is relative to the best
+ * value among the rows currently shown, while the gold mark sits on the overall
+ * optimum across every candidate — so narrowing the scope never hides the fact
+ * that something better exists.
+ */
+export function swapValueBars(
+  filtered: readonly SwapCandidate[],
+  all: readonly SwapCandidate[],
+  key: string,
+): Map<string, SwapValueBar> {
+  const def = swapValueDef(key);
+  const lower = def?.lowerIsBetter === true;
+  const values = filtered
+    .map((c) => c.stats[key]?.value)
+    .filter((v): v is number => typeof v === 'number' && v > 0);
+  const allValues = all
+    .map((c) => c.stats[key]?.value)
+    .filter((v): v is number => typeof v === 'number' && v > 0);
+  const best = values.length > 0 ? (lower ? Math.min(...values) : Math.max(...values)) : null;
+  const worst = values.length > 0 ? (lower ? Math.max(...values) : Math.min(...values)) : null;
+  const overall = allValues.length > 0 ? (lower ? Math.min(...allValues) : Math.max(...allValues)) : null;
+  const spread = values.length >= 2 && best !== null && worst !== null && best !== worst;
+  const out = new Map<string, SwapValueBar>();
+  for (const c of filtered) {
+    const v = c.stats[key]?.value;
+    let percent: number | null = null;
+    if (spread && typeof v === 'number' && v > 0 && best !== null) {
+      percent = lower
+        ? Math.max(0, Math.round((best / v) * 100))
+        : Math.max(0, Math.round((v / best) * 100));
+    }
+    out.set(c.className, { percent, optimum: overall !== null && v === overall });
+  }
+  return out;
+}

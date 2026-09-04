@@ -160,6 +160,17 @@ export interface ShipPayload extends BaseEntityPayload {
   // noisier — see _SHIP_STATS_WHITELIST in dataforge_extract.py. Absent when
   // the whitelist finds nothing (never an empty object).
   stats?: Record<string, Record<string, string | number | boolean | null>>;
+  // ── schema 3 additions (energy-dock / ranking redesign, MASTER §14) ────────
+  // All four are OPTIONAL and NULLABLE: every build extracted before schema 3
+  // simply lacks them and the UI must render a gap, never a zero.
+  /** Hull HP (Σ `Part@damageMax`) and hull mass (kg) from the vehicle XML. */
+  hull?: { hp: number | null; mass: number | null } | null;
+  /** `ARMR_<Ship>` armour HP (`SHealthComponentParams.Health`). */
+  armorHp?: number | null;
+  /** Cargo grid capacity in SCU (interiorDimensions ÷ 1.25³). */
+  cargoScu?: number | null;
+  /** `VehicleCareer` reference — localization key or raw career name. */
+  career?: string | null;
 }
 
 export interface WeaponPayload extends BaseEntityPayload {
@@ -171,6 +182,50 @@ export interface WeaponPayload extends BaseEntityPayload {
   grade: string | null;
   weaponParams: Record<string, string | number | boolean | null>;
   itemPorts: ItemPort[];
+  // Schema 3: weapons gain the same struct-keyed `stats` map components and
+  // items already have (allowlisted: ItemResourceComponentParams,
+  // SHealthComponentParams, SDistortionParams, SEntityPhysicsControllerParams,
+  // SCItemAimableComponentParams). Absent on every pre-schema-3 build.
+  stats?: Record<string, Record<string, string | number | boolean | null>>;
+}
+
+// ── ItemResourceComponentParams — the energy/signature contract (MASTER §8a) ──
+// The extractor emits ONE flat stats group named `ItemResourceComponentParams`
+// per component / weapon / item. Keys are prefixed with the resource state they
+// belong to (`online.` is the default state every consumer reads); `stateNames`
+// lists the states the record actually carries, `|`-joined, so the UI can tell
+// "this item has no NAV state" apart from "the extractor did not look".
+//
+//   online.power.consumeSegments   SPowerSegmentResourceUnit.units (consumption)
+//   online.power.consumeUnits      SStandardResourceUnit.standardResourceUnits
+//   online.power.generateSegments  SPowerSegmentResourceUnit.units (generation)
+//   online.power.minFraction       minimumConsumptionFraction (0..1)
+//   online.coolant.consume         SRU/s coolant drawn
+//   online.coolant.generate        SRU/s coolant produced
+//   online.shield.generate         SRU/s shield regen produced
+//   online.em.nominal / em.decayRate
+//   online.ir.nominal / ir.decayRate
+//   online.powerRanges.{low,medium,high}.{start,modifier}
+export const RESOURCE_STATS_GROUP = 'ItemResourceComponentParams';
+
+/** The default resource state every consumer/generator carries. */
+export const RESOURCE_DEFAULT_STATE = 'online';
+
+/** Flat key builder for the resource group — `resourceKey('power.consumeSegments')`. */
+export function resourceKey(field: string, state: string = RESOURCE_DEFAULT_STATE): string {
+  return `${state}.${field}`;
+}
+
+/**
+ * The extractor `schema_version` this app's ship page is written against.
+ * A loaded build BELOW this number is missing the schema-3 additions above —
+ * the data pill turns gold with "Re-Extract ausstehend" (MASTER §2/§11).
+ */
+export const EXPECTED_SCHEMA_VERSION = 3;
+
+/** True when the loaded build predates {@link EXPECTED_SCHEMA_VERSION}. */
+export function isReExtractPending(schemaVersion: number | null | undefined): boolean {
+  return typeof schemaVersion === 'number' && schemaVersion < EXPECTED_SCHEMA_VERSION;
 }
 
 export interface ComponentPayload extends BaseEntityPayload {
