@@ -910,7 +910,8 @@
       "state": {
         "off": "off",
         "noChannel": "—",
-        "idle": "0"
+        "idle": "0",
+        "absent": "—"
       },
       "tooltip": {
         "weapons": "Cuts power to the whole group. With no power the guns will not fire — sustained DPS drops to 0 and EM falls noticeably. Click again to switch it back on.",
@@ -955,7 +956,12 @@
         "noReactorData": "No reactor data in this build — the power budget stays empty until the extract carries it.",
         "reExtractPending": "Re-extract pending — these power figures come from an older schema.",
         "noChannelInMode": "This group has no channel in this flight mode.",
-        "noCoolingData": "No cooler data in this build — the cooling load stays empty."
+        "noCoolingData": "No cooler data in this build — the cooling load stays empty.",
+        "noSignatureData": "No signature data in this extract — re-extract pending."
+      },
+      "unit": {
+        "segments": "seg",
+        "coolant": "cooling seg"
       }
     },
     "swap": {
@@ -1133,7 +1139,12 @@
         "recoil": "Recoil",
         "magazine": "Magazine",
         "overheat": "Overheat",
-        "repair": "Repair"
+        "repair": "Repair",
+        "damageType": "Damage type",
+        "archetype": "Archetype",
+        "heat": "Heat per shot",
+        "minPower": "Min. power",
+        "coolant": "Cooling draw"
       },
       "unit": {
         "perMin": "/min",
@@ -1206,7 +1217,8 @@
       "cmCrossSection": "Cross section",
       "cmRadius": "Cloud radius",
       "cmCloudLifetime": "Cloud duration",
-      "cmLifetime": "Round lifetime"
+      "cmLifetime": "Round lifetime",
+      "burstDps": "Burst DPS"
     },
     "shipLink": {
       "add": "Add pledge link",
@@ -1270,7 +1282,13 @@
       "tuned": "Tuned",
       "tunedHint": "This slot differs from the factory fit.",
       "toolDetails": "View {{name}}'s values",
-      "toolSwap": "Swap {{name}}"
+      "toolSwap": "Swap {{name}}",
+      "peek": {
+        "alphaTotal": "Total alpha",
+        "missileTotal": "Full salvo",
+        "budget": "Reactor budget",
+        "coolingTotal": "Total cooling"
+      }
     },
     "summary": {
       "title": "Combat readout",
@@ -1467,6 +1485,14 @@
     "moduleRole": {
       "shieldGenerator": "Generator",
       "shieldController": "Control module"
+    },
+    "table": {
+      "chip": {
+        "range": "{{min}} – {{max}}",
+        "min": "≥ {{min}}",
+        "max": "≤ {{max}}",
+        "values": "{{values}}"
+      }
     }
   },
   "blueprint": {

@@ -49,7 +49,7 @@ export interface FoldPreview {
   census: { slots: number; active: number; passive: number };
 }
 
-export const FOLD_PEEK_LOCK_KEY = 'codex.module.peek.lock';
+export const FOLD_PEEK_LOCK_KEY = 'codex.module.peekChange';
 
 function statsOf(payload: unknown): Record<string, Record<string, unknown>> | undefined {
   const s = (payload as { stats?: unknown } | null | undefined)?.stats;
@@ -146,7 +146,7 @@ export function buildShieldPreview(occupants: readonly SummaryOccupant[]): FoldP
     out.chips.push(
       chip(
         o,
-        passive ? 'codex.module.role.passive' : 'codex.module.role.active',
+        passive ? 'codex.module.badge.passive' : 'codex.module.badge.active',
         total,
         'int',
         'codex.equipped.shieldHp',
@@ -156,7 +156,7 @@ export function buildShieldPreview(occupants: readonly SummaryOccupant[]): FoldP
     if (passive) out.census.passive += count;
     else out.census.active += count;
   }
-  out.aggregate = poolKnown ? aggregateChip('codex.module.peek.pool', pool, 'int') : null;
+  out.aggregate = poolKnown ? aggregateChip('codex.module.badge.pool', pool, 'int') : null;
   return out;
 }
 

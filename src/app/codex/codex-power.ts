@@ -308,7 +308,7 @@ const GROUP_LABEL: Readonly<Record<PowerGroup, string>> = {
   thrusters: 'codex.energy.group.thrusters',
   coolers: 'codex.energy.group.coolers',
   radar: 'codex.energy.group.radar',
-  life: 'codex.energy.group.life',
+  life: 'codex.energy.group.lifeSupport',
   quantum: 'codex.energy.group.quantum',
   tractor: 'codex.energy.group.tractor',
 };
@@ -356,8 +356,8 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
   const budgetTotal = generated > 0 ? generated : null;
 
   const gapKeys: string[] = [];
-  if (!anyResourceData) gapKeys.push('codex.energy.gap.noResourceData');
-  else if (budgetTotal === null) gapKeys.push('codex.energy.gap.noReactor');
+  if (!anyResourceData) gapKeys.push('codex.energy.gap.reExtractPending');
+  else if (budgetTotal === null) gapKeys.push('codex.energy.gap.noReactorData');
 
   // Per-group aggregation (F1/F2).
   const groups: PowerGroupRow[] = [];
@@ -431,7 +431,7 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
   const coolantUsedRaw = round(powered.reduce((s, d) => s + d.coolantConsume, 0));
   const coolantTotalRaw = round(draws.reduce((s, d) => s + d.coolantGenerate, 0));
   const hasCoolantData = draws.some((d) => d.coolantGenerate > 0 || d.coolantConsume > 0);
-  if (!hasCoolantData && anyResourceData) gapKeys.push('codex.energy.gap.noCoolant');
+  if (!hasCoolantData && anyResourceData) gapKeys.push('codex.energy.gap.noCoolingData');
 
   const coolant = {
     used: hasCoolantData ? coolantUsedRaw : null,
@@ -466,10 +466,10 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
   };
 
   const facts: PowerFact[] = [
-    fact('ir', hasSignature ? irRaw : null, true, 'codex.energy.gap.noSignature'),
-    fact('em', hasSignature ? emRaw : null, true, 'codex.energy.gap.noSignature'),
+    fact('ir', hasSignature ? irRaw : null, true, 'codex.energy.gap.noSignatureData'),
+    fact('em', hasSignature ? emRaw : null, true, 'codex.energy.gap.noSignatureData'),
     fact('crossSection', cs, true, 'codex.summary.gap.noSignature'),
-    fact('coolant', coolant.percent, true, 'codex.energy.gap.noCoolant'),
+    fact('coolant', coolant.percent, true, 'codex.energy.gap.noCoolingData'),
   ];
 
   const minimumsTotal = groups.reduce((s, g) => s + (g.state === 'noChannel' ? 0 : g.minimum), 0);
@@ -490,7 +490,7 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
     facts,
     coolant,
     ready,
-    readinessKey: ready ? 'codex.energy.ready.yes' : 'codex.energy.ready.no',
+    readinessKey: ready ? 'codex.energy.readiness.ok' : 'codex.energy.readiness.no',
     weaponsCut: (groups.find((g) => g.group === 'weapons')?.allocated ?? 0) === 0,
   };
 }

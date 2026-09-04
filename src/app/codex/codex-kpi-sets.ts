@@ -24,8 +24,8 @@ export { kpiLowerIsBetter };
 
 /** Tooltip body keys — only the two DPS cells carry one (MASTER §4). */
 const KPI_TOOLTIP: Partial<Record<KpiKey, string>> = {
-  burstDps: 'codex.kpi.tooltip.burstDps',
-  sustainedDps: 'codex.kpi.tooltip.sustainedDps',
+  burstDps: 'codex.kpi.tooltipBurstDps',
+  sustainedDps: 'codex.kpi.tooltipSustainedDps',
 };
 
 export function kpiTooltipKey(key: KpiKey): string | null {

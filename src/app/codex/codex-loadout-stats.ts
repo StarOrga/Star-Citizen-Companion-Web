@@ -308,7 +308,7 @@ const KPI_META: Record<KpiKey, KpiMeta> = {
   maxSpeed: { labelKey: 'codex.kpi.maxSpeed', format: 'mps', gapKey: 'codex.summary.gap.noFlight' },
   boost: { labelKey: 'codex.kpi.boost', format: 'mps', gapKey: 'codex.summary.gap.noFlight' },
   agility: { labelKey: 'codex.kpi.agility', format: 'dec', gapKey: 'codex.summary.gap.noFlight' },
-  armorHp: { labelKey: 'codex.kpi.armorHp', format: 'int', gapKey: 'codex.summary.gap.noArmor' },
+  armorHp: { labelKey: 'codex.kpi.armor', format: 'int', gapKey: 'codex.summary.gap.noArmorStats' },
   quantumSpeed: { labelKey: 'codex.kpi.quantumSpeed', format: 'kms', gapKey: 'codex.summary.gap.noQuantum' },
   quantumRange: { labelKey: 'codex.kpi.quantumRange', format: 'gm', gapKey: 'codex.summary.gap.noQuantum' },
   spool: { labelKey: 'codex.kpi.spool', format: 'seconds', gapKey: 'codex.summary.gap.noQuantum' },

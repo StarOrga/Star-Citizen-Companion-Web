@@ -40,18 +40,18 @@ describe('buildShieldPreview — the concept’s Nomad shield module', () => {
       name: 'WEB',
       figure: 4320,
     });
-    expect(active.roleKey).toBe('codex.module.role.active');
+    expect(active.roleKey).toBe('codex.module.badge.active');
     expect(active.unitKey).toBe('codex.equipped.shieldHp');
     expect({ count: passive.count, figure: passive.figure, roleKey: passive.roleKey }).toEqual({
       count: 1,
       figure: 2160,
-      roleKey: 'codex.module.role.passive',
+      roleKey: 'codex.module.badge.passive',
     });
   });
 
   it('aggregates the pool', () => {
     expect(preview.aggregate).toEqual(
-      jasmine.objectContaining({ labelKey: 'codex.module.peek.pool', figure: 6480 }),
+      jasmine.objectContaining({ labelKey: 'codex.module.badge.pool', figure: 6480 }),
     );
   });
 

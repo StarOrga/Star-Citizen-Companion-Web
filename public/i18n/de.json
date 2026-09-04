@@ -910,7 +910,8 @@
       "state": {
         "off": "aus",
         "noChannel": "—",
-        "idle": "0"
+        "idle": "0",
+        "absent": "—"
       },
       "tooltip": {
         "weapons": "Nimmt der ganzen Gruppe die Energie. Ohne Energie feuern die Waffen nicht — Dauer-DPS fällt auf 0, EM sinkt spürbar. Nochmal klicken schaltet zurück.",
@@ -955,7 +956,12 @@
         "noReactorData": "Keine Reaktordaten in diesem Build — das Energiebudget bleibt leer, bis der Extract sie mitbringt.",
         "reExtractPending": "Re-Extract ausstehend — die Energiewerte stammen aus einem älteren Schema.",
         "noChannelInMode": "In diesem Flugmodus hat diese Gruppe keinen Kanal.",
-        "noCoolingData": "Keine Kühlerdaten in diesem Build — die Kühllast bleibt leer."
+        "noCoolingData": "Keine Kühlerdaten in diesem Build — die Kühllast bleibt leer.",
+        "noSignatureData": "Keine Signaturdaten in diesem Extract — Re-Extract ausstehend."
+      },
+      "unit": {
+        "segments": "Seg",
+        "coolant": "Kühl-Seg"
       }
     },
     "swap": {
@@ -1133,7 +1139,12 @@
         "recoil": "Rückstoß",
         "magazine": "Magazin",
         "overheat": "Überhitzung",
-        "repair": "Reparatur"
+        "repair": "Reparatur",
+        "damageType": "Schadensart",
+        "archetype": "Archetyp",
+        "heat": "Hitze je Schuss",
+        "minPower": "Mindest-Power",
+        "coolant": "Kühlbedarf"
       },
       "unit": {
         "perMin": "/min",
@@ -1206,7 +1217,8 @@
       "cmCrossSection": "Querschnitt",
       "cmRadius": "Wolkenradius",
       "cmCloudLifetime": "Wolkenstandzeit",
-      "cmLifetime": "Wirkdauer"
+      "cmLifetime": "Wirkdauer",
+      "burstDps": "Burst-DPS"
     },
     "shipLink": {
       "add": "Pledge-Link hinzufügen",
@@ -1270,7 +1282,13 @@
       "tuned": "Angepasst",
       "tunedHint": "Dieser Platz weicht von der Werksausstattung ab.",
       "toolDetails": "Werte von {{name}} ansehen",
-      "toolSwap": "{{name}} tauschen"
+      "toolSwap": "{{name}} tauschen",
+      "peek": {
+        "alphaTotal": "Alpha gesamt",
+        "missileTotal": "Salve gesamt",
+        "budget": "Reaktor-Budget",
+        "coolingTotal": "Kühlung gesamt"
+      }
     },
     "summary": {
       "title": "Kampfübersicht",
@@ -1467,6 +1485,14 @@
     "moduleRole": {
       "shieldGenerator": "Generator",
       "shieldController": "Steuermodul"
+    },
+    "table": {
+      "chip": {
+        "range": "{{min}} – {{max}}",
+        "min": "≥ {{min}}",
+        "max": "≤ {{max}}",
+        "values": "{{values}}"
+      }
     }
   },
   "blueprint": {

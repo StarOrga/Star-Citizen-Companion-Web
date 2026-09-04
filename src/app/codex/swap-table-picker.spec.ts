@@ -19,9 +19,9 @@ import {
 } from './swap-table';
 
 const DPS = 'codex.equipped.dps';
-const MASS = 'codex.picker.mass';
-const AMMO = 'codex.picker.ammo';
-const SPREAD = 'codex.picker.spread';
+const MASS = 'codex.picker.col.mass';
+const AMMO = 'codex.picker.col.ammo';
+const SPREAD = 'codex.picker.col.spread';
 
 function cand(
   className: string,
@@ -106,7 +106,7 @@ describe('column catalogue and chooser', () => {
   it('defaults to the concept’s 17 columns, in order', () => {
     expect(DEFAULT_SWAP_COLUMNS.length).toBe(17);
     expect(DEFAULT_SWAP_COLUMNS[0]).toBe(NAME_SORT_KEY);
-    expect(DEFAULT_SWAP_COLUMNS[1]).toBe('codex.picker.deltaSustained');
+    expect(DEFAULT_SWAP_COLUMNS[1]).toBe('codex.picker.col.deltaSustained');
     expect(DEFAULT_SWAP_COLUMNS[DEFAULT_SWAP_COLUMNS.length - 1]).toBe(SPREAD);
   });
 
@@ -117,7 +117,7 @@ describe('column catalogue and chooser', () => {
 
   it('flags the lower-is-better values', () => {
     expect(swapValueDef(MASS)!.lowerIsBetter).toBeTrue();
-    expect(swapValueDef('codex.picker.power')!.lowerIsBetter).toBeTrue();
+    expect(swapValueDef('codex.picker.col.power')!.lowerIsBetter).toBeTrue();
     expect(swapValueDef(DPS)!.lowerIsBetter).toBeFalse();
   });
 
@@ -142,8 +142,8 @@ describe('empty cells: not applicable vs. no source', () => {
   });
 
   it('names only the genuinely sourceless columns in the footer', () => {
-    const missing = swapMissingSourceColumns(all, [NAME_SORT_KEY, DPS, AMMO, 'codex.picker.em']);
-    expect(missing).toEqual(['codex.picker.em']);
+    const missing = swapMissingSourceColumns(all, [NAME_SORT_KEY, DPS, AMMO, 'codex.picker.col.em']);
+    expect(missing).toEqual(['codex.picker.col.em']);
   });
 
   it('reports a present value as a value', () => {

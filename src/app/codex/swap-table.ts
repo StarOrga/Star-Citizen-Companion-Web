@@ -545,7 +545,7 @@ export function swapScopeOptions(
     },
     {
       scope: 'allSize' as const,
-      labelKey: 'codex.picker.scope.allSize',
+      labelKey: 'codex.picker.scope.sameSize',
       params: { size: size ?? '' },
       available: true,
     },
@@ -583,33 +583,33 @@ const V = (
  */
 export const SWAP_VALUE_CATALOGUE: readonly SwapValueDef[] = [
   V(NAME_SORT_KEY, 'int', true, false, true), // Bauteil (the sticky first column)
-  V('codex.picker.deltaSustained', 'dec', true),
+  V('codex.picker.col.deltaSustained', 'dec', true),
   V('codex.equipped.dps', 'perSec', true),
   V('codex.equipped.alphaDamage', 'dec', true),
   V('codex.equipped.penetration', 'dec', true),
   V('codex.equipped.fireRate', 'dec', true),
   V('codex.equipped.range', 'int', true),
   V('codex.equipped.projectileSpeed', 'mps', true),
-  V('codex.picker.power', 'dec', true, true),
-  V('codex.picker.em', 'int', true, true),
+  V('codex.picker.col.power', 'dec', true, true),
+  V('codex.picker.col.em', 'int', true, true),
   V('codex.equipped.health', 'int', true),
   V('codex.equipped.distortion', 'int', true),
-  V('codex.picker.mass', 'int', true, true),
-  V('codex.picker.grade', 'int', true, false, true),
-  V('codex.picker.manufacturer', 'int', true, false, true),
-  V('codex.picker.ammo', 'int', true),
-  V('codex.picker.spread', 'dec', true, true),
+  V('codex.picker.col.mass', 'int', true, true),
+  V('codex.picker.col.grade', 'int', true, false, true),
+  V('codex.picker.col.manufacturer', 'int', true, false, true),
+  V('codex.picker.col.ammo', 'int', true),
+  V('codex.picker.col.spread', 'dec', true, true),
   // ── beyond the default 17 (column chooser only) ──
-  V('codex.picker.size', 'int', false, false, true),
-  V('codex.picker.damageType', 'int', false, false, true),
-  V('codex.picker.archetype', 'int', false, false, true),
+  V('codex.picker.col.size', 'int', false, false, true),
+  V('codex.picker.col.damageType', 'int', false, false, true),
+  V('codex.picker.col.archetype', 'int', false, false, true),
   V('codex.equipped.burstDps', 'perSec', false),
-  V('codex.picker.projectilesPerShot', 'int', false),
-  V('codex.picker.lifetime', 'seconds', false),
-  V('codex.picker.heat', 'dec', false, true),
-  V('codex.picker.ir', 'int', false, true),
-  V('codex.picker.minPower', 'dec', false, true),
-  V('codex.picker.coolant', 'perSec', false, true),
+  V('codex.picker.col.projectilesPerShot', 'int', false),
+  V('codex.picker.col.lifetime', 'seconds', false),
+  V('codex.picker.col.heat', 'dec', false, true),
+  V('codex.picker.col.ir', 'int', false, true),
+  V('codex.picker.col.minPower', 'dec', false, true),
+  V('codex.picker.col.coolant', 'perSec', false, true),
   V('codex.equipped.shieldHp', 'int', false),
   V('codex.equipped.shieldRegen', 'perSec', false),
   V('codex.equipped.regenDelay', 'seconds', false, true),
@@ -665,9 +665,9 @@ export function resetSwapColumns(): SwapColumnChooser {
 export type SwapCellState = 'value' | 'notApplicable' | 'noSource';
 
 /** Values that do not apply to an energy weapon (they are ballistic concepts). */
-const ENERGY_NOT_APPLICABLE = new Set(['codex.picker.ammo']);
+const ENERGY_NOT_APPLICABLE = new Set(['codex.picker.col.ammo']);
 /** Values the P4K carries only as a modifier, never as a per-weapon number. */
-const ALWAYS_NOT_APPLICABLE = new Set(['codex.picker.spread']);
+const ALWAYS_NOT_APPLICABLE = new Set(['codex.picker.col.spread']);
 
 function isEnergyWeapon(c: SwapCandidate): boolean {
   return c.damageChannels.length > 0 && c.damageChannels.every((d) => /energy|laser/i.test(d));

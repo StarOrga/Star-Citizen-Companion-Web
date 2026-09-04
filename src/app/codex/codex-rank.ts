@@ -49,7 +49,7 @@ export const RANK_PROFILES: readonly RankProfile[] = [
   },
   {
     id: 'defence',
-    labelKey: 'codex.rank.profile.defence',
+    labelKey: 'codex.rank.profile.defense',
     axes: [
       axis('shieldHp'),
       axis('shieldRegen'),

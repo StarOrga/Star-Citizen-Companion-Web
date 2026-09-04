@@ -50,7 +50,7 @@ function powerSheet(weaponsCut: boolean): PowerSheet {
     facts: [],
     coolant: { used: 22, total: 34, percent: 65 },
     ready: true,
-    readinessKey: 'codex.energy.ready.yes',
+    readinessKey: 'codex.energy.readiness.ok',
     weaponsCut,
   };
 }
@@ -84,8 +84,8 @@ describe('conventions', () => {
   });
 
   it('tooltips only the two DPS cells', () => {
-    expect(kpiTooltipKey('burstDps')).toBe('codex.kpi.tooltip.burstDps');
-    expect(kpiTooltipKey('sustainedDps')).toBe('codex.kpi.tooltip.sustainedDps');
+    expect(kpiTooltipKey('burstDps')).toBe('codex.kpi.tooltipBurstDps');
+    expect(kpiTooltipKey('sustainedDps')).toBe('codex.kpi.tooltipSustainedDps');
     expect(kpiTooltipKey('alpha')).toBeNull();
   });
 
@@ -126,7 +126,7 @@ describe('buildKpiStrip', () => {
   it('carries lowerIsBetter and the tooltip key on every cell', () => {
     const cells = buildKpiStrip(missionById('stealth'), sheet(), sheet());
     expect(cells.find((c) => c.key === 'ir')!.lowerIsBetter).toBeTrue();
-    expect(cells.find((c) => c.key === 'sustainedDps')!.tooltipKey).toBe('codex.kpi.tooltip.sustainedDps');
+    expect(cells.find((c) => c.key === 'sustainedDps')!.tooltipKey).toBe('codex.kpi.tooltipSustainedDps');
     expect(cells.every((c) => !c.fromPower)).toBeTrue();
   });
 });

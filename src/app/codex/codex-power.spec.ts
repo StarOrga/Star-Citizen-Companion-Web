@@ -206,7 +206,7 @@ describe('computePowerSheet — the Nomad baseline', () => {
 
   it('is ready for combat when the reactor covers every minimum', () => {
     expect(sheet.ready).toBeTrue();
-    expect(sheet.readinessKey).toBe('codex.energy.ready.yes');
+    expect(sheet.readinessKey).toBe('codex.energy.readiness.ok');
   });
 });
 
@@ -289,7 +289,7 @@ describe('computePowerSheet — modes, presets and gaps', () => {
     });
     expect(bare.available).toBeFalse();
     expect(bare.budgetTotal).toBeNull();
-    expect(bare.gapKeys).toContain('codex.energy.gap.noResourceData');
+    expect(bare.gapKeys).toContain('codex.energy.gap.reExtractPending');
     expect(bare.coolant.percent).toBeNull();
     expect(bare.facts.find((f) => f.key === 'em')!.value).toBeNull();
   });
