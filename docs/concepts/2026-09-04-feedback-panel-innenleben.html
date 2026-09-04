@@ -3315,6 +3315,39 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
     {"submitted": false, "decisions": [], "comments": []}
   </script>
 <script>
+/* Page-local one-shot sweep (devops 0.139.1 defect, see clearDock): notes that
+   were submitted with an earlier iteration may still sit in localStorage,
+   because the clear-on-submit could not persist past the #325 guard. Every
+   frozen iteration carries its submitted feedback verbatim in
+   data-frozen-feedback, so a stored text that is IDENTICAL to a frozen value
+   is already delivered and safe to drop. Anything else — a note typed for the
+   live iteration — is left untouched. Runs synchronously before the state
+   block so the first restoreState() never sees the stale keys. */
+(function () {
+  try {
+    const key = 'concept-state-' + location.pathname.split('/').pop().replace('.html', '');
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    const frozen = new Set();
+    document.querySelectorAll('section[data-iteration] script[data-frozen-feedback]').forEach(node => {
+      let fb; try { fb = JSON.parse(node.textContent); } catch (e) { return; }
+      if (!fb) return;
+      if (typeof fb.general === 'string' && fb.general.trim()) frozen.add(fb.general);
+      Object.values(fb.designs || {}).forEach(v => { if (typeof v === 'string' && v.trim()) frozen.add(v); });
+      Object.values(fb.screens || {}).forEach(v => { if (typeof v === 'string' && v.trim()) frozen.add(v); });
+    });
+    if (!frozen.size) return;
+    const state = JSON.parse(raw);
+    if (!state || typeof state !== 'object') return;
+    let dropped = 0;
+    Object.keys(state).forEach(k => {
+      if (k.startsWith('text:') && typeof state[k] === 'string' && frozen.has(state[k])) { delete state[k]; dropped++; }
+    });
+    if (dropped) localStorage.setItem(key, JSON.stringify(state));
+  } catch (e) { /* storage unavailable or corrupt — nothing to sweep */ }
+})();
+</script>
+<script>
 /* --- 43 · localStorage quota guard -----------------------------------
    A QuotaExceededError thrown out of a bare setItem kills ALL further
    persistence for the rest of the page with nothing telling the user.
@@ -4750,7 +4783,12 @@ document.addEventListener('DOMContentLoaded', pollReload);
   }
 
   window.clearDock = function() {
-    document.querySelectorAll('#feedback-dock textarea').forEach(ta => { ta.value = ''; });
+    // Page-local fix (devops 0.139.1 defect): saveState() skips an EMPTY field
+    // that carries no data-touched (#325 guard), so after a reload — where the
+    // dock was rebuilt and restored, never typed into — this clear did not
+    // persist and the next iteration reopened with the submitted text. A clear
+    // on submit IS deliberate: stamp the fields as touched before saving.
+    document.querySelectorAll('#feedback-dock textarea').forEach(ta => { ta.value = ''; ta.dataset.touched = 'true'; });
     liveDockValues = null;
     updateNoteMarkers();
     if (typeof saveState === 'function') saveState();
