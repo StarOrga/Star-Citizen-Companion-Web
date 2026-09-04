@@ -170,6 +170,30 @@
   }
 }
 
+/* ---- Runaway words in rendered feedback ----
+   A topic once arrived carrying a single unbroken run of ~9.800 "a" characters
+   (admin feedback 0a0fad31). The body surfaces carry `overflow-wrap: anywhere`
+   so ordinary long tokens re-wrap instead of poking out of the card — but
+   applied to a 9.800-character run that same rule turns it into two hundred
+   full-width lines and the card into a wall.
+
+   So `renderFeedbackBody` marks any token of `FEEDBACK_LONG_WORD_CHARS` or more
+   with this class, and here it is taken back out of the wrapping algorithm: it
+   renders on ONE line and overflows, and its container (`.msg-body` and friends,
+   which set `overflow-x: auto`) turns that overflow into a scrollbar of its own.
+   The layout around it stays exactly the size it was.
+
+   Global rather than component-scoped on purpose: the span reaches the DOM via
+   `[innerHTML]`, which never receives Angular's `_ngcontent` attribute, so a
+   component stylesheet could not match it. That also means there is nothing to
+   out-specify here — the value it overrides is inherited, and any declaration
+   beats inheritance. */
+.sc-longword {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
 /* ---- Overlay shells that become sheets ----
    A floating panel anchored in a corner is a desktop idea: on a phone it is a
    window inside a window, inset from all four sides, with a rounded border and
