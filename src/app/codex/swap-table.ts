@@ -188,7 +188,8 @@ function massOf(payload: unknown): number | null {
   const p = payload as { mass?: unknown } | null | undefined;
   const direct = toFiniteNumber(p?.mass ?? null);
   if (direct !== null) return direct;
-  return findStat(statsRecord(payload), null, ['mass']);
+  // weapons carry it as `SEntityPhysicsControllerParams.PhysType.Mass`
+  return findStat(statsRecord(payload), null, ['PhysType.Mass', 'mass', 'Mass']);
 }
 
 /**

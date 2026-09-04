@@ -1376,21 +1376,52 @@ class CodexExtractor:
         total = 0.0
         seen = False
         named_mass: Optional[float] = None
-        first_mass: Optional[float] = None
-        for part in root.iter("Part"):
-            dmg = _to_float(part.get("damageMax"))
-            if dmg is not None and math.isfinite(dmg):
-                total += dmg
-                seen = True
-            mass = _to_float(part.get("mass"))
-            if mass is not None and math.isfinite(mass) and mass > 0:
-                if first_mass is None:
-                    first_mass = mass
-                if named_mass is None and (part.get("name") or "").lower() == class_name.lower():
-                    named_mass = mass
+        # Every part carrying a usable mass, with its depth below the XML root,
+        # in document order. The VEHICLE ROOT part is the shallowest one; its
+        # children (wings, nacelles, doors) sit deeper and are much lighter.
+        masses: list = []
+
+        def _walk(node, depth: int) -> None:
+            nonlocal total, seen, named_mass
+            for part in node:
+                if part.tag == "Part":
+                    dmg = _to_float(part.get("damageMax"))
+                    if dmg is not None and math.isfinite(dmg):
+                        total += dmg
+                        seen = True
+                    mass = _to_float(part.get("mass"))
+                    if mass is not None and math.isfinite(mass) and mass > 0:
+                        masses.append((depth, mass))
+                        if (named_mass is None
+                                and (part.get("name") or "").lower() == class_name.lower()):
+                            named_mass = mass
+                    _walk(part, depth + 1)
+                else:
+                    _walk(part, depth)
+
+        _walk(root, 0)
         if seen:
             out["hp"] = total
-        out["mass"] = named_mass if named_mass is not None else first_mass
+
+        if named_mass is not None:
+            out["mass"] = named_mass
+        elif masses:
+            # A VARIANT reuses the base hull's XML, so the root part is named
+            # after the base ship (Idris-P -> aegs_idris.xml, root "AEGS_Idris")
+            # and the class-name match misses. Take the shallowest part — the
+            # vehicle root — and, if several share that depth, the HEAVIEST of
+            # them. The old "first part that carries a mass" rule silently
+            # picked whichever sub-part happened to come first in the file,
+            # which on a multi-root XML is a wing, not the hull.
+            top = min(d for d, _ in masses)
+            candidates = [m for d, m in masses if d == top]
+            out["mass"] = max(candidates)
+            self.on_log(
+                "warn",
+                f"hull mass: {class_name} has no part named after its class - "
+                f"using the vehicle root part's mass ({out['mass']:g} kg) "
+                f"out of {len(masses)} massed part(s)",
+            )
         return out
 
     def _vehicle_xml_root(self, path: Optional[str]):
