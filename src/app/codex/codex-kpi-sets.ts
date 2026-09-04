@@ -55,6 +55,12 @@ export interface KpiStripCell extends KpiCell {
  * the power state. Nothing else in the sheet is touched: HP, mass and the
  * cross-section do not care about the allocation.
  *
+ * The trigger is the pilot's CUT (`PowerSheet.weaponsCut`), never "the weapons
+ * group was allocated 0 segments" (R3): a ballistic-only or resource-less
+ * weapons group draws nothing from the reactor and still fires, so reading the
+ * allocation here would zero the DPS of every gun the P4K has no resource
+ * block for.
+ *
  * Returns the SAME object when nothing changes, so a signal graph can cheap-
  * compare identity.
  */

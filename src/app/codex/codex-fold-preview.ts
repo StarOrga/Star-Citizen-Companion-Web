@@ -14,7 +14,7 @@
 import { alphaDamage, EquippedStatFormat } from './codex-equipped-stats';
 import { humanizeClassName } from './codex-format';
 import { findStat, toFiniteNumber } from '../hangar/loadout-stats';
-import { occupantDraw } from './codex-power';
+import { isPassiveShield, occupantDraw } from './codex-power';
 import type { SummaryOccupant } from './ship-summary-panels';
 import type { ShipModuleSection } from './ship-module-sections';
 
@@ -74,16 +74,10 @@ function classOf(payload: unknown): string {
   return ((payload as { className?: string } | null | undefined)?.className ?? '').trim();
 }
 
-/**
- * A shield generator that draws no power segments is the ship's PASSIVE unit —
- * it still contributes HP to the pool but is "nicht am Netz" (MASTER §6).
- * Decided from the resource data, never from the port name.
- */
-export function isPassiveShield(occupant: SummaryOccupant): boolean {
-  const draw = occupantDraw(occupant);
-  if (draw.missing) return false; // no resource data → cannot claim "passive"
-  return draw.consumeSegments === 0 && draw.consumeUnits === 0;
-}
+// The passive-shield rule lives in `codex-power.ts` so the dock and this
+// preview can never disagree about which generator is on the net (R2).
+// Re-exported here because the fold preview is where callers first meet it.
+export { isPassiveShield };
 
 function chip(
   occupant: SummaryOccupant,

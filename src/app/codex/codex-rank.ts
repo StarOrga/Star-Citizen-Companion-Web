@@ -33,9 +33,20 @@ export interface RankProfile {
   axes: readonly RankAxis[];
 }
 
+// The designer authored the axis labels under short slugs, not under the raw
+// KpiKey — `armorHp` is `codex.rank.axis.armor` (R4). Anything not listed here
+// uses its KpiKey verbatim, which is what the other twelve axes are named.
+const AXIS_LABEL_SLUG: Readonly<Partial<Record<KpiKey, string>>> = {
+  armorHp: 'armor',
+};
+
+export function rankAxisLabelKey(key: KpiKey): string {
+  return `codex.rank.axis.${AXIS_LABEL_SLUG[key] ?? key}`;
+}
+
 const axis = (key: KpiKey, lowerIsBetter = false): RankAxis => ({
   key,
-  labelKey: `codex.rank.axis.${key}`,
+  labelKey: rankAxisLabelKey(key),
   lowerIsBetter,
 });
 
@@ -103,11 +114,18 @@ export interface RankAxisResult {
   gapKey: string | null;
 }
 
-export type RankBand = 'lower' | 'middle' | 'upper';
+/** Matches the authored keys `codex.rank.band.low|mid|high` (R4). */
+export type RankBand = 'low' | 'mid' | 'high';
 
 export interface RankResult {
   profileId: RankProfileId;
+  /** the scope the cohort was ACTUALLY built with — not necessarily the one
+   * that was asked for (see `scopeFallbackKey`). */
   scope: RankScope;
+  /** set when the requested scope had no discriminator on the target and the
+   * cohort silently widened to `all`; the select must say so instead of
+   * showing a `career` filter that never filtered anything. */
+  scopeFallbackKey: string | null;
   /** ships in the cohort after the scope filter (including the target). */
   cohortSize: number;
   axes: RankAxisResult[];
@@ -125,9 +143,9 @@ export const RANK_BAND_HIGH = 75;
 
 export function rankBandOf(overall: number | null): RankBand | null {
   if (overall == null) return null;
-  if (overall < RANK_BAND_LOW) return 'lower';
-  if (overall > RANK_BAND_HIGH) return 'upper';
-  return 'middle';
+  if (overall < RANK_BAND_LOW) return 'low';
+  if (overall > RANK_BAND_HIGH) return 'high';
+  return 'mid';
 }
 
 /** Cohort restriction. `all` keeps everything; `sizeClass` / `career` keep the
@@ -176,6 +194,9 @@ export function percentileOf(
 
 const WEAK_THRESHOLD = 45;
 
+/** The single authored "this axis has no value" string (R4). */
+export const RANK_AXIS_GAP_KEY = 'codex.rank.gapAxis';
+
 /** Rank one ship against a cohort under one profile + scope. */
 export function rankShip(
   target: RankShipInput,
@@ -184,7 +205,15 @@ export function rankShip(
 ): RankResult {
   const profile =
     typeof options.profile === 'object' ? options.profile : rankProfileById(options.profile ?? 'combat');
-  const scope = options.scope ?? 'sizeClass';
+  const requested = options.scope ?? 'sizeClass';
+  // Rank hygiene: a scope whose discriminator the target does not carry cannot
+  // filter anything. Report `all` + the reason rather than pretending the
+  // cohort was narrowed.
+  const degraded =
+    (requested === 'career' && !target.career) ||
+    (requested === 'sizeClass' && target.sizeClass == null);
+  const scope: RankScope = degraded ? 'all' : requested;
+  const scopeFallbackKey = degraded ? 'codex.rank.disabled.noData' : null;
   const set = filterCohort(target, cohort, scope);
 
   const axes: RankAxisResult[] = profile.axes.map((a) => {
@@ -203,7 +232,8 @@ export function rankShip(
       medianValue: median(values),
       cohortCount: values.length,
       weak: percentile != null && percentile < WEAK_THRESHOLD,
-      gapKey: usable ? null : `codex.rank.gap.${a.key}`,
+      // ONE authored gap string for every axis — there is no per-axis copy (R4).
+      gapKey: usable ? null : RANK_AXIS_GAP_KEY,
     };
   });
 
@@ -218,6 +248,7 @@ export function rankShip(
   return {
     profileId: profile.id,
     scope,
+    scopeFallbackKey,
     cohortSize: set.length,
     axes,
     overall,
@@ -238,6 +269,18 @@ export function rankProfileDisabledReason(
     if (cargo == null || cargo <= 0) return 'codex.rank.disabled.noCargo';
   }
   return null;
+}
+
+/**
+ * The ship's career/role as the data carries it. The extractor emits the RAW
+ * localisation key (`@vehicle_focus_Combat`) — we hand it through UNCHANGED and
+ * let the component resolve it through the same entity-string path it already
+ * uses for `role` in `codex-detail.component.ts`. Inventing a display string
+ * here would mean a second, drifting translation of CIG's own vocabulary.
+ */
+export function resolveCareerLabel(career: string | null | undefined): string | null {
+  const c = (career ?? '').trim();
+  return c === '' ? null : c;
 }
 
 // ── cohort cache ─────────────────────────────────────────────────────────────

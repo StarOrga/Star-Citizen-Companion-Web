@@ -95,7 +95,7 @@ describe('rankShip', () => {
 
   it('averages the axes into an overall percentile and a band', () => {
     expect(result.overall).not.toBeNull();
-    expect(['lower', 'middle', 'upper']).toContain(result.band!);
+    expect(['low', 'mid', 'high']).toContain(result.band!);
     expect(result.bandKey).toBe(`codex.rank.band.${result.band}`);
   });
 
@@ -104,7 +104,7 @@ describe('rankShip', () => {
     const r = rankShip(blind, cohort, { profile: 'combat', scope: 'all' });
     const dps = r.axes.find((a) => a.key === 'sustainedDps')!;
     expect(dps.percentile).toBeNull();
-    expect(dps.gapKey).toBe('codex.rank.gap.sustainedDps');
+    expect(dps.gapKey).toBe('codex.rank.gapAxis');
     expect(r.overall).not.toBeNull(); // alpha still ranks
   });
 
@@ -143,9 +143,9 @@ describe('profiles', () => {
   });
 
   it('bands at 25 / 75', () => {
-    expect(rankBandOf(10)).toBe('lower');
-    expect(rankBandOf(50)).toBe('middle');
-    expect(rankBandOf(90)).toBe('upper');
+    expect(rankBandOf(10)).toBe('low');
+    expect(rankBandOf(50)).toBe('mid');
+    expect(rankBandOf(90)).toBe('high');
     expect(rankBandOf(null)).toBeNull();
   });
 });

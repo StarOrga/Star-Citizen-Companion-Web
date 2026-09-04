@@ -46,6 +46,8 @@ function powerSheet(weaponsCut: boolean): PowerSheet {
     cutGroups: new Set(weaponsCut ? (['weapons'] as const) : []),
     budgetTotal: 14,
     budgetUsed: weaponsCut ? 11 : 14,
+    budgetMinimum: 9,
+    overBudget: false,
     groups: [],
     facts: [],
     coolant: { used: 22, total: 34, percent: 65 },
