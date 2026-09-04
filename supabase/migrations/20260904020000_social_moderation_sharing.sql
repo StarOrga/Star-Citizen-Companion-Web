@@ -111,7 +111,13 @@ returns table (
   expires_at   timestamptz
 )
 language sql security definer set search_path = public stable as $$
-  with me as (select auth.uid() as id)
+  -- The WHERE on the CTE is the caller gate. This function is SECURITY
+  -- DEFINER, so it bypasses RLS by construction, and being `language sql` it
+  -- cannot raise the way social_actor() does — so a suspended account would
+  -- otherwise keep reading its whole friend graph (names and handles
+  -- included) straight off PostgREST with the JWT it still holds. An empty
+  -- `me` makes every branch below join against nothing.
+  with me as (select auth.uid() as id where not public.is_suspended(auth.uid()))
   select 'friend'::text, null::uuid, p.id, p.display_name, p.username, f.created_at, null::timestamptz
   from public.friendships f
   join me on me.id in (f.user_low, f.user_high)
@@ -270,6 +276,57 @@ comment on column public.profiles.suspended_at is
 comment on column public.profiles.suspended_until is
   'NULL = indefinite. A past value is an expired suspension and lifts itself.';
 
+-- ------------------------------------------------------------
+-- Close the self-update hole these three columns would otherwise open
+-- ------------------------------------------------------------
+-- `profiles` is the ONE self-scoped table in this schema with a
+-- user-writable UPDATE policy and no `is_approved()` gate: 00001's
+-- `profiles_self_update` allows `update ... using (auth.uid() = id)` with no
+-- column list, and 20260802080000's `profiles_role_write_guard` freezes only
+-- `role` and `is_approved`. Putting the suspension state here without
+-- widening that guard would mean a suspended account clears its own
+-- suspension with a single `PATCH /rest/v1/profiles?id=eq.<self>` — no ledger
+-- row, no trace, and every RESTRICTIVE gate back open. The whole point of the
+-- feature, defeated through the app's own primary write path.
+--
+-- Re-created (not replaced by a second trigger) so there is exactly one
+-- guard function to read. It stays SECURITY INVOKER for the reason
+-- 20260802080000 gives: SECURITY DEFINER would rewrite `current_user` to the
+-- owner and disarm the check. The role/approval half is that migration's,
+-- unchanged.
+create or replace function public.profiles_role_write_guard()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if (new.role is distinct from old.role
+      or new.is_approved is distinct from old.is_approved)
+     and current_user in ('authenticated', 'anon') then
+    raise exception
+      'role_change_forbidden: use set_user_role() — a direct UPDATE of profiles.role/is_approved is not allowed.'
+      using errcode = '42501';
+  end if;
+  if (new.suspended_at is distinct from old.suspended_at
+      or new.suspended_until is distinct from old.suspended_until
+      or new.suspension_reason is distinct from old.suspension_reason)
+     and current_user in ('authenticated', 'anon') then
+    raise exception
+      'suspension_change_forbidden: use suspend_user()/unsuspend_user() — a direct UPDATE of the suspension columns is not allowed.'
+      using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+-- The trigger itself already exists from 20260802080000 and points at this
+-- function by name, so re-creating the function is enough. Re-created here
+-- anyway so the guard cannot be left detached by a partial replay.
+drop trigger if exists profiles_role_write_guard on public.profiles;
+create trigger profiles_role_write_guard
+  before update on public.profiles
+  for each row execute function public.profiles_role_write_guard();
+
 create table if not exists public.moderation_actions (
   id              uuid primary key default gen_random_uuid(),
   user_id         uuid not null references auth.users (id) on delete cascade,
@@ -319,10 +376,17 @@ returns boolean language sql security definer set search_path = public stable as
   );
 $$;
 
-grant execute on function public.is_suspended(uuid) to authenticated;
+-- NOT granted to authenticated: an arbitrary-target predicate exposed on
+-- /rpc/is_suspended is a moderation-state oracle for every uuid a caller can
+-- get hold of (and list_my_friend_edges / list_reports_for_admin hand out
+-- plenty). Every legitimate caller — is_approved(), social_actor(),
+-- my_account_status(), the two share readers — is SECURITY DEFINER and runs
+-- it as the owner, so nobody needs the grant. Same treatment as
+-- new_share_token() and expire_stale_friend_requests().
+revoke execute on function public.is_suspended(uuid) from public, anon, authenticated;
 
 comment on function public.is_suspended(uuid) is
-  'True while the account carries an active suspension. A suspended_until in the past lifts itself without anyone having to run a job.';
+  'True while the account carries an active suspension. A suspended_until in the past lifts itself without anyone having to run a job. Internal: no grant to authenticated, it is an oracle.';
 
 -- The blanket enforcement point. Every RESTRICTIVE `*_approved_gate` policy
 -- in the schema (20260805120000, 20260903220000, …) already ANDs this in, so
@@ -513,10 +577,17 @@ begin
 
   -- Any share link the account had published stops resolving too (see
   -- get_shared_loadout), so a suspension does not leave a public surface up.
+  -- `insufficient_privilege` ONLY, not `others`. The one failure this is
+  -- allowed to swallow is the static, deployment-wide "we were never granted
+  -- DELETE on auth.sessions"; a timeout or a cancelled query means the
+  -- revocation did not happen for a transient reason, and a suspension whose
+  -- session revocation silently half-ran is worse than one that fails loudly
+  -- and gets retried. A plpgsql exception block is a savepoint, so the
+  -- profiles update and the ledger row above survive the swallowed case.
   begin
     delete from auth.sessions where user_id = victim;
-  exception when others then
-    raise notice 'suspend_user: could not drop auth.sessions for % (%). RLS lockout still applies.', victim, sqlerrm;
+  exception when insufficient_privilege then
+    raise warning 'suspend_user: no DELETE on auth.sessions for % (%). The RLS lockout applies immediately; the target keeps a valid access token until it expires and the client polls.', victim, sqlerrm;
   end;
 
   return until_ts;
@@ -525,10 +596,27 @@ $$;
 
 grant execute on function public.suspend_user(uuid, text, integer) to authenticated;
 
+-- Lifting a suspension deliberately does NOT use moderation_target(): that
+-- guard refuses admins and protected accounts, which is right for imposing a
+-- sanction and a trap for removing one. Suspend a viewer, then promote them
+-- (or protect them), and the suspension would become unliftable through the
+-- app by anybody — an account locked out of every gated table with only
+-- direct SQL as the way back. Un-suspending is the SAFE direction, so it
+-- needs only "an admin, and not yourself".
 create or replace function public.unsuspend_user(target uuid, note text default null)
 returns void language plpgsql security definer set search_path = public as $$
-declare victim uuid := public.moderation_target(target);
+declare victim uuid := target;
 begin
+  if not public.is_admin() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if victim is null or victim = auth.uid() then
+    raise exception 'invalid_target' using errcode = '22023';
+  end if;
+  if not exists (select 1 from public.profiles where id = victim) then
+    raise exception 'user_not_found' using errcode = 'P0002';
+  end if;
+
   update public.profiles
   set suspended_at = null, suspended_until = null, suspension_reason = null
   where id = victim;
@@ -559,7 +647,11 @@ begin
   if not public.is_admin() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
-  if target is null then
+  -- Not moderation_target()'s full refusal (an admin must be able to dismiss
+  -- a bogus report against ANOTHER admin), but self is out: otherwise an
+  -- admin who is being reported closes the case against themselves and the
+  -- card that surfaces it goes quiet.
+  if target is null or target = auth.uid() then
     raise exception 'invalid_target' using errcode = '22023';
   end if;
   update public.user_reports
@@ -741,10 +833,22 @@ begin
     return existing;
   end if;
 
+  -- Check-then-insert is a race: two tabs (or two devices) both see no link
+  -- and both insert, and the loser hits `loadout_shares_link_unique` with a
+  -- 23505 the UI can only render as "something went wrong" — while a link
+  -- does in fact exist. ON CONFLICT DO NOTHING turns the loser into a no-op;
+  -- the re-select then hands BOTH callers the same, single live token, which
+  -- is exactly what "the link" is supposed to mean.
   fresh := public.new_share_token();
   insert into public.loadout_shares (owner_id, loadout_id, token)
-  values (caller, target_loadout, fresh);
-  return fresh;
+  values (caller, target_loadout, fresh)
+  on conflict do nothing;
+
+  select s.token into existing
+  from public.loadout_shares s
+  where s.loadout_id = target_loadout and s.token is not null and s.revoked_at is null
+  limit 1;
+  return existing;
 end;
 $$;
 
@@ -850,6 +954,7 @@ language sql security definer set search_path = public stable as $$
     and not public.is_suspended(auth.uid())
     and public.are_friends(auth.uid(), s.owner_id)
     and not public.is_suspended(s.owner_id)
+    and p.is_approved
   order by s.created_at desc
 $$;
 
@@ -880,6 +985,12 @@ language sql security definer set search_path = public stable as $$
     and s.token = share_token
     and s.revoked_at is null
     and not public.is_suspended(s.owner_id)
+    -- Also the approval flag, not just the suspension: an account an admin
+    -- de-invited (is_approved = false) can no longer read its own loadout
+    -- through RLS, so it must not keep serving that loadout to the whole
+    -- internet through a link it minted while it still could. NULL fails the
+    -- predicate, which is the fail-closed direction.
+    and p.is_approved
   limit 1
 $$;
 

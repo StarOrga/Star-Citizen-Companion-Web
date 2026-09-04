@@ -472,7 +472,18 @@ export class LoginComponent {
    * the in-memory notice the guard left behind, which is why it disappears on
    * a reload and the generic wording below carries the rest.
    */
-  readonly suspended = signal(this.route.snapshot.queryParamMap.get('denied') === 'suspended');
+  private readonly deniedSuspended =
+    this.route.snapshot.queryParamMap.get('denied') === 'suspended';
+  readonly suspended = computed(
+    () =>
+      this.deniedSuspended ||
+      // Not only the query param: the eject can come from the shell's
+      // AccountNoticeComponent (a suspension that lands mid-session), whose
+      // imperative navigation can lose a race with the guard's own UrlTree
+      // and drop the param. The in-memory notice is the more reliable
+      // signal, and it is set on every eject path.
+      this.account.suspensionNotice() !== null,
+  );
   readonly suspensionReason = computed(() => this.account.suspensionNotice()?.reason ?? null);
   readonly suspendedUntil = computed(() => this.account.suspensionNotice()?.until ?? null);
 

@@ -186,8 +186,23 @@ export class AccountStatusService {
         if (typeof document !== 'undefined' && document.hidden) return;
         this.zone.run(() => void this.refresh());
       }, AccountStatusService.POLL_MS);
+
+      // A hidden tab SKIPS its ticks (no point spending a request on a tab
+      // nobody is looking at), which would otherwise leave it up to three
+      // minutes stale the moment it comes back — right when the user starts
+      // clicking again. Catching the transition back to visible closes that
+      // gap without polling in the background.
+      if (typeof document !== 'undefined' && !this.visibilityBound) {
+        this.visibilityBound = true;
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden || !this.auth.realUser()) return;
+          this.zone.run(() => void this.refresh());
+        });
+      }
     });
   }
+
+  private visibilityBound = false;
 
   private stopPolling(): void {
     if (this.pollHandle === null) return;

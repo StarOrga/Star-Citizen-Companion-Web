@@ -1816,7 +1816,7 @@
       "indefinite": "unbefristet",
       "flash": {
         "warned": "Verwarnung gesendet.",
-        "suspended": "Konto gesperrt und Sitzungen beendet.",
+        "suspended": "Konto gesperrt. Der Zugriff ist ab sofort blockiert.",
         "unsuspended": "Sperre aufgehoben.",
         "reviewed": "Meldungen als erledigt markiert.",
         "dismissed": "Meldungen verworfen."

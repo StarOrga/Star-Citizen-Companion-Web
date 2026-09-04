@@ -114,6 +114,11 @@ export function moderationErrorKey(message: string | null | undefined): string {
  */
 export function isMissingFunction(message: string | null | undefined, code?: string | null): boolean {
   if (code === 'PGRST202' || code === '42883') return true;
-  const m = (message ?? '').toLowerCase();
-  return m.includes('could not find the function') || m.includes('does not exist');
+  // Deliberately NOT a bare "does not exist" match. That substring also comes
+  // back from `relation … does not exist` / `column … does not exist`, i.e.
+  // from a HALF-applied migration — exactly the window this check exists for
+  // — and treating those as "the feature is not deployed" would quietly
+  // disarm client-side suspension enforcement on a transient server error.
+  // Only PostgREST's own wording for an unknown RPC counts.
+  return (message ?? '').toLowerCase().includes('could not find the function');
 }

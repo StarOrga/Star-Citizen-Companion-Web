@@ -102,9 +102,21 @@ export class AccountNoticeComponent {
       if (this.ejecting) return;
       this.ejecting = true;
       this.account.rememberNotice();
-      void this.auth.signOut(false).then(() =>
-        this.router.navigate(['/login'], { queryParams: { denied: 'suspended' } }),
-      );
+      // The `.catch` matters: `signOut()` can reject (offline, a GoTrue 5xx),
+      // and without it `ejecting` would stay latched forever and no further
+      // attempt would ever be made for the life of this component. Navigate
+      // either way — the local session state is what the guard reads on the
+      // next attempt, and the login page shows the reason from the notice
+      // rather than from the query param, so it survives even if this
+      // navigation loses a race with the guard's own UrlTree.
+      void this.auth
+        .signOut(false)
+        .catch(() => undefined)
+        .then(() => this.router.navigate(['/login'], { queryParams: { denied: 'suspended' } }))
+        .catch(() => undefined)
+        .finally(() => {
+          this.ejecting = false;
+        });
     });
   }
 

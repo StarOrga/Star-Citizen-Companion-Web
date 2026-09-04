@@ -1816,7 +1816,7 @@
       "indefinite": "indefinite",
       "flash": {
         "warned": "Warning sent.",
-        "suspended": "Account suspended and sessions terminated.",
+        "suspended": "Account suspended. Access is blocked immediately.",
         "unsuspended": "Suspension lifted.",
         "reviewed": "Reports marked as handled.",
         "dismissed": "Reports dismissed."

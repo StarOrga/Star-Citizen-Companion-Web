@@ -93,4 +93,13 @@ describe('moderation.types — error mapping', () => {
     expect(isMissingFunction('Could not find the function public.my_account_status')).toBe(true);
     expect(isMissingFunction('JWT expired')).toBe(false);
   });
+
+  it('does NOT swallow a half-applied migration as "feature not deployed"', () => {
+    // A bare "does not exist" match would catch these too. They mean the
+    // migration is landing RIGHT NOW, not that the feature is absent — and
+    // reading them as absence disarms client-side suspension enforcement for
+    // the rest of the session on a transient error.
+    expect(isMissingFunction('relation "public.moderation_actions" does not exist')).toBe(false);
+    expect(isMissingFunction('column p.suspended_at does not exist')).toBe(false);
+  });
 });
