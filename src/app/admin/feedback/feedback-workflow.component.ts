@@ -19,10 +19,15 @@ import { RenderedFeedbackBody, renderFeedbackBody } from './markdown.util';
 import { CelebrationService } from './celebration.service';
 import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
+import { CharCounterComponent } from '../../feedback/char-counter.component';
+import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
 import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { SwipeActionDirective } from '../../core/swipe-action.directive';
 import {
+  DECLINE_REASONS,
+  DeclineReasonId,
+  DeclineReasonTexts,
   FeedbackMessage,
   FeedbackRow,
   WORKFLOW_KINDS,
@@ -33,7 +38,10 @@ import {
   WorkflowScope,
   WorkflowScopeCounts,
   awaitsTriage,
+  declineReasonLabelKey,
+  declineReasonTextKey,
   isUserSubmitted,
+  matchDeclineReason,
   refKind,
   reviewSince,
   topicNumber,
@@ -86,6 +94,7 @@ const ADVANCE_SLIDE_MS = 380;
   imports: [
     ScDatePipe,
     TranslateModule,
+    CharCounterComponent,
     FeedbackAttachmentsComponent,
     FeedbackComposerComponent,
     SwipeActionDirective,
@@ -184,7 +193,7 @@ const ADVANCE_SLIDE_MS = 380;
           class="wf-card sc-card"
           scSwipeAction
           #swipe="scSwipeAction"
-          [swipeEnabled]="!busy() && !reopening()"
+          [swipeEnabled]="!busy() && !reopening() && !asking() && !declining()"
           (swipeLeft)="skip()"
           (swipeRight)="swipeCommit(item)"
           [class.celebrate]="celebrating()"
@@ -198,9 +207,11 @@ const ADVANCE_SLIDE_MS = 380;
             <div class="swipe-cue" [attr.data-intent]="armed" aria-hidden="true">
               {{ (armed === 'left'
                     ? 'adminFeedback.workflow.swipeSkip'
-                    : (isReview(item)
-                        ? 'adminFeedback.workflow.swipeAccept'
-                        : 'adminFeedback.workflow.swipeDone')) | translate }}
+                    : (isTriage(item)
+                        ? 'adminFeedback.workflow.swipeRelease'
+                        : isReview(item)
+                          ? 'adminFeedback.workflow.swipeAccept'
+                          : 'adminFeedback.workflow.swipeDone')) | translate }}
             </div>
           }
           <!-- Two explicit rows since admin feedback 3bc01a3d: the badges (up
@@ -214,7 +225,12 @@ const ADVANCE_SLIDE_MS = 380;
                    Rückfrage the routine asked, or an Abnahme waiting for the
                    sign-off. The badge is the first thing in the card because the
                    actions at its foot differ. -->
-              @if (isReview(item)) {
+              @if (isTriage(item)) {
+                <!-- A user topic the routine may not touch yet (feedback
+                     89925995). Its own step kind because its three decisions are
+                     neither an answer nor a sign-off. -->
+                <span class="kind triage">{{ 'adminFeedback.workflow.kind.triage' | translate }}</span>
+              } @else if (isReview(item)) {
                 <span class="kind review">{{ 'adminFeedback.workflow.kind.review' | translate }}</span>
                 <!-- ...and how the topic got there: shipped, or handed to an issue.
                      Same wording the Abnahme tab's tiles carry. -->
@@ -233,7 +249,9 @@ const ADVANCE_SLIDE_MS = 380;
                    letting it read like an admin's own note. -->
               @if (fromUser(item)) {
                 <span class="kind from-user">{{ 'adminFeedback.userTopic.badge' | translate }}</span>
-                @if (untriaged(item)) {
+                <!-- On a triage step the kind badge already says it is held back,
+                     so the pill would only repeat it. -->
+                @if (untriaged(item) && !isTriage(item)) {
                   <span class="kind untriaged">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span>
                 }
               }
@@ -260,6 +278,12 @@ const ADVANCE_SLIDE_MS = 380;
 
           @if (item.row.processing_note) {
             <p class="proc-note">{{ item.row.processing_note }}</p>
+          }
+
+          @if (isTriage(item)) {
+            <!-- Why this topic is standing still: the routine's queue is gated on
+                 the release, so nothing happens to it until the admin decides. -->
+            <p class="rv-hint">{{ 'adminFeedback.workflow.triage.hint' | translate }}</p>
           }
 
           @if (isReview(item)) {
@@ -338,7 +362,95 @@ const ADVANCE_SLIDE_MS = 380;
                however long the topic and its thread are, the reply panel is
                always on screen (feedback fda4e3ea). -->
           <div class="wf-foot">
-            @if (isReview(item)) {
+            @if (isTriage(item)) {
+              <!-- The three decisions a user topic waits for (feedback 89925995),
+                   the same ones the Übersicht card has and written by the same
+                   parent methods: release it to the routine, ask the author
+                   something, or decline it with an explanation the author reads.
+                   Nothing new was invented — they are only offered here too, one
+                   topic at a time, so user feedback can be worked off in the run
+                   instead of being hunted for in the list. -->
+              @if (asking()) {
+                <p class="rv-hint">{{ 'adminFeedback.workflow.triage.askHint' | translate }}</p>
+                <div class="wf-compose">
+                  <sc-feedback-composer
+                    [compact]="true"
+                    [draftScope]="authorScope(item.row.id)"
+                    [busy]="busy()"
+                    placeholder="adminFeedback.userTopic.messagePlaceholder"
+                    sendLabel="adminFeedback.userTopic.questionSend"
+                    [onSubmit]="submitAsk" />
+                </div>
+                <div class="wf-actions">
+                  <button type="button" class="sc-btn micro" (click)="cancelAsk()" [disabled]="busy()">
+                    {{ 'adminFeedback.review.reopenCancel' | translate }}
+                  </button>
+                </div>
+              } @else if (declining()) {
+                <!-- Same mandatory note, same canned reasons and the same cap as
+                     the Übersicht's form (feedback 5920cf8c / d5a779da): the
+                     author reads this text, so it stays feedback like any other. -->
+                <form class="decline-form" (submit)="confirmDecline(item, $event)">
+                  <div
+                    class="decline-reasons"
+                    role="group"
+                    [attr.aria-label]="'adminFeedback.decline.reasonsLabel' | translate">
+                    @for (r of declineReasons; track r.id) {
+                      <button
+                        type="button"
+                        class="reason-chip"
+                        [class.active]="declineReason() === r.id"
+                        [attr.aria-pressed]="declineReason() === r.id"
+                        (click)="pickDeclineReason(r.id)">
+                        {{ r.labelKey | translate }}
+                      </button>
+                    }
+                  </div>
+                  <div class="field">
+                    <textarea
+                      class="decline-input"
+                      rows="3"
+                      required
+                      [value]="declineNote()"
+                      (input)="onDeclineInput($event)"
+                      [attr.maxlength]="maxChars"
+                      [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
+                      [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
+                    <sc-char-counter [used]="declineNote().length" [max]="maxChars" />
+                  </div>
+                  <div class="decline-actions">
+                    <button
+                      class="sc-btn micro danger"
+                      type="submit"
+                      [disabled]="busy() || declineNote().trim().length === 0">
+                      {{ 'adminFeedback.decline.confirm' | translate }}
+                    </button>
+                    <button class="sc-btn micro" type="button" (click)="cancelDecline()">
+                      {{ 'adminFeedback.decline.cancel' | translate }}
+                    </button>
+                  </div>
+                </form>
+              } @else {
+                <div class="wf-actions">
+                  <button
+                    type="button"
+                    class="sc-btn micro done"
+                    (click)="release(item)"
+                    [disabled]="busy()">
+                    ✓ {{ 'adminFeedback.userTopic.release' | translate }}
+                  </button>
+                  <button type="button" class="sc-btn micro" (click)="startAsk()" [disabled]="busy()">
+                    ↩ {{ 'adminFeedback.workflow.triage.ask' | translate }}
+                  </button>
+                  <button type="button" class="sc-btn micro danger" (click)="startDecline()" [disabled]="busy()">
+                    {{ 'adminFeedback.decline.mark' | translate }}
+                  </button>
+                  <button type="button" class="sc-btn micro" (click)="skip()">
+                    {{ 'adminFeedback.workflow.skip' | translate }} ⤼
+                  </button>
+                </div>
+              }
+            } @else if (isReview(item)) {
               @if (reopening()) {
                 <!-- "Gespräch wieder aufnehmen" is an ANSWER, not a bare status
                      flip (feedback d4990269, round 2): clicking it opens the
@@ -616,6 +728,9 @@ const ADVANCE_SLIDE_MS = 380;
        kinds of step are told apart before a single word is read. */
     .kind.review { background: color-mix(in srgb, var(--sc-success) 20%, transparent); color: var(--sc-success); }
     .kind.outcome { border: 1px solid var(--sc-border); color: var(--sc-fg-2); }
+    /* A triage step wears the same rosé the board's "nicht freigegeben" pill
+       carries, so the kind badge and the list agree on what is being held back. */
+    .kind.triage { background: rgba(244, 114, 182, 0.18); color: #f472b6; }
     .kind.skipped { border: 1px dashed var(--sc-border); color: var(--sc-fg-2); }
     /* Same left edge the Abnahme tiles carry in the sign-off view. */
     .wf-card.is-review { border-left: 3px solid var(--sc-success); }
@@ -729,6 +844,47 @@ const ADVANCE_SLIDE_MS = 380;
     /* "Thema öffnen" leaves the run — quiet, so it never competes with a decision. */
     .sc-btn.micro.ghost { border-color: var(--sc-border); color: var(--sc-fg-2); }
     .sc-btn.micro.ghost:hover:not(:disabled) { border-color: var(--sc-accent); color: var(--sc-accent); background: transparent; box-shadow: none; }
+    /* "Nicht umsetzen" ends a topic for its author — the board's destructive
+       accent, same as the button it mirrors in the Übersicht. */
+    .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
+    .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
+
+    /* ---- Triage step: the decline form (mirrors the Übersicht's) ---- */
+    .decline-form { display: flex; flex-direction: column; gap: 6px; }
+    /* .field is the counter's positioning context; the input's bottom padding is
+       the lane it sits in, so typed text never runs under it. */
+    .decline-form .field { position: relative; }
+    .decline-input {
+      width: 100%; box-sizing: border-box; resize: vertical;
+      padding: 6px 8px 20px;
+      background: var(--sc-bg-2); border: 1px solid var(--sc-danger);
+      border-radius: 6px; color: var(--sc-fg-0); font: inherit;
+      font-size: max(0.78rem, var(--sc-fs-floor));
+    }
+    .decline-input:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
+    .decline-actions { display: flex; gap: 6px; }
+    /* The canned reasons PRE-FILL the note, they do not replace it — the chip
+       only lights up while the text still is that reason. */
+    .decline-reasons { display: flex; flex-wrap: wrap; gap: 6px; }
+    .reason-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      background: var(--sc-bg-2);
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+      color: var(--sc-fg-2);
+      font: inherit;
+      font-size: max(0.7rem, var(--sc-fs-floor));
+      cursor: pointer;
+      transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+    .reason-chip:hover { color: var(--sc-fg-0); border-color: var(--sc-danger); }
+    .reason-chip.active {
+      color: var(--sc-danger); border-color: var(--sc-danger);
+      background: rgba(248, 113, 113, 0.14);
+    }
+    .reason-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
 
     /* ---- Celebration ---- */
     .wf-cheer {
@@ -802,7 +958,7 @@ export class FeedbackWorkflowComponent {
   /** Which kind the (already filtered) queue was narrowed to — owned by the parent. */
   readonly kind = input<WorkflowKind>('all');
   /** Item count per kind within the current scope — the kind switch's KPIs. */
-  readonly kindCounts = input<WorkflowKindCounts>({ all: 0, question: 0, review: 0 });
+  readonly kindCounts = input<WorkflowKindCounts>({ all: 0, triage: 0, question: 0, review: 0 });
   /** Posts a reply into a topic's thread; resolves true once persisted. */
   readonly reply = input.required<(feedbackId: string, payload: ComposerPayload) => Promise<boolean>>();
   /**
@@ -813,6 +969,19 @@ export class FeedbackWorkflowComponent {
    */
   readonly reopenWithReply =
     input.required<(feedbackId: string, payload: ComposerPayload) => Promise<boolean>>();
+  /**
+   * Posts a QUESTION into a user topic's author-visible channel (feedback
+   * 89925995) — the board's existing write, which also parks the topic as
+   * `needs_input_author` until the author answers. Resolves true once persisted.
+   */
+  readonly askAuthor =
+    input.required<(feedbackId: string, payload: ComposerPayload) => Promise<boolean>>();
+  /**
+   * "Nicht umsetzen & löschen" on a user topic: stores the mandatory explanation
+   * as `decision_note`, posts it into the author channel and closes the topic as
+   * `declined`. The parent owns the write; this card only offers the decision.
+   */
+  readonly declineTopic = input.required<(row: FeedbackRow, note: string) => Promise<boolean>>();
 
   /** The admin ticked an item off — the parent removes it from the queue. */
   readonly markHandled = output<string>();
@@ -833,6 +1002,12 @@ export class FeedbackWorkflowComponent {
    * d4990269, round 2), so there is nothing left to jump to.
    */
   readonly acceptReview = output<FeedbackRow>();
+  /**
+   * Release a user-submitted topic to the routine (feedback 89925995) — the
+   * board's `triaged = true` write, forwarded unchanged. It is the positive
+   * decision of a triage step, so the swipe lands here too.
+   */
+  readonly releaseTriage = output<FeedbackRow>();
 
   private readonly cardEl = viewChild<ElementRef<HTMLElement>>('card');
   private readonly threadEl = viewChild<ElementRef<HTMLElement>>('thread');
@@ -1005,6 +1180,40 @@ export class FeedbackWorkflowComponent {
     return id !== null && id === this.current()?.row.id;
   });
 
+  /**
+   * Topic id whose triage step has one of its two secondary forms open — the
+   * question to the author, or the "nicht umsetzen" note (feedback 89925995).
+   * Keyed by id for the same reason the reopen box is: a form must never survive
+   * onto the next card when the queue moves under it.
+   */
+  private readonly askingFor = signal<string | null>(null);
+  private readonly decliningFor = signal<string | null>(null);
+
+  /** True while the current triage card shows the question-to-the-author box. */
+  readonly asking = computed(() => {
+    const id = this.askingFor();
+    return id !== null && id === this.current()?.row.id;
+  });
+
+  /** True while the current triage card shows the "nicht umsetzen" form. */
+  readonly declining = computed(() => {
+    const id = this.decliningFor();
+    return id !== null && id === this.current()?.row.id;
+  });
+
+  /** The shared feedback cap — the author reads the decline note like any message. */
+  readonly maxChars = FEEDBACK_MAX_CHARS;
+
+  /** Draft explanation in the decline form — mandatory, hence the disabled submit. */
+  readonly declineNote = signal('');
+
+  /** Which canned reason is lit — derived from the note text, never a mode. */
+  readonly declineReason = signal<DeclineReasonId | null>(null);
+
+  /** The canned reasons paired with their label key (no function call per chip). */
+  readonly declineReasons: readonly { id: DeclineReasonId; labelKey: string }[] =
+    DECLINE_REASONS.map((id) => ({ id, labelKey: declineReasonLabelKey(id) }));
+
   /** `topicId:messageId` the thread was last scrolled to — guards re-scrolls. */
   private focusedKey: string | null = null;
 
@@ -1067,6 +1276,7 @@ export class FeedbackWorkflowComponent {
       lastCardId = id;
       this.threadExpanded.set(false);
       this.reopeningFor.set(null);
+      this.closeTriageForms();
     });
 
     // Put the open Rückfrage in front of the admin instead of the thread's
@@ -1155,7 +1365,8 @@ export class FeedbackWorkflowComponent {
    * "Überspringen" and goes straight to {@link skip}.
    */
   swipeCommit(item: WorkflowItem): void {
-    if (this.isReview(item)) this.accept(item);
+    if (this.isTriage(item)) this.release(item);
+    else if (this.isReview(item)) this.accept(item);
     else this.finish(item);
   }
 
@@ -1174,6 +1385,14 @@ export class FeedbackWorkflowComponent {
    */
   isReview(item: WorkflowItem): boolean {
     return item.kind === 'review';
+  }
+
+  /**
+   * True for a triage step — a user-submitted topic the routine may not touch
+   * until an admin decides what happens to it (feedback 89925995).
+   */
+  isTriage(item: WorkflowItem): boolean {
+    return item.kind === 'triage';
   }
 
   /**
@@ -1275,6 +1494,124 @@ export class FeedbackWorkflowComponent {
     this.deciding.set(item.row.id);
     this.forget(item.row.id);
     this.acceptReview.emit(item.row);
+  }
+
+  // ---- Triage step: release / ask the author / decline (feedback 89925995) --
+
+  /**
+   * Release the topic to the routine — the positive decision of a triage step.
+   * Like a sign-off it is the parent's write and a round trip, so the topic is
+   * marked as deciding and the run reports the step once it leaves the queue.
+   */
+  release(item: WorkflowItem): void {
+    this.clearAdvance();
+    this.closeTriageForms();
+    this.deciding.set(item.row.id);
+    this.forget(item.row.id);
+    this.releaseTriage.emit(item.row);
+  }
+
+  /** Open the question-to-the-author box; the decisions step aside while it is. */
+  startAsk(): void {
+    const item = this.current();
+    if (!item) return;
+    this.clearAdvance();
+    this.decliningFor.set(null);
+    this.askingFor.set(item.row.id);
+  }
+
+  /** Back out of the question box — nothing was written. */
+  cancelAsk(): void {
+    this.askingFor.set(null);
+  }
+
+  /** Open the "nicht umsetzen" form on a blank note — the chips only pre-fill it. */
+  startDecline(): void {
+    const item = this.current();
+    if (!item) return;
+    this.clearAdvance();
+    this.askingFor.set(null);
+    this.declineNote.set('');
+    this.declineReason.set(null);
+    this.decliningFor.set(item.row.id);
+  }
+
+  /** Back out of the decline form — nothing was written, the draft is dropped. */
+  cancelDecline(): void {
+    this.decliningFor.set(null);
+    this.declineNote.set('');
+    this.declineReason.set(null);
+  }
+
+  private closeTriageForms(): void {
+    this.askingFor.set(null);
+    this.decliningFor.set(null);
+    this.declineNote.set('');
+    this.declineReason.set(null);
+  }
+
+  /** Arm a canned reason: it writes the note, which stays editable afterwards. */
+  pickDeclineReason(id: DeclineReasonId): void {
+    this.declineNote.set(this.translate.instant(declineReasonTextKey(id)));
+    this.declineReason.set(id);
+  }
+
+  /** Typed note: capped like every other feedback field, chip re-derived from it. */
+  onDeclineInput(ev: Event): void {
+    const el = ev.target as HTMLTextAreaElement;
+    const capped = clampFeedbackText(el.value);
+    if (capped !== el.value) el.value = capped;
+    this.declineNote.set(capped);
+    this.declineReason.set(matchDeclineReason(capped, this.declineReasonTexts()));
+  }
+
+  private declineReasonTexts(): DeclineReasonTexts {
+    const texts: Record<string, string> = {};
+    for (const r of this.declineReasons) {
+      texts[r.id] = this.translate.instant(declineReasonTextKey(r.id));
+    }
+    return texts as DeclineReasonTexts;
+  }
+
+  /**
+   * Send the question: the parent posts it into the author channel, which parks
+   * the topic as `needs_input_author`. It then leaves the queue on the next
+   * refresh — the same step the `deciding` effect reports for a sign-off.
+   */
+  readonly submitAsk = async (payload: ComposerPayload): Promise<boolean> => {
+    const item = this.current();
+    if (!item) return false;
+    const id = item.row.id;
+    const ok = await this.askAuthor()(id, payload);
+    if (!ok) return false;
+    this.askingFor.set(null);
+    this.deciding.set(id);
+    this.forget(id);
+    return true;
+  };
+
+  /** Decline the topic with the mandatory explanation the author gets to read. */
+  async confirmDecline(item: WorkflowItem, ev: Event): Promise<void> {
+    ev.preventDefault();
+    const note = this.declineNote().trim();
+    if (!note) return;
+    const id = item.row.id;
+    const ok = await this.declineTopic()(item.row, note);
+    if (!ok) return;
+    this.cancelDecline();
+    this.deciding.set(id);
+    this.forget(id);
+  }
+
+  private readonly authorScopes = new Map<string, string>();
+
+  /**
+   * Draft identity of the question box. The board's author-channel scope, not a
+   * new one: it is the same message to the same person, so a draft started in
+   * the Übersicht comes back here and vice versa.
+   */
+  authorScope(feedbackId: string): string {
+    return memoScope(this.authorScopes, feedbackId, draftScopes.adminAuthor);
   }
 
   /**
