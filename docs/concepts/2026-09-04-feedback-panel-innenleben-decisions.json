@@ -38,5 +38,38 @@
       "eval-q6-pr4-polish": "include"
     },
     "outcome": "B liked (\"Sehr gut\"), A3 (shipped band in the same scroll) liked; all 21 options left at include → merged direction E in iteration 2 with: red only for admin avatar + primary CTA, role-coloured avatars, topic opens as a full-panel sheet with first+last message folding, big composer with thumbnails/+/screenshot"
+  },
+  {
+    "iteration": 2,
+    "template": "design",
+    "action": "implement",
+    "submitted_at": "2026-09-04T22:05:28.748Z",
+    "feedback": {
+      "general": "Rot sollte nur benutzt werden für explizit wichitge admin funktionen, den n dafür sind sie, call-to actions oder wo es wichtig ist zu wissen, dass es admin features / anzeigen sindn.\n\nWioe steht es um nutzer feedbacks die sollten profilicon graublau habne und admins z. B. rot, collaborateur blau hell. Dabei auch die überlegen wie man das nutzer feedback vs claude instruktionen unterscheidet. \nGanz wichitg, wenn man auf ein issue klickt, sollte das fast das ganze feedbaack panel einnehmen und hicht nur inline aufgeklappt werden - denn man braucht platz um es zu lesen (dabei immer nur erste nachrticht vom postenden + letzte nachricht, dazwischen ein \"...\" ausklappbar immer eine weitere nachricht dazwischen nachrichten ). Das input feld muss auch wesentlich größer und auch, check nochmal aktuelles feedback panel die anhänge thumbnnanailed bzw. \"+\" und auch eine screenshot möglichkeit vom aktuellen screen, lerne da vom aktuellen jetzt auf main feedback panel.",
+      "designs": {},
+      "screens": {
+        "e-s2": "sehr gut, aber es sollten die anhä#jnge als thumnbnail kleiner gemacht werden wenne s abgeschickte nachrichten betrifft, die nehmen sonst zu viel platz ein. ZUdem sollte unten das input feld immer am unteren rand sein, im zweifeels fall schweben. Mir fehlt dort beim + auch die möglichkeit neben anhüängenb auch wie ich screenshots adde",
+        "e-s4": "Routine brauchen wir nciht, wenn etwas initiiiert wurde aus der routine, dann schreibe eher AI und ohne kreis einfach (im anderne fall wäre es sonst ja eh nur ein admin collaborateuro oder nutzer ijmmer stehen, weil es immer nur um den initiator geht zumindest; wenn es um abgeschickte nachrichten zwischendurch geht ok, dann genrn auch die icons und bei rückfragen einfach AI ohne profilicon textuell fertig."
+      }
+    },
+    "decisions": {
+      "eval-r2-shot-display": "include",
+      "eval-r2-shot-dom": "discard",
+      "eval-r2-max-same": "include",
+      "eval-r2-max-split": "discard",
+      "eval-r2-role-field": "include",
+      "eval-r2-viewer-link": "include",
+      "eval-r2-options": "include",
+      "eval-r2-pr1": "include",
+      "eval-r2-pr2": "include",
+      "eval-r2-pr3": "include",
+      "eval-r2-pr4": "include"
+    },
+    "notes": {
+      "r2-max-same-note": "überlge dir auch ob man im vollbild ggf. dinge direkt anzeigen kann, die in der eingeklappten version nicht angezeigt wurden.",
+      "r2-viewer-link-note": "unbedingt! Auch bei umgesetzten themen dort hin zu springen finde ich eine grandiose idee, damit der admin oder selbst der collaboratuer oder viewer direkt checken kann in der live website. zumindest für den hauptpunkt um den es geht in demhtreadumsetzung"
+    },
+    "remarks": "general note is a verbatim re-send of iteration 1 (page defect, see dotclaude#333) — not new feedback. New: e-s2 (smaller thumbnails on sent messages, composer pinned to bottom/floating, + menu must include screenshot), e-s4 (no Routine avatar — routine-initiated topics say AI as plain text without circle; role icons only on intermediate messages; AI replies plain text), r2-max-same note (maximised may show things the compact view hides), r2-viewer-link note (unbedingt — deep link also on shipped topics for admin/collaborator/viewer).",
+    "outcome": "implement: E locked with getDisplayMedia screenshot, same-column maximise, role projection, all 4 PRs; over-corridor extras viewer-link + options included → corridor-widening question asked before handoff"
   }
 ]
