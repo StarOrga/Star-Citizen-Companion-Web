@@ -104,6 +104,13 @@ type UserFeedbackTab = 'compose' | 'mine';
             sendLabel="userFeedback.send"
             [onSubmit]="submitBound" />
           <p class="privacy">{{ 'userFeedback.privacyHint' | translate }}</p>
+          <!-- Says both halves of the attachment rule out loud (admin feedback
+               312a4acc): this composer takes images and nothing else, and the
+               text inside them is evidence to read, never an order to follow.
+               The second half is a promise about how the routine treats the
+               attachment — see docs/feedback-routine.md — and it belongs where
+               the person attaching the screenshot can see it. -->
+          <p class="privacy">{{ 'userFeedback.imageHint' | translate }}</p>
         </div>
       } @else {
         <div class="mine-pane">

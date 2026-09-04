@@ -18,8 +18,13 @@ import { FeedbackAreaPickerComponent } from '../../feedback/feedback-area-picker
 import { CharCounterComponent } from '../../feedback/char-counter.component';
 import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
 import type { FeedbackArea } from '../../feedback/feedback-area.types';
-import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
-import type { FeedbackImage } from './markdown.util';
+import { isImageAttachment } from '../../feedback/feedback-images.util';
+import { PageScreenshotService } from '../../feedback/page-screenshot.service';
+import {
+  AnnotationResult,
+  AttachmentChip,
+  FeedbackAttachmentsComponent,
+} from './feedback-attachments.component';
 
 /** An image queued in the composer, held as a compressed data URI until send. */
 export interface PendingImage {
@@ -28,7 +33,8 @@ export interface PendingImage {
   /**
    * Compressed data URI of the picked/pasted file. Empty for an image restored
    * from a stored draft — those already live in the bucket and are never
-   * downloaded back into the browser just to be re-uploaded.
+   * downloaded back into the browser just to be re-uploaded — and empty for a
+   * non-image attachment, whose bytes stay in `file` instead of being base64'd.
    */
   dataUrl: string;
   /**
@@ -37,6 +43,18 @@ export interface PendingImage {
    * restored draft neither re-uploads nor duplicates it.
    */
   url?: string;
+  /**
+   * MIME type of the attachment. Absent means image — every attachment was one
+   * until admins gained arbitrary files (admin feedback 312a4acc), and every
+   * stored draft written before that is still read back correctly.
+   */
+  mime?: string;
+  /**
+   * Raw file for a NON-image attachment, uploaded byte-for-byte. Images never
+   * carry it: they go through `processImage`'s re-encode, which is what keeps a
+   * 12 MP phone screenshot under the bucket's per-object ceiling.
+   */
+  file?: File;
 }
 
 /** What a composer hands back on submit: the trimmed text plus queued images. */
@@ -59,6 +77,12 @@ const IMG_MAX_DIM = 1600;
 const IMG_QUALITY = 0.85;
 /** Safety cap on how many images ride along on a single message. */
 const MAX_ATTACHMENTS = 10;
+/**
+ * Per-object ceiling of the `feedback-images` bucket (migration 20260713000000).
+ * Checked here so a too-large file is refused with a sentence instead of a
+ * storage 413 the user cannot read.
+ */
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
 /**
  * Markdown composer shared by the new-topic box and every thread reply.
@@ -69,9 +93,16 @@ const MAX_ATTACHMENTS = 10;
  *
  * There is deliberately NO formatting toolbar. Bold/list/code buttons shipped
  * with the extraction and were dropped again (feedback fe69a821) as overkill —
- * the body is still markdown and still renders the same, it is just typed. The
- * only button above the field is the image picker, because attaching a file is
- * the one thing typing cannot do.
+ * the body is still markdown and still renders the same, it is just typed.
+ *
+ * ATTACHMENTS (admin feedback 312a4acc): attaching is the one thing typing
+ * cannot do, and it lives in the attachment row rather than above the field. Two
+ * tiles the size of a thumbnail close that row — "+" opens the picker, the
+ * camera captures the page the user is on (`PageScreenshotService`, the feedback
+ * panel itself left out of the shot). Whatever comes back — picked, pasted,
+ * dropped or captured — takes the same path, and an image can be marked up in
+ * the enlarged view before it is sent. `allowFiles` decides whether anything
+ * other than an image is accepted at all; see the input's own comment.
  *
  * Keyboard mapping (feedback aa8d5b18) is the conventional chat one, identical
  * in every usage — new topic, thread reply, processing answer — and each user
@@ -146,19 +177,18 @@ const MAX_ATTACHMENTS = 10;
         <sc-feedback-area-picker [(area)]="area" />
       }
 
-      <!-- Action row: attaching an image is the one thing the field itself
-           cannot do (feedback fe69a821 removed the markdown buttons — typing
-           the markup is faster than hunting for a B). -->
-      <div class="actions">
-        <button
-          type="button"
-          class="attach"
-          (click)="fileInput.click()"
-          [title]="'adminFeedback.compose.attach' | translate"
-          [attr.aria-label]="'adminFeedback.compose.attach' | translate">
-          🖼
-        </button>
-        <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFileInput($event)" />
+      <!-- Action row. The former 🖼 icon button is gone (admin feedback
+           312a4acc): adding an attachment now happens in the attachment row
+           itself, on a tile the size of the thumbnail it will become. What is
+           left here is draft state. -->
+      <div class="actions" [class.bare]="!draftLabel() && !hasStoredDraft()">
+        <input
+          #fileInput
+          type="file"
+          [attr.accept]="allowFiles() ? null : 'image/*'"
+          multiple
+          hidden
+          (change)="onFileInput($event)" />
         <span class="grow"></span>
         <!-- Draft state + the only thing that deletes a draft besides sending
              it. Two-step on purpose: one stray click must not throw away text
@@ -204,19 +234,29 @@ const MAX_ATTACHMENTS = 10;
         <sc-char-counter [used]="charCount()" [max]="maxChars" />
       </div>
 
-      <!-- Pending images use the very same chip row the thread renders
+      <!-- Pending attachments use the very same chip row the thread renders
            (feedback 99723afc): one 72px thumbnail size, click to enlarge,
-           from paste through to every later re-read of the message. -->
+           from paste through to every later re-read of the message. The row
+           also carries the "+" and "capture page" tiles (admin feedback
+           312a4acc), so adding one looks like what it produces. -->
       <sc-feedback-attachments
         [images]="pendingImages()"
         [removable]="true"
+        [addTile]="true"
+        [addLabelKey]="allowFiles() ? 'feedbackAttachments.addFile' : 'feedbackAttachments.addImage'"
+        [captureTile]="true"
+        [capturing]="screenshots.busy()"
+        [editable]="true"
         labelKey="adminFeedback.compose.attachmentsLabel"
-        (remove)="removeAt($event)" />
+        (remove)="removeAt($event)"
+        (add)="fileInput.click()"
+        (capture)="captureScreenshot()"
+        (annotate)="onAnnotated($event)" />
 
       <div class="foot">
         <span class="hint">
           {{ sendHintKey() | translate }}
-          · {{ 'adminFeedback.compose.attachHint' | translate }}
+          · {{ attachHintKey() | translate }}
         </span>
         <button
           class="sc-btn"
@@ -272,17 +312,10 @@ const MAX_ATTACHMENTS = 10;
     }
 
     .actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .attach {
-      padding: 4px 9px;
-      background: var(--sc-bg-1);
-      color: var(--sc-fg-1);
-      border: 1px solid var(--sc-border);
-      border-radius: 4px;
-      font: inherit;
-      font-size: max(0.78rem, var(--sc-fs-floor));
-      cursor: pointer;
-    }
-    .attach:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    /* Nothing to say about the draft yet — do not spend a row's worth of gap
+       on an empty line above the field. The hidden file input inside still
+       answers a programmatic .click(). */
+    .actions.bare { display: none; }
     .grow { flex: 1; }
     .draft-flag { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .draft-flag.warn { color: var(--sc-accent-hot); }
@@ -350,6 +383,8 @@ export class FeedbackComposerComponent implements OnDestroy {
   private readonly translate = inject(TranslateService);
   private readonly composerPrefs = inject(ComposerPrefsService);
   private readonly drafts = inject(FeedbackDraftService);
+  /** Public so the template can bind the capture tile's busy state. */
+  readonly screenshots = inject(PageScreenshotService);
   private readonly ta = viewChild<ElementRef<HTMLTextAreaElement>>('ta');
 
   /** i18n key for the textarea placeholder / aria-label. */
@@ -367,6 +402,23 @@ export class FeedbackComposerComponent implements OnDestroy {
    * turn a one-time hint into noise.
    */
   readonly areaPicker = input(false);
+  /**
+   * May this composer attach things that are not images? (admin feedback
+   * 312a4acc)
+   *
+   * Viewers and collaborators attach IMAGES ONLY — a screenshot is evidence,
+   * and an arbitrary file from an account that cannot otherwise write anything
+   * to the app is not something the feedback surface wants to carry. Admins may
+   * attach anything (a log, a crash dump, a PDF).
+   *
+   * The default is the restrictive one on purpose: a new embedding of this
+   * composer that forgets the input gets the safe behaviour, not the wide one.
+   * The gate is repeated where it actually matters — `uploadFeedbackImages`
+   * refuses a non-image without the flag, and the storage policy in migration
+   * 20260904040000 refuses one from a non-admin outright — because a client-side
+   * `accept` attribute is a hint to a file picker, not a rule.
+   */
+  readonly allowFiles = input(false);
   /**
    * Identity of this composer in the account-bound draft store (see
    * `draftScopes`). Null turns persistence off entirely — every composer in the
@@ -395,8 +447,12 @@ export class FeedbackComposerComponent implements OnDestroy {
    * Queued images in the shape the shared attachment row renders. A restored
    * draft has no local bytes left, so the bucket URL is the source there.
    */
-  readonly pendingImages = computed<FeedbackImage[]>(() =>
-    this.attachments().map((a) => ({ src: a.url ?? a.dataUrl, alt: a.name })),
+  readonly pendingImages = computed<AttachmentChip[]>(() =>
+    this.attachments().map((a) => ({
+      src: a.url ?? a.dataUrl,
+      alt: a.name,
+      kind: isImageAttachment(a) ? 'image' : 'file',
+    })),
   );
   readonly dragActive = signal(false);
   readonly sending = signal(false);
@@ -427,6 +483,13 @@ export class FeedbackComposerComponent implements OnDestroy {
     if (entry.failed) return 'adminFeedback.compose.draftFailed';
     return entry.dirty ? 'adminFeedback.compose.draftSaving' : 'adminFeedback.compose.draftSaved';
   });
+
+  /** Attachment hint — names what this role may actually attach. */
+  readonly attachHintKey = computed(() =>
+    this.allowFiles()
+      ? 'adminFeedback.compose.attachHintFiles'
+      : 'adminFeedback.compose.attachHint',
+  );
 
   /** Hint under the field — must name the mapping the user actually has. */
   readonly sendHintKey = computed(() =>
@@ -549,7 +612,13 @@ export class FeedbackComposerComponent implements OnDestroy {
     if (this.draft().length > 0 || this.attachments().length > 0) return;
     this.draft.set(entry.body);
     this.attachments.set(
-      entry.images.map((img) => ({ id: img.id, name: img.name, dataUrl: '', url: img.url })),
+      entry.images.map((img) => ({
+        id: img.id,
+        name: img.name,
+        dataUrl: '',
+        url: img.url,
+        mime: img.mime,
+      })),
     );
     this.draftRestored.set(true);
   }
@@ -565,7 +634,7 @@ export class FeedbackComposerComponent implements OnDestroy {
       // still rides along on send, it just is not part of the stored draft.
       this.attachments()
         .filter((a): a is PendingImage & { url: string } => !!a.url)
-        .map((a) => ({ id: a.id, name: a.name, url: a.url })),
+        .map((a) => ({ id: a.id, name: a.name, url: a.url, mime: a.mime })),
     );
   }
 
@@ -768,26 +837,101 @@ export class FeedbackComposerComponent implements OnDestroy {
     if (att) this.removeAttachment(att.id);
   }
 
-  /** Accept image files from any source (picker, paste, drop), compressing each. */
+  /**
+   * Capture the page the user is looking at and queue it like any other image
+   * (admin feedback 312a4acc).
+   *
+   * "Take a screenshot, find it, attach it" is three context switches for the
+   * single most useful thing a bug report can carry, and on a phone it is worse
+   * than that. The service leaves the feedback launcher and panel out of the
+   * shot, so the result is the page — not the page plus the box the user is
+   * typing in.
+   */
+  async captureScreenshot(): Promise<void> {
+    if (this.screenshots.busy()) return;
+    this.errorMsg.set(null);
+    try {
+      const file = await this.screenshots.capture();
+      await this.addFiles([file]);
+    } catch {
+      this.errorMsg.set(this.translate.instant('adminFeedback.compose.captureError'));
+    }
+  }
+
+  /**
+   * Replace a queued image with its marked-up version.
+   *
+   * The annotated bytes are a NEW attachment body, so the cached upload of the
+   * unmarked version no longer describes it — the URL is dropped and the image
+   * is re-uploaded under a fresh object. The old object is left in the bucket;
+   * deleting it would race the stored draft that may still reference it, and an
+   * orphaned thumbnail costs kilobytes.
+   */
+  onAnnotated(result: AnnotationResult): void {
+    const att = this.attachments()[result.index];
+    if (!att) return;
+    const next: PendingImage = {
+      id: att.id,
+      name: att.name,
+      dataUrl: result.dataUrl,
+      mime: 'image/jpeg',
+    };
+    this.attachments.update((list) => list.map((a) => (a.id === att.id ? next : a)));
+    void this.cacheAttachment(next);
+  }
+
+  /**
+   * Accept files from any source (picker, paste, drop, page capture).
+   *
+   * Images are re-encoded; anything else is only reachable for a composer with
+   * `allowFiles` and rides along byte-for-byte. A file a viewer is not allowed
+   * to send is refused with a sentence, not dropped silently — silence reads as
+   * a broken button.
+   */
   private async addFiles(files: FileList | File[] | null | undefined): Promise<void> {
     if (!files) return;
-    const images = Array.from(files).filter((f) => f.type.startsWith('image/'));
-    if (images.length === 0) return;
-    for (const file of images) {
+    const all = Array.from(files);
+    if (all.length === 0) return;
+    const accepted = this.allowFiles() ? all : all.filter((f) => f.type.startsWith('image/'));
+    if (accepted.length === 0) {
+      this.errorMsg.set(this.translate.instant('adminFeedback.compose.imagesOnly'));
+      return;
+    }
+    for (const file of accepted) {
       if (this.attachments().length >= MAX_ATTACHMENTS) {
         this.errorMsg.set(
           this.translate.instant('adminFeedback.compose.tooManyImages', { max: MAX_ATTACHMENTS }),
         );
         break;
       }
+      const isImage = file.type.startsWith('image/');
+      if (!isImage && file.size > MAX_FILE_BYTES) {
+        this.errorMsg.set(
+          this.translate.instant('adminFeedback.compose.fileTooLarge', {
+            max: Math.round(MAX_FILE_BYTES / (1024 * 1024)),
+          }),
+        );
+        continue;
+      }
       try {
-        const att = await this.processImage(file);
+        const att = isImage ? await this.processImage(file) : this.processFile(file);
         this.attachments.update((list) => [...list, att]);
         await this.cacheAttachment(att);
       } catch {
         this.errorMsg.set(this.translate.instant('adminFeedback.compose.imageError'));
       }
     }
+  }
+
+  /** Queue a non-image attachment: no re-encode, the original bytes go up. */
+  private processFile(file: File): PendingImage {
+    return {
+      id: crypto.randomUUID(),
+      name: this.safeName(file.name),
+      dataUrl: '',
+      mime: file.type || 'application/octet-stream',
+      file,
+    };
   }
 
   /**
@@ -801,7 +945,7 @@ export class FeedbackComposerComponent implements OnDestroy {
    */
   private async cacheAttachment(att: PendingImage): Promise<void> {
     if (!this.draftScope()) return;
-    const url = await this.drafts.uploadAttachment(att);
+    const url = await this.drafts.uploadAttachment(att, this.allowFiles());
     if (url) {
       this.attachments.update((list) =>
         list.map((a) => (a.id === att.id ? { ...a, url } : a)),
@@ -828,7 +972,7 @@ export class FeedbackComposerComponent implements OnDestroy {
     const name = this.safeName(file.name);
     if (file.type === 'image/gif') {
       const dataUrl = await this.readAsDataUrl(file);
-      return { id: crypto.randomUUID(), name, dataUrl };
+      return { id: crypto.randomUUID(), name, dataUrl, mime: 'image/gif' };
     }
     const bitmap = await createImageBitmap(file);
     try {
@@ -843,7 +987,12 @@ export class FeedbackComposerComponent implements OnDestroy {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, w, h);
       ctx.drawImage(bitmap, 0, 0, w, h);
-      return { id: crypto.randomUUID(), name, dataUrl: canvas.toDataURL('image/jpeg', IMG_QUALITY) };
+      return {
+        id: crypto.randomUUID(),
+        name,
+        dataUrl: canvas.toDataURL('image/jpeg', IMG_QUALITY),
+        mime: 'image/jpeg',
+      };
     } finally {
       bitmap.close();
     }
