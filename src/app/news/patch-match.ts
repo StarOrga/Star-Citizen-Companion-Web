@@ -38,7 +38,11 @@ function stem(word: string): string {
 /** The words of a phrase worth matching on: normalized, stemmed, ≥ 3 letters, no stopwords. */
 export function significantTokens(text: string): string[] {
   const seen = new Set<string>();
-  for (const raw of normalizeSearchText(text).replace(/[^a-z0-9 ]+/g, ' ').split(' ')) {
+  // A version reads as one word: "4.10.0" → "410" (the trailing ".0" falls out
+  // as a one-character token below), so a bullet naming the patch still meets a
+  // card that names it.
+  const flattened = normalizeSearchText(text).replace(/(\d+)\.(\d+)/g, '$1$2');
+  for (const raw of flattened.replace(/[^a-z0-9 ]+/g, ' ').split(' ')) {
     const w = stem(raw);
     if (w.length < 3 || STOPWORDS.has(w) || STOPWORDS.has(raw)) continue;
     seen.add(w);
@@ -53,11 +57,25 @@ export interface NoteCardMatches {
   leftover: string[];
 }
 
+/**
+ * Do two tokens name the same thing? Equal, or sharing a long stem — the crude
+ * stem above turns plurals into singulars but leaves "instancing" and
+ * "instance" apart, and the note routinely uses one where the roadmap uses the
+ * other. Six characters is long enough that the overlap is the word, not a
+ * coincidence of prefixes.
+ */
+function tokensMeet(a: string, b: string): boolean {
+  if (a === b) return true;
+  const shortest = Math.min(a.length, b.length);
+  let i = 0;
+  while (i < shortest && a[i] === b[i]) i += 1;
+  return i >= 6;
+}
+
 /** Does a bullet talk about the card? Needs a real overlap, not one common word. */
 export function matchScore(cardTokens: readonly string[], bulletTokens: readonly string[]): number {
   if (cardTokens.length === 0 || bulletTokens.length === 0) return 0;
-  const set = new Set(bulletTokens);
-  const overlap = cardTokens.filter((t) => set.has(t)).length;
+  const overlap = cardTokens.filter((t) => bulletTokens.some((b) => tokensMeet(t, b))).length;
   if (overlap === 0) return 0;
   const ratio = overlap / cardTokens.length;
   if (cardTokens.length === 1) return ratio; // a one-word card ("Instancing") matches on that word

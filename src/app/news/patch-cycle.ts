@@ -124,7 +124,12 @@ export function buildPatchCycle(
   if (anchors.length === 0 && next === null) return null;
 
   const startMs = Math.min(...(anchors.length ? anchors : [nowMs]), nowMs);
-  const endMs = Math.max(nowMs, next?.at ?? nowMs, live ?? nowMs);
+  // A cycle that already ended — a superseded line, whose successor is a fact
+  // rather than a projection — stops at its own end. Stretching the axis to
+  // today would put a "today" tick on a finished cycle and shrink it to a stub.
+  const cycleEnd = Math.max(next?.at ?? nowMs, live ?? nowMs);
+  const finished = next !== null && !next.estimated && next.at <= nowMs;
+  const endMs = finished ? cycleEnd : Math.max(nowMs, cycleEnd);
   const span = Math.max(endMs - startMs, DAY_MS);
   const pct = (t: number) => Math.round(((t - startMs) / span) * 1000) / 10;
 
