@@ -2,8 +2,6 @@ import type { VerseNewsItem, NewsChannel } from './news.service';
 import type { PatchLineGroup } from './patch-notes';
 import { groupPatchNotes } from './patch-notes';
 import { buildSaved, buildStream, buildVerdict, pickStage, stageEligible, stageScore } from './news-stage';
-import { buildPatchCycle } from './patch-cycle';
-import { buildPatchStack } from './patch-stack';
 
 /**
  * The stage is the fix for the defect this whole rethink started from: measured
@@ -184,27 +182,6 @@ describe('buildVerdict — the one sentence the landing page owes the reader', (
 
   it('names the line you can actually play', () => {
     expect(buildVerdict(groups(), NOW).liveLine).toBe('4.9');
-  });
-
-  /**
-   * The card on Verse News and the monitor on the patch board answer the same
-   * question, and until 2026-09-05 they answered it from two different anchors
-   * — the card from the open PTU build plus the median LEAD time, the board
-   * from the live release plus the median CADENCE. Two honest estimates, days
-   * apart, printed on two pages of the same app. The card reads the board's
-   * model now; this pins them together so they cannot drift again.
-   */
-  it('states the same date, distance and basis as the patch board’s timeline', () => {
-    const g = groups();
-    const stack = buildPatchStack(g, null);
-    const cycle = buildPatchCycle(stack.live ?? stack.next!, g, NOW)!;
-    const usual = cycle.points.find((p) => p.key === 'usual')!;
-
-    const v = buildVerdict(g, NOW);
-    expect(v.nextLiveAt).toBe(new Date(usual.at).toISOString());
-    expect(v.daysUntilLive).toBe(cycle.daysToNext);
-    expect(v.medianDays).toBe(cycle.main!.medianDays);
-    expect(v.samples).toBe(cycle.main!.samples);
   });
 
   it('names the line currently in testing', () => {

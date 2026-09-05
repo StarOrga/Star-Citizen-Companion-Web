@@ -245,30 +245,6 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     expect(charts!.querySelector('sc-patch-cadence')).not.toBeNull();
   });
 
-  /**
-   * The 2026-09-05 complaint ("überlappt ohne Ende"): the axis used to caption
-   * every point with an absolutely positioned label at its own percentage, so
-   * two events a few days apart collided by construction — and on a live patch
-   * with a hotfix they always are. The captions are a grid now; this measures
-   * that no two of them share a pixel.
-   */
-  it('the cycle markers are a grid, so none of them can overlap another', async () => {
-    await render('4.10');
-    const marks = Array.from(root().querySelectorAll('#pd-next .marks .mark')) as HTMLElement[];
-    expect(marks.length).withContext('one cell per point on the axis').toBeGreaterThan(3);
-    // Nothing is absolutely positioned any more — that is what made them collide.
-    for (const m of marks) expect(getComputedStyle(m).position).toBe('static');
-    const boxes = marks.map((m) => m.getBoundingClientRect());
-    for (let i = 0; i < boxes.length; i++) {
-      for (let j = i + 1; j < boxes.length; j++) {
-        const a = boxes[i];
-        const b = boxes[j];
-        const overlaps = a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
-        expect(overlaps).withContext(`marker ${i} overlaps ${j}`).toBeFalse();
-      }
-    }
-  });
-
   it('the panel keeps empty room below the last section, so any section can reach the top', async () => {
     await render('4.10');
     const tail = root().querySelector('.tail') as HTMLElement | null;

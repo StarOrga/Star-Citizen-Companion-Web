@@ -87,37 +87,6 @@ function wholeDays(ms: number): number {
   return Math.max(0, Math.round(ms / DAY_MS));
 }
 
-/** One tick of the coarse month scale under an axis: where it sits, and when. */
-export interface MonthTick {
-  /** 0–100 along the axis. */
-  pct: number;
-  /** First instant of that month (ms) — the caller formats it. */
-  at: number;
-}
-
-/**
- * Month starts inside an axis window, thinned when the window is long and
- * dropped near the edges where a centred label would hang over the rail's
- * ends.
- *
- * Shared by the board's monitor and the dossier's cycle axis: both hang the
- * same scale off the same geometry, and two copies of this arithmetic had
- * already started to drift on the thinning rule.
- */
-export function monthTicks(startMs: number, endMs: number): MonthTick[] {
-  const span = Math.max(endMs - startMs, 1);
-  if (!Number.isFinite(span) || !Number.isFinite(startMs)) return [];
-  const first = new Date(startMs);
-  const out: MonthTick[] = [];
-  let cursor = new Date(first.getFullYear(), first.getMonth() + 1, 1);
-  while (cursor.getTime() <= endMs && out.length < 24) {
-    const pct = Math.round(((cursor.getTime() - startMs) / span) * 1000) / 10;
-    if (pct >= 4 && pct <= 96) out.push({ pct, at: cursor.getTime() });
-    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
-  }
-  return out.length > 6 ? out.filter((_, i) => i % 2 === 0) : out;
-}
-
 function hotfixFacts(group: PatchLineGroup | null, after: number | null): { count: number; lastAt: number } | null {
   if (!group) return null;
   let count = 0;
