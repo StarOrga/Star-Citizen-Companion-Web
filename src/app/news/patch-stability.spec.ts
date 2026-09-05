@@ -67,6 +67,11 @@ describe('patch-stability components', () => {
     expect(serviceScore({ outageMinPerDay: 10_000, openIncident: true })).toBeCloseTo(1, 6);
   });
 
+  it('serviceScore: a non-finite outage counts as zero, never NaN', () => {
+    expect(serviceScore({ outageMinPerDay: Number.NaN, openIncident: false })).toBe(0);
+    expect(serviceScore({ outageMinPerDay: Number.POSITIVE_INFINITY, openIncident: false })).toBeCloseTo(0.7, 6);
+  });
+
   it('cigScore: open band 20–80, delta band 0–10', () => {
     expect(cigScore({ open: 10, delta7d: 0 })).toBe(0);
     expect(cigScore({ open: 50, delta7d: 5 })).toBeCloseTo(0.7 * 0.5 + 0.3 * 0.5, 6);

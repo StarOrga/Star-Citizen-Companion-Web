@@ -135,7 +135,8 @@ export function communityScore(c: { velocity: number; ticketShare: number; ticke
 }
 
 export function serviceScore(s: { outageMinPerDay: number; openIncident: boolean }): number {
-  const capped = Math.min(Math.max(s.outageMinPerDay, 0), OUTAGE_CAP_MIN_PER_DAY);
+  const raw = Number.isNaN(s.outageMinPerDay) ? 0 : s.outageMinPerDay;
+  const capped = Math.min(Math.max(raw, 0), OUTAGE_CAP_MIN_PER_DAY);
   const outage = Math.log10(1 + capped) / Math.log10(1 + OUTAGE_CAP_MIN_PER_DAY);
   return 0.7 * outage + 0.3 * (s.openIncident ? 1 : 0);
 }
