@@ -47,8 +47,10 @@ export class PatchStabilityService {
   private readonly now = signal(new Date().toISOString());
   private inFlight: Promise<void> | null = null;
 
-  readonly loaded = signal(false);
-  readonly unavailable = signal(false);
+  private readonly _loaded = signal(false);
+  private readonly _unavailable = signal(false);
+  readonly loaded = this._loaded.asReadonly();
+  readonly unavailable = this._unavailable.asReadonly();
 
   private readonly verdicts = computed(() => buildVerdicts(this.patches(), this.samples(), this.now()));
 
@@ -70,20 +72,24 @@ export class PatchStabilityService {
   }
 
   private async fetchAll(): Promise<void> {
-    const since = new Date(Date.now() - SAMPLE_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const client = this.sb.client;
-    const [p, s] = await Promise.all([
-      client.from('patch_stability_patches').select('*'),
-      client.from('patch_stability_samples').select('*').gte('sampled_on', since).order('sampled_on', { ascending: true }),
-    ]);
-    if (p.error || s.error) {
-      this.unavailable.set(true);
-      return;
+    try {
+      const since = new Date(Date.now() - SAMPLE_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const client = this.sb.client;
+      const [p, s] = await Promise.all([
+        client.from('patch_stability_patches').select('*'),
+        client.from('patch_stability_samples').select('*').gte('sampled_on', since).order('sampled_on', { ascending: true }),
+      ]);
+      if (p.error || s.error) {
+        this._unavailable.set(true);
+        return;
+      }
+      this.patches.set((p.data ?? []) as StabilityPatchRow[]);
+      this.samples.set((s.data ?? []) as StabilitySampleRow[]);
+      this.now.set(new Date().toISOString());
+      this._unavailable.set(false);
+      this._loaded.set(true);
+    } catch {
+      this._unavailable.set(true);
     }
-    this.patches.set((p.data ?? []) as StabilityPatchRow[]);
-    this.samples.set((s.data ?? []) as StabilitySampleRow[]);
-    this.now.set(new Date().toISOString());
-    this.unavailable.set(false);
-    this.loaded.set(true);
   }
 }

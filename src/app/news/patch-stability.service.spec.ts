@@ -1,4 +1,6 @@
-import { buildVerdicts } from './patch-stability.service';
+import { TestBed } from '@angular/core/testing';
+import { SupabaseClientProvider } from '../core/supabase.client';
+import { buildVerdicts, PatchStabilityService } from './patch-stability.service';
 import { StabilityPatchRow, StabilitySampleRow } from './patch-stability';
 
 const row = (line: string, liveAt: string, replies: number): StabilityPatchRow => ({
@@ -26,5 +28,83 @@ describe('buildVerdicts', () => {
     expect(v49.early).toBeFalse();
     expect(v410.historical).toBeFalse();
     expect(v410.early).toBeTrue();
+  });
+});
+
+type Result = { data: unknown[] | null; error: { message: string } | null };
+
+/** A query builder stub: every chained call returns itself; awaiting resolves the scripted result. */
+function stubClient(results: Record<string, Result | Error>, calls: string[]) {
+  const builder = (table: string) => {
+    const r = results[table];
+    const chain: Record<string, unknown> = {};
+    for (const m of ['select', 'gte', 'order', 'eq', 'limit']) chain[m] = () => chain;
+    chain['then'] = (resolve: (v: Result) => void, reject: (e: unknown) => void) => {
+      calls.push(table);
+      if (r instanceof Error) reject(r); else resolve(r);
+    };
+    return chain;
+  };
+  return { client: { from: builder } } as unknown as SupabaseClientProvider;
+}
+
+describe('PatchStabilityService', () => {
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('load() coalesces concurrent callers and fills allTime oldest first', async () => {
+    const calls: string[] = [];
+    const results: Record<string, Result> = {
+      patch_stability_patches: { data: [row('4.9', '2026-07-15T00:00:00Z', 300), row('4.10', '2026-08-26T00:00:00Z', 0)], error: null },
+      patch_stability_samples: { data: [], error: null },
+    };
+    TestBed.configureTestingModule({
+      providers: [{ provide: SupabaseClientProvider, useValue: stubClient(results, calls) }],
+    });
+    const service = TestBed.inject(PatchStabilityService);
+
+    const first = service.load();
+    const second = service.load();
+    await Promise.all([first, second]);
+
+    expect(calls).toEqual(['patch_stability_patches', 'patch_stability_samples']);
+    expect(service.loaded()).toBeTrue();
+    expect(service.unavailable()).toBeFalse();
+    expect(service.allTime().map((v) => v.line)).toEqual(['4.9', '4.10']);
+    expect(service.verdictFor('4.9')).not.toBeNull();
+    expect(service.verdictFor('4.11')).toBeNull();
+  });
+
+  it('a failing query flips unavailable and load() still resolves', async () => {
+    const calls: string[] = [];
+    const results: Record<string, Result> = {
+      patch_stability_patches: { data: null, error: { message: 'boom' } },
+      patch_stability_samples: { data: [], error: null },
+    };
+    TestBed.configureTestingModule({
+      providers: [{ provide: SupabaseClientProvider, useValue: stubClient(results, calls) }],
+    });
+    const service = TestBed.inject(PatchStabilityService);
+
+    await service.load();
+
+    expect(service.unavailable()).toBeTrue();
+    expect(service.loaded()).toBeFalse();
+    expect(service.allTime()).toEqual([]);
+  });
+
+  it('an exception inside the query never rejects load()', async () => {
+    const calls: string[] = [];
+    const results: Record<string, Result | Error> = {
+      patch_stability_patches: new Error('network'),
+      patch_stability_samples: { data: [], error: null },
+    };
+    TestBed.configureTestingModule({
+      providers: [{ provide: SupabaseClientProvider, useValue: stubClient(results, calls) }],
+    });
+    const service = TestBed.inject(PatchStabilityService);
+
+    await expectAsync(service.load()).toBeResolved();
+
+    expect(service.unavailable()).toBeTrue();
   });
 });
