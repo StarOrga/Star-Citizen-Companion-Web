@@ -370,6 +370,156 @@ function project(
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// The next MAIN patch — one estimate, every surface (feedback ae9f8cba)
+//
+// "warum 20 tage vs 6 wochen. ich denke eins davon ist nicht aktuell."
+//
+// He was looking at two surfaces that both answer "when is the next patch", and
+// they printed different dates because they computed it two different ways:
+//
+//   · the Build-Stand card on /news read the `live` forecast row below, which
+//     works on VERSIONS — so a point release sitting in the PTU (4.10.1) got
+//     carried to release by the median lead time and printed under the heading
+//     "nächster Hauptpatch". It was answering "when does 4.10.1 ship";
+//   · the monitor panel on /news/patches took the live LINE's release plus the
+//     median LINE cadence — the actual main-patch rhythm.
+//
+// Neither was stale; they were different questions wearing the same label. This
+// function is the single answer now, and every surface renders it.
+//
+// The rule, in order:
+//   1. a main LINE already sits in a test ring → that build demonstrably
+//      exists, so carry it to release by the median lead time;
+//   2. otherwise → the live line's release plus the median line cadence.
+//
+// Both branches are line-level, which is what "Hauptpatch" means. There is no
+// third branch for an ANNOUNCED date: RSI publishes none, and the roadmap
+// payload we already hold carries a quarter ("Q3 2026"), never a day — an
+// announced date would outrank both branches if one existed, and none does.
+// What the card can honestly do is stop calling every estimate a cadence
+// estimate, and that is what `basis` is for.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Which measurement produced the date — the caption the card must not fake. */
+export type NextPatchBasis = 'leadTime' | 'cadence';
+
+export interface NextPatchEstimate {
+  /** Predicted instant the next main patch reaches players (ms). */
+  at: number;
+  /** The same instant as ISO — what the verdict card carries around. */
+  atIso: string;
+  basis: NextPatchBasis;
+  /** The line the estimate hangs off: the one in testing, or the live one. */
+  anchorLine: string;
+  /** That line's anchoring event (first test build / live release), in ms. */
+  anchorAt: number;
+  /** The median interval added to the anchor, and its sample count. */
+  medianDays: number;
+  samples: number;
+}
+
+/**
+ * Main LINES above the current live one that have not shipped — the build(s) in
+ * a test ring, lowest version first, so `[0]` is the immediate next release.
+ *
+ * Line-level on purpose. A version-level read counts 4.10.1's PTU thread as
+ * "the next build", which is true and is NOT the next main patch.
+ */
+export function linesInTesting(groups: readonly PatchLineGroup[]): PatchLineGroup[] {
+  const live = groups.find((g) => g.line && g.isCurrentLive) ?? null;
+  return groups
+    .filter((g) => g.line && !g.hasLive && (live === null || compareVersionsDesc(g.segments, live.segments) < 0))
+    .sort((a, b) => compareVersionsDesc(b.segments, a.segments));
+}
+
+/** The immediate next main line, when one is already being tested. */
+export function nextLineInTesting(groups: readonly PatchLineGroup[]): PatchLineGroup | null {
+  return linesInTesting(groups)[0] ?? null;
+}
+
+function estimateFrom(
+  basis: NextPatchBasis,
+  anchorLine: string,
+  anchorAt: number,
+  kpi: PatchKpi,
+): NextPatchEstimate {
+  const at = anchorAt + kpi.median * DAY_MS;
+  return {
+    at,
+    atIso: new Date(at).toISOString(),
+    basis,
+    anchorLine,
+    anchorAt,
+    medianDays: kpi.median,
+    samples: kpi.samples,
+  };
+}
+
+/**
+ * THE next-main-patch estimate. Null when the feed supports neither branch —
+ * which every surface renders as "no date", never as an invented one.
+ *
+ * Clock-free like the rest of this module: the estimate is a property of the
+ * feed, and how far away it is depends on when you ask (`daysUntilNextPatch`).
+ *
+ * `cutoffMs` is the same six-months/all-time window the KPI charts carry, so a
+ * caller that narrows the charts narrows the estimate with them.
+ */
+export function computeNextPatch(
+  groups: readonly PatchLineGroup[],
+  cutoffMs: number | null = null,
+): NextPatchEstimate | null {
+  const kpis = computePatchStats(groups, cutoffMs);
+  const lead = kpis.find((k) => k.key === 'leadTime') ?? null;
+  const cadence = kpis.find((k) => k.key === 'cadence') ?? null;
+
+  const testing = nextLineInTesting(groups);
+  const testAt = testing ? firstTestAt(testing) : null;
+  if (testing && testAt !== null && lead) {
+    return estimateFrom('leadTime', testing.line, testAt, lead);
+  }
+
+  const live = groups.find((g) => g.line && g.isCurrentLive) ?? null;
+  const liveAt = live ? liveReleaseAt(live) : null;
+  if (live && liveAt !== null && cadence) {
+    return estimateFrom('cadence', live.line, liveAt, cadence);
+  }
+  return null;
+}
+
+/** Whole days from `nowMs` to the estimate; negative = overdue by that many. */
+export function daysUntilNextPatch(estimate: NextPatchEstimate, nowMs: number): number {
+  return Math.round((estimate.at - nowMs) / DAY_MS);
+}
+
+/** How far away the estimate is, in the ONE grammar every surface speaks. */
+export type NextPatchUnit = 'today' | 'days' | 'weeks';
+
+export interface NextPatchDistance {
+  unit: NextPatchUnit;
+  /** Always positive; `overdue` carries the direction. */
+  n: number;
+  overdue: boolean;
+}
+
+/**
+ * Days → the phrasing bucket.
+ *
+ * The two surfaces disagreed in WORDS as well as in dates: one always printed
+ * days ("in 20 Tagen"), the other switched to weeks past a fortnight ("in ~6
+ * Wochen"). Even on an identical date those read as two different claims, so
+ * the threshold lives here and both call sites map the same bucket onto their
+ * own sentence. Beyond two weeks a day-exact countdown pretends to a precision
+ * a median estimate does not have.
+ */
+export function nextPatchDistance(days: number): NextPatchDistance {
+  if (days === 0) return { unit: 'today', n: 0, overdue: false };
+  const n = Math.abs(days);
+  const overdue = days < 0;
+  return n < 14 ? { unit: 'days', n, overdue } : { unit: 'weeks', n: Math.round(n / 7), overdue };
+}
+
 /**
  * The forecast rows, in a fixed order (ptu, live, subPatch, ptuSubPatch) so the
  * panel never reshuffles under the reader. A row it cannot compute — no median
@@ -385,34 +535,17 @@ export function computePatchForecast(
   // 1. Next PTU — the next time a new version enters a test ring.
   rows.push(project('ptu', firstSightings(groups, isTestStage), cutoffMs));
 
-  // 2. Next LIVE patch — the build in the PTU now, carried to release by the
-  //    median lead time; failing an open build, the next line release by the
-  //    median line cadence.
-  const lead = leadTimeKpi(groups, cutoffMs);
-  if (open && lead) {
-    rows.push({
-      key: 'live',
-      at: new Date(open.at + lead.median * DAY_MS).toISOString(),
-      medianDays: lead.median,
-      samples: lead.samples,
-      basis: open.version,
-    });
-  } else {
-    const cadence = cadenceKpi(groups, cutoffMs);
-    const lineLives = firstSightings(groups, (e) => e.stage === 'live');
-    const last = lineLives[lineLives.length - 1];
-    rows.push(
-      cadence && last
-        ? {
-            key: 'live',
-            at: new Date(last.at + cadence.median * DAY_MS).toISOString(),
-            medianDays: cadence.median,
-            samples: cadence.samples,
-            basis: last.version,
-          }
-        : null,
-    );
-  }
+  // 2. Next LIVE patch — the shared next-MAIN-patch estimate, verbatim. This
+  //    row used to run its own version-level arithmetic here, which is how the
+  //    table, the Build-Stand card and the monitor panel ended up quoting three
+  //    dates for one question (feedback ae9f8cba). The row's neighbours below
+  //    are the sub-patch questions and keep their own version-level series.
+  const next = computeNextPatch(groups, cutoffMs);
+  rows.push(
+    next
+      ? { key: 'live', at: next.atIso, medianDays: next.medianDays, samples: next.samples, basis: next.anchorLine }
+      : null,
+  );
 
   // 3. Next sub-patch (LIVE) — the next version to reach players, by the median
   //    gap between LIVE releases.
