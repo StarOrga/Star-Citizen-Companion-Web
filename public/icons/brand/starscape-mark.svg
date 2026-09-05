@@ -17,14 +17,14 @@
   <filter id="fCo" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   <filter id="fNd" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="1.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   <filter id="fBr" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-  <radialGradient id="bgFade" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#0d2635"/><stop offset="65%" stop-color="#0d2635"/><stop offset="90%" stop-color="#0d2635" stop-opacity=".4"/><stop offset="100%" stop-color="#0d2635" stop-opacity="0"/></radialGradient>
+  <radialGradient id="bgFade" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#0d2635"/><stop offset="84%" stop-color="#0d2635"/><stop offset="95%" stop-color="#0d2635" stop-opacity=".45"/><stop offset="100%" stop-color="#0d2635" stop-opacity="0"/></radialGradient>
 </defs>
 
-<!-- Circular dark background — faded edge for subtlety -->
-<circle cx="150" cy="150" r="140" fill="url(#bgFade)"/>
+<!-- Circular dark background — near-full-bleed disc, faded edge for subtlety -->
+<circle cx="150" cy="150" r="147" fill="url(#bgFade)"/>
 
-<!-- ===== 15% MARGIN: scale core content to 70%, keep stars/bg at full size ===== -->
-<g transform="translate(45,45) scale(0.7)">
+<!-- ===== 5% MARGIN: scale core content to 90% so the mark fills the icon canvas ===== -->
+<g transform="translate(15,15) scale(0.90)">
 
 <!-- ===== CLOUD LAYER 1 — Broad rotation (fills corners via larger rx/ry) ===== -->
 <g filter="url(#fCl)">
@@ -100,5 +100,5 @@
   <circle cx="150" cy="150" r="3.5" fill="#a0dcf0" opacity=".6"/>
 </g>
 
-</g><!-- end 15% margin scale group -->
+</g><!-- end 5% margin scale group -->
 </svg>

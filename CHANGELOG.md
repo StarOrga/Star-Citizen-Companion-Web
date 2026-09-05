@@ -32,9 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Each mark now has three size tiers instead of one drawing stretched
   across all of them.** The full artwork keeps its Gaussian blur above 128 px;
   a redrawn compact tier (no blur — it dissolves — with a bolder ring and a
-  larger glyph) serves 16–64 px; and a tray tier drops the dark disc
-  altogether. That last one matters: `#0d2635` on a dark Windows taskbar is
-  invisible, which is exactly why the tray icon read as missing.
+  larger glyph) serves 16–64 px; and a tray tier keeps the dark disc but adds
+  a bright rim, so the disc carries the silhouette on a light taskbar and the
+  rim carries it on a dark one. That last one matters: a bare `#0d2635` disc on
+  a dark Windows taskbar is invisible, which is exactly why a tray icon can read
+  as missing. The tray geometry is the desktop app's own, so all four products'
+  tray icons are built the same way — with the nova and the data stream drawn
+  larger than the master's core, which at 16 px would otherwise collapse all
+  three into the same dot.
 
 ### Added
 

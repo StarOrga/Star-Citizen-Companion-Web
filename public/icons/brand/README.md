@@ -47,7 +47,7 @@ notification / error), so a red icon there must mean "error", never "uploader".
 |---|---|---|
 | `-mark` | ≥128px | The full artwork, Gaussian blur and all. |
 | `-mark-compact` | 16–64px | No blur — it dissolves into grey mush at small sizes. Bolder ring, tighter core, larger glyph. |
-| `-mark-tray` | 16–24px | **No dark disc.** `#0d2635` on a dark Windows taskbar is invisible, which is exactly how the previous tray asset read as "the icon disappeared". Bright annulus on transparency instead. |
+| `-mark-tray` | 16–24px | Dark disc **plus a bright rim**: the disc carries the silhouette on a *light* taskbar, the rim on a *dark* one. A disc alone is the bug — `#0d2635` on a dark taskbar is invisible, which is exactly how the desktop app's tray icon came to read as missing. Geometry mirrors the desktop app's own tray mark. |
 
 `-mark-mono.svg` is the Safari pinned-tab mask: flat black shapes only, no gradients.
 
