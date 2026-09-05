@@ -49,6 +49,20 @@ notification / error), so a red icon there must mean "error", never "uploader".
 | `-mark-compact` | 16–64px | No blur — it dissolves into grey mush at small sizes. Bolder ring, tighter core, larger glyph. |
 | `-mark-tray` | 16–24px | Dark disc **plus a bright rim**: the disc carries the silhouette on a *light* taskbar, the rim on a *dark* one. A disc alone is the bug — `#0d2635` on a dark taskbar is invisible, which is exactly how the desktop app's tray icon came to read as missing. Geometry mirrors the desktop app's own tray mark. |
 
+## `family-sheet.png`
+
+A rendered contact sheet of the whole family at true pixel size — the artifact that
+makes "does the nova still read at 16px?" answerable in review, which a diff of SVG path
+data cannot. It carries **no text**: `resvg` resolves fonts from the host, so a label would
+render differently on the Linux build machine and fail `--check` on nothing but a font.
+The legend therefore lives here:
+
+- **Columns**, left to right: SC Companion · Starscape · Data Uploader.
+- **Rows**, top to bottom: app tier at 128px · compact tier at 48/32/24/16 · tray tier at 24/16.
+- **The two strips** at the bottom are the point of the exercise: compact @24 then tray @16,
+  on the Windows dark taskbar (`#1c1c1c`) and the light one (`#f3f3f3`). This is where a
+  dark disc used to disappear and where the three products have to stay apart.
+
 `-mark-mono.svg` is the Safari pinned-tab mask: flat black shapes only, no gradients.
 
 ## Filenames are cache-busting
