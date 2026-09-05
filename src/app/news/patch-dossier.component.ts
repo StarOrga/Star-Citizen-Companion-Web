@@ -505,8 +505,15 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
 
   readonly query = signal('');
   readonly tokens = computed(() => tokenizeQuery(this.query()));
-  /** True when the dossier was opened with a search query from the board. */
-  private readonly openedWithQuery = signal(false);
+  /**
+   * True when the reader arrived from the board's search. Read from the route,
+   * not from the field: typing in the section must never reshuffle the page,
+   * and a routed overlay that is reused for another line has to notice.
+   *
+   * The router binds a MISSING query param as `undefined`, which overrides the
+   * input's declared default — hence the guard, not `q().trim()`.
+   */
+  private readonly openedWithQuery = computed(() => (this.q() ?? '').trim().length > 0);
   /** What the reader last clicked or scrolled to; null while they have not chosen. */
   private readonly chosen = signal<SectionId | null>(null);
   /**
@@ -635,8 +642,6 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    // Inputs are bound by now, so this reads the query the reader arrived with.
-    this.openedWithQuery.set(this.q().trim().length > 0);
     if (typeof document !== 'undefined') {
       this.previousOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';

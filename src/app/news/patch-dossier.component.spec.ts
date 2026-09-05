@@ -124,7 +124,9 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     de = await res.json();
   });
 
-  async function render(line: string, q = '', roadmap: RoadmapPayload | null = ROADMAP): Promise<void> {
+  // `q` defaults to undefined on purpose: that is what the router binds for a
+  // missing query param, and it overrides the input's own default of ''.
+  async function render(line: string, q: string | undefined = undefined, roadmap: RoadmapPayload | null = ROADMAP): Promise<void> {
     localStorage.clear();
     TestBed.resetTestingModule();
     stub = roadmapStub(roadmap);

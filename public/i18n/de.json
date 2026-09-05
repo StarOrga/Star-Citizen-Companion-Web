@@ -1465,7 +1465,7 @@
         "planned": {
           "sentence": "Alpha {{line}} ist für {{quarter}} geplant.",
           "unknown": "Für Alpha {{line}} steht noch kein Termin.",
-          "status": "Noch kein Testbuild — nach dem üblichen Takt wäre der nächste Live-Termin um den {{date}}.",
+          "status": "Noch kein Testbuild — nach dem üblichen Takt wäre der nächste Live-Termin um den {{date}}",
           "basisCadence": "üblicher Takt · Median aus n = {{n}}",
           "basisLead": "übliche Testphase · Median aus n = {{n}}"
         },
