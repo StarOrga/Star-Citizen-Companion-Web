@@ -71,6 +71,13 @@ scroll) and every point of the settled core (approaches.md § Settled core):
 - The general note of this submission is a verbatim re-send of iteration 1
   (page defect, Jerry0022/dotclaude#333) — not new feedback.
 
+### Round-3 feedback (chat, 2026-09-05, while implementing)
+
+- **Sent messages longer than 3 lines fold the rest behind "…"** (expandable
+  per message). Applies to every already-sent message in the stream and in the
+  opened topic — the composer stays unfolded. Rationale: long messages eat the
+  vertical space the panel does not have.
+
 ## Decisions (Ⓔ5)
 
 | id | choice | meaning |
