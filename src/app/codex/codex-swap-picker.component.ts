@@ -11,28 +11,52 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { fromEvent } from 'rxjs';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
+import { ScColumnMenuComponent } from '../shared/column-menu.component';
 import { CodexKind, CodexService, CompatibleItem } from './codex.service';
-import { StatDelta, computeStatDeltas } from './codex-format';
-import { ammoClassNameFor, ammoClassNamesFor } from './codex-equipped-stats';
+import { ammoClassNameFor, ammoClassNamesFor, formatEquippedStat } from './codex-equipped-stats';
 import {
-  EMPTY_SWAP_FILTERS,
+  ColumnDef,
+  ColumnFacet,
+  ColumnFilterChip,
+  ColumnMenuState,
+  EMPTY_COLUMN_MENU_STATE,
+  SortDir,
+  activeFilterChips,
+  applyColumnMenu,
+  clearAllColumnFilters,
+  clearColumnFilter,
+  columnFacets,
+  setColumnSort,
+  setNumericFilter,
+  toggleColumnSort,
+  toggleFacetValue,
+} from './table-column-menu';
+import {
+  DAMAGE_FAMILY_LABEL_KEY,
+  DEFAULT_SWAP_COLUMN_CHOOSER,
+  DEFAULT_SWAP_COLUMNS,
   NAME_SORT_KEY,
+  SWAP_VALUE_CATALOGUE,
+  SwapBaseline,
   SwapCandidate,
-  SwapColumn,
-  SwapFilters,
-  SwapSort,
+  SwapColumnChooser,
+  SwapScope,
+  SwapValueDef,
+  applySwapScope,
+  baselineClassName,
   buildSwapCandidate,
-  defaultSwapSort,
-  filterSwapCandidates,
-  pruneSwapFilters,
-  sortSwapCandidates,
+  resetSwapColumns,
   swapCell,
-  swapColumnBars,
-  swapColumns,
-  swapFacets,
-  swapStatRows,
-  toggleSwapSort,
+  swapCellState,
+  swapDeltaColumn,
+  swapMissingSourceColumns,
+  swapScopeOptions,
+  swapValueBars,
+  swapValueDef,
+  toggleSwapColumn,
 } from './swap-table';
 
 /**
@@ -45,11 +69,17 @@ export interface SwapTarget {
   port: string;
   /** How many identical hardpoints the choice would apply to (≥1). */
   count: number;
-  /** What is installed right now — the EQUIPPED row and the delta baseline. */
+  /** What is installed right now — the EQUIPPED row and the default Δ baseline. */
   className: string | null;
   kind: CodexKind | null;
   name: string | null;
   size: number | null;
+  /**
+   * The class name the ship SHIPS WITH from the factory — the `Ab Werk` Δ
+   * baseline (MASTER §9). `null` when the host cannot resolve it (an unfitted
+   * bay, or a hull with no stock entry for this port).
+   */
+  factoryClassName?: string | null;
   /**
    * What the hardpoint ACCEPTS, for a bay that ships empty. Normally the list
    * is derived from the installed item's `attachType`, which an unfitted bay
@@ -76,231 +106,282 @@ export interface SwapTarget {
 /** Supabase rejects very long `in.()` lists — hydrate payloads in batches. */
 const HYDRATE_CHUNK = 100;
 
-/** What "Übernehmen" / "Slot leeren" emits — the HOST decides what to do with it. */
+/** What "picked" emits — the HOST decides what to do with it. */
 export interface SwapPick {
   className: string | null;
   target: SwapTarget;
 }
 
+const COLUMN_STORAGE_KEY = 'scc-codex-picker-cols:v1';
+
+/** Column keys the picker reads off the candidate directly, not off `.stats`. */
+const DIRECT_ACCESSORS: Record<string, (c: SwapCandidate) => number | string | null> = {
+  [NAME_SORT_KEY]: (c) => c.name,
+  'codex.picker.col.grade': (c) => c.grade,
+  'codex.picker.col.manufacturer': (c) => c.manufacturerCode,
+  'codex.picker.col.damageType': (c) => c.damageChannels[0] ?? null,
+  'codex.picker.col.archetype': (c) => c.archetype,
+  'codex.picker.col.size': (c) => c.size,
+};
+
+/** Best-effort unit suffix for a column head — never invents a unit the value doesn't have. */
+function unitKeyFor(key: string, def: SwapValueDef): string | null {
+  const byKey: Record<string, string> = {
+    'codex.picker.col.mass': 'codex.picker.unit.kg',
+    'codex.picker.col.power': 'codex.picker.unit.seg',
+    'codex.equipped.fireRate': 'codex.picker.unit.perMin',
+    'codex.picker.col.aimYaw': 'codex.picker.unit.deg',
+    'codex.picker.col.aimRate': 'codex.picker.unit.degPerSec',
+  };
+  if (byKey[key]) return byKey[key];
+  switch (def.format) {
+    case 'perSec':
+      return 'codex.picker.unit.perSec';
+    case 'seconds':
+      return 'codex.picker.unit.s';
+    case 'mps':
+      return 'codex.picker.unit.mps';
+    case 'percent':
+      return 'codex.picker.unit.percent';
+    default:
+      return null;
+  }
+}
+
 /**
- * The swap picker (admin request 461288f9): click a configurable module and get
- * the full list of what else fits, as a comparison table — search, damage-type
- * and archetype pills, sortable columns, the installed item marked EQUIPPED.
+ * The swap picker (admin request 461288f9, redesigned per MASTER §9 / iteration
+ * 7 `#g3` + iteration 8 `#h3` values): a centred window over a dimmed, blurred
+ * veil listing everything that fits a hardpoint as a searchable, filterable,
+ * sortable comparison table with a Δ baseline switch and a column chooser.
  *
- * It previews the stat change against what is installed (deltas measured
- * against the CURRENT draft occupant, 03-rules §7.5, not the factory part) and
- * emits the choice via `picked` — "Übernehmen" on a candidate row, or "Slot
- * leeren" to explicitly empty the slot. It never writes anything itself: the
- * HOST (codex-detail's draft state) owns turning a pick into a persisted
- * change, so the same table works whether the host writes to a draft, a
- * hangar config, or nothing at all (06-fallen.md Falle 5).
- *
- * Columns come from the data (see swap-table.ts): a stat no candidate carries
- * yields no column, a candidate missing a stat the others have renders "—".
+ * It never writes anything itself: the HOST (codex-detail's draft state) owns
+ * turning a pick into a persisted change, so the same table works whether the
+ * host writes to a draft, a hangar config, or nothing at all (06-fallen.md
+ * Falle 5). Column sort/filter is delegated to the generic `sc-column-menu` +
+ * `table-column-menu.ts` pair so the pattern is reusable elsewhere.
  */
 @Component({
   selector: 'sc-codex-swap-picker',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, ScSegmentedComponent, ScColumnMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as t) {
-      <div class="sp-backdrop" (click)="closed.emit()">
-        <article #dialog class="sp-panel sc-card" role="dialog" aria-modal="true"
-                 [attr.aria-label]="'codex.swap.pickerTitle' | translate"
+      <div class="pick-veil" [attr.title]="'codex.picker.hint' | translate" (click)="closed.emit()">
+        <p class="pick-hint">{{ 'codex.picker.hint' | translate }}</p>
+        <article #dialog class="pick-win" role="dialog" aria-modal="true"
+                 aria-labelledby="pick-title"
                  (click)="$event.stopPropagation()" (keydown)="onKeydown($event)">
-          <header class="sp-head">
-            <div class="sp-titles">
-              <h2>
-                <span class="sp-icon" aria-hidden="true">⇄</span>
-                {{ 'codex.swap.pickerTitle' | translate }}
-              </h2>
-              <p class="sp-sub">
-                <span class="sp-port">{{ t.port }}</span>
-                @if (t.name) {
-                  · <span>{{ 'codex.swap.installed' | translate }}: {{ t.name }}</span>
-                } @else {
-                  · <span>{{ 'codex.swap.installedNone' | translate }}</span>
-                }
-              </p>
+          <header class="pick-head">
+            <div class="pick-titles">
+              <h2 id="pick-title">{{ 'codex.picker.title' | translate: { port: t.port, size: t.size ?? '' } }}</h2>
+              @if (t.name) {
+                <p class="pick-installed">{{ 'codex.picker.installed' | translate: { name: t.name } }}</p>
+              } @else {
+                <p class="pick-installed">{{ 'codex.swap.installedNone' | translate }}</p>
+              }
             </div>
-            <button type="button" class="sp-close" (click)="closed.emit()"
-                    [attr.aria-label]="'codex.swap.close' | translate">✕</button>
+            <button type="button" class="pick-clear" (click)="clearSlot()">
+              {{ 'codex.swap.clearSlot' | translate }}
+            </button>
+            <button type="button" class="pick-close" (click)="closed.emit()"
+                    [attr.aria-label]="'codex.picker.close' | translate">✕</button>
           </header>
 
-          <p class="sp-hint">{{ 'codex.swap.previewHint' | translate }}</p>
-          <!-- The candidate list for an unfitted bay was derived from an
-               identical, fitted bay on this hull — say so rather than let an
-               inference pass for extract data (1add86a4). -->
           @if (t.fitInferred) {
-            <p class="sp-hint inferred">{{ 'codex.swap.fitInferred' | translate }}</p>
+            <p class="pick-hint inferred">{{ 'codex.swap.fitInferred' | translate }}</p>
           }
 
-          <!-- 03-rules §7.5: the first row is always "Slot leeren". A draft can
-               always express "emptied", so this stays enabled unconditionally. -->
-          <button type="button" class="sp-clear" (click)="clearSlot()">
-            <span aria-hidden="true">⌀</span> {{ 'codex.swap.clearSlot' | translate }}
-          </button>
-
           @if (loading()) {
-            <p class="sp-msg">{{ 'codex.swap.loading' | translate }}</p>
+            <p class="pick-msg">{{ 'codex.swap.loading' | translate }}</p>
           } @else if (error()) {
-            <p class="sp-msg err">{{ 'codex.swap.failed' | translate }}</p>
+            <p class="pick-msg err">{{ 'codex.swap.failed' | translate }}</p>
           } @else if (candidates().length === 0) {
-            <p class="sp-msg">{{ 'codex.swap.none' | translate }}</p>
+            <p class="pick-msg">{{ 'codex.swap.none' | translate }}</p>
           } @else {
-            <div class="sp-tools">
-              <label class="sp-search">
-                <span class="sr-only">{{ 'codex.swap.searchLabel' | translate }}</span>
-                <input #search type="search" autocomplete="off"
-                       [value]="filters().query"
+            <div class="pick-scope">
+              <label class="pick-search">
+                <span class="sr-only">{{ 'codex.picker.searchLabel' | translate }}</span>
+                <input #search type="search" autocomplete="off" [value]="query()"
                        (input)="setQuery($event)"
-                       [attr.placeholder]="'codex.swap.searchPlaceholder' | translate" />
+                       [attr.placeholder]="'codex.picker.searchPlaceholder' | translate" />
               </label>
 
-              @if (facets().damage.length > 0) {
-                <div class="sp-group" role="group"
-                     [attr.aria-label]="'codex.swap.damageFilter' | translate">
-                  <span class="sp-group-label">{{ 'codex.swap.damageFilter' | translate }}</span>
-                  <button type="button" class="pill" [class.on]="!filters().damage"
-                          [attr.aria-pressed]="!filters().damage" (click)="setDamage(null)">
-                    {{ 'codex.swap.filterAll' | translate }}
-                  </button>
-                  @for (f of facets().damage; track f.value) {
-                    <button type="button" class="pill" [class.on]="filters().damage === f.value"
-                            [attr.aria-pressed]="filters().damage === f.value"
-                            (click)="setDamage(f.value)">
-                      {{ ('codex.damage.' + f.value) | translate }}
-                      <span class="pill-ct">{{ f.count }}</span>
-                    </button>
-                  }
-                </div>
-              }
+              <div class="pick-seg">
+                <span class="pick-seg-label">{{ 'codex.picker.compareWith' | translate }}</span>
+                <sc-segmented [options]="scopeOptions()" [value]="scope()"
+                              [ariaLabel]="'codex.picker.compareWith' | translate"
+                              (valueChange)="scope.set($any($event))" />
+              </div>
 
-              @if (facets().type.length > 0) {
-                <div class="sp-group" role="group"
-                     [attr.aria-label]="'codex.swap.typeFilter' | translate">
-                  <span class="sp-group-label">{{ 'codex.swap.typeFilter' | translate }}</span>
-                  <button type="button" class="pill" [class.on]="!filters().type"
-                          [attr.aria-pressed]="!filters().type" (click)="setType(null)">
-                    {{ 'codex.swap.filterAll' | translate }}
-                  </button>
-                  @for (f of facets().type; track f.value) {
-                    <button type="button" class="pill" [class.on]="filters().type === f.value"
-                            [attr.aria-pressed]="filters().type === f.value"
-                            (click)="setType(f.value)">
-                      {{ f.value }}
-                      <span class="pill-ct">{{ f.count }}</span>
-                    </button>
+              <div class="pick-seg">
+                <span class="pick-seg-label">{{ 'codex.picker.deltaAgainst' | translate }}</span>
+                <sc-segmented [options]="baselineOptions()" [value]="baseline()"
+                              [ariaLabel]="'codex.picker.deltaAgainst' | translate"
+                              (valueChange)="baseline.set($any($event))" />
+              </div>
+
+              <p class="pick-count">{{ 'codex.picker.count' | translate: { n: rows().length, total: candidates().length } }}</p>
+
+              <details class="pick-cols">
+                <summary class="pick-cols-sum">{{ 'codex.picker.columns' | translate }} ▾</summary>
+                <div class="pick-cols-pop">
+                  @for (v of catalogue; track v.key) {
+                    @if (v.key !== NAME_KEY) {
+                      <label class="pc-row" [class.off]="unavailable().has(v.key)">
+                        <input type="checkbox" [checked]="chooser().visible.includes(v.key)"
+                               [disabled]="unavailable().has(v.key)"
+                               (change)="toggleColumn(v.key)" />
+                        {{ v.key | translate }}
+                      </label>
+                    }
                   }
+                  @if (unavailable().size > 0) {
+                    <p class="pc-unavail">{{ 'codex.picker.columnsUnavailable' | translate }}</p>
+                  }
+                  <button type="button" class="pc-reset" (click)="resetColumns()">
+                    {{ 'codex.picker.menu.clear' | translate }}
+                  </button>
                 </div>
-              }
+              </details>
             </div>
 
             @if (rows().length === 0) {
-              <p class="sp-msg">{{ 'codex.swap.noMatch' | translate }}</p>
+              <p class="pick-msg">{{ 'codex.swap.noMatch' | translate }}</p>
             } @else {
-              <div class="sp-scroll">
-                <table class="sp-table">
+              <div class="pick-scroll">
+                <table class="wt" role="grid">
                   <thead>
                     <tr>
                       <th scope="col" class="c-name" [attr.aria-sort]="ariaSort(NAME_KEY)">
-                        <button type="button" class="hd" (click)="sortBy(NAME_KEY, $event)">
-                          {{ 'codex.swap.colName' | translate }}
-                          <span class="hd-dir" aria-hidden="true">{{ sortMark(NAME_KEY) }}</span>
-                        </button>
+                        <sc-column-menu
+                          [label]="('codex.picker.col.name' | translate)"
+                          kind="categorical"
+                          [sortDir]="sortDirOf(NAME_KEY)"
+                          [facets]="facetsOf(NAME_KEY)"
+                          [hasFilter]="hasFilter(NAME_KEY)"
+                          [menuOpenLabel]="'codex.picker.menu.open' | translate: { column: ('codex.picker.col.name' | translate) }"
+                          [sortLabel]="'codex.picker.menu.sort' | translate"
+                          [ascLabel]="'codex.picker.menu.asc' | translate"
+                          [descLabel]="'codex.picker.menu.desc' | translate"
+                          [filterLabel]="'codex.picker.menu.filter' | translate"
+                          [clearLabel]="'codex.picker.menu.clear' | translate"
+                          (headClick)="onHeadClick(NAME_KEY)"
+                          (sortPick)="onSortPick(NAME_KEY, $event)"
+                          (facetToggle)="onFacetToggle(NAME_KEY, $event)"
+                          (clearFilter)="onClearFilter(NAME_KEY)" />
                       </th>
-                      @for (col of columns(); track col.key) {
+                      @for (col of displayColumns(); track col.key) {
                         <th scope="col" class="c-num" [attr.aria-sort]="ariaSort(col.key)">
-                          <button type="button" class="hd" (click)="sortBy(col.key, $event)"
-                                  [attr.title]="col.derived ? ('codex.equipped.derivedHint' | translate) : null">
-                            {{ col.key | translate }}@if (col.derived) {<span class="derived" aria-hidden="true">*</span>}
-                            <span class="hd-dir" aria-hidden="true">{{ sortMark(col.key) }}</span>
-                          </button>
+                          <sc-column-menu
+                            [label]="colLabel(col)"
+                            [kind]="col.categorical ? 'categorical' : 'numeric'"
+                            [sortDir]="sortDirOf(col.key)"
+                            [range]="rangeOf(col.key)"
+                            [facets]="facetsOf(col.key)"
+                            [hasFilter]="hasFilter(col.key)"
+                            [menuOpenLabel]="'codex.picker.menu.open' | translate: { column: (col.key | translate) }"
+                            [sortLabel]="'codex.picker.menu.sort' | translate"
+                            [ascLabel]="'codex.picker.menu.asc' | translate"
+                            [descLabel]="'codex.picker.menu.desc' | translate"
+                            [rangeLabel]="'codex.picker.menu.range' | translate"
+                            [fromLabel]="'codex.picker.menu.from' | translate"
+                            [toLabel]="'codex.picker.menu.to' | translate"
+                            [filterLabel]="'codex.picker.menu.filter' | translate"
+                            [clearLabel]="'codex.picker.menu.clear' | translate"
+                            (headClick)="onHeadClick(col.key)"
+                            (sortPick)="onSortPick(col.key, $event)"
+                            (rangeChange)="onRangeChange(col.key, $event)"
+                            (facetToggle)="onFacetToggle(col.key, $event)"
+                            (clearFilter)="onClearFilter(col.key)" />
                         </th>
                       }
                     </tr>
                   </thead>
                   <tbody>
                     @for (c of rows(); track c.className) {
-                      <tr class="sp-row" [class.equipped]="c.equipped"
-                          [class.sel]="selected() === c.className" (click)="rowClick(c, $event)">
+                      <tr class="pick-row" tabindex="0" [class.cur]="c.className === baselineClass()"
+                          [attr.aria-label]="'codex.picker.pickRow' | translate: { name: c.name }"
+                          (click)="pick(c)" (keydown.enter)="pick(c)" (keydown.space)="pick(c); $event.preventDefault()">
                         <td class="c-name">
-                          <button type="button" class="pick" (click)="pick(c)">
-                            @if (c.size != null) { <span class="size-tag">S{{ c.size }}</span> }
-                            <span class="pick-ident">
-                              <span class="pick-name">
-                                {{ c.name }}
-                                @for (ch of c.damageChannels; track ch) {
-                                  <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
-                                }
-                                @if (c.equipped) {
-                                  <span class="tag eq">✓ {{ 'codex.swap.equipped' | translate }}</span>
-                                }
-                              </span>
-                              <span class="pick-meta">{{ metaLine(c) }}</span>
+                          @if (c.size != null) { <span class="size-tag">S{{ c.size }}</span> }
+                          <span class="pick-ident">
+                            <span class="pick-name">
+                              {{ c.name }}
+                              @if (c.equipped) {
+                                <span class="tag eq">✓ {{ 'codex.swap.equipped' | translate }}</span>
+                              }
                             </span>
-                          </button>
+                            <span class="pick-meta">{{ metaLine(c) }}</span>
+                          </span>
                         </td>
-                        @for (col of columns(); track col.key) {
-                          <td class="c-num" [class.lead]="col.key === primaryKey()">
-                            @if (bars().get(c.className); as pct) {
-                              @if (col.key === primaryKey()) {
-                                <span class="bar" [style.width.%]="pct" aria-hidden="true"></span>
+                        @for (col of displayColumns(); track col.key) {
+                          <td class="c-num" [class.gapc]="cellState(c, col.key) === 'notApplicable'"
+                              [attr.title]="cellState(c, col.key) === 'notApplicable' ? ('codex.picker.dashCellTitle' | translate) : null">
+                            @if (barKeys.has(col.key)) {
+                              @if (barOf(col.key, c); as bar) {
+                                @if (bar.percent !== null) {
+                                  <span class="bar" [style.width.%]="bar.percent" aria-hidden="true"></span>
+                                }
+                                @if (bar.optimum) { <span class="opt" [attr.title]="'codex.picker.optimum' | translate" aria-hidden="true"></span> }
                               }
                             }
-                            <span class="cell">{{ cell(c, col) }}</span>
+                            @if (col.key === DELTA_KEY) {
+                              <span class="cell d" [class.up]="deltaTone(c) === 'up'" [class.down]="deltaTone(c) === 'down'">{{ cellText(c, col) }}</span>
+                            } @else {
+                              <span class="cell">{{ cellText(c, col) }}</span>
+                            }
                           </td>
                         }
                       </tr>
-                      @if (selected() === c.className) {
-                        <tr class="sp-delta">
-                          <td [attr.colspan]="columns().length + 1">
-                            @if (deltas().length === 0) {
-                              <p class="sp-msg">{{ 'codex.swap.noDelta' | translate }}</p>
-                            } @else {
-                              <p class="dl-head">{{ 'codex.swap.delta' | translate }}</p>
-                              <ul class="dl-list">
-                                @for (d of deltas(); track d.key) {
-                                  <li class="dd" [class.up]="(d.pct ?? 0) > 0" [class.down]="(d.pct ?? 0) < 0">
-                                    <span class="dd-pct">{{ pctLabel(d) }}</span>
-                                    <span class="dd-key">{{ d.key | translate }}</span>
-                                    <span class="dd-vals">{{ d.from }} → {{ d.to }}</span>
-                                  </li>
-                                }
-                              </ul>
-                            }
-                            <button type="button" class="sp-apply" (click)="apply(c)">
-                              {{ 'codex.swap.apply' | translate }}
-                            </button>
-                          </td>
-                        </tr>
-                      }
                     }
                   </tbody>
                 </table>
               </div>
+
+              <div class="pick-cues">
+                <span><span aria-hidden="true">↔</span> {{ 'codex.picker.scrollCue.horizontal' | translate: { columns: overflowColumnLabels() } }}</span>
+                <span><span aria-hidden="true">↕</span> {{ 'codex.picker.scrollCue.vertical' | translate }}</span>
+              </div>
+
+              @if (scopeChip(); as sc) {
+                <ul class="fc-list">
+                  <li class="fc">
+                    {{ sc.label }}
+                    <button type="button" (click)="scope.set('allSize')"
+                            [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: sc.label }">✕</button>
+                  </li>
+                  @for (chip of chips(); track chip.key) {
+                    <li class="fc">
+                      {{ chip.columnLabelKey | translate }}: {{ chip.textKey | translate: chip.params }}
+                      <button type="button" (click)="onClearFilter(chip.key)"
+                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: (chip.columnLabelKey | translate) }">✕</button>
+                    </li>
+                  }
+                </ul>
+              } @else if (chips().length > 0) {
+                <ul class="fc-list">
+                  @for (chip of chips(); track chip.key) {
+                    <li class="fc">
+                      {{ chip.columnLabelKey | translate }}: {{ chip.textKey | translate: chip.params }}
+                      <button type="button" (click)="onClearFilter(chip.key)"
+                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: (chip.columnLabelKey | translate) }">✕</button>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <p class="pick-note">{{ 'codex.picker.dashNote' | translate }}</p>
+              @if (baselineOutOfSet()) {
+                <p class="pick-note baseline-note">{{ 'codex.picker.baselineOutOfSet' | translate }}</p>
+              }
             }
           }
 
-          <footer class="sp-foot">
-            <div class="sp-counts">
-              @if (candidates().length > 0) {
-                <p class="sp-applies">
-                  {{ (target()!.count > 1 ? 'codex.swap.appliesToMany' : 'codex.swap.appliesToOne')
-                     | translate: { count: target()!.count, port: target()!.port } }}
-                  ·
-                  {{ 'codex.swap.matched' | translate: { shown: rows().length, total: candidates().length } }}
-                </p>
-                <p class="sp-sorthint">{{ 'codex.swap.sortHint' | translate }}</p>
-              }
-              @if (missingColumns(); as missing) {
-                <p class="sp-missing">{{ 'codex.swap.missingColumns' | translate: { fields: missing } }}</p>
-              }
-            </div>
-            <button type="button" class="sp-cancel" (click)="closed.emit()">
-              {{ 'codex.swap.cancel' | translate }}
-            </button>
+          <footer class="pick-foot">
+            @if (missingColumnsText(); as missing) {
+              <p class="pick-missing">{{ 'codex.picker.footerMissing' | translate: { fields: missing } }}</p>
+            }
           </footer>
         </article>
       </div>
@@ -310,130 +391,109 @@ export interface SwapPick {
     :host { display: contents; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-    .sp-backdrop { position: fixed; inset: 0; z-index: 150; background: rgba(0, 0, 0, 0.74);
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-      display: flex; justify-content: center; align-items: flex-start; padding: 4vh 16px 16px; overflow-y: auto; }
-    .sp-panel { position: relative; width: 100%; max-width: 1180px; display: flex; flex-direction: column;
-      gap: 12px; padding: 16px 18px 14px; max-height: 92vh;
-      border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); animation: sp-in .18s ease; }
-    @keyframes sp-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-    @media (prefers-reduced-motion: reduce) { .sp-panel { animation: none; } }
+    .pick-veil { position: fixed; inset: 0; z-index: 150;
+      background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent);
+      -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+      display: grid; place-items: center; padding: 52px 72px; overflow-y: auto; }
+    .pick-hint { position: absolute; top: 16px; left: 0; right: 0; text-align: center;
+      font-size: max(0.75rem, var(--sc-fs-floor)); color: var(--sc-fg-2); pointer-events: none; margin: 0; }
+    .pick-hint.inferred { position: static; pointer-events: auto; text-align: left; margin: 0 18px;
+      border-left: 2px solid color-mix(in srgb, var(--sc-warn) 55%, transparent); padding-left: 8px; }
 
-    .sp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    .sp-titles h2 { margin: 0; font-size: 1.02rem; display: flex; align-items: center; gap: 8px; }
-    .sp-icon { color: var(--sc-accent); }
-    .sp-sub { margin: 3px 0 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-1); overflow-wrap: anywhere; }
-    .sp-port { color: var(--sc-fg-2); }
-    .sp-close { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; background: var(--sc-bg-0);
-      border: 1px solid var(--sc-border); color: var(--sc-fg-1); cursor: pointer; font-size: 0.9rem; line-height: 1; }
-    .sp-close:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
-    .sp-hint { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
-    .sp-hint.inferred { margin-top: 4px; font-style: normal;
-      border-left: 2px solid color-mix(in srgb, var(--sc-warn, #e8a33d) 55%, transparent);
-      padding-left: 8px; }
-    .sp-msg { margin: 6px 0; font-size: 0.8rem; color: var(--sc-fg-2); }
-    .sp-msg.err { color: var(--sc-danger, #ff5252); }
+    .pick-win { position: relative; width: 100%; max-width: 1060px; max-height: 100%;
+      display: flex; flex-direction: column; background: var(--sc-bg-1);
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
+      border-radius: var(--radius-md, 4px); box-shadow: 0 24px 70px rgb(0 0 0 / .7);
+      overflow: hidden; padding: 16px 18px 14px; gap: 10px; }
 
-    .sp-clear { align-self: flex-start; padding: 6px 12px; border-radius: 6px; background: var(--sc-bg-0);
-      border: 1px dashed var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: max(0.76rem, var(--sc-fs-floor));
-      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
-    .sp-clear:hover { border-color: var(--sc-danger, #ff5252); color: var(--sc-danger, #ff5252); }
-    .sp-apply { margin-top: 8px; padding: 6px 14px; border-radius: 6px; background: var(--sc-accent);
-      border: 1px solid var(--sc-accent); color: var(--sc-bg-0); font: inherit; font-weight: 600;
-      font-size: max(0.76rem, var(--sc-fs-floor)); cursor: pointer; }
-    .sp-apply:hover { filter: brightness(1.08); }
+    .pick-head { display: flex; align-items: flex-start; gap: 10px;
+      background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
+      margin: -16px -18px 0; padding: 12px 16px; }
+    .pick-titles { flex: 1 1 auto; min-width: 0; }
+    .pick-titles h2 { margin: 0; font-size: 1.02rem; }
+    .pick-installed { margin: 3px 0 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-1); overflow-wrap: anywhere; }
+    .pick-clear { flex: 0 0 auto; padding: 5px 10px; border-radius: 6px; background: var(--sc-bg-0);
+      border: 1px dashed var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; }
+    .pick-clear:hover { border-color: var(--sc-danger); color: var(--sc-danger); }
+    .pick-close { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; background: var(--sc-bg-0);
+      border: 1px solid var(--sc-border); color: var(--sc-fg-1); cursor: pointer; font-size: 0.9rem; }
+    .pick-close:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .pick-msg { margin: 6px 0; font-size: 0.8rem; color: var(--sc-fg-2); }
+    .pick-msg.err { color: var(--sc-danger); }
 
-    /* search + the two pill groups */
-    .sp-tools { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 18px; }
-    .sp-search { flex: 1 1 240px; min-width: 180px; }
-    .sp-search input { width: 100%; padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-0);
+    .pick-scope { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; }
+    .pick-search { flex: 1 1 200px; min-width: 160px; }
+    .pick-search input { width: 100%; padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); color: var(--sc-fg-0); font: inherit; font-size: 0.8rem; }
-    .sp-search input:focus-visible { outline: none; border-color: var(--sc-accent); }
-    /* A plain grouped div rather than fieldset/legend: a legend is rendered
-       outside the flex flow, which breaks the pill row's wrapping. */
-    .sp-group { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-    .sp-group-label { flex: 0 0 100%; padding-bottom: 3px; font-size: max(0.58rem, var(--sc-fs-floor)); letter-spacing: 0.07em;
-      text-transform: uppercase; color: var(--sc-fg-2); }
-    .pill { padding: 4px 10px; border-radius: 999px; background: var(--sc-bg-0); border: 1px solid var(--sc-border);
-      color: var(--sc-fg-1); font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; display: inline-flex;
-      align-items: center; gap: 5px; }
-    .pill:hover { border-color: var(--sc-accent); }
-    .pill.on { color: var(--sc-accent); border-color: var(--sc-accent);
-      background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
-    .pill-ct { font-size: max(0.6rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-variant-numeric: tabular-nums; }
+    .pick-seg { display: flex; flex-direction: column; gap: 3px; }
+    .pick-seg-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .pick-count { margin: 0 0 6px; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-1); align-self: flex-end; }
 
-    .sp-scroll { overflow: auto; border-radius: 8px; border: 1px solid var(--sc-border); }
-    .sp-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-    .sp-table thead th { position: sticky; top: 0; z-index: 1; background: var(--sc-bg-1);
-      border-bottom: 1px solid var(--sc-border); padding: 0; text-align: right; }
-    .sp-table thead th.c-name { text-align: left; }
-    .hd { width: 100%; padding: 6px 8px; background: transparent; border: none; color: var(--sc-fg-2);
-      font: inherit; font-size: max(0.6rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase;
-      cursor: pointer; text-align: inherit; white-space: nowrap; }
-    .hd:hover { color: var(--sc-accent); }
-    .hd-dir { color: var(--sc-accent); margin-left: 3px; }
-    .derived { color: var(--sc-fg-2); }
+    .pick-cols { position: relative; align-self: flex-end; }
+    .pick-cols-sum { cursor: pointer; padding: 6px 10px; border-radius: 6px; background: var(--sc-bg-0);
+      border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-size: max(0.76rem, var(--sc-fs-floor)); list-style: none; }
+    .pick-cols-sum::-webkit-details-marker { display: none; }
+    .pick-cols-pop { position: absolute; top: calc(100% + 4px); right: 0; z-index: 6; width: 220px; max-height: 320px;
+      overflow-y: auto; background: var(--sc-bg-2); border: 1px solid var(--sc-border); border-radius: var(--radius-md, 4px);
+      box-shadow: 0 10px 28px rgb(0 0 0 / .6); padding: 8px; display: flex; flex-direction: column; gap: 3px; }
+    .pc-row { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; }
+    .pc-row.off { color: var(--sc-fg-2); cursor: not-allowed; }
+    .pc-unavail { margin: 4px 0 0; font-size: 11px; color: var(--sc-fg-2); font-style: italic; }
+    .pc-reset { margin-top: 6px; padding: 4px 8px; border-radius: 4px; background: transparent;
+      border: 1px solid var(--sc-border); color: var(--sc-fg-2); font: inherit; font-size: 11px; cursor: pointer; align-self: flex-start; }
 
-    .sp-row { border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 55%, transparent); cursor: pointer; }
-    .sp-row:hover { background: color-mix(in srgb, var(--sc-accent) 7%, transparent); }
-    .sp-row.sel { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
-    .sp-row.equipped { background: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 10%, transparent);
-      box-shadow: inset 2px 0 0 var(--sc-accent-hot, #ff7a45); }
+    .pick-scroll { overflow: auto; border: 1px solid var(--sc-border); border-radius: var(--radius-md, 4px); flex: 1 1 auto; }
+    .wt { min-inline-size: 1080px; width: 100%; border-collapse: collapse; font-size: max(12px, var(--sc-fs-floor));
+      font-variant-numeric: tabular-nums; }
+    .wt thead th { position: sticky; top: 0; z-index: 2; background: var(--sc-bg-2);
+      border-bottom: 1px solid var(--sc-border); padding: 4px 8px; text-align: right;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
+    .wt th.c-name { text-align: left; position: sticky; left: 0; z-index: 4; }
+    .wt td.c-name { position: sticky; left: 0; z-index: 3; background: var(--sc-bg-1); }
 
-    td.c-name { padding: 0; }
-    .pick { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 6px 8px;
-      background: transparent; border: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-    .pick-ident { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-    .pick-name { font-size: 0.8rem; color: var(--sc-fg-0); overflow-wrap: anywhere;
-      display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .sp-row.equipped .pick-name { color: var(--sc-accent-hot, #ff7a45); }
+    .pick-row { border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 55%, transparent); cursor: pointer; }
+    .pick-row:hover { background: color-mix(in srgb, var(--sc-accent) 7%, transparent); }
+    .pick-row:hover td.c-name { background: color-mix(in srgb, var(--sc-accent) 7%, var(--sc-bg-1)); }
+    .pick-row.cur { background: color-mix(in srgb, var(--sc-warn) 8%, transparent); }
+    .pick-row.cur td.c-name { background: color-mix(in srgb, var(--sc-warn) 14%, var(--sc-bg-0)); }
+
+    td.c-name { padding: 6px 8px; }
+    .pick-ident { display: flex; flex-direction: column; gap: 1px; min-width: 0; margin-left: 4px; }
+    .pick-name { font-size: 0.8rem; color: var(--sc-fg-0); overflow-wrap: anywhere; display: inline-flex; align-items: center; gap: 6px; }
     .pick-meta { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .size-tag { flex: 0 0 auto; font-size: max(0.62rem, var(--sc-fs-floor)); font-weight: 600; line-height: 1.5; padding: 1px 6px;
-      border-radius: 4px; white-space: nowrap; color: var(--sc-accent);
-      background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
+    .size-tag { font-size: max(0.62rem, var(--sc-fs-floor)); font-weight: 600; padding: 1px 6px; border-radius: 4px;
+      color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); }
-    .tag { font-size: max(0.54rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; padding: 0 5px;
-      border-radius: 3px; background: var(--sc-bg-2); color: var(--sc-fg-2);
-      border: 1px solid var(--sc-border); white-space: nowrap; }
-    .tag.dmg { color: var(--sc-accent-hot, #ff7a45);
-      border-color: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 45%, transparent);
-      background: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 10%, transparent); }
-    .tag.eq { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 55%, transparent);
+    .tag.eq { font-size: max(0.54rem, var(--sc-fs-floor)); text-transform: uppercase; padding: 0 5px; border-radius: 3px;
+      color: var(--sc-accent); border: 1px solid color-mix(in srgb, var(--sc-accent) 55%, transparent);
       background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
 
-    td.c-num { position: relative; padding: 6px 8px; text-align: right; font-size: max(0.76rem, var(--sc-fs-floor));
-      color: var(--sc-fg-1); white-space: nowrap; }
-    td.c-num.lead { color: var(--sc-fg-0); }
-    /* Magnitude cue on the column the table is sorted by. */
-    .bar { position: absolute; inset: 2px auto 2px 0; border-radius: 0 3px 3px 0;
-      background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
+    td.c-num { position: relative; padding: 6px 8px; text-align: right; color: var(--sc-fg-1); white-space: nowrap; }
+    td.c-num.gapc { color: var(--sc-fg-2); }
+    .bar { position: absolute; inset: 2px auto 2px 0; border-radius: 0 3px 3px 0; background: color-mix(in srgb, var(--sc-accent) 20%, transparent); }
+    .opt { position: absolute; inset-block: 2px; inline-size: 1px; background: var(--sc-warn); }
     .cell { position: relative; }
+    .cell.d.up { color: var(--sc-success); }
+    .cell.d.down { color: var(--sc-danger); }
 
-    .sp-delta td { padding: 8px 10px; background: var(--sc-bg-0);
-      border-bottom: 1px solid var(--sc-border); }
-    .dl-head { margin: 0 0 5px; font-size: max(0.62rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em;
-      color: var(--sc-fg-2); }
-    .dl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 3px 22px; }
-    .dd { display: flex; align-items: baseline; gap: 7px; font-size: max(0.76rem, var(--sc-fs-floor)); }
-    .dd-pct { min-width: 50px; text-align: right; font-family: var(--sc-font-display); color: var(--sc-fg-1); }
-    .dd.up .dd-pct { color: #5fd698; }
-    .dd.down .dd-pct { color: var(--sc-danger, #ff5252); }
-    .dd-key { color: var(--sc-fg-0); }
-    .dd-vals { color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor)); white-space: nowrap; }
+    .pick-note { margin: 2px 0 0; font-size: 11px; color: var(--sc-fg-2); }
+    .pick-note.baseline-note { color: var(--sc-warn); }
+    .fc-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+    .fc { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
+      background: color-mix(in srgb, var(--sc-accent) 10%, transparent); color: var(--sc-accent); font-size: 11px; }
+    .fc button { background: transparent; border: none; color: inherit; cursor: pointer; font: inherit; padding: 0; }
 
-    .sp-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
-      flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--sc-border); }
-    .sp-counts p { margin: 0; }
-    .sp-applies { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
-    .sp-sorthint { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); margin-top: 2px !important; }
-    .sp-missing { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; margin-top: 3px !important; }
-    .sp-cancel { padding: 7px 16px; border-radius: 6px; background: var(--sc-bg-0);
-      border: 1px solid var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); cursor: pointer; }
-    .sp-cancel:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .pick-cues { display: flex; justify-content: space-between; font-size: 11px; color: var(--sc-fg-2); margin-top: 2px; }
 
-    @media (max-width: 720px) {
-      .sp-backdrop { padding: 0; }
-      .sp-panel { max-width: none; min-height: 100%; max-height: none; border-radius: 0; }
+    .pick-foot { padding-top: 6px; }
+    .pick-missing { margin: 0; font-size: 11px; color: var(--sc-fg-2); font-style: italic; }
+
+    @media (max-width: 640px) {
+      .pick-veil { padding: 0; }
+      .pick-win { max-width: none; border-radius: 0; }
+      .pick-scope { flex-direction: column; align-items: stretch; }
+      .pick-count, .pick-cols { align-self: flex-start; }
     }
   `],
 })
@@ -442,45 +502,67 @@ export class CodexSwapPickerComponent {
   private readonly i18n = inject(TranslateService);
 
   /**
-   * Signal-tracked UI language, so the one string this component resolves
-   * outside a `| translate` pipe still re-renders on a language switch (#50).
+   * Signal-tracked UI language, so the strings this component resolves outside
+   * a `| translate` pipe still re-render on a language switch (#50).
    */
   private readonly lang = signal(this.i18n.currentLang);
 
   /** The hardpoint to explore; `null` renders nothing (closed). */
   readonly target = input<SwapTarget | null>(null);
   readonly closed = output<void>();
-  /** "Übernehmen" or "Slot leeren" was clicked — the host applies it. */
+  /** A row was picked, or "Slot leeren" — the host applies it. */
   readonly picked = output<SwapPick>();
 
   readonly NAME_KEY = NAME_SORT_KEY;
+  readonly DELTA_KEY = 'codex.picker.col.deltaSustained';
+  readonly catalogue = SWAP_VALUE_CATALOGUE;
 
   readonly loading = signal(false);
   readonly error = signal(false);
   readonly candidates = signal<SwapCandidate[]>([]);
-  readonly filters = signal<SwapFilters>(EMPTY_SWAP_FILTERS);
-  readonly sorts = signal<SwapSort[]>([]);
-  readonly selected = signal<string | null>(null);
-  readonly deltas = signal<StatDelta[]>([]);
+  readonly query = signal('');
+  readonly scope = signal<SwapScope>('sameClass');
+  readonly baseline = signal<SwapBaseline>('fitted');
+  readonly chooser = signal<SwapColumnChooser>(this.loadColumns());
+  readonly columnMenu = signal<ColumnMenuState>(EMPTY_COLUMN_MENU_STATE);
 
   private readonly dialog = viewChild<ElementRef<HTMLElement>>('dialog');
   private readonly search = viewChild<ElementRef<HTMLInputElement>>('search');
-  /** What had focus before the dialog opened, so it can be handed back. */
   private returnFocus: HTMLElement | null = null;
-  /** Guards against a slow response for a previous target overwriting a newer one. */
   private loadToken = 0;
+
+  /** Value keys that get a magnitude bar (MASTER §9: Alpha, DPS only). */
+  readonly barKeys = new Set(['codex.equipped.alphaDamage', 'codex.equipped.dps']);
+
+  /** ≤640px: the column set collapses to name + Δ + DPS + Alpha (UI spec phone state). */
+  private static readonly PHONE_COLUMNS: readonly string[] = [
+    'codex.picker.col.deltaSustained',
+    'codex.equipped.dps',
+    'codex.equipped.alphaDamage',
+  ];
+
+  private readonly isPhone = signal(
+    typeof globalThis.matchMedia === 'function' ? globalThis.matchMedia('(max-width: 640px)').matches : false,
+  );
 
   constructor() {
     this.i18n.onLangChange.pipe(takeUntilDestroyed()).subscribe((e) => this.lang.set(e.lang));
+
+    if (typeof globalThis.matchMedia === 'function') {
+      const mq = globalThis.matchMedia('(max-width: 640px)');
+      fromEvent<MediaQueryListEvent>(mq, 'change')
+        .pipe(takeUntilDestroyed())
+        .subscribe((e) => this.isPhone.set(e.matches));
+    }
 
     effect(() => {
       const t = this.target();
       this.loadToken += 1;
       this.candidates.set([]);
-      this.filters.set(EMPTY_SWAP_FILTERS);
-      this.sorts.set([]);
-      this.selected.set(null);
-      this.deltas.set([]);
+      this.query.set('');
+      this.scope.set('sameClass');
+      this.baseline.set('fitted');
+      this.columnMenu.set(EMPTY_COLUMN_MENU_STATE);
       this.error.set(false);
       if (t) {
         this.returnFocus = (globalThis.document?.activeElement as HTMLElement | null) ?? null;
@@ -490,8 +572,6 @@ export class CodexSwapPickerComponent {
       }
     });
 
-    // Move focus INTO the dialog once its rows exist, so a keyboard user lands
-    // on the search box instead of at the top of the page behind the backdrop.
     effect(() => {
       if (this.candidates().length > 0 || this.loading()) {
         queueMicrotask(() => this.search()?.nativeElement.focus());
@@ -505,28 +585,21 @@ export class CodexSwapPickerComponent {
     this.loading.set(true);
     try {
       const installedName = t.className;
-      const seedPayloads = installedName ? await this.svc.getEntityPayloads([installedName]) : null;
+      const seedNames = [installedName, t.factoryClassName].filter((n): n is string => !!n);
+      const seedPayloads = seedNames.length > 0 ? await this.svc.getEntityPayloads(seedNames) : null;
       const installed = installedName ? seedPayloads?.get(installedName) : undefined;
       const attachType = (installed?.payload as { attachType?: string | null } | undefined)?.attachType;
       const size =
         t.size ?? ((installed?.payload as { size?: number | null } | undefined)?.size ?? null);
-      // An empty bay has no installed item to read an attachType off, so the
-      // caller's declared accepted types carry the query instead (1add86a4).
       const types = attachType ? [attachType] : (t.attachTypes ?? []).filter(Boolean);
       if (types.length === 0) {
         if (token === this.loadToken) this.candidates.set([]);
         return;
       }
 
-      const items = await this.svc.getCompatibleItems({
-        types,
-        minSize: size,
-        maxSize: size,
-      });
-      // The installed item is a ROW here, not an exception: a pilot needs to see
-      // where what they own already sits in the ranking.
+      const items = await this.svc.getCompatibleItems({ types, minSize: size, maxSize: size });
       const names = items.map((i) => i.classNameSlug);
-      if (installedName && !names.includes(installedName)) names.push(installedName);
+      for (const extra of seedNames) if (!names.includes(extra)) names.push(extra);
 
       const payloads = await this.hydrate(names, (n) => this.svc.getEntityPayloads(n));
       const ammo = await this.hydrate(ammoClassNamesFor(names), (n) => this.svc.getAmmoPayloads(n));
@@ -534,31 +607,30 @@ export class CodexSwapPickerComponent {
       const rows = items.map((it) =>
         this.toCandidate(it, payloads, ammo, it.classNameSlug === installedName),
       );
-      if (installedName && !items.some((i) => i.classNameSlug === installedName)) {
-        const hit = payloads.get(installedName);
-        if (hit) {
-          rows.unshift(
-            this.toCandidate(
-              {
-                kind: hit.kind,
-                classNameSlug: installedName,
-                nameLocalized: t.name,
-                manufacturerCode: null,
-                size: t.size,
-                subType: (hit.payload as { subType?: string | null } | undefined)?.subType ?? null,
-                grade: null,
-              },
-              payloads,
-              ammo,
-              true,
-            ),
-          );
-        }
+      for (const extra of seedNames) {
+        if (items.some((i) => i.classNameSlug === extra)) continue;
+        const hit = payloads.get(extra);
+        if (!hit) continue;
+        rows.unshift(
+          this.toCandidate(
+            {
+              kind: hit.kind,
+              classNameSlug: extra,
+              nameLocalized: extra === installedName ? t.name : null,
+              manufacturerCode: null,
+              size: t.size,
+              subType: (hit.payload as { subType?: string | null } | undefined)?.subType ?? null,
+              grade: null,
+            },
+            payloads,
+            ammo,
+            extra === installedName,
+          ),
+        );
       }
 
-      if (token !== this.loadToken) return; // a newer target won
+      if (token !== this.loadToken) return;
       this.candidates.set(rows);
-      this.sorts.set(defaultSwapSort(swapColumns(rows)));
     } catch {
       if (token === this.loadToken) this.error.set(true);
     } finally {
@@ -587,7 +659,6 @@ export class CodexSwapPickerComponent {
     });
   }
 
-  /** Fetch in chunks — a single `in.()` with hundreds of class names is fragile. */
   private async hydrate<T>(
     names: string[],
     fetch: (chunk: string[]) => Promise<Map<string, T>>,
@@ -600,79 +671,294 @@ export class CodexSwapPickerComponent {
     return out;
   }
 
+  // ── column chooser persistence ───────────────────────────────────────────
+
+  private loadColumns(): SwapColumnChooser {
+    try {
+      if (typeof localStorage === 'undefined') return DEFAULT_SWAP_COLUMN_CHOOSER;
+      const raw = localStorage.getItem(COLUMN_STORAGE_KEY);
+      if (!raw) return DEFAULT_SWAP_COLUMN_CHOOSER;
+      const parsed = JSON.parse(raw) as { visible?: unknown };
+      if (!Array.isArray(parsed.visible)) return DEFAULT_SWAP_COLUMN_CHOOSER;
+      const known = new Set(SWAP_VALUE_CATALOGUE.map((v) => v.key));
+      const visible = parsed.visible.filter((v): v is string => typeof v === 'string' && known.has(v));
+      return visible.includes(NAME_SORT_KEY) ? { visible } : { visible: [NAME_SORT_KEY, ...visible] };
+    } catch {
+      return DEFAULT_SWAP_COLUMN_CHOOSER;
+    }
+  }
+
+  private saveColumns(state: SwapColumnChooser): void {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // best-effort — a blocked/full localStorage never breaks the picker
+    }
+  }
+
   // ── derived view state ─────────────────────────────────────────────────────
 
-  readonly columns = computed<SwapColumn[]>(() => swapColumns(this.candidates()));
-
-  readonly facets = computed(() => swapFacets(this.candidates()));
-
-  readonly rows = computed<SwapCandidate[]>(() =>
-    sortSwapCandidates(filterSwapCandidates(this.candidates(), this.filters()), this.sorts()),
+  private readonly fitted = computed(() =>
+    this.candidates().find((c) => c.className === this.target()?.className),
   );
 
-  /** The column the table is currently ordered by (drives the magnitude bars). */
-  readonly primaryKey = computed<string | null>(() => this.sorts()[0]?.key ?? null);
-
-  readonly bars = computed<Map<string, number | null>>(() => {
-    const key = this.primaryKey();
-    return key && key !== NAME_SORT_KEY
-      ? swapColumnBars(this.rows(), key)
-      : new Map<string, number | null>();
-  });
-
-  /**
-   * The reference layout also lists fire rate, DPS, magazine, power draw, EM and
-   * spread. Our 4.9.0 extract carries none of them for ship weapons, so instead
-   * of twelve columns of "—" the table names what is missing once, in the
-   * footer — the honest version of an empty column.
-   */
-  readonly missingColumns = computed<string | null>(() => {
-    const have = new Set(this.columns().map((c) => c.key));
-    const wanted = ['codex.equipped.dps', 'codex.equipped.fireRate'];
-    const gaps = wanted.filter((k) => !have.has(k));
-    if (this.candidates().length === 0 || gaps.length === 0) return null;
-    // Re-read on a language switch, and name the stats the way the table would
-    // have labelled their columns.
+  readonly scopeOptions = computed<ScSegmentOption[]>(() => {
     this.lang();
-    return gaps.map((k) => this.i18n.instant(k) as string).join(', ');
+    return swapScopeOptions(this.candidates(), this.fitted())
+      .filter((o) => o.available)
+      .map((o) => ({
+        value: o.scope,
+        label: this.i18n.instant(o.labelKey, this.resolveScopeParams(o.scope, o.params)) as string,
+      }));
   });
 
-
-
-  // ── interaction ────────────────────────────────────────────────────────────
-
-  setQuery(ev: Event): void {
-    const query = (ev.target as HTMLInputElement).value;
-    this.filters.update((f) => ({ ...f, query }));
+  /** Translates the raw damage-channel id `sameFamily` carries into a word. */
+  private resolveScopeParams(scope: SwapScope, params: Record<string, string | number>): Record<string, string | number> {
+    if (scope !== 'sameFamily') return params;
+    const family = params['family'];
+    if (typeof family !== 'string' || !family) return params;
+    const labelKey = DAMAGE_FAMILY_LABEL_KEY[family];
+    return { ...params, family: labelKey ? (this.i18n.instant(labelKey) as string) : family };
   }
 
-  setDamage(value: string | null): void {
-    this.filters.update((f) => pruneSwapFilters({ ...f, damage: value }, this.facets()));
+  readonly baselineOptions = computed<ScSegmentOption[]>(() => {
+    const opts: ScSegmentOption[] = [{ value: 'fitted', labelKey: 'codex.picker.baseline.equipped' }];
+    // `Ab Werk` is omitted rather than shown disabled — sc-segmented has no
+    // disabled-option affordance, and offering a baseline nothing resolves to
+    // would be a dead choice (B-C14).
+    if (this.target()?.factoryClassName) opts.push({ value: 'factory', labelKey: 'codex.picker.baseline.factory' });
+    return opts;
+  });
+
+  readonly baselineClass = computed<string | null>(() =>
+    baselineClassName(this.baseline(), {
+      fittedClassName: this.target()?.className ?? null,
+      factoryClassName: this.target()?.factoryClassName ?? null,
+    }),
+  );
+
+  /** Scope chip label under the table (Concept #g3) — mirrors the active segment. */
+  readonly scopeChip = computed<{ label: string } | null>(() => {
+    if (this.scope() === 'allSize') return null;
+    const opt = this.scopeOptions().find((o) => o.value === this.scope());
+    return opt ? { label: opt.label ?? '' } : null;
+  });
+
+  readonly scoped = computed<SwapCandidate[]>(() =>
+    applySwapScope(this.candidates(), this.fitted(), this.scope()),
+  );
+
+  readonly searched = computed<SwapCandidate[]>(() => {
+    const q = this.query().trim().toLowerCase();
+    const scoped = this.scoped();
+    if (!q) return scoped;
+    const terms = q.split(/\s+/);
+    return scoped.filter((c) => {
+      const hay = [c.name, c.manufacturerCode, ...c.damageChannels].filter(Boolean).join(' ').toLowerCase();
+      return terms.every((term) => hay.includes(term));
+    });
+  });
+
+  /** Column keys the extract has no source for at all — omitted + named in the footer. */
+  private readonly unavailableKeys = computed<Set<string>>(
+    () => new Set(swapMissingSourceColumns(this.candidates(), SWAP_VALUE_CATALOGUE.map((v) => v.key))),
+  );
+
+  readonly unavailable = this.unavailableKeys;
+
+  readonly missingColumnsText = computed<string | null>(() => {
+    const missing = swapMissingSourceColumns(this.candidates(), this.chooser().visible);
+    if (missing.length === 0) return null;
+    this.lang();
+    return missing.map((k) => this.i18n.instant(k) as string).join(', ');
+  });
+
+  private columnDefFor(key: string): ColumnDef<SwapCandidate> {
+    const def = swapValueDef(key);
+    const direct = DIRECT_ACCESSORS[key];
+    return {
+      key,
+      labelKey: key === NAME_SORT_KEY ? 'codex.picker.col.name' : key,
+      kind: def?.categorical ? 'categorical' : 'numeric',
+      accessor: direct ?? ((c) => c.stats[key]?.value ?? null),
+      lowerIsBetter: def?.lowerIsBetter,
+    };
   }
 
-  setType(value: string | null): void {
-    this.filters.update((f) => pruneSwapFilters({ ...f, type: value }, this.facets()));
+  /** True while the chooser still holds the untouched default 17-column set. */
+  private readonly chooserIsDefault = computed<boolean>(() => {
+    const visible = this.chooser().visible;
+    return (
+      visible.length === DEFAULT_SWAP_COLUMNS.length && visible.every((k, i) => k === DEFAULT_SWAP_COLUMNS[i])
+    );
+  });
+
+  /** Visible columns (chooser selection, minus the ones with no data source at all). */
+  readonly displayColumns = computed<(SwapValueDef & { def: ColumnDef<SwapCandidate> })[]>(() => {
+    const wanted =
+      this.isPhone() && this.chooserIsDefault()
+        ? [NAME_SORT_KEY, ...CodexSwapPickerComponent.PHONE_COLUMNS]
+        : this.chooser().visible;
+    const missing = new Set(swapMissingSourceColumns(this.candidates(), wanted));
+    return wanted
+      .filter((k) => k !== NAME_SORT_KEY && !missing.has(k))
+      .map((k) => ({ ...(swapValueDef(k) as SwapValueDef), def: this.columnDefFor(k) }));
+  });
+
+  private readonly allMenuColumns = computed<ColumnDef<SwapCandidate>[]>(() => [
+    this.columnDefFor(NAME_SORT_KEY),
+    ...this.displayColumns().map((c) => c.def),
+  ]);
+
+  readonly rows = computed<SwapCandidate[]>(() =>
+    applyColumnMenu(this.searched(), this.allMenuColumns(), this.columnMenu()),
+  );
+
+  // The baseline is a property of the PORT, not of the current filter — a
+  // factory Cannon fitted under "Nur Repeater" must still price every row
+  // against it (B-C14), so the map is built over every candidate, not `rows()`.
+  readonly deltaColumn = computed(() =>
+    swapDeltaColumn(this.candidates(), 'codex.equipped.dps', this.baselineClass()),
+  );
+
+  /** True when the active Δ baseline is filtered out of the visible rows. */
+  readonly baselineOutOfSet = computed<boolean>(() => {
+    const base = this.baselineClass();
+    if (base === null) return false;
+    return !this.rows().some((c) => c.className === base);
+  });
+
+  readonly chips = computed<ColumnFilterChip[]>(() =>
+    activeFilterChips(this.allMenuColumns(), this.columnMenu()),
+  );
+
+  private barsCache = new Map<string, Map<string, { percent: number | null; optimum: boolean }>>();
+  barOf(key: string, c: SwapCandidate): { percent: number | null; optimum: boolean } | undefined {
+    let m = this.barsCache.get(key);
+    if (!m || this.barsCacheRows !== this.rows()) {
+      m = swapValueBars(this.rows(), this.candidates(), key);
+      this.barsCache.set(key, m);
+      this.barsCacheRows = this.rows();
+    }
+    return m.get(c.className);
+  }
+  private barsCacheRows: SwapCandidate[] | null = null;
+
+  /** Columns beyond the ones a 1080px window shows fully at once (concept: 8 incl. name). */
+  private static readonly VISIBLE_WITHOUT_SCROLL = 7;
+
+  /** Off-screen column labels, joined for the horizontal scroll cue (B-C17). */
+  readonly overflowColumnLabels = computed<string>(() => {
+    this.lang();
+    return this.displayColumns()
+      .slice(CodexSwapPickerComponent.VISIBLE_WITHOUT_SCROLL)
+      .map((c) => this.i18n.instant(c.key) as string)
+      .join(', ');
+  });
+
+  // ── column head interaction ────────────────────────────────────────────────
+
+  sortDirOf(key: string): SortDir | null {
+    const s = this.columnMenu().sort;
+    return s?.key === key ? s.dir : null;
   }
 
-  /** Ctrl (or ⌘ on macOS) adds the column as a secondary sort instead of replacing. */
-  sortBy(key: string, ev: MouseEvent): void {
-    this.sorts.update((s) => toggleSwapSort(s, key, ev.ctrlKey || ev.metaKey));
+  rangeOf(key: string): { min: number | null; max: number | null } | null {
+    const f = this.columnMenu().filters[key];
+    return f && f.kind === 'numeric' ? { min: f.min, max: f.max } : null;
   }
 
-  sortMark(key: string): string {
-    const at = this.sorts().findIndex((s) => s.key === key);
-    if (at < 0) return '';
-    const arrow = this.sorts()[at].dir === 'asc' ? '▲' : '▼';
-    return this.sorts().length > 1 ? `${arrow}${at + 1}` : arrow;
+  facetsOf(key: string): ColumnFacet[] {
+    if (key === NAME_SORT_KEY) return [];
+    const col = this.allMenuColumns().find((c) => c.key === key);
+    if (!col || col.kind !== 'categorical') return [];
+    return columnFacets(this.searched(), col, this.columnMenu(), this.allMenuColumns());
+  }
+
+  hasFilter(key: string): boolean {
+    return !!this.columnMenu().filters[key];
   }
 
   ariaSort(key: string): 'ascending' | 'descending' | 'none' {
-    const hit = this.sorts().find((s) => s.key === key);
-    return hit ? (hit.dir === 'asc' ? 'ascending' : 'descending') : 'none';
+    const s = this.columnMenu().sort;
+    return s?.key === key ? (s.dir === 'asc' ? 'ascending' : 'descending') : 'none';
   }
 
-  cell(candidate: SwapCandidate, column: SwapColumn): string {
-    return swapCell(candidate, column);
+  onHeadClick(key: string): void {
+    const col = this.allMenuColumns().find((c) => c.key === key);
+    if (col) this.columnMenu.update((s) => toggleColumnSort(s, col));
+  }
+
+  onSortPick(key: string, dir: SortDir): void {
+    this.columnMenu.update((s) => setColumnSort(s, key, dir));
+  }
+
+  onRangeChange(key: string, range: { min: number | null; max: number | null }): void {
+    this.columnMenu.update((s) => setNumericFilter(s, key, range.min, range.max));
+  }
+
+  onFacetToggle(key: string, value: string): void {
+    this.columnMenu.update((s) => toggleFacetValue(s, key, value));
+  }
+
+  onClearFilter(key: string): void {
+    this.columnMenu.update((s) => clearColumnFilter(s, key));
+  }
+
+  clearAllFilters(): void {
+    this.columnMenu.update(clearAllColumnFilters);
+  }
+
+  toggleColumn(key: string): void {
+    this.chooser.update((s) => {
+      const next = toggleSwapColumn(s, key);
+      this.saveColumns(next);
+      return next;
+    });
+  }
+
+  resetColumns(): void {
+    const next = resetSwapColumns();
+    this.chooser.set(next);
+    this.saveColumns(next);
+  }
+
+  colLabel(v: SwapValueDef): string {
+    this.lang();
+    const label = this.i18n.instant(v.key) as string;
+    const unitKey = unitKeyFor(v.key, v);
+    if (!unitKey) return label;
+    return `${label} ${this.i18n.instant(unitKey) as string}`;
+  }
+
+  // ── cells ──────────────────────────────────────────────────────────────────
+
+  cellState(c: SwapCandidate, key: string): 'value' | 'notApplicable' | 'noSource' {
+    return swapCellState(c, key);
+  }
+
+  cellText(c: SwapCandidate, v: SwapValueDef): string {
+    if (v.key === 'codex.picker.col.deltaSustained') return this.deltaText(c);
+    const state = swapCellState(c, v.key);
+    if (state === 'value') return swapCell(c, { key: v.key, format: v.format, derived: false });
+    return this.i18n.instant('codex.picker.dashCell') as string;
+  }
+
+  private deltaText(c: SwapCandidate): string {
+    if (c.className === this.baselineClass()) return this.i18n.instant('codex.picker.noDelta') as string;
+    const v = this.deltaColumn().get(c.className);
+    if (v === null || v === undefined) return this.i18n.instant('codex.picker.dashCell') as string;
+    const sign = v > 0 ? '+' : v < 0 ? '−' : '±';
+    return `${sign}${formatEquippedStat({ labelKey: '', value: Math.abs(v), format: 'dec' })}`;
+  }
+
+  /** Green for a real gain, red for a real loss, plain for `±0`/unknown (B-C16). */
+  deltaTone(c: SwapCandidate): 'up' | 'down' | 'none' {
+    if (c.className === this.baselineClass()) return 'none';
+    const v = this.deltaColumn().get(c.className);
+    if (v === null || v === undefined || v === 0) return 'none';
+    return v > 0 ? 'up' : 'down';
   }
 
   /** "KLA · Laser Repeater · Grade A" — catalog data, so untranslated. */
@@ -680,42 +966,17 @@ export class CodexSwapPickerComponent {
     return [c.manufacturerCode, c.typeLabel, c.grade].filter(Boolean).join(' · ');
   }
 
-  pctLabel(d: StatDelta): string {
-    if (d.pct === null) return '±';
-    return d.pct > 0 ? `+${d.pct}%` : `${d.pct}%`;
+  setQuery(ev: Event): void {
+    this.query.set((ev.target as HTMLInputElement).value);
   }
 
-  /** Clicking anywhere on a row picks it; the name button handles its own click. */
-  rowClick(c: SwapCandidate, ev: Event): void {
-    if ((ev.target as HTMLElement | null)?.closest('button')) return;
-    this.pick(c);
-  }
-
-  /** Preview a candidate against what is installed. Never persists anything. */
+  /** Row click picks the component directly (MASTER §9). */
   pick(c: SwapCandidate): void {
-    if (this.selected() === c.className) {
-      this.selected.set(null);
-      this.deltas.set([]);
-      return;
-    }
-    this.selected.set(c.className);
-    const installedName = this.target()?.className;
-    const installed = this.candidates().find((x) => x.className === installedName);
-    this.deltas.set(
-      installed && installed.className !== c.className
-        ? computeStatDeltas(swapStatRows(installed), swapStatRows(c))
-        : [],
-    );
-  }
-
-  /** "Übernehmen" — emit the choice, never write it ourselves (Falle 5). */
-  apply(c: SwapCandidate): void {
     const t = this.target();
     if (!t) return;
     this.picked.emit({ className: c.className, target: t });
   }
 
-  /** "Slot leeren" — always the first row (03-rules §7.5), draft always expresses it. */
   clearSlot(): void {
     const t = this.target();
     if (!t) return;
@@ -724,11 +985,6 @@ export class CodexSwapPickerComponent {
 
   // ── dialog behaviour ───────────────────────────────────────────────────────
 
-  /**
-   * ESC closes, Tab cycles inside the dialog. The trap is a plain wrap-around
-   * over the panel's focusable children — no CDK overlay, so the ship page can
-   * render the picker inline and it stays unit-testable.
-   */
   onKeydown(ev: KeyboardEvent): void {
     if (ev.key === 'Escape') {
       ev.stopPropagation();

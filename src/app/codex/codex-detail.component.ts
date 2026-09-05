@@ -1973,6 +1973,7 @@ export class CodexDetailComponent implements OnInit {
         kind: null,
         name: null,
         size: fit.size,
+        factoryClassName: ev.rawPorts && ev.rawPorts.length > 0 ? this.stockValueForPath(ev.rawPorts[0]) : null,
         attachTypes: fit.types,
         fitInferred: fit.inferred,
         rawPorts: ev.rawPorts,
@@ -1987,6 +1988,7 @@ export class CodexDetailComponent implements OnInit {
       kind: src.kind,
       name: src.name,
       size: src.size,
+      factoryClassName: ev.rawPorts && ev.rawPorts.length > 0 ? this.stockValueForPath(ev.rawPorts[0]) : null,
       rawPorts: ev.rawPorts,
       rawTypes: ev.child ? ev.child.rawTypes : (this.detail()?.ports.find((p) => p.portName === ev.slot.rawPort)?.types ?? []),
     });
