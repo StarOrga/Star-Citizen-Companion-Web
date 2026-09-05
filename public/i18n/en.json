@@ -1614,6 +1614,10 @@
       "unknown": "Status unknown",
       "services": "Services",
       "noComponents": "No service details available.",
+      "appDownload": {
+        "label": "Download the Companion app",
+        "hint": "Windows installer · always the newest build"
+      },
       "checkExternal": "RSI status page ↗"
     },
     "buckets": {
@@ -2269,6 +2273,15 @@
         "label": "Enter sends",
         "descOn": "Enter sends the message, Shift+Enter inserts a new line. Ctrl/Cmd+Enter sends as well.",
         "descOff": "Enter inserts a new line. Sending happens only with Ctrl/Cmd+Enter or the send button."
+      }
+    },
+    "feedbackFab": {
+      "title": "Feedback button",
+      "hint": "The corner button you send feedback through, and where replies from the team show up.",
+      "show": {
+        "label": "Show the feedback button",
+        "descOn": "The feedback button sits in the bottom-right corner of every page.",
+        "descOff": "The feedback button is hidden — replies and questions from the team stay out of sight with it. Switch it back on here to open your feedback."
       }
     },
     "danger": {

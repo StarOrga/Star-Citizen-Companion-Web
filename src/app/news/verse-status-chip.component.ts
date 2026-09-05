@@ -10,9 +10,22 @@ import {
   signal,
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
+import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { NewsService, StatusLevel, effectivePlayability } from './news.service';
 
 const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
+
+/**
+ * The Companion desktop app's never-stale installer.
+ *
+ * `scc-app-latest` is an ALIAS release on the public binaries mirror carrying a
+ * version-less asset name, exactly like `wallpaper-app-latest` (Starscape) and
+ * `browser-extension-latest` (the hangar extension): every `v*` release of the
+ * app repo republishes it, so this fixed URL always hands out the newest build
+ * and the website never has to know a version number.
+ */
+const SCC_INSTALLER_URL =
+  'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/scc-app-latest/SCC-Standalone-Setup.exe';
 
 /**
  * How often the header chip re-checks the verse status, and how old the feed
@@ -71,6 +84,32 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
             <a class="ext-link" [href]="rsiStatusUrl" target="_blank" rel="noopener noreferrer">
               {{ 'news.status.checkExternal' | translate }}
             </a>
+
+            <!-- "The verse is playable" is the moment you go and play, so this
+                 is where the desktop Companion is offered. A public download in
+                 the normal accent (not the hot one — that marks surfaces a
+                 normal user never reaches), pointing at the never-stale alias
+                 asset so the link cannot go stale between releases.
+
+                 Hidden on a device that cannot install a Windows application at
+                 all — same rule the desktop download menu follows (admin
+                 feedback dccdcc82): a 400 MB installer offered on a phone is
+                 noise, and the status panel keeps working without it. -->
+            @if (canInstall()) {
+              <a
+                class="app-dl"
+                [href]="sccInstallerUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                (click)="onDownload()">
+                <span class="dl-arrow" aria-hidden="true">↓</span>
+                <span class="dl-text">
+                  <strong>{{ 'news.status.appDownload.label' | translate }}</strong>
+                  <span class="dl-hint">{{ 'news.status.appDownload.hint' | translate }}</span>
+                </span>
+              </a>
+            }
           </div>
         }
       </div>
@@ -135,6 +174,23 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
     .muted { color: var(--sc-fg-2); font-size: 0.82rem; margin: 0; }
     .ext-link { font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-accent); }
 
+    /* Sits under a hairline: the panel answers "is it up?", and the download is
+       the next step, not part of the answer. */
+    .app-dl {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 2px; padding: 9px 10px;
+      border: 1px solid var(--sc-border); border-radius: 6px;
+      background: var(--sc-bg-1); color: var(--sc-fg-0);
+      text-decoration: none;
+      transition: border-color .18s ease, background .18s ease;
+    }
+    .app-dl:hover { border-color: var(--sc-accent); background: var(--sc-bg-2); }
+    .app-dl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .dl-arrow { color: var(--sc-accent); font-size: 0.95rem; flex: 0 0 auto; }
+    .dl-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .dl-text strong { font-size: 0.82rem; font-weight: 600; }
+    .dl-hint { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+
     /* Phones: the label eats the row the nav needs, so only the dot survives. */
     @media (max-width: 720px) {
       .vs-label { display: none; }
@@ -164,8 +220,12 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
 export class VerseStatusChipComponent implements OnInit {
   private readonly svc = inject(NewsService);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly device = inject(DesktopCapabilityService);
 
   readonly rsiStatusUrl = RSI_STATUS_URL;
+  readonly sccInstallerUrl = SCC_INSTALLER_URL;
+  /** Can this device install a downloaded Windows application at all? */
+  readonly canInstall = this.device.canInstall;
   readonly open = signal(false);
 
   readonly status = computed(() => this.svc.feed()?.status ?? null);
@@ -209,6 +269,16 @@ export class VerseStatusChipComponent implements OnInit {
   toggle(event: Event): void {
     event.stopPropagation();
     this.open.update((v) => !v);
+  }
+
+  /**
+   * Collapse once a download is under way — the app's rule for every download
+   * control (see `AppDownloadMenuComponent.onDownload`). The anchor itself is
+   * untouched, so middle-click and "open in new tab" keep working and simply
+   * leave the panel closed behind them.
+   */
+  onDownload(): void {
+    this.open.set(false);
   }
 
   @HostListener('document:click', ['$event'])

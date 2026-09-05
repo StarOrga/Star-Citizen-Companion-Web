@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.81.0] - 2026-09-06
+
+### Added
+
+- **The feedback button can be switched off.** It sits in the bottom-right
+  corner of every page and there was no way to move it out of the way.
+  Settings → Eingabe now carries a "Feedback-Button anzeigen" switch. It is an
+  opt-out: the default is on, an unreadable or cleared browser storage falls
+  back to on, and the card that switches it off is also the way back — the
+  launcher is how you tell us the app is broken, so it must not be able to
+  disappear by accident. Switching it off also hides replies and questions from
+  the team, and the setting says so.
+- **The "Spielbar" chip hands out the Companion desktop app.** The header chip
+  answers the question you open the app for, and the moment it says the verse is
+  up is the moment you go and play — so its panel now also offers the Windows
+  installer, always the newest build. It is not shown on a device that cannot
+  install a desktop application at all.
+
 ## [0.80.5] - 2026-09-06
 
 ### Changed

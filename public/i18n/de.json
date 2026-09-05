@@ -1614,6 +1614,10 @@
       "unknown": "Status unbekannt",
       "services": "Services",
       "noComponents": "Keine Service-Details verfügbar.",
+      "appDownload": {
+        "label": "Companion-App herunterladen",
+        "hint": "Windows-Installer · immer die neueste Version"
+      },
       "checkExternal": "RSI Status-Seite ↗"
     },
     "buckets": {
@@ -2269,6 +2273,15 @@
         "label": "Enter sendet",
         "descOn": "Enter sendet die Nachricht, Shift+Enter macht eine neue Zeile. Strg/Cmd+Enter sendet ebenfalls.",
         "descOff": "Enter macht eine neue Zeile. Gesendet wird nur mit Strg/Cmd+Enter oder über den Senden-Button."
+      }
+    },
+    "feedbackFab": {
+      "title": "Feedback-Button",
+      "hint": "Der Knopf unten rechts, über den du Feedback schickst und Antworten des Teams siehst.",
+      "show": {
+        "label": "Feedback-Button anzeigen",
+        "descOn": "Der Feedback-Button liegt auf jeder Seite unten rechts.",
+        "descOff": "Der Feedback-Button ist ausgeblendet — damit siehst du auch keine Antworten und Rückfragen des Teams mehr. Hier wieder einschalten, um dein Feedback zu öffnen."
       }
     },
     "danger": {

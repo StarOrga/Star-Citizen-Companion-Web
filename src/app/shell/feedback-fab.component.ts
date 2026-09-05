@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
+import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
 import { PanelNavigationService } from '../feedback/panel-navigation.service';
 import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.component';
 import { RoutineStatusDirective } from '../admin/feedback/routine-status.directive';
@@ -36,7 +37,7 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
   host: { 'data-sc-capture-hide': '' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (roles.isAdmin()) {
+    @if (visible()) {
       <div class="fab-root">
         @if (mounted()) {
           <!-- “sc-sheet” (styles.scss): a docked corner window above 720px, a
@@ -291,7 +292,16 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
 })
 export class FeedbackFabComponent {
   readonly roles = inject(RoleService);
+  private readonly fabPrefs = inject(FeedbackFabPrefsService);
   private readonly panelNav = inject(PanelNavigationService);
+
+  /**
+   * Admin, and the launcher not switched off in Settings → Feedback. Hiding it
+   * takes the whole board with it: the panel is only ever reachable through
+   * this button, so leaving it mounted-but-buttonless would keep an invisible
+   * overlay in the page for nothing.
+   */
+  readonly visible = computed(() => this.roles.isAdmin() && this.fabPrefs.show());
 
   constructor() {
     let seen = this.panelNav.navigations();
