@@ -5,6 +5,7 @@ import { StabilityVerdict } from './patch-stability';
 
 const base: StabilityVerdict = {
   line: '4.10', liveAt: '2026-08-26T00:00:00Z', daysLive: 10, level: 3, score: 0.437,
+  stability: 56, tone: 'amber' as const,
   components: { community: 0.49, service: 0, cig: 0.31 }, early: true, insufficient: false, historical: false,
   days: [
     { date: '2026-09-04', velocity: 30, score: 0.4, level: 3, components: { community: 0.4, service: 0, cig: 0.3 }, hotfixes: [] },
@@ -27,7 +28,8 @@ describe('StabilityPanelComponent', () => {
 
   it('renders headline, three component bars, a column per day with hotfix marks, and ticket anchors', () => {
     const el = render(base);
-    expect(el.querySelector('.headline')!.getAttribute('data-level')).toBe('3');
+    expect(el.querySelector('.headline')!.getAttribute('data-tone')).toBe('amber');
+    expect(el.querySelector('.headline .pctv')!.textContent!.replace(/\s/g, '')).toBe('56%');
     expect(el.querySelectorAll('.comp').length).toBe(3);
     expect(el.querySelectorAll('.col').length).toBe(2);
     expect(el.querySelectorAll('.col.hotfix').length).toBe(1);
@@ -46,7 +48,7 @@ describe('StabilityPanelComponent', () => {
   });
 
   it('insufficient verdict: only the "not enough data" state', () => {
-    const el = render({ ...base, insufficient: true, level: null, score: null });
+    const el = render({ ...base, insufficient: true, level: null, score: null, stability: null, tone: null });
     expect(el.querySelector('.headline')).toBeNull();
     expect(el.querySelector('.state.insufficient')).not.toBeNull();
   });

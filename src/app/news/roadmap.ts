@@ -107,3 +107,18 @@ export function hasRoadmapContent(payload: RoadmapPayload | null): boolean {
   if (!payload) return false;
   return (payload.current?.cards.length ?? 0) > 0 || (payload.next?.cards.length ?? 0) > 0;
 }
+
+/**
+ * Deep link to ONE roadmap card on RSI's Release View, which opens with the
+ * card's own panel already expanded — e.g.
+ * `…/roadmap/release-view/1544-Instancing`.
+ *
+ * The shape is `<card id>-<url slug>`, both of which the edge function already
+ * carries verbatim from RSI (`id`, `url_slug`). Returns '' when either half is
+ * missing, so a caller can fall back to the board link instead of building a
+ * URL that 404s.
+ */
+export function roadmapCardUrl(card: Pick<RoadmapCard, 'id' | 'slug'>): string {
+  if (!card.id || !card.slug || card.id === card.slug) return '';
+  return `https://robertsspaceindustries.com/roadmap/release-view/${card.id}-${card.slug}`;
+}

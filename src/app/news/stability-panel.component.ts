@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { EARLY_DAYS, StabilityComponents, StabilityDay, StabilityVerdict } from './patch-stability';
+import { EARLY_DAYS, StabilityComponents, StabilityDay, StabilityVerdict, stabilityPercent, toneOf } from './patch-stability';
 
 const ISSUE_URL = 'https://issue-council.robertsspaceindustries.com/projects/STAR-CITIZEN/issues/';
 type CompKey = keyof StabilityComponents;
@@ -26,16 +26,21 @@ const COMP_KEYS: CompKey[] = ['community', 'service', 'cig'];
         @if (v.insufficient) {
           <p class="state insufficient">{{ 'news.patch.stability.insufficient' | translate }}</p>
         } @else {
-          <div class="headline" [attr.data-level]="v.level">
+          <div class="headline" [attr.data-tone]="v.tone">
             <span class="dot" aria-hidden="true"></span>
+            <span class="pctv">{{ v.stability }}<i>%</i></span>
             <span class="lvl">{{ ('news.patch.stability.level.' + v.level) | translate }}</span>
-            <span class="score">{{ 'news.patch.stability.score' | translate:{ score: pct(v.score) } }}</span>
+            <span class="score">{{ 'news.patch.stability.score' | translate }}</span>
             @if (v.early) {
               <span class="early">{{ 'news.patch.stability.early' | translate:{ day: day(), threshold: threshold } }}</span>
             }
           </div>
 
           <ul class="comps">
+            <!-- These bars are DEDUCTIONS: each component measures bad news,
+                 so a long bar is a big subtraction from the 100 %. Written
+                 with a minus and drawn in the warning colour so it can never
+                 be misread as "more is better" like the headline figure. -->
             @for (k of compKeys; track k) {
               <li class="comp" [attr.title]="('news.patch.stability.componentHint.' + k) | translate">
                 <span class="comp-name">{{ ('news.patch.stability.component.' + k) | translate }}</span>
@@ -45,10 +50,11 @@ const COMP_KEYS: CompKey[] = ['community', 'service', 'cig'];
                   }
                 </span>
                 <span class="comp-val">
-                  {{ v.components[k] === null ? ('news.patch.stability.component.none' | translate) : pct(v.components[k]) }}
+                  {{ v.components[k] === null ? ('news.patch.stability.component.none' | translate) : ('−' + pct(v.components[k])) }}
                 </span>
               </li>
             }
+            <p class="comp-note">{{ 'news.patch.stability.deductions' | translate }}</p>
           </ul>
 
           @if (v.historical) {
@@ -59,8 +65,8 @@ const COMP_KEYS: CompKey[] = ['community', 'service', 'cig'];
               <div class="chart" role="img" [attr.aria-label]="'news.patch.stability.timelineAria' | translate:{ days: v.days.length }">
                 @for (d of v.days; track d.date) {
                   <span class="col" [class.early]="isEarlyDay(v, d)" [class.hotfix]="d.hotfixes.length > 0"
-                        [attr.data-level]="d.level" [attr.title]="dayTitle(d)">
-                    <span class="col-bar" [style.height.%]="pct(d.score)"></span>
+                        [attr.data-tone]="tone(d)" [attr.title]="dayTitle(d)">
+                    <span class="col-bar" [style.height.%]="dayStability(d)"></span>
                     @if (d.hotfixes.length > 0) {
                       <!-- Decorative: the build number rides along in the column's
                            own title, which is reachable from the whole column. -->
@@ -130,20 +136,21 @@ const COMP_KEYS: CompKey[] = ['community', 'service', 'cig'];
       color: var(--level);
     }
     .headline .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--level); }
+    .headline .pctv { font-size: 1.35rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+    .headline .pctv i { font-style: normal; font-size: 0.6em; opacity: 0.75; }
     .headline .score, .headline .early { font-family: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .headline .early { border: 1px dashed color-mix(in srgb, var(--sc-fg-2) 60%, transparent); border-radius: 999px; padding: 0 7px; }
-    [data-level='1'] { --level: var(--sc-success); }
-    [data-level='2'] { --level: var(--sc-accent); }
-    [data-level='3'] { --level: var(--sc-warning); }
-    [data-level='4'] { --level: var(--sc-warn); }
-    [data-level='5'] { --level: var(--sc-danger); }
+    [data-tone='green'] { --level: var(--sc-success); }
+    [data-tone='amber'] { --level: var(--sc-warning); }
+    [data-tone='red'] { --level: var(--sc-danger); }
 
     .comps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
     .comp { display: grid; grid-template-columns: 9rem 1fr 3rem; align-items: center; gap: 8px; font-size: max(0.72rem, var(--sc-fs-floor)); }
     .comp-name { color: var(--sc-fg-1); }
     .comp-bar { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--sc-fg-2) 20%, transparent); overflow: hidden; }
-    .comp-fill { display: block; height: 100%; background: var(--sc-accent); }
-    .comp-val { text-align: right; color: var(--sc-fg-2); font-variant-numeric: tabular-nums; }
+    .comp-fill { display: block; height: 100%; background: var(--sc-warning); }
+    .comp-val { text-align: right; color: var(--sc-warning); font-variant-numeric: tabular-nums; }
+    .comp-note { margin: 2px 0 0; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     /* ---- Bars: same grammar as the cadence panel ---- */
     .chart-wrap { display: flex; flex-direction: column; gap: 4px; }
@@ -205,6 +212,15 @@ export class StabilityPanelComponent {
     return (Date.parse(d.date + 'T00:00:00Z') - Date.parse(v.liveAt)) / 86_400_000 < EARLY_DAYS;
   }
 
+  /** Column height: what survived that day, so taller is calmer. */
+  dayStability(d: StabilityDay): number {
+    return stabilityPercent(d.score) ?? 0;
+  }
+
+  tone(d: StabilityDay): string {
+    return toneOf(d.level);
+  }
+
   /**
    * The column's tooltip — and the ONLY place a hotfix's build number is
    * readable. The tick below the column is 2 px wide and decorative, so
@@ -215,7 +231,7 @@ export class StabilityPanelComponent {
     const base = this.t.instant('news.patch.stability.dayTitle', {
       date: d.date,
       level: this.t.instant(`news.patch.stability.level.${d.level}`),
-      score: this.pct(d.score),
+      score: this.dayStability(d),
       velocity: Math.round(d.velocity),
     });
     const hotfixes = this.hotfixTitle(d);

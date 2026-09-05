@@ -7,6 +7,8 @@ import { of } from 'rxjs';
 import { ConsentService } from '../core/consent.service';
 import { NewsService, VerseFeed, VerseNewsItem } from './news.service';
 import { PatchBoardComponent } from './patch-board.component';
+import { PatchStabilityService } from './patch-stability.service';
+import { StabilityVerdict, stabilityPercent, toneOf } from './patch-stability';
 import type { PatchOutline } from './patch-outline';
 import type { RoadmapPayload } from './roadmap';
 import { RoadmapService } from './roadmap.service';
@@ -45,11 +47,12 @@ const FEED = {
 
 const ROADMAP: RoadmapPayload = {
   current: { id: 'c', name: '4.10', quarter: 'Q3 2026', status: 'released', patchLine: '4.10', cards: [
-    { id: 'orison', slug: 'orison', name: 'Siege of Orison', description: 'V2', body: '', status: 'released', category: 'Gameplay', thumbnail: null },
+    { id: '1543', slug: 'Siege-Of-Orison', name: 'Siege of Orison', description: 'V2', body: '', status: 'released', category: 'Gameplay', thumbnail: null },
+    { id: '1551', slug: 'Super-Heavy-Combat-Armor', name: 'Super Heavy Combat Armor', description: '', body: '', status: 'released', category: 'Characters', thumbnail: null },
   ] },
   next: { id: 'n', name: '4.11', quarter: 'Q3 2026', status: 'tentative', patchLine: '4.11', cards: [
-    { id: 'nyx', slug: 'nyx', name: 'Nyx I', description: '', body: '', status: 'tentative', category: 'Locations', thumbnail: null },
-    { id: 'gen', slug: 'gen', name: 'Genesis: Starchitect', description: '', body: '', status: 'tentative', category: 'Core Tech', thumbnail: null },
+    { id: '1589', slug: 'Nyx-I', name: 'Nyx I', description: '', body: '', status: 'tentative', category: 'Locations', thumbnail: null },
+    { id: '1599', slug: 'Genesis-Starchitect', name: 'Genesis: Starchitect', description: '', body: '', status: 'tentative', category: 'Core Tech', thumbnail: null },
   ] },
   later: [],
   liveVersion: '4.10',
@@ -83,6 +86,34 @@ function roadmapStub(payload: RoadmapPayload | null) {
   };
 }
 
+/**
+ * A stability service with a verdict for the LIVE line and the one before it —
+ * exactly the shape the board's corner badges read.
+ */
+function verdict(line: string, level: 1 | 2 | 3 | 4 | 5, score: number, early = false): StabilityVerdict {
+  return {
+    line, liveAt: '2026-08-26T00:00:00Z', daysLive: 10, level, score,
+    stability: stabilityPercent(score), tone: toneOf(level),
+    components: { community: score, service: 0, cig: null },
+    early, insufficient: false, historical: false, days: [], tickets: [], kbOpen: null, hotfixes: [],
+  };
+}
+
+function stabilityStub() {
+  const map = new Map<string, StabilityVerdict>([
+    ['4.10', verdict('4.10', 3, 0.44, true)],
+    ['4.9', verdict('4.9', 1, 0.1)],
+  ]);
+  return {
+    loaded: () => true,
+    unavailable: () => false,
+    allTime: () => [...map.values()],
+    load: () => Promise.resolve(),
+    verdictFor: (line: string) => map.get(line) ?? null,
+    patchRowFor: () => null,
+  };
+}
+
 describe('Patch board — the time stack (rethink Ⓚ)', () => {
   let fixture: ComponentFixture<PatchBoardComponent>;
   let de: TranslationObject;
@@ -104,6 +135,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
         { provide: HttpClient, useValue: { get: () => of(feed) } },
         { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
         { provide: RoadmapService, useValue: roadmapStub(roadmap) },
+        { provide: PatchStabilityService, useValue: stabilityStub() },
       ],
     });
     const translate = TestBed.inject(TranslateService);
@@ -160,21 +192,103 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(rows().map((r) => r.querySelector('.ver')?.textContent?.trim())).toEqual(['Alpha 4.11', 'Alpha 4.10', 'Alpha 4.9', 'Alpha 4.8', 'Alpha 4.7']);
   });
 
-  it('search finds PATCHES: cards with hits stay, annotated, and carry the query into the dossier link', async () => {
-    await render(FEED, ROADMAP);
+  /**
+   * The 2026-09-05 rework: a query answers with the CONTENT that matched,
+   * grouped by patch — not with the same cards plus a hit count. The stack
+   * steps aside entirely while a search runs, and so do the monitor and the
+   * all-time stability chart.
+   */
+  function search(term: string): void {
     const input = (root().querySelector('#patch-board-search') as HTMLInputElement | null)!;
-    input.value = 'quantum';
+    input.value = term;
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    expect(rows().length).toBe(1);
-    expect(rows()[0].querySelector('.ver')?.textContent?.trim()).toBe('Alpha 4.10');
-    expect(rows()[0].querySelector('.hits')?.textContent).toContain('1 Stichpunkte');
-    expect((rows()[0].querySelector('a.card') as HTMLAnchorElement | null)!.getAttribute('href')).toContain('q=quantum');
+  }
 
-    input.value = 'nyx';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    expect(rows().map((r) => r.querySelector('.ver')?.textContent?.trim())).toEqual(['Alpha 4.11']);
+  const groups = () => Array.from(root().querySelectorAll('sc-patch-find-results .grp')) as HTMLElement[];
+
+  it('search returns the matching CONTENT, grouped by patch, and hides the stack', async () => {
+    await render(FEED, ROADMAP);
+    search('quantum');
+    expect(root().querySelector('.stack')).withContext('the stack is not the answer to a query').toBeNull();
+    expect(groups().length).toBe(1);
+    expect(groups()[0].querySelector('.gver')?.textContent?.trim()).toBe('Alpha 4.10');
+    // The bullet itself, not "1 Stichpunkte".
+    expect(groups()[0].querySelector('.hit[data-kind="note"] .t')?.textContent)
+      .toContain('Hydrogen & Quantum Fuel Rebalance');
+    expect((groups()[0].querySelector('.gline') as HTMLAnchorElement).getAttribute('href')).toContain('q=quantum');
+  });
+
+  it('a roadmap hit is a picture card linking to RSI\'s own entry for it', async () => {
+    await render(FEED, ROADMAP);
+    search('nyx');
+    expect(groups().map((g) => g.querySelector('.gver')?.textContent?.trim())).toEqual(['Alpha 4.11']);
+    const hit = groups()[0].querySelector('.hit[data-kind="roadmap"] a.cell') as HTMLAnchorElement;
+    expect(hit.getAttribute('href')).toBe('https://robertsspaceindustries.com/roadmap/release-view/1589-Nyx-I');
+    expect(hit.getAttribute('target')).toBe('_blank');
+    expect(hit.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
+  it('a query hides the monitor and the all-time stability chart', async () => {
+    await render(FEED, ROADMAP);
+    expect(root().querySelector('sc-patch-monitor')).not.toBeNull();
+    search('quantum');
+    expect(root().querySelector('sc-patch-monitor')).toBeNull();
+    expect(root().querySelector('sc-stability-history')).toBeNull();
+  });
+
+  it('British spelling finds American text', async () => {
+    await render(FEED, ROADMAP);
+    search('armor');
+    expect(groups().length).withContext('the control: RSI\'s own spelling').toBe(1);
+    search('armour');
+    expect(groups().length).withContext('the same card, typed the British way').toBe(1);
+    expect(groups()[0].querySelector('.hit[data-kind="roadmap"] .t')?.textContent)
+      .toContain('Super Heavy Combat Armor');
+  });
+
+  /**
+   * The 2026-09-05 alignment complaint, measured rather than eyeballed: the
+   * columns used to widen with importance (150 / 170 / 190 px), so the status
+   * word and the version number stepped sideways between neighbouring rows.
+   */
+  it('every card lines up: same status width, same version x, same height for next and superseded', async () => {
+    await render(FEED, ROADMAP);
+    const widths = rows().map((r) => Math.round(r.querySelector('.status')!.getBoundingClientRect().width));
+    expect(new Set(widths).size).withContext(`status widths: ${widths}`).toBe(1);
+
+    const lefts = rows().map((r) => Math.round(r.querySelector('.ver')!.getBoundingClientRect().left));
+    expect(new Set(lefts).size).withContext(`version x: ${lefts}`).toBe(1);
+
+    const cards = rows().map((r) => r.querySelector('.card') as HTMLElement);
+    const [next, , superseded] = cards.map((c) => Math.round(c.getBoundingClientRect().height));
+    expect(next).withContext('"next" and "superseded" are the same kind of row').toBe(superseded);
+    // The shared height is fixed, so it also has to be big enough: a row that
+    // clips its own content would pass the equality above and still be wrong.
+    for (const c of cards) {
+      expect(c.scrollHeight).withContext(`${c.textContent?.slice(0, 24)} is clipped`).toBeLessThanOrEqual(c.clientHeight + 1);
+    }
+  });
+
+  it('a shipped line carries its stability as a badge in the card corner; a future one does not', async () => {
+    await render(FEED, ROADMAP);
+    const [next, live, superseded] = rows();
+    expect(next.querySelector('sc-stability-badge .badge')).withContext('4.11 has not shipped').toBeNull();
+    expect(live.querySelector('sc-stability-badge .badge')?.getAttribute('data-tone')).toBe('amber');
+    expect(live.querySelector('sc-stability-badge .val')?.textContent?.replace(/\s/g, '')).toBe('56%');
+    expect(superseded.querySelector('sc-stability-badge .badge')?.getAttribute('data-tone')).toBe('green');
+    // Top-right corner: the badge sits right of the counts and at the card's top.
+    const card = live.querySelector('.card')!.getBoundingClientRect();
+    const badge = live.querySelector('sc-stability-badge')!.getBoundingClientRect();
+    expect(badge.right).toBeLessThanOrEqual(card.right + 1);
+    expect(badge.top - card.top).toBeLessThan(card.height / 2);
+  });
+
+  it('an empty query brings the stack back untouched', async () => {
+    await render(FEED, ROADMAP);
+    search('quantum');
+    search('');
+    expect(rows().map((r) => r.dataset['status'])).toEqual(['next', 'live', 'superseded']);
   });
 
   it('answers "when is the next patch" ABOVE search and stack, as a monitoring panel', async () => {

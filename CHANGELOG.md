@@ -4,6 +4,68 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.80.0] - 2026-09-06
+
+### Changed
+
+- **A patch's stability now reads the way every chart reads: taller is better.**
+  Every measurement behind the indicator counts bad news, so the tallest bars
+  used to be the worst patches. Each patch now starts at 100 % and only bad news
+  subtracts, and the colour is a traffic light — green, amber, red — instead of
+  five shades nobody could tell apart. Every patch that has shipped carries the
+  figure as a ring in the corner of its card and at the top of its dossier.
+- **Searching the patch history returns what it found, not where it found it.**
+  A query used to leave you with the same patch cards and a hit count, so you
+  still had to open a patch and search again. It now shows the roadmap items and
+  the release-note lines themselves, grouped by patch, pictures included — and a
+  roadmap item links straight to RSI's own entry for it, already opened. The
+  search also understands both spellings: `armour` finds `Armor`, `manoeuvre`
+  finds `maneuver`. The field stays pinned to the top while you read the
+  results, and the timeline and stability chart step aside while you search.
+- **Every card in the patch list lines up.** The columns used to grow with a
+  patch's importance, which moved the status word and the version number
+  sideways from one row to the next. Status labels are all one width, version
+  numbers all start in the same place, and the coming patch and the replaced one
+  are the same height.
+- **The patch cards, sections and search results arrive rather than appear**, and
+  a placeholder holds their shape while the feed loads.
+- **A feedback topic is titled by what it asks for**, not by its first 96
+  characters, and the sign-off is three controls in the card instead of a box of
+  four. The compose box opens at three rows and grows with the text.
+- **The feedback progress view answers what changed since last week.**
+
+### Fixed
+
+- **"When is the next one" stopped writing over itself.** Every marker on the
+  cycle axis was captioned at its own point on the line, so two events a few
+  days apart overlapped — which, on a patch with a hotfix, they always were. At
+  most three milestones are named now, in a row under the axis that cannot
+  collide at any width; "today" keeps its name on the rail, and every other
+  marker keeps its dot and is spelled out in the fact lines.
+- **An unattended Data Uploader start closes itself again when there is nothing
+  to do.**
+
+- **4.9 shows a stability rating again — and so does every patch before it.**
+  The daily sampler first saw 4.9 ten days after 4.10 had replaced it, and that
+  single late reading was enough to make the app report "not enough data" for a
+  patch it had complete figures for. A patch that has been replaced now always
+  reads its final state. All twelve recorded patches resolve.
+- **The build status on Verse News and the patch board agree.** The card dated
+  the next patch from whatever build sat in the PTU — routinely a point release
+  — while the board dated it from the live line, so the two pages named dates
+  days apart for the same patch, one counting in days and the other in weeks.
+  One place works the date out now, and every surface renders it.
+- **"How do I prepare?" is always answerable.** The section only existed when
+  RSI happened to publish a build-info block, so it was missing from exactly the
+  patches where it was needed. Advice that holds for every patch now sits under
+  whatever RSI wrote about the build in hand.
+- **Jumping to a section in a patch dossier lands on it.** The last section
+  could not reach the top of the panel, and a smooth scroll among four
+  identical headings left you guessing which one had moved — there is room to
+  scroll now, and the section you picked lights up as you arrive.
+- **The explanation behind the (i) no longer covers what it explains.** It opens
+  upwards and to the right, and only flips when it would otherwise be cut off.
+
 ## [0.79.2] - 2026-09-06
 
 ### Changed

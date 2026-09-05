@@ -3,10 +3,11 @@ import { TranslateModule } from '@ngx-translate/core';
 import { EARLY_DAYS, StabilityVerdict } from './patch-stability';
 
 /**
- * The five-level stability pill on a collapsed LIVE row. Dashed while the
- * patch is younger than EARLY_DAYS — the verdict is provisional and the
- * border says so before the tooltip does. Hidden when there is no verdict:
- * an empty chip would read as "nominal".
+ * The stability pill on a collapsed LIVE row: the surviving percentage, the
+ * level sentence, in the patch's traffic-light colour. Dashed while the patch
+ * is younger than EARLY_DAYS — the verdict is provisional and the border says
+ * so before the tooltip does. Hidden when there is no verdict: an empty chip
+ * would read as "nominal".
  */
 @Component({
   selector: 'sc-stability-chip',
@@ -16,10 +17,11 @@ import { EARLY_DAYS, StabilityVerdict } from './patch-stability';
   template: `
     @if (verdict(); as v) {
       @if (v.level !== null) {
-        <span class="chip" [attr.data-level]="v.level" [class.early]="v.early"
+        <span class="chip" [attr.data-tone]="v.tone" [class.early]="v.early"
               [attr.title]="v.early ? ('news.patch.stability.early' | translate:{ day: day(), threshold: threshold }) : null"
-              [attr.aria-label]="'news.patch.stability.chipAria' | translate:{ version: v.line, level: (levelKey() | translate) }">
+              [attr.aria-label]="'news.patch.stability.badgeAria' | translate:{ version: v.line, percent: v.stability, level: (levelKey() | translate) }">
           <span class="dot" aria-hidden="true"></span>
+          <span class="pct">{{ v.stability }}%</span>
           <span>{{ levelKey() | translate }}</span>
           @if (v.early) {
             <span class="early-mark">{{ 'news.patch.stability.earlyShort' | translate }}</span>
@@ -40,11 +42,10 @@ import { EARLY_DAYS, StabilityVerdict } from './patch-stability';
     .chip.early { border-style: dashed; }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--level); }
     .early-mark { font-weight: 500; color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.07em; }
-    .chip[data-level='1'] { --level: var(--sc-success); }
-    .chip[data-level='2'] { --level: var(--sc-accent); }
-    .chip[data-level='3'] { --level: var(--sc-warning); }
-    .chip[data-level='4'] { --level: var(--sc-warn); }
-    .chip[data-level='5'] { --level: var(--sc-danger); }
+    .pct { font-variant-numeric: tabular-nums; }
+    .chip[data-tone='green'] { --level: var(--sc-success); }
+    .chip[data-tone='amber'] { --level: var(--sc-warning); }
+    .chip[data-tone='red'] { --level: var(--sc-danger); }
   `],
 })
 export class StabilityChipComponent {

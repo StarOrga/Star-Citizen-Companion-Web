@@ -45,6 +45,24 @@ const KEPT = /\b(preserv\w*|kept|keep|retain\w*|carr(y|ied)\s+over|unchanged|mai
 /** How many lines of a list are worth surfacing before "see the note". */
 const LIST_CAP = 8;
 
+/**
+ * The advice that is true for EVERY patch, whatever the note happens to say
+ * (owner, 2026-09-05: "Wie bereite ich mich vor, könnte auch allgemeine
+ * hinweise enthalten und damit immer relevant sein").
+ *
+ * The section used to exist only when RSI wrote an "Important Build Info"
+ * block — so on the patches where a reader most needs to know what to do, the
+ * question was simply absent from the dossier. These five are the standing
+ * answer: they never go stale, they are the same five every Star Citizen
+ * player is told on every patch day, and they make the section unconditional.
+ *
+ * Keys only; the sentences live in `news.patch.prep.generalItem.*` so both
+ * languages own their own wording.
+ */
+export const GENERAL_PREP_KEYS = ['launcher', 'shaders', 'verify', 'repair', 'known'] as const;
+
+export type GeneralPrepKey = (typeof GENERAL_PREP_KEYS)[number];
+
 function isHeading(node: PatchOutlineNode): boolean {
   return node.kind === 'heading' || node.kind === 'subheading';
 }
