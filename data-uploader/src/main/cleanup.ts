@@ -27,6 +27,25 @@ import { discoverAll } from '../lib/discovery.js';
 
 export const EXTRACTS_DIR_NAME = '.sc-companion-extracts';
 export const UPLOAD_MARKER = '_uploaded.json';
+/** Dir-name prefix of a 3D-livery build cache (`skins-<patch version>`). */
+export const SKINS_CACHE_PREFIX = 'skins-';
+
+/**
+ * Patch version behind a `skins-<version>` build cache, or null for a normal
+ * extract dir.
+ *
+ * The skins cache is NOT a re-extractable by-product like the extract dir: it
+ * holds the glbs of a whole-catalog build, which costs hours of cgf-converter
+ * and gltf-transform work, and it is the only thing `--skip-existing` can
+ * resume from. It therefore never carries an `_uploaded.json` marker (upload
+ * state lives per ship in `<ship>/.uploaded`) and must survive both sweeps
+ * here; only a patch rollover reclaims it.
+ */
+export function skinsCacheVersion(dirName: string): string | null {
+  if (!dirName.startsWith(SKINS_CACHE_PREFIX)) return null;
+  const version = dirName.slice(SKINS_CACHE_PREFIX.length);
+  return version.length > 0 ? version : null;
+}
 
 /** Dirs without an upload marker younger than this are treated as possibly
  *  in-progress (another window may be mid-run) and are NOT deleted. */
@@ -159,9 +178,11 @@ export async function cleanupAfterUpload(
  * Startup sweep. For every `<root>/.sc-companion-extracts/*` dir:
  *   (a) listed in `keep`            → a paused/interrupted upload resumes from
  *                                     it, KEEP regardless of age or marker.
- *   (b) has `_uploaded.json`        → already uploaded, reclaim it.
- *   (c) no marker AND mtime > 24h   → stale failed run, reclaim it.
- *   (d) no marker AND mtime <= 24h  → possibly in-progress, KEEP.
+ *   (b) a `skins-<version>` cache   → hours of glb work, KEEP (see
+ *                                     `skinsCacheVersion`).
+ *   (c) has `_uploaded.json`        → already uploaded, reclaim it.
+ *   (d) no marker AND mtime > 24h   → stale failed run, reclaim it.
+ *   (e) no marker AND mtime <= 24h  → possibly in-progress, KEEP.
  * Best-effort; logs a one-line summary. Never throws.
  *
  * (a) exists because the 24 h guess in (c)/(d) cannot see a job that is merely
@@ -188,6 +209,12 @@ export async function scanAndCleanupOrphans(
         if (!ent.isDirectory()) continue;
         const dir = join(extractsRoot, ent.name);
         if (protectedDirs.has(pathKey(dir))) {
+          kept.push(dir);
+          continue;
+        }
+        // The livery build cache has no upload marker by design, so the age
+        // gate below would eat it a day after the build that produced it.
+        if (skinsCacheVersion(ent.name) !== null) {
           kept.push(dir);
           continue;
         }
@@ -253,7 +280,9 @@ export async function scanAndCleanupDiscovered(keep: string[] = []): Promise<Cle
 /**
  * Full purge: delete EVERY `<root>/.sc-companion-extracts/*` dir, with no
  * marker and no age gate — the only thing that survives is a dir listed in
- * `keep` (the run that is about to start, plus any job that is live right now).
+ * `keep` (the run that is about to start, plus any job that is live right now)
+ * and, unless `opts.keepSkinsVersion` says otherwise, every `skins-<version>`
+ * build cache.
  *
  * This is deliberately more aggressive than `scanAndCleanupOrphans`, which
  * keeps marker-less dirs younger than 24 h because it cannot know whether some
@@ -261,9 +290,28 @@ export async function scanAndCleanupDiscovered(keep: string[] = []): Promise<Cle
  * operator has said the old data is expendable, and the caller names the dirs
  * that are still in use — so the 24 h guess is neither needed nor wanted there.
  *
+ * The livery cache is the one exception to "expendable": re-extracting takes
+ * minutes, re-building every ship's glbs takes hours, and the cache is what
+ * makes a second upload attempt cheap. It is therefore only reclaimed on a
+ * patch rollover, by a caller that knows which version is current.
+ *
  * Best-effort and guarded like every other delete here: never throws.
  */
-export async function purgeExtracts(roots: string[], keep: string[] = []): Promise<PurgeResult> {
+export interface PurgeOptions {
+  /**
+   * Patch version whose livery build cache must survive. Caches for OTHER
+   * versions are then reclaimed; without this the caches are left alone
+   * entirely, because a caller that cannot name the current version cannot
+   * tell a stale cache from the one the next run needs.
+   */
+  keepSkinsVersion?: string;
+}
+
+export async function purgeExtracts(
+  roots: string[],
+  keep: string[] = [],
+  opts: PurgeOptions = {},
+): Promise<PurgeResult> {
   const protectedDirs = new Set(keep.filter(Boolean).map(pathKey));
   const removed: string[] = [];
   let kept = 0;
@@ -280,6 +328,11 @@ export async function purgeExtracts(roots: string[], keep: string[] = []): Promi
         if (!ent.isDirectory()) continue;
         const dir = join(extractsRoot, ent.name);
         if (protectedDirs.has(pathKey(dir))) {
+          kept++;
+          continue;
+        }
+        const skinsVersion = skinsCacheVersion(ent.name);
+        if (skinsVersion !== null && (!opts.keepSkinsVersion || skinsVersion === opts.keepSkinsVersion)) {
           kept++;
           continue;
         }
@@ -305,6 +358,7 @@ export async function purgeExtracts(roots: string[], keep: string[] = []): Promi
 export async function purgeAllExtracts(
   keep: string[] = [],
   extraRoots: string[] = [],
+  opts: PurgeOptions = {},
 ): Promise<PurgeResult> {
   let roots: string[] = [];
   try {
@@ -319,5 +373,5 @@ export async function purgeAllExtracts(
     log.info('[cleanup] purge: no install roots to sweep');
     return { ok: true, removed: 0, kept: 0 };
   }
-  return purgeExtracts(all, keep);
+  return purgeExtracts(all, keep, opts);
 }

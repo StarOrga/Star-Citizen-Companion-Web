@@ -2596,25 +2596,62 @@ async function buildAndUploadSkins(
   }
 
   // 3. upload (upload-cache skips ships already shipped in a prior run).
+  // Determinate from the first frame: main streams a `progress` event per ship
+  // (see skin-ingest `onProgress`). Without it this stage was a single opaque
+  // await — the card kept the build stage's numbers, the bar never moved, and a
+  // finished run was indistinguishable from a hung one.
+  const uploadLabel = tOr('skins.stepUpload', 'Liveries werden hochgeladen');
   progress?.update({
-    phaseLabel: t('skins.stepUpload', {}) || t('skins.uploading', {}) || '3D-Skins werden hochgeladen…',
-    indeterminate: true,
+    phaseLabel: uploadLabel,
+    indeterminate: false,
     current: 0,
     total: built.ships.length,
+    overallPct: 0,
     detail: '',
-    hint: t('skins.hintUpload', {}) || 'Große Livery-Dateien werden übertragen — je nach Größe dauert das.',
+    hint: tOr('skins.hintUpload', 'Große Livery-Dateien werden übertragen — je nach Größe dauert das.'),
   });
-  const results = await window.sc.skin.upload(
-    state.authToken,
-    built.ships.map((s) => ({ shipId: s.ship_id, dir: s.export_dir })),
-  );
-  const okCount = results.filter((r) => r.ok).length;
-  progress?.update({ indeterminate: false, current: okCount, total: results.length, overallPct: 100 });
+  const unsubUpload = window.sc.skin.onEvent((ev) => {
+    if (ev.type === 'progress') {
+      const total = ev.total ?? built.ships.length;
+      progress?.update({
+        current: ev.current,
+        total,
+        overallPct: total > 0 ? ((ev.current ?? 0) / total) * 100 : undefined,
+        detail: ev.detail ?? '',
+      });
+    } else if (ev.type === 'log' && (ev.level === 'warn' || ev.level === 'error')) {
+      progress?.update({ detail: ev.message ?? '' });
+    }
+  });
+  const results = await window.sc.skin
+    .upload(
+      state.authToken,
+      built.ships.map((s) => ({ shipId: s.ship_id, dir: s.export_dir })),
+    )
+    .finally(unsubUpload);
+  // `empty` ships built no glb at all — a no-op, not a failure. Counting them
+  // as failures is what turned a healthy run into a "21 / 309" scare.
+  const live = results.filter((r) => r.ok && !r.empty).length;
+  const empty = results.filter((r) => r.empty).length;
+  const failed = results.filter((r) => !r.ok).length;
+  // Repaint into a terminal state BEFORE the caller stops the clock: the card
+  // freezes on whatever this last frame says, so it must not still read
+  // "uploading" with a phantom ETA.
+  progress?.update({
+    phaseLabel: tOr('skins.stepUploadDone', 'Liveries hochgeladen'),
+    indeterminate: false,
+    current: live,
+    total: results.length,
+    overallPct: 100,
+    detail: '',
+    hint: '',
+  });
+  const summary = failed
+    ? `${live}/${results.length} ${tOr('skins.partial', 'Schiffe hochgeladen (Rest siehe Protokoll)')}`
+    : tOr('skins.done', `3D-Skins fertig — ${live} Schiff(e) live.`, { n: String(live) });
   setAuthStatus(
-    okCount === results.length
-      ? t('skins.done', { n: String(okCount) }) || `3D-Skins fertig — ${okCount} Schiff(e) live.`
-      : `${okCount}/${results.length} ${t('skins.partial', {}) || 'Schiffe hochgeladen (Rest siehe Protokoll)'}`,
-    okCount === results.length ? 'ok' : 'warn',
+    empty ? `${summary} · ${tOr('skins.noModels', `${empty} ohne baubare Livery`, { n: String(empty) })}` : summary,
+    failed ? 'warn' : 'ok',
   );
 }
 

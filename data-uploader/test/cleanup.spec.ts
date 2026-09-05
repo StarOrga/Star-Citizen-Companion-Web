@@ -59,11 +59,30 @@ describe('isSafeExtractTarget', () => {
 
 describe('purgeExtracts', () => {
   it('removes every extract dir, regardless of age or upload marker', async () => {
-    const root = await makeInstall(['LIVE-4.2', 'PTU-4.3', 'skins-4.2']);
+    const root = await makeInstall(['LIVE-4.2', 'PTU-4.3']);
     const res = await purgeExtracts([root]);
     expect(res.ok).toBe(true);
-    expect(res.removed).toBe(3);
+    expect(res.removed).toBe(2);
     expect(await extractDirs(root)).toEqual([]);
+  });
+
+  it('leaves every livery cache alone when the caller names no current version', async () => {
+    // Re-extracting costs minutes; re-building the glbs costs hours. A caller
+    // that cannot say which patch is current cannot tell a stale cache from
+    // the one the next attempt resumes from, so it must touch neither.
+    const root = await makeInstall(['LIVE-4.2', 'skins-4.2', 'skins-4.1']);
+    const res = await purgeExtracts([root]);
+    expect(res.removed).toBe(1);
+    expect(res.kept).toBe(2);
+    expect(await extractDirs(root)).toEqual(['skins-4.1', 'skins-4.2']);
+  });
+
+  it('reclaims only the livery caches of other patch versions', async () => {
+    const root = await makeInstall(['LIVE-4.2', 'skins-4.2', 'skins-4.1']);
+    const res = await purgeExtracts([root], [], { keepSkinsVersion: '4.2' });
+    expect(res.removed).toBe(2);
+    expect(res.kept).toBe(1);
+    expect(await extractDirs(root)).toEqual(['skins-4.2']);
   });
 
   it('keeps the dirs a live job still owns', async () => {
@@ -126,7 +145,17 @@ describe('scanAndCleanupOrphans', () => {
     const keep = `${root}/${EXTRACTS_DIR_NAME}/LIVE-4.9.0`.replace(/\\/g, '/');
     const res = await scanAndCleanupOrphans([root], [keep]);
     expect(res.ok).toBe(true);
-    expect(await extractDirs(root)).toEqual(['LIVE-4.9.0']);
+    expect(await extractDirs(root)).toEqual(['LIVE-4.9.0', 'skins-4.9.0']);
+  });
+
+  it('never sweeps a livery build cache, however stale', async () => {
+    // The cache carries no upload marker (upload state is per ship), so the
+    // age gate used to eat hours of glb work a day after it was built.
+    const root = await makeInstall(['LIVE-4.8.0', 'skins-4.8.0']);
+    await makeStale(root, ['LIVE-4.8.0', 'skins-4.8.0']);
+    const res = await scanAndCleanupOrphans([root]);
+    expect(res.ok).toBe(true);
+    expect(await extractDirs(root)).toEqual(['skins-4.8.0']);
   });
 
   it('passes the keep-list through the discovery wrapper', async () => {
