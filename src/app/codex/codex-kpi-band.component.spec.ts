@@ -57,4 +57,24 @@ describe('CodexKpiBandComponent', () => {
     expect(el.querySelectorAll('.kpi-delta').length).toBe(1);
     expect(el.querySelector('.kpi-delta.good')).toBeTruthy();
   });
+
+  it('renders a focusable info tooltip only for cells that carry a tooltip key', () => {
+    fixture.componentRef.setInput('cells', [
+      { ...cells[1], tooltipKey: 'codex.kpi.tooltipBurstDps', lowerIsBetter: false, fromPower: false },
+      { ...cells[4], tooltipKey: null, lowerIsBetter: false, fromPower: false },
+    ]);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const infos = el.querySelectorAll('.kpi-info');
+    expect(infos.length).toBe(1);
+    expect(infos[0].getAttribute('tabindex')).toBe('0');
+    expect(infos[0].getAttribute('aria-describedby')).toBe('kpi-tip-' + cells[1].key);
+  });
+
+  it('marks a cell the energy dock rewrote', () => {
+    fixture.componentRef.setInput('cells', [{ ...cells[1], tooltipKey: null, lowerIsBetter: false, fromPower: true }]);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.kpi-cell.from-power')).toBeTruthy();
+  });
 });

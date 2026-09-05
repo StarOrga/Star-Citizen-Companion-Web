@@ -29,7 +29,7 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
             [attr.title]="disabledReason(m.id) ? (disabledReason(m.id)! | translate) : (m.labelKey | translate)"
             (click)="select(m.id)"
           >
-            <span class="chip-icon" aria-hidden="true">{{ m.iconGlyph }}</span>
+            <span class="chip-icon" aria-hidden="true">{{ active() === m.id ? '◈' : '◇' }}</span>
             <span class="chip-label">{{ m.labelKey | translate }}</span>
           </button>
         }

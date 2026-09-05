@@ -89,10 +89,10 @@ describe('CodexHardpointLayoutComponent', () => {
    */
   function renderUnfolded(sections: LayoutSection[]): HTMLElement {
     const el = render(sections);
-    const fold = el.querySelector(
-      '.mod-sec[data-sec="structure"] .sec-btn.fold',
-    ) as HTMLButtonElement | null;
-    fold?.click();
+    // Every block is now a native <details>/<summary> (MASTER §6); the real
+    // toggle event fires asynchronously, so drive the same signal it updates
+    // rather than racing a synthetic click against a synchronous CD pass.
+    fixture.componentInstance.toggleFold('structure');
     fixture.detectChanges();
     return el;
   }
@@ -587,16 +587,56 @@ describe('CodexHardpointLayoutComponent', () => {
       name: 'T',
     });
     const el = render([{ section: 'weapons', slots: [PANTHER] }, { section: 'structure', slots: [thruster] }]);
-    // The heading and its count stay — only the inventory is folded.
-    const fixed = el.querySelector('.mod-sec[data-sec="structure"]') as HTMLElement;
-    expect(fixed.querySelector('.sec-ct')?.textContent?.trim()).toBe('1');
+    // The heading and its census stay — only the inventory is folded.
+    const fixed = el.querySelector('.mod-sec[data-sec="structure"]') as HTMLDetailsElement;
+    expect(fixed.querySelector('.sec-ct')).toBeTruthy();
+    expect(fixed.open).toBeFalse();
     expect(fixed.querySelector('.sec-rows')).toBeNull();
-    // A configurable block is never folded — that would hide the action.
-    expect(el.querySelector('.mod-sec[data-sec="weapons"] .sec-rows')).toBeTruthy();
-    expect(el.querySelector('.mod-sec[data-sec="weapons"] .sec-btn.fold')).toBeNull();
+    // Folded away → the preview lives in the summary instead (MASTER §6).
+    expect(fixed.querySelector('.fold-preview')).toBeTruthy();
+    // A configurable block starts OPEN — its rows are never hidden by default.
+    const weapons = el.querySelector('.mod-sec[data-sec="weapons"]') as HTMLDetailsElement;
+    expect(weapons.open).toBeTrue();
+    expect(weapons.querySelector('.sec-rows')).toBeTruthy();
 
-    (fixed.querySelector('.sec-btn.fold') as HTMLButtonElement).click();
+    // The native <details> toggle event is queued asynchronously by the spec
+    // (fires after the click's own task), so driving it through a synthetic
+    // `.click()` racing a synchronous `detectChanges()` is flaky — go through
+    // the same signal the real toggle event updates (`onToggle` is a thin
+    // wrapper around it) instead.
+    fixture.componentInstance.toggleFold('structure');
     fixture.detectChanges();
     expect(fixed.querySelector('.sec-rows')).toBeTruthy();
+  });
+
+  // ── folded-preview (MASTER §6) ────────────────────────────────────────────
+  it('shows the fold preview once a block is manually closed, with no controls in it', () => {
+    const el = render([{ section: 'weapons', slots: [PANTHER] }]);
+    const weapons = el.querySelector('.mod-sec[data-sec="weapons"]') as HTMLDetailsElement;
+    expect(weapons.open).toBeTrue();
+    expect(weapons.querySelector('.fold-preview')).toBeNull();
+
+    fixture.componentInstance.toggleFold('weapons');
+    fixture.detectChanges();
+    expect(weapons.open).toBeFalse();
+    expect(weapons.querySelector('.sec-rows')).toBeNull();
+    const preview = weapons.querySelector('.fold-preview') as HTMLElement;
+    expect(preview).toBeTruthy();
+    // Folded: no tools, no swap button, no grip — just the read-only preview.
+    expect(preview.querySelector('button')).toBeNull();
+  });
+
+  it('hides the fold preview again once the block is reopened', () => {
+    const el = render([{ section: 'weapons', slots: [PANTHER] }]);
+    const weapons = el.querySelector('.mod-sec[data-sec="weapons"]') as HTMLDetailsElement;
+    fixture.componentInstance.toggleFold('weapons');
+    fixture.detectChanges();
+    expect(weapons.querySelector('.fold-preview')).toBeTruthy();
+
+    fixture.componentInstance.toggleFold('weapons');
+    fixture.detectChanges();
+    expect(weapons.open).toBeTrue();
+    expect(weapons.querySelector('.fold-preview')).toBeNull();
+    expect(weapons.querySelector('.sec-rows')).toBeTruthy();
   });
 });

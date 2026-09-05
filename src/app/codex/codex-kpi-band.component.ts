@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { formatEquippedStat } from './codex-equipped-stats';
 import { KpiCell } from './codex-loadout-stats';
+import { KpiStripCell } from './codex-kpi-sets';
 
 /**
  * Six headline numbers for the ship's active mission (02-handover §2.3 / PR C).
@@ -21,8 +22,14 @@ import { KpiCell } from './codex-loadout-stats';
   template: `
     <div class="kpi-band" role="group" [attr.aria-label]="'codex.kpi.bandLabel' | translate">
       @for (c of cells(); track c.key) {
-        <div class="kpi-cell" [class.accent]="c.accent" [class.gap]="c.value == null">
-          <span class="kpi-label">{{ c.labelKey | translate }}</span>
+        <div class="kpi-cell" [class.accent]="c.accent" [class.gap]="c.value == null" [class.from-power]="c.fromPower">
+          <span class="kpi-label">
+            {{ c.labelKey | translate }}
+            @if (c.tooltipKey; as tip) {
+              <span class="kpi-info" tabindex="0" [attr.aria-describedby]="'kpi-tip-' + c.key">ⓘ</span>
+              <span [id]="'kpi-tip-' + c.key" class="kpi-tip" role="tooltip">{{ tip | translate }}</span>
+            }
+          </span>
           @if (c.value != null) {
             <span class="kpi-value">{{ fmt(c) }}</span>
           } @else {
@@ -76,10 +83,18 @@ import { KpiCell } from './codex-loadout-stats';
     .kpi-delta { font-size: 12px; font-variant-numeric: tabular-nums; }
     .kpi-delta.good { color: var(--sc-success); }
     .kpi-delta.bad { color: var(--sc-danger); }
+    .kpi-cell.from-power { border-bottom: 2px solid var(--sc-danger); }
+    .kpi-info { position: relative; margin-left: 3px; cursor: help; color: var(--sc-fg-2); font-size: 10px; }
+    .kpi-tip { position: absolute; display: none; }
+    .kpi-info:hover + .kpi-tip, .kpi-info:focus + .kpi-tip {
+      display: block; position: absolute; z-index: 25; max-width: 240px; padding: 8px 10px;
+      border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border);
+      font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-1); font-weight: 400;
+      text-transform: none; letter-spacing: 0; }
   `],
 })
 export class CodexKpiBandComponent {
-  readonly cells = input.required<readonly KpiCell[]>();
+  readonly cells = input.required<readonly KpiStripCell[]>();
 
   fmt(c: KpiCell): string {
     return formatEquippedStat({ labelKey: c.labelKey, value: c.value!, format: c.format });
