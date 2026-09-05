@@ -17,27 +17,32 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
   template: `
     <div class="mission-bar">
       <span class="mission-label">{{ 'codex.mission.label' | translate }}</span>
-      <div class="mission-chips" role="tablist">
+      <div class="mission-chips" role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate">
         @for (m of missions; track m.id) {
           <button
             type="button"
-            role="tab"
+            role="radio"
             class="mission-chip"
             [class.active]="active() === m.id"
             [disabled]="disabledReason(m.id)"
-            [attr.aria-selected]="active() === m.id"
+            [attr.aria-checked]="active() === m.id"
+            [attr.aria-describedby]="disabledReason(m.id) ? ('mission-reason-' + m.id) : null"
             [attr.title]="disabledReason(m.id) ? (disabledReason(m.id)! | translate) : (m.labelKey | translate)"
             (click)="select(m.id)"
           >
             <span class="chip-icon" aria-hidden="true">{{ active() === m.id ? '◈' : '◇' }}</span>
             <span class="chip-label">{{ m.labelKey | translate }}</span>
           </button>
+          @if (disabledReason(m.id)) {
+            <span [id]="'mission-reason-' + m.id" class="sr-only">{{ disabledReason(m.id)! | translate }}</span>
+          }
         }
       </div>
     </div>
   `,
   styles: [`
     :host { display: block; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .mission-bar {
       display: flex;
       align-items: center;

@@ -222,7 +222,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
           <summary class="sec-head">
             <span class="sec-glyph" aria-hidden="true">◈</span>
             {{ ('codex.moduleSection.' + sec.section) | translate }}
-            <span class="sec-ct">{{ 'codex.module.census' | translate: preview(sec).census }}</span>
+            <span class="sec-ct">{{ censusKey(sec) | translate: censusParams(sec) }}</span>
             @if (!sec.configurable) {
               <span class="sec-tag">{{ 'codex.moduleSection.fixedTag' | translate }}</span>
             }
@@ -237,8 +237,10 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                 {{ (sec.split ? 'codex.moduleSection.groupRows' : 'codex.moduleSection.splitRows') | translate }}
               </button>
             }
-            <span class="caret" aria-hidden="true">{{ (sec.open ? '▴' : '▾') }}</span>
-            <span class="sr-only">{{ (sec.open ? 'codex.module.caretCollapse' : 'codex.module.caretExpand') | translate }}</span>
+            <span class="caret" [class.open]="sec.open">
+              <span aria-hidden="true">{{ (sec.open ? '▴' : '▾') }}</span>
+              {{ (sec.open ? 'codex.module.caretCollapse' : 'codex.module.caretExpand') | translate }}
+            </span>
 
             @if (!sec.open) {
               <!-- Folded preview (MASTER §6): what's installed, at a glance,
@@ -466,7 +468,10 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
       cursor: pointer; list-style: none; }
     .sec-head::-webkit-details-marker { display: none; }
     .sec-glyph { color: var(--sc-accent); font-size: 0.8rem; }
-    .caret { margin-left: auto; color: var(--sc-fg-2); font-size: 0.8rem; }
+    .caret { margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+      color: var(--sc-accent); font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; }
+    .caret.open { color: var(--sc-fg-2); }
+    .sec-head:hover .caret { text-decoration: underline; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     /* Folded preview — chips + aggregate + lock hint, INSIDE the summary
        (MASTER §6): what's installed, at a glance, no controls while folded. */
@@ -664,6 +669,22 @@ export class CodexHardpointLayoutComponent {
   /** Folded-preview chips + aggregate + census for this block's `<summary>`. */
   preview(sec: RenderSection): FoldPreview {
     return buildFoldPreview(sec.section, this.occupantsBySection().get(sec.section) ?? []);
+  }
+
+  /** The active/passive split only means something for shields (or any block
+   * whose preview actually reports a passive count) — everywhere else every
+   * occupant counts as "active" by construction, so the split is noise. */
+  censusKey(sec: RenderSection): string {
+    const census = this.preview(sec).census;
+    return sec.section === 'shields' || census.passive > 0 ? 'codex.module.census' : 'codex.module.censusSlots';
+  }
+
+  /** A section with no occupants in `occupantsBySection` (all-empty bay)
+   * reports 0 from the preview census; fall back to the section's own slot
+   * count so the head never claims an empty section has no slots. */
+  censusParams(sec: RenderSection): { slots: number; active: number; passive: number } {
+    const census = this.preview(sec).census;
+    return census.slots > 0 ? census : { slots: sec.count, active: census.active, passive: census.passive };
   }
 
   fmtPeek(chip: FoldPeekChip): string {

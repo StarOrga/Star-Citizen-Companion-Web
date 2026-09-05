@@ -26,7 +26,7 @@ import { KpiStripCell } from './codex-kpi-sets';
           <span class="kpi-label">
             {{ c.labelKey | translate }}
             @if (c.tooltipKey; as tip) {
-              <span class="kpi-info" tabindex="0" [attr.aria-describedby]="'kpi-tip-' + c.key">ⓘ</span>
+              <button type="button" class="kpi-info tip" tabindex="0" [attr.aria-describedby]="'kpi-tip-' + c.key">ⓘ</button>
               <span [id]="'kpi-tip-' + c.key" class="kpi-tip" role="tooltip">{{ tip | translate }}</span>
             }
           </span>
@@ -59,7 +59,8 @@ import { KpiStripCell } from './codex-kpi-sets';
       /* Approximates the shell topbar's rendered height (14px padding × 2 +
          content) plus any active impersonation banner — see shell.component.ts. */
       top: calc(var(--sc-imp-banner-h, 0px) + 64px);
-      z-index: 20; /* below the swap-picker backdrop (150) and compare tray (40) */
+      z-index: 10; /* below the swap-picker backdrop (150), compare tray (40) and the energy dock (14) */
+      box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.55);
     }
     @media (max-width: 1120px) {
       .kpi-band { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -84,7 +85,9 @@ import { KpiStripCell } from './codex-kpi-sets';
     .kpi-delta.good { color: var(--sc-success); }
     .kpi-delta.bad { color: var(--sc-danger); }
     .kpi-cell.from-power { border-bottom: 2px solid var(--sc-danger); }
-    .kpi-info { position: relative; margin-left: 3px; cursor: help; color: var(--sc-fg-2); font-size: 10px; }
+    .kpi-info { position: relative; margin-left: 3px; cursor: help; color: var(--sc-fg-2); font-size: 10px;
+      background: none; border: none; padding: 0; font-family: inherit; }
+    .kpi-info:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .kpi-tip { position: absolute; display: none; }
     .kpi-info:hover + .kpi-tip, .kpi-info:focus + .kpi-tip {
       display: block; position: absolute; z-index: 25; max-width: 240px; padding: 8px 10px;
