@@ -6,6 +6,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
@@ -13,6 +14,7 @@ import { ImpersonationService } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
 import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
 import { UserFeedbackService } from '../feedback/user-feedback.service';
+import { PanelNavigationService } from '../feedback/panel-navigation.service';
 import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.component';
 import { unreadBadgeText } from '../feedback/user-feedback.types';
 
@@ -280,6 +282,7 @@ export class UserFeedbackFabComponent {
   private readonly imp = inject(ImpersonationService);
   private readonly feedback = inject(UserFeedbackService);
   private readonly fabPrefs = inject(FeedbackFabPrefsService);
+  private readonly panelNav = inject(PanelNavigationService);
 
   /**
    * Signed in, role resolved, not an admin, and the launcher not switched off
@@ -338,6 +341,25 @@ export class UserFeedbackFabComponent {
     effect(() => {
       if (this.visible() && !this.feedback.loaded()) void this.feedback.refresh();
     });
+
+    let seen = this.panelNav.navigations();
+    effect(() => {
+      const n = this.panelNav.navigations();
+      if (n === seen) return;
+      seen = n;
+      if (this.isPhoneSheet() && untracked(() => this.isOpen())) this.minimize();
+    });
+  }
+
+  /**
+   * A link inside the panel routed the app underneath. Above 720px the panel is
+   * a docked window and the page is visible next to it, so only the phone sheet
+   * has to get out of the way (#517).
+   */
+  private isPhoneSheet(): boolean {
+    return typeof globalThis.matchMedia === 'function'
+      ? globalThis.matchMedia('(max-width: 720px)').matches
+      : false;
   }
 
   toggle(event: Event) {

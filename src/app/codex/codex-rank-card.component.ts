@@ -27,23 +27,77 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="rank-card sc-card">
-      <h2>
-        <span class="glyph" aria-hidden="true">◈</span>
-        {{ 'codex.rank.header' | translate }}
-      </h2>
-      @if (result()) {
-        <p class="cohort-line">
-          @if (scope() === 'sizeClass' && sizeClass() != null) {
-            {{ 'codex.rank.nShipsOfSizeClass' | translate: { n: result()!.cohortSize, k: sizeClass() } }}
-          } @else if (scope() === 'career') {
-            {{ 'codex.rank.nShipsOfCareer' | translate: { n: result()!.cohortSize } }}
-          } @else {
-            {{ 'codex.rank.nShips' | translate: { n: result()!.cohortSize } }}
-          }
-        </p>
-      } @else {
-        <p class="cohort-line gap">{{ 'codex.kpi.gap' | translate }}</p>
+      <div class="rank-head">
+        <h2>
+          <span class="glyph" aria-hidden="true">◈</span>
+          {{ 'codex.rank.header' | translate }}
+        </h2>
+        @if (result()) {
+          <p class="cohort-line">
+            @if (scope() === 'sizeClass' && sizeClass() != null) {
+              {{ 'codex.rank.nShipsOfSizeClass' | translate: { n: result()!.cohortSize, k: sizeClass() } }}
+            } @else if (scope() === 'career') {
+              {{ 'codex.rank.nShipsOfCareer' | translate: { n: result()!.cohortSize } }}
+            } @else {
+              {{ 'codex.rank.nShips' | translate: { n: result()!.cohortSize } }}
+            }
+          </p>
+        } @else {
+          <p class="cohort-line gap">{{ 'codex.kpi.gap' | translate }}</p>
+        }
+      </div>
+
+
+      @if (ready()) {
+        <div class="rank-col-radar">
+          <svg class="radar" viewBox="0 0 200 200" [attr.aria-label]="'codex.rank.radarAria' | translate: { name: shipName(), n: result()!.cohortSize }" role="img">
+            <g class="rings" aria-hidden="true">
+              @for (ring of rings; track ring) {
+                <polygon [attr.points]="ringPoints(ring, result()!.axes.length)" />
+              }
+              @for (spoke of spokePoints(result()!.axes.length); track spoke) {
+                <line x1="100" y1="100" [attr.x2]="spoke.x" [attr.y2]="spoke.y" />
+              }
+            </g>
+            <polygon class="median" [attr.points]="polygonPoints(result()!.medianPolygon)" />
+            @if (shipPolygonPoints(); as shipPts) {
+              <polygon class="ship" [attr.points]="shipPts" />
+            }
+            @for (cap of axisCaptions(); track cap.key) {
+              <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="'middle'">{{ (cap.gap ? cap.labelKey! : cap.labelKey) | translate }}</text>
+            }
+          </svg>
+          <dl class="sr-only axis-mirror">
+            @for (a of result()!.axes; track a.key) {
+              <dt>{{ a.labelKey | translate }}</dt>
+              <dd>{{ a.percentile != null ? (a.percentile + '%') : ('codex.rank.gapAxis' | translate) }}</dd>
+            }
+          </dl>
+          <p class="legend">
+            <span class="leg ship">— {{ 'codex.rank.legend.ship' | translate: { name: shipName() } }}</span>
+            <span class="leg median">·· {{ 'codex.rank.legend.median' | translate }}</span>
+          </p>
+        </div>
       }
+
+      <div class="rank-col-bars">
+        @if (loading()) {
+          <div class="rank-skel sc-skel-field" aria-hidden="true"></div>
+        } @else if (!result()) {
+          <p class="gap-note">{{ 'codex.rank.gapAxis' | translate }}</p>
+        } @else if (result()!.overall != null) {
+            <p class="verdict">
+              {{ 'codex.rank.verdict' | translate: { pct: result()!.overall, band: (result()!.bandKey! | translate), n: result()!.cohortSize } }}
+              <button
+                type="button"
+                class="tip"
+                [attr.aria-describedby]="'rank-pct-tip'"
+              >{{ 'codex.rank.percentile' | translate }} ⓘ</button>
+              <span id="rank-pct-tip" class="pct-tip" role="tooltip">{{ 'codex.rank.percentileTooltip' | translate }}</span>
+            </p>
+        } @else {
+          <p class="verdict gap">{{ 'codex.kpi.gap' | translate }}</p>
+        }
 
       <div class="profile-row" role="radiogroup" [attr.aria-label]="'codex.rank.profileLabel' | translate">
         @for (p of profiles; track p.id) {
@@ -77,79 +131,46 @@ import {
         </label>
         <span class="scope-hint">{{ 'codex.rank.disabled.noSizeClass' | translate }}</span>
       </div>
-
-      @if (loading()) {
-        <div class="rank-skel sc-skel-field" aria-hidden="true"></div>
-      } @else if (!result()) {
-        <p class="gap-note">{{ 'codex.rank.gapAxis' | translate }}</p>
-      } @else {
-        @if (result()!.overall != null) {
-          <p class="verdict">
-            {{ 'codex.rank.verdict' | translate: { pct: result()!.overall, band: (result()!.bandKey! | translate), n: result()!.cohortSize } }}
-            <button
-              type="button"
-              class="tip"
-              [attr.aria-describedby]="'rank-pct-tip'"
-            >{{ 'codex.rank.percentile' | translate }} ⓘ</button>
-            <span id="rank-pct-tip" class="pct-tip" role="tooltip">{{ 'codex.rank.percentileTooltip' | translate }}</span>
-          </p>
-        } @else {
-          <p class="verdict gap">{{ 'codex.kpi.gap' | translate }}</p>
+        @if (ready()) {
+          <ul class="bar-list">
+            @for (a of result()!.bars; track a.key) {
+              <li class="bar-row">
+                <span class="bar-label">{{ a.labelKey | translate }}</span>
+                <span class="bar-track">
+                  @if (a.percentile != null) {
+                    <span class="bar-fill" [class.weak]="a.weak" [style.width.%]="a.percentile"></span>
+                  }
+                </span>
+                <span class="bar-value">
+                  @if (a.percentile != null) {
+                    {{ a.percentile }}%
+                  } @else {
+                    <span class="gap-dash" [attr.title]="a.gapKey ? (a.gapKey | translate) : null">—</span>
+                  }
+                </span>
+              </li>
+            }
+          </ul>
+          <p class="lens-note">{{ 'codex.rank.lensNote' | translate }}</p>
         }
-
-        <svg class="radar" viewBox="0 0 200 200" [attr.aria-label]="'codex.rank.radarAria' | translate: { name: shipName(), n: result()!.cohortSize }" role="img">
-          <g class="rings" aria-hidden="true">
-            @for (ring of rings; track ring) {
-              <polygon [attr.points]="ringPoints(ring, result()!.axes.length)" />
-            }
-            @for (spoke of spokePoints(result()!.axes.length); track spoke) {
-              <line x1="100" y1="100" [attr.x2]="spoke.x" [attr.y2]="spoke.y" />
-            }
-          </g>
-          <polygon class="median" [attr.points]="polygonPoints(result()!.medianPolygon)" />
-          @if (shipPolygonPoints(); as shipPts) {
-            <polygon class="ship" [attr.points]="shipPts" />
-          }
-          @for (cap of axisCaptions(); track cap.key) {
-            <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="'middle'">{{ (cap.gap ? cap.labelKey! : cap.labelKey) | translate }}</text>
-          }
-        </svg>
-        <dl class="sr-only axis-mirror">
-          @for (a of result()!.axes; track a.key) {
-            <dt>{{ a.labelKey | translate }}</dt>
-            <dd>{{ a.percentile != null ? (a.percentile + '%') : ('codex.rank.gapAxis' | translate) }}</dd>
-          }
-        </dl>
-        <p class="legend">
-          <span class="leg ship">— {{ 'codex.rank.legend.ship' | translate: { name: shipName() } }}</span>
-          <span class="leg median">·· {{ 'codex.rank.legend.median' | translate }}</span>
-        </p>
-
-        <ul class="bar-list">
-          @for (a of result()!.axes; track a.key) {
-            <li class="bar-row">
-              <span class="bar-label">{{ a.labelKey | translate }}</span>
-              <span class="bar-track">
-                @if (a.percentile != null) {
-                  <span class="bar-fill" [class.weak]="a.weak" [style.width.%]="a.percentile"></span>
-                }
-              </span>
-              <span class="bar-value">
-                @if (a.percentile != null) {
-                  {{ a.percentile }}%
-                } @else {
-                  <span class="gap-dash" [attr.title]="a.gapKey ? (a.gapKey | translate) : null">—</span>
-                }
-              </span>
-            </li>
-          }
-        </ul>
-      }
+      </div>
     </section>
   `,
   styles: [`
     :host { display: block; }
-    .rank-card { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+    .rank-card { padding: 16px 18px; display: grid; grid-template-columns: 210px 1fr; gap: 10px 18px; }
+    .rank-head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 2px; }
+    .rank-col-radar { display: flex; flex-direction: column; gap: 8px; }
+    .rank-col-bars { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    /* Loading and the no-cohort gap draw no radar, so the one remaining column
+       takes the whole card instead of leaving a 210px hole beside itself. */
+    .rank-card:not(:has(.rank-col-radar)) .rank-col-bars { grid-column: 1 / -1; }
+    /* The two-column card needs ~560px before the bar grid starts overflowing
+       (210 radar + 18 gap + two 74|bar|34 bar columns + 14 gap + padding), so
+       it collapses there rather than at the bar list's own width. */
+    @media (max-width: 560px) {
+      .rank-card { grid-template-columns: 1fr; }
+    }
     h2 { margin: 0; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-accent);
       display: flex; align-items: center; gap: 8px; }
     .glyph { font-size: 0.9rem; }
@@ -184,7 +205,7 @@ import {
       border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border);
       font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
 
-    .radar { width: 100%; max-width: 220px; align-self: center; }
+    .radar { width: 100%; max-width: 210px; }
     .radar .rings polygon { fill: none; stroke: color-mix(in srgb, var(--sc-accent) 18%, transparent); stroke-width: 1; }
     .radar .rings line { stroke: color-mix(in srgb, var(--sc-accent) 18%, transparent); stroke-width: 1; }
     .radar text { font-size: 6px; fill: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -194,7 +215,10 @@ import {
     .legend { display: flex; gap: 12px; justify-content: center; margin: 0; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .legend .ship { color: var(--sc-accent); }
 
-    .bar-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+    .bar-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px; align-content: start; }
+    @media (max-width: 520px) {
+      .bar-list { grid-template-columns: 1fr; }
+    }
     .bar-row { display: grid; grid-template-columns: 74px 1fr 34px; align-items: center; gap: 8px; }
     .bar-label { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
     .bar-track { height: 8px; border-radius: 999px; background: var(--sc-bg-2); overflow: hidden; }
@@ -203,6 +227,7 @@ import {
     .bar-value { font-size: max(0.68rem, var(--sc-fs-floor)); text-align: right; color: var(--sc-fg-0);
       font-variant-numeric: tabular-nums; }
     .gap-dash { color: var(--sc-fg-2); cursor: help; }
+    .lens-note { margin: 0; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
   `],
 })
 export class CodexRankCardComponent {
@@ -210,6 +235,9 @@ export class CodexRankCardComponent {
   readonly sizeClass = input<number | null>(null);
   readonly result = input<RankResult | null>(null);
   readonly loading = input(false);
+
+  /** The card has a cohort to draw: radar, bars and the lens note all render. */
+  readonly ready = computed(() => !this.loading() && this.result() != null);
   readonly profile = input<RankProfileId>('combat');
   readonly scope = input<RankScope>('sizeClass');
   readonly disabledReasons = input<Partial<Record<RankProfileId, string | null>>>({});

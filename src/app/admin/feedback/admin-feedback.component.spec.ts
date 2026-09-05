@@ -8,6 +8,7 @@ import { ConsentService } from '../../core/consent.service';
 import { LocaleService } from '../../core/locale/locale.service';
 import { CelebrationService } from './celebration.service';
 import { AdminFeedbackComponent } from './admin-feedback.component';
+import { PanelNavigationService } from '../../feedback/panel-navigation.service';
 import { FeedbackMessage, FeedbackRow, FeedbackStatus } from './feedback.types';
 
 /**
@@ -361,4 +362,98 @@ describe('AdminFeedbackComponent — the stream', () => {
     expect(localStorage.getItem('sc.adminFeedback.lastSeenDelivered')).not.toBeNull();
   });
 
+
+  /**
+   * #517: the panel tells its shell that an in-app link was followed, so a
+   * phone sheet can stop covering the page it just opened. Driven through the
+   * handler rather than a DOM click on purpose — the anchor is a real
+   * `routerLink` (see the deep-link test above), and letting Karma follow it
+   * would navigate the test runner itself away.
+   */
+  it('reports an in-app navigation only for a plain left click', async () => {
+    const { cmp } = await mount(fixtureTables());
+    const nav = TestBed.inject(PanelNavigationService);
+    const before = nav.navigations();
+
+    expect(cmp.onViewInApp(new MouseEvent('click'))).toBe(true);
+    expect(nav.navigations()).toBe(before + 1);
+
+    // Ctrl / ⌘ / Shift / middle open a new tab — this one stays put, so the
+    // panel must not minimize under the user.
+    expect(cmp.onViewInApp(new MouseEvent('click', { ctrlKey: true }))).toBe(false);
+    expect(cmp.onViewInApp(new MouseEvent('click', { metaKey: true }))).toBe(false);
+    expect(cmp.onViewInApp(new MouseEvent('click', { button: 1 }))).toBe(false);
+    expect(nav.navigations()).toBe(before + 1);
+  });
+
+});
+
+/**
+ * The flight path's four steps, drawn (feedback 1d013d69). The point of the
+ * change is that the four dots now SAY what they are, so these tests read the
+ * rendered glyph and its name — not the helper that picks them, which
+ * `feedback.types.spec.ts` covers on its own.
+ */
+describe('AdminFeedbackComponent — the flight path reads as four steps', () => {
+  /** The glyph names of one card's path, left to right. */
+  function stepsOf(el: HTMLElement, cardId: string): string[] {
+    const path = el.querySelector<HTMLElement>(`#fb-card-${cardId} .fp`)!;
+    return Array.from(path.querySelectorAll('i')).map(
+      (i) => Array.from(i.classList).find((c) => c.startsWith('g-'))?.slice(2) ?? '',
+    );
+  }
+
+  it('gives every step a drawing and its own name, and keeps the path itself labelled', async () => {
+    const { el } = await mount(fixtureTables());
+
+    // Four steps, four different drawings — a repeated `d` would mean two steps
+    // look identical, which is the bug this feedback was about.
+    const path = el.querySelector<HTMLElement>('#fb-card-o1 .fp')!;
+    const steps = Array.from(path.querySelectorAll('i'));
+    expect(steps.length).toBe(4);
+    const paths = steps.map((i) => i.querySelector('svg path')!.getAttribute('d'));
+    expect(paths.every((d) => !!d && d.length > 0)).toBeTrue();
+    expect(new Set(paths).size).toBe(4);
+
+    // Each step names itself on hover…
+    expect(steps.map((i) => i.getAttribute('title'))).toEqual([
+      'adminFeedback.station.step.contract',
+      'adminFeedback.station.step.doing',
+      'adminFeedback.station.step.delivered',
+      'adminFeedback.station.step.accepted',
+    ]);
+    // …and the drawings themselves stay out of the accessibility tree, because
+    // the path as a whole carries one name that says where the topic stands.
+    for (const svg of Array.from(path.querySelectorAll('svg'))) {
+      expect(svg.getAttribute('aria-hidden')).toBe('true');
+    }
+    expect(path.getAttribute('role')).toBe('img');
+    expect(path.getAttribute('aria-label')).toContain('adminFeedback.station.pathLabel');
+  });
+
+  it('maps each status to the step it is meant to draw', async () => {
+    const { el } = await mount({
+      ...fixtureTables(),
+      admin_feedback: [
+        ...(fixtureTables().admin_feedback as FeedbackRow[]),
+        row('x1', 'declined', T('04'), { source: 'user', triaged: true }),
+      ],
+    });
+
+    // ToDo / in Arbeit → the tool.
+    expect(stepsOf(el, 'o1')).toEqual(['contract', 'doing', 'delivered', 'accepted']);
+    // Rückfrage an den Admin, and Rückfrage an den Autor → the loop arrow.
+    expect(stepsOf(el, 'q1')[1]).toBe('recycle');
+    expect(stepsOf(el, 'a1')[1]).toBe('recycle');
+    // Abgelehnt → the cross takes the tool's place (a declined topic is
+    // archived, so it is drawn in the Geliefert feed).
+    expect(stepsOf(el, 'x1-feed')[1]).toBe('rejected');
+    // Geliefert (Abnahme offen) and abgenommen keep the two checks; the fill
+    // class is what says which of the two the topic has reached.
+    expect(stepsOf(el, 'r1')).toEqual(['contract', 'doing', 'delivered', 'accepted']);
+    expect(el.querySelector('#fb-card-r1 .fp')!.classList).toContain('s2');
+    expect(el.querySelector('#fb-card-d1-feed .fp')!.classList).toContain('s3');
+    // The unreleased user topic sits on the contract step.
+    expect(el.querySelector('#fb-card-u1 .fp')!.classList).toContain('s0');
+  });
 });

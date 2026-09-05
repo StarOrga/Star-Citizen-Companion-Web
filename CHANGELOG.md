@@ -22,6 +22,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   installer, always the newest build. It is not shown on a device that cannot
   install a desktop application at all.
 
+## [0.80.4] - 2026-09-06
+
+### Fixed
+
+- **The 3D-livery build stops spending hours on ships that have no livery.**
+  The build manifest admitted any entity with a hull mesh — wrecks, salvageable
+  debris, test entities — because the flag it gated on was true for anything
+  that resolved a hull at all. One whole-catalog run took 11 h 20 m over 309
+  entries and produced models for 21 ships. A ship now has to resolve an actual
+  material to enter the manifest, which is the same rule the exporter itself
+  applies, and the run ends with a verdict: how many ships wrote a model, how
+  many wrote none, and why — grouped, instead of one warning per skin scrolled
+  off the top of an overnight run. (#512)
+
+## [0.80.3] - 2026-09-06
+
+### Changed
+
+- **The ship page now reads the way Mollywator's concept draws it.** A pass
+  over the live page against every screen of the concept turned up the places
+  where the page had drifted: the Einordnung's radar spokes moved around as
+  the ranking changed, so a shape could not be compared between two ships —
+  each axis now keeps its own spoke and only the bar list sorts. The card
+  itself is the concept's two columns, radar beside bars, with the profile
+  chips over the bars and the note that the Einordnung keeps its own three
+  profiles regardless of the mission lens.
+- **A gun mounted through a gimbal is shown as the weapon it is.** It used to
+  appear under the mount as a bare name with its port; it now carries its
+  maker, grade, damage channel and its own numbers, with the group total
+  beside it — three gimbals holding one gun each read as three guns.
+- **Module rows lead with the group, not with one item.** The figure on the
+  right of a row is what the whole run adds up to and matches the number the
+  folded block shows; the per-item values stay on the line underneath. Weapons
+  headline sustained DPS rather than a raw alpha sum, identical occupants fold
+  together, and the module blocks are named the way the concept names them.
+- **The mission lens no longer hides modules or blocks the travel profile.**
+  Countermeasures and structure stay visible under every lens, and Reisen is
+  selectable on ships without a quantum drive.
+
+### Fixed
+
+- **The change chip under a headline figure shows the change, not a
+  percentage.** It reads "+81" or "−225" in the cell's own scale, with the
+  percentage kept as the tooltip, and a change too small to show is no longer
+  rounded up into a visible "+0".
+- **Swapping a shield, cooler or thruster shows columns that have values.**
+  The picker used to open on the weapon column set for every port, so a shield
+  swap was a table of dashes; the column menu, the table and the footer now
+  agree with each other, and picking one column no longer wipes the rest. On a
+  phone the three columns shown are the ones that port actually has.
+
+## [0.80.2] - 2026-09-06
+
+### Changed
+
+- **The mobile gate can now audit the feedback panels it used to be blind to.**
+  It walked public routes only, so the admin feedback board and the viewer
+  panel — both full-bleed sheets on a phone — were never measured and the gate
+  could report GREEN without ever having seen them. An opt-in `--auth` pass
+  signs a test account in through the app's own login form and audits the
+  role-gated routes plus the panel itself. Credentials come from the
+  environment, never from the repository. (#516)
+
+## [0.80.1] - 2026-09-06
+
+### Fixed
+
+- **On a phone, "Ansehen" in the feedback panel now actually shows the page.**
+  Both feedback panels are full-bleed sheets below 720px, so following a deep
+  link routed the app underneath while the sheet kept covering it — nothing
+  appeared to happen until you minimized by hand. The panel now steps aside by
+  itself. Docked above 720px nothing changes, and a Ctrl/⌘/middle click still
+  opens a new tab without disturbing this one. (#517)
+
 ## [0.80.0] - 2026-09-06
 
 ### Changed

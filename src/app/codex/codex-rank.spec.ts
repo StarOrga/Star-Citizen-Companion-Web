@@ -88,9 +88,18 @@ describe('rankShip', () => {
     expect(result.cohortSize).toBe(4);
   });
 
-  it('sorts the bar list by percentile, best first', () => {
-    const pcts = result.axes.map((a) => a.percentile ?? -1);
+  it('keeps the radar axes in the fixed profile order', () => {
+    expect(result.axes.map((a) => a.key)).toEqual(
+      RANK_PROFILES.find((p) => p.id === 'combat')!.axes.map((a) => a.key),
+    );
+  });
+
+  it('sorts the bar list by percentile, best first, without mutating the axes order', () => {
+    const pcts = result.bars.map((a) => a.percentile ?? -1);
     expect([...pcts].sort((a, b) => b - a)).toEqual(pcts);
+    expect(result.axes.map((a) => a.key)).toEqual(
+      RANK_PROFILES.find((p) => p.id === 'combat')!.axes.map((a) => a.key),
+    );
   });
 
   it('averages the axes into an overall percentile and a band', () => {

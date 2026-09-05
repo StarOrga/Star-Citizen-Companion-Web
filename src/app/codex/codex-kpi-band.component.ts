@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
-import { formatEquippedStat } from './codex-equipped-stats';
+import { formatEquippedStat, formatEquippedStatNumber } from './codex-equipped-stats';
 import { KpiCell } from './codex-loadout-stats';
 import { KpiStripCell } from './codex-kpi-sets';
 
@@ -36,10 +36,9 @@ import { KpiStripCell } from './codex-kpi-sets';
             <span class="kpi-value gap-dash" [attr.title]="c.gapKey ? (c.gapKey | translate) : null">—</span>
           }
           @if (c.delta; as d) {
-            <span class="kpi-delta" [class.good]="d.good" [class.bad]="!d.good" [class.dir-down]="d.direction === 'down'">
-              {{ d.direction === 'up' ? '▲' : '▼' }}
-              @if (d.pctText) { {{ d.pctText }} }
-            </span>
+            @if (deltaText(c); as body) {
+              <span class="kpi-delta" [class.good]="d.good" [class.bad]="!d.good" [attr.title]="d.pctText">{{ body }}</span>
+            }
           }
         </div>
       }
@@ -101,5 +100,21 @@ export class CodexKpiBandComponent {
 
   fmt(c: KpiCell): string {
     return formatEquippedStat({ labelKey: c.labelKey, value: c.value!, format: c.format });
+  }
+
+  /**
+   * The delta chip body: the absolute change, forced-sign, on the cell's own
+   * scale but WITHOUT its unit — the value right beside it already carries
+   * that, and the concept draws bare "+28" / "−225" chips.
+   *
+   * Null when the change rounds away to nothing. `computeKpiDelta` already
+   * drops an exact tie, but a sub-unit change survives it and would render as
+   * "+0", which "±0 renders nothing" (03-rules §3.5) equally forbids.
+   */
+  deltaText(c: KpiCell): string | null {
+    const raw = c.delta!.raw;
+    const magnitude = formatEquippedStatNumber({ labelKey: c.labelKey, value: Math.abs(raw), format: c.format });
+    if (/^0([.,]0*)?$/.test(magnitude)) return null;
+    return `${raw > 0 ? '+' : '−'}${magnitude}`;
   }
 }

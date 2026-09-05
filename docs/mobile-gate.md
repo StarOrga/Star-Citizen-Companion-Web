@@ -207,9 +207,48 @@ Exit `0` when all checks are alive, `1` when one has gone blind. Run it after
 touching `scripts/mobile-gate.mjs`, and whenever a green gate run feels too good
 to be true — a check that silently stopped detecting is worse than no gate.
 
+## The authenticated pass (`--auth`)
+
+Public routes alone leave the role-gated surfaces unaudited. The admin feedback
+board (`sc-admin-feedback`, a full-bleed sheet ≤720px) and the viewer feedback
+panel never open for an anonymous visitor, so their touch targets, font floors
+and horizontal overflow were never measured — the gate reported GREEN without
+ever having seen them (#516).
+
+`--auth` closes that hole. It signs a test account in **through the app's own
+login form** — not by forging a Supabase session in `localStorage`, because a
+forged session would skip exactly the sign-in code that could be broken on a
+phone — and then audits:
+
+- every route in `auth.routes` (default: `/admin/feedback`), and
+- the feedback panel opened on top of each route in `auth.panelRoutes`
+  (default: `/news`), reported as `/news [panel]`.
+
+```bash
+SC_GATE_EMAIL=gate@example.test SC_GATE_PASSWORD=… \
+  node scripts/mobile-gate.mjs --auth
+```
+
+Rules it keeps:
+
+- **Credentials never live in the repo.** They come from `SC_GATE_EMAIL` and
+  `SC_GATE_PASSWORD`; the password is never logged or written to the JSON
+  report. Use a dedicated test account, not a real admin's.
+- **Missing credentials are a hard stop** (exit `2`), never a silent skip — an
+  `--auth` run that audits nothing is the false GREEN this feature exists to
+  prevent.
+- **Phones only.** Above 720px the panels are docked windows beside the page the
+  public pass already measured; the sheet layout under test does not exist there.
+- **A failed sign-in is a finding**, reported on the `[auth]` row, so a broken
+  test account cannot read as "the panels are fine".
+
+Which account you point it at decides what gets audited: an admin sees the admin
+board, a plain approved user sees the viewer panel.
+
 ## Adding routes
 
 `routes` in the config is the authoritative list; it covers the **public**
 surface (auth-gated routes redirect to `/login` when the gate visits them, so
 they are not included). When a new public route ships, add it there in the same
-PR — an untested route is an untested phone.
+PR — an untested route is an untested phone. Role-gated routes go into
+`auth.routes` instead and only run under `--auth`.

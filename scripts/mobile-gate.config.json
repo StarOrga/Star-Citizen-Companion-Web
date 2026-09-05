@@ -2,10 +2,19 @@
   "$comment": [
     "Config for scripts/mobile-gate.mjs — the mobile & tablet gate that /ship runs.",
     "Thresholds are contractual: do NOT relax them to make a red run green.",
-    "Every entry under `ignore` MUST carry a justification and a follow-up issue in $waivers."
+    "Every entry under `ignore` MUST carry a justification and a follow-up issue in $waivers.",
+    "`auth` drives the opt-in --auth pass (#516): role-gated routes and the FAB panels, audited on the phone devices after signing a test account in. Credentials come from SC_GATE_EMAIL / SC_GATE_PASSWORD — never from this file."
   ],
-  "devices": ["iphone-14", "pixel-7", "ipad-air", "galaxy-tab-s9"],
-  "quickDevices": ["iphone-14", "ipad-air"],
+  "devices": [
+    "iphone-14",
+    "pixel-7",
+    "ipad-air",
+    "galaxy-tab-s9"
+  ],
+  "quickDevices": [
+    "iphone-14",
+    "ipad-air"
+  ],
   "routes": [
     "/news",
     "/codex",
@@ -18,7 +27,21 @@
     "/about",
     "/login"
   ],
-  "quickRoutes": ["/news", "/codex", "/codex/ship/CNOU_Nomad", "/hangar", "/login"],
+  "quickRoutes": [
+    "/news",
+    "/codex",
+    "/codex/ship/CNOU_Nomad",
+    "/hangar",
+    "/login"
+  ],
+  "auth": {
+    "routes": [
+      "/admin/feedback"
+    ],
+    "panelRoutes": [
+      "/news"
+    ]
+  },
   "thresholds": {
     "minTapTargetPx": 44,
     "minFontSizePx": 12,

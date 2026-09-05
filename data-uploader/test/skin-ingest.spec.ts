@@ -62,10 +62,10 @@ function stubHappyPath(): void {
 
 describe('uploadSkins', () => {
   it('treats a ship with no built model as a successful no-op, not a failure', async () => {
-    // The build manifest gates on `has_material`, which is far broader than
-    // "a glb actually came out": on a whole-catalog run most ships legitimately
-    // export nothing. Signing an empty object list is a 400 from the function,
-    // so every one of them used to be recorded as a failed ship — silently.
+    // A ship can still export nothing even after #512 tightened the manifest
+    // gate (its materials resolve, its paints fail to build). Signing an empty
+    // object list is a 400 from the function, so such a ship used to be
+    // recorded as a failed ship — silently.
     const dir = await makeShip('SHIP_EMPTY', [{ id: 'standard', name: 'Standard', model: null }]);
     const logs: { message: string; level?: string }[] = [];
 

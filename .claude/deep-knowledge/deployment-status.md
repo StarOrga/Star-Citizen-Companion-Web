@@ -12,9 +12,31 @@ surface flips between deployed / pending / broken.
 - **Auto-assigned URL:** `https://star-citizen-companion-website.vercel.app` (307s to the canonical URL)
 - **Status:** ✅ LIVE — auto-deployed from `main` via GitHub integration.
 - **Implication for tasks:** every push to `main` triggers a Vercel
-  build. Use `curl -sI https://sc-companion.vercel.app` as the probe (200 OK
-  expected). For verifying a specific path (e.g. `/desktop`, `/p4k`),
-  probe directly: `curl -sI https://sc-companion.vercel.app/desktop`.
+  build. `curl -sI https://sc-companion.vercel.app` (200 OK expected) proves the
+  **site** is up; for a specific path, probe it directly:
+  `curl -sI https://sc-companion.vercel.app/desktop`.
+- **A 200 OK does NOT prove your change is live.** The site answers 200 the whole
+  time it is serving the *previous* build, and a production build can be queued,
+  skipped, or fail. Merge → live took 5.3–9.5 min in the four deploys before
+  2026-09-05 22:38Z, and the merge of PR #534 (22:46Z) produced **no production
+  deployment at all** — 30 minutes later production was still two merges behind.
+  Verify against the **merge SHA** instead:
+
+  ```bash
+  SHA=$(git rev-parse origin/main)
+  gh api "repos/StarOrga/Star-Citizen-Companion-Web/deployments?sha=$SHA&environment=Production" --jq '.[].id'
+  gh api "repos/StarOrga/Star-Citizen-Companion-Web/deployments/<id>/statuses" --jq '.[0].state'
+  ```
+
+  An empty list means the build never started — that is a negative result, not
+  "still building". The strongest cheap confirmation is a content probe on an
+  **unhashed** asset with the service worker bypassed, e.g.
+  `curl -s 'https://sc-companion.vercel.app/i18n/en.json?ngsw-bypass=true'` grepped
+  for a string the merge introduced.
+- **In a browser it is a PWA.** `ngsw` replays the cached shell to returning
+  visitors, so a live deploy still looks unshipped until a hard reload
+  (`Strg+Shift+R`) or `?ngsw-bypass=true`. Never conclude "not deployed" from a
+  browser tab alone.
 - **History note:** during the 2026-05-24 rebrand we briefly tried
   `scc.vercel.app` (shorter, cleaner) — but that hostname was already
   taken on Vercel by someone else. Fell back to `sc-companion.vercel.app`

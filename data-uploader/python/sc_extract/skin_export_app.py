@@ -31,6 +31,23 @@ from .ship_discovery import ShipDiscovery, ShipRef
 from .ship_export import parse_ship
 
 
+def _common_reason(reasons: list[str]) -> str:
+    """The most frequent per-skin failure for one ship, trimmed for a log line."""
+    counts: dict[str, int] = {}
+    for r in reasons:
+        key = r.split(":")[0].strip()[:80] or "unknown"
+        counts[key] = counts.get(key, 0) + 1
+    return max(counts.items(), key=lambda kv: kv[1])[0]
+
+
+def _group_reasons(barren: list[dict]) -> dict[str, list[str]]:
+    """Ship ids grouped by why they produced nothing, biggest bucket first."""
+    out: dict[str, list[str]] = {}
+    for b in barren:
+        out.setdefault(b["reason"], []).append(b["ship_id"])
+    return dict(sorted(out.items(), key=lambda kv: -len(kv[1])))
+
+
 def _refs_from_manifest(path: Path) -> list[ShipRef]:
     """Load ShipRefs from an extract's skins/_build_manifest.json."""
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -101,6 +118,8 @@ def main() -> int:
                     f"{' (manifest)' if args.manifest else ''}")
 
         ships_out: list[dict] = []
+        # Ships that were admitted to the manifest but wrote no model (#512).
+        barren: list[dict] = []
         for si, ref in enumerate(refs):
             phase("extract", pct=int(si / max(len(refs), 1) * 100))
             # Additive: "ship X / Y" — the renderer previously had no goal to
@@ -156,11 +175,43 @@ def main() -> int:
                 "skins": skins,
             })
             log("info", f"{ref.ship_id}: {n_ok}/{len(skins)} skins exported")
+            if n_ok == 0:
+                # Per-skin reasons are already in skins.json; nothing used to
+                # aggregate them, so a whole-catalog run reported "done" while
+                # 93 % of its ships produced nothing (#512).
+                reasons = [str(s.get("error")) for s in result["skins"] if s.get("error")]
+                barren.append({
+                    "ship_id": ref.ship_id,
+                    "paints": len(skins),
+                    "reason": _common_reason(reasons) if reasons
+                              else ("no paints discovered" if not skins else "no model written"),
+                })
 
         if not ships_out:
             error("no ships exported (no hull mesh found for any requested ship)")
             return 1
-        done(result={"ships": ships_out})
+
+        # ---- run-level verdict (#512) ---------------------------------------
+        # A build that admits N ships and produces models for a handful is a
+        # manifest problem, not a per-ship accident. Say so once, out loud, with
+        # the reasons grouped — otherwise the only trace is a warn line per skin
+        # scrolled off the top of an 11-hour run.
+        built = [s for s in ships_out if not s.get("cached") and s.get("skins")
+                 and any(k.get("has_model") for k in s["skins"])]
+        verdict = {
+            "ships_requested": len(ships_out),
+            "ships_with_models": len(built),
+            "ships_without_models": len(barren),
+            "reasons": _group_reasons(barren),
+        }
+        if barren:
+            pct = 100.0 * len(built) / max(1, len(ships_out) - sum(1 for s in ships_out if s.get("cached")))
+            log("warn", f"build verdict: {len(built)} ship(s) produced a model, "
+                        f"{len(barren)} produced none ({pct:.0f} % yield)")
+            for reason, ids in verdict["reasons"].items():
+                head = ", ".join(ids[:5]) + (f" … +{len(ids) - 5}" if len(ids) > 5 else "")
+                log("warn", f"  {len(ids)}x {reason}: {head}")
+        done(result={"ships": ships_out, "verdict": verdict})
         return 0
     except Exception as exc:  # noqa: BLE001 — surface as a structured error event
         error(f"{type(exc).__name__}: {exc}")

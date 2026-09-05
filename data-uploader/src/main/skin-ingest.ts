@@ -37,10 +37,10 @@ export interface SkinUploadResult {
   cached?: boolean;
   /**
    * True when the ship built no usable livery at all — a successful no-op, not
-   * a failure. The build manifest gates on `has_material`, which is far broader
-   * than "a glb actually came out", so a whole-catalog run legitimately reaches
-   * this for most of its ships (debris and other non-liveried entities
-   * included).
+   * a failure. Since #512 the build manifest requires a ship to resolve at
+   * least one material, so this should be the exception (a ship whose paints
+   * all fail to export) rather than the rule; before that the gate admitted
+   * anything with a hull and most of a whole-catalog run landed here.
    */
   empty?: boolean;
 }

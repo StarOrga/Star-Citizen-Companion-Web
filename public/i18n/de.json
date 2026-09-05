@@ -880,7 +880,6 @@
       "draftNotice": "Nicht gespeichert. Nur diese Sitzung.",
       "draftDiscard": "Verwerfen",
       "draftApplyAndSave": "Übernehmen & in Hangar speichern",
-      "lensReset": "Zurücksetzen",
       "chipCargoUnknown": "Laderaum · Kapazität nicht in den Spieldaten"
     },
     "energy": {
@@ -1202,6 +1201,7 @@
     "equipped": {
       "alphaDamage": "Alpha-Schaden",
       "dps": "DPS",
+      "sustainedDps": "Dauer-DPS",
       "fireRate": "Feuerrate",
       "projectileSpeed": "Geschossgeschwindigkeit",
       "range": "Reichweite",
@@ -1254,11 +1254,11 @@
       "adminHint": "Veröffentlichen macht den Link oben für alle Nutzer sichtbar. Nutzer-Links werden nie automatisch veröffentlicht."
     },
     "moduleSection": {
-      "weapons": "Waffen",
+      "weapons": "Bewaffnung",
       "remoteTurrets": "Ferngesteuerte Türme",
-      "missiles": "Raketen & Bewaffnung",
+      "missiles": "Raketen",
       "pod": "Pods",
-      "shields": "Schilde",
+      "shields": "Schild-Generatoren",
       "powerPlants": "Generator",
       "quantum": "Quantenantrieb",
       "radar": "Radar & Sensoren",
@@ -1297,6 +1297,7 @@
       "toolSwap": "{{name}} tauschen",
       "peek": {
         "alphaTotal": "Alpha gesamt",
+        "sustainedDpsTotal": "Dauer-DPS gesamt",
         "missileTotal": "Salve gesamt",
         "budget": "Reaktor-Budget",
         "coolingTotal": "Kühlung gesamt"
@@ -1352,11 +1353,11 @@
       "stealth": "Schleichen",
       "mining": "Bergbau",
       "salvage": "Bergung",
+      "lensReset": "Linse zurücksetzen",
       "disabled": {
         "noMining": "Keine Bergbau-Hardpoints",
         "noSalvage": "Keine Bergungs-Hardpoints",
-        "noCargo": "Kein Frachtgitter",
-        "noQuantum": "Kein Quantenantrieb"
+        "noCargo": "Kein Frachtgitter"
       }
     },
     "kpi": {
@@ -3248,6 +3249,14 @@
       "rejected": "Verworfen",
       "loop": "Nachbesserung",
       "pathLabel": "Stand: {{station}}",
+      "step": {
+        "contract": "Eingereicht \u00b7 Freigabe steht aus",
+        "doing": "Zur Umsetzung \u00fcbergeben",
+        "recycle": "R\u00fcckfrage \u00b7 dreht noch eine Runde",
+        "rejected": "Abgelehnt \u00b7 wird nicht umgesetzt",
+        "delivered": "Geliefert \u00b7 Abnahme steht aus",
+        "accepted": "Abgenommen \u00b7 fertig"
+      },
       "answered": "Beantwortet · wartet auf die Routine"
     },
     "kind": {

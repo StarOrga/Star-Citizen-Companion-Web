@@ -59,6 +59,9 @@ import {
   refKind,
   searchFeedback,
   searchTokens,
+  StationGlyph,
+  stationGlyphLabelKey,
+  stationGlyphs,
   stationIndex,
   stationLabelKey,
   timeOf,
@@ -80,6 +83,7 @@ import {
   feedbackAreaLabelKey,
 } from '../../feedback/feedback-area.types';
 import { isPlainLeftClick } from '../../core/modified-click.util';
+import { PanelNavigationService } from '../../feedback/panel-navigation.service';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { formatScDate } from '../../core/locale/date-format';
 import { LocaleService } from '../../core/locale/locale.service';
@@ -138,6 +142,30 @@ function purgeRetiredKeys(): void {
 const DRAFT_SCOPE = draftScopes.adminNew;
 /** Days of the Geliefert band shown before "n weitere Tage anzeigen". */
 const DELIVERED_DAYS_PAGE = 3;
+
+/**
+ * The flight path's mini glyphs — one 24×24 stroke path each, the same idiom
+ * the Codex category icons use (`codex-category-icon.component.ts`), so the
+ * board needs no icon font and no new dependency. Four bare dots did not say
+ * what the four steps were (feedback 1d013d69); each step now draws the thing
+ * it means, with the words still riding alongside in the baton span.
+ */
+const STATION_GLYPH_PATHS: Readonly<Record<StationGlyph, string>> = {
+  // A filed document with a signature line: eingereicht, wartet auf Freigabe.
+  contract:
+    'M6 3 H14 L18 7 V21 H6 Z M14 3 V7 H18 M9 12 H15 M9 16.5 C10.5 14.8 11.5 18.2 13 16.5 C13.8 15.6 14.6 15.9 15.4 16.4',
+  // A wrench: handed to the routine — queued or under the tool, same step.
+  doing:
+    'M18.4 4.1 A4.6 4.6 0 0 0 12.3 10.2 L4.6 17.9 A1.9 1.9 0 0 0 7.3 20.6 L15 12.9 A4.6 4.6 0 0 0 21.1 6.8 L18 9.9 L15.3 9.9 L15.3 7.2 Z',
+  // A loop arrow: the topic is going round again instead of forward.
+  recycle: 'M12 4.5 A7.5 7.5 0 1 0 19.5 12 M15.8 7.1 L12 4.5 L15.8 1.9',
+  // A cross: this one does not get built.
+  rejected: 'M6.5 6.5 L17.5 17.5 M17.5 6.5 L6.5 17.5',
+  // A check: geliefert, die Abnahme steht noch aus.
+  delivered: 'M5 12.5 L10 17.5 L19 7',
+  // The same check, closed into a circle: abgenommen.
+  accepted: 'M3 12 A9 9 0 1 1 21 12 A9 9 0 1 1 3 12 M7.8 12.4 L10.7 15.3 L16.3 8.9',
+};
 
 /** Role → avatar tint. Anyone without a known role is drawn as a plain user. */
 type AvatarTone = 'adm' | 'col' | 'usr';
@@ -465,7 +493,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 </button>
               }
               @if (areaLink(m); as href) {
-                <a class="link-btn" [routerLink]="href" [attr.title]="'adminFeedback.stream.viewTitle' | translate: { area: (areaLabelKey(areaOf(m)!) | translate) }">
+                <a class="link-btn" [routerLink]="href" (click)="onViewInApp($event)" [attr.title]="'adminFeedback.stream.viewTitle' | translate: { area: (areaLabelKey(areaOf(m)!) | translate) }">
                   ▸ {{ 'adminFeedback.stream.view' | translate }}
                 </a>
               }
@@ -536,7 +564,15 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 
       <!-- The flight path: four stations, filled up to the current one; a
            branch endcap for issue / declined / rejected, a loop mark for a
-           post-ship continuation. Words ride along in the baton span. -->
+           post-ship continuation. Words ride along in the baton span.
+
+           Each station draws a mini glyph instead of a bare dot (feedback
+           1d013d69): Vertrag → Werkzeug → Haken → Haken im Kreis, with the
+           work station swapping to the loop arrow while a Rückfrage is open
+           and to a cross when the topic was abgelehnt. The whole path is ONE
+           role="img" whose aria-label names where the topic stands, so a
+           screen reader hears the state in words rather than four glyph names;
+           each step additionally carries its own name as a hover title. -->
       <ng-template #path let-pos>
         <span
           class="fp"
@@ -544,7 +580,19 @@ type AvatarTone = 'adm' | 'col' | 'usr';
           [class.loop]="pos.loop"
           [class]="'fp s' + stationIndex(pos.station) + (pos.branch ? ' b-' + pos.branch : '') + (pos.loop ? ' loop' : '')"
           [attr.aria-label]="'adminFeedback.station.pathLabel' | translate: { station: (stationLabelKey(pos) | translate) }">
-          <i></i><i></i><i></i><i></i>
+          @for (g of stationGlyphs(pos); track $index) {
+            <i [class]="'g-' + g" [attr.title]="stationGlyphLabelKey(g) | translate">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  [attr.d]="glyphPath(g)"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+            </i>
+          }
         </span>
       </ng-template>
 
@@ -636,7 +684,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
           }
           <div class="rg-links">
             @if (areaLink(m); as href) {
-              <a class="link-btn" [routerLink]="href">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
+              <a class="link-btn" [routerLink]="href" (click)="onViewInApp($event)">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
             }
             @if (inline) {
               <!-- On a card, "open the topic" belongs in this row: it is the
@@ -709,7 +757,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             <!-- Rare, deliberate acts behind the one ⋯ (feedback 03d7e546). -->
             <div class="more-menu" role="group" [attr.aria-label]="'adminFeedback.actions.more' | translate">
               @if (areaLink(m); as href) {
-                <a class="menu-item" [routerLink]="href" (click)="isPlainLeftClick($event) && closeTopic()">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
+                <a class="menu-item" [routerLink]="href" (click)="onViewInApp($event) && closeTopic()">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
               }
               @if (!archived(m) && !inReview(m)) {
                 @if (issueRequested(m)) {
@@ -1056,17 +1104,23 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .av.col { background: rgba(158, 203, 255, 0.2); color: #9ecbff; border: 1px solid rgba(158, 203, 255, 0.55); }
     .msg-head .av { width: 22px; height: 22px; font-size: max(0.62rem, var(--sc-fs-floor)); }
 
-    /* ---- Flight path ---- */
+    /* ---- Flight path (four glyph steps, feedback 1d013d69) ----
+       The step is the icon; the fill state is colour + opacity. Passed steps
+       are solid foreground, the step the topic sits on is accent, steps still
+       ahead are dimmed. 13px is the smallest size at which the wrench and the
+       loop arrow stay tellable apart, and the row it lives in is 16px tall. */
     .fp { display: inline-flex; align-items: center; gap: 0; flex: 0 0 auto; }
-    .fp i { display: block; width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--sc-fg-2); background: transparent; box-sizing: border-box; position: relative; }
+    .fp i { display: block; width: 13px; height: 13px; box-sizing: border-box; position: relative; color: var(--sc-fg-2); opacity: 0.45; }
+    .fp i svg { display: block; width: 100%; height: 100%; }
     .fp i + i { margin-left: 7px; }
     .fp i + i::before { content: ''; position: absolute; right: 100%; top: 50%; width: 7px; height: 1px; background: var(--sc-fg-2); opacity: 0.6; }
-    .fp.s0 i:nth-child(-n+1), .fp.s1 i:nth-child(-n+2), .fp.s2 i:nth-child(-n+3), .fp.s3 i:nth-child(-n+4) { background: var(--sc-fg-2); border-color: var(--sc-fg-2); }
-    .fp.s0 i:nth-child(1), .fp.s1 i:nth-child(2), .fp.s2 i:nth-child(3), .fp.s3 i:nth-child(4) { background: var(--sc-accent); border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.22); }
-    .fp.b-issue i:nth-child(4), .fp.b-issue i:nth-child(3) { border-radius: 2px; }
-    .fp.b-declined i:nth-child(2), .fp.b-rejected i:nth-child(2) { background: var(--sc-fg-2); border-color: var(--sc-fg-2); box-shadow: none; }
-    .fp.b-declined i:nth-child(3), .fp.b-declined i:nth-child(4), .fp.b-rejected i:nth-child(3), .fp.b-rejected i:nth-child(4) { opacity: 0.3; }
-    .fp.loop i:nth-child(2) { box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.22), 0 0 0 4px rgba(0, 212, 255, 0.1); }
+    .fp.s0 i:nth-child(-n+1), .fp.s1 i:nth-child(-n+2), .fp.s2 i:nth-child(-n+3), .fp.s3 i:nth-child(-n+4) { opacity: 1; }
+    .fp.s0 i:nth-child(1), .fp.s1 i:nth-child(2), .fp.s2 i:nth-child(3), .fp.s3 i:nth-child(4) { color: var(--sc-accent); }
+    /* A dead end is not "you are here, working": the cross stays in the muted
+       foreground rather than the accent (--sc-danger is reserved for errors and
+       destructive actions), and the two steps it will never reach go faint. */
+    .fp.b-declined i:nth-child(2), .fp.b-rejected i:nth-child(2) { color: var(--sc-fg-2); opacity: 1; }
+    .fp.b-declined i:nth-child(n+3), .fp.b-rejected i:nth-child(n+3) { opacity: 0.3; }
 
     /* ---- Messages ---- */
     .msg { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: var(--sc-bg-2); border: 1px solid var(--sc-border); border-radius: 8px; }
@@ -1163,6 +1217,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly locale = inject(LocaleService);
   private readonly consent = inject(ConsentService);
+  private readonly panelNav = inject(PanelNavigationService);
   private readonly celebration = inject(CelebrationService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
@@ -1217,6 +1272,13 @@ export class AdminFeedbackComponent implements OnInit {
   readonly stationLabelKey = stationLabelKey;
   readonly turnLabelKey = turnLabelKey;
   readonly stationIndex = stationIndex;
+  readonly stationGlyphs = stationGlyphs;
+  readonly stationGlyphLabelKey = stationGlyphLabelKey;
+
+  /** The one `d` path per glyph (24×24 stroke idiom, as in the Codex icons). */
+  glyphPath(glyph: StationGlyph): string {
+    return STATION_GLYPH_PATHS[glyph];
+  }
 
   /** Template-side alias for the shared {@link isArchived} rule. */
   archived(m: FeedbackRow): boolean {
@@ -1578,6 +1640,18 @@ export class AdminFeedbackComponent implements OnInit {
     // Reading a delivered topic counts as having looked at the feed.
     const row = this.messages().find((m) => m.id === id);
     if (row && this.delivered(row)) this.stampLastSeen();
+  }
+
+  /**
+   * A deep link inside the panel routed the app underneath. On a phone the
+   * sheet covers the page it just opened, so the shell has to get out of the
+   * way (#517). Modified clicks open a new tab and are left alone — the
+   * boolean result lets a template chain `&& closeTopic()` behind it.
+   */
+  onViewInApp(event: MouseEvent): boolean {
+    if (!isPlainLeftClick(event)) return false;
+    this.panelNav.notifyInAppNavigation();
+    return true;
   }
 
   closeTopic(): void {

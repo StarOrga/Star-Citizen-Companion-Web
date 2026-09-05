@@ -1,8 +1,10 @@
 import {
+  DEFAULT_SWAP_COLUMNS,
   EMPTY_SWAP_FILTERS,
   NAME_SORT_KEY,
   SwapCandidate,
   buildSwapCandidate,
+  defaultSwapColumnsFor,
   defaultSwapSort,
   filterSwapCandidates,
   pruneSwapFilters,
@@ -176,6 +178,40 @@ describe('swapColumns', () => {
   it('marks a column whose values are derived rather than extracted', () => {
     const range = swapColumns([PANTHER]).find((c) => c.key === 'codex.equipped.range')!;
     expect(range.derived).toBeTrue();
+  });
+});
+
+describe('defaultSwapColumnsFor (D24: kind-aware default column seed)', () => {
+  it('uses the weapon 17-column set when every candidate is a weapon', () => {
+    expect(defaultSwapColumnsFor([PANTHER, OMNISKY])).toEqual(DEFAULT_SWAP_COLUMNS);
+  });
+
+  it('falls back to the game files a non-weapon candidate set actually carries', () => {
+    const shield: SwapCandidate = {
+      className: 'SHLD_Test',
+      kind: 'component',
+      name: 'Test Shield',
+      manufacturerCode: null,
+      size: 2,
+      grade: null,
+      typeLabel: null,
+      archetype: null,
+      damageChannels: [],
+      stats: {
+        'codex.equipped.shieldHp': { value: 1200, format: 'int' },
+        'codex.equipped.shieldRegen': { value: 40, format: 'perSec' },
+      },
+      equipped: false,
+    };
+    const cols = defaultSwapColumnsFor([shield]);
+    expect(cols).toContain('codex.equipped.shieldHp');
+    expect(cols).toContain('codex.equipped.shieldRegen');
+    expect(cols).not.toContain('codex.equipped.alphaDamage');
+    expect(cols).not.toContain(NAME_SORT_KEY);
+  });
+
+  it('returns the weapon set for an empty candidate list', () => {
+    expect(defaultSwapColumnsFor([])).toEqual(DEFAULT_SWAP_COLUMNS);
   });
 });
 

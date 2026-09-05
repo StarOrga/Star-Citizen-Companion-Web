@@ -76,13 +76,13 @@ describe('codex-mission', () => {
       expect(missionDisabledReasonKey('mining', noCaps)).toBe('codex.mission.disabled.noMining');
       expect(missionDisabledReasonKey('salvage', noCaps)).toBe('codex.mission.disabled.noSalvage');
       expect(missionDisabledReasonKey('transport', noCaps)).toBe('codex.mission.disabled.noCargo');
-      expect(missionDisabledReasonKey('travel', noCaps)).toBe('codex.mission.disabled.noQuantum');
     });
 
-    it('never disables all/combat/stealth on capability grounds', () => {
+    it('never disables all/combat/stealth/travel on capability grounds', () => {
       expect(missionDisabledReasonKey('all', noCaps)).toBeNull();
       expect(missionDisabledReasonKey('combat', noCaps)).toBeNull();
       expect(missionDisabledReasonKey('stealth', noCaps)).toBeNull();
+      expect(missionDisabledReasonKey('travel', noCaps)).toBeNull();
     });
 
     it('clears the reason once the hull has the capability', () => {
