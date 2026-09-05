@@ -729,6 +729,8 @@
     "rank": {
       "header": "Einordnung",
       "nShipsOfSizeClass": "{{n}} Schiffe der Größenklasse {{k}}",
+      "nShips": "{{n}} Schiffe",
+      "nShipsOfCareer": "{{n}} Schiffe der gleichen Karriere",
       "profileLabel": "Profil",
       "scopeLabel": "Vergleichsfeld",
       "verdict": "{{pct}} % — {{band}} gegenüber {{n}} Schiffen.",
@@ -759,6 +761,7 @@
       "disabled": {
         "noCargo": "Dieses Schiff hat keinen Laderaum",
         "noData": "Für dieses Profil fehlen in diesem Build die Werte",
+        "noSizeClass": "Die Spieldateien liefern für diesen Build keine Größenklasse",
         "tooFewShips": "Zu wenige Schiffe im Vergleichsfeld"
       },
       "axis": {
@@ -875,13 +878,9 @@
       "draftChanged": "{{n}} Slot geändert",
       "draftChangedPlural": "{{n}} Slots geändert",
       "draftNotice": "Nicht gespeichert. Nur diese Sitzung.",
-      "draftPersistLabel": "Speichern",
-      "draftPersistSession": "Nur diese Sitzung",
-      "draftPersistHangar": "In meinem Hangar speichern",
       "draftDiscard": "Verwerfen",
-      "draftApply": "Übernehmen",
       "draftApplyAndSave": "Übernehmen & in Hangar speichern",
-      "draftReset": "Zurücksetzen"
+      "lensReset": "Zurücksetzen"
     },
     "energy": {
       "title": "Energie",
@@ -973,7 +972,8 @@
       }
     },
     "swap": {
-      "pickerTitle": "Modul tauschen",
+      "open": "Bauteil tauschen",
+    "pickerTitle": "Modul tauschen",
       "installed": "Verbaut",
       "equipped": "Verbaut",
       "previewHint": "Vergleichen, dann Übernehmen oder Slot leeren — die Änderung bleibt Entwurf, bis du sie unten speicherst.",
@@ -1415,6 +1415,7 @@
       "stun": "Betäubung"
     },
     "analysis": {
+      "readHint": "zum Lesen aufklappen",
       "offensive": {
         "title": "Offensive",
         "weapons": "Waffen ({{count}} montiert)",

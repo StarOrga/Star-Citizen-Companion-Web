@@ -122,6 +122,13 @@ export interface LayoutSlot {
   draftState?: 'changed' | 'pending' | 'unresolved' | null;
   /** The raw dotted path(s) this row's draft entry lives at — for the revert action. */
   draftPaths?: string[];
+  /**
+   * Percent change of the row's headline stat (`stats[0]`) versus the STOCK
+   * occupant, only set while `draftState === 'changed'` and both sides carry
+   * a comparable numeric value (MASTER §6: "right figure … with delta chip
+   * when changed"). `null` when there is nothing to compare against.
+   */
+  deltaPct?: number | null;
 }
 
 /**
@@ -306,7 +313,14 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                         [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
                                 }
                               </dt>
-                              <dd>{{ fmtStat(st) }}</dd>
+                              <dd>
+                                {{ fmtStat(st) }}
+                                @if ($index === 0 && row.slot.deltaPct != null) {
+                                  <span class="delta" [class.up]="row.slot.deltaPct > 0" [class.down]="row.slot.deltaPct < 0">
+                                    {{ row.slot.deltaPct > 0 ? '+' : '' }}{{ row.slot.deltaPct }} %
+                                  </span>
+                                }
+                              </dd>
                             </div>
                           }
                         </dl>
@@ -432,6 +446,9 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                     <button type="button" class="slot-swap" (click)="inspectRow(row)"
                             [attr.aria-label]="'codex.inspect.openStats' | translate"
                             [attr.title]="'codex.inspect.openStats' | translate">ⓘ</button>
+                    <button type="button" class="slot-swap-action" (click)="openSlot(row, true)"
+                            [attr.aria-label]="'codex.swap.open' | translate"
+                            [attr.title]="'codex.swap.open' | translate">⇄</button>
                   }
                 </div>
               </li>
@@ -522,9 +539,12 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
       display: flex; flex-direction: column; gap: 4px; }
     .kid { min-width: 0; }
 
-    .slot-swap { flex: 0 0 auto; padding: 0 9px; border-radius: 6px; background: var(--sc-bg-0);
+    .slot-swap, .slot-swap-action { flex: 0 0 auto; padding: 0 9px; border-radius: 6px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-size: 0.9rem; cursor: pointer; }
-    .slot-swap:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .slot-swap:hover, .slot-swap-action:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .delta { margin-left: 4px; font-size: max(0.62rem, var(--sc-fs-floor)); font-weight: 600; }
+    .delta.up { color: var(--sc-success, #4caf50); }
+    .delta.down { color: var(--sc-danger, #ff5252); }
 
     /* Draft write-path: a row edited away from stock. */
     .tag.draft { align-self: center; text-transform: none; letter-spacing: 0; color: var(--sc-accent-gold, #c8a84b);

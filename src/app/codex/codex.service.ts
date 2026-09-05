@@ -24,8 +24,23 @@ import {
   CodexShipRow,
   CodexWeaponRow,
   Lang,
+  LoadoutEntry,
   LocalizedText,
+  ShipPayload,
 } from './codex.types';
+import { ammoClassNameFor } from './codex-equipped-stats';
+import { classifyShipModule, ShipModuleSection } from './ship-module-sections';
+import { carriedByPort, stockLoadoutClassNames } from './stock-loadout';
+import { computeKpiSheet, KpiShipInput } from './codex-loadout-stats';
+import { SummaryOccupant } from './ship-summary-panels';
+import {
+  cohortCacheKey,
+  readCohortCache,
+  resolveCareerLabel,
+  writeCohortCache,
+  type RankScope,
+  type RankShipInput,
+} from './codex-rank';
 
 // The entity kinds the Codex catalog browses. `manufacturer` and `ammunition`
 // are first-class kinds in the UI even though the EntityKind union (in
@@ -219,6 +234,13 @@ const LOCALE_KEY_URL_BUDGET = 7000;
 // enough to pack >1000 into one budget would come back silently truncated
 // rather than erroring.
 const LOCALE_KEY_BATCH_MAX = 500;
+
+/** Split an array into fixed-size slices (last slice may be shorter). */
+function chunk<T>(items: readonly T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
 
 /**
  * Split locale keys into batches whose encoded `in.(…)` list fits the URL
@@ -772,19 +794,30 @@ export class CodexService {
     const names = Array.from(new Set(classNames.filter(Boolean)));
     if (!build || names.length === 0) return out;
 
+    // PostgREST sends `.in(...)` in the GET query string — an unchunked list
+    // of thousands of class names (e.g. the whole-fleet rank cohort) blows
+    // past the URI limit and the request fails outright. Chunk to keep every
+    // request well under that limit, and log (never silently swallow) a
+    // chunk failure so callers can tell a partial result from a complete one.
+    const chunks = chunk(names, 200);
     await Promise.all(
-      (['weapon', 'component', 'item'] as CodexKind[]).map(async (kind) => {
-        const { data, error } = await this.sb.client
-          .from(CODEX_ENTITY_TABLES[kind])
-          .select('class_name, payload')
-          .eq('build_id', build.id)
-          .in('class_name', names);
-        if (error || !data) return;
-        for (const r of data as unknown as Record<string, unknown>[]) {
-          const cn = r['class_name'] as string;
-          if (!out.has(cn)) out.set(cn, { kind, payload: r['payload'] });
-        }
-      }),
+      (['weapon', 'component', 'item'] as CodexKind[]).flatMap((kind) =>
+        chunks.map(async (slice) => {
+          const { data, error } = await this.sb.client
+            .from(CODEX_ENTITY_TABLES[kind])
+            .select('class_name, payload')
+            .eq('build_id', build.id)
+            .in('class_name', slice);
+          if (error || !data) {
+            console.error('[codex] getEntityPayloads chunk failed', kind, error);
+            return;
+          }
+          for (const r of data as unknown as Record<string, unknown>[]) {
+            const cn = r['class_name'] as string;
+            if (!out.has(cn)) out.set(cn, { kind, payload: r['payload'] });
+          }
+        }),
+      ),
     );
     return out;
   }
@@ -801,15 +834,22 @@ export class CodexService {
     const build = await this.loadCurrentBuild();
     const names = Array.from(new Set(classNames.filter(Boolean)));
     if (!build || names.length === 0) return out;
-    const { data, error } = await this.sb.client
-      .from('codex_ammunition')
-      .select('class_name, payload')
-      .eq('build_id', build.id)
-      .in('class_name', names);
-    if (error || !data) return out;
-    for (const r of data as unknown as Record<string, unknown>[]) {
-      out.set(r['class_name'] as string, r['payload']);
-    }
+    await Promise.all(
+      chunk(names, 200).map(async (slice) => {
+        const { data, error } = await this.sb.client
+          .from('codex_ammunition')
+          .select('class_name, payload')
+          .eq('build_id', build.id)
+          .in('class_name', slice);
+        if (error || !data) {
+          console.error('[codex] getAmmoPayloads chunk failed', error);
+          return;
+        }
+        for (const r of data as unknown as Record<string, unknown>[]) {
+          out.set(r['class_name'] as string, r['payload']);
+        }
+      }),
+    );
     return out;
   }
 
@@ -939,6 +979,123 @@ export class CodexService {
       out.set(row.classNameSlug, row);
     }
     return out;
+  }
+
+  /**
+   * The "Einordnung" cohort (MASTER §3): every buyable ship of the current
+   * build, reduced to `{className, sizeClass, career, sheet}` from its STOCK
+   * loadout — the shape `rankShip()` (codex-rank.ts) compares against. Cached
+   * per build id (the scope itself is filtered client-side by `filterCohort`,
+   * so one fetch serves all three scopes) via `cohortCacheKey`/
+   * `readCohortCache`/`writeCohortCache`.
+   *
+   * The schema carries NO ship size class — `sizeClass` is always `null` here,
+   * which is exactly what makes `rankShip()` degrade the "same size class"
+   * scope to `codex.rank.disabled.noData` rather than a cohort of one.
+   */
+  async getRankCohort(): Promise<RankShipInput[]> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+    const key = cohortCacheKey(build.id, 'all');
+    const cached = readCohortCache(key);
+    if (cached) return cached;
+
+    const rows = await this.allShipRows();
+    if (rows.length === 0) return [];
+
+    // One batched pass: every class name referenced by any ship's stock
+    // loadout (top-level mounts + their direct sub-slots, e.g. a gun seated
+    // in a gimbal), resolved in the SAME two queries the ship page itself
+    // uses — never one round-trip per ship.
+    const allClassNames = new Set<string>();
+    for (const row of rows) {
+      const payload = row.payload as ShipPayload | undefined;
+      for (const cn of stockLoadoutClassNames(payload?.defaultLoadout ?? [])) allClassNames.add(cn);
+    }
+    const names = [...allClassNames];
+    const payloads = await this.getEntityPayloads(names);
+    const ammoNames = names
+      .map((cn) => ammoClassNameFor(cn))
+      .filter((cn): cn is string => !!cn);
+    const ammo = await this.getAmmoPayloads(ammoNames);
+
+    const ships: RankShipInput[] = rows.map((row) => {
+      const payload = row.payload as ShipPayload | undefined;
+      const sheet = computeKpiSheet(
+        this.cohortOccupantsFor(payload?.defaultLoadout ?? [], payloads, ammo),
+        this.cohortShipInput(payload),
+      );
+      return {
+        className: row.classNameSlug,
+        sizeClass: null, // schema gap — see the header comment.
+        career: resolveCareerLabel(payload?.career ?? null),
+        sheet,
+      };
+    });
+
+    writeCohortCache(key, ships);
+    return ships;
+  }
+
+  /** Every buyable ship row of the current build, unpaginated (the cohort
+   * needs the whole fleet, not a browse page). */
+  private async allShipRows(): Promise<CodexListRow[]> {
+    const out: CodexListRow[] = [];
+    let offset = 0;
+    const limit = 200;
+    for (;;) {
+      const { rows, count } = await this.listByKind('ship', { limit, offset });
+      out.push(...rows);
+      offset += limit;
+      if (rows.length < limit || out.length >= (count ?? out.length)) break;
+    }
+    return out;
+  }
+
+  /** Resolved occupants for one ship's stock loadout — top-level mounts plus
+   * their direct sub-slots (a gun inside a gimbal), same shape the ship page
+   * feeds `computeKpiSheet` for its own stock/current sheets. */
+  private cohortOccupantsFor(
+    entries: readonly LoadoutEntry[],
+    payloads: Map<string, { kind: CodexKind; payload: unknown }>,
+    ammo: Map<string, unknown>,
+  ): SummaryOccupant[] {
+    const out: SummaryOccupant[] = [];
+    const pushOne = (className: string | null | undefined, port: string): void => {
+      if (!className) return;
+      const hit = payloads.get(className);
+      if (!hit) return;
+      const occupant = {
+        entityKind: (hit.payload as { entityKind?: string } | null)?.entityKind ?? hit.kind,
+        componentKind: (hit.payload as { kind?: string } | null)?.kind ?? null,
+        subType: (hit.payload as { subType?: string } | null)?.subType ?? null,
+        attachType: (hit.payload as { attachType?: string } | null)?.attachType ?? null,
+      };
+      out.push({
+        section: classifyShipModule(port, occupant) as ShipModuleSection,
+        kind: hit.kind,
+        payload: hit.payload,
+        ammoPayload: ammo.get(ammoClassNameFor(className) ?? ''),
+        count: 1,
+      });
+    };
+    for (const e of entries ?? []) {
+      const port = e.itemPortName || '—';
+      pushOne(e.entityClassName, port);
+      for (const [subPort, className] of carriedByPort(e)) pushOne(className, subPort);
+    }
+    return out;
+  }
+
+  private cohortShipInput(payload: ShipPayload | undefined): KpiShipInput | null {
+    if (!payload) return null;
+    return {
+      flight: payload.flight ?? null,
+      hull: payload.hull ?? null,
+      armorHp: payload.armorHp ?? null,
+      cargoScu: payload.cargoScu ?? null,
+      stats: payload.stats ?? null,
+    };
   }
 
   /**
