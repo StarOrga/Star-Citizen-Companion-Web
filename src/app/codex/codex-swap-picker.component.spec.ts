@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
 import { CodexKind, CodexService, CompatibleItem, PortQuery } from './codex.service';
 import { SwapCandidate } from './swap-table';
@@ -211,14 +211,17 @@ describe('CodexSwapPickerComponent', () => {
     const summary = el.querySelector('.pick-cols-sum') as HTMLElement;
     summary.click();
     fixture.detectChanges();
-    const massBox = Array.from(el.querySelectorAll('.pc-row input')).find(
-      (b) => (b.closest('.pc-row') as HTMLElement).textContent?.includes('codex.picker.col.mass'),
+    // `grade` is direct candidate metadata, always available — `mass` is not
+    // (the stub's payloads carry none), and now lives in the disabled
+    // "unavailable" fieldset (LOW-6), which is intentionally non-interactive.
+    const gradeBox = Array.from(el.querySelectorAll('.pc-row:not(.off) input')).find(
+      (b) => (b.closest('.pc-row') as HTMLElement).textContent?.includes('codex.picker.col.grade'),
     ) as HTMLInputElement;
-    expect(massBox.checked).toBeTrue();
-    massBox.dispatchEvent(new Event('change'));
+    expect(gradeBox.checked).toBeTrue();
+    gradeBox.dispatchEvent(new Event('change'));
     fixture.detectChanges();
-    expect(fixture.componentInstance.chooser().visible).not.toContain('codex.picker.col.mass');
-    expect(localStorage.getItem('scc-codex-picker-cols:v1')).toContain('codex.picker.col.grade');
+    expect(fixture.componentInstance.chooser().visible).not.toContain('codex.picker.col.grade');
+    expect(localStorage.getItem('scc-codex-picker-cols:v1')).toContain('codex.picker.col.manufacturer');
   });
 
   it('renders Ammo as a dash with a title on an energy weapon, and omits sourceless columns from the footer', async () => {
@@ -343,5 +346,285 @@ describe('CodexSwapPickerComponent', () => {
     expect(el.querySelector('.fc-list .fc')).toBeTruthy();
     widenToAllSize(el);
     expect(fixture.componentInstance.scopeChip()).toBeNull();
+  });
+
+  // ── E-main-gap restore: #38 appliesToMany/One, #39 previewHint, #41 sortHint ──
+
+  it('shows "gilt für alle N Hardpoints" under the installed name when the target covers several ports (E-main-gap #38)', async () => {
+    const el = await open();
+    expect(el.querySelector('.pick-applies')?.textContent).toContain('codex.swap.appliesToMany');
+  });
+
+  it('shows "gilt für diesen Hardpoint" when the target is a single port (E-main-gap #38)', async () => {
+    const el = await open({ ...TARGET, count: 1 });
+    expect(el.querySelector('.pick-applies')?.textContent).toContain('codex.swap.appliesToOne');
+  });
+
+  it('shows the draft-disclosure hint under the Δ-baseline control (E-main-gap #39)', async () => {
+    const el = await open();
+    expect(el.querySelector('.pick-preview-hint')?.textContent).toContain('codex.swap.previewHint');
+  });
+
+  it('shows the Ctrl-click secondary-sort hint next to the filter chips (E-main-gap #41)', async () => {
+    const el = await open();
+    expect(el.querySelector('.pick-sorthint')?.textContent).toContain('codex.swap.sortHint');
+  });
+
+  // ── E-main-gap #41: secondary sort ──────────────────────────────────────────
+
+  it('adds a secondary (tie-breaker) sort via Ctrl-click on a column head, and via the menu entry', async () => {
+    // MEDIUM-4: `sortRankTitle` now goes through ngx-translate — supply the
+    // key so the assertions below can still tell the two ranks apart.
+    const i18n = TestBed.inject(TranslateService);
+    i18n.setTranslation('en', { codex: { picker: { menu: { sortRank: 'Sort {{n}}' } } } });
+    i18n.use('en');
+    const el = await open();
+    widenToAllSize(el);
+    const cmp = fixture.componentInstance;
+    // primary: sort by grade (categorical, ties every row at "A") …
+    cmp.onHeadClick('codex.picker.col.grade');
+    fixture.detectChanges();
+    expect(cmp.columnMenu().sort?.key).toBe('codex.picker.col.grade');
+    // … Ctrl-click on manufacturer breaks the tie as a SECOND key, not a replacement.
+    cmp.onHeadClick('codex.picker.col.manufacturer', true);
+    fixture.detectChanges();
+    expect(cmp.columnMenu().sort?.key).toBe('codex.picker.col.grade');
+    expect(cmp.columnMenu().secondarySort?.key).toBe('codex.picker.col.manufacturer');
+    expect(cmp.sortRankTitle('codex.picker.col.grade')).toBe('Sort 1');
+    expect(cmp.sortRankTitle('codex.picker.col.manufacturer')).toBe('Sort 2');
+    expect(cmp.isSecondarySort('codex.picker.col.manufacturer')).toBeTrue();
+
+    // the column menu's "als zweite Sortierung" entry does the same thing.
+    cmp.columnMenu.set({ sort: { key: 'codex.picker.col.grade', dir: 'asc' }, filters: {} });
+    fixture.detectChanges();
+    cmp.onSecondarySortToggle('codex.picker.col.manufacturer');
+    fixture.detectChanges();
+    expect(cmp.columnMenu().secondarySort?.key).toBe('codex.picker.col.manufacturer');
+  });
+
+  it('MEDIUM-2: the secondary-sort toggle switches back off once already active', async () => {
+    const el = await open();
+    widenToAllSize(el);
+    const cmp = fixture.componentInstance;
+    cmp.onHeadClick('codex.picker.col.grade');
+    cmp.onSecondarySortToggle('codex.picker.col.manufacturer');
+    fixture.detectChanges();
+    expect(cmp.columnMenu().secondarySort?.key).toBe('codex.picker.col.manufacturer');
+    // clicking it again while it IS the secondary must clear it, not flip it.
+    cmp.onSecondarySortToggle('codex.picker.col.manufacturer');
+    fixture.detectChanges();
+    expect(cmp.columnMenu().secondarySort).toBeNull();
+  });
+
+  it('MEDIUM-3: the secondary-sort entry is only eligible on a column other than the active primary', async () => {
+    const el = await open();
+    widenToAllSize(el);
+    const cmp = fixture.componentInstance;
+    // no primary sort yet — never eligible.
+    expect(cmp.secondarySortEligible('codex.picker.col.grade')).toBeFalse();
+    cmp.onHeadClick('codex.picker.col.grade');
+    fixture.detectChanges();
+    // the primary column itself is never eligible as its own tie-breaker.
+    expect(cmp.secondarySortEligible('codex.picker.col.grade')).toBeFalse();
+    // any other column is.
+    expect(cmp.secondarySortEligible('codex.picker.col.manufacturer')).toBeTrue();
+  });
+
+  // ── LOW-6: unavailable columns as a disabled fieldset group ─────────────────
+
+  it('groups the unavailable columns in a disabled fieldset, not as individually-disabled rows (LOW-6)', async () => {
+    const el = await open();
+    const summary = el.querySelector('.pick-cols-sum') as HTMLElement;
+    summary.click();
+    fixture.detectChanges();
+    const group = el.querySelector('fieldset.pc-unavail-group') as HTMLFieldSetElement;
+    expect(group).toBeTruthy();
+    expect(group.disabled).toBeTrue();
+    const massRow = Array.from(group.querySelectorAll('.pc-row')).find((r) =>
+      r.textContent?.includes('codex.picker.col.mass'),
+    );
+    expect(massRow).toBeTruthy();
+    expect((massRow as HTMLElement).classList.contains('off')).toBeTrue();
+  });
+
+  // ── LOW-3: unit as a separate <small>, not concatenated into the label ──────
+
+  it('renders a column unit as a separate <small class="unit">, not appended to the label text', async () => {
+    const el = await open();
+    widenToAllSize(el);
+    // Projectile speed always resolves — every fixture candidate has an AMMO
+    // payload with a `speed` — and its `mps` format always carries a unit.
+    const speedHead = Array.from(el.querySelectorAll('th.c-num')).find((th) =>
+      th.textContent?.includes('codex.equipped.projectileSpeed'),
+    ) as HTMLElement;
+    expect(speedHead).toBeTruthy();
+    const unitEl = speedHead.querySelector('.unit');
+    expect(unitEl?.textContent).toBe('codex.picker.unit.mps');
+    // `colLabel` — what feeds `[label]` — never has the unit baked into it (LOW-3).
+    const cmp = fixture.componentInstance;
+    const col = cmp.displayColumns().find((c) => c.key === 'codex.equipped.projectileSpeed')!;
+    expect(cmp.colLabel(col)).not.toContain('codex.picker.unit.mps');
+    expect(cmp.colUnit(col)).toBe('codex.picker.unit.mps');
+  });
+
+  // ── popover clipping (MEDIUM-5: CDK Overlay, not a relaxed scroll box) ──────
+
+  it('keeps .pick-scroll a real scroll container and portals the popover outside it', async () => {
+    const el = await open();
+    document.body.appendChild(el); // the overlay's position strategy needs a laid-out origin
+    widenToAllSize(el);
+    const scroll = el.querySelector('.pick-scroll') as HTMLElement;
+    scroll.scrollLeft = 40;
+    const heads = Array.from(el.querySelectorAll('th.c-num sc-column-menu summary.cm-kebab')) as HTMLElement[];
+    const last = heads[heads.length - 1];
+    // A real click toggles the native `open` attribute synchronously, but the
+    // browser fires the `toggle` event as a queued task — drive both by hand
+    // so the (deterministic) test observes the same open path a later real
+    // `toggle` event would trigger.
+    const det = last.closest('details') as HTMLDetailsElement;
+    det.open = true;
+    det.dispatchEvent(new Event('toggle'));
+    fixture.detectChanges();
+    // Opening the menu never relaxes the scroll box's own clipping — unlike
+    // the old `.pick-scroll:has(.cm-pop[open]) { overflow: visible }` fix, the
+    // container stays a real scroll container, so its scroll offset survives.
+    expect(getComputedStyle(scroll).overflow).toBe('auto');
+    expect(scroll.scrollLeft).toBe(40);
+    // The popover itself renders in the CDK overlay container (a top-level
+    // sibling, appended to `<body>`), not as a descendant of `.pick-scroll` —
+    // so no ancestor's `overflow` can ever clip it.
+    const panel = document.querySelector('.cdk-overlay-container .cm-panel');
+    expect(panel).toBeTruthy();
+    expect(scroll.contains(panel)).toBeFalse();
+    el.remove();
+  });
+});
+
+describe('CodexSwapPickerComponent — part-type filter (E-main-gap #40, MEDIUM-1)', () => {
+  let fixture: ComponentFixture<CodexSwapPickerComponent>;
+
+  // MEDIUM-1: the restored filter splits on the item ARCHETYPE main used
+  // (`c.archetype`, derived from class name / subType) — not on the coarser
+  // `attachType` a port declares, which is a single value for practically
+  // every fitted hardpoint. `MISS_A`/`MISS_B` carry a `MissileRack` subType so
+  // `swapArchetype` resolves them to "Missile Rack"; `UTIL_A` carries
+  // `Utility`, a distinct archetype — two archetypes among the candidates is
+  // exactly the case the scope-bar control must appear for.
+  const MISSILE_TYPE = 'ItemMissile';
+  const UTILITY_TYPE = 'ItemUtility';
+
+  class TypeServiceStub {
+    async getEntityPayloads(names: string[]): Promise<Map<string, { kind: CodexKind; payload: unknown }>> {
+      const byName: Record<string, string> = {
+        MISS_A: MISSILE_TYPE,
+        MISS_B: MISSILE_TYPE,
+        UTIL_A: UTILITY_TYPE,
+      };
+      const out = new Map<string, { kind: CodexKind; payload: unknown }>();
+      for (const n of names) if (byName[n]) out.set(n, { kind: 'item', payload: { attachType: byName[n] } });
+      return out;
+    }
+
+    async getCompatibleItems(_port: PortQuery): Promise<CompatibleItem[]> {
+      return [
+        { kind: 'item', classNameSlug: 'MISS_A', nameLocalized: 'Missile A', manufacturerCode: null, size: 2, subType: 'MissileRack', grade: null },
+        { kind: 'item', classNameSlug: 'MISS_B', nameLocalized: 'Missile B', manufacturerCode: null, size: 2, subType: 'MissileRack', grade: null },
+        { kind: 'item', classNameSlug: 'UTIL_A', nameLocalized: 'Utility A', manufacturerCode: null, size: 2, subType: 'Utility', grade: null },
+      ];
+    }
+
+    async getAmmoPayloads(): Promise<Map<string, unknown>> {
+      return new Map();
+    }
+  }
+
+  class SingleArchetypeServiceStub extends TypeServiceStub {
+    override async getCompatibleItems(_port: PortQuery): Promise<CompatibleItem[]> {
+      return [
+        { kind: 'item', classNameSlug: 'MISS_A', nameLocalized: 'Missile A', manufacturerCode: null, size: 2, subType: 'MissileRack', grade: null },
+        { kind: 'item', classNameSlug: 'MISS_B', nameLocalized: 'Missile B', manufacturerCode: null, size: 2, subType: 'MissileRack', grade: null },
+      ];
+    }
+  }
+
+  const MULTI_TYPE_TARGET: SwapTarget = {
+    port: 'Missile Rack',
+    count: 1,
+    className: null,
+    kind: null,
+    name: null,
+    size: 2,
+    attachTypes: [MISSILE_TYPE, UTILITY_TYPE],
+  };
+
+  async function open(): Promise<HTMLElement> {
+    fixture.componentRef.setInput('target', MULTI_TYPE_TARGET);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  async function configure(stub: CodexService): Promise<void> {
+    localStorage.removeItem('scc-codex-picker-cols:v1');
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [CodexSwapPickerComponent],
+      providers: [provideTranslateService({}), { provide: CodexService, useValue: stub }],
+    }).compileComponents();
+    fixture = TestBed.createComponent(CodexSwapPickerComponent);
+  }
+
+  beforeEach(async () => {
+    await configure(new TypeServiceStub() as unknown as CodexService);
+  });
+
+  it('renders a fourth scope-bar control when the candidates span more than one archetype', async () => {
+    const el = await open();
+    expect(fixture.componentInstance.showTypeFilter()).toBeTrue();
+    const group = Array.from(el.querySelectorAll('.pick-seg')).find((g) =>
+      g.textContent?.includes('codex.swap.typeFilter'),
+    );
+    expect(group).toBeTruthy();
+  });
+
+  it('narrows the table by the selected archetype and echoes it as a removable chip', async () => {
+    const el = await open();
+    const cmp = fixture.componentInstance;
+    expect(cmp.rows().length).toBe(3);
+    cmp.typeFilter.set('Missile Rack');
+    fixture.detectChanges();
+    expect(cmp.rows().every((r) => r.archetype === 'Missile Rack')).toBeTrue();
+    expect(cmp.rows().length).toBe(2);
+    expect(cmp.typeFilterChip()?.label).toContain('Missile Rack');
+    const chipBtn = Array.from(el.querySelectorAll('.fc-list .fc button')).find((b) =>
+      (b.closest('.fc') as HTMLElement).textContent?.includes('Missile Rack'),
+    ) as HTMLElement;
+    chipBtn.click();
+    fixture.detectChanges();
+    expect(cmp.typeFilter()).toBe(cmp.TYPE_ALL);
+    expect(cmp.rows().length).toBe(3);
+  });
+
+  it('hides the type-filter control when every candidate shares one archetype', async () => {
+    await configure(new SingleArchetypeServiceStub() as unknown as CodexService);
+    await open();
+    expect(fixture.componentInstance.showTypeFilter()).toBeFalse();
+  });
+
+  it('LOW-1 (main parity, pruneSwapFilters): resets a stale archetype filter once it no longer occurs', async () => {
+    const cmp = fixture.componentInstance;
+    await open();
+    cmp.typeFilter.set('Missile Rack');
+    fixture.detectChanges();
+    expect(cmp.typeFilter()).toBe('Missile Rack');
+    // Whatever the cause (a scope switch in the live app; here, simulated
+    // directly on the candidate set for a deterministic repro) — once
+    // "Missile Rack" no longer occurs among the scoped candidates, the stale
+    // segmented value must reset to "all" rather than leave the table
+    // silently empty with no visible cause.
+    cmp.candidates.set(cmp.candidates().filter((c) => c.archetype !== 'Missile Rack'));
+    fixture.detectChanges();
+    expect(cmp.typeFilter()).toBe(cmp.TYPE_ALL);
   });
 });
