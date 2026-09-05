@@ -100,3 +100,7 @@ data-uploader/python/demo_visual_extract.py
 
 # graphify knowledge-graph output (generated locally, never committed)
 graphify-out/
+
+# the marker can appear in any nested project dir, not just the repo root
+**/.claude/batch-activity
+**/.claude/batch.md
