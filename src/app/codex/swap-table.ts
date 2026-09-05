@@ -753,6 +753,11 @@ export const DEFAULT_SWAP_COLUMNS: readonly string[] = SWAP_VALUE_CATALOGUE.filt
   (v) => v.byDefault,
 ).map((v) => v.key);
 
+/** True for the candidate sets `DEFAULT_SWAP_COLUMNS` was drawn for. */
+export function isWeaponCandidateSet(candidates: readonly SwapCandidate[]): boolean {
+  return candidates.length === 0 || candidates.every((c) => c.kind === 'weapon');
+}
+
 /**
  * The default column seed for a port kind. The concept only ever drew a
  * weapon port, so `DEFAULT_SWAP_COLUMNS` stays the answer there; every other
@@ -762,7 +767,7 @@ export const DEFAULT_SWAP_COLUMNS: readonly string[] = SWAP_VALUE_CATALOGUE.filt
  * showing an all-dashes weapon table.
  */
 export function defaultSwapColumnsFor(candidates: readonly SwapCandidate[]): readonly string[] {
-  if (candidates.length === 0 || candidates.every((c) => c.kind === 'weapon')) {
+  if (isWeaponCandidateSet(candidates)) {
     return DEFAULT_SWAP_COLUMNS;
   }
   return SWAP_VALUE_CATALOGUE.filter(

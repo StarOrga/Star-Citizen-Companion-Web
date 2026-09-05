@@ -328,7 +328,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                          "right figure … with delta chip when changed") — the
                          same quantity the fold-peek aggregates, with the
                          absolute delta (not a percentage) riding inside it. -->
-                    @if (headlineFig(row); as fig) {
+                    @if (headlineFig(sec, row); as fig) {
                       <div class="fig">
                         <span class="n">{{ fig.value }}</span>
                         <span class="u">{{ fig.unitKey | translate }}</span>
@@ -942,34 +942,67 @@ export class CodexHardpointLayoutComponent {
     return formatEquippedStat(stat);
   }
 
-  /** Every curated stat but the headline one — the secondary `l3` run under
-   * the identity line, once the first stat has become the row's `.fig`. */
+  /**
+   * The `l3` run under the identity line: EVERY curated stat, per item. The
+   * `.fig` beside it quotes the group TOTAL of a different quantity, so
+   * nothing is duplicated by keeping the per-item value here — the concept
+   * does exactly that ("279 Dauer-DPS" in l3 next to "837 Dauer-DPS" in the
+   * figure, "3.528 HP je Stück" next to "7.056 Schild HP";
+   * concept/part-06.html:322-324 + :461).
+   */
   secondaryStats(row: GroupedSlot<LayoutSlot>): EquippedStat[] {
-    return row.slot.stats?.slice(1) ?? [];
+    return row.slot.stats ?? [];
   }
 
   /**
-   * The row's one right-hand headline figure (MASTER §6) — the first curated
-   * stat, same as the fold-peek's own aggregate quantity. The delta is the
-   * ABSOLUTE change (concept: `+81`, never a percentage), reconstructed from
-   * the exact percentage already computed for a changed row: given the
-   * current value `v` and its percent change `p` against stock, the stock
-   * value is `v / (1 + p/100)`, so the absolute delta is `v·p / (100 + p)` —
-   * an exact identity, not an estimate.
+   * The GROUP total this row stands for — the fold-peek's own chip for this
+   * occupant, whose `figure` is already ×count and already the quantity the
+   * peek aggregates (sustained DPS for guns, salvo damage for missiles, the
+   * HP pool for shields). Reading it from there is what keeps the row and the
+   * peek from ever quoting two different numbers for the same group; the chip
+   * is only trusted when it stands for the same run of hardpoints this row
+   * does (`count`), because the two sides group independently.
+   *
+   * Fallback for the sections whose peek carries no figure: the first curated
+   * stat, multiplied out to the group the row represents.
+   */
+  private groupFigure(sec: RenderSection, row: GroupedSlot<LayoutSlot>): EquippedStat | null {
+    const chip = this.preview(sec).chips.find(
+      (c) => c.count === row.count && c.id.startsWith(`${row.slot.className}:`),
+    );
+    if (chip?.figure != null && chip.unitKey) {
+      return { labelKey: chip.unitKey, value: chip.figure, format: chip.format };
+    }
+    const stat = row.slot.stats?.[0];
+    return stat ? { ...stat, value: stat.value * row.count } : null;
+  }
+
+  /**
+   * The row's one right-hand headline figure (MASTER §6): the group total from
+   * {@link groupFigure}, never the per-item value — the concept's weapon row
+   * quotes "279 Dauer-DPS" per gun and "837 Dauer-DPS" for the three of them
+   * (concept/part-06.html:322 + :324).
+   *
+   * The delta is the ABSOLUTE change (concept: `+81`, never a percentage),
+   * reconstructed from the exact percentage already computed for a changed
+   * row: given the figure `v` and its percent change `p` against stock, the
+   * stock value is `v / (1 + p/100)`, so the absolute delta is
+   * `v·p / (100 + p)` — an exact identity, not an estimate.
    */
   headlineFig(
+    sec: RenderSection,
     row: GroupedSlot<LayoutSlot>,
   ): { value: string; unitKey: string; delta: number | null; deltaText: string } | null {
-    const stat = row.slot.stats?.[0];
-    if (!stat) return null;
+    const fig = this.groupFigure(sec, row);
+    if (!fig) return null;
     const pct = row.slot.deltaPct;
     let delta: number | null = null;
     if (pct != null && Number.isFinite(pct) && 100 + pct !== 0) {
-      delta = Math.round((stat.value * pct) / (100 + pct));
+      delta = Math.round((fig.value * pct) / (100 + pct));
     }
     return {
-      value: this.fmtStat(stat),
-      unitKey: stat.labelKey,
+      value: this.fmtStat(fig),
+      unitKey: fig.labelKey,
       delta,
       deltaText: delta == null || delta === 0 ? '' : `${delta > 0 ? '+' : ''}${formatNumber(delta)}`,
     };
