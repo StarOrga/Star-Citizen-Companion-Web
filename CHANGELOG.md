@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.80.1] - 2026-09-06
+
+### Fixed
+
+- **On a phone, "Ansehen" in the feedback panel now actually shows the page.**
+  Both feedback panels are full-bleed sheets below 720px, so following a deep
+  link routed the app underneath while the sheet kept covering it — nothing
+  appeared to happen until you minimized by hand. The panel now steps aside by
+  itself. Docked above 720px nothing changes, and a Ctrl/⌘/middle click still
+  opens a new tab without disturbing this one. (#517)
+
 ## [0.80.0] - 2026-09-06
 
 ### Changed

@@ -8,6 +8,7 @@ import { ConsentService } from '../../core/consent.service';
 import { LocaleService } from '../../core/locale/locale.service';
 import { CelebrationService } from './celebration.service';
 import { AdminFeedbackComponent } from './admin-feedback.component';
+import { PanelNavigationService } from '../../feedback/panel-navigation.service';
 import { FeedbackMessage, FeedbackRow, FeedbackStatus } from './feedback.types';
 
 /**
@@ -359,6 +360,30 @@ describe('AdminFeedbackComponent — the stream', () => {
     for (const key of retired) expect(localStorage.getItem(key)).toBeNull();
     // the marker the Geliefert band still uses is not collateral damage
     expect(localStorage.getItem('sc.adminFeedback.lastSeenDelivered')).not.toBeNull();
+  });
+
+
+  /**
+   * #517: the panel tells its shell that an in-app link was followed, so a
+   * phone sheet can stop covering the page it just opened. Driven through the
+   * handler rather than a DOM click on purpose — the anchor is a real
+   * `routerLink` (see the deep-link test above), and letting Karma follow it
+   * would navigate the test runner itself away.
+   */
+  it('reports an in-app navigation only for a plain left click', async () => {
+    const { cmp } = await mount(fixtureTables());
+    const nav = TestBed.inject(PanelNavigationService);
+    const before = nav.navigations();
+
+    expect(cmp.onViewInApp(new MouseEvent('click'))).toBe(true);
+    expect(nav.navigations()).toBe(before + 1);
+
+    // Ctrl / ⌘ / Shift / middle open a new tab — this one stays put, so the
+    // panel must not minimize under the user.
+    expect(cmp.onViewInApp(new MouseEvent('click', { ctrlKey: true }))).toBe(false);
+    expect(cmp.onViewInApp(new MouseEvent('click', { metaKey: true }))).toBe(false);
+    expect(cmp.onViewInApp(new MouseEvent('click', { button: 1 }))).toBe(false);
+    expect(nav.navigations()).toBe(before + 1);
   });
 
 });
