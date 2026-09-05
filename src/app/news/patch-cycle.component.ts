@@ -42,11 +42,18 @@ import type { StackCard } from './patch-stack';
           @if (c.expected; as e) {
             <span class="bar expected" [style.left.%]="e.fromPct" [style.width.%]="e.toPct - e.fromPct"></span>
           }
-          <span class="bar real" [style.left.%]="c.real.fromPct" [style.width.%]="c.real.toPct - c.real.fromPct"></span>
+          <!-- Two evidenced stretches: what came BEFORE this patch (grey) and
+               this patch's own cycle (green) — so the axis says which patch it
+               is about with the same colours the board uses. -->
+          <span class="bar past" [style.left.%]="c.real.fromPct" [style.width.%]="pastEnd() - c.real.fromPct"></span>
+          <span class="bar real" [style.left.%]="pastEnd()" [style.width.%]="c.real.toPct - pastEnd()"></span>
           @for (p of c.points; track p.key + p.at) {
             <span class="pt" [attr.data-key]="p.key" [class.est]="p.estimated" [style.left.%]="p.pct"></span>
             @if (p.key !== 'hotfix') {
               <span class="lab" [attr.data-key]="p.key" [class.below]="p.key === 'now'" [style.left.%]="p.pct">
+                @if (chipOf(p); as chip) {
+                  <span class="chip" [attr.data-status]="chip">{{ ('news.patch.status.' + chip) | translate }}</span>
+                }
                 <b>{{ pointLabel(p) }}</b>
                 <small>{{ date(p.at) }}</small>
               </span>
@@ -83,30 +90,47 @@ import type { StackCard } from './patch-stack';
     }
     .disclaimer { display: block; margin-top: 4px; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
-    .axis { padding: 44px 8px 0; }
+    .axis { padding: 62px 8px 0; }
     .track { position: relative; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--sc-fg-2) 25%, transparent); }
     .bar { position: absolute; top: 50%; transform: translateY(-50%); border-radius: 4px; }
     /* Expected: muted, vertically larger, behind. Real: active colour, thin, in front. */
     .bar.expected { height: 14px; background: color-mix(in srgb, var(--sc-accent) 18%, transparent); z-index: 0; }
+    .bar.past { height: 4px; background: color-mix(in srgb, var(--sc-fg-2) 45%, transparent); z-index: 1; }
     .bar.real { height: 4px; background: var(--sc-success); z-index: 1; }
     .pt {
       position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; z-index: 2;
       transform: translate(-50%, -50%); background: var(--sc-bg-0); border: 2px solid var(--sc-fg-1);
     }
-    .pt[data-key='live'], .pt[data-key='prevLive'] { background: var(--sc-success); border-color: var(--sc-success); }
+    /* The same colours as the status words on the board: past = grey,
+       PTU = accent, this patch's Live = success and the biggest point. */
+    .pt[data-key='prevLive'] { background: var(--sc-fg-2); border-color: var(--sc-fg-2); }
+    .pt[data-key='firstTest'] { background: var(--sc-accent); border-color: var(--sc-accent); }
+    .pt[data-key='live'] { width: 16px; height: 16px; background: var(--sc-success); border-color: var(--sc-success); box-shadow: 0 0 14px color-mix(in srgb, var(--sc-success) 55%, transparent); }
     .pt[data-key='hotfix'] { width: 6px; height: 6px; background: var(--sc-warning); border-color: var(--sc-warning); }
     .pt[data-key='now'] { width: 8px; height: 8px; background: var(--sc-fg-0); border-color: var(--sc-fg-0); }
     .pt.est { border-style: dashed; border-color: var(--sc-accent); background: var(--sc-bg-0); }
     .lab {
       position: absolute; bottom: 16px; transform: translateX(-50%); z-index: 3;
-      display: flex; flex-direction: column; align-items: center; white-space: nowrap;
+      display: flex; flex-direction: column; align-items: center; gap: 2px; white-space: nowrap;
       font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.25;
     }
     .lab b { color: var(--sc-fg-0); font-weight: 600; font-size: max(0.7rem, var(--sc-fs-floor)); }
     .lab.below { bottom: auto; top: 14px; }
-    .lab[data-key='prevLive'] { transform: translateX(0); }
-    .lab[data-key='nextLive'] { transform: translateX(-100%); }
+    .lab[data-key='prevLive'] { transform: translateX(0); align-items: flex-start; }
+    .lab[data-key='prevLive'] b { color: var(--sc-fg-2); font-weight: 500; }
+    .lab[data-key='live'] b { font-size: max(0.8rem, var(--sc-fs-floor)); }
+    .lab[data-key='nextLive'] { transform: translateX(-100%); align-items: flex-end; }
     .lab[data-key='nextLive'] b { color: var(--sc-accent); }
+    /* Status word, board idiom, small. */
+    .chip {
+      display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 4px;
+      font-family: var(--sc-font-display); font-size: max(0.52rem, var(--sc-fs-floor));
+      letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;
+    }
+    .chip[data-status='live'] { color: var(--sc-bg-0); background: var(--sc-success); }
+    .chip[data-status='ptu'] { color: var(--sc-accent); border: 1px solid var(--sc-accent); }
+    .chip[data-status='next'] { color: var(--sc-accent); border: 1px dashed var(--sc-accent); }
+    .chip[data-status='superseded'] { color: var(--sc-fg-2); border: 1px solid color-mix(in srgb, var(--sc-fg-2) 40%, transparent); }
 
     .spans { list-style: none; margin: 40px 0 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
     .spans li {
@@ -150,6 +174,25 @@ export class PatchCycleComponent {
     if (!c) return '';
     return c.spans.map((s) => this.t.instant('news.patch.next.span.' + s.key, { days: s.days })).join(', ');
   });
+
+  /** Where the grey "before this patch" stretch ends and the green one begins. */
+  readonly pastEnd = computed(() => {
+    const c = this.cycle();
+    if (!c) return 0;
+    const own = c.points.find((p) => p.key === 'firstTest') ?? c.points.find((p) => p.key === 'live');
+    return own ? Math.max(own.pct, c.real.fromPct) : c.real.toPct;
+  });
+
+  /** The board's status word for a point — the same vocabulary on both surfaces. */
+  chipOf(p: CyclePoint): 'live' | 'ptu' | 'next' | 'superseded' | null {
+    switch (p.key) {
+      case 'prevLive': return 'superseded';
+      case 'firstTest': return 'ptu';
+      case 'live': return 'live';
+      case 'nextLive': return p.estimated ? 'next' : 'live';
+      default: return null;
+    }
+  }
 
   pointLabel(p: CyclePoint): string {
     return this.t.instant('news.patch.next.point.' + p.key, { version: p.version });

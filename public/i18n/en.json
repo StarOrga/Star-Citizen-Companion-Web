@@ -1459,7 +1459,7 @@
         "disclaimer": "Median estimates from the patch cadence, not official dates.",
         "point": {
           "prevLive": "Live {{version}}",
-          "firstTest": "1st test build",
+          "firstTest": "PTU start {{version}}",
           "live": "Live {{version}}",
           "hotfix": "Hotfix",
           "now": "today",
