@@ -95,3 +95,118 @@ export function highlightSegments(text: string, tokens: readonly string[]): High
   }
   return out;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Spelling variants — "amis und briten schreiben unterschiedlich"
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * RSI writes American English, the reader may not (and half the community
+ * writes British). A search for `armour` must find `Armor`, `manoeuvre` must
+ * find `maneuver`, `stabilise` must find `stabilize`.
+ *
+ * Implemented as VARIANTS OF THE TOKEN, never as a folded haystack: folding
+ * `colour → color` in the text would change its length, and
+ * `highlightSegments` maps hits back onto the ORIGINAL string by offset. By
+ * expanding the query instead, matching stays honest and the marks stay on the
+ * right characters — whichever spelling the source used.
+ *
+ * The rules are the regular ones (they cover the long tail), plus a handful of
+ * irregular pairs that no rule catches. Every rule is applied in BOTH
+ * directions, so it does not matter which spelling the reader typed.
+ */
+const SPELLING_RULES: readonly [RegExp, string][] = [
+  // colour ↔ color, armour ↔ armor, behaviour ↔ behavior
+  [/our(s|ed|ing|less|ful)?$/, 'or$1'],
+  [/or(s|ed|ing|less|ful)?$/, 'our$1'],
+  // stabilise ↔ stabilize, optimisation ↔ optimization
+  [/is(e|es|ed|ing|ation|ations|able|er|ers)$/, 'iz$1'],
+  [/iz(e|es|ed|ing|ation|ations|able|er|ers)$/, 'is$1'],
+  // yse ↔ yze (analyse / analyze)
+  [/ys(e|es|ed|ing)$/, 'yz$1'],
+  [/yz(e|es|ed|ing)$/, 'ys$1'],
+  // centre ↔ center, calibre ↔ caliber
+  [/([bctv])re(s)?$/, '$1er$2'],
+  [/([bctv])er(s)?$/, '$1re$2'],
+  // defence ↔ defense, licence ↔ license
+  [/ence(s)?$/, 'ense$1'],
+  [/ense(s)?$/, 'ence$1'],
+  // catalogue ↔ catalog, dialogue ↔ dialog
+  [/ogue(s)?$/, 'og$1'],
+  [/og(s)?$/, 'ogue$1'],
+  // travelling ↔ traveling, cancelled ↔ canceled, fuelled ↔ fueled
+  [/([aeiou])ll(ed|ing|er|ers)$/, '$1l$2'],
+  [/([aeiou])l(ed|ing|er|ers)$/, '$1ll$2'],
+  // programme ↔ program
+  [/mme(s)?$/, 'm$1'],
+];
+
+/** Pairs no rule reaches — both directions are generated from one entry. */
+const SPELLING_PAIRS: readonly [string, string][] = [
+  ['manoeuvre', 'maneuver'],
+  ['manoeuvres', 'maneuvers'],
+  ['manoeuvring', 'maneuvering'],
+  ['grey', 'gray'],
+  ['aluminium', 'aluminum'],
+  ['sceptical', 'skeptical'],
+  ['storey', 'story'],
+  ['plough', 'plow'],
+  ['draught', 'draft'],
+  ['tyre', 'tire'],
+  ['kerb', 'curb'],
+  ['aeroplane', 'airplane'],
+  ['armoury', 'armory'],
+  ['jewellery', 'jewelry'],
+  ['practise', 'practice'],
+  ['disc', 'disk'],
+];
+
+/** Below this a rule would fire on fragments ("or" → "our") and match everything. */
+const MIN_VARIANT_LENGTH = 4;
+
+/**
+ * A normalized token plus every spelling of it we know how to reach. The token
+ * itself is always first, and the list is deduplicated — a caller can treat it
+ * as "match any of these".
+ */
+export function spellingVariants(token: string): string[] {
+  const out = [token];
+  if (token.length < MIN_VARIANT_LENGTH) return out;
+  const add = (v: string) => {
+    if (v && v !== token && !out.includes(v)) out.push(v);
+  };
+  for (const [a, b] of SPELLING_PAIRS) {
+    if (token === a) add(b);
+    else if (token === b) add(a);
+  }
+  for (const [re, to] of SPELLING_RULES) {
+    if (re.test(token)) add(token.replace(re, to));
+  }
+  return out;
+}
+
+/**
+ * The tokens of a query, each expanded to its spellings. One entry per token,
+ * so the AND-over-tokens / OR-over-spellings semantics stay explicit at the
+ * call sites.
+ */
+export function tokenizeFuzzy(query: string): string[][] {
+  return tokenizeQuery(query).map(spellingVariants);
+}
+
+/** Every spelling of every token, flattened — what the highlighter marks. */
+export function fuzzyTokens(tokens: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const t of tokens) for (const v of spellingVariants(t)) if (!out.includes(v)) out.push(v);
+  return out;
+}
+
+/**
+ * Like `matchesTokens`, but a token is satisfied by ANY of its spellings.
+ * Still AND across tokens — typing a second word narrows, as before.
+ */
+export function matchesFuzzy(haystack: string, tokens: readonly string[]): boolean {
+  if (tokens.length === 0) return true;
+  const hay = normalizeSearchText(haystack);
+  return tokens.every((t) => spellingVariants(t).some((v) => hay.includes(v)));
+}

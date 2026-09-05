@@ -245,6 +245,54 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     expect(charts!.querySelector('sc-patch-cadence')).not.toBeNull();
   });
 
+  /**
+   * The 2026-09-05 complaint ("überlappt ohne Ende"): the axis used to caption
+   * every point with an absolutely positioned label at its own percentage, so
+   * two events a few days apart collided by construction — and on a live patch
+   * with a hotfix they always are. The captions are a grid now; this measures
+   * that no two of them share a pixel.
+   */
+  it('the cycle markers are a grid, so none of them can overlap another', async () => {
+    await render('4.10');
+    const marks = Array.from(root().querySelectorAll('#pd-next .marks .mark')) as HTMLElement[];
+    expect(marks.length).withContext('one cell per point on the axis').toBeGreaterThan(3);
+    // Nothing is absolutely positioned any more — that is what made them collide.
+    for (const m of marks) expect(getComputedStyle(m).position).toBe('static');
+    const boxes = marks.map((m) => m.getBoundingClientRect());
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i];
+        const b = boxes[j];
+        const overlaps = a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+        expect(overlaps).withContext(`marker ${i} overlaps ${j}`).toBeFalse();
+      }
+    }
+  });
+
+  it('the panel keeps empty room below the last section, so any section can reach the top', async () => {
+    await render('4.10');
+    const tail = root().querySelector('.tail') as HTMLElement | null;
+    expect(tail).not.toBeNull();
+    expect(tail!.getBoundingClientRect().height).toBeGreaterThan(200);
+  });
+
+  it('picking a section from the table of contents lights it up', async () => {
+    await render('4.10');
+    const link = root().querySelectorAll('.toc-link')[2] as HTMLAnchorElement;
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+    fixture.detectChanges();
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    fixture.detectChanges();
+    expect(root().querySelector('#pd-next')!.classList.contains('flash')).toBeTrue();
+  });
+
+  it('the preparation section is there even without an "Important Build Info" block', async () => {
+    await render('4.8');
+    const prep = root().querySelector('#pd-prep');
+    expect(prep).withContext('the question is always answerable').not.toBeNull();
+    expect(prep!.textContent).toContain('Gilt für jeden Patch');
+  });
+
   it('a superseded line is a finished stretch ending on its successor, with no usual marker and no today', async () => {
     await render('4.9');
     expect(text('.hero .status')).toBe('Abgelöst');

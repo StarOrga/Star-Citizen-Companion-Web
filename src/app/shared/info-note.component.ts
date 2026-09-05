@@ -10,6 +10,14 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, input, signal }
  * note is an ACTION on this page, not a navigation. The note stays in the DOM
  * and is toggled with `hidden`, so screen readers and the projected content
  * keep their identity across toggles.
+ *
+ * IT OPENS UP AND TO THE RIGHT (owner, 2026-09-05: "der tooltip verdeckt, lass
+ * ihn eher nach rechts oben aufgehen"). Dropping down from a dot that sits in
+ * a panel header buried the panel's own content under the explanation of it;
+ * upwards, the note covers what the reader has already passed. The corner is
+ * measured after opening and flipped back — down when the viewport top is too
+ * close, left when the note would run off the right edge — so the preferred
+ * direction never becomes a clipped note.
  */
 @Component({
   selector: 'sc-info-note',
@@ -19,7 +27,8 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, input, signal }
     <button type="button" class="dot" [attr.aria-label]="label()" [attr.aria-expanded]="open()" (click)="toggle()">
       i
     </button>
-    <div class="pop" role="note" [hidden]="!open()">
+    <div class="pop" role="note" [hidden]="!open()"
+         [class.flip-down]="side() === 'down'" [class.flip-left]="align() === 'left'">
       <ng-content />
     </div>
   `,
@@ -39,13 +48,17 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, input, signal }
     }
     .dot:hover, .dot[aria-expanded='true'] { color: var(--sc-accent); border-color: var(--sc-accent); }
     .dot:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    /* Default: up and to the right of the dot. */
     .pop {
-      position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; width: max(240px, 18rem);
+      position: absolute; bottom: calc(100% + 8px); left: 0; right: auto; top: auto;
+      z-index: 40; width: max(240px, 18rem);
       padding: 12px 14px; border: 1px solid var(--sc-border); border-radius: 8px;
-      background: var(--sc-bg-1); box-shadow: 0 12px 30px rgb(0 0 0 / 0.35);
+      background: var(--sc-bg-1); box-shadow: 0 12px 30px rgb(0 0 0 / 0.45);
       font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1.5; color: var(--sc-fg-1);
       text-align: left; white-space: normal;
     }
+    .pop.flip-down { bottom: auto; top: calc(100% + 8px); }
+    .pop.flip-left { left: auto; right: 0; }
     @media (max-width: 480px) {
       .pop { width: min(78vw, 18rem); }
     }
@@ -58,13 +71,37 @@ export class InfoNoteComponent {
   readonly label = input.required<string>();
 
   readonly open = signal(false);
+  /** Resolved after opening: which way the note actually fits. */
+  readonly side = signal<'up' | 'down'>('up');
+  readonly align = signal<'right' | 'left'>('right');
 
   toggle(): void {
-    this.open.update((v) => !v);
+    const next = !this.open();
+    this.open.set(next);
+    if (next) this.placeAfterRender();
   }
 
   close(): void {
     this.open.set(false);
+  }
+
+  /**
+   * Measure once the note is laid out, then flip only where it does not fit.
+   * Both flips are reset first so a note opened at one scroll position does
+   * not keep the previous decision.
+   */
+  private placeAfterRender(): void {
+    if (typeof window === 'undefined') return;
+    this.side.set('up');
+    this.align.set('right');
+    requestAnimationFrame(() => {
+      const pop = (this.host.nativeElement as HTMLElement).querySelector<HTMLElement>('.pop');
+      if (!pop) return;
+      const box = pop.getBoundingClientRect();
+      const margin = 8;
+      if (box.top < margin) this.side.set('down');
+      if (box.right > window.innerWidth - margin) this.align.set('left');
+    });
   }
 
   /** A click anywhere else dismisses the note — the usual popover contract. */
