@@ -58,6 +58,51 @@ describe('CodexKpiBandComponent', () => {
     expect(el.querySelector('.kpi-delta.good')).toBeTruthy();
   });
 
+  it('renders the delta chip as the forced-sign absolute change, with the percentage only as the title', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const chip = el.querySelector('.kpi-delta')!;
+    expect(chip.textContent?.trim()).toBe('+200');
+    expect(chip.getAttribute('title')).toBe('+20%');
+  });
+
+  it('renders a negative delta with a minus sign', () => {
+    fixture.componentRef.setInput('cells', [
+      {
+        ...cells[4],
+        delta: { direction: 'down', good: false, pctText: '-19%', raw: -225 },
+      },
+    ]);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const chip = el.querySelector('.kpi-delta')!;
+    expect(chip.textContent?.trim()).toBe('−225');
+  });
+
+  it('leaves the unit to the value and keeps the chip a bare number', () => {
+    fixture.componentRef.setInput('cells', [
+      {
+        ...cells[5],
+        delta: { direction: 'up', good: true, pctText: '+15%', raw: 81 },
+      },
+    ]);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.kpi-value')!.textContent?.trim()).toBe('60/s');
+    expect(el.querySelector('.kpi-delta')!.textContent?.trim()).toBe('+81');
+  });
+
+  it('renders no chip at all when the change rounds away to zero', () => {
+    fixture.componentRef.setInput('cells', [
+      {
+        ...cells[5],
+        delta: { direction: 'up', good: true, pctText: null, raw: 0.4 },
+      },
+    ]);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelectorAll('.kpi-delta').length).toBe(0);
+  });
+
   it('renders a focusable info tooltip only for cells that carry a tooltip key', () => {
     fixture.componentRef.setInput('cells', [
       { ...cells[1], tooltipKey: 'codex.kpi.tooltipBurstDps', lowerIsBetter: false, fromPower: false },

@@ -37,8 +37,8 @@ import {
 } from './table-column-menu';
 import {
   DAMAGE_FAMILY_LABEL_KEY,
-  DEFAULT_SWAP_COLUMN_CHOOSER,
   DEFAULT_SWAP_COLUMNS,
+  DEFAULT_SWAP_COLUMN_CHOOSER,
   NAME_SORT_KEY,
   SWAP_VALUE_CATALOGUE,
   SwapBaseline,
@@ -49,6 +49,8 @@ import {
   applySwapScope,
   baselineClassName,
   buildSwapCandidate,
+  defaultSwapColumnsFor,
+  isWeaponCandidateSet,
   resetSwapColumns,
   swapCell,
   swapCellState,
@@ -248,7 +250,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                   @for (v of catalogue; track v.key) {
                     @if (v.key !== NAME_KEY && !unavailable().has(v.key)) {
                       <label class="pc-row">
-                        <input type="checkbox" [checked]="chooser().visible.includes(v.key)"
+                        <input type="checkbox" [checked]="wantedColumns().includes(v.key)"
                                (change)="toggleColumn(v.key)" />
                         {{ v.key | translate }}
                       </label>
@@ -260,7 +262,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                       @for (v of catalogue; track v.key) {
                         @if (unavailable().has(v.key)) {
                           <label class="pc-row off">
-                            <input type="checkbox" [checked]="chooser().visible.includes(v.key)" disabled />
+                            <input type="checkbox" [checked]="wantedColumns().includes(v.key)" disabled />
                             {{ v.key | translate }}
                           </label>
                         }
@@ -890,7 +892,7 @@ export class CodexSwapPickerComponent {
   readonly unavailable = this.unavailableKeys;
 
   readonly missingColumnsText = computed<string | null>(() => {
-    const missing = swapMissingSourceColumns(this.candidates(), this.chooser().visible);
+    const missing = swapMissingSourceColumns(this.candidates(), this.wantedColumns());
     if (missing.length === 0) return null;
     this.lang();
     return missing.map((k) => this.i18n.instant(k) as string).join(', ');
@@ -908,7 +910,8 @@ export class CodexSwapPickerComponent {
     };
   }
 
-  /** True while the chooser still holds the untouched default 17-column set. */
+  /** True while the chooser still holds the untouched, persisted default 17-column set
+   * (the weapon `#g3` set is the only shape the chooser is ever seeded or reset to). */
   private readonly chooserIsDefault = computed<boolean>(() => {
     const visible = this.chooser().visible;
     return (
@@ -916,13 +919,38 @@ export class CodexSwapPickerComponent {
     );
   });
 
-  /** Visible columns (chooser selection, minus the ones with no data source at all). */
+  /**
+   * ≤640px the table carries three value columns at most. For a weapon port
+   * those are the UI spec's own Δ + DPS + Alpha; no other port kind has any of
+   * them, so it takes the first three of its own kind-aware default rather
+   * than a table of dashes.
+   */
+  private phoneColumnsFor(candidates: readonly SwapCandidate[]): readonly string[] {
+    if (isWeaponCandidateSet(candidates)) return CodexSwapPickerComponent.PHONE_COLUMNS;
+    return defaultSwapColumnsFor(candidates).slice(0, CodexSwapPickerComponent.PHONE_COLUMNS.length);
+  }
+
+  /**
+   * The column keys this port wants, before availability filtering — the ONE
+   * source the table, the chooser popover, the footer and `toggleColumn` all
+   * read. While the chooser is untouched that is the port-kind-aware default
+   * (D24); once the user has picked columns themselves their selection wins
+   * verbatim. Letting these diverge is what made the popover show the weapon
+   * set while the table rendered shield columns.
+   */
+  readonly wantedColumns = computed<readonly string[]>(() => {
+    if (!this.chooserIsDefault()) return this.chooser().visible;
+    const candidates = this.candidates();
+    return this.isPhone()
+      ? [NAME_SORT_KEY, ...this.phoneColumnsFor(candidates)]
+      : defaultSwapColumnsFor(candidates);
+  });
+
+  /** Visible columns — {@link wantedColumns} minus the ones with no data source at all. */
   readonly displayColumns = computed<(SwapValueDef & { def: ColumnDef<SwapCandidate> })[]>(() => {
-    const wanted =
-      this.isPhone() && this.chooserIsDefault()
-        ? [NAME_SORT_KEY, ...CodexSwapPickerComponent.PHONE_COLUMNS]
-        : this.chooser().visible;
-    const missing = new Set(swapMissingSourceColumns(this.candidates(), wanted));
+    const candidates = this.candidates();
+    const wanted = this.wantedColumns();
+    const missing = new Set(swapMissingSourceColumns(candidates, wanted));
     return wanted
       .filter((k) => k !== NAME_SORT_KEY && !missing.has(k))
       .map((k) => ({ ...(swapValueDef(k) as SwapValueDef), def: this.columnDefFor(k) }));
@@ -1077,8 +1105,12 @@ export class CodexSwapPickerComponent {
   }
 
   toggleColumn(key: string): void {
+    // An untouched chooser still holds the persisted weapon set while the table
+    // already renders THIS port's default, so toggle against what is on screen —
+    // otherwise the first click would wipe the columns the port-kind seed added.
+    const seed = this.chooserIsDefault() ? [...this.wantedColumns()] : null;
     this.chooser.update((s) => {
-      const next = toggleSwapColumn(s, key);
+      const next = toggleSwapColumn(seed ? { ...s, visible: seed } : s, key);
       this.saveColumns(next);
       return next;
     });

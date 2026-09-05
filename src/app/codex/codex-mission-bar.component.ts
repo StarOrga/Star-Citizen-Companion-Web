@@ -4,14 +4,14 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
 
 /**
  * EINSATZ — the mission-profile chip row (04-rules-v2 §7.1: one row, never
- * wraps). Labels hide under 1240px so the icon-only chips still fit a phone
- * width; a mission the hull cannot fly renders disabled with the reason in
- * its `title` (no mining hardpoints / no cargo grid / no quantum drive / no
- * salvage hardpoints).
+ * wraps; MASTER §13: the bar wraps or scrolls, never clips — labels stay at
+ * every width and the row scrolls horizontally instead). A mission the hull
+ * cannot fly renders disabled with the reason in its `title` (no mining
+ * hardpoints / no cargo grid / no salvage hardpoints).
  *
  * The right side (MASTER §5) belongs to the loadout draft, in one of two
  * mutually exclusive states the page picks by `changed()`:
- *  - idle (`changed === 0`): only `codex.detail.lensReset` — jumps the
+ *  - idle (`changed === 0`): only `codex.mission.lensReset` — jumps the
  *    mission LENS back to `all` (there is no draft yet, so there is nothing
  *    else to reset or apply; no persistence choice exists until a save flow
  *    that reads it is wired — see codex-detail.component.ts's discussion).
@@ -52,7 +52,7 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
       @if (changed() === 0) {
         <span class="idle-draft">
           <button type="button" class="btn" [disabled]="active() === 'all'" (click)="missionChange.emit('all')">
-            {{ 'codex.detail.lensReset' | translate }}
+            {{ 'codex.mission.lensReset' | translate }}
           </button>
         </span>
       }
@@ -102,10 +102,6 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
       cursor: pointer; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
     }
     .idle-draft .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    @media (max-width: 1240px) {
-      .chip-label { display: none; }
-      .mission-chip { padding: 8px 12px; }
-    }
   `],
 })
 export class CodexMissionBarComponent {

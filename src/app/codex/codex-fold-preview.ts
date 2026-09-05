@@ -11,7 +11,7 @@
 // the jump range. Anything else falls back to a bare census chip — never an
 // invented figure.
 
-import { alphaDamage, EquippedStatFormat } from './codex-equipped-stats';
+import { alphaDamage, damagePerSecond, EquippedStatFormat } from './codex-equipped-stats';
 import { humanizeClassName } from './codex-format';
 import { findStat, toFiniteNumber } from '../hangar/loadout-stats';
 import { isPassiveShield, occupantDraw } from './codex-power';
@@ -78,6 +78,32 @@ function classOf(payload: unknown): string {
 // preview can never disagree about which generator is on the net (R2).
 // Re-exported here because the fold preview is where callers first meet it.
 export { isPassiveShield };
+
+/**
+ * Fold identical occupants into one grouped entry — three hardpoints holding
+ * the same gun become one occupant with `count: 3` instead of three separate
+ * ones (concept: `3× S3 CF-337 Panther Repeater`, part-06.html:316/part-05.html:125).
+ * Every builder above already scales its figure by `count`, so this is the
+ * one place that has to merge it — grouping by className + size + active/
+ * passive role, since two identical guns are the same occupant but a shield
+ * generator that is passive is not interchangeable with one that is active.
+ */
+export function groupOccupants(occupants: readonly SummaryOccupant[]): SummaryOccupant[] {
+  const out: SummaryOccupant[] = [];
+  const index = new Map<string, SummaryOccupant>();
+  for (const o of occupants) {
+    const key = `${classOf(o.payload)}|${sizeOf(o.payload) ?? ''}|${isPassiveShield(o) ? 'p' : 'a'}`;
+    const hit = index.get(key);
+    if (hit) {
+      hit.count = (hit.count || 1) + (o.count || 1);
+    } else {
+      const copy: SummaryOccupant = { ...o, count: o.count || 1 };
+      index.set(key, copy);
+      out.push(copy);
+    }
+  }
+  return out;
+}
 
 function chip(
   occupant: SummaryOccupant,
@@ -154,10 +180,20 @@ export function buildShieldPreview(occupants: readonly SummaryOccupant[]): FoldP
   return out;
 }
 
-/** Weapons / remote turrets: alpha damage per chip, aggregate = Σ alpha. */
-export function buildWeaponPreview(
+/** Fire rate the extract carries on a gun payload, read the same way the KPI
+ * sheet does (`codex-loadout-stats.ts`) — so the peek and the KPI band can
+ * never disagree about which weapons already have a computable DPS. */
+function fireRateOf(payload: unknown): number | null {
+  return toFiniteNumber(
+    (payload as { weaponParams?: Record<string, unknown> } | null | undefined)?.weaponParams?.['fireRate'] ?? null,
+  );
+}
+
+/** One-shot alpha-sum preview (missiles: the salvo, not a rate). */
+function buildAlphaPreview(
   occupants: readonly SummaryOccupant[],
-  section: ShipModuleSection = 'weapons',
+  section: ShipModuleSection,
+  aggregateLabelKey: string,
 ): FoldPreview {
   const out = empty(section);
   let sum = 0;
@@ -174,17 +210,46 @@ export function buildWeaponPreview(
     out.census.slots += count;
     out.census.active += count;
   }
+  out.aggregate = known ? aggregateChip(aggregateLabelKey, Math.round(sum * 100) / 100, 'dec') : null;
+  return out;
+}
+
+/**
+ * Weapons / remote turrets: sustained DPS per chip, aggregate = Σ Dauer-DPS —
+ * the same headline figure the concept's fold-peek and expanded row both
+ * quote ("837 Dauer-DPS", concept/part-06.html:316 + :324). A salvo's alpha
+ * answers "how much does one shot do"; the concept peek answers "how hard
+ * does this ship hit over a fight", which is the fire-rate-derived rate.
+ */
+export function buildWeaponPreview(
+  occupants: readonly SummaryOccupant[],
+  section: ShipModuleSection = 'weapons',
+): FoldPreview {
+  const out = empty(section);
+  let sum = 0;
+  let known = false;
+  for (const o of occupants) {
+    const count = Math.max(1, o.count || 1);
+    const alpha = alphaDamage(o.ammoPayload) ?? alphaDamage(o.payload);
+    const dps = alpha != null ? damagePerSecond(alpha, fireRateOf(o.ammoPayload) ?? fireRateOf(o.payload)) : null;
+    const total = dps != null ? Math.round(dps * count * 100) / 100 : null;
+    if (total != null) {
+      sum += total;
+      known = true;
+    }
+    out.chips.push(chip(o, null, total, 'dec', 'codex.equipped.sustainedDps'));
+    out.census.slots += count;
+    out.census.active += count;
+  }
   out.aggregate = known
-    ? aggregateChip('codex.module.peek.alphaTotal', Math.round(sum * 100) / 100, 'dec')
+    ? aggregateChip('codex.module.peek.sustainedDpsTotal', Math.round(sum * 100) / 100, 'dec')
     : null;
   return out;
 }
 
-/** Missiles: damage per rack, aggregate = Σ damage. */
+/** Missiles: damage per rack, aggregate = Σ salvo damage (concept "Salve gesamt"). */
 export function buildMissilePreview(occupants: readonly SummaryOccupant[]): FoldPreview {
-  const out = buildWeaponPreview(occupants, 'missiles');
-  if (out.aggregate) out.aggregate = { ...out.aggregate, labelKey: 'codex.module.peek.missileTotal' };
-  return out;
+  return buildAlphaPreview(occupants, 'missiles', 'codex.module.peek.missileTotal');
 }
 
 /** Power plants: generated segments, aggregate = the reactor budget. */

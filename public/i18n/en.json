@@ -880,7 +880,6 @@
       "draftNotice": "Not saved. This session only.",
       "draftDiscard": "Discard",
       "draftApplyAndSave": "Apply & save to hangar",
-      "lensReset": "Reset",
       "chipCargoUnknown": "Cargo hold · capacity not in the game files"
     },
     "energy": {
@@ -1202,6 +1201,7 @@
     "equipped": {
       "alphaDamage": "Alpha damage",
       "dps": "DPS",
+      "sustainedDps": "Sustained DPS",
       "fireRate": "Fire rate",
       "projectileSpeed": "Projectile speed",
       "range": "Range",
@@ -1254,11 +1254,11 @@
       "adminHint": "Publishing makes the link above visible to all users. User links are never published automatically."
     },
     "moduleSection": {
-      "weapons": "Weapons",
+      "weapons": "Armament",
       "remoteTurrets": "Remote turrets",
-      "missiles": "Missiles & ordnance",
+      "missiles": "Missiles",
       "pod": "Pods",
-      "shields": "Shields",
+      "shields": "Shield generators",
       "powerPlants": "Power plant",
       "quantum": "Quantum drive",
       "radar": "Radar & sensors",
@@ -1297,6 +1297,7 @@
       "toolSwap": "Swap {{name}}",
       "peek": {
         "alphaTotal": "Total alpha",
+        "sustainedDpsTotal": "Total sustained DPS",
         "missileTotal": "Full salvo",
         "budget": "Reactor budget",
         "coolingTotal": "Total cooling"
@@ -1352,11 +1353,11 @@
       "stealth": "Stealth",
       "mining": "Mining",
       "salvage": "Salvage",
+      "lensReset": "Reset lens",
       "disabled": {
         "noMining": "No mining hardpoints",
         "noSalvage": "No salvage hardpoints",
-        "noCargo": "No cargo grid",
-        "noQuantum": "No quantum drive"
+        "noCargo": "No cargo grid"
       }
     },
     "kpi": {
