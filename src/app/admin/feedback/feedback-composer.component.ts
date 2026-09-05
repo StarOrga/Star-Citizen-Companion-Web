@@ -119,12 +119,18 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
  * see `FeedbackAreaPickerComponent`. Thread replies leave it off: they belong to
  * a topic that already carries the tag.
  *
- * LENGTH (admin feedback 0a0fad31): every message is capped at
- * `FEEDBACK_MAX_CHARS`, with the live count sitting half-transparent in the
- * field's bottom-right corner (`sc-char-counter`). The cap is enforced three
- * times over, because `maxlength` alone is not a cap: it covers typing and
- * pasting, `onInput` covers text dropped onto the field, and `canSend` covers a
- * draft that was stored before the cap existed.
+ * LENGTH (admin feedback 0a0fad31, moved by d08f1983): every message is capped
+ * at `FEEDBACK_MAX_CHARS`, with the live count always on screen on its own line
+ * UNDER the field (`sc-char-counter`, `placement="below"`) rather than as an
+ * overlay inside it — a field that grows with its content cannot keep a corner
+ * free for it. The cap is enforced three times over, because `maxlength` alone
+ * is not a cap: it covers typing and pasting, `onInput` covers text dropped onto
+ * the field, and `canSend` covers a draft that was stored before the cap
+ * existed.
+ *
+ * HEIGHT (admin feedback d08f1983): three rows in every variant, one row taller
+ * per added line, and a per-variant cap after which the box scrolls instead of
+ * pushing the send button off the screen.
  *
  * The parent supplies an `onSubmit` handler that returns `true` once the
  * message is persisted; the composer only clears itself on success, so a failed
@@ -216,23 +222,35 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
         }
       </div>
 
-      <!-- The field and its live character readout are one unit: the wrapper is
-           the positioning context, and the textarea reserves the bottom strip
-           the counter sits in so the two can never overlap (admin feedback
-           0a0fad31). -->
+      <!-- The field and its live character readout are one column: three rows
+           of writing room that grow with every added line, and the readout on a
+           line of its OWN underneath (admin feedback d08f1983 — "sollte drei
+           zeilen haben und sich einfach vertikal ausbauen … die
+           buchstabenanzahl immer sichtbar, aber darunter und nicht
+           abgeschnitten"). It used to be an overlay on a padding lane inside
+           the box; a box that changes height has no stable corner to pin to,
+           and an overlay inside a scrolling surface is exactly the thing that
+           gets clipped.
+
+           The growing is pure CSS: the .grow wrapper's ::after carries a copy
+           of the text with the same box metrics and sizes the single grid cell
+           the textarea is stretched into. No measured pixel, no resize observer, and nothing
+           that can desync from the value the field actually holds. -->
       <div class="field">
-        <textarea #ta
-                  class="input"
-                  [value]="draft()"
-                  (input)="onInput($event)"
-                  (keydown)="onKeydown($event)"
-                  (paste)="onPaste($event)"
-                  (blur)="flushDraft()"
-                  [placeholder]="placeholder() | translate"
-                  [attr.aria-label]="placeholder() | translate"
-                  [attr.maxlength]="maxChars"
-                  [rows]="compact() ? 2 : 4"></textarea>
-        <sc-char-counter [used]="charCount()" [max]="maxChars" />
+        <div class="grow" [attr.data-replica]="draft()">
+          <textarea #ta
+                    class="input"
+                    rows="3"
+                    [value]="draft()"
+                    (input)="onInput($event)"
+                    (keydown)="onKeydown($event)"
+                    (paste)="onPaste($event)"
+                    (blur)="flushDraft()"
+                    [placeholder]="placeholder() | translate"
+                    [attr.aria-label]="placeholder() | translate"
+                    [attr.maxlength]="maxChars"></textarea>
+        </div>
+        <sc-char-counter [used]="charCount()" [max]="maxChars" placement="below" />
       </div>
 
       <!-- Pending attachments use the very same chip row the thread renders
@@ -284,8 +302,16 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
       background: var(--sc-bg-2);
       border: 1px solid var(--sc-border);
       border-radius: 10px;
+      /* The two knobs every variant of the field turns: its type size and how
+         far it may grow before it starts scrolling instead. Every variant
+         starts at the same three rows. */
+      --sc-field-fs: 0.9rem;
+      --sc-field-cap: 320px;
     }
-    .composer.compact { padding: var(--sc-pad-3); gap: 6px; }
+    .composer.compact { padding: var(--sc-pad-3); gap: 6px; --sc-field-fs: 0.86rem; --sc-field-cap: 220px; }
+    /* The opened topic's sheet has the room, so its box may run further before
+       it hands over to its own scrollbar (concept 2026-09-04). */
+    .composer.large { --sc-field-cap: 420px; }
     /* Drag-to-upload affordance: highlight the composer and overlay a hint. */
     .composer.drag-active {
       position: relative;
@@ -338,37 +364,55 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
     .draft-clear:hover { color: var(--sc-danger); border-color: var(--sc-danger); }
     .draft-clear.armed { color: var(--sc-danger); border-color: var(--sc-danger); }
 
-    /* Positioning context for the live character counter, which is absolutely
-       placed in the field's bottom-right corner. */
-    .field { position: relative; display: block; }
+    /* The box and its readout, stacked. Normal flow on purpose: the counter
+       is a sibling under the field, so no ancestor's overflow can cut it off
+       and no growth of the field can push it out of view. */
+    .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 
-    .input {
+    /* The auto-grow cell. Its ::after is an invisible replica of the text with
+       byte-identical metrics — same font, same padding, same border width, same
+       wrapping — so the row is always exactly as tall as what is typed. Both
+       the replica and the textarea stop at the cap; past it the textarea keeps
+       the caret in view by scrolling inside itself. */
+    .grow { display: grid; min-width: 0; }
+    .grow::after {
+      content: attr(data-replica) " ";
+      visibility: hidden;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      max-height: var(--sc-field-cap);
+      overflow: hidden;
+    }
+    .grow > .input,
+    .grow::after {
+      grid-area: 1 / 1 / 2 / 2;
       width: 100%;
       box-sizing: border-box;
-      min-height: 92px;
-      resize: vertical;
-      /* The extra bottom padding is the counter's lane — typed text scrolls
-         above it instead of underneath it. */
-      padding: 10px 12px 22px;
-      background: var(--sc-bg-1);
-      color: var(--sc-fg-0);
+      /* Three rows before a single character is typed: 3 × line-height plus the
+         vertical padding and the border. */
+      min-height: calc(3 * 1.5em + 20px + 2px);
+      padding: 10px 12px;
       border: 1px solid var(--sc-border);
       border-radius: 4px;
       font: inherit;
-      font-size: 0.9rem;
+      font-size: var(--sc-field-fs);
       line-height: 1.5;
+      letter-spacing: inherit;
     }
-    /* 44px of typing room plus the counter's lane — the reply box keeps the
-       same two visible rows it had before the counter moved in. */
-    .composer.compact .input { min-height: 66px; font-size: 0.86rem; }
-    /* The opened topic's box (concept 2026-09-04): room to write, plus the counter's lane. */
-    .composer.large .input { min-height: 154px; }
+    .grow > .input {
+      /* The field sizes itself — a manual grip would fight the replica. */
+      resize: none;
+      max-height: var(--sc-field-cap);
+      overflow-y: auto;
+      background: var(--sc-bg-1);
+      color: var(--sc-fg-0);
+    }
     /* The ONE red call to action a sheet gets (red = the admin's own move; the
        viewer's composer never sets it). Dark text on the red, like the primary
        accent button, keeps the label readable. */
     .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
     .sc-btn.hot:hover:not(:disabled) { background: var(--sc-accent-hot); filter: brightness(1.12); box-shadow: none; }
-    .input:focus {
+    .grow > .input:focus {
       outline: none;
       border-color: var(--sc-accent);
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
@@ -568,10 +612,11 @@ export class FeedbackComposerComponent implements OnDestroy {
         this.draft.set('');
         this.draftRestored.set(false);
         this.attachments.set([]);
-        // The field is `resize: vertical`, so a drag leaves an inline height
-        // behind. After a send that height belongs to a message that is gone —
-        // hand the empty box back at its natural size instead of an arbitrary
-        // one (admin feedback 18e96ad3).
+        // The box sizes itself from its content now (admin feedback
+        // d08f1983), so an emptied field is back at three rows on its own. The
+        // reset stays because a session that still carries an inline height
+        // from the old resize grip would otherwise keep a height that belongs
+        // to a message which is gone (admin feedback 18e96ad3).
         const el = this.ta()?.nativeElement;
         if (el) {
           el.style.height = '';

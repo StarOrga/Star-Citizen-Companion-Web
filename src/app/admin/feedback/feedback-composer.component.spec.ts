@@ -461,16 +461,26 @@ describe('FeedbackComposerComponent — character limit', () => {
     expect(field().getAttribute('maxlength')).toBe(String(FEEDBACK_MAX_CHARS));
   });
 
-  it('shows the live count next to the cap, inside the field', async () => {
+  it('shows the live count on a line of its own UNDER the field', async () => {
     await mount();
     drop('hello');
     const counter: HTMLElement = fixture.nativeElement.querySelector('sc-char-counter');
     expect(counter).withContext('counter is rendered').not.toBeNull();
     expect(counter.textContent?.trim()).toBe(`5 / ${FEEDBACK_MAX_CHARS}`);
-    // Bottom-right INSIDE the box: the field's wrapper is the positioning
-    // context, so the counter can never end up under the send button.
-    expect(counter.closest('.field')).withContext('counter lives in the field').not.toBeNull();
-    expect(counter.closest('.field')!.querySelector('textarea')).toBe(field());
+    // Same block as the field, but below it in normal flow (admin feedback
+    // d08f1983: "immer sichtbar, aber darunter und nicht abgeschnitten"). It
+    // used to be an overlay pinned inside the box - which is exactly what a box
+    // that changes height, inside a panel that scrolls, ends up clipping.
+    const block = counter.closest('.field');
+    expect(block).withContext('counter lives in the field block').not.toBeNull();
+    expect(block!.querySelector('textarea')).toBe(field());
+    expect(getComputedStyle(counter).position).withContext('in flow, not pinned').toBe('static');
+  });
+
+  it('renders the count from the very first empty field, not only near the cap', async () => {
+    await mount();
+    const counter: HTMLElement = fixture.nativeElement.querySelector('sc-char-counter');
+    expect(counter.textContent?.trim()).toBe(`0 / ${FEEDBACK_MAX_CHARS}`);
   });
 
   it('truncates text dropped past the cap — the 9.800-char wall never lands', async () => {
@@ -717,4 +727,148 @@ describe('FeedbackComposerComponent — attachments', () => {
     expect(() => cmp.onAnnotated({ index: 3, dataUrl: 'data:image/jpeg;base64,QUJD' })).not.toThrow();
     expect(cmp.attachments().length).toBe(0);
   });
+});
+
+/**
+ * The box the admin actually writes in (admin feedback d08f1983): "sollte drei
+ * zeilen haben und sich einfach vertikal ausbauen mit jeder zeile".
+ *
+ * Both surfaces - the new-topic box and the compact reply box - start at the
+ * same three rows and grow from there; growth is capped so a long message
+ * cannot push the send button off a phone screen, and past the cap the box
+ * scrolls inside itself instead of clipping the text.
+ *
+ * The growing is CSS (a hidden replica sizes one grid cell), so these are
+ * layout assertions on a really rendered component, not signal assertions.
+ */
+describe('FeedbackComposerComponent - a field that grows with what is typed', () => {
+  let fixture: ComponentFixture<FeedbackComposerComponent>;
+  let cmp: FeedbackComposerComponent;
+  let host: HTMLElement;
+
+  async function mount(compact: boolean, width = '420px'): Promise<void> {
+    await TestBed.configureTestingModule({
+      imports: [FeedbackComposerComponent],
+      providers: [
+        provideTranslateService({ fallbackLang: 'en' }),
+        { provide: FeedbackDraftService, useValue: new FakeDraftStore() },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(FeedbackComposerComponent);
+    fixture.componentRef.setInput('compact', compact);
+    fixture.componentRef.setInput('placeholder', 'adminFeedback.compose.placeholder');
+    fixture.componentRef.setInput('sendLabel', 'adminFeedback.compose.send');
+    fixture.componentRef.setInput('onSubmit', () => Promise.resolve(true));
+    // A real column to lay out in - the detached fixture host has no width.
+    host = fixture.nativeElement as HTMLElement;
+    host.style.width = width;
+    document.body.appendChild(host);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    cmp = fixture.componentInstance;
+  }
+
+  const ta = (): HTMLTextAreaElement => host.querySelector('textarea')!;
+
+  function type(value: string): void {
+    const el = ta();
+    el.value = value;
+    el.setSelectionRange(value.length, value.length);
+    cmp.onInput({ target: el } as unknown as Event);
+    fixture.detectChanges();
+  }
+
+  /** One rendered line of the field, from its own metrics. */
+  function lineHeight(): number {
+    const cs = getComputedStyle(ta());
+    return parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
+  }
+
+  /** Vertical padding of the field, which is not typing room. */
+  function padding(): number {
+    const cs = getComputedStyle(ta());
+    return parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+  }
+
+  afterEach(() => {
+    host?.remove();
+    TestBed.resetTestingModule();
+  });
+
+  for (const compact of [false, true]) {
+    const name = compact ? 'the reply box' : 'the new-topic box';
+
+    it('opens ' + name + ' at three rows', async () => {
+      await mount(compact);
+      const rows = (ta().clientHeight - padding()) / lineHeight();
+      expect(rows).withContext(name + ': visible rows while empty').toBeGreaterThan(2.6);
+      expect(rows).withContext(name + ': visible rows while empty').toBeLessThan(3.6);
+    });
+
+    it('grows ' + name + ' by a row per added line', async () => {
+      await mount(compact);
+      const start = ta().clientHeight;
+      type('one\ntwo\nthree\nfour');
+      const four = ta().clientHeight;
+      expect(four).withContext(name + ': a fourth line makes it taller').toBeGreaterThan(start);
+      expect(four - start)
+        .withContext(name + ': one line, not a jump')
+        .toBeLessThan(lineHeight() * 2);
+
+      type('one\ntwo\nthree\nfour\nfive\nsix');
+      expect(ta().clientHeight).withContext(name + ': keeps growing').toBeGreaterThan(four);
+    });
+
+    it('stops ' + name + ' growing and scrolls instead once it is long', async () => {
+      await mount(compact);
+      type(Array.from({ length: 80 }, (_, i) => 'line ' + i).join('\n'));
+      const el = ta();
+      expect(el.clientHeight).withContext(name + ': capped').toBeLessThan(500);
+      expect(el.scrollHeight)
+        .withContext(name + ': the text is still all there')
+        .toBeGreaterThan(el.clientHeight);
+      // Scrollable, not clipped: the caret can always be brought back into view.
+      expect(getComputedStyle(el).overflowY).toBe('auto');
+    });
+
+    it('keeps the counter visible under ' + name + ' however long the text is', async () => {
+      await mount(compact);
+      type(Array.from({ length: 80 }, (_, i) => 'line ' + i).join('\n'));
+      const counter = host.querySelector('sc-char-counter') as HTMLElement;
+      const box = counter.getBoundingClientRect();
+      expect(box.height).withContext(name + ': counter has a box').toBeGreaterThan(0);
+      expect(box.top)
+        .withContext(name + ': below the field')
+        .toBeGreaterThanOrEqual(ta().getBoundingClientRect().bottom - 1);
+      // Inside the composer's own frame, so no ancestor overflow can eat it.
+      const frame = (host.querySelector('.composer') as HTMLElement).getBoundingClientRect();
+      expect(box.bottom)
+        .withContext(name + ': inside the composer frame')
+        .toBeLessThanOrEqual(frame.bottom + 1);
+    });
+
+    it('keeps ' + name + ' whole on a 375px phone', async () => {
+      // The narrowest viewport the board is used on, minus the panel's own
+      // padding: the readout must still be inside the frame on every side,
+      // not pushed past the right edge or under the send row.
+      await mount(compact, '339px');
+      type('a sentence long enough to wrap more than once on a phone screen');
+      const counter = host.querySelector('sc-char-counter') as HTMLElement;
+      const box = counter.getBoundingClientRect();
+      const frame = (host.querySelector('.composer') as HTMLElement).getBoundingClientRect();
+      expect(box.width).withContext(name + ': counter is rendered').toBeGreaterThan(0);
+      expect(box.right).withContext(name + ': not past the right edge').toBeLessThanOrEqual(
+        frame.right + 1,
+      );
+      expect(box.left).withContext(name + ': not past the left edge').toBeGreaterThanOrEqual(
+        frame.left - 1,
+      );
+      const foot = (host.querySelector('.foot') as HTMLElement).getBoundingClientRect();
+      expect(box.bottom)
+        .withContext(name + ': above the send row, not under it')
+        .toBeLessThanOrEqual(foot.top + 1);
+    });
+  }
 });
