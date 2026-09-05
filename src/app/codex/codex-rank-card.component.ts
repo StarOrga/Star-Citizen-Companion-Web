@@ -107,7 +107,9 @@ import {
             }
           </g>
           <polygon class="median" [attr.points]="polygonPoints(result()!.medianPolygon)" />
-          <polygon class="ship" [attr.points]="polygonPoints(axisPercentiles())" />
+          @if (shipPolygonPoints(); as shipPts) {
+            <polygon class="ship" [attr.points]="shipPts" />
+          }
           @for (cap of axisCaptions(); track cap.key) {
             <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="'middle'">{{ (cap.gap ? cap.labelKey! : cap.labelKey) | translate }}</text>
           }
@@ -218,13 +220,30 @@ export class CodexRankCardComponent {
   readonly profiles = RANK_PROFILES;
   readonly rings = [1, 2, 3];
 
-  /** A null axis draws at the median's own value — a gap on the ship's line
-   * must not read as "ranked worst" (MASTER §3, R-A29). */
-  readonly axisPercentiles = computed<number[]>(() => {
+  /**
+   * Vertices of the ship's line — ONLY the axes the cohort could actually
+   * rank. An axis with no percentile contributes no vertex at all: the line
+   * cuts straight across it and the caption on that spoke says
+   * `codex.rank.gapAxis`. Substituting the median (let alone a flat 50) would
+   * draw a number the data does not have, which is the one thing this page
+   * must never do (MASTER §11, R-A29). Below three known axes there is no
+   * honest shape left, so the line is dropped and only the bars speak.
+   */
+  readonly shipPolygonPoints = computed<string>(() => {
     const r = this.result();
-    if (!r) return [];
-    return r.axes.map((a, i) => a.percentile ?? r.medianPolygon[i] ?? 50);
+    if (!r) return '';
+    const n = r.axes.length;
+    const known = r.axes
+      .map((a, i) => ({ percentile: a.percentile, i }))
+      .filter((v): v is { percentile: number; i: number } => v.percentile != null);
+    if (known.length < 3) return '';
+    return known.map((v) => this.vertexAt(v.percentile, v.i, n)).join(' ');
   });
+
+  /** How many axes the ship's line actually rests on (specs + a11y text). */
+  readonly rankedAxisCount = computed<number>(
+    () => this.result()?.axes.filter((a) => a.percentile != null).length ?? 0,
+  );
 
   readonly axisCaptions = computed<{ key: string; labelKey: string; x: number; y: number; gap: boolean }[]>(() => {
     const r = this.result();
@@ -267,6 +286,14 @@ export class CodexRankCardComponent {
       const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
       return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
     });
+  }
+
+  /** One `x,y` vertex for axis `i` of `n` at `percentile` (0-100). */
+  vertexAt(percentile: number, i: number, n: number): string {
+    const cx = 100, cy = 100, r = 80;
+    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+    const radius = (Math.max(0, Math.min(100, percentile)) / 100) * r;
+    return `${(cx + radius * Math.cos(angle)).toFixed(1)},${(cy + radius * Math.sin(angle)).toFixed(1)}`;
   }
 
   polygonPoints(percentiles: readonly number[]): string {

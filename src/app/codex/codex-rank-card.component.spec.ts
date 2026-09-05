@@ -58,3 +58,54 @@ describe('CodexRankCardComponent', () => {
     expect((chip as HTMLButtonElement).disabled).toBeTrue();
   });
 });
+
+describe('CodexRankCardComponent - a gap axis is never invented', () => {
+  let fixture: ComponentFixture<CodexRankCardComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [CodexRankCardComponent],
+      providers: [provideTranslateService({})],
+    }).compileComponents();
+    fixture = TestBed.createComponent(CodexRankCardComponent);
+    fixture.componentRef.setInput('shipName', 'Nomad');
+  });
+
+  /** A cohort where `alpha` is present on every ship but `shieldHp` exists on
+   * nobody, so the shield axis can never be ranked. */
+  function resultWithAnUnrankableAxis() {
+    const target: RankShipInput = {
+      className: 'CNOU_Nomad', sizeClass: 1, career: null,
+      sheet: { alpha: 100, sustainedDps: 200 },
+    };
+    const cohort: RankShipInput[] = [
+      target,
+      { className: 'AEGS_Avenger', sizeClass: 1, career: null, sheet: { alpha: 200, sustainedDps: 100 } },
+    ];
+    return rankShip(target, cohort, { profile: 'combat', scope: 'sizeClass' });
+  }
+
+  it('gives an unranked axis no vertex instead of drawing the median there', () => {
+    const result = resultWithAnUnrankableAxis();
+    const ranked = result.axes.filter((a) => a.percentile != null).length;
+    const gaps = result.axes.length - ranked;
+    expect(gaps).toBeGreaterThan(0); // the fixture must actually exercise a gap
+    fixture.componentRef.setInput('result', result);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.rankedAxisCount()).toBe(ranked);
+    const pts = fixture.componentInstance.shipPolygonPoints();
+    if (ranked >= 3) {
+      expect(pts.split(' ').length).toBe(ranked);
+    } else {
+      expect(pts).toBe('');
+      expect(fixture.nativeElement.querySelector('polygon.ship')).toBeNull();
+    }
+  });
+
+  it('never places a vertex outside the ring for an out-of-range percentile', () => {
+    const v = fixture.componentInstance.vertexAt(140, 0, 6).split(',').map(Number);
+    const r = Math.hypot(v[0] - 100, v[1] - 100);
+    expect(r).toBeLessThanOrEqual(80.01);
+  });
+});
