@@ -57,6 +57,12 @@ const ROADMAP: RoadmapPayload = {
   updatedAt: '',
 };
 
+/** 4.11 exists on the roadmap only: announced for a quarter, no build posted. */
+const ROADMAP_ANNOUNCED: RoadmapPayload = {
+  ...ROADMAP,
+  next: { id: 'n', name: '4.11', quarter: 'Q3 2026', status: 'committed', patchLine: '4.11', cards: [] },
+};
+
 const LIVE_OUTLINE: PatchOutline = {
   slug: 'l410', subject: 'Star Citizen Alpha 4.10 LIVE Release Notes', truncated: false, bulletCount: 6,
   nodes: [
@@ -75,8 +81,19 @@ const LIVE_OUTLINE: PatchOutline = {
   ],
 };
 
+/** 4.9 is the superseded line; its note gives that dossier a preparation section. */
+const PAST_OUTLINE: PatchOutline = {
+  slug: 'l49', subject: 'Star Citizen Alpha 4.9 LIVE Release Notes', truncated: false, bulletCount: 2,
+  nodes: [
+    { kind: 'heading', text: 'Star Citizen Alpha Patch 4.9 LIVE', depth: 0 },
+    { kind: 'subheading', text: 'Important Build Info', depth: 0 },
+    { kind: 'bullet', text: 'Long Term Persistence: Preserved', depth: 0 },
+    { kind: 'bullet', text: 'Starting aUEC: 20,000', depth: 0 },
+  ],
+};
+
 function roadmapStub(payload: RoadmapPayload | null) {
-  const outlines = signal<ReadonlyMap<string, PatchOutline>>(new Map([['l410', LIVE_OUTLINE]]));
+  const outlines = signal<ReadonlyMap<string, PatchOutline>>(new Map([['l410', LIVE_OUTLINE], ['l49', PAST_OUTLINE]]));
   const requested: string[][] = [];
   return {
     requested,
@@ -154,14 +171,23 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     expect((Array.from(root().querySelectorAll('.col > section')) as HTMLElement[]).map((el) => el.id)).toEqual([
       'pd-contents', 'pd-fixed', 'pd-next', 'pd-prep',
     ]);
-    expect(sectionOrder('ptu')[0]).toBe('prep');
-    expect(sectionOrder('next').slice(0, 2)).toEqual(['contents', 'next']);
     expect(root().querySelector('#pd-prep')).not.toBeNull();
     expect(root().querySelector('#pd-contents')).not.toBeNull();
     expect(root().querySelector('#pd-fixed')).not.toBeNull();
     expect(root().querySelector('#pd-next')).not.toBeNull();
     // Opening the overlay locks the page behind it.
     expect(document.body.style.overflow).toBe('hidden');
+  });
+
+  it('orders the sections by one question: is the patch out yet?', () => {
+    // Not out yet — when does it come, and how do I get ready.
+    for (const status of ['next', 'evocati', 'ptu'] as const) {
+      expect(sectionOrder(status)).withContext(status).toEqual(['next', 'prep', 'contents', 'fixed']);
+    }
+    // Landed — what is in it, is my bug gone; preparation is done and goes last.
+    for (const status of ['live', 'superseded', 'other'] as const) {
+      expect(sectionOrder(status)).withContext(status).toEqual(['contents', 'fixed', 'next', 'prep']);
+    }
   });
 
   it('reads the preparation facts and known issues out of the note', async () => {
@@ -227,6 +253,40 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     expect(text('#pd-next .sentence')).toContain('von Alpha 4.10 abgelöst');
     // No roadmap for 4.9 → the note itself is what the contents section holds.
     expect(root().querySelector('#pd-contents sc-patch-note-detail')).not.toBeNull();
+    // Superseded: both questions are past tense, in the TOC and in the heading.
+    const toc = (Array.from(root().querySelectorAll('.toc-link')) as HTMLElement[]).map((a) => a.textContent?.trim());
+    expect(toc).toContain('Was kam danach?');
+    expect(toc).toContain('Was war zu beachten?');
+    expect(toc).not.toContain('Wann kommt der nächste?');
+    expect(toc).not.toContain('Wie bereite ich mich vor?');
+    expect(text('#pd-next h3')).toBe('Was kam danach?');
+    expect(text('#pd-prep h3')).toContain('Was war zu beachten?');
+  });
+
+  it('an announced line without a build leads with a section that answers in words, not with an axis', async () => {
+    await render('4.11', '', ROADMAP_ANNOUNCED);
+    // "Wann kommt dieser Patch?" leads for a patch that is not out yet …
+    expect((Array.from(root().querySelectorAll('.col > section')) as HTMLElement[])[0].id).toBe('pd-next');
+    // … and it says something: the planned quarter, the projection, the caveat.
+    const sentence = text('#pd-next .sentence');
+    expect(sentence).toContain('Alpha 4.11 ist für Q3 2026 geplant.');
+    expect(sentence).toContain('Noch kein Testbuild');
+    expect(sentence).toContain('Median-Schätzungen');
+    expect(text('#pd-next .facts')).toContain('Live → Live:');
+    // No real stretch exists, so nothing is drawn — a borrowed axis would lie.
+    expect(root().querySelector('#pd-next .axis')).toBeNull();
+    expect(root().querySelector('#pd-next details.charts')).not.toBeNull();
+  });
+
+  it('a query carried in from the board opens the dossier on the hit list', async () => {
+    // The hit list leads instead of being scrolled to, so it is the first
+    // section in both the table of contents and the DOM.
+    await render('4.10', 'quantum');
+    expect(text('.toc-link.active')).toBe('Haben sie … gefixt?');
+    expect((Array.from(root().querySelectorAll('.col > section')) as HTMLElement[])[0].id).toBe('pd-fixed');
+    // Without a query the reading position stays at the first section.
+    await render('4.10');
+    expect(text('.toc-link.active')).toBe('Was steckt drin?');
   });
 
   it('an unknown line does not crash — it says so and offers the way back', async () => {

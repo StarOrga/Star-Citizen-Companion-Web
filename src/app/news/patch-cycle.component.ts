@@ -4,7 +4,10 @@ import { LocaleService } from '../core/locale/locale.service';
 import type { PatchLineGroup } from './patch-notes';
 import { PatchCadenceComponent } from './patch-cadence.component';
 import { buildPatchCycle, type CyclePoint, type CycleStretch } from './patch-cycle';
+import { computePatchStats, liveReleaseAt } from './patch-stats';
 import type { StackCard } from './patch-stack';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * "Wann kommt der nächste?" — the cycle axis (rethink Ⓚ, iteration 4; anchor
@@ -97,6 +100,32 @@ import type { StackCard } from './patch-stack';
           }
         </ul>
       </div>
+    } @else {
+      <!-- Announced, nothing built yet: there is no real stretch to draw, so
+           the section answers its own question in words. An axis here would
+           have to borrow another patch's dates — misleading under this
+           heading — so it stays out; the medians carry the estimate. -->
+      <p class="sentence">
+        @if (plannedQuarter(); as q) {
+          <b>{{ 'news.patch.next.planned.sentence' | translate:{ line: card().line, quarter: q } }}</b>
+        } @else {
+          <b>{{ 'news.patch.next.planned.unknown' | translate:{ line: card().line } }}</b>
+        }
+        @if (hasProjection()) {
+          <span class="status">{{ 'news.patch.next.planned.status' | translate:{ date: date(projectedLiveAt()) } }}</span>
+        }
+        <span class="disclaimer">{{ 'news.patch.next.disclaimer' | translate }}</span>
+      </p>
+      <ul class="facts">
+        @if (cadenceKpi(); as k) {
+          <li><b>{{ 'news.patch.next.span.cadence' | translate:{ days: num(k.median) } }}</b>
+            <span>{{ 'news.patch.next.planned.basisCadence' | translate:{ n: k.samples } }}</span></li>
+        }
+        @if (leadKpi(); as k) {
+          <li><b>{{ 'news.patch.next.span.leadTime' | translate:{ days: num(k.median) } }}</b>
+            <span>{{ 'news.patch.next.planned.basisLead' | translate:{ n: k.samples } }}</span></li>
+        }
+      </ul>
     }
 
     <!-- The former carousel, untouched, folded away: charts, dots, rotation,
@@ -188,6 +217,27 @@ export class PatchCycleComponent {
   readonly now = input<number>(Date.now());
 
   readonly cycle = computed(() => buildPatchCycle(this.card(), this.groups(), this.now()));
+
+  // ── The announced-patch fallback (no build, nothing to draw) ───────────
+  private readonly kpis = computed(() => computePatchStats(this.groups()));
+  readonly cadenceKpi = computed(() => this.kpis().find((k) => k.key === 'cadence') ?? null);
+  readonly leadKpi = computed(() => this.kpis().find((k) => k.key === 'leadTime') ?? null);
+  /** RSI's own scheduling note for the line (`Q3 2026`), same source as the hero line. */
+  readonly plannedQuarter = computed(() => this.card().release?.quarter ?? '');
+  /**
+   * The live line's release plus the median cadence — the only Live date that
+   * can be named honestly before a test build exists. NaN when either half is
+   * missing; the status line is then left out rather than invented.
+   */
+  readonly projectedLiveAt = computed(() => {
+    const median = this.cadenceKpi()?.median ?? null;
+    const liveGroup = this.groups().find((g) => g.isCurrentLive) ?? null;
+    const live = liveGroup ? liveReleaseAt(liveGroup) : null;
+    if (median === null || live === null) return NaN;
+    return live + median * DAY_MS;
+  });
+  readonly hasProjection = computed(() => Number.isFinite(this.projectedLiveAt()));
+
   readonly usualAt = computed(() => this.cycle()?.points.find((p) => p.key === 'usual')?.at ?? NaN);
   readonly nextAt = computed(() => this.cycle()?.points.find((p) => p.key === 'nextLive')?.at ?? NaN);
   readonly nextVersion = computed(() => this.cycle()?.points.find((p) => p.key === 'nextLive')?.version ?? '');

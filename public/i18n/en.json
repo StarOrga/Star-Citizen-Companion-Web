@@ -1427,9 +1427,12 @@
         "unknown": "No patch data for Alpha {{line}}.",
         "section": {
           "prep": "How do I prepare?",
+          "prepPast": "What you needed to know",
           "contents": "What's in it?",
           "fixed": "Did they fix …?",
-          "next": "When is the next one?"
+          "next": "When is the next one?",
+          "nextThis": "When does this one land?",
+          "nextPast": "What came next?"
         }
       },
       "prep": {
@@ -1459,6 +1462,13 @@
         "sentenceHistory": "Alpha {{line}} was superseded by Alpha {{next}} on {{date}} after {{days}} days — the usual is {{median}} days.",
         "sentencePlanned": "Alpha {{line}} expected live around {{date}} per the cadence — {{when}}.",
         "disclaimer": "Median estimates from the patch cadence, not official dates.",
+        "planned": {
+          "sentence": "Alpha {{line}} is planned for {{quarter}}.",
+          "unknown": "No date for Alpha {{line}} yet.",
+          "status": "No test build yet — going by the usual rhythm, the next live date would be around {{date}}.",
+          "basisCadence": "usual rhythm · median from n = {{n}}",
+          "basisLead": "usual test phase · median from n = {{n}}"
+        },
         "point": {
           "prevLive": "Live {{version}}",
           "firstTest": "PTU start {{version}}",

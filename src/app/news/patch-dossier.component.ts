@@ -9,7 +9,6 @@ import {
   effect,
   inject,
   input,
-  linkedSignal,
   signal,
   untracked,
 } from '@angular/core';
@@ -33,14 +32,21 @@ import { relativeTime } from './relative-time';
 
 type SectionId = 'prep' | 'contents' | 'fixed' | 'next';
 
-/** Section order per status — what a reader asks first about a patch in that state. */
+/**
+ * A patch has exactly two reading orders, and the line between them is whether
+ * it is out yet.
+ *
+ * As long as the patch has not arrived (`next`, `evocati`, `ptu`), the
+ * forward-looking questions lead: when does it come, and how do I get ready.
+ * Once it has landed, what is in it and whether one's own bug is gone lead;
+ * the preparation is done and slides to the end.
+ */
 export function sectionOrder(status: StackCard['status']): SectionId[] {
   switch (status) {
     case 'next':
-      return ['contents', 'next', 'prep', 'fixed'];
     case 'evocati':
     case 'ptu':
-      return ['prep', 'contents', 'fixed', 'next'];
+      return ['next', 'prep', 'contents', 'fixed'];
     default:
       return ['contents', 'fixed', 'next', 'prep'];
   }
@@ -65,16 +71,22 @@ const SPY_CLEARANCE_PX = 24;
  * stack showed about a patch lives here, arranged by the QUESTION the reader
  * came with, not by data source:
  *
- *   Wie bereite ich mich vor?   what the note's "Important Build Info" says is
- *                               kept or wiped, plus known issues / testing focus
- *   Was steckt drin?            RSI's roadmap items as picture cards, with the
- *                               release note's matching bullets ON the card and
- *                               the unmatched ones in a line below (or, without
- *                               roadmap data, the note itself)
- *   Haben sie … gefixt?         search inside this patch across its loaded
- *                               notes, honest coverage, load the rest on demand,
- *                               every note of the line reachable underneath
- *   Wann kommt der nächste?     the cycle axis (sc-patch-cycle)
+ *   prep       what the note's "Important Build Info" says is kept or wiped,
+ *              plus known issues / testing focus
+ *   contents   RSI's roadmap items as picture cards, with the release note's
+ *              matching bullets ON the card and the unmatched ones in a line
+ *              below (or, without roadmap data, the note itself)
+ *   fixed      search inside this patch across its loaded notes, honest
+ *              coverage, load the rest on demand, every note of the line
+ *              reachable underneath
+ *   next       the cycle axis (sc-patch-cycle)
+ *
+ * Their ORDER follows `sectionOrder()` and has two shapes only: a patch that
+ * is not out yet leads with `next, prep` (when does it come, how do I get
+ * ready), a patch that has landed leads with `contents, fixed` (what is in it,
+ * is my bug gone). Two of the headings also read differently per status —
+ * see `sectionKey()`, which feeds the TOC link AND the `<h3>` so the two can
+ * never drift apart.
  *
  * The navigation is the settings page's table of contents, reused as a
  * pattern: a quiet sticky rail with a 2 px marker and scroll-spy on desktop,
@@ -83,7 +95,8 @@ const SPY_CLEARANCE_PX = 24;
  *
  * `line` and `q` arrive through the router (`withComponentInputBinding`); `q`
  * is the board's query, carried in so a click on a search result lands on the
- * highlighted hits without retyping.
+ * highlighted hits without retyping — and, since `fixed` can be the last
+ * section, the dossier scrolls there on open when a query came along.
  */
 @Component({
   selector: 'sc-patch-dossier',
@@ -116,7 +129,7 @@ const SPY_CLEARANCE_PX = 24;
                       <a class="toc-link" [class.active]="active() === s" [href]="'#pd-' + s"
                          [attr.aria-current]="active() === s ? 'true' : null" (click)="onToc($event, s)">
                         <span class="toc-marker" aria-hidden="true"></span>
-                        <span class="toc-text">{{ ('news.patch.dossier.section.' + s) | translate }}</span>
+                        <span class="toc-text">{{ sectionKey(s) | translate }}</span>
                       </a>
                     </li>
                   }
@@ -127,10 +140,11 @@ const SPY_CLEARANCE_PX = 24;
             <div class="col">
               @for (s of sections(); track s) { @switch (s) {
               @case ('prep') {
-              <!-- ── Wie bereite ich mich vor? ─────────────────────────── -->
+              <!-- ── How do I prepare? / on a superseded patch: what was
+                   there to watch out for? (heading via sectionKey) ──────── -->
               @if (prep(); as p) {
                 <section id="pd-prep" class="sec" [class.wipe]="p.wipe">
-                  <h3>{{ 'news.patch.dossier.section.prep' | translate }}
+                  <h3>{{ sectionKey('prep') | translate }}
                     <small>{{ 'news.patch.prep.source' | translate }}</small>
                     @if (p.wipe) { <span class="wipe-tag">{{ 'news.patch.prep.wipe' | translate }}</span> }
                   </h3>
@@ -157,10 +171,10 @@ const SPY_CLEARANCE_PX = 24;
               }
 
               @case ('contents') {
-              <!-- ── Was steckt drin? ──────────────────────────────────── -->
+              <!-- ── What's in it? ─────────────────────────────────────── -->
               @if (hasContents()) {
                 <section id="pd-contents" class="sec">
-                  <h3>{{ 'news.patch.dossier.section.contents' | translate }}
+                  <h3>{{ sectionKey('contents') | translate }}
                     @if (c.release; as r) {
                       <span class="ct">{{ r.cards.length }}</span>
                       <button type="button" class="pill-btn" [class.active]="allLong()" [attr.aria-pressed]="allLong()" (click)="toggleAllLong()">
@@ -226,10 +240,11 @@ const SPY_CLEARANCE_PX = 24;
               }
 
               @case ('fixed') {
-              <!-- ── Haben sie … gefixt? ───────────────────────────────── -->
+              <!-- ── Did they fix …? (the section a carried-in query
+                   scrolls to, see focusOnQuery) ───────────────────────── -->
               @if (c.group; as g) {
                 <section id="pd-fixed" class="sec">
-                  <h3>{{ 'news.patch.dossier.section.fixed' | translate }}</h3>
+                  <h3>{{ sectionKey('fixed') | translate }}</h3>
                   <div class="s-field">
                     <input type="search" class="s-input" autocomplete="off" spellcheck="false"
                            [attr.aria-label]="'news.patch.fixed.placeholder' | translate"
@@ -299,10 +314,11 @@ const SPY_CLEARANCE_PX = 24;
               }
 
               @case ('next') {
-              <!-- ── Wann kommt der nächste? ───────────────────────────── -->
+              <!-- ── When is the next one? / not out yet: when does THIS
+                   one land? / superseded: what came next? (sectionKey) ─── -->
               @if (hasCycle()) {
                 <section id="pd-next" class="sec">
-                  <h3>{{ 'news.patch.dossier.section.next' | translate }}</h3>
+                  <h3>{{ sectionKey('next') | translate }}</h3>
                   <sc-patch-cycle [card]="c" [groups]="svc.patchLines()" [now]="now()" />
                 </section>
               }
@@ -489,8 +505,20 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
 
   readonly query = signal('');
   readonly tokens = computed(() => tokenizeQuery(this.query()));
-  /** Follows the first section of the current order until the reader scrolls or clicks. */
-  readonly active = linkedSignal<SectionId>(() => this.sections()[0] ?? 'prep');
+  /** True when the dossier was opened with a search query from the board. */
+  private readonly openedWithQuery = signal(false);
+  /** What the reader last clicked or scrolled to; null while they have not chosen. */
+  private readonly chosen = signal<SectionId | null>(null);
+  /**
+   * The highlighted entry: the reader's choice while it still exists, else the
+   * first section of the current order. A section arriving late (an outline
+   * loads and `prep` appears) must not throw the highlight back to the top.
+   */
+  readonly active = computed<SectionId>(() => {
+    const secs = this.sections();
+    const c = this.chosen();
+    return c && secs.includes(c) ? c : (secs[0] ?? 'prep');
+  });
   readonly allLong = signal(false);
   readonly notesOpen = signal(false);
   private readonly longOverride = signal<ReadonlyMap<string, boolean>>(new Map());
@@ -499,6 +527,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   private readonly clockTimer = setInterval(() => this.now.set(Date.now()), 30_000);
   private scrollListener?: () => void;
   private previousOverflow = '';
+  /** The carried-in query focuses `fixed` once, not on every recompute. */
 
   readonly card = computed<StackCard | null>(() =>
     stackCardFor(this.line(), this.svc.patchLines(), this.roadmap.roadmap()),
@@ -532,9 +561,14 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     return !!c && (c.liveAt !== null || c.firstTestAt !== null || c.status === 'next');
   });
   /**
-   * The sections in the order the patch's status makes them interesting.
-   * Testing: prepare first (wipe, LTP). Live and later: preparation is over,
-   * so it goes last; a planned line leads with what is coming and when.
+   * The sections in the order the patch's status makes them interesting —
+   * `sectionOrder()` decides, this only drops the ones without data.
+   *
+   * One exception: a reader who arrived from the board's search came for the
+   * hit list, so `fixed` leads for them. Putting it first beats scrolling to
+   * it — the sections above load images and grow after the first render, and
+   * a scroll aimed at the old layout lands in the wrong place. Latched at
+   * open, so typing in the field later never reshuffles the page.
    */
   readonly sections = computed<SectionId[]>(() => {
     const c = this.card();
@@ -544,7 +578,9 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
       fixed: !!c?.group,
       next: this.hasCycle(),
     };
-    return sectionOrder(c?.status ?? 'other').filter((id) => has[id]);
+    const out = sectionOrder(c?.status ?? 'other').filter((id) => has[id]);
+    if (!this.openedWithQuery() || !out.includes('fixed')) return out;
+    return ['fixed', ...out.filter((id) => id !== 'fixed')];
   });
 
   readonly waves = computed<PatchWaveGroup[]>(() => groupWaves(this.card()?.group?.entries ?? []));
@@ -599,6 +635,8 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    // Inputs are bound by now, so this reads the query the reader arrived with.
+    this.openedWithQuery.set(this.q().trim().length > 0);
     if (typeof document !== 'undefined') {
       this.previousOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
@@ -633,12 +671,28 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     return this.q() ? { q: this.q() } : null;
   }
 
+  /**
+   * The i18n key for a section's TOC label AND its heading — one source, so
+   * the two can never say different things. Two sections change with status:
+   * "when is the NEXT one?" is the wrong question on a patch that has not
+   * shipped yet (there it is "when does THIS one land?"), and on a superseded
+   * patch both that and the preparation are past tense.
+   */
+  sectionKey(id: SectionId): string {
+    const status = this.card()?.status ?? 'other';
+    const unreleased = status === 'next' || status === 'evocati' || status === 'ptu';
+    if (id === 'next' && unreleased) return 'news.patch.dossier.section.nextThis';
+    if (id === 'next' && status === 'superseded') return 'news.patch.dossier.section.nextPast';
+    if (id === 'prep' && status === 'superseded') return 'news.patch.dossier.section.prepPast';
+    return 'news.patch.dossier.section.' + id;
+  }
+
   onToc(ev: MouseEvent, id: SectionId): void {
     if (!isPlainLeftClick(ev)) return;
     const target = this.host.nativeElement.querySelector<HTMLElement>(`#pd-${id}`);
     if (!target) return;
     ev.preventDefault();
-    this.active.set(id);
+    this.chosen.set(id);
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -651,7 +705,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
       if (el && el.getBoundingClientRect().top <= line) next = id;
     }
     if (panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 4) next = this.sections()[this.sections().length - 1] ?? next;
-    if (next !== this.active()) this.active.set(next);
+    if (next !== this.active()) this.chosen.set(next);
   }
 
   stateLine(): string {
