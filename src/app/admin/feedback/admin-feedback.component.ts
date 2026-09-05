@@ -1447,7 +1447,7 @@ export class AdminFeedbackComponent implements OnInit {
    * host sits inside the panel its listener runs first.
    */
   @HostListener('keydown.escape', ['$event'])
-  onEscape(ev: KeyboardEvent): void {
+  onEscape(ev: Event): void {
     if (this.declineTopicRow()) this.cancelDeclineForm();
     else if (this.filtersOpen()) this.closeFilters();
     else if (this.openRow()) this.closeTopic();
