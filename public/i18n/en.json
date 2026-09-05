@@ -880,7 +880,8 @@
       "draftNotice": "Not saved. This session only.",
       "draftDiscard": "Discard",
       "draftApplyAndSave": "Apply & save to hangar",
-      "lensReset": "Reset"
+      "lensReset": "Reset",
+      "chipCargoUnknown": "Cargo hold · capacity not in the game files"
     },
     "energy": {
       "title": "Power",

@@ -880,7 +880,8 @@
       "draftNotice": "Nicht gespeichert. Nur diese Sitzung.",
       "draftDiscard": "Verwerfen",
       "draftApplyAndSave": "Übernehmen & in Hangar speichern",
-      "lensReset": "Zurücksetzen"
+      "lensReset": "Zurücksetzen",
+      "chipCargoUnknown": "Laderaum · Kapazität nicht in den Spieldaten"
     },
     "energy": {
       "title": "Energie",
@@ -973,7 +974,7 @@
     },
     "swap": {
       "open": "Bauteil tauschen",
-    "pickerTitle": "Modul tauschen",
+      "pickerTitle": "Modul tauschen",
       "installed": "Verbaut",
       "equipped": "Verbaut",
       "previewHint": "Vergleichen, dann Übernehmen oder Slot leeren — die Änderung bleibt Entwurf, bis du sie unten speicherst.",

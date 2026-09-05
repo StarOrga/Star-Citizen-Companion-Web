@@ -387,7 +387,7 @@ interface GearRecipe {
             @if (kind() === 'ship' && heroChips().length > 0) {
               <ul class="chip-row">
                 @for (c of heroChips(); track c.key) {
-                  <li class="hchip" [class.accent]="c.accent" [class.ghost]="c.ghost">{{ c.text }}</li>
+                  <li class="hchip" [class.accent]="c.accent" [class.ghost]="c.ghost" [class.gap]="c.gap">{{ c.text }}</li>
                 }
               </ul>
             }
@@ -993,6 +993,9 @@ interface GearRecipe {
       background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-1); }
     .hchip.accent { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
     .hchip.ghost { color: var(--sc-fg-2); font-style: italic; background: transparent; border-style: dashed; }
+    /* "it hauls, the files do not size it" - a disclosed gap, not a denial. */
+    .hchip.gap { color: var(--sc-warn); background: transparent; border-style: dashed;
+      border-color: color-mix(in srgb, var(--sc-warn) 50%, transparent); }
 
     /* Data provenance pill: gold when a re-extract is pending (MASTER §2/§11). */
     .data-pill.pending { color: var(--sc-warn); border: 1px dashed color-mix(in srgb, var(--sc-warn) 45%, transparent);
@@ -2609,11 +2612,11 @@ export class CodexDetailComponent implements OnInit {
 
   /** Hero chip row (MASTER §2): career, cargo (gold/ghost), mass in tonnes —
    * on top of the existing `facts()` (role/crew/dimensions/quantum). */
-  readonly heroChips = computed<{ key: string; text: string; accent?: boolean; ghost?: boolean }[]>(() => {
+  readonly heroChips = computed<{ key: string; text: string; accent?: boolean; ghost?: boolean; gap?: boolean }[]>(() => {
     const d = this.detail();
     if (!d || d.kind !== 'ship') return [];
     const p = d.payload as ShipPayload;
-    const out: { key: string; text: string; accent?: boolean; ghost?: boolean }[] = [];
+    const out: { key: string; text: string; accent?: boolean; ghost?: boolean; gap?: boolean }[] = [];
     const career = resolveCareerLabel(p.career ?? null);
     if (career) {
       const label = cleanLocaleValue(this.localeMap().get(career) ?? career);
@@ -2632,10 +2635,20 @@ export class CodexDetailComponent implements OnInit {
     if (crew != null && crew !== '' && crew !== 0) {
       out.push({ key: 'crew', text: this.t.instant('codex.detail.chipCrew', { n: crew }) });
     }
+    // Three outcomes, not two. `cargoScu: null` covers both "this hull has no
+    // hold" (a Gladius) and "it hauls, the client files never size it" (the
+    // Nomad's open bed is a door entity — verified against LIVE 4.9.0), and
+    // printing "Kein Laderaum" on the second is a false statement. The
+    // extractor says which via `cargoStatus`; pre-schema-3 payloads have no
+    // such field, so fall back to the loadout-derived capability.
     const cargo = p.cargoScu ?? null;
+    const cargoStatus = p.cargoStatus ?? null;
+    const hauls = cargoStatus ? cargoStatus !== 'none' : this.shipCapabilities().hasCargo;
     if (cargo != null && cargo > 0) {
       out.push({ key: 'cargo', text: `${formatNumber(cargo)} SCU`, accent: true });
-    } else if (!this.shipCapabilities().hasCargo) {
+    } else if (hauls) {
+      out.push({ key: 'cargo', text: this.t.instant('codex.detail.chipCargoUnknown'), gap: true });
+    } else {
       out.push({ key: 'cargo', text: this.t.instant('codex.detail.chipNoCargo'), ghost: true });
     }
     const massKg = p.hull?.mass ?? null;
