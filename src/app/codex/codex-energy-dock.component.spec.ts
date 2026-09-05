@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 
@@ -72,6 +73,25 @@ describe('CodexEnergyDockComponent', () => {
     const sheet = spy.calls.mostRecent().args[0] as PowerSheet;
     expect(sheet.available).toBeTrue();
     expect(sheet.budgetTotal).toBe(14);
+  });
+
+  it('a real signal-writing subscriber does not throw NG0600 (HIGH-1)', async () => {
+    // `sheet` is a `computed()`; `sheetChange.emit()` must not run inside it,
+    // because emit() invokes listeners synchronously and a plain jasmine spy
+    // (unlike a real consumer) never touches Angular's write-guard at all.
+    // The shell's actual wiring writes a signal from the listener — that is
+    // the case that throws if the emit ever regresses back into the computed.
+    const powerSheet = signal<PowerSheet | null>(null);
+    const fixture = await setup({
+      beforeDetect: (f) => f.componentInstance.sheetChange.subscribe((s) => powerSheet.set(s)),
+    });
+    expect(powerSheet()).not.toBeNull();
+    expect(powerSheet()?.budgetTotal).toBe(14);
+
+    const c = fixture.componentInstance;
+    c['toggleGroup']('weapons');
+    fixture.detectChanges();
+    expect(powerSheet()?.budgetUsed).toBe(11);
   });
 
   it('renders the full budget with nothing cut', async () => {
@@ -179,7 +199,7 @@ describe('CodexEnergyDockComponent', () => {
   it('defaults to minimised on a narrow viewport when nothing is stored yet', async () => {
     const original = window.matchMedia;
     window.matchMedia = ((query: string) => ({
-      matches: query.includes('639px'),
+      matches: query.includes('640px'),
       media: query,
       addListener: () => {},
       removeListener: () => {},
@@ -200,7 +220,7 @@ describe('CodexEnergyDockComponent', () => {
     localStorage.setItem(`${dockPositionStorageKey(null)}:min`, 'false');
     const original = window.matchMedia;
     window.matchMedia = ((query: string) => ({
-      matches: query.includes('639px'),
+      matches: query.includes('640px'),
       media: query,
       addListener: () => {},
       removeListener: () => {},
@@ -232,6 +252,38 @@ describe('CodexEnergyDockComponent', () => {
     const ids = (btn.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean);
     expect(ids.length).toBeGreaterThan(0);
     for (const id of ids) expect(fixture.nativeElement.querySelector(`#${id}`)).toBeTruthy();
+  });
+
+  it('fact tooltips are keyboard reachable via a focusable trigger + aria-describedby (HIGH-3)', async () => {
+    const fixture = await setup();
+    const root: HTMLElement = fixture.nativeElement;
+    const triggers = Array.from(root.querySelectorAll<HTMLButtonElement>('.tip-trigger'));
+    // 3 simple facts (IR/EM/CS) + the Kühllast/coolingLoad trigger = 4.
+    expect(triggers.length).toBe(4);
+    for (const t of triggers) {
+      const ids = (t.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean);
+      expect(ids.length).toBeGreaterThan(0);
+      for (const id of ids) expect(root.querySelector(`#${id}`)).toBeTruthy();
+    }
+  });
+
+  it('a noReactorData build keeps the facts and footer, only the pip area collapses (MEDIUM-5)', async () => {
+    // Drop the power plant: no generateSegments anywhere means budgetTotal is
+    // null, but every other occupant still carries resource data, so this is
+    // `noReactorData` — NOT the compact `reExtractPending` gaptag that hides
+    // facts and footer too.
+    const occupants = nomadOccupants().filter((o) => o.section !== 'powerPlants');
+    const fixture = await setup();
+    fixture.componentRef.setInput('occupants', occupants);
+    fixture.detectChanges();
+    const c = fixture.componentInstance;
+    expect(c['sheet']().budgetTotal).toBeNull();
+    expect(c['sheet']().available).toBeFalse();
+    expect(c['sheet']().gapKeys).toContain('codex.energy.gap.noReactorData');
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.md-gap-inline')).toBeTruthy();
+    expect(el.querySelector('.md-facts')).toBeTruthy();
+    expect(el.querySelector('.md-foot')).toBeTruthy();
   });
 
   it('every group/fact/state/gap key rendered resolves in de and en', async () => {

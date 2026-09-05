@@ -962,6 +962,11 @@
       "unit": {
         "segments": "Seg",
         "coolant": "Kühl-Seg"
+      },
+      "tooltipTitle": {
+        "ir": "Infrarot",
+        "em": "Elektromagnetisch",
+        "crossSection": "Querschnitt"
       }
     },
     "swap": {

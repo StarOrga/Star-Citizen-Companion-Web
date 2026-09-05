@@ -28,10 +28,13 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { ICON_PATHS } from './codex-category-icon.component';
+import { formatNumber } from './codex-format';
+import { kpiLowerIsBetter } from './codex-loadout-stats';
 import {
   DockPosition,
   FlightMode,
   PowerFact,
+  PowerFactKey,
   PowerGroup,
   PowerPreset,
   PowerSheet,
@@ -73,11 +76,24 @@ const FACT_ICON: Readonly<Record<string, string>> = {
   crossSection: 'crossSection',
 };
 
-/** Inside the dock a rising value is bad when `lowerIsBetter`; falling is bad otherwise. */
-function deltaTone(delta: number | null, lowerIsBetter: boolean): 'good' | 'bad' | null {
+/** KPI keys where {@link kpiLowerIsBetter} carries the same semantics as this
+ * fact's own `lowerIsBetter` — only 'ir' and 'crossSection' overlap the KPI
+ * key set (`em`/`coolant` do not exist there), so only those two borrow the
+ * shared decider; the rest keep the value `computePowerSheet` already put on
+ * the fact (MEDIUM-2). */
+const FACT_KPI_OVERLAP: Readonly<Partial<Record<PowerFactKey, 'ir' | 'crossSection'>>> = {
+  ir: 'ir',
+  crossSection: 'crossSection',
+};
+
+/** Inside the dock a rising value is bad when `lowerIsBetter`; falling is bad
+ * otherwise. Returns the CSS-facing tone directly — `.d.up` is always
+ * `--sc-success` and `.d.down` is always `--sc-danger` (UI spec §0), so "up"
+ * here means "good outcome", not "the number went up". */
+function deltaTone(delta: number | null, lowerIsBetter: boolean): 'up' | 'down' | null {
   if (delta === null || delta === 0) return null;
   const rising = delta > 0;
-  return rising === lowerIsBetter ? 'bad' : 'good';
+  return rising === lowerIsBetter ? 'down' : 'up';
 }
 
 let uidSeq = 0;
@@ -92,17 +108,21 @@ let uidSeq = 0;
       class="mini-dock"
       [class.min]="minimised()"
       [class.gap]="!sheet().available"
+      [class.tips-hidden]="tipsHidden()"
       [attr.data-min]="minimised()"
       [attr.data-pos]="position()"
+      (keydown.escape)="dismissTooltips()"
+      (focusin)="reopenTooltips()"
+      (pointerenter)="reopenTooltips()"
     >
       <div class="md-head">
         <h3>{{ 'codex.energy.title' | translate }}</h3>
         @if (sheet().available) {
-          <span class="bud"
+          <span class="bud" [attr.aria-label]="'codex.energy.budgetLabel' | translate"
             >{{ sheet().budgetUsed }}<small>&nbsp;/&nbsp;{{ sheet().budgetTotal }} {{ 'codex.energy.unit.segments' | translate }}</small></span
           >
         } @else {
-          <span class="bud gapv">—</span>
+          <span class="bud gapv" [attr.aria-label]="'codex.energy.budgetLabel' | translate">—</span>
         }
 
         <div class="act">
@@ -128,27 +148,29 @@ let uidSeq = 0;
             [attr.aria-controls]="bodyId"
             (click)="toggleMinimised()"
           >
+            <span aria-hidden="true">{{ minimised() ? '▴' : '—' }}</span>
             {{ (minimised() ? 'codex.energy.expand' : 'codex.energy.minimise') | translate }}
           </button>
         </div>
       </div>
 
-      @if (!sheet().available) {
-        <div class="md-gap gaptag">
+      @if (isReExtractGap()) {
+        <div class="md-gap gaptag" [id]="bodyId">
           @for (key of sheet().gapKeys; track key) {
             <span>{{ key | translate }}</span>
           }
         </div>
       } @else if (minimised()) {
-        <div class="md-strip">
+        <div class="md-strip" [id]="bodyId">
           <span>{{ 'codex.energy.fact.ir' | translate }} {{ fmt(irFact()?.value) }}</span>
           <span>{{ 'codex.energy.fact.em' | translate }} {{ fmt(emFact()?.value) }}</span>
           <span>{{ 'codex.energy.fact.crossSection' | translate }} {{ fmt(csFact()?.value) }}</span>
-          <span>{{ 'codex.energy.fact.coolingLoad' | translate }} {{ sheet().coolant.percent }}%</span>
+          <span>{{ 'codex.energy.fact.coolingLoad' | translate }} {{ sheet().coolant.percent === null ? '—' : ('codex.energy.coolingPercent' | translate: { pct: sheet().coolant.percent }) }}</span>
           <span class="ok" [class.no]="!sheet().ready">{{ (sheet().ready ? 'codex.energy.readiness.shortOk' : 'codex.energy.readiness.shortNo') | translate }}</span>
         </div>
       } @else {
         <div class="md-body" [id]="bodyId">
+          @if (sheet().available) {
           <div class="md-pips">
             @for (row of sheet().groups; track row.group) {
               <div class="md-col" [class.off]="row.state === 'off'" [class.act]="row.state === 'active'">
@@ -178,6 +200,9 @@ let uidSeq = 0;
                   <div class="tipbox" [id]="tipId(row.group)" role="tooltip">
                     <b>{{ row.tooltipTitleKey | translate }}</b>
                     <p>{{ row.tooltipBodyKey | translate }}</p>
+                    @if (row.state === 'noChannel') {
+                      <p class="gapv">{{ 'codex.energy.gap.noChannelInMode' | translate }}</p>
+                    }
                   </div>
                 </div>
                 <span class="visually-hidden" [id]="metaId(row.group)"
@@ -195,24 +220,35 @@ let uidSeq = 0;
           </div>
 
           <div class="vr"></div>
+          } @else {
+            <div class="md-gap-inline gaptag">
+              <span>{{ 'codex.energy.gap.noReactorData' | translate }}</span>
+            </div>
+          }
 
           <div class="md-facts">
             @for (f of simpleFacts(); track f.key) {
               <div class="md-fact tipw">
-                <span class="k">{{ f.labelKey | translate }}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="ico" aria-hidden="true">
+                  <path [attr.d]="factIconPath(f.key)" />
+                </svg>
+                <button type="button" class="tip-trigger k" [attr.aria-describedby]="factTipId(f.key)">{{ factTooltipTitle(f.key) | translate }}</button>
                 <span class="v">{{ fmt(f.value) }}</span>
-                @if (deltaTone(f.delta, f.lowerIsBetter); as tone) {
-                  <span class="d" [class.up]="tone === 'bad'" [class.dn]="tone === 'good'">{{ f.delta! > 0 ? '+' : '' }}{{ fmt(f.delta) }}</span>
+                @if (deltaTone(f.delta, factLowerIsBetter(f)); as tone) {
+                  <span class="d" [class.up]="tone === 'up'" [class.down]="tone === 'down'">{{ f.delta! > 0 ? '+' : '' }}{{ fmt(f.delta) }}</span>
                 }
-                <div class="tipbox" role="tooltip">
-                  <b>{{ f.labelKey | translate }}</b>
+                <div class="tipbox" [id]="factTipId(f.key)" role="tooltip">
+                  <b>{{ factTooltipTitle(f.key) | translate }}</b>
                   <p>{{ f.tooltipKey | translate }}</p>
                 </div>
               </div>
             }
 
             <div class="md-heat tipw">
-              <span class="k">{{ 'codex.energy.fact.coolingLoad' | translate }}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="ico ico-heat" aria-hidden="true">
+                <path [attr.d]="glyphPath('heat')" />
+              </svg>
+              <button type="button" class="tip-trigger k" [attr.aria-describedby]="heatTipId">{{ 'codex.energy.fact.coolingLoad' | translate }}</button>
               @if (sheet().coolant.percent !== null) {
                 <div class="t" [class.over]="sheet().coolant.percent! > 100">
                   <div class="fill" [style.width.%]="minPct(sheet().coolant.percent)"></div>
@@ -222,7 +258,7 @@ let uidSeq = 0;
               } @else {
                 <span class="gapv">{{ 'codex.energy.gap.noCoolingData' | translate }}</span>
               }
-              <div class="tipbox" role="tooltip">
+              <div class="tipbox" [id]="heatTipId" role="tooltip">
                 <b>{{ 'codex.energy.fact.coolingLoad' | translate }}</b>
                 <p>{{ 'codex.energy.tooltip.coolingLoad' | translate }}</p>
               </div>
@@ -290,7 +326,7 @@ let uidSeq = 0;
         padding: 8px 12px 6px;
       }
       .md-head h3 {
-        font-size: 12px;
+        font-size: max(12px, var(--sc-fs-floor));
         letter-spacing: 0.1em;
         text-transform: uppercase;
         color: var(--sc-accent);
@@ -301,7 +337,7 @@ let uidSeq = 0;
         font-variant-numeric: tabular-nums;
       }
       .bud small {
-        font-size: 11px;
+        font-size: max(11px, var(--sc-fs-floor));
         color: var(--sc-fg-2);
       }
       .act {
@@ -371,9 +407,10 @@ let uidSeq = 0;
         display: block;
         position: relative;
         inline-size: 22px;
-        block-size: 9px;
+        block-size: max(9px, var(--sc-fs-floor));
         border-radius: 2px;
         background: color-mix(in srgb, var(--sc-fg-2) 22%, transparent);
+        overflow: visible;
       }
       .md-col.off .stack b {
         background: color-mix(in srgb, var(--sc-fg-2) 12%, transparent);
@@ -391,7 +428,7 @@ let uidSeq = 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 8px;
+        font-size: max(11px, var(--sc-fs-floor));
         font-variant-numeric: tabular-nums;
         color: color-mix(in srgb, var(--sc-bg-0) 85%, #000);
       }
@@ -422,7 +459,7 @@ let uidSeq = 0;
         height: 16px;
       }
       .grp-state {
-        font-size: 11px;
+        font-size: max(11px, var(--sc-fs-floor));
         font-variant-numeric: tabular-nums;
         color: var(--sc-fg-2);
       }
@@ -433,7 +470,10 @@ let uidSeq = 0;
         position: relative;
       }
       .tipbox {
-        display: none;
+        display: block;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.12s ease;
         position: absolute;
         inset-block-end: calc(100% + 8px);
         inset-inline-start: 50%;
@@ -449,7 +489,7 @@ let uidSeq = 0;
       }
       .tipbox b {
         display: block;
-        font-size: 11px;
+        font-size: max(11px, var(--sc-fs-floor));
         letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--sc-accent);
@@ -459,9 +499,29 @@ let uidSeq = 0;
         margin: 0;
         color: var(--sc-fg-1);
       }
+      .tipbox p.gapv {
+        margin-block-start: 4px;
+      }
       .tipw:hover .tipbox,
       .tipw:focus-within .tipbox {
-        display: block;
+        visibility: visible;
+        opacity: 1;
+      }
+      .mini-dock.tips-hidden .tipbox {
+        visibility: hidden !important;
+        opacity: 0 !important;
+      }
+      .tip-trigger {
+        border: none;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        cursor: help;
+      }
+      .md-col .ico,
+      .md-heat {
+        cursor: help;
       }
       .md-facts {
         display: grid;
@@ -474,8 +534,13 @@ let uidSeq = 0;
         align-items: baseline;
         gap: 6px;
       }
-      .md-fact .k {
-        font-size: 11px;
+      .md-fact .ico {
+        align-self: center;
+        color: var(--sc-fg-2);
+      }
+      .md-fact .k,
+      .md-heat .k {
+        font-size: max(11px, var(--sc-fs-floor));
         letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--sc-fg-2);
@@ -485,13 +550,13 @@ let uidSeq = 0;
         font-variant-numeric: tabular-nums;
       }
       .d {
-        font-size: 11px;
+        font-size: max(11px, var(--sc-fs-floor));
         font-variant-numeric: tabular-nums;
       }
-      .d.dn {
+      .d.up {
         color: var(--sc-success);
       }
-      .d.up {
+      .d.down {
         color: var(--sc-danger);
       }
       .md-heat {
@@ -499,6 +564,11 @@ let uidSeq = 0;
         display: flex;
         align-items: center;
         gap: 8px;
+      }
+      .md-heat .ico {
+        width: 13px;
+        height: 13px;
+        color: var(--sc-fg-2);
       }
       .md-heat .t {
         inline-size: 120px;
@@ -519,7 +589,7 @@ let uidSeq = 0;
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 12px;
+        font-size: max(12px, var(--sc-fs-floor));
         color: var(--sc-success);
       }
       .md-ok.no {
@@ -529,7 +599,7 @@ let uidSeq = 0;
         display: flex;
         gap: 14px;
         padding: 0 12px 8px;
-        font-size: 12px;
+        font-size: max(12px, var(--sc-fs-floor));
       }
       .md-strip .ok {
         color: var(--sc-success);
@@ -576,7 +646,7 @@ let uidSeq = 0;
       .draft-note {
         margin: 0;
         padding: 0 12px 8px;
-        font-size: 11px;
+        font-size: max(11px, var(--sc-fs-floor));
         color: var(--sc-fg-2);
       }
       .md-gap {
@@ -585,13 +655,25 @@ let uidSeq = 0;
         flex-direction: column;
         gap: 4px;
         color: var(--sc-warn);
-        font-size: 12px;
+        font-size: max(12px, var(--sc-fs-floor));
       }
       .gaptag {
         border: 1px dashed color-mix(in srgb, var(--sc-warn) 40%, transparent);
         border-radius: 4px;
         padding: 6px 8px;
         margin: 0 12px 8px;
+      }
+      .md-gap-inline {
+        grid-column: span 2;
+        display: flex;
+        align-items: center;
+        color: var(--sc-warn);
+        font-size: max(12px, var(--sc-fs-floor));
+      }
+      @media (max-width: 820px) {
+        .md-gap-inline {
+          grid-column: 1;
+        }
       }
       .gapv {
         color: var(--sc-fg-2);
@@ -622,10 +704,14 @@ let uidSeq = 0;
           border-radius: 0;
           inline-size: 100%;
           max-inline-size: 100%;
+          padding-block-end: env(safe-area-inset-bottom);
         }
         .md-pips {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
+        }
+        .pos-pick {
+          display: none;
         }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -685,9 +771,19 @@ export class CodexEnergyDockComponent {
       previous: this.previousSheet,
     });
     this.previousSheet = result;
-    this.sheetChange.emit(result);
     return result;
   });
+
+  /** true when the build is too old for any resource data at all — the
+   * compact `.gaptag` replaces the whole body. `codex.energy.gap.noReactorData`
+   * (resource data exists, just no reactor) keeps the facts and footer instead
+   * (MEDIUM-5). */
+  protected readonly isReExtractGap = computed(
+    () => !this.sheet().available && this.sheet().gapKeys.includes('codex.energy.gap.reExtractPending'),
+  );
+
+  /** hides every tooltip until the next focus/pointer interaction (MEDIUM-7). */
+  protected readonly tipsHidden = signal(false);
 
   protected readonly irFact = computed(() => this.sheet().facts.find((f) => f.key === 'ir'));
   protected readonly emFact = computed(() => this.sheet().facts.find((f) => f.key === 'em'));
@@ -725,11 +821,21 @@ export class CodexEnergyDockComponent {
       this.restored = true;
       untracked(() => this.restoreState());
     });
+
+    // `sheet` is a `computed()` — its consumer node forbids signal writes
+    // (`OutputEmitterRef.emit` calls listeners synchronously, and the shell's
+    // natural `(sheetChange)="powerSheet.set($event)"` wiring would throw
+    // NG0600 the moment the template first reads `sheet()`). An `effect()`
+    // is the write-capable counterpart Angular 21 gives computeds for exactly
+    // this "notify on every recompute" shape (HIGH-1).
+    effect(() => {
+      this.sheetChange.emit(this.sheet());
+    });
   }
 
   private matchesNarrowViewport(): boolean {
     try {
-      return typeof matchMedia !== 'undefined' && matchMedia('(max-width: 639px)').matches;
+      return typeof matchMedia !== 'undefined' && matchMedia('(max-width: 640px)').matches;
     } catch {
       return false;
     }
@@ -811,6 +917,28 @@ export class CodexEnergyDockComponent {
     return ICON_PATHS[GROUP_ICON[group]] ?? ICON_PATHS['generic'];
   }
 
+  protected glyphPath(key: string): string {
+    return ICON_PATHS[key] ?? ICON_PATHS['generic'];
+  }
+
+  protected factIconPath(key: PowerFactKey): string {
+    return this.glyphPath(FACT_ICON[key] ?? 'generic');
+  }
+
+  protected factTooltipTitle(key: PowerFactKey): string {
+    // 'coolant' has no dedicated tooltipTitle key — it renders its own
+    // `codex.energy.fact.coolingLoad` heading in the heat block, not through
+    // `simpleFacts()` (MEDIUM-1).
+    return `codex.energy.tooltipTitle.${key}`;
+  }
+
+  /** Only 'ir' and 'crossSection' overlap the shared KPI decider; the rest
+   * keep the value `computePowerSheet` already put on the fact (MEDIUM-2). */
+  protected factLowerIsBetter(f: PowerFact): boolean {
+    const kpiKey = FACT_KPI_OVERLAP[f.key];
+    return kpiKey ? kpiLowerIsBetter(kpiKey) : f.lowerIsBetter;
+  }
+
   protected tipId(group: PowerGroup): string {
     return `${this.uid}-tip-${group}`;
   }
@@ -819,9 +947,15 @@ export class CodexEnergyDockComponent {
     return `${this.uid}-meta-${group}`;
   }
 
+  protected factTipId(key: PowerFactKey): string {
+    return `${this.uid}-fact-tip-${key}`;
+  }
+
+  protected readonly heatTipId = `${this.uid}-heat-tip`;
+
   protected fmt(v: number | null | undefined): string {
     if (v === null || v === undefined) return '—';
-    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(v);
+    return formatNumber(v);
   }
 
   protected minPct(pct: number | null): number {
@@ -829,8 +963,16 @@ export class CodexEnergyDockComponent {
     return Math.min(100, Math.max(0, pct));
   }
 
-  protected deltaTone(delta: number | null, lowerIsBetter: boolean): 'good' | 'bad' | null {
+  protected deltaTone(delta: number | null, lowerIsBetter: boolean): 'up' | 'down' | null {
     return deltaTone(delta, lowerIsBetter);
+  }
+
+  protected dismissTooltips(): void {
+    this.tipsHidden.set(true);
+  }
+
+  protected reopenTooltips(): void {
+    if (this.tipsHidden()) this.tipsHidden.set(false);
   }
 
   protected toggleGroup(group: PowerGroup): void {
