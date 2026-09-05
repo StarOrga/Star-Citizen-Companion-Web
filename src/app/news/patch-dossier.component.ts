@@ -9,6 +9,7 @@ import {
   effect,
   inject,
   input,
+  linkedSignal,
   signal,
   untracked,
 } from '@angular/core';
@@ -31,6 +32,19 @@ import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
 
 type SectionId = 'prep' | 'contents' | 'fixed' | 'next';
+
+/** Section order per status — what a reader asks first about a patch in that state. */
+export function sectionOrder(status: StackCard['status']): SectionId[] {
+  switch (status) {
+    case 'next':
+      return ['contents', 'next', 'prep', 'fixed'];
+    case 'evocati':
+    case 'ptu':
+      return ['prep', 'contents', 'fixed', 'next'];
+    default:
+      return ['contents', 'fixed', 'next', 'prep'];
+  }
+}
 
 /** One bullet hit inside a note, with the headings it sits under. */
 interface NoteHit {
@@ -111,6 +125,8 @@ const SPY_CLEARANCE_PX = 24;
             }
 
             <div class="col">
+              @for (s of sections(); track s) { @switch (s) {
+              @case ('prep') {
               <!-- ── Wie bereite ich mich vor? ─────────────────────────── -->
               @if (prep(); as p) {
                 <section id="pd-prep" class="sec" [class.wipe]="p.wipe">
@@ -138,7 +154,9 @@ const SPY_CLEARANCE_PX = 24;
                   }
                 </section>
               }
+              }
 
+              @case ('contents') {
               <!-- ── Was steckt drin? ──────────────────────────────────── -->
               @if (hasContents()) {
                 <section id="pd-contents" class="sec">
@@ -205,7 +223,9 @@ const SPY_CLEARANCE_PX = 24;
                   }
                 </section>
               }
+              }
 
+              @case ('fixed') {
               <!-- ── Haben sie … gefixt? ───────────────────────────────── -->
               @if (c.group; as g) {
                 <section id="pd-fixed" class="sec">
@@ -276,7 +296,9 @@ const SPY_CLEARANCE_PX = 24;
                   </details>
                 </section>
               }
+              }
 
+              @case ('next') {
               <!-- ── Wann kommt der nächste? ───────────────────────────── -->
               @if (hasCycle()) {
                 <section id="pd-next" class="sec">
@@ -284,6 +306,8 @@ const SPY_CLEARANCE_PX = 24;
                   <sc-patch-cycle [card]="c" [groups]="svc.patchLines()" [now]="now()" />
                 </section>
               }
+              }
+              } }
             </div>
           </div>
         } @else {
@@ -465,7 +489,8 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
 
   readonly query = signal('');
   readonly tokens = computed(() => tokenizeQuery(this.query()));
-  readonly active = signal<SectionId>('prep');
+  /** Follows the first section of the current order until the reader scrolls or clicks. */
+  readonly active = linkedSignal<SectionId>(() => this.sections()[0] ?? 'prep');
   readonly allLong = signal(false);
   readonly notesOpen = signal(false);
   private readonly longOverride = signal<ReadonlyMap<string, boolean>>(new Map());
@@ -506,13 +531,20 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     const c = this.card();
     return !!c && (c.liveAt !== null || c.firstTestAt !== null || c.status === 'next');
   });
+  /**
+   * The sections in the order the patch's status makes them interesting.
+   * Testing: prepare first (wipe, LTP). Live and later: preparation is over,
+   * so it goes last; a planned line leads with what is coming and when.
+   */
   readonly sections = computed<SectionId[]>(() => {
-    const out: SectionId[] = [];
-    if (this.prep()) out.push('prep');
-    if (this.hasContents()) out.push('contents');
-    if (this.card()?.group) out.push('fixed');
-    if (this.hasCycle()) out.push('next');
-    return out;
+    const c = this.card();
+    const has: Record<SectionId, boolean> = {
+      prep: !!this.prep(),
+      contents: this.hasContents(),
+      fixed: !!c?.group,
+      next: this.hasCycle(),
+    };
+    return sectionOrder(c?.status ?? 'other').filter((id) => has[id]);
   });
 
   readonly waves = computed<PatchWaveGroup[]>(() => groupWaves(this.card()?.group?.entries ?? []));

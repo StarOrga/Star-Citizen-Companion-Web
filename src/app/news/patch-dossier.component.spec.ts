@@ -6,7 +6,7 @@ import { TranslateModule, TranslateService, TranslationObject } from '@ngx-trans
 import { of } from 'rxjs';
 import { ConsentService } from '../core/consent.service';
 import { NewsService, VerseFeed, VerseNewsItem } from './news.service';
-import { PatchDossierComponent } from './patch-dossier.component';
+import { PatchDossierComponent, sectionOrder } from './patch-dossier.component';
 import type { PatchOutline } from './patch-outline';
 import type { RoadmapPayload } from './roadmap';
 import { RoadmapService } from './roadmap.service';
@@ -147,9 +147,15 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     await render('4.10');
     expect(text('.hero h2')).toBe('Alpha 4.10');
     expect(text('.hero .status')).toBe('Live');
+    // Live: preparation is over, so it drops to the end; testing lines lead with it.
     expect((Array.from(root().querySelectorAll('.toc-link')) as HTMLElement[]).map((a) => a.textContent?.trim())).toEqual([
-      'Wie bereite ich mich vor?', 'Was steckt drin?', 'Haben sie … gefixt?', 'Wann kommt der nächste?',
+      'Was steckt drin?', 'Haben sie … gefixt?', 'Wann kommt der nächste?', 'Wie bereite ich mich vor?',
     ]);
+    expect((Array.from(root().querySelectorAll('.col > section')) as HTMLElement[]).map((el) => el.id)).toEqual([
+      'pd-contents', 'pd-fixed', 'pd-next', 'pd-prep',
+    ]);
+    expect(sectionOrder('ptu')[0]).toBe('prep');
+    expect(sectionOrder('next').slice(0, 2)).toEqual(['contents', 'next']);
     expect(root().querySelector('#pd-prep')).not.toBeNull();
     expect(root().querySelector('#pd-contents')).not.toBeNull();
     expect(root().querySelector('#pd-fixed')).not.toBeNull();
