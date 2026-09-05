@@ -178,7 +178,7 @@ area has its own verify + release path; use the one(s) the change touches:
 
 | Area | Verify (the gate) | Release / deploy |
 |------|-------------------|------------------|
-| **Web app** (`src/`, `public/`) | root `npm run typecheck && npm run build && npm test` | PR → squash-merge; Vercel auto-deploys on main-push |
+| **Web app** (`src/`, `public/`) | root `npm run typecheck && npm run build && npm test` | PR → squash-merge; Vercel auto-deploys on main-push — **5–10 min, and not guaranteed**: verify the Production deployment for the merge SHA before telling the admin it is live (step 5b) |
 | **Data-uploader** (`data-uploader/`, Electron) | `cd data-uploader && npm ci && npm run typecheck && npm run build && npm test` (nested project — needs its own `npm ci`) | after merge, tag `data-uploader-v<ver>` → `data-uploader-build.yml` builds the binary → register the `desktop_releases` row (`/ship` extension rule 6 + `.claude/deep-knowledge/data-uploader-release.md`) |
 | **Wallpaper-app / Starscape** (`wallpaper-app/`, Rust) | **no cargo in the routine env** — do NOT try `cargo build` locally; the gate is a **green CI build** | after merge: bump `wallpaper-app/Cargo.toml` + `Cargo.lock`, push the `wallpaper-app-v<ver>` tag → `wallpaper-app-build.yml` builds + publishes to the mirror + prints the register SQL, **THEN register the `desktop_releases` row (`product='starscape'`)** via the authenticated Supabase MCP — else `/starscape` stays on the old version. Full flow: `.claude/deep-knowledge/starscape-release.md` |
 | **Supabase migrations** (`supabase/migrations/`) | additive change → apply headless `npm run db:push`; a **destructive** migration (drop/rename/data-loss) is a review-hold, never an auto-apply | `db push` to the cloud project IS the deploy — run it after/with the merge |
@@ -194,6 +194,13 @@ parked as a bare "no cargo toolchain" review-PR instead of being built by CI.
 **Out-of-band deploys don't ride the merge.** A migration or edge function is NOT
 live just because the PR merged — `db push` / `functions deploy` run separately
 (the ship pre-flight flags these paths). Finish the deploy, then mark `shipped`.
+
+**The web deploy doesn't ride the merge either — it only *starts* at the merge.**
+The main-push triggers a Vercel production build that takes **5–10 minutes**, and
+that build can be queued behind preview builds, skipped, or fail. A merged PR is
+therefore not a live change for `src/`/`public/` any more than it is for a
+migration; the difference is only that nobody has to *run* the web deploy, so it
+is easy to forget that it still has to be **waited for and verified** (step 5b).
 
 ### Migration version collisions are silent — check the prefix before every merge
 
@@ -929,33 +936,107 @@ first-class step of the routine instead of a dead end — and the loop is built 
 
 ### 1) On every ship, post a review reply (per-item procedure step 5b)
 
-Immediately after the ship UPDATE — for a fresh ship **and** for a continuation
-re-ship, and also when marking an already-merged PR shipped — insert a
-`is_system=true` reply that (a) links the PR, (b) says in one line what changed,
-(c) points at where to see it **live**, and (d) invites the admin to reply
-in-thread to continue. The live pointer depends on the area:
+After the ship UPDATE **and after the deploy is verified reachable** (see the
+next subsection — that ordering is the whole point) — for a fresh ship **and** for
+a continuation re-ship, and also when marking an already-merged PR shipped —
+insert a `is_system=true` reply that (a) links the PR, (b) says in one line what
+changed, (c) points at where to see it **live**, and (d) invites the admin to
+reply in-thread to continue. The live pointer depends on the area:
 
 - **web** (`src/`, `public/`) → `https://sc-companion.vercel.app` + the exact
-  route/view the change touches (e.g. `/hangar`, the admin feedback panel). Note
-  Vercel needs ~1 min after the merge to redeploy.
+  route/view the change touches (e.g. `/hangar`, the admin feedback panel), named
+  only once the Production deployment for the merge SHA reports `success`.
 - **migration / edge function** → it is live once `db push` / `functions deploy`
   ran; name where its effect shows.
 - **desktop** (uploader / Starscape) → live only after the CI build + the
   `desktop_releases` row; point at the release/channel to update.
 
+#### The review reply must not be posted before the change is reachable
+
+**Merging is not shipping.** The squash-merge only *starts* the production build.
+Telling the admin "live ansehen" one second later is a claim the routine has not
+checked — and it has already burned us:
+
+> Topic `ae9f8cba` (PR #534) merged at 22:46:06Z. The review reply went out at
+> 22:46:42Z saying *"Vercel braucht nach dem Merge ~1 Min"*. The admin answered
+> **75 seconds later**: *"ich sehe wieder nochh nix"*. He was right — and the truth
+> was worse than the routine assumed: **30 minutes after the merge there was still
+> no Production deployment carrying the merge SHA at all**, and production was two
+> merges behind. The estimate was wrong twice over, because the four production
+> deploys before it had taken 5.3 / 6.2 / 8.2 / 9.5 minutes. Never one.
+
+So step 5b runs as four rules, in this order:
+
+1. **Wait for the production deployment that carries the merge SHA.** After the
+   squash-merge *and* after every out-of-band deploy (`db push`, `functions
+   deploy`, the `*-v<ver>` tag), poll until that deployment reports `success`,
+   bounded at **15 minutes** (poll every ~30 s). Match on the **merge SHA** — "the
+   site responds" proves nothing, the site was up the entire time it was serving
+   the old build:
+
+   ```bash
+   SHA=$(git rev-parse origin/main)   # the squash-merge commit
+   gh api "repos/StarOrga/Star-Citizen-Companion-Web/deployments?sha=$SHA&environment=Production" --jq '.[].id'
+   gh api "repos/StarOrga/Star-Citizen-Companion-Web/deployments/<id>/statuses" --jq '.[0].state'
+   # state: success | failure | in_progress
+   ```
+
+   An **empty deployment list is a negative result, not "still building"** — a
+   production build can be skipped or never start, which is exactly what happened
+   to #534. Keep polling to the timeout, then treat it as not-ready. Where a cheap
+   content probe exists it is the stronger confirmation: fetch an **unhashed**
+   asset the change touched, with the service worker bypassed, and grep for a
+   string the merge introduced —
+   `curl -s 'https://sc-companion.vercel.app/i18n/en.json?ngsw-bypass=true' | grep '<new key>'`.
+2. **Only then post the reply — worded as a measured fact, never as a promise.**
+   "ist live seit 22:53" is checkable and was observed; "Vercel braucht nach dem
+   Merge ~1 Min" is a guess the admin has to test on our behalf. **Never state a
+   deploy duration the routine did not measure**, and do not write "gleich", "in
+   Kürze" or "~1 Min" at all.
+3. **Not ready inside the timeout, or failed → post the other reply.** No
+   "✅ Geshipped … live ansehen". Say that the merge landed and that the deployment
+   is still building / failed, and link the deployment or CI run so the admin can
+   watch it himself instead of reloading a page that cannot change yet. The topic
+   still counts as **shipped** — the merge happened and the work is done; this rule
+   governs the wording and the timing of the reply, it is **not** a reason to
+   re-hold the item, skip the ship UPDATE, or leave it `in_progress`.
+4. **Every web reply carries the PWA caveat — prominently, not as a footnote.**
+   The app is a PWA: `ngsw` serves the **cached shell** to anyone who has been on
+   the site before, which is always the admin. So even once the deployment is
+   genuinely live he keeps seeing the old version until a hard reload
+   (`Strg+Shift+R`) or `?ngsw-bypass=true`. This is a recurring source of "ich sehe
+   nix" reports that look exactly like a failed deploy and are not one, so it
+   belongs in **every** review reply for a `src/`/`public/` change — not only once
+   something already looks wrong.
+
 ```sql
--- step 5b: post the review reply right after the ship UPDATE (service_role)
+-- step 5b: post the review reply after the ship UPDATE *and* the verified deploy (service_role)
 insert into public.admin_feedback_messages (feedback_id, is_system, body)
-values ('<id>', true, '<review reply, markdown — PR link + what changed + live URL + invite>');
+values ('<id>', true, '<review reply, markdown — PR link + what changed + verified live state + invite>');
 ```
 
-Example (German — the admin's language; the routine's system replies address the
-admin directly):
+Examples (German — the admin's language; the routine's system replies address the
+admin directly). **Deployment verified `success`:**
 
 > ✅ Geshipped in <PR-Link>. Geändert: <ein Satz>.
-> Live ansehen: `https://sc-companion.vercel.app/<route>` (Vercel braucht nach dem
-> Merge ~1 Min). Passt etwas nicht, oder willst du weiter dran arbeiten? Antworte
-> einfach hier im Thread — die Routine nimmt das Thema dann automatisch wieder auf.
+> Live seit <HH:MM> auf `https://sc-companion.vercel.app/<route>` — das Deployment
+> für die Merge-SHA ist geprüft. Siehst du noch den alten Stand: die Seite ist eine
+> PWA und liefert dir zuerst den gecachten — einmal `Strg+Shift+R`, oder
+> `<route>?ngsw-bypass=true` aufrufen.
+> Passt etwas nicht, oder willst du weiter dran arbeiten? Antworte einfach hier im
+> Thread — die Routine nimmt das Thema dann automatisch wieder auf.
+
+**Deployment still building after the timeout, or failed** — the merge is still a
+ship, but the admin is *not* sent to look at something that is not there:
+
+> ✅ Gemerged in <PR-Link>. Geändert: <ein Satz>.
+> ⏳ Das Production-Deployment ist noch nicht durch (Stand <HH:MM>,
+> <Deployment-/Run-Link>) — ich schicke dich bewusst nicht auf eine Seite, auf der
+> die Änderung noch nicht drauf ist. Sobald es durch ist:
+> `https://sc-companion.vercel.app/<route>`, und weil die Seite eine PWA ist dann
+> einmal `Strg+Shift+R` (sonst zeigt sie dir den gecachten Stand).
+> Passt etwas nicht, oder willst du weiter dran arbeiten? Antworte einfach hier im
+> Thread — die Routine nimmt das Thema dann automatisch wieder auf.
 
 ### 2) An admin reply to a shipped topic reopens it as a continuation
 
@@ -1137,10 +1218,21 @@ For each admitted `open` row (process independently, most-recent context wins):
      does this end-to-end). Only once the deploy is done:
      `update admin_feedback set status='shipped', shipped_at=now(),
      ship_ref='<PR url>', processed_at=now(), processing_note=null where id=<id>`.
+     **Then wait for the deploy before saying a word.** The merge does not make a
+     web change live — it only starts a Vercel production build that takes 5–10
+     minutes when it runs at all. Poll the **Production deployment for the merge
+     SHA** until it reports `success`, bounded at 15 minutes (full rules and the
+     `gh api` poll: "The review reply must not be posted before the change is
+     reachable").
      **Then, step 5b — post the review reply** (see "Post-ship review & continue"):
-     insert a `is_system=true` reply with the PR link, one line on what changed, the
-     **live URL** for the area, and the invite to reply in-thread to continue. This
-     runs on every ship, including a continuation re-ship and a mark-already-merged.
+     a `is_system=true` reply with the PR link, one line on what changed, the
+     **live URL** for the area stated as a *verified fact* ("live seit HH:MM", never
+     an estimate), the PWA hard-reload hint on any `src/`/`public/` change, and the
+     invite to reply in-thread to continue. If the deployment is not ready inside
+     the timeout or it failed, post the **not-yet-live** variant instead — never
+     point the admin at a page that does not carry the change yet. The item is
+     `shipped` either way. This runs on every ship, including a continuation
+     re-ship and a mark-already-merged.
      If the rebase hits a real conflict (areas overlapped after all), don't force
      it — leave the item `open` for the next run (or hold it as a review-PR), and
      merge the remaining batch branches.
