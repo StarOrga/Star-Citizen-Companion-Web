@@ -138,10 +138,12 @@ describe('Codex detail blocks at a 375px viewport', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('keeps a hardpoint section head with both toggles inside the phone width', () => {
+  it('keeps a hardpoint section head with the split toggle and the fold caret inside the phone width', () => {
     // The worst case on a real hull: a long section label, a count, the
-    // "nicht konfigurierbar" tag and BOTH toggles (splittable + foldable) on
-    // one line. Three identical slots make the block splittable; `structure`
+    // "nicht konfigurierbar" tag, the splittable toggle AND the fold caret on
+    // one line (MASTER §6: every block is now a native <details>/<summary>, so
+    // folding itself is the built-in caret, not a second `.sec-btn`). Three
+    // identical slots make the block splittable; `structure`
     // is the foldable block.
     const mount = slot({
       port: 'Hardpoint Turret Remote',
@@ -165,8 +167,9 @@ describe('Codex detail blocks at a 375px viewport', () => {
     const head = frame.querySelector('.sec-head') as HTMLElement;
     expect(head).withContext('the section head renders').not.toBeNull();
     expect(head.querySelectorAll('.sec-btn').length)
-      .withContext('both toggles are on this head')
-      .toBe(2);
+      .withContext('the split toggle is on this head')
+      .toBe(1);
+    expect(head.querySelector('.caret')).withContext('the fold caret is on this head').not.toBeNull();
     expect(frame.scrollWidth).toBeLessThanOrEqual(PHONE_PX);
   });
 

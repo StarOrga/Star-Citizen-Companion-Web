@@ -24,8 +24,11 @@ const DAMAGE_CHANNEL_COLORS: Readonly<Record<string, string>> = {
 
 const PANEL_STYLES = `
   :host { display: block; }
-  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; margin: 0; }
-  .panel-head h2 { margin: 0; font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sc-accent); }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; margin: 0;
+    font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sc-accent); list-style: none; }
+  .panel-head::-webkit-details-marker { display: none; }
+  .fold-hint { margin-left: auto; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: none; letter-spacing: normal;
+    color: var(--sc-fg-2); font-style: italic; }
   .panel-hint { margin: 2px 0 12px; font-size: 13px; color: var(--sc-fg-2); }
   .chev { transition: transform 0.15s ease; }
   .chev.open { transform: rotate(90deg); }
@@ -59,11 +62,12 @@ const PANEL_STYLES = `
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="sc-card block">
-      <h2 class="panel-head" (click)="open.set(!open())">
+    <details class="sc-card block" [open]="open()" (toggle)="open.set($any($event.target).open)">
+      <summary class="panel-head">
         {{ 'codex.analysis.offensive.title' | translate }}
+        <span class="fold-hint">{{ 'codex.analysis.readHint' | translate }}</span>
         <span class="chev" [class.open]="open()" aria-hidden="true">›</span>
-      </h2>
+      </summary>
       @if (hint(); as h) { <p class="panel-hint">{{ h }}</p> }
       @if (open()) {
         @if (panel(); as p) {
@@ -163,7 +167,7 @@ const PANEL_STYLES = `
           }
         }
       }
-    </section>
+    </details>
   `,
   styles: [PANEL_STYLES],
 })
@@ -202,11 +206,12 @@ export class CodexOffensivePanelComponent {
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="sc-card block">
-      <h2 class="panel-head" (click)="open.set(!open())">
+    <details class="sc-card block" [open]="open()" (toggle)="open.set($any($event.target).open)">
+      <summary class="panel-head">
         {{ 'codex.analysis.defensive.title' | translate }}
+        <span class="fold-hint">{{ 'codex.analysis.readHint' | translate }}</span>
         <span class="chev" [class.open]="open()" aria-hidden="true">›</span>
-      </h2>
+      </summary>
       @if (open() && panel(); as p) {
         <h3 class="section-title">{{ 'codex.analysis.defensive.shield' | translate }}</h3>
         @if (p.shieldGeneratorCount === 0) {
@@ -257,7 +262,7 @@ export class CodexOffensivePanelComponent {
           <p class="gap-row">{{ 'codex.analysis.defensive.effectiveHpGap' | translate }}</p>
         }
       }
-    </section>
+    </details>
   `,
   styles: [PANEL_STYLES],
 })
@@ -290,11 +295,12 @@ export interface ShipFactGroup {
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="sc-card block">
-      <h2 class="panel-head" (click)="open.set(!open())">
+    <details class="sc-card block" [open]="open()" (toggle)="open.set($any($event.target).open)">
+      <summary class="panel-head">
         {{ 'codex.analysis.ship.title' | translate }}
+        <span class="fold-hint">{{ 'codex.analysis.readHint' | translate }}</span>
         <span class="chev" [class.open]="open()" aria-hidden="true">›</span>
-      </h2>
+      </summary>
       @if (open()) {
         @for (g of groups(); track g.titleKey) {
           <h3 class="section-title">{{ g.titleKey | translate }}</h3>
@@ -307,7 +313,7 @@ export interface ShipFactGroup {
           @if (g.note) { <p class="note">{{ g.note }}</p> }
         }
       }
-    </section>
+    </details>
   `,
   styles: [PANEL_STYLES],
 })

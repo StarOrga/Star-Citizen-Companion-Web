@@ -255,6 +255,128 @@ export function parseLocalDraft(raw: string | null | undefined): LocalStorageDra
 
 export const LOCAL_DRAFT_STORAGE_KEY = LOCALSTORAGE_DRAFT_KEY;
 
+// ── power-dock draft state (MASTER §8, D §5) ─────────────────────────────────
+// Cut groups / flight mode / dock position are DRAFT-ONLY: they ride in their
+// own URL param (`pw`) and their own localStorage key, never in
+// `hangar_ship_configs.loadout`. A separate param (rather than a v2 of the
+// loadout param) is what keeps every already-shared `?loadout=v1…` link
+// decodable — `decodeDraftParam` is untouched.
+
+const POWER_PARAM_VERSION = 'p1';
+
+/** Separator inside the `pw` param's group list — see {@link encodePowerParam}. */
+export const POWER_GROUP_SEPARATOR = '-';
+// R10 — TWO storage scopes, because the two halves of the dock state have
+// different lifetimes:
+//   * where the dock sits is a PER-USER preference and must survive a ship
+//     switch → `scc-codex-dock-pos:v1:<userId|anon>`;
+//   * which groups are cut / which mode + preset are PER-SHIP and must NOT
+//     leak from a Nomad onto an Idris → `scc-codex-power:v1:<shipClassName>`.
+// One shared key made the dock jump back to `center` whenever another ship was
+// opened, and carried a "weapons cut" over to a ship with different hardware.
+const LOCALSTORAGE_POWER_KEY = 'scc-codex-power:v1';
+const LOCALSTORAGE_DOCK_POS_KEY = 'scc-codex-dock-pos:v1';
+
+/** Per-ship key for cut groups / flight mode / preset. */
+export function powerStorageKey(shipClassName: string): string {
+  return `${LOCALSTORAGE_POWER_KEY}:${shipClassName}`;
+}
+
+/** Per-user key for the dock position (`anon` when nobody is signed in). */
+export function dockPositionStorageKey(userId: string | null | undefined): string {
+  const id = (userId ?? '').trim();
+  return `${LOCALSTORAGE_DOCK_POS_KEY}:${id === '' ? 'anon' : id}`;
+}
+
+export function serializeDockPosition(dock: PowerDraftState['dock']): string {
+  return dock;
+}
+
+/** Tolerant read — anything but the three known positions yields `null`. */
+export function parseDockPosition(raw: string | null | undefined): PowerDraftState['dock'] | null {
+  const v = (raw ?? '').trim();
+  return v === 'left' || v === 'center' || v === 'right' ? v : null;
+}
+
+export interface PowerDraftState {
+  /** cut group keys (see codex-power.ts `PowerGroup`) — order irrelevant. */
+  cutGroups: readonly string[];
+  mode: 'scm' | 'nav';
+  preset: 'auto' | 'stealth';
+  dock: 'left' | 'center' | 'right';
+}
+
+export const DEFAULT_POWER_DRAFT: PowerDraftState = {
+  cutGroups: [],
+  mode: 'scm',
+  preset: 'auto',
+  dock: 'center',
+};
+
+function isDefaultPower(s: PowerDraftState): boolean {
+  return (
+    s.cutGroups.length === 0 &&
+    s.mode === DEFAULT_POWER_DRAFT.mode &&
+    s.preset === DEFAULT_POWER_DRAFT.preset &&
+    s.dock === DEFAULT_POWER_DRAFT.dock
+  );
+}
+
+/** `null` for the default state — no point putting noise in the URL. */
+export function encodePowerParam(state: PowerDraftState): string | null {
+  if (isDefaultPower(state)) return null;
+  // `-` is a safe separator: every PowerGroup key is `[a-z]+` (asserted by a
+  // spec against POWER_GROUP_ORDER), so a hyphen can never occur INSIDE a key
+  // and the round-trip needs no escaping. The URL format is unchanged.
+  const groups = [...state.cutGroups].map((g) => encodeURIComponent(g)).join(POWER_GROUP_SEPARATOR);
+  return `${POWER_PARAM_VERSION}.${state.mode}.${state.preset}.${state.dock}.${groups}`;
+}
+
+/** Tolerant parse — malformed or foreign-version input yields `null`, never a throw. */
+export function decodePowerParam(raw: string | null | undefined): PowerDraftState | null {
+  if (!raw) return null;
+  const parts = raw.split('.');
+  if (parts.length < 4 || parts[0] !== POWER_PARAM_VERSION) return null;
+  const [, mode, preset, dock, groups = ''] = parts;
+  if (mode !== 'scm' && mode !== 'nav') return null;
+  if (preset !== 'auto' && preset !== 'stealth') return null;
+  if (dock !== 'left' && dock !== 'center' && dock !== 'right') return null;
+  return {
+    mode,
+    preset,
+    dock,
+    cutGroups: groups
+      .split(POWER_GROUP_SEPARATOR)
+      .map((g) => safeDecode(g))
+      .filter((g) => g !== ''),
+  };
+}
+
+export interface LocalStoragePowerDraft extends PowerDraftState {
+  shipClassName: string;
+}
+
+export function serializeLocalPowerDraft(shipClassName: string, state: PowerDraftState): string {
+  return JSON.stringify({ shipClassName, ...state } satisfies LocalStoragePowerDraft);
+}
+
+export function parseLocalPowerDraft(raw: string | null | undefined): LocalStoragePowerDraft | null {
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw) as Partial<LocalStoragePowerDraft>;
+    if (typeof v.shipClassName !== 'string') return null;
+    const decoded = decodePowerParam(
+      `${POWER_PARAM_VERSION}.${v.mode ?? 'scm'}.${v.preset ?? 'auto'}.${v.dock ?? 'center'}.` +
+        (Array.isArray(v.cutGroups) ? v.cutGroups.join(POWER_GROUP_SEPARATOR) : ''),
+    );
+    return decoded ? { shipClassName: v.shipClassName, ...decoded } : null;
+  } catch {
+    return null;
+  }
+}
+
+export const LOCAL_POWER_STORAGE_KEY = LOCALSTORAGE_POWER_KEY;
+
 /**
  * Restore a draft from a decoded source (URL or localStorage) against the
  * CURRENT build and resolvable class set. A className the current build no

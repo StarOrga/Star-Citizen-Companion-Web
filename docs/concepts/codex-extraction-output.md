@@ -25,13 +25,13 @@ stat the web app **cannot** display; closing them is extractor work.
 | Gap | Evidence | Consequence in the app |
 |---|---|---|
 | ~~`weaponParams.fireRate` is `0` on **all 430** ship weapons that carry the struct (likewise `projectilesPerShot`, `heatPerShot` mostly)~~ **CLOSED (PR A)** — fire actions are inline structs under `fireActions` (never cross-record refs), nested inside a `SWeaponActionSequenceParams` wrapper that itself carries no `fireRate`; the concrete leaf (verified: `SWeaponActionFireSingleParams`, matched generically by the `SWeaponActionFire*` prefix + literal `fireRate` presence so burst/charge/rapid variants are covered too) is walked and the first positive `fireRate` in struct order wins. The flat `SCItemWeaponComponentParams.fireRate: 0.0` scalar is now overwritten rather than silently shadowing it. `projectilesPerShot` reads `launchParams.pelletCount` on that same leaf (NOT a top-level `projectilesPerShot` field, which doesn't exist); `heatPerShot` is the leaf's own top-level field. Verified against LIVE 4.9.0 `KLWE_LaserRepeater_S3`: `fireRate` 750 RPM, `pelletCount` 1, `heatPerShot` 0.0 (→ absent, not a stale zero) | `damagePerSecond()` in `codex-equipped-stats.ts` starts working by itself once a re-extracted P4K lands; out-of-band values (outside 30–15000 rpm) stay absent rather than guessed |
-| No **spread / recoil**, **power draw**, **EM signature** or **health** on ship weapons (re-verified 2026-07-27 over all 97 size-3 ship weapons of build `b77f1586`) | `weaponParams` carries only fire-action, animation and green-zone flags; weapons have no `stats` struct at all | the **swap picker** (`codex-swap-picker.component.ts`) derives its columns from the data, so a size-3 gun table shows Alpha / Penetration / Range / Projectile speed and names DPS + fire rate as missing in its footer instead of rendering columns of `—` |
+| No **spread / recoil** on ship weapons; **power draw / EM+IR signature / health / distortion / mass** **CLOSED (energy PR, schema v3)** (re-verified 2026-07-27 over all 97 size-3 ship weapons of build `b77f1586`) | `weaponParams` still carries only fire-action, animation and green-zone flags, but weapons now get their own allowlisted `stats` block (`ItemResourceComponentParams`, `SHealthComponentParams`, `SDistortionParams`, `SEntityPhysicsControllerParams`, `SCItemAimableComponentParams`) - the same struct-keyed shape components use. VERIFIED on `KLWE_LaserRepeater_S3`: `online.power.consumeUnits` 1.0, `online.em.nominal` 0.0 (a real 0, not a gap), `SHealthComponentParams.Health` 1500, `SEntityPhysicsControllerParams.PhysType.Mass` 200. Spread/recoil stay genuinely absent | the **swap picker** (`codex-swap-picker.component.ts`) derives its columns from the data, so a size-3 gun table shows Alpha / Penetration / Range / Projectile speed and names DPS + fire rate as missing in its footer instead of rendering columns of `—` |
 | `weaponParams.ammoContainerRecord` is `null` on **all 430** | ammo container record not resolved | **no magazine / max-ammo count.** Also forces the gun→projectile link to go through the `<weaponClass>_AMMO` name convention instead of the record reference |
 | ~~Ship weapon hardpoints are stock-**empty**: only **4 of 314** ships have any `subType=Gun` in `defaultLoadout`~~ **CLOSED 2026-07-31** — **295 of 314** now do | Not a separate loadout record after all: `SItemPortLoadoutEntryParams` names its item EITHER as a literal `entityClassName` string OR via an `entityClassReference` record reference with `entityClassName` left `""`, and the extractor read only the first. It also stopped at the top level, where a gun mount — not the gun — sits. Both fixed; see §0c | the codex shows a ship's stock armament as soon as a P4K is re-extracted with an uploader that carries this change. Extracts made before it carry no guns, and the UI keeps disclosing the gap per ship |
-| Coolers carry no cooling rate, power plants no power output | neither has a dedicated `SCItem*Params` struct (already noted above) | those hardpoints show durability only |
-| No **per-item power draw / output** anywhere | `ItemResourceComponentParams` (present on 1 872 components) carries only `defaultPriority`, `isRelay`, `wirelessConnection` and self-repair fields; `EntityComponentPowerConnection` — the struct that holds `PowerBase`/`PowerDraw` — exists on exactly **one** non-ship entity in the whole catalog | the ship page's **Power Management** panel can report generation *count/size/durability/distortion pool* but no power triangle. Named as a gap in the panel (`codex.summary.gap.noPowerDraw`) |
-| No **ship hull HP**; per-hull damage multipliers were unreachable | ship payloads carry no health struct (still open). The per-hull `ARMR_<ship>` item WAS stat-less — **closed for stats (PR A/B)**: it carries `SCItemVehicleArmorParams` — top-level signal multipliers (`signalInfrared/signalElectromagnetic/signalCrossSection`), per-channel `damageMultiplier.*` (depth 1), and now also `armorPenetrationResistance.basePenetrationReduction` (depth 1, absolute) alongside the depth-2 `armorPenetrationResistance.penetrationAbsorptionForType.*` and `armorDeflection.deflectionValue.*` per-damage-type absolutes (reached via a targeted post-step, not the generic 1-level flatten) — gated on the struct being present rather than on `AttachDef.Type` (the vehicle-armor vocabulary doesn't overlap the FPS `Char_Armor_*` one `_ARMOR_TYPES` already covered); shields still expose only `SHealthComponentParams.DamageResistances.IgnoreMeleeDamage` | the **Defence** panel shows the shield pool, regen, delays and distortion pool, and can now also show the hull's per-channel damage multipliers, penetration reduction and deflection values; hull HP itself still renders as `—` with an explicit note rather than a fabricated number |
-| No **ship-level IR/EM signature** scalar; only the radar cross-section survives | `SSCSignatureSystemParams` on ships carries **no scalar IR/EM fields at all** — `baseSignatureParams`/`emissionModifierParams` are null on every spot-checked ship (verified live Nomad); the absolute-emission model needs power-draw data that isn't in the client files (see the power-draw gap above). The one real value is `radarProperties.crossSectionParams.crossSection`, a Vec3 (`x`/`y`/`z`, e.g. Nomad `6604 / 3302 / 9712`) at depth 3, now reached by a targeted post-step (`crossSection.x/y/z`) | the codex signature panel shows the three cross-section axes (max axis as the comparable KPI number) and honestly labels IR/EM as not present in the game data, rather than "awaiting upload" |
+| ~~Coolers carry no cooling rate, power plants no power output~~ **CLOSED (energy PR, schema v3)** | correct that neither has a dedicated `SCItem*Params` struct - both express themselves through `ItemResourceComponentParams.states[].deltas[]` instead (row above): a cooler's cooling rate IS its Coolant generation (`online.coolant.generate`, UltraFlow 34 SRU/s), a power plant's output IS its Power generation (`online.power.generateSegments`, IonBurst 14) | cooler and power-plant rows show real throughput instead of durability only |
+| ~~No **per-item power draw / output** anywhere~~ **CLOSED (energy PR, schema v3)** - the numbers were never in the flat scalars: `ItemResourceComponentParams.states[]` is a LIST (dropped by the generic depth-2 flatten) whose `deltas[]` carry `ItemResourceDeltaGeneration/Consumption/Conversion` with `resource` + `resourceAmountPerSecond` (`SPowerSegmentResourceUnit.units` = whole reactor segments, `SStandardResourceUnit.standardResourceUnits` = fractional draw) plus `minimumConsumptionFraction`, `signatureParams` and `powerRanges`. A targeted post-step now emits `<state>.power.consumeSegments|consumeUnits|generateSegments|minFraction`, `<state>.<resource>.consume|generate`, `<state>.em|ir.nominal|decayRate` and `<state>.powerRanges.<band>.<start|modifier>`. VERIFIED LIVE 4.9.0: reactor `POWR_LPLT_S01_IonBurst` generates **14** segments, cooler `COOL_JUST_S01_UltraFlow` consumes **3** segments at minFraction **0.6667** and generates **34** coolant SRU/s, shield `SHLD_SECO_S01_WEB` consumes **2** segments at minFraction **0.5** and generates **410** shield SRU/s (= regen), weapon `KLWE_LaserRepeater_S3` draws **1.0** standard unit | `ItemResourceComponentParams` (present on 1 872 components) carries only `defaultPriority`, `isRelay`, `wirelessConnection` and self-repair fields; `EntityComponentPowerConnection` — the struct that holds `PowerBase`/`PowerDraw` — exists on exactly **one** non-ship entity in the whole catalog | the energy dock can be built from real data: budget = sum of reactor `generateSegments`, group allocation = sum of `consumeSegments`, group minimum = `consumeSegments x minFraction`. Items that draw `consumeUnits` (weapons) occupy no whole segment and must be folded into their group deliberately. Needs a re-extract with schema **v3** |
+| ~~No **ship hull HP**~~ **CLOSED (energy PR, schema v3)**; per-hull damage multipliers were unreachable | hull hitpoints are not in the DataCore at all - they live in the CryXmlB vehicle implementation named by `VehicleComponentParams.vehicleDefinition` (`Scripts/Entities/Vehicles/Implementations/Xml/<Ship>.xml`) as the SUM of every `Part@damageMax`; hull mass is the ship-named part's `@mass`, falling back to the root part (variants reuse the base hull's XML). VERIFIED LIVE 4.9.0: Nomad **9 800 HP / 216 323 kg**, Gladius **6 110**, Freelancer **34 900**, Cutlass Black **29 760**, Carrack **88 000**, Hammerhead **295 600**, Idris-P mass **37 854 373 kg** (root part `AEGS_Idris`). Ships also gain `armorHp` from `ARMR_<Ship>.SHealthComponentParams.Health` (Nomad **2 200**, Gladius 3 300, Hammerhead **25 740**). The ship's own payload still carries no health struct. The per-hull `ARMR_<ship>` item WAS stat-less — **closed for stats (PR A/B)**: it carries `SCItemVehicleArmorParams` — top-level signal multipliers (`signalInfrared/signalElectromagnetic/signalCrossSection`), per-channel `damageMultiplier.*` (depth 1), and now also `armorPenetrationResistance.basePenetrationReduction` (depth 1, absolute) alongside the depth-2 `armorPenetrationResistance.penetrationAbsorptionForType.*` and `armorDeflection.deflectionValue.*` per-damage-type absolutes (reached via a targeted post-step, not the generic 1-level flatten) — gated on the struct being present rather than on `AttachDef.Type` (the vehicle-armor vocabulary doesn't overlap the FPS `Char_Armor_*` one `_ARMOR_TYPES` already covered); shields still expose only `SHealthComponentParams.DamageResistances.IgnoreMeleeDamage` | the **Defence** panel shows the shield pool, regen, delays and distortion pool, and can now also show the hull's per-channel damage multipliers, penetration reduction and deflection values; hull HP, hull mass and armour HP render as real figures after a schema-v3 re-extract; a ship whose XML or armour item is missing keeps `null` and renders as a gap, never a fabricated number |
+| No **ship-level IR/EM signature** scalar; only the radar cross-section survives | `SSCSignatureSystemParams` on ships carries **no scalar IR/EM fields at all** — `baseSignatureParams`/`emissionModifierParams` are null on every spot-checked ship (verified live Nomad); the absolute-emission model needs power-draw data that isn't in the client files (see the power-draw gap above). The one real value is `radarProperties.crossSectionParams.crossSection`, a Vec3 (`x`/`y`/`z`, e.g. Nomad `6604 / 3302 / 9712`) at depth 3, now reached by a targeted post-step (`crossSection.x/y/z`) | the codex signature panel shows the three cross-section axes (max axis as the comparable KPI number). IR/EM remain absent as a SHIP-level scalar, but from schema v3 they are derivable per ITEM: every powered item carries `<state>.em.nominal` / `<state>.ir.nominal` (+ `decayRate`) - cooler UltraFlow EM 1 490 / IR 7 130, reactor IonBurst EM 5 250 / IR 0, shield WEB EM 750 - so the ship figure is a client-side sum over the powered loadout, not an extracted value |
 | ~~`payload.flight` is **all-null on every ship** (0 of 314 carry `scmSpeed`)~~ **CLOSED** — `VehicleComponentParams.vehicleDefinition` (a P4K-relative XML path, e.g. `Scripts/Entities/Vehicles/Implementations/Xml/CNOU_Nomad.xml`) WAS investigated as the source; decoded live (CryXmlB), it carries damage/HUD/interaction config but **no movement data at all** — it only references a `FlightController` item port by `itemType`, never inlines its params. The real source is a separate ITEM entity: the ship's default loadout carries an entry at `itemPortName` `hardpoint_controller_flight` whose `entityClassName` is `EntityClassDefinition.Controller_Flight_<Ship>`; resolving THAT record's `Components` yields a struct tagged `IFCSParams` with `scmSpeed`, `maxSpeed`, `boostSpeedForward`/`boostSpeedBackward`, and `maxAngularVelocity` (a Vec3 in CryEngine axes: `x`=pitch, `y`=roll, `z`=yaw). Verified against LIVE 4.9.0 `CNOU_Nomad` (scmSpeed 205, maxSpeed 1100, boost 450/230, pitch/roll/yaw 45/120/45), `AEGS_Gladius` (226, 1193, 520/268, 68/200/52) and `MISC_Freelancer` (197, 1050, 400/205, 32/103/32) — fighter vs. freighter agility ordering is exactly as expected. One `record_to_dict` hop per ship class, cached by class name. `boostSpeed` in the contract is forward-only (the contract has a single slot; backward boost is dropped, not guessed into it) | the ship page's **Hull & flight** block now renders real SCM/max/boost speeds and per-axis rates for every ship whose loadout resolves a `Controller_Flight_*` item (verified: all three spot-checked ships); a ship with no such port, or whose item resolves without an `IFCSParams` component, still shows `—` rather than a guess |
 | **Purchase price and shop location are not in the P4K at all** (audited 2026-07-26 against the LIVE archive) | Items do carry `SCItemPurchasableParams` (10 548 records), but it holds only display/interaction fields — `displayName`, `displayThumbnail`, `allowTryOn`, `allowQuickBuy`, `interactionPoints`, … — and **no price**. `Data/Scripts/ShopInventories/Inv_<Shop>_<Location>.json` (118 files) *does* carry `BuyPrice`/`SellPrice` per item id, but **0 of 6317** of those ids resolve against `Data/Game2.dcb` — they are pre-4.0 entitlement ids, and the file set still contains 2018/2019 anniversary-sale inventories. Modern shop inventories are served from CIG's backend, not shipped in the client. | **"Where can I buy it" cannot be answered by datamining** — for FPS gear or anything else. The codex omits the section rather than showing a wrong or empty price. Community-sourced pricing (or an RSI/third-party API) would be a separate, non-extractor feature. |
 | Armour damage-resistance **multipliers** are still unresolved | `SCItemSuitArmorParams.damageResistance` is a **cross-file** record reference — `record_to_dict` only inlines same-file references (and StrongPointers/inline classes); a cross-file reference is emitted as a `{_RecordId_, _RecordName_, _RecordPath_}` stub, never followed — so the generic stat dump yields the macro name (`DamageResistanceMacro.LightArmor`) but no numbers. `protectedBodyParts` (a list of references) and storage capacity (behind `containerParams`) drop out for the same reason. | the armour stat panel added in #273 shows the fields that ARE flat (temperature range, radiation, g-force, helmet optics) but no actual protection values, body coverage or SCU capacity. Fix is an explicit `record_by_id` hop — tracked as a follow-up. |
@@ -190,6 +190,7 @@ interface BaseEntity {
 interface Ship extends BaseEntity {
   entityKind: "ship";
   role: string | null;            // localization KEY, e.g. "@vehicle_class_lightfighter" (resolve via strings if desired)
+  career: string | null;          // localization KEY, e.g. "@vehicle_focus_transporter" (VehicleComponentParams.vehicleCareer)
   crew: { size: number | null };
   vehicleName: LocalizedText;     // VehicleComponentParams.vehicleName resolved
   flight: {                       // resolved from the FlightController item's
@@ -198,6 +199,41 @@ interface Ship extends BaseEntity {
     scmSpeed: number | null; maxSpeed: number | null; boostSpeed: number | null; // forward boost only
     pitch: number | null; yaw: number | null; roll: number | null; // deg/s
   };
+  // Hull, armour and cargo (schema v3). Every figure is null when its source
+  // is absent - never 0, never an estimate.
+  hull: {
+    hp: number | null;    // sum of Part@damageMax in the CryXmlB vehicle
+                          // implementation (VehicleComponentParams.vehicleDefinition)
+                          // e.g. CNOU_Nomad 9800, AEGS_Gladius 6110, MISC_Freelancer 34900
+    mass: number | null;  // kg; the ship-named Part@mass, else the root part's
+                          // (variants reuse the base hull's XML: AEGS_Idris_P -> 37854373)
+  };
+  armorHp: number | null;  // ARMR_<Ship>.SHealthComponentParams.Health (Nomad 2200, Hammerhead 25740)
+  cargoScu: number | null; // sum over the stock cargo grids of
+                           // containerParams -> InventoryContainer.interiorDimensions
+                           // volume / 1.25^3 (a cross-file record_by_id hop).
+                           // null = no cargo grid at all (a fighter), NOT 0 SCU.
+                           // VERIFIED LIVE 4.9.0: Cutlass Black 46 (40+6),
+                           // Carrack 456, Freelancer 66 (54+6+6).
+                           // KNOWN NULL: CNOU_Nomad. Its 87-entry stock loadout
+                           // contains no InventoryContainer at all - the open
+                           // bed is a `Door_Ship_Exterior_..._Cargo_Bed` entity
+                           // and the ship carries only `CargoControllerParams`
+                           // with a 1-microSCU batch size, no capacity. The 24
+                           // SCU quoted by RSI is not in the client files, so
+                           // the figure stays null (a gap), never a guess.
+                           // Only ports/classes whose name contains "cargo" are
+                           // resolved: without that gate a Gladius' seat-access
+                           // locker (8 m3 = 4.1 SCU) would read as cargo hold.
+  cargoStatus: 'measured' | 'unmeasured' | 'none';
+                           // WHY cargoScu is what it is. A fighter and a Nomad
+                           // are both `cargoScu: null`, and the UI must not say
+                           // the same thing about them: "none" earns the ghost
+                           // chip "Kein Laderaum", "unmeasured" earns a GAP.
+                           // Re-verified independently 2026-09-05 against LIVE
+                           // 4.9.0: of the Nomad's 87 stock loadout pairs, ZERO
+                           // carry SCItemInventoryContainerComponentParams,
+                           // while the Cutlass Black carries two (46 SCU).
   itemPorts: ItemPort[];
   defaultLoadout: LoadoutEntry[]; // stock hardpoint → item className map
   // WHERE each hardpoint sits on the hull, parsed from the ship's .cga helper
@@ -230,6 +266,12 @@ interface Weapon extends BaseEntity {
   size: number | null;            // AttachDef.Size
   grade: "A"|"B"|"C"|"D"|string|null;   // AttachDef.Grade (1..4 → A..D)
   weaponParams: Record<string, scalar>; // flat scalars of SCItemWeaponComponentParams
+  // Allowlisted stats (schema v3) - weapons had no `stats` key at all before.
+  // Same struct-keyed shape as a component's: ItemResourceComponentParams
+  // (power draw + IR/EM, see below), SHealthComponentParams (Health),
+  // SDistortionParams, SEntityPhysicsControllerParams (PhysType.Mass),
+  // SCItemAimableComponentParams. Absent entirely when nothing matches.
+  stats?: Record<string, Record<string, scalar>>;
   itemPorts: ItemPort[];          // attachments (scope, underbarrel, …)
 }
 ```
@@ -251,6 +293,28 @@ interface Component extends BaseEntity {
   itemPorts: ItemPort[];
 }
 ```
+
+#### `stats["ItemResourceComponentParams"]` — the resource network (schema v3)
+
+Emitted on every component, item and weapon that carries the struct. Flat keys,
+one prefix per state (the state name lower-cased, e.g. `online.`); the state
+names themselves are `stateNames`, a `|`-joined string. A key exists only when
+the record carries it — an explicit `0` in the file (a reactor's 0 coolant draw,
+a laser's 0 EM) IS emitted, an absent value never becomes 0.
+
+| Key | Source | Example |
+|---|---|---|
+| `stateNames` | `states[].name` joined by `\|` | `"Online"` |
+| `<state>.power.consumeSegments` | Consumption/Conversion delta, `resource == "Power"`, `SPowerSegmentResourceUnit.units` | UltraFlow cooler `3` |
+| `<state>.power.consumeUnits` | same, `SStandardResourceUnit.standardResourceUnits` | KLWE_LaserRepeater_S3 `1.0` |
+| `<state>.power.generateSegments` | Generation delta on Power | IonBurst reactor `14` |
+| `<state>.power.minFraction` | `minimumConsumptionFraction` of the Power-consuming delta, rounded to 4 dp | UltraFlow `0.6667`, WEB shield `0.5` |
+| `<state>.<resource>.consume` / `.generate` | every non-Power resource by its own lower-cased name, SRU/s | `coolant.generate` 34, `shield.generate` 410 |
+| `<state>.em.nominal` / `.decayRate` | `signatureParams.EMSignature` | UltraFlow `1490` / `0.15` |
+| `<state>.ir.nominal` / `.decayRate` | `signatureParams.IRSignature` | UltraFlow `7130` / `0.5` |
+| `<state>.powerRanges.<low\|medium\|high>.<start\|modifier>` | `powerRanges` | UltraFlow `high.start 3` |
+
+Repeated deltas on the same resource and direction are summed.
 
 ### items/&lt;className&gt;.json
 ```ts
@@ -301,7 +365,10 @@ as `"_PointsTo_:ptr:N"` strings with the target under `_Pointers_`.
 ```jsonc
 {
   "channel": "LIVE", "patch_version": "4.x", "build_number": "...",
-  "schema_version": 1,
+  "schema_version": 3,                   // 1 = wave-1, 2 = ship signature stats +
+                                         // weapon fireRate, 3 = resource network
+                                         // (power/coolant/signature) + weapon stats +
+                                         // ship hull/armour/cargo/career
   "quality_score": 100.0,                 // thresholds.py over entity_counts
   "entity_counts": {
     "ships": 920, "weapons": 1326, "components": 2145, "items": 21033,

@@ -469,6 +469,74 @@
         "other": "Other"
       }
     },
+    "weaponDetail": {
+      "intro": "The picker's 17 columns are not everything. This is what a ship weapon really carries in the P4K — grouped by origin, with the struct named beside it. Cyan = present, gold dashed = not in the game files.",
+      "close": "Close",
+      "notInGameFiles": "not in the game files",
+      "card": {
+        "damageChannels": "Damage per channel",
+        "fireBallistics": "Fire & ballistics",
+        "derived": "Derived",
+        "powerSignature": "Power & signature",
+        "durability": "Durability",
+        "physical": "Physical",
+        "attachments": "Attachments",
+        "aiming": "Aim assist",
+        "missing": "Not present"
+      },
+      "row": {
+        "physical": "Physical",
+        "energy": "Energy",
+        "distortion": "Distortion",
+        "thermal": "Thermal",
+        "biochemical": "Biochemical",
+        "stun": "Stun",
+        "fireRate": "Fire rate",
+        "projectilesPerShot": "Projectiles per shot",
+        "projectileSpeed": "Projectile speed",
+        "lifetime": "Lifetime",
+        "range": "Range",
+        "alpha": "Alpha",
+        "burstDps": "Burst DPS",
+        "sustainedDps": "Sustained DPS",
+        "penetration": "Penetration",
+        "powerDraw": "Power draw",
+        "emOnline": "EM (online)",
+        "irOnline": "IR (online)",
+        "hp": "HP",
+        "distortionPool": "Distortion pool",
+        "distortionRegen": "Distortion regen",
+        "mass": "Mass",
+        "size": "Size",
+        "grade": "Grade",
+        "itemClass": "Class",
+        "itemPorts": "Item ports",
+        "factoryFit": "Factory fit",
+        "aimYaw": "Traverse",
+        "aimRate": "Tracking rate",
+        "spread": "Spread",
+        "recoil": "Recoil",
+        "magazine": "Magazine",
+        "overheat": "Overheat"
+      },
+      "src": {
+        "damage": "AmmoParams.impactDamage",
+        "fire": "SWeaponActionFire* · AmmoParams",
+        "derived": "computed from the two cards on the left",
+        "power": "ItemResourceComponentParams.states[].deltas[]",
+        "durability": "SHealthComponentParams · SDistortionParams",
+        "physical": "SAttachableComponentParams.AttachDef",
+        "attachments": "SItemPortContainerComponentParams — overclock and barrel modules hang here",
+        "aiming": "SCItemAimableComponentParams",
+        "missing": "overclock modifiers only, all of them 1.0"
+      },
+      "value": {
+        "none": "0 = none",
+        "empty": "empty",
+        "dash": "—",
+        "magazineEnergy": "— on energy weapons"
+      }
+    },
     "componentKind": {
       "PowerPlant": "Power plant",
       "Shield": "Shield generator",
@@ -658,6 +726,62 @@
       "quality": "Quality {{score}}%",
       "tooltip": "Datamined from this game build — our provenance guarantee."
     },
+    "rank": {
+      "header": "Standing",
+      "nShipsOfSizeClass": "{{n}} ships in size class {{k}}",
+      "nShips": "{{n}} ships",
+      "nShipsOfCareer": "{{n}} ships of the same career",
+      "profileLabel": "Profile",
+      "scopeLabel": "Comparison field",
+      "verdict": "{{pct}} % — {{band}} against {{n}} ships.",
+      "percentile": "Percentile",
+      "percentileTooltip": "Describing, not prescribing: the figure says where this ship sits in the comparison field — not whether it is good. 50 % is dead centre.",
+      "lensNote": "Standing does not follow the mission lens — it keeps its own three profiles.",
+      "radarAria": "Radar chart of {{name}}'s percentiles against {{n}} ships",
+      "gapAxis": "No value on this axis",
+      "band": {
+        "low": "bottom quarter",
+        "mid": "mid-field",
+        "high": "top quarter"
+      },
+      "legend": {
+        "ship": "{{name}}",
+        "median": "Median"
+      },
+      "profile": {
+        "combat": "Combat",
+        "defense": "Defence",
+        "transport": "Transport"
+      },
+      "scope": {
+        "sizeClass": "Same size class",
+        "all": "All ships",
+        "career": "Same career"
+      },
+      "disabled": {
+        "noCargo": "This ship has no cargo hold",
+        "noData": "This build carries no values for this profile",
+        "noSizeClass": "The game files carry no size class for this build",
+        "tooFewShips": "Too few ships in the comparison field"
+      },
+      "axis": {
+        "alpha": "ALPHA",
+        "sustainedDps": "SUSTAINED DPS",
+        "missiles": "MISSILES",
+        "shield": "SHIELD",
+        "agility": "AGILITY",
+        "boost": "BOOST",
+        "shieldHp": "SHIELD HP",
+        "shieldRegen": "SHIELD REGEN",
+        "hullHp": "HULL HP",
+        "armor": "ARMOUR",
+        "crossSection": "CROSS-SECTION",
+        "cargo": "CARGO",
+        "quantumRange": "QUANTUM RANGE",
+        "scm": "SCM",
+        "mass": "MASS"
+      }
+    },
     "detail": {
       "back": "Back to codex",
       "className": "Class name",
@@ -736,9 +860,120 @@
       "whereToBuyLocation": "Location",
       "whereToBuyAttribution": "Prices from UEX Corp — community-maintained, may not reflect live servers. Not affiliated with Cloud Imperium Games.",
       "moduleOrderHint": "Configurable modules come first — weapons and their mounts, turrets, ordnance, pods, shields, power plant, quantum drive, radar, coolers, life support. Everything fixed sits below. Click any module for its full stat table.",
-      "loadoutEmptyWeaponMount": "Weapon mount — no stock weapon in this extract"
+      "loadoutEmptyWeaponMount": "Weapon mount — no stock weapon in this extract",
+      "chipSize": "Size {{n}}",
+      "chipCrew": "{{n}} crew",
+      "chipNoCargo": "No cargo hold",
+      "actionCompare": "Compare",
+      "actionFactoryLoadout": "Factory fit",
+      "actionCopyLink": "Copy link",
+      "actionSwitchShip": "Switch ship",
+      "linkCopied": "Link copied",
+      "dataPill": "DATA {{build}} · schema {{n}}",
+      "dataPillPending": "Re-extract pending",
+      "dataPillAria": "Data state: build {{build}}, schema {{n}}",
+      "columnLoadout": "Loadout",
+      "columnAnalysis": "Analysis",
+      "draftLabel": "Draft",
+      "draftChanged": "{{n}} slot changed",
+      "draftChangedPlural": "{{n}} slots changed",
+      "draftNotice": "Not saved. This session only.",
+      "draftDiscard": "Discard",
+      "draftApplyAndSave": "Apply & save to hangar",
+      "lensReset": "Reset",
+      "chipCargoUnknown": "Cargo hold · capacity not in the game files"
+    },
+    "energy": {
+      "title": "Power",
+      "budget": "{{used}} / {{total}} seg",
+      "budgetLabel": "Segments in use",
+      "minimise": "minimise",
+      "expand": "expand",
+      "allocated": "{{n}} segments allocated",
+      "minimum": "Minimum draw {{n}} segments",
+      "toggleOff": "{{group}} — cut power",
+      "toggleOn": "{{group}} — restore power",
+      "draftNote": "Cut groups stay a draft — they are never written to your hangar.",
+      "position": {
+        "title": "Dock position",
+        "left": "left",
+        "center": "centre",
+        "right": "right"
+      },
+      "group": {
+        "weapons": "Weapons",
+        "shields": "Shield generators",
+        "thrusters": "Thrusters",
+        "coolers": "Coolers",
+        "radar": "Radar",
+        "lifeSupport": "Life support",
+        "quantum": "Quantum drive",
+        "tractor": "Tractor beam"
+      },
+      "state": {
+        "off": "off",
+        "noChannel": "—",
+        "idle": "0",
+        "absent": "—"
+      },
+      "tooltip": {
+        "weapons": "Cuts power to the whole group. With no power the guns will not fire — sustained DPS drops to 0 and EM falls noticeably. Click again to switch it back on.",
+        "shields": "Gold marks the minimum the active generators need. Below it the shield fails, and the passive backup goes with it.",
+        "thrusters": "Main and manoeuvring thrusters. At zero the ship still steers, but it has no thrust.",
+        "coolers": "The more segments, the lower the cooling load — and the lower your IR signature. Cooling is the price of staying quiet.",
+        "radar": "Sets how far you see. More power means more range — and more EM, so more visibility to everyone else.",
+        "lifeSupport": "Oxygen and pressure. At zero a clock starts running — the game files do not say how long.",
+        "quantum": "Has no channel in SCM. It only draws power in NAV — and there the shield goes dark instead.",
+        "tractor": "Off. It only draws power once you use it.",
+        "ir": "Your heat signature. It rises with the cooling load and with everything that draws power. Low IR means thermal sensors pick you up later.",
+        "em": "The sum of every powered component. Shields and coolers are the biggest items — cut a group and its share disappears. What a part emits comes from the game files; energy weapons carry 0 there.",
+        "crossSection": "How large you look on radar. It comes from the hull, not the equipment — no loadout changes it.",
+        "coolingLoad": "How much of the installed cooling capacity is in use right now. Above 100 % the ship runs hot and the IR signature spikes."
+      },
+      "fact": {
+        "ir": "IR",
+        "em": "EM",
+        "crossSection": "CS",
+        "coolingLoad": "Cooling load",
+        "readiness": "Combat readiness"
+      },
+      "coolingValue": "{{used}} / {{total}}",
+      "coolingPercent": "{{pct}} %",
+      "readiness": {
+        "ok": "Can switch to combat — reactor and coolers carry every system at its minimum",
+        "no": "Cannot switch to combat — reactor or coolers do not carry every system at its minimum",
+        "shortOk": "Combat ready",
+        "shortNo": "Not ready"
+      },
+      "mode": {
+        "label": "Flight mode",
+        "scm": "SCM",
+        "nav": "NAV"
+      },
+      "preset": {
+        "stealth": "Stealth",
+        "auto": "Auto",
+        "reset": "Reset"
+      },
+      "gap": {
+        "noReactorData": "No reactor data in this build — the power budget stays empty until the extract carries it.",
+        "reExtractPending": "Re-extract pending — these power figures come from an older schema.",
+        "noChannelInMode": "This group has no channel in this flight mode.",
+        "noCoolingData": "No cooler data in this build — the cooling load stays empty.",
+        "noSignatureData": "No signature data in this extract — re-extract pending."
+      },
+      "unit": {
+        "segments": "seg",
+        "coolant": "cooling seg"
+      },
+      "tooltipTitle": {
+        "ir": "Infrared",
+        "em": "Electromagnetic",
+        "crossSection": "Cross-section"
+      }
     },
     "swap": {
+      "open": "Swap component",
       "pickerTitle": "Swap module",
       "installed": "Installed",
       "equipped": "Equipped",
@@ -831,6 +1066,111 @@
       "systems": "Systems",
       "other": "Other"
     },
+    "picker": {
+      "title": "Pick a component — {{port}} · S{{size}}",
+      "installed": "fitted: {{name}}",
+      "hint": "Click beside the window to go back",
+      "close": "Close",
+      "searchPlaceholder": "Search … name, manufacturer, damage type",
+      "searchLabel": "Search components",
+      "compareWith": "Compare with",
+      "deltaAgainst": "Δ against",
+      "count": "{{n}} of {{total}}",
+      "noDelta": "±0",
+      "baselineOutOfSet": "The Δ baseline sits outside the current selection — the Δ values still measure against it.",
+      "optimum": "Best in the comparison field",
+      "columns": "Columns",
+      "columnsUnavailable": "not in the game files",
+      "dashCell": "—",
+      "dashCellTitle": "Not applicable to this class",
+      "dashNote": "Ammo and spread read “—” because energy weapons have no magazine and the P4K only carries spread as a modifier. Not an extractor gap.",
+      "footerMissing": "Not in the game files: {{fields}}",
+      "pickRow": "Fit {{name}}",
+      "scope": {
+        "sameClass": "{{class}} only",
+        "sameFamily": "All {{family}}",
+        "sameSize": "All S{{size}}"
+      },
+      "baseline": {
+        "equipped": "Fitted",
+        "factory": "Factory"
+      },
+      "scrollCue": {
+        "horizontal": "scroll sideways for {{columns}}",
+        "vertical": "scroll down when there are more entries — the header row and the component column stay put"
+      },
+      "menu": {
+        "open": "Sort and filter the {{column}} column",
+        "sort": "Sort",
+        "asc": "ascending",
+        "desc": "descending",
+        "range": "Range",
+        "from": "from",
+        "to": "to",
+        "filter": "Filter",
+        "clear": "Reset",
+        "secondary": "as a second sort",
+        "sortRank": "Sort {{n}}"
+      },
+      "chipRemove": "Remove the {{label}} filter",
+      "col": {
+        "name": "Component",
+        "deltaSustained": "Δ sustained",
+        "dps": "DPS",
+        "alpha": "Alpha",
+        "pen": "PEN",
+        "fireRate": "Fire rate",
+        "range": "Range",
+        "speed": "Speed",
+        "power": "Power",
+        "em": "EM",
+        "hp": "HP",
+        "distortion": "Distortion",
+        "mass": "Mass",
+        "grade": "Grade",
+        "manufacturer": "Manufacturer",
+        "ammo": "Ammo",
+        "spread": "Spread",
+        "burstDps": "Burst DPS",
+        "ir": "IR",
+        "size": "Size",
+        "itemClass": "Class",
+        "damagePhysical": "Physical",
+        "damageEnergy": "Energy",
+        "damageDistortion": "Distortion damage",
+        "damageThermal": "Thermal",
+        "damageBiochemical": "Biochemical",
+        "damageStun": "Stun",
+        "projectilesPerShot": "Projectiles per shot",
+        "lifetime": "Lifetime",
+        "distortionRegen": "Distortion regen",
+        "itemPorts": "Item ports",
+        "factoryFit": "Factory fit",
+        "aimYaw": "Traverse",
+        "aimRate": "Tracking rate",
+        "recoil": "Recoil",
+        "magazine": "Magazine",
+        "overheat": "Overheat",
+        "repair": "Repair",
+        "damageType": "Damage type",
+        "archetype": "Archetype",
+        "heat": "Heat per shot",
+        "minPower": "Min. power",
+        "coolant": "Cooling draw"
+      },
+      "unit": {
+        "perMin": "/min",
+        "mps": "m/s",
+        "m": "m",
+        "s": "s",
+        "kg": "kg",
+        "seg": "seg",
+        "degPerSec": "°/s",
+        "deg": "°",
+        "perSec": "/s",
+        "percent": "%"
+      }
+    },
     "hardpointMap": {
       "title": "Position on the hull",
       "hint": "Point at a hardpoint below — the marker shows where it sits on the ship.",
@@ -889,7 +1229,8 @@
       "cmCrossSection": "Cross section",
       "cmRadius": "Cloud radius",
       "cmCloudLifetime": "Cloud duration",
-      "cmLifetime": "Round lifetime"
+      "cmLifetime": "Round lifetime",
+      "burstDps": "Burst DPS"
     },
     "shipLink": {
       "add": "Add pledge link",
@@ -934,6 +1275,32 @@
       "groupRowsHint": "Fold identical hardpoints back into a single row",
       "unfold": "Show",
       "foldAway": "Hide"
+    },
+    "module": {
+      "peekChange": "expand to change",
+      "peekRead": "expand to read",
+      "caretExpand": "expand",
+      "caretCollapse": "collapse",
+      "census": "{{slots}} slots · {{active}} active · {{passive}} passive",
+      "censusSlots": "{{slots}} slots",
+      "badge": {
+        "active": "Active",
+        "passive": "Passive · off the grid",
+        "pool": "Pool"
+      },
+      "shieldNote": "All three are shield generators and all three can be swapped. The passive one costs no power and still counts fully towards the pool — but it hangs off the active ones: if they fail, the backup goes with them.",
+      "rowsSplit": "Individually",
+      "rowsGrouped": "Grouped",
+      "tuned": "Tuned",
+      "tunedHint": "This slot differs from the factory fit.",
+      "toolDetails": "View {{name}}'s values",
+      "toolSwap": "Swap {{name}}",
+      "peek": {
+        "alphaTotal": "Total alpha",
+        "missileTotal": "Full salvo",
+        "budget": "Reactor budget",
+        "coolingTotal": "Total cooling"
+      }
     },
     "summary": {
       "title": "Combat readout",
@@ -1012,7 +1379,35 @@
       "ir": "IR signature",
       "emIdle": "EM signature (idle)",
       "emMax": "EM signature (max)",
-      "crossSection": "Cross section"
+      "crossSection": "Cross section",
+      "boost": "Boost speed",
+      "armor": "Armour",
+      "agility": "Agility",
+      "gap": "—",
+      "gapHint": "No value in this build.",
+      "deltaUp": "{{value}} better than factory",
+      "deltaDown": "{{value}} worse than factory",
+      "tooltipBurstDps": "Continuous fire until the magazine is empty — reloading not counted.",
+      "tooltipSustainedDps": "Averaged over a long fight — reload pauses counted.",
+      "short": {
+        "alpha": "Alpha",
+        "burstDps": "Burst DPS",
+        "sustainedDps": "Sustained DPS",
+        "missiles": "Missiles",
+        "shieldHp": "Shield HP",
+        "shieldRegen": "Shield regen",
+        "hullHp": "Hull HP",
+        "cargo": "Cargo",
+        "quantumRange": "Quantum range",
+        "quantumRangeTight": "Q range",
+        "scm": "SCM",
+        "maxSpeed": "Max",
+        "boost": "Boost",
+        "mass": "Mass",
+        "ir": "IR",
+        "em": "EM",
+        "crossSection": "Cross-section"
+      }
     },
     "damageChannel": {
       "physical": "Physical",
@@ -1023,6 +1418,7 @@
       "stun": "Stun"
     },
     "analysis": {
+      "readHint": "expand to read",
       "offensive": {
         "title": "Offensive",
         "weapons": "Weapons ({{count}} mounted)",
@@ -1102,6 +1498,14 @@
     "moduleRole": {
       "shieldGenerator": "Generator",
       "shieldController": "Control module"
+    },
+    "table": {
+      "chip": {
+        "range": "{{min}} – {{max}}",
+        "min": "≥ {{min}}",
+        "max": "≤ {{max}}",
+        "values": "{{values}}"
+      }
     }
   },
   "blueprint": {
