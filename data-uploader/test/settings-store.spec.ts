@@ -78,6 +78,17 @@ describe('SettingsStore', () => {
     expect(reloaded.load().shutdownAfterUpload).toBe(true);
   });
 
+  it('defaults quitAfterAutoRun ON and persists a deliberate opt-out', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    // ON by default, unlike the other two unattended options: this one only ever
+    // ENDS a process nobody is looking at (feedback 71b1e402).
+    expect(store.load().quitAfterAutoRun).toBe(true);
+    store.patch({ quitAfterAutoRun: false });
+    const reloaded = new SettingsStore(io, seqIds());
+    expect(reloaded.load().quitAfterAutoRun).toBe(false);
+  });
+
   it('defaults updateChannel to stable and round-trips a patch', () => {
     const io = fakeIO();
     const store = new SettingsStore(io, seqIds());

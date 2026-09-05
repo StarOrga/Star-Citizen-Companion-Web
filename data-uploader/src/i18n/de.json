@@ -253,7 +253,9 @@
     "minimize": "Beim Schließen in den Tray minimieren",
     "minimizeHint": "Das X schließt das Fenster in den Tray, statt das Programm zu beenden.",
     "autoStart": "Mit Windows starten",
-    "autoStartHint": "Startet das Programm mit Windows — direkt im Tray, ohne Fenster."
+    "autoStartHint": "Startet das Programm mit Windows — direkt im Tray, ohne Fenster.",
+    "quitAfterAutoRun": "Danach automatisch beenden, wenn nichts zu tun ist",
+    "quitAfterAutoRunHint": "Gilt nur für den Start mit Windows: ist der aktuelle Patch schon vollständig hochgeladen, beendet sich das Programm sofort wieder — und nach einem Upload, sobald der fertig ist."
   },
   "autorun": {
     "toggle": "Bei neuer data.p4k-Version automatisch komplett durchlaufen",

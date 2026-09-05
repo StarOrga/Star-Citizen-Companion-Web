@@ -859,6 +859,18 @@ h3 { font-size: 0.9rem; }
 .auto-upload-toggle:hover,
 .sc-toggle:hover { color: var(--sc-fg-0); }
 
+/* A toggle that only qualifies the one above it (autostart → "close again when
+   done"): indented, tighter, and visibly inert while its parent is off. */
+.auto-upload-toggle.sub {
+  margin-top: 6px;
+  margin-left: 24px;
+  font-size: 0.8rem;
+}
+.auto-upload-toggle.sub:has(input:disabled) {
+  opacity: 0.45;
+  cursor: default;
+}
+
 /* Custom-themed checkbox — one accent-glowing control shared by every toggle
    (footer telemetry, Configure preferences, the Upload-screen shutdown opt-in),
    replacing the browser default so all checkboxes match the SC design tokens. */

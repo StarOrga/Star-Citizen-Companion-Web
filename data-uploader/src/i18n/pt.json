@@ -84,7 +84,9 @@
     "minimize": "Minimizar para a bandeja ao fechar",
     "minimizeHint": "O X esconde a janela na bandeja em vez de sair.",
     "autoStart": "Iniciar com o Windows",
-    "autoStartHint": "Inicia com o Windows — direto na bandeja, sem janela."
+    "autoStartHint": "Inicia com o Windows — direto na bandeja, sem janela.",
+    "quitAfterAutoRun": "Fechar novamente quando não houver nada a fazer",
+    "quitAfterAutoRunHint": "Apenas para o início com o Windows: se o patch atual já estiver totalmente enviado, o programa fecha logo — e após um envio, assim que ele terminar."
   },
   "autorun": {
     "toggle": "Executar tudo automaticamente numa nova data.p4k",
