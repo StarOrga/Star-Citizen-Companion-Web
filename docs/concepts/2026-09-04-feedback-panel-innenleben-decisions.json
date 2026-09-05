@@ -70,6 +70,19 @@
       "r2-viewer-link-note": "unbedingt! Auch bei umgesetzten themen dort hin zu springen finde ich eine grandiose idee, damit der admin oder selbst der collaboratuer oder viewer direkt checken kann in der live website. zumindest für den hauptpunkt um den es geht in demhtreadumsetzung"
     },
     "remarks": "general note is a verbatim re-send of iteration 1 (page defect, see dotclaude#333) — not new feedback. New: e-s2 (smaller thumbnails on sent messages, composer pinned to bottom/floating, + menu must include screenshot), e-s4 (no Routine avatar — routine-initiated topics say AI as plain text without circle; role icons only on intermediate messages; AI replies plain text), r2-max-same note (maximised may show things the compact view hides), r2-viewer-link note (unbedingt — deep link also on shipped topics for admin/collaborator/viewer).",
-    "outcome": "implement: E locked with getDisplayMedia screenshot, same-column maximise, role projection, all 4 PRs; over-corridor extras viewer-link + options included → corridor-widening question asked before handoff"
+    "outcome": "implement: E locked with getDisplayMedia screenshot, same-column maximise, role projection, all 4 PRs; over-corridor extras viewer-link + options included → corridor-widening question asked before handoff",
+    "implemented": {
+      "head": "23d0d39",
+      "commits": [
+        "cbfb764",
+        "ad448c1",
+        "079eb86",
+        "9f0310d",
+        "3c216c1",
+        "23d0d39"
+      ],
+      "branch": "claude/feedback-panel-ux-rethink-6459f0",
+      "at": "2026-09-05T13:02:21.521Z"
+    }
   }
 ]

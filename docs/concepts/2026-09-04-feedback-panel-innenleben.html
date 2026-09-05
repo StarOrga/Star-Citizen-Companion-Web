@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.supabase.co;">
 <title>Feedback-Panel &mdash; Innenleben neu gedacht</title>
-<!-- concept: admin feedback panel rethink · generated 2026-09-04 · chrome donated by 2026-09-02-codex-im-verse · devops 0.139.0 design-template fixes (#325: dock persistence, nav guard, FAB labels) ported 2026-09-04 · devops 0.139.1 (#327: attachment engine re-sync, design-mode chrome, scroll boxes) ported 2026-09-04 · iteration 2 appended 2026-09-04 -->
+<!-- concept: admin feedback panel rethink · generated 2026-09-04 · chrome donated by 2026-09-02-codex-im-verse · devops 0.139.0 design-template fixes (#325: dock persistence, nav guard, FAB labels) ported 2026-09-04 · devops 0.139.1 (#327: attachment engine re-sync, design-mode chrome, scroll boxes) ported 2026-09-04 · iteration 2 appended 2026-09-04 · devops 0.142.0 engine re-sync (frozen bar, pattern 30b) + final report appended 2026-09-05 -->
 <style>
 /* ============================================================
    TOKENS — StarUI aliases (literals, package not installed in
@@ -248,6 +248,57 @@ body[data-single-design="true"] .screen-indicator { max-width: calc(100vw - 8rem
 .design-switch-item[data-active="true"] { color: var(--text-color); font-weight: 600; background: color-mix(in srgb, var(--accent-color) 18%, transparent); }
 .design-switch-item:hover { background: color-mix(in srgb, var(--accent-color) 10%, transparent); }
 body.panel-open .design-switcher { opacity: 0; pointer-events: none; }
+/* Frozen-iteration floating bar — shown by showIteration() on every non-live
+   tab, together with the re-armed dimmer (the "veil"). The veil is what gets
+   clicked away by reflex; the bar is what still says "you are in history"
+   afterwards, so it deliberately uses the WARNING tint rather than the muted
+   history colour of .frozen-indicator — being overlooked is the failure mode
+   it exists to fix. Sits above the dimmer (50) and the design chrome sharing
+   its band (switcher 95, anno pill 96), below the FABs (100), the panel
+   backdrop (150) and the panel itself. */
+.frozen-bar {
+  position: fixed; top: 0.75rem; left: 50%; transform: translateX(-50%);
+  z-index: 97;
+  box-sizing: border-box;
+  display: flex; align-items: center; gap: 0.6rem;
+  max-width: min(560px, calc(100vw - 2rem));
+  padding: 0.4rem 0.45rem 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--warning-color, #d29922);
+  background: color-mix(in srgb, var(--warning-color, #d29922) 16%, var(--panel-bg, #161b22));
+  color: var(--text-color, #c9d1d9);
+  font-size: 0.82rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.frozen-bar[hidden] { display: none; }
+.frozen-bar-text {
+  min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.frozen-bar-text strong { color: var(--text-color, #c9d1d9); }
+.frozen-bar button {
+  flex-shrink: 0;
+  padding: 0.3rem 0.75rem; border-radius: 999px; border: none;
+  background: var(--accent-color, #58a6ff); color: #fff;
+  font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.frozen-bar button:hover { filter: brightness(1.12); }
+.frozen-bar button:focus-visible {
+  outline: 2px solid var(--accent-color, #58a6ff);
+  outline-offset: 2px;
+}
+/* Design template: the top-centre band at 0.75rem belongs to .design-switcher.
+   Drop into the row below it (same 3.75rem derivation as .anno-toggle-fab)
+   and stay inside the switcher's 34vw width band, so the bar can never run
+   into the screen-indicator column on the left or the ☰ FAB on the right —
+   the same geometry contract every other piece of design chrome follows. */
+html[data-template="design"] .frozen-bar {
+  top: 3.75rem;
+  max-width: min(34vw, 560px);
+}
 
 [data-template="design"] .concept-layout.design .concept-decision-panel { display: flex; flex-direction: column; position: fixed; top: 0; right: -400px; width: 360px; max-width: 90vw; height: 100vh; padding: 1.5rem; background: var(--panel-bg); border-left: 1px solid var(--border-color); z-index: 200; overflow-y: auto; transition: right .3s ease; }
 [data-template="design"] .concept-layout.design .concept-decision-panel.open { right: 0; }
@@ -2775,7 +2826,10 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
 
       </section>
 
-            <section data-iteration="2" data-iteration-template="design" data-active>
+            <section data-iteration="2" data-iteration-template="design" hidden>
+        <script type="application/json" data-frozen-feedback>
+{"general":"Rot sollte nur benutzt werden für explizit wichitge admin funktionen, den n dafür sind sie, call-to actions oder wo es wichtig ist zu wissen, dass es admin features / anzeigen sindn.\n\nWioe steht es um nutzer feedbacks die sollten profilicon graublau habne und admins z. B. rot, collaborateur blau hell. Dabei auch die überlegen wie man das nutzer feedback vs claude instruktionen unterscheidet. \nGanz wichitg, wenn man auf ein issue klickt, sollte das fast das ganze feedbaack panel einnehmen und hicht nur inline aufgeklappt werden - denn man braucht platz um es zu lesen (dabei immer nur erste nachrticht vom postenden + letzte nachricht, dazwischen ein \"...\" ausklappbar immer eine weitere nachricht dazwischen nachrichten ). Das input feld muss auch wesentlich größer und auch, check nochmal aktuelles feedback panel die anhänge thumbnnanailed bzw. \"+\" und auch eine screenshot möglichkeit vom aktuellen screen, lerne da vom aktuellen jetzt auf main feedback panel.","designs":{},"screens":{"e-s2":"sehr gut, aber es sollten die anhä#jnge als thumnbnail kleiner gemacht werden wenne s abgeschickte nachrichten betrifft, die nehmen sonst zu viel platz ein. ZUdem sollte unten das input feld immer am unteren rand sein, im zweifeels fall schweben. Mir fehlt dort beim + auch die möglichkeit neben anhüängenb auch wie ich screenshots adde","e-s4":"Routine brauchen wir nciht, wenn etwas initiiiert wurde aus der routine, dann schreibe eher AI und ohne kreis einfach (im anderne fall wäre es sonst ja eh nur ein admin collaborateuro oder nutzer ijmmer stehen, weil es immer nur um den initiator geht zumindest; wenn es um abgeschickte nachrichten zwischendurch geht ok, dann genrn auch die icons und bei rückfragen einfach AI ohne profilicon textuell fertig."}}
+        </script>
         <header class="iteration-intro">
           <h2>Iteration 2 · Eine Richtung, dein Feedback eingearbeitet</h2>
           <p>Aus Runde 1: Ⓑ „Sehr gut“, Ⓐ3 „Geliefert im Strom“ sehr gut, Profil-Icons und Titel richtig. Dazu vier neue Punkte: Rot nur für echte Admin-Funktionen und Call-to-Actions; Rollenfarben auf den Profil-Icons; ein Thema öffnet sich als <strong>fast ganzes Panel</strong> statt inline; Eingabefeld deutlich größer mit Anhang-Thumbnails, „+“ und Screenshot.</p>
@@ -2995,14 +3049,14 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
         <div class="variant-evaluation" data-decision="r2-shot-display" data-label="📷 via getDisplayMedia (Browser-Picker, pixelgenau)">
           <h4>📷 via <code>getDisplayMedia</code> — Browser-Picker, pixelgenau <span class="rec">· Empfehlung</span> <span class="tag eff">M</span></h4>
           <p>Ein Tipp → der Browser fragt „welchen Bildschirm/Tab“, ein Frame wird gegriffen, das Panel dabei ausgeblendet. Exakt, auch für 3D-Ansichten; auf iOS nicht verfügbar (dann nur „+“).</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-shot-display" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-shot-display" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="r2-shot-display-note">Notiz</label><textarea id="r2-shot-display-note" data-comment="r2-shot-display-note" data-attachable placeholder="z. B. nur wenn …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-shot-display" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-shot-display" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-shot-display-note">Notiz</label><textarea id="r2-shot-display-note" data-comment="r2-shot-display-note" data-attachable placeholder="z. B. nur wenn …" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="r2-shot-dom" data-label="📷 via DOM-Render (ohne Picker, näherungsweise)">
           <h4>📷 via DOM-Render (html-to-image) — ohne Picker, näherungsweise <span class="tag eff">M</span></h4>
           <p>Kein Browser-Dialog, funktioniert überall; WebGL/3D und Cross-Origin-Bilder fehlen im Bild. Gut als Fallback für iOS.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-shot-dom" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-shot-dom" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="r2-shot-dom-note">Notiz</label><textarea id="r2-shot-dom-note" data-comment="r2-shot-dom-note" data-attachable placeholder="z. B. als Fallback …" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-shot-dom" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-shot-dom" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-shot-dom-note">Notiz</label><textarea id="r2-shot-dom-note" data-comment="r2-shot-dom-note" data-attachable placeholder="z. B. als Fallback …" rows="2" readonly></textarea></div>
         </div>
       </div>
 
@@ -3011,14 +3065,14 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
         <div class="variant-evaluation" data-decision="r2-max-same" data-label="Dieselbe Spalte, breiter; Thema als Fläche">
           <h4>Dieselbe Spalte, breiter — das Thema bleibt die Fläche <span class="rec">· Empfehlung</span></h4>
           <p>Null neue Konzepte; die Vollpanel-Ansicht wird einfach breiter und der Verlauf länger sichtbar.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-max-same" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-max-same" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="r2-max-same-note">Notiz</label><textarea id="r2-max-same-note" data-comment="r2-max-same-note" data-attachable placeholder="" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-max-same" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-max-same" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-max-same-note">Notiz</label><textarea id="r2-max-same-note" data-comment="r2-max-same-note" data-attachable placeholder="" rows="2" readonly>überlge dir auch ob man im vollbild ggf. dinge direkt anzeigen kann, die in der eingeklappten version nicht angezeigt wurden.</textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="r2-max-split" data-label="Master/Detail: Liste links, Thema rechts (Ⓑ4)">
           <h4>Master/Detail: Liste links, Thema rechts (Ⓑ4) <span class="tag eff">+M</span></h4>
           <p>Passt zur Flächen-Logik: maximiert ist die Fläche einfach die rechte Hälfte. Zweite Zustandsführung nötig.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-max-split" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-max-split" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="r2-max-split-note">Notiz</label><textarea id="r2-max-split-note" data-comment="r2-max-split-note" data-attachable placeholder="" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-max-split" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-max-split" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-max-split-note">Notiz</label><textarea id="r2-max-split-note" data-comment="r2-max-split-note" data-attachable placeholder="" rows="2" readonly></textarea></div>
         </div>
       </div>
 
@@ -3027,20 +3081,20 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
         <div class="variant-evaluation" data-decision="r2-role-field" data-label="Rolle in der Feedback-Projektion (für Rollenfarben)">
           <h4>Rolle in der Feedback-Projektion <span class="tag">innerhalb</span> <span class="tag eff">S</span></h4>
           <p>Für die Rollenfarben braucht die Board-Abfrage <code>profiles.role</code> je Autor — eine Spalte in der View, keine Migration der Tabelle.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-role-field" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-role-field" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="r2-role-field-note">Notiz</label><textarea id="r2-role-field-note" data-comment="r2-role-field-note" data-attachable placeholder="" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-role-field" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-role-field" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-role-field-note">Notiz</label><textarea id="r2-role-field-note" data-comment="r2-role-field-note" data-attachable placeholder="" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="r2-viewer-link" data-label="Viewer-Panel: „Im App ansehen“ + Screenshot">
           <h4>Viewer-Panel: „Im App ansehen“ bei umgesetzten Themen + 📷 im Nutzer-Composer <span class="tag over">über Korridor</span> <span class="tag eff">S</span></h4>
           <p>Derselbe Composer wird ohnehin geteilt — der Screenshot-Knopf käme kostenlos bei den Nutzern an. Der Deep-Link ist ein Anker.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-viewer-link" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-viewer-link" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="r2-viewer-link-note">Notiz</label><textarea id="r2-viewer-link-note" data-comment="r2-viewer-link-note" data-attachable placeholder="" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-viewer-link" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-viewer-link" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-viewer-link-note">Notiz</label><textarea id="r2-viewer-link-note" data-comment="r2-viewer-link-note" data-attachable placeholder="" rows="2" readonly>unbedingt! Auch bei umgesetzten themen dort hin zu springen finde ich eine grandiose idee, damit der admin oder selbst der collaboratuer oder viewer direkt checken kann in der live website. zumindest für den hauptpunkt um den es geht in demhtreadumsetzung</textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="r2-options" data-label="Ein-Tipp-Antwortoptionen (Routine-Konvention)">
           <h4>Ein-Tipp-Antwortoptionen (Routine markiert Optionen) <span class="tag over">über Korridor</span> <span class="tag eff">M</span></h4>
           <p>Nur wenn du es willst: die Routine-Prompt lernt <code>[[A|B]]</code>, das Panel rendert Knöpfe. Ohne Markierung bleibt alles wie gehabt.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-options" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-options" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="r2-options-note">Notiz</label><textarea id="r2-options-note" data-comment="r2-options-note" data-attachable placeholder="" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-options" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-options" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-options-note">Notiz</label><textarea id="r2-options-note" data-comment="r2-options-note" data-attachable placeholder="" rows="2" readonly></textarea></div>
         </div>
       </div>
 
@@ -3049,26 +3103,26 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
         <div class="variant-evaluation" data-decision="r2-pr1" data-label="PR 1 · Strom + Bänder + Vollpanel-Thema + Composer groß">
           <h4>PR 1 · Strom + Bänder + Vollpanel-Thema + großer Composer (ohne 📷)</h4>
           <p>Tabs und Run-Ansicht raus, Flugbahn, Faltung erste+letzte, Rollenfarben (mit Projektion), Rot-Regel.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr1" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr1" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="r2-pr1-note">Notiz</label><textarea id="r2-pr1-note" data-comment="r2-pr1-note" data-attachable placeholder="" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr1" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr1" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-pr1-note">Notiz</label><textarea id="r2-pr1-note" data-comment="r2-pr1-note" data-attachable placeholder="" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="r2-pr2" data-label="PR 2 · Geliefert-Band + Badge + Ansehen">
           <h4>PR 2 · Geliefert-Band nach Tagen + Badge + ▸ Ansehen + „neu seit“</h4>
           <p>Dein neuer Punkt; Konfetti-Banner weg.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr2" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr2" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="r2-pr2-note">Notiz</label><textarea id="r2-pr2-note" data-comment="r2-pr2-note" data-attachable placeholder="" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr2" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr2" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-pr2-note">Notiz</label><textarea id="r2-pr2-note" data-comment="r2-pr2-note" data-attachable placeholder="" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="r2-pr3" data-label="PR 3 · Suche + Filter-Sheet, Chip-Reihen weg">
           <h4>PR 3 · Suchfeld + Filter-Sheet (≥ 48 px), alle Chip-Reihen weg, ⋯ pro Thema</h4>
           <p>Toolbar-Abriss; Mobile-Gate wird grün.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr3" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr3" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="r2-pr3-note">Notiz</label><textarea id="r2-pr3-note" data-comment="r2-pr3-note" data-attachable placeholder="" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr3" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr3" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-pr3-note">Notiz</label><textarea id="r2-pr3-note" data-comment="r2-pr3-note" data-attachable placeholder="" rows="2" readonly></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="r2-pr4" data-label="PR 4 · 📷 Screenshot + Sheets + Telefon + i18n-Aufräumen">
           <h4>PR 4 · 📷 Screenshot + Ablehn-/Nutzer-Sheets + Telefon + i18n-Aufräumen</h4>
           <p>Der Polish-Anteil, danach die gewählten Extras.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr4" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr4" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="r2-pr4-note">Notiz</label><textarea id="r2-pr4-note" data-comment="r2-pr4-note" data-attachable placeholder="" rows="2"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r2-pr4" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r2-pr4" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="r2-pr4-note">Notiz</label><textarea id="r2-pr4-note" data-comment="r2-pr4-note" data-attachable placeholder="" rows="2" readonly></textarea></div>
         </div>
       </div>
       <div class="why" style="margin-top:1.4rem"><strong>Wie es weitergeht:</strong> <em>Zur nächsten Iteration</em> → noch eine Runde Mocks (nichts wird programmiert). <em>Mit Feedback implementieren</em> → Ⓔ mit deinen Antworten wird gesperrt; ist ein „über Korridor“-Extra drin, frage ich einmal nach der Erweiterung, dann Übergabe an die autonome Umsetzung in der PR-Reihenfolge oben (Build + Mobile-Gate als Test-Mandat).</div>
@@ -3076,6 +3130,119 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
   </section>
 </section>
 
+      </section>
+
+      <section id="iter-3" data-iteration="3" data-iteration-template="decision" data-final-report data-active>
+        <div class="iteration-intro">
+          <h2>Abschlussbericht</h2>
+          <p>Richtung Ⓔ „Board + Geliefert im Strom“ ist umgesetzt — als vier Commits auf dem Branch <code>claude/feedback-panel-ux-rethink-6459f0</code> (Stand <code>23d0d39</code>), noch nicht gepusht und nicht gemergt: das ist dein <code>/ship</code>, wenn du es im Panel gesehen hast.</p>
+        </div>
+
+        <section id="summary" data-nav-label="Zusammenfassung">
+          <h3>Zusammenfassung</h3>
+          <p>Das Innenleben des Admin-Feedback-Panels ist ein einziger Strom in drei Bändern, geordnet nach „wer ist dran“: <strong>Du bist dran</strong> (längste Wartezeit zuerst, die erste Karte mit ihrer Aktion vorgeöffnet — Antwort, ✓ Abnehmen oder Freigeben), <strong>Läuft</strong> (die Routine und die Nutzer-Rückfragen) und <strong>Geliefert</strong> nach Tagen, der letzte Tag oben, mit ▸ Ansehen, PR-Link und „neu seit deinem letzten Blick“. Der Status ist eine Position auf der Flugbahn (Eingang · In Arbeit · Geliefert · Abgenommen, mit Abzweig Issue / Nicht umgesetzt / Verworfen, Schleife und Warteschlange) plus der Staffelstab in Worten. Ein Thema öffnet sich als Vollpanel-Fläche: erste Nachricht des Posters, neueste Nachricht, dazwischen „…“ mit einer weiteren Nachricht pro Tipp, Abnahme, Nutzer-Kanal, und der große Composer unten am Rand (72-px-Thumbnails, „+“ Datei / 📷 Screenshot, ein roter Senden-Knopf). Abgeschickte Nachrichten über drei Zeilen falten sich hinter „Mehr anzeigen“. Im Ruhezustand gibt es zwei Controls: Suchfeld und Filter (Wer? / Wo steht es? / Bereich, Zeilen ≥ 48 px); Fortschritt sitzt byte-identisch hinter 📊.</p>
+          <p>Rot ist genau zweimal: der Admin-Avatar und die eine primäre Aktion pro Karte bzw. Fläche. Avatare sind Initialen nach Rolle (Admin rot, Mitwirkender hellblau, Nutzer graublau), eine Routine-Nachricht trägt das schlichte Label <em>AI</em> ohne Kreis, ein Thema heißt <em>Auftrag</em> oder <em>Nutzer-Feedback</em>. Die Ein-Tipp-Antwortoptionen (<code>[[A|B]]</code> als letzte Zeile einer Routine-Rückfrage) rendern als Knöpfe; das Nutzer-Panel bekommt „Im App ansehen“ und den Screenshot-Knopf (Korridor am 2026-09-05 erweitert).</p>
+          <p>Nicht angefasst: die Shell (FAB, Docking, Größe, Maximieren), jeder Status-Wert, jeder Insert-Pfad in die Threads, das Datenmodell — <code>profiles.role</code> reitet auf der bestehenden Admin-Lese-Policy, es gab keine Migration.</p>
+        </section>
+
+        <section id="changed-files" data-nav-label="Geänderte Dateien">
+          <h3>Geänderte Dateien</h3>
+          <ul>
+            <li><code>src/app/admin/feedback/admin-feedback.component.ts</code> — Template, Styles und Klasse neu: Bänder, Karten mit Flugbahn, Themen-Fläche, Filter-Fläche, Ablehnen-Fläche, Geliefert-Feed, Escape/Fokus-Führung. 3467 → ~2080 Zeilen.</li>
+            <li><code>src/app/admin/feedback/feedback.types.ts</code> — reine Ableitungen: <code>turnOf</code>, <code>adminAsk</code>, <code>flightPosition</code> (Station · Abzweig · Schleife · Warteschlange · beantwortet), <code>waitingSince</code>, <code>deliveredByDay</code> / <code>isDelivered</code>, <code>isNewSince</code>, <code>parseAnswerOptions</code>, <code>isLongMessage</code>; <code>FeedbackAuthor.role</code>.</li>
+            <li><code>src/app/admin/feedback/feedback-composer.component.ts</code> — „+“-Menü (Datei / Screenshot), 📷 via <code>getDisplayMedia</code> (Panel während der Aufnahme ausgeblendet, auf iOS nicht angeboten), <code>large</code>- und <code>primaryHot</code>-Inputs.</li>
+            <li><code>src/app/feedback/feedback-area.types.ts</code> — <code>areaRoute</code>, die Umkehrung von <code>areaForUrl</code> für ▸ Ansehen.</li>
+            <li><code>src/app/feedback/user-feedback-panel.component.ts</code> — „Im App ansehen“ auf gelieferten Themen, Screenshot im geteilten Composer (Akzentfarbe, kein Rot).</li>
+            <li><code>src/app/core/consent.service.ts</code> — <code>sc.adminFeedback.lastSeenDelivered</code> ist bei Consent-Entzug registriert.</li>
+            <li><code>public/i18n/de.json</code>, <code>en.json</code> — 80 neue Schlüssel (stream, turn, ask, station, kind, role, sheet, filters, actions, compose.screenshot*), 37 Schlüssel der weggefallenen Flächen entfernt; Audit: 0 ungenutzt, 0 fehlend.</li>
+            <li><code>docs/feedback-routine.md</code> — § Ein-Tipp-Antwortoptionen (Regel wortgleich zum Parser), § „The admin side“ neu geschrieben, alle Stellen zu Übersicht/Abarbeiten/Archiv-Toggle angepasst.</li>
+            <li>gelöscht: <code>feedback-workflow.component.ts</code> + Spec (der Abarbeiten-Lauf).</li>
+            <li>neu: <code>admin-feedback.component.spec.ts</code> (Zustandsmaschine gegen ein PostgREST-Fake), Specs für alle Ableitungen; <code>.claude/launch.json</code> Eintrag für Port 4310.</li>
+          </ul>
+        </section>
+
+        <section id="tests" data-nav-label="Tests &amp; Verifikation">
+          <h3>Tests &amp; Verifikation</h3>
+          <ul>
+            <li><strong>Typecheck</strong> grün; <strong>Produktions-Build</strong> grün (Templates AOT-kompiliert, kein Style-Budget-Warning).</li>
+            <li><strong>Unit-Tests</strong>: 1924 Specs grün (npm test, ChromeHeadless) auf dem letzten Stand — darunter 9 neue für die Komponente (Bänder, Lead-Karte, Fläche über einen Poll hinweg, Escape vor der Shell, [[A|B]]-Gating und -Posting, Faltung, Klammer, Filter, Rollen, Anker) und rund 50 für die Ableitungen.</li>
+            <li><strong>Mobile-Gate</strong> gegen den eigenen Build auf 127.0.0.1:4331 (<code>--quick</code>, iPhone 14 + iPad Air × 5 Routen): 0 blockierende Befunde, 0 Warnungen. Das Gate prüft nur öffentliche Routen — das Panel selbst ist rollen-gesperrt.</li>
+            <li><strong>Adversarialer Review</strong> (Workflow, sechs Linsen: verlorene Fähigkeiten, Angular, A11y/Telefon, Design-Konformität, Daten-/Routine-Vertrag, i18n/Docs; je Befund drei Skeptiker): 6 Reviewer-Linsen, 49 Rohbefunde (Design-Regel 12, Vertrag 4, i18n/Docs 7, Fähigkeiten 8, A11y 12, Angular 6) — alle direkt geprüft und in vier Fix-Runden umgesetzt (Commits 3c216c1, 23d0d39); die anschließende Skeptiker-Runde (3 Refuter je Befund) ist am Session-Nutzungslimit abgebrochen, die 6 Urteile, die noch liefen, bestätigten nur bereits behobene Punkte.</li>
+            <li><strong>Übersprungen</strong>: der eingeloggte Durchlauf im Panel. Port 4200 gehört einer anderen Session, eine Supabase-Session ist pro Origin — und einloggen darf ich nicht. Das ist dein Teil, siehe Nächste Schritte.</li>
+          </ul>
+        </section>
+
+        <section id="open-questions" data-nav-label="Offene Fragen &amp; TODOs" data-open-questions>
+          <h3>Offene Fragen &amp; TODOs</h3>
+          <ul class="open-questions-list">
+            <li>
+              <label>
+                <input type="checkbox"
+                       name="oq-routine-skill-options"
+                       data-issue-title="[DOCS] Scheduled-task prompt: mention the [[A|B]] option line"
+                       data-issue-type="docs"
+                       data-issue-body="The feedback routine's scheduled-task prompt (~/.claude/scheduled-tasks/nightly-admin-feedback/SKILL.md, outside the repo) summarises STEP 3b (park a topic with a system reply). docs/feedback-routine.md § One-tap answer options now defines the [[A|B]] convention (last non-empty line, 2–4 options, 1–40 chars) that the panel renders as buttons. Add one sentence to STEP 3b pointing at that section so the routine actually emits the line when a Rückfrage is a choice."
+                       data-issue-role="ai"
+                       data-issue-module="feedback"
+                       checked>
+                <span class="oq-label">Scheduled-Task-Prompt der Routine erwähnt die <code>[[A|B]]</code>-Zeile noch nicht (Datei außerhalb des Repos)</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox"
+                       name="oq-gate-admin-panel"
+                       data-issue-title="[FEATURE] Mobile gate audits the role-gated feedback panels with a test session"
+                       data-issue-type="feature"
+                       data-issue-body="scripts/mobile-gate.mjs walks public routes only. The admin feedback panel (sc-admin-feedback, docked 480×680 / full sheet ≤720px) and the viewer feedback panel are role-gated, so their 48px targets, font floors and overflow are never audited. Add an opt-in authenticated pass: a test session (e.g. a dedicated test user + stored auth state, or a local Supabase stack) that opens the FAB panel and audits /admin/feedback plus the docked panel on the phone devices."
+                       data-issue-role="qa"
+                       data-issue-module="feedback"
+                       checked>
+                <span class="oq-label">Das Mobile-Gate prüft die rollen-gesperrten Feedback-Panels nicht (kein Test-Login)</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox"
+                       name="oq-phone-deeplink-minimize"
+                       data-issue-title="[FEATURE] Feedback panel: minimise the sheet after a ▸ Ansehen deep link on the phone"
+                       data-issue-type="feature"
+                       data-issue-body="On ≤720px the feedback panel is a full-bleed sheet. '▸ Ansehen' / 'Im App ansehen' are real routerLink anchors: the app navigates underneath, but the sheet keeps covering the page, so the user sees nothing change until they tap minimise. The interior cannot minimise the shell (feedback-fab.component.ts has no input/output for it — shell was out of the rethink's corridor). Proposal: a `(navigated)` output or a tiny shared signal the shell reads to minimise itself on a phone after an in-app navigation from the panel."
+                       data-issue-role="frontend"
+                       data-issue-module="feedback"
+                       checked>
+                <span class="oq-label">Auf dem Telefon bleibt die Fläche nach ▸ Ansehen über der Seite — die Shell müsste minimieren (Shell war außerhalb des Korridors)</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox"
+                       name="oq-orphaned-prefs"
+                       data-issue-title="[CHORE] Purge the retired admin-feedback localStorage keys"
+                       data-issue-type="chore"
+                       data-issue-body="The rewrite stopped reading sc.adminFeedback.view, sc.adminFeedback.handled, sc.adminFeedback.workflowScope and sc.adminFeedback.workflowKind. They were never registered in ConsentService.PREFERENCE_KEYS either, so they survive consent withdrawal. Remove them best-effort on the next panel load and add them to the purge list."
+                       data-issue-role="frontend"
+                       data-issue-module="feedback"
+                       checked>
+                <span class="oq-label">Verwaiste localStorage-Schlüssel des alten Panels (view, handled, workflowScope, workflowKind) einmalig aufräumen</span>
+              </label>
+            </li>
+          </ul>
+        </section>
+
+        <section id="dropped" data-nav-label="Bewusst weggefallen">
+          <h3>Bewusst weggefallen</h3>
+          <p>Mit dem Abarbeiten-Lauf gingen Überspringen mit Runde, das lokale „Erledigt“-Abhaken ohne Antwort, die Wisch-Gesten, die Fortschrittsleiste und die Meine/Andere- und Rückfragen/Abnahmen-Linsen; mit den Chip-Reihen gingen „alle auf/zu“ und die Zahlenzeile; das Ship-Banner ist durch den „neu“-Marker ersetzt (das Konfetti bleibt). Das Band ist die Warteschlange, seine Reihenfolge der Lauf, und Handeln auf einer Karte ist das, was sie weiterbewegt.</p>
+        </section>
+
+        <section id="next-steps" data-nav-label="Nächste Schritte">
+          <h3>Nächste Schritte</h3>
+          <ol>
+            <li>Panel in Edge öffnen (dein Login) und den Strom durchgehen: erste Karte mit Aktion, Thema öffnen, „1 weitere einblenden“, „Mehr anzeigen“, 📷 im Composer, Filter-Fläche, 📊, Geliefert-Band mit ▸ Ansehen — gedockt, maximiert und als Telefon-Fläche.</li>
+            <li><code>/ship</code> auf dem Branch <code>claude/feedback-panel-ux-rethink-6459f0</code> — vier Commits, kein Push bisher (autonomer Lauf shippt nicht).</li>
+            <li>Die offenen Punkte oben als Issues anlegen lassen (Wizard) oder abwählen.</li>
+          </ol>
+        </section>
       </section>
 
 </main>
@@ -3110,7 +3277,8 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
     <button id="panel-close" class="panel-close-btn" aria-label="Schliessen">✕</button>
     <nav class="iteration-tabs" role="tablist" aria-label="Iterationen">
       <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Iteration 1</button>
-      <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="true" aria-controls="iter-2">Iteration 2</button>
+      <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Iteration 2</button>
+      <button class="iteration-tab" role="tab" data-final-report data-iteration="3" aria-selected="true" aria-controls="iter-3">Abschlussbericht</button>
     </nav>
     <nav class="screen-nav" id="screen-nav" aria-label="Screens">
       <!-- auto-populated (design iterations) -->
@@ -3310,6 +3478,19 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
      role="button" tabindex="-1"
      aria-label="Schimmer entfernen"
      title="Schimmer entfernen" hidden></div>
+
+<!-- Frozen-iteration floating bar (all templates). Page-level chrome, so it
+     lives OUTSIDE section[data-iteration], next to the dimmer. showIteration()
+     unhides it on every non-live tab and fills [data-frozen-bar-title] with
+     that tab's chip label. It exists because the veil is lifted by reflex:
+     once the dimmer is clicked away, nothing on the page says "this is an
+     earlier round" except the small chip highlight in the panel — and the
+     live chip is not always the last one. Its button is the second way back
+     to the live round (#back-to-live-btn in #panel-frozen is the first). -->
+<div class="frozen-bar" id="frozen-bar" role="status" hidden>
+  <span class="frozen-bar-text">🕘 <strong data-frozen-bar-title>Iteration 1</strong> · frühere Runde, schreibgeschützt</span>
+  <button type="button" id="frozen-bar-back">Zur aktuellen Runde</button>
+</div>
 
 <script type="application/json" id="concept-decisions">
     {"submitted": false, "decisions": [], "comments": []}
@@ -3781,6 +3962,16 @@ function hideContentDimmer() {
   if (dim) dim.hidden = true;
   document.body.classList.remove('content-dimmed');
 }
+// Frozen veil — the same overlay doubles as the lock over a past iteration.
+// showIteration() calls this on EVERY entry into a non-live tab, so a veil the
+// user lifted (click / Escape) comes back the moment they switch tabs: at most
+// the one past round currently on screen is ever unlocked, and switching to
+// the live tab hides the dimmer instead (see showIteration), so from the live
+// round every past round is locked again.
+function lockFrozenView() {
+  document.body.classList.add('content-dimmed');
+  showContentDimmer();
+}
 document.getElementById('content-dimmer')?.addEventListener('click', hideContentDimmer);
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
@@ -4087,10 +4278,18 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshFinalizeWizard({ reset: true });
 });
 
-document.getElementById('back-to-live-btn')?.addEventListener('click', () => {
+// The way back to the live round. Without it the only exit from a past tab is
+// to spot which chip is the live one — and the live tab is not always the last
+// chip (the final report is), so guessing is a real failure mode. Two entry
+// points, one target: the panel's #back-to-live-btn and the floating
+// #frozen-bar-back (the bar sits over the content, where the user's eyes are
+// after they lift the veil — the panel link alone was too easy to miss).
+function goToLiveIteration() {
   const live = document.querySelector('section[data-iteration][data-active]');
   if (live) showIteration(live.dataset.iteration);
-});
+}
+document.getElementById('back-to-live-btn')?.addEventListener('click', goToLiveIteration);
+document.getElementById('frozen-bar-back')?.addEventListener('click', goToLiveIteration);
 
 
 /* --- Offline Submit Queue --- */
@@ -4346,6 +4545,21 @@ function showIteration(n) {
   }
   if (panelFinal) panelFinal.style.display = isFinal ? 'block' : 'none';
   if (panelFrozen) panelFrozen.style.display = isLive ? 'none' : 'block';
+  // Frozen veil + floating bar. Every entry into a non-live tab RE-LOCKS the
+  // round behind the shared content dimmer (lockFrozenView), so at most the
+  // one past round on screen can be unlocked and any tab switch — to another
+  // past round or back to the live one — relocks it. The bar stays up after
+  // the user lifts the veil: the veil is clicked away by reflex, the bar is
+  // what still tells them they are in history. On the live tab the dimmer is
+  // hidden (a veil lifted on a past round must not reappear over the live one).
+  const frozenBar = document.getElementById('frozen-bar');
+  if (frozenBar) {
+    frozenBar.hidden = !!isLive;
+    const title = frozenBar.querySelector('[data-frozen-bar-title]');
+    const tab = document.querySelector('.iteration-tab[data-iteration="' + n + '"]');
+    if (title) title.textContent = tab ? tab.textContent.trim() : String(n);
+  }
+  if (isLive) hideContentDimmer(); else lockFrozenView();
   if (typeof buildSectionNav === 'function') buildSectionNav();
   if (typeof refreshFinalizeWizard === 'function') refreshFinalizeWizard({ reset: true });
   document.dispatchEvent(new CustomEvent('iteration:changed'));
