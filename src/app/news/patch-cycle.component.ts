@@ -50,7 +50,10 @@ import type { StackCard } from './patch-stack';
           @for (p of c.points; track p.key + p.at) {
             <span class="pt" [attr.data-key]="p.key" [class.est]="p.estimated" [style.left.%]="p.pct"></span>
             @if (p.key !== 'hotfix') {
-              <span class="lab" [attr.data-key]="p.key" [class.below]="p.key === 'now'" [style.left.%]="p.pct">
+              <!-- The previous release and "today" label BELOW the axis, this
+                   patch's own points above: the previous Live sits close to
+                   the PTU start and the two labels collided on one line. -->
+              <span class="lab" [attr.data-key]="p.key" [class.below]="p.key === 'now' || p.key === 'prevLive'" [style.left.%]="p.pct">
                 @if (chipOf(p); as chip) {
                   <span class="chip" [attr.data-status]="chip">{{ ('news.patch.status.' + chip) | translate }}</span>
                 }
@@ -91,6 +94,7 @@ import type { StackCard } from './patch-stack';
     .disclaimer { display: block; margin-top: 4px; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     .axis { padding: 62px 8px 0; }
+    .lab.below[data-key='prevLive'] { top: 16px; }
     .track { position: relative; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--sc-fg-2) 25%, transparent); }
     .bar { position: absolute; top: 50%; transform: translateY(-50%); border-radius: 4px; }
     /* Expected: muted, vertically larger, behind. Real: active colour, thin, in front. */
@@ -132,7 +136,7 @@ import type { StackCard } from './patch-stack';
     .chip[data-status='next'] { color: var(--sc-accent); border: 1px dashed var(--sc-accent); }
     .chip[data-status='superseded'] { color: var(--sc-fg-2); border: 1px solid color-mix(in srgb, var(--sc-fg-2) 40%, transparent); }
 
-    .spans { list-style: none; margin: 40px 0 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+    .spans { list-style: none; margin: 64px 0 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
     .spans li {
       display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
       border: 1px solid var(--sc-border); border-radius: 6px; background: var(--sc-bg-1);
