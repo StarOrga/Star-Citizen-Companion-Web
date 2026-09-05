@@ -123,3 +123,34 @@ The answer is appended below when given.
 ### Merge note (2026-09-05, after the run)
 
 origin/main moved under the branch: admin feedback 312a4acc shipped the page capture ("+" and capture tiles in the attachment row, `PageScreenshotService` DOM-to-canvas, annotation, any file type for admins) and 0a0fad31 the 2.000-character cap; 89925995 put user-topic triage into the retired run. The merge keeps main's composer (my `getDisplayMedia` capture is dropped — decision r2-shot-display is superseded by the shipped implementation; only one camera), adds `large`/`primaryHot` back, ports the cap onto the decline note, `allowFiles` onto every admin composer, and the triage semantics into the stream (releases first in "Du bist dran", visible in every Wer? scope).
+
+## Close-out (2026-09-05)
+
+The concept session ended with the final report's wizard: **create the issues,
+do not ship, discard the page**. What that leaves behind, and where:
+
+**Issues created** (StarOrga/Star-Citizen-Companion-Web) — the four open points
+from the final report, each with the concept's context in its body:
+
+| # | Title |
+|---|---|
+| [#515](https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/515) | [DOCS] Scheduled-task prompt: mention the `[[A\|B]]` option line |
+| [#516](https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/516) | [FEATURE] Mobile gate audits the role-gated feedback panels with a test session |
+| [#517](https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/517) | [FEATURE] Feedback panel: minimise the sheet after an in-app deep link on the phone |
+| [#518](https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/518) | [CHORE] Purge the retired admin-feedback localStorage keys |
+
+The repository has no `type:` / `role:` / `module:` label namespace, so the
+payload's types were mapped onto the labels that exist: `docs` →
+`documentation`, `feature` → `enhancement`, `chore` → `chore`.
+
+**Not shipped.** The wizard's ship step was answered "no": the branch
+`claude/feedback-panel-ux-rethink-6459f0` carries the whole rethink plus the
+merge of `origin/main` (v0.76.0) and waits for `/ship`.
+
+**The concept page was discarded** (`docs/concepts/2026-09-04-feedback-panel-innenleben.html`
+and its decisions JSON, plus the bridge's durable store). It is recoverable
+from git history if the mocks are ever needed again — the last version (final
+report included) is in the merge commit `6d16d3d`:
+`git show 6d16d3d:docs/concepts/2026-09-04-feedback-panel-innenleben.html`.
+This file, `brief.md`, `approaches.md`, `codebase-facts.md` and `dossier.md`
+are the surviving record of the round.
