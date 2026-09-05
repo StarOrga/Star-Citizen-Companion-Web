@@ -4,10 +4,10 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
 
 /**
  * EINSATZ — the mission-profile chip row (04-rules-v2 §7.1: one row, never
- * wraps). Labels hide under 1240px so the icon-only chips still fit a phone
- * width; a mission the hull cannot fly renders disabled with the reason in
- * its `title` (no mining hardpoints / no cargo grid / no quantum drive / no
- * salvage hardpoints).
+ * wraps; MASTER §13: the bar wraps or scrolls, never clips — labels stay at
+ * every width and the row scrolls horizontally instead). A mission the hull
+ * cannot fly renders disabled with the reason in its `title` (no mining
+ * hardpoints / no cargo grid / no salvage hardpoints).
  *
  * The right side (MASTER §5) belongs to the loadout draft, in one of two
  * mutually exclusive states the page picks by `changed()`:
@@ -102,10 +102,6 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
       cursor: pointer; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
     }
     .idle-draft .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    @media (max-width: 1240px) {
-      .chip-label { display: none; }
-      .mission-chip { padding: 8px 12px; }
-    }
   `],
 })
 export class CodexMissionBarComponent {
