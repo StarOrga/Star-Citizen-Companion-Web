@@ -286,6 +286,18 @@ const LIST_SELECT: Record<CodexKind, string> = {
  */
 const WEAPON_FACET_HARD_CAP = 20000;
 
+/** How many cohort ships to score before yielding. Small enough that one
+ * batch stays well under a frame on a slow machine, large enough that the
+ * whole fleet still resolves in well under a second of wall clock. */
+const COHORT_CHUNK = 25;
+
+/** Hand the event loop back so layout, paint and input can run. `setTimeout`
+ * (not a microtask) is deliberate — a resolved promise would re-enter before
+ * the browser gets to render. */
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 @Injectable({ providedIn: 'root' })
 export class CodexService {
   private readonly sb = inject(SupabaseClientProvider);
@@ -993,6 +1005,7 @@ export class CodexService {
    * which is exactly what makes `rankShip()` degrade the "same size class"
    * scope to `codex.rank.disabled.noData` rather than a cohort of one.
    */
+  /** Ships scored per tick before the event loop gets a turn back. */
   async getRankCohort(): Promise<RankShipInput[]> {
     const build = await this.loadCurrentBuild();
     if (!build) return [];
@@ -1019,19 +1032,27 @@ export class CodexService {
       .filter((cn): cn is string => !!cn);
     const ammo = await this.getAmmoPayloads(ammoNames);
 
-    const ships: RankShipInput[] = rows.map((row) => {
-      const payload = row.payload as ShipPayload | undefined;
-      const sheet = computeKpiSheet(
-        this.cohortOccupantsFor(payload?.defaultLoadout ?? [], payloads, ammo),
-        this.cohortShipInput(payload),
-      );
-      return {
-        className: row.classNameSlug,
-        sizeClass: null, // schema gap — see the header comment.
-        career: resolveCareerLabel(payload?.career ?? null),
-        sheet,
-      };
-    });
+    // Resolving + scoring the WHOLE fleet is far too much work for one tick:
+    // measured live on 2026-09-05, 353 ships wedged the renderer for ~45 s and
+    // the tab stopped answering at all. So we hand the event loop back every
+    // COHORT_CHUNK ships — the page keeps painting and stays interactive while
+    // the ranking fills in behind it (the card shows its loading state).
+    const ships: RankShipInput[] = [];
+    for (let i = 0; i < rows.length; i += COHORT_CHUNK) {
+      for (const row of rows.slice(i, i + COHORT_CHUNK)) {
+        const payload = row.payload as ShipPayload | undefined;
+        ships.push({
+          className: row.classNameSlug,
+          sizeClass: null, // schema gap — see the header comment.
+          career: resolveCareerLabel(payload?.career ?? null),
+          sheet: computeKpiSheet(
+            this.cohortOccupantsFor(payload?.defaultLoadout ?? [], payloads, ammo),
+            this.cohortShipInput(payload),
+          ),
+        });
+      }
+      if (i + COHORT_CHUNK < rows.length) await yieldToEventLoop();
+    }
 
     writeCohortCache(key, ships);
     return ships;
