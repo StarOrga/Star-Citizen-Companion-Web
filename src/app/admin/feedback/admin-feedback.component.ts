@@ -203,12 +203,19 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             <span class="tb-label">{{ 'adminFeedback.filters.open' | translate }}</span>
             @if (filterCount() > 0) { <span class="tb-count">{{ filterCount() }}</span> }
           </button>
+          <!-- The glyph alone said nothing about where it leads (admin feedback
+               a33ba528). It now carries the word next to it, and the tooltip /
+               accessible name states what the page actually is instead of
+               repeating the button's own label. -->
           <button
             type="button"
-            class="tb-btn icon"
+            class="tb-btn progress"
             (click)="setView('progress')"
-            [attr.title]="'adminFeedback.stream.progress' | translate"
-            [attr.aria-label]="'adminFeedback.stream.progress' | translate">📊</button>
+            [attr.title]="'adminFeedback.stream.progressHint' | translate"
+            [attr.aria-label]="'adminFeedback.stream.progressHint' | translate">
+            <span aria-hidden="true">📊</span>
+            <span class="tb-label">{{ 'adminFeedback.stream.progress' | translate }}</span>
+          </button>
         </div>
 
         <div class="scroll stream">
@@ -964,9 +971,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .tb-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 12px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.82rem, var(--sc-fs-floor)); cursor: pointer; }
     .tb-btn:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .tb-btn.active { border-color: var(--sc-accent); color: var(--sc-accent); }
-    .tb-btn.icon { padding: 0; font-size: 1.05rem; }
+    .tb-btn.progress { font-size: max(0.86rem, var(--sc-fs-floor)); }
     .tb-count { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--sc-accent); color: var(--sc-bg-0); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; text-align: center; }
-    @media (max-width: 420px) { .tb-btn.filter .tb-label { display: none; } }
+    @media (max-width: 420px) { .tb-btn.filter .tb-label, .tb-btn.progress .tb-label { display: none; } }
 
     /* ---- Bands ---- */
     .band { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
