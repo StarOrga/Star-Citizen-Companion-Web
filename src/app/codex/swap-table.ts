@@ -589,6 +589,20 @@ export function swapDeltaColumn(
   return out;
 }
 
+/**
+ * Damage channel id → the localized word for it (B-C13). Reuses the weapon
+ * detail window's row labels rather than inventing a second vocabulary for
+ * the same six channels.
+ */
+export const DAMAGE_FAMILY_LABEL_KEY: Record<string, string> = {
+  physical: 'codex.weaponDetail.row.physical',
+  energy: 'codex.weaponDetail.row.energy',
+  distortion: 'codex.weaponDetail.row.distortion',
+  thermal: 'codex.weaponDetail.row.thermal',
+  biochemical: 'codex.weaponDetail.row.biochemical',
+  stun: 'codex.weaponDetail.row.stun',
+};
+
 /** `Vergleichen mit`, three stages (B-C13 / MASTER §9). */
 export type SwapScope = 'sameClass' | 'sameFamily' | 'allSize';
 
@@ -638,7 +652,7 @@ export function swapScopeOptions(
     {
       scope: 'sameFamily' as const,
       labelKey: 'codex.picker.scope.sameFamily',
-      params: { damage: family ?? '' },
+      params: { family: family ?? '' },
       available: !!family,
     },
     {

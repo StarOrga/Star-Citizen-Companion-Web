@@ -90,6 +90,9 @@ describe('comparison scope', () => {
     expect(options.map((o) => o.scope)).toEqual(['sameClass', 'sameFamily', 'allSize']);
     expect(options.map((o) => o.count)).toEqual([2, 3, 4]);
     expect(options[0].params['class']).toBe('Repeater');
+    // R-B22: the interpolation object must use the SAME key the i18n string
+    // interpolates (`Alle {{family}}` / `All {{family}}`), not `damage`.
+    expect(options[1].params['family']).toBe('energy');
     expect(options.every((o) => o.available)).toBeTrue();
   });
 

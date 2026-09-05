@@ -16,6 +16,17 @@ describe('ScColumnMenuComponent', () => {
     component = fixture.componentInstance;
     fixture.componentRef.setInput('label', 'Mass');
     fixture.componentRef.setInput('kind', 'numeric');
+    // Required inputs (LOW finding: no untranslated English fallback) — every
+    // consumer must supply these, so the spec does too.
+    fixture.componentRef.setInput('menuOpenLabel', 'Sort and filter column');
+    fixture.componentRef.setInput('sortLabel', 'Sort');
+    fixture.componentRef.setInput('ascLabel', 'Ascending');
+    fixture.componentRef.setInput('descLabel', 'Descending');
+    fixture.componentRef.setInput('rangeLabel', 'Range');
+    fixture.componentRef.setInput('fromLabel', 'From');
+    fixture.componentRef.setInput('toLabel', 'To');
+    fixture.componentRef.setInput('filterLabel', 'Filter');
+    fixture.componentRef.setInput('clearLabel', 'Clear');
     fixture.detectChanges();
   });
 

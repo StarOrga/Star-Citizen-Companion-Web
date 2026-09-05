@@ -11,6 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { fromEvent } from 'rxjs';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ScColumnMenuComponent } from '../shared/column-menu.component';
@@ -34,7 +35,9 @@ import {
   toggleFacetValue,
 } from './table-column-menu';
 import {
+  DAMAGE_FAMILY_LABEL_KEY,
   DEFAULT_SWAP_COLUMN_CHOOSER,
+  DEFAULT_SWAP_COLUMNS,
   NAME_SORT_KEY,
   SWAP_VALUE_CATALOGUE,
   SwapBaseline,
@@ -164,7 +167,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as t) {
-      <div class="pick-veil" (click)="closed.emit()">
+      <div class="pick-veil" [attr.title]="'codex.picker.hint' | translate" (click)="closed.emit()">
         <p class="pick-hint">{{ 'codex.picker.hint' | translate }}</p>
         <article #dialog class="pick-win" role="dialog" aria-modal="true"
                  aria-labelledby="pick-title"
@@ -218,7 +221,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                               (valueChange)="baseline.set($any($event))" />
               </div>
 
-              <p class="pick-count">{{ 'codex.picker.count' | translate: { n: rows().length, total: scoped().length } }}</p>
+              <p class="pick-count">{{ 'codex.picker.count' | translate: { n: rows().length, total: candidates().length } }}</p>
 
               <details class="pick-cols">
                 <summary class="pick-cols-sum">{{ 'codex.picker.columns' | translate }} ▾</summary>
@@ -247,7 +250,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
               <p class="pick-msg">{{ 'codex.swap.noMatch' | translate }}</p>
             } @else {
               <div class="pick-scroll">
-                <table class="wt">
+                <table class="wt" role="grid">
                   <thead>
                     <tr>
                       <th scope="col" class="c-name" [attr.aria-sort]="ariaSort(NAME_KEY)">
@@ -313,7 +316,8 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                           </span>
                         </td>
                         @for (col of displayColumns(); track col.key) {
-                          <td class="c-num" [class.gapc]="cellState(c, col.key) === 'notApplicable'">
+                          <td class="c-num" [class.gapc]="cellState(c, col.key) === 'notApplicable'"
+                              [attr.title]="cellState(c, col.key) === 'notApplicable' ? ('codex.picker.dashCellTitle' | translate) : null">
                             @if (barKeys.has(col.key)) {
                               @if (barOf(col.key, c); as bar) {
                                 @if (bar.percent !== null) {
@@ -322,7 +326,11 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                                 @if (bar.optimum) { <span class="opt" [attr.title]="'codex.picker.optimum' | translate" aria-hidden="true"></span> }
                               }
                             }
-                            <span class="cell">{{ cellText(c, col) }}</span>
+                            @if (col.key === DELTA_KEY) {
+                              <span class="cell d" [class.up]="deltaTone(c) === 'up'" [class.down]="deltaTone(c) === 'down'">{{ cellText(c, col) }}</span>
+                            } @else {
+                              <span class="cell">{{ cellText(c, col) }}</span>
+                            }
                           </td>
                         }
                       </tr>
@@ -331,9 +339,27 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                 </table>
               </div>
 
-              <p class="pick-note">{{ 'codex.picker.dashNote' | translate }}</p>
+              <div class="pick-cues">
+                <span><span aria-hidden="true">↔</span> {{ 'codex.picker.scrollCue.horizontal' | translate: { columns: overflowColumnLabels() } }}</span>
+                <span><span aria-hidden="true">↕</span> {{ 'codex.picker.scrollCue.vertical' | translate }}</span>
+              </div>
 
-              @if (chips().length > 0) {
+              @if (scopeChip(); as sc) {
+                <ul class="fc-list">
+                  <li class="fc">
+                    {{ sc.label }}
+                    <button type="button" (click)="scope.set('allSize')"
+                            [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: sc.label }">✕</button>
+                  </li>
+                  @for (chip of chips(); track chip.key) {
+                    <li class="fc">
+                      {{ chip.columnLabelKey | translate }}: {{ chip.textKey | translate: chip.params }}
+                      <button type="button" (click)="onClearFilter(chip.key)"
+                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: (chip.columnLabelKey | translate) }">✕</button>
+                    </li>
+                  }
+                </ul>
+              } @else if (chips().length > 0) {
                 <ul class="fc-list">
                   @for (chip of chips(); track chip.key) {
                     <li class="fc">
@@ -345,10 +371,10 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                 </ul>
               }
 
-              <div class="pick-cues">
-                <span>{{ 'codex.picker.scrollCue.horizontal' | translate: { columns: overflowColumns() } }}</span>
-                <span>{{ 'codex.picker.scrollCue.vertical' | translate }}</span>
-              </div>
+              <p class="pick-note">{{ 'codex.picker.dashNote' | translate }}</p>
+              @if (baselineOutOfSet()) {
+                <p class="pick-note baseline-note">{{ 'codex.picker.baselineOutOfSet' | translate }}</p>
+              }
             }
           }
 
@@ -427,8 +453,9 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 
     .pick-row { border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 55%, transparent); cursor: pointer; }
     .pick-row:hover { background: color-mix(in srgb, var(--sc-accent) 7%, transparent); }
+    .pick-row:hover td.c-name { background: color-mix(in srgb, var(--sc-accent) 7%, var(--sc-bg-1)); }
     .pick-row.cur { background: color-mix(in srgb, var(--sc-warn) 8%, transparent); }
-    .pick-row.cur td.c-name { color: color-mix(in srgb, var(--sc-warn) 14%, var(--sc-bg-0)); }
+    .pick-row.cur td.c-name { background: color-mix(in srgb, var(--sc-warn) 14%, var(--sc-bg-0)); }
 
     td.c-name { padding: 6px 8px; }
     .pick-ident { display: flex; flex-direction: column; gap: 1px; min-width: 0; margin-left: 4px; }
@@ -446,8 +473,11 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .bar { position: absolute; inset: 2px auto 2px 0; border-radius: 0 3px 3px 0; background: color-mix(in srgb, var(--sc-accent) 20%, transparent); }
     .opt { position: absolute; inset-block: 2px; inline-size: 1px; background: var(--sc-warn); }
     .cell { position: relative; }
+    .cell.d.up { color: var(--sc-success); }
+    .cell.d.down { color: var(--sc-danger); }
 
     .pick-note { margin: 2px 0 0; font-size: 11px; color: var(--sc-fg-2); }
+    .pick-note.baseline-note { color: var(--sc-warn); }
     .fc-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
     .fc { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
@@ -462,6 +492,8 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     @media (max-width: 640px) {
       .pick-veil { padding: 0; }
       .pick-win { max-width: none; border-radius: 0; }
+      .pick-scope { flex-direction: column; align-items: stretch; }
+      .pick-count, .pick-cols { align-self: flex-start; }
     }
   `],
 })
@@ -482,6 +514,7 @@ export class CodexSwapPickerComponent {
   readonly picked = output<SwapPick>();
 
   readonly NAME_KEY = NAME_SORT_KEY;
+  readonly DELTA_KEY = 'codex.picker.col.deltaSustained';
   readonly catalogue = SWAP_VALUE_CATALOGUE;
 
   readonly loading = signal(false);
@@ -501,8 +534,26 @@ export class CodexSwapPickerComponent {
   /** Value keys that get a magnitude bar (MASTER §9: Alpha, DPS only). */
   readonly barKeys = new Set(['codex.equipped.alphaDamage', 'codex.equipped.dps']);
 
+  /** ≤640px: the column set collapses to name + Δ + DPS + Alpha (UI spec phone state). */
+  private static readonly PHONE_COLUMNS: readonly string[] = [
+    'codex.picker.col.deltaSustained',
+    'codex.equipped.dps',
+    'codex.equipped.alphaDamage',
+  ];
+
+  private readonly isPhone = signal(
+    typeof globalThis.matchMedia === 'function' ? globalThis.matchMedia('(max-width: 640px)').matches : false,
+  );
+
   constructor() {
     this.i18n.onLangChange.pipe(takeUntilDestroyed()).subscribe((e) => this.lang.set(e.lang));
+
+    if (typeof globalThis.matchMedia === 'function') {
+      const mq = globalThis.matchMedia('(max-width: 640px)');
+      fromEvent<MediaQueryListEvent>(mq, 'change')
+        .pipe(takeUntilDestroyed())
+        .subscribe((e) => this.isPhone.set(e.matches));
+    }
 
     effect(() => {
       const t = this.target();
@@ -652,19 +703,33 @@ export class CodexSwapPickerComponent {
     this.candidates().find((c) => c.className === this.target()?.className),
   );
 
-  readonly scopeOptions = computed<ScSegmentOption[]>(() =>
-    swapScopeOptions(this.candidates(), this.fitted())
+  readonly scopeOptions = computed<ScSegmentOption[]>(() => {
+    this.lang();
+    return swapScopeOptions(this.candidates(), this.fitted())
       .filter((o) => o.available)
       .map((o) => ({
         value: o.scope,
-        label: `${this.i18n.instant(o.labelKey, o.params) as string} (${o.count})`,
-      })),
-  );
+        label: this.i18n.instant(o.labelKey, this.resolveScopeParams(o.scope, o.params)) as string,
+      }));
+  });
 
-  readonly baselineOptions = computed<ScSegmentOption[]>(() => [
-    { value: 'fitted', labelKey: 'codex.picker.baseline.equipped' },
-    { value: 'factory', labelKey: 'codex.picker.baseline.factory' },
-  ]);
+  /** Translates the raw damage-channel id `sameFamily` carries into a word. */
+  private resolveScopeParams(scope: SwapScope, params: Record<string, string | number>): Record<string, string | number> {
+    if (scope !== 'sameFamily') return params;
+    const family = params['family'];
+    if (typeof family !== 'string' || !family) return params;
+    const labelKey = DAMAGE_FAMILY_LABEL_KEY[family];
+    return { ...params, family: labelKey ? (this.i18n.instant(labelKey) as string) : family };
+  }
+
+  readonly baselineOptions = computed<ScSegmentOption[]>(() => {
+    const opts: ScSegmentOption[] = [{ value: 'fitted', labelKey: 'codex.picker.baseline.equipped' }];
+    // `Ab Werk` is omitted rather than shown disabled — sc-segmented has no
+    // disabled-option affordance, and offering a baseline nothing resolves to
+    // would be a dead choice (B-C14).
+    if (this.target()?.factoryClassName) opts.push({ value: 'factory', labelKey: 'codex.picker.baseline.factory' });
+    return opts;
+  });
 
   readonly baselineClass = computed<string | null>(() =>
     baselineClassName(this.baseline(), {
@@ -672,6 +737,13 @@ export class CodexSwapPickerComponent {
       factoryClassName: this.target()?.factoryClassName ?? null,
     }),
   );
+
+  /** Scope chip label under the table (Concept #g3) — mirrors the active segment. */
+  readonly scopeChip = computed<{ label: string } | null>(() => {
+    if (this.scope() === 'allSize') return null;
+    const opt = this.scopeOptions().find((o) => o.value === this.scope());
+    return opt ? { label: opt.label ?? '' } : null;
+  });
 
   readonly scoped = computed<SwapCandidate[]>(() =>
     applySwapScope(this.candidates(), this.fitted(), this.scope()),
@@ -714,11 +786,23 @@ export class CodexSwapPickerComponent {
     };
   }
 
+  /** True while the chooser still holds the untouched default 17-column set. */
+  private readonly chooserIsDefault = computed<boolean>(() => {
+    const visible = this.chooser().visible;
+    return (
+      visible.length === DEFAULT_SWAP_COLUMNS.length && visible.every((k, i) => k === DEFAULT_SWAP_COLUMNS[i])
+    );
+  });
+
   /** Visible columns (chooser selection, minus the ones with no data source at all). */
   readonly displayColumns = computed<(SwapValueDef & { def: ColumnDef<SwapCandidate> })[]>(() => {
-    const missing = new Set(swapMissingSourceColumns(this.candidates(), this.chooser().visible));
-    return this.chooser()
-      .visible.filter((k) => k !== NAME_SORT_KEY && !missing.has(k))
+    const wanted =
+      this.isPhone() && this.chooserIsDefault()
+        ? [NAME_SORT_KEY, ...CodexSwapPickerComponent.PHONE_COLUMNS]
+        : this.chooser().visible;
+    const missing = new Set(swapMissingSourceColumns(this.candidates(), wanted));
+    return wanted
+      .filter((k) => k !== NAME_SORT_KEY && !missing.has(k))
       .map((k) => ({ ...(swapValueDef(k) as SwapValueDef), def: this.columnDefFor(k) }));
   });
 
@@ -731,9 +815,19 @@ export class CodexSwapPickerComponent {
     applyColumnMenu(this.searched(), this.allMenuColumns(), this.columnMenu()),
   );
 
+  // The baseline is a property of the PORT, not of the current filter — a
+  // factory Cannon fitted under "Nur Repeater" must still price every row
+  // against it (B-C14), so the map is built over every candidate, not `rows()`.
   readonly deltaColumn = computed(() =>
-    swapDeltaColumn(this.rows(), 'codex.equipped.dps', this.baselineClass()),
+    swapDeltaColumn(this.candidates(), 'codex.equipped.dps', this.baselineClass()),
   );
+
+  /** True when the active Δ baseline is filtered out of the visible rows. */
+  readonly baselineOutOfSet = computed<boolean>(() => {
+    const base = this.baselineClass();
+    if (base === null) return false;
+    return !this.rows().some((c) => c.className === base);
+  });
 
   readonly chips = computed<ColumnFilterChip[]>(() =>
     activeFilterChips(this.allMenuColumns(), this.columnMenu()),
@@ -751,7 +845,17 @@ export class CodexSwapPickerComponent {
   }
   private barsCacheRows: SwapCandidate[] | null = null;
 
-  readonly overflowColumns = computed(() => this.displayColumns().length);
+  /** Columns beyond the ones a 1080px window shows fully at once (concept: 8 incl. name). */
+  private static readonly VISIBLE_WITHOUT_SCROLL = 7;
+
+  /** Off-screen column labels, joined for the horizontal scroll cue (B-C17). */
+  readonly overflowColumnLabels = computed<string>(() => {
+    this.lang();
+    return this.displayColumns()
+      .slice(CodexSwapPickerComponent.VISIBLE_WITHOUT_SCROLL)
+      .map((c) => this.i18n.instant(c.key) as string)
+      .join(', ');
+  });
 
   // ── column head interaction ────────────────────────────────────────────────
 
@@ -821,6 +925,7 @@ export class CodexSwapPickerComponent {
   }
 
   colLabel(v: SwapValueDef): string {
+    this.lang();
     const label = this.i18n.instant(v.key) as string;
     const unitKey = unitKeyFor(v.key, v);
     if (!unitKey) return label;
@@ -846,6 +951,14 @@ export class CodexSwapPickerComponent {
     if (v === null || v === undefined) return this.i18n.instant('codex.picker.dashCell') as string;
     const sign = v > 0 ? '+' : v < 0 ? '−' : '±';
     return `${sign}${formatEquippedStat({ labelKey: '', value: Math.abs(v), format: 'dec' })}`;
+  }
+
+  /** Green for a real gain, red for a real loss, plain for `±0`/unknown (B-C16). */
+  deltaTone(c: SwapCandidate): 'up' | 'down' | 'none' {
+    if (c.className === this.baselineClass()) return 'none';
+    const v = this.deltaColumn().get(c.className);
+    if (v === null || v === undefined || v === 0) return 'none';
+    return v > 0 ? 'up' : 'down';
   }
 
   /** "KLA · Laser Repeater · Grade A" — catalog data, so untranslated. */

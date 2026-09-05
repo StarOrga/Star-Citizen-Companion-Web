@@ -43,7 +43,6 @@ import { ColumnFacet, ColumnKind, SortDir } from '../codex/table-column-menu';
         <summary
           class="cm-kebab"
           [class.active]="open() || hasFilter()"
-          [attr.aria-expanded]="open()"
           [attr.aria-label]="menuOpenLabel()"
         >⋮</summary>
         <div class="cm-panel" (keydown)="onPanelKeydown($event)">
@@ -132,15 +131,17 @@ export class ScColumnMenuComponent {
   readonly facets = input<readonly ColumnFacet[]>([]);
   readonly hasFilter = input(false);
 
-  readonly menuOpenLabel = input('Sort and filter column');
-  readonly sortLabel = input('Sort');
-  readonly ascLabel = input('Ascending');
-  readonly descLabel = input('Descending');
-  readonly rangeLabel = input('Range');
-  readonly fromLabel = input('From');
-  readonly toLabel = input('To');
-  readonly filterLabel = input('Filter');
-  readonly clearLabel = input('Clear');
+  // Every consumer must pass a translated string — there is no untranslated
+  // English fallback to leak if a future one forgets to (LOW finding, column-menu).
+  readonly menuOpenLabel = input.required<string>();
+  readonly sortLabel = input.required<string>();
+  readonly ascLabel = input.required<string>();
+  readonly descLabel = input.required<string>();
+  readonly rangeLabel = input<string>('');
+  readonly fromLabel = input<string>('');
+  readonly toLabel = input<string>('');
+  readonly filterLabel = input.required<string>();
+  readonly clearLabel = input.required<string>();
 
   /** Plain click on the label text — sorts (or flips), same as today. */
   readonly headClick = output<void>();

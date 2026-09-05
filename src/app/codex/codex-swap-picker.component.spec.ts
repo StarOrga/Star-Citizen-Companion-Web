@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
 import { CodexKind, CodexService, CompatibleItem, PortQuery } from './codex.service';
+import { SwapCandidate } from './swap-table';
 
 // The picker is the answer to admin request 461288f9, redesigned per MASTER
 // §9 (iteration 7 `#g3` window + iteration 8 `#h3` values): a centred window
@@ -169,10 +170,23 @@ describe('CodexSwapPickerComponent', () => {
     expect(installedRow?.querySelector('.tag.eq')).toBeTruthy();
   });
 
-  it('reports the live scope counts (Nur Klasse / Alle Energiewaffen / Alle SN)', async () => {
+  it('renders the plain scope labels (no inline count) and the count separately', async () => {
     const el = await open();
+    // LOW finding: the scope segments read as plain labels ("Nur Repeater"),
+    // the live count lives only in the `n von total` note below the bar.
     const segLabels = Array.from(el.querySelectorAll('.pick-seg .seg-btn')).map((b) => b.textContent?.trim());
-    expect(segLabels.some((l) => /\(3\)/.test(l ?? ''))).toBeTrue();
+    expect(segLabels.some((l) => /\(\d+\)/.test(l ?? ''))).toBeFalse();
+    expect(el.querySelector('.pick-count')?.textContent).toContain('codex.picker.count');
+  });
+
+  it('counts against every compatible item for the port, not just the current scope', async () => {
+    const el = await open();
+    // Default scope is `sameClass` (Repeater only, 1 of 3) — the total must
+    // still read every compatible item for the port (HIGH finding 3).
+    expect(el.querySelector('.pick-count')?.textContent).toContain('codex.picker.count');
+    const n = fixture.componentInstance.rows().length;
+    const total = fixture.componentInstance.candidates().length;
+    expect(n).toBeLessThan(total);
   });
 
   it('moves the ±0 row when the Δ baseline switches from Eingebaut to Ab Werk', async () => {
@@ -253,5 +267,81 @@ describe('CodexSwapPickerComponent', () => {
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
     );
     expect(spy).toHaveBeenCalled();
+  });
+
+  it('titles a not-applicable dash cell (B-C16 medium finding)', async () => {
+    const el = await open();
+    widenToAllSize(el);
+    const gapCell = el.querySelector('td.gapc') as HTMLElement | null;
+    expect(gapCell).toBeTruthy();
+    expect(gapCell?.getAttribute('title')).toBe('codex.picker.dashCellTitle');
+  });
+
+  /** The service stub's guns all carry `fireRate: 0`, so real fixtures never
+   * populate a DPS stat (codex-equipped-stats: "0 means unset"). These two
+   * tests inject synthetic candidates with a real DPS so the Δ Dauer column
+   * has something to measure. */
+  function withDps(cmp: CodexSwapPickerComponent): void {
+    const base: SwapCandidate = {
+      className: INSTALLED,
+      kind: 'weapon',
+      name: 'CF-337 Panther Repeater',
+      manufacturerCode: 'KLA',
+      size: 3,
+      grade: 'A',
+      typeLabel: 'Laser Repeater',
+      archetype: 'Repeater',
+      damageChannels: ['energy'],
+      stats: { 'codex.equipped.dps': { value: 100, format: 'perSec' } },
+      equipped: true,
+    };
+    const better: SwapCandidate = {
+      ...base,
+      className: FACTORY,
+      name: 'Omnisky IX Cannon',
+      archetype: 'Cannon',
+      equipped: false,
+      stats: { 'codex.equipped.dps': { value: 150, format: 'perSec' } },
+    };
+    cmp.candidates.set([base, better]);
+  }
+
+  it('colours the Δ Dauer cell up/down/plain by the delta sign', async () => {
+    await open();
+    const cmp = fixture.componentInstance;
+    withDps(cmp);
+    cmp.scope.set('allSize');
+    fixture.detectChanges();
+    const gain = cmp.rows().find((r) => r.className === FACTORY);
+    const equipped = cmp.rows().find((r) => r.className === INSTALLED);
+    expect(gain).toBeTruthy();
+    expect(equipped).toBeTruthy();
+    expect(cmp.deltaTone(gain!)).toBe('up');
+    expect(cmp.deltaTone(equipped!)).toBe('none');
+  });
+
+  it('keeps every row priced against the baseline even when it is filtered out of view (B-C14)', async () => {
+    await open();
+    const cmp = fixture.componentInstance;
+    withDps(cmp);
+    cmp.scope.set('allSize');
+    fixture.detectChanges();
+    // Filter the baseline (the installed Repeater) out of the visible rows —
+    // the Δ column must still measure every remaining row against it.
+    cmp.query.set('omnisky');
+    fixture.detectChanges();
+    expect(cmp.rows().some((r) => r.className === INSTALLED)).toBeFalse();
+    expect(cmp.baselineOutOfSet()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.baseline-note')).toBeTruthy();
+    expect(cmp.deltaColumn().get(FACTORY)).not.toBeNull();
+  });
+
+  it('shows the scope as a removable chip once the scope narrows below Alle SN', async () => {
+    const el = await open();
+    // default scope is `sameClass` — the chip should already be visible.
+    expect(fixture.componentInstance.scopeChip()).toBeTruthy();
+    expect(el.querySelector('.fc-list .fc')).toBeTruthy();
+    widenToAllSize(el);
+    expect(fixture.componentInstance.scopeChip()).toBeNull();
   });
 });

@@ -1,4 +1,16 @@
-import { ChangeDetectionStrategy, Component, HostListener, computed, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
@@ -70,10 +82,10 @@ function num(v: number | null, format: 'int' | 'dec' | 'perSec' | 'seconds' | 'm
   template: `
     @if (entry(); as e) {
       <div class="wd-backdrop" (click)="closed.emit()">
-        <article class="wd-panel sc-card" role="dialog" aria-modal="true" aria-labelledby="wd-title"
-                 (click)="$event.stopPropagation()">
+        <article #dialog class="wd-panel sc-card" role="dialog" aria-modal="true" aria-labelledby="wd-title"
+                 tabindex="-1" (click)="$event.stopPropagation()" (keydown)="onKeydown($event)">
           <header class="wd-head">
-            <h2 id="wd-title">{{ e.name }}</h2>
+            <h2 id="wd-title">{{ e.name }}{{ e.size != null ? ' · S' + e.size : '' }}</h2>
             <button type="button" class="wd-close" (click)="closed.emit()"
                     [attr.aria-label]="'codex.weaponDetail.close' | translate">✕</button>
           </header>
@@ -99,8 +111,9 @@ function num(v: number | null, format: 'int' | 'dec' | 'perSec' | 'seconds' | 'm
   `,
   styles: [`
     :host { display: contents; }
-    .wd-backdrop { position: fixed; inset: 0; z-index: 145; background: rgba(0, 0, 0, 0.72);
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    .wd-backdrop { position: fixed; inset: 0; z-index: 145;
+      background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent);
+      -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
       display: flex; justify-content: center; align-items: flex-start; padding: 6vh 16px 16px; overflow-y: auto; }
     .wd-panel { position: relative; width: 100%; max-width: 900px; display: flex; flex-direction: column;
       gap: 12px; padding: 18px 20px 20px; border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
@@ -136,6 +149,9 @@ export class CodexWeaponDetailComponent {
   readonly entry = input<WeaponDetailEntry | null>(null);
   readonly closed = output<void>();
 
+  private readonly dialog = viewChild<ElementRef<HTMLElement>>('dialog');
+  private returnFocus: HTMLElement | null = null;
+
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (this.entry()) this.closed.emit();
@@ -147,6 +163,43 @@ export class CodexWeaponDetailComponent {
 
   constructor() {
     this.i18n.onLangChange.pipe(takeUntilDestroyed()).subscribe((e) => this.lang.set(e.lang));
+
+    // Focus trap + focus-return (§13), same pattern as the swap picker.
+    effect(() => {
+      if (this.entry()) {
+        this.returnFocus = (globalThis.document?.activeElement as HTMLElement | null) ?? null;
+        queueMicrotask(() => this.dialog()?.nativeElement.focus());
+      } else {
+        const el = this.returnFocus;
+        this.returnFocus = null;
+        if (el?.isConnected) el.focus();
+      }
+    });
+  }
+
+  /** Tab/Shift+Tab wrap inside the dialog; Escape is handled by the host listener above. */
+  onKeydown(ev: KeyboardEvent): void {
+    if (ev.key !== 'Tab') return;
+    const focusable = this.focusable();
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = globalThis.document?.activeElement as HTMLElement | null;
+    if (ev.shiftKey && active === first) {
+      ev.preventDefault();
+      last.focus();
+    } else if (!ev.shiftKey && active === last) {
+      ev.preventDefault();
+      first.focus();
+    }
+  }
+
+  private focusable(): HTMLElement[] {
+    const root = this.dialog()?.nativeElement;
+    if (!root) return [];
+    return Array.from(
+      root.querySelectorAll<HTMLElement>('button, input, a[href], [tabindex]:not([tabindex="-1"])'),
+    ).filter((el) => !el.hasAttribute('disabled'));
   }
 
   dashText(): string {
@@ -190,24 +243,30 @@ export class CodexWeaponDetailComponent {
       { labelKey: 'codex.weaponDetail.row.projectileSpeed', value: num(toFiniteNumber(ammoP?.speed ?? null), 'mps') },
       { labelKey: 'codex.weaponDetail.row.lifetime', value: num(toFiniteNumber(ammoP?.lifetime ?? null), 'seconds') },
       { labelKey: 'codex.weaponDetail.row.range', value: num(range, 'metres') },
-      { labelKey: 'codex.weaponDetail.row.alpha', value: num(alpha, 'dec') },
-      { labelKey: 'codex.weaponDetail.row.penetration', value: num(penetration, 'metresDec') },
     ];
 
     // derived — both DPS figures share the same source until magazine data
     // exists (owner decision, MASTER §15): sustained and burst read the same
     // fire rate, and say so via the same value rather than diverging guesses.
+    // Alpha/Durchschlag join them here (concept #h3: Abgeleitet = Alpha ·
+    // Burst-DPS · Dauer-DPS · Durchschlag), not under Feuer & Ballistik.
     const dps = alpha !== null && fireRate !== null ? (alpha * fireRate) / 60 : null;
     const derived: DetailRow[] = [
+      { labelKey: 'codex.weaponDetail.row.alpha', value: num(alpha, 'dec') },
       { labelKey: 'codex.weaponDetail.row.burstDps', value: num(dps, 'dec') },
       { labelKey: 'codex.weaponDetail.row.sustainedDps', value: num(dps, 'dec') },
+      { labelKey: 'codex.weaponDetail.row.penetration', value: num(penetration, 'metresDec') },
     ];
 
     const res = swapResourceStats(payload);
+    const irValue = res['codex.picker.col.ir'];
     const powerSignature: DetailRow[] = [
       { labelKey: 'codex.weaponDetail.row.powerDraw', value: fmt(res['codex.picker.col.power']) },
       { labelKey: 'codex.weaponDetail.row.emOnline', value: fmt(res['codex.picker.col.em']) },
-      { labelKey: 'codex.weaponDetail.row.irOnline', value: fmt(res['codex.picker.col.ir']) },
+      {
+        labelKey: 'codex.weaponDetail.row.irOnline',
+        value: irValue?.value === 0 ? (this.i18n.instant('codex.weaponDetail.value.none') as string) : fmt(irValue),
+      },
     ];
 
     const durability: DetailRow[] = [
@@ -220,7 +279,11 @@ export class CodexWeaponDetailComponent {
       { labelKey: 'codex.weaponDetail.row.mass', value: fmt(res['codex.picker.col.mass']) },
       { labelKey: 'codex.weaponDetail.row.size', value: e.size != null ? `S${e.size}` : null },
       { labelKey: 'codex.weaponDetail.row.grade', value: e.grade ?? null },
-      { labelKey: 'codex.weaponDetail.row.itemClass', value: e.manufacturerCode ?? null },
+      // `AttachDef.Class` (e.g. "Civilian") is not a field the extract carries
+      // anywhere today — showing the manufacturer code under a "Klasse" label
+      // would read as a wrong answer, not a gap, so this stays a gap until the
+      // extractor grows a source for it (MASTER §10 / B §3.5).
+      { labelKey: 'codex.weaponDetail.row.itemClass', value: null },
     ];
 
     const attachments: DetailRow[] = [

@@ -1068,6 +1068,7 @@
       "deltaAgainst": "Δ against",
       "count": "{{n}} of {{total}}",
       "noDelta": "±0",
+      "baselineOutOfSet": "The Δ baseline sits outside the current selection — the Δ values still measure against it.",
       "optimum": "Best in the comparison field",
       "columns": "Columns",
       "columnsUnavailable": "not in the game files",
