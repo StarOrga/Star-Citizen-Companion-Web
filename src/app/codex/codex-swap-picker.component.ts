@@ -49,6 +49,7 @@ import {
   applySwapScope,
   baselineClassName,
   buildSwapCandidate,
+  defaultSwapColumnsFor,
   resetSwapColumns,
   swapCell,
   swapCellState,
@@ -908,7 +909,8 @@ export class CodexSwapPickerComponent {
     };
   }
 
-  /** True while the chooser still holds the untouched default 17-column set. */
+  /** True while the chooser still holds the untouched, persisted default 17-column set
+   * (the weapon `#g3` set is the only shape the chooser is ever seeded or reset to). */
   private readonly chooserIsDefault = computed<boolean>(() => {
     const visible = this.chooser().visible;
     return (
@@ -916,13 +918,19 @@ export class CodexSwapPickerComponent {
     );
   });
 
-  /** Visible columns (chooser selection, minus the ones with no data source at all). */
+  /** Visible columns (chooser selection, minus the ones with no data source at all). An
+   * untouched chooser renders the port-kind-aware default (weapon 17, or the catalogue
+   * keys the candidates actually carry) instead of the persisted weapon set verbatim. */
   readonly displayColumns = computed<(SwapValueDef & { def: ColumnDef<SwapCandidate> })[]>(() => {
+    const candidates = this.candidates();
+    const isDefault = this.chooserIsDefault();
     const wanted =
-      this.isPhone() && this.chooserIsDefault()
+      this.isPhone() && isDefault
         ? [NAME_SORT_KEY, ...CodexSwapPickerComponent.PHONE_COLUMNS]
-        : this.chooser().visible;
-    const missing = new Set(swapMissingSourceColumns(this.candidates(), wanted));
+        : isDefault
+          ? defaultSwapColumnsFor(candidates)
+          : this.chooser().visible;
+    const missing = new Set(swapMissingSourceColumns(candidates, wanted));
     return wanted
       .filter((k) => k !== NAME_SORT_KEY && !missing.has(k))
       .map((k) => ({ ...(swapValueDef(k) as SwapValueDef), def: this.columnDefFor(k) }));

@@ -748,10 +748,27 @@ export const SWAP_VALUE_CATALOGUE: readonly SwapValueDef[] = [
   V('codex.equipped.fuelRate', 'perSec', false, true),
 ];
 
-/** The 17 columns the picker opens with. */
+/** The 17 columns the picker opens with — the concept's own `#g3` weapon set. */
 export const DEFAULT_SWAP_COLUMNS: readonly string[] = SWAP_VALUE_CATALOGUE.filter(
   (v) => v.byDefault,
 ).map((v) => v.key);
+
+/**
+ * The default column seed for a port kind. The concept only ever drew a
+ * weapon port, so `DEFAULT_SWAP_COLUMNS` stays the answer there; every other
+ * port (shield, cooler, quantum, thruster, power plant, …) falls back to the
+ * catalogue keys at least one candidate actually carries a value for, in
+ * catalogue order — restoring pre-redesign main's union rule instead of
+ * showing an all-dashes weapon table.
+ */
+export function defaultSwapColumnsFor(candidates: readonly SwapCandidate[]): readonly string[] {
+  if (candidates.length === 0 || candidates.every((c) => c.kind === 'weapon')) {
+    return DEFAULT_SWAP_COLUMNS;
+  }
+  return SWAP_VALUE_CATALOGUE.filter(
+    (v) => v.key !== NAME_SORT_KEY && candidates.some((c) => swapCellState(c, v.key) === 'value'),
+  ).map((v) => v.key);
+}
 
 const CATALOGUE_BY_KEY = new Map(SWAP_VALUE_CATALOGUE.map((v) => [v.key, v]));
 

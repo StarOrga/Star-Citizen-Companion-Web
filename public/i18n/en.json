@@ -880,7 +880,6 @@
       "draftNotice": "Not saved. This session only.",
       "draftDiscard": "Discard",
       "draftApplyAndSave": "Apply & save to hangar",
-      "lensReset": "Reset",
       "chipCargoUnknown": "Cargo hold · capacity not in the game files"
     },
     "energy": {
@@ -1354,11 +1353,11 @@
       "stealth": "Stealth",
       "mining": "Mining",
       "salvage": "Salvage",
+      "lensReset": "Reset lens",
       "disabled": {
         "noMining": "No mining hardpoints",
         "noSalvage": "No salvage hardpoints",
-        "noCargo": "No cargo grid",
-        "noQuantum": "No quantum drive"
+        "noCargo": "No cargo grid"
       }
     },
     "kpi": {

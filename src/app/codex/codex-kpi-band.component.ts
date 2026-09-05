@@ -36,9 +36,15 @@ import { KpiStripCell } from './codex-kpi-sets';
             <span class="kpi-value gap-dash" [attr.title]="c.gapKey ? (c.gapKey | translate) : null">—</span>
           }
           @if (c.delta; as d) {
-            <span class="kpi-delta" [class.good]="d.good" [class.bad]="!d.good" [class.dir-down]="d.direction === 'down'">
+            <span
+              class="kpi-delta"
+              [class.good]="d.good"
+              [class.bad]="!d.good"
+              [class.dir-down]="d.direction === 'down'"
+              [attr.title]="d.pctText"
+            >
               {{ d.direction === 'up' ? '▲' : '▼' }}
-              @if (d.pctText) { {{ d.pctText }} }
+              {{ deltaText(c) }}
             </span>
           }
         </div>
@@ -101,5 +107,13 @@ export class CodexKpiBandComponent {
 
   fmt(c: KpiCell): string {
     return formatEquippedStat({ labelKey: c.labelKey, value: c.value!, format: c.format });
+  }
+
+  /** The delta chip body: the absolute change, forced-sign, in the cell's own format. */
+  deltaText(c: KpiCell): string {
+    const raw = c.delta!.raw;
+    const sign = raw > 0 ? '+' : '−';
+    const magnitude = formatEquippedStat({ labelKey: c.labelKey, value: Math.abs(raw), format: c.format });
+    return `${sign}${magnitude}`;
   }
 }
