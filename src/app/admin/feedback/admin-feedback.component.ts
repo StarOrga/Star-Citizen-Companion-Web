@@ -2,14 +2,16 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  HostListener,
   OnInit,
   computed,
   inject,
   input,
   signal,
 } from '@angular/core';
-import { animate, style, transition, trigger } from '@angular/animations';
 import { NgTemplateOutlet } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { useAutoRefresh } from '../../core/auto-refresh';
@@ -20,58 +22,64 @@ import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import { ComposerPayload, FeedbackComposerComponent, PendingImage } from './feedback-composer.component';
 import { CelebrationService } from './celebration.service';
 import { FeedbackDashboardComponent } from './feedback-dashboard.component';
-import { FeedbackWorkflowComponent } from './feedback-workflow.component';
 import { RoutineStatusDirective } from './routine-status.directive';
-import { CharCounterComponent } from '../../feedback/char-counter.component';
-import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
 import {
+  AdminAsk,
+  AnswerOptions,
+  DeliveredDay,
+  FeedbackAuthor,
   FeedbackBucket,
   FeedbackMessage,
   FeedbackRow,
   FeedbackSearchHit,
-  FeedbackSource,
-  BucketLabelKey,
-  FeedbackStatus,
-  WORKFLOW_SCOPES,
-  WorkflowKind,
-  WorkflowScope,
-  awaitsTriage,
-  buildWorkflowQueue,
-  bucketLabelStatus,
+  FeedbackTurn,
+  FlightPosition,
   DECLINE_REASONS,
   DeclineReasonId,
   DeclineReasonTexts,
+  adminAsk,
+  awaitsReview,
+  awaitsTriage,
   declineReasonLabelKey,
   declineReasonTextKey,
-  matchDeclineReason,
+  deliveredByDay,
+  doneTime,
   feedbackBucket,
-  filterWorkflowKind,
-  filterWorkflowScope,
-  FoldedThread,
-  foldThread,
+  flightPosition,
   isArchived,
   isContinuedAfterShip,
+  isDelivered,
+  isLongMessage,
+  isNewSince,
   isUserSubmitted,
   ISSUE_REQUEST_MARKER,
+  matchDeclineReason,
+  parseAnswerOptions,
   pendingIssueRequest,
   refKind,
-  reviewSince,
   searchFeedback,
   searchTokens,
+  stationIndex,
+  stationLabelKey,
   timeOf,
   topicNumber,
   topicTitle,
-  workflowKindCounts,
-  workflowScopeCounts,
+  turnLabelKey,
+  turnOf,
+  waitingSince,
 } from './feedback.types';
 import { buildFeedbackBody, uploadFeedbackImages } from '../../feedback/feedback-images.util';
+import { CharCounterComponent } from '../../feedback/char-counter.component';
+import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
 import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
 import {
+  FEEDBACK_AREAS,
   FeedbackArea,
+  areaRoute,
   asFeedbackArea,
   feedbackAreaLabelKey,
 } from '../../feedback/feedback-area.types';
-import { awaitsReview } from './feedback.types';
+import { isPlainLeftClick } from '../../core/modified-click.util';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { formatScDate } from '../../core/locale/date-format';
 import { LocaleService } from '../../core/locale/locale.service';
@@ -84,75 +92,30 @@ import {
 } from '../../feedback/user-feedback.types';
 
 /**
- * The board's three modes: scan the list, work the queue, read the numbers.
- *
- * There used to be a fourth, `review` — the Abnahme pile as its own tab
- * (feedback #79). It held exactly the rows the Abarbeiten run walks, which made
- * it a second surface for one pile, and the admin asked for it to go (feedback
- * d4990269, round 2: "den Abnahme Tab können wir rausmachen und einfach in
- * Abarbeiten eine filter möglichkeit nur abnahmen einfügen"). The sign-off did
- * not lose a home: it is a chip in the run now, and the in-card gate in the
- * overview is untouched. A remembered `review` view is migrated in
- * {@link AdminFeedbackComponent.readView} to the run with that filter set, so
- * nobody's stored preference dead-ends.
+ * The board's two surfaces (concept 2026-09-04, direction E): the STREAM —
+ * one scroll in three bands ordered by whose turn it is — and the read-only
+ * Fortschritt numbers behind a glyph. The three tabs (Übersicht / Abarbeiten /
+ * Fortschritt) are gone: Übersicht and Abarbeiten were two views of one pile,
+ * and the stream IS that pile with the admin's own work on top.
  */
-export type FeedbackView = 'overview' | 'workflow' | 'progress';
+export type FeedbackView = 'stream' | 'progress';
 
 /**
- * Which half of the overview list is on screen: the working set or the done
- * pile (feedback eeba60e7). Orthogonal to {@link FeedbackView} — this only
- * splits the overview's own list.
+ * "Wer?" in the filter sheet — the one axis that used to be three controls
+ * (Admins/Nutzer switch, author chips, the run's mine/others scope). An author
+ * id narrows to that person; the four words are the shortcuts.
  */
-export type BoardTab = 'active' | 'archive';
+export type WhoFilter = 'all' | 'mine' | 'others' | 'users' | { authorId: string };
 
-/** One entry in the quick-access table of contents (horizontal jump bar). */
-interface TocEntry {
-  id: string;
-  label: string;
-  /** Presentation bucket (ToDo / Rückfrage / in progress …), not the raw status. */
-  bucket: FeedbackBucket;
-  /** needs_input topic whose newest reply is the routine's → the admin still owes an answer. */
-  awaitingAdmin: boolean;
-}
-
-/** A run of active topics sharing one calendar day, under a single day heading. */
-interface FeedbackGroup {
-  /** Stable day key (local Y-M-D) used for tracking and grouping. */
-  key: string;
-  /** Human day heading: Today / Yesterday / localized date. */
-  label: string;
-  items: FeedbackRow[];
-}
-
+/** localStorage key: when the admin last looked at the Geliefert band. */
+const LAST_SEEN_KEY = 'sc.adminFeedback.lastSeenDelivered';
 /** Draft identity of the new-topic composer (see `FeedbackDraftService`). */
 const DRAFT_SCOPE = draftScopes.adminNew;
-/** localStorage key remembering the last selected board view. */
-const VIEW_KEY = 'sc.adminFeedback.view';
-/**
- * View the board opens in when nothing is remembered (feedback fda4e3ea): the
- * processing mode, docked, maximized and on the full page alike. An explicit
- * pick via the view switch still wins on the next open.
- */
-const DEFAULT_VIEW: FeedbackView = 'workflow';
-/** localStorage key holding the processing mode's ticked-off topics. */
-const HANDLED_KEY = 'sc.adminFeedback.handled';
-/** localStorage key remembering the processing mode's scope. */
-const WORKFLOW_SCOPE_KEY = 'sc.adminFeedback.workflowScope';
-/**
- * Scope the processing mode opens in (feedback abfa97c6): your own topics.
- * Working the queue means answering Rückfragen, and those you can only answer
- * on topics you raised — another admin's topic is theirs to steer. The switch
- * (with its counts) makes the other two scopes one click away.
- */
-const DEFAULT_WORKFLOW_SCOPE: WorkflowScope = 'mine';
-/** localStorage key remembering the processing mode's kind lens. */
-const WORKFLOW_KIND_KEY = 'sc.adminFeedback.workflowKind';
-/**
- * Kind the processing mode opens on (feedback d4990269, round 2): everything.
- * The lens replaced the Abnahme tab, and the run's own point is that the admin
- * works one inbox rather than picking piles — narrowing it is a deliberate act.
- */
-const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
+/** Days of the Geliefert band shown before "n weitere Tage anzeigen". */
+const DELIVERED_DAYS_PAGE = 3;
+
+/** Role → avatar tint. Anyone without a known role is drawn as a plain user. */
+type AvatarTone = 'adm' | 'col' | 'usr';
 
 @Component({
   selector: 'sc-admin-feedback',
@@ -160,47 +123,29 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
   imports: [
     ScDatePipe,
     NgTemplateOutlet,
+    RouterLink,
     TranslateModule,
     FeedbackAttachmentsComponent,
     FeedbackComposerComponent,
-    FeedbackWorkflowComponent,
     FeedbackDashboardComponent,
     RoutineStatusDirective,
     CharCounterComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  // Smooth height/opacity collapse+expand for a topic's detail region, so the
-  // guided answer flow in the panel reads as a fold rather than a hard cut
-  // (feedback 816a0ec8). Disabled on the full board (see [@.disabled] below),
-  // where every card is always open.
-  animations: [
-    trigger('expandCollapse', [
-      transition(':enter', [
-        style({ height: '0', opacity: 0, overflow: 'hidden' }),
-        animate('220ms cubic-bezier(0.2, 0.8, 0.2, 1)', style({ height: '*', opacity: 1 })),
-      ]),
-      transition(':leave', [
-        style({ overflow: 'hidden' }),
-        animate('180ms cubic-bezier(0.4, 0, 1, 1)', style({ height: '0', opacity: 0 })),
-      ]),
-    ]),
-  ],
   template: `
-    <!-- “sc-dense” marks this as a shell that already pays for the padding
-         around its children, so the global de-nesting rules (styles.scss) let
-         the composer / compose sheet inside it drop their own side frames on a
-         narrow screen. Only the EMBEDDED shell claims it: on the full board
-         page the composer is a top-level surface and its frame is the only one
-         it has. -->
-    <section class="page" [class.embedded]="embedded()" [class.sc-dense]="embedded()">
+    <!-- "sc-dense": the embedded shell already pays for the padding around
+         its children, so the de-nesting rules (styles.scss) let the composer
+         and the sheets inside it drop their own side frames on a phone. -->
+    <section
+      class="page"
+      [class.embedded]="embedded()"
+      [class.sc-dense]="embedded()"
+      [class.overlay-open]="overlayOpen()">
       @if (!embedded()) {
         <header class="head">
           <div>
-            <!-- The heading doubles as the dev-PC liveness light: tinted green
-                 / red / left grey by scRoutineStatus (feedback a7573f0e). On
-                 the embedded board the FAB panel's own title carries it. The
-                 attribute's value is this heading's own i18n key: the state
-                 wording rides on aria-label, never on screen. -->
+            <!-- The heading doubles as the dev-PC liveness light (feedback
+                 a7573f0e); the FAB panel's own title carries it when embedded. -->
             <h1 scRoutineStatus="adminFeedback.title">{{ 'adminFeedback.title' | translate }}</h1>
             <p class="hint">{{ 'adminFeedback.subtitle' | translate }}</p>
           </div>
@@ -211,879 +156,179 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
         <div class="err"><strong>{{ 'adminFeedback.errorTitle' | translate }}:</strong> {{ errorMsg() }}</div>
       }
 
-      <!-- Ship celebration banner: the routine shipped something since the last
-           poll. Auto-hides; the confetti burst rides along (feedback 605d317d). -->
-      @if (shipCheer() > 0) {
-        <p class="ship-cheer" role="status">
-          🚀 {{ 'adminFeedback.cheer.shipped' | translate: { count: shipCheer() } }}
-        </p>
-      }
-
-      <!-- View switch — sits above everything, so it is reachable in the docked
-           panel, the maximized panel and on the full board page alike
-           (feedback 605d317d, phase 2). -->
-      <div class="view-switch" role="group" [attr.aria-label]="'adminFeedback.view.label' | translate">
-        <button
-          type="button"
-          class="view-tab"
-          [class.active]="view() === 'overview'"
-          [attr.aria-pressed]="view() === 'overview'"
-          (click)="setView('overview')">
-          {{ 'adminFeedback.view.overview' | translate }}
-        </button>
-        <button
-          type="button"
-          class="view-tab"
-          [class.active]="view() === 'workflow'"
-          [attr.aria-pressed]="view() === 'workflow'"
-          (click)="setView('workflow')">
-          {{ 'adminFeedback.view.workflow' | translate }}
-          <!-- Counts Rückfragen AND Abnahmen since feedback d4990269, and the
-               user topics waiting for their release since feedback 89925995 —
-               the run walks all three, so the badge promises all three. It
-               ignores the run's
-               kind filter on purpose: the badge is "how much is waiting", not
-               "how much is on screen". -->
-          @if (workflowInboxCount() > 0) {
-            <span class="tab-badge">{{ workflowInboxCount() }}</span>
-          }
-        </button>
-        <!-- The Abnahme tab used to sit here (feedback #79) and hold exactly the
-             rows the Abarbeiten run already walks. Two surfaces for one pile is
-             one too many, so it is gone (feedback d4990269, round 2) — the run
-             carries a "nur Abnahmen" filter instead, and a stored review view
-             lands there (see readView). -->
-        <button
-          type="button"
-          class="view-tab"
-          [class.active]="view() === 'progress'"
-          [attr.aria-pressed]="view() === 'progress'"
-          (click)="setView('progress')">
-          {{ 'adminFeedback.view.progress' | translate }}
-        </button>
-      </div>
-
-      @if (view() === 'workflow') {
-        <div class="board alt">
-          <sc-feedback-workflow
-            [queue]="workflowQueue()"
-            [selfId]="selfId()"
-            [busy]="busy()"
-            [compact]="embedded()"
-            [scope]="workflowScope()"
-            [scopeCounts]="workflowScopeCounts()"
-            [kind]="workflowKind()"
-            [kindCounts]="workflowKindCounts()"
-            [reply]="workflowReplyBound"
-            [reopenWithReply]="workflowReopenBound"
-            [askAuthor]="workflowAskAuthorBound"
-            [declineTopic]="workflowDeclineBound"
-            (markHandled)="markHandled($event)"
-            (scopeChange)="setWorkflowScope($event)"
-            (kindChange)="setWorkflowKind($event)"
-            (acceptReview)="acceptReview($event)"
-            (releaseTriage)="releaseToRoutine($event)"
-            (showProgress)="setView('progress')" />
+      @if (view() === 'progress') {
+        <!-- Fortschritt, byte-identical, re-homed behind the 📊 glyph. -->
+        <div class="topbar">
+          <button type="button" class="tb-btn" (click)="setView('stream')">
+            ← {{ 'adminFeedback.stream.backToStream' | translate }}
+          </button>
+          <span class="tb-title">{{ 'adminFeedback.stream.progress' | translate }}</span>
         </div>
-      } @else if (view() === 'progress') {
-        <div class="board alt">
-          <sc-feedback-dashboard
-            [rows]="messages()"
-            [threads]="threads()"
-            [compact]="embedded()" />
+        <div class="scroll alt">
+          <sc-feedback-dashboard [rows]="messages()" [threads]="threads()" [compact]="embedded()" />
         </div>
       } @else {
-
-      <div class="board">
-        <!-- Board toolbar (admin feedback 18e96ad3). Two rows, deliberately:
-             the FIRST carries what is always in play - the Aktiv/Erledigt
-             split, the Admins/Nutzer split, a compact search and, right-aligned,
-             the one control that acts on the whole list (alles auf/zu). The
-             SECOND is a single quiet text link that unrolls the rest. The chips
-             used to sit permanently unrolled on the full board and behind an
-             icon in the panel; one place, folded away by default, is both.
-             embedded() no longer changes the layout here - it only tightens the
-             spacing (see the styles). -->
-        <div class="board-toolbar">
-          <div class="tb-row">
-            <!-- Active / Archive tabs inside the overview (feedback eeba60e7).
-                 Active holds the working set (open / in Arbeit / Rueckfrage);
-                 Archive holds the terminal ones - shipped and issue-created -
-                 each with its link. -->
-            <div class="seg" role="group" [attr.aria-label]="'adminFeedback.tab.label' | translate">
+        <!-- CONTROLS AT REST: a search field and one Filter button — nothing
+             else stands between the admin and the first topic. The 📊 glyph
+             is the only other thing here, and it is a door, not a filter. -->
+        <div class="topbar">
+          <div class="search-box" [class.active]="searchQuery().length > 0">
+            <span class="search-icon" aria-hidden="true">&#9099;</span>
+            <input
+              #searchInput
+              type="search"
+              autocomplete="off"
+              [value]="searchQuery()"
+              (input)="setSearch($any($event.target).value)"
+              (keydown.escape)="clearSearch(); searchInput.blur(); $event.stopPropagation()"
+              [attr.placeholder]="'adminFeedback.search.placeholder' | translate"
+              [attr.aria-label]="'adminFeedback.search.label' | translate" />
+            @if (searchQuery().length > 0) {
               <button
                 type="button"
-                class="seg-tab"
-                [class.active]="boardTab() === 'active'"
-                [attr.aria-pressed]="boardTab() === 'active'"
-                (click)="setBoardTab('active')">
-                {{ 'adminFeedback.tab.active' | translate }}
-                <span class="tab-count">{{ activeCount() }}</span>
-              </button>
-              <button
-                type="button"
-                class="seg-tab"
-                [class.active]="boardTab() === 'archive'"
-                [attr.aria-pressed]="boardTab() === 'archive'"
-                (click)="setBoardTab('archive')">
-                {{ 'adminFeedback.tab.archive' | translate }}
-                <span class="tab-count">{{ archiveCount() }}</span>
-              </button>
-            </div>
-
-            <!-- Admin board vs. user feedback (admin feedback 18e96ad3). Same
-                 switch as above because it is the same kind of decision: which
-                 pile am I looking at. Defaults to Admins; the Nutzer side keeps
-                 its count and grows a marker while something there still waits
-                 to be released, so the default can never hide a fresh report. -->
-            <div class="seg" role="group" [attr.aria-label]="'adminFeedback.sourceFilter.label' | translate">
-              <button
-                type="button"
-                class="seg-tab"
-                [class.active]="sourceFilter() === 'admin'"
-                [attr.aria-pressed]="sourceFilter() === 'admin'"
-                (click)="setSourceFilter('admin')">
-                {{ 'adminFeedback.sourceFilter.admin' | translate }}
-                <span class="tab-count">{{ sourceCounts().admin }}</span>
-              </button>
-              <button
-                type="button"
-                class="seg-tab"
-                [class.active]="sourceFilter() === 'user'"
-                [attr.aria-pressed]="sourceFilter() === 'user'"
-                (click)="setSourceFilter('user')">
-                {{ 'adminFeedback.sourceFilter.user' | translate }}
-                <span class="tab-count">{{ sourceCounts().user }}</span>
-                @if (untriagedWaiting()) {
-                  <span
-                    class="dot"
-                    [attr.title]="'adminFeedback.sourceFilter.untriagedHint' | translate"></span>
-                }
-              </button>
-            </div>
-
-            <span class="tb-spacer"></span>
-
-            <!-- Fuzzy search across the whole conversation - topic body,
-                 processing note, author and every thread reply (feedback
-                 12476cec). It rests as a narrow pill and grows over its
-                 neighbours while it is in use, like the site-wide Ctrl+K search
-                 (admin feedback 18e96ad3); Escape, the x and a click elsewhere
-                 put it back. A query keeps it open, so the list is never
-                 narrowed by a box that has folded itself away. -->
-            <div
-              class="search-box"
-              [class.expanded]="searchExpanded()"
-              (focusin)="searchFocused.set(true)"
-              (focusout)="searchFocused.set(false)">
-              <span class="search-icon" aria-hidden="true">&#9099;</span>
-              <input
-                #searchInput
-                type="search"
-                autocomplete="off"
-                [value]="searchQuery()"
-                (input)="setSearch($any($event.target).value)"
-                (keydown.escape)="clearSearch(); searchInput.blur()"
-                [attr.placeholder]="'adminFeedback.search.placeholder' | translate"
-                [attr.aria-label]="'adminFeedback.search.label' | translate" />
-              <!-- Shown for any non-empty input, not just a *usable* query: a
-                   whitespace-only field has to be clearable too. -->
-              @if (searchQuery().length > 0) {
-                <button
-                  type="button"
-                  class="search-clear"
-                  (click)="clearSearch(); searchInput.blur()"
-                  [attr.title]="'adminFeedback.search.clear' | translate"
-                  [attr.aria-label]="'adminFeedback.search.clear' | translate">
-                  &times;
-                </button>
-              }
-            </div>
-
-            <!-- Fold every topic at once. Right-aligned and icon-only, with the
-                 tooltip that names what the click will do (admin feedback
-                 18e96ad3) - it acts on the whole list, so it belongs at the far
-                 end rather than among the filters. -->
-            @if (visibleMessages().length > 1) {
-              <button
-                type="button"
-                class="tb-icon expand-all"
-                (click)="toggleExpandAll()"
-                [attr.aria-pressed]="allExpanded()"
-                [attr.title]="(allExpanded() ? 'adminFeedback.collapseAll' : 'adminFeedback.expandAll') | translate"
-                [attr.aria-label]="(allExpanded() ? 'adminFeedback.collapseAll' : 'adminFeedback.expandAll') | translate">
-                <span class="chev" [class.open]="allExpanded()" aria-hidden="true">&#9656;</span>
-              </button>
+                class="search-clear"
+                (click)="clearSearch(); searchInput.blur()"
+                [attr.aria-label]="'adminFeedback.search.clear' | translate">&times;</button>
             }
           </div>
-
-          <!-- Second row: one quiet text link for everything that is not
-               everyday. The dot says a hidden chip is still narrowing the list. -->
-          <div class="tb-row second">
-            <button
-              type="button"
-              class="filter-link"
-              [class.open]="filtersOpen()"
-              (click)="toggleFilters()"
-              [attr.aria-expanded]="filtersOpen()">
-              <span class="chev" [class.open]="filtersOpen()" aria-hidden="true">&#9656;</span>
-              {{ 'adminFeedback.filter.toggle' | translate }}
-              @if (!filtersOpen() && (statusFilter() !== null || authorFilter() !== null)) {
-                <span class="dot" aria-hidden="true"></span>
-              }
-            </button>
-          </div>
-
-          @if (filtersOpen()) {
-            <div class="filters">
-              <!-- Status chips narrow the CURRENT tab; their vocabulary differs
-                   per tab, so switching tabs clears the chip selection. -->
-              <div class="status-filter" role="group" [attr.aria-label]="'adminFeedback.statusFilter.label' | translate">
-                <button
-                  type="button"
-                  class="status-chip"
-                  [class.active]="statusFilter() === null"
-                  (click)="setStatusFilter(null)">
-                  {{ 'adminFeedback.statusFilter.all' | translate }}
-                </button>
-                @if (boardTab() === 'active') {
-                  @if (bucketCounts().awaiting_admin > 0) {
-                    <button
-                      type="button"
-                      class="status-chip needs_input"
-                      [class.active]="statusFilter() === 'awaiting_admin'"
-                      (click)="setStatusFilter('awaiting_admin')">
-                      {{ 'adminFeedback.status.needs_input' | translate }}
-                    </button>
-                  }
-                  @if (bucketCounts().todo > 0) {
-                    <button
-                      type="button"
-                      class="status-chip open"
-                      [class.active]="statusFilter() === 'todo'"
-                      (click)="setStatusFilter('todo')">
-                      {{ 'adminFeedback.status.open' | translate }}
-                    </button>
-                  }
-                  <!-- The mirror image of the Rueckfrage chip: topics where the
-                       admin asked the person who filed them (feedback 5920cf8c). -->
-                  @if (bucketCounts().awaiting_author > 0) {
-                    <button
-                      type="button"
-                      class="status-chip needs_input_author"
-                      [class.active]="statusFilter() === 'awaiting_author'"
-                      (click)="setStatusFilter('awaiting_author')">
-                      {{ 'adminFeedback.status.needs_input_author' | translate }}
-                    </button>
-                  }
-                  @if (bucketCounts().in_progress > 0) {
-                    <button
-                      type="button"
-                      class="status-chip in_progress"
-                      [class.active]="statusFilter() === 'in_progress'"
-                      (click)="setStatusFilter('in_progress')">
-                      {{ 'adminFeedback.status.in_progress' | translate }}
-                    </button>
-                  }
-                  <!-- Shipped / handed to an issue and waiting for the sign-off
-                       that ends the topic (migration 20260729130000). -->
-                  @if (bucketCounts().review > 0) {
-                    <button
-                      type="button"
-                      class="status-chip review"
-                      [class.active]="statusFilter() === 'review'"
-                      (click)="setStatusFilter('review')">
-                      {{ 'adminFeedback.status.review' | translate }}
-                      <span class="chip-count">{{ bucketCounts().review }}</span>
-                    </button>
-                  }
-                } @else {
-                  @if (bucketCounts().shipped > 0) {
-                    <button
-                      type="button"
-                      class="status-chip shipped"
-                      [class.active]="statusFilter() === 'shipped'"
-                      (click)="setStatusFilter('shipped')">
-                      {{ 'adminFeedback.status.shipped' | translate }}
-                    </button>
-                  }
-                  @if (bucketCounts().issue_created > 0) {
-                    <button
-                      type="button"
-                      class="status-chip issue_created"
-                      [class.active]="statusFilter() === 'issue_created'"
-                      (click)="setStatusFilter('issue_created')">
-                      {{ 'adminFeedback.status.issue_created' | translate }}
-                    </button>
-                  }
-                  @if (bucketCounts().declined > 0) {
-                    <button
-                      type="button"
-                      class="status-chip declined"
-                      [class.active]="statusFilter() === 'declined'"
-                      (click)="setStatusFilter('declined')">
-                      {{ 'adminFeedback.status.declined' | translate }}
-                    </button>
-                  }
-                  @if (bucketCounts().rejected > 0) {
-                    <button
-                      type="button"
-                      class="status-chip rejected"
-                      [class.active]="statusFilter() === 'rejected'"
-                      (click)="setStatusFilter('rejected')">
-                      {{ 'adminFeedback.status.rejected' | translate }}
-                    </button>
-                  }
-                }
-              </div>
-              @if (authorOptions().length > 1) {
-                <div class="author-filter" role="group" [attr.aria-label]="'adminFeedback.filter.label' | translate">
-                  <button
-                    type="button"
-                    class="author-chip"
-                    [class.active]="authorFilter() === null"
-                    (click)="setAuthorFilter(null)">
-                    {{ 'adminFeedback.filter.all' | translate }}
-                  </button>
-                  @for (a of authorOptions(); track a.id) {
-                    <button
-                      type="button"
-                      class="author-chip"
-                      [class.active]="authorFilter() === a.id"
-                      (click)="setAuthorFilter(a.id)">
-                      {{ a.label }}
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- One totals line for the current filtering (feedback 605d317d): what
-             is waiting on the admin, and what came out of the board so far.
-             Shown in BOTH modes — the docked panel is the quick analytical look,
-             so this is exactly the line it must not be missing (it only drops
-             the wording down to bare numbers there). "In Arbeit" is deliberately
-             left out: it is nothing to act on and nothing to celebrate. -->
-        @if (hasBoardStats()) {
-          <p class="board-stats" [class.compact]="embedded()">
-            @if (motivatingStats().rueckfragen > 0) {
-              <span class="stat rueckfragen">{{ 'adminFeedback.stats.rueckfragen' | translate: { count: motivatingStats().rueckfragen } }}</span>
-            }
-            @if (motivatingStats().review > 0) {
-              <span class="stat review">{{ 'adminFeedback.stats.review' | translate: { count: motivatingStats().review } }}</span>
-            }
-            @if (motivatingStats().shipped > 0) {
-              <span class="stat shipped">{{ 'adminFeedback.stats.shipped' | translate: { count: motivatingStats().shipped } }}</span>
-            }
-            @if (motivatingStats().issues > 0) {
-              <span class="stat issues">{{ 'adminFeedback.stats.issues' | translate: { count: motivatingStats().issues } }}</span>
-            }
-          </p>
-        }
-
-        @if (busy() && messages().length === 0) {
-          <div class="sc-card empty">{{ 'adminFeedback.loading' | translate }}</div>
-        } @else if (messages().length === 0) {
-          <div class="sc-card empty">{{ 'adminFeedback.empty' | translate }}</div>
-        } @else if (boardTab() === 'active') {
-          <!-- Active topics grouped under a non-interactive day heading (Today /
-               Yesterday / date) so the list reads as a dated timeline. -->
-          @if (activeMessages().length === 0) {
-            <div class="sc-card empty">
-              {{ (searchActive() ? 'adminFeedback.search.empty' : 'adminFeedback.emptyActive')
-                  | translate: { query: searchQuery() } }}
-            </div>
-          }
-          @for (g of activeGroups(); track g.key) {
-            <div class="date-group">{{ g.label }}</div>
-            @for (m of g.items; track m.id) {
-              <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
-            }
-          }
-        } @else {
-          <!-- Archive: everything terminal (shipped + issue-created + legacy
-               rejected), newest first and paged. Each row carries its link. -->
-          @if (archiveMessages().length === 0) {
-            <div class="sc-card empty">
-              {{ (searchActive() ? 'adminFeedback.search.empty' : 'adminFeedback.emptyArchive')
-                  | translate: { query: searchQuery() } }}
-            </div>
-          } @else {
-            @if (searchActive()) {
-              <div class="date-group">
-                {{ 'adminFeedback.search.results' | translate: { count: archiveMessages().length } }}
-              </div>
-            }
-            <div class="archive-list">
-              @for (m of archiveVisibleMessages(); track m.id) {
-                <ng-container [ngTemplateOutlet]="msgCard" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
-              }
-              @if (archiveRemaining() > 0) {
-                <button type="button" class="load-more" (click)="loadMoreArchive()">
-                  {{ 'adminFeedback.loadMore' | translate: { count: archiveRemaining() } }}
-                </button>
-              }
-            </div>
-          }
-        }
-      </div>
-      }
-
-      <!-- Status pills of one topic. The presentation bucket decides the label,
-           not the raw status: an answered Rückfrage reads as ToDo (the routine
-           has to pick it up again) and only keeps the small "beantwortet" marker
-           next to it, which says who acted last (feedback 34c44134). -->
-      <ng-template #pills let-m>
-        <span class="status-pill" [class]="bucketLabel(m)">{{ ('adminFeedback.status.' + bucketLabel(m)) | translate }}</span>
-        <!-- What the sender says this is about (admin feedback 835fec58).
-             Nothing at all on the topics filed before the tag existed — an
-             invented default would read like an answer nobody gave. -->
-        @if (areaOf(m); as a) {
-          <span class="status-pill area">{{ areaLabelKey(a) | translate }}</span>
-        }
-        <!-- Filed by a viewer/collaborator through their own FAB (feedback
-             5920cf8c), and — until released — still held back from the routine. -->
-        @if (fromUser(m)) {
-          <span class="status-pill from-user">{{ 'adminFeedback.userTopic.badge' | translate }}</span>
-          @if (untriaged(m)) {
-            <span class="status-pill untriaged">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span>
-          }
-        }
-        <!-- An issue was ORDERED and not yet delivered (admin feedback
-             18e96ad3). It is not a status - the topic is a plain ToDo the
-             routine still owns - so it reads as the extra marker it is, next
-             to the bucket pill rather than instead of it. -->
-        @if (issueRequested(m)) {
-          <span class="status-pill issue_created">{{ 'adminFeedback.issue.pill' | translate }}</span>
-        }
-        @if (isAnsweredAwaitingRoutine(m)) {
-          <span class="status-pill answered">✓ {{ 'adminFeedback.status.answered' | translate }}</span>
-        }
-        @if (continuedAfterShip(m)) {
-          <span class="status-pill continued">↻ {{ 'adminFeedback.status.continued' | translate }}</span>
-        }
-        <!-- Why this row is in the result list even though its title looks
-             unrelated: the query matched further down the thread. -->
-        @if (threadOnlyHit(m)) {
-          <span class="status-pill">{{ 'adminFeedback.search.inThread' | translate }}</span>
-        }
-      </ng-template>
-
-      <!-- One thread message, wherever a thread is drawn. Both ends of a folded
-           thread render through this, so the fold can never drift into two
-           slightly different message layouts (feedback 03d7e546). -->
-      <ng-template #threadReply let-msg>
-        <div
-          class="reply"
-          [class.is-system]="msg.is_system"
-          [class.is-self]="!msg.is_system && msg.author_id === selfId()">
-          <div class="reply-head">
-            <span class="reply-author">{{ authorLabelFor(msg) }}</span>
-            @if (msg.is_system) { <span class="reply-badge">{{ 'adminFeedback.thread.routineBadge' | translate }}</span> }
-            <span class="reply-ts">{{ msg.created_at | scDate: (embedded() ? 'date' : 'datetime') }}</span>
-          </div>
-          @let reply = render(msg.body);
-          <div class="reply-body" [innerHTML]="reply.html"></div>
-          <sc-feedback-attachments [images]="reply.images" />
-        </div>
-      </ng-template>
-
-      <!-- One message of the author-visible channel — same shape, other labels. -->
-      <ng-template #authorReply let-am>
-        <div class="reply" [class.is-self]="am.from_admin">
-          <div class="reply-head">
-            <span class="reply-author">
-              {{ (am.from_admin ? 'adminFeedback.userTopic.fromTeam' : 'adminFeedback.userTopic.fromAuthor') | translate }}
-            </span>
-            @if (am.is_question) {
-              <span class="reply-badge">{{ 'adminFeedback.userTopic.questionBadge' | translate }}</span>
-            }
-            <span class="reply-ts">{{ am.created_at | scDate: 'datetime' }}</span>
-          </div>
-          @let authorBody = render(am.body);
-          <div class="reply-body" [innerHTML]="authorBody.html"></div>
-          <sc-feedback-attachments [images]="authorBody.images" />
-        </div>
-      </ng-template>
-
-      <!-- The one disclosure a folded thread gets: the "…" that stands in for
-           everything between its first and its last message. -->
-      <ng-template #foldToggle let-key let-count="count">
-        <button
-          type="button"
-          class="thread-more"
-          [attr.aria-expanded]="foldOpen(key)"
-          (click)="toggleFold(key)">
-          <span class="ellipsis" aria-hidden="true">{{ foldOpen(key) ? '⌃' : '…' }}</span>
-          {{ (foldOpen(key) ? 'adminFeedback.thread.foldCollapse' : 'adminFeedback.thread.foldExpand')
-              | translate: { count: count } }}
-        </button>
-      </ng-template>
-
-      <ng-template #msgCard let-m>
-        <article class="msg sc-card" [id]="cardDomId(m.id)" [class.is-self]="m.author_id === selfId()">
-          <!-- ONE card head, in the docked panel and on the full board alike
-               (feedback 03d7e546): chevron · #N · generated title · author ·
-               date · status. The full board used to render a non-interactive
-               head and keep every card permanently open — which is why
-               "expandieren/collapsen funktioniert nicht" was literally true
-               there: there was nothing to click.
-
-               TWO EXPLICIT LINES since admin feedback 3bc01a3d, on every
-               width. It used to be a single wrapping row holding the chevron,
-               #N, the author, the date and up to six status pills, with the
-               title as the only item allowed to shrink. Measured at 375px that
-               wrapped into four ragged lines whose order was whatever happened
-               to fit -- "#42" alone on the first, the author sharing the third
-               with three pills -- and the title was still the one thing that
-               got clipped when it grew.
-
-               Now line one is the chevron, the number and the title and
-               nothing else, and line two is the metadata, with author and date
-               pushed to its far end. Same information, same height, but the eye
-               lands on the topic first at every width. That ordering is the
-               part the admin asked to see on the desktop board as well, so it
-               is not behind a media query. -->
           <button
             type="button"
-            class="msg-head"
-            (click)="toggleExpand(m.id)"
-            [attr.aria-expanded]="isExpanded(m.id)"
-            [attr.aria-label]="'adminFeedback.toggleDetails' | translate">
-            <span class="chev" [class.open]="isExpanded(m.id)">▸</span>
-            <span class="mh-body">
-              <span class="mh-title-line">
-                <!-- Stable reference number (feedback 21587480) — deliberately
-                     quiet and ahead of the title, so it reads as a handle for
-                     the topic rather than as part of it. -->
-                @if (topicNo(m); as no) {
-                  <span
-                    class="topic-no"
-                    [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
-                }
-                <!-- Longer cap than the old one-row head could carry: the
-                     title owns a whole line now, so CSS ellipsis (not a
-                     hard-coded 64 characters) decides where it ends. -->
-                <span class="topic-title">{{ topicTitle(m.body, 96) }}</span>
-              </span>
-              <span class="mh-meta">
-                <ng-container [ngTemplateOutlet]="pills" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
-                <span class="mh-who">
-                  <span class="row-author">{{ authorLabel(m) }}</span>
-                  @if (!embedded()) {
-                    <span class="ts">{{ m.created_at | scDate: 'datetime' }}</span>
-                  }
-                </span>
-              </span>
-            </span>
+            class="tb-btn filter"
+            [class.active]="filterCount() > 0"
+            (click)="openFilters()"
+            [attr.aria-expanded]="filtersOpen()"
+            [attr.title]="filterCount() > 0 ? ('adminFeedback.filters.activeHint' | translate: { count: filterCount() }) : null"
+            [attr.aria-label]="'adminFeedback.filters.open' | translate">
+            <span aria-hidden="true">⚲</span>
+            <span class="tb-label">{{ 'adminFeedback.filters.open' | translate }}</span>
+            @if (filterCount() > 0) { <span class="tb-count">{{ filterCount() }}</span> }
           </button>
+          <button
+            type="button"
+            class="tb-btn icon"
+            (click)="setView('progress')"
+            [attr.title]="'adminFeedback.stream.progress' | translate"
+            [attr.aria-label]="'adminFeedback.stream.progress' | translate">📊</button>
+        </div>
 
-          @if (isExpanded(m.id)) {
-           <!-- Animate the fold only in the panel; the full board keeps every
-                card open, so its detail region is never toggled. -->
-           <div class="msg-detail" [@expandCollapse] [@.disabled]="!embedded()">
-            <!-- The topic's own text: the conversation's INITIAL message, always
-                 whole. The two-sentence clamp that used to live here (feedback
-                 73dfa165) is gone with feedback 03d7e546 — the card itself folds
-                 now, in both shells, so a second expand control inside an
-                 already expanded card was one fold too many. Screenshots ride
-                 along as thumbnails, they are attachments rather than part of
-                 the text (feedback a660536a). -->
-            @let body = render(m.body);
-            <div class="msg-body" [innerHTML]="body.html"></div>
-            <sc-feedback-attachments [images]="body.images" />
-
-            <!-- ship_ref holds either the PR that shipped the topic or the
-                 GitHub issue it was handed off to — label the link accordingly
-                 so the archive tells the two apart at a glance. -->
-            @if (m.ship_ref) {
-              <a
-                class="ship-ref"
-                [class.issue]="linkKind(m) === 'issue'"
-                [href]="m.ship_ref"
-                target="_blank"
-                rel="noopener noreferrer">
-                {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
-              </a>
-            }
-            @if (m.processing_note) {
-              <p class="proc-note">{{ m.processing_note }}</p>
-            }
-
-            <!-- Per-topic thread (admin ↔ routine), folded to its two ends
-                 (feedback 03d7e546): the topic body above is where the
-                 conversation started, so what has to stay in view here is the
-                 LAST message — the one that is waiting for a reaction. The
-                 first reply keeps its place as the thread's opening, everything
-                 between the two sits behind one "…" that says how much it
-                 hides. Same rule, same control as the author channel below and
-                 as the Abarbeiten run. -->
-            @let tf = threadFold(m.id);
-            @if (tf.tail.length > 0) {
-              <div class="thread">
-                @if (tf.lead; as lead) {
-                  <ng-container [ngTemplateOutlet]="threadReply" [ngTemplateOutletContext]="{ $implicit: lead }"></ng-container>
-                }
-                @if (tf.hidden.length > 0) {
-                  <ng-container
-                    [ngTemplateOutlet]="foldToggle"
-                    [ngTemplateOutletContext]="{ $implicit: tf.key, count: tf.hidden.length }"></ng-container>
-                }
-                @for (msg of tf.tail; track msg.id) {
-                  <ng-container [ngTemplateOutlet]="threadReply" [ngTemplateOutletContext]="{ $implicit: msg }"></ng-container>
-                }
-              </div>
-            }
-
-            <!-- REVIEW GATE — the work is done, the topic is not. It stays here
-                 until an admin looked at the result and decided, instead of
-                 dropping into the archive unseen (migration 20260729130000). -->
-            @if (inReview(m)) {
-              <!-- sc-nest--rule, not the plain band: this box carries a
-                   3px green left edge that says "a decision is wanted here",
-                   and the plain de-nesting would drop exactly that edge. The
-                   rule variant keeps an inline-start border and gives up the
-                   other three. -->
-              <section class="review-gate sc-nest sc-nest--rule">
-                <div class="rg-head">
-                  <span class="rg-badge">{{ 'adminFeedback.status.review' | translate }}</span>
-                  <span class="rg-title">
-                    {{ (m.status === 'issue_created'
-                        ? 'adminFeedback.review.headlineIssue'
-                        : 'adminFeedback.review.headlineShipped') | translate }}
-                  </span>
-                </div>
-                @if (!embedded()) {
-                  <p class="rg-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
-                }
-                <div class="rg-actions">
-                  <button class="sc-btn micro accept" (click)="acceptReview(m)" [disabled]="busy()">
-                    ✓ {{ 'adminFeedback.review.accept' | translate }}
-                  </button>
-                  <button class="sc-btn micro" (click)="reopenFromReview(m)" [disabled]="busy()">
-                    ↻ {{ 'adminFeedback.review.reopen' | translate }}
-                  </button>
-                </div>
-              </section>
-            }
-
-            <!-- Reply composer — full parity with the new-topic box (Enter to
-                 send / Shift+Enter for a newline, image paste/drop,
-                 list continuation). On an archived topic a reply reopens it
-                 (shipped: post-ship continuation; issue_created / declined /
-                 rejected: the reopen trigger, migration 20260726180000) — so a
-                 hint says as much before the admin types. -->
-            @if (archived(m)) {
-              <p class="reopen-hint">↻ {{ 'adminFeedback.thread.reopenHint' | translate }}</p>
-            }
-            <div class="reply-compose">
-              <sc-feedback-composer
-                [allowFiles]="true"
-                [compact]="true"
-                [draftScope]="threadScope(m.id)"
-                [busy]="busy()"
-                placeholder="adminFeedback.thread.replyPlaceholder"
-                sendLabel="adminFeedback.thread.reply"
-                [onSubmit]="replySubmitFor(m.id)" />
+        <div class="scroll stream">
+          @if (busy() && messages().length === 0) {
+            <div class="sc-card empty">{{ 'adminFeedback.loading' | translate }}</div>
+          } @else if (messages().length === 0) {
+            <div class="sc-card empty">{{ 'adminFeedback.empty' | translate }}</div>
+          } @else if (searchActive()) {
+            <!-- A search flattens the bands: relevance first, whatever band a
+                 hit lives in (feedback 12476cec). -->
+            <div class="band-head static">
+              <span class="bh-title">{{ 'adminFeedback.search.results' | translate: { count: searchResults().length } }}</span>
             </div>
-
-            <!-- AUTHOR CHANNEL — only for topics a non-admin filed. Everything
-                 in this block is visible to that person; the thread above (the
-                 admin <-> Claude conversation) never is. Keeping the two
-                 visually apart is the whole point of the framed section. -->
-            @if (fromUser(m)) {
-              <section class="author-channel sc-nest">
-                <header class="ac-head">
-                  <span class="ac-title">{{ 'adminFeedback.userTopic.channelTitle' | translate }}</span>
-                  <span class="ac-status">
-                    {{ 'adminFeedback.userTopic.seesStatus' | translate }}
-                    <strong>{{ ('userFeedback.status.' + authorFacingStatus(m)) | translate }}</strong>
-                  </span>
-                </header>
-                <p class="ac-hint">{{ 'adminFeedback.userTopic.channelHint' | translate }}</p>
-
-                <!-- Same fold as the thread above (feedback 03d7e546): first
-                     message, one "…" for the middle, newest message. -->
-                @let af = authorFold(m.id);
-                @if (af.tail.length > 0) {
-                  <div class="ac-thread">
-                    @if (af.lead; as lead) {
-                      <ng-container [ngTemplateOutlet]="authorReply" [ngTemplateOutletContext]="{ $implicit: lead }"></ng-container>
-                    }
-                    @if (af.hidden.length > 0) {
-                      <ng-container
-                        [ngTemplateOutlet]="foldToggle"
-                        [ngTemplateOutletContext]="{ $implicit: af.key, count: af.hidden.length }"></ng-container>
-                    }
-                    @for (am of af.tail; track am.id) {
-                      <ng-container [ngTemplateOutlet]="authorReply" [ngTemplateOutletContext]="{ $implicit: am }"></ng-container>
-                    }
-                  </div>
-                }
-
-                <!-- The ONE way to ask this topic's author something (feedback
-                     03d7e546): one box, and one switch that decides whether the
-                     message is a plain note or the Rückfrage that parks the
-                     topic until they answer. The switch is per topic — it used
-                     to be a single board-wide flag, so ticking it on one card
-                     armed every other open card as well. -->
-                @if (!archived(m)) {
-                  <label class="ac-ask">
-                    <input type="checkbox" [checked]="asksAuthor(m.id)" (change)="toggleAskAuthor(m.id)" />
-                    {{ 'adminFeedback.userTopic.asQuestion' | translate }}
-                  </label>
-                  <sc-feedback-composer
-                    [allowFiles]="true"
-                    [compact]="true"
-                    [draftScope]="authorScope(m.id)"
-                    [busy]="busy()"
-                    placeholder="adminFeedback.userTopic.messagePlaceholder"
-                    [sendLabel]="asksAuthor(m.id) ? 'adminFeedback.userTopic.questionSend' : 'adminFeedback.userTopic.messageSend'"
-                    [onSubmit]="authorReplySubmitFor(m.id)" />
-                }
-              </section>
+            @if (searchResults().length === 0) {
+              <div class="sc-card empty">{{ 'adminFeedback.search.empty' | translate: { query: searchQuery() } }}</div>
             }
-
-            <!-- ADMIN ACTIONS, behind ONE control (feedback 03d7e546).
-                 "Issue erstellt", "nicht umsetzen & löschen" and "löschen" used
-                 to sit under every card as a permanent row of buttons, next to
-                 two composers and the sign-off gate — the wall the admin asked
-                 us to take apart. They are rare, deliberate acts, so the resting
-                 card offers exactly one "Weitere Aktionen" disclosure and the
-                 buttons (with their inline forms) live inside it. Nothing was
-                 dropped: every status the routine reads — issue_created,
-                 declined, the triage release — is still reachable, one click
-                 deeper.
-
-                 The one exception stays out in the open: a user topic the
-                 routine is not allowed to touch yet is BLOCKED on that release,
-                 so hiding it would hide the reason the topic is not moving. -->
-            <div class="msg-actions">
-              @if (untriaged(m) && !archived(m) && !inReview(m)) {
-                <button class="sc-btn micro" (click)="releaseToRoutine(m)" [disabled]="busy()">
-                  {{ 'adminFeedback.userTopic.release' | translate }}
-                </button>
-              }
+            @for (m of searchResults(); track m.id) {
+              <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, lead: false }"></ng-container>
+            }
+          } @else {
+            <!-- BAND 1 · Du bist dran: every Rückfrage, sign-off and release
+                 that waits on the admin, longest wait first. The first card
+                 opens with its action inline — one click to act. -->
+            <section class="band yours">
               <button
                 type="button"
-                class="sc-btn micro ghost"
-                (click)="toggleMore(m.id)"
-                [attr.aria-expanded]="moreOpen(m.id)">
-                <span class="chev" [class.open]="moreOpen(m.id)" aria-hidden="true">▸</span>
-                {{ 'adminFeedback.moreActions' | translate }}
+                class="band-head"
+                (click)="toggleBand('admin')"
+                [attr.aria-expanded]="!bandCollapsed('admin')"
+                [attr.title]="(bandCollapsed('admin') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.yourTurn' | translate) }">
+                <span class="bh-title">{{ 'adminFeedback.stream.yourTurn' | translate }}</span>
+                <span class="bh-count" [class.hot]="yourTurn().length > 0">{{ yourTurn().length }}</span>
+                <span class="chev" [class.open]="!bandCollapsed('admin')" aria-hidden="true">▸</span>
               </button>
-            </div>
+              @if (!bandCollapsed('admin')) {
+                @if (yourTurn().length === 0) {
+                  <p class="band-empty">{{ 'adminFeedback.stream.emptyYourTurn' | translate }}</p>
+                }
+                @for (m of yourTurn(); track m.id; let first = $first) {
+                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, lead: first }"></ng-container>
+                }
+              }
+            </section>
 
-            @if (moreOpen(m.id)) {
-              <div class="more-actions">
-                <!-- A topic in the sign-off gate has already produced its
-                     outcome: the only decisions left are the two in the gate
-                     above, so the "hand it to an issue" control stays away. -->
-                @if (!archived(m) && !inReview(m)) {
-                  <!-- "Issue erstellen" is an ORDER, not a record of one
-                       (admin feedback 18e96ad3): it asks the routine to open a
-                       GitHub issue for this topic instead of implementing it,
-                       and the topic stays exactly where it is - ToDo, in the
-                       queue - until the routine delivers. Which is what makes
-                       the misclick undoable: nothing has happened yet. -->
-                  @if (issueRequested(m)) {
-                    <div class="issue-pending">
-                      <span class="ip-text">{{ 'adminFeedback.issue.pending' | translate }}</span>
-                      <button class="sc-btn micro" (click)="undoIssueRequest(m)" [disabled]="busy()">
-                        &#8630; {{ 'adminFeedback.issue.undo' | translate }}
-                      </button>
-                    </div>
-                  } @else {
-                    <button class="sc-btn micro" (click)="requestIssue(m)" [disabled]="busy()">
-                      {{ 'adminFeedback.issue.mark' | translate }}
-                    </button>
+            <!-- BAND 2 · Läuft: the routine's pile and the questions parked at
+                 a user. Nothing to do here — it is there to be seen. -->
+            <section class="band running">
+              <button
+                type="button"
+                class="band-head"
+                (click)="toggleBand('routine')"
+                [attr.aria-expanded]="!bandCollapsed('routine')"
+                [attr.title]="(bandCollapsed('routine') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.running' | translate) }">
+                <span class="bh-title">{{ 'adminFeedback.stream.running' | translate }}</span>
+                <span class="bh-count">{{ running().length }}</span>
+                <span class="chev" [class.open]="!bandCollapsed('routine')" aria-hidden="true">▸</span>
+              </button>
+              @if (!bandCollapsed('routine')) {
+                @if (running().length === 0) {
+                  <p class="band-empty">{{ 'adminFeedback.stream.emptyRunning' | translate }}</p>
+                }
+                @for (m of running(); track m.id) {
+                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, lead: false }"></ng-container>
+                }
+              }
+            </section>
+
+            <!-- BAND 3 · Geliefert: what shipped, by day, the LAST day on top,
+                 with a deep link into the app and a marker for everything that
+                 finished since the admin last looked. Replaces the archive tab
+                 and the ship-cheer banner. -->
+            <section class="band delivered">
+              <button
+                type="button"
+                class="band-head"
+                (click)="toggleBand('nobody')"
+                [attr.aria-expanded]="!bandCollapsed('nobody')"
+                [attr.title]="(bandCollapsed('nobody') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.delivered' | translate) }">
+                <span class="bh-title">{{ 'adminFeedback.stream.delivered' | translate }}</span>
+                <span class="bh-count">{{ deliveredCount() }}</span>
+                @if (newDeliveredCount() > 0) {
+                  <span class="bh-new" [attr.title]="'adminFeedback.stream.newSince' | translate">
+                    {{ 'adminFeedback.stream.newCount' | translate: { count: newDeliveredCount() } }}
+                  </span>
+                }
+                <span class="chev" [class.open]="!bandCollapsed('nobody')" aria-hidden="true">▸</span>
+              </button>
+              @if (!bandCollapsed('nobody')) {
+                @if (deliveredDays().length === 0) {
+                  <p class="band-empty">{{ 'adminFeedback.stream.emptyDelivered' | translate }}</p>
+                }
+                @for (d of visibleDeliveredDays(); track d.key) {
+                  <div class="day-head">
+                    <span>{{ dayLabel(d.day) }}</span>
+                    <span class="dh-count">{{ d.items.length }}</span>
+                  </div>
+                  @for (m of d.items; track m.id) {
+                    <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, lead: false, feed: true }"></ng-container>
                   }
                 }
-
-                <!-- A user-submitted topic is never hard-deleted: the author has
-                     to keep seeing "nicht umgesetzt" plus the reason, so the
-                     delete button becomes "nicht umsetzen & löschen" with a
-                     mandatory comment (feedback 5920cf8c, point 4). -->
-                @if (fromUser(m) && !archived(m) && !inReview(m)) {
-                  @if (declineFormFor() === m.id) {
-                    <form class="decline-form" (submit)="declineTopic(m, $event)">
-                      <!-- The same handful of reasons came back over and over
-                           and got retyped every time (feedback d5a779da). The
-                           chips PRE-FILL the note, they do not replace it: the
-                           textarea below stays the source of truth, editable,
-                           and the selection drops away the moment the text no
-                           longer is that reason. -->
-                      <div
-                        class="decline-reasons"
-                        role="group"
-                        [attr.aria-label]="'adminFeedback.decline.reasonsLabel' | translate">
-                        @for (r of declineReasons; track r.id) {
-                          <button
-                            type="button"
-                            class="reason-chip"
-                            [class.active]="declineReason() === r.id"
-                            [attr.aria-pressed]="declineReason() === r.id"
-                            (click)="pickDeclineReason(r.id)">
-                            {{ r.labelKey | translate }}
-                          </button>
-                        }
-                      </div>
-                      <!-- Same cap and the same live readout as every other
-                           feedback field (admin feedback 0a0fad31) — the author
-                           reads this text, so it is feedback like any other. -->
-                      <div class="field">
-                        <textarea
-                          class="decline-input"
-                          rows="3"
-                          required
-                          [value]="declineNote()"
-                          (input)="onDeclineInput($event)"
-                          [attr.maxlength]="maxChars"
-                          [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
-                          [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
-                        <sc-char-counter [used]="declineNote().length" [max]="maxChars" />
-                      </div>
-                      <div class="decline-actions">
-                        <button class="sc-btn micro danger" type="submit" [disabled]="busy()">
-                          {{ 'adminFeedback.decline.confirm' | translate }}
-                        </button>
-                        <button class="sc-btn micro" type="button" (click)="cancelDeclineForm()">
-                          {{ 'adminFeedback.decline.cancel' | translate }}
-                        </button>
-                      </div>
-                    </form>
-                  } @else {
-                    <button class="sc-btn micro danger" (click)="openDeclineForm(m)" [disabled]="busy()">
-                      {{ 'adminFeedback.decline.mark' | translate }}
-                    </button>
-                  }
-                } @else {
-                  <button class="sc-btn micro danger" (click)="remove(m)" [disabled]="busy()">
-                    {{ 'adminFeedback.delete' | translate }}
+                @if (hiddenDeliveredDays() > 0) {
+                  <button type="button" class="load-more" (click)="showMoreDays()">
+                    {{ 'adminFeedback.stream.moreDays' | translate: { count: hiddenDeliveredDays() } }}
                   </button>
                 }
-              </div>
-            }
-           </div>
+              }
+            </section>
           }
-        </article>
-      </ng-template>
+        </div>
 
-      <!-- New-topic composer — only in the overview; the processing mode has its
-           own inline answer box and the dashboard is read-only. On the full board
-           it stays pinned below the list; in the docked panel it collapses to a
-           slim "＋ Neues Thema" bar so the thread list owns the panel, and expands
-           on demand (feedback 3133f9). -->
-      @if (view() === 'overview') {
+        <!-- The composer bar, pinned to the bottom (settled core 7). On the full
+             board it is the whole composer; in the docked panel it folds to a
+             slim "＋ Neues Thema" bar so the stream owns the panel. -->
         @if (!embedded()) {
           <sc-feedback-composer
-            [allowFiles]="true"
             class="main-composer"
             [draftScope]="draftScope"
             [busy]="busy()"
             [areaPicker]="true"
+            [allowFiles]="true"
             placeholder="adminFeedback.compose.placeholder"
             sendLabel="adminFeedback.compose.send"
             [onSubmit]="createTopicBound" />
@@ -1098,10 +343,10 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
                 [attr.aria-label]="'adminFeedback.compose.collapse' | translate">✕</button>
             </div>
             <sc-feedback-composer
-              [allowFiles]="true"
               [draftScope]="draftScope"
               [busy]="busy()"
               [areaPicker]="true"
+              [allowFiles]="true"
               placeholder="adminFeedback.compose.placeholder"
               sendLabel="adminFeedback.compose.send"
               [onSubmit]="createComposerBound" />
@@ -1113,770 +358,742 @@ const DEFAULT_WORKFLOW_KIND: WorkflowKind = 'all';
           </button>
         }
       }
+
+      <!-- ============================================================ -->
+      <!-- ONE ROW OF THE STREAM. Head = avatar · #N title · flight path +
+           baton words · area · time. The lead card (first of "Du bist dran")
+           carries its action inline; every card opens the full-panel topic. -->
+      <ng-template #row let-m let-lead="lead" let-feed="feed">
+        @let turn = turnOf(m);
+        @let pos = positionOf(m);
+        <article
+          class="card sc-card"
+          [class.lead]="lead"
+          [class.done]="turn === 'nobody'"
+          [class.is-new]="isNew(m)"
+          [id]="feed ? cardDomId(m.id) + '-feed' : cardDomId(m.id)">
+          <button
+            type="button"
+            class="card-head"
+            (click)="openTopic(m.id)"
+            [attr.title]="'adminFeedback.stream.openTopic' | translate">
+            <ng-container [ngTemplateOutlet]="avatar" [ngTemplateOutletContext]="{ $implicit: m.author, self: m.author_id === selfId() }"></ng-container>
+            <span class="ch-body">
+              <span class="ch-title-line">
+                @if (topicNo(m); as no) {
+                  <span class="topic-no" [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
+                }
+                <span class="topic-title">{{ topicTitle(m.body, 96) }}</span>
+              </span>
+              <span class="ch-meta">
+                <ng-container [ngTemplateOutlet]="path" [ngTemplateOutletContext]="{ $implicit: pos }"></ng-container>
+                <span class="baton" [class]="'baton t-' + turn">
+                  @if (askOf(m); as ask) {
+                    {{ ('adminFeedback.ask.' + ask) | translate }}
+                  } @else {
+                    {{ stationLabelKey(pos) | translate }}
+                  }
+                </span>
+                @if (fromUser(m)) {
+                  <span class="kind user">{{ 'adminFeedback.kind.userFeedback' | translate }}</span>
+                } @else {
+                  <span class="kind">{{ 'adminFeedback.kind.order' | translate }}</span>
+                }
+                @if (areaOf(m); as a) {
+                  <span class="chip area">{{ areaLabelKey(a) | translate }}</span>
+                }
+                @if (issueRequested(m)) {
+                  <span class="chip">{{ 'adminFeedback.issue.pill' | translate }}</span>
+                }
+                @if (threadOnlyHit(m)) {
+                  <span class="chip">{{ 'adminFeedback.search.inThread' | translate }}</span>
+                }
+                @if (isNew(m)) {
+                  <span class="chip new">{{ 'adminFeedback.stream.newBadge' | translate }}</span>
+                }
+                <span class="ch-time">
+                  @if (turn === 'admin') {
+                    {{ 'adminFeedback.stream.waitingSince' | translate: { time: (waitingSinceIso(m) | scDate: 'date') } }}
+                  } @else {
+                    {{ lastActivityIso(m) | scDate: 'date' }}
+                  }
+                </span>
+              </span>
+            </span>
+          </button>
+
+          <!-- Delivered rows carry their two links right on the card: go and
+               look at it in the app, and the PR / issue behind it. A shipped
+               topic still waiting for its sign-off gets the ✓ right here. -->
+          @if (feed) {
+            <div class="card-links">
+              @if (inReview(m)) {
+                <button class="sc-btn micro" (click)="acceptReview(m)" [disabled]="busy()">
+                  ✓ {{ 'adminFeedback.review.accept' | translate }}
+                </button>
+              }
+              @if (areaLink(m); as href) {
+                <a class="link-btn" [routerLink]="href" [attr.title]="'adminFeedback.stream.viewTitle' | translate: { area: (areaLabelKey(areaOf(m)!) | translate) }">
+                  ▸ {{ 'adminFeedback.stream.view' | translate }}
+                </a>
+              }
+              @if (m.ship_ref) {
+                <a class="link-btn quiet" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
+                  {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
+                </a>
+              }
+            </div>
+          }
+
+          <!-- THE LEAD CARD: the one thing waiting on the admin, with its
+               answer right here (success criterion 2). -->
+          @if (lead) {
+            <div class="card-inline">
+              @switch (askOf(m)) {
+                @case ('question') {
+                  @if (lastSystemMessage(m); as q) {
+                    <ng-container [ngTemplateOutlet]="message" [ngTemplateOutletContext]="{ $implicit: q, kind: 'system' }"></ng-container>
+                  } @else if (m.processing_note) {
+                    <div class="msg system">
+                      <div class="msg-head"><span class="ai">{{ 'adminFeedback.kind.ai' | translate }}</span></div>
+                      <p class="msg-body">{{ m.processing_note }}</p>
+                    </div>
+                  }
+                  <ng-container [ngTemplateOutlet]="options" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+                  <sc-feedback-composer
+                    [compact]="true"
+                    [draftScope]="leadScope(m.id)"
+                    [busy]="busy()"
+                    [allowFiles]="true"
+                    [primaryHot]="true"
+                    placeholder="adminFeedback.thread.replyPlaceholder"
+                    sendLabel="adminFeedback.thread.reply"
+                    [onSubmit]="replySubmitFor(m.id)" />
+                  <div class="inline-actions">
+                    <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
+                      {{ 'adminFeedback.stream.openTopic' | translate }}
+                    </button>
+                  </div>
+                }
+                @case ('review') {
+                  <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m, hot: true }"></ng-container>
+                  <div class="inline-actions">
+                    <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
+                      {{ 'adminFeedback.stream.openTopic' | translate }}
+                    </button>
+                  </div>
+                }
+                @case ('release') {
+                  @let body = render(m.body);
+                  <div class="msg" [class.clamped]="isLong(m.id, m.body)">
+                    <div class="msg-body" [innerHTML]="body.html"></div>
+                    <ng-container [ngTemplateOutlet]="readMore" [ngTemplateOutletContext]="{ $implicit: m.id, body: m.body }"></ng-container>
+                    <sc-feedback-attachments class="sent" [images]="body.images" />
+                  </div>
+                  <div class="inline-actions">
+                    <button class="sc-btn micro hot" (click)="releaseToRoutine(m)" [disabled]="busy()">
+                      {{ 'adminFeedback.userTopic.release' | translate }}
+                    </button>
+                    <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
+                      {{ 'adminFeedback.stream.openTopic' | translate }}
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+          }
+        </article>
+      </ng-template>
+
+      <!-- Role-coloured avatar: admin red (elevated access), collaborator light
+           blue, user grey-blue. Initials, never a photo. -->
+      <ng-template #avatar let-a let-self="self">
+        <span class="av" role="img" [class]="'av ' + toneOf(a)" [attr.title]="roleTitle(a)" [attr.aria-label]="roleTitle(a)">{{ initials(a, self) }}</span>
+      </ng-template>
+
+      <!-- The flight path: four stations, filled up to the current one; a
+           branch endcap for issue / declined / rejected, a loop mark for a
+           post-ship continuation. Words ride along in the baton span. -->
+      <ng-template #path let-pos>
+        <span
+          class="fp"
+          role="img"
+          [class.loop]="pos.loop"
+          [class]="'fp s' + stationIndex(pos.station) + (pos.branch ? ' b-' + pos.branch : '') + (pos.loop ? ' loop' : '')"
+          [attr.aria-label]="'adminFeedback.station.pathLabel' | translate: { station: (stationLabelKey(pos) | translate) }">
+          <i></i><i></i><i></i><i></i>
+        </span>
+      </ng-template>
+
+      <!-- ONE SENT MESSAGE, wherever it is drawn: the topic's own text, a
+           routine reply, a human reply, an author-channel message. Routine
+           replies carry the plain "AI" label and no avatar (round-2 feedback);
+           humans carry their role avatar. Longer than three lines folds. -->
+      <ng-template #message let-msg let-kind="kind">
+        @let shown = kind === 'system' ? questionText(msg.body) : msg.body;
+        @let rendered = render(shown);
+        <div
+          class="msg"
+          [class.system]="kind === 'system'"
+          [class.self]="kind === 'human' && msg.author_id === selfId()"
+          [class.clamped]="isLong(msg.id, shown)">
+          <div class="msg-head">
+            @if (kind === 'system') {
+              <span class="ai">{{ 'adminFeedback.kind.ai' | translate }}</span>
+            } @else if (kind === 'author') {
+              <span class="who">{{ (msg.from_admin ? 'adminFeedback.userTopic.fromTeam' : 'adminFeedback.userTopic.fromAuthor') | translate }}</span>
+              @if (msg.is_question) { <span class="chip">{{ 'adminFeedback.userTopic.questionBadge' | translate }}</span> }
+            } @else {
+              <ng-container [ngTemplateOutlet]="avatar" [ngTemplateOutletContext]="{ $implicit: msg.author, self: msg.author_id === selfId() }"></ng-container>
+              <span class="who">{{ authorLabelFor(msg) }}</span>
+            }
+            <span class="msg-ts">{{ msg.created_at | scDate: 'datetime' }}</span>
+          </div>
+          <div class="msg-body" [innerHTML]="rendered.html"></div>
+          <ng-container [ngTemplateOutlet]="readMore" [ngTemplateOutletContext]="{ $implicit: msg.id, body: shown }"></ng-container>
+          <sc-feedback-attachments class="sent" [images]="rendered.images" />
+        </div>
+      </ng-template>
+
+      <!-- "Mehr anzeigen" under a message that folds (> 3 lines). -->
+      <ng-template #readMore let-id let-body="body">
+        @if (isLongBody(body)) {
+          <button type="button" class="read-more" (click)="toggleLong(id)" [attr.aria-expanded]="isLongOpen(id)">
+            {{ (isLongOpen(id) ? 'adminFeedback.sheet.readLess' : 'adminFeedback.sheet.readMore') | translate }}
+          </button>
+        }
+      </ng-template>
+
+      <!-- One-tap answers when the routine marked options ([[A|B]]). -->
+      <ng-template #options let-m>
+        @if (answerOptionsFor(m); as ao) {
+          <div class="answer-options" role="group" [attr.aria-label]="'adminFeedback.sheet.options' | translate">
+            @for (o of ao.options; track o) {
+              <button type="button" class="sc-btn micro option" (click)="answerWithOption(m, o)" [disabled]="busy() || answering()">{{ o }}</button>
+            }
+          </div>
+        }
+      </ng-template>
+
+      <!-- REVIEW GATE — the work is done, the topic is not, until an admin
+           looked at the result (migration 20260729130000). -->
+      <ng-template #reviewGate let-m let-hot="hot">
+        <section class="review-gate sc-nest sc-nest--rule">
+          <div class="rg-head">
+            <span class="rg-title">
+              {{ (m.status === 'issue_created' ? 'adminFeedback.review.headlineIssue' : 'adminFeedback.review.headlineShipped') | translate }}
+            </span>
+          </div>
+          @if (!embedded()) {
+            <p class="rg-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
+          }
+          <div class="rg-links">
+            @if (areaLink(m); as href) {
+              <a class="link-btn" [routerLink]="href">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
+            }
+            @if (m.ship_ref) {
+              <a class="link-btn quiet" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
+                {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
+              </a>
+            }
+          </div>
+          @if (reopeningFor() === reopenKey(m.id, hot)) {
+            <!-- The steer goes into the thread FIRST, the reopen follows once
+                 it is saved (the retired run's order): a topic never reaches
+                 the routine's queue without the reason in the thread. -->
+            <p class="rg-hint">{{ 'adminFeedback.review.reopenHint' | translate }}</p>
+            <sc-feedback-composer
+              [compact]="true"
+              [draftScope]="reopenScope(m.id)"
+              [busy]="busy()"
+              [allowFiles]="true"
+              placeholder="adminFeedback.review.reopenPlaceholder"
+              sendLabel="adminFeedback.review.reopenSend"
+              [onSubmit]="reopenSubmitFor(m.id)" />
+            <div class="rg-actions">
+              <button class="sc-btn micro ghost" type="button" (click)="cancelReopen()">
+                {{ 'adminFeedback.review.reopenCancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <div class="rg-actions">
+              <button class="sc-btn micro" [class.hot]="hot" (click)="acceptReview(m)" [disabled]="busy()">
+                ✓ {{ 'adminFeedback.review.accept' | translate }}
+              </button>
+              <button class="sc-btn micro" (click)="startReopen(m, hot)" [disabled]="busy()">
+                ↻ {{ 'adminFeedback.review.reopen' | translate }}
+              </button>
+            </div>
+          }
+        </section>
+      </ng-template>
+
+      <!-- ============================================================ -->
+      <!-- THE TOPIC, opened: takes the whole panel (round-1 feedback — one
+           needs room to read). First message of the poster, the newest
+           message, and between them one "…" that unfolds one more message
+           per tap. The composer is glued to the bottom edge. -->
+      @if (openRow(); as m) {
+        @let oturn = turnOf(m);
+        @let opos = positionOf(m);
+        <div class="sheet topic" role="dialog" aria-modal="true" [attr.aria-label]="topicTitle(m.body, 96)" [attr.inert]="declineTopicRow() ? '' : null">
+          <header class="sh-head">
+            <button type="button" class="sh-btn" (click)="closeTopic()" [attr.aria-label]="'adminFeedback.sheet.close' | translate">←</button>
+            @if (topicNo(m); as no) { <span class="topic-no">#{{ no }}</span> }
+            <span class="sh-title">{{ topicTitle(m.body, 120) }}</span>
+            <button
+              type="button"
+              class="sh-btn"
+              (click)="toggleMore(m.id)"
+              aria-haspopup="true"
+              [attr.aria-expanded]="moreOpen(m.id)"
+              [attr.aria-label]="'adminFeedback.actions.more' | translate">⋯</button>
+          </header>
+
+          @if (moreOpen(m.id)) {
+            <!-- Rare, deliberate acts behind the one ⋯ (feedback 03d7e546). -->
+            <div class="more-menu" role="group" [attr.aria-label]="'adminFeedback.actions.more' | translate">
+              @if (areaLink(m); as href) {
+                <a class="menu-item" [routerLink]="href" (click)="isPlainLeftClick($event) && closeTopic()">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
+              }
+              @if (!archived(m) && !inReview(m)) {
+                @if (issueRequested(m)) {
+                  <button type="button" class="menu-item" (click)="undoIssueRequest(m)" [disabled]="busy()">
+                    &#8630; {{ 'adminFeedback.issue.undo' | translate }}
+                  </button>
+                } @else {
+                  <button type="button" class="menu-item" (click)="requestIssue(m)" [disabled]="busy()">
+                    {{ 'adminFeedback.issue.mark' | translate }}
+                  </button>
+                }
+              }
+              @if (fromUser(m) && !archived(m) && !inReview(m)) {
+                <button type="button" class="menu-item danger" (click)="openDeclineForm(m)" [disabled]="busy()">
+                  {{ 'adminFeedback.decline.mark' | translate }}
+                </button>
+              } @else {
+                <button type="button" class="menu-item danger" (click)="remove(m)" [disabled]="busy()">
+                  {{ 'adminFeedback.delete' | translate }}
+                </button>
+              }
+            </div>
+          }
+
+          <div class="sh-body">
+            <!-- Where it stands, who filed it, what it is. -->
+            <div class="sh-meta">
+              <ng-container [ngTemplateOutlet]="avatar" [ngTemplateOutletContext]="{ $implicit: m.author, self: m.author_id === selfId() }"></ng-container>
+              <span class="who">{{ authorLabel(m) }}</span>
+              <span class="kind" [class.user]="fromUser(m)">
+                {{ (fromUser(m) ? 'adminFeedback.kind.userFeedback' : 'adminFeedback.kind.order') | translate }}
+              </span>
+              <span class="msg-ts">{{ m.created_at | scDate: 'datetime' }}</span>
+            </div>
+            <div class="sh-status">
+              <ng-container [ngTemplateOutlet]="path" [ngTemplateOutletContext]="{ $implicit: opos }"></ng-container>
+              <span class="baton" [class]="'baton t-' + oturn">
+                {{ (askOf(m) ? ('adminFeedback.ask.' + askOf(m)) : stationLabelKey(opos)) | translate }}
+              </span>
+              @if (areaOf(m); as a) { <span class="chip area">{{ areaLabelKey(a) | translate }}</span> }
+              @if (issueRequested(m)) { <span class="chip">{{ 'adminFeedback.issue.pill' | translate }}</span> }
+              @if (untriaged(m)) { <span class="chip hot">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span> }
+              @if (m.ship_ref && !inReview(m)) {
+                <a class="link-btn quiet" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
+                  {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
+                </a>
+              }
+            </div>
+            @if (m.processing_note) {
+              <p class="proc-note">{{ m.processing_note }}</p>
+            }
+
+            <!-- The poster's first message — the topic itself. -->
+            @let body = render(m.body);
+            <div class="msg first" [class.clamped]="isLong(m.id, m.body)">
+              <div class="msg-body" [innerHTML]="body.html"></div>
+              <ng-container [ngTemplateOutlet]="readMore" [ngTemplateOutletContext]="{ $implicit: m.id, body: m.body }"></ng-container>
+              <sc-feedback-attachments class="sent" [images]="body.images" />
+            </div>
+
+            <!-- Admin ↔ routine thread: newest message always visible, the
+                 middle behind "…" that reveals one more message per tap. -->
+            @let tf = threadView(m.id);
+            @if (tf.total > 0) {
+              <div class="thread">
+                @if (tf.hiddenCount > 0) {
+                  <button type="button" class="thread-more" (click)="revealOne(tf.key)">
+                    <span class="ellipsis" aria-hidden="true">…</span>
+                    {{ 'adminFeedback.sheet.showOneMore' | translate: { count: tf.hiddenCount } }}
+                  </button>
+                } @else if (tf.revealed > 0) {
+                  <button type="button" class="thread-more" (click)="hideRevealed(tf.key)">
+                    <span class="ellipsis" aria-hidden="true">⌃</span>
+                    {{ 'adminFeedback.sheet.hideBetween' | translate }}
+                  </button>
+                }
+                @for (msg of tf.shown; track msg.id) {
+                  <ng-container [ngTemplateOutlet]="message" [ngTemplateOutletContext]="{ $implicit: msg, kind: msg.is_system ? 'system' : 'human' }"></ng-container>
+                }
+              </div>
+            }
+
+            @if (inReview(m)) {
+              <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m, hot: false }"></ng-container>
+            }
+            @if (untriaged(m) && !archived(m) && !inReview(m)) {
+              <div class="inline-actions">
+                <button class="sc-btn micro" (click)="releaseToRoutine(m)" [disabled]="busy()">
+                  {{ 'adminFeedback.userTopic.release' | translate }}
+                </button>
+              </div>
+            }
+            @if (archived(m)) {
+              <p class="reopen-hint">↻ {{ 'adminFeedback.thread.reopenHint' | translate }}</p>
+            }
+
+            <!-- AUTHOR CHANNEL — only for a user topic; everything here is what
+                 that person sees. The thread above never is. -->
+            @if (fromUser(m)) {
+              <section class="author-channel sc-nest">
+                <header class="ac-head">
+                  <span class="ac-title">{{ 'adminFeedback.userTopic.channelTitle' | translate }}</span>
+                  <span class="ac-status">
+                    {{ 'adminFeedback.userTopic.seesStatus' | translate }}
+                    <strong>{{ ('userFeedback.status.' + authorFacingStatus(m)) | translate }}</strong>
+                  </span>
+                </header>
+                <!-- The privacy rule, in words, where it applies. -->
+                <p class="ac-hint">{{ 'adminFeedback.userTopic.channelHint' | translate }}</p>
+                @let af = authorView(m.id);
+                @if (af.total > 0) {
+                  <div class="thread">
+                    @if (af.hiddenCount > 0) {
+                      <button type="button" class="thread-more" (click)="revealOne(af.key)">
+                        <span class="ellipsis" aria-hidden="true">…</span>
+                        {{ 'adminFeedback.sheet.showOneMore' | translate: { count: af.hiddenCount } }}
+                      </button>
+                    } @else if (af.revealed > 0) {
+                      <button type="button" class="thread-more" (click)="hideRevealed(af.key)">
+                        <span class="ellipsis" aria-hidden="true">⌃</span>
+                        {{ 'adminFeedback.sheet.hideBetween' | translate }}
+                      </button>
+                    }
+                    @for (am of af.shown; track am.id) {
+                      <ng-container [ngTemplateOutlet]="message" [ngTemplateOutletContext]="{ $implicit: am, kind: 'author' }"></ng-container>
+                    }
+                  </div>
+                }
+                @if (!archived(m)) {
+                  <label class="ac-ask">
+                    <input type="checkbox" [checked]="asksAuthor(m.id)" (change)="toggleAskAuthor(m.id)" />
+                    {{ 'adminFeedback.userTopic.asQuestion' | translate }}
+                  </label>
+                  <sc-feedback-composer
+                    [compact]="true"
+                    [draftScope]="authorScope(m.id)"
+                    [busy]="busy()"
+                    [allowFiles]="true"
+                    placeholder="adminFeedback.userTopic.messagePlaceholder"
+                    [sendLabel]="asksAuthor(m.id) ? 'adminFeedback.userTopic.questionSend' : 'adminFeedback.userTopic.messageSend'"
+                    [onSubmit]="authorReplySubmitFor(m.id)" />
+                }
+              </section>
+            }
+          </div>
+
+          <!-- The composer, glued to the bottom edge of the sheet. Big field,
+               72px thumbnails, "+" (attach) and 📷 (screenshot), one red send. -->
+          <div class="sh-composer">
+            <ng-container [ngTemplateOutlet]="options" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+            <sc-feedback-composer
+              [draftScope]="threadScope(m.id)"
+              [busy]="busy()"
+              [allowFiles]="true"
+              [large]="true"
+              [primaryHot]="true"
+              placeholder="adminFeedback.thread.replyPlaceholder"
+              sendLabel="adminFeedback.thread.reply"
+              [onSubmit]="replySubmitFor(m.id)" />
+          </div>
+        </div>
+      }
+
+      <!-- ============================================================ -->
+      <!-- FILTER SHEET: three questions, big rows (≥ 48 px). -->
+      @if (filtersOpen()) {
+        <div class="sheet filters" role="dialog" aria-modal="true" [attr.aria-label]="'adminFeedback.filters.title' | translate">
+          <header class="sh-head">
+            <button type="button" class="sh-btn" (click)="closeFilters()" [attr.aria-label]="'adminFeedback.filters.done' | translate">←</button>
+            <span class="sh-title">{{ 'adminFeedback.filters.title' | translate }}</span>
+            @if (filterCount() > 0) {
+              <button type="button" class="sh-btn text" (click)="resetFilters()">{{ 'adminFeedback.filters.reset' | translate }}</button>
+            }
+          </header>
+          <div class="sh-body">
+            <div class="fq">{{ 'adminFeedback.filters.who' | translate }}</div>
+            <div class="f-rows" role="group">
+              <button type="button" class="f-row" [class.on]="whoIs('all')" [attr.aria-pressed]="whoIs('all')" (click)="setWho('all')">{{ 'adminFeedback.filters.whoAll' | translate }}</button>
+              <button type="button" class="f-row" [class.on]="whoIs('mine')" [attr.aria-pressed]="whoIs('mine')" (click)="setWho('mine')">{{ 'adminFeedback.filters.whoMine' | translate }}</button>
+              <button type="button" class="f-row" [class.on]="whoIs('others')" [attr.aria-pressed]="whoIs('others')" (click)="setWho('others')">{{ 'adminFeedback.filters.whoOthers' | translate }}</button>
+              <button type="button" class="f-row" [class.on]="whoIs('users')" [attr.aria-pressed]="whoIs('users')" (click)="setWho('users')">
+                {{ 'adminFeedback.filters.whoUsers' | translate }}
+                @if (untriagedWaiting()) { <span class="dot hot" [attr.title]="'adminFeedback.sourceFilter.untriagedHint' | translate"></span> }
+              </button>
+              @for (a of authorOptions(); track a.id) {
+                <button type="button" class="f-row sub" [class.on]="whoIsAuthor(a.id)" [attr.aria-pressed]="whoIsAuthor(a.id)" (click)="setWhoAuthor(a.id)">
+                  {{ authorLabel(a.row) }} <span class="f-count">{{ a.count }}</span>
+                </button>
+              }
+            </div>
+
+            <div class="fq">{{ 'adminFeedback.filters.where' | translate }}</div>
+            <div class="f-rows" role="group">
+              <button type="button" class="f-row" [class.on]="whereFilter() === null" [attr.aria-pressed]="whereFilter() === null" (click)="setWhere(null)">{{ 'adminFeedback.filters.whereAll' | translate }}</button>
+              @for (w of whereOptions(); track w.bucket) {
+                <button type="button" class="f-row" [class.on]="whereFilter() === w.bucket" [attr.aria-pressed]="whereFilter() === w.bucket" (click)="setWhere(w.bucket)">
+                  {{ w.labelKey | translate }} <span class="f-count">{{ w.count }}</span>
+                </button>
+              }
+            </div>
+
+            <div class="fq">{{ 'adminFeedback.filters.area' | translate }}</div>
+            <div class="f-rows" role="group">
+              <button type="button" class="f-row" [class.on]="areaFilter() === null" [attr.aria-pressed]="areaFilter() === null" (click)="setArea(null)">{{ 'adminFeedback.filters.areaAll' | translate }}</button>
+              @for (a of areaOptions(); track a.area) {
+                <button type="button" class="f-row" [class.on]="areaFilter() === a.area" [attr.aria-pressed]="areaFilter() === a.area" (click)="setArea(a.area)">
+                  {{ areaLabelKey(a.area) | translate }} <span class="f-count">{{ a.count }}</span>
+                </button>
+              }
+            </div>
+          </div>
+          <div class="sh-composer">
+            <button type="button" class="sc-btn sc-btn-primary done-btn" (click)="closeFilters()">{{ 'adminFeedback.filters.done' | translate }}</button>
+          </div>
+        </div>
+      }
+
+      <!-- DECLINE SHEET: "nicht umsetzen" with the mandatory explanation the
+           author gets to read (feedback 5920cf8c, d5a779da). -->
+      @if (declineTopicRow(); as m) {
+        <div class="sheet decline" role="dialog" aria-modal="true" [attr.aria-label]="'adminFeedback.decline.mark' | translate">
+          <header class="sh-head">
+            <button type="button" class="sh-btn" (click)="cancelDeclineForm()" [attr.aria-label]="'adminFeedback.decline.cancel' | translate">←</button>
+            <span class="sh-title">{{ 'adminFeedback.decline.mark' | translate }}</span>
+          </header>
+          <form class="sh-body decline-form" (submit)="declineTopic(m, $event)">
+            <div class="fq">{{ 'adminFeedback.decline.reasonsLabel' | translate }}</div>
+            <div class="f-rows" role="group">
+              @for (r of declineReasons; track r.id) {
+                <button
+                  type="button"
+                  class="f-row"
+                  [class.on]="declineReason() === r.id"
+                  [attr.aria-pressed]="declineReason() === r.id"
+                  (click)="pickDeclineReason(r.id)">
+                  {{ r.labelKey | translate }}
+                </button>
+              }
+            </div>
+            <!-- Same cap and the same live readout as every other feedback
+                 field (admin feedback 0a0fad31) — the author reads this text. -->
+            <div class="field">
+              <textarea
+                class="decline-input"
+                rows="4"
+                required
+                [value]="declineNote()"
+                (input)="onDeclineInput($event)"
+                [attr.maxlength]="maxChars"
+                [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
+                [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
+              <sc-char-counter [used]="declineNote().length" [max]="maxChars" />
+            </div>
+            <div class="inline-actions">
+              <button class="sc-btn micro danger" type="submit" [disabled]="busy()">{{ 'adminFeedback.decline.confirm' | translate }}</button>
+              <button class="sc-btn micro" type="button" (click)="cancelDeclineForm()">{{ 'adminFeedback.decline.cancel' | translate }}</button>
+            </div>
+          </form>
+        </div>
+      }
     </section>
   `,
   styles: [`
-    /* One focus ring for every control on the board — it was spelled out
-       eight times, in two shades that were never told apart on screen. */
-    .view-tab:focus-visible,
-    .status-chip:focus-visible,
-    .author-chip:focus-visible,
-    .reason-chip:focus-visible,
-    .seg-tab:focus-visible,
-    .tb-icon:focus-visible,
-    .filter-link:focus-visible,
-    .new-topic-bar:focus-visible,
-    .cs-close:focus-visible,
-    .load-more:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.32);
-    }
-
-    .page { display: flex; flex-direction: column; gap: var(--sc-gap-1); max-width: 860px; }
-    /* Embedded inside the FAB chat panel: fill the panel, scroll the history,
-       and keep the composer pinned below it (never behind it). */
-    .page.embedded {
-      max-width: none;
-      gap: var(--sc-gap-2);
-      flex: 1 1 auto;
-      min-height: 0;
-      /* Level 2 of the density scale: the panel shell around it is level 1.
-         14px flat used to be a fifth of a 375px screen once the card inside it
-         added its own (admin feedback 3bc01a3d). */
-      padding: var(--sc-pad-2);
-      box-sizing: border-box;
-    }
-    .page.embedded .board { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
-    .page.embedded .main-composer { position: static; }
-
-    /* New-topic composer stays pinned to the bottom of the board on the full
-       page; the embedded panel scrolls the board and keeps it static. */
-    .main-composer {
-      position: sticky;
-      bottom: 12px;
-      z-index: 1;
-    }
-
-    /* Non-interactive day heading between dated groups of topics. */
-    .date-group {
-      margin: 6px 2px 0;
-      font-size: max(0.66rem, var(--sc-fs-floor));
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--sc-fg-2);
-    }
-    .date-group:first-child { margin-top: 0; }
-
-    /* Two-line card head (admin feedback 3bc01a3d).
-       Row 1: the chevron and the title, and NOTHING that can push the title
-       aside — the title is what the admin reads, so it gets the whole line at
-       every width. Row 2: the status pills, then author + date pushed to the
-       far end. See the template for why the old single row could not work. */
-    .msg-head {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      width: 100%;
-      padding: 0;
-      background: transparent;
-      border: 0;
-      color: inherit;
-      font: inherit;
-      text-align: left;
-      cursor: pointer;
-    }
-    .msg-head .chev {
-      flex: 0 0 auto;
-      /* Optically on the title's first line rather than on the box's top edge. */
-      margin-top: 1px;
-      color: var(--sc-fg-2);
-      font-size: max(0.72rem, var(--sc-fs-floor));
-      transition: transform 0.16s ease;
-    }
-    .msg-head .chev.open { transform: rotate(90deg); }
-    .mh-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-    .mh-title-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-    .msg-head .topic-title {
-      flex: 1 1 auto;
-      min-width: 0;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      font-weight: 600;
-      font-size: 0.86rem;
-      color: var(--sc-fg-0);
-    }
-    /* Row 2 wraps freely: six pills on a 320px screen become three lines of
-       pills rather than three pills and no title. */
-    .mh-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; min-width: 0; }
-    .mh-who {
-      display: inline-flex;
-      align-items: baseline;
-      gap: 8px;
-      margin-left: auto;
-      color: var(--sc-fg-2);
-      font-size: max(0.72rem, var(--sc-fs-floor));
-    }
-    .msg-head .row-author { flex: 0 0 auto; }
-    /* The full board's head is the same control, only roomier: it has space for
-       the topic's date, which the panel leaves to its day heading. */
-    .msg-head .ts { flex: 0 0 auto; }
-    .page:not(.embedded) .msg-head .topic-title { font-size: 0.92rem; }
-    .msg-head:hover .topic-title { color: var(--sc-accent); }
-    /* Reference number (feedback 21587480): monospaced digits so a column of
-       them lines up, and dim enough that the topic text stays the thing you
-       read. It is a handle, not a headline. */
-    .topic-no {
-      flex: 0 0 auto;
-      color: var(--sc-fg-2);
-      font-size: max(0.72rem, var(--sc-fs-floor));
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: 0.02em;
-      user-select: all;
-    }
-    .msg-head:focus-visible {
-      outline: none;
-      border-radius: 6px;
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3);
-    }
-    /* The pills keep their own colours but not their “margin-left: auto” — in
-       the metadata row they sit at the START and it is author+date that is
-       pushed to the far end (.mh-who). */
-    .mh-meta .status-pill { flex: 0 0 auto; margin-left: 0; }
+    :host { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+    .page { position: relative; display: flex; flex-direction: column; gap: var(--sc-gap-2); max-width: 860px; min-height: 0; }
+    .page:not(.embedded) { min-height: 70vh; }
+    .page.embedded { max-width: none; flex: 1 1 auto; padding: var(--sc-pad-2); box-sizing: border-box; }
+    .scroll { flex: 1 1 auto; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: var(--sc-gap-2); scrollbar-width: thin; }
+    .page:not(.embedded) .scroll { overflow: visible; }
+    .page.overlay-open .scroll, .page.overlay-open .topbar, .page.overlay-open .new-topic-bar, .page.overlay-open .compose-sheet, .page.overlay-open .main-composer { visibility: hidden; }
     .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
     .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
-    .err {
-      padding: 10px 14px;
-      background: rgba(248, 113, 113, 0.1);
-      border: 1px solid var(--sc-danger);
-      color: var(--sc-danger);
-      border-radius: 4px;
-    }
+    .err { padding: 10px 14px; background: rgba(248, 113, 113, 0.1); border: 1px solid var(--sc-danger); color: var(--sc-danger); border-radius: 4px; }
     .empty { text-align: center; color: var(--sc-fg-2); padding: 32px var(--sc-pad-1); }
 
-    .board { display: flex; flex-direction: column; gap: var(--sc-gap-2); }
-    /* Processing mode / dashboard reuse the board's scroll box but never its
-       list rhythm, so they get their own modifier instead of the list styles. */
-    .board.alt { gap: var(--sc-gap-2); }
+    /* ---- Controls at rest ---- */
+    .topbar { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+    .tb-title { font-weight: 600; font-size: 0.9rem; }
+    .search-box { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; }
+    .search-box:focus-within, .search-box.active { border-color: var(--sc-accent); }
+    .search-icon { color: var(--sc-fg-2); flex: 0 0 auto; }
+    .search-box input { flex: 1 1 auto; min-width: 0; background: transparent; border: 0; color: var(--sc-fg-0); font: inherit; font-size: max(0.86rem, var(--sc-fs-floor)); outline: none; }
+    .search-clear { flex: 0 0 auto; min-width: 32px; min-height: 32px; background: transparent; border: 0; color: var(--sc-fg-2); font-size: 1.1rem; cursor: pointer; }
+    .tb-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 12px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.82rem, var(--sc-fs-floor)); cursor: pointer; }
+    .tb-btn:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .tb-btn.active { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .tb-btn.icon { padding: 0; font-size: 1.05rem; }
+    .tb-count { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--sc-accent); color: var(--sc-bg-0); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; text-align: center; }
+    @media (max-width: 420px) { .tb-btn.filter .tb-label { display: none; } }
 
-    /* ---- View switch: Übersicht · Abarbeiten · Fortschritt ---- */
-    .view-switch {
-      display: flex;
-      align-items: stretch;
-      gap: 2px;
-      padding: 2px;
-      background: var(--sc-bg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 999px;
-      flex: 0 0 auto;
-    }
-    .view-tab {
-      flex: 1 1 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      padding: 5px 8px;
-      background: transparent;
-      border: 0;
-      border-radius: 999px;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: max(0.74rem, var(--sc-fs-floor));
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      white-space: nowrap;
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-    .view-tab:hover { color: var(--sc-fg-0); }
-    .view-tab.active {
-      background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
-      color: var(--sc-accent);
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 45%, transparent);
-    }
-    .tab-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 1.35em;
-      padding: 0 4px;
-      border-radius: 999px;
-      background: color-mix(in srgb, #a78bfa 28%, transparent);
-      color: #a78bfa;
-      font-size: max(0.64rem, var(--sc-fs-floor));
-      font-weight: 700;
-    }
+    /* ---- Bands ---- */
+    .band { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
+    .band-head { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 2px; background: transparent; border: 0; border-bottom: 1px solid var(--sc-border); color: var(--sc-fg-1); font: inherit; text-align: left; cursor: pointer; }
+    .band-head.static { cursor: default; }
+    .bh-title { font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+    .band.yours .bh-title { color: var(--sc-fg-0); }
+    .bh-count { min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--sc-bg-3); color: var(--sc-fg-1); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; text-align: center; }
+    .bh-count.hot { background: var(--sc-accent); color: var(--sc-bg-0); }
+    .bh-new { padding: 1px 8px; border-radius: 999px; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 600; }
+    .band-head .chev { margin-left: auto; color: var(--sc-fg-2); transition: transform 0.16s ease; }
+    .chev.open { transform: rotate(90deg); }
+    .band-empty { margin: 0; padding: 8px 4px; color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); }
+    .day-head { display: flex; align-items: center; gap: 8px; margin: 4px 2px 0; font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--sc-fg-2); }
+    .dh-count { font-weight: 400; }
+    .load-more { min-height: 44px; background: transparent; border: 1px dashed var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.8rem, var(--sc-fs-floor)); cursor: pointer; }
+    .load-more:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
 
-    /* ---- "something shipped" banner ---- */
-    .ship-cheer {
-      margin: 0;
-      padding: 7px 12px;
-      border-radius: 8px;
-      background: color-mix(in srgb, var(--sc-success) 14%, transparent);
-      border: 1px solid color-mix(in srgb, var(--sc-success) 45%, transparent);
-      color: var(--sc-success);
-      font-size: 0.82rem;
-      font-weight: 600;
-      animation: cheer-in 0.4s ease-out;
-    }
-    @keyframes cheer-in {
-      from { opacity: 0; transform: translateY(-6px); }
-      to { opacity: 1; transform: none; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .ship-cheer { animation: none; }
-    }
+    /* ---- Card ---- */
+    .card { display: flex; flex-direction: column; gap: 8px; padding: var(--sc-pad-3); }
+    .card.lead { border-color: var(--sc-accent); }
+    .card.done { opacity: 0.88; }
+    .card-head { display: flex; align-items: flex-start; gap: 10px; width: 100%; min-height: 44px; padding: 0; background: transparent; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 6px; }
+    .card-head:focus-visible, .band-head:focus-visible, .tb-btn:focus-visible, .sh-btn:focus-visible, .read-more:focus-visible, .link-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.32); }
+    .f-row:focus-visible, .menu-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--sc-accent); }
+    .ch-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .ch-title-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+    .topic-no { flex: 0 0 auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .topic-title { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; font-size: 0.88rem; color: var(--sc-fg-0); }
+    .card-head:hover .topic-title { color: var(--sc-accent); }
+    .ch-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .ch-time { margin-left: auto; white-space: nowrap; }
+    .baton { font-weight: 600; color: var(--sc-fg-1); }
+    .baton.t-admin { color: var(--sc-fg-0); }
+    .baton.t-nobody { color: var(--sc-fg-2); font-weight: 500; }
+    .kind { font-size: max(0.68rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .kind.user { color: var(--sc-accent); }
+    .chip { display: inline-block; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--sc-border); font-size: max(0.68rem, var(--sc-fs-floor)); font-weight: 600; color: var(--sc-fg-2); white-space: nowrap; }
+    .chip.area { border-style: dashed; }
+    .chip.new { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .chip.hot { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .card-links, .inline-actions, .rg-actions, .rg-links { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .link-btn { display: inline-flex; align-items: center; min-height: 36px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-size: max(0.78rem, var(--sc-fs-floor)); font-weight: 600; text-decoration: none; }
+    .link-btn.quiet { border-color: var(--sc-border); color: var(--sc-fg-1); }
+    .link-btn:hover { background: rgba(0, 212, 255, 0.08); }
+    .card-inline { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px solid var(--sc-border); }
 
-    /* Quick-access author filter: chip row that scopes the board to one creator.
-       The chips themselves share their look with the status chips below. */
-    .author-filter { display: flex; flex-wrap: wrap; gap: 6px; }
-    /* Board toolbar (admin feedback 18e96ad3): the everyday row, then the
-       "Filter" disclosure alone on a second one. */
-    .board-toolbar { display: flex; flex-direction: column; gap: 6px; }
-    .tb-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; position: relative; }
-    .tb-row.second { gap: 6px; }
-    .tb-spacer { flex: 1 1 auto; }
+    /* ---- Avatar (role colours; red = elevated access) ---- */
+    .av { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; letter-spacing: 0.02em; background: rgba(120, 150, 190, 0.28); color: #b9c9de; }
+    .av.adm { background: var(--sc-accent-hot); color: var(--sc-bg-0); border: 1px solid var(--sc-accent-hot); }
+    .av.col { background: rgba(158, 203, 255, 0.2); color: #9ecbff; border: 1px solid rgba(158, 203, 255, 0.55); }
+    .msg-head .av { width: 22px; height: 22px; font-size: max(0.62rem, var(--sc-fs-floor)); }
 
-    /* Search: a narrow pill that grows over its neighbours while focused or
-       holding a query - the Ctrl+K gesture, toolbar-sized. Absolute only while
-       expanded, so opening it reflows nothing. */
-    .search-box {
-      display: flex; align-items: center; gap: 6px;
-      flex: 0 1 132px; min-width: 62px;
-      padding: 0 10px; border-radius: 999px;
-      background: var(--sc-bg-2); border: 1px solid var(--sc-border);
-      transition: width 0.18s ease, border-color 0.16s ease;
-      .search-icon, button { color: var(--sc-fg-2); }
-      input {
-        flex: 1 1 auto; min-width: 0; padding: 6px 0; font: inherit; font-size: 0.8rem;
-        background: transparent; border: 0; color: var(--sc-fg-0);
-        &:focus { outline: none; }
-        &::placeholder { color: var(--sc-fg-2); }
-        &::-webkit-search-cancel-button { display: none; }
-      }
-      button { padding: 0 4px; background: transparent; border: 0; font: inherit; cursor: pointer; }
-      button:hover { color: var(--sc-fg-0); }
-    }
-    .search-box.expanded {
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 3;
-      width: min(340px, 100%);
-      border-color: var(--sc-accent);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
-    }
-    .search-box:not(.expanded) input { text-overflow: ellipsis; }
+    /* ---- Flight path ---- */
+    .fp { display: inline-flex; align-items: center; gap: 0; flex: 0 0 auto; }
+    .fp i { display: block; width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--sc-fg-2); background: transparent; box-sizing: border-box; position: relative; }
+    .fp i + i { margin-left: 7px; }
+    .fp i + i::before { content: ''; position: absolute; right: 100%; top: 50%; width: 7px; height: 1px; background: var(--sc-fg-2); opacity: 0.6; }
+    .fp.s0 i:nth-child(-n+1), .fp.s1 i:nth-child(-n+2), .fp.s2 i:nth-child(-n+3), .fp.s3 i:nth-child(-n+4) { background: var(--sc-fg-2); border-color: var(--sc-fg-2); }
+    .fp.s0 i:nth-child(1), .fp.s1 i:nth-child(2), .fp.s2 i:nth-child(3), .fp.s3 i:nth-child(4) { background: var(--sc-accent); border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.22); }
+    .fp.b-issue i:nth-child(4), .fp.b-issue i:nth-child(3) { border-radius: 2px; }
+    .fp.b-declined i:nth-child(2), .fp.b-rejected i:nth-child(2) { background: var(--sc-fg-2); border-color: var(--sc-fg-2); box-shadow: none; }
+    .fp.b-declined i:nth-child(3), .fp.b-declined i:nth-child(4), .fp.b-rejected i:nth-child(3), .fp.b-rejected i:nth-child(4) { opacity: 0.3; }
+    .fp.loop i:nth-child(2) { box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.22), 0 0 0 4px rgba(0, 212, 255, 0.1); }
 
-    /* The advanced filters behind one quiet text link. Deliberately NOT a chip:
-       it is the least important control here and should look it. */
-    .filter-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 0;
-      background: transparent;
-      border: 0;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: max(0.74rem, var(--sc-fs-floor));
-      text-decoration: underline;
-      text-underline-offset: 3px;
-      cursor: pointer;
-    }
-    .filter-link:hover, .filter-link.open { color: var(--sc-accent); }
-    .filter-link:focus-visible { border-radius: 4px; }
-    .filter-link .chev { display: inline-block; font-size: max(0.68rem, var(--sc-fs-floor)); transition: transform 0.16s ease; }
-    .filter-link .chev.open { transform: rotate(90deg); }
-    .filter-link .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent-hot); }
+    /* ---- Messages ---- */
+    .msg { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: var(--sc-bg-2); border: 1px solid var(--sc-border); border-radius: 8px; }
+    .msg.system { border-left: 3px solid var(--sc-accent); }
+    .msg.self { border-left: 3px solid var(--sc-accent-hot); }
+    .msg.first { background: transparent; border: 0; padding: 0; }
+    .msg-head { display: flex; align-items: center; gap: 8px; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .msg-head .who { font-weight: 600; color: var(--sc-fg-1); }
+    .msg-ts { margin-left: auto; white-space: nowrap; }
+    .ai { font-weight: 700; letter-spacing: 0.08em; color: var(--sc-accent); }
+    /* overflow-x: the scrollport for a marked-up runaway token (.sc-longword,
+       styles.scss) — it overflows this box instead of reflowing the card. */
+    .msg-body { font-size: 0.9rem; line-height: 1.5; overflow-wrap: anywhere; overflow-x: auto; }
+    .msg-body :is(p, ul, ol) { margin: 0 0 0.5em; }
+    .msg-body :is(p, ul, ol):last-child { margin-bottom: 0; }
+    .msg.clamped .msg-body { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .read-more { align-self: flex-start; min-height: 32px; padding: 0 6px; background: transparent; border: 0; color: var(--sc-accent); font: inherit; font-size: max(0.76rem, var(--sc-fs-floor)); cursor: pointer; }
+    .sent { --att-size: 40px; }
+    .thread { display: flex; flex-direction: column; gap: 6px; }
+    .answer-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .sc-btn.micro { padding: 6px 12px; min-height: 40px; font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
+    .sc-btn.micro.option { min-height: 44px; }
+    .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
+    .sc-btn.hot:hover:not(:disabled) { background: var(--sc-accent-hot); filter: brightness(1.12); box-shadow: none; }
+    .sc-btn.ghost { border-color: var(--sc-border); color: var(--sc-fg-1); }
+    .sc-btn.danger { border-color: var(--sc-danger); color: var(--sc-danger); }
+    .sc-btn.danger:hover:not(:disabled) { background: var(--sc-danger); color: #fff; box-shadow: none; }
+    .proc-note { margin: 0; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .reopen-hint { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .review-gate { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--sc-border); border-left: 3px solid var(--sc-accent); border-radius: 8px; }
+    .rg-title { font-weight: 600; font-size: max(0.84rem, var(--sc-fs-floor)); }
+    .author-channel { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px dashed var(--sc-accent); border-radius: 8px; }
+    .ac-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .ac-title { font-weight: 700; font-size: max(0.72rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-accent); }
+    .ac-status, .ac-hint, .rg-hint { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .ac-hint, .rg-hint { margin: 0; }
+    .ac-ask { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
+    .ac-ask input { width: 20px; height: 20px; }
 
-    /* Status + author chip groups now share one wrapping row (feedback 605d317d);
-       the wider column gap keeps the two groups visually distinct. */
-    .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
-    .status-filter { display: flex; flex-wrap: wrap; gap: 6px; }
-    /* Status and author chips are the same control with a different scope, so
-       they share one base look; only the per-status accents below differ. */
-    .status-chip, .author-chip, .reason-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      background: var(--sc-bg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 999px;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: max(0.74rem, var(--sc-fs-floor));
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-    .status-chip:hover, .author-chip:hover, .reason-chip:hover, .tb-icon:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .status-chip.active, .author-chip.active { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.12); }
-    /* The needs_input filter carries the same violet accent as its status pill. */
-    .status-chip.needs_input.active { color: #a78bfa; border-color: #a78bfa; background: rgba(167, 139, 250, 0.14); }
-    /* "Rückfrage an Absender" — same rosé as its pill, so the two directions of
-       Rückfrage stay distinguishable in the filter row too. */
-    .status-chip.needs_input_author.active { color: #f472b6; border-color: #f472b6; background: rgba(244, 114, 182, 0.14); }
-    /* Archive chips echo their status pills: shipped green, issue indigo. */
-    .status-chip.shipped.active { color: var(--sc-success); border-color: var(--sc-success); background: rgba(74, 222, 128, 0.14); }
-    .status-chip.issue_created.active { color: #818cf8; border-color: #818cf8; background: rgba(129, 140, 248, 0.14); }
-
-    /* Aktiv/Erledigt and Admins/Nutzer: one look, same kind of decision.
-       Quieter than .view-switch — they split a list, not the board's mode. */
-    .seg {
-      display: inline-flex;
-      padding: 2px;
-      background: var(--sc-bg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 999px;
-    }
-    .seg-tab {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 3px 12px;
-      background: transparent;
-      border: 0;
-      border-radius: 999px;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: max(0.74rem, var(--sc-fs-floor));
-      font-weight: 600;
-      white-space: nowrap;
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-    .seg-tab:hover { color: var(--sc-fg-0); }
-    /* ---- Review gate ----
-       Deliberately loud: it is the one card state that asks for a decision
-       rather than reporting one, and it sits between the thread and the reply
-       box so it cannot be scrolled past. */
-    .review-gate {
-      display: flex;
-      flex-direction: column;
-      gap: var(--sc-gap-3);
-      padding: var(--sc-pad-2);
-      border: 1px solid var(--sc-success);
-      border-left-width: 3px;
-      border-radius: 8px;
-      background: rgba(74, 222, 128, 0.08);
-    }
-    .rg-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .rg-badge {
-      padding: 1px 8px;
-      border: 1px solid var(--sc-success);
-      border-radius: 999px;
-      color: var(--sc-success);
-      font-size: max(0.68rem, var(--sc-fs-floor));
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-    .rg-title { font-size: 0.82rem; font-weight: 600; color: var(--sc-fg-0); }
-    .rg-hint { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); line-height: 1.45; color: var(--sc-fg-2); }
-    .rg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .rg-actions .accept { border-color: var(--sc-success); color: var(--sc-success); }
-    .rg-actions .accept:hover { background: rgba(74, 222, 128, 0.16); }
-
-    /* The sign-off view's own list styles (.rv-*) lived here. The view is gone
-       (feedback d4990269, round 2 — the Abnahmen are worked inside the run), so
-       the last of its CSS goes with it (feedback 03d7e546). */
-
-    .status-chip.review { border-color: var(--sc-success); color: var(--sc-success); }
-    .status-chip .chip-count { margin-left: 5px; opacity: 0.75; }
-
-    .seg-tab.active { background: rgba(0, 212, 255, 0.14); color: var(--sc-accent); }
-    .seg-tab .tab-count {
-      font-size: max(0.68rem, var(--sc-fs-floor));
-      font-weight: 500;
-      color: var(--sc-fg-2);
-      font-variant-numeric: tabular-nums;
-    }
-    .seg-tab.active .tab-count { color: inherit; }
-    /* "Something waits here" on the Nutzer half — the Filter link's hot dot. */
-    .seg-tab .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent-hot); }
-
-    /* Toolbar icon button — one user now, the expand/collapse-all. The old
-       three-icon cluster (feedback 3133f9) went with the two-row toolbar. */
-    .tb-icon {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      min-height: 28px;
-      padding: 4px 9px;
-      background: var(--sc-bg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 999px;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: max(0.74rem, var(--sc-fs-floor));
-      white-space: nowrap;
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-    .tb-icon .chev { display: inline-block; font-size: max(0.72rem, var(--sc-fs-floor)); transition: transform 0.16s ease; }
-    .tb-icon .chev.open { transform: rotate(90deg); }
-
-    /* ---- Collapsed new-topic bar (docked panel) ----
-       Stands in for the pinned composer: one tap opens the full compose sheet,
-       so writing a topic is one click away but reading the list is the default. */
-    .new-topic-bar {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-      flex: 0 0 auto;
-      padding: 9px 14px;
-      background: var(--sc-bg-2);
-      border: 1px dashed var(--sc-border);
-      border-radius: 10px;
-      color: var(--sc-fg-1);
-      font: inherit;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-    .new-topic-bar:hover { color: var(--sc-accent); border-color: var(--sc-accent); background: rgba(0, 212, 255, 0.08); }
-    .new-topic-bar .nt-plus { font-size: 1.05rem; line-height: 1; color: var(--sc-accent); }
-
-    /* ---- Expanded compose sheet (docked panel) ---- */
-    .compose-sheet {
-      display: flex;
-      flex-direction: column;
-      gap: var(--sc-gap-3);
-      flex: 0 0 auto;
-      padding: var(--sc-pad-2);
-      background: var(--sc-bg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 10px;
-    }
-    .cs-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .cs-title {
-      font-size: max(0.72rem, var(--sc-fs-floor));
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-weight: 600;
-      color: var(--sc-fg-2);
-    }
-    .cs-close {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
-      border: 0;
-      background: transparent;
-      color: var(--sc-fg-2);
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-    .cs-close:hover { color: var(--sc-fg-0); background: rgba(255, 255, 255, 0.06); }
-
-    /* One motivating totals line under the filters (feedback 605d317d): open
-       Rückfragen (violet, like their status pill) + shipped so far (accent).
-       "In Arbeit" is intentionally not shown. */
-    .board-stats {
-      display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
-      margin: 0; padding: 2px 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
-    }
-    .board-stats .stat.rueckfragen { color: #a78bfa; font-weight: 600; }
-    .board-stats .stat.review { color: var(--sc-success); font-weight: 600; }
-    .board-stats .stat.shipped { color: var(--sc-accent); font-weight: 600; }
-    .board-stats .stat.issues { color: #818cf8; font-weight: 600; }
-    .board-stats .stat + .stat::before {
-      content: '·'; margin-right: 8px; color: var(--sc-fg-2); font-weight: 400;
-    }
-    /* Docked panel: same numbers, less room — smaller and tighter, never dropped. */
-    .board-stats.compact { gap: 6px; padding: 0; font-size: max(0.7rem, var(--sc-fs-floor)); }
-    .board-stats.compact .stat + .stat::before { margin-right: 6px; }
-
-    /* Archive tab list — done topics, dimmed a touch so the tab reads as history. */
-    .archive-list { display: flex; flex-direction: column; gap: var(--sc-gap-2); }
-    .archive-list .msg { opacity: 0.82; }
-    .archive-list .msg:hover, .archive-list .msg:focus-within { opacity: 1; }
-    .load-more {
-      align-self: center;
-      margin-top: 4px;
-      padding: 7px 16px;
-      background: transparent;
-      border: 1px solid var(--sc-border);
-      border-radius: 999px;
-      color: var(--sc-fg-2);
-      font: inherit;
-      font-size: max(0.76rem, var(--sc-fs-floor));
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-    .load-more:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-
-    /* Level 2, not level 1: a topic card is one row of a dense list, not a page
-       surface, and the admin's complaint is about horizontal waste. 12px here is
-       4px MORE content on a desktop than the 16px it used to carry, and 8px on a
-       phone. */
-    .msg { padding: var(--sc-pad-2); display: flex; flex-direction: column; gap: var(--sc-gap-3); }
-    .msg.is-self { box-shadow: inset 2px 0 0 var(--sc-accent); }
-    /* In the compact FAB panel the card's gradient (bg-2 → bg-1) is identical to
-       the panel's own background, so topics blended together and the separation
-       between individual feedbacks was hard to read (feedback cfa46ac2). Lift
-       each embedded card onto a distinct, more prominent surface with a clearer
-       border + shadow, so every feedback reads as its own boxed area again. */
-    .page.embedded .msg {
-      background: var(--sc-bg-3);
-      border-color: color-mix(in srgb, var(--sc-border) 55%, var(--sc-fg-2));
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
-    }
-    .page.embedded .msg.is-self {
-      border-color: color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
-      box-shadow: inset 2px 0 0 var(--sc-accent), 0 1px 4px rgba(0, 0, 0, 0.28);
-    }
-    /* Detail region under a topic head — its own column so the 8px rhythm is kept
-       once the children are wrapped for the collapse animation. */
-    .msg-detail { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
-    /* A second “.msg-head” rule used to sit here, from before the head became a
-       button, and a “.author” rule for a class no template has used in a long
-       time. The first would have re-centred and re-wrapped the two-line head
-       from further down the sheet; both are gone rather than reconciled. */
-    .ts { color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
-
-    .status-pill {
-      margin-left: auto;
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: max(0.68rem, var(--sc-fs-floor));
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      background: var(--sc-bg-2);
-      color: var(--sc-fg-2);
-      &.open { background: rgba(0, 212, 255, 0.16); color: var(--sc-accent); }
-      &.in_progress { background: rgba(251, 191, 36, 0.18); color: var(--sc-warning); }
-      &.shipped { background: rgba(74, 222, 128, 0.18); color: var(--sc-success); }
-      &.rejected { background: rgba(122, 134, 156, 0.2); color: var(--sc-fg-2); }
-      /* Handed off to a GitHub issue — terminal like shipped, but distinct. */
-      &.issue_created { background: rgba(129, 140, 248, 0.2); color: #818cf8; }
-      &.needs_input { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
-      /* The mirror image: the admin asked the topic's AUTHOR and waits on them.
-         Rosé rather than violet, so the two Rückfrage directions never read the
-         same at a glance (feedback 5920cf8c). */
-      &.needs_input_author { background: rgba(244, 114, 182, 0.2); color: #f472b6; }
-      /* Admin answered a Rückfrage → awaiting the routine (distinct from a
-         needs_input topic still waiting on the admin). */
-      &.answered { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; }
-      /* Shipped topic reopened by the admin's post-ship reply (review loop). */
-      &.continued { background: rgba(74, 222, 128, 0.2); color: var(--sc-success); }
-    }
-    /* A second pill (the "beantwortet" marker) trails the bucket pill instead of
-       being pushed to the far edge by another margin-left: auto. */
-    .status-pill + .status-pill { margin-left: 0; }
-
-    .msg-body {
-      font-size: 0.92rem;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
-    }
-    /* Scrollport for a marked-up runaway token (.sc-longword, styles.scss): it
-       overflows this box horizontally instead of reflowing the card around it
-       (admin feedback 0a0fad31). A scroll container's automatic minimum size is
-       already 0, so no min-width is needed to stop a flex parent growing with
-       it. One rule for both bodies — this component's stylesheet budget is tight
-       enough to notice the duplicate. */
-    .msg-body, .reply-body { overflow-x: auto; }
-    .msg-body :first-child { margin-top: 0; }
-    .msg-body :last-child { margin-bottom: 0; }
-    .msg-body p { margin: 0 0 8px; }
-    .msg-body ul, .msg-body ol { margin: 0 0 8px; padding-left: 1.4em; }
-    .msg-body li { margin: 2px 0; }
-    .msg-body h3, .msg-body h4, .msg-body h5 { margin: 10px 0 6px; line-height: 1.3; }
-    .msg-body h3 { font-size: 1.02rem; }
-    .msg-body h4 { font-size: 0.95rem; }
-    .msg-body h5 { font-size: 0.88rem; color: var(--sc-fg-1); }
-    .msg-body code {
-      font-family: monospace;
-      font-size: 0.85em;
-      background: var(--sc-bg-2);
-      padding: 1px 5px;
-      border-radius: 3px;
-    }
-    .msg-body a { color: var(--sc-accent); }
-    /* Screenshots are not part of the body flow — see sc-feedback-attachments. */
-    .msg-body blockquote {
-      margin: 0 0 8px;
-      padding: 4px 12px;
-      border-left: 3px solid var(--sc-border);
-      color: var(--sc-fg-1);
-    }
-    .ship-ref { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; align-self: flex-start; }
-    .ship-ref:hover { text-decoration: underline; }
-    /* Issue links carry the issue_created accent so the archive reads at a glance. */
-    .ship-ref.issue { color: #818cf8; }
-    .proc-note {
-      margin: 0;
-      font-size: 0.8rem;
-      color: var(--sc-fg-2);
-      font-style: italic;
-    }
-
-    /* ---- Per-topic thread ---- */
-    .thread { display: flex; flex-direction: column; gap: var(--sc-gap-3); margin-top: 4px; padding-left: var(--sc-pad-3); border-left: 2px solid var(--sc-border); }
-    .reply { display: flex; flex-direction: column; gap: 4px; padding: var(--sc-pad-3); border-radius: 8px; background: var(--sc-bg-2); }
-    .reply.is-self { box-shadow: inset 2px 0 0 var(--sc-accent); }
-    .reply.is-system { background: color-mix(in srgb, #a78bfa 12%, var(--sc-bg-2)); box-shadow: inset 2px 0 0 #a78bfa; }
-    .reply-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .reply-author { font-weight: 600; font-size: 0.82rem; }
-    .reply-badge {
-      font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em;
-      padding: 1px 6px; border-radius: 999px;
-      background: color-mix(in srgb, #a78bfa 25%, transparent); color: #a78bfa;
-    }
-    .reply-ts { margin-left: auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
-    .reply-body { font-size: 0.88rem; line-height: 1.45; overflow-wrap: anywhere; }
-    .reply-body :first-child { margin-top: 0; }
-    .reply-body :last-child { margin-bottom: 0; }
-    .reply-body p { margin: 0 0 6px; }
-    .reply-body a { color: var(--sc-accent); }
-    .reply-body code { font-family: monospace; font-size: 0.85em; background: var(--sc-bg-1); padding: 1px 5px; border-radius: 3px; }
-
-    .reply-compose { margin-top: 4px; }
-    /* Archived topics: a reply reopens them, so say so above the composer. */
-    .reopen-hint {
-      margin: 4px 0 0;
-      font-size: max(0.78rem, var(--sc-fs-floor));
-      color: var(--sc-fg-2);
-      font-style: italic;
-    }
-
-    /* The folded-thread "…" (feedback 03d7e546) lives in styles.scss now: the
-       processing run draws the very same control, and one shared rule is what
-       "reads identically wherever the admin meets it" actually requires. */
-
-    .msg-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    /* The rare administrative acts, behind the "Weitere Aktionen" disclosure —
-       quiet, set apart by a rule so they never read like part of the answer flow
-       above them (feedback 03d7e546). */
-    .more-actions {
-      display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;
-      padding-top: 8px;
-      border-top: 1px dashed var(--sc-border);
-    }
-    .sc-btn.micro.ghost { border-color: var(--sc-border); color: var(--sc-fg-2); }
-    .sc-btn.micro.ghost:hover:not(:disabled) {
-      border-color: var(--sc-accent); color: var(--sc-accent); background: transparent;
-    }
-    .sc-btn.micro.ghost .chev {
-      display: inline-block; margin-right: 5px;
-      font-size: max(0.7rem, var(--sc-fs-floor)); transition: transform 0.16s ease;
-    }
-    .sc-btn.micro.ghost .chev.open { transform: rotate(90deg); }
-    /* Expand/collapse-all: icon only, hard right, tooltip carries the wording. */
-    .tb-icon.expand-all { flex: 0 0 auto; padding: 4px 8px; }
-    /* The ordered-but-undelivered issue, with its undo. Quiet: it reports a
-       state, the button next to it is the only thing to act on. */
-    .issue-pending { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .issue-pending .ip-text { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
-    .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
-    .sc-btn.micro.danger { color: var(--sc-danger); border-color: var(--sc-danger); }
-    .sc-btn.micro.danger:hover:not(:disabled) { background: var(--sc-danger); color: var(--sc-bg-0); }
-
-    /* ---- User-submitted topics (feedback 5920cf8c) ----
-       The author channel is framed and tinted so it is never confused with the
-       admin <-> routine thread above it: everything inside is readable by the
-       person who filed the topic. The decline form's comment is mandatory —
-       it is the explanation that author gets to read. */
-    .author-channel, .ac-thread, .decline-form { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
-    .author-channel {
-      margin-top: 6px; padding: var(--sc-pad-2); border-radius: 8px;
-      border: 1px dashed var(--sc-accent);
-      background: color-mix(in srgb, var(--sc-accent) 6%, transparent);
-    }
-    .ac-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .ac-title {
-      font-size: max(0.72rem, var(--sc-fs-floor)); text-transform: uppercase;
-      letter-spacing: 0.08em; font-weight: 600; color: var(--sc-accent);
-    }
-    .ac-status { margin-left: auto; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .ac-status strong { color: var(--sc-fg-1); }
-    .ac-hint { margin: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .ac-ask { display: inline-flex; align-items: center; gap: 6px; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-
-    .status-pill.from-user { border-color: var(--sc-accent); color: var(--sc-accent); }
-    .status-pill.untriaged { border-color: var(--sc-accent-hot); color: var(--sc-accent-hot); }
-    /* The area tag is context, not state: quiet on purpose, so it never
-       competes with the status pill it stands next to. */
-    .status-pill.area { border-style: dashed; color: var(--sc-fg-2); }
-
-    .decline-form { gap: 6px; flex: 1 1 260px; }
-    /* .field is the counter's positioning context; the input's bottom padding
-       is the lane it sits in, so typed text never runs under it. */
+    /* ---- Sheets (topic, filters, decline) — the whole panel ---- */
+    .sheet { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; background: var(--sc-bg-1); border-radius: inherit; }
+    .page.embedded .sheet { inset: 0; }
+    .page:not(.embedded) .sheet { position: fixed; z-index: 30; max-width: 860px; margin: 0 auto; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5); }
+    .sh-head { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; min-height: 52px; padding: 6px var(--sc-pad-2); border-bottom: 1px solid var(--sc-border); }
+    .sh-btn { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; background: transparent; border: 0; border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: 1.1rem; cursor: pointer; }
+    .sh-btn:hover { background: var(--sc-bg-2); color: var(--sc-fg-0); }
+    .sh-btn.text { font-size: max(0.78rem, var(--sc-fs-floor)); padding: 0 10px; color: var(--sc-accent); }
+    .sh-title { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; font-size: 0.9rem; }
+    .sh-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--sc-gap-2); padding: var(--sc-pad-2); scrollbar-width: thin; }
+    .sh-composer { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; padding: var(--sc-pad-3) var(--sc-pad-2); border-top: 1px solid var(--sc-border); background: var(--sc-bg-1); padding-bottom: calc(var(--sc-pad-3) + env(safe-area-inset-bottom, 0px)); }
+    .sh-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .sh-meta .who { font-weight: 600; color: var(--sc-fg-1); }
+    .sh-status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .more-menu { display: flex; flex-direction: column; flex: 0 0 auto; border-bottom: 1px solid var(--sc-border); background: var(--sc-bg-2); }
+    .menu-item { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 var(--sc-pad-1); background: transparent; border: 0; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); text-align: left; text-decoration: none; cursor: pointer; }
+    .menu-item:hover { background: var(--sc-bg-3); }
+    .menu-item.danger { color: var(--sc-danger); }
+    .done-btn { justify-content: center; }
+    .fq { margin-top: 4px; font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+    .f-rows { display: flex; flex-direction: column; border: 1px solid var(--sc-border); border-radius: 8px; overflow: hidden; }
+    .f-row { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 14px; background: var(--sc-bg-2); border: 0; border-bottom: 1px solid var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: max(0.86rem, var(--sc-fs-floor)); text-align: left; cursor: pointer; }
+    .f-row:last-child { border-bottom: 0; }
+    .f-row.sub { padding-left: 28px; }
+    .f-row.on { color: var(--sc-fg-0); background: rgba(0, 212, 255, 0.1); box-shadow: inset 3px 0 0 var(--sc-accent); }
+    .f-count { margin-left: auto; color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+    .dot.hot { background: var(--sc-accent); }
+    .decline-form { gap: 10px; }
     .decline-form .field { position: relative; }
-    .decline-input {
-      width: 100%; box-sizing: border-box; resize: vertical;
-      padding: 6px 8px 20px;
-      background: var(--sc-bg-2); border: 1px solid var(--sc-danger);
-      border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
-    }
-    .decline-input:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
-    .decline-actions { display: flex; gap: 6px; }
-    /* Canned reasons borrow the filter chips' pill wholesale (see the shared
-       .status-chip rule) so the row reads as "pick one" and not as a second set
-       of actions. Only the accent differs: these sit inside a destructive form
-       and what they arm is the note the author will read. */
-    .decline-reasons { display: flex; flex-wrap: wrap; gap: 6px; }
-    .reason-chip:hover { border-color: var(--sc-danger); }
-    .reason-chip.active {
-      color: var(--sc-danger); border-color: var(--sc-danger);
-      background: rgba(248, 113, 113, 0.14);
-    }
+    .decline-input { width: 100%; box-sizing: border-box; padding: 8px 10px 22px; resize: vertical; background: var(--sc-bg-2); border: 1px solid var(--sc-danger); border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); }
 
-    /* ============================================================
-       NARROW VIEWPORT (admin feedback 3bc01a3d)
-       Nothing here is a new control — it is the same board with the
-       horizontal budget spent on content instead of on chrome.
-       ============================================================ */
+    /* ---- Composer bar ---- */
+    .main-composer { position: sticky; bottom: 12px; z-index: 1; }
+    .page.embedded .main-composer { position: static; }
+    .new-topic-bar { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; background: var(--sc-bg-2); border: 1px dashed var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.82rem, var(--sc-fs-floor)); cursor: pointer; }
+    .new-topic-bar:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .nt-plus { font-size: 1.1rem; color: var(--sc-accent); }
+    .compose-sheet { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; padding: var(--sc-pad-3); border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-1); }
+    .cs-head { display: flex; align-items: center; justify-content: space-between; }
+    .cs-title { font-weight: 600; font-size: max(0.82rem, var(--sc-fs-floor)); }
+    .cs-close { min-width: 40px; min-height: 40px; background: transparent; border: 0; color: var(--sc-fg-2); font-size: 1rem; cursor: pointer; }
+
     @media (max-width: 720px) {
-      /* Sticky over a phone-height list only buys a permanently parked
-         composer; the page scrolls to it in one flick anyway. */
-      .main-composer { position: static; }
-      .status-pill { margin-left: 0; }
-
-      /* The everyday toolbar used to wrap into three ragged rows with a 62px
-         search stub at the end of one of them. Two full-width rows instead:
-         the two segmented switches share the first (each half the width, each
-         tab stretching to fill its half), search + "alles auf/zu" share the
-         second. Same controls, same order, no ragged edge. */
-      .seg { flex: 1 1 40%; }
-      .seg-tab { flex: 1 1 0; justify-content: center; padding: 6px 8px; }
-      .search-box { flex: 1 1 60%; }
-      /* ...and while it is in use it simply fills its own row. The absolute
-         "grow over your neighbours" trick needs a single-row toolbar to have
-         neighbours to grow over; on a wrapped one it detached from the row and
-         floated across the tabs above it. */
-      .search-box.expanded {
-        position: static;
-        transform: none;
-        width: auto;
-        box-shadow: none;
-      }
-      .tb-spacer { display: none; }
-
-      /* The mode switch is the board's primary control and the one an admin
-         hits first — full width, evenly split, real finger targets. */
-      .view-tab { padding: 8px 6px; }
+      .page.embedded { padding: var(--sc-pad-3); }
+      .ch-time { flex-basis: 100%; margin-left: 0; }
     }
-    /* No per-control touch sizing here on purpose: every one of these IS a
-       <button>, and the “pointer: coarse” block in styles.scss already gives
-       each of them the 48px floor. A component-scoped “min-height: 40px” would
-       out-specify that global rule and quietly UNDERCUT the app's own baseline
-       — which is exactly the class of bug this item is about. */
   `],
 })
 export class AdminFeedbackComponent implements OnInit {
@@ -1886,9 +1103,10 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly locale = inject(LocaleService);
   private readonly consent = inject(ConsentService);
   private readonly celebration = inject(CelebrationService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  /** When embedded in the feedback FAB panel, the page chrome (title, subtitle,
-   *  manual refresh) is dropped — the panel supplies its own header. */
+  /** When embedded in the feedback FAB panel, the page chrome (title, subtitle)
+   *  is dropped — the panel supplies its own header. */
   readonly embedded = input(false);
 
   readonly messages = signal<FeedbackRow[]>([]);
@@ -1906,286 +1124,38 @@ export class AdminFeedbackComponent implements OnInit {
     return this.threads().get(feedbackId) ?? [];
   }
 
-  // ---- View switch (feedback 605d317d, phase 2/3) -------------------------
+  // ---- View: the stream, or the numbers behind the glyph ------------------
 
-  /**
-   * Which of the three board modes is showing. Persisted (behind the
-   * preferences consent) so reopening the FAB panel lands where the admin left
-   * off — the panel is mounted once and merely hidden while minimized, so the
-   * switch is equally available docked, maximized and on the full page.
-   */
-  readonly view = signal<FeedbackView>(this.readView());
+  readonly view = signal<FeedbackView>('stream');
 
   setView(v: FeedbackView): void {
     this.view.set(v);
-    if (!this.consent.preferencesAllowed()) return;
-    try {
-      localStorage.setItem(VIEW_KEY, v);
-    } catch {
-      /* private mode / quota — the in-memory signal still works */
-    }
   }
 
-  /**
-   * The remembered view wins; without one the panel opens in the processing
-   * mode (feedback fda4e3ea). Opening the board is nearly always "what do I
-   * have to answer", not "let me browse the archive" — and the queue's own
-   * empty state hands the admin on to the numbers when there is nothing to do.
-   */
-  private readView(): FeedbackView {
-    try {
-      const raw = localStorage.getItem(VIEW_KEY);
-      if (raw === 'overview' || raw === 'workflow' || raw === 'progress') return raw;
-      // The Abnahme tab is gone (feedback d4990269, round 2). An admin who left
-      // the board on it is looking for the sign-off pile, so hand them the run
-      // already narrowed to it rather than silently dropping them somewhere else.
-      if (raw === 'review') return 'workflow';
-    } catch {
-      /* ignore */
-    }
-    return DEFAULT_VIEW;
-  }
+  // ---- Derivations every surface shares --------------------------------------
 
-  /**
-   * Topics the admin ticked off in the processing mode, mapped to the topic's
-   * `updated_at` at that moment: if the routine touches the topic afterwards
-   * the stamp no longer matches and the item comes back into the queue.
-   */
-  private readonly handled = signal<ReadonlyMap<string, string>>(this.readHandled());
-
-  markHandled(id: string): void {
-    const row = this.messages().find((m) => m.id === id);
-    if (!row) return;
-    const next = new Map(this.handled());
-    next.set(id, row.updated_at);
-    this.handled.set(next);
-    this.persistHandled(next);
-  }
-
-  private persistHandled(map: ReadonlyMap<string, string>): void {
-    if (!this.consent.preferencesAllowed()) return;
-    try {
-      localStorage.setItem(HANDLED_KEY, JSON.stringify(Array.from(map.entries())));
-    } catch {
-      /* ignore */
-    }
-  }
-
-  private readHandled(): ReadonlyMap<string, string> {
-    try {
-      const raw = localStorage.getItem(HANDLED_KEY);
-      if (!raw) return new Map();
-      const parsed: unknown = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return new Map();
-      return new Map(
-        parsed.filter(
-          (e): e is [string, string] =>
-            Array.isArray(e) && typeof e[0] === 'string' && typeof e[1] === 'string',
-        ),
-      );
-    } catch {
-      return new Map();
-    }
-  }
-
-  /**
-   * Whose topics the processing mode walks through (feedback abfa97c6).
-   * Persisted behind the preferences consent like the view itself, so the pick
-   * survives reopening the panel.
-   */
-  readonly workflowScope = signal<WorkflowScope>(this.readWorkflowScope());
-
-  setWorkflowScope(scope: WorkflowScope): void {
-    this.workflowScope.set(scope);
-    if (!this.consent.preferencesAllowed()) return;
-    try {
-      localStorage.setItem(WORKFLOW_SCOPE_KEY, scope);
-    } catch {
-      /* private mode / quota — the in-memory signal still works */
-    }
-  }
-
-  private readWorkflowScope(): WorkflowScope {
-    try {
-      const raw = localStorage.getItem(WORKFLOW_SCOPE_KEY);
-      if (raw === 'mine' || raw === 'others' || raw === 'all') return raw;
-    } catch {
-      /* ignore */
-    }
-    return DEFAULT_WORKFLOW_SCOPE;
-  }
-
-  /** The full processing queue: the open Rückfragen, oldest first. */
-  private readonly workflowQueueAll = computed(() =>
-    buildWorkflowQueue(this.messages(), this.threads(), this.handled()),
-  );
-
-  /**
-   * Which kind of step the processing mode is narrowed to (feedback d4990269,
-   * round 2) — the Abnahme tab's replacement. Persisted behind the preferences
-   * consent like the view and the scope.
-   */
-  readonly workflowKind = signal<WorkflowKind>(this.readWorkflowKind());
-
-  setWorkflowKind(kind: WorkflowKind): void {
-    this.workflowKind.set(kind);
-    if (!this.consent.preferencesAllowed()) return;
-    try {
-      localStorage.setItem(WORKFLOW_KIND_KEY, kind);
-    } catch {
-      /* private mode / quota — the in-memory signal still works */
-    }
-  }
-
-  private readWorkflowKind(): WorkflowKind {
-    try {
-      const raw = localStorage.getItem(WORKFLOW_KIND_KEY);
-      if (raw === 'all' || raw === 'triage' || raw === 'question' || raw === 'review') return raw;
-      // Coming from the removed Abnahme tab (see readView): that admin wants the
-      // sign-off pile, so open the run on it instead of on everything.
-      if (localStorage.getItem(VIEW_KEY) === 'review') return 'review';
-    } catch {
-      /* ignore */
-    }
-    return DEFAULT_WORKFLOW_KIND;
-  }
-
-  /** The queue narrowed to the chosen scope — both lenses' common ground. */
-  private readonly workflowScopeQueue = computed(() =>
-    filterWorkflowScope(this.workflowQueueAll(), this.workflowScope(), this.selfId()),
-  );
-
-  /**
-   * Queue size per scope — the KPI counts on the mode's scope switch. Counted on
-   * the KIND-filtered queue, so each chip answers "what would I get if I switched
-   * *this* chip" and the mode's "hidden by scope" hint stays truthful.
-   */
-  readonly workflowScopeCounts = computed(() =>
-    workflowScopeCounts(
-      filterWorkflowKind(this.workflowQueueAll(), this.workflowKind()),
-      this.selfId(),
-    ),
-  );
-
-  /** Item count per kind — counted within the current scope, mirror-image of above. */
-  readonly workflowKindCounts = computed(() => workflowKindCounts(this.workflowScopeQueue()));
-
-  /** What the view switch's badge promises: the whole inbox, kind lens ignored. */
-  readonly workflowInboxCount = computed(() => this.workflowScopeQueue().length);
-
-  /**
-   * The queue as the processing mode shows it — narrowed by both lenses. The
-   * view switch's badge deliberately reads the scope queue instead: the badge
-   * promises what waits in the admin's inbox, and a kind filter is a way of
-   * looking at that inbox, not a smaller one.
-   */
-  readonly workflowQueue = computed(() =>
-    filterWorkflowKind(this.workflowScopeQueue(), this.workflowKind()),
-  );
-
-  /** Stable reply handler handed to the processing mode's inline composer. */
-  readonly workflowReplyBound = (id: string, payload: ComposerPayload): Promise<boolean> =>
-    this.sendReply(id, payload);
-
-  /**
-   * "Gespräch wieder aufnehmen" from the run (feedback d4990269, round 2): post
-   * the steer into the thread, then put the topic back into the routine's queue.
-   *
-   * One handler rather than two clicks, and in this order: if the reply fails
-   * nothing is reopened, and if the reopen fails the admin's words are already
-   * saved. The routine then finds a reopened topic *with* the reason in the
-   * thread — which is exactly what its continuation path reads.
-   */
-  readonly workflowReopenBound = async (
-    id: string,
-    payload: ComposerPayload,
-  ): Promise<boolean> => {
-    if (!(await this.sendReply(id, payload))) return false;
-    const row = this.messages().find((m) => m.id === id);
-    if (row) await this.reopenFromReview(row);
-    return true;
-  };
-
-  /**
-   * The two writes a triage step needs beyond the release (feedback 89925995) —
-   * both the board's own, forwarded so the run never touches a row itself: a
-   * QUESTION into the author channel (which parks the topic as
-   * `needs_input_author`), and the decline with its mandatory explanation.
-   */
-  readonly workflowAskAuthorBound = (id: string, payload: ComposerPayload): Promise<boolean> =>
-    this.sendAuthorMessage(id, payload, true);
-
-  readonly workflowDeclineBound = (row: FeedbackRow, note: string): Promise<boolean> =>
-    this.declineWithNote(row, note);
-
-  /** How many topics shipped since the last poll — drives the ship banner. */
-  readonly shipCheer = signal(0);
-  /** Shipped ids as of the previous refresh; `null` until the first load lands. */
-  private shippedSeen: Set<string> | null = null;
-  private shipCheerTimer: ReturnType<typeof setTimeout> | null = null;
-
-  /**
-   * Celebrate topics that shipped between two polls. The very first load only
-   * seeds the baseline — otherwise every page open would confetti the entire
-   * shipped history.
-   */
-  private detectShipped(rows: readonly FeedbackRow[]): void {
-    const now = new Set(rows.filter((r) => r.status === 'shipped').map((r) => r.id));
-    const before = this.shippedSeen;
-    this.shippedSeen = now;
-    if (before === null) return;
-    let fresh = 0;
-    for (const id of now) if (!before.has(id)) fresh++;
-    if (fresh === 0) return;
-    this.shipCheer.set(fresh);
-    this.celebration.burst();
-    if (this.shipCheerTimer) clearTimeout(this.shipCheerTimer);
-    this.shipCheerTimer = setTimeout(() => this.shipCheer.set(0), 6000);
-  }
-
-  /**
-   * The presentation bucket of a topic — the board's one bucketing rule (see
-   * {@link feedbackBucket}). Every view here (filter chips, counts, list,
-   * pills, TOC) goes through this, so an answered Rückfrage is consistently
-   * treated as ToDo instead of each view deciding for itself.
-   */
+  /** The presentation bucket — the board's one bucketing rule. */
   bucketOf(m: FeedbackRow): FeedbackBucket {
     return feedbackBucket(m, this.threads().get(m.id));
   }
 
-  /** The status vocabulary a topic's bucket is labelled and coloured with. */
-  bucketLabel(m: FeedbackRow): BucketLabelKey {
-    return bucketLabelStatus(this.bucketOf(m));
+  turnOf(m: FeedbackRow): FeedbackTurn {
+    return turnOf(m, this.threads().get(m.id));
   }
 
-  /**
-   * True when the admin has answered a Rückfrage and the topic is now waiting on
-   * the routine: status is `needs_input` but the newest thread reply is human,
-   * so the bucket already flipped to ToDo. Drives the small extra "beantwortet"
-   * marker next to the ToDo pill — the topic is back on the routine's pile, the
-   * marker only records that the admin's part is done.
-   */
-  isAnsweredAwaitingRoutine(m: FeedbackRow): boolean {
-    return m.status === 'needs_input' && this.bucketOf(m) === 'todo';
+  askOf(m: FeedbackRow): AdminAsk | null {
+    return adminAsk(m, this.threads().get(m.id));
   }
 
-  /**
-   * True when a shipped topic was reopened by the admin's post-ship reply (the
-   * routine's review loop). Like the "beantwortet" marker, it trails the ToDo
-   * pill — the topic is back on the routine's pile, the marker records that it is
-   * a continuation of an already-shipped change rather than a brand-new item.
-   */
-  continuedAfterShip(m: FeedbackRow): boolean {
-    return isContinuedAfterShip(m, this.threads().get(m.id));
+  positionOf(m: FeedbackRow): FlightPosition {
+    return flightPosition(m, this.threads().get(m.id));
   }
 
-  /**
-   * Which half of the overview list is shown (feedback eeba60e7): the working
-   * set or the Archive of terminal topics (shipped + issue-created + legacy
-   * rejected). Replaces the old collapsible "shipped" stack — done work now has
-   * its own tab instead of a drawer at the bottom of the active list.
-   */
-  readonly boardTab = signal<BoardTab>('active');
+  /** Template aliases for the pure helpers. */
+  readonly isPlainLeftClick = isPlainLeftClick;
+  readonly stationLabelKey = stationLabelKey;
+  readonly turnLabelKey = turnLabelKey;
+  readonly stationIndex = stationIndex;
 
   /** Template-side alias for the shared {@link isArchived} rule. */
   archived(m: FeedbackRow): boolean {
@@ -2195,767 +1165,6 @@ export class AdminFeedbackComponent implements OnInit {
   /** Template-side alias for the shared {@link refKind} rule. */
   linkKind(m: FeedbackRow): 'issue' | 'ship' {
     return refKind(m);
-  }
-
-  /**
-   * Switch the overview's Active/Archive tab. The status chips differ per tab
-   * (active: ToDo / in_progress / awaiting_admin, archive: shipped /
-   * issue_created / rejected), so a selection carried across would filter
-   * everything away — clear it.
-   */
-  setBoardTab(tab: BoardTab): void {
-    if (this.boardTab() === tab) return;
-    this.boardTab.set(tab);
-    this.statusFilter.set(null);
-  }
-
-  // ---- Source filter: admin topics vs. user feedback ----------------------
-
-  /**
-   * Which half of the inbox the overview shows (admin feedback 18e96ad3): the
-   * board the admins write for themselves, or what viewers sent in through
-   * their own feedback box. Same two-button switch as Aktiv/Erledigt, and it
-   * defaults to **Admins** because that is the pile an admin opens the board to
-   * work — user feedback is triaged, not authored, and it announces itself: the
-   * Nutzer button carries the count and a marker while anything there still
-   * waits to be released to the routine, so defaulting away from it can never
-   * hide an untouched report.
-   */
-  readonly sourceFilter = signal<FeedbackSource>('admin');
-
-  setSourceFilter(source: FeedbackSource): void {
-    if (this.sourceFilter() === source) return;
-    this.sourceFilter.set(source);
-    // The two halves have different status vocabularies in practice (only user
-    // topics are ever "nicht freigegeben" or "nicht umgesetzt"), so a chip
-    // carried across would silently filter the other half down to nothing.
-    this.statusFilter.set(null);
-    this.authorFilter.set(null);
-    this.archiveVisible.set(AdminFeedbackComponent.ARCHIVE_PAGE);
-  }
-
-  private matchesSource(m: FeedbackRow): boolean {
-    return this.sourceFilter() === 'user' ? isUserSubmitted(m) : !isUserSubmitted(m);
-  }
-
-  /** How many topics sit in each half, search-filtered (chip-independent). */
-  readonly sourceCounts = computed(() => {
-    let admin = 0;
-    let user = 0;
-    for (const m of this.messages()) {
-      if (!this.matchesSearch(m)) continue;
-      if (isUserSubmitted(m)) user++;
-      else admin++;
-    }
-    return { admin, user };
-  });
-
-  /** Something in the user half still waits for its release to the routine. */
-  readonly untriagedWaiting = computed(() =>
-    this.messages().some((m) => awaitsTriage(m) && !isArchived(m, this.threads().get(m.id))),
-  );
-
-  /** Sentinel author-filter key for topics with no author (routine/orphaned). */
-  private static readonly NO_AUTHOR = '__none__';
-  /** Quick-access filter: an author_id (or NO_AUTHOR) to show only, or null for all. */
-  readonly authorFilter = signal<string | null>(null);
-
-  /** Distinct authors across all topics, most-topics first — feeds the filter chips. */
-  readonly authorOptions = computed(() => {
-    const seen = new Map<string, { id: string; label: string; count: number }>();
-    for (const m of this.messages()) {
-      if (!this.matchesSource(m)) continue;
-      const id = m.author_id ?? AdminFeedbackComponent.NO_AUTHOR;
-      const existing = seen.get(id);
-      if (existing) existing.count++;
-      else seen.set(id, { id, label: this.authorLabel(m), count: 1 });
-    }
-    return Array.from(seen.values()).sort((a, b) => b.count - a.count);
-  });
-
-  private matchesAuthor(m: FeedbackRow): boolean {
-    const f = this.authorFilter();
-    if (f === null) return true;
-    return (m.author_id ?? AdminFeedbackComponent.NO_AUTHOR) === f;
-  }
-
-  /** Toggle the author quick-filter: clicking the active chip clears it. */
-  setAuthorFilter(id: string | null): void {
-    this.authorFilter.update((cur) => (cur === id ? null : id));
-  }
-
-  // ---- Search -------------------------------------------------------------
-
-  /** Raw search input. Blank (or punctuation-only) means "no search active". */
-  readonly searchQuery = signal('');
-
-  /** True once the query holds at least one usable term. */
-  readonly searchActive = computed(() => searchTokens(this.searchQuery()).length > 0);
-
-  /**
-   * The scored hits for the current query, keyed by topic id — computed once for
-   * the whole board so both tabs, the counts and the chips read the same result
-   * set instead of re-scoring per view. Empty while no search is active, which is
-   * exactly what {@link matchesSearch} treats as "everything passes".
-   */
-  private readonly searchHits = computed<ReadonlyMap<string, FeedbackSearchHit>>(() => {
-    const query = this.searchQuery();
-    if (!this.searchActive()) return new Map();
-    const hits = new Map<string, FeedbackSearchHit>();
-    for (const hit of searchFeedback(this.messages(), this.threads(), query)) {
-      hits.set(hit.row.id, hit);
-    }
-    return hits;
-  });
-
-  private matchesSearch(m: FeedbackRow): boolean {
-    return !this.searchActive() || this.searchHits().has(m.id);
-  }
-
-  /** Relevance of a topic for the current query; 0 when it is not a hit. */
-  private searchScore(m: FeedbackRow): number {
-    return this.searchHits().get(m.id)?.score ?? 0;
-  }
-
-  /** A hit that only matched inside the thread — worth flagging in the row. */
-  threadOnlyHit(m: FeedbackRow): boolean {
-    const hit = this.searchHits().get(m.id);
-    return !!hit && hit.inThread && !hit.inBody;
-  }
-
-  /**
-   * Update the query. Also rewinds the archive paging, so a fresh search always
-   * starts at its most relevant page instead of an offset from the last one.
-   */
-  setSearch(value: string): void {
-    this.searchQuery.set(value);
-    this.archiveVisible.set(AdminFeedbackComponent.ARCHIVE_PAGE);
-  }
-
-  clearSearch(): void {
-    this.setSearch('');
-  }
-
-  /**
-   * Status quick-filter: narrow the active board to a single presentation bucket
-   * (or null for all active topics). Pairs with the author filter — both
-   * AND-narrow the list and the quick-access TOC. The `awaiting_admin` filter is
-   * the important one: it surfaces exactly the Rückfragen the admin still has to
-   * answer (feedback 69f3f015) — an already-answered one sits in ToDo instead,
-   * where the routine will pick it up (feedback 34c44134).
-   */
-  readonly statusFilter = signal<FeedbackBucket | null>(null);
-
-  setStatusFilter(b: FeedbackBucket | null): void {
-    this.statusFilter.update((cur) => (cur === b ? null : b));
-  }
-
-  private matchesStatus(m: FeedbackRow): boolean {
-    const f = this.statusFilter();
-    return f === null || this.bucketOf(m) === f;
-  }
-
-  /** Per-bucket topic counts (author-filtered) backing the status filter chips. */
-  readonly bucketCounts = computed(() => {
-    const counts: Record<FeedbackBucket, number> = {
-      todo: 0,
-      awaiting_admin: 0,
-      awaiting_author: 0,
-      in_progress: 0,
-      review: 0,
-      shipped: 0,
-      issue_created: 0,
-      rejected: 0,
-      declined: 0,
-    };
-    for (const m of this.messages()) {
-      if (this.matchesSource(m) && this.matchesAuthor(m) && this.matchesSearch(m)) counts[this.bucketOf(m)]++;
-    }
-    return counts;
-  });
-
-  /**
-   * Aggregate, motivating totals for the CURRENT filtering (author scope only —
-   * the status filter just picks a view, so the headline numbers stay stable as
-   * the admin flips between chips). Feedback 605d317d: show only the numbers that
-   * feel good — open Rückfragen still to answer + how many topics shipped — and
-   * deliberately omit "In Arbeit". Only Rückfragen still waiting on the admin
-   * are counted; answered ones moved to ToDo (feedback 34c44134).
-   */
-  readonly motivatingStats = computed(() => {
-    let rueckfragen = 0;
-    let review = 0;
-    let shipped = 0;
-    let issues = 0;
-    for (const m of this.messages()) {
-      if (!this.matchesSource(m) || !this.matchesAuthor(m)) continue;
-      const bucket = this.bucketOf(m);
-      if (bucket === 'awaiting_admin') rueckfragen++;
-      else if (bucket === 'review') review++;
-      else if (bucket === 'shipped') shipped++;
-      else if (bucket === 'issue_created') issues++;
-    }
-    return { rueckfragen, review, shipped, issues };
-  });
-
-  /** True while any of the totals is worth a line at all. */
-  readonly hasBoardStats = computed(() => {
-    const s = this.motivatingStats();
-    return s.rueckfragen > 0 || s.review > 0 || s.shipped > 0 || s.issues > 0;
-  });
-
-  /**
-   * Latest-activity timestamp for a topic: the newest of its own timestamps and
-   * its last reply. Drives the newest-first ("nach Aktualität") board order so a
-   * freshly-answered topic bubbles to the top.
-   */
-  private recencyTime(m: FeedbackRow): number {
-    const replies = this.threads().get(m.id);
-    const lastReply = replies && replies.length ? replies[replies.length - 1].created_at : null;
-    let max = 0;
-    for (const c of [m.created_at, m.updated_at, m.processed_at, lastReply]) {
-      if (!c) continue;
-      const t = Date.parse(c);
-      if (Number.isFinite(t) && t > max) max = t;
-    }
-    return max;
-  }
-
-  /**
-   * Active (non-terminal) topics, author-, status- and search-filtered. Ordered
-   * newest activity first — except while a search is active, where relevance
-   * wins and recency only breaks ties (feedback 12476cec).
-   */
-  readonly activeMessages = computed(() =>
-    this.messages()
-      .filter(
-        (m) =>
-          !isArchived(m, this.threads().get(m.id)) &&
-          this.matchesSource(m) &&
-          this.matchesAuthor(m) &&
-          this.matchesStatus(m) &&
-          this.matchesSearch(m),
-      )
-      .sort(this.boardOrder()),
-  );
-
-  /**
-   * The comparator both tabs sort by: relevance-first while searching, plain
-   * recency otherwise. `recent` supplies the per-tab notion of "newest" (last
-   * activity on the active board, completion time in the archive).
-   */
-  private boardOrder(
-    recent: (m: FeedbackRow) => number = (m) => this.recencyTime(m),
-  ): (a: FeedbackRow, b: FeedbackRow) => number {
-    if (!this.searchActive()) return (a, b) => recent(b) - recent(a);
-    return (a, b) => this.searchScore(b) - this.searchScore(a) || recent(b) - recent(a);
-  }
-
-  /** Topics rendered in the current tab — backs the expand-all control. */
-  readonly visibleMessages = computed(() =>
-    this.boardTab() === 'active' ? this.activeMessages() : this.archiveVisibleMessages(),
-  );
-
-  /**
-   * Tab badge: how many topics live in each half (author- and search-filtered,
-   * chip-independent). Counting the search in is what tells the admin that the
-   * thing they are looking for sits in the *other* tab.
-   */
-  readonly activeCount = computed(
-    () =>
-      this.messages().filter(
-        (m) =>
-          !isArchived(m, this.threads().get(m.id)) &&
-          this.matchesSource(m) &&
-          this.matchesAuthor(m) &&
-          this.matchesSearch(m),
-      ).length,
-  );
-  readonly archiveCount = computed(
-    () =>
-      this.messages().filter(
-        (m) =>
-          isArchived(m, this.threads().get(m.id)) &&
-          this.matchesSource(m) &&
-          this.matchesAuthor(m) &&
-          this.matchesSearch(m),
-      ).length,
-  );
-
-  /**
-   * Active topics bucketed under a day heading (feedback 92f08bb4). The board is
-   * already recency-sorted, so consecutive topics on the same local day fall into
-   * one group — the template renders a non-interactive "Today / Yesterday / date"
-   * heading before each run.
-   */
-  readonly activeGroups = computed<FeedbackGroup[]>(() => {
-    const items = this.activeMessages();
-    // While searching, the list is ordered by relevance — day headings would cut
-    // it into meaningless one-row slices, so it collapses into a single result
-    // heading instead (feedback 12476cec).
-    if (this.searchActive()) {
-      if (!items.length) return [];
-      return [
-        {
-          key: 'search',
-          label: this.translate.instant('adminFeedback.search.results', { count: items.length }),
-          items,
-        },
-      ];
-    }
-
-    const groups: FeedbackGroup[] = [];
-    let current: FeedbackGroup | null = null;
-    for (const m of items) {
-      const t = this.recencyTime(m);
-      const key = this.dayKey(t);
-      if (!current || current.key !== key) {
-        current = { key, label: this.dayLabel(t), items: [] };
-        groups.push(current);
-      }
-      current.items.push(m);
-    }
-    return groups;
-  });
-
-  /** Local calendar-day key (Y-M-D) for a timestamp — the grouping bucket id. */
-  private dayKey(t: number): string {
-    const d = new Date(t);
-    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-  }
-
-  /** Day heading: Today / Yesterday for the two most recent days, else a localized date. */
-  private dayLabel(t: number): string {
-    const d = new Date(t);
-    const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
-    const day = startOf(d);
-    const today = startOf(new Date());
-    const DAY_MS = 86_400_000;
-    if (day === today) return this.translate.instant('adminFeedback.dateGroup.today');
-    if (day === today - DAY_MS) return this.translate.instant('adminFeedback.dateGroup.yesterday');
-    // App-wide formatter: month spelled out, fields in the resolved region's
-    // order (feedback 38b3d25a).
-    return formatScDate(d, { language: this.locale.language(), region: this.locale.region() });
-  }
-
-  /**
-   * A concise, single-line title for a topic's row (feedback 92f08bb4).
-   * Derived from the body's first meaningful text with markup and images stripped.
-   * Falls back to a dash for image-only posts.
-   *
-   * `max` is a SAFETY cap, not the layout: since the head became two lines
-   * (admin feedback 3bc01a3d) the title has a whole row to itself, so where it
-   * ends is CSS's ellipsis to decide at the real width — the cap only stops a
-   * pathological body from putting a kilobyte of text into a DOM node nobody
-   * can see.
-   * (A future enhancement could persist an LLM-generated summary — this heuristic
-   * gives an always-available title without a schema change.)
-   */
-  topicTitle(body: string, max?: number): string {
-    return topicTitle(body, max);
-  }
-
-  /**
-   * The topic's stable reference number, or `null` when it has none (feedback
-   * 21587480). Rendered as a quiet "#42" next to the title in both row layouts
-   * so a topic can be named by number in a conversation. Comes straight from
-   * `admin_feedback.seq` — never from the row's position in the list, which
-   * would change with every filter, search and deletion.
-   */
-  topicNo(m: FeedbackRow): number | null {
-    return topicNumber(m);
-  }
-
-  /**
-   * Quick-access table of contents for the active board: one entry per visible
-   * topic (short label + status) so the admin can jump straight to a thread
-   * (feedback 69f3f015). Topics still awaiting the admin's answer are flagged so
-   * the TOC can lead with them; the rest follow and are reachable via scroll or
-   * the status filter.
-   */
-  readonly tocEntries = computed<TocEntry[]>(() =>
-    this.activeMessages().map((m) => {
-      const bucket = this.bucketOf(m);
-      return {
-        id: m.id,
-        label: this.shortLabel(m.body),
-        bucket,
-        awaitingAdmin: bucket === 'awaiting_admin',
-      };
-    }),
-  );
-
-  /** How many topics still await the admin's answer — drives the TOC lead label. */
-  readonly awaitingAdminCount = computed(
-    () => this.tocEntries().filter((e) => e.awaitingAdmin).length,
-  );
-
-  /** Very short plain-text label (a few words) for a TOC jump chip. */
-  private shortLabel(body: string): string {
-    const text = (body ?? '')
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .replace(/[*_`#>~]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    return text.length > 42 ? `${text.slice(0, 40)}…` : text || '—';
-  }
-
-  /** Stable DOM id for a topic card — the TOC scroll target. */
-  cardDomId(id: string): string {
-    return `fb-card-${id}`;
-  }
-
-  /**
-   * Jump to a topic from the TOC: ensure it is expanded (the embedded panel
-   * collapses topics by default) and scroll it into view within the board's own
-   * scroll area. Deferred to the next frame so the just-expanded card has laid
-   * out before we scroll to it.
-   */
-  jumpTo(id: string): void {
-    this.setExpanded(id, true);
-    requestAnimationFrame(() => {
-      document.getElementById(this.cardDomId(id))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }
-
-  /** True when every topic in the current tab is expanded. */
-  readonly allExpanded = computed(() => {
-    const visible = this.visibleMessages();
-    return visible.length > 0 && visible.every((m) => this.isExpanded(m.id));
-  });
-
-  /**
-   * Expand or collapse every topic of the current tab at once (feedback
-   * c5b6b13c). Collapsing leaves just the topic headings so the board stays
-   * scannable; only the tab's own rows are touched, so an expanded card in the
-   * other tab is left as-is. Available in both shells since feedback 03d7e546 —
-   * the full board folds its cards now, so it needs the same "alles zu".
-   */
-  toggleExpandAll(): void {
-    const open = !this.allExpanded();
-    for (const m of this.visibleMessages()) this.setExpanded(m.id, open);
-  }
-
-  /** Page size for the archive — "load more" reveals another batch. */
-  private static readonly ARCHIVE_PAGE = 10;
-  readonly archiveVisible = signal(AdminFeedbackComponent.ARCHIVE_PAGE);
-
-  /**
-   * The Archive: every terminal topic (author- and status-filtered), newest
-   * completion first. Shipped and issue-created rows are interleaved by their
-   * own completion time so the tab reads as one "done" history.
-   */
-  readonly archiveMessages = computed(() =>
-    this.messages()
-      .filter(
-        (m) =>
-          isArchived(m, this.threads().get(m.id)) &&
-          this.matchesSource(m) &&
-          this.matchesAuthor(m) &&
-          this.matchesStatus(m) &&
-          this.matchesSearch(m),
-      )
-      .sort(this.boardOrder((m) => this.archiveTime(m))),
-  );
-  /** The current archive page (first N of the sorted history). */
-  readonly archiveVisibleMessages = computed(() =>
-    this.archiveMessages().slice(0, this.archiveVisible()),
-  );
-  /** How many archived items are still hidden below the current page. */
-  readonly archiveRemaining = computed(() =>
-    Math.max(0, this.archiveMessages().length - this.archiveVisible()),
-  );
-
-  /** Reveal the next page of archive history (+10). */
-  loadMoreArchive(): void {
-    this.archiveVisible.update((n) => n + AdminFeedbackComponent.ARCHIVE_PAGE);
-  }
-
-  /**
-   * When a topic reached its terminal state: `shipped_at` for shipped rows,
-   * else the routine's last touch, else the row's own timestamps. Drives the
-   * archive's newest-first order across both terminal kinds.
-   */
-  private archiveTime(m: FeedbackRow): number {
-    for (const c of [m.shipped_at, m.processed_at, m.updated_at, m.created_at]) {
-      if (!c) continue;
-      const t = Date.parse(c);
-      if (Number.isFinite(t)) return t;
-    }
-    return 0;
-  }
-
-  /**
-   * Topics whose open state was flipped AWAY from the shell's default — not
-   * "the open ones" (feedback 03d7e546).
-   *
-   * The two shells want opposite defaults: the docked panel keeps topics
-   * collapsed (it is a narrow column and shows one guided question at a time),
-   * the full board opens them (it is the reading surface). Storing the flip
-   * rather than the state lets both live off one set, and it is what finally
-   * gives the full board a working fold — it used to render every card open with
-   * no control to close it, which is exactly the "expandieren/collapsen
-   * funktioniert nicht" the admin hit.
-   */
-  private readonly _flipped = signal<Set<string>>(new Set());
-  /** Topics already auto-expanded once, so a manual collapse is not undone on refresh. */
-  private readonly _autoExpanded = new Set<string>();
-
-  /** Whether a topic is open when the admin has not touched it. */
-  private defaultOpen(): boolean {
-    return !this.embedded();
-  }
-
-  isExpanded(id: string): boolean {
-    return this._flipped().has(id) !== this.defaultOpen();
-  }
-
-  toggleExpand(id: string): void {
-    this.setExpanded(id, !this.isExpanded(id));
-  }
-
-  /** Open or close one topic, keeping {@link _flipped} a set of deviations. */
-  private setExpanded(id: string, open: boolean): void {
-    const flip = open !== this.defaultOpen();
-    this._flipped.update((set) => {
-      if (set.has(id) === flip) return set;
-      const next = new Set(set);
-      if (flip) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-  }
-
-  /**
-   * Threads whose folded middle is unfolded, keyed by {@link threadFold}'s key
-   * (feedback 03d7e546). Session-local and per thread: opening the history is
-   * "let me look", never a preference — the next refresh keeps it, a reload
-   * starts folded again.
-   */
-  private readonly _unfolded = signal<Set<string>>(new Set());
-
-  foldOpen(key: string): boolean {
-    return this._unfolded().has(key);
-  }
-
-  toggleFold(key: string): void {
-    this._unfolded.update((set) => {
-      const next = new Set(set);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }
-
-  /** A folded thread plus the key its disclosure toggles. */
-  private fold<T>(key: string, messages: readonly T[]): FoldedThread<T> & { key: string } {
-    const folded = foldThread(messages);
-    // Unfolded: everything is on screen in one run, but `hidden` keeps its
-    // messages so the disclosure can still say how much it would fold back.
-    if (this.foldOpen(key)) return { key, lead: null, hidden: folded.hidden, tail: messages };
-    return { key, ...folded };
-  }
-
-  /**
-   * The admin ↔ routine thread of one topic, folded to "first … newest"
-   * (feedback 03d7e546). The topic's own body is the conversation's initial
-   * message and sits above this, so what must never be scrolled for is the
-   * newest reply.
-   */
-  threadFold(id: string): FoldedThread<FeedbackMessage> & { key: string } {
-    return this.fold(`thread:${id}`, this.messagesFor(id));
-  }
-
-  /** The same fold over the author-visible channel of one topic. */
-  authorFold(id: string): FoldedThread<AuthorFeedbackMessage> & { key: string } {
-    return this.fold(`author:${id}`, this.authorMessagesFor(id));
-  }
-
-  /**
-   * Topics whose "Weitere Aktionen" disclosure is open (feedback 03d7e546) —
-   * the rare administrative acts (issue hand-off, nicht umsetzen, löschen) that
-   * used to sit under every card as a permanent row of buttons.
-   */
-  private readonly _moreOpen = signal<Set<string>>(new Set());
-
-  moreOpen(id: string): boolean {
-    return this._moreOpen().has(id);
-  }
-
-  toggleMore(id: string): void {
-    this._moreOpen.update((set) => {
-      const next = new Set(set);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-    // Folding the actions away closes whatever form was open inside them, so a
-    // half-typed decline note can never survive out of sight.
-    if (!this.moreOpen(id) && this.declineFormFor() === id) this.cancelDeclineForm();
-  }
-
-  /** Topics still awaiting the admin's answer (an open Rückfrage), in board order. */
-  private awaitingQuestions(): FeedbackRow[] {
-    return this.activeMessages().filter(
-      (m) => m.status === 'needs_input' && !this.isAnsweredAwaitingRoutine(m),
-    );
-  }
-
-  /**
-   * Guided one-at-a-time flow in the embedded FAB panel (feedback 816a0ec8).
-   * The panel keeps exactly the first still-unanswered Rückfrage open — the
-   * routine's question and its reply box — while the rest stay collapsed so the
-   * overview reads cleanly. Answering advances to the next via
-   * {@link advanceAfterAnswer}; here we only ensure something is open when
-   * nothing is, and never reopen a question the admin manually collapsed (each
-   * id is auto-expanded at most once).
-   */
-  private autoExpandFirstQuestion(): void {
-    if (!this.embedded()) return;
-    const awaiting = this.awaitingQuestions();
-    if (awaiting.length === 0) return;
-    // Already guiding one open question → leave the admin's place untouched.
-    if (awaiting.some((m) => this.isExpanded(m.id))) return;
-    const first = awaiting[0];
-    if (this._autoExpanded.has(first.id)) return; // manually collapsed — respect it
-    this._autoExpanded.add(first.id);
-    this.setExpanded(first.id, true);
-  }
-
-  /**
-   * After the admin answers a Rückfrage in the panel, fold the answered topic
-   * away and open the next still-unanswered one, scrolling it into view — the
-   * "collapse → move up → next unfolds" flow the overview asks for (feedback
-   * 816a0ec8). The answered topic bubbles up on its own via the recency sort;
-   * the CSS `expandCollapse` animation softens the fold. No-op on the full board.
-   */
-  private advanceAfterAnswer(answeredId: string): void {
-    if (!this.embedded()) return;
-    this.setExpanded(answeredId, false);
-    const next = this.awaitingQuestions().find((m) => m.id !== answeredId);
-    if (!next) return;
-    this._autoExpanded.add(next.id);
-    this.setExpanded(next.id, true);
-    requestAnimationFrame(() => {
-      document
-        .getElementById(this.cardDomId(next.id))
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }
-
-  /*
-   * `bodyPreview` (the full board's two-sentence clamp, feedback 73dfa165) lived
-   * here. It is gone with feedback 03d7e546: the card itself folds in both
-   * shells now, so a second expand control *inside* an already expanded card was
-   * one fold too many — and it was the reason a long thread grew a "mehr"
-   * button per message.
-   */
-
-  constructor() {
-    useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
-    inject(DestroyRef).onDestroy(() => {
-      if (this.shipCheerTimer) clearTimeout(this.shipCheerTimer);
-    });
-  }
-
-  async ngOnInit() {
-    await this.refresh();
-  }
-
-  render(body: string): RenderedFeedbackBody {
-    return renderFeedbackBody(body);
-  }
-
-  authorLabel(m: FeedbackRow): string {
-    if (m.author_id && m.author_id === this.selfId()) {
-      return this.translate.instant('adminFeedback.you');
-    }
-    return m.author?.display_name
-      ?? (m.author?.username ? `@${m.author.username}` : null)
-      ?? this.translate.instant('adminFeedback.unknownUser');
-  }
-
-  // ---- Data --------------------------------------------------------------
-
-  async refresh() {
-    this.busy.set(true);
-    this.errorMsg.set(null);
-    const { data, error } = await this.sb.client
-      .from('admin_feedback')
-      .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, reviewed_at, source, triaged, decision_note, area, author:profiles(display_name, username)')
-      .order('created_at', { ascending: true });
-    if (error) {
-      this.errorMsg.set(error.message);
-    } else {
-      const rows = (data ?? []) as unknown as FeedbackRow[];
-      this.messages.set(rows);
-      // Threads first: the guided auto-expand needs each topic's replies to tell
-      // an unanswered Rückfrage from one already answered (awaiting the routine).
-      await this.loadThreads(rows.map((r) => r.id));
-      await this.loadAuthorThreads(rows.filter(isUserSubmitted).map((r) => r.id));
-      this.autoExpandFirstQuestion();
-      this.detectShipped(rows);
-    }
-    this.busy.set(false);
-  }
-
-  /** Fetch every topic's replies in one query and group them by feedback id. */
-  private async loadThreads(feedbackIds: string[]): Promise<void> {
-    if (feedbackIds.length === 0) {
-      this.threads.set(new Map());
-      return;
-    }
-    const { data, error } = await this.sb.client
-      .from('admin_feedback_messages')
-      .select('id, feedback_id, author_id, is_system, body, created_at, author:profiles(display_name, username)')
-      .in('feedback_id', feedbackIds)
-      .order('created_at', { ascending: true });
-    if (error) {
-      // Threads are additive — a load failure must not blank the board.
-      return;
-    }
-    const grouped = new Map<string, FeedbackMessage[]>();
-    for (const row of (data ?? []) as unknown as FeedbackMessage[]) {
-      const list = grouped.get(row.feedback_id) ?? [];
-      list.push(row);
-      grouped.set(row.feedback_id, list);
-    }
-    this.threads.set(grouped);
-  }
-
-  // ---- Author channel (user-submitted topics) ------------------------------
-
-  /**
-   * The AUTHOR-VISIBLE messages per topic (feedback 5920cf8c). Kept strictly
-   * apart from {@link threads}: that one is the admin <-> routine conversation
-   * and must never reach the person who filed the topic, this one is the only
-   * thing they do see besides their own text and the coarse status.
-   */
-  readonly authorThreads = signal<AuthorThreadMap>(new Map());
-
-  private async loadAuthorThreads(ids: string[]): Promise<void> {
-    if (ids.length === 0) {
-      this.authorThreads.set(new Map());
-      return;
-    }
-    const { data, error } = await this.sb.client
-      .from('feedback_author_messages')
-      .select('id, feedback_id, author_id, from_admin, is_question, body, created_at')
-      .in('feedback_id', ids)
-      .order('created_at', { ascending: true });
-    // Additive — a load failure must not blank the board.
-    if (error) return;
-    this.authorThreads.set(
-      groupAuthorMessages((data ?? []) as unknown as AuthorFeedbackMessage[]),
-    );
-  }
-
-  authorMessagesFor(id: string): AuthorFeedbackMessage[] {
-    return this.authorThreads().get(id) ?? [];
   }
 
   /** Template alias: was this topic filed by a non-admin through the user FAB? */
@@ -2968,13 +1177,558 @@ export class AdminFeedbackComponent implements OnInit {
     return awaitsTriage(m);
   }
 
+  /** Template alias: is this topic waiting for the admin's sign-off? */
+  inReview(m: FeedbackRow): boolean {
+    return awaitsReview(m, this.threads().get(m.id));
+  }
+
+  continuedAfterShip(m: FeedbackRow): boolean {
+    return isContinuedAfterShip(m, this.threads().get(m.id));
+  }
+
+  /** The routine's newest reply — the question the lead card shows. */
+  lastSystemMessage(m: FeedbackRow): FeedbackMessage | null {
+    const replies = this.messagesFor(m.id);
+    for (let i = replies.length - 1; i >= 0; i--) {
+      if (replies[i].is_system) return replies[i];
+      // A human reply after the routine's means the question was answered.
+      return null;
+    }
+    return null;
+  }
+
+  /** ISO time the "Du bist dran" card has been waiting since. */
+  waitingSinceIso(m: FeedbackRow): string {
+    return new Date(waitingSince(m, this.threads().get(m.id))).toISOString();
+  }
+
+  /** ISO time of the topic's latest activity (own timestamps or last reply). */
+  lastActivityIso(m: FeedbackRow): string {
+    return new Date(this.recencyTime(m)).toISOString();
+  }
+
+  private recencyTime(m: FeedbackRow): number {
+    const replies = this.threads().get(m.id);
+    const lastReply = replies && replies.length ? replies[replies.length - 1].created_at : null;
+    let max = 0;
+    for (const c of [m.created_at, m.updated_at, m.processed_at, lastReply]) {
+      const t = timeOf(c);
+      if (t > max) max = t;
+    }
+    return max;
+  }
+
+  // ---- Bands -------------------------------------------------------------------
+
+  /** Everything that passes the sheet's filters — the bands split this. */
+  private readonly filtered = computed(() =>
+    this.messages().filter((m) => this.matchesWho(m) && this.matchesWhere(m) && this.matchesArea(m)),
+  );
+
   /**
-   * The area tag to show for a topic, or null when there is none to show
-   * (admin feedback 835fec58). Narrowing rather than passing the raw column
-   * through means a value this build does not know — an area removed from the
-   * vocabulary, a hand-written row — renders as nothing instead of as a bare
-   * identifier next to properly translated pills.
+   * Band 1: what waits on the admin — releases first (feedback 89925995: a user
+   * topic nobody released is blocked outright, nothing at all happens to it
+   * until an admin acts), then longest wait first.
    */
+  readonly yourTurn = computed(() =>
+    this.filtered()
+      .filter((m) => this.turnOf(m) === 'admin')
+      .sort((a, b) => {
+        const ra = this.askOf(a) === 'release' ? 0 : 1;
+        const rb = this.askOf(b) === 'release' ? 0 : 1;
+        return ra - rb || waitingSince(a, this.threads().get(a.id)) - waitingSince(b, this.threads().get(b.id));
+      }),
+  );
+
+  /** Band 2: the routine's pile and the questions parked at a user, newest activity first. */
+  readonly running = computed(() =>
+    this.filtered()
+      .filter((m) => {
+        const t = this.turnOf(m);
+        return t === 'routine' || t === 'user';
+      })
+      .sort((a, b) => this.recencyTime(b) - this.recencyTime(a)),
+  );
+
+  /** Band 3: done work by day, newest day first. */
+  readonly deliveredDays = computed<DeliveredDay[]>(() => deliveredByDay(this.filtered(), this.threads()));
+  readonly deliveredCount = computed(() => this.deliveredDays().reduce((n, d) => n + d.items.length, 0));
+
+  /** How many days of the feed are unrolled; "n weitere Tage" adds a page. */
+  private readonly deliveredDaysShown = signal(DELIVERED_DAYS_PAGE);
+  readonly visibleDeliveredDays = computed(() => this.deliveredDays().slice(0, this.deliveredDaysShown()));
+  readonly hiddenDeliveredDays = computed(() => Math.max(0, this.deliveredDays().length - this.deliveredDaysShown()));
+
+  showMoreDays(): void {
+    this.deliveredDaysShown.update((n) => n + DELIVERED_DAYS_PAGE);
+  }
+
+  /**
+   * When the admin last looked at the Geliefert band — read once at open, so
+   * everything that finished since then wears the "neu" marker for this whole
+   * visit, and written now, so the next visit compares against this one.
+   */
+  private readonly lastSeenDelivered = signal(this.readLastSeen());
+  readonly newDeliveredCount = computed(() => {
+    const seen = this.lastSeenDelivered();
+    let n = 0;
+    for (const d of this.deliveredDays()) for (const m of d.items) if (isNewSince(m, seen)) n++;
+    return n;
+  });
+
+  isNew(m: FeedbackRow): boolean {
+    return this.delivered(m) && isNewSince(m, this.lastSeenDelivered());
+  }
+
+  /** Template alias: does this topic belong in the Geliefert feed? */
+  delivered(m: FeedbackRow): boolean {
+    return isDelivered(m, this.threads().get(m.id));
+  }
+
+  private readLastSeen(): number {
+    try {
+      const raw = localStorage.getItem(LAST_SEEN_KEY);
+      const t = raw ? Number(raw) : 0;
+      return Number.isFinite(t) ? t : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  private stampLastSeen(): void {
+    if (!this.consent.preferencesAllowed()) return;
+    try {
+      localStorage.setItem(LAST_SEEN_KEY, String(Date.now()));
+    } catch {
+      /* private mode / quota */
+    }
+  }
+
+  /** Bands the admin folded away — session-local, a glance, not a preference. */
+  private readonly _collapsedBands = signal<Set<FeedbackTurn>>(new Set());
+
+  bandCollapsed(turn: FeedbackTurn): boolean {
+    return this._collapsedBands().has(turn);
+  }
+
+  toggleBand(turn: FeedbackTurn): void {
+    // Unrolling the Geliefert band counts as having looked at it.
+    if (turn === 'nobody' && this.bandCollapsed(turn)) this.stampLastSeen();
+    this._collapsedBands.update((set) => {
+      const next = new Set(set);
+      if (next.has(turn)) next.delete(turn);
+      else next.add(turn);
+      return next;
+    });
+  }
+
+  /** Day heading: Today / Yesterday for the two most recent days, else a localized date. */
+  dayLabel(dayStart: number): string {
+    const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const today = startOf(new Date());
+    const DAY_MS = 86_400_000;
+    if (dayStart === today) return this.translate.instant('adminFeedback.dateGroup.today');
+    if (dayStart === today - DAY_MS) return this.translate.instant('adminFeedback.dateGroup.yesterday');
+    return formatScDate(new Date(dayStart), { language: this.locale.language(), region: this.locale.region() });
+  }
+
+  // ---- Search ------------------------------------------------------------------
+
+  /** Raw search input. Blank (or punctuation-only) means "no search active". */
+  readonly searchQuery = signal('');
+  readonly searchActive = computed(() => searchTokens(this.searchQuery()).length > 0);
+
+  private readonly searchHits = computed<ReadonlyMap<string, FeedbackSearchHit>>(() => {
+    const query = this.searchQuery();
+    if (!this.searchActive()) return new Map();
+    const hits = new Map<string, FeedbackSearchHit>();
+    for (const hit of searchFeedback(this.messages(), this.threads(), query)) hits.set(hit.row.id, hit);
+    return hits;
+  });
+
+  /** Hits, filters applied, relevance first — whichever band they live in. */
+  readonly searchResults = computed(() =>
+    this.filtered()
+      .filter((m) => this.searchHits().has(m.id))
+      .sort((a, b) => (this.searchHits().get(b.id)?.score ?? 0) - (this.searchHits().get(a.id)?.score ?? 0)),
+  );
+
+  /** A hit that only matched inside the thread — worth flagging in the row. */
+  threadOnlyHit(m: FeedbackRow): boolean {
+    const hit = this.searchHits().get(m.id);
+    return !!hit && hit.inThread && !hit.inBody;
+  }
+
+  setSearch(value: string): void {
+    this.searchQuery.set(value);
+  }
+
+  clearSearch(): void {
+    this.setSearch('');
+  }
+
+  // ---- Filters (the sheet) --------------------------------------------------
+
+  readonly filtersOpen = signal(false);
+  openFilters(): void { this.filtersOpen.set(true); this.focusSheet(); }
+  closeFilters(): void {
+    if (!this.filtersOpen()) return;
+    this.filtersOpen.set(false);
+    this.returnFocus();
+  }
+
+  readonly whoFilter = signal<WhoFilter>('all');
+  readonly whereFilter = signal<FeedbackBucket | null>(null);
+  readonly areaFilter = signal<FeedbackArea | null>(null);
+
+  readonly filterCount = computed(
+    () => (this.whoFilter() === 'all' ? 0 : 1) + (this.whereFilter() === null ? 0 : 1) + (this.areaFilter() === null ? 0 : 1),
+  );
+
+  whoIs(w: 'all' | 'mine' | 'others' | 'users'): boolean {
+    return this.whoFilter() === w;
+  }
+
+  whoIsAuthor(id: string): boolean {
+    const w = this.whoFilter();
+    return typeof w === 'object' && w.authorId === id;
+  }
+
+  setWho(w: 'all' | 'mine' | 'others' | 'users'): void {
+    this.whoFilter.set(w);
+  }
+
+  setWhoAuthor(id: string): void {
+    this.whoFilter.update((cur) => (typeof cur === 'object' && cur.authorId === id ? 'all' : { authorId: id }));
+  }
+
+  setWhere(b: FeedbackBucket | null): void {
+    this.whereFilter.set(b);
+  }
+
+  setArea(a: FeedbackArea | null): void {
+    this.areaFilter.set(a);
+  }
+
+  resetFilters(): void {
+    this.whoFilter.set('all');
+    this.whereFilter.set(null);
+    this.areaFilter.set(null);
+  }
+
+  /** Sentinel author key for topics with no author (orphaned rows). */
+  private static readonly NO_AUTHOR = '__none__';
+
+  private matchesWho(m: FeedbackRow): boolean {
+    const w = this.whoFilter();
+    if (w === 'all') return true;
+    if (w === 'users') return isUserSubmitted(m);
+    // A release step is nobody's topic and therefore everybody's job (feedback
+    // 89925995): it shows under "Meine" and "Andere" alike.
+    if (w === 'mine') return awaitsTriage(m) || (!isUserSubmitted(m) && !!m.author_id && m.author_id === this.selfId());
+    if (w === 'others') return awaitsTriage(m) || (!isUserSubmitted(m) && m.author_id !== this.selfId());
+    return (m.author_id ?? AdminFeedbackComponent.NO_AUTHOR) === w.authorId;
+  }
+
+  private matchesWhere(m: FeedbackRow): boolean {
+    const f = this.whereFilter();
+    return f === null || this.bucketOf(m) === f;
+  }
+
+  private matchesArea(m: FeedbackRow): boolean {
+    const f = this.areaFilter();
+    return f === null || asFeedbackArea(m.area) === f;
+  }
+
+  /**
+   * Distinct authors, most-topics first — the "Wer?" rows. Carries a sample
+   * row, not a label: the label is translated in the template so a language
+   * switch re-renders it like every other string.
+   */
+  readonly authorOptions = computed(() => {
+    const seen = new Map<string, { id: string; row: FeedbackRow; count: number }>();
+    for (const m of this.messages()) {
+      const id = m.author_id ?? AdminFeedbackComponent.NO_AUTHOR;
+      const existing = seen.get(id);
+      if (existing) existing.count++;
+      else seen.set(id, { id, row: m, count: 1 });
+    }
+    return Array.from(seen.values()).sort((a, b) => b.count - a.count);
+  });
+
+  /** "Wo steht es?" — every bucket that holds something, in path order. */
+  readonly whereOptions = computed(() => {
+    const order: FeedbackBucket[] = [
+      'awaiting_admin', 'review', 'todo', 'in_progress', 'awaiting_author', 'shipped', 'issue_created', 'declined', 'rejected',
+    ];
+    const counts = new Map<FeedbackBucket, number>();
+    for (const m of this.messages()) {
+      const b = this.bucketOf(m);
+      counts.set(b, (counts.get(b) ?? 0) + 1);
+    }
+    return order
+      .filter((b) => (counts.get(b) ?? 0) > 0)
+      .map((b) => ({ bucket: b, count: counts.get(b) ?? 0, labelKey: this.whereLabelKey(b) }));
+  });
+
+  private whereLabelKey(b: FeedbackBucket): string {
+    switch (b) {
+      case 'awaiting_admin': return 'adminFeedback.ask.question';
+      case 'review': return 'adminFeedback.ask.review';
+      case 'todo': return 'adminFeedback.station.queued';
+      case 'in_progress': return 'adminFeedback.station.work';
+      case 'awaiting_author': return 'adminFeedback.turn.user';
+      case 'shipped': return 'adminFeedback.status.shipped';
+      case 'issue_created': return 'adminFeedback.station.issue';
+      case 'declined': return 'adminFeedback.station.declined';
+      default: return 'adminFeedback.station.rejected';
+    }
+  }
+
+  /** "Bereich" — every area that holds something, in the picker's order. */
+  readonly areaOptions = computed(() => {
+    const counts = new Map<FeedbackArea, number>();
+    for (const m of this.messages()) {
+      const a = asFeedbackArea(m.area);
+      if (a) counts.set(a, (counts.get(a) ?? 0) + 1);
+    }
+    return FEEDBACK_AREAS.filter((a) => (counts.get(a) ?? 0) > 0).map((a) => ({ area: a, count: counts.get(a) ?? 0 }));
+  });
+
+  /** Something in the user half still waits for its release to the routine. */
+  readonly untriagedWaiting = computed(() =>
+    this.messages().some((m) => awaitsTriage(m) && !isArchived(m, this.threads().get(m.id))),
+  );
+
+  // ---- The opened topic (full-panel sheet) ----------------------------------
+
+  private readonly openId = signal<string | null>(null);
+  readonly openRow = computed(() => {
+    const id = this.openId();
+    return id ? (this.messages().find((m) => m.id === id) ?? null) : null;
+  });
+
+  /** Any sheet over the stream — the stream hides behind it. */
+  readonly overlayOpen = computed(() => this.openRow() !== null || this.filtersOpen() || this.declineTopicRow() !== null);
+
+  openTopic(id: string): void {
+    this.openId.set(id);
+    this.focusSheet();
+    // Reading a delivered topic counts as having looked at the feed.
+    const row = this.messages().find((m) => m.id === id);
+    if (row && this.delivered(row)) this.stampLastSeen();
+  }
+
+  closeTopic(): void {
+    if (this.openId() === null) return;
+    this.openId.set(null);
+    this._moreOpen.set(new Set());
+    this.reopeningFor.set(null);
+    this.returnFocus();
+  }
+
+  /**
+   * Escape closes the top-most sheet — and stops there. The FAB shell listens
+   * for Escape on the document to step the panel down (maximized → docked →
+   * minimized); with a sheet open that key belongs to the sheet, and since this
+   * host sits inside the panel its listener runs first.
+   */
+  @HostListener('keydown.escape', ['$event'])
+  onEscape(ev: Event): void {
+    if (this._moreOpen().size > 0) this._moreOpen.set(new Set());
+    else if (this.declineTopicRow()) this.cancelDeclineForm();
+    else if (this.filtersOpen()) this.closeFilters();
+    else if (this.openRow()) this.closeTopic();
+    else return;
+    ev.stopPropagation();
+    ev.preventDefault();
+  }
+
+  /** Where the keyboard was before a sheet opened — it goes back there on close. */
+  private readonly _returnFocus: HTMLElement[] = [];
+
+  /** Put the keyboard into the sheet that just opened (the TOP sheet's back button). */
+  private focusSheet(): void {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) this._returnFocus.push(active);
+    requestAnimationFrame(() => {
+      const sheets = this.host.nativeElement.querySelectorAll<HTMLElement>('.sheet');
+      sheets[sheets.length - 1]?.querySelector<HTMLElement>('.sh-btn')?.focus();
+    });
+  }
+
+  /** Hand the keyboard back to whatever opened the sheet that just closed. */
+  private returnFocus(): void {
+    const el = this._returnFocus.pop();
+    if (el && el.isConnected) requestAnimationFrame(() => el.focus());
+  }
+
+  /**
+   * The thread as the sheet shows it: the newest message always, everything
+   * before it behind "…" that reveals one more message per tap, from the newest
+   * backwards (round-1 feedback: "immer eine weitere Nachricht dazwischen").
+   */
+  private readonly _revealed = signal<ReadonlyMap<string, number>>(new Map());
+
+  private foldView<T>(key: string, all: readonly T[]): { key: string; shown: T[]; hiddenCount: number; revealed: number; total: number } {
+    if (all.length === 0) return { key, shown: [], hiddenCount: 0, revealed: 0, total: 0 };
+    const revealed = Math.min(this._revealed().get(key) ?? 0, all.length - 1);
+    const shownFrom = all.length - 1 - revealed;
+    return { key, shown: all.slice(shownFrom), hiddenCount: shownFrom, revealed, total: all.length };
+  }
+
+  threadView(id: string) {
+    return this.foldView(`thread:${id}`, this.messagesFor(id));
+  }
+
+  authorView(id: string) {
+    return this.foldView(`author:${id}`, this.authorMessagesFor(id));
+  }
+
+  revealOne(key: string): void {
+    this._revealed.update((map) => {
+      const next = new Map(map);
+      next.set(key, (map.get(key) ?? 0) + 1);
+      return next;
+    });
+  }
+
+  hideRevealed(key: string): void {
+    this._revealed.update((map) => {
+      const next = new Map(map);
+      next.delete(key);
+      return next;
+    });
+  }
+
+  /** Sent messages longer than three lines fold; these are the ones unfolded. */
+  private readonly _longOpen = signal<Set<string>>(new Set());
+
+  isLongBody(body: string): boolean {
+    return isLongMessage(body);
+  }
+
+  isLongOpen(id: string): boolean {
+    return this._longOpen().has(id);
+  }
+
+  /** Clamp this message: it is long and the admin has not unfolded it. */
+  isLong(id: string, body: string): boolean {
+    return this.isLongBody(body) && !this.isLongOpen(id);
+  }
+
+  toggleLong(id: string): void {
+    this._longOpen.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  /** Topics whose ⋯ menu is open. */
+  private readonly _moreOpen = signal<Set<string>>(new Set());
+
+  moreOpen(id: string): boolean {
+    return this._moreOpen().has(id);
+  }
+
+  toggleMore(id: string): void {
+    this._moreOpen.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  /** A routine message without its `[[A|B]]` line — the buttons say it instead. */
+  questionText(body: string): string {
+    return parseAnswerOptions(body)?.text ?? body;
+  }
+
+  /** One-tap answers the routine offered in its newest question, if any. */
+  answerOptionsFor(m: FeedbackRow): AnswerOptions | null {
+    if (this.askOf(m) !== 'question') return null;
+    const q = this.lastSystemMessage(m);
+    return q ? parseAnswerOptions(q.body) : null;
+  }
+
+  /** True while a one-tap answer is being posted — a double tap must not post twice. */
+  readonly answering = signal(false);
+
+  async answerWithOption(m: FeedbackRow, option: string): Promise<void> {
+    if (this.answering()) return;
+    this.answering.set(true);
+    try {
+      await this.sendReply(m.id, { text: option, images: [] });
+    } finally {
+      this.answering.set(false);
+    }
+  }
+
+  /** The deep link into the app for a topic's area, or null when it has none. */
+  areaLink(m: FeedbackRow): string | null {
+    return areaRoute(asFeedbackArea(m.area));
+  }
+
+  // ---- Avatars --------------------------------------------------------------
+
+  toneOf(a: FeedbackAuthor | null | undefined): AvatarTone {
+    if (a?.role === 'admin') return 'adm';
+    if (a?.role === 'collaborator') return 'col';
+    return 'usr';
+  }
+
+  roleTitle(a: FeedbackAuthor | null | undefined): string {
+    const role = a?.role === 'admin' || a?.role === 'collaborator' ? a.role : 'viewer';
+    const name = a?.display_name || (a?.username ? `@${a.username}` : '');
+    const roleLabel = this.translate.instant(`adminFeedback.role.${role}`);
+    return name ? `${name} · ${roleLabel}` : roleLabel;
+  }
+
+  initials(a: FeedbackAuthor | null | undefined, self: boolean): string {
+    const name = a?.display_name || a?.username || '';
+    if (!name) return '?';
+    const parts = name.replace(/^@/, '').split(/[\s._-]+/).filter(Boolean);
+    const first = parts[0]?.[0] ?? '';
+    const second = parts.length > 1 ? parts[parts.length - 1][0] : (parts[0]?.[1] ?? '');
+    return (first + second).toUpperCase();
+  }
+
+  // ---- Misc template helpers --------------------------------------------------
+
+  render(body: string): RenderedFeedbackBody {
+    return renderFeedbackBody(body);
+  }
+
+  authorLabel(m: FeedbackRow): string {
+    if (m.author_id && m.author_id === this.selfId()) return this.translate.instant('adminFeedback.you');
+    return m.author?.display_name
+      ?? (m.author?.username ? `@${m.author.username}` : null)
+      ?? this.translate.instant('adminFeedback.unknownUser');
+  }
+
+  authorLabelFor(msg: FeedbackMessage): string {
+    if (msg.is_system) return this.translate.instant('adminFeedback.kind.ai');
+    if (msg.author_id && msg.author_id === this.selfId()) return this.translate.instant('adminFeedback.you');
+    return msg.author?.display_name
+      ?? (msg.author?.username ? `@${msg.author.username}` : null)
+      ?? this.translate.instant('adminFeedback.unknownUser');
+  }
+
+  topicTitle(body: string, max?: number): string {
+    return topicTitle(body, max);
+  }
+
+  topicNo(m: FeedbackRow): number | null {
+    return topicNumber(m);
+  }
+
+  cardDomId(id: string): string {
+    return `fb-card-${id}`;
+  }
+
   areaOf(m: FeedbackRow): FeedbackArea | null {
     return asFeedbackArea(m.area);
   }
@@ -2983,34 +1737,112 @@ export class AdminFeedbackComponent implements OnInit {
     return feedbackAreaLabelKey(area);
   }
 
-  /**
-   * What the FEEDBACK AUTHOR currently sees for this topic — the same coarse
-   * mapping the `public.my_feedback` view applies, so the admin can tell at a
-   * glance that a `needs_input` Rückfrage to the routine reads as plain
-   * "in Bearbeitung" on the other side, while only `needs_input_author` shows up
-   * there as a question.
-   */
   authorFacingStatus(m: FeedbackRow): AuthorFeedbackStatus {
     return coarseAuthorStatus(m.status);
   }
 
-  authorLabelFor(msg: FeedbackMessage): string {
-    if (msg.is_system) return this.translate.instant('adminFeedback.thread.routine');
-    if (msg.author_id && msg.author_id === this.selfId()) {
-      return this.translate.instant('adminFeedback.you');
+  // ---- Lifecycle -------------------------------------------------------------
+
+  constructor() {
+    useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
+    inject(DestroyRef).onDestroy(() => this.stampLastSeen());
+  }
+
+  async ngOnInit() {
+    await this.refresh();
+    // The marker compares against the previous visit; this one starts now.
+    this.stampLastSeen();
+  }
+
+  // ---- Data --------------------------------------------------------------
+
+  async refresh() {
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const { data, error } = await this.sb.client
+      .from('admin_feedback')
+      // `author.role` colours the avatar; admins may read every profile
+      // (policy profiles_admin_read_all), so no projection is needed.
+      .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, reviewed_at, source, triaged, decision_note, area, author:profiles(display_name, username, role)')
+      .order('created_at', { ascending: true });
+    if (error) {
+      this.errorMsg.set(error.message);
+    } else {
+      const rows = (data ?? []) as unknown as FeedbackRow[];
+      this.messages.set(rows);
+      await this.loadThreads(rows.map((r) => r.id));
+      await this.loadAuthorThreads(rows.filter(isUserSubmitted).map((r) => r.id));
+      this.detectShipped(rows);
     }
-    return msg.author?.display_name
-      ?? (msg.author?.username ? `@${msg.author.username}` : null)
-      ?? this.translate.instant('adminFeedback.unknownUser');
+    this.busy.set(false);
+  }
+
+  private async loadThreads(feedbackIds: string[]): Promise<void> {
+    if (feedbackIds.length === 0) {
+      this.threads.set(new Map());
+      return;
+    }
+    const { data, error } = await this.sb.client
+      .from('admin_feedback_messages')
+      .select('id, feedback_id, author_id, is_system, body, created_at, author:profiles(display_name, username, role)')
+      .in('feedback_id', feedbackIds)
+      .order('created_at', { ascending: true });
+    // Threads are additive — a load failure must not blank the board.
+    if (error) return;
+    const grouped = new Map<string, FeedbackMessage[]>();
+    for (const row of (data ?? []) as unknown as FeedbackMessage[]) {
+      const list = grouped.get(row.feedback_id) ?? [];
+      list.push(row);
+      grouped.set(row.feedback_id, list);
+    }
+    this.threads.set(grouped);
+  }
+
+  /** Shipped ids as of the previous refresh; `null` until the first load lands. */
+  private shippedSeen: Set<string> | null = null;
+
+  /**
+   * A topic shipped between two polls: the confetti burst stays (it is the
+   * celebration), the banner is gone — the Geliefert band's "neu" marker is
+   * the durable version of that news.
+   */
+  private detectShipped(rows: readonly FeedbackRow[]): void {
+    const now = new Set(rows.filter((r) => r.status === 'shipped').map((r) => r.id));
+    const before = this.shippedSeen;
+    this.shippedSeen = now;
+    if (before === null) return;
+    for (const id of now) {
+      if (!before.has(id)) {
+        this.celebration.burst();
+        return;
+      }
+    }
+  }
+
+  // ---- Author channel (user-submitted topics) ------------------------------
+
+  readonly authorThreads = signal<AuthorThreadMap>(new Map());
+
+  private async loadAuthorThreads(ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      this.authorThreads.set(new Map());
+      return;
+    }
+    const { data, error } = await this.sb.client
+      .from('feedback_author_messages')
+      .select('id, feedback_id, author_id, from_admin, is_question, body, created_at')
+      .in('feedback_id', ids)
+      .order('created_at', { ascending: true });
+    if (error) return;
+    this.authorThreads.set(groupAuthorMessages((data ?? []) as unknown as AuthorFeedbackMessage[]));
+  }
+
+  authorMessagesFor(id: string): AuthorFeedbackMessage[] {
+    return this.authorThreads().get(id) ?? [];
   }
 
   // ---- Composer submit handlers ------------------------------------------
 
-  /**
-   * Upload the composer's queued images and compose the stored body. The
-   * implementation moved to `feedback/feedback-images.util.ts` so the non-admin
-   * panel (feedback 5920cf8c) attaches screenshots through the exact same path.
-   */
   private uploadImages(images: PendingImage[]): Promise<string[]> {
     // `true` = the admin board may carry any file type (admin feedback
     // 312a4acc). Every non-admin send path leaves the flag at its default and
@@ -3023,52 +1855,19 @@ export class AdminFeedbackComponent implements OnInit {
     return buildFeedbackBody(text, images, urls);
   }
 
-  /** Stable handler reference for the new-topic composer. */
-  readonly createTopicBound = (payload: ComposerPayload): Promise<boolean> =>
-    this.createTopic(payload);
-
-  // ---- Compact panel disclosures (feedback 3133f9) ------------------------
-  // In the docked FAB panel vertical space is the scarce resource: the control
-  // chrome and the new-topic composer used to stack ahead of the list and leave
-  // barely one thread visible. So in `embedded()` mode the search field, the
-  // status/author chips and the composer each fold away and open on demand —
-  // the thread list owns the panel. On the full board none of this applies.
+  readonly createTopicBound = (payload: ComposerPayload): Promise<boolean> => this.createTopic(payload);
 
   /** Docked panel: the new-topic composer is collapsed to a bar by default. */
   readonly composerOpen = signal(false);
   openComposer(): void { this.composerOpen.set(true); }
   closeComposer(): void { this.composerOpen.set(false); }
 
-  /**
-   * The advanced filters (status + author chips) fold behind a quiet "Filter"
-   * text link on the toolbar's second row (admin feedback 18e96ad3). Both
-   * shells now: the full board had the chips permanently unrolled, which is the
-   * bulk the admin asked to be put away.
-   */
-  readonly filtersOpen = signal(false);
-  toggleFilters(): void { this.filtersOpen.update((v) => !v); }
-
-  /**
-   * The header search is a compact pill that grows over its neighbours while it
-   * has focus or holds a query — the same gesture as the site-wide Ctrl+K
-   * search (admin feedback 18e96ad3). It closes on Escape, on the × inside it
-   * and on a click elsewhere; a query keeps it open, so a filtered list can
-   * never be the work of a search box nobody can see.
-   */
-  readonly searchFocused = signal(false);
-  readonly searchExpanded = computed(() => this.searchFocused() || this.searchQuery().length > 0);
-
-  /**
-   * Compact new-topic submit: same as {@link createTopicBound}, but folds the
-   * sheet back to the bar once the topic is persisted, so the list returns.
-   */
   readonly createComposerBound = async (payload: ComposerPayload): Promise<boolean> => {
     const ok = await this.createTopic(payload);
     if (ok) this.composerOpen.set(false);
     return ok;
   };
 
-  /** Create a new feedback topic. Returns true once persisted (composer clears). */
   async createTopic(payload: ComposerPayload): Promise<boolean> {
     const uid = this.selfId();
     if (!uid) return false;
@@ -3083,8 +1882,6 @@ export class AdminFeedbackComponent implements OnInit {
     if (!body) return false;
     const { error } = await this.sb.client
       .from('admin_feedback')
-      // `area` is nullable by design — an untagged topic stays untagged rather
-      // than being filed under a guessed section (admin feedback 835fec58).
       .insert({ body, author_id: uid, area: payload.area ?? null });
     if (error) {
       this.errorMsg.set(error.message);
@@ -3094,13 +1891,24 @@ export class AdminFeedbackComponent implements OnInit {
     return true;
   }
 
-  /**
-   * Memoized draft scopes. A topic shows two composers at once (the admin <->
-   * routine thread and the author channel), and the workflow view a third — each
-   * keeps its own draft, so the keys must stay distinct and stable.
-   */
   private readonly threadScopes = new Map<string, string>();
   private readonly authorScopes = new Map<string, string>();
+  private readonly leadScopes = new Map<string, string>();
+  private readonly reopenScopes = new Map<string, string>();
+
+  /**
+   * The lead card's inline answer box and the sheet's composer can be in the
+   * DOM at the same time for one topic — two boxes on one draft key would
+   * overwrite each other. The inline box therefore keeps the retired run's
+   * scope, which also carries over any draft typed there before the rewrite.
+   */
+  leadScope(feedbackId: string): string {
+    return memoScope(this.leadScopes, feedbackId, draftScopes.adminWorkflow);
+  }
+
+  reopenScope(feedbackId: string): string {
+    return memoScope(this.reopenScopes, feedbackId, draftScopes.adminWorkflowReopen);
+  }
 
   threadScope(feedbackId: string): string {
     return memoScope(this.threadScopes, feedbackId, draftScopes.adminThread);
@@ -3110,7 +1918,6 @@ export class AdminFeedbackComponent implements OnInit {
     return memoScope(this.authorScopes, feedbackId, draftScopes.adminAuthor);
   }
 
-  /** Memoized per-topic reply handlers, so each composer gets a stable input. */
   private readonly replySubmitters = new Map<string, (p: ComposerPayload) => Promise<boolean>>();
 
   replySubmitFor(feedbackId: string): (p: ComposerPayload) => Promise<boolean> {
@@ -3127,10 +1934,6 @@ export class AdminFeedbackComponent implements OnInit {
     const uid = this.selfId();
     if (!uid) return false;
     this.errorMsg.set(null);
-    // Was this reply answering an open Rückfrage? If so, advance the guided flow
-    // once persisted (fold this one away, open the next) — captured before the
-    // refresh flips the topic to "answered".
-    const wasQuestion = this.messages().find((m) => m.id === feedbackId)?.status === 'needs_input';
     let body: string;
     try {
       body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
@@ -3147,28 +1950,12 @@ export class AdminFeedbackComponent implements OnInit {
       return false;
     }
     await this.refresh();
-    if (wasQuestion) this.advanceAfterAnswer(feedbackId);
     return true;
   }
 
   // ---- Issue hand-off ------------------------------------------------------
 
-  /**
-   * "Issue erstellen" — hand the topic to the routine as an INSTRUCTION to open
-   * a GitHub issue for it instead of implementing it (admin feedback 18e96ad3).
-   *
-   * The button used to read "Issue erstellt" and demanded a url on the spot,
-   * which is the opposite motion: it recorded an issue the admin had already
-   * filed by hand and archived the topic in the same click. The order the admin
-   * wants is the ordinary one — instruct → the routine works → fertig / zur
-   * Abnahme → Archiv — so this writes the instruction into the thread and
-   * otherwise leaves the topic exactly where it is: `open`, in the routine's
-   * queue, at its place in the oldest-first order.
-   *
-   * It is also the ONLY way a topic reaches `issue_created` (round 2 of the same
-   * feedback removed the hand-recorded "Issue-Link eintragen" form): the routine
-   * files the issue and writes the status and `ship_ref` itself.
-   */
+  /** "Issue erstellen" — an ORDER to the routine, written into the thread. */
   async requestIssue(m: FeedbackRow): Promise<void> {
     const uid = this.selfId();
     if (!uid) return;
@@ -3186,22 +1973,13 @@ export class AdminFeedbackComponent implements OnInit {
     await this.refresh();
   }
 
-  /**
-   * Take the instruction back — the misclick the admin asked to be able to undo
-   * ("solange das issue noch nicht erstellt wurde sondern nur in todo ist").
-   * Deleting the message is the whole undo: the topic never left the queue, so
-   * there is no status or `ship_ref` to restore, and the conversation continues
-   * where it was.
-   */
+  /** Take the order back while the routine has not delivered — deleting the message is the whole undo. */
   async undoIssueRequest(m: FeedbackRow): Promise<void> {
     const msg = this.issueRequest(m);
     if (!msg) return;
     this.busy.set(true);
     this.errorMsg.set(null);
-    const { error } = await this.sb.client
-      .from('admin_feedback_messages')
-      .delete()
-      .eq('id', msg.id);
+    const { error } = await this.sb.client.from('admin_feedback_messages').delete().eq('id', msg.id);
     if (error) {
       this.errorMsg.set(error.message);
       this.busy.set(false);
@@ -3210,70 +1988,77 @@ export class AdminFeedbackComponent implements OnInit {
     await this.refresh();
   }
 
-  /** The topic's still-open issue request, or null. */
   issueRequest(m: FeedbackRow): FeedbackMessage | null {
     return pendingIssueRequest(m, this.threads().get(m.id));
   }
 
-  /** Template-side alias: is an issue request waiting to be delivered? */
   issueRequested(m: FeedbackRow): boolean {
     return this.issueRequest(m) !== null;
   }
 
-  /*
-   * The inline "Issue-Link eintragen" form lived here: a url field that wrote
-   * `status='issue_created'` + `ship_ref` by hand, for an issue the admin had
-   * already filed elsewhere. It is gone (admin feedback 18e96ad3, round 2 —
-   * "issue link eintragen ist unnötig und kann weg"). `issue_created` and
-   * `ship_ref` stay: the ROUTINE writes both when it files an issue from an
-   * open **[ISSUE]** order, which is now the only way a topic gets that status.
-   */
-
   // ---- Review gate ----------------------------------------------------------
 
-  /** Template-side alias: is this topic waiting for the admin's sign-off? */
-  inReview(m: FeedbackRow): boolean {
-    return awaitsReview(m, this.threads().get(m.id));
-  }
-
-  /*
-   * The sign-off view's own queue, scope switch and "hidden by scope" hint lived
-   * here. The view is gone (feedback d4990269, round 2) — the Abnahmen are worked
-   * inside the run, under the run's own scope and kind lenses — so all of it went
-   * with it. What stays is `inReview` (the in-card gate in the Übersicht still
-   * asks it) and the two writes below, which the run calls.
-   */
-
-  /*
-   * `reviewSince` (the sign-off card's date) and `openInOverview` ("Thema
-   * öffnen") were the removed view's, and the run no longer needs either: it
-   * dates an Abnahme itself, and it shows the whole topic instead of sending the
-   * admin somewhere else to read it (feedback d4990269, round 2).
-   */
-
-  /**
-   * Sign the outcome off. The topic leaves the active board for "Erledigt" —
-   * the one place a shipped or issue-handed topic is finally done.
-   */
   async acceptReview(m: FeedbackRow): Promise<void> {
     await this.writeReview(m, { reviewed_at: new Date().toISOString() });
   }
 
   /**
-   * Reject the outcome and put the topic back into the work loop.
-   *
-   * `status = 'open'` rather than `'in_progress'`, deliberately: `open` IS the
-   * routine's queue (docs/feedback-routine, "Contract"), so this is what makes
-   * work happen again — usually within one cycle. Writing `in_progress` would
-   * park the topic under a claim nobody holds, and the reaper would have to undo
-   * it half an hour later. `ship_ref` is kept: the previous attempt's PR/issue
-   * stays visible as the history of what was already tried.
+   * Which review gate is in "reopen" mode — the steer box is open. Keyed by
+   * SURFACE and topic: the lead card and the opened sheet both draw the gate
+   * for one topic, and a shared flag would mount two composers on one draft
+   * key. Only the gate the admin clicked switches.
+   */
+  readonly reopeningFor = signal<string | null>(null);
+
+  reopenKey(id: string, lead: boolean): string {
+    return `${lead ? 'lead' : 'sheet'}:${id}`;
+  }
+
+  startReopen(m: FeedbackRow, lead: boolean): void {
+    this.reopeningFor.set(this.reopenKey(m.id, lead));
+  }
+
+  cancelReopen(): void {
+    this.reopeningFor.set(null);
+  }
+
+  private readonly reopenSubmitters = new Map<string, (p: ComposerPayload) => Promise<boolean>>();
+
+  reopenSubmitFor(feedbackId: string): (p: ComposerPayload) => Promise<boolean> {
+    let fn = this.reopenSubmitters.get(feedbackId);
+    if (!fn) {
+      fn = async (p: ComposerPayload) => {
+        const row = this.messages().find((m) => m.id === feedbackId);
+        if (!row) return false;
+        return this.reopenWithReply(row, p);
+      };
+      this.reopenSubmitters.set(feedbackId, fn);
+    }
+    return fn;
+  }
+
+  /**
+   * "Gespräch wieder aufnehmen": post the steer into the thread, THEN put the
+   * topic back into the routine's queue. In this order on purpose — if the
+   * reply fails nothing is reopened, and if the reopen fails the admin's words
+   * are already saved; the routine then finds a reopened topic *with* the
+   * reason in the thread, which is exactly what its continuation path reads.
+   */
+  async reopenWithReply(m: FeedbackRow, payload: ComposerPayload): Promise<boolean> {
+    if (!(await this.sendReply(m.id, payload))) return false;
+    await this.reopenFromReview(m);
+    this.reopeningFor.set(null);
+    return true;
+  }
+
+  /**
+   * Put the topic back into the work loop — `open` IS the routine's queue;
+   * `ship_ref` stays as the history of what was tried.
    */
   async reopenFromReview(m: FeedbackRow): Promise<void> {
     await this.writeReview(m, {
       status: 'open',
       reviewed_at: null,
-      // Fresh outside decision — let the routine re-read it from the top.
       processing_note: null,
       processed_at: null,
     });
@@ -3293,19 +2078,10 @@ export class AdminFeedbackComponent implements OnInit {
 
   // ---- User-submitted topics: triage, ask the author, decline ---------------
 
-  /**
-   * Release a user-submitted topic to the autonomous routine. Until an admin
-   * does this the topic sits `triaged=false` and the routine skips it — a
-   * stranger must not be able to drive an agent that implements and ships on
-   * its own straight from a feedback box.
-   */
   async releaseToRoutine(m: FeedbackRow): Promise<void> {
     this.busy.set(true);
     this.errorMsg.set(null);
-    const { error } = await this.sb.client
-      .from('admin_feedback')
-      .update({ triaged: true })
-      .eq('id', m.id);
+    const { error } = await this.sb.client.from('admin_feedback').update({ triaged: true }).eq('id', m.id);
     if (error) {
       this.errorMsg.set(error.message);
       this.busy.set(false);
@@ -3314,16 +2090,6 @@ export class AdminFeedbackComponent implements OnInit {
     await this.refresh();
   }
 
-  /**
-   * Topics whose next author-channel message goes out as a QUESTION. Opt-in per
-   * the admin's decision (feedback 5920cf8c, point 3): an ordinary note keeps
-   * the topic reading "in Bearbeitung" on the author's side, only a question
-   * surfaces there as its own "Rückfrage an dich" status.
-   *
-   * Keyed by topic since feedback 03d7e546. It used to be one board-wide flag,
-   * so ticking the box on one card silently armed every other open card's
-   * composer — the switch has to belong to the thread it sits in.
-   */
   private readonly _asksAuthor = signal<Set<string>>(new Set());
 
   asksAuthor(id: string): boolean {
@@ -3339,7 +2105,6 @@ export class AdminFeedbackComponent implements OnInit {
     });
   }
 
-  /** Disarm the question switch once its message went out. */
   private toggleAskAuthorOff(id: string): void {
     if (!this.asksAuthor(id)) return;
     this._asksAuthor.update((set) => {
@@ -3349,8 +2114,7 @@ export class AdminFeedbackComponent implements OnInit {
     });
   }
 
-  private readonly authorReplySubmitters =
-    new Map<string, (p: ComposerPayload) => Promise<boolean>>();
+  private readonly authorReplySubmitters = new Map<string, (p: ComposerPayload) => Promise<boolean>>();
 
   authorReplySubmitFor(feedbackId: string): (p: ComposerPayload) => Promise<boolean> {
     let fn = this.authorReplySubmitters.get(feedbackId);
@@ -3361,11 +2125,6 @@ export class AdminFeedbackComponent implements OnInit {
     return fn;
   }
 
-  /**
-   * Post an admin message into a topic's author-visible channel. `asQuestion`
-   * defaults to the card's own switch; the Abarbeiten run passes it explicitly
-   * because its triage step offers the question as its own decision.
-   */
   async sendAuthorMessage(
     feedbackId: string,
     payload: ComposerPayload,
@@ -3398,45 +2157,33 @@ export class AdminFeedbackComponent implements OnInit {
     return true;
   }
 
-  /**
-   * The shared feedback length cap (admin feedback 0a0fad31) — the decline note
-   * is text the author gets to read, so it lives under the same ceiling as
-   * everything else typed on this board.
-   */
-  readonly maxChars = FEEDBACK_MAX_CHARS;
-
-  /** Topic id whose inline "nicht umsetzen" comment form is open (null = none). */
+  /** Topic id whose "nicht umsetzen" sheet is open (null = none). */
   readonly declineFormFor = signal<string | null>(null);
-  /** Draft explanation in that form — mandatory, the author gets to read it. */
+  readonly declineTopicRow = computed(() => {
+    const id = this.declineFormFor();
+    return id ? (this.messages().find((m) => m.id === id) ?? null) : null;
+  });
   readonly declineNote = signal('');
-
-  /**
-   * The canned reasons, paired with their label key so the picker does not call
-   * a function per chip per change detection run.
-   */
   readonly declineReasons: readonly { id: DeclineReasonId; labelKey: string }[] =
     DECLINE_REASONS.map((id) => ({ id, labelKey: declineReasonLabelKey(id) }));
-
-  /** Which chip is lit — derived from the note text, never a mode of its own. */
   readonly declineReason = signal<DeclineReasonId | null>(null);
 
   openDeclineForm(m: FeedbackRow): void {
     this.declineNote.set('');
     this.declineReason.set(null);
     this.declineFormFor.set(m.id);
+    this._moreOpen.set(new Set());
+    this.focusSheet();
   }
 
   cancelDeclineForm(): void {
+    const wasOpen = this.declineFormFor() !== null;
     this.declineFormFor.set(null);
     this.declineNote.set('');
     this.declineReason.set(null);
+    if (wasOpen) this.returnFocus();
   }
 
-  /**
-   * Drop a canned reason into the note — or take it back out when the admin
-   * clicks the lit chip again, which is the only way back to an empty box once
-   * one is in there.
-   */
   pickDeclineReason(id: DeclineReasonId): void {
     if (this.declineReason() === id) {
       this.declineNote.set('');
@@ -3447,15 +2194,12 @@ export class AdminFeedbackComponent implements OnInit {
     this.declineReason.set(id);
   }
 
-  /**
-   * Every keystroke re-asks "is this still one of the canned reasons?" instead
-   * of clearing the chip on the first edit — so undoing a typo lights the chip
-   * back up, and pasting a reason in by hand lights it in the first place.
-   */
+  /** The shared feedback length cap (admin feedback 0a0fad31). */
+  readonly maxChars = FEEDBACK_MAX_CHARS;
+
   /**
    * Keep the DOM and the signal in step under the cap: writing the clamped text
-   * back to the element is what makes a DROP of 9.800 characters — which
-   * bypasses `maxlength` — actually disappear from the field.
+   * back is what makes a DROP past `maxlength` actually disappear from the field.
    */
   onDeclineInput(e: Event): void {
     const el = e.target as HTMLTextAreaElement;
@@ -3469,8 +2213,6 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   setDeclineNote(value: string): void {
-    // `maxlength` stops typing and pasting past the cap but not a text DROP, so
-    // the clamp is applied to the value as well (admin feedback 0a0fad31).
     const capped = clampFeedbackText(value);
     this.declineNote.set(capped);
     this.declineReason.set(matchDeclineReason(capped, this.declineReasonTexts()));
@@ -3478,23 +2220,10 @@ export class AdminFeedbackComponent implements OnInit {
 
   private declineReasonTexts(): DeclineReasonTexts {
     const texts: Record<string, string> = {};
-    for (const r of this.declineReasons) {
-      texts[r.id] = this.translate.instant(declineReasonTextKey(r.id));
-    }
+    for (const r of this.declineReasons) texts[r.id] = this.translate.instant(declineReasonTextKey(r.id));
     return texts as DeclineReasonTexts;
   }
 
-  /**
-   * "Nicht umsetzen & löschen" for a user-submitted topic (feedback 5920cf8c,
-   * point 4): the admin's comment is mandatory, it is posted into the
-   * author-visible channel AND stored on the row as `decision_note`, and the
-   * topic moves to the terminal `declined` status.
-   *
-   * Deliberately a soft close rather than a `DELETE`. A hard delete cascades
-   * the author's own thread away and leaves them with a topic that silently
-   * vanished — the exact opposite of "the author gets a proper explanation".
-   * The topic leaves the admins' active board either way (Archive tab).
-   */
   async declineTopic(m: FeedbackRow, ev: Event): Promise<void> {
     ev.preventDefault();
     const note = this.declineNote().trim();
@@ -3502,33 +2231,26 @@ export class AdminFeedbackComponent implements OnInit {
       this.errorMsg.set(this.translate.instant('adminFeedback.decline.noteRequired'));
       return;
     }
-    if (await this.declineWithNote(m, note)) this.cancelDeclineForm();
+    if (await this.declineWithNote(m, note)) {
+      this.cancelDeclineForm();
+      this.closeTopic();
+    }
   }
 
-  /**
-   * The decline itself, without the form around it — so the Abarbeiten run can
-   * take the same decision on a triage step (feedback 89925995) without owning a
-   * second copy of the write. Resolves true once both parts landed.
-   */
+  /** The decline itself, without the sheet around it. Resolves true once both parts landed. */
   async declineWithNote(m: FeedbackRow, note: string): Promise<boolean> {
     const uid = this.selfId();
     this.busy.set(true);
     this.errorMsg.set(null);
     const { error } = await this.sb.client
       .from('admin_feedback')
-      .update({
-        status: 'declined',
-        decision_note: note,
-        processed_at: new Date().toISOString(),
-      })
+      .update({ status: 'declined', decision_note: note, processed_at: new Date().toISOString() })
       .eq('id', m.id);
     if (error) {
       this.errorMsg.set(error.message);
       this.busy.set(false);
       return false;
     }
-    // Also drop it into the channel so the author sees the reason as a message,
-    // not only as a field on a card they may never expand.
     if (uid) {
       await this.sb.client.from('feedback_author_messages').insert({
         feedback_id: m.id,
@@ -3546,11 +2268,9 @@ export class AdminFeedbackComponent implements OnInit {
     if (!window.confirm(this.translate.instant('adminFeedback.deleteConfirm'))) return;
     this.busy.set(true);
     this.errorMsg.set(null);
-    const { error } = await this.sb.client
-      .from('admin_feedback')
-      .delete()
-      .eq('id', m.id);
+    const { error } = await this.sb.client.from('admin_feedback').delete().eq('id', m.id);
     if (error) this.errorMsg.set(error.message);
+    this.closeTopic();
     await this.refresh();
   }
 }

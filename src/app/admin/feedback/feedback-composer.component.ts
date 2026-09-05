@@ -158,6 +158,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
     <div
       class="composer sc-nest"
       [class.compact]="compact()"
+      [class.large]="large()"
       [class.drag-active]="dragActive()"
       (dragover)="onDragOver($event)"
       (dragleave)="onDragLeave($event)"
@@ -262,6 +263,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
           class="sc-btn"
           [class.sc-btn-primary]="!compact()"
           [class.micro]="compact()"
+          [class.hot]="primaryHot()"
           (click)="submit()"
           [disabled]="!canSend()">
           {{ sendLabel() | translate }}
@@ -356,6 +358,13 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
     /* 44px of typing room plus the counter's lane — the reply box keeps the
        same two visible rows it had before the counter moved in. */
     .composer.compact .input { min-height: 66px; font-size: 0.86rem; }
+    /* The opened topic's box (concept 2026-09-04): room to write, plus the counter's lane. */
+    .composer.large .input { min-height: 154px; }
+    /* The ONE red call to action a sheet gets (red = the admin's own move; the
+       viewer's composer never sets it). Dark text on the red, like the primary
+       accent button, keeps the label readable. */
+    .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
+    .sc-btn.hot:hover:not(:disabled) { background: var(--sc-accent-hot); filter: brightness(1.12); box-shadow: none; }
     .input:focus {
       outline: none;
       border-color: var(--sc-accent);
@@ -419,6 +428,10 @@ export class FeedbackComposerComponent implements OnDestroy {
    * `accept` attribute is a hint to a file picker, not a rule.
    */
   readonly allowFiles = input(false);
+  /** The opened topic's composer (concept 2026-09-04): a taller field. */
+  readonly large = input(false);
+  /** Paint the send button in the elevated-access red — the sheet's one CTA. Admin surfaces only. */
+  readonly primaryHot = input(false);
   /**
    * Identity of this composer in the account-bound draft store (see
    * `draftScopes`). Null turns persistence off entirely — every composer in the

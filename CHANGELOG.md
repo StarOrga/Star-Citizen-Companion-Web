@@ -4,6 +4,70 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.78.0] - 2026-09-05
+
+### Changed
+
+- **The admin feedback panel is one stream now, ordered by whose turn it is.**
+  Übersicht, Abarbeiten and Fortschritt were three views of one pile, and the
+  difference between the first two was small enough that neither got used
+  properly. They are gone. What is left is a single scroll in three bands —
+  **Du bist dran** (every question the routine asked, every sign-off, every
+  user topic still waiting for its release), **Läuft** (the routine's pile and
+  the questions parked at a user), and **Geliefert** (finished work by day,
+  the last day on top). The first card of the first band opens with its action
+  already in reach: the answer box, ✓ Abnehmen, or Für die Routine freigeben.
+  Acting on it collapses it and the next one rises.
+- **Status reads as a place on a path, not as a pile of pills.** A topic's row
+  carries a four-station flight path — Eingang · In Arbeit · Geliefert ·
+  Abgenommen — with an endcap where it branched off (issue, nicht umgesetzt,
+  verworfen), a loop mark for a topic that was sent back after shipping, and
+  the baton in words next to it. All thirteen states the old pill row spelled
+  out stay distinguishable; they are just readable at a glance now.
+- **Opening a topic takes the whole panel.** Reading a conversation in an
+  inline fold meant reading it through a slot. A topic now opens as a sheet
+  over the panel: the poster's first message, the newest message, and between
+  them one "…" that reveals one more message per tap. Messages longer than
+  three lines fold behind "Mehr anzeigen" so a wall of text cannot push the
+  answer box off screen. The composer is glued to the bottom edge, with room
+  to write, 72-px thumbnails and the page-capture tile.
+- **Two controls at rest instead of a wall.** The chip rows — status, author,
+  source, the Aktiv/Erledigt tabs, the view switch, alles auf/zu, the totals
+  line — are replaced by a search field and one Filter button that opens a
+  full-height sheet (Wer? · Wo steht es? · Bereich, rows ≥ 48 px so a thumb
+  can hit them). Fortschritt is unchanged and sits behind a 📊 glyph.
+- **Red now means what the rest of the app means by it.** It marks the admin's
+  own avatar and exactly one primary action per card or sheet — nothing else.
+  Avatars are initials tinted by role: admin red, collaborator light blue,
+  everyone else grey-blue, so who wrote what is legible before the name is
+  read. A routine message carries a plain "AI" label and no avatar at all; a
+  topic says whether it is an *Auftrag* or *Nutzer-Feedback*.
+
+### Added
+
+- **"Was ist neu?" — the Geliefert band answers it.** Finished topics are
+  grouped by the day they landed, newest day first, each row with the PR or
+  issue behind it and a "▸ Ansehen" link straight into the part of the app the
+  topic was about. Everything that finished since the last look wears a "neu"
+  marker, so the board can be read as a delivery log instead of reloading the
+  page and guessing. The old ship-cheer banner is gone; the confetti stays.
+- **One-tap answers to the routine's questions.** When the routine ends a
+  Rückfrage with a marked option line (`[[Erhalten|Zurücksetzen]]`, documented
+  in `docs/feedback-routine.md`), the panel renders one button per option and
+  a tap sends that word as the answer. Without the marker nothing changes —
+  the text box is always there underneath.
+- **The viewer's panel links into the app too.** A topic that was implemented
+  now offers "Im App ansehen", and the shared composer's page capture is
+  available to viewers and collaborators as well.
+
+### Removed
+
+- **The Abarbeiten run.** With the band as the queue and its order as the
+  walk, the carousel's own machinery had nothing left to do: skip-with-lap,
+  the local "Erledigt" tick-off, the swipe gestures, the progress rail and the
+  Meine/Andere and Rückfragen/Abnahmen lenses went with it. Its four
+  localStorage keys are no longer read.
+
 ## [0.77.0] - 2026-09-05
 
 ### Added

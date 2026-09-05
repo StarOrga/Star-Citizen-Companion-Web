@@ -21,7 +21,8 @@ import { RenderedFeedbackBody, renderFeedbackBody } from '../admin/feedback/mark
 import { UserFeedbackService } from './user-feedback.service';
 import { draftScopes, memoScope } from './feedback-draft.types';
 import { AuthorFeedbackRow } from './user-feedback.types';
-import { FeedbackArea, asFeedbackArea, feedbackAreaLabelKey } from './feedback-area.types';
+import { RouterLink } from '@angular/router';
+import { FeedbackArea, areaRoute, asFeedbackArea, feedbackAreaLabelKey } from './feedback-area.types';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 /** Which half of the panel is on screen. */
@@ -46,7 +47,7 @@ type UserFeedbackTab = 'compose' | 'mine';
 @Component({
   selector: 'sc-user-feedback-panel',
   standalone: true,
-  imports: [ScDatePipe, TranslateModule, FeedbackAttachmentsComponent, FeedbackComposerComponent],
+  imports: [ScDatePipe, TranslateModule, RouterLink, FeedbackAttachmentsComponent, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="panel-root sc-dense">
@@ -165,6 +166,14 @@ type UserFeedbackTab = 'compose' | 'mine';
                     @let topicBody = render(t.body);
                     <div class="body" [innerHTML]="topicBody.html"></div>
                     <sc-feedback-attachments [images]="topicBody.images" />
+
+                    <!-- Delivered: go and look at it in the app (concept
+                         2026-09-04, corridor widened for the viewer panel). The
+                         section root is enough — the topic says what to look at.
+                         Nothing on an untagged topic rather than a wrong door. -->
+                    @if (t.author_status === 'done' && areaLinkFor(t); as href) {
+                      <a class="view-link" [routerLink]="href">▸ {{ 'userFeedback.viewInApp' | translate }}</a>
+                    }
 
                     @if (t.author_status === 'declined' && t.decision_note) {
                       <div class="decision">
@@ -373,6 +382,8 @@ type UserFeedbackTab = 'compose' | 'mine';
     .status-pill.declined { opacity: 0.75; }
 
     .topic-detail { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
+    .view-link { align-self: flex-start; display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border: 1px solid var(--sc-accent); border-radius: 6px; color: var(--sc-accent); font-size: max(0.8rem, var(--sc-fs-floor)); font-weight: 600; text-decoration: none; }
+    .view-link:hover { background: rgba(0, 212, 255, 0.08); }
 
     /* Withdraw row (admin feedback 892013b6). Sits last in the card and stays
        quiet: one destructive button plus the sentence that says why it is only
@@ -533,6 +544,11 @@ export class UserFeedbackPanelComponent implements OnInit {
 
   areaLabelKey(area: FeedbackArea): string {
     return feedbackAreaLabelKey(area);
+  }
+
+  /** Where "Im App ansehen" lands for a delivered topic, or null when untagged. */
+  areaLinkFor(t: AuthorFeedbackRow): string | null {
+    return areaRoute(asFeedbackArea(t.area));
   }
 
   isOpen(id: string): boolean {
