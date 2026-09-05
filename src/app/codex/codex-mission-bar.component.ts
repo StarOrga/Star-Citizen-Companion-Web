@@ -11,7 +11,7 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
  *
  * The right side (MASTER §5) belongs to the loadout draft, in one of two
  * mutually exclusive states the page picks by `changed()`:
- *  - idle (`changed === 0`): only `codex.detail.lensReset` — jumps the
+ *  - idle (`changed === 0`): only `codex.mission.lensReset` — jumps the
  *    mission LENS back to `all` (there is no draft yet, so there is nothing
  *    else to reset or apply; no persistence choice exists until a save flow
  *    that reads it is wired — see codex-detail.component.ts's discussion).
@@ -52,7 +52,7 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
       @if (changed() === 0) {
         <span class="idle-draft">
           <button type="button" class="btn" [disabled]="active() === 'all'" (click)="missionChange.emit('all')">
-            {{ 'codex.detail.lensReset' | translate }}
+            {{ 'codex.mission.lensReset' | translate }}
           </button>
         </span>
       }

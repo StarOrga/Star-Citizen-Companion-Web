@@ -880,7 +880,6 @@
       "draftNotice": "Nicht gespeichert. Nur diese Sitzung.",
       "draftDiscard": "Verwerfen",
       "draftApplyAndSave": "Übernehmen & in Hangar speichern",
-      "lensReset": "Zurücksetzen",
       "chipCargoUnknown": "Laderaum · Kapazität nicht in den Spieldaten"
     },
     "energy": {
@@ -1352,6 +1351,7 @@
       "stealth": "Schleichen",
       "mining": "Bergbau",
       "salvage": "Bergung",
+      "lensReset": "Linse zurücksetzen",
       "disabled": {
         "noMining": "Keine Bergbau-Hardpoints",
         "noSalvage": "Keine Bergungs-Hardpoints",
