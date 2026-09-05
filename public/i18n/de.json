@@ -1464,7 +1464,8 @@
           "hotfix": "Hotfix ×{{n}}",
           "now": "heute",
           "nextLive": "Live {{version}}",
-          "usual": "üblich"
+          "usual": "Nächster Live · üblich",
+          "leadUsual": "üblich wäre"
         },
         "span": {
           "leadTime": "Test → Live: {{days}} Tage",
@@ -1480,9 +1481,10 @@
           "over": "CIG liegt {{n}} Tage über dem üblichen Takt."
         },
         "legend": {
-          "real": "belegt",
+          "real": "Live-Zyklus (belegt)",
           "usual": "üblicher Takt (Median)",
-          "over": "über dem Takt"
+          "over": "über dem Takt",
+          "lead": "Testphase (PTU)"
         },
         "fact": {
           "lead": "Test → Live: {{days}} Tage",

@@ -75,6 +75,7 @@ import type { StackCard } from './patch-stack';
           }
         </div>
         <ul class="legend" aria-hidden="true">
+          <li><i class="sw lead"></i>{{ 'news.patch.next.legend.lead' | translate }}</li>
           <li><i class="sw real"></i>{{ 'news.patch.next.legend.real' | translate }}</li>
           <li><i class="sw usual"></i>{{ 'news.patch.next.legend.usual' | translate }}</li>
           <li><i class="sw over"></i>{{ 'news.patch.next.legend.over' | translate }}</li>
@@ -132,7 +133,8 @@ import type { StackCard } from './patch-stack';
     .pt[data-key='live'] { width: 16px; height: 16px; box-shadow: 0 0 14px color-mix(in srgb, var(--sc-success) 55%, transparent); }
     .pt[data-key='hotfix'] { width: 10px; height: 10px; border-radius: 2px; transform: translate(-50%, -50%) rotate(45deg); background: var(--sc-warning); border-color: var(--sc-warning); }
     .pt[data-key='now'] { width: 8px; height: 8px; background: var(--sc-fg-0); border-color: var(--sc-fg-0); }
-    .pt[data-key='usual'] { width: 12px; height: 12px; border-radius: 2px; transform: translate(-50%, -50%) rotate(45deg); background: var(--sc-bg-0); border: 2px dashed var(--sc-fg-1); }
+    .pt[data-key='usual'] { width: 12px; height: 12px; border-radius: 2px; transform: translate(-50%, -50%) rotate(45deg); background: var(--sc-bg-0); border: 2px dashed var(--sc-accent); }
+    .pt[data-key='leadUsual'] { width: 2px; height: 18px; border-radius: 1px; border: 0; background: var(--sc-fg-1); opacity: 0.8; }
 
     .lab { position: absolute; bottom: 16px; transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 2px; white-space: nowrap; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.25; }
     .lab b { color: var(--sc-fg-0); font-weight: 600; font-size: max(0.7rem, var(--sc-fs-floor)); }
@@ -141,16 +143,19 @@ import type { StackCard } from './patch-stack';
     .lab[data-key='prevLive'] b { color: var(--sc-fg-2); font-weight: 500; }
     .lab[data-key='live'] b { font-size: max(0.8rem, var(--sc-fs-floor)); }
     .lab[data-key='usual'], .lab[data-key='nextLive'] { transform: translateX(-100%); align-items: flex-end; }
-    .lab[data-key='usual'] b { color: var(--sc-fg-1); font-weight: 500; }
+    .lab[data-key='usual'] b { color: var(--sc-accent); }
+    .lab[data-key='leadUsual'] b { color: var(--sc-fg-2); font-weight: 500; }
     .lab[data-key='hotfix'] b { color: var(--sc-warning); font-weight: 500; }
     .chip { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 4px; font-family: var(--sc-font-display); font-size: max(0.52rem, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
     .chip[data-status='live'] { color: var(--sc-bg-0); background: var(--sc-success); }
     .chip[data-status='ptu'] { color: var(--sc-accent); border: 1px solid var(--sc-accent); }
+    .chip[data-status='next'] { color: var(--sc-accent); border: 1px dashed var(--sc-accent); }
     .chip[data-status='superseded'] { color: var(--sc-fg-2); border: 1px solid color-mix(in srgb, var(--sc-fg-2) 40%, transparent); }
 
     .legend { list-style: none; margin: 58px 0 0; padding: 0; display: flex; gap: 16px; flex-wrap: wrap; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .legend li { display: inline-flex; align-items: center; gap: 6px; }
     .sw { display: inline-block; width: 18px; height: 4px; border-radius: 2px; }
+    .sw.lead { background: var(--sc-accent); }
     .sw.real { background: var(--sc-success); }
     .sw.usual { height: 10px; background: color-mix(in srgb, var(--sc-success) 18%, transparent); }
     .sw.over { background: var(--sc-warning); }
@@ -205,16 +210,17 @@ export class PatchCycleComponent {
   }
 
   isBelow(p: CyclePoint): boolean {
-    return p.key === 'now' || p.key === 'prevLive' || p.key === 'hotfix';
+    return p.key === 'now' || p.key === 'prevLive' || p.key === 'hotfix' || p.key === 'leadUsual';
   }
 
   /** The board's status word for a point — the same vocabulary on both surfaces. */
-  chipOf(p: CyclePoint): 'live' | 'ptu' | 'superseded' | null {
+  chipOf(p: CyclePoint): 'live' | 'ptu' | 'next' | 'superseded' | null {
     switch (p.key) {
       case 'prevLive': return 'superseded';
       case 'firstTest': return 'ptu';
       case 'live':
       case 'nextLive': return 'live';
+      case 'usual': return 'next';
       default: return null;
     }
   }

@@ -54,6 +54,10 @@ describe('buildPatchCycle — real and usual measure the same stretch from the s
     expect(lead.realPct).toBe(cycle.points.find((p) => p.key === 'live')!.pct);
     expect(lead.deltaDays).toBe(24 - Math.round(lead.medianDays));
     expect(cycle.previousCycle!.days).toBe(49); // 9 Jul → 27 Aug
+    // The usual end of the test phase is a marker of its own, before the real Live.
+    const usual = cycle.points.find((p) => p.key === 'leadUsual')!;
+    expect(usual.at).toBe(Date.parse('2026-08-03T00:00:00Z') + lead.medianDays * 24 * 60 * 60 * 1000);
+    expect(usual.pct).toBeLessThan(lead.realPct);
   });
 
   it('collapses hotfixes to one counted marker after Live', () => {

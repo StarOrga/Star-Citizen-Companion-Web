@@ -202,7 +202,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     expect(axis.querySelector('.bar.real:not(.lead)')).not.toBeNull();
     expect(axis.querySelector('.bar.usual:not(.lead)')).withContext('a live line projects the usual next release').not.toBeNull();
     expect(axis.querySelector('.bar.real.lead')).withContext('the test phase is measured retrospectively').not.toBeNull();
-    expect((Array.from(axis.querySelectorAll('.pt')) as HTMLElement[]).map((p) => p.getAttribute('data-key'))).toEqual(['prevLive', 'firstTest', 'live', 'hotfix', 'now', 'usual']);
+    expect((Array.from(axis.querySelectorAll('.pt')) as HTMLElement[]).map((p) => p.getAttribute('data-key'))).toEqual(['prevLive', 'firstTest', 'leadUsual', 'live', 'hotfix', 'now', 'usual']);
     expect(text('#pd-next .sentence')).toContain('ist seit');
     expect(text('#pd-next .facts')).toContain('Test → Live: 24 Tage');
     expect(text('#pd-next .facts')).toContain('1 Hotfix seit Live');

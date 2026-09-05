@@ -32,7 +32,7 @@ import { previousLiveAt, type StackCard } from './patch-stack';
  * clock. Percentages are positions on the axis (0–100).
  */
 
-export type CyclePointKey = 'prevLive' | 'firstTest' | 'live' | 'hotfix' | 'now' | 'usual' | 'nextLive';
+export type CyclePointKey = 'prevLive' | 'firstTest' | 'leadUsual' | 'live' | 'hotfix' | 'now' | 'usual' | 'nextLive';
 
 export interface CyclePoint {
   key: CyclePointKey;
@@ -205,6 +205,13 @@ export function buildPatchCycle(
       finished: true,
     };
   }
+
+  // The usual end of the test phase — the marker the overshoot is measured from.
+  if (lead) {
+    const at = (firstTest as number) + lead.medianDays * DAY_MS;
+    if (at <= endMs) points.push({ key: 'leadUsual', at, pct: pct(at), version: card.line });
+  }
+  points.sort((a, b) => a.at - b.at);
 
   const previousCycle =
     prevLive !== null && live !== null && cadenceKpi
