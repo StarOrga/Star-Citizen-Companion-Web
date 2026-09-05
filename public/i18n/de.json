@@ -2261,30 +2261,14 @@
       "unknownTitle": "Status unbekannt — bisher keine Rückmeldung der Feedback-Routine.",
       "ariaLabel": "{{title}} — {{state}}"
     },
-    "refresh": "Aktualisieren",
     "loading": "Lädt…",
     "empty": "Noch kein Feedback. Sei der Erste.",
-    "emptyActive": "Nichts Aktives — alles liegt im Archiv.",
-    "emptyArchive": "Archiv ist leer. Geshippte Themen und solche mit Issue landen hier.",
     "errorTitle": "Fehler",
     "you": "Du",
     "unknownUser": "Unbekannt",
     "shipRef": "Änderung ansehen",
     "issueRef": "Issue ansehen",
-    "setStatus": "Status ändern",
-    "loadMore": "Weitere {{count}} laden",
-    "toggleDetails": "Eintrag aus- oder einklappen",
     "topicNumber": "Thema #{{n}} — feste Nummer, auf die du dich beziehen kannst",
-    "moreActions": "Weitere Aktionen",
-    "filter": {
-      "label": "Nach Nutzer filtern",
-      "all": "Alle",
-      "toggle": "Filter"
-    },
-    "statusFilter": {
-      "label": "Nach Status filtern",
-      "all": "Alle"
-    },
     "search": {
       "label": "Feedback durchsuchen",
       "placeholder": "Suchen … Thema, ganzer Thread oder #Nummer",
@@ -2293,33 +2277,15 @@
       "empty": "Keine Treffer für „{{query}}“.",
       "inThread": "im Thread"
     },
-    "tab": {
-      "label": "Zwischen aktiven Themen und erledigten wechseln",
-      "active": "Aktiv",
-      "archive": "Erledigt"
-    },
-    "stats": {
-      "rueckfragen": "{{count}} Rückfragen",
-      "shipped": "{{count}} geshipped",
-      "issues": "{{count}} Issues erstellt",
-      "review": "{{count}} warten auf Abnahme"
-    },
-    "expandAll": "Alle ausklappen",
-    "collapseAll": "Alle einklappen",
     "dateGroup": {
       "today": "Heute",
       "yesterday": "Gestern"
-    },
-    "toc": {
-      "label": "Schnellzugriff auf Themen",
-      "awaiting": "Zu beantworten: {{count}}"
     },
     "delete": "Löschen",
     "deleteConfirm": "Diese Nachricht löschen? Kann nicht rückgängig gemacht werden.",
     "issue": {
       "mark": "Issue erstellen",
       "pill": "Issue angefordert",
-      "pending": "Issue erstellen ist beauftragt — die Routine legt es an.",
       "undo": "Rückgängig",
       "requestBody": "Bitte dieses Thema **nicht selbst umsetzen**, sondern ein GitHub-Issue dafür anlegen. Danach `status = issue_created` setzen und die Issue-URL als `ship_ref` eintragen — das Thema geht dann wie jedes andere Ergebnis in die Abnahme."
     },
@@ -2337,12 +2303,8 @@
       "review": "Abnahme"
     },
     "thread": {
-      "routine": "Routine",
-      "routineBadge": "Auto",
       "reply": "Antworten",
       "replyPlaceholder": "Antwort schreiben… (Markdown möglich)",
-      "foldExpand": "{{count}} Nachricht(en) dazwischen einblenden",
-      "foldCollapse": "{{count}} Nachricht(en) dazwischen wieder ausblenden",
       "reopenHint": "Eine Antwort öffnet dieses archivierte Thema wieder — es geht zurück auf ToDo und die Routine nimmt es erneut auf."
     },
     "compose": {
@@ -2372,60 +2334,6 @@
       "screenshotFailed": "Screenshot fehlgeschlagen.",
       "attachFile": "Bild anhängen",
       "attachMenu": "Anhängen"
-    },
-    "view": {
-      "label": "Ansicht wechseln",
-      "overview": "Übersicht",
-      "workflow": "Abarbeiten",
-      "progress": "Fortschritt"
-    },
-    "cheer": {
-      "shipped": "{{count}} frisch geshipped — stark!"
-    },
-    "workflow": {
-      "progress": "{{current}} von {{total}}",
-      "skip": "Überspringen",
-      "skippedCount": "{{count}} übersprungen",
-      "skippedBadge": "Übersprungen",
-      "lapWrapped": "Runde durch — zurück zu den übersprungenen Themen",
-      "done": "Erledigt",
-      "advanced": "Erledigt – weiter mit {{current}} von {{total}}",
-      "answerPlaceholder": "Antwort schreiben… (Markdown möglich, Enter zum Senden)",
-      "answerSend": "Antworten",
-      "openQuestion": "Offene Rückfrage",
-      "cheerAnswered": "Rückfrage beantwortet — die Routine übernimmt ab hier.",
-      "allDoneTitle": "Alles abgearbeitet",
-      "allDoneHint": "Keine offenen Rückfragen, nichts abzunehmen. Deine ToDos liegen bei der Routine — sie kommen hier rein, sobald sie etwas von dir braucht.",
-      "kind": {
-        "question": "Rückfrage",
-        "review": "Abnahme",
-        "new": "ToDo"
-      },
-      "scope": {
-        "label": "Auswahl",
-        "mine": "Meine",
-        "others": "Andere Admins",
-        "all": "Alle",
-        "showAll": "Alle anzeigen"
-      },
-      "scopeEmptyTitle": "In dieser Auswahl ist nichts offen",
-      "scopeEmptyHint": "{{count}} Thema/Themen liegen in einer anderen Auswahl.",
-      "cheerReplied": "Notiert! Weiter geht's.",
-      "kindFilter": {
-        "label": "Nur eine Art von Schritt zeigen",
-        "all": "Alle",
-        "question": "Rückfragen",
-        "review": "Abnahmen"
-      },
-      "threadExpand": "{{count}} ältere Nachricht(en) einblenden",
-      "threadCollapse": "Ältere Nachrichten wieder ausblenden",
-      "kindEmptyTitle": "Hier ist gerade nichts",
-      "kindEmptyHint": "{{count}} Thema/Themen warten unter „Alle\".",
-      "kindShowAll": "Alle zeigen",
-      "swipeHint": "Tipp: Karte nach links wischen zum Überspringen, nach rechts für die Entscheidung.",
-      "swipeSkip": "Überspringen",
-      "swipeDone": "Erledigt",
-      "swipeAccept": "Abnehmen"
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",
@@ -2495,7 +2403,6 @@
       "lifecycleOutcome": "Endstation — eine von beiden"
     },
     "userTopic": {
-      "badge": "Nutzer-Feedback",
       "untriaged": "Nicht freigegeben",
       "release": "Für die Routine freigeben",
       "channelTitle": "Kanal zum Nutzer",
@@ -2548,16 +2455,9 @@
       "headlineIssue": "An ein Issue übergeben — bitte abnehmen",
       "hint": "Schau dir das Ergebnis live an. Passt es, ist das Thema erledigt. Passt es nicht, nimm das Gespräch wieder auf — das Thema geht zurück in die Warteschlange der Routine.",
       "accept": "Ins Archiv — erledigt",
-      "reopen": "Gespräch wieder aufnehmen",
-      "reopenHint": "Schreib kurz, was noch nicht passt — die Routine nimmt das Thema damit wieder auf und liest deine Antwort als Auftrag.",
-      "reopenPlaceholder": "Was soll noch anders werden?",
-      "reopenSend": "Senden & wieder aufnehmen",
-      "reopenCancel": "Abbrechen"
+      "reopen": "Gespräch wieder aufnehmen"
     },
     "sourceFilter": {
-      "label": "Zwischen Admin-Themen und Nutzer-Feedback wechseln",
-      "admin": "Admins",
-      "user": "Nutzer",
       "untriagedHint": "Hier wartet Nutzer-Feedback darauf, für die Routine freigegeben zu werden."
     },
     "stream": {
@@ -2578,8 +2478,7 @@
       "backToStream": "Zurück zum Strom",
       "collapseBand": "{{band}} einklappen",
       "expandBand": "{{band}} ausklappen",
-      "waitingSince": "seit {{time}}",
-      "newTopic": "Neues Thema"
+      "waitingSince": "seit {{time}}"
     },
     "turn": {
       "admin": "Du bist dran",
@@ -2616,16 +2515,11 @@
     },
     "sheet": {
       "close": "Zurück zur Liste",
-      "topic": "Thema",
-      "firstMessage": "Erste Nachricht",
-      "latest": "Neueste Nachricht",
       "showOneMore": "1 weitere einblenden ({{count}} dazwischen)",
       "hideBetween": "Zwischennachrichten ausblenden",
       "readMore": "Mehr anzeigen",
       "readLess": "Weniger anzeigen",
-      "options": "Mit einem Tipp antworten",
-      "quickAnswer": "Antworten",
-      "cancel": "Abbrechen"
+      "options": "Mit einem Tipp antworten"
     },
     "filters": {
       "title": "Filter",
@@ -2645,7 +2539,6 @@
     },
     "actions": {
       "viewInApp": "Im App ansehen",
-      "messageAuthor": "Nutzer anschreiben",
       "more": "Weitere Aktionen"
     }
   },

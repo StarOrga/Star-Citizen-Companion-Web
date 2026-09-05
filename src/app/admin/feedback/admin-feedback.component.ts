@@ -192,6 +192,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             [class.active]="filterCount() > 0"
             (click)="openFilters()"
             [attr.aria-expanded]="filtersOpen()"
+            [attr.title]="filterCount() > 0 ? ('adminFeedback.filters.activeHint' | translate: { count: filterCount() }) : null"
             [attr.aria-label]="'adminFeedback.filters.open' | translate">
             <span aria-hidden="true">⚲</span>
             <span class="tb-label">{{ 'adminFeedback.filters.open' | translate }}</span>
@@ -231,7 +232,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 type="button"
                 class="band-head"
                 (click)="toggleBand('admin')"
-                [attr.aria-expanded]="!bandCollapsed('admin')">
+                [attr.aria-expanded]="!bandCollapsed('admin')"
+                [attr.aria-label]="(bandCollapsed('admin') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.yourTurn' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.yourTurn' | translate }}</span>
                 <span class="bh-count" [class.hot]="yourTurn().length > 0">{{ yourTurn().length }}</span>
                 <span class="chev" [class.open]="!bandCollapsed('admin')" aria-hidden="true">▸</span>
@@ -253,7 +255,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 type="button"
                 class="band-head"
                 (click)="toggleBand('routine')"
-                [attr.aria-expanded]="!bandCollapsed('routine')">
+                [attr.aria-expanded]="!bandCollapsed('routine')"
+                [attr.aria-label]="(bandCollapsed('routine') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.running' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.running' | translate }}</span>
                 <span class="bh-count">{{ running().length }}</span>
                 <span class="chev" [class.open]="!bandCollapsed('routine')" aria-hidden="true">▸</span>
@@ -277,7 +280,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 type="button"
                 class="band-head"
                 (click)="toggleBand('nobody')"
-                [attr.aria-expanded]="!bandCollapsed('nobody')">
+                [attr.aria-expanded]="!bandCollapsed('nobody')"
+                [attr.aria-label]="(bandCollapsed('nobody') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.delivered' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.delivered' | translate }}</span>
                 <span class="bh-count">{{ deliveredCount() }}</span>
                 @if (newDeliveredCount() > 0) {
@@ -557,6 +561,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               {{ (m.status === 'issue_created' ? 'adminFeedback.review.headlineIssue' : 'adminFeedback.review.headlineShipped') | translate }}
             </span>
           </div>
+          @if (!embedded()) {
+            <p class="rg-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
+          }
           <div class="rg-links">
             @if (areaLink(m); as href) {
               <a class="link-btn" [routerLink]="href">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
@@ -707,6 +714,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                     <strong>{{ ('userFeedback.status.' + authorFacingStatus(m)) | translate }}</strong>
                   </span>
                 </header>
+                <!-- The privacy rule, in words, where it applies. -->
+                <p class="ac-hint">{{ 'adminFeedback.userTopic.channelHint' | translate }}</p>
                 @let af = authorView(m.id);
                 @if (af.total > 0) {
                   <div class="thread">
@@ -975,7 +984,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .author-channel { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px dashed var(--sc-accent); border-radius: 8px; }
     .ac-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
     .ac-title { font-weight: 700; font-size: max(0.72rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-accent); }
-    .ac-status { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .ac-status, .ac-hint, .rg-hint { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .ac-hint, .rg-hint { margin: 0; }
     .ac-ask { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
     .ac-ask input { width: 20px; height: 20px; }
 

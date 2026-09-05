@@ -2261,30 +2261,14 @@
       "unknownTitle": "Status unknown — no sign of the feedback routine yet.",
       "ariaLabel": "{{title}} — {{state}}"
     },
-    "refresh": "Refresh",
     "loading": "Loading…",
     "empty": "No feedback yet. Be the first to post.",
-    "emptyActive": "Nothing active — everything is in the archive.",
-    "emptyArchive": "Archive is empty. Shipped topics and ones handed off to an issue land here.",
     "errorTitle": "Error",
     "you": "You",
     "unknownUser": "Unknown",
     "shipRef": "View change",
     "issueRef": "View issue",
-    "setStatus": "Change status",
-    "loadMore": "Load {{count}} more",
-    "toggleDetails": "Expand or collapse this entry",
     "topicNumber": "Topic #{{n}} — a fixed number you can refer to",
-    "moreActions": "More actions",
-    "filter": {
-      "label": "Filter by user",
-      "all": "All",
-      "toggle": "Filter"
-    },
-    "statusFilter": {
-      "label": "Filter by status",
-      "all": "All"
-    },
     "search": {
       "label": "Search feedback",
       "placeholder": "Search … topic, whole thread or #number",
@@ -2293,33 +2277,15 @@
       "empty": "No results for “{{query}}”.",
       "inThread": "in thread"
     },
-    "tab": {
-      "label": "Switch between active and finished topics",
-      "active": "Active",
-      "archive": "Done"
-    },
-    "stats": {
-      "rueckfragen": "{{count}} follow-ups",
-      "shipped": "{{count}} shipped",
-      "issues": "{{count}} issues created",
-      "review": "{{count}} waiting for sign-off"
-    },
-    "expandAll": "Expand all",
-    "collapseAll": "Collapse all",
     "dateGroup": {
       "today": "Today",
       "yesterday": "Yesterday"
-    },
-    "toc": {
-      "label": "Quick access to topics",
-      "awaiting": "To answer: {{count}}"
     },
     "delete": "Delete",
     "deleteConfirm": "Delete this message? This cannot be undone.",
     "issue": {
       "mark": "Create an issue",
       "pill": "Issue requested",
-      "pending": "Issue creation is queued — the routine will file it.",
       "undo": "Undo",
       "requestBody": "Please **do not implement** this topic — open a GitHub issue for it instead. Then set `status = issue_created` and put the issue URL into `ship_ref`; the topic goes through the usual sign-off from there like any other outcome."
     },
@@ -2337,12 +2303,8 @@
       "review": "Sign-off"
     },
     "thread": {
-      "routine": "Routine",
-      "routineBadge": "Auto",
       "reply": "Reply",
       "replyPlaceholder": "Write a reply… (Markdown supported)",
-      "foldExpand": "Show {{count}} message(s) in between",
-      "foldCollapse": "Hide the {{count}} message(s) in between again",
       "reopenHint": "Replying reopens this archived topic — it goes back to ToDo and the routine picks it up again."
     },
     "compose": {
@@ -2372,60 +2334,6 @@
       "screenshotFailed": "Screenshot failed.",
       "attachFile": "Attach image",
       "attachMenu": "Attach"
-    },
-    "view": {
-      "label": "Switch view",
-      "overview": "Overview",
-      "workflow": "Process",
-      "progress": "Progress"
-    },
-    "cheer": {
-      "shipped": "{{count}} freshly shipped — nice!"
-    },
-    "workflow": {
-      "progress": "{{current}} of {{total}}",
-      "skip": "Skip",
-      "skippedCount": "{{count}} skipped",
-      "skippedBadge": "Skipped",
-      "lapWrapped": "Round done — back to the skipped topics",
-      "done": "Done",
-      "advanced": "Done – on to {{current}} of {{total}}",
-      "answerPlaceholder": "Write an answer… (Markdown supported, Enter to send)",
-      "answerSend": "Answer",
-      "openQuestion": "Open question",
-      "cheerAnswered": "Question answered — the routine takes it from here.",
-      "allDoneTitle": "All caught up",
-      "allDoneHint": "No open questions, nothing to sign off. Your ToDos sit with the routine — they land here as soon as it needs something from you.",
-      "kind": {
-        "question": "Question",
-        "review": "Sign-off",
-        "new": "ToDo"
-      },
-      "scope": {
-        "label": "Scope",
-        "mine": "Mine",
-        "others": "Other admins",
-        "all": "All",
-        "showAll": "Show all"
-      },
-      "scopeEmptyTitle": "Nothing open in this scope",
-      "scopeEmptyHint": "{{count}} topic(s) sit in another scope.",
-      "cheerReplied": "Noted! On to the next one.",
-      "kindFilter": {
-        "label": "Show only one kind of step",
-        "all": "All",
-        "question": "Questions",
-        "review": "Sign-offs"
-      },
-      "threadExpand": "Show {{count}} earlier message(s)",
-      "threadCollapse": "Hide earlier messages again",
-      "kindEmptyTitle": "Nothing of this kind right now",
-      "kindEmptyHint": "{{count}} topic(s) are waiting under \"All\".",
-      "kindShowAll": "Show all",
-      "swipeHint": "Tip: swipe the card left to skip, right to take the decision.",
-      "swipeSkip": "Skip",
-      "swipeDone": "Done",
-      "swipeAccept": "Accept"
     },
     "dashboard": {
       "thisMonth": "This month",
@@ -2495,7 +2403,6 @@
       "lifecycleOutcome": "End state — one of the two"
     },
     "userTopic": {
-      "badge": "User feedback",
       "untriaged": "Not released",
       "release": "Release to the routine",
       "channelTitle": "Channel to the user",
@@ -2548,16 +2455,9 @@
       "headlineIssue": "Handed to an issue — please sign off",
       "hint": "Look at the result on the live app. If it is right, the topic is done. If it is not, pick the conversation back up — the topic returns to the routine’s queue.",
       "accept": "To the archive — done",
-      "reopen": "Resume the conversation",
-      "reopenHint": "Say briefly what is still off — this reopens the topic and the routine reads your answer as the brief.",
-      "reopenPlaceholder": "What should be different?",
-      "reopenSend": "Send & reopen",
-      "reopenCancel": "Cancel"
+      "reopen": "Resume the conversation"
     },
     "sourceFilter": {
-      "label": "Switch between admin topics and user feedback",
-      "admin": "Admins",
-      "user": "Users",
       "untriagedHint": "User feedback here is still waiting to be released to the routine."
     },
     "stream": {
@@ -2578,8 +2478,7 @@
       "backToStream": "Back to the stream",
       "collapseBand": "Collapse {{band}}",
       "expandBand": "Expand {{band}}",
-      "waitingSince": "since {{time}}",
-      "newTopic": "New topic"
+      "waitingSince": "since {{time}}"
     },
     "turn": {
       "admin": "Your move",
@@ -2616,16 +2515,11 @@
     },
     "sheet": {
       "close": "Back to the list",
-      "topic": "Topic",
-      "firstMessage": "First message",
-      "latest": "Latest message",
       "showOneMore": "Show 1 more ({{count}} in between)",
       "hideBetween": "Hide the messages in between",
       "readMore": "Show more",
       "readLess": "Show less",
-      "options": "Answer with one tap",
-      "quickAnswer": "Answer",
-      "cancel": "Cancel"
+      "options": "Answer with one tap"
     },
     "filters": {
       "title": "Filter",
@@ -2645,7 +2539,6 @@
     },
     "actions": {
       "viewInApp": "View in the app",
-      "messageAuthor": "Message the user",
       "more": "More actions"
     }
   },
