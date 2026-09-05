@@ -39,5 +39,6 @@ Formula: `src/app/news/patch-stability.ts` — the ONLY place. The DB stores raw
 - `curl -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" "$SUPABASE_URL/functions/v1/patch-stability-sample?force=1"` → run now.
 - `…?backfill=1` (same header) → (re)register every LIVE line with its end-state (idempotent).
 - The board shows a chip only with ≥ 2 samples and ≥ 10 replies (a historical line needs only the reply floor); "early" = < 14 live days.
+- The all-time chart (`sc-stability-history`) sits on `patch-board.component.ts`, directly under `<sc-patch-monitor>` and above the search field — not next to any cadence KPIs (that band was removed with the old `patch-notes-section` host).
 - Live velocity is measured as new replies per day across both threads; historical velocity is release-notes replies over the whole lifetime. The two are deliberately different bases, so older columns in the all-time chart read quieter than the newest one — don't "fix" that by making them match.
 - The plain daily path (no query params) is unauthenticated and self-throttled (6 h) — that is what pg_cron calls; a failed throttle lookup fails CLOSED (skips).
