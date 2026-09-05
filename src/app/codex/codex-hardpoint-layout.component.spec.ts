@@ -118,12 +118,17 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(el.querySelector('.tag.dmg')).toBeTruthy(); // the ENERGY badge
   });
 
-  it('renders every curated stat with its unit', () => {
+  it('renders the headline stat as the right-hand figure, the rest in the dl', () => {
     const el = render([{ section: 'weapons', slots: [PANTHER] }]);
+    // MASTER §6: "right figure (…) with delta chip when changed" — the FIRST
+    // curated stat becomes the row's one headline figure, not just another
+    // <dl> entry.
+    expect(el.querySelector('.fig .n')?.textContent?.trim()).toBe('43.65');
+    expect(el.querySelector('.fig .u')?.textContent?.trim()).toBe('codex.equipped.alphaDamage');
     const values = Array.from(el.querySelectorAll('.slot-stats dd')).map((d) =>
       d.textContent?.trim(),
     );
-    expect(values).toEqual(['43.65', '1,480 m/s', '1,924 m', '0.09 m']);
+    expect(values).toEqual(['1,480 m/s', '1,924 m', '0.09 m']);
     // Derived rows stay marked so nobody reads them as extracted values.
     expect(el.querySelectorAll('.slot-stats .derived').length).toBe(1);
   });
@@ -502,11 +507,14 @@ describe('CodexHardpointLayoutComponent', () => {
       s.getAttribute('data-sec'),
     );
     expect(order).toEqual(['missiles', 'countermeasures']);
-    // The rack leads with what it CARRIES, not only with its own size.
-    const rackStats = Array.from(
-      el.querySelectorAll('.mod-sec[data-sec="missiles"] .slot-stats dd'),
-    ).map((d) => d.textContent?.trim());
-    expect(rackStats).toEqual(['4', 'S2']);
+    // The rack leads with what it CARRIES, not only with its own size — the
+    // count is the row's headline figure, the size stays in the secondary dl.
+    const missilesSec = el.querySelector('.mod-sec[data-sec="missiles"]');
+    expect(missilesSec?.querySelector('.fig .n')?.textContent?.trim()).toBe('4');
+    const rackStats = Array.from(missilesSec?.querySelectorAll('.slot-stats dd') ?? []).map(
+      (d) => d.textContent?.trim(),
+    );
+    expect(rackStats).toEqual(['S2']);
     // The launcher still opens its stat sheet — it just isn't a swap any more
     // (32659942), so the block wears the "not configurable" tag.
     const cm = el.querySelector('.mod-sec[data-sec="countermeasures"]');

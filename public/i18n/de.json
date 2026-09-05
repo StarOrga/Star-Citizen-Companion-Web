@@ -1202,6 +1202,7 @@
     "equipped": {
       "alphaDamage": "Alpha-Schaden",
       "dps": "DPS",
+      "sustainedDps": "Dauer-DPS",
       "fireRate": "Feuerrate",
       "projectileSpeed": "Geschossgeschwindigkeit",
       "range": "Reichweite",
@@ -1254,11 +1255,11 @@
       "adminHint": "Veröffentlichen macht den Link oben für alle Nutzer sichtbar. Nutzer-Links werden nie automatisch veröffentlicht."
     },
     "moduleSection": {
-      "weapons": "Waffen",
+      "weapons": "Bewaffnung",
       "remoteTurrets": "Ferngesteuerte Türme",
-      "missiles": "Raketen & Bewaffnung",
+      "missiles": "Raketen",
       "pod": "Pods",
-      "shields": "Schilde",
+      "shields": "Schild-Generatoren",
       "powerPlants": "Generator",
       "quantum": "Quantenantrieb",
       "radar": "Radar & Sensoren",
@@ -1297,6 +1298,7 @@
       "toolSwap": "{{name}} tauschen",
       "peek": {
         "alphaTotal": "Alpha gesamt",
+        "sustainedDpsTotal": "Dauer-DPS gesamt",
         "missileTotal": "Salve gesamt",
         "budget": "Reaktor-Budget",
         "coolingTotal": "Kühlung gesamt"
