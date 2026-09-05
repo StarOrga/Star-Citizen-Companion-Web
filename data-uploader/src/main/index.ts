@@ -901,11 +901,39 @@ ipcMain.handle(
         // captured JWT would expire; re-read a fresh one per ingest call.
         () => freshToken(accessToken),
         ships,
-        (message, level) =>
-          event.sender.send('sc:skin:event', { jobId: 'upload', type: 'log', message, level: level ?? 'info' }),
-        uploadJob.hooksForSkins(),
+        (message, level) => {
+          // Mirror the bad news into main.log as well. A per-ship failure used
+          // to exist only in a renderer event nobody was listening for, so a
+          // run that shipped 21 of 309 ships left no trace of what went wrong
+          // with the other 288 — not on screen, not on disk.
+          if (level === 'warn' || level === 'error') log[level](`[skin-upload] ${message}`);
+          event.sender.send('sc:skin:event', { jobId: 'upload', type: 'log', message, level: level ?? 'info' });
+        },
+        {
+          ...uploadJob.hooksForSkins(),
+          onProgress: (done, total, shipId) => {
+            hub.update('upload', 'skins', total > 0 ? (done / total) * 100 : null);
+            event.sender.send('sc:skin:event', {
+              jobId: 'upload',
+              type: 'progress',
+              stage: 'skins',
+              current: done,
+              total,
+              detail: shipId,
+            });
+          },
+        },
       );
       uploadJob.update((s) => ({ ...s, skins: { ...s.skins, status: 'done' } }));
+      const live = results.filter((r) => r.ok && !r.empty).length;
+      const empty = results.filter((r) => r.empty).length;
+      const failed = results.filter((r) => !r.ok);
+      log.info(
+        `[skin-upload] ${results.length} ship(s): ${live} uploaded, ${empty} without a built livery, ${failed.length} failed`,
+      );
+      if (failed.length) {
+        log.warn(`[skin-upload] failed ships: ${failed.map((r) => `${r.ship_id} (${r.error})`).join(', ')}`);
+      }
       return results;
     } catch (err) {
       if (isInterrupt(err)) {
@@ -967,7 +995,15 @@ ipcMain.handle(
     // skins) is confirmed, so nothing on disk is needed any more — sweep the
     // leftovers of earlier runs too, not just this run's dir. Best-effort: the
     // per-run result is what the operator's status line reports.
-    await purgeAllExtracts(liveJobOutDirs(), installRootOf(outDir));
+    //
+    // Except the livery build cache: this is the ONE call site that knows which
+    // patch is current, so it is the only one allowed to reclaim a stale
+    // `skins-<version>` dir. Purging this patch's cache here would throw away
+    // the hours of glb work that make the next attempt cheap — and every ship
+    // that failed to upload would have to be rebuilt from scratch.
+    await purgeAllExtracts(liveJobOutDirs(), installRootOf(outDir), {
+      keepSkinsVersion: info?.version,
+    });
     return own;
   },
 );
